@@ -106,6 +106,69 @@ impl Selection {
         true
     }
 
+    /// Select the word containing the given cell position.
+    ///
+    /// Words are delimited by non-alphanumeric/non-underscore characters.
+    pub fn select_word(&mut self, pos: CellPos, rows: &[Vec<Cell>], cols: usize) {
+        if pos.row >= rows.len() {
+            return;
+        }
+        let row = &rows[pos.row];
+        let col = pos.col.min(cols.saturating_sub(1));
+
+        let is_word = |c: char| c.is_alphanumeric() || c == '_';
+
+        let ch = if col < row.len() { row[col].ch } else { ' ' };
+        if !is_word(ch) {
+            // Click on non-word char: select just that character
+            self.state = State::Selected {
+                start: CellPos {
+                    row: pos.row,
+                    col,
+                },
+                end: CellPos {
+                    row: pos.row,
+                    col,
+                },
+            };
+            return;
+        }
+
+        // Scan left
+        let mut start = col;
+        while start > 0 && start - 1 < row.len() && is_word(row[start - 1].ch) {
+            start -= 1;
+        }
+
+        // Scan right
+        let mut end = col;
+        while end + 1 < cols && end + 1 < row.len() && is_word(row[end + 1].ch) {
+            end += 1;
+        }
+
+        self.state = State::Selected {
+            start: CellPos {
+                row: pos.row,
+                col: start,
+            },
+            end: CellPos {
+                row: pos.row,
+                col: end,
+            },
+        };
+    }
+
+    /// Select the entire line at the given row.
+    pub fn select_line(&mut self, row: usize, cols: usize) {
+        self.state = State::Selected {
+            start: CellPos { row, col: 0 },
+            end: CellPos {
+                row,
+                col: cols.saturating_sub(1),
+            },
+        };
+    }
+
     /// Extract selected text from terminal rows.
     ///
     /// Returns the selected text as a string, with newlines between rows.
@@ -272,6 +335,44 @@ mod tests {
 
         let text = sel.extract_text(&rows, 12).unwrap();
         assert_eq!(text, "line\nSecond line\nThird");
+    }
+
+    #[test]
+    fn select_word() {
+        let rows = vec![make_row("hello world_test foo")];
+        let mut sel = Selection::new();
+        sel.select_word(CellPos { row: 0, col: 7 }, &rows, 20);
+
+        assert!(sel.is_active());
+        let text = sel.extract_text(&rows, 20).unwrap();
+        assert_eq!(text, "world_test");
+    }
+
+    #[test]
+    fn select_word_on_space() {
+        let rows = vec![make_row("hello world")];
+        let mut sel = Selection::new();
+        sel.select_word(CellPos { row: 0, col: 5 }, &rows, 11);
+
+        // Clicking on a space selects that single cell, but extract_text
+        // trims whitespace so it returns None — that's correct.
+        assert!(sel.is_active());
+        assert!(sel.extract_text(&rows, 11).is_none());
+    }
+
+    #[test]
+    fn select_line() {
+        let rows = vec![
+            make_row("first line "),
+            make_row("second line"),
+            make_row("third line "),
+        ];
+        let mut sel = Selection::new();
+        sel.select_line(1, 11);
+
+        assert!(sel.is_active());
+        let text = sel.extract_text(&rows, 11).unwrap();
+        assert_eq!(text, "second line");
     }
 
     #[test]

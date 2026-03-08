@@ -41,6 +41,11 @@ let
         scrollback_lines = cfg.behavior.scrollbackLines;
         copy_on_select = cfg.behavior.copyOnSelect;
       };
+      appearance = filterNulls {
+        background = cfg.appearance.background;
+        foreground = cfg.appearance.foreground;
+        opacity = cfg.appearance.opacity;
+      };
     };
 
   settingsYaml = pkgs.writeText "mado.yaml" (
@@ -115,6 +120,24 @@ in
       copyOnSelect = mkOption {
         type = types.nullOr types.bool;
         default = null;
+      };
+    };
+
+    appearance = {
+      background = mkOption {
+        type = types.nullOr types.str;
+        default = null;
+        description = "Background color as hex (e.g. '#2e3440').";
+      };
+      foreground = mkOption {
+        type = types.nullOr types.str;
+        default = null;
+        description = "Foreground color as hex (e.g. '#eceff4').";
+      };
+      opacity = mkOption {
+        type = types.nullOr types.float;
+        default = null;
+        description = "Window opacity (0.0 to 1.0).";
       };
     };
   };

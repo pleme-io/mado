@@ -17,6 +17,7 @@ pub enum PtyError {
     #[error("failed to allocate PTY pair: {0}")]
     Openpty(std::io::Error),
 
+    #[allow(dead_code)]
     #[error("failed to set terminal size: {0}")]
     Resize(std::io::Error),
 
@@ -121,6 +122,7 @@ impl Pty {
     }
 
     /// Resize the PTY to the given dimensions.
+    #[allow(dead_code)]
     pub fn resize(&self, cols: u16, rows: u16) -> Result<()> {
         let ws = libc::winsize {
             ws_row: rows,

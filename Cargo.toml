@@ -52,9 +52,18 @@ bytemuck = { version = "1", features = ["derive"] }
 # Unicode support
 unicode-width = "0.2"
 
+# Image decoding for Kitty graphics protocol
+image = { version = "0.25", default-features = false, features = ["png"] }
+
 # PTY and process management
 tokio = { version = "1", features = ["rt-multi-thread", "process", "io-util", "sync", "macros", "net"] }
 libc = "0.2"
+
+# macOS platform integration (safe Rust wrappers for Cocoa APIs)
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+objc2-foundation = { version = "0.3", features = ["NSString", "NSUserDefaults"] }
+objc2-app-kit = { version = "0.3", features = ["NSApplication", "NSWindow", "NSDockTile", "NSResponder"] }
 
 [dev-dependencies]
 tempfile = "3"

@@ -8,7 +8,7 @@
 //! - DECSC/DECRC saved cursor state
 //! - Sequence number damage tracking for efficient rendering
 
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::fmt;
 
 use unicode_width::UnicodeWidthChar;
@@ -28,6 +28,8 @@ impl CellAttrs {
     pub const BLINK: Self = Self(1 << 3);
     pub const INVERSE: Self = Self(1 << 4);
     pub const STRIKETHROUGH: Self = Self(1 << 5);
+    pub const DIM: Self = Self(1 << 6);
+    pub const HIDDEN: Self = Self(1 << 7);
 
     #[must_use]
     pub const fn contains(self, other: Self) -> bool {
@@ -43,6 +45,7 @@ impl CellAttrs {
     }
 
     #[must_use]
+    #[allow(dead_code)]
     pub const fn is_empty(self) -> bool {
         self.0 == 0
     }
@@ -93,7 +96,7 @@ impl Default for Color {
 }
 
 /// Standard 8-color ANSI palette (normal intensity).
-const ANSI_COLORS: [Color; 8] = [
+pub const ANSI_COLORS: [Color; 8] = [
     Color::new(0, 0, 0),       // 0 black
     Color::new(205, 49, 49),   // 1 red
     Color::new(13, 188, 121),  // 2 green
@@ -105,7 +108,7 @@ const ANSI_COLORS: [Color; 8] = [
 ];
 
 /// Bright ANSI palette (indices 8-15).
-const ANSI_BRIGHT_COLORS: [Color; 8] = [
+pub const ANSI_BRIGHT_COLORS: [Color; 8] = [
     Color::new(102, 102, 102), // 8  bright black
     Color::new(241, 76, 76),   // 9  bright red
     Color::new(35, 209, 139),  // 10 bright green
@@ -115,6 +118,18 @@ const ANSI_BRIGHT_COLORS: [Color; 8] = [
     Color::new(41, 184, 219),  // 14 bright cyan
     Color::new(255, 255, 255), // 15 bright white
 ];
+
+/// If the given color matches a standard ANSI color (0-7), return the bright variant.
+/// Used by the renderer for bold-as-bright behavior.
+#[must_use]
+pub fn bold_bright_color(color: &Color) -> Color {
+    for (i, c) in ANSI_COLORS.iter().enumerate() {
+        if color == c {
+            return ANSI_BRIGHT_COLORS[i];
+        }
+    }
+    *color
+}
 
 fn ansi_256_color(idx: u16) -> Color {
     match idx {
@@ -152,6 +167,8 @@ pub struct Cell {
     pub fg: Color,
     pub bg: Color,
     pub attrs: CellAttrs,
+    /// Hyperlink URL (from OSC 8). None for most cells.
+    pub hyperlink: Option<Box<String>>,
 }
 
 impl Cell {
@@ -183,6 +200,7 @@ impl Default for Cell {
             fg: Color::WHITE,
             bg: Color::BLACK,
             attrs: CellAttrs::NONE,
+            hyperlink: None,
         }
     }
 }
@@ -363,6 +381,158 @@ impl Grid {
 }
 
 // ---------------------------------------------------------------------------
+// Kitty graphics protocol
+// ---------------------------------------------------------------------------
+
+/// Decoded image data stored in the terminal's image cache.
+#[derive(Clone)]
+pub struct KittyImage {
+    /// Unique image ID assigned by the client or auto-generated.
+    pub id: u32,
+    /// RGBA pixel data (4 bytes per pixel).
+    pub data: Vec<u8>,
+    /// Image width in pixels.
+    pub width: u32,
+    /// Image height in pixels.
+    pub height: u32,
+    /// Sequence number when this image was last modified.
+    pub seqno: u64,
+}
+
+/// A placement of an image at a specific cell position.
+#[derive(Clone, Debug)]
+pub struct ImagePlacement {
+    /// Image ID (references KittyImage in the cache).
+    pub image_id: u32,
+    /// Placement ID (for targeted deletion).
+    pub placement_id: u32,
+    /// Column where this placement starts.
+    pub col: usize,
+    /// Row where this placement starts (absolute grid row, not scrollback-relative).
+    pub row: usize,
+    /// Number of columns to display in (0 = auto from image).
+    pub cols: usize,
+    /// Number of rows to display in (0 = auto from image).
+    pub rows: usize,
+    /// Pixel offset within the cell.
+    pub x_offset: u32,
+    pub y_offset: u32,
+    /// Source region crop (0 = full image).
+    pub src_x: u32,
+    pub src_y: u32,
+    pub src_width: u32,
+    pub src_height: u32,
+    /// Z-index for layering.
+    pub z_index: i32,
+}
+
+/// DCS handler state.
+enum DcsHandler {
+    /// DECRQSS — Request Setting State. Accumulates the setting identifier.
+    Decrqss(Vec<u8>),
+}
+
+/// Accumulator for multi-chunk Kitty image transmissions.
+struct KittyPending {
+    params: HashMap<u8, String>,
+    data_chunks: Vec<u8>,
+}
+
+impl KittyPending {
+    fn new(params: HashMap<u8, String>, data: Vec<u8>) -> Self {
+        Self {
+            params,
+            data_chunks: data,
+        }
+    }
+
+    fn param_u32(&self, key: u8) -> u32 {
+        self.params
+            .get(&key)
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(0)
+    }
+
+    fn param_char(&self, key: u8) -> char {
+        self.params
+            .get(&key)
+            .and_then(|v| v.chars().next())
+            .unwrap_or('\0')
+    }
+}
+
+/// Parse Kitty graphics APC payload: `key=value,key=value;base64data`
+fn parse_kitty_params(payload: &[u8]) -> (HashMap<u8, String>, Vec<u8>) {
+    // Find the semicolon separating params from data
+    let (param_part, data_part) = match payload.iter().position(|&b| b == b';') {
+        Some(pos) => (&payload[..pos], &payload[pos + 1..]),
+        None => (payload, &[] as &[u8]),
+    };
+
+    let mut params = HashMap::new();
+    let param_str = String::from_utf8_lossy(param_part);
+    for kv in param_str.split(',') {
+        if let Some((k, v)) = kv.split_once('=') {
+            if let Some(key_byte) = k.bytes().next() {
+                params.insert(key_byte, v.to_string());
+            }
+        }
+    }
+
+    // Decode base64 data
+    let decoded = if data_part.is_empty() {
+        Vec::new()
+    } else {
+        base64_decode_bytes(data_part)
+    };
+
+    (params, decoded)
+}
+
+/// Base64 decode to raw bytes (not string).
+fn base64_decode_bytes(input: &[u8]) -> Vec<u8> {
+    const TABLE: [u8; 256] = {
+        let mut t = [255u8; 256];
+        let mut i = 0u8;
+        while i < 26 {
+            t[(b'A' + i) as usize] = i;
+            t[(b'a' + i) as usize] = i + 26;
+            i += 1;
+        }
+        let mut d = 0u8;
+        while d < 10 {
+            t[(b'0' + d) as usize] = d + 52;
+            d += 1;
+        }
+        t[b'+' as usize] = 62;
+        t[b'/' as usize] = 63;
+        t
+    };
+
+    let mut out = Vec::with_capacity(input.len() * 3 / 4);
+    let mut buf: u32 = 0;
+    let mut bits: u32 = 0;
+
+    for &byte in input {
+        if byte == b'=' || byte == b'\n' || byte == b'\r' {
+            continue;
+        }
+        let val = TABLE[byte as usize];
+        if val == 255 {
+            continue;
+        }
+        buf = (buf << 6) | u32::from(val);
+        bits += 6;
+        if bits >= 8 {
+            bits -= 8;
+            out.push((buf >> bits) as u8);
+            buf &= (1 << bits) - 1;
+        }
+    }
+    out
+}
+
+// ---------------------------------------------------------------------------
 // Terminal
 // ---------------------------------------------------------------------------
 
@@ -392,8 +562,19 @@ pub struct Terminal {
     origin_mode: bool,
     cursor_keys_mode: bool,
     bracketed_paste: bool,
+    /// Insert mode (IRM): true = insert, false = replace.
+    insert_mode: bool,
+    /// Keypad application mode (DECKPAM): true = application, false = numeric.
+    keypad_app_mode: bool,
     /// Tracks whether the cursor is past the last column (pending wrap).
     wrap_pending: bool,
+
+    // Character set designation (G0/G1).
+    // false = ASCII (B), true = DEC Special Graphics (0).
+    charset_g0_graphics: bool,
+    charset_g1_graphics: bool,
+    /// true = GL points to G1 (shift-out), false = GL points to G0 (shift-in).
+    gl_is_g1: bool,
 
     // Mouse tracking
     mouse_mode: MouseMode,
@@ -424,6 +605,42 @@ pub struct Terminal {
     // Window title (from OSC 0/2)
     title: Option<String>,
 
+    // Current working directory (from OSC 7)
+    cwd: Option<String>,
+
+    // Bell state (BEL character received, cleared after read)
+    bell_pending: bool,
+
+    // Active hyperlink URI (from OSC 8, applied to subsequent cells)
+    active_hyperlink: Option<String>,
+
+    // OSC 52 clipboard content (set by terminal, read by main for clipboard sync)
+    clipboard_content: Option<String>,
+
+    // Shell integration markers (from OSC 133)
+    prompt_start_row: Option<usize>,
+
+    // Kitty keyboard protocol — progressive enhancement mode stack.
+    // Each entry is the flags bitmask pushed by the application.
+    // Bit 0 (1):  Disambiguate escape codes
+    // Bit 1 (2):  Report event types
+    // Bit 2 (4):  Report alternate keys
+    // Bit 3 (8):  Report all keys as escape codes
+    // Bit 4 (16): Report associated text
+    kitty_keyboard_stack: Vec<u32>,
+
+    // Kitty graphics protocol — image cache and placements
+    images: HashMap<u32, KittyImage>,
+    image_placements: Vec<ImagePlacement>,
+    next_image_id: u32,
+    pending_kitty: Option<KittyPending>,
+
+    // APC sequence accumulator (ESC _ ... ST)
+    apc_buf: Option<Vec<u8>>,
+
+    // DCS handler state
+    dcs_handler: Option<DcsHandler>,
+
     // VT parser
     parser: vte::Parser,
 }
@@ -444,13 +661,18 @@ impl fmt::Debug for Terminal {
 impl Terminal {
     #[must_use]
     pub fn new(cols: usize, rows: usize) -> Self {
+        Self::with_scrollback(cols, rows, 10_000)
+    }
+
+    #[must_use]
+    pub fn with_scrollback(cols: usize, rows: usize, max_scrollback: usize) -> Self {
         let mut tab_stops = vec![false; cols];
         for i in (0..cols).step_by(8) {
             tab_stops[i] = true;
         }
 
         Self {
-            primary: Grid::new(cols, rows, 10_000),
+            primary: Grid::new(cols, rows, max_scrollback),
             alternate: Grid::new(cols, rows, 0),
             use_alternate: false,
             cursor: Cursor::default(),
@@ -467,7 +689,12 @@ impl Terminal {
             origin_mode: false,
             cursor_keys_mode: false,
             bracketed_paste: false,
+            insert_mode: false,
+            keypad_app_mode: false,
             wrap_pending: false,
+            charset_g0_graphics: false,
+            charset_g1_graphics: false,
+            gl_is_g1: false,
             mouse_mode: MouseMode::Off,
             sgr_mouse: false,
             scroll_offset: 0,
@@ -478,6 +705,18 @@ impl Terminal {
             focus_reporting: false,
             last_char: ' ',
             title: None,
+            cwd: None,
+            bell_pending: false,
+            active_hyperlink: None,
+            clipboard_content: None,
+            prompt_start_row: None,
+            kitty_keyboard_stack: Vec::new(),
+            images: HashMap::new(),
+            image_placements: Vec::new(),
+            next_image_id: 1,
+            pending_kitty: None,
+            apc_buf: None,
+            dcs_handler: None,
             parser: vte::Parser::new(),
         }
     }
@@ -485,8 +724,56 @@ impl Terminal {
     // ── Public API ──────────────────────────────────────────────────
 
     pub fn feed(&mut self, bytes: &[u8]) {
+        // Intercept APC sequences (ESC _ G ... ST) for Kitty graphics.
+        // vte swallows APC content without dispatching, so we parse it manually.
+        let mut i = 0;
         let mut parser = std::mem::replace(&mut self.parser, vte::Parser::new());
-        parser.advance(self, bytes);
+
+        while i < bytes.len() {
+            // If we're inside an APC sequence, accumulate until ST
+            if let Some(ref mut buf) = self.apc_buf {
+                // ST = ESC \ (0x1b 0x5c) or 0x9c
+                if bytes[i] == 0x9c {
+                    let payload = std::mem::take(buf);
+                    self.apc_buf = None;
+                    self.handle_apc(&payload);
+                    i += 1;
+                    continue;
+                }
+                if bytes[i] == 0x1b && i + 1 < bytes.len() && bytes[i + 1] == b'\\' {
+                    let payload = std::mem::take(buf);
+                    self.apc_buf = None;
+                    self.handle_apc(&payload);
+                    i += 2;
+                    continue;
+                }
+                buf.push(bytes[i]);
+                i += 1;
+                continue;
+            }
+
+            // Detect APC start: ESC _ (0x1b 0x5f)
+            if bytes[i] == 0x1b && i + 1 < bytes.len() && bytes[i + 1] == b'_' {
+                self.apc_buf = Some(Vec::new());
+                i += 2;
+                continue;
+            }
+
+            // Find the next ESC that might start an APC
+            let start = i;
+            while i < bytes.len() {
+                if bytes[i] == 0x1b && i + 1 < bytes.len() && bytes[i + 1] == b'_' {
+                    break;
+                }
+                i += 1;
+            }
+
+            // Feed the non-APC portion to vte
+            if start < i {
+                parser.advance(self, &bytes[start..i]);
+            }
+        }
+
         self.parser = parser;
     }
 
@@ -519,6 +806,7 @@ impl Terminal {
     }
 
     #[must_use]
+    #[allow(dead_code)]
     pub fn cell(&self, row: usize, col: usize) -> &Cell {
         self.grid().cell(row, col)
     }
@@ -549,11 +837,17 @@ impl Terminal {
     }
 
     #[must_use]
+    pub fn keypad_app_mode(&self) -> bool {
+        self.keypad_app_mode
+    }
+
+    #[must_use]
     pub fn bracketed_paste(&self) -> bool {
         self.bracketed_paste
     }
 
     #[must_use]
+    #[allow(dead_code)]
     pub fn scroll_offset(&self) -> usize {
         self.scroll_offset
     }
@@ -609,6 +903,462 @@ impl Terminal {
     #[must_use]
     pub fn title(&self) -> Option<&str> {
         self.title.as_deref()
+    }
+
+    /// Current working directory (from OSC 7).
+    #[must_use]
+    #[allow(dead_code)]
+    pub fn cwd(&self) -> Option<&str> {
+        self.cwd.as_deref()
+    }
+
+    /// Check and clear the bell flag. Returns true if BEL was received.
+    pub fn take_bell(&mut self) -> bool {
+        std::mem::replace(&mut self.bell_pending, false)
+    }
+
+    /// Take pending clipboard content set by OSC 52.
+    pub fn take_clipboard(&mut self) -> Option<String> {
+        self.clipboard_content.take()
+    }
+
+    /// Row where the last shell prompt started (from OSC 133).
+    #[must_use]
+    #[allow(dead_code)]
+    pub fn prompt_start_row(&self) -> Option<usize> {
+        self.prompt_start_row
+    }
+
+    /// Full terminal reset (RIS). Preserves scrollback setting.
+    pub fn reset(&mut self) {
+        let cols = self.cols;
+        let rows = self.rows;
+        let max_scrollback = self.primary.max_scrollback;
+        *self = Terminal::with_scrollback(cols, rows, max_scrollback);
+    }
+
+    /// Soft terminal reset (DECSTR — CSI ! p).
+    /// Resets modes and attributes without clearing the screen or scrollback.
+    pub fn soft_reset(&mut self) {
+        self.cursor.visible = true;
+        self.origin_mode = false;
+        self.auto_wrap = true;
+        self.insert_mode = false;
+        self.keypad_app_mode = false;
+        self.cursor_keys_mode = false;
+        self.bracketed_paste = false;
+        self.pen_fg = Color::WHITE;
+        self.pen_bg = Color::BLACK;
+        self.pen_attrs = CellAttrs::NONE;
+        self.scroll_top = 0;
+        self.scroll_bottom = self.rows.saturating_sub(1);
+        self.saved_cursor = None;
+        self.saved_cursor_alt = None;
+        self.charset_g0_graphics = false;
+        self.charset_g1_graphics = false;
+        self.gl_is_g1 = false;
+        self.wrap_pending = false;
+        self.kitty_keyboard_stack.clear();
+        self.dirty();
+    }
+
+    /// Screen alignment test (DECALN — ESC # 8).
+    /// Fills the entire screen with 'E' characters.
+    fn fill_screen_with_e(&mut self) {
+        self.scroll_top = 0;
+        self.scroll_bottom = self.rows.saturating_sub(1);
+        self.cursor.row = 0;
+        self.cursor.col = 0;
+        self.wrap_pending = false;
+
+        let grid = self.grid_mut();
+        for row in 0..grid.visible_rows {
+            for col in 0..grid.cols {
+                let cell = grid.cell_mut(row, col);
+                cell.ch = 'E';
+                cell.fg = Color::WHITE;
+                cell.bg = Color::BLACK;
+                cell.attrs = CellAttrs::NONE;
+                cell.width = 1;
+                cell.extra = None;
+                cell.hyperlink = None;
+            }
+        }
+        self.dirty();
+    }
+
+    /// Map ASCII to DEC Special Graphics characters when the active charset uses graphics.
+    fn translate_charset(&self, ch: char) -> char {
+        let use_graphics = if self.gl_is_g1 {
+            self.charset_g1_graphics
+        } else {
+            self.charset_g0_graphics
+        };
+        if !use_graphics {
+            return ch;
+        }
+        // DEC Special Graphics character set (VT100 line drawing)
+        match ch {
+            '`' => '\u{25C6}', // ◆ diamond
+            'a' => '\u{2592}', // ▒ checkerboard
+            'b' => '\u{2409}', // HT symbol
+            'c' => '\u{240C}', // FF symbol
+            'd' => '\u{240D}', // CR symbol
+            'e' => '\u{240A}', // LF symbol
+            'f' => '\u{00B0}', // ° degree
+            'g' => '\u{00B1}', // ± plus/minus
+            'h' => '\u{2424}', // NL symbol
+            'i' => '\u{240B}', // VT symbol
+            'j' => '\u{2518}', // ┘ lower right corner
+            'k' => '\u{2510}', // ┐ upper right corner
+            'l' => '\u{250C}', // ┌ upper left corner
+            'm' => '\u{2514}', // └ lower left corner
+            'n' => '\u{253C}', // ┼ crossing lines
+            'o' => '\u{23BA}', // scan line 1
+            'p' => '\u{23BB}', // scan line 3
+            'q' => '\u{2500}', // ─ horizontal line
+            'r' => '\u{23BC}', // scan line 7
+            's' => '\u{23BD}', // scan line 9
+            't' => '\u{251C}', // ├ left tee
+            'u' => '\u{2524}', // ┤ right tee
+            'v' => '\u{2534}', // ┴ bottom tee
+            'w' => '\u{252C}', // ┬ top tee
+            'x' => '\u{2502}', // │ vertical line
+            'y' => '\u{2264}', // ≤ less-or-equal
+            'z' => '\u{2265}', // ≥ greater-or-equal
+            '{' => '\u{03C0}', // π pi
+            '|' => '\u{2260}', // ≠ not-equal
+            '}' => '\u{00A3}', // £ pound sterling
+            '~' => '\u{00B7}', // · middle dot
+            _ => ch,
+        }
+    }
+
+    /// Scroll viewport to the top of scrollback.
+    pub fn scroll_to_top(&mut self) {
+        let max = self.grid().scrollback_len();
+        self.scroll_offset = max;
+    }
+
+    /// Scroll viewport to the bottom (live view).
+    pub fn scroll_to_bottom(&mut self) {
+        self.scroll_offset = 0;
+    }
+
+    /// Current Kitty keyboard protocol flags (0 = protocol not active).
+    #[must_use]
+    pub fn kitty_keyboard_flags(&self) -> u32 {
+        self.kitty_keyboard_stack.last().copied().unwrap_or(0)
+    }
+
+    /// Access the image cache (image ID → decoded RGBA data).
+    #[must_use]
+    pub fn images(&self) -> &HashMap<u32, KittyImage> {
+        &self.images
+    }
+
+    /// Access current image placements.
+    #[must_use]
+    pub fn image_placements(&self) -> &[ImagePlacement] {
+        &self.image_placements
+    }
+
+    // ── Kitty graphics protocol ─────────────────────────────────────
+
+    /// Handle a complete APC sequence payload.
+    fn handle_apc(&mut self, payload: &[u8]) {
+        // Kitty graphics: payload starts with 'G'
+        if payload.first() != Some(&b'G') {
+            tracing::trace!("unhandled APC sequence (not Kitty graphics)");
+            return;
+        }
+
+        let (params, data) = parse_kitty_params(&payload[1..]);
+
+        // Check if this is a continuation of a multi-chunk transmission
+        let pending_complete = if let Some(ref mut pending) = self.pending_kitty {
+            pending.data_chunks.extend_from_slice(&data);
+            let more = params
+                .get(&b'm')
+                .and_then(|v| v.parse::<u32>().ok())
+                .unwrap_or(0);
+            more == 0
+        } else {
+            false
+        };
+
+        if pending_complete {
+            let pending = self.pending_kitty.take().unwrap();
+            self.process_kitty_image(&pending.params, &pending.data_chunks);
+            return;
+        }
+
+        if self.pending_kitty.is_some() {
+            // Still accumulating chunks
+            return;
+        }
+
+        // Check 'm' param for multi-chunk
+        let more = params
+            .get(&b'm')
+            .and_then(|v| v.parse::<u32>().ok())
+            .unwrap_or(0);
+
+        if more == 1 {
+            // First chunk of multi-chunk transmission
+            self.pending_kitty = Some(KittyPending::new(params, data));
+            return;
+        }
+
+        // Single-chunk transmission
+        self.process_kitty_image(&params, &data);
+    }
+
+    /// Process a complete Kitty graphics command.
+    fn process_kitty_image(&mut self, params: &HashMap<u8, String>, data: &[u8]) {
+        let action = params
+            .get(&b'a')
+            .and_then(|v| v.chars().next())
+            .unwrap_or('T');
+
+        match action {
+            't' | 'T' => self.kitty_transmit(params, data, action == 'T'),
+            'p' => self.kitty_place(params),
+            'd' => self.kitty_delete(params),
+            'q' => {
+                // Query: respond with OK for the image id
+                let id = params
+                    .get(&b'i')
+                    .and_then(|v| v.parse::<u32>().ok())
+                    .unwrap_or(0);
+                let resp = format!("\x1b_Gi={id};OK\x1b\\");
+                self.response_bytes.extend_from_slice(resp.as_bytes());
+            }
+            _ => {
+                tracing::trace!(action = %action, "unhandled Kitty graphics action");
+            }
+        }
+    }
+
+    /// Transmit (and optionally display) image data.
+    fn kitty_transmit(&mut self, params: &HashMap<u8, String>, data: &[u8], display: bool) {
+        let format = params
+            .get(&b'f')
+            .and_then(|v| v.parse::<u32>().ok())
+            .unwrap_or(32);
+        let width = params
+            .get(&b's')
+            .and_then(|v| v.parse::<u32>().ok())
+            .unwrap_or(0);
+        let height = params
+            .get(&b'v')
+            .and_then(|v| v.parse::<u32>().ok())
+            .unwrap_or(0);
+        let id = params
+            .get(&b'i')
+            .and_then(|v| v.parse::<u32>().ok())
+            .unwrap_or_else(|| {
+                let id = self.next_image_id;
+                self.next_image_id += 1;
+                id
+            });
+
+        // Decode image data to RGBA
+        let rgba = match format {
+            100 => {
+                // PNG format — decode using image crate
+                match image::load_from_memory_with_format(data, image::ImageFormat::Png) {
+                    Ok(img) => {
+                        let rgba_img = img.to_rgba8();
+                        Some((
+                            rgba_img.to_vec(),
+                            rgba_img.width(),
+                            rgba_img.height(),
+                        ))
+                    }
+                    Err(e) => {
+                        tracing::warn!("Kitty graphics: PNG decode error: {e}");
+                        None
+                    }
+                }
+            }
+            32 => {
+                // Direct RGBA
+                if width > 0 && height > 0 {
+                    Some((data.to_vec(), width, height))
+                } else {
+                    None
+                }
+            }
+            24 => {
+                // Direct RGB — convert to RGBA
+                if width > 0 && height > 0 {
+                    let mut rgba = Vec::with_capacity(data.len() / 3 * 4);
+                    for chunk in data.chunks(3) {
+                        if chunk.len() == 3 {
+                            rgba.extend_from_slice(chunk);
+                            rgba.push(255);
+                        }
+                    }
+                    Some((rgba, width, height))
+                } else {
+                    None
+                }
+            }
+            _ => {
+                tracing::trace!(format, "unsupported Kitty image format");
+                None
+            }
+        };
+
+        if let Some((rgba_data, w, h)) = rgba {
+            let image = KittyImage {
+                id,
+                data: rgba_data,
+                width: w,
+                height: h,
+                seqno: self.seqno,
+            };
+            self.images.insert(id, image);
+
+            // Send OK response
+            let resp = format!("\x1b_Gi={id};OK\x1b\\");
+            self.response_bytes.extend_from_slice(resp.as_bytes());
+
+            if display {
+                self.kitty_place_at_cursor(id, params);
+            }
+
+            self.dirty();
+            tracing::debug!(id, w, h, "Kitty image stored");
+        }
+    }
+
+    /// Place a previously transmitted image.
+    fn kitty_place(&mut self, params: &HashMap<u8, String>) {
+        let id = params
+            .get(&b'i')
+            .and_then(|v| v.parse::<u32>().ok())
+            .unwrap_or(0);
+        if !self.images.contains_key(&id) {
+            tracing::warn!(id, "Kitty place: image not found");
+            return;
+        }
+        self.kitty_place_at_cursor(id, params);
+        self.dirty();
+    }
+
+    /// Place an image at the current cursor position.
+    fn kitty_place_at_cursor(&mut self, image_id: u32, params: &HashMap<u8, String>) {
+        let placement_id = params
+            .get(&b'p')
+            .and_then(|v| v.parse::<u32>().ok())
+            .unwrap_or(0);
+        let cols = params
+            .get(&b'c')
+            .and_then(|v| v.parse::<usize>().ok())
+            .unwrap_or(0);
+        let rows = params
+            .get(&b'r')
+            .and_then(|v| v.parse::<usize>().ok())
+            .unwrap_or(0);
+        let x_offset = params
+            .get(&b'x')
+            .and_then(|v| v.parse::<u32>().ok())
+            .unwrap_or(0);
+        let y_offset = params
+            .get(&b'y')
+            .and_then(|v| v.parse::<u32>().ok())
+            .unwrap_or(0);
+        let src_x = params
+            .get(&b'X')
+            .and_then(|v| v.parse::<u32>().ok())
+            .unwrap_or(0);
+        let src_y = params
+            .get(&b'Y')
+            .and_then(|v| v.parse::<u32>().ok())
+            .unwrap_or(0);
+        let src_width = params
+            .get(&b'w')
+            .and_then(|v| v.parse::<u32>().ok())
+            .unwrap_or(0);
+        let src_height = params
+            .get(&b'h')
+            .and_then(|v| v.parse::<u32>().ok())
+            .unwrap_or(0);
+        let z_index = params
+            .get(&b'z')
+            .and_then(|v| v.parse::<i32>().ok())
+            .unwrap_or(0);
+
+        let placement = ImagePlacement {
+            image_id,
+            placement_id,
+            col: self.cursor.col,
+            row: self.cursor.row,
+            cols,
+            rows,
+            x_offset,
+            y_offset,
+            src_x,
+            src_y,
+            src_width,
+            src_height,
+            z_index,
+        };
+
+        self.image_placements.push(placement);
+    }
+
+    /// Delete images/placements per Kitty protocol 'd' action.
+    fn kitty_delete(&mut self, params: &HashMap<u8, String>) {
+        let what = params
+            .get(&b'd')
+            .and_then(|v| v.chars().next())
+            .unwrap_or('a');
+        let id = params
+            .get(&b'i')
+            .and_then(|v| v.parse::<u32>().ok())
+            .unwrap_or(0);
+        let placement_id = params
+            .get(&b'p')
+            .and_then(|v| v.parse::<u32>().ok())
+            .unwrap_or(0);
+
+        match what {
+            'a' | 'A' => {
+                // Delete all images and placements
+                self.images.clear();
+                self.image_placements.clear();
+            }
+            'i' | 'I' => {
+                // Delete by image id
+                if id > 0 {
+                    self.images.remove(&id);
+                    self.image_placements.retain(|p| p.image_id != id);
+                }
+            }
+            'p' | 'P' => {
+                // Delete by placement id within an image
+                if id > 0 && placement_id > 0 {
+                    self.image_placements
+                        .retain(|p| !(p.image_id == id && p.placement_id == placement_id));
+                }
+            }
+            'c' | 'C' => {
+                // Delete at cursor position
+                let col = self.cursor.col;
+                let row = self.cursor.row;
+                self.image_placements
+                    .retain(|p| !(p.col == col && p.row == row));
+            }
+            _ => {
+                tracing::trace!(what = %what, "unhandled Kitty delete type");
+            }
+        }
+
+        self.dirty();
+        tracing::debug!(what = %what, id, "Kitty image deleted");
     }
 
     // ── Internal helpers ────────────────────────────────────────────
@@ -672,9 +1422,21 @@ impl Terminal {
         let row = self.cursor.row;
         let col = self.cursor.col;
         if col < self.cols && row < self.rows {
+            // Insert mode (IRM): shift existing cells to the right
+            if self.insert_mode {
+                let grid = self.grid_mut();
+                let end = grid.cols.saturating_sub(char_width);
+                let line = grid.visible_row_mut(row);
+                for c in (col..end).rev() {
+                    let src = line[c].clone();
+                    line[c + char_width] = src;
+                }
+            }
+
             let fg = self.pen_fg;
             let bg = self.pen_bg;
             let attrs = self.pen_attrs;
+            let hyperlink = self.active_hyperlink.as_ref().map(|u| Box::new(u.clone()));
             let cell = self.grid_mut().cell_mut(row, col);
             cell.ch = ch;
             cell.fg = fg;
@@ -682,9 +1444,11 @@ impl Terminal {
             cell.attrs = attrs;
             cell.extra = None;
             cell.width = char_width as u8;
+            cell.hyperlink = hyperlink;
 
             // Wide chars occupy 2 cells — mark next cell as continuation
             if char_width == 2 && col + 1 < self.cols {
+                let hyperlink = self.active_hyperlink.as_ref().map(|u| Box::new(u.clone()));
                 let cont = self.grid_mut().cell_mut(row, col + 1);
                 cont.ch = ' ';
                 cont.width = 0;
@@ -692,6 +1456,7 @@ impl Terminal {
                 cont.bg = bg;
                 cont.attrs = attrs;
                 cont.extra = None;
+                cont.hyperlink = hyperlink;
             }
         }
 
@@ -852,16 +1617,23 @@ impl Terminal {
                     self.pen_attrs = CellAttrs::NONE;
                 }
                 1 => self.pen_attrs.insert(CellAttrs::BOLD),
+                2 => self.pen_attrs.insert(CellAttrs::DIM),
                 3 => self.pen_attrs.insert(CellAttrs::ITALIC),
                 4 => self.pen_attrs.insert(CellAttrs::UNDERLINE),
                 5 => self.pen_attrs.insert(CellAttrs::BLINK),
                 7 => self.pen_attrs.insert(CellAttrs::INVERSE),
+                8 => self.pen_attrs.insert(CellAttrs::HIDDEN),
                 9 => self.pen_attrs.insert(CellAttrs::STRIKETHROUGH),
-                22 => self.pen_attrs.remove(CellAttrs::BOLD),
+                22 => {
+                    // SGR 22 resets both bold and dim
+                    self.pen_attrs.remove(CellAttrs::BOLD);
+                    self.pen_attrs.remove(CellAttrs::DIM);
+                }
                 23 => self.pen_attrs.remove(CellAttrs::ITALIC),
                 24 => self.pen_attrs.remove(CellAttrs::UNDERLINE),
                 25 => self.pen_attrs.remove(CellAttrs::BLINK),
                 27 => self.pen_attrs.remove(CellAttrs::INVERSE),
+                28 => self.pen_attrs.remove(CellAttrs::HIDDEN),
                 29 => self.pen_attrs.remove(CellAttrs::STRIKETHROUGH),
                 30..=37 => self.pen_fg = ANSI_COLORS[(param - 30) as usize],
                 38 => self.parse_extended_color(&mut iter, true),
@@ -905,6 +1677,9 @@ impl vte::Perform for Terminal {
     fn print(&mut self, ch: char) {
         // Reset scroll offset when new content arrives
         self.scroll_offset = 0;
+
+        // Apply character set translation (DEC Special Graphics)
+        let ch = self.translate_charset(ch);
 
         // Combining characters (zero-width) append to the previous cell
         if UnicodeWidthChar::width(ch) == Some(0) {
@@ -960,8 +1735,17 @@ impl vte::Perform for Terminal {
                 self.dirty();
             }
             0x07 => {
-                // Bell — no-op for now
+                // Bell
+                self.bell_pending = true;
                 tracing::trace!("BEL");
+            }
+            0x0E => {
+                // SO — Shift Out: switch GL to G1
+                self.gl_is_g1 = true;
+            }
+            0x0F => {
+                // SI — Shift In: switch GL to G0
+                self.gl_is_g1 = false;
             }
             _ => {
                 tracing::trace!(byte, "unhandled execute byte");
@@ -969,9 +1753,47 @@ impl vte::Perform for Terminal {
         }
     }
 
-    fn hook(&mut self, _params: &vte::Params, _intermediates: &[u8], _ignore: bool, _action: char) {}
-    fn put(&mut self, _byte: u8) {}
-    fn unhook(&mut self) {}
+    fn hook(&mut self, params: &vte::Params, intermediates: &[u8], _ignore: bool, action: char) {
+        // DCS — Device Control String
+        // DECRQSS: DCS $ q <setting> ST → respond with DCS 1 $ r <value> ST
+        if intermediates == [b'$'] && action == 'q' {
+            // Accumulate the setting query in put() — store in dcs_buf
+            self.dcs_handler = Some(DcsHandler::Decrqss(Vec::new()));
+        } else {
+            tracing::trace!(?intermediates, action = %action, "unhandled DCS hook");
+            let _ = params;
+        }
+    }
+    fn put(&mut self, byte: u8) {
+        if let Some(DcsHandler::Decrqss(ref mut buf)) = self.dcs_handler {
+            buf.push(byte);
+        }
+    }
+    fn unhook(&mut self) {
+        if let Some(DcsHandler::Decrqss(ref query)) = self.dcs_handler {
+            // Respond to DECRQSS queries
+            let response = match query.as_slice() {
+                // SGR (Select Graphic Rendition)
+                b"m" => b"\x1bP1$r0m\x1b\\".to_vec(),
+                // DECSTBM (scroll region)
+                b"r" => {
+                    let top = self.scroll_top + 1;
+                    let bottom = self.scroll_bottom + 1;
+                    format!("\x1bP1$r{top};{bottom}r\x1b\\").into_bytes()
+                }
+                // DECSCL (conformance level) — report VT220
+                b"\"p" => b"\x1bP1$r62;1\"p\x1b\\".to_vec(),
+                // DECATR (character attribute) — report normal
+                b"\"q" => b"\x1bP1$r0\"q\x1b\\".to_vec(),
+                _ => {
+                    // Unknown query — respond with error
+                    b"\x1bP0$r\x1b\\".to_vec()
+                }
+            };
+            self.response_bytes.extend_from_slice(&response);
+        }
+        self.dcs_handler = None;
+    }
 
     fn osc_dispatch(&mut self, params: &[&[u8]], _bell_terminated: bool) {
         if params.is_empty() {
@@ -984,6 +1806,139 @@ impl vte::Perform for Terminal {
                     tracing::debug!(%title, "OSC set title");
                     self.title = Some(title);
                     self.dirty();
+                }
+            }
+            b"4" => {
+                // OSC 4 — Set/query color palette entry
+                // Query: OSC 4 ; <index> ; ? ST
+                // Set: OSC 4 ; <index> ; <color> ST
+                // For now, respond to queries with current palette colors
+                if params.len() >= 3 && params[2] == b"?" {
+                    if let Ok(idx_str) = std::str::from_utf8(params[1]) {
+                        if let Ok(idx) = idx_str.parse::<usize>() {
+                            if idx < 16 {
+                                let color = if idx < 8 {
+                                    ANSI_COLORS[idx]
+                                } else {
+                                    ANSI_BRIGHT_COLORS[idx - 8]
+                                };
+                                let response = format!(
+                                    "\x1b]4;{idx};rgb:{:02x}{:02x}/{:02x}{:02x}/{:02x}{:02x}\x1b\\",
+                                    color.r, color.r, color.g, color.g, color.b, color.b
+                                );
+                                self.response_bytes.extend_from_slice(response.as_bytes());
+                            }
+                        }
+                    }
+                }
+            }
+            b"7" => {
+                // OSC 7 — Current Working Directory
+                // Format: file://hostname/path
+                if params.len() > 1 {
+                    let uri = String::from_utf8_lossy(params[1]).into_owned();
+                    // Extract path from file:// URI
+                    let path = if let Some(stripped) = uri.strip_prefix("file://") {
+                        // Skip hostname (everything before the second /)
+                        stripped
+                            .find('/')
+                            .map_or(stripped, |idx| &stripped[idx..])
+                            .to_string()
+                    } else {
+                        uri
+                    };
+                    tracing::debug!(%path, "OSC 7 set CWD");
+                    self.cwd = Some(path);
+                }
+            }
+            b"8" => {
+                // OSC 8 — Hyperlinks
+                // Format: OSC 8 ; params ; URI ST  (empty URI = end hyperlink)
+                if params.len() >= 3 {
+                    let uri = String::from_utf8_lossy(params[2]).into_owned();
+                    if uri.is_empty() {
+                        self.active_hyperlink = None;
+                    } else {
+                        self.active_hyperlink = Some(uri);
+                    }
+                } else {
+                    self.active_hyperlink = None;
+                }
+            }
+            b"10" => {
+                // OSC 10 — Query/set foreground color
+                if params.len() >= 2 && params[1] == b"?" {
+                    let fg = self.pen_fg;
+                    let response = format!(
+                        "\x1b]10;rgb:{:02x}{:02x}/{:02x}{:02x}/{:02x}{:02x}\x1b\\",
+                        fg.r, fg.r, fg.g, fg.g, fg.b, fg.b
+                    );
+                    self.response_bytes.extend_from_slice(response.as_bytes());
+                }
+            }
+            b"11" => {
+                // OSC 11 — Query/set background color
+                if params.len() >= 2 && params[1] == b"?" {
+                    let bg = Color::BLACK; // default bg
+                    let response = format!(
+                        "\x1b]11;rgb:{:02x}{:02x}/{:02x}{:02x}/{:02x}{:02x}\x1b\\",
+                        bg.r, bg.r, bg.g, bg.g, bg.b, bg.b
+                    );
+                    self.response_bytes.extend_from_slice(response.as_bytes());
+                }
+            }
+            b"12" => {
+                // OSC 12 — Query/set cursor color
+                if params.len() >= 2 && params[1] == b"?" {
+                    let cursor_color = Color::WHITE;
+                    let response = format!(
+                        "\x1b]12;rgb:{:02x}{:02x}/{:02x}{:02x}/{:02x}{:02x}\x1b\\",
+                        cursor_color.r, cursor_color.r, cursor_color.g, cursor_color.g,
+                        cursor_color.b, cursor_color.b
+                    );
+                    self.response_bytes.extend_from_slice(response.as_bytes());
+                }
+            }
+            b"52" => {
+                // OSC 52 — Clipboard manipulation
+                // Format: OSC 52 ; <clipboard> ; <data> ST
+                // clipboard: c = clipboard, p = primary, s = secondary
+                // data: base64-encoded string, or ? to query
+                if params.len() >= 3 {
+                    let data = params[2];
+                    if data == b"?" {
+                        // Query — respond with empty (we don't expose clipboard to terminal)
+                        self.response_bytes.extend_from_slice(b"\x1b]52;c;\x1b\\");
+                    } else {
+                        // Set clipboard — decode base64
+                        let decoded = base64_decode(data);
+                        if let Some(text) = decoded {
+                            tracing::debug!(len = text.len(), "OSC 52 clipboard set");
+                            self.clipboard_content = Some(text);
+                        }
+                    }
+                }
+            }
+            b"133" => {
+                // OSC 133 — Shell integration (semantic prompts)
+                // A = prompt start, B = command start, C = command output, D = command end
+                if params.len() >= 2 {
+                    match params[1] {
+                        b"A" => {
+                            self.prompt_start_row = Some(self.cursor.row);
+                            tracing::trace!(row = self.cursor.row, "OSC 133 prompt start");
+                        }
+                        b"B" => {
+                            tracing::trace!("OSC 133 command start");
+                        }
+                        b"C" => {
+                            tracing::trace!("OSC 133 command output");
+                        }
+                        b"D" => {
+                            tracing::trace!("OSC 133 command end");
+                        }
+                        _ => {}
+                    }
                 }
             }
             _ => tracing::trace!(?params, "unhandled OSC sequence"),
@@ -1001,7 +1956,7 @@ impl vte::Perform for Terminal {
             params.iter().next().map_or(default, |p| (p[0] as usize).max(1))
         };
 
-        // Handle DEC private modes (CSI ? Ps h/l)
+        // Handle DEC private modes (CSI ? Ps h/l) and Kitty query (CSI ? u)
         if intermediates == [b'?'] {
             match action {
                 'h' => {
@@ -1016,6 +1971,13 @@ impl vte::Perform for Terminal {
                     }
                     return;
                 }
+                'u' => {
+                    // Kitty keyboard protocol: query current flags
+                    let flags = self.kitty_keyboard_flags();
+                    let response = format!("\x1b[?{flags}u");
+                    self.response_bytes.extend_from_slice(response.as_bytes());
+                    return;
+                }
                 _ => {
                     tracing::trace!(action = %action, "unhandled CSI ? sequence");
                     return;
@@ -1023,16 +1985,92 @@ impl vte::Perform for Terminal {
             }
         }
 
-        // Handle secondary DA (CSI > c)
+        // Handle CSI > ... (secondary DA or Kitty keyboard push)
         if intermediates == [b'>'] {
-            if action == 'c' {
-                // Secondary DA: report terminal type and version
-                // Format: CSI > Pp ; Pv ; Pc c
-                // 1 = VT220, 0 = firmware version, 0 = ROM version
-                self.response_bytes.extend_from_slice(b"\x1b[>1;0;0c");
-            } else {
-                tracing::trace!(action = %action, "unhandled CSI > sequence");
+            match action {
+                'c' => {
+                    // Secondary DA: report terminal type and version
+                    // Format: CSI > Pp ; Pv ; Pc c
+                    // 1 = VT220, 0 = firmware version, 0 = ROM version
+                    self.response_bytes.extend_from_slice(b"\x1b[>1;0;0c");
+                }
+                'u' => {
+                    // Kitty keyboard protocol: push flags onto stack
+                    let flags = params.iter().next().map_or(0, |p| p[0] as u32);
+                    self.kitty_keyboard_stack.push(flags);
+                    tracing::debug!(flags, depth = self.kitty_keyboard_stack.len(), "kitty keyboard push");
+                }
+                _ => {
+                    tracing::trace!(action = %action, "unhandled CSI > sequence");
+                }
             }
+            return;
+        }
+
+        // Handle CSI < ... (Kitty keyboard pop)
+        if intermediates == [b'<'] {
+            if action == 'u' {
+                let count = params.iter().next().map_or(1, |p| (p[0] as usize).max(1));
+                for _ in 0..count.min(self.kitty_keyboard_stack.len()) {
+                    self.kitty_keyboard_stack.pop();
+                }
+                tracing::debug!(depth = self.kitty_keyboard_stack.len(), "kitty keyboard pop");
+            } else {
+                tracing::trace!(action = %action, "unhandled CSI < sequence");
+            }
+            return;
+        }
+
+        // CSI ! p — DECSTR (Soft Terminal Reset)
+        if intermediates == [b'!'] && action == 'p' {
+            self.soft_reset();
+            tracing::debug!("soft terminal reset (DECSTR)");
+            return;
+        }
+
+        // CSI $ p — DECRQM ANSI modes
+        if intermediates == [b'$'] && action == 'p' {
+            let mode = params.iter().next().map_or(0, |p| p[0]);
+            // Pm: 1=set, 2=reset, 0=not recognized
+            let state = match mode {
+                4 => if self.insert_mode { 1 } else { 2 },  // IRM
+                20 => 2,  // LNM — always reset
+                _ => 0,
+            };
+            let response = format!("\x1b[{mode};{state}$y");
+            self.response_bytes.extend_from_slice(response.as_bytes());
+            return;
+        }
+
+        // CSI ? Ps $ p — DECRQM DEC private modes
+        if intermediates == [b'?', b'$'] && action == 'p' {
+            let mode = params.iter().next().map_or(0, |p| p[0]);
+            // Pm: 1=set, 2=reset, 0=not recognized, 3=permanently set, 4=permanently reset
+            let state = match mode {
+                1 => if self.cursor_keys_mode { 1 } else { 2 },    // DECCKM
+                6 => if self.origin_mode { 1 } else { 2 },         // DECOM
+                7 => if self.auto_wrap { 1 } else { 2 },           // DECAWM
+                12 => 2,                                            // Cursor blink (always off for now)
+                25 => if self.cursor.visible { 1 } else { 2 },     // DECTCEM
+                47 | 1047 | 1049 => if self.use_alternate { 1 } else { 2 }, // Alt screen
+                1000 => if self.mouse_mode == MouseMode::Normal { 1 } else { 2 },
+                1002 => if self.mouse_mode == MouseMode::ButtonEvent { 1 } else { 2 },
+                1003 => if self.mouse_mode == MouseMode::AnyEvent { 1 } else { 2 },
+                1004 => if self.focus_reporting { 1 } else { 2 },
+                1006 => if self.sgr_mouse { 1 } else { 2 },
+                2004 => if self.bracketed_paste { 1 } else { 2 },
+                2026 => if self.synchronized_output { 1 } else { 2 },
+                _ => 0,
+            };
+            let response = format!("\x1b[?{mode};{state}$y");
+            self.response_bytes.extend_from_slice(response.as_bytes());
+            return;
+        }
+
+        // CSI = c — Tertiary Device Attributes (DA3)
+        if intermediates == [b'='] && action == 'c' {
+            // Report unit ID: DCS ! | XXXXXXXX ST
+            self.response_bytes.extend_from_slice(b"\x1bP!|6D61646F\x1b\\");
             return;
         }
 
@@ -1275,6 +2313,56 @@ impl vte::Perform for Terminal {
                 // Report VT220 compatible terminal
                 self.response_bytes.extend_from_slice(b"\x1b[?62;22c");
             }
+            // CBT — Cursor Backward Tabulation
+            'Z' => {
+                let n = first_param(1);
+                for _ in 0..n {
+                    if self.cursor.col == 0 {
+                        break;
+                    }
+                    self.cursor.col -= 1;
+                    while self.cursor.col > 0
+                        && !self.tab_stops.get(self.cursor.col).copied().unwrap_or(false)
+                    {
+                        self.cursor.col -= 1;
+                    }
+                }
+                self.wrap_pending = false;
+                self.dirty();
+            }
+            // TBC — Tab Clear
+            'g' => {
+                let mode = params.iter().next().map_or(0, |p| p[0]);
+                match mode {
+                    0 => {
+                        if self.cursor.col < self.tab_stops.len() {
+                            self.tab_stops[self.cursor.col] = false;
+                        }
+                    }
+                    3 => {
+                        self.tab_stops.iter_mut().for_each(|t| *t = false);
+                    }
+                    _ => {}
+                }
+            }
+            // ANSI mode set (CSI Ps h) — non-DEC modes (DEC private uses ? prefix above)
+            'h' => {
+                for p in params.iter() {
+                    match p[0] {
+                        4 => self.insert_mode = true,  // IRM — Insert Mode
+                        _ => tracing::trace!(mode = p[0], "unhandled ANSI mode set"),
+                    }
+                }
+            }
+            // ANSI mode reset (CSI Ps l)
+            'l' => {
+                for p in params.iter() {
+                    match p[0] {
+                        4 => self.insert_mode = false,  // IRM — Replace Mode
+                        _ => tracing::trace!(mode = p[0], "unhandled ANSI mode reset"),
+                    }
+                }
+            }
             // DECSC — Save Cursor (alternate form)
             's' => self.save_cursor(),
             // DECRC — Restore Cursor (alternate form)
@@ -1289,9 +2377,7 @@ impl vte::Perform for Terminal {
         match (intermediates, byte) {
             // RIS — Full reset
             ([], b'c') => {
-                let cols = self.cols;
-                let rows = self.rows;
-                *self = Terminal::new(cols, rows);
+                self.reset();
                 tracing::debug!("terminal reset (RIS)");
             }
             // IND — Index (move cursor down, scroll if at bottom)
@@ -1323,11 +2409,68 @@ impl vte::Perform for Terminal {
             ([], b'7') => self.save_cursor(),
             // DECRC — Restore Cursor
             ([], b'8') => self.restore_cursor(),
+            // DECALN — Screen Alignment Display (ESC # 8)
+            ([b'#'], b'8') => self.fill_screen_with_e(),
+            // Character Set Designation — G0 set
+            ([b'('], b'0') => self.charset_g0_graphics = true,  // DEC Special Graphics
+            ([b'('], b'B') => self.charset_g0_graphics = false, // US ASCII
+            ([b'('], b'A') => self.charset_g0_graphics = false, // UK ASCII (treat as US)
+            // Character Set Designation — G1 set
+            ([b')'], b'0') => self.charset_g1_graphics = true,  // DEC Special Graphics
+            ([b')'], b'B') => self.charset_g1_graphics = false, // US ASCII
+            ([b')'], b'A') => self.charset_g1_graphics = false, // UK ASCII (treat as US)
+            // DECKPAM — Keypad Application Mode
+            ([], b'=') => self.keypad_app_mode = true,
+            // DECKPNM — Keypad Numeric Mode
+            ([], b'>') => self.keypad_app_mode = false,
             _ => {
                 tracing::trace!(byte, ?intermediates, "unhandled ESC dispatch");
             }
         }
     }
+}
+
+/// Simple base64 decoder (no external dependency).
+fn base64_decode(input: &[u8]) -> Option<String> {
+    const TABLE: [u8; 256] = {
+        let mut t = [255u8; 256];
+        let mut i = 0u8;
+        while i < 26 {
+            t[(b'A' + i) as usize] = i;
+            t[(b'a' + i) as usize] = i + 26;
+            i += 1;
+        }
+        let mut d = 0u8;
+        while d < 10 {
+            t[(b'0' + d) as usize] = d + 52;
+            d += 1;
+        }
+        t[b'+' as usize] = 62;
+        t[b'/' as usize] = 63;
+        t
+    };
+
+    let mut out = Vec::with_capacity(input.len() * 3 / 4);
+    let mut buf: u32 = 0;
+    let mut bits: u32 = 0;
+
+    for &byte in input {
+        if byte == b'=' || byte == b'\n' || byte == b'\r' {
+            continue;
+        }
+        let val = TABLE[byte as usize];
+        if val == 255 {
+            return None; // invalid character
+        }
+        buf = (buf << 6) | u32::from(val);
+        bits += 6;
+        if bits >= 8 {
+            bits -= 8;
+            out.push((buf >> bits) as u8);
+            buf &= (1 << bits) - 1;
+        }
+    }
+    String::from_utf8(out).ok()
 }
 
 // ---------------------------------------------------------------------------
@@ -1444,6 +2587,30 @@ mod tests {
         let b = term.cell(0, 1);
         assert!(b.attrs.is_empty());
         assert_eq!(b.fg, Color::WHITE);
+    }
+
+    #[test]
+    fn sgr_dim() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[2mX");
+        let cell = term.cell(0, 0);
+        assert!(cell.attrs.contains(CellAttrs::DIM));
+        // SGR 22 resets both bold and dim
+        term.feed(b"\x1b[22mY");
+        let cell = term.cell(0, 1);
+        assert!(!cell.attrs.contains(CellAttrs::DIM));
+    }
+
+    #[test]
+    fn sgr_hidden() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[8mX");
+        let cell = term.cell(0, 0);
+        assert!(cell.attrs.contains(CellAttrs::HIDDEN));
+        // SGR 28 resets hidden
+        term.feed(b"\x1b[28mY");
+        let cell = term.cell(0, 1);
+        assert!(!cell.attrs.contains(CellAttrs::HIDDEN));
     }
 
     #[test]
@@ -1803,6 +2970,79 @@ mod tests {
     }
 
     #[test]
+    fn bold_bright_substitution() {
+        // Standard ANSI red → bright red
+        let red = ANSI_COLORS[1];
+        let bright_red = bold_bright_color(&red);
+        assert_eq!(bright_red, ANSI_BRIGHT_COLORS[1]);
+
+        // Custom color (not in ANSI palette) → unchanged
+        let custom = Color::new(42, 42, 42);
+        assert_eq!(bold_bright_color(&custom), custom);
+    }
+
+    #[test]
+    fn cursor_backward_tabulation() {
+        let mut term = Terminal::new(80, 24);
+        // Move to column 20 (past tab stops at 0, 8, 16)
+        term.feed(b"\x1b[1;21H"); // col 20 (0-indexed)
+        assert_eq!(term.cursor().col, 20);
+
+        // CBT — move back 1 tab stop
+        term.feed(b"\x1b[Z");
+        assert_eq!(term.cursor().col, 16);
+
+        // CBT — move back 2 tab stops
+        term.feed(b"\x1b[2Z");
+        assert_eq!(term.cursor().col, 0);
+    }
+
+    #[test]
+    fn tab_clear() {
+        let mut term = Terminal::new(80, 24);
+        // Move to column 8 (tab stop)
+        term.feed(b"\x1b[1;9H");
+        assert_eq!(term.cursor().col, 8);
+
+        // Clear tab stop at current position
+        term.feed(b"\x1b[g");
+
+        // Tab from column 0 should skip column 8
+        term.feed(b"\x1b[1;1H");
+        term.feed(b"\t");
+        // With tab stop at 8 cleared, next stop is 16
+        assert_ne!(term.cursor().col, 8);
+    }
+
+    #[test]
+    fn tab_clear_all() {
+        let mut term = Terminal::new(80, 24);
+        // Clear all tab stops
+        term.feed(b"\x1b[3g");
+
+        // Tab should go to end of line
+        term.feed(b"\t");
+        assert_eq!(term.cursor().col, 79);
+    }
+
+    #[test]
+    fn osc_7_cwd() {
+        let mut term = Terminal::new(80, 24);
+        assert!(term.cwd().is_none());
+        term.feed(b"\x1b]7;file://localhost/home/user/code\x1b\\");
+        assert_eq!(term.cwd(), Some("/home/user/code"));
+    }
+
+    #[test]
+    fn with_scrollback_custom() {
+        let term = Terminal::with_scrollback(80, 24, 500);
+        assert_eq!(term.cols(), 80);
+        assert_eq!(term.rows(), 24);
+        // Fill beyond visible to test scrollback limit
+        // (500 is the max, not tested here for brevity)
+    }
+
+    #[test]
     fn cell_write_to_with_combining() {
         let mut cell = Cell::default();
         cell.ch = 'e';
@@ -1812,5 +3052,271 @@ mod tests {
         // Decomposed form: base char + combining char
         assert_eq!(buf, "e\u{0301}");
         assert_eq!(buf.chars().count(), 2);
+    }
+
+    #[test]
+    fn bell_pending() {
+        let mut term = Terminal::new(80, 24);
+        assert!(!term.take_bell());
+        // Send BEL character
+        term.feed(b"\x07");
+        assert!(term.take_bell());
+        // Should be cleared after take
+        assert!(!term.take_bell());
+    }
+
+    #[test]
+    fn osc_8_hyperlink() {
+        let mut term = Terminal::new(80, 24);
+        // Start hyperlink
+        term.feed(b"\x1b]8;;https://example.com\x1b\\");
+        term.feed(b"link");
+        // End hyperlink
+        term.feed(b"\x1b]8;;\x1b\\");
+        term.feed(b" text");
+
+        // Cells within the hyperlink should have the URL
+        assert_eq!(
+            term.cell(0, 0).hyperlink.as_deref().map(String::as_str),
+            Some("https://example.com")
+        );
+        assert_eq!(
+            term.cell(0, 3).hyperlink.as_deref().map(String::as_str),
+            Some("https://example.com")
+        );
+        // Cell after the hyperlink should not
+        assert!(term.cell(0, 5).hyperlink.is_none());
+    }
+
+    #[test]
+    fn osc_52_clipboard_set() {
+        let mut term = Terminal::new(80, 24);
+        // "hello" base64-encoded = "aGVsbG8="
+        term.feed(b"\x1b]52;c;aGVsbG8=\x1b\\");
+        let content = term.take_clipboard();
+        assert_eq!(content, Some("hello".to_string()));
+        // Second call returns None
+        assert!(term.take_clipboard().is_none());
+    }
+
+    #[test]
+    fn osc_133_prompt_marker() {
+        let mut term = Terminal::new(80, 24);
+        assert!(term.prompt_start_row().is_none());
+        // Send prompt start marker
+        term.feed(b"\x1b]133;A\x1b\\");
+        assert_eq!(term.prompt_start_row(), Some(0));
+    }
+
+    #[test]
+    fn osc_10_query_fg_color() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b]10;?\x1b\\");
+        let response = term.take_response().unwrap();
+        let response_str = String::from_utf8_lossy(&response);
+        assert!(response_str.starts_with("\x1b]10;rgb:"));
+    }
+
+    #[test]
+    fn osc_11_query_bg_color() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b]11;?\x1b\\");
+        let response = term.take_response().unwrap();
+        let response_str = String::from_utf8_lossy(&response);
+        assert!(response_str.starts_with("\x1b]11;rgb:"));
+    }
+
+    #[test]
+    fn base64_decode_basic() {
+        assert_eq!(base64_decode(b"aGVsbG8="), Some("hello".to_string()));
+        assert_eq!(base64_decode(b"d29ybGQ="), Some("world".to_string()));
+        assert_eq!(base64_decode(b""), Some(String::new()));
+    }
+
+    #[test]
+    fn reset_preserves_scrollback() {
+        let mut term = Terminal::with_scrollback(80, 24, 500);
+        term.feed(b"Hello");
+        assert_eq!(term.cell(0, 0).ch, 'H');
+        term.reset();
+        assert_eq!(term.cell(0, 0).ch, ' ');
+        assert_eq!(term.cursor().row, 0);
+        assert_eq!(term.cursor().col, 0);
+        // Scrollback setting is preserved
+        assert_eq!(term.primary.max_scrollback, 500);
+    }
+
+    #[test]
+    fn scroll_to_top_and_bottom() {
+        let mut term = Terminal::new(10, 3);
+        for i in 0..10 {
+            let line = format!("LINE{i}\r\n");
+            term.feed(line.as_bytes());
+        }
+        let sb_len = term.primary.scrollback_len();
+        assert!(sb_len > 0);
+
+        term.scroll_to_top();
+        assert_eq!(term.scroll_offset(), sb_len);
+
+        term.scroll_to_bottom();
+        assert_eq!(term.scroll_offset(), 0);
+    }
+
+    #[test]
+    fn kitty_keyboard_push_pop() {
+        let mut term = Terminal::new(80, 24);
+        assert_eq!(term.kitty_keyboard_flags(), 0);
+
+        // Push flags=1 (disambiguate)
+        term.feed(b"\x1b[>1u");
+        assert_eq!(term.kitty_keyboard_flags(), 1);
+
+        // Push flags=3 (disambiguate + report event types)
+        term.feed(b"\x1b[>3u");
+        assert_eq!(term.kitty_keyboard_flags(), 3);
+
+        // Pop one
+        term.feed(b"\x1b[<u");
+        assert_eq!(term.kitty_keyboard_flags(), 1);
+
+        // Pop remaining
+        term.feed(b"\x1b[<u");
+        assert_eq!(term.kitty_keyboard_flags(), 0);
+    }
+
+    #[test]
+    fn kitty_keyboard_query() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[>5u"); // push flags=5
+        term.feed(b"\x1b[?u");  // query
+        let response = term.take_response().unwrap();
+        assert_eq!(response, b"\x1b[?5u");
+    }
+
+    #[test]
+    fn kitty_keyboard_pop_multiple() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[>1u");
+        term.feed(b"\x1b[>2u");
+        term.feed(b"\x1b[>3u");
+        assert_eq!(term.kitty_keyboard_flags(), 3);
+
+        // Pop 2
+        term.feed(b"\x1b[<2u");
+        assert_eq!(term.kitty_keyboard_flags(), 1);
+    }
+
+    #[test]
+    fn kitty_graphics_direct_rgba() {
+        let mut term = Terminal::new(80, 24);
+        // 2x2 red RGBA image, direct transmission + display
+        // 4 pixels * 4 bytes = 16 bytes of RGBA data
+        let rgba = [
+            255, 0, 0, 255, 255, 0, 0, 255,
+            255, 0, 0, 255, 255, 0, 0, 255,
+        ];
+        // Base64 encode the RGBA data
+        let b64 = base64_encode(&rgba);
+        let apc = format!("\x1b_Ga=T,f=32,s=2,v=2,i=1;{b64}\x1b\\");
+        term.feed(apc.as_bytes());
+
+        assert!(term.images().contains_key(&1));
+        let img = &term.images()[&1];
+        assert_eq!(img.width, 2);
+        assert_eq!(img.height, 2);
+        assert_eq!(img.data.len(), 16);
+        assert_eq!(term.image_placements().len(), 1);
+        assert_eq!(term.image_placements()[0].image_id, 1);
+    }
+
+    #[test]
+    fn kitty_graphics_multi_chunk() {
+        let mut term = Terminal::new(80, 24);
+        // Send a 1x1 RGBA image in two chunks
+        let rgba = [0, 255, 0, 255]; // green pixel
+        let b64 = base64_encode(&rgba);
+        let (first_half, second_half) = b64.split_at(b64.len() / 2);
+
+        // First chunk: m=1 (more coming)
+        let apc1 = format!("\x1b_Ga=T,f=32,s=1,v=1,i=42,m=1;{first_half}\x1b\\");
+        term.feed(apc1.as_bytes());
+        assert!(!term.images().contains_key(&42)); // Not yet complete
+
+        // Second chunk: m=0 (last)
+        let apc2 = format!("\x1b_Gm=0;{second_half}\x1b\\");
+        term.feed(apc2.as_bytes());
+        assert!(term.images().contains_key(&42));
+        assert_eq!(term.images()[&42].data, rgba);
+    }
+
+    #[test]
+    fn kitty_graphics_delete() {
+        let mut term = Terminal::new(80, 24);
+        let rgba = [255, 255, 255, 255];
+        let b64 = base64_encode(&rgba);
+
+        // Create two images
+        let apc1 = format!("\x1b_Ga=T,f=32,s=1,v=1,i=1;{b64}\x1b\\");
+        let apc2 = format!("\x1b_Ga=T,f=32,s=1,v=1,i=2;{b64}\x1b\\");
+        term.feed(apc1.as_bytes());
+        term.feed(apc2.as_bytes());
+        assert_eq!(term.images().len(), 2);
+        assert_eq!(term.image_placements().len(), 2);
+
+        // Delete image 1
+        term.feed(b"\x1b_Ga=d,d=i,i=1;\x1b\\");
+        assert_eq!(term.images().len(), 1);
+        assert!(!term.images().contains_key(&1));
+        assert_eq!(term.image_placements().len(), 1);
+
+        // Delete all
+        term.feed(b"\x1b_Ga=d,d=a;\x1b\\");
+        assert!(term.images().is_empty());
+        assert!(term.image_placements().is_empty());
+    }
+
+    #[test]
+    fn kitty_graphics_query() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b_Ga=q,i=99;\x1b\\");
+        let response = term.take_response().unwrap();
+        assert_eq!(std::str::from_utf8(&response).unwrap(), "\x1b_Gi=99;OK\x1b\\");
+    }
+
+    #[test]
+    fn apc_does_not_interfere_with_normal_text() {
+        let mut term = Terminal::new(80, 24);
+        // Normal text before and after APC
+        term.feed(b"AB\x1b_Ga=q,i=1;\x1b\\CD");
+        assert_eq!(term.cell(0, 0).ch, 'A');
+        assert_eq!(term.cell(0, 1).ch, 'B');
+        assert_eq!(term.cell(0, 2).ch, 'C');
+        assert_eq!(term.cell(0, 3).ch, 'D');
+    }
+
+    /// Simple base64 encoder for tests.
+    fn base64_encode(data: &[u8]) -> String {
+        const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        let mut out = String::new();
+        for chunk in data.chunks(3) {
+            let b0 = chunk[0] as u32;
+            let b1 = chunk.get(1).map_or(0, |&b| b as u32);
+            let b2 = chunk.get(2).map_or(0, |&b| b as u32);
+            let n = (b0 << 16) | (b1 << 8) | b2;
+            out.push(CHARS[((n >> 18) & 63) as usize] as char);
+            out.push(CHARS[((n >> 12) & 63) as usize] as char);
+            if chunk.len() > 1 {
+                out.push(CHARS[((n >> 6) & 63) as usize] as char);
+            } else {
+                out.push('=');
+            }
+            if chunk.len() > 2 {
+                out.push(CHARS[(n & 63) as usize] as char);
+            } else {
+                out.push('=');
+            }
+        }
+        out
     }
 }
