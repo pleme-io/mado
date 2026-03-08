@@ -1,0 +1,73 @@
+[package]
+name = "mado"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.89.0"
+description = "Mado (窓) — GPU-rendered terminal emulator following Ghostty's philosophy"
+homepage = "https://github.com/pleme-io/mado"
+repository = "https://github.com/pleme-io/mado"
+readme = "README.md"
+license = "MIT"
+documentation = "https://docs.rs/mado"
+categories = ["command-line-utilities"]
+keywords = ["terminal", "emulator", "gpu", "wgpu", "vte"]
+publish = true
+
+[lints.clippy]
+pedantic = "warn"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "z"
+strip = true
+
+[dependencies]
+# Pleme-io shared libraries (path deps for local dev, git for CI)
+garasu = { path = "../garasu" }
+madori = { path = "../madori" }
+shikumi = { path = "../shikumi" }
+hasami = { path = "../hasami" }
+
+# GPU rendering (via garasu, but needed for direct wgpu types in render code)
+wgpu = "25"
+
+# Re-export glyphon for text area construction
+glyphon = "0.9"
+
+# Terminal emulation
+vte = "0.15"
+
+# CLI and config
+clap = { version = "4", features = ["derive", "env"] }
+serde = { version = "1.0", features = ["derive"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+thiserror = "2"
+anyhow = "1"
+
+# GPU data upload
+bytemuck = { version = "1", features = ["derive"] }
+
+# Unicode support
+unicode-width = "0.2"
+
+# PTY and process management
+tokio = { version = "1", features = ["rt-multi-thread", "process", "io-util", "sync", "macros", "net"] }
+libc = "0.2"
+
+[dev-dependencies]
+tempfile = "3"
+
+# Unify path deps with git deps used by madori/garasu/shikumi
+[patch."https://github.com/pleme-io/garasu"]
+garasu = { path = "../garasu" }
+
+[patch."https://github.com/pleme-io/shikumi"]
+shikumi = { path = "../shikumi" }
+
+[patch."https://github.com/pleme-io/egaku"]
+egaku = { path = "../egaku" }
+
+[patch."https://github.com/pleme-io/hasami"]
+hasami = { path = "../hasami" }
