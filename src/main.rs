@@ -8,6 +8,7 @@
 
 mod config;
 mod keybind;
+mod mcp;
 mod pane;
 mod platform;
 mod pty;
@@ -46,14 +47,33 @@ struct Cli {
     /// Configuration file override
     #[arg(long, env = "MADO_CONFIG")]
     config: Option<std::path::PathBuf>,
+
+    #[command(subcommand)]
+    subcmd: Option<SubCmd>,
+}
+
+#[derive(clap::Subcommand)]
+enum SubCmd {
+    /// Run as MCP server (stdio transport) for Claude Code integration.
+    Mcp,
 }
 
 fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
+        .with_writer(std::io::stderr)
         .init();
 
     let cli = Cli::parse();
+
+    // Handle MCP subcommand before loading GUI config
+    if let Some(SubCmd::Mcp) = cli.subcmd {
+        let rt = tokio::runtime::Runtime::new()?;
+        rt.block_on(mcp::run())
+            .map_err(|e| anyhow::anyhow!("MCP server error: {e}"))?;
+        return Ok(());
+    }
+
     let (config, _config_store) = config::load_and_watch(&cli.config, |new_config| {
         tracing::info!("config reloaded: {:?}", new_config);
     })?;

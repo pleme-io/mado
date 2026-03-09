@@ -28,6 +28,9 @@ garasu = { path = "../garasu" }
 madori = { path = "../madori" }
 shikumi = { path = "../shikumi" }
 hasami = { path = "../hasami" }
+kaname = { path = "../kaname" }
+rmcp = { version = "0.15", features = ["server", "transport-io"] }
+schemars = "0.8"
 
 # GPU rendering (via garasu, but needed for direct wgpu types in render code)
 wgpu = "25"
@@ -41,6 +44,7 @@ vte = "0.15"
 # CLI and config
 clap = { version = "4", features = ["derive", "env"] }
 serde = { version = "1.0", features = ["derive"] }
+serde_json = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 thiserror = "2"
@@ -80,3 +84,6 @@ egaku = { path = "../egaku" }
 
 [patch."https://github.com/pleme-io/hasami"]
 hasami = { path = "../hasami" }
+
+[patch."https://github.com/pleme-io/kaname"]
+kaname = { path = "../kaname" }
