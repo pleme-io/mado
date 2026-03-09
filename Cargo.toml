@@ -23,12 +23,12 @@ opt-level = "z"
 strip = true
 
 [dependencies]
-# Pleme-io shared libraries (path deps for local dev, git for CI)
-garasu = { path = "../garasu" }
-madori = { path = "../madori" }
-shikumi = { path = "../shikumi" }
-hasami = { path = "../hasami" }
-kaname = { path = "../kaname" }
+# Pleme-io shared libraries
+garasu = { git = "https://github.com/pleme-io/garasu" }
+madori = { git = "https://github.com/pleme-io/madori" }
+shikumi = { git = "https://github.com/pleme-io/shikumi" }
+hasami = { git = "https://github.com/pleme-io/hasami" }
+kaname = { git = "https://github.com/pleme-io/kaname" }
 rmcp = { version = "0.15", features = ["server", "transport-io"] }
 schemars = "0.8"
 
@@ -71,19 +71,3 @@ objc2-app-kit = { version = "0.3", features = ["NSApplication", "NSWindow", "NSD
 
 [dev-dependencies]
 tempfile = "3"
-
-# Unify path deps with git deps used by madori/garasu/shikumi
-[patch."https://github.com/pleme-io/garasu"]
-garasu = { path = "../garasu" }
-
-[patch."https://github.com/pleme-io/shikumi"]
-shikumi = { path = "../shikumi" }
-
-[patch."https://github.com/pleme-io/egaku"]
-egaku = { path = "../egaku" }
-
-[patch."https://github.com/pleme-io/hasami"]
-hasami = { path = "../hasami" }
-
-[patch."https://github.com/pleme-io/kaname"]
-kaname = { path = "../kaname" }
