@@ -129,7 +129,9 @@ fn default_bindings() -> Vec<Keybinding> {
         Keybinding { hotkey: hk(none, Key::Escape), action: Action::SearchClose },
         Keybinding { hotkey: hk(cmd, Key::G), action: Action::SearchNext },
         Keybinding { hotkey: hk(cmd_shift, Key::G), action: Action::SearchPrev },
-        // Font — use Num0 for reset, map +/- via Char conversion upstream
+        // Font
+        Keybinding { hotkey: hk(cmd, Key::Equal), action: Action::FontIncrease },
+        Keybinding { hotkey: hk(cmd, Key::Minus), action: Action::FontDecrease },
         Keybinding { hotkey: hk(cmd, Key::Num0), action: Action::FontReset },
         // Tabs
         Keybinding { hotkey: hk(cmd, Key::T), action: Action::NewTab },

@@ -953,11 +953,10 @@ fn winit_to_awase_key(key: &madori::event::KeyCode, text: &Option<String>) -> Op
         madori::event::KeyCode::Tab => Some(awase::Key::Tab),
         madori::event::KeyCode::Backspace => Some(awase::Key::Backspace),
         madori::event::KeyCode::Delete => Some(awase::Key::Delete),
-        // Home/End/PageUp/PageDown not in awase::Key — handled via direct matching
-        madori::event::KeyCode::Home
-        | madori::event::KeyCode::End
-        | madori::event::KeyCode::PageUp
-        | madori::event::KeyCode::PageDown => None,
+        madori::event::KeyCode::Home => Some(awase::Key::Home),
+        madori::event::KeyCode::End => Some(awase::Key::End),
+        madori::event::KeyCode::PageUp => Some(awase::Key::PageUp),
+        madori::event::KeyCode::PageDown => Some(awase::Key::PageDown),
         madori::event::KeyCode::Up => Some(awase::Key::Up),
         madori::event::KeyCode::Down => Some(awase::Key::Down),
         madori::event::KeyCode::Left => Some(awase::Key::Left),
@@ -1033,8 +1032,11 @@ fn char_to_awase_key(ch: char) -> Option<awase::Key> {
         '8' => Some(awase::Key::Num8),
         '9' => Some(awase::Key::Num9),
         ' ' => Some(awase::Key::Space),
-        // Punctuation not in awase::Key — handled via direct matching
-        '+' | '=' | '-' | '[' | ']' => None,
+        '/' => Some(awase::Key::Slash),
+        '+' | '=' => Some(awase::Key::Equal),
+        '-' => Some(awase::Key::Minus),
+        ',' => Some(awase::Key::Comma),
+        '.' => Some(awase::Key::Period),
         _ => None,
     }
 }
