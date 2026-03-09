@@ -1,8 +1,8 @@
-//! Keybinding system — configurable key → action mapping.
+//! Keybinding system — configurable key -> action mapping via awase.
 //!
-//! Provides a default set of keybindings with user override support
-//! via configuration. Actions represent high-level terminal operations
-//! that main.rs dispatches.
+//! Uses `awase::Hotkey` and `awase::Binding` for key binding definitions,
+//! providing a consistent hotkey representation across pleme-io apps.
+//! Default keybindings use macOS-style Cmd as the primary modifier.
 
 use serde::{Deserialize, Serialize};
 
@@ -38,79 +38,10 @@ pub enum Action {
     ToggleFullscreen,
 }
 
-/// Modifier key state.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
-pub struct Modifiers {
-    pub ctrl: bool,
-    pub alt: bool,
-    pub shift: bool,
-    pub meta: bool,
-}
-
-impl Modifiers {
-    pub const NONE: Self = Self {
-        ctrl: false,
-        alt: false,
-        shift: false,
-        meta: false,
-    };
-
-    pub const META: Self = Self {
-        ctrl: false,
-        alt: false,
-        shift: false,
-        meta: true,
-    };
-
-    pub const CTRL: Self = Self {
-        ctrl: true,
-        alt: false,
-        shift: false,
-        meta: false,
-    };
-
-    pub const META_SHIFT: Self = Self {
-        ctrl: false,
-        alt: false,
-        shift: true,
-        meta: true,
-    };
-
-    #[must_use]
-    pub fn matches(&self, other: &Self) -> bool {
-        self.ctrl == other.ctrl
-            && self.alt == other.alt
-            && self.shift == other.shift
-            && self.meta == other.meta
-    }
-}
-
-/// A key identifier for binding purposes.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Key {
-    Char(char),
-    F(u8),
-    Enter,
-    Escape,
-    Tab,
-    Backspace,
-    Delete,
-    Home,
-    End,
-    PageUp,
-    PageDown,
-    Up,
-    Down,
-    Left,
-    Right,
-}
-
-/// A single keybinding mapping a key + modifiers to an action.
+/// A keybinding mapping an awase hotkey to a mado action.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Keybinding {
-    pub key: Key,
-    pub modifiers: Modifiers,
+    pub hotkey: awase::Hotkey,
     pub action: Action,
 }
 
@@ -128,31 +59,38 @@ impl KeybindManager {
         }
     }
 
-    /// Look up an action for the given key + modifiers.
+    /// Look up an action for the given awase hotkey.
     #[must_use]
-    pub fn lookup(&self, key: &Key, modifiers: &Modifiers) -> Option<Action> {
+    pub fn lookup(&self, hotkey: &awase::Hotkey) -> Option<Action> {
         self.bindings
             .iter()
-            .find(|b| b.key == *key && b.modifiers.matches(modifiers))
+            .find(|b| b.hotkey == *hotkey)
             .map(|b| b.action)
     }
 
-    /// Add or replace a keybinding.
-    pub fn bind(&mut self, key: Key, modifiers: Modifiers, action: Action) {
-        // Remove existing binding for this key+modifier combo
-        self.bindings
-            .retain(|b| !(b.key == key && b.modifiers.matches(&modifiers)));
-        self.bindings.push(Keybinding {
-            key,
-            modifiers,
-            action,
-        });
+    /// Look up an action using awase key + modifier components.
+    #[must_use]
+    pub fn lookup_key(&self, key: awase::Key, modifiers: awase::Modifiers) -> Option<Action> {
+        let hotkey = awase::Hotkey::new(modifiers, key);
+        self.lookup(&hotkey)
     }
 
-    /// Remove a keybinding for the given key + modifiers.
-    pub fn unbind(&mut self, key: &Key, modifiers: &Modifiers) {
-        self.bindings
-            .retain(|b| !(b.key == *key && b.modifiers.matches(modifiers)));
+    /// Add or replace a keybinding using an awase hotkey.
+    pub fn bind(&mut self, hotkey: awase::Hotkey, action: Action) {
+        self.bindings.retain(|b| b.hotkey != hotkey);
+        self.bindings.push(Keybinding { hotkey, action });
+    }
+
+    /// Add or replace a keybinding parsed from a string (e.g., "cmd+c").
+    pub fn bind_str(&mut self, hotkey_str: &str, action: Action) -> Result<(), awase::AwaseError> {
+        let hotkey = awase::Hotkey::parse(hotkey_str)?;
+        self.bind(hotkey, action);
+        Ok(())
+    }
+
+    /// Remove a keybinding for the given hotkey.
+    pub fn unbind(&mut self, hotkey: &awase::Hotkey) {
+        self.bindings.retain(|b| b.hotkey != *hotkey);
     }
 
     /// All current bindings.
@@ -168,110 +106,37 @@ impl Default for KeybindManager {
     }
 }
 
+/// Helper to create a binding from an awase hotkey.
+fn hk(modifiers: awase::Modifiers, key: awase::Key) -> awase::Hotkey {
+    awase::Hotkey::new(modifiers, key)
+}
+
 /// Default keybindings (macOS-style: Cmd as primary modifier).
 fn default_bindings() -> Vec<Keybinding> {
+    use awase::Key;
+    use awase::Modifiers;
+
+    let cmd = Modifiers::CMD;
+    let cmd_shift = Modifiers::CMD | Modifiers::SHIFT;
+    let none = Modifiers::NONE;
+
     vec![
         // Clipboard
-        Keybinding {
-            key: Key::Char('c'),
-            modifiers: Modifiers::META,
-            action: Action::Copy,
-        },
-        Keybinding {
-            key: Key::Char('v'),
-            modifiers: Modifiers::META,
-            action: Action::Paste,
-        },
+        Keybinding { hotkey: hk(cmd, Key::C), action: Action::Copy },
+        Keybinding { hotkey: hk(cmd, Key::V), action: Action::Paste },
         // Search
-        Keybinding {
-            key: Key::Char('f'),
-            modifiers: Modifiers::META,
-            action: Action::SearchOpen,
-        },
-        Keybinding {
-            key: Key::Escape,
-            modifiers: Modifiers::NONE,
-            action: Action::SearchClose,
-        },
-        Keybinding {
-            key: Key::Char('g'),
-            modifiers: Modifiers::META,
-            action: Action::SearchNext,
-        },
-        Keybinding {
-            key: Key::Char('g'),
-            modifiers: Modifiers::META_SHIFT,
-            action: Action::SearchPrev,
-        },
-        // Font
-        Keybinding {
-            key: Key::Char('+'),
-            modifiers: Modifiers::META,
-            action: Action::FontIncrease,
-        },
-        Keybinding {
-            key: Key::Char('-'),
-            modifiers: Modifiers::META,
-            action: Action::FontDecrease,
-        },
-        Keybinding {
-            key: Key::Char('0'),
-            modifiers: Modifiers::META,
-            action: Action::FontReset,
-        },
+        Keybinding { hotkey: hk(cmd, Key::F), action: Action::SearchOpen },
+        Keybinding { hotkey: hk(none, Key::Escape), action: Action::SearchClose },
+        Keybinding { hotkey: hk(cmd, Key::G), action: Action::SearchNext },
+        Keybinding { hotkey: hk(cmd_shift, Key::G), action: Action::SearchPrev },
+        // Font — use Num0 for reset, map +/- via Char conversion upstream
+        Keybinding { hotkey: hk(cmd, Key::Num0), action: Action::FontReset },
         // Tabs
-        Keybinding {
-            key: Key::Char('t'),
-            modifiers: Modifiers::META,
-            action: Action::NewTab,
-        },
-        Keybinding {
-            key: Key::Char('w'),
-            modifiers: Modifiers::META,
-            action: Action::CloseTab,
-        },
-        Keybinding {
-            key: Key::Char(']'),
-            modifiers: Modifiers::META_SHIFT,
-            action: Action::NextTab,
-        },
-        Keybinding {
-            key: Key::Char('['),
-            modifiers: Modifiers::META_SHIFT,
-            action: Action::PrevTab,
-        },
+        Keybinding { hotkey: hk(cmd, Key::T), action: Action::NewTab },
+        Keybinding { hotkey: hk(cmd, Key::W), action: Action::CloseTab },
         // Splits
-        Keybinding {
-            key: Key::Char('d'),
-            modifiers: Modifiers::META,
-            action: Action::SplitVertical,
-        },
-        Keybinding {
-            key: Key::Char('d'),
-            modifiers: Modifiers::META_SHIFT,
-            action: Action::SplitHorizontal,
-        },
-        // Scroll
-        Keybinding {
-            key: Key::PageUp,
-            modifiers: Modifiers::NONE,
-            action: Action::ScrollPageUp,
-        },
-        Keybinding {
-            key: Key::PageDown,
-            modifiers: Modifiers::NONE,
-            action: Action::ScrollPageDown,
-        },
-        Keybinding {
-            key: Key::Home,
-            modifiers: Modifiers::META,
-            action: Action::ScrollToTop,
-        },
-        Keybinding {
-            key: Key::End,
-            modifiers: Modifiers::META,
-            action: Action::ScrollToBottom,
-        },
+        Keybinding { hotkey: hk(cmd, Key::D), action: Action::SplitVertical },
+        Keybinding { hotkey: hk(cmd_shift, Key::D), action: Action::SplitHorizontal },
     ]
 }
 
@@ -288,65 +153,63 @@ mod tests {
     #[test]
     fn lookup_copy() {
         let mgr = KeybindManager::new();
-        let action = mgr.lookup(&Key::Char('c'), &Modifiers::META);
-        assert_eq!(action, Some(Action::Copy));
+        let hk = awase::Hotkey::new(awase::Modifiers::CMD, awase::Key::C);
+        assert_eq!(mgr.lookup(&hk), Some(Action::Copy));
     }
 
     #[test]
     fn lookup_paste() {
         let mgr = KeybindManager::new();
-        let action = mgr.lookup(&Key::Char('v'), &Modifiers::META);
-        assert_eq!(action, Some(Action::Paste));
+        let hk = awase::Hotkey::new(awase::Modifiers::CMD, awase::Key::V);
+        assert_eq!(mgr.lookup(&hk), Some(Action::Paste));
     }
 
     #[test]
     fn lookup_no_match() {
         let mgr = KeybindManager::new();
-        let action = mgr.lookup(&Key::Char('x'), &Modifiers::NONE);
-        assert!(action.is_none());
+        let hk = awase::Hotkey::new(awase::Modifiers::NONE, awase::Key::X);
+        assert_eq!(mgr.lookup(&hk), None);
     }
 
     #[test]
     fn custom_binding() {
         let mut mgr = KeybindManager::new();
-        mgr.bind(Key::Char('r'), Modifiers::CTRL, Action::ResetTerminal);
-        let action = mgr.lookup(&Key::Char('r'), &Modifiers::CTRL);
-        assert_eq!(action, Some(Action::ResetTerminal));
+        let hk = awase::Hotkey::new(awase::Modifiers::CTRL, awase::Key::R);
+        mgr.bind(hk, Action::ResetTerminal);
+        assert_eq!(mgr.lookup(&hk), Some(Action::ResetTerminal));
     }
 
     #[test]
     fn unbind() {
         let mut mgr = KeybindManager::new();
-        assert!(mgr.lookup(&Key::Char('c'), &Modifiers::META).is_some());
-        mgr.unbind(&Key::Char('c'), &Modifiers::META);
-        assert!(mgr.lookup(&Key::Char('c'), &Modifiers::META).is_none());
+        let hk = awase::Hotkey::new(awase::Modifiers::CMD, awase::Key::C);
+        assert!(mgr.lookup(&hk).is_some());
+        mgr.unbind(&hk);
+        assert!(mgr.lookup(&hk).is_none());
     }
 
     #[test]
     fn rebind_replaces() {
         let mut mgr = KeybindManager::new();
-        mgr.bind(Key::Char('c'), Modifiers::META, Action::ResetTerminal);
-        let action = mgr.lookup(&Key::Char('c'), &Modifiers::META);
-        assert_eq!(action, Some(Action::ResetTerminal));
+        let hk = awase::Hotkey::new(awase::Modifiers::CMD, awase::Key::C);
+        mgr.bind(hk, Action::ResetTerminal);
+        assert_eq!(mgr.lookup(&hk), Some(Action::ResetTerminal));
     }
 
     #[test]
-    fn modifiers_match() {
-        assert!(Modifiers::META.matches(&Modifiers::META));
-        assert!(!Modifiers::META.matches(&Modifiers::CTRL));
-        assert!(!Modifiers::META.matches(&Modifiers::NONE));
+    fn lookup_key_works() {
+        let mgr = KeybindManager::new();
+        let action = mgr.lookup_key(awase::Key::C, awase::Modifiers::CMD);
+        assert_eq!(action, Some(Action::Copy));
     }
 
     #[test]
     fn search_bindings() {
         let mgr = KeybindManager::new();
-        assert_eq!(
-            mgr.lookup(&Key::Char('f'), &Modifiers::META),
-            Some(Action::SearchOpen)
-        );
-        assert_eq!(
-            mgr.lookup(&Key::Escape, &Modifiers::NONE),
-            Some(Action::SearchClose)
-        );
+        let hk_open = awase::Hotkey::new(awase::Modifiers::CMD, awase::Key::F);
+        assert_eq!(mgr.lookup(&hk_open), Some(Action::SearchOpen));
+
+        let hk_close = awase::Hotkey::new(awase::Modifiers::NONE, awase::Key::Escape);
+        assert_eq!(mgr.lookup(&hk_close), Some(Action::SearchClose));
     }
 }

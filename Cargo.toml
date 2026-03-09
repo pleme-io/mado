@@ -28,6 +28,8 @@ garasu = { git = "https://github.com/pleme-io/garasu" }
 madori = { git = "https://github.com/pleme-io/madori" }
 shikumi = { git = "https://github.com/pleme-io/shikumi" }
 hasami = { git = "https://github.com/pleme-io/hasami" }
+soushi = { git = "https://github.com/pleme-io/soushi" }
+awase = { git = "https://github.com/pleme-io/awase" }
 kaname = { git = "https://github.com/pleme-io/kaname" }
 rmcp = { version = "0.15", features = ["server", "transport-io"] }
 schemars = "0.8"
@@ -49,6 +51,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 thiserror = "2"
 anyhow = "1"
+dirs = "6.0"
 
 # GPU data upload
 bytemuck = { version = "1", features = ["derive"] }

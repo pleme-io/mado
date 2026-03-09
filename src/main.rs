@@ -9,6 +9,7 @@
 mod config;
 mod keybind;
 mod mcp;
+mod scripting;
 mod pane;
 mod platform;
 mod pty;
@@ -30,7 +31,7 @@ use madori::event::{AppEvent, KeyEvent, MouseEvent};
 use madori::EventResponse;
 use tracing_subscriber::EnvFilter;
 
-use crate::keybind::{Action, Key, KeybindManager, Modifiers};
+use crate::keybind::{Action, KeybindManager};
 use crate::pane::SplitDir;
 use crate::render::{SharedTerminal, TerminalRenderer};
 use crate::selection::CellPos;
@@ -179,21 +180,31 @@ fn main() -> anyhow::Result<()> {
                     modifiers,
                     ..
                 }) => {
-                    // Map winit modifiers to our keybind Modifiers
-                    let mods = Modifiers {
-                        ctrl: modifiers.ctrl,
-                        alt: modifiers.alt,
-                        shift: modifiers.shift,
-                        meta: modifiers.meta,
-                    };
+                    // Map winit modifiers to awase modifiers
+                    let mut awase_mods = awase::Modifiers::NONE;
+                    if modifiers.ctrl {
+                        awase_mods = awase_mods | awase::Modifiers::CTRL;
+                    }
+                    if modifiers.alt {
+                        awase_mods = awase_mods | awase::Modifiers::ALT;
+                    }
+                    if modifiers.shift {
+                        awase_mods = awase_mods | awase::Modifiers::SHIFT;
+                    }
+                    if modifiers.meta {
+                        awase_mods = awase_mods | awase::Modifiers::CMD;
+                    }
 
-                    // Determine keybind Key from the event
-                    let bind_key = winit_to_bind_key(key, text);
+                    // Keep track of raw modifiers for non-keybind usage
+                    let mods = modifiers;
+
+                    // Determine awase key from the event
+                    let awase_key = winit_to_awase_key(key, text);
 
                     // Check for keybind action first
-                    let action = bind_key
-                        .as_ref()
-                        .and_then(|k| keybinds.lookup(k, &mods));
+                    let action = awase_key
+                        .map(|k| awase::Hotkey::new(awase_mods, k))
+                        .and_then(|hk| keybinds.lookup(&hk));
 
                     // Handle search mode input
                     {
@@ -934,36 +945,97 @@ fn kitty_tilde_seq(number: u32, modifiers: u32) -> Vec<u8> {
     }
 }
 
-/// Map madori key event to keybind Key.
-fn winit_to_bind_key(key: &madori::event::KeyCode, text: &Option<String>) -> Option<Key> {
+/// Map madori key event to awase Key.
+fn winit_to_awase_key(key: &madori::event::KeyCode, text: &Option<String>) -> Option<awase::Key> {
     match key {
-        madori::event::KeyCode::Enter => Some(Key::Enter),
-        madori::event::KeyCode::Escape => Some(Key::Escape),
-        madori::event::KeyCode::Tab => Some(Key::Tab),
-        madori::event::KeyCode::Backspace => Some(Key::Backspace),
-        madori::event::KeyCode::Delete => Some(Key::Delete),
-        madori::event::KeyCode::Home => Some(Key::Home),
-        madori::event::KeyCode::End => Some(Key::End),
-        madori::event::KeyCode::PageUp => Some(Key::PageUp),
-        madori::event::KeyCode::PageDown => Some(Key::PageDown),
-        madori::event::KeyCode::Up => Some(Key::Up),
-        madori::event::KeyCode::Down => Some(Key::Down),
-        madori::event::KeyCode::Left => Some(Key::Left),
-        madori::event::KeyCode::Right => Some(Key::Right),
-        madori::event::KeyCode::F(n) => Some(Key::F(*n)),
-        madori::event::KeyCode::Char(ch) => Some(Key::Char(*ch)),
-        madori::event::KeyCode::Space => Some(Key::Char(' ')),
+        madori::event::KeyCode::Enter => Some(awase::Key::Return),
+        madori::event::KeyCode::Escape => Some(awase::Key::Escape),
+        madori::event::KeyCode::Tab => Some(awase::Key::Tab),
+        madori::event::KeyCode::Backspace => Some(awase::Key::Backspace),
+        madori::event::KeyCode::Delete => Some(awase::Key::Delete),
+        // Home/End/PageUp/PageDown not in awase::Key — handled via direct matching
+        madori::event::KeyCode::Home
+        | madori::event::KeyCode::End
+        | madori::event::KeyCode::PageUp
+        | madori::event::KeyCode::PageDown => None,
+        madori::event::KeyCode::Up => Some(awase::Key::Up),
+        madori::event::KeyCode::Down => Some(awase::Key::Down),
+        madori::event::KeyCode::Left => Some(awase::Key::Left),
+        madori::event::KeyCode::Right => Some(awase::Key::Right),
+        madori::event::KeyCode::F(n) => match n {
+            1 => Some(awase::Key::F1),
+            2 => Some(awase::Key::F2),
+            3 => Some(awase::Key::F3),
+            4 => Some(awase::Key::F4),
+            5 => Some(awase::Key::F5),
+            6 => Some(awase::Key::F6),
+            7 => Some(awase::Key::F7),
+            8 => Some(awase::Key::F8),
+            9 => Some(awase::Key::F9),
+            10 => Some(awase::Key::F10),
+            11 => Some(awase::Key::F11),
+            12 => Some(awase::Key::F12),
+            _ => None,
+        },
+        madori::event::KeyCode::Char(ch) => char_to_awase_key(*ch),
+        madori::event::KeyCode::Space => Some(awase::Key::Space),
         _ => {
             // Try to extract from text
             if let Some(t) = text {
                 if let Some(ch) = t.chars().next() {
                     if t.len() == ch.len_utf8() {
-                        return Some(Key::Char(ch));
+                        return char_to_awase_key(ch);
                     }
                 }
             }
             None
         }
+    }
+}
+
+/// Map a character to an awase key.
+fn char_to_awase_key(ch: char) -> Option<awase::Key> {
+    match ch.to_ascii_lowercase() {
+        'a' => Some(awase::Key::A),
+        'b' => Some(awase::Key::B),
+        'c' => Some(awase::Key::C),
+        'd' => Some(awase::Key::D),
+        'e' => Some(awase::Key::E),
+        'f' => Some(awase::Key::F),
+        'g' => Some(awase::Key::G),
+        'h' => Some(awase::Key::H),
+        'i' => Some(awase::Key::I),
+        'j' => Some(awase::Key::J),
+        'k' => Some(awase::Key::K),
+        'l' => Some(awase::Key::L),
+        'm' => Some(awase::Key::M),
+        'n' => Some(awase::Key::N),
+        'o' => Some(awase::Key::O),
+        'p' => Some(awase::Key::P),
+        'q' => Some(awase::Key::Q),
+        'r' => Some(awase::Key::R),
+        's' => Some(awase::Key::S),
+        't' => Some(awase::Key::T),
+        'u' => Some(awase::Key::U),
+        'v' => Some(awase::Key::V),
+        'w' => Some(awase::Key::W),
+        'x' => Some(awase::Key::X),
+        'y' => Some(awase::Key::Y),
+        'z' => Some(awase::Key::Z),
+        '0' => Some(awase::Key::Num0),
+        '1' => Some(awase::Key::Num1),
+        '2' => Some(awase::Key::Num2),
+        '3' => Some(awase::Key::Num3),
+        '4' => Some(awase::Key::Num4),
+        '5' => Some(awase::Key::Num5),
+        '6' => Some(awase::Key::Num6),
+        '7' => Some(awase::Key::Num7),
+        '8' => Some(awase::Key::Num8),
+        '9' => Some(awase::Key::Num9),
+        ' ' => Some(awase::Key::Space),
+        // Punctuation not in awase::Key — handled via direct matching
+        '+' | '=' | '-' | '[' | ']' => None,
+        _ => None,
     }
 }
 
