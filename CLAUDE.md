@@ -1,58 +1,70 @@
 # Mado (窓) — GPU-Rendered Terminal Emulator
 
-Mado follows Ghostty's philosophy: **speed + features + native UI** without
-compromise. Pure Rust, GPU-accelerated via wgpu (Metal on macOS, Vulkan on
-Linux), zero-config defaults with deep configurability.
+A GPU-accelerated terminal emulator built in pure Rust. Follows Ghostty's philosophy
+of speed + features + native UI without compromise, but adds Rhai scripting, an
+embedded MCP server, and deep Nix integration that no competitor offers.
 
 ## Build & Test
 
 ```bash
 cargo build
 cargo run
-cargo test              # 114 tests
-RUST_LOG=debug cargo run  # with tracing
+cargo test                    # 114+ tests
+RUST_LOG=debug cargo run      # with tracing
+nix build                     # Nix package
+nix run .#rebuild             # rebuild HM module (from nix repo)
 ```
+
+## Competitive Position
+
+| vs | Mado advantage |
+|----|----------------|
+| **Ghostty** | Rhai scripting (Ghostty has none), embedded MCP server, plugin ecosystem, Nix-native config |
+| **WezTerm** | wgpu not OpenGL, pure Rust (no C deps), Nix-managed config via shikumi, MCP |
+| **Kitty** | Modal vim-style hotkeys (awase), MCP, Rhai scripting instead of Python kittens |
+| **Alacritty** | Split panes, tabs, scripting, MCP, plugins (Alacritty is intentionally minimal) |
+| **Rio** | Rhai not WASM, deeper Nix integration, MCP automation |
 
 ## Architecture
 
 ### Data Flow
 
 ```
-Shell → PTY (openpty) → async reader → vte parser → Terminal Grid
-                                                        ↓
-    GPU: clear → RectPipeline (cell bg + cursor + decorations) → glyphon text
-                                                        ↑
-Input Events → madori (winit) → event handler → Terminal Grid / PTY writer
-                                                        ↑
-Config ← shikumi (hot-reload, ArcSwap) ← ~/.config/mado/mado.yaml
+Shell --> PTY (openpty) --> async reader --> vte parser --> Terminal Grid
+                                                             |
+    GPU: clear --> RectPipeline (cell bg + cursor + decor) --> glyphon text
+                                                             ^
+Input Events --> madori (winit) --> event handler --> Terminal Grid / PTY writer
+                                                             ^
+Config <-- shikumi (hot-reload, ArcSwap) <-- ~/.config/mado/mado.yaml
 ```
 
-### Modules
+### Source Modules
 
-| Module | Purpose | Key Types |
-|--------|---------|-----------|
-| `terminal.rs` | VT100/xterm state machine | `Terminal`, `Grid`, `Cell`, `CellAttrs`, `Color`, `MouseMode` |
-| `render.rs` | Three-pass GPU pipeline | `TerminalRenderer`, `RectPipeline`, `Snapshot` |
-| `pty.rs` | PTY allocation + async I/O | `Pty`, `PtyReader`, `PtyWriter` |
-| `config.rs` | shikumi config with hot-reload | `MadoConfig`, `load_and_watch()` |
-| `selection.rs` | Mouse text selection | `Selection`, `CellPos` |
-| `search.rs` | Scrollback search | `SearchState`, `SearchMatch` |
-| `url.rs` | URL detection (no regex) | `DetectedUrl`, `detect_urls_in_row` |
-| `theme.rs` | Color theme system | `Theme`, 8 built-in themes |
-| `keybind.rs` | Configurable keybindings | `KeybindManager`, `Action`, `Key` |
-| `tab.rs` | Tab management | `TabManager`, `Tab`, `TabId` |
-| `pane.rs` | Split pane layout | `PaneManager`, `PaneNode`, `SplitDir` |
-| `window.rs` | Multi-pane/tab state | `WindowState`, `PaneTerminal` |
-| `main.rs` | Event loop, input dispatch | CLI, clipboard, double/triple click |
-| `platform.rs` | Platform-native integration | Pure safe Rust via objc2 (macOS styling, dark mode, dock badge) |
-| `module/default.nix` | Home-manager module | `blackmatter.components.mado.*` |
+| Module | Lines | Purpose | Key Types |
+|--------|-------|---------|-----------|
+| `terminal.rs` | ~3300 | VT100/xterm state machine | `Terminal`, `Grid`, `Cell`, `CellAttrs`, `Color`, `MouseMode` |
+| `render.rs` | ~2350 | Three-pass GPU pipeline | `TerminalRenderer`, `RectPipeline`, `Snapshot` |
+| `main.rs` | ~1000 | Event loop, input dispatch | CLI args, clipboard, double/triple click, pane/tab wiring |
+| `selection.rs` | ~390 | Mouse text selection | `Selection`, `CellPos` |
+| `config.rs` | ~380 | shikumi config with hot-reload | `MadoConfig`, `load_and_watch()` |
+| `window.rs` | ~380 | Multi-pane/tab state | `WindowState`, `PaneTerminal` |
+| `keybind.rs` | ~350 | Configurable keybindings | `KeybindManager`, `Action`, `Key` |
+| `pane.rs` | ~340 | Split pane layout | `PaneManager`, `PaneNode`, `SplitDir` |
+| `pty.rs` | ~330 | PTY allocation + async I/O | `Pty`, `PtyReader`, `PtyWriter` |
+| `theme.rs` | ~280 | Color theme system | `Theme`, 8 built-in themes (Nord, Dracula, etc.) |
+| `search.rs` | ~270 | Scrollback search | `SearchState`, `SearchMatch` |
+| `tab.rs` | ~220 | Tab management | `TabManager`, `Tab`, `TabId` |
+| `url.rs` | ~180 | URL detection (no regex) | `DetectedUrl`, `detect_urls_in_row` |
+| `platform.rs` | ~95 | Platform-native integration | Pure safe Rust via objc2 (macOS styling, dark mode, dock badge) |
+| `module/default.nix` | | Home-manager module | `blackmatter.components.mado.*` |
 
 ### Threading Model
 
 Current: two threads.
 ```
-Main thread:    madori event loop → winit → GPU render (60fps)
-PTY thread:     tokio runtime → reader (PTY→Terminal) + writer (input→PTY) + resize
+Main thread:    madori event loop --> winit --> GPU render (60fps)
+PTY thread:     tokio runtime --> reader (PTY->Terminal) + writer (input->PTY) + resize
 ```
 
 Target (Ghostty-inspired four-thread model):
@@ -70,27 +82,31 @@ write stalls from blocking parse progress.
 
 ### GPU Rendering Pipeline
 
-Three sequential passes (back-to-front):
+Current: three sequential passes (back-to-front):
 
-1. **Clear** — Full-screen background fill (configurable color + opacity)
-2. **RectPipeline** — Instanced colored rectangles via custom WGSL shader:
+1. **Clear** -- Full-screen background fill (configurable color + opacity)
+2. **RectPipeline** -- Instanced colored rectangles via custom WGSL shader:
    - Cell backgrounds (ANSI/256/truecolor)
    - Cursor (block/bar/underline with optional blink)
    - Underline and strikethrough decorations
    - Selection highlight (semi-transparent Nord frost overlay)
-3. **Text** — Per-row glyphon buffers with per-cell color spans:
-   - Bold-as-bright (ANSI 0-7 → 8-15 when bold)
+   - Box drawing / powerline sprites (14 box chars + 8 block elements)
+   - Bell flash overlay (4-frame decay)
+   - Search match highlights (current=yellow, others=dim)
+   - URL underline (frost-blue for detected URLs)
+3. **Text** -- Per-row glyphon buffers with per-cell color spans:
+   - Bold-as-bright (ANSI 0-7 to 8-15 when bold)
    - Font family from config via `glyphon::Family::Name`
    - Bold weight, italic style per span
 
-Target (Ghostty-inspired six-pass model):
+Target (six-pass model):
 ```
-1. Background color       — opaque fill, no blending
-2. Cell backgrounds       — per-cell RGBA with alpha compositing
-3. Cell text              — dual atlas (grayscale + color/emoji)
-4. Images                 — Kitty graphics protocol textured quads
-5. Background images      — user wallpapers with fit/positioning
-6. Post-processing        — custom WGSL shader chain
+1. Background color       -- opaque fill, no blending
+2. Cell backgrounds       -- per-cell RGBA with alpha compositing
+3. Cell text              -- dual atlas (grayscale + color/emoji)
+4. Images                 -- Kitty graphics protocol textured quads
+5. Background images      -- user wallpapers with fit/positioning
+6. Post-processing        -- custom WGSL shader chain
 ```
 
 Key GPU optimizations to implement:
@@ -107,10 +123,10 @@ Key GPU optimizations to implement:
 
 **VT parser**: vte crate (state machine approach matching VT100.net spec).
 
-**Grid**: `VecDeque<Vec<Cell>>` — O(1) scroll via push_back/pop_front. Primary
+**Grid**: `VecDeque<Vec<Cell>>` -- O(1) scroll via push_back/pop_front. Primary
 and alternate screen buffers. Configurable scrollback (default 10,000 lines).
 
-**Cell**: 6 fields — `ch: char`, `extra: Option<Box<Vec<char>>>` (combining),
+**Cell**: 6 fields -- `ch: char`, `extra: Option<Box<Vec<char>>>` (combining),
 `width: u8` (0=continuation, 1=normal, 2=wide), `fg/bg: Color`, `attrs: CellAttrs`.
 
 Target cell optimization (Ghostty uses 24 bytes per cell with style dedup):
@@ -130,29 +146,19 @@ Target cell optimization (Ghostty uses 24 bytes per cell with style dedup):
 - Reports: DA, secondary DA (CSI >c), DSR 5/6
 - REP (CSI b), bracketed paste (2004), synchronized output (2026)
 - Focus reporting (1004)
-- OSC 0/2 (title), OSC 7 (CWD)
-- ESC: RIS, IND, NEL, RI
-- Unicode: wide chars (CJK), combining characters
-
-**Recently added sequences**:
-- OSC 52 — clipboard get/set (base64 encoded)
-- OSC 8 — hyperlinks (URI stored in Cell.hyperlink)
-- OSC 4 — query color palette entries
-- OSC 10/11/12 — query fg/bg/cursor colors
-- OSC 133 — semantic prompt marking (A/B/C/D markers)
-- DCS DECRQSS — request setting state (SGR, DECSTBM, DECSCL, DECSCA)
-- Kitty keyboard protocol — push/pop/query stack, progressive enhancement
-- Kitty graphics protocol — inline PNG images via APC, multi-chunk, GPU upload
+- OSC 0/2 (title), OSC 7 (CWD), OSC 52 (clipboard), OSC 8 (hyperlinks)
+- OSC 4 (color palette query), OSC 10/11/12 (fg/bg/cursor color query)
+- OSC 133 (semantic prompt marking A/B/C/D)
+- DCS DECRQSS (request setting state: SGR, DECSTBM, DECSCL, DECSCA)
+- Kitty keyboard protocol (push/pop/query stack, progressive enhancement)
+- Kitty graphics protocol (inline PNG images, multi-chunk, placement, GPU upload)
 - DEC Special Graphics charset (ESC ( 0, Shift In/Out)
-- IRM insert mode (ANSI mode 4)
-- DECSTR soft reset (CSI ! p)
-- DECRQM mode queries (ANSI + DEC private)
-- DA3 tertiary device attributes
-- DECALN screen alignment test (ESC # 8)
+- IRM insert mode, DECSTR soft reset, DECRQM mode queries
+- DA3 tertiary device attributes, DECALN screen alignment test
 - DECKPAM/DECKPNM keypad modes
 
 **Missing sequences** (ordered by priority):
-1. **SIXEL** — legacy inline image protocol
+1. SIXEL -- legacy inline image protocol
 
 ### Font System
 
@@ -160,65 +166,31 @@ Current: glyphon (cosmic-text fork) handles font discovery, shaping, and
 rasterization. Font family set per-span via `Attrs::family()`. System font
 matching via cosmic-text's `FontSystem::new()`.
 
-Target (Ghostty-inspired three-layer architecture):
+Target (three-layer architecture):
 ```
-1. Discovery     — platform font enumeration (CoreText/Fontconfig)
-2. Shaping       — HarfBuzz for ligature support, grapheme clusters
-3. Rasterization — glyph cache in GPU texture atlas
+1. Discovery     -- platform font enumeration (CoreText/Fontconfig)
+2. Shaping       -- HarfBuzz for ligature support, grapheme clusters
+3. Rasterization -- glyph cache in GPU texture atlas
 ```
 
 Key font features to implement:
-- **Font fallback chain**: Multiple `font-family` entries with automatic
-  system fallback when configured fonts lack a glyph
-- **Ligatures**: HarfBuzz shaping with `-calt` control. Break ligatures
-  under the cursor so individual chars remain visible.
-- **Synthetic styles**: Skew transform for synthetic italic when font lacks
-  italic face
+- **Font fallback chain**: Multiple `font-family` entries with automatic system fallback
+- **Ligatures**: HarfBuzz shaping with `-calt` control. Break ligatures under the cursor
+- **Synthetic styles**: Skew transform for synthetic italic when font lacks italic face
 - **Variable fonts**: Expose variation axes in config
 - **Nerd Font embedding**: Ship bundled Nerd Font symbols for zero-config icons
-
-### Configuration
-
-- **File**: `~/.config/mado/mado.yaml`
-- **Env override**: `MADO_CONFIG=/path/to/config.yaml`
-- **Env prefix**: `MADO_` (e.g., `MADO_FONT_SIZE=16`)
-- **Hot-reload**: shikumi `ConfigStore::load_and_watch` with symlink-aware
-  file watcher (works with nix-darwin managed configs)
-- **HM module**: `blackmatter.components.mado.*` generates YAML from typed
-  Nix options
-
-Config sections: `font_family`, `font_size`, `window` (width/height/padding),
-`shell` (command), `cursor` (style/blink/blink_rate_ms), `behavior`
-(scrollback_lines/copy_on_select), `appearance` (background/foreground/opacity).
-
-Target config features:
-- **Theme system**: Named themes (Nord, Dracula, etc.) switchable at runtime
-- **Keybinding customization**: Configurable key → action mapping
-- **Per-profile configs**: Multiple named configurations
-- **Automatic light/dark mode**: Switch themes based on system appearance
-
-### Shared Library Dependencies
-
-| Library | Used For |
-|---------|----------|
-| **garasu** | `GpuContext`, `TextRenderer`, shaders |
-| **madori** | `App::builder()`, `RenderCallback`, `AppEvent`, `EventResponse` |
-| **shikumi** | `ConfigDiscovery`, `ConfigStore<T>`, hot-reload |
-| **hasami** | `Clipboard`, `ClipboardProvider` for copy/paste |
-
-All deps via path references in Cargo.toml with `[patch]` sections to unify
-transitive git deps. No crates.io publishing yet — names not reserved.
 
 ### Input Handling
 
 **Keyboard**:
 - Text input forwarded directly to PTY
-- Ctrl+letter → control byte (0x01..0x1A)
-- Alt+key → ESC prefix + character
+- Ctrl+letter to control byte (0x01..0x1A)
+- Alt+key to ESC prefix + character
 - Cursor keys: application mode (ESC O) vs normal (ESC [)
 - F1-F12 escape sequences
 - Cmd+C/V: clipboard copy/paste (via hasami)
 - Bracketed paste wrapping when mode 2004 active
+- Configurable keybindings via KeybindManager
 
 **Mouse**:
 - Single click: start drag selection
@@ -228,89 +200,174 @@ transitive git deps. No crates.io publishing yet — names not reserved.
 - Scroll: viewport scroll (scrollback) or forwarded to PTY when mouse tracking active
 - Mouse forwarding: X10 and SGR encoding for modes 1000/1002/1003
 
-**IME**: winit IME events forwarded — Commit text goes to PTY.
+**IME**: winit IME events forwarded -- Commit text goes to PTY.
 
 **Focus**: `\x1b[I`/`\x1b[O` sent when focus reporting (mode 1004) enabled.
 
-## Ghostty Parity Roadmap
+---
 
-Organized by impact and dependency order.
+## Shared Library Integration
 
-### Phase 1 — Core Correctness
-- [x] VT100/xterm base sequences (CUU/CUD/CUP/ED/EL/SGR/etc.)
-- [x] Alternate screen buffer
-- [x] Mouse tracking (modes 1000/1002/1003 + SGR)
-- [x] Bracketed paste, synchronized output
-- [x] Bold-as-bright color substitution
-- [x] Double/triple click selection
-- [x] Tab manipulation (CBT/TBC)
-- [x] Config-driven appearance (bg/fg/opacity/font_family)
-- [x] OSC 52 clipboard (base64 decode, clipboard_content field)
-- [x] OSC 8 hyperlinks (Cell.hyperlink field, active_hyperlink tracking)
-- [x] OSC 133 shell integration (prompt_start_row tracking)
-- [x] OSC 4/10/11/12 color queries (respond with current palette)
-- [x] Bell tracking (bell_pending flag with take_bell())
-- [x] DEC Special Graphics charset (ESC ( 0 / ESC ) 0, full VT100 line drawing)
-- [x] IRM insert mode (ANSI mode 4), DECSTR soft reset (CSI ! p)
-- [x] DECRQM mode queries (ANSI CSI $ p, DEC private CSI ? $ p)
-- [x] DA3 tertiary device attributes (CSI = c)
-- [x] DCS DECRQSS (request setting state for SGR, DECSTBM, DECSCL, DECSCA)
-- [x] DECALN screen alignment test (ESC # 8)
-- [x] DECKPAM/DECKPNM keypad modes (ESC = / ESC >)
-- [x] Shift In/Shift Out (SI/SO) for G0/G1 charset switching
-- [ ] Full xterm compatibility audit (test against vttest)
+| Library | Used For |
+|---------|----------|
+| **garasu** | `GpuContext`, `TextRenderer`, shaders, `AppWindow` |
+| **madori** | `App::builder()`, `RenderCallback`, `AppEvent`, `EventResponse` |
+| **shikumi** | `ConfigDiscovery`, `ConfigStore<T>`, hot-reload |
+| **hasami** | `Clipboard`, `ClipboardProvider` for copy/paste |
 
-### Phase 2 — Rendering Quality
-- [ ] Dual texture atlas (grayscale + color/emoji)
-- [ ] HarfBuzz font shaping (ligatures)
-- [ ] Font fallback chain with size adjustment
-- [ ] Synthetic italic (skew transform)
-- [x] Box drawing / powerline sprite renderer (14 box chars + 8 block elements via rect pipeline)
-- [ ] sRGB-correct linear blending
-- [ ] Subpixel text rendering (CoreText on macOS)
-- [x] Post-processing pipeline (offscreen → shader → surface blit)
-- [ ] Custom WGSL shader chain from config files
+All deps via path references in Cargo.toml with `[patch]` sections to unify
+transitive git deps. Published to crates.io as `mado`.
 
-### Phase 3 — Features
-- [x] Split panes — state machine (pane.rs: PaneManager, binary tree layout)
-- [x] Tabs — state machine (tab.rs: TabManager, add/close/navigate)
-- [x] Theme system — 8 built-in themes (theme.rs: Nord, Dracula, etc.)
-- [x] Configurable keybindings — state machine (keybind.rs: KeybindManager)
-- [x] Search in scrollback — state machine (search.rs: SearchState)
-- [x] URL detection — state machine (url.rs: DetectedUrl, no-regex)
-- [x] Wire search/URL/keybind into render pipeline and event loop
-- [x] Bell notification (visual flash overlay, 4-frame decay)
-- [x] OSC 52 clipboard sync (terminal → system clipboard on redraw)
-- [x] Search highlight rendering (current match yellow, other matches dim)
-- [x] URL underline rendering (detected URLs get frost-blue underline)
-- [x] Keybind-driven action dispatch (replaces hardcoded Cmd+C/V)
-- [x] Wire pane/tab into main.rs with per-pane terminal+PTY
-- [x] Kitty graphics protocol (inline PNG images, multi-chunk, placement, GPU texture upload)
-- [x] Kitty keyboard protocol (push/pop/query stack, progressive enhancement)
+### Libraries to integrate (not yet wired)
 
-### Phase 4 — Architecture
-- [ ] Four-thread model (main/IO/read/render)
-- [ ] Paged memory for scrollback (mmap, CoW, style dedup)
-- [ ] Terminal inspector (live mode/cell/font debugging)
-- [ ] Daemon mode via tsunagu (multiplexer)
-- [x] Platform-native integration — macOS: transparent titlebar, dark mode, dock badge (pure safe Rust via objc2)
-- [ ] Platform-native integration — macOS: Quick Terminal, Secure Keyboard Entry, native menus
-- [ ] Platform-native integration — Linux: Wayland-native, desktop entry, notifications
+| Library | Role in Mado |
+|---------|-------------|
+| **egaku** | Tab bar, pane split handles, command palette, search overlay widgets |
+| **irodori** | Color palette for themes (replace hardcoded Nord values) |
+| **irodzuki** | GPU theming: base16 to wgpu uniforms, ANSI color table generation |
+| **kaname** | Embedded MCP server (stdio transport) |
+| **soushi** | Rhai scripting engine for user plugins |
+| **awase** | Modal hotkey system (Normal/Insert/Command modes) |
+| **mojiban** | Rich text in command palette and help overlays |
+| **tsunagu** | Daemon mode (background multiplexer with IPC) |
+| **tsuuchi** | Desktop notifications for bell, background process completion |
+| **todoku** | HTTP client for update checks, plugin registry |
 
-### Phase 5 — Polish
-- [ ] Variable font support
-- [ ] Nerd Font embedding
-- [x] Shell integration scripts (mado.bash/mado.zsh/mado.fish — OSC 133/7/2)
-- [x] Profile system (MadoConfig.with_profile() merges named profile overrides)
-- [ ] Performance: match Ghostty's 4x-over-iTerm throughput target
-- [ ] vttest full pass
-- [x] Accessibility colorblind shaders (protanopia, deuteranopia, tritanopia via Machado 2009 matrices)
-- [ ] Accessibility contrast enforcement, font scaling, reduce motion
+---
+
+## Configuration
+
+- **File**: `~/.config/mado/mado.yaml`
+- **Env override**: `MADO_CONFIG=/path/to/config.yaml`
+- **Env prefix**: `MADO_` (e.g., `MADO_FONT_SIZE=16`)
+- **Hot-reload**: shikumi `ConfigStore::load_and_watch` with symlink-aware
+  file watcher (works with nix-darwin managed configs)
+- **HM module**: `blackmatter.components.mado.*` generates YAML from typed Nix options
+
+Config sections: `font_family`, `font_size`, `window` (width/height/padding),
+`shell` (command), `cursor` (style/blink/blink_rate_ms), `behavior`
+(scrollback_lines/copy_on_select), `appearance` (background/foreground/opacity).
+
+Target config features:
+- **Theme system**: Named themes (Nord, Dracula, etc.) switchable at runtime -- 8 built-in themes done
+- **Keybinding customization**: Key to action mapping -- done via KeybindManager
+- **Per-profile configs**: Multiple named configurations -- done via MadoConfig.with_profile()
+- **Automatic light/dark mode**: Switch themes based on system appearance
+
+---
+
+## MCP Server (kaname)
+
+Embedded MCP server via stdio transport, discoverable at `~/.config/mado/mcp.json`.
+
+**Standard tools**: `status`, `config_get`, `config_set`, `version`
+
+**Terminal-specific tools**:
+| Tool | Description |
+|------|-------------|
+| `list_sessions` | List all open terminal sessions (panes/tabs) |
+| `send_keys` | Send keystrokes to a specific session |
+| `get_output` | Get recent terminal output (last N lines) from a session |
+| `create_split` | Create a new split pane (horizontal/vertical) |
+| `run_command` | Run a command in a new or existing session |
+| `get_terminal_state` | Get cursor position, dimensions, title, CWD |
+| `set_font` | Change font family/size at runtime |
+| `set_theme` | Switch color theme at runtime |
+
+---
+
+## Plugin System (soushi + Rhai)
+
+Scripts loaded from `~/.config/mado/scripts/*.rhai`.
+
+**Rhai API**:
+```
+mado.send(text)              // send text to active PTY
+mado.split(direction)        // "horizontal" or "vertical"
+mado.tab_new()               // open new tab
+mado.tab_switch(n)           // switch to tab n
+mado.set_opacity(f)          // set window opacity (0.0-1.0)
+mado.shader_enable(name)     // enable a WGSL shader from shaders/
+mado.font_size(n)            // set font size
+mado.theme(name)             // switch theme
+mado.title()                 // get current terminal title
+mado.cwd()                   // get current working directory
+mado.scrollback(n)           // get last n lines of scrollback
+mado.selection()             // get current text selection
+```
+
+**Event hooks**: `on_startup`, `on_shutdown`, `on_bell`, `on_title_change`,
+`on_directory_change`, `on_output(pattern)`, `on_focus`, `on_blur`
+
+**Custom commands**: Plugins register commands accessible via command palette (`:` mode).
+
+---
+
+## Hotkey System (awase)
+
+Modal vim-style keybindings:
+
+| Mode | Purpose | Enter via |
+|------|---------|-----------|
+| **Normal** | Default mode, terminal passthrough | Automatic |
+| **Command** | `:` prefix commands, command palette | `:` key |
+| **Search** | `/` forward search, `?` backward | `/` or `?` key |
+| **Visual** | Text selection mode | `v` key (when not in PTY) |
+
+Configurable in `~/.config/mado/mado.yaml` under `keybindings:`. Platform-aware:
+Cmd on macOS, Ctrl on Linux.
+
+---
+
+## Shader Plugins
+
+Custom WGSL shaders in `~/.config/mado/shaders/*.wgsl`:
+
+- Input bindings: `input_texture` (binding 0), `input_sampler` (binding 1),
+  `uniforms` (binding 2: time, resolution)
+- Post-processing chain: shaders applied in filename order after main render
+- Built-in accessibility shaders: protanopia, deuteranopia, tritanopia
+  (Machado 2009 color vision simulation matrices)
+
+---
+
+## Shell Integration
+
+Shell scripts in `shell-integration/`:
+- `mado.bash`, `mado.zsh`, `mado.fish`
+- Emit OSC 133 (prompt marking), OSC 7 (CWD reporting), OSC 2 (title)
+- Installed automatically via HM module
+
+---
+
+## Roadmap
+
+### Phase 1 -- Core Correctness [DONE]
+All VT100/xterm sequences, mouse tracking, Kitty keyboard/graphics protocols,
+DCS/DECRQSS, OSC 52/8/133/4/10/11/12, shell integration.
+
+### Phase 2 -- Rendering Quality [IN PROGRESS]
+Dual texture atlas, HarfBuzz shaping, font fallback, synthetic italic,
+sRGB-correct linear blending, subpixel text, custom shader chain.
+
+### Phase 3 -- Features [DONE]
+Split panes, tabs, themes, keybindings, search, URL detection, bell,
+Kitty graphics, Kitty keyboard, shell integration, profile system.
+
+### Phase 4 -- Architecture [NEXT]
+Four-thread model, paged memory (mmap, CoW, style dedup), terminal inspector,
+daemon mode (tsunagu), MCP server (kaname), Quick Terminal, native menus.
+
+### Phase 5 -- Polish
+Variable fonts, Nerd Font embedding, vttest full pass, Ghostty-level throughput,
+accessibility (contrast enforcement, font scaling, reduce motion).
+
+---
 
 ## Design Decisions
 
 ### Why madori (not raw winit)?
-Madori provides the event loop → GPU init → render loop → input dispatch
+Madori provides the event loop -> GPU init -> render loop -> input dispatch
 scaffold. Every GPU app (mado, hibiki, kagi, etc.) shares this ~200-line
 boilerplate. Madori owns the window; mado implements `RenderCallback` and
 receives `AppEvent`s.
@@ -340,3 +397,17 @@ implement this at render time via `bold_bright_color()` which compares
 the cell's fg RGB against the ANSI palette. Modern programs using 256/
 truecolor are unaffected since their colors won't match the standard
 palette entries.
+
+### Pure safe Rust for macOS platform integration
+`platform.rs` uses objc2 for all macOS Cocoa API calls -- zero `unsafe` blocks.
+This includes transparent titlebar, dark mode detection, and dock badge updates.
+
+---
+
+## Nix Integration
+
+- **Flake**: `packages.aarch64-darwin.default`, `overlays.default`, `homeManagerModules.default`
+- **HM module path**: `module/default.nix` using substrate `hm-service-helpers.nix`
+- **Build**: `pkgs.rustPlatform.buildRustPackage` (not yet using substrate `rust-tool-release-flake.nix` -- migrate when stabilized)
+- **Config management**: HM module generates `~/.config/mado/mado.yaml` from typed Nix options
+- **Shell integration**: HM module installs shell scripts to `~/.config/mado/shell-integration/`
