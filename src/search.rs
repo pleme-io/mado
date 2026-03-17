@@ -151,6 +151,33 @@ impl Default for SearchState {
     }
 }
 
+/// Trait abstracting search queries for testability.
+#[allow(dead_code)]
+pub trait SearchQuery {
+    fn is_active(&self) -> bool;
+    fn is_match(&self, row: usize, col: usize) -> bool;
+    fn is_current_match(&self, row: usize, col: usize) -> bool;
+    fn match_count(&self) -> usize;
+}
+
+impl SearchQuery for SearchState {
+    fn is_active(&self) -> bool {
+        self.active
+    }
+
+    fn is_match(&self, row: usize, col: usize) -> bool {
+        SearchState::is_match(self, row, col)
+    }
+
+    fn is_current_match(&self, row: usize, col: usize) -> bool {
+        SearchState::is_current_match(self, row, col)
+    }
+
+    fn match_count(&self) -> usize {
+        SearchState::match_count(self)
+    }
+}
+
 /// Convert a row of cells to a string for searching.
 fn row_to_string(row: &[Cell], cols: usize) -> String {
     let mut s = String::with_capacity(cols);
@@ -161,6 +188,36 @@ fn row_to_string(row: &[Cell], cols: usize) -> String {
         cell.write_to(&mut s);
     }
     s
+}
+
+#[cfg(test)]
+pub struct MockSearchState {
+    pub active: bool,
+    pub matches: Vec<(usize, usize, usize)>, // (row, col_start, col_end)
+    pub current_idx: usize,
+}
+
+#[cfg(test)]
+impl SearchQuery for MockSearchState {
+    fn is_active(&self) -> bool {
+        self.active
+    }
+
+    fn is_match(&self, row: usize, col: usize) -> bool {
+        self.matches
+            .iter()
+            .any(|&(r, cs, ce)| r == row && col >= cs && col <= ce)
+    }
+
+    fn is_current_match(&self, row: usize, col: usize) -> bool {
+        self.matches
+            .get(self.current_idx)
+            .is_some_and(|&(r, cs, ce)| r == row && col >= cs && col <= ce)
+    }
+
+    fn match_count(&self) -> usize {
+        self.matches.len()
+    }
 }
 
 #[cfg(test)]
@@ -396,5 +453,95 @@ mod tests {
         assert!(state.is_match(0, 3));
         assert!(!state.is_match(0, 0));
         assert!(!state.is_match(0, 4));
+    }
+
+    #[test]
+    fn test_mock_search_is_match() {
+        let mock = MockSearchState {
+            active: true,
+            matches: vec![(0, 2, 4), (1, 0, 3)],
+            current_idx: 0,
+        };
+        assert!(mock.is_active());
+        assert!(mock.is_match(0, 2));
+        assert!(mock.is_match(0, 3));
+        assert!(mock.is_match(0, 4));
+        assert!(!mock.is_match(0, 1));
+        assert!(!mock.is_match(0, 5));
+        assert!(mock.is_match(1, 0));
+        assert!(mock.is_match(1, 3));
+        assert!(!mock.is_match(1, 4));
+        assert!(!mock.is_match(2, 0));
+    }
+
+    #[test]
+    fn test_mock_search_is_current_match() {
+        let mock = MockSearchState {
+            active: true,
+            matches: vec![(0, 2, 4), (1, 0, 3)],
+            current_idx: 0,
+        };
+        assert!(mock.is_current_match(0, 2));
+        assert!(mock.is_current_match(0, 4));
+        assert!(!mock.is_current_match(1, 0));
+
+        let mock2 = MockSearchState {
+            active: true,
+            matches: vec![(0, 2, 4), (1, 0, 3)],
+            current_idx: 1,
+        };
+        assert!(!mock2.is_current_match(0, 2));
+        assert!(mock2.is_current_match(1, 0));
+        assert!(mock2.is_current_match(1, 3));
+    }
+
+    #[test]
+    fn test_mock_search_empty() {
+        let mock = MockSearchState {
+            active: false,
+            matches: vec![],
+            current_idx: 0,
+        };
+        assert!(!mock.is_active());
+        assert_eq!(mock.match_count(), 0);
+        assert!(!mock.is_match(0, 0));
+        assert!(!mock.is_current_match(0, 0));
+    }
+
+    #[test]
+    fn test_search_query_trait_on_real_state() {
+        let rows = vec![make_row("hello world")];
+        let mut state = SearchState::new();
+        state.set_query("world", &rows, 11);
+
+        let query: &dyn SearchQuery = &state;
+        assert!(!query.is_active());
+        assert_eq!(query.match_count(), 1);
+        assert!(query.is_match(0, 6));
+        assert!(!query.is_match(0, 5));
+    }
+
+    #[test]
+    fn test_search_query_is_active_on_state() {
+        let mut state = SearchState::new();
+        let query: &dyn SearchQuery = &state;
+        assert!(!query.is_active());
+
+        state.open();
+        let query: &dyn SearchQuery = &state;
+        assert!(query.is_active());
+    }
+
+    #[test]
+    fn test_search_query_match_count() {
+        let rows = vec![
+            make_row("foo bar foo"),
+            make_row("baz foo qux"),
+        ];
+        let mut state = SearchState::new();
+        state.set_query("foo", &rows, 11);
+
+        let query: &dyn SearchQuery = &state;
+        assert_eq!(query.match_count(), 3);
     }
 }

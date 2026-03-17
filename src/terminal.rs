@@ -13,6 +13,8 @@ use std::fmt;
 
 use unicode_width::UnicodeWidthChar;
 
+use crate::config::CursorStyle;
+
 // ---------------------------------------------------------------------------
 // Cell attributes (bitflags-style)
 // ---------------------------------------------------------------------------
@@ -436,10 +438,21 @@ pub struct ImagePlacement {
     pub z_index: i32,
 }
 
+/// Sixel image placeholder — raw data stored for future rendering via `icy_sixel`.
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub struct SixelImage {
+    pub data: Vec<u8>,
+    pub row: usize,
+    pub col: usize,
+}
+
 /// DCS handler state.
 enum DcsHandler {
     /// DECRQSS — Request Setting State. Accumulates the setting identifier.
     Decrqss(Vec<u8>),
+    /// Sixel image data accumulation (DCS q or DCS Ps;Ps q).
+    Sixel,
 }
 
 /// Accumulator for multi-chunk Kitty image transmissions.
@@ -502,45 +515,12 @@ fn parse_kitty_params(payload: &[u8]) -> (HashMap<u8, String>, Vec<u8>) {
 
 /// Base64 decode to raw bytes (not string).
 fn base64_decode_bytes(input: &[u8]) -> Vec<u8> {
-    const TABLE: [u8; 256] = {
-        let mut t = [255u8; 256];
-        let mut i = 0u8;
-        while i < 26 {
-            t[(b'A' + i) as usize] = i;
-            t[(b'a' + i) as usize] = i + 26;
-            i += 1;
-        }
-        let mut d = 0u8;
-        while d < 10 {
-            t[(b'0' + d) as usize] = d + 52;
-            d += 1;
-        }
-        t[b'+' as usize] = 62;
-        t[b'/' as usize] = 63;
-        t
-    };
-
-    let mut out = Vec::with_capacity(input.len() * 3 / 4);
-    let mut buf: u32 = 0;
-    let mut bits: u32 = 0;
-
-    for &byte in input {
-        if byte == b'=' || byte == b'\n' || byte == b'\r' {
-            continue;
-        }
-        let val = TABLE[byte as usize];
-        if val == 255 {
-            continue;
-        }
-        buf = (buf << 6) | u32::from(val);
-        bits += 6;
-        if bits >= 8 {
-            bits -= 8;
-            out.push((buf >> bits) as u8);
-            buf &= (1 << bits) - 1;
-        }
-    }
-    out
+    let cleaned: Vec<u8> = input
+        .iter()
+        .copied()
+        .filter(|&b| b != b'\n' && b != b'\r' && b != b' ')
+        .collect();
+    data_encoding::BASE64.decode(&cleaned).unwrap_or_default()
 }
 
 // ---------------------------------------------------------------------------
@@ -663,6 +643,10 @@ pub struct Terminal {
     // Bell state (BEL character received, cleared after read)
     bell_pending: bool,
 
+    // Dynamic cursor shape (DECSCUSR)
+    pub cursor_style: CursorStyle,
+    pub cursor_blink: bool,
+
     // Active hyperlink URI (from OSC 8, applied to subsequent cells)
     active_hyperlink: Option<String>,
 
@@ -686,6 +670,10 @@ pub struct Terminal {
     image_placements: Vec<ImagePlacement>,
     next_image_id: u32,
     pending_kitty: Option<KittyPending>,
+
+    // Sixel image storage (placeholder for future icy_sixel rendering)
+    pub sixel_images: Vec<SixelImage>,
+    sixel_buffer: Option<Vec<u8>>,
 
     // APC sequence accumulator (ESC _ ... ST)
     apc_buf: Option<Vec<u8>>,
@@ -763,6 +751,8 @@ impl Terminal {
             title: None,
             cwd: None,
             bell_pending: false,
+            cursor_style: CursorStyle::Block,
+            cursor_blink: true,
             active_hyperlink: None,
             clipboard_content: None,
             prompt_start_row: None,
@@ -771,6 +761,8 @@ impl Terminal {
             image_placements: Vec::new(),
             next_image_id: 1,
             pending_kitty: None,
+            sixel_images: Vec::new(),
+            sixel_buffer: None,
             apc_buf: None,
             dcs_handler: None,
             parser: vte::Parser::new(),
@@ -1870,40 +1862,61 @@ impl vte::Perform for Terminal {
         // DCS — Device Control String
         // DECRQSS: DCS $ q <setting> ST → respond with DCS 1 $ r <value> ST
         if intermediates == [b'$'] && action == 'q' {
-            // Accumulate the setting query in put() — store in dcs_buf
             self.dcs_handler = Some(DcsHandler::Decrqss(Vec::new()));
+        } else if intermediates.is_empty() && action == 'q' {
+            // Sixel: DCS q or DCS Ps ; Ps q
+            self.dcs_handler = Some(DcsHandler::Sixel);
+            self.sixel_buffer = Some(Vec::new());
+            let _ = params;
         } else {
             tracing::trace!(?intermediates, action = %action, "unhandled DCS hook");
             let _ = params;
         }
     }
     fn put(&mut self, byte: u8) {
-        if let Some(DcsHandler::Decrqss(ref mut buf)) = self.dcs_handler {
-            buf.push(byte);
+        match self.dcs_handler {
+            Some(DcsHandler::Decrqss(ref mut buf)) => buf.push(byte),
+            Some(DcsHandler::Sixel) => {
+                if let Some(ref mut buf) = self.sixel_buffer {
+                    buf.push(byte);
+                }
+            }
+            None => {}
         }
     }
     fn unhook(&mut self) {
-        if let Some(DcsHandler::Decrqss(ref query)) = self.dcs_handler {
-            // Respond to DECRQSS queries
-            let response = match query.as_slice() {
-                // SGR (Select Graphic Rendition)
-                b"m" => b"\x1bP1$r0m\x1b\\".to_vec(),
-                // DECSTBM (scroll region)
-                b"r" => {
-                    let top = self.scroll_top + 1;
-                    let bottom = self.scroll_bottom + 1;
-                    format!("\x1bP1$r{top};{bottom}r\x1b\\").into_bytes()
+        match self.dcs_handler {
+            Some(DcsHandler::Decrqss(ref query)) => {
+                let response = match query.as_slice() {
+                    b"m" => b"\x1bP1$r0m\x1b\\".to_vec(),
+                    b"r" => {
+                        let top = self.scroll_top + 1;
+                        let bottom = self.scroll_bottom + 1;
+                        format!("\x1bP1$r{top};{bottom}r\x1b\\").into_bytes()
+                    }
+                    b"\"p" => b"\x1bP1$r62;1\"p\x1b\\".to_vec(),
+                    b"\"q" => b"\x1bP1$r0\"q\x1b\\".to_vec(),
+                    _ => b"\x1bP0$r\x1b\\".to_vec(),
+                };
+                self.response_bytes.extend_from_slice(&response);
+            }
+            Some(DcsHandler::Sixel) => {
+                if let Some(data) = self.sixel_buffer.take() {
+                    if !data.is_empty() {
+                        self.sixel_images.push(SixelImage {
+                            data,
+                            row: self.cursor.row,
+                            col: self.cursor.col,
+                        });
+                        self.seqno += 1;
+                        tracing::debug!(
+                            count = self.sixel_images.len(),
+                            "sixel image stored (pending decode)"
+                        );
+                    }
                 }
-                // DECSCL (conformance level) — report VT220
-                b"\"p" => b"\x1bP1$r62;1\"p\x1b\\".to_vec(),
-                // DECATR (character attribute) — report normal
-                b"\"q" => b"\x1bP1$r0\"q\x1b\\".to_vec(),
-                _ => {
-                    // Unknown query — respond with error
-                    b"\x1bP0$r\x1b\\".to_vec()
-                }
-            };
-            self.response_bytes.extend_from_slice(&response);
+            }
+            None => {}
         }
         self.dcs_handler = None;
     }
@@ -2180,6 +2193,22 @@ impl vte::Perform for Terminal {
         if intermediates == [b'='] && action == 'c' {
             // Report unit ID: DCS ! | XXXXXXXX ST
             self.response_bytes.extend_from_slice(b"\x1bP!|6D61646F\x1b\\");
+            return;
+        }
+
+        // DECSCUSR — Set cursor style (CSI Ps SP q)
+        if intermediates == [b' '] && action == 'q' {
+            let ps = params.iter().next().map_or(0, |p| p[0]);
+            match ps {
+                0 | 1 => { self.cursor_style = CursorStyle::Block; self.cursor_blink = true; }
+                2 => { self.cursor_style = CursorStyle::Block; self.cursor_blink = false; }
+                3 => { self.cursor_style = CursorStyle::Underline; self.cursor_blink = true; }
+                4 => { self.cursor_style = CursorStyle::Underline; self.cursor_blink = false; }
+                5 => { self.cursor_style = CursorStyle::Bar; self.cursor_blink = true; }
+                6 => { self.cursor_style = CursorStyle::Bar; self.cursor_blink = false; }
+                _ => {}
+            }
+            self.seqno += 1;
             return;
         }
 
@@ -2539,7 +2568,7 @@ impl vte::Perform for Terminal {
     }
 }
 
-/// Simple base64 decoder (no external dependency).
+/// Base64 decoder backed by `data-encoding`.
 /// Delegates to `base64_decode_bytes` and converts the result to a UTF-8 string.
 fn base64_decode(input: &[u8]) -> Option<String> {
     String::from_utf8(base64_decode_bytes(input)).ok()
@@ -4128,5 +4157,143 @@ mod tests {
         term.feed(b"\x1bD");
         assert_eq!(term.cursor().row, 1);
         assert_eq!(term.cell(0, 0).ch, 'X');
+    }
+
+    // ── DECSCUSR cursor shape tests ──────────────────────────────────
+
+    #[test]
+    fn test_decscusr_block() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[1 q");
+        assert_eq!(term.cursor_style, CursorStyle::Block);
+        assert!(term.cursor_blink);
+    }
+
+    #[test]
+    fn test_decscusr_steady_block() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[2 q");
+        assert_eq!(term.cursor_style, CursorStyle::Block);
+        assert!(!term.cursor_blink);
+    }
+
+    #[test]
+    fn test_decscusr_blinking_underline() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[3 q");
+        assert_eq!(term.cursor_style, CursorStyle::Underline);
+        assert!(term.cursor_blink);
+    }
+
+    #[test]
+    fn test_decscusr_steady_underline() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[4 q");
+        assert_eq!(term.cursor_style, CursorStyle::Underline);
+        assert!(!term.cursor_blink);
+    }
+
+    #[test]
+    fn test_decscusr_blinking_bar() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[5 q");
+        assert_eq!(term.cursor_style, CursorStyle::Bar);
+        assert!(term.cursor_blink);
+    }
+
+    #[test]
+    fn test_decscusr_steady_bar() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[6 q");
+        assert_eq!(term.cursor_style, CursorStyle::Bar);
+        assert!(!term.cursor_blink);
+    }
+
+    #[test]
+    fn test_decscusr_default() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[6 q"); // set to bar first
+        assert_eq!(term.cursor_style, CursorStyle::Bar);
+        term.feed(b"\x1b[0 q"); // reset to default
+        assert_eq!(term.cursor_style, CursorStyle::Block);
+        assert!(term.cursor_blink);
+    }
+
+    #[test]
+    fn test_decscusr_reset_preserves() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[5 q"); // bar + blink
+        assert_eq!(term.cursor_style, CursorStyle::Bar);
+        term.reset();
+        assert_eq!(term.cursor_style, CursorStyle::Block);
+        assert!(term.cursor_blink);
+    }
+
+    // ── Sixel infrastructure tests ───────────────────────────────────
+
+    #[test]
+    fn test_sixel_images_empty_initially() {
+        let term = Terminal::new(80, 24);
+        assert!(term.sixel_images.is_empty());
+    }
+
+    #[test]
+    fn test_sixel_buffer_none_initially() {
+        let term = Terminal::new(80, 24);
+        assert!(term.sixel_buffer.is_none());
+    }
+
+    // ── base64 decode tests ──────────────────────────────────────────
+
+    #[test]
+    fn test_base64_decode_bytes_valid() {
+        let result = base64_decode_bytes(b"aGVsbG8=");
+        assert_eq!(result, b"hello");
+    }
+
+    #[test]
+    fn test_base64_decode_bytes_empty() {
+        let result = base64_decode_bytes(b"");
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_base64_decode_bytes_with_newlines() {
+        let result = base64_decode_bytes(b"aGVs\nbG8=");
+        assert_eq!(result, b"hello");
+    }
+
+    #[test]
+    fn test_base64_decode_bytes_invalid() {
+        let result = base64_decode_bytes(b"!!!invalid!!!");
+        assert!(result.is_empty());
+    }
+
+    // ── OSC themed color response tests ──────────────────────────────
+
+    #[test]
+    fn test_osc_11_returns_themed_bg() {
+        let mut term = Terminal::new(80, 24);
+        let fg = Color::new(200, 200, 200);
+        let bg = Color::new(0x2e, 0x34, 0x40);
+        term.apply_theme(fg, bg, default_ansi_palette());
+        term.feed(b"\x1b]11;?\x1b\\");
+        let response = term.take_response().unwrap();
+        let response_str = String::from_utf8_lossy(&response);
+        assert!(response_str.starts_with("\x1b]11;rgb:"));
+        assert!(response_str.contains("2e2e/3434/4040"));
+    }
+
+    #[test]
+    fn test_osc_12_returns_themed_fg() {
+        let mut term = Terminal::new(80, 24);
+        let fg = Color::new(0xec, 0xef, 0xf4);
+        let bg = Color::new(0x2e, 0x34, 0x40);
+        term.apply_theme(fg, bg, default_ansi_palette());
+        term.feed(b"\x1b]12;?\x1b\\");
+        let response = term.take_response().unwrap();
+        let response_str = String::from_utf8_lossy(&response);
+        assert!(response_str.starts_with("\x1b]12;rgb:"));
+        assert!(response_str.contains("ecec/efef/f4f4"));
     }
 }

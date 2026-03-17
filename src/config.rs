@@ -785,4 +785,19 @@ window:
         assert_eq!(b.mouse_hide_while_typing, true);
         assert_eq!(b.mouse_scroll_multiplier, 2);
     }
+
+    #[test]
+    fn test_active_profile_none_by_default() {
+        let config = MadoConfig::default();
+        assert!(config.active_profile.is_none());
+    }
+
+    #[test]
+    fn test_config_yaml_with_active_profile() {
+        let yaml = r#"
+active_profile: "dark"
+"#;
+        let config: MadoConfig = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(config.active_profile.as_deref(), Some("dark"));
+    }
 }

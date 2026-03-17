@@ -763,6 +763,7 @@ fn main() -> anyhow::Result<()> {
                     pressed,
                     x,
                     y,
+                    modifiers,
                 }) => {
                     let cw = renderer.cell_width();
                     let ch = renderer.cell_height();
@@ -854,6 +855,29 @@ fn main() -> anyhow::Result<()> {
                                     if let Some(text) = sel.extract_text(&rows, cols) {
                                         if let Ok(cb) = clipboard.lock() {
                                             let _ = cb.copy_text(&text);
+                                        }
+                                    }
+                                }
+                                // Cmd+click (macOS) / Ctrl+click (Linux) to open URLs
+                                if modifiers.meta || modifiers.ctrl {
+                                    drop(sel);
+                                    let term = pane.terminal.lock().unwrap();
+                                    let row_cells: Vec<Vec<crate::terminal::Cell>> =
+                                        term.visible_rows().map(|r| r.to_vec()).collect();
+                                    let cols = term.cols();
+                                    drop(term);
+                                    let detected =
+                                        crate::url::detect_urls(&row_cells, cols);
+                                    if let Some(url) =
+                                        crate::url::url_at(&detected, row, col)
+                                    {
+                                        drop(ws);
+                                        if let Err(e) = open::that(&url.url) {
+                                            tracing::warn!(
+                                                error = %e,
+                                                url = %url.url,
+                                                "failed to open URL"
+                                            );
                                         }
                                     }
                                 }

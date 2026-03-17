@@ -280,4 +280,68 @@ mod tests {
             assert_eq!(*action, parsed.unwrap());
         }
     }
+
+    #[test]
+    fn test_scroll_page_up_binding() {
+        let mgr = KeybindManager::new();
+        let hk = awase::Hotkey::new(awase::Modifiers::NONE, awase::Key::PageUp);
+        assert_eq!(mgr.lookup(&hk), Some(Action::ScrollPageUp));
+    }
+
+    #[test]
+    fn test_scroll_page_down_binding() {
+        let mgr = KeybindManager::new();
+        let hk = awase::Hotkey::new(awase::Modifiers::NONE, awase::Key::PageDown);
+        assert_eq!(mgr.lookup(&hk), Some(Action::ScrollPageDown));
+    }
+
+    #[test]
+    fn test_focus_next_binding() {
+        let mgr = KeybindManager::new();
+        let hk = awase::Hotkey::new(awase::Modifiers::CMD, awase::Key::RightBracket);
+        assert_eq!(mgr.lookup(&hk), Some(Action::FocusNext));
+    }
+
+    #[test]
+    fn test_focus_prev_binding() {
+        let mgr = KeybindManager::new();
+        let hk = awase::Hotkey::new(awase::Modifiers::CMD, awase::Key::LeftBracket);
+        assert_eq!(mgr.lookup(&hk), Some(Action::FocusPrev));
+    }
+
+    #[test]
+    fn test_close_pane_binding() {
+        let mgr = KeybindManager::new();
+        let hk = awase::Hotkey::new(
+            awase::Modifiers::CMD | awase::Modifiers::SHIFT,
+            awase::Key::W,
+        );
+        assert_eq!(mgr.lookup(&hk), Some(Action::ClosePane));
+    }
+
+    #[test]
+    fn test_toggle_fullscreen_binding() {
+        let mgr = KeybindManager::new();
+        let hk = awase::Hotkey::new(
+            awase::Modifiers::CMD | awase::Modifiers::CTRL,
+            awase::Key::F,
+        );
+        assert_eq!(mgr.lookup(&hk), Some(Action::ToggleFullscreen));
+    }
+
+    #[test]
+    fn test_reset_terminal_binding() {
+        let mgr = KeybindManager::new();
+        let hk = awase::Hotkey::new(
+            awase::Modifiers::CMD | awase::Modifiers::SHIFT,
+            awase::Key::R,
+        );
+        assert_eq!(mgr.lookup(&hk), Some(Action::ResetTerminal));
+    }
+
+    #[test]
+    fn test_total_default_bindings_count() {
+        let mgr = KeybindManager::new();
+        assert_eq!(mgr.bindings().len(), 24);
+    }
 }

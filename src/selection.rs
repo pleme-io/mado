@@ -484,4 +484,48 @@ mod tests {
         let text = sel.extract_text(&rows, 11).unwrap();
         assert_eq!(text, "world");
     }
+
+    #[test]
+    fn test_selection_query_trait_active() {
+        let mut sel = Selection::new();
+        let query: &dyn SelectionQuery = &sel;
+        assert!(!query.is_active());
+
+        sel.start(CellPos { row: 0, col: 0 });
+        sel.update(CellPos { row: 0, col: 5 });
+        sel.finish();
+        let query: &dyn SelectionQuery = &sel;
+        assert!(query.is_active());
+    }
+
+    #[test]
+    fn test_selection_query_trait_contains() {
+        let mut sel = Selection::new();
+        sel.start(CellPos { row: 1, col: 2 });
+        sel.update(CellPos { row: 1, col: 8 });
+        sel.finish();
+
+        let query: &dyn SelectionQuery = &sel;
+        assert!(query.contains(1, 2));
+        assert!(query.contains(1, 5));
+        assert!(query.contains(1, 8));
+        assert!(!query.contains(1, 1));
+        assert!(!query.contains(1, 9));
+        assert!(!query.contains(0, 5));
+    }
+
+    #[test]
+    fn test_selection_query_trait_range() {
+        let mut sel = Selection::new();
+        let query: &dyn SelectionQuery = &sel;
+        assert!(query.range().is_none());
+
+        sel.start(CellPos { row: 2, col: 10 });
+        sel.update(CellPos { row: 0, col: 3 });
+        sel.finish();
+        let query: &dyn SelectionQuery = &sel;
+        let (start, end) = query.range().unwrap();
+        assert_eq!(start, CellPos { row: 0, col: 3 });
+        assert_eq!(end, CellPos { row: 2, col: 10 });
+    }
 }

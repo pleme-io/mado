@@ -59,6 +59,11 @@ bytemuck = { version = "1", features = ["derive"] }
 # Unicode support
 unicode-width = "0.2"
 
+# Battle-tested replacements for hand-rolled implementations
+data-encoding = "2"
+linkify = "0.10"
+open = "5"
+
 # Image decoding for Kitty graphics protocol
 image = { version = "0.25", default-features = false, features = ["png"] }
 

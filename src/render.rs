@@ -2648,4 +2648,62 @@ mod tests {
         let rects = box_drawing_rects('\u{2534}', 0.0, 0.0, TEST_CW, TEST_CH, TEST_COLOR);
         assert_eq!(rects.len(), 2, "bottom tee should have horizontal + vertical");
     }
+
+    // ---- color_to_f32 with RGBA ----
+
+    #[test]
+    fn test_color_to_f32_rgba_helper() {
+        let c = Color::new(51, 102, 153);
+        let [r, g, b, a] = color_to_f32(&c);
+        assert!((r - 51.0 / 255.0).abs() < 0.001);
+        assert!((g - 102.0 / 255.0).abs() < 0.001);
+        assert!((b - 153.0 / 255.0).abs() < 0.001);
+        assert!((a - 1.0).abs() < f32::EPSILON);
+    }
+
+    // ---- default selection_bg / cursor_color ----
+
+    #[test]
+    fn test_selection_bg_default() {
+        let term = std::sync::Arc::new(std::sync::Mutex::new(
+            crate::terminal::Terminal::new(80, 24),
+        ));
+        let renderer = TerminalRenderer::new(
+            term,
+            14.0,
+            "JetBrains Mono".into(),
+            8.0,
+            CursorStyle::Block,
+            true,
+            530,
+            wgpu::Color { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+            Color::WHITE,
+        );
+        assert!((renderer.selection_bg[0] - 0.533).abs() < 0.01);
+        assert!((renderer.selection_bg[1] - 0.753).abs() < 0.01);
+        assert!((renderer.selection_bg[2] - 0.816).abs() < 0.01);
+        assert!((renderer.selection_bg[3] - 0.3).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_cursor_color_default() {
+        let term = std::sync::Arc::new(std::sync::Mutex::new(
+            crate::terminal::Terminal::new(80, 24),
+        ));
+        let renderer = TerminalRenderer::new(
+            term,
+            14.0,
+            "JetBrains Mono".into(),
+            8.0,
+            CursorStyle::Block,
+            true,
+            530,
+            wgpu::Color { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+            Color::WHITE,
+        );
+        assert!((renderer.cursor_color[0] - 0.925).abs() < 0.01);
+        assert!((renderer.cursor_color[1] - 0.937).abs() < 0.01);
+        assert!((renderer.cursor_color[2] - 0.957).abs() < 0.01);
+        assert!((renderer.cursor_color[3] - 0.85).abs() < 0.01);
+    }
 }

@@ -1,7 +1,8 @@
 //! URL detection — find clickable URLs in terminal text.
 //!
-//! Simple state-machine-based URL finder (no regex dependency).
-//! Detects http://, https://, and file:// URLs.
+//! Uses the `linkify` crate for robust URL boundary detection,
+//! including proper parenthesis handling (Wikipedia URLs) and
+//! trailing-punctuation trimming.
 
 use crate::terminal::Cell;
 
@@ -19,21 +20,16 @@ pub fn detect_urls_in_row(row: &[Cell], cols: usize, row_idx: usize) -> Vec<Dete
     let text = row_to_string(row, cols);
     let mut urls = Vec::new();
 
-    for prefix in &["https://", "http://", "file://"] {
-        let mut start = 0;
-        while let Some(pos) = text[start..].find(prefix) {
-            let abs_start = start + pos;
-            let end = find_url_end(text.as_bytes(), abs_start + prefix.len());
-            if end > abs_start + prefix.len() {
-                urls.push(DetectedUrl {
-                    row: row_idx,
-                    col_start: abs_start,
-                    col_end: end - 1,
-                    url: text[abs_start..end].to_string(),
-                });
-            }
-            start = if end > abs_start { end } else { abs_start + 1 };
-        }
+    let mut finder = linkify::LinkFinder::new();
+    finder.kinds(&[linkify::LinkKind::Url]);
+
+    for link in finder.links(&text) {
+        urls.push(DetectedUrl {
+            row: row_idx,
+            col_start: link.start(),
+            col_end: link.end().saturating_sub(1),
+            url: link.as_str().to_string(),
+        });
     }
 
     urls
@@ -54,43 +50,6 @@ pub fn detect_urls(rows: &[Vec<Cell>], cols: usize) -> Vec<DetectedUrl> {
 pub fn url_at(urls: &[DetectedUrl], row: usize, col: usize) -> Option<&DetectedUrl> {
     urls.iter()
         .find(|u| u.row == row && col >= u.col_start && col <= u.col_end)
-}
-
-/// Find the end of a URL starting from the given position (after the prefix).
-fn find_url_end(bytes: &[u8], start: usize) -> usize {
-    let mut end = start;
-    let mut paren_depth: i32 = 0;
-
-    while end < bytes.len() {
-        let ch = bytes[end];
-        match ch {
-            // Whitespace terminates
-            b' ' | b'\t' | b'\n' | b'\r' => break,
-            // Quotes and angle brackets terminate
-            b'"' | b'\'' | b'<' | b'>' => break,
-            // Track parentheses (for URLs like Wikipedia)
-            b'(' => {
-                paren_depth += 1;
-                end += 1;
-            }
-            b')' => {
-                if paren_depth > 0 {
-                    paren_depth -= 1;
-                    end += 1;
-                } else {
-                    break;
-                }
-            }
-            _ => end += 1,
-        }
-    }
-
-    // Trim trailing punctuation
-    while end > start && matches!(bytes[end - 1], b'.' | b',' | b';' | b':' | b'!' | b'?') {
-        end -= 1;
-    }
-
-    end
 }
 
 fn row_to_string(row: &[Cell], cols: usize) -> String {
@@ -236,5 +195,60 @@ mod tests {
         let urls = detect_urls_in_row(&row, 50, 0);
         assert_eq!(urls.len(), 1);
         assert_eq!(urls[0].url, "https://example.com?key=value&foo=bar");
+    }
+
+    #[test]
+    fn test_url_with_unicode_path() {
+        let text = "see https://example.com/café/naïve here";
+        let row = make_row(text);
+        let urls = detect_urls_in_row(&row, text.chars().count(), 0);
+        assert_eq!(urls.len(), 1);
+        assert!(urls[0].url.starts_with("https://example.com/"));
+    }
+
+    #[test]
+    fn test_url_with_fragment() {
+        let text = "see https://example.com/page#section here";
+        let row = make_row(text);
+        let urls = detect_urls_in_row(&row, text.len(), 0);
+        assert_eq!(urls.len(), 1);
+        assert!(urls[0].url.starts_with("https://example.com/page"));
+    }
+
+    #[test]
+    fn test_url_with_port() {
+        let text = "http://localhost:3000/api";
+        let row = make_row(text);
+        let urls = detect_urls_in_row(&row, text.len(), 0);
+        assert_eq!(urls.len(), 1);
+        assert_eq!(urls[0].url, "http://localhost:3000/api");
+    }
+
+    #[test]
+    fn test_url_ftp_detected() {
+        let text = "ftp://files.example.com/pub";
+        let row = make_row(text);
+        let urls = detect_urls_in_row(&row, text.len(), 0);
+        // linkify treats ftp:// as a valid URL scheme
+        assert_eq!(urls.len(), 1);
+        assert!(urls[0].url.starts_with("ftp://"));
+    }
+
+    #[test]
+    fn test_url_bare_domain() {
+        let text = "go to example.com for info";
+        let row = make_row(text);
+        let urls = detect_urls_in_row(&row, text.len(), 0);
+        // LinkKind::Url only — bare domains without scheme are not detected
+        assert!(urls.is_empty());
+    }
+
+    #[test]
+    fn test_url_in_angle_brackets() {
+        let text = "visit <https://example.com> now";
+        let row = make_row(text);
+        let urls = detect_urls_in_row(&row, text.len(), 0);
+        assert_eq!(urls.len(), 1);
+        assert_eq!(urls[0].url, "https://example.com");
     }
 }
