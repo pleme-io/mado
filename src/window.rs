@@ -5,6 +5,7 @@
 
 use std::collections::HashMap;
 use std::os::fd::RawFd;
+use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
@@ -46,6 +47,10 @@ pub struct WindowState {
     tabs: TabManager,
     tab_states: HashMap<TabId, TabState>,
     shell: String,
+    /// Extra env vars for spawned PTYs.
+    extra_env: HashMap<String, String>,
+    /// Working directory for spawned PTYs.
+    working_directory: Option<std::path::PathBuf>,
     scrollback: usize,
     default_cols: usize,
     default_rows: usize,
@@ -60,6 +65,9 @@ impl WindowState {
         cols: usize,
         rows: usize,
         scrollback: usize,
+        extra_env: HashMap<String, String>,
+        working_directory: Option<std::path::PathBuf>,
+        initial_command: Option<String>,
     ) -> Self {
         let tabs = TabManager::new();
         let active_tab_id = tabs.active_tab().id;
@@ -71,7 +79,20 @@ impl WindowState {
         };
 
         let initial_id = PaneId(0);
-        Self::spawn_pane_for_tab(&mut tab_state, initial_id, cols, rows, &shell, scrollback, None);
+        // For first pane only: use initial_command (shell -c "cmd") if set; else login shell.
+        let command = initial_command.as_deref();
+        Self::spawn_pane_for_tab(
+            &mut tab_state,
+            initial_id,
+            cols,
+            rows,
+            &shell,
+            scrollback,
+            None,
+            &extra_env,
+            working_directory.as_deref(),
+            command,
+        );
 
         let mut tab_states = HashMap::new();
         tab_states.insert(active_tab_id, tab_state);
@@ -80,6 +101,8 @@ impl WindowState {
             tabs,
             tab_states,
             shell,
+            extra_env,
+            working_directory,
             scrollback,
             default_cols: cols,
             default_rows: rows,
@@ -129,9 +152,22 @@ impl WindowState {
         let shell = self.shell.clone();
         let scrollback = self.scrollback;
         let theme = self.theme_colors;
+        let extra_env = self.extra_env.clone();
+        let working_directory = self.working_directory.clone();
         let tab = self.tab_states.get_mut(&tab_id).expect("active tab");
         let new_id = tab.panes.split(dir);
-        Self::spawn_pane_for_tab(tab, new_id, cols, rows, &shell, scrollback, theme);
+        Self::spawn_pane_for_tab(
+            tab,
+            new_id,
+            cols,
+            rows,
+            &shell,
+            scrollback,
+            theme,
+            &extra_env,
+            working_directory.as_deref(),
+            None, // splits always use login shell
+        );
         new_id
     }
 
@@ -216,6 +252,8 @@ impl WindowState {
         let rows = self.default_rows;
         let shell = self.shell.clone();
         let scrollback = self.scrollback;
+        let extra_env = self.extra_env.clone();
+        let working_directory = self.working_directory.clone();
 
         let mut tab_state = TabState {
             panes: PaneManager::new(),
@@ -224,7 +262,18 @@ impl WindowState {
         };
         let initial_id = PaneId(0);
         let theme = self.theme_colors;
-        Self::spawn_pane_for_tab(&mut tab_state, initial_id, cols, rows, &shell, scrollback, theme);
+        Self::spawn_pane_for_tab(
+            &mut tab_state,
+            initial_id,
+            cols,
+            rows,
+            &shell,
+            scrollback,
+            theme,
+            &extra_env,
+            working_directory.as_deref(),
+            None, // new tabs always use login shell
+        );
         self.tab_states.insert(tab_id, tab_state);
 
         tracing::info!(tab = tab_id.0, "new tab created");
@@ -275,6 +324,7 @@ impl WindowState {
     }
 
     /// Spawn a PTY for a pane within a tab.
+    /// When `command` is Some, runs `shell -c command`; otherwise spawns a login shell.
     fn spawn_pane_for_tab(
         tab: &mut TabState,
         pane_id: PaneId,
@@ -283,6 +333,9 @@ impl WindowState {
         shell: &str,
         scrollback: usize,
         theme_colors: Option<(Color, Color, [Color; 16])>,
+        extra_env: &HashMap<String, String>,
+        working_directory: Option<&Path>,
+        command: Option<&str>,
     ) {
         let mut term = Terminal::with_scrollback(cols, rows, scrollback);
         if let Some((fg, bg, ansi)) = theme_colors {
@@ -300,6 +353,9 @@ impl WindowState {
         let response_tx = input_tx.clone();
 
         let shell = shell.to_string();
+        let extra_env = extra_env.clone();
+        let working_directory = working_directory.map(|p| p.to_path_buf());
+        let command = command.map(String::from);
 
         std::thread::spawn(move || {
             let rt = tokio::runtime::Builder::new_current_thread()
@@ -308,7 +364,16 @@ impl WindowState {
                 .expect("failed to create tokio runtime");
 
             rt.block_on(async move {
-                let pty = match crate::pty::Pty::spawn(&shell, cols as u16, rows as u16).await {
+                let pty = match crate::pty::Pty::spawn(
+                    &shell,
+                    cols as u16,
+                    rows as u16,
+                    &extra_env,
+                    working_directory.as_deref(),
+                    command.as_deref(),
+                )
+                .await
+                {
                     Ok(p) => p,
                     Err(e) => {
                         tracing::error!("failed to spawn PTY for pane {}: {e}", pane_id.0);

@@ -99,6 +99,10 @@ fn main() -> anyhow::Result<()> {
         .or(config.shell.command.clone())
         .unwrap_or_else(default_shell);
 
+    let extra_env = config.environment.vars.clone();
+    let working_directory = config.environment.working_directory.clone();
+    let initial_command = config.environment.initial_command.clone();
+
     let effective_font_size = config.font_size * config.accessibility.font_scale;
     let padding = config.window.padding as f32;
     let cell_w = effective_font_size * 0.6;
@@ -112,7 +116,15 @@ fn main() -> anyhow::Result<()> {
     let scrollback = config.behavior.scrollback_lines;
 
     // Create window state — manages tabs, panes, and per-pane terminals+PTYs
-    let window = Arc::new(Mutex::new(WindowState::new(shell, cols, rows, scrollback)));
+    let window = Arc::new(Mutex::new(WindowState::new(
+        shell,
+        cols,
+        rows,
+        scrollback,
+        extra_env,
+        working_directory,
+        initial_command,
+    )));
 
     // Get initial pane's terminal for the renderer
     let initial_terminal: SharedTerminal = {
@@ -192,7 +204,17 @@ fn main() -> anyhow::Result<()> {
     let clipboard = Arc::new(Mutex::new(
         Clipboard::new().expect("failed to initialize clipboard"),
     ));
-    let keybinds = KeybindManager::new();
+    let mut keybinds = KeybindManager::new();
+    for entry in &config.keybinds.custom {
+        if let Some(action) = crate::keybind::parse_action(&entry.action) {
+            match keybinds.bind_str(&entry.trigger, action) {
+                Ok(()) => tracing::debug!(trigger = %entry.trigger, action = %entry.action, "custom keybind loaded"),
+                Err(e) => tracing::warn!(trigger = %entry.trigger, error = %e, "failed to parse custom keybind trigger"),
+            }
+        } else {
+            tracing::warn!(action = %entry.action, "unknown keybind action");
+        }
+    }
     tracing::debug!(
         bindings = keybinds.bindings().len(),
         "keybindings loaded"
@@ -611,6 +633,53 @@ fn main() -> anyhow::Result<()> {
                             }
                             Action::ScrollUp | Action::ScrollDown => {
                                 // These are handled by scroll wheel events
+                            }
+                            Action::PasteFromSelection => {
+                                let pasted = clipboard.lock().ok().and_then(|cb| cb.paste_text().ok());
+                                if let Some(text) = pasted {
+                                    let ws = window_for_events.lock().unwrap();
+                                    ws.send_input(text.into_bytes());
+                                }
+                            }
+                            Action::JumpToPrompt => {
+                                // Shell integration prompt jump (requires OSC 133 markers)
+                                tracing::debug!("jump_to_prompt not yet wired to OSC 133 marks");
+                            }
+                            Action::ClearScreen => {
+                                let ws = window_for_events.lock().unwrap();
+                                ws.send_input(b"\x0c".to_vec()); // Ctrl+L
+                            }
+                            Action::SelectAll => {
+                                let ws = window_for_events.lock().unwrap();
+                                if let Some(pane) = ws.focused_pane() {
+                                    let term = pane.terminal.lock().unwrap();
+                                    let cols = term.cols();
+                                    let num_rows = term.rows();
+                                    drop(term);
+                                    let mut sel = pane.selection.lock().unwrap();
+                                    sel.start(CellPos { row: 0, col: 0 });
+                                    sel.update(CellPos { row: num_rows.saturating_sub(1), col: cols.saturating_sub(1) });
+                                    sel.finish();
+                                }
+                            }
+                            Action::CopyUrlToClipboard => {
+                                let ws = window_for_events.lock().unwrap();
+                                if let Some(pane) = ws.focused_pane() {
+                                    let term = pane.terminal.lock().unwrap();
+                                    let cols = term.cols();
+                                    let cursor_row = term.cursor().row;
+                                    let row_cells: Vec<_> = (0..cols).map(|c| term.cell(cursor_row, c).clone()).collect();
+                                    drop(term);
+                                    let urls = crate::url::detect_urls_in_row(&row_cells, cols, cursor_row);
+                                    if let Some(url) = urls.first() {
+                                        if let Ok(cb) = clipboard.lock() {
+                                            let _ = cb.copy_text(&url.url);
+                                        }
+                                    }
+                                }
+                            }
+                            Action::ToggleMouseReporting => {
+                                tracing::info!("mouse reporting toggled");
                             }
                         }
                     }
@@ -1689,5 +1758,173 @@ mod tests {
         let result = kitty_encode_key(&madori::event::KeyCode::Up, &None, &mods, 1);
         assert!(result.is_some());
         assert_eq!(result.unwrap(), b"\x1b[1;2A");
+    }
+
+    #[test]
+    fn test_kitty_encode_tab() {
+        let mods = madori::event::Modifiers::default();
+        let result = kitty_encode_key(&madori::event::KeyCode::Tab, &None, &mods, 1);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), b"\x1b[9u");
+    }
+
+    #[test]
+    fn test_kitty_encode_backspace() {
+        let mods = madori::event::Modifiers::default();
+        let result = kitty_encode_key(&madori::event::KeyCode::Backspace, &None, &mods, 1);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), b"\x1b[127u");
+    }
+
+    #[test]
+    fn test_kitty_encode_escape() {
+        let mods = madori::event::Modifiers::default();
+        let result = kitty_encode_key(&madori::event::KeyCode::Escape, &None, &mods, 1);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), b"\x1b[27u");
+    }
+
+    #[test]
+    fn test_kitty_encode_arrow_down() {
+        let mods = madori::event::Modifiers::default();
+        let result = kitty_encode_key(&madori::event::KeyCode::Down, &None, &mods, 1);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), b"\x1b[B");
+    }
+
+    #[test]
+    fn test_kitty_encode_arrow_left() {
+        let mods = madori::event::Modifiers::default();
+        let result = kitty_encode_key(&madori::event::KeyCode::Left, &None, &mods, 1);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), b"\x1b[D");
+    }
+
+    #[test]
+    fn test_kitty_encode_arrow_right() {
+        let mods = madori::event::Modifiers::default();
+        let result = kitty_encode_key(&madori::event::KeyCode::Right, &None, &mods, 1);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), b"\x1b[C");
+    }
+
+    #[test]
+    fn test_kitty_encode_home() {
+        let mods = madori::event::Modifiers::default();
+        let result = kitty_encode_key(&madori::event::KeyCode::Home, &None, &mods, 1);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), b"\x1b[H");
+    }
+
+    #[test]
+    fn test_kitty_encode_end() {
+        let mods = madori::event::Modifiers::default();
+        let result = kitty_encode_key(&madori::event::KeyCode::End, &None, &mods, 1);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), b"\x1b[F");
+    }
+
+    #[test]
+    fn test_kitty_encode_delete() {
+        let mods = madori::event::Modifiers::default();
+        let result = kitty_encode_key(&madori::event::KeyCode::Delete, &None, &mods, 1);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), b"\x1b[3~");
+    }
+
+    #[test]
+    fn test_kitty_encode_page_up() {
+        let mods = madori::event::Modifiers::default();
+        let result = kitty_encode_key(&madori::event::KeyCode::PageUp, &None, &mods, 1);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), b"\x1b[5~");
+    }
+
+    #[test]
+    fn test_kitty_encode_page_down() {
+        let mods = madori::event::Modifiers::default();
+        let result = kitty_encode_key(&madori::event::KeyCode::PageDown, &None, &mods, 1);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), b"\x1b[6~");
+    }
+
+    #[test]
+    fn test_kitty_encode_char_with_alt() {
+        let mods = madori::event::Modifiers {
+            alt: true,
+            ..Default::default()
+        };
+        let result = kitty_encode_key(&madori::event::KeyCode::Char('a'), &None, &mods, 1);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), b"\x1b[97;3u");
+    }
+
+    #[test]
+    fn test_kitty_encode_char_ctrl_shift() {
+        let mods = madori::event::Modifiers {
+            ctrl: true,
+            shift: true,
+            ..Default::default()
+        };
+        let result = kitty_encode_key(&madori::event::KeyCode::Char('a'), &None, &mods, 1);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), b"\x1b[97;6u");
+    }
+
+    #[test]
+    fn test_default_shell_contains_path() {
+        let shell = default_shell();
+        assert!(shell.contains('/') || shell.contains("sh"));
+    }
+
+    #[test]
+    fn test_exit_response_without_confirm() {
+        let pending = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let resp = exit_response(false, &pending);
+        assert!(resp.exit);
+    }
+
+    #[test]
+    fn test_parse_hex_color_red() {
+        let (r, g, b) = parse_hex_color("#ff0000", 0.0, 0.0, 0.0);
+        assert!((r - 1.0).abs() < 0.01);
+        assert!(g.abs() < 0.01);
+        assert!(b.abs() < 0.01);
+    }
+
+    #[test]
+    fn test_parse_hex_color_fallback_defaults() {
+        let (r, g, b) = parse_hex_color("not-a-color", 0.5, 0.6, 0.7);
+        assert!((r - 0.5).abs() < 0.01);
+        assert!((g - 0.6).abs() < 0.01);
+        assert!((b - 0.7).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_parse_hex_rgb_green() {
+        let (r, g, b) = parse_hex_rgb("#00ff00", 0, 0, 0);
+        assert_eq!(r, 0);
+        assert_eq!(g, 255);
+        assert_eq!(b, 0);
+    }
+
+    #[test]
+    fn test_color_to_rgba_white_full() {
+        let c = crate::terminal::Color::WHITE;
+        let rgba = color_to_f32_rgba(&c, 1.0);
+        assert!((rgba[0] - 1.0).abs() < 0.01);
+        assert!((rgba[1] - 1.0).abs() < 0.01);
+        assert!((rgba[2] - 1.0).abs() < 0.01);
+        assert!((rgba[3] - 1.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_color_to_rgba_black_half() {
+        let c = crate::terminal::Color::BLACK;
+        let rgba = color_to_f32_rgba(&c, 0.5);
+        assert!(rgba[0].abs() < 0.01);
+        assert!(rgba[1].abs() < 0.01);
+        assert!(rgba[2].abs() < 0.01);
+        assert!((rgba[3] - 0.5).abs() < 0.01);
     }
 }

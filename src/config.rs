@@ -10,6 +10,8 @@ pub struct MadoConfig {
     #[serde(default = "default_font_size")]
     pub font_size: f32,
     #[serde(default)]
+    pub font: FontConfig,
+    #[serde(default)]
     pub window: WindowConfig,
     #[serde(default)]
     pub shell: ShellConfig,
@@ -33,6 +35,101 @@ pub struct MadoConfig {
     pub shell_integration: ShellIntegrationConfig,
     #[serde(default)]
     pub performance: PerformanceConfig,
+    #[serde(default)]
+    pub environment: EnvironmentConfig,
+    #[serde(default)]
+    pub selection: SelectionConfig,
+    #[serde(default)]
+    pub search: SearchColorsConfig,
+    #[serde(default)]
+    pub keybinds: KeybindConfig,
+}
+
+/// Font family and rendering configuration (mirrors Ghostty's font-* options).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FontConfig {
+    #[serde(default)]
+    pub family_bold: Option<String>,
+    #[serde(default)]
+    pub family_italic: Option<String>,
+    #[serde(default)]
+    pub family_bold_italic: Option<String>,
+    #[serde(default)]
+    pub thicken: bool,
+    #[serde(default)]
+    pub synthetic_style: bool,
+    #[serde(default)]
+    pub features: Vec<String>,
+    #[serde(default)]
+    pub codepoint_map: HashMap<String, String>,
+}
+
+impl Default for FontConfig {
+    fn default() -> Self {
+        Self {
+            family_bold: None,
+            family_italic: None,
+            family_bold_italic: None,
+            thicken: false,
+            synthetic_style: true,
+            features: Vec::new(),
+            codepoint_map: HashMap::new(),
+        }
+    }
+}
+
+/// Selection colors and behavior (mirrors Ghostty's selection-* options).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SelectionConfig {
+    #[serde(default)]
+    pub foreground: Option<String>,
+    #[serde(default)]
+    pub background: Option<String>,
+    #[serde(default = "default_selection_word_chars")]
+    pub word_chars: String,
+    #[serde(default = "default_true")]
+    pub clear_on_typing: bool,
+    #[serde(default)]
+    pub clear_on_copy: bool,
+}
+
+impl Default for SelectionConfig {
+    fn default() -> Self {
+        Self {
+            foreground: None,
+            background: None,
+            word_chars: default_selection_word_chars(),
+            clear_on_typing: true,
+            clear_on_copy: false,
+        }
+    }
+}
+
+/// Search highlight colors (mirrors Ghostty's search-* options).
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct SearchColorsConfig {
+    #[serde(default)]
+    pub foreground: Option<String>,
+    #[serde(default)]
+    pub background: Option<String>,
+    #[serde(default)]
+    pub selected_foreground: Option<String>,
+    #[serde(default)]
+    pub selected_background: Option<String>,
+}
+
+/// Custom keybind entries loaded from config (mirrors Ghostty's keybind option).
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct KeybindConfig {
+    #[serde(default)]
+    pub custom: Vec<KeybindEntry>,
+}
+
+/// A single keybind mapping from config.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KeybindEntry {
+    pub trigger: String,
+    pub action: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -43,6 +140,26 @@ pub struct WindowConfig {
     pub height: u32,
     #[serde(default = "default_padding")]
     pub padding: u32,
+    #[serde(default = "default_true")]
+    pub decorations: bool,
+    #[serde(default)]
+    pub title: Option<String>,
+    #[serde(default = "default_unfocused_split_opacity")]
+    pub unfocused_split_opacity: f32,
+    #[serde(default)]
+    pub split_divider_color: Option<String>,
+    #[serde(default)]
+    pub background_image: Option<PathBuf>,
+    #[serde(default)]
+    pub fullscreen: bool,
+    #[serde(default)]
+    pub maximize: bool,
+    #[serde(default = "default_true")]
+    pub inherit_working_directory: bool,
+    #[serde(default = "default_true")]
+    pub inherit_font_size: bool,
+    #[serde(default = "default_true")]
+    pub padding_balance: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -62,12 +179,19 @@ pub struct AppearanceConfig {
     pub opacity: f32,
     #[serde(default)]
     pub bold_is_bright: bool,
+    #[serde(default = "default_minimum_contrast")]
+    pub minimum_contrast: f32,
+    #[serde(default)]
+    pub background_blur: bool,
+    #[serde(default)]
+    pub unfocused_split_fill: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum CursorStyle {
     Block,
+    BlockHollow,
     Bar,
     Underline,
 }
@@ -88,6 +212,12 @@ pub struct CursorConfig {
     pub blink_rate_ms: u32,
     #[serde(default = "default_cursor_color")]
     pub color: String,
+    #[serde(default = "default_cursor_opacity")]
+    pub opacity: f32,
+    #[serde(default)]
+    pub text_color: Option<String>,
+    #[serde(default)]
+    pub click_to_move: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -102,6 +232,24 @@ pub struct BehaviorConfig {
     pub mouse_hide_while_typing: bool,
     #[serde(default = "default_mouse_scroll_mult")]
     pub mouse_scroll_multiplier: u32,
+    #[serde(default)]
+    pub wait_after_command: bool,
+    #[serde(default = "default_true")]
+    pub link_url: bool,
+    #[serde(default = "default_true")]
+    pub mouse_reporting: bool,
+    #[serde(default)]
+    pub mouse_shift_capture: MouseShiftCapture,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum MouseShiftCapture {
+    #[default]
+    False,
+    True,
+    Never,
+    Always,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -138,6 +286,30 @@ impl Default for PerformanceConfig {
     }
 }
 
+/// Environment configuration for PTY spawning.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EnvironmentConfig {
+    /// Extra environment variables to set for spawned processes.
+    #[serde(default)]
+    pub vars: HashMap<String, String>,
+    /// Initial working directory for spawned processes.
+    #[serde(default)]
+    pub working_directory: Option<PathBuf>,
+    /// Command to run for the first terminal only (overrides shell).
+    #[serde(default)]
+    pub initial_command: Option<String>,
+}
+
+impl Default for EnvironmentConfig {
+    fn default() -> Self {
+        Self {
+            vars: HashMap::new(),
+            working_directory: None,
+            initial_command: None,
+        }
+    }
+}
+
 /// Named profile — overrides any top-level config field when activated.
 /// Example in mado.yaml:
 /// ```yaml
@@ -155,12 +327,16 @@ impl Default for PerformanceConfig {
 pub struct ProfileConfig {
     pub font_family: Option<String>,
     pub font_size: Option<f32>,
+    pub font: Option<FontConfig>,
     pub theme: Option<String>,
     pub appearance: Option<AppearanceConfig>,
     pub cursor: Option<CursorConfig>,
     pub shell: Option<ShellConfig>,
     pub behavior: Option<BehaviorConfig>,
     pub performance: Option<PerformanceConfig>,
+    pub environment: Option<EnvironmentConfig>,
+    pub selection: Option<SelectionConfig>,
+    pub window: Option<WindowConfig>,
 }
 
 /// Custom WGSL shader post-processing configuration.
@@ -263,6 +439,18 @@ impl MadoConfig {
         if let Some(ref performance) = profile.performance {
             config.performance = performance.clone();
         }
+        if let Some(ref environment) = profile.environment {
+            config.environment = environment.clone();
+        }
+        if let Some(ref font) = profile.font {
+            config.font = font.clone();
+        }
+        if let Some(ref selection) = profile.selection {
+            config.selection = selection.clone();
+        }
+        if let Some(ref window) = profile.window {
+            config.window = window.clone();
+        }
         config
     }
 }
@@ -274,6 +462,7 @@ impl Default for MadoConfig {
         Self {
             font_family: default_font_family(),
             font_size: default_font_size(),
+            font: FontConfig::default(),
             window: WindowConfig::default(),
             shell: ShellConfig::default(),
             appearance: AppearanceConfig::default(),
@@ -286,6 +475,10 @@ impl Default for MadoConfig {
             accessibility: AccessibilityConfig::default(),
             shell_integration: ShellIntegrationConfig::default(),
             performance: PerformanceConfig::default(),
+            environment: EnvironmentConfig::default(),
+            selection: SelectionConfig::default(),
+            search: SearchColorsConfig::default(),
+            keybinds: KeybindConfig::default(),
         }
     }
 }
@@ -296,6 +489,16 @@ impl Default for WindowConfig {
             width: default_width(),
             height: default_height(),
             padding: default_padding(),
+            decorations: true,
+            title: None,
+            unfocused_split_opacity: default_unfocused_split_opacity(),
+            split_divider_color: None,
+            background_image: None,
+            fullscreen: false,
+            maximize: false,
+            inherit_working_directory: true,
+            inherit_font_size: true,
+            padding_balance: true,
         }
     }
 }
@@ -316,6 +519,9 @@ impl Default for AppearanceConfig {
             foreground: default_fg(),
             opacity: default_opacity(),
             bold_is_bright: false,
+            minimum_contrast: default_minimum_contrast(),
+            background_blur: false,
+            unfocused_split_fill: None,
         }
     }
 }
@@ -327,6 +533,9 @@ impl Default for CursorConfig {
             blink: default_cursor_blink(),
             blink_rate_ms: default_cursor_blink_rate(),
             color: default_cursor_color(),
+            opacity: default_cursor_opacity(),
+            text_color: None,
+            click_to_move: false,
         }
     }
 }
@@ -339,6 +548,10 @@ impl Default for BehaviorConfig {
             confirm_close: false,
             mouse_hide_while_typing: default_mouse_hide(),
             mouse_scroll_multiplier: default_mouse_scroll_mult(),
+            wait_after_command: false,
+            link_url: true,
+            mouse_reporting: true,
+            mouse_shift_capture: MouseShiftCapture::default(),
         }
     }
 }
@@ -402,6 +615,21 @@ fn default_target_fps() -> u32 {
 }
 fn default_theme() -> String {
     "nord".into()
+}
+fn default_true() -> bool {
+    true
+}
+fn default_cursor_opacity() -> f32 {
+    1.0
+}
+fn default_unfocused_split_opacity() -> f32 {
+    0.85
+}
+fn default_minimum_contrast() -> f32 {
+    1.0
+}
+fn default_selection_word_chars() -> String {
+    "\t'\"│`|:;,()[]{}<>$".into()
 }
 
 /// Load configuration using shikumi discovery chain.
@@ -472,19 +700,39 @@ mod tests {
         assert_eq!(config.window.width, 1200);
         assert_eq!(config.window.height, 800);
         assert_eq!(config.window.padding, 8);
+        assert!(config.window.decorations);
+        assert!(config.window.title.is_none());
+        assert!((config.window.unfocused_split_opacity - 0.85).abs() < 0.001);
+        assert!(config.window.split_divider_color.is_none());
+        assert!(config.window.background_image.is_none());
+        assert!(!config.window.fullscreen);
+        assert!(!config.window.maximize);
+        assert!(config.window.inherit_working_directory);
+        assert!(config.window.inherit_font_size);
+        assert!(config.window.padding_balance);
         assert_eq!(config.appearance.background, "#2e3440");
         assert_eq!(config.appearance.foreground, "#eceff4");
         assert_eq!(config.appearance.opacity, 1.0);
         assert!(!config.appearance.bold_is_bright);
+        assert!((config.appearance.minimum_contrast - 1.0).abs() < 0.001);
+        assert!(!config.appearance.background_blur);
+        assert!(config.appearance.unfocused_split_fill.is_none());
         assert_eq!(config.cursor.style, CursorStyle::Block);
         assert!(config.cursor.blink);
         assert_eq!(config.cursor.blink_rate_ms, 530);
         assert_eq!(config.cursor.color, "#eceff4");
+        assert!((config.cursor.opacity - 1.0).abs() < 0.001);
+        assert!(config.cursor.text_color.is_none());
+        assert!(!config.cursor.click_to_move);
         assert_eq!(config.behavior.scrollback_lines, 10_000);
         assert!(!config.behavior.copy_on_select);
         assert!(!config.behavior.confirm_close);
         assert!(config.behavior.mouse_hide_while_typing);
         assert_eq!(config.behavior.mouse_scroll_multiplier, 2);
+        assert!(!config.behavior.wait_after_command);
+        assert!(config.behavior.link_url);
+        assert!(config.behavior.mouse_reporting);
+        assert_eq!(config.behavior.mouse_shift_capture, MouseShiftCapture::False);
         assert!(config.shell_integration.enabled);
         assert_eq!(config.shell_integration.features, ["cursor", "sudo", "title"]);
         assert!(config.performance.vsync);
@@ -495,6 +743,30 @@ mod tests {
         assert_eq!(config.accessibility.min_contrast, 0.0);
         assert_eq!(config.accessibility.font_scale, 1.0);
         assert!(!config.accessibility.reduce_motion);
+        assert!(config.environment.vars.is_empty());
+        assert!(config.environment.working_directory.is_none());
+        assert!(config.environment.initial_command.is_none());
+        // Selection config
+        assert!(config.selection.foreground.is_none());
+        assert!(config.selection.background.is_none());
+        assert!(config.selection.clear_on_typing);
+        assert!(!config.selection.clear_on_copy);
+        assert!(!config.selection.word_chars.is_empty());
+        // Search colors config
+        assert!(config.search.foreground.is_none());
+        assert!(config.search.background.is_none());
+        assert!(config.search.selected_foreground.is_none());
+        assert!(config.search.selected_background.is_none());
+        // Font config
+        assert!(config.font.family_bold.is_none());
+        assert!(config.font.family_italic.is_none());
+        assert!(config.font.family_bold_italic.is_none());
+        assert!(!config.font.thicken);
+        assert!(config.font.synthetic_style);
+        assert!(config.font.features.is_empty());
+        assert!(config.font.codepoint_map.is_empty());
+        // Keybind config
+        assert!(config.keybinds.custom.is_empty());
     }
 
     #[test]
@@ -538,11 +810,7 @@ window:
                 font_family: Some("Fira Code".into()),
                 font_size: Some(16.0),
                 theme: Some("dracula".into()),
-                appearance: None,
-                cursor: None,
-                shell: None,
-                behavior: None,
-                performance: None,
+                ..ProfileConfig::default()
             },
         );
         let config = MadoConfig {
@@ -566,7 +834,7 @@ window:
 
     #[test]
     fn test_cursor_style_variants() {
-        for style in [CursorStyle::Block, CursorStyle::Bar, CursorStyle::Underline] {
+        for style in [CursorStyle::Block, CursorStyle::BlockHollow, CursorStyle::Bar, CursorStyle::Underline] {
             let json = serde_json::to_string(&style).unwrap();
             let restored: CursorStyle = serde_json::from_str(&json).unwrap();
             assert_eq!(style, restored);
@@ -651,12 +919,16 @@ window:
         let p = ProfileConfig::default();
         assert!(p.font_family.is_none());
         assert!(p.font_size.is_none());
+        assert!(p.font.is_none());
         assert!(p.theme.is_none());
         assert!(p.appearance.is_none());
         assert!(p.cursor.is_none());
         assert!(p.shell.is_none());
         assert!(p.behavior.is_none());
         assert!(p.performance.is_none());
+        assert!(p.environment.is_none());
+        assert!(p.selection.is_none());
+        assert!(p.window.is_none());
     }
 
     #[test]
@@ -667,12 +939,7 @@ window:
             ProfileConfig {
                 font_family: Some("Monaco".into()),
                 font_size: Some(18.0),
-                theme: None,
-                appearance: None,
-                cursor: None,
-                shell: None,
-                behavior: None,
-                performance: None,
+                ..ProfileConfig::default()
             },
         );
         let config = MadoConfig {
@@ -691,14 +958,8 @@ window:
         profiles.insert(
             "light".to_string(),
             ProfileConfig {
-                font_family: None,
-                font_size: None,
                 theme: Some("solarized-light".into()),
-                appearance: None,
-                cursor: None,
-                shell: None,
-                behavior: None,
-                performance: None,
+                ..ProfileConfig::default()
             },
         );
         let config = MadoConfig {
@@ -732,11 +993,7 @@ window:
                 font_family: Some("Fira Code".into()),
                 font_size: Some(16.0),
                 theme: Some("dracula".into()),
-                appearance: None,
-                cursor: None,
-                shell: None,
-                behavior: None,
-                performance: None,
+                ..ProfileConfig::default()
             },
         );
         let config = MadoConfig {
@@ -756,17 +1013,11 @@ window:
         profiles.insert(
             "gaming".to_string(),
             ProfileConfig {
-                font_family: None,
-                font_size: None,
-                theme: None,
-                appearance: None,
-                cursor: None,
-                shell: None,
-                behavior: None,
                 performance: Some(PerformanceConfig {
                     vsync: false,
                     target_fps: 240,
                 }),
+                ..ProfileConfig::default()
             },
         );
         let config = MadoConfig {
@@ -799,5 +1050,270 @@ active_profile: "dark"
 "#;
         let config: MadoConfig = serde_yaml::from_str(yaml).unwrap();
         assert_eq!(config.active_profile.as_deref(), Some("dark"));
+    }
+
+    #[test]
+    fn test_font_config_defaults() {
+        let f = FontConfig::default();
+        assert!(f.family_bold.is_none());
+        assert!(f.family_italic.is_none());
+        assert!(f.family_bold_italic.is_none());
+        assert!(!f.thicken);
+        assert!(f.synthetic_style);
+        assert!(f.features.is_empty());
+        assert!(f.codepoint_map.is_empty());
+    }
+
+    #[test]
+    fn test_font_config_yaml() {
+        let yaml = concat!(
+            "family_bold: Fira Code Bold\n",
+            "family_italic: Fira Code Italic\n",
+            "thicken: true\n",
+            "synthetic_style: false\n",
+            "features:\n",
+            "  - '-calt'\n",
+            "  - '-liga'\n",
+        );
+        let f: FontConfig = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(f.family_bold.as_deref(), Some("Fira Code Bold"));
+        assert_eq!(f.family_italic.as_deref(), Some("Fira Code Italic"));
+        assert!(f.thicken);
+        assert!(!f.synthetic_style);
+        assert_eq!(f.features, vec!["-calt", "-liga"]);
+    }
+
+    #[test]
+    fn test_selection_config_defaults() {
+        let s = SelectionConfig::default();
+        assert!(s.foreground.is_none());
+        assert!(s.background.is_none());
+        assert!(s.clear_on_typing);
+        assert!(!s.clear_on_copy);
+        assert!(s.word_chars.contains('\t'));
+        assert!(s.word_chars.contains('|'));
+    }
+
+    #[test]
+    fn test_selection_config_yaml() {
+        let yaml = "foreground: '#ffffff'\nbackground: '#005577'\nclear_on_typing: false\nclear_on_copy: true\n";
+        let s: SelectionConfig = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(s.foreground.as_deref(), Some("#ffffff"));
+        assert_eq!(s.background.as_deref(), Some("#005577"));
+        assert!(!s.clear_on_typing);
+        assert!(s.clear_on_copy);
+    }
+
+    #[test]
+    fn test_search_colors_config_defaults() {
+        let s = SearchColorsConfig::default();
+        assert!(s.foreground.is_none());
+        assert!(s.background.is_none());
+        assert!(s.selected_foreground.is_none());
+        assert!(s.selected_background.is_none());
+    }
+
+    #[test]
+    fn test_search_colors_config_yaml() {
+        let yaml = "foreground: '#000000'\nbackground: '#ffcc00'\nselected_foreground: '#000000'\nselected_background: '#ff9900'\n";
+        let s: SearchColorsConfig = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(s.foreground.as_deref(), Some("#000000"));
+        assert_eq!(s.background.as_deref(), Some("#ffcc00"));
+        assert_eq!(s.selected_foreground.as_deref(), Some("#000000"));
+        assert_eq!(s.selected_background.as_deref(), Some("#ff9900"));
+    }
+
+    #[test]
+    fn test_keybind_config_yaml() {
+        let yaml = concat!(
+            "custom:\n",
+            "  - trigger: cmd+k\n",
+            "    action: clear_screen\n",
+            "  - trigger: ctrl+shift+c\n",
+            "    action: copy\n",
+        );
+        let k: KeybindConfig = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(k.custom.len(), 2);
+        assert_eq!(k.custom[0].trigger, "cmd+k");
+        assert_eq!(k.custom[0].action, "clear_screen");
+        assert_eq!(k.custom[1].trigger, "ctrl+shift+c");
+        assert_eq!(k.custom[1].action, "copy");
+    }
+
+    #[test]
+    fn test_cursor_style_block_hollow() {
+        let style = CursorStyle::BlockHollow;
+        let json = serde_json::to_string(&style).unwrap();
+        assert_eq!(json, "\"block_hollow\"");
+        let restored: CursorStyle = serde_json::from_str(&json).unwrap();
+        assert_eq!(restored, CursorStyle::BlockHollow);
+    }
+
+    #[test]
+    fn test_cursor_config_new_fields() {
+        let c = CursorConfig::default();
+        assert!((c.opacity - 1.0).abs() < 0.001);
+        assert!(c.text_color.is_none());
+        assert!(!c.click_to_move);
+    }
+
+    #[test]
+    fn test_window_config_new_fields() {
+        let w = WindowConfig::default();
+        assert!(w.decorations);
+        assert!(w.title.is_none());
+        assert!((w.unfocused_split_opacity - 0.85).abs() < 0.001);
+        assert!(!w.fullscreen);
+        assert!(!w.maximize);
+        assert!(w.inherit_working_directory);
+        assert!(w.inherit_font_size);
+        assert!(w.padding_balance);
+    }
+
+    #[test]
+    fn test_behavior_config_ghostty_fields() {
+        let b = BehaviorConfig::default();
+        assert!(!b.wait_after_command);
+        assert!(b.link_url);
+        assert!(b.mouse_reporting);
+        assert_eq!(b.mouse_shift_capture, MouseShiftCapture::False);
+    }
+
+    #[test]
+    fn test_mouse_shift_capture_variants() {
+        for variant in [
+            MouseShiftCapture::False,
+            MouseShiftCapture::True,
+            MouseShiftCapture::Never,
+            MouseShiftCapture::Always,
+        ] {
+            let json = serde_json::to_string(&variant).unwrap();
+            let restored: MouseShiftCapture = serde_json::from_str(&json).unwrap();
+            assert_eq!(variant, restored);
+        }
+    }
+
+    #[test]
+    fn test_appearance_config_new_fields() {
+        let a = AppearanceConfig::default();
+        assert!((a.minimum_contrast - 1.0).abs() < 0.001);
+        assert!(!a.background_blur);
+        assert!(a.unfocused_split_fill.is_none());
+    }
+
+    #[test]
+    fn test_environment_config_defaults() {
+        let e = EnvironmentConfig::default();
+        assert!(e.vars.is_empty());
+        assert!(e.working_directory.is_none());
+        assert!(e.initial_command.is_none());
+    }
+
+    #[test]
+    fn test_environment_config_yaml() {
+        let yaml = concat!(
+            "vars:\n",
+            "  EDITOR: nvim\n",
+            "  MY_VAR: hello\n",
+            "working_directory: /tmp/test\n",
+            "initial_command: nvim\n",
+        );
+        let e: EnvironmentConfig = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(e.vars.get("EDITOR").unwrap(), "nvim");
+        assert_eq!(e.vars.get("MY_VAR").unwrap(), "hello");
+        assert_eq!(e.working_directory.as_ref().unwrap().to_str().unwrap(), "/tmp/test");
+        assert_eq!(e.initial_command.as_deref(), Some("nvim"));
+    }
+
+    #[test]
+    fn test_full_config_yaml_roundtrip() {
+        let yaml = concat!(
+            "font_family: Hack\n",
+            "font_size: 13.5\n",
+            "theme: dracula\n",
+            "font:\n",
+            "  family_bold: Hack Bold\n",
+            "  thicken: true\n",
+            "  features:\n",
+            "    - '-liga'\n",
+            "window:\n",
+            "  width: 1920\n",
+            "  height: 1080\n",
+            "  decorations: false\n",
+            "  fullscreen: true\n",
+            "  maximize: true\n",
+            "selection:\n",
+            "  foreground: '#ff0000'\n",
+            "  clear_on_typing: false\n",
+            "cursor:\n",
+            "  style: bar\n",
+            "  opacity: 0.8\n",
+            "  text_color: '#000000'\n",
+            "behavior:\n",
+            "  wait_after_command: true\n",
+            "  link_url: false\n",
+            "  mouse_reporting: false\n",
+        );
+        let config: MadoConfig = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(config.font_family, "Hack");
+        assert_eq!(config.font_size, 13.5);
+        assert_eq!(config.theme, "dracula");
+        assert_eq!(config.font.family_bold.as_deref(), Some("Hack Bold"));
+        assert!(config.font.thicken);
+        assert_eq!(config.font.features, vec!["-liga"]);
+        assert_eq!(config.window.width, 1920);
+        assert_eq!(config.window.height, 1080);
+        assert!(!config.window.decorations);
+        assert!(config.window.fullscreen);
+        assert!(config.window.maximize);
+        assert_eq!(config.selection.foreground.as_deref(), Some("#ff0000"));
+        assert!(!config.selection.clear_on_typing);
+        assert_eq!(config.cursor.style, CursorStyle::Bar);
+        assert!((config.cursor.opacity - 0.8).abs() < 0.001);
+        assert_eq!(config.cursor.text_color.as_deref(), Some("#000000"));
+        assert!(config.behavior.wait_after_command);
+        assert!(!config.behavior.link_url);
+        assert!(!config.behavior.mouse_reporting);
+    }
+
+    #[test]
+    fn test_with_profile_selection_override() {
+        let mut profiles = HashMap::new();
+        profiles.insert(
+            "highlight".to_string(),
+            ProfileConfig {
+                selection: Some(SelectionConfig {
+                    foreground: Some("#ffffff".into()),
+                    background: Some("#ff0000".into()),
+                    ..SelectionConfig::default()
+                }),
+                ..ProfileConfig::default()
+            },
+        );
+        let config = MadoConfig { profiles, ..MadoConfig::default() };
+        let applied = config.with_profile("highlight");
+        assert_eq!(applied.selection.foreground.as_deref(), Some("#ffffff"));
+        assert_eq!(applied.selection.background.as_deref(), Some("#ff0000"));
+        assert!(applied.selection.clear_on_typing);
+    }
+
+    #[test]
+    fn test_with_profile_window_override() {
+        let mut profiles = HashMap::new();
+        profiles.insert(
+            "fullscreen".to_string(),
+            ProfileConfig {
+                window: Some(WindowConfig {
+                    fullscreen: true,
+                    maximize: true,
+                    ..WindowConfig::default()
+                }),
+                ..ProfileConfig::default()
+            },
+        );
+        let config = MadoConfig { profiles, ..MadoConfig::default() };
+        let applied = config.with_profile("fullscreen");
+        assert!(applied.window.fullscreen);
+        assert!(applied.window.maximize);
     }
 }

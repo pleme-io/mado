@@ -3,6 +3,8 @@
 //! Uses libc directly for Unix PTY allocation (openpty).
 //! Provides async reader/writer interfaces via tokio.
 
+use std::collections::HashMap;
+use std::path::Path;
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd, RawFd};
 use std::pin::Pin;
 use std::task::{Context, Poll};
@@ -55,7 +57,15 @@ pub struct Pty {
 
 impl Pty {
     /// Allocate a new PTY and spawn the given shell command inside it.
-    pub async fn spawn(shell: &str, cols: u16, rows: u16) -> Result<Self> {
+    /// If `command` is Some, runs `shell -c command`; otherwise spawns a login shell.
+    pub async fn spawn(
+        shell: &str,
+        cols: u16,
+        rows: u16,
+        extra_env: &HashMap<String, String>,
+        working_directory: Option<&Path>,
+        command: Option<&str>,
+    ) -> Result<Self> {
         let mut master_raw: RawFd = 0;
         let mut slave_raw: RawFd = 0;
 
@@ -88,7 +98,7 @@ impl Pty {
         set_nonblocking(&master_fd)?;
 
         // Spawn the child shell with the slave PTY as its controlling terminal.
-        let child = spawn_child(shell, &slave_fd, cols, rows)?;
+        let child = spawn_child(shell, &slave_fd, cols, rows, extra_env, working_directory, command)?;
 
         // The slave fd is now duplicated into the child process; drop our copy.
         drop(slave_fd);
@@ -314,7 +324,15 @@ mod tests {
     }
 }
 
-fn spawn_child(shell: &str, slave_fd: &OwnedFd, cols: u16, rows: u16) -> Result<Child> {
+fn spawn_child(
+    shell: &str,
+    slave_fd: &OwnedFd,
+    cols: u16,
+    rows: u16,
+    extra_env: &HashMap<String, String>,
+    working_directory: Option<&Path>,
+    command: Option<&str>,
+) -> Result<Child> {
     use std::os::unix::process::CommandExt;
     use std::process::{Command, Stdio};
 
@@ -325,18 +343,32 @@ fn spawn_child(shell: &str, slave_fd: &OwnedFd, cols: u16, rows: u16) -> Result<
     let stdout_fd = dup_fd(slave_fd)?;
     let stderr_fd = dup_fd(slave_fd)?;
 
-    // Spawn as a login shell by prepending '-' to argv[0]
-    let shell_basename = std::path::Path::new(shell)
-        .file_name()
-        .and_then(|s| s.to_str())
-        .unwrap_or(shell);
-    let login_arg0 = format!("-{shell_basename}");
-
     let mut cmd = Command::new(shell);
-    cmd.arg0(&login_arg0);
+    if let Some(cmd_str) = command {
+        // Run shell -c "command" (e.g. for initial_command)
+        cmd.arg("-c").arg(cmd_str);
+    } else {
+        // Spawn as a login shell by prepending '-' to argv[0]
+        let shell_basename = std::path::Path::new(shell)
+            .file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or(shell);
+        let login_arg0 = format!("-{shell_basename}");
+        cmd.arg0(&login_arg0);
+    }
     cmd.stdin(Stdio::from(stdin_fd));
     cmd.stdout(Stdio::from(stdout_fd));
     cmd.stderr(Stdio::from(stderr_fd));
+
+    // Extra environment variables from config.
+    for (key, value) in extra_env {
+        cmd.env(key, value);
+    }
+
+    // Working directory from config.
+    if let Some(dir) = working_directory {
+        cmd.current_dir(dir);
+    }
 
     // Set terminal type so programs know our capabilities.
     cmd.env("TERM", "xterm-256color");

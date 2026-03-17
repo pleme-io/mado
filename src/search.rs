@@ -544,4 +544,59 @@ mod tests {
         let query: &dyn SearchQuery = &state;
         assert_eq!(query.match_count(), 3);
     }
+
+    #[test]
+    fn test_search_case_sensitive_mode() {
+        let rows = vec![make_row("Foo FOO foo")];
+        let mut state = SearchState::new();
+        state.ignore_case = false;
+        state.set_query("Foo", &rows, 11);
+        assert_eq!(state.match_count(), 1);
+    }
+
+    #[test]
+    fn test_search_case_insensitive_default() {
+        let rows = vec![make_row("Foo FOO foo")];
+        let mut state = SearchState::new();
+        state.set_query("foo", &rows, 11);
+        assert_eq!(state.match_count(), 3);
+    }
+
+    #[test]
+    fn test_search_adjacent_matches() {
+        let rows = vec![make_row("aaaaaa")];
+        let mut state = SearchState::new();
+        state.set_query("aa", &rows, 6);
+        assert!(state.match_count() >= 1);
+    }
+
+    #[test]
+    fn test_search_empty_query_no_matches() {
+        let rows = vec![make_row("hello world")];
+        let mut state = SearchState::new();
+        state.set_query("", &rows, 11);
+        assert_eq!(state.match_count(), 0);
+    }
+
+    #[test]
+    fn test_search_next_wraps() {
+        let rows = vec![make_row("aXa"), make_row("aXa")];
+        let mut state = SearchState::new();
+        state.set_query("X", &rows, 3);
+        let count = state.match_count();
+        assert_eq!(count, 2);
+        for _ in 0..count + 1 {
+            state.next();
+        }
+        assert!(state.current_match().is_some());
+    }
+
+    #[test]
+    fn test_search_prev_wraps() {
+        let rows = vec![make_row("aXa"), make_row("aXa")];
+        let mut state = SearchState::new();
+        state.set_query("X", &rows, 3);
+        state.prev();
+        assert!(state.current_match().is_some());
+    }
 }

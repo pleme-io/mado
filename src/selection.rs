@@ -119,53 +119,58 @@ impl Selection {
 
     /// Select the word containing the given cell position.
     ///
-    /// Words are delimited by non-alphanumeric/non-underscore characters.
+    /// `boundary_chars` defines characters that act as word boundaries
+    /// (matching Ghostty's `selection-word-chars`). If empty, falls back to
+    /// the default: any character that is not alphanumeric or underscore.
     pub fn select_word(&mut self, pos: CellPos, rows: &[Vec<Cell>], cols: usize) {
+        self.select_word_with_boundary(pos, rows, cols, "");
+    }
+
+    /// Select the word containing the given cell position with configurable boundaries.
+    pub fn select_word_with_boundary(
+        &mut self,
+        pos: CellPos,
+        rows: &[Vec<Cell>],
+        cols: usize,
+        boundary_chars: &str,
+    ) {
         if pos.row >= rows.len() {
             return;
         }
         let row = &rows[pos.row];
         let col = pos.col.min(cols.saturating_sub(1));
 
-        let is_word = |c: char| c.is_alphanumeric() || c == '_';
+        let is_boundary = |c: char| -> bool {
+            if boundary_chars.is_empty() {
+                !c.is_alphanumeric() && c != '_'
+            } else {
+                boundary_chars.contains(c)
+            }
+        };
+        let is_word = |c: char| !is_boundary(c);
 
         let ch = if col < row.len() { row[col].ch } else { ' ' };
         if !is_word(ch) {
-            // Click on non-word char: select just that character
             self.state = State::Selected {
-                start: CellPos {
-                    row: pos.row,
-                    col,
-                },
-                end: CellPos {
-                    row: pos.row,
-                    col,
-                },
+                start: CellPos { row: pos.row, col },
+                end: CellPos { row: pos.row, col },
             };
             return;
         }
 
-        // Scan left
         let mut start = col;
         while start > 0 && start - 1 < row.len() && is_word(row[start - 1].ch) {
             start -= 1;
         }
 
-        // Scan right
         let mut end = col;
         while end + 1 < cols && end + 1 < row.len() && is_word(row[end + 1].ch) {
             end += 1;
         }
 
         self.state = State::Selected {
-            start: CellPos {
-                row: pos.row,
-                col: start,
-            },
-            end: CellPos {
-                row: pos.row,
-                col: end,
-            },
+            start: CellPos { row: pos.row, col: start },
+            end: CellPos { row: pos.row, col: end },
         };
     }
 
@@ -512,6 +517,31 @@ mod tests {
         assert!(!query.contains(1, 1));
         assert!(!query.contains(1, 9));
         assert!(!query.contains(0, 5));
+    }
+
+    #[test]
+    fn select_word_custom_boundary() {
+        let rows = vec![make_row("hello:world test")];
+        let mut sel = Selection::new();
+        // With default boundaries, ':' is a boundary
+        sel.select_word(CellPos { row: 0, col: 0 }, &rows, 16);
+        let text = sel.extract_text(&rows, 16).unwrap();
+        assert_eq!(text, "hello");
+
+        // With custom boundary that doesn't include ':', colon is part of word
+        sel.select_word_with_boundary(CellPos { row: 0, col: 0 }, &rows, 16, " \t");
+        let text = sel.extract_text(&rows, 16).unwrap();
+        assert_eq!(text, "hello:world");
+    }
+
+    #[test]
+    fn select_word_semicolon_boundary() {
+        let rows = vec![make_row("foo;bar baz")];
+        let mut sel = Selection::new();
+        // With boundary including ';', it splits
+        sel.select_word_with_boundary(CellPos { row: 0, col: 0 }, &rows, 11, ";, \t");
+        let text = sel.extract_text(&rows, 11).unwrap();
+        assert_eq!(text, "foo");
     }
 
     #[test]

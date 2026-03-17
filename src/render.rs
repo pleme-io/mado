@@ -1217,6 +1217,7 @@ impl TerminalRenderer {
 
             let (pos, size) = match self.cursor_style {
                 CursorStyle::Block => ([cx, cy], [self.cell_width, self.cell_height]),
+                CursorStyle::BlockHollow => ([cx, cy], [self.cell_width, self.cell_height]),
                 CursorStyle::Bar => ([cx, cy], [2.0, self.cell_height]),
                 CursorStyle::Underline => (
                     [cx, cy + self.cell_height - 2.0],
@@ -1224,11 +1225,19 @@ impl TerminalRenderer {
                 ),
             };
 
-            instances.push(RectInstance {
-                pos,
-                size,
-                color: self.cursor_color,
-            });
+            if self.cursor_style == CursorStyle::BlockHollow {
+                let thickness = 2.0_f32;
+                instances.push(RectInstance { pos: [cx, cy], size: [self.cell_width, thickness], color: self.cursor_color });
+                instances.push(RectInstance { pos: [cx, cy + self.cell_height - thickness], size: [self.cell_width, thickness], color: self.cursor_color });
+                instances.push(RectInstance { pos: [cx, cy], size: [thickness, self.cell_height], color: self.cursor_color });
+                instances.push(RectInstance { pos: [cx + self.cell_width - thickness, cy], size: [thickness, self.cell_height], color: self.cursor_color });
+            } else {
+                instances.push(RectInstance {
+                    pos,
+                    size,
+                    color: self.cursor_color,
+                });
+            }
         }
 
         instances

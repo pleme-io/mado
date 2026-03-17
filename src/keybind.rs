@@ -12,12 +12,14 @@ use serde::{Deserialize, Serialize};
 pub enum Action {
     Copy,
     Paste,
+    PasteFromSelection,
     ScrollUp,
     ScrollDown,
     ScrollPageUp,
     ScrollPageDown,
     ScrollToTop,
     ScrollToBottom,
+    JumpToPrompt,
     SearchOpen,
     SearchClose,
     SearchNext,
@@ -35,7 +37,11 @@ pub enum Action {
     FocusPrev,
     ClosePane,
     ResetTerminal,
+    ClearScreen,
     ToggleFullscreen,
+    SelectAll,
+    CopyUrlToClipboard,
+    ToggleMouseReporting,
 }
 
 /// A keybinding mapping an awase hotkey to a mado action.
@@ -104,6 +110,45 @@ impl KeybindManager {
 impl Default for KeybindManager {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+/// Parse an action name from config into an Action enum.
+pub fn parse_action(name: &str) -> Option<Action> {
+    match name {
+        "copy" => Some(Action::Copy),
+        "paste" => Some(Action::Paste),
+        "paste_from_selection" => Some(Action::PasteFromSelection),
+        "scroll_up" => Some(Action::ScrollUp),
+        "scroll_down" => Some(Action::ScrollDown),
+        "scroll_page_up" => Some(Action::ScrollPageUp),
+        "scroll_page_down" => Some(Action::ScrollPageDown),
+        "scroll_to_top" => Some(Action::ScrollToTop),
+        "scroll_to_bottom" => Some(Action::ScrollToBottom),
+        "jump_to_prompt" => Some(Action::JumpToPrompt),
+        "search_open" | "search" => Some(Action::SearchOpen),
+        "search_close" => Some(Action::SearchClose),
+        "search_next" => Some(Action::SearchNext),
+        "search_prev" => Some(Action::SearchPrev),
+        "font_increase" | "increase_font_size" => Some(Action::FontIncrease),
+        "font_decrease" | "decrease_font_size" => Some(Action::FontDecrease),
+        "font_reset" | "reset_font_size" => Some(Action::FontReset),
+        "new_tab" => Some(Action::NewTab),
+        "close_tab" => Some(Action::CloseTab),
+        "next_tab" => Some(Action::NextTab),
+        "prev_tab" => Some(Action::PrevTab),
+        "split_horizontal" => Some(Action::SplitHorizontal),
+        "split_vertical" => Some(Action::SplitVertical),
+        "focus_next" | "goto_split:next" => Some(Action::FocusNext),
+        "focus_prev" | "goto_split:previous" => Some(Action::FocusPrev),
+        "close_pane" | "close_surface" => Some(Action::ClosePane),
+        "reset_terminal" | "reset" => Some(Action::ResetTerminal),
+        "clear_screen" => Some(Action::ClearScreen),
+        "toggle_fullscreen" => Some(Action::ToggleFullscreen),
+        "select_all" => Some(Action::SelectAll),
+        "copy_url_to_clipboard" => Some(Action::CopyUrlToClipboard),
+        "toggle_mouse_reporting" => Some(Action::ToggleMouseReporting),
+        _ => None,
     }
 }
 
@@ -261,15 +306,18 @@ mod tests {
     #[test]
     fn all_actions_serializable() {
         let actions = [
-            Action::Copy, Action::Paste, Action::ScrollUp, Action::ScrollDown,
+            Action::Copy, Action::Paste, Action::PasteFromSelection,
+            Action::ScrollUp, Action::ScrollDown,
             Action::ScrollPageUp, Action::ScrollPageDown, Action::ScrollToTop,
-            Action::ScrollToBottom, Action::SearchOpen, Action::SearchClose,
+            Action::ScrollToBottom, Action::JumpToPrompt,
+            Action::SearchOpen, Action::SearchClose,
             Action::SearchNext, Action::SearchPrev, Action::FontIncrease,
             Action::FontDecrease, Action::FontReset, Action::NewTab,
             Action::CloseTab, Action::NextTab, Action::PrevTab,
             Action::SplitHorizontal, Action::SplitVertical, Action::FocusNext,
             Action::FocusPrev, Action::ClosePane, Action::ResetTerminal,
-            Action::ToggleFullscreen,
+            Action::ClearScreen, Action::ToggleFullscreen, Action::SelectAll,
+            Action::CopyUrlToClipboard, Action::ToggleMouseReporting,
         ];
         for action in &actions {
             let json = serde_json::to_string(action);
@@ -343,5 +391,36 @@ mod tests {
     fn test_total_default_bindings_count() {
         let mgr = KeybindManager::new();
         assert_eq!(mgr.bindings().len(), 24);
+    }
+
+    #[test]
+    fn test_parse_action_known() {
+        assert_eq!(parse_action("copy"), Some(Action::Copy));
+        assert_eq!(parse_action("paste"), Some(Action::Paste));
+        assert_eq!(parse_action("paste_from_selection"), Some(Action::PasteFromSelection));
+        assert_eq!(parse_action("scroll_to_top"), Some(Action::ScrollToTop));
+        assert_eq!(parse_action("jump_to_prompt"), Some(Action::JumpToPrompt));
+        assert_eq!(parse_action("clear_screen"), Some(Action::ClearScreen));
+        assert_eq!(parse_action("select_all"), Some(Action::SelectAll));
+        assert_eq!(parse_action("copy_url_to_clipboard"), Some(Action::CopyUrlToClipboard));
+        assert_eq!(parse_action("toggle_mouse_reporting"), Some(Action::ToggleMouseReporting));
+    }
+
+    #[test]
+    fn test_parse_action_aliases() {
+        assert_eq!(parse_action("search"), Some(Action::SearchOpen));
+        assert_eq!(parse_action("increase_font_size"), Some(Action::FontIncrease));
+        assert_eq!(parse_action("decrease_font_size"), Some(Action::FontDecrease));
+        assert_eq!(parse_action("reset_font_size"), Some(Action::FontReset));
+        assert_eq!(parse_action("goto_split:next"), Some(Action::FocusNext));
+        assert_eq!(parse_action("goto_split:previous"), Some(Action::FocusPrev));
+        assert_eq!(parse_action("close_surface"), Some(Action::ClosePane));
+        assert_eq!(parse_action("reset"), Some(Action::ResetTerminal));
+    }
+
+    #[test]
+    fn test_parse_action_unknown() {
+        assert_eq!(parse_action("not_a_real_action"), None);
+        assert_eq!(parse_action(""), None);
     }
 }
