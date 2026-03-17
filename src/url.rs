@@ -50,6 +50,7 @@ pub fn detect_urls(rows: &[Vec<Cell>], cols: usize) -> Vec<DetectedUrl> {
 
 /// Check if a cell position is within a detected URL.
 #[must_use]
+#[allow(dead_code)]
 pub fn url_at(urls: &[DetectedUrl], row: usize, col: usize) -> Option<&DetectedUrl> {
     urls.iter()
         .find(|u| u.row == row && col >= u.col_start && col <= u.col_end)

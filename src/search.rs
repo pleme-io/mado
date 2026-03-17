@@ -114,18 +114,21 @@ impl SearchState {
 
     /// Get the currently focused match.
     #[must_use]
+    #[allow(dead_code)]
     pub fn current_match(&self) -> Option<&SearchMatch> {
         self.matches.get(self.current)
     }
 
     /// Total number of matches.
     #[must_use]
+    #[allow(dead_code)]
     pub fn match_count(&self) -> usize {
         self.matches.len()
     }
 
     /// Check if a cell position is within any match.
     #[must_use]
+    #[allow(dead_code)]
     pub fn is_match(&self, row: usize, col: usize) -> bool {
         self.matches
             .iter()
@@ -134,6 +137,7 @@ impl SearchState {
 
     /// Check if a cell position is within the current (focused) match.
     #[must_use]
+    #[allow(dead_code)]
     pub fn is_current_match(&self, row: usize, col: usize) -> bool {
         self.matches.get(self.current).is_some_and(|m| {
             m.row == row && col >= m.col_start && col <= m.col_end

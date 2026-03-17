@@ -313,6 +313,7 @@ struct ImagePipeline {
     sampler: wgpu::Sampler,
     texture_bind_group_layout: wgpu::BindGroupLayout,
     instance_buffer: wgpu::Buffer,
+    #[allow(dead_code)]
     instance_capacity: usize,
 }
 
@@ -469,6 +470,7 @@ impl ImagePipeline {
         }
     }
 
+    #[allow(dead_code)]
     fn ensure_capacity(&mut self, device: &wgpu::Device, count: usize) {
         if count > self.instance_capacity {
             let new_cap = count.next_power_of_two();
@@ -837,6 +839,12 @@ pub struct TerminalRenderer {
     metrics_measured: bool,
     /// Bell visual flash — remaining frames to show.
     bell_flash_frames: u8,
+    /// Selection highlight background (RGBA).
+    selection_bg: [f32; 4],
+    /// Cursor color (RGBA).
+    cursor_color: [f32; 4],
+    /// Reduce motion: disable cursor blink and bell flash.
+    reduce_motion: bool,
 }
 
 impl TerminalRenderer {
@@ -879,7 +887,28 @@ impl TerminalRenderer {
             cursor_blink_rate_ms,
             metrics_measured: false,
             bell_flash_frames: 0,
+            selection_bg: [0.533, 0.753, 0.816, 0.3], // Nord frost default
+            cursor_color: [0.925, 0.937, 0.957, 0.85], // Nord snow default
+            reduce_motion: false,
         }
+    }
+
+    /// Set selection highlight background (RGBA).
+    pub fn set_selection_bg(&mut self, bg: [f32; 4]) {
+        self.selection_bg = bg;
+        self.last_seqno = 0;
+    }
+
+    /// Set cursor color (RGBA).
+    pub fn set_cursor_color(&mut self, color: [f32; 4]) {
+        self.cursor_color = color;
+        self.last_seqno = 0;
+    }
+
+    /// Set reduce motion mode (disables cursor blink and bell flash).
+    pub fn set_reduce_motion(&mut self, enabled: bool) {
+        self.reduce_motion = enabled;
+        self.last_seqno = 0;
     }
 
     /// Set the shared selection state (called from main to share with event handler).
@@ -897,9 +926,11 @@ impl TerminalRenderer {
         self.window = Some(window);
     }
 
-    /// Trigger a bell flash effect.
+    /// Trigger a bell flash effect. No-op when reduce_motion is enabled.
     pub fn trigger_bell(&mut self) {
-        self.bell_flash_frames = 4;
+        if !self.reduce_motion {
+            self.bell_flash_frames = 4;
+        }
     }
 
     /// Current font size.
@@ -1125,8 +1156,7 @@ impl TerminalRenderer {
                                 origin_y + row_idx as f32 * self.cell_height,
                             ],
                             size: [self.cell_width, self.cell_height],
-                            // Semi-transparent highlight (Nord frost)
-                            color: [0.533, 0.753, 0.816, 0.3],
+                            color: self.selection_bg,
                         });
                     }
                 }
@@ -1194,11 +1224,10 @@ impl TerminalRenderer {
                 ),
             };
 
-            // Nord snow with slight transparency
             instances.push(RectInstance {
                 pos,
                 size,
-                color: [0.925, 0.937, 0.957, 0.85],
+                color: self.cursor_color,
             });
         }
 
@@ -2370,5 +2399,253 @@ impl RenderCallback for TerminalRenderer {
 
     fn resize(&mut self, _width: u32, _height: u32) {
         // Terminal resize is handled by the event handler in main.rs
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ---- color_to_f32 ----
+
+    #[test]
+    fn test_color_to_f32_white() {
+        assert_eq!(color_to_f32(&Color::WHITE), [1.0, 1.0, 1.0, 1.0]);
+    }
+
+    #[test]
+    fn test_color_to_f32_black() {
+        assert_eq!(color_to_f32(&Color::BLACK), [0.0, 0.0, 0.0, 1.0]);
+    }
+
+    #[test]
+    fn test_color_to_f32_red() {
+        assert_eq!(color_to_f32(&Color::new(255, 0, 0)), [1.0, 0.0, 0.0, 1.0]);
+    }
+
+    #[test]
+    fn test_color_to_f32_mid_gray() {
+        let [r, g, b, a] = color_to_f32(&Color::new(128, 128, 128));
+        assert!((r - 128.0 / 255.0).abs() < 0.001);
+        assert!((g - 128.0 / 255.0).abs() < 0.001);
+        assert!((b - 128.0 / 255.0).abs() < 0.001);
+        assert!((a - 1.0).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn test_color_to_f32_alpha_always_one() {
+        let result = color_to_f32(&Color::new(42, 100, 200));
+        assert!((result[3] - 1.0).abs() < f32::EPSILON);
+    }
+
+    // ---- is_box_drawing ----
+
+    #[test]
+    fn test_is_box_drawing_horizontal() {
+        assert!(is_box_drawing('\u{2500}')); // ─
+    }
+
+    #[test]
+    fn test_is_box_drawing_vertical() {
+        assert!(is_box_drawing('\u{2502}')); // │
+    }
+
+    #[test]
+    fn test_is_box_drawing_corner() {
+        assert!(is_box_drawing('\u{250C}')); // ┌
+    }
+
+    #[test]
+    fn test_is_box_drawing_heavy() {
+        assert!(is_box_drawing('\u{2501}')); // ━
+    }
+
+    #[test]
+    fn test_is_box_drawing_full_block() {
+        assert!(is_box_drawing('\u{2588}')); // █
+    }
+
+    #[test]
+    fn test_is_box_drawing_light_shade() {
+        assert!(is_box_drawing('\u{2591}')); // ░
+    }
+
+    #[test]
+    fn test_is_box_drawing_false_ascii() {
+        assert!(!is_box_drawing('A'));
+    }
+
+    #[test]
+    fn test_is_box_drawing_false_space() {
+        assert!(!is_box_drawing(' '));
+    }
+
+    #[test]
+    fn test_is_box_drawing_false_cjk() {
+        assert!(!is_box_drawing('漢'));
+    }
+
+    #[test]
+    fn test_is_box_drawing_range_boundary_low() {
+        assert!(is_box_drawing('\u{2500}'));
+        assert!(!is_box_drawing('\u{24FF}'));
+    }
+
+    #[test]
+    fn test_is_box_drawing_range_boundary_high() {
+        assert!(is_box_drawing('\u{257F}'));
+        assert!(is_box_drawing('\u{2580}'));
+        assert!(is_box_drawing('\u{259F}'));
+        assert!(!is_box_drawing('\u{25A0}'));
+    }
+
+    // ---- box_drawing_rects ----
+
+    const TEST_CW: f32 = 10.0;
+    const TEST_CH: f32 = 20.0;
+    const TEST_COLOR: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
+
+    #[test]
+    fn test_box_drawing_horizontal_line() {
+        let rects = box_drawing_rects('\u{2500}', 0.0, 0.0, TEST_CW, TEST_CH, TEST_COLOR);
+        assert_eq!(rects.len(), 1, "horizontal line should produce one rect");
+        assert_eq!(rects[0].pos[0], 0.0, "should span from x origin");
+        assert_eq!(rects[0].size[0], TEST_CW, "width should be full cell width");
+    }
+
+    #[test]
+    fn test_box_drawing_vertical_line() {
+        let rects = box_drawing_rects('\u{2502}', 0.0, 0.0, TEST_CW, TEST_CH, TEST_COLOR);
+        assert_eq!(rects.len(), 1, "vertical line should produce one rect");
+        assert_eq!(rects[0].size[1], TEST_CH, "height should be full cell height");
+    }
+
+    #[test]
+    fn test_box_drawing_corner_top_left() {
+        let rects = box_drawing_rects('\u{250C}', 0.0, 0.0, TEST_CW, TEST_CH, TEST_COLOR);
+        assert_eq!(rects.len(), 2, "corner should produce horizontal + vertical rects");
+    }
+
+    #[test]
+    fn test_box_drawing_cross() {
+        let rects = box_drawing_rects('\u{253C}', 0.0, 0.0, TEST_CW, TEST_CH, TEST_COLOR);
+        assert_eq!(rects.len(), 2, "cross should produce horizontal + vertical rects");
+        assert_eq!(rects[0].size[0], TEST_CW, "horizontal bar is full width");
+        assert_eq!(rects[1].size[1], TEST_CH, "vertical bar is full height");
+    }
+
+    #[test]
+    fn test_box_drawing_non_box_char() {
+        let rects = box_drawing_rects('A', 0.0, 0.0, TEST_CW, TEST_CH, TEST_COLOR);
+        assert!(rects.is_empty(), "non-box char should produce no rects");
+    }
+
+    #[test]
+    fn test_box_drawing_double_horizontal() {
+        let rects = box_drawing_rects('\u{2550}', 0.0, 0.0, TEST_CW, TEST_CH, TEST_COLOR);
+        assert_eq!(rects.len(), 2, "double horizontal should produce two rects");
+    }
+
+    #[test]
+    fn test_box_drawing_double_vertical() {
+        let rects = box_drawing_rects('\u{2551}', 0.0, 0.0, TEST_CW, TEST_CH, TEST_COLOR);
+        assert_eq!(rects.len(), 2, "double vertical should produce two rects");
+    }
+
+    #[test]
+    fn test_box_drawing_full_block() {
+        let rects = box_drawing_rects('\u{2588}', 5.0, 10.0, TEST_CW, TEST_CH, TEST_COLOR);
+        assert_eq!(rects.len(), 1);
+        assert_eq!(rects[0].pos, [5.0, 10.0]);
+        assert_eq!(rects[0].size, [TEST_CW, TEST_CH]);
+    }
+
+    #[test]
+    fn test_box_drawing_upper_half_block() {
+        let rects = box_drawing_rects('\u{2580}', 0.0, 0.0, TEST_CW, TEST_CH, TEST_COLOR);
+        assert_eq!(rects.len(), 1);
+        assert_eq!(rects[0].size[1], TEST_CH / 2.0);
+    }
+
+    #[test]
+    fn test_box_drawing_lower_half_block() {
+        let rects = box_drawing_rects('\u{2584}', 0.0, 0.0, TEST_CW, TEST_CH, TEST_COLOR);
+        assert_eq!(rects.len(), 1);
+        assert_eq!(rects[0].pos[1], TEST_CH / 2.0);
+        assert_eq!(rects[0].size[1], TEST_CH / 2.0);
+    }
+
+    #[test]
+    fn test_box_drawing_left_half_block() {
+        let rects = box_drawing_rects('\u{258C}', 0.0, 0.0, TEST_CW, TEST_CH, TEST_COLOR);
+        assert_eq!(rects.len(), 1);
+        assert_eq!(rects[0].size[0], TEST_CW / 2.0);
+    }
+
+    #[test]
+    fn test_box_drawing_right_half_block() {
+        let rects = box_drawing_rects('\u{2590}', 0.0, 0.0, TEST_CW, TEST_CH, TEST_COLOR);
+        assert_eq!(rects.len(), 1);
+        assert_eq!(rects[0].pos[0], TEST_CW / 2.0);
+    }
+
+    #[test]
+    fn test_box_drawing_light_shade_alpha() {
+        let rects = box_drawing_rects('\u{2591}', 0.0, 0.0, TEST_CW, TEST_CH, TEST_COLOR);
+        assert_eq!(rects.len(), 1);
+        assert!((rects[0].color[3] - 0.25).abs() < f32::EPSILON, "light shade alpha = 0.25");
+    }
+
+    #[test]
+    fn test_box_drawing_medium_shade_alpha() {
+        let rects = box_drawing_rects('\u{2592}', 0.0, 0.0, TEST_CW, TEST_CH, TEST_COLOR);
+        assert_eq!(rects.len(), 1);
+        assert!((rects[0].color[3] - 0.5).abs() < f32::EPSILON, "medium shade alpha = 0.5");
+    }
+
+    #[test]
+    fn test_box_drawing_dark_shade_alpha() {
+        let rects = box_drawing_rects('\u{2593}', 0.0, 0.0, TEST_CW, TEST_CH, TEST_COLOR);
+        assert_eq!(rects.len(), 1);
+        assert!((rects[0].color[3] - 0.75).abs() < f32::EPSILON, "dark shade alpha = 0.75");
+    }
+
+    #[test]
+    fn test_box_drawing_color_passthrough() {
+        let color = [0.5, 0.6, 0.7, 1.0];
+        let rects = box_drawing_rects('\u{2500}', 0.0, 0.0, TEST_CW, TEST_CH, color);
+        assert_eq!(rects[0].color, color);
+    }
+
+    #[test]
+    fn test_box_drawing_offset_position() {
+        let rects = box_drawing_rects('\u{2502}', 100.0, 200.0, TEST_CW, TEST_CH, TEST_COLOR);
+        assert_eq!(rects.len(), 1);
+        assert!(rects[0].pos[0] > 100.0, "x should be offset from origin");
+        assert_eq!(rects[0].pos[1], 200.0, "y should start at origin");
+    }
+
+    #[test]
+    fn test_box_drawing_tee_left() {
+        let rects = box_drawing_rects('\u{251C}', 0.0, 0.0, TEST_CW, TEST_CH, TEST_COLOR);
+        assert_eq!(rects.len(), 2, "left tee should have vertical + horizontal");
+    }
+
+    #[test]
+    fn test_box_drawing_tee_right() {
+        let rects = box_drawing_rects('\u{2524}', 0.0, 0.0, TEST_CW, TEST_CH, TEST_COLOR);
+        assert_eq!(rects.len(), 2, "right tee should have vertical + horizontal");
+    }
+
+    #[test]
+    fn test_box_drawing_tee_top() {
+        let rects = box_drawing_rects('\u{252C}', 0.0, 0.0, TEST_CW, TEST_CH, TEST_COLOR);
+        assert_eq!(rects.len(), 2, "top tee should have horizontal + vertical");
+    }
+
+    #[test]
+    fn test_box_drawing_tee_bottom() {
+        let rects = box_drawing_rects('\u{2534}', 0.0, 0.0, TEST_CW, TEST_CH, TEST_COLOR);
+        assert_eq!(rects.len(), 2, "bottom tee should have horizontal + vertical");
     }
 }

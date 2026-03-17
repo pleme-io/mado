@@ -11,6 +11,7 @@ pub struct TabId(pub usize);
 #[derive(Debug, Clone)]
 pub struct Tab {
     pub id: TabId,
+    #[allow(dead_code)]
     pub title: String,
 }
 
@@ -91,6 +92,7 @@ impl TabManager {
     }
 
     /// Switch to tab at the given index.
+    #[allow(dead_code)]
     pub fn select(&mut self, index: usize) {
         if index < self.tabs.len() {
             self.active = index;
@@ -105,12 +107,14 @@ impl TabManager {
 
     /// Get the active tab index.
     #[must_use]
+    #[allow(dead_code)]
     pub fn active_index(&self) -> usize {
         self.active
     }
 
     /// All tabs.
     #[must_use]
+    #[allow(dead_code)]
     pub fn tabs(&self) -> &[Tab] {
         &self.tabs
     }
@@ -122,6 +126,7 @@ impl TabManager {
     }
 
     /// Set the title of a tab by ID.
+    #[allow(dead_code)]
     pub fn set_title(&mut self, id: TabId, title: String) {
         if let Some(tab) = self.tabs.iter_mut().find(|t| t.id == id) {
             tab.title = title;
@@ -279,13 +284,13 @@ mod tests {
     #[test]
     fn test_tab_titles() {
         let mut mgr = TabManager::new();
-        let id0 = mgr.active_tab().id;
+        let _id0 = mgr.active_tab().id;
         assert_eq!(mgr.active_tab().title, "Tab 1");
 
         let _id1 = mgr.add();
         assert_eq!(mgr.active_tab().title, "Tab 2");
 
-        mgr.set_title(id0, "Shell".to_string());
+        mgr.set_title(_id0, "Shell".to_string());
         mgr.select(0);
         assert_eq!(mgr.active_tab().title, "Shell");
     }

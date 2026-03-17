@@ -35,6 +35,7 @@ use tracing_subscriber::EnvFilter;
 use crate::keybind::{Action, KeybindManager};
 use crate::pane::SplitDir;
 use crate::render::{SharedTerminal, TerminalRenderer};
+use crate::scripting::{ScriptEvent, ScriptManager};
 use crate::selection::CellPos;
 use crate::terminal::{Color, MouseMode};
 use crate::theme::Theme;
@@ -89,15 +90,19 @@ fn main() -> anyhow::Result<()> {
 
     tracing::info!("mado starting with config: {:?}", config);
 
+    if crate::platform::is_dark_mode() {
+        tracing::debug!("system dark mode detected");
+    }
+
     let shell = cli
         .command
         .or(config.shell.command.clone())
         .unwrap_or_else(default_shell);
 
-    let font_size = config.font_size;
+    let effective_font_size = config.font_size * config.accessibility.font_scale;
     let padding = config.window.padding as f32;
-    let cell_w = font_size * 0.6;
-    let cell_h = font_size * 1.4;
+    let cell_w = effective_font_size * 0.6;
+    let cell_h = effective_font_size * 1.4;
 
     let cols = ((config.window.width as f32 - 2.0 * padding) / cell_w) as usize;
     let rows = ((config.window.height as f32 - 2.0 * padding) / cell_h) as usize;
@@ -119,13 +124,14 @@ fn main() -> anyhow::Result<()> {
     let bg_color = parse_hex_color(&config.appearance.background, 0.180, 0.204, 0.251);
     let fg_hex = parse_hex_rgb(&config.appearance.foreground, 236, 239, 244);
 
+    let cursor_blink = config.cursor.blink && !config.accessibility.reduce_motion;
     let mut renderer = TerminalRenderer::new(
         initial_terminal,
-        font_size,
+        effective_font_size,
         config.font_family.clone(),
         padding,
         config.cursor.style,
-        config.cursor.blink,
+        cursor_blink,
         config.cursor.blink_rate_ms,
         wgpu::Color {
             r: bg_color.0,
@@ -139,6 +145,7 @@ fn main() -> anyhow::Result<()> {
     // Apply accessibility and appearance settings from config
     renderer.set_colorblind_mode(config.accessibility.colorblind);
     renderer.set_bold_is_bright(config.appearance.bold_is_bright);
+    renderer.set_reduce_motion(config.accessibility.reduce_motion);
 
     // Set initial pane's selection/search on renderer (for single-pane fallback)
     {
@@ -149,10 +156,16 @@ fn main() -> anyhow::Result<()> {
     }
     renderer.set_window(Arc::clone(&window));
 
+    // Log available themes on startup (debug)
+    let theme_names: Vec<&str> = Theme::available().iter().map(|t| t.name).collect();
+    tracing::debug!(themes = ?theme_names, "available themes");
+
     // Apply theme colors to terminal and renderer
     if let Some(theme) = Theme::by_name(&config.theme) {
         tracing::info!(theme = theme.name, "applying terminal color theme");
         renderer.set_ansi_colors(theme.ansi);
+        renderer.set_selection_bg(theme.selection_bg);
+        renderer.set_cursor_color(color_to_f32_rgba(&theme.cursor, 0.85));
         renderer.set_bg_fg(
             wgpu::Color {
                 r: f64::from(theme.background.r) / 255.0,
@@ -172,12 +185,21 @@ fn main() -> anyhow::Result<()> {
         }
     }
 
+    let scripts = ScriptManager::new();
+    scripts.fire_event(ScriptEvent::OnStart);
+
     let window_for_events = Arc::clone(&window);
     let clipboard = Arc::new(Mutex::new(
         Clipboard::new().expect("failed to initialize clipboard"),
     ));
     let keybinds = KeybindManager::new();
+    tracing::debug!(
+        bindings = keybinds.bindings().len(),
+        "keybindings loaded"
+    );
     let confirm_close = config.behavior.confirm_close;
+    let copy_on_select = config.behavior.copy_on_select;
+    let mouse_scroll_multiplier = config.behavior.mouse_scroll_multiplier;
     let mouse_hide_while_typing = config.behavior.mouse_hide_while_typing;
     let pending_close = Arc::new(AtomicBool::new(false));
     let mouse_visible = Arc::new(AtomicBool::new(true));
@@ -187,14 +209,22 @@ fn main() -> anyhow::Result<()> {
     let mut last_width = config.window.width;
     let mut last_height = config.window.height;
     // Double/triple click tracking
-    let default_font_size = font_size;
+    let default_font_size = effective_font_size;
     let mut last_click_time = Instant::now();
     let mut click_count: u8 = 0;
     let mut last_click_pos = CellPos { row: 0, col: 0 };
+    let mut native_styling_applied = false;
 
+    let app_config = madori::AppConfig {
+        title: "mado".into(),
+        width: config.window.width,
+        height: config.window.height,
+        resizable: true,
+        vsync: config.performance.vsync,
+        transparent: false,
+    };
     madori::App::builder(renderer)
-        .title("mado")
-        .size(config.window.width, config.window.height)
+        .config(app_config)
         .on_event(move |event, renderer| -> EventResponse {
             // Check if PTY has exited — request window close
             {
@@ -815,6 +845,18 @@ fn main() -> anyhow::Result<()> {
                             let mut sel = pane.selection.lock().unwrap();
                             if click_count == 1 {
                                 sel.finish();
+                                if copy_on_select {
+                                    let term = pane.terminal.lock().unwrap();
+                                    let rows: Vec<_> =
+                                        term.visible_rows().map(|r| r.to_vec()).collect();
+                                    let cols = term.cols();
+                                    drop(term);
+                                    if let Some(text) = sel.extract_text(&rows, cols) {
+                                        if let Ok(cb) = clipboard.lock() {
+                                            let _ = cb.copy_text(&text);
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -900,7 +942,8 @@ fn main() -> anyhow::Result<()> {
                         return EventResponse::consumed();
                     }
 
-                    let lines = (*dy as isize).unsigned_abs().max(1);
+                    let lines = (*dy as isize).unsigned_abs().max(1)
+                        * (mouse_scroll_multiplier as usize).max(1);
                     if *dy > 0.0 {
                         term.scroll_up(lines);
                     } else {
@@ -937,6 +980,10 @@ fn main() -> anyhow::Result<()> {
                 }
                 // Check for title/bell/clipboard changes on every redraw
                 AppEvent::RedrawRequested => {
+                    if !native_styling_applied {
+                        native_styling_applied = true;
+                        crate::platform::apply_native_styling();
+                    }
                     let ws = window_for_events.lock().unwrap();
                     if let Some(pane) = ws.focused_pane() {
                         let mut term = pane.terminal.lock().unwrap();
@@ -975,6 +1022,8 @@ fn main() -> anyhow::Result<()> {
         })
         .run()
         .map_err(|e| anyhow::anyhow!("madori error: {e}"))?;
+
+    scripts.fire_event(ScriptEvent::OnQuit);
 
     Ok(())
 }
@@ -1260,6 +1309,16 @@ fn exit_response(
     }
 }
 
+/// Convert terminal Color to RGBA [f32; 4].
+fn color_to_f32_rgba(c: &Color, alpha: f32) -> [f32; 4] {
+    [
+        f32::from(c.r) / 255.0,
+        f32::from(c.g) / 255.0,
+        f32::from(c.b) / 255.0,
+        alpha,
+    ]
+}
+
 /// Parse a hex color string like "#2e3440" into (f64, f64, f64) normalized to 0.0..1.0.
 fn parse_hex_color(hex: &str, dr: f64, dg: f64, db: f64) -> (f64, f64, f64) {
     let hex = hex.trim_start_matches('#');
@@ -1292,4 +1351,319 @@ fn parse_hex_rgb(hex: &str, dr: u8, dg: u8, db: u8) -> (u8, u8, u8) {
     let g = u8::from_str_radix(&hex[2..4], 16).unwrap_or(dg);
     let b = u8::from_str_radix(&hex[4..6], 16).unwrap_or(db);
     (r, g, b)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::AtomicBool;
+
+    // ---- parse_hex_color ----
+
+    #[test]
+    fn test_parse_hex_color_valid_black() {
+        let (r, g, b) = parse_hex_color("#000000", 0.5, 0.5, 0.5);
+        assert!((r - 0.0).abs() < f64::EPSILON);
+        assert!((g - 0.0).abs() < f64::EPSILON);
+        assert!((b - 0.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_parse_hex_color_valid_white() {
+        let (r, g, b) = parse_hex_color("#ffffff", 0.0, 0.0, 0.0);
+        assert!((r - 1.0).abs() < f64::EPSILON);
+        assert!((g - 1.0).abs() < f64::EPSILON);
+        assert!((b - 1.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_parse_hex_color_valid_red() {
+        let (r, g, b) = parse_hex_color("#ff0000", 0.0, 0.0, 0.0);
+        assert!((r - 1.0).abs() < f64::EPSILON);
+        assert!((g - 0.0).abs() < f64::EPSILON);
+        assert!((b - 0.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_parse_hex_color_no_hash() {
+        let (r, _g, _b) = parse_hex_color("ffffff", 0.0, 0.0, 0.0);
+        assert!((r - 1.0).abs() < f64::EPSILON, "trim_start_matches strips # so bare hex still works");
+    }
+
+    #[test]
+    fn test_parse_hex_color_empty() {
+        let (r, g, b) = parse_hex_color("", 0.1, 0.2, 0.3);
+        assert!((r - 0.1).abs() < f64::EPSILON);
+        assert!((g - 0.2).abs() < f64::EPSILON);
+        assert!((b - 0.3).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_parse_hex_color_short_string() {
+        let (r, g, b) = parse_hex_color("#abc", 0.5, 0.6, 0.7);
+        assert!((r - 0.5).abs() < f64::EPSILON, "too-short hex returns defaults");
+        assert!((g - 0.6).abs() < f64::EPSILON);
+        assert!((b - 0.7).abs() < f64::EPSILON);
+    }
+
+    // ---- parse_hex_rgb ----
+
+    #[test]
+    fn test_parse_hex_rgb_valid() {
+        assert_eq!(parse_hex_rgb("#ff8040", 0, 0, 0), (255, 128, 64));
+    }
+
+    #[test]
+    fn test_parse_hex_rgb_zeros() {
+        assert_eq!(parse_hex_rgb("#000000", 99, 99, 99), (0, 0, 0));
+    }
+
+    #[test]
+    fn test_parse_hex_rgb_no_hash() {
+        assert_eq!(parse_hex_rgb("abcdef", 0, 0, 0), (0xab, 0xcd, 0xef));
+    }
+
+    #[test]
+    fn test_parse_hex_rgb_invalid_returns_defaults() {
+        assert_eq!(parse_hex_rgb("xyz", 10, 20, 30), (10, 20, 30));
+    }
+
+    // ---- cursor_key ----
+
+    #[test]
+    fn test_cursor_key_up_normal() {
+        assert_eq!(cursor_key(b'A', false), b"\x1b[A");
+    }
+
+    #[test]
+    fn test_cursor_key_up_app_mode() {
+        assert_eq!(cursor_key(b'A', true), b"\x1bOA");
+    }
+
+    #[test]
+    fn test_cursor_key_down_normal() {
+        assert_eq!(cursor_key(b'B', false), b"\x1b[B");
+    }
+
+    #[test]
+    fn test_cursor_key_left_normal() {
+        assert_eq!(cursor_key(b'D', false), b"\x1b[D");
+    }
+
+    #[test]
+    fn test_cursor_key_right_normal() {
+        assert_eq!(cursor_key(b'C', false), b"\x1b[C");
+    }
+
+    #[test]
+    fn test_cursor_key_home_app_mode() {
+        assert_eq!(cursor_key(b'H', true), b"\x1bOH");
+    }
+
+    // ---- f_key_escape ----
+
+    #[test]
+    fn test_f_key_f1() {
+        assert_eq!(f_key_escape(1), b"\x1bOP");
+    }
+
+    #[test]
+    fn test_f_key_f2() {
+        assert_eq!(f_key_escape(2), b"\x1bOQ");
+    }
+
+    #[test]
+    fn test_f_key_f3() {
+        assert_eq!(f_key_escape(3), b"\x1bOR");
+    }
+
+    #[test]
+    fn test_f_key_f4() {
+        assert_eq!(f_key_escape(4), b"\x1bOS");
+    }
+
+    #[test]
+    fn test_f_key_f5() {
+        assert_eq!(f_key_escape(5), b"\x1b[15~");
+    }
+
+    #[test]
+    fn test_f_key_f12() {
+        assert_eq!(f_key_escape(12), b"\x1b[24~");
+    }
+
+    #[test]
+    fn test_f_key_out_of_range() {
+        assert!(f_key_escape(13).is_empty());
+    }
+
+    #[test]
+    fn test_f_key_zero() {
+        assert!(f_key_escape(0).is_empty());
+    }
+
+    // ---- default_shell ----
+
+    #[test]
+    fn test_default_shell_is_nonempty() {
+        let shell = default_shell();
+        assert!(!shell.is_empty());
+    }
+
+    // ---- exit_response ----
+
+    #[test]
+    fn test_exit_response_no_confirm() {
+        let pending = AtomicBool::new(false);
+        let resp = exit_response(false, &pending);
+        assert!(resp.consumed);
+        assert!(resp.exit);
+    }
+
+    #[test]
+    fn test_exit_response_confirm_first_press() {
+        let pending = AtomicBool::new(false);
+        let resp = exit_response(true, &pending);
+        assert!(resp.consumed);
+        assert!(!resp.exit, "first close with confirm should NOT exit");
+        assert!(pending.load(Ordering::SeqCst), "pending should be set");
+    }
+
+    #[test]
+    fn test_exit_response_confirm_second_press() {
+        let pending = AtomicBool::new(true);
+        let resp = exit_response(true, &pending);
+        assert!(resp.consumed);
+        assert!(resp.exit, "second close with confirm SHOULD exit");
+    }
+
+    // ---- with_cursor_visibility ----
+
+    #[test]
+    fn test_with_cursor_visibility_true() {
+        let resp = with_cursor_visibility(EventResponse::consumed(), Some(true));
+        assert_eq!(resp.set_cursor_visible, Some(true));
+        assert!(resp.consumed);
+    }
+
+    #[test]
+    fn test_with_cursor_visibility_false() {
+        let resp = with_cursor_visibility(EventResponse::consumed(), Some(false));
+        assert_eq!(resp.set_cursor_visible, Some(false));
+    }
+
+    #[test]
+    fn test_with_cursor_visibility_none() {
+        let resp = with_cursor_visibility(EventResponse::consumed(), None);
+        assert!(resp.set_cursor_visible.is_none());
+    }
+
+    // ---- color_to_f32_rgba ----
+
+    #[test]
+    fn test_color_to_f32_rgba_white() {
+        let c = Color::WHITE;
+        let result = color_to_f32_rgba(&c, 1.0);
+        assert_eq!(result, [1.0, 1.0, 1.0, 1.0]);
+    }
+
+    #[test]
+    fn test_color_to_f32_rgba_black_with_alpha() {
+        let c = Color::BLACK;
+        let result = color_to_f32_rgba(&c, 0.5);
+        assert_eq!(result, [0.0, 0.0, 0.0, 0.5]);
+    }
+
+    // ---- kitty_key_seq ----
+
+    #[test]
+    fn test_kitty_key_seq_no_modifiers_u() {
+        let seq = kitty_key_seq(97, 1, 'u');
+        assert_eq!(seq, b"\x1b[97u");
+    }
+
+    #[test]
+    fn test_kitty_key_seq_with_modifiers_u() {
+        let seq = kitty_key_seq(97, 5, 'u');
+        assert_eq!(seq, b"\x1b[97;5u");
+    }
+
+    #[test]
+    fn test_kitty_key_seq_arrow_no_modifiers() {
+        let seq = kitty_key_seq(1, 1, 'A');
+        assert_eq!(seq, b"\x1b[A");
+    }
+
+    #[test]
+    fn test_kitty_key_seq_arrow_with_modifiers() {
+        let seq = kitty_key_seq(1, 5, 'A');
+        assert_eq!(seq, b"\x1b[1;5A");
+    }
+
+    // ---- kitty_tilde_seq ----
+
+    #[test]
+    fn test_kitty_tilde_seq_no_modifiers() {
+        let seq = kitty_tilde_seq(3, 1);
+        assert_eq!(seq, b"\x1b[3~");
+    }
+
+    #[test]
+    fn test_kitty_tilde_seq_with_modifiers() {
+        let seq = kitty_tilde_seq(3, 5);
+        assert_eq!(seq, b"\x1b[3;5~");
+    }
+
+    // ---- kitty_encode_key ----
+
+    #[test]
+    fn test_kitty_encode_no_flags_returns_none() {
+        let mods = madori::event::Modifiers::default();
+        assert!(kitty_encode_key(&madori::event::KeyCode::Char('a'), &None, &mods, 0).is_none());
+    }
+
+    #[test]
+    fn test_kitty_encode_char_with_ctrl() {
+        let mods = madori::event::Modifiers {
+            ctrl: true,
+            ..Default::default()
+        };
+        let result = kitty_encode_key(&madori::event::KeyCode::Char('a'), &None, &mods, 1);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), b"\x1b[97;5u");
+    }
+
+    #[test]
+    fn test_kitty_encode_enter() {
+        let mods = madori::event::Modifiers::default();
+        let result = kitty_encode_key(&madori::event::KeyCode::Enter, &None, &mods, 1);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), b"\x1b[13u");
+    }
+
+    #[test]
+    fn test_kitty_encode_char_no_modifiers_returns_none() {
+        let mods = madori::event::Modifiers::default();
+        let result = kitty_encode_key(&madori::event::KeyCode::Char('x'), &None, &mods, 1);
+        assert!(result.is_none(), "plain char with no modifiers falls through to normal input");
+    }
+
+    #[test]
+    fn test_kitty_encode_f1() {
+        let mods = madori::event::Modifiers::default();
+        let result = kitty_encode_key(&madori::event::KeyCode::F(1), &None, &mods, 1);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), b"\x1b[P");
+    }
+
+    #[test]
+    fn test_kitty_encode_arrow_up_with_shift() {
+        let mods = madori::event::Modifiers {
+            shift: true,
+            ..Default::default()
+        };
+        let result = kitty_encode_key(&madori::event::KeyCode::Up, &None, &mods, 1);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), b"\x1b[1;2A");
+    }
 }

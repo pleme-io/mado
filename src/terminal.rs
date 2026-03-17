@@ -396,6 +396,7 @@ impl Grid {
 #[derive(Clone)]
 pub struct KittyImage {
     /// Unique image ID assigned by the client or auto-generated.
+    #[allow(dead_code)]
     pub id: u32,
     /// RGBA pixel data (4 bytes per pixel).
     pub data: Vec<u8>,
@@ -431,6 +432,7 @@ pub struct ImagePlacement {
     pub src_width: u32,
     pub src_height: u32,
     /// Z-index for layering.
+    #[allow(dead_code)]
     pub z_index: i32,
 }
 
@@ -446,6 +448,7 @@ struct KittyPending {
     data_chunks: Vec<u8>,
 }
 
+#[allow(dead_code)]
 impl KittyPending {
     fn new(params: HashMap<u8, String>, data: Vec<u8>) -> Self {
         Self {
@@ -547,6 +550,7 @@ fn base64_decode_bytes(input: &[u8]) -> Vec<u8> {
 /// Trait abstracting terminal operations for testability.
 /// Allows substituting a mock terminal in tests without requiring
 /// a full VT100 parser, PTY, or grid.
+#[allow(dead_code)]
 pub trait TerminalOps: Send {
     fn cols(&self) -> usize;
     fn rows(&self) -> usize;
@@ -708,6 +712,7 @@ impl fmt::Debug for Terminal {
 
 impl Terminal {
     #[must_use]
+    #[allow(dead_code)]
     pub fn new(cols: usize, rows: usize) -> Self {
         Self::with_scrollback(cols, rows, 10_000)
     }
@@ -785,6 +790,7 @@ impl Terminal {
 
     /// The active 16-color ANSI palette (may be overridden by a theme).
     #[must_use]
+    #[allow(dead_code)]
     pub fn ansi_palette(&self) -> &[Color; 16] {
         &self.ansi_colors
     }
@@ -905,6 +911,7 @@ impl Terminal {
     }
 
     #[must_use]
+    #[allow(dead_code)]
     pub fn keypad_app_mode(&self) -> bool {
         self.keypad_app_mode
     }
@@ -1981,7 +1988,7 @@ impl vte::Perform for Terminal {
             b"11" => {
                 // OSC 11 — Query/set background color
                 if params.len() >= 2 && params[1] == b"?" {
-                    let bg = Color::BLACK; // default bg
+                    let bg = self.default_bg;
                     let response = format!(
                         "\x1b]11;rgb:{:02x}{:02x}/{:02x}{:02x}/{:02x}{:02x}\x1b\\",
                         bg.r, bg.r, bg.g, bg.g, bg.b, bg.b
@@ -1992,7 +1999,7 @@ impl vte::Perform for Terminal {
             b"12" => {
                 // OSC 12 — Query/set cursor color
                 if params.len() >= 2 && params[1] == b"?" {
-                    let cursor_color = Color::WHITE;
+                    let cursor_color = self.default_fg;
                     let response = format!(
                         "\x1b]12;rgb:{:02x}{:02x}/{:02x}{:02x}/{:02x}{:02x}\x1b\\",
                         cursor_color.r, cursor_color.r, cursor_color.g, cursor_color.g,
@@ -2533,46 +2540,9 @@ impl vte::Perform for Terminal {
 }
 
 /// Simple base64 decoder (no external dependency).
+/// Delegates to `base64_decode_bytes` and converts the result to a UTF-8 string.
 fn base64_decode(input: &[u8]) -> Option<String> {
-    const TABLE: [u8; 256] = {
-        let mut t = [255u8; 256];
-        let mut i = 0u8;
-        while i < 26 {
-            t[(b'A' + i) as usize] = i;
-            t[(b'a' + i) as usize] = i + 26;
-            i += 1;
-        }
-        let mut d = 0u8;
-        while d < 10 {
-            t[(b'0' + d) as usize] = d + 52;
-            d += 1;
-        }
-        t[b'+' as usize] = 62;
-        t[b'/' as usize] = 63;
-        t
-    };
-
-    let mut out = Vec::with_capacity(input.len() * 3 / 4);
-    let mut buf: u32 = 0;
-    let mut bits: u32 = 0;
-
-    for &byte in input {
-        if byte == b'=' || byte == b'\n' || byte == b'\r' {
-            continue;
-        }
-        let val = TABLE[byte as usize];
-        if val == 255 {
-            return None; // invalid character
-        }
-        buf = (buf << 6) | u32::from(val);
-        bits += 6;
-        if bits >= 8 {
-            bits -= 8;
-            out.push((buf >> bits) as u8);
-            buf &= (1 << bits) - 1;
-        }
-    }
-    String::from_utf8(out).ok()
+    String::from_utf8(base64_decode_bytes(input)).ok()
 }
 
 // ---------------------------------------------------------------------------
@@ -3529,6 +3499,7 @@ mod tests {
         pub mouse: MouseMode,
         pub bell_flag: bool,
         seqno_val: u64,
+        #[allow(dead_code)]
         pub response: Option<Vec<u8>>,
     }
 

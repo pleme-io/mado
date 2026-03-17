@@ -17,6 +17,7 @@ pub enum ScriptEvent {
     /// Fired when the application is about to quit.
     OnQuit,
     /// Fired on every key press (receives key name as argument).
+    #[allow(dead_code)]
     OnKey,
 }
 
@@ -123,6 +124,7 @@ impl ScriptManager {
     }
 
     /// Register a hook script for a given event.
+    #[allow(dead_code)]
     pub fn register_hook(&mut self, event: ScriptEvent, script: &str) {
         match self.engine.compile(script) {
             Ok(ast) => {
@@ -146,6 +148,7 @@ impl ScriptManager {
     }
 
     /// Run a named script by file stem (e.g., "startup" runs `startup.rhai`).
+    #[allow(dead_code)]
     pub fn run_script(&self, name: &str) -> Result<soushi::rhai::Dynamic, soushi::SoushiError> {
         if let Some(ast) = self.named_scripts.get(name) {
             self.engine.eval_ast(ast)
@@ -158,6 +161,7 @@ impl ScriptManager {
 
     /// Access the underlying script engine for advanced usage.
     #[must_use]
+    #[allow(dead_code)]
     pub fn engine(&self) -> &ScriptEngine {
         &self.engine
     }

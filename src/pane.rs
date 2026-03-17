@@ -217,6 +217,7 @@ impl PaneManager {
 
     /// Number of panes.
     #[must_use]
+    #[allow(dead_code)]
     pub fn count(&self) -> usize {
         self.all_ids().len()
     }

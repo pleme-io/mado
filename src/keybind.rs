@@ -50,6 +50,7 @@ pub struct KeybindManager {
     bindings: Vec<Keybinding>,
 }
 
+#[allow(dead_code)]
 impl KeybindManager {
     /// Create with platform-appropriate default bindings.
     #[must_use]
@@ -139,6 +140,22 @@ fn default_bindings() -> Vec<Keybinding> {
         // Splits
         Keybinding { hotkey: hk(cmd, Key::D), action: Action::SplitVertical },
         Keybinding { hotkey: hk(cmd_shift, Key::D), action: Action::SplitHorizontal },
+        // Scroll
+        Keybinding { hotkey: hk(none, Key::PageUp), action: Action::ScrollPageUp },
+        Keybinding { hotkey: hk(none, Key::PageDown), action: Action::ScrollPageDown },
+        Keybinding { hotkey: hk(cmd, Key::Home), action: Action::ScrollToTop },
+        Keybinding { hotkey: hk(cmd, Key::End), action: Action::ScrollToBottom },
+        // Pane navigation
+        Keybinding { hotkey: hk(cmd, Key::RightBracket), action: Action::FocusNext },
+        Keybinding { hotkey: hk(cmd, Key::LeftBracket), action: Action::FocusPrev },
+        Keybinding { hotkey: hk(cmd_shift, Key::W), action: Action::ClosePane },
+        // Tab navigation
+        Keybinding { hotkey: hk(cmd_shift, Key::RightBracket), action: Action::NextTab },
+        Keybinding { hotkey: hk(cmd_shift, Key::LeftBracket), action: Action::PrevTab },
+        // Terminal
+        Keybinding { hotkey: hk(cmd_shift, Key::R), action: Action::ResetTerminal },
+        // Fullscreen
+        Keybinding { hotkey: hk(cmd | Modifiers::CTRL, Key::F), action: Action::ToggleFullscreen },
     ]
 }
 
@@ -236,8 +253,9 @@ mod tests {
         let mgr = KeybindManager::new();
         // Default bindings include Copy, Paste, SearchOpen, SearchClose,
         // SearchNext, SearchPrev, FontIncrease, FontDecrease, FontReset,
-        // NewTab, CloseTab, SplitVertical, SplitHorizontal = 13
-        assert_eq!(mgr.bindings().len(), 13);
+        // NewTab, CloseTab, SplitVertical, SplitHorizontal, plus scroll,
+        // pane, tab, terminal, fullscreen = 24
+        assert_eq!(mgr.bindings().len(), 24);
     }
 
     #[test]

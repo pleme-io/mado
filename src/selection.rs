@@ -6,6 +6,17 @@
 
 use crate::terminal::Cell;
 
+/// Trait for querying selection state without requiring a concrete `Selection`.
+///
+/// Allows the renderer to accept any `SelectionQuery` impl (e.g. `Selection` or
+/// `MockSelection` for tests).
+#[allow(dead_code)]
+pub trait SelectionQuery {
+    fn is_active(&self) -> bool;
+    fn contains(&self, row: usize, col: usize) -> bool;
+    fn range(&self) -> Option<(CellPos, CellPos)>;
+}
+
 /// A cell position in the terminal grid.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CellPos {
@@ -222,6 +233,42 @@ impl Selection {
 impl Default for Selection {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl SelectionQuery for Selection {
+    fn is_active(&self) -> bool {
+        Selection::is_active(self)
+    }
+    fn contains(&self, row: usize, col: usize) -> bool {
+        Selection::contains(self, row, col)
+    }
+    fn range(&self) -> Option<(CellPos, CellPos)> {
+        Selection::range(self)
+    }
+}
+
+#[cfg(test)]
+#[allow(dead_code)]
+pub struct MockSelection {
+    pub active: bool,
+    pub selected_range: Option<(CellPos, CellPos)>,
+}
+
+#[cfg(test)]
+impl SelectionQuery for MockSelection {
+    fn is_active(&self) -> bool {
+        self.active
+    }
+    fn contains(&self, row: usize, col: usize) -> bool {
+        if let Some((start, end)) = &self.selected_range {
+            row >= start.row && row <= end.row && col >= start.col && col <= end.col
+        } else {
+            false
+        }
+    }
+    fn range(&self) -> Option<(CellPos, CellPos)> {
+        self.selected_range
     }
 }
 

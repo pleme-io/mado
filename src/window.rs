@@ -196,6 +196,7 @@ impl WindowState {
     }
 
     /// Get all pane IDs in the active tab.
+    #[allow(dead_code)]
     pub fn all_pane_ids(&self) -> Vec<PaneId> {
         self.active_tab_state()
             .map_or_else(Vec::new, |tab| tab.panes.all_ids())
@@ -249,16 +250,19 @@ impl WindowState {
     }
 
     /// Number of tabs.
+    #[allow(dead_code)]
     pub fn tab_count(&self) -> usize {
         self.tabs.count()
     }
 
     /// Active tab index (for rendering tab bar).
+    #[allow(dead_code)]
     pub fn active_tab_index(&self) -> usize {
         self.tabs.active_index()
     }
 
     /// All tab titles (for rendering tab bar).
+    #[allow(dead_code)]
     pub fn tab_titles(&self) -> Vec<&str> {
         self.tabs.tabs().iter().map(|t| t.title.as_str()).collect()
     }

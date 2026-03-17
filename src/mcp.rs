@@ -15,6 +15,7 @@ use serde::Deserialize;
 // ── Tool input types ────────────────────────────────────────────────────────
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
+#[allow(dead_code)]
 struct SessionIdInput {
     #[schemars(description = "Session identifier (pane or tab ID).")]
     session_id: String,
