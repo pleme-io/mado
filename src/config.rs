@@ -24,9 +24,15 @@ pub struct MadoConfig {
     #[serde(default)]
     pub profiles: HashMap<String, ProfileConfig>,
     #[serde(default)]
+    pub active_profile: Option<String>,
+    #[serde(default)]
     pub shaders: ShaderConfig,
     #[serde(default)]
     pub accessibility: AccessibilityConfig,
+    #[serde(default)]
+    pub shell_integration: ShellIntegrationConfig,
+    #[serde(default)]
+    pub performance: PerformanceConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -54,6 +60,8 @@ pub struct AppearanceConfig {
     pub foreground: String,
     #[serde(default = "default_opacity")]
     pub opacity: f32,
+    #[serde(default)]
+    pub bold_is_bright: bool,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -88,6 +96,46 @@ pub struct BehaviorConfig {
     pub scrollback_lines: usize,
     #[serde(default = "default_copy_on_select")]
     pub copy_on_select: bool,
+    #[serde(default)]
+    pub confirm_close: bool,
+    #[serde(default = "default_mouse_hide")]
+    pub mouse_hide_while_typing: bool,
+    #[serde(default = "default_mouse_scroll_mult")]
+    pub mouse_scroll_multiplier: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ShellIntegrationConfig {
+    #[serde(default = "default_shell_integration_enabled")]
+    pub enabled: bool,
+    #[serde(default = "default_shell_integration_features")]
+    pub features: Vec<String>,
+}
+
+impl Default for ShellIntegrationConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_shell_integration_enabled(),
+            features: default_shell_integration_features(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PerformanceConfig {
+    #[serde(default = "default_vsync")]
+    pub vsync: bool,
+    #[serde(default = "default_target_fps")]
+    pub target_fps: u32,
+}
+
+impl Default for PerformanceConfig {
+    fn default() -> Self {
+        Self {
+            vsync: default_vsync(),
+            target_fps: default_target_fps(),
+        }
+    }
 }
 
 /// Named profile — overrides any top-level config field when activated.
@@ -112,6 +160,7 @@ pub struct ProfileConfig {
     pub cursor: Option<CursorConfig>,
     pub shell: Option<ShellConfig>,
     pub behavior: Option<BehaviorConfig>,
+    pub performance: Option<PerformanceConfig>,
 }
 
 /// Custom WGSL shader post-processing configuration.
@@ -211,6 +260,9 @@ impl MadoConfig {
         if let Some(ref behavior) = profile.behavior {
             config.behavior = behavior.clone();
         }
+        if let Some(ref performance) = profile.performance {
+            config.performance = performance.clone();
+        }
         config
     }
 }
@@ -229,8 +281,11 @@ impl Default for MadoConfig {
             behavior: BehaviorConfig::default(),
             theme: default_theme(),
             profiles: HashMap::new(),
+            active_profile: None,
             shaders: ShaderConfig::default(),
             accessibility: AccessibilityConfig::default(),
+            shell_integration: ShellIntegrationConfig::default(),
+            performance: PerformanceConfig::default(),
         }
     }
 }
@@ -260,6 +315,7 @@ impl Default for AppearanceConfig {
             background: default_bg(),
             foreground: default_fg(),
             opacity: default_opacity(),
+            bold_is_bright: false,
         }
     }
 }
@@ -280,6 +336,9 @@ impl Default for BehaviorConfig {
         Self {
             scrollback_lines: default_scrollback(),
             copy_on_select: default_copy_on_select(),
+            confirm_close: false,
+            mouse_hide_while_typing: default_mouse_hide(),
+            mouse_scroll_multiplier: default_mouse_scroll_mult(),
         }
     }
 }
@@ -322,6 +381,24 @@ fn default_scrollback() -> usize {
 }
 fn default_copy_on_select() -> bool {
     false
+}
+fn default_mouse_hide() -> bool {
+    true
+}
+fn default_mouse_scroll_mult() -> u32 {
+    2
+}
+fn default_shell_integration_enabled() -> bool {
+    true
+}
+fn default_shell_integration_features() -> Vec<String> {
+    vec!["cursor".into(), "sudo".into(), "title".into()]
+}
+fn default_vsync() -> bool {
+    true
+}
+fn default_target_fps() -> u32 {
+    120
 }
 fn default_theme() -> String {
     "nord".into()
@@ -379,4 +456,333 @@ where
     let store = shikumi::ConfigStore::<MadoConfig>::load_and_watch(&path, "MADO_", on_reload)?;
     let config = MadoConfig::clone(&store.get());
     Ok((config, store))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_default_config_values() {
+        let config = MadoConfig::default();
+        assert_eq!(config.font_family, "JetBrains Mono");
+        assert_eq!(config.font_size, 14.0);
+        assert_eq!(config.theme, "nord");
+        assert!(config.active_profile.is_none());
+        assert_eq!(config.window.width, 1200);
+        assert_eq!(config.window.height, 800);
+        assert_eq!(config.window.padding, 8);
+        assert_eq!(config.appearance.background, "#2e3440");
+        assert_eq!(config.appearance.foreground, "#eceff4");
+        assert_eq!(config.appearance.opacity, 1.0);
+        assert!(!config.appearance.bold_is_bright);
+        assert_eq!(config.cursor.style, CursorStyle::Block);
+        assert!(config.cursor.blink);
+        assert_eq!(config.cursor.blink_rate_ms, 530);
+        assert_eq!(config.cursor.color, "#eceff4");
+        assert_eq!(config.behavior.scrollback_lines, 10_000);
+        assert!(!config.behavior.copy_on_select);
+        assert!(!config.behavior.confirm_close);
+        assert!(config.behavior.mouse_hide_while_typing);
+        assert_eq!(config.behavior.mouse_scroll_multiplier, 2);
+        assert!(config.shell_integration.enabled);
+        assert_eq!(config.shell_integration.features, ["cursor", "sudo", "title"]);
+        assert!(config.performance.vsync);
+        assert_eq!(config.performance.target_fps, 120);
+        assert!(!config.shaders.enabled);
+        assert!(config.shaders.files.is_empty());
+        assert_eq!(config.accessibility.colorblind, ColorblindMode::None);
+        assert_eq!(config.accessibility.min_contrast, 0.0);
+        assert_eq!(config.accessibility.font_scale, 1.0);
+        assert!(!config.accessibility.reduce_motion);
+    }
+
+    #[test]
+    fn test_config_serialization_roundtrip() {
+        let config = MadoConfig::default();
+        let json = serde_json::to_string(&config).unwrap();
+        let restored: MadoConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(config.font_family, restored.font_family);
+        assert_eq!(config.font_size, restored.font_size);
+        assert_eq!(config.theme, restored.theme);
+        assert_eq!(config.window.width, restored.window.width);
+        assert_eq!(config.cursor.style, restored.cursor.style);
+    }
+
+    #[test]
+    fn test_config_yaml_deserialization() {
+        let yaml = r#"
+font_family: "Fira Code"
+font_size: 16
+theme: "dracula"
+active_profile: "light"
+window:
+  width: 1600
+  height: 900
+"#;
+        let config: MadoConfig = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(config.font_family, "Fira Code");
+        assert_eq!(config.font_size, 16.0);
+        assert_eq!(config.theme, "dracula");
+        assert_eq!(config.active_profile.as_deref(), Some("light"));
+        assert_eq!(config.window.width, 1600);
+        assert_eq!(config.window.height, 900);
+    }
+
+    #[test]
+    fn test_with_profile_applies_overrides() {
+        let mut profiles = HashMap::new();
+        profiles.insert(
+            "coding".to_string(),
+            ProfileConfig {
+                font_family: Some("Fira Code".into()),
+                font_size: Some(16.0),
+                theme: Some("dracula".into()),
+                appearance: None,
+                cursor: None,
+                shell: None,
+                behavior: None,
+                performance: None,
+            },
+        );
+        let config = MadoConfig {
+            profiles,
+            ..MadoConfig::default()
+        };
+        let applied = config.with_profile("coding");
+        assert_eq!(applied.font_family, "Fira Code");
+        assert_eq!(applied.font_size, 16.0);
+        assert_eq!(applied.theme, "dracula");
+    }
+
+    #[test]
+    fn test_with_profile_nonexistent_returns_clone() {
+        let config = MadoConfig::default();
+        let applied = config.with_profile("nonexistent");
+        assert_eq!(applied.font_family, config.font_family);
+        assert_eq!(applied.font_size, config.font_size);
+        assert_eq!(applied.theme, config.theme);
+    }
+
+    #[test]
+    fn test_cursor_style_variants() {
+        for style in [CursorStyle::Block, CursorStyle::Bar, CursorStyle::Underline] {
+            let json = serde_json::to_string(&style).unwrap();
+            let restored: CursorStyle = serde_json::from_str(&json).unwrap();
+            assert_eq!(style, restored);
+        }
+    }
+
+    #[test]
+    fn test_colorblind_mode_variants() {
+        for mode in [
+            ColorblindMode::None,
+            ColorblindMode::Protanopia,
+            ColorblindMode::Deuteranopia,
+            ColorblindMode::Tritanopia,
+        ] {
+            let json = serde_json::to_string(&mode).unwrap();
+            let restored: ColorblindMode = serde_json::from_str(&json).unwrap();
+            assert_eq!(mode, restored);
+        }
+    }
+
+    #[test]
+    fn test_window_config_defaults() {
+        let w = WindowConfig::default();
+        assert_eq!(w.width, 1200);
+        assert_eq!(w.height, 800);
+        assert_eq!(w.padding, 8);
+    }
+
+    #[test]
+    fn test_shell_config_defaults() {
+        let s = ShellConfig::default();
+        assert!(s.command.is_none());
+        assert!(s.args.is_empty());
+    }
+
+    #[test]
+    fn test_appearance_config_defaults() {
+        let a = AppearanceConfig::default();
+        assert_eq!(a.background, "#2e3440");
+        assert_eq!(a.foreground, "#eceff4");
+        assert_eq!(a.opacity, 1.0);
+        assert!(!a.bold_is_bright);
+    }
+
+    #[test]
+    fn test_cursor_config_defaults() {
+        let c = CursorConfig::default();
+        assert_eq!(c.style, CursorStyle::Block);
+        assert!(c.blink);
+        assert_eq!(c.blink_rate_ms, 530);
+        assert_eq!(c.color, "#eceff4");
+    }
+
+    #[test]
+    fn test_behavior_config_defaults() {
+        let b = BehaviorConfig::default();
+        assert_eq!(b.scrollback_lines, 10_000);
+        assert!(!b.copy_on_select);
+        assert!(!b.confirm_close);
+        assert!(b.mouse_hide_while_typing);
+        assert_eq!(b.mouse_scroll_multiplier, 2);
+    }
+
+    #[test]
+    fn test_shader_config_defaults() {
+        let s = ShaderConfig::default();
+        assert!(!s.enabled);
+        assert!(s.files.is_empty());
+    }
+
+    #[test]
+    fn test_accessibility_config_defaults() {
+        let a = AccessibilityConfig::default();
+        assert_eq!(a.colorblind, ColorblindMode::None);
+        assert_eq!(a.min_contrast, 0.0);
+        assert_eq!(a.font_scale, 1.0);
+        assert!(!a.reduce_motion);
+    }
+
+    #[test]
+    fn test_profile_config_default_all_none() {
+        let p = ProfileConfig::default();
+        assert!(p.font_family.is_none());
+        assert!(p.font_size.is_none());
+        assert!(p.theme.is_none());
+        assert!(p.appearance.is_none());
+        assert!(p.cursor.is_none());
+        assert!(p.shell.is_none());
+        assert!(p.behavior.is_none());
+        assert!(p.performance.is_none());
+    }
+
+    #[test]
+    fn test_config_with_profile_font_override() {
+        let mut profiles = HashMap::new();
+        profiles.insert(
+            "large".to_string(),
+            ProfileConfig {
+                font_family: Some("Monaco".into()),
+                font_size: Some(18.0),
+                theme: None,
+                appearance: None,
+                cursor: None,
+                shell: None,
+                behavior: None,
+                performance: None,
+            },
+        );
+        let config = MadoConfig {
+            profiles,
+            ..MadoConfig::default()
+        };
+        let applied = config.with_profile("large");
+        assert_eq!(applied.font_family, "Monaco");
+        assert_eq!(applied.font_size, 18.0);
+        assert_eq!(applied.theme, "nord");
+    }
+
+    #[test]
+    fn test_config_with_profile_theme_override() {
+        let mut profiles = HashMap::new();
+        profiles.insert(
+            "light".to_string(),
+            ProfileConfig {
+                font_family: None,
+                font_size: None,
+                theme: Some("solarized-light".into()),
+                appearance: None,
+                cursor: None,
+                shell: None,
+                behavior: None,
+                performance: None,
+            },
+        );
+        let config = MadoConfig {
+            profiles,
+            ..MadoConfig::default()
+        };
+        let applied = config.with_profile("light");
+        assert_eq!(applied.theme, "solarized-light");
+    }
+
+    #[test]
+    fn test_shell_integration_config_defaults() {
+        let si = ShellIntegrationConfig::default();
+        assert!(si.enabled);
+        assert_eq!(si.features, ["cursor", "sudo", "title"]);
+    }
+
+    #[test]
+    fn test_performance_config_defaults() {
+        let p = PerformanceConfig::default();
+        assert!(p.vsync);
+        assert_eq!(p.target_fps, 120);
+    }
+
+    #[test]
+    fn test_config_with_active_profile() {
+        let mut profiles = HashMap::new();
+        profiles.insert(
+            "coding".to_string(),
+            ProfileConfig {
+                font_family: Some("Fira Code".into()),
+                font_size: Some(16.0),
+                theme: Some("dracula".into()),
+                appearance: None,
+                cursor: None,
+                shell: None,
+                behavior: None,
+                performance: None,
+            },
+        );
+        let config = MadoConfig {
+            active_profile: Some("coding".into()),
+            profiles: profiles.clone(),
+            ..MadoConfig::default()
+        };
+        let applied = config.with_profile("coding");
+        assert_eq!(applied.font_family, "Fira Code");
+        assert_eq!(applied.font_size, 16.0);
+        assert_eq!(applied.theme, "dracula");
+    }
+
+    #[test]
+    fn test_config_with_profile_performance_override() {
+        let mut profiles = HashMap::new();
+        profiles.insert(
+            "gaming".to_string(),
+            ProfileConfig {
+                font_family: None,
+                font_size: None,
+                theme: None,
+                appearance: None,
+                cursor: None,
+                shell: None,
+                behavior: None,
+                performance: Some(PerformanceConfig {
+                    vsync: false,
+                    target_fps: 240,
+                }),
+            },
+        );
+        let config = MadoConfig {
+            profiles,
+            ..MadoConfig::default()
+        };
+        let applied = config.with_profile("gaming");
+        assert!(!applied.performance.vsync);
+        assert_eq!(applied.performance.target_fps, 240);
+    }
+
+    #[test]
+    fn test_behavior_config_new_fields() {
+        let b = BehaviorConfig::default();
+        assert_eq!(b.confirm_close, false);
+        assert_eq!(b.mouse_hide_while_typing, true);
+        assert_eq!(b.mouse_scroll_multiplier, 2);
+    }
 }

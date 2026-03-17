@@ -214,4 +214,52 @@ mod tests {
         let hk_close = awase::Hotkey::new(awase::Modifiers::NONE, awase::Key::Escape);
         assert_eq!(mgr.lookup(&hk_close), Some(Action::SearchClose));
     }
+
+    #[test]
+    fn bind_str_valid() {
+        let mut mgr = KeybindManager::new();
+        let result = mgr.bind_str("cmd+t", Action::NewTab);
+        assert!(result.is_ok());
+        let hk = awase::Hotkey::parse("cmd+t").unwrap();
+        assert_eq!(mgr.lookup(&hk), Some(Action::NewTab));
+    }
+
+    #[test]
+    fn bind_str_invalid() {
+        let mut mgr = KeybindManager::new();
+        let result = mgr.bind_str("not_a_real_hotkey!!!", Action::Copy);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn default_bindings_count() {
+        let mgr = KeybindManager::new();
+        // Default bindings include Copy, Paste, SearchOpen, SearchClose,
+        // SearchNext, SearchPrev, FontIncrease, FontDecrease, FontReset,
+        // NewTab, CloseTab, SplitVertical, SplitHorizontal = 13
+        assert_eq!(mgr.bindings().len(), 13);
+    }
+
+    #[test]
+    fn all_actions_serializable() {
+        let actions = [
+            Action::Copy, Action::Paste, Action::ScrollUp, Action::ScrollDown,
+            Action::ScrollPageUp, Action::ScrollPageDown, Action::ScrollToTop,
+            Action::ScrollToBottom, Action::SearchOpen, Action::SearchClose,
+            Action::SearchNext, Action::SearchPrev, Action::FontIncrease,
+            Action::FontDecrease, Action::FontReset, Action::NewTab,
+            Action::CloseTab, Action::NextTab, Action::PrevTab,
+            Action::SplitHorizontal, Action::SplitVertical, Action::FocusNext,
+            Action::FocusPrev, Action::ClosePane, Action::ResetTerminal,
+            Action::ToggleFullscreen,
+        ];
+        for action in &actions {
+            let json = serde_json::to_string(action);
+            assert!(json.is_ok(), "Failed to serialize {:?}", action);
+            let json_str = json.unwrap();
+            let parsed: Result<Action, _> = serde_json::from_str(&json_str);
+            assert!(parsed.is_ok(), "Failed to deserialize {:?}", action);
+            assert_eq!(*action, parsed.unwrap());
+        }
+    }
 }

@@ -279,4 +279,109 @@ mod tests {
     fn eight_themes_available() {
         assert_eq!(Theme::available().len(), 8);
     }
+
+    #[test]
+    fn test_all_theme_names_unique() {
+        let names: Vec<&str> = Theme::available().iter().map(|t| t.name).collect();
+        for (i, name) in names.iter().enumerate() {
+            for (j, other) in names.iter().enumerate() {
+                if i != j {
+                    assert_ne!(name, other, "duplicate theme name: {}", name);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_theme_background_not_equal_foreground() {
+        for theme in Theme::available() {
+            assert_ne!(
+                theme.background,
+                theme.foreground,
+                "theme {} has bg == fg",
+                theme.name
+            );
+        }
+    }
+
+    #[test]
+    fn test_theme_by_name_all_themes() {
+        for theme in Theme::available() {
+            let found = Theme::by_name(theme.name).unwrap();
+            assert_eq!(found.name, theme.name);
+            assert_eq!(found.background, theme.background);
+        }
+    }
+
+    #[test]
+    fn test_nord_specific_colors() {
+        let theme = Theme::by_name("nord").unwrap();
+        assert_eq!(theme.background, Color::new(46, 52, 64));
+        assert_eq!(theme.foreground, Color::new(236, 239, 244));
+        assert_eq!(theme.cursor, Color::new(236, 239, 244));
+        assert_eq!(theme.ansi[0], Color::new(59, 66, 82));
+        assert_eq!(theme.ansi[1], Color::new(191, 97, 106));
+        assert_eq!(theme.ansi[2], Color::new(163, 190, 140));
+        assert_eq!(theme.ansi[3], Color::new(235, 203, 139));
+        assert_eq!(theme.ansi[4], Color::new(129, 161, 193));
+        assert_eq!(theme.ansi[5], Color::new(180, 142, 173));
+        assert_eq!(theme.ansi[6], Color::new(136, 192, 208));
+        assert_eq!(theme.ansi[7], Color::new(229, 233, 240));
+        assert_eq!(theme.ansi[8], Color::new(76, 86, 106));
+        assert_eq!(theme.ansi[15], Color::new(236, 239, 244));
+    }
+
+    #[test]
+    fn test_dracula_specific_colors() {
+        let theme = Theme::by_name("dracula").unwrap();
+        assert_eq!(theme.background, Color::new(40, 42, 54));
+        assert_eq!(theme.foreground, Color::new(248, 248, 242));
+        assert_eq!(theme.cursor, Color::new(248, 248, 242));
+        assert_eq!(theme.ansi[0], Color::new(33, 34, 44));
+        assert_eq!(theme.ansi[1], Color::new(255, 85, 85));
+        assert_eq!(theme.ansi[2], Color::new(80, 250, 123));
+        assert_eq!(theme.ansi[3], Color::new(241, 250, 140));
+        assert_eq!(theme.ansi[4], Color::new(98, 114, 164));
+        assert_eq!(theme.ansi[5], Color::new(255, 121, 198));
+        assert_eq!(theme.ansi[6], Color::new(139, 233, 253));
+        assert_eq!(theme.ansi[7], Color::new(248, 248, 242));
+        assert_eq!(theme.ansi[15], Color::new(255, 255, 255));
+    }
+
+    #[test]
+    fn test_theme_selection_bg_valid() {
+        for theme in Theme::available() {
+            for (i, &v) in theme.selection_bg.iter().enumerate() {
+                assert!(
+                    (0.0..=1.0).contains(&v),
+                    "theme {} selection_bg[{}] = {} must be in 0..=1",
+                    theme.name,
+                    i,
+                    v
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_gruvbox_dark_colors() {
+        let theme = Theme::by_name("gruvbox-dark").unwrap();
+        assert_eq!(theme.background, Color::new(40, 40, 40));
+        assert_eq!(theme.foreground, Color::new(235, 219, 178));
+        assert_eq!(theme.cursor, Color::new(235, 219, 178));
+        assert_eq!(theme.ansi[1], Color::new(204, 36, 29));
+        assert_eq!(theme.ansi[2], Color::new(152, 151, 26));
+        assert_eq!(theme.ansi[4], Color::new(69, 133, 136));
+    }
+
+    #[test]
+    fn test_catppuccin_mocha_colors() {
+        let theme = Theme::by_name("catppuccin-mocha").unwrap();
+        assert_eq!(theme.background, Color::new(30, 30, 46));
+        assert_eq!(theme.foreground, Color::new(205, 214, 244));
+        assert_eq!(theme.cursor, Color::new(245, 224, 220));
+        assert_eq!(theme.ansi[1], Color::new(243, 139, 168));
+        assert_eq!(theme.ansi[2], Color::new(166, 227, 161));
+        assert_eq!(theme.ansi[4], Color::new(137, 180, 250));
+    }
 }

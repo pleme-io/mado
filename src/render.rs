@@ -18,7 +18,7 @@ use crate::config::{ColorblindMode, CursorStyle};
 use crate::pane::PaneRect;
 use crate::search::SearchState;
 use crate::selection::Selection;
-use crate::terminal::{bold_bright_color, Cell, CellAttrs, Color, Cursor, ImagePlacement, Terminal};
+use crate::terminal::{bold_bright_color, default_ansi_palette, Cell, CellAttrs, Color, Cursor, ImagePlacement, Terminal};
 use crate::url::{self, DetectedUrl};
 use crate::window::WindowState;
 
@@ -823,11 +823,13 @@ pub struct TerminalRenderer {
     padding: f32,
     bg_color: wgpu::Color,
     fg_color: Color,
+    ansi_colors: [Color; 16],
     rect_pipeline: Option<RectPipeline>,
     image_pipeline: Option<ImagePipeline>,
     post_pipeline: Option<PostProcessPipeline>,
     gpu_images: HashMap<u32, GpuImage>,
     colorblind_mode: ColorblindMode,
+    bold_is_bright: bool,
     last_seqno: u64,
     cursor_style: CursorStyle,
     cursor_blink: bool,
@@ -864,11 +866,13 @@ impl TerminalRenderer {
             padding,
             bg_color,
             fg_color,
+            ansi_colors: default_ansi_palette(),
             rect_pipeline: None,
             image_pipeline: None,
             post_pipeline: None,
             gpu_images: HashMap::new(),
             colorblind_mode: ColorblindMode::None,
+            bold_is_bright: false,
             last_seqno: 0,
             cursor_style,
             cursor_blink,
@@ -919,6 +923,25 @@ impl TerminalRenderer {
     pub fn set_colorblind_mode(&mut self, mode: ColorblindMode) {
         self.colorblind_mode = mode;
         self.last_seqno = 0; // force redraw
+    }
+
+    /// Set whether bold text uses bright colors (ANSI 0-7 → 8-15).
+    pub fn set_bold_is_bright(&mut self, enabled: bool) {
+        self.bold_is_bright = enabled;
+        self.last_seqno = 0; // force redraw
+    }
+
+    /// Set the 16-color ANSI palette used for bold-as-bright resolution.
+    pub fn set_ansi_colors(&mut self, colors: [Color; 16]) {
+        self.ansi_colors = colors;
+        self.last_seqno = 0; // force redraw
+    }
+
+    /// Override the background clear color and default text color.
+    pub fn set_bg_fg(&mut self, bg: wgpu::Color, fg: Color) {
+        self.bg_color = bg;
+        self.fg_color = fg;
+        self.last_seqno = 0;
     }
 
     /// Measure actual cell dimensions from glyphon font metrics.
@@ -1249,11 +1272,11 @@ impl TerminalRenderer {
                     continue;
                 }
 
-                // Bold-as-bright: ANSI colors 0-7 become 8-15 when bold
+                // Bold-as-bright: ANSI colors 0-7 become 8-15 when bold (if enabled)
                 let mut effective_fg = if inverse {
                     cell.bg
-                } else if bold {
-                    bold_bright_color(&cell.fg)
+                } else if bold && self.bold_is_bright {
+                    bold_bright_color(&cell.fg, &self.ansi_colors)
                 } else {
                     cell.fg
                 };

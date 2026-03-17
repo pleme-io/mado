@@ -74,3 +74,7 @@ objc2-app-kit = { version = "0.3", features = ["NSApplication", "NSWindow", "NSD
 
 [dev-dependencies]
 tempfile = "3"
+serde_yaml = "0.9"
+
+[patch."https://github.com/pleme-io/madori"]
+madori = { path = "../madori" }

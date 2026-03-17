@@ -16,7 +16,7 @@ use crate::render::SharedTerminal;
 use crate::search::SearchState;
 use crate::selection::Selection;
 use crate::tab::{TabId, TabManager};
-use crate::terminal::Terminal;
+use crate::terminal::{Color, Terminal};
 
 /// Per-pane state: terminal + PTY I/O channels.
 pub struct PaneTerminal {
@@ -49,6 +49,8 @@ pub struct WindowState {
     scrollback: usize,
     default_cols: usize,
     default_rows: usize,
+    /// Theme colors applied to new terminals (None = use defaults).
+    theme_colors: Option<(Color, Color, [Color; 16])>,
 }
 
 impl WindowState {
@@ -69,7 +71,7 @@ impl WindowState {
         };
 
         let initial_id = PaneId(0);
-        Self::spawn_pane_for_tab(&mut tab_state, initial_id, cols, rows, &shell, scrollback);
+        Self::spawn_pane_for_tab(&mut tab_state, initial_id, cols, rows, &shell, scrollback, None);
 
         let mut tab_states = HashMap::new();
         tab_states.insert(active_tab_id, tab_state);
@@ -81,7 +83,13 @@ impl WindowState {
             scrollback,
             default_cols: cols,
             default_rows: rows,
+            theme_colors: None,
         }
+    }
+
+    /// Store theme colors so new terminals get them automatically.
+    pub fn set_theme(&mut self, fg: Color, bg: Color, ansi: [Color; 16]) {
+        self.theme_colors = Some((fg, bg, ansi));
     }
 
     /// Get the focused pane's terminal state.
@@ -120,9 +128,10 @@ impl WindowState {
         let tab_id = self.tabs.active_tab().id;
         let shell = self.shell.clone();
         let scrollback = self.scrollback;
+        let theme = self.theme_colors;
         let tab = self.tab_states.get_mut(&tab_id).expect("active tab");
         let new_id = tab.panes.split(dir);
-        Self::spawn_pane_for_tab(tab, new_id, cols, rows, &shell, scrollback);
+        Self::spawn_pane_for_tab(tab, new_id, cols, rows, &shell, scrollback, theme);
         new_id
     }
 
@@ -192,6 +201,11 @@ impl WindowState {
             .map_or_else(Vec::new, |tab| tab.panes.all_ids())
     }
 
+    /// Iterate over all pane terminals across all tabs.
+    pub fn all_panes(&self) -> impl Iterator<Item = &PaneTerminal> {
+        self.tab_states.values().flat_map(|tab| tab.terminals.values())
+    }
+
     // ── Tab operations ──────────────────────────────────────────────
 
     /// Create a new tab with a single pane. Returns the new tab's ID.
@@ -208,7 +222,8 @@ impl WindowState {
             resize_senders: HashMap::new(),
         };
         let initial_id = PaneId(0);
-        Self::spawn_pane_for_tab(&mut tab_state, initial_id, cols, rows, &shell, scrollback);
+        let theme = self.theme_colors;
+        Self::spawn_pane_for_tab(&mut tab_state, initial_id, cols, rows, &shell, scrollback, theme);
         self.tab_states.insert(tab_id, tab_state);
 
         tracing::info!(tab = tab_id.0, "new tab created");
@@ -263,9 +278,13 @@ impl WindowState {
         rows: usize,
         shell: &str,
         scrollback: usize,
+        theme_colors: Option<(Color, Color, [Color; 16])>,
     ) {
-        let terminal: SharedTerminal =
-            Arc::new(Mutex::new(Terminal::with_scrollback(cols, rows, scrollback)));
+        let mut term = Terminal::with_scrollback(cols, rows, scrollback);
+        if let Some((fg, bg, ansi)) = theme_colors {
+            term.apply_theme(fg, bg, ansi);
+        }
+        let terminal: SharedTerminal = Arc::new(Mutex::new(term));
         let terminal_for_pty = Arc::clone(&terminal);
 
         let pty_exited = Arc::new(AtomicBool::new(false));

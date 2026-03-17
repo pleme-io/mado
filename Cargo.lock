@@ -1502,6 +1502,7 @@ dependencies = [
  "schemars 0.8.22",
  "serde",
  "serde_json",
+ "serde_yaml",
  "shikumi",
  "soushi",
  "tempfile",
@@ -1517,7 +1518,6 @@ dependencies = [
 [[package]]
 name = "madori"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/madori#f1d91bf6300e77a9ec0f3bd3145c889a2688664c"
 dependencies = [
  "egaku",
  "garasu",

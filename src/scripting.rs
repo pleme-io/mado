@@ -227,4 +227,33 @@ mod tests {
         let result = mgr.run_script("nonexistent_script_12345");
         assert!(result.is_err());
     }
+
+    #[test]
+    fn fire_event_no_hooks() {
+        let mgr = ScriptManager::new();
+        mgr.fire_event(ScriptEvent::OnStart);
+        mgr.fire_event(ScriptEvent::OnQuit);
+        mgr.fire_event(ScriptEvent::OnKey);
+    }
+
+    #[test]
+    fn register_multiple_hooks() {
+        let mut mgr = ScriptManager::new();
+        mgr.register_hook(ScriptEvent::OnStart, r#"let x = 1 + 1;"#);
+        mgr.register_hook(ScriptEvent::OnStart, r#"let y = 2 + 2;"#);
+        mgr.fire_event(ScriptEvent::OnStart);
+    }
+
+    #[test]
+    fn script_event_eq() {
+        assert_eq!(ScriptEvent::OnStart, ScriptEvent::OnStart);
+        assert_ne!(ScriptEvent::OnStart, ScriptEvent::OnQuit);
+        assert_ne!(ScriptEvent::OnQuit, ScriptEvent::OnKey);
+    }
+
+    #[test]
+    fn dirs_script_path_returns_expected() {
+        let path = super::dirs_script_path("mado");
+        assert!(path.ends_with("mado/scripts"));
+    }
 }

@@ -386,4 +386,55 @@ mod tests {
         sel.clear();
         assert!(!sel.is_active());
     }
+
+    #[test]
+    fn selecting_state_is_active() {
+        let mut sel = Selection::new();
+        sel.start(CellPos { row: 0, col: 0 });
+        sel.update(CellPos { row: 0, col: 5 });
+        // During selection (before finish), is_active should be true
+        assert!(sel.is_active());
+        assert!(sel.range().is_some());
+    }
+
+    #[test]
+    fn contains_during_selecting() {
+        let mut sel = Selection::new();
+        sel.start(CellPos { row: 0, col: 2 });
+        sel.update(CellPos { row: 0, col: 8 });
+        // Even before finish, contains works
+        assert!(sel.contains(0, 2));
+        assert!(sel.contains(0, 5));
+        assert!(sel.contains(0, 8));
+        assert!(!sel.contains(0, 1));
+        assert!(!sel.contains(0, 9));
+    }
+
+    #[test]
+    fn extract_text_empty_row() {
+        let rows = vec![make_row("     ")];
+        let mut sel = Selection::new();
+        sel.start(CellPos { row: 0, col: 0 });
+        sel.update(CellPos { row: 0, col: 4 });
+        sel.finish();
+        // All spaces → trimmed → None
+        assert!(sel.extract_text(&rows, 5).is_none());
+    }
+
+    #[test]
+    fn select_word_at_boundary() {
+        let rows = vec![make_row("hello world")];
+        let mut sel = Selection::new();
+        // Select word at start of row
+        sel.select_word(CellPos { row: 0, col: 0 }, &rows, 11);
+        assert!(sel.is_active());
+        let text = sel.extract_text(&rows, 11).unwrap();
+        assert_eq!(text, "hello");
+
+        // Select word at end of row
+        sel.select_word(CellPos { row: 0, col: 10 }, &rows, 11);
+        assert!(sel.is_active());
+        let text = sel.extract_text(&rows, 11).unwrap();
+        assert_eq!(text, "world");
+    }
 }

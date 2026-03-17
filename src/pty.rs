@@ -271,6 +271,49 @@ fn set_nonblocking(fd: &OwnedFd) -> Result<()> {
     Ok(())
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pty_error_display_openpty() {
+        let err = PtyError::Openpty(std::io::Error::new(std::io::ErrorKind::Other, "mock"));
+        let msg = format!("{err}");
+        assert!(msg.contains("failed to allocate PTY pair"));
+        assert!(msg.contains("mock"));
+    }
+
+    #[test]
+    fn pty_error_display_spawn() {
+        let err = PtyError::Spawn(std::io::Error::new(std::io::ErrorKind::NotFound, "no shell"));
+        let msg = format!("{err}");
+        assert!(msg.contains("failed to spawn shell process"));
+        assert!(msg.contains("no shell"));
+    }
+
+    #[test]
+    fn pty_error_display_io() {
+        let io_err = std::io::Error::new(std::io::ErrorKind::BrokenPipe, "pipe");
+        let err = PtyError::Io(io_err);
+        let msg = format!("{err}");
+        assert!(msg.contains("I/O error"));
+    }
+
+    #[test]
+    fn pty_error_from_io() {
+        let io_err = std::io::Error::new(std::io::ErrorKind::TimedOut, "timeout");
+        let err: PtyError = io_err.into();
+        assert!(matches!(err, PtyError::Io(_)));
+    }
+
+    #[test]
+    fn pty_error_debug() {
+        let err = PtyError::Openpty(std::io::Error::new(std::io::ErrorKind::Other, "test"));
+        let debug = format!("{err:?}");
+        assert!(debug.contains("Openpty"));
+    }
+}
+
 fn spawn_child(shell: &str, slave_fd: &OwnedFd, cols: u16, rows: u16) -> Result<Child> {
     use std::os::unix::process::CommandExt;
     use std::process::{Command, Stdio};

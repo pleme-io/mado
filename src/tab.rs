@@ -221,4 +221,102 @@ mod tests {
         // Active was at 2, removed index 0, so active should shift to 1
         assert_eq!(mgr.active_index(), 1);
     }
+
+    #[test]
+    fn test_tab_manager_add_and_switch() {
+        let mut mgr = TabManager::new();
+        let first_id = mgr.active_tab().id;
+        let second_id = mgr.add();
+        let third_id = mgr.add();
+        assert_eq!(mgr.count(), 3);
+        assert_eq!(mgr.active_tab().id, third_id);
+
+        mgr.select(0);
+        assert_eq!(mgr.active_tab().id, first_id);
+
+        mgr.select(1);
+        assert_eq!(mgr.active_tab().id, second_id);
+
+        mgr.select(99);
+        assert_eq!(mgr.active_tab().id, second_id);
+    }
+
+    #[test]
+    fn test_tab_manager_close() {
+        let mut mgr = TabManager::new();
+        let _t1 = mgr.add();
+        let t2 = mgr.add();
+        let _t3 = mgr.add();
+        assert_eq!(mgr.count(), 4);
+
+        mgr.select(1);
+        let closed = mgr.close(1);
+        assert!(closed.is_some());
+        assert_eq!(mgr.count(), 3);
+        assert_eq!(mgr.active_index(), 1);
+        assert_eq!(mgr.active_tab().id, t2);
+
+        assert!(mgr.close(10).is_none());
+    }
+
+    #[test]
+    fn test_tab_manager_next_prev_wrap() {
+        let mut mgr = TabManager::new();
+        mgr.add();
+        assert_eq!(mgr.count(), 2);
+
+        mgr.select(1);
+        mgr.next();
+        assert_eq!(mgr.active_index(), 0);
+
+        mgr.prev();
+        assert_eq!(mgr.active_index(), 1);
+
+        mgr.prev();
+        assert_eq!(mgr.active_index(), 0);
+    }
+
+    #[test]
+    fn test_tab_titles() {
+        let mut mgr = TabManager::new();
+        let id0 = mgr.active_tab().id;
+        assert_eq!(mgr.active_tab().title, "Tab 1");
+
+        let _id1 = mgr.add();
+        assert_eq!(mgr.active_tab().title, "Tab 2");
+
+        mgr.set_title(id0, "Shell".to_string());
+        mgr.select(0);
+        assert_eq!(mgr.active_tab().title, "Shell");
+    }
+
+    #[test]
+    fn test_tab_id_uniqueness() {
+        let mut mgr = TabManager::new();
+        let ids: Vec<TabId> = (0..5).map(|_| mgr.add()).collect();
+        let unique: std::collections::HashSet<TabId> = ids.iter().copied().collect();
+        assert_eq!(unique.len(), ids.len(), "each tab must have unique ID");
+    }
+
+    #[test]
+    fn test_tab_active_after_close() {
+        let mut mgr = TabManager::new();
+        let id0 = mgr.active_tab().id;
+        let id1 = mgr.add();
+        let id2 = mgr.add();
+        mgr.select(1);
+        assert_eq!(mgr.active_tab().id, id1);
+
+        let closed = mgr.close_active();
+        assert!(closed.is_some());
+        assert_eq!(closed.unwrap(), id1);
+        assert_eq!(mgr.active_tab().id, id2);
+    }
+
+    #[test]
+    fn test_select_out_of_bounds_noop() {
+        let mut mgr = TabManager::new();
+        mgr.select(99);
+        assert_eq!(mgr.active_index(), 0);
+    }
 }

@@ -22,6 +22,7 @@ mod theme;
 mod url;
 mod window;
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
@@ -36,6 +37,7 @@ use crate::pane::SplitDir;
 use crate::render::{SharedTerminal, TerminalRenderer};
 use crate::selection::CellPos;
 use crate::terminal::{Color, MouseMode};
+use crate::theme::Theme;
 use crate::window::WindowState;
 
 #[derive(Parser)]
@@ -78,6 +80,12 @@ fn main() -> anyhow::Result<()> {
     let (config, _config_store) = config::load_and_watch(&cli.config, |new_config| {
         tracing::info!("config reloaded: {:?}", new_config);
     })?;
+
+    // Apply active profile if set
+    let config = match &config.active_profile {
+        Some(name) => config.with_profile(name),
+        None => config,
+    };
 
     tracing::info!("mado starting with config: {:?}", config);
 
@@ -128,8 +136,9 @@ fn main() -> anyhow::Result<()> {
         Color::new(fg_hex.0, fg_hex.1, fg_hex.2),
     );
 
-    // Apply accessibility settings from config
+    // Apply accessibility and appearance settings from config
     renderer.set_colorblind_mode(config.accessibility.colorblind);
+    renderer.set_bold_is_bright(config.appearance.bold_is_bright);
 
     // Set initial pane's selection/search on renderer (for single-pane fallback)
     {
@@ -140,11 +149,38 @@ fn main() -> anyhow::Result<()> {
     }
     renderer.set_window(Arc::clone(&window));
 
+    // Apply theme colors to terminal and renderer
+    if let Some(theme) = Theme::by_name(&config.theme) {
+        tracing::info!(theme = theme.name, "applying terminal color theme");
+        renderer.set_ansi_colors(theme.ansi);
+        renderer.set_bg_fg(
+            wgpu::Color {
+                r: f64::from(theme.background.r) / 255.0,
+                g: f64::from(theme.background.g) / 255.0,
+                b: f64::from(theme.background.b) / 255.0,
+                a: f64::from(config.appearance.opacity),
+            },
+            theme.foreground,
+        );
+        let mut ws = window.lock().unwrap();
+        ws.set_theme(theme.foreground, theme.background, theme.ansi);
+        for pane in ws.all_panes() {
+            pane.terminal
+                .lock()
+                .unwrap()
+                .apply_theme(theme.foreground, theme.background, theme.ansi);
+        }
+    }
+
     let window_for_events = Arc::clone(&window);
     let clipboard = Arc::new(Mutex::new(
         Clipboard::new().expect("failed to initialize clipboard"),
     ));
     let keybinds = KeybindManager::new();
+    let confirm_close = config.behavior.confirm_close;
+    let mouse_hide_while_typing = config.behavior.mouse_hide_while_typing;
+    let pending_close = Arc::new(AtomicBool::new(false));
+    let mouse_visible = Arc::new(AtomicBool::new(true));
     // Track last known title to detect changes
     let mut last_title: Option<String> = None;
     // Track window dimensions for split resize
@@ -164,11 +200,7 @@ fn main() -> anyhow::Result<()> {
             {
                 let ws = window_for_events.lock().unwrap();
                 if ws.any_exited() {
-                    return EventResponse {
-                        consumed: true,
-                        exit: true,
-                        set_title: None,
-                    };
+                    return exit_response(confirm_close, &pending_close);
                 }
             }
 
@@ -180,6 +212,8 @@ fn main() -> anyhow::Result<()> {
                     modifiers,
                     ..
                 }) => {
+                    let hide_cursor =
+                        mouse_hide_while_typing && mouse_visible.swap(false, Ordering::SeqCst);
                     // Map winit modifiers to awase modifiers
                     let mut awase_mods = awase::Modifiers::NONE;
                     if modifiers.ctrl {
@@ -215,15 +249,24 @@ fn main() -> anyhow::Result<()> {
                                 match action {
                                     Some(Action::SearchClose) => {
                                         pane.search.lock().unwrap().close();
-                                        return EventResponse::consumed();
+                                        return with_cursor_visibility(
+                                            EventResponse::consumed(),
+                                            hide_cursor.then_some(false),
+                                        );
                                     }
                                     Some(Action::SearchNext) => {
                                         pane.search.lock().unwrap().next();
-                                        return EventResponse::consumed();
+                                        return with_cursor_visibility(
+                                            EventResponse::consumed(),
+                                            hide_cursor.then_some(false),
+                                        );
                                     }
                                     Some(Action::SearchPrev) => {
                                         pane.search.lock().unwrap().prev();
-                                        return EventResponse::consumed();
+                                        return with_cursor_visibility(
+                                            EventResponse::consumed(),
+                                            hide_cursor.then_some(false),
+                                        );
                                     }
                                     _ => {}
                                 }
@@ -240,7 +283,10 @@ fn main() -> anyhow::Result<()> {
                                             let cols = term.cols();
                                             drop(term);
                                             s.set_query(&query, &rows, cols);
-                                            return EventResponse::consumed();
+                                            return with_cursor_visibility(
+                                                EventResponse::consumed(),
+                                                hide_cursor.then_some(false),
+                                            );
                                         }
                                     }
                                     // Handle backspace in search
@@ -254,10 +300,16 @@ fn main() -> anyhow::Result<()> {
                                         let cols = term.cols();
                                         drop(term);
                                         s.set_query(&query, &rows, cols);
-                                        return EventResponse::consumed();
+                                        return with_cursor_visibility(
+                                            EventResponse::consumed(),
+                                            hide_cursor.then_some(false),
+                                        );
                                     }
                                 }
-                                return EventResponse::consumed();
+                                return with_cursor_visibility(
+                                    EventResponse::consumed(),
+                                    hide_cursor.then_some(false),
+                                );
                             }
                         }
                     }
@@ -283,7 +335,10 @@ fn main() -> anyhow::Result<()> {
                                         let _ = cb.copy_text(&text);
                                     }
                                 }
-                                return EventResponse::consumed();
+                                return with_cursor_visibility(
+                                    EventResponse::consumed(),
+                                    hide_cursor.then_some(false),
+                                );
                             }
                             Action::Paste => {
                                 let pasted_text =
@@ -307,18 +362,27 @@ fn main() -> anyhow::Result<()> {
                                         }
                                     }
                                 }
-                                return EventResponse::consumed();
+                                return with_cursor_visibility(
+                                    EventResponse::consumed(),
+                                    hide_cursor.then_some(false),
+                                );
                             }
                             Action::SearchOpen => {
                                 let ws = window_for_events.lock().unwrap();
                                 if let Some(pane) = ws.focused_pane() {
                                     pane.search.lock().unwrap().open();
                                 }
-                                return EventResponse::consumed();
+                                return with_cursor_visibility(
+                                    EventResponse::consumed(),
+                                    hide_cursor.then_some(false),
+                                );
                             }
                             Action::SearchClose | Action::SearchNext | Action::SearchPrev => {
                                 // Already handled above when search is active
-                                return EventResponse::consumed();
+                                return with_cursor_visibility(
+                                    EventResponse::consumed(),
+                                    hide_cursor.then_some(false),
+                                );
                             }
                             Action::ScrollPageUp => {
                                 let ws = window_for_events.lock().unwrap();
@@ -327,7 +391,10 @@ fn main() -> anyhow::Result<()> {
                                     let page = term.rows();
                                     term.scroll_up(page);
                                 }
-                                return EventResponse::consumed();
+                                return with_cursor_visibility(
+                                    EventResponse::consumed(),
+                                    hide_cursor.then_some(false),
+                                );
                             }
                             Action::ScrollPageDown => {
                                 let ws = window_for_events.lock().unwrap();
@@ -336,7 +403,10 @@ fn main() -> anyhow::Result<()> {
                                     let page = term.rows();
                                     term.scroll_down(page);
                                 }
-                                return EventResponse::consumed();
+                                return with_cursor_visibility(
+                                    EventResponse::consumed(),
+                                    hide_cursor.then_some(false),
+                                );
                             }
                             Action::SplitHorizontal => {
                                 let cw = renderer.cell_width();
@@ -351,7 +421,10 @@ fn main() -> anyhow::Result<()> {
                                     ch,
                                 );
                                 tracing::info!(pane = new_id.0, "horizontal split");
-                                return EventResponse::consumed();
+                                return with_cursor_visibility(
+                                    EventResponse::consumed(),
+                                    hide_cursor.then_some(false),
+                                );
                             }
                             Action::SplitVertical => {
                                 let cw = renderer.cell_width();
@@ -366,24 +439,36 @@ fn main() -> anyhow::Result<()> {
                                     ch,
                                 );
                                 tracing::info!(pane = new_id.0, "vertical split");
-                                return EventResponse::consumed();
+                                return with_cursor_visibility(
+                                    EventResponse::consumed(),
+                                    hide_cursor.then_some(false),
+                                );
                             }
                             Action::ClosePane => {
                                 let mut ws = window_for_events.lock().unwrap();
                                 if let Some(closed) = ws.close_focused_pane() {
                                     tracing::info!(pane = closed.0, "closed pane");
                                 }
-                                return EventResponse::consumed();
+                                return with_cursor_visibility(
+                                    EventResponse::consumed(),
+                                    hide_cursor.then_some(false),
+                                );
                             }
                             Action::FocusNext => {
                                 let mut ws = window_for_events.lock().unwrap();
                                 ws.focus_next();
-                                return EventResponse::consumed();
+                                return with_cursor_visibility(
+                                    EventResponse::consumed(),
+                                    hide_cursor.then_some(false),
+                                );
                             }
                             Action::FocusPrev => {
                                 let mut ws = window_for_events.lock().unwrap();
                                 ws.focus_prev();
-                                return EventResponse::consumed();
+                                return with_cursor_visibility(
+                                    EventResponse::consumed(),
+                                    hide_cursor.then_some(false),
+                                );
                             }
                             Action::FontIncrease => {
                                 let new_size = renderer.font_size() + 1.0;
@@ -398,7 +483,10 @@ fn main() -> anyhow::Result<()> {
                                     cw,
                                     ch,
                                 );
-                                return EventResponse::consumed();
+                                return with_cursor_visibility(
+                                    EventResponse::consumed(),
+                                    hide_cursor.then_some(false),
+                                );
                             }
                             Action::FontDecrease => {
                                 let new_size = renderer.font_size() - 1.0;
@@ -413,7 +501,10 @@ fn main() -> anyhow::Result<()> {
                                     cw,
                                     ch,
                                 );
-                                return EventResponse::consumed();
+                                return with_cursor_visibility(
+                                    EventResponse::consumed(),
+                                    hide_cursor.then_some(false),
+                                );
                             }
                             Action::FontReset => {
                                 renderer.set_font_size(default_font_size);
@@ -427,7 +518,10 @@ fn main() -> anyhow::Result<()> {
                                     cw,
                                     ch,
                                 );
-                                return EventResponse::consumed();
+                                return with_cursor_visibility(
+                                    EventResponse::consumed(),
+                                    hide_cursor.then_some(false),
+                                );
                             }
                             Action::ScrollToTop => {
                                 let ws = window_for_events.lock().unwrap();
@@ -441,26 +535,30 @@ fn main() -> anyhow::Result<()> {
                                 if let Some(pane) = ws.focused_pane() {
                                     pane.terminal.lock().unwrap().scroll_to_bottom();
                                 }
-                                return EventResponse::consumed();
+                                return with_cursor_visibility(
+                                    EventResponse::consumed(),
+                                    hide_cursor.then_some(false),
+                                );
                             }
                             Action::ResetTerminal => {
                                 let ws = window_for_events.lock().unwrap();
                                 if let Some(pane) = ws.focused_pane() {
                                     pane.terminal.lock().unwrap().reset();
                                 }
-                                return EventResponse::consumed();
+                                return with_cursor_visibility(
+                                    EventResponse::consumed(),
+                                    hide_cursor.then_some(false),
+                                );
                             }
                             Action::NewTab => {
+                                pending_close.store(false, Ordering::Release);
                                 let mut ws = window_for_events.lock().unwrap();
                                 ws.new_tab();
                             }
                             Action::CloseTab => {
                                 let mut ws = window_for_events.lock().unwrap();
                                 if ws.close_tab().is_none() {
-                                    return EventResponse {
-                                        exit: true,
-                                        ..Default::default()
-                                    };
+                                    return exit_response(confirm_close, &pending_close);
                                 }
                             }
                             Action::NextTab => {
@@ -472,7 +570,14 @@ fn main() -> anyhow::Result<()> {
                                 ws.prev_tab();
                             }
                             Action::ToggleFullscreen => {
-                                tracing::debug!("fullscreen toggle (not yet implemented)");
+                                return with_cursor_visibility(
+                                    EventResponse {
+                                        consumed: true,
+                                        toggle_fullscreen: true,
+                                        ..Default::default()
+                                    },
+                                    hide_cursor.then_some(false),
+                                );
                             }
                             Action::ScrollUp | Action::ScrollDown => {
                                 // These are handled by scroll wheel events
@@ -499,7 +604,10 @@ fn main() -> anyhow::Result<()> {
                                     kitty_encode_key(key, text, modifiers, kitty_flags)
                                 {
                                     let _ = pane.input_tx.send(encoded);
-                                    return EventResponse::consumed();
+                                    return with_cursor_visibility(
+                                        EventResponse::consumed(),
+                                        hide_cursor.then_some(false),
+                                    );
                                 }
                             }
                         }
@@ -516,7 +624,10 @@ fn main() -> anyhow::Result<()> {
                                         (ch.to_ascii_lowercase() as u8) - b'a' + 1;
                                     let ws = window_for_events.lock().unwrap();
                                     ws.send_input(vec![ctrl_byte]);
-                                    return EventResponse::consumed();
+                                    return with_cursor_visibility(
+                                        EventResponse::consumed(),
+                                        hide_cursor.then_some(false),
+                                    );
                                 }
                             }
 
@@ -526,12 +637,18 @@ fn main() -> anyhow::Result<()> {
                                 bytes.extend_from_slice(text.as_bytes());
                                 let ws = window_for_events.lock().unwrap();
                                 ws.send_input(bytes);
-                                return EventResponse::consumed();
+                                return with_cursor_visibility(
+                                    EventResponse::consumed(),
+                                    hide_cursor.then_some(false),
+                                );
                             }
 
                             let ws = window_for_events.lock().unwrap();
                             ws.send_input(text.as_bytes().to_vec());
-                            return EventResponse::consumed();
+                            return with_cursor_visibility(
+                                EventResponse::consumed(),
+                                hide_cursor.then_some(false),
+                            );
                         }
                     }
 
@@ -548,7 +665,10 @@ fn main() -> anyhow::Result<()> {
                             if ch.is_ascii_alphabetic() {
                                 let ctrl_byte = (ch.to_ascii_lowercase() as u8) - b'a' + 1;
                                 ws.send_input(vec![ctrl_byte]);
-                                return EventResponse::consumed();
+                                return with_cursor_visibility(
+                                    EventResponse::consumed(),
+                                    hide_cursor.then_some(false),
+                                );
                             }
                         }
                     }
@@ -560,7 +680,10 @@ fn main() -> anyhow::Result<()> {
                             let mut buf = [0u8; 4];
                             bytes.extend_from_slice(ch.encode_utf8(&mut buf).as_bytes());
                             ws.send_input(bytes);
-                            return EventResponse::consumed();
+                            return with_cursor_visibility(
+                                EventResponse::consumed(),
+                                hide_cursor.then_some(false),
+                            );
                         }
                     }
 
@@ -586,9 +709,15 @@ fn main() -> anyhow::Result<()> {
                     };
                     if let Some(bytes) = bytes {
                         ws.send_input(bytes);
-                        return EventResponse::consumed();
+                        return with_cursor_visibility(
+                            EventResponse::consumed(),
+                            hide_cursor.then_some(false),
+                        );
                     }
-                    EventResponse::ignored()
+                    with_cursor_visibility(
+                        EventResponse::ignored(),
+                        hide_cursor.then_some(false),
+                    )
                 }
                 // IME commit — forward composed text to PTY
                 AppEvent::Ime(madori::ImeEvent::Commit(text)) => {
@@ -693,6 +822,8 @@ fn main() -> anyhow::Result<()> {
                 }
                 // Mouse move — update selection drag or forward to PTY
                 AppEvent::Mouse(MouseEvent::Moved { x, y }) => {
+                    let was_hidden = !mouse_visible.swap(true, Ordering::SeqCst);
+                    let show_cursor = mouse_hide_while_typing && was_hidden;
                     let cw = renderer.cell_width();
                     let ch = renderer.cell_height();
                     let col = ((*x as f32 - padding) / cw).max(0.0) as usize;
@@ -719,7 +850,15 @@ fn main() -> anyhow::Result<()> {
                             let seq = format!("\x1b[<32;{};{}M", col + 1, row + 1);
                             let _ = pane.input_tx.send(seq.into_bytes());
                         }
-                        return EventResponse::consumed();
+                        return if show_cursor {
+                            EventResponse {
+                                consumed: true,
+                                set_cursor_visible: Some(true),
+                                ..Default::default()
+                            }
+                        } else {
+                            EventResponse::consumed()
+                        };
                     }
 
                     // Update text selection if dragging
@@ -727,7 +866,15 @@ fn main() -> anyhow::Result<()> {
                     if sel.is_active() {
                         sel.update(CellPos { row, col });
                     }
-                    EventResponse::consumed()
+                    if show_cursor {
+                        EventResponse {
+                            consumed: true,
+                            set_cursor_visible: Some(true),
+                            ..Default::default()
+                        }
+                    } else {
+                        EventResponse::consumed()
+                    }
                 }
                 AppEvent::Mouse(MouseEvent::Scroll { dy, .. }) => {
                     let ws = window_for_events.lock().unwrap();
@@ -778,6 +925,7 @@ fn main() -> anyhow::Result<()> {
                     }
                     EventResponse::consumed()
                 }
+                AppEvent::CloseRequested => exit_response(confirm_close, &pending_close),
                 AppEvent::Resized { width, height } => {
                     last_width = *width;
                     last_height = *height;
@@ -814,9 +962,8 @@ fn main() -> anyhow::Result<()> {
                             last_title = current_title.clone();
                             if let Some(title) = current_title {
                                 return EventResponse {
-                                    consumed: false,
-                                    exit: false,
                                     set_title: Some(title),
+                                    ..Default::default()
                                 };
                             }
                         }
@@ -1071,6 +1218,46 @@ fn f_key_escape(n: u8) -> Vec<u8> {
 
 fn default_shell() -> String {
     std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_string())
+}
+
+/// Add cursor visibility to response when mouse_hide_while_typing changed it.
+fn with_cursor_visibility(resp: EventResponse, visible: Option<bool>) -> EventResponse {
+    if let Some(v) = visible {
+        EventResponse {
+            set_cursor_visible: Some(v),
+            ..resp
+        }
+    } else {
+        resp
+    }
+}
+
+/// Build EventResponse for exit request, applying confirm_close logic when enabled.
+fn exit_response(
+    confirm_close: bool,
+    pending_close: &AtomicBool,
+) -> EventResponse {
+    if !confirm_close {
+        return EventResponse {
+            consumed: true,
+            exit: true,
+            ..Default::default()
+        };
+    }
+    if pending_close.swap(false, Ordering::SeqCst) {
+        return EventResponse {
+            consumed: true,
+            exit: true,
+            ..Default::default()
+        };
+    }
+    pending_close.store(true, Ordering::SeqCst);
+    tracing::info!("Press close again to exit");
+    EventResponse {
+        consumed: true,
+        set_title: Some("mado — press close again to exit".into()),
+        ..Default::default()
+    }
 }
 
 /// Parse a hex color string like "#2e3440" into (f64, f64, f64) normalized to 0.0..1.0.

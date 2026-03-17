@@ -263,4 +263,134 @@ mod tests {
         assert!(state.query.is_empty());
         assert_eq!(state.match_count(), 0);
     }
+
+    #[test]
+    fn multiple_matches_same_row() {
+        let rows = vec![make_row("aaaa")];
+        let mut state = SearchState::new();
+        state.set_query("aa", &rows, 4);
+        // "aa" in "aaaa" should find overlapping matches at 0, 1, 2
+        assert_eq!(state.match_count(), 3);
+        assert_eq!(state.matches[0].col_start, 0);
+        assert_eq!(state.matches[1].col_start, 1);
+        assert_eq!(state.matches[2].col_start, 2);
+    }
+
+    #[test]
+    fn is_current_match_identifies_focused() {
+        let rows = vec![
+            make_row("hello"),
+            make_row("hello"),
+        ];
+        let mut state = SearchState::new();
+        state.set_query("hello", &rows, 5);
+        assert_eq!(state.match_count(), 2);
+        // Current is 0
+        assert!(state.is_current_match(0, 0));
+        assert!(state.is_current_match(0, 4));
+        assert!(!state.is_current_match(1, 0));
+        // Navigate to next
+        state.next();
+        assert!(!state.is_current_match(0, 0));
+        assert!(state.is_current_match(1, 0));
+    }
+
+    #[test]
+    fn current_match_navigation() {
+        let rows = vec![
+            make_row("abc"),
+            make_row("abc"),
+            make_row("abc"),
+        ];
+        let mut state = SearchState::new();
+        state.set_query("abc", &rows, 3);
+        assert_eq!(state.match_count(), 3);
+
+        let m0 = *state.current_match().unwrap();
+        assert_eq!(m0.row, 0);
+
+        state.next();
+        let m1 = *state.current_match().unwrap();
+        assert_eq!(m1.row, 1);
+
+        state.next();
+        let m2 = *state.current_match().unwrap();
+        assert_eq!(m2.row, 2);
+
+        state.next();
+        let m_wrap = *state.current_match().unwrap();
+        assert_eq!(m_wrap.row, 0);
+
+        state.prev();
+        let m_prev = *state.current_match().unwrap();
+        assert_eq!(m_prev.row, 2);
+    }
+
+    #[test]
+    fn open_and_close_lifecycle() {
+        let mut state = SearchState::new();
+        assert!(!state.active);
+
+        state.open();
+        assert!(state.active);
+
+        let rows = vec![make_row("test")];
+        state.set_query("test", &rows, 4);
+        assert_eq!(state.match_count(), 1);
+
+        state.close();
+        assert!(!state.active);
+        assert!(state.query.is_empty());
+        assert_eq!(state.match_count(), 0);
+        assert_eq!(state.current, 0);
+    }
+
+    #[test]
+    fn search_no_match() {
+        let rows = vec![
+            make_row("hello world"),
+            make_row("foo bar"),
+        ];
+        let mut state = SearchState::new();
+        state.set_query("xyz", &rows, 11);
+        assert_eq!(state.match_count(), 0);
+        assert!(state.current_match().is_none());
+    }
+
+    #[test]
+    fn test_set_query_updates_existing() {
+        let rows = vec![make_row("hello world"), make_row("foo bar")];
+        let mut state = SearchState::new();
+        state.set_query("hello", &rows, 11);
+        assert_eq!(state.match_count(), 1);
+
+        state.set_query("foo", &rows, 11);
+        assert_eq!(state.match_count(), 1);
+        assert_eq!(state.matches[0].col_start, 0);
+        assert_eq!(state.matches[0].row, 1);
+    }
+
+    #[test]
+    fn test_navigate_empty_matches() {
+        let rows = vec![make_row("hello")];
+        let mut state = SearchState::new();
+        state.set_query("xyz", &rows, 5);
+        assert_eq!(state.match_count(), 0);
+
+        state.next();
+        state.prev();
+        assert!(state.current_match().is_none());
+    }
+
+    #[test]
+    fn test_is_match_boundaries() {
+        let rows = vec![make_row("hello")];
+        let mut state = SearchState::new();
+        state.set_query("ell", &rows, 5);
+        assert!(state.is_match(0, 1));
+        assert!(state.is_match(0, 2));
+        assert!(state.is_match(0, 3));
+        assert!(!state.is_match(0, 0));
+        assert!(!state.is_match(0, 4));
+    }
 }

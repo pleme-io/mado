@@ -195,6 +195,108 @@ impl ServerHandler for MadoMcp {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn new_server() -> MadoMcp {
+        MadoMcp::new()
+    }
+
+    #[tokio::test]
+    async fn mcp_status_json() {
+        let server = new_server();
+        let result = server.status().await;
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+        assert_eq!(parsed["status"], "running");
+        assert_eq!(parsed["app"], "mado");
+        assert!(parsed["sessions"].is_number());
+    }
+
+    #[tokio::test]
+    async fn mcp_version_json() {
+        let server = new_server();
+        let result = server.version().await;
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+        assert_eq!(parsed["name"], "mado");
+        assert!(parsed["version"].is_string());
+        assert!(parsed["renderer"].is_string());
+    }
+
+    #[tokio::test]
+    async fn mcp_list_sessions_json() {
+        let server = new_server();
+        let result = server.list_sessions().await;
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+        assert!(parsed["sessions"].is_array());
+    }
+
+    #[tokio::test]
+    async fn mcp_config_get_with_key() {
+        let server = new_server();
+        let input = ConfigGetInput { key: Some("font_size".to_string()) };
+        let result = server.config_get(Parameters(input)).await;
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+        assert_eq!(parsed["key"], "font_size");
+    }
+
+    #[tokio::test]
+    async fn mcp_config_get_without_key() {
+        let server = new_server();
+        let input = ConfigGetInput { key: None };
+        let result = server.config_get(Parameters(input)).await;
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+        assert!(parsed["config_path"].is_string());
+    }
+
+    #[tokio::test]
+    async fn mcp_send_keys_json() {
+        let server = new_server();
+        let input = SendKeysInput {
+            session_id: "active".to_string(),
+            keys: "ls\\n".to_string(),
+        };
+        let result = server.send_keys(Parameters(input)).await;
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+        assert_eq!(parsed["session_id"], "active");
+        assert!(parsed["keys_sent"].is_string());
+    }
+
+    #[tokio::test]
+    async fn mcp_get_output_json() {
+        let server = new_server();
+        let input = GetOutputInput {
+            session_id: "active".to_string(),
+            lines: Some(10),
+        };
+        let result = server.get_output(Parameters(input)).await;
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+        assert_eq!(parsed["session_id"], "active");
+        assert_eq!(parsed["lines_requested"], 10);
+        assert!(parsed["output"].is_array());
+    }
+
+    #[tokio::test]
+    async fn mcp_split_pane_json() {
+        let server = new_server();
+        let input = SplitPaneInput {
+            direction: "vertical".to_string(),
+            command: None,
+        };
+        let result = server.split_pane(Parameters(input)).await;
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+        assert_eq!(parsed["direction"], "vertical");
+    }
+
+    #[tokio::test]
+    async fn mcp_new_tab_json() {
+        let server = new_server();
+        let result = server.new_tab().await;
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+        assert!(parsed.get("ok").is_some());
+    }
+}
+
 pub async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let server = MadoMcp::new().serve(stdio()).await?;
     server.waiting().await?;

@@ -33,6 +33,26 @@ pub fn is_dark_mode() -> bool {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn is_dark_mode_returns_bool() {
+        let _ = is_dark_mode();
+    }
+
+    #[test]
+    fn set_badge_none_does_not_panic() {
+        set_badge(None);
+    }
+
+    #[test]
+    fn set_badge_some_does_not_panic() {
+        set_badge(Some("test"));
+    }
+}
+
 #[cfg(target_os = "macos")]
 mod macos {
     use objc2::MainThreadMarker;

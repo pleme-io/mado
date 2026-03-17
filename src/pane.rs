@@ -341,4 +341,77 @@ mod tests {
         let ids = mgr.all_ids();
         assert_eq!(ids, vec![PaneId(0), id1]);
     }
+
+    #[test]
+    fn deep_nested_splits() {
+        let mut mgr = PaneManager::new();
+        mgr.split(SplitDir::Vertical);
+        mgr.split(SplitDir::Horizontal);
+        // Focus back to first pane and split again
+        mgr.focus_prev();
+        mgr.focus_prev();
+        mgr.split(SplitDir::Horizontal);
+        assert_eq!(mgr.count(), 4);
+
+        let rects = mgr.layout(0.0, 0.0, 800.0, 600.0);
+        assert_eq!(rects.len(), 4);
+    }
+
+    #[test]
+    fn close_non_focused_pane() {
+        let mut mgr = PaneManager::new();
+        let id1 = mgr.split(SplitDir::Vertical);
+        // Focus is on id1, go back to PaneId(0)
+        mgr.focus_prev();
+        assert_eq!(mgr.focused(), PaneId(0));
+        // Focus forward to id1 and close it
+        mgr.focus_next();
+        assert_eq!(mgr.focused(), id1);
+        let closed = mgr.close_focused();
+        assert_eq!(closed, Some(id1));
+        assert_eq!(mgr.count(), 1);
+        assert_eq!(mgr.focused(), PaneId(0));
+    }
+
+    #[test]
+    fn layout_with_offset() {
+        let mgr = PaneManager::new();
+        let rects = mgr.layout(50.0, 100.0, 800.0, 600.0);
+        assert_eq!(rects.len(), 1);
+        assert_eq!(rects[0].x, 50.0);
+        assert_eq!(rects[0].y, 100.0);
+        assert_eq!(rects[0].width, 800.0);
+        assert_eq!(rects[0].height, 600.0);
+    }
+
+    #[test]
+    fn pane_rect_dimensions() {
+        let mut mgr = PaneManager::new();
+        mgr.split(SplitDir::Vertical);
+        let rects = mgr.layout(0.0, 0.0, 1000.0, 500.0);
+        assert_eq!(rects.len(), 2);
+        let r0 = &rects[0];
+        let r1 = &rects[1];
+        assert_eq!(r0.id, PaneId(0));
+        assert_eq!(r0.x, 0.0);
+        assert_eq!(r0.y, 0.0);
+        assert_eq!(r0.width, 500.0);
+        assert_eq!(r0.height, 500.0);
+        assert_eq!(r1.x, 500.0);
+        assert_eq!(r1.y, 0.0);
+        assert_eq!(r1.width, 500.0);
+        assert_eq!(r1.height, 500.0);
+    }
+
+    #[test]
+    fn triple_split() {
+        let mut mgr = PaneManager::new();
+        let id1 = mgr.split(SplitDir::Vertical);
+        let id2 = mgr.split(SplitDir::Horizontal);
+        assert_eq!(mgr.count(), 3);
+        let ids = mgr.all_ids();
+        assert!(ids.contains(&PaneId(0)));
+        assert!(ids.contains(&id1));
+        assert!(ids.contains(&id2));
+    }
 }

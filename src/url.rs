@@ -176,4 +176,64 @@ mod tests {
         assert!(url_at(&urls, 0, 3).is_none());
         assert!(url_at(&urls, 0, 24).is_none());
     }
+
+    #[test]
+    fn test_detect_urls_empty() {
+        let row = make_row("");
+        let urls = detect_urls_in_row(&row, 0, 0);
+        assert!(urls.is_empty());
+    }
+
+    #[test]
+    fn test_detect_urls_no_urls() {
+        let row = make_row("no links here at all");
+        let urls = detect_urls_in_row(&row, 20, 0);
+        assert!(urls.is_empty());
+    }
+
+    #[test]
+    fn test_detect_http_url() {
+        let text = "visit http://example.com now";
+        let row = make_row(text);
+        let urls = detect_urls_in_row(&row, text.len(), 0);
+        assert_eq!(urls.len(), 1);
+        assert_eq!(urls[0].url, "http://example.com");
+        assert_eq!(urls[0].col_start, 6);
+    }
+
+    #[test]
+    fn test_detect_https_url() {
+        let text = "see https://example.com/path";
+        let row = make_row(text);
+        let urls = detect_urls_in_row(&row, text.len(), 0);
+        assert_eq!(urls.len(), 1);
+        assert_eq!(urls[0].url, "https://example.com/path");
+    }
+
+    #[test]
+    fn test_detect_multiple_urls() {
+        let text = "go to http://one.com and https://two.com/x done";
+        let row = make_row(text);
+        let urls = detect_urls_in_row(&row, text.len(), 0);
+        assert_eq!(urls.len(), 2);
+        let found: Vec<&str> = urls.iter().map(|u| u.url.as_str()).collect();
+        assert!(found.contains(&"http://one.com"));
+        assert!(found.contains(&"https://two.com/x"));
+    }
+
+    #[test]
+    fn test_detect_file_url() {
+        let row = make_row("open file:///path/to/file for editing");
+        let urls = detect_urls_in_row(&row, 40, 0);
+        assert_eq!(urls.len(), 1);
+        assert_eq!(urls[0].url, "file:///path/to/file");
+    }
+
+    #[test]
+    fn test_url_with_query_params() {
+        let row = make_row("see https://example.com?key=value&foo=bar here");
+        let urls = detect_urls_in_row(&row, 50, 0);
+        assert_eq!(urls.len(), 1);
+        assert_eq!(urls[0].url, "https://example.com?key=value&foo=bar");
+    }
 }

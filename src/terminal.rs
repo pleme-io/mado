@@ -119,22 +119,30 @@ pub const ANSI_BRIGHT_COLORS: [Color; 8] = [
     Color::new(255, 255, 255), // 15 bright white
 ];
 
-/// If the given color matches a standard ANSI color (0-7), return the bright variant.
+/// Build the default 16-color ANSI palette from the const arrays.
+#[must_use]
+pub fn default_ansi_palette() -> [Color; 16] {
+    let mut palette = [Color::BLACK; 16];
+    palette[..8].copy_from_slice(&ANSI_COLORS);
+    palette[8..].copy_from_slice(&ANSI_BRIGHT_COLORS);
+    palette
+}
+
+/// If the given color matches a normal ANSI color (0-7) in the palette, return the bright variant.
 /// Used by the renderer for bold-as-bright behavior.
 #[must_use]
-pub fn bold_bright_color(color: &Color) -> Color {
-    for (i, c) in ANSI_COLORS.iter().enumerate() {
-        if color == c {
-            return ANSI_BRIGHT_COLORS[i];
+pub fn bold_bright_color(color: &Color, palette: &[Color; 16]) -> Color {
+    for i in 0..8 {
+        if color == &palette[i] {
+            return palette[i + 8];
         }
     }
     *color
 }
 
-fn ansi_256_color(idx: u16) -> Color {
+fn ansi_256_color(idx: u16, palette: &[Color; 16]) -> Color {
     match idx {
-        0..=7 => ANSI_COLORS[idx as usize],
-        8..=15 => ANSI_BRIGHT_COLORS[(idx - 8) as usize],
+        0..=15 => palette[idx as usize],
         16..=231 => {
             let idx = idx - 16;
             let r_idx = idx / 36;
@@ -533,6 +541,39 @@ fn base64_decode_bytes(input: &[u8]) -> Vec<u8> {
 }
 
 // ---------------------------------------------------------------------------
+// TerminalOps trait — abstraction for testability
+// ---------------------------------------------------------------------------
+
+/// Trait abstracting terminal operations for testability.
+/// Allows substituting a mock terminal in tests without requiring
+/// a full VT100 parser, PTY, or grid.
+pub trait TerminalOps: Send {
+    fn cols(&self) -> usize;
+    fn rows(&self) -> usize;
+    fn cursor(&self) -> &Cursor;
+    fn cell(&self, row: usize, col: usize) -> &Cell;
+    fn feed(&mut self, data: &[u8]);
+    fn resize(&mut self, cols: usize, rows: usize);
+    fn reset(&mut self);
+    fn scroll_up(&mut self, lines: usize);
+    fn scroll_down(&mut self, lines: usize);
+    fn scroll_to_top(&mut self);
+    fn scroll_to_bottom(&mut self);
+    fn scroll_offset(&self) -> usize;
+    fn seqno(&self) -> u64;
+    fn take_response(&mut self) -> Option<Vec<u8>>;
+    fn title(&self) -> Option<&str>;
+    fn mouse_mode(&self) -> MouseMode;
+    fn take_bell(&mut self) -> bool;
+    fn kitty_keyboard_flags(&self) -> u32;
+    fn cursor_keys_mode(&self) -> bool;
+    fn keypad_app_mode(&self) -> bool;
+    fn bracketed_paste(&self) -> bool;
+    fn sgr_mouse(&self) -> bool;
+    fn focus_reporting(&self) -> bool;
+}
+
+// ---------------------------------------------------------------------------
 // Terminal
 // ---------------------------------------------------------------------------
 
@@ -552,6 +593,13 @@ pub struct Terminal {
     pen_fg: Color,
     pen_bg: Color,
     pen_attrs: CellAttrs,
+
+    // Default colors (set by theme; used for SGR 0/39/49 resets)
+    default_fg: Color,
+    default_bg: Color,
+
+    // Active 16-color ANSI palette (can be overridden by theme)
+    ansi_colors: [Color; 16],
 
     // Scroll region (0-based, inclusive)
     scroll_top: usize,
@@ -683,6 +731,9 @@ impl Terminal {
             pen_fg: Color::WHITE,
             pen_bg: Color::BLACK,
             pen_attrs: CellAttrs::NONE,
+            default_fg: Color::WHITE,
+            default_bg: Color::BLACK,
+            ansi_colors: default_ansi_palette(),
             scroll_top: 0,
             scroll_bottom: rows.saturating_sub(1),
             auto_wrap: true,
@@ -719,6 +770,23 @@ impl Terminal {
             dcs_handler: None,
             parser: vte::Parser::new(),
         }
+    }
+
+    /// Apply a color theme: set default fg/bg and the 16-color ANSI palette.
+    /// Resets the current pen colors to the new defaults.
+    pub fn apply_theme(&mut self, fg: Color, bg: Color, ansi: [Color; 16]) {
+        self.default_fg = fg;
+        self.default_bg = bg;
+        self.pen_fg = fg;
+        self.pen_bg = bg;
+        self.ansi_colors = ansi;
+        self.dirty();
+    }
+
+    /// The active 16-color ANSI palette (may be overridden by a theme).
+    #[must_use]
+    pub fn ansi_palette(&self) -> &[Color; 16] {
+        &self.ansi_colors
     }
 
     // ── Public API ──────────────────────────────────────────────────
@@ -929,12 +997,20 @@ impl Terminal {
         self.prompt_start_row
     }
 
-    /// Full terminal reset (RIS). Preserves scrollback setting.
+    /// Full terminal reset (RIS). Preserves scrollback setting and theme colors.
     pub fn reset(&mut self) {
         let cols = self.cols;
         let rows = self.rows;
         let max_scrollback = self.primary.max_scrollback;
+        let default_fg = self.default_fg;
+        let default_bg = self.default_bg;
+        let ansi_colors = self.ansi_colors;
         *self = Terminal::with_scrollback(cols, rows, max_scrollback);
+        self.default_fg = default_fg;
+        self.default_bg = default_bg;
+        self.pen_fg = default_fg;
+        self.pen_bg = default_bg;
+        self.ansi_colors = ansi_colors;
     }
 
     /// Soft terminal reset (DECSTR — CSI ! p).
@@ -947,8 +1023,8 @@ impl Terminal {
         self.keypad_app_mode = false;
         self.cursor_keys_mode = false;
         self.bracketed_paste = false;
-        self.pen_fg = Color::WHITE;
-        self.pen_bg = Color::BLACK;
+        self.pen_fg = self.default_fg;
+        self.pen_bg = self.default_bg;
         self.pen_attrs = CellAttrs::NONE;
         self.scroll_top = 0;
         self.scroll_bottom = self.rows.saturating_sub(1);
@@ -1612,8 +1688,8 @@ impl Terminal {
 
             match param {
                 0 => {
-                    self.pen_fg = Color::WHITE;
-                    self.pen_bg = Color::BLACK;
+                    self.pen_fg = self.default_fg;
+                    self.pen_bg = self.default_bg;
                     self.pen_attrs = CellAttrs::NONE;
                 }
                 1 => self.pen_attrs.insert(CellAttrs::BOLD),
@@ -1635,14 +1711,14 @@ impl Terminal {
                 27 => self.pen_attrs.remove(CellAttrs::INVERSE),
                 28 => self.pen_attrs.remove(CellAttrs::HIDDEN),
                 29 => self.pen_attrs.remove(CellAttrs::STRIKETHROUGH),
-                30..=37 => self.pen_fg = ANSI_COLORS[(param - 30) as usize],
+                30..=37 => self.pen_fg = self.ansi_colors[(param - 30) as usize],
                 38 => self.parse_extended_color(&mut iter, true),
-                39 => self.pen_fg = Color::WHITE,
-                40..=47 => self.pen_bg = ANSI_COLORS[(param - 40) as usize],
+                39 => self.pen_fg = self.default_fg,
+                40..=47 => self.pen_bg = self.ansi_colors[(param - 40) as usize],
                 48 => self.parse_extended_color(&mut iter, false),
-                49 => self.pen_bg = Color::BLACK,
-                90..=97 => self.pen_fg = ANSI_BRIGHT_COLORS[(param - 90) as usize],
-                100..=107 => self.pen_bg = ANSI_BRIGHT_COLORS[(param - 100) as usize],
+                49 => self.pen_bg = self.default_bg,
+                90..=97 => self.pen_fg = self.ansi_colors[(param - 90 + 8) as usize],
+                100..=107 => self.pen_bg = self.ansi_colors[(param - 100 + 8) as usize],
                 _ => tracing::trace!(param, "unhandled SGR parameter"),
             }
         }
@@ -1653,7 +1729,7 @@ impl Terminal {
         match sub[0] {
             5 => {
                 if let Some(idx_slice) = iter.next() {
-                    let color = ansi_256_color(idx_slice[0]);
+                    let color = ansi_256_color(idx_slice[0], &self.ansi_colors);
                     if is_fg { self.pen_fg = color; } else { self.pen_bg = color; }
                 }
             }
@@ -1667,6 +1743,36 @@ impl Terminal {
             _ => {}
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// TerminalOps impl for Terminal
+// ---------------------------------------------------------------------------
+
+impl TerminalOps for Terminal {
+    fn cols(&self) -> usize { self.cols() }
+    fn rows(&self) -> usize { self.rows() }
+    fn cursor(&self) -> &Cursor { Terminal::cursor(self) }
+    fn cell(&self, row: usize, col: usize) -> &Cell { self.cell(row, col) }
+    fn feed(&mut self, data: &[u8]) { self.feed(data) }
+    fn resize(&mut self, cols: usize, rows: usize) { self.resize(cols, rows) }
+    fn reset(&mut self) { self.reset() }
+    fn scroll_up(&mut self, lines: usize) { self.scroll_up(lines) }
+    fn scroll_down(&mut self, lines: usize) { self.scroll_down(lines) }
+    fn scroll_to_top(&mut self) { self.scroll_to_top() }
+    fn scroll_to_bottom(&mut self) { self.scroll_to_bottom() }
+    fn scroll_offset(&self) -> usize { self.scroll_offset() }
+    fn seqno(&self) -> u64 { self.seqno() }
+    fn take_response(&mut self) -> Option<Vec<u8>> { self.take_response() }
+    fn title(&self) -> Option<&str> { self.title() }
+    fn mouse_mode(&self) -> MouseMode { self.mouse_mode() }
+    fn take_bell(&mut self) -> bool { self.take_bell() }
+    fn kitty_keyboard_flags(&self) -> u32 { self.kitty_keyboard_flags() }
+    fn cursor_keys_mode(&self) -> bool { self.cursor_keys_mode() }
+    fn keypad_app_mode(&self) -> bool { self.keypad_app_mode() }
+    fn bracketed_paste(&self) -> bool { self.bracketed_paste() }
+    fn sgr_mouse(&self) -> bool { self.sgr_mouse() }
+    fn focus_reporting(&self) -> bool { self.focus_reporting() }
 }
 
 // ---------------------------------------------------------------------------
@@ -1817,11 +1923,7 @@ impl vte::Perform for Terminal {
                     if let Ok(idx_str) = std::str::from_utf8(params[1]) {
                         if let Ok(idx) = idx_str.parse::<usize>() {
                             if idx < 16 {
-                                let color = if idx < 8 {
-                                    ANSI_COLORS[idx]
-                                } else {
-                                    ANSI_BRIGHT_COLORS[idx - 8]
-                                };
+                                let color = self.ansi_colors[idx];
                                 let response = format!(
                                     "\x1b]4;{idx};rgb:{:02x}{:02x}/{:02x}{:02x}/{:02x}{:02x}\x1b\\",
                                     color.r, color.r, color.g, color.g, color.b, color.b
@@ -2624,7 +2726,7 @@ mod tests {
     fn sgr_256color() {
         let mut term = Terminal::new(80, 24);
         term.feed(b"\x1b[38;5;196mX");
-        assert_eq!(term.cell(0, 0).fg, ansi_256_color(196));
+        assert_eq!(term.cell(0, 0).fg, ansi_256_color(196, &default_ansi_palette()));
     }
 
     #[test]
@@ -2971,14 +3073,15 @@ mod tests {
 
     #[test]
     fn bold_bright_substitution() {
+        let palette = default_ansi_palette();
         // Standard ANSI red → bright red
         let red = ANSI_COLORS[1];
-        let bright_red = bold_bright_color(&red);
+        let bright_red = bold_bright_color(&red, &palette);
         assert_eq!(bright_red, ANSI_BRIGHT_COLORS[1]);
 
         // Custom color (not in ANSI palette) → unchanged
         let custom = Color::new(42, 42, 42);
-        assert_eq!(bold_bright_color(&custom), custom);
+        assert_eq!(bold_bright_color(&custom, &palette), custom);
     }
 
     #[test]
@@ -3295,6 +3398,101 @@ mod tests {
         assert_eq!(term.cell(0, 3).ch, 'D');
     }
 
+    #[test]
+    fn test_ansi_256_greyscale() {
+        let p = default_ansi_palette();
+        let c232 = ansi_256_color(232, &p);
+        assert_eq!(c232, Color::new(8, 8, 8));
+
+        let c243 = ansi_256_color(243, &p);
+        let v = (8 + 10 * (243u16 - 232)) as u8;
+        assert_eq!(c243, Color::new(v, v, v));
+
+        let c255 = ansi_256_color(255, &p);
+        let v = (8 + 10 * (255u16 - 232)) as u8;
+        assert_eq!(c255, Color::new(v, v, v));
+    }
+
+    #[test]
+    fn test_ansi_256_rgb_cube() {
+        let p = default_ansi_palette();
+        assert_eq!(ansi_256_color(16, &p), Color::new(0, 0, 0));
+        assert_eq!(ansi_256_color(196, &p), Color::new(255, 0, 0));
+        assert_eq!(ansi_256_color(21, &p), Color::new(0, 0, 255));
+    }
+
+    #[test]
+    fn test_ansi_256_standard() {
+        let p = default_ansi_palette();
+        for idx in 0..8u16 {
+            assert_eq!(ansi_256_color(idx, &p), ANSI_COLORS[idx as usize]);
+        }
+    }
+
+    #[test]
+    fn test_ansi_256_bright() {
+        let p = default_ansi_palette();
+        for idx in 8..16u16 {
+            assert_eq!(ansi_256_color(idx, &p), ANSI_BRIGHT_COLORS[(idx - 8) as usize]);
+        }
+    }
+
+    #[test]
+    fn test_ansi_256_out_of_range() {
+        let p = default_ansi_palette();
+        assert_eq!(ansi_256_color(256, &p), Color::WHITE);
+        assert_eq!(ansi_256_color(999, &p), Color::WHITE);
+    }
+
+    #[test]
+    fn test_cell_push_combining() {
+        let mut cell = Cell::default();
+        assert!(cell.extra.is_none());
+
+        cell.push_combining('\u{0301}');
+        assert!(cell.extra.is_some());
+        assert_eq!(cell.extra.as_ref().unwrap().len(), 1);
+
+        cell.push_combining('\u{0327}');
+        assert_eq!(cell.extra.as_ref().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn test_cell_write_to() {
+        let mut cell = Cell::default();
+        cell.ch = 'e';
+        cell.push_combining('\u{0301}');
+
+        let mut buf = String::new();
+        cell.write_to(&mut buf);
+        assert_eq!(buf, "e\u{0301}");
+    }
+
+    #[test]
+    fn test_cell_default() {
+        let cell = Cell::default();
+        assert_eq!(cell.ch, ' ');
+        assert!(cell.extra.is_none());
+        assert_eq!(cell.width, 1);
+        assert_eq!(cell.fg, Color::WHITE);
+        assert_eq!(cell.bg, Color::BLACK);
+        assert_eq!(cell.attrs, CellAttrs::NONE);
+        assert!(cell.hyperlink.is_none());
+    }
+
+    #[test]
+    fn test_cursor_default() {
+        let cursor = Cursor::default();
+        assert_eq!(cursor.row, 0);
+        assert_eq!(cursor.col, 0);
+        assert!(cursor.visible);
+    }
+
+    #[test]
+    fn test_mouse_mode_default() {
+        assert_eq!(MouseMode::default(), MouseMode::Off);
+    }
+
     /// Simple base64 encoder for tests.
     fn base64_encode(data: &[u8]) -> String {
         const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -3318,5 +3516,646 @@ mod tests {
             }
         }
         out
+    }
+
+    // ── MockTerminal ───────────────────────────────────────────────────
+
+    pub struct MockTerminal {
+        pub cols: usize,
+        pub rows: usize,
+        pub cur: Cursor,
+        cells: Vec<Vec<Cell>>,
+        pub title_str: Option<String>,
+        pub mouse: MouseMode,
+        pub bell_flag: bool,
+        seqno_val: u64,
+        pub response: Option<Vec<u8>>,
+    }
+
+    impl MockTerminal {
+        pub fn new(cols: usize, rows: usize) -> Self {
+            let cells = vec![vec![Cell::default(); cols]; rows];
+            Self {
+                cols,
+                rows,
+                cur: Cursor::default(),
+                cells,
+                title_str: None,
+                mouse: MouseMode::Off,
+                bell_flag: false,
+                seqno_val: 0,
+                response: None,
+            }
+        }
+
+        pub fn set_cell(&mut self, row: usize, col: usize, ch: char) {
+            if row < self.rows && col < self.cols {
+                self.cells[row][col].ch = ch;
+                self.seqno_val += 1;
+            }
+        }
+    }
+
+    impl TerminalOps for MockTerminal {
+        fn cols(&self) -> usize { self.cols }
+        fn rows(&self) -> usize { self.rows }
+        fn cursor(&self) -> &Cursor { &self.cur }
+        fn cell(&self, row: usize, col: usize) -> &Cell { &self.cells[row][col] }
+        fn feed(&mut self, _data: &[u8]) { self.seqno_val += 1; }
+        fn resize(&mut self, cols: usize, rows: usize) {
+            self.cols = cols;
+            self.rows = rows;
+            self.cells = vec![vec![Cell::default(); cols]; rows];
+            self.seqno_val += 1;
+        }
+        fn reset(&mut self) {
+            self.cells = vec![vec![Cell::default(); self.cols]; self.rows];
+            self.cur = Cursor::default();
+            self.seqno_val += 1;
+        }
+        fn scroll_up(&mut self, _lines: usize) { self.seqno_val += 1; }
+        fn scroll_down(&mut self, _lines: usize) { self.seqno_val += 1; }
+        fn scroll_to_top(&mut self) {}
+        fn scroll_to_bottom(&mut self) {}
+        fn scroll_offset(&self) -> usize { 0 }
+        fn seqno(&self) -> u64 { self.seqno_val }
+        fn take_response(&mut self) -> Option<Vec<u8>> { self.response.take() }
+        fn title(&self) -> Option<&str> { self.title_str.as_deref() }
+        fn mouse_mode(&self) -> MouseMode { self.mouse }
+        fn take_bell(&mut self) -> bool { std::mem::replace(&mut self.bell_flag, false) }
+        fn kitty_keyboard_flags(&self) -> u32 { 0 }
+        fn cursor_keys_mode(&self) -> bool { false }
+        fn keypad_app_mode(&self) -> bool { false }
+        fn bracketed_paste(&self) -> bool { false }
+        fn sgr_mouse(&self) -> bool { false }
+        fn focus_reporting(&self) -> bool { false }
+    }
+
+    #[test]
+    fn test_mock_terminal_new() {
+        let mut mock = MockTerminal::new(80, 24);
+        assert_eq!(mock.cols(), 80);
+        assert_eq!(mock.rows(), 24);
+        assert_eq!(mock.cursor().row, 0);
+        assert_eq!(mock.cursor().col, 0);
+        assert!(mock.cursor().visible);
+        assert_eq!(mock.cell(0, 0).ch, ' ');
+        assert_eq!(mock.seqno(), 0);
+        assert_eq!(mock.title(), None);
+        assert_eq!(mock.mouse_mode(), MouseMode::Off);
+        assert!(!mock.take_bell());
+    }
+
+    #[test]
+    fn test_mock_terminal_set_cell() {
+        let mut mock = MockTerminal::new(80, 24);
+        mock.set_cell(0, 0, 'A');
+        assert_eq!(mock.cell(0, 0).ch, 'A');
+        assert_eq!(mock.seqno(), 1);
+
+        mock.set_cell(5, 10, 'Z');
+        assert_eq!(mock.cell(5, 10).ch, 'Z');
+        assert_eq!(mock.seqno(), 2);
+
+        // Out-of-bounds write is a no-op
+        mock.set_cell(100, 0, 'X');
+        assert_eq!(mock.seqno(), 2);
+    }
+
+    #[test]
+    fn test_mock_terminal_resize() {
+        let mut mock = MockTerminal::new(80, 24);
+        mock.set_cell(0, 0, 'A');
+        mock.resize(40, 12);
+        assert_eq!(mock.cols(), 40);
+        assert_eq!(mock.rows(), 12);
+        assert_eq!(mock.cell(0, 0).ch, ' ');
+    }
+
+    #[test]
+    fn test_mock_terminal_reset() {
+        let mut mock = MockTerminal::new(80, 24);
+        mock.set_cell(0, 0, 'A');
+        mock.cur.row = 5;
+        mock.cur.col = 10;
+        mock.reset();
+        assert_eq!(mock.cell(0, 0).ch, ' ');
+        assert_eq!(mock.cursor().row, 0);
+        assert_eq!(mock.cursor().col, 0);
+    }
+
+    #[test]
+    fn test_mock_terminal_ops_trait() {
+        let mock: Box<dyn TerminalOps> = Box::new(MockTerminal::new(80, 24));
+        assert_eq!(mock.cols(), 80);
+        assert_eq!(mock.rows(), 24);
+        assert_eq!(mock.cell(0, 0).ch, ' ');
+        assert_eq!(mock.cursor().row, 0);
+        assert_eq!(mock.seqno(), 0);
+    }
+
+    #[test]
+    fn test_apply_theme() {
+        let mut term = Terminal::new(80, 24);
+        let fg = Color::new(200, 200, 200);
+        let bg = Color::new(30, 30, 30);
+        let mut palette = default_ansi_palette();
+        palette[0] = Color::new(10, 10, 10);
+        term.apply_theme(fg, bg, palette);
+        assert_eq!(term.default_fg, fg);
+        assert_eq!(term.default_bg, bg);
+        assert_eq!(term.pen_fg, fg);
+        assert_eq!(term.pen_bg, bg);
+        assert_eq!(term.ansi_colors[0], Color::new(10, 10, 10));
+    }
+
+    #[test]
+    fn test_terminal_title_set_via_osc2() {
+        let mut term = Terminal::new(80, 24);
+        assert_eq!(term.title(), None);
+        term.feed(b"\x1b]2;custom title\x1b\\");
+        assert_eq!(term.title(), Some("custom title"));
+    }
+
+    #[test]
+    fn test_terminal_bell_via_bel() {
+        let mut term = Terminal::new(80, 24);
+        assert!(!term.take_bell());
+        term.feed(b"\x07");
+        assert!(term.take_bell());
+        assert!(!term.take_bell());
+    }
+
+    #[test]
+    fn test_terminal_cursor_movement_cup() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[10;20H");
+        assert_eq!(term.cursor().row, 9);
+        assert_eq!(term.cursor().col, 19);
+    }
+
+    #[test]
+    fn test_terminal_erase_display_full() {
+        let mut term = Terminal::new(10, 3);
+        term.feed(b"AAAAAAAAAA");
+        term.feed(b"BBBBBBBBBB");
+        term.feed(b"CCCCCCCCCC");
+        // ED 2 = erase entire display
+        term.feed(b"\x1b[2J");
+        for row in 0..3 {
+            for col in 0..10 {
+                assert_eq!(term.cell(row, col).ch, ' ');
+            }
+        }
+    }
+
+    #[test]
+    fn test_terminal_insert_characters() {
+        let mut term = Terminal::new(10, 1);
+        term.feed(b"ABCDE");
+        // Move cursor to col 1
+        term.feed(b"\x1b[1;2H");
+        // ICH 2: insert 2 blanks at cursor, shifting right
+        term.feed(b"\x1b[2@");
+        assert_eq!(term.cell(0, 0).ch, 'A');
+        assert_eq!(term.cell(0, 1).ch, ' ');
+        assert_eq!(term.cell(0, 2).ch, ' ');
+        assert_eq!(term.cell(0, 3).ch, 'B');
+        assert_eq!(term.cell(0, 4).ch, 'C');
+    }
+
+    #[test]
+    fn test_terminal_delete_characters() {
+        let mut term = Terminal::new(10, 1);
+        term.feed(b"ABCDE");
+        // Move cursor to col 1
+        term.feed(b"\x1b[1;2H");
+        // DCH 2: delete 2 chars at cursor, shifting left
+        term.feed(b"\x1b[2P");
+        assert_eq!(term.cell(0, 0).ch, 'A');
+        assert_eq!(term.cell(0, 1).ch, 'D');
+        assert_eq!(term.cell(0, 2).ch, 'E');
+    }
+
+    #[test]
+    fn test_terminal_scroll_region_behavior() {
+        let mut term = Terminal::new(10, 5);
+        for i in 0..5 {
+            let line = format!("LINE{i}");
+            term.feed(line.as_bytes());
+            if i < 4 { term.feed(b"\r\n"); }
+        }
+        // Set scroll region to rows 2-4 (1-based)
+        term.feed(b"\x1b[2;4r");
+        assert_eq!(term.scroll_top, 1);
+        assert_eq!(term.scroll_bottom, 3);
+        // Move to bottom of scroll region and scroll
+        term.feed(b"\x1b[4;1H");
+        term.feed(b"\n");
+        // Row 1 (0-indexed) should have scrolled up within region
+        // The first row (outside region) should be unchanged
+        assert_eq!(term.cell(0, 0).ch, 'L');
+    }
+
+    #[test]
+    fn test_terminal_alternate_screen_round_trip() {
+        let mut term = Terminal::new(10, 3);
+        term.feed(b"HELLO");
+        assert_eq!(term.cell(0, 0).ch, 'H');
+        assert!(!term.use_alternate);
+
+        // Enter alternate screen
+        term.feed(b"\x1b[?1049h");
+        assert!(term.use_alternate);
+        assert_eq!(term.cell(0, 0).ch, ' ');
+
+        // Write on alt screen
+        term.feed(b"ALT");
+        assert_eq!(term.cell(0, 0).ch, 'A');
+
+        // Exit alternate screen: primary content restored
+        term.feed(b"\x1b[?1049l");
+        assert!(!term.use_alternate);
+        assert_eq!(term.cell(0, 0).ch, 'H');
+    }
+
+    #[test]
+    fn test_terminal_bracketed_paste_mode() {
+        let mut term = Terminal::new(80, 24);
+        assert!(!term.bracketed_paste());
+        term.feed(b"\x1b[?2004h");
+        assert!(term.bracketed_paste());
+        term.feed(b"\x1b[?2004l");
+        assert!(!term.bracketed_paste());
+    }
+
+    #[test]
+    fn test_terminal_focus_reporting_mode() {
+        let mut term = Terminal::new(80, 24);
+        assert!(!term.focus_reporting());
+        term.feed(b"\x1b[?1004h");
+        assert!(term.focus_reporting());
+        term.feed(b"\x1b[?1004l");
+        assert!(!term.focus_reporting());
+    }
+
+    #[test]
+    fn test_terminal_cursor_keys_mode() {
+        let mut term = Terminal::new(80, 24);
+        assert!(!term.cursor_keys_mode());
+        term.feed(b"\x1b[?1h");
+        assert!(term.cursor_keys_mode());
+        term.feed(b"\x1b[?1l");
+        assert!(!term.cursor_keys_mode());
+    }
+
+    #[test]
+    fn test_terminal_sgr_mouse_mode() {
+        let mut term = Terminal::new(80, 24);
+        assert!(!term.sgr_mouse());
+        term.feed(b"\x1b[?1006h");
+        assert!(term.sgr_mouse());
+        term.feed(b"\x1b[?1006l");
+        assert!(!term.sgr_mouse());
+    }
+
+    #[test]
+    fn test_terminal_reset_clears_modes() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[?2004h"); // bracketed paste
+        term.feed(b"\x1b[?1004h"); // focus reporting
+        term.feed(b"\x1b[?1h");    // cursor keys mode
+        term.feed(b"\x1b[?1006h"); // SGR mouse
+        assert!(term.bracketed_paste());
+        assert!(term.focus_reporting());
+        assert!(term.cursor_keys_mode());
+        assert!(term.sgr_mouse());
+        term.reset();
+        assert!(!term.bracketed_paste());
+        assert!(!term.focus_reporting());
+        assert!(!term.cursor_keys_mode());
+        assert!(!term.sgr_mouse());
+    }
+
+    #[test]
+    fn test_terminal_feed_utf8() {
+        let mut term = Terminal::new(80, 24);
+        term.feed("日本語".as_bytes());
+        assert_eq!(term.cell(0, 0).ch, '日');
+        assert_eq!(term.cell(0, 0).width, 2);
+        assert_eq!(term.cell(0, 2).ch, '本');
+        assert_eq!(term.cell(0, 4).ch, '語');
+    }
+
+    #[test]
+    fn test_terminal_line_wrap_cursor() {
+        let mut term = Terminal::new(5, 3);
+        term.feed(b"ABCDE");
+        // Cursor is at col 4 (last col), wrap_pending
+        term.feed(b"F");
+        assert_eq!(term.cursor().row, 1);
+        assert_eq!(term.cell(1, 0).ch, 'F');
+    }
+
+    #[test]
+    fn test_terminal_osc_52_clipboard() {
+        let mut term = Terminal::new(80, 24);
+        // "test" base64 = "dGVzdA=="
+        term.feed(b"\x1b]52;c;dGVzdA==\x1b\\");
+        let content = term.take_clipboard();
+        assert_eq!(content, Some("test".to_string()));
+    }
+
+    #[test]
+    fn test_terminal_dsr_response() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[10;5H");
+        term.feed(b"\x1b[6n");
+        let response = term.take_response().unwrap();
+        assert_eq!(response, b"\x1b[10;5R");
+    }
+
+    #[test]
+    fn test_terminal_da_response() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[c");
+        let response = term.take_response().unwrap();
+        assert_eq!(response, b"\x1b[?62;22c");
+    }
+
+    #[test]
+    fn test_color_from_ansi() {
+        assert_eq!(Color::WHITE, Color { r: 255, g: 255, b: 255 });
+        assert_eq!(Color::BLACK, Color { r: 0, g: 0, b: 0 });
+        let c = Color::new(128, 64, 32);
+        assert_eq!(c.r, 128);
+        assert_eq!(c.g, 64);
+        assert_eq!(c.b, 32);
+    }
+
+    #[test]
+    fn test_terminal_seqno_increments() {
+        let mut term = Terminal::new(80, 24);
+        let s0 = term.seqno();
+        term.feed(b"A");
+        let s1 = term.seqno();
+        assert!(s1 > s0);
+        term.feed(b"B");
+        let s2 = term.seqno();
+        assert!(s2 > s1);
+    }
+
+    #[test]
+    fn test_soft_reset_preserves_content() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"Hello");
+        term.feed(b"\x1b[?2004h"); // bracketed paste on
+        term.soft_reset();
+        assert!(!term.bracketed_paste());
+        assert_eq!(term.cell(0, 0).ch, 'H');
+    }
+
+    #[test]
+    fn test_erase_display_above_cursor() {
+        let mut term = Terminal::new(10, 3);
+        term.feed(b"AAAAAAAAAA");
+        term.feed(b"BBBBBBBBBB");
+        term.feed(b"CCCCCCCCCC");
+        // Move to row 2, col 5 and erase above
+        term.feed(b"\x1b[2;6H\x1b[1J");
+        assert_eq!(term.cell(0, 0).ch, ' ');
+        assert_eq!(term.cell(1, 4).ch, ' ');
+        assert_eq!(term.cell(1, 5).ch, ' ');
+    }
+
+    #[test]
+    fn test_delete_lines() {
+        let mut term = Terminal::new(5, 4);
+        term.feed(b"AAAAA");
+        term.feed(b"BBBBB");
+        term.feed(b"CCCCC");
+        term.feed(b"DDDDD");
+        // Move to row 2, delete 1 line
+        term.feed(b"\x1b[2;1H\x1b[1M");
+        assert_eq!(term.cell(0, 0).ch, 'A');
+        assert_eq!(term.cell(1, 0).ch, 'C');
+        assert_eq!(term.cell(2, 0).ch, 'D');
+    }
+
+    #[test]
+    fn test_cursor_forward_backward() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[10C");
+        assert_eq!(term.cursor().col, 10);
+        term.feed(b"\x1b[3D");
+        assert_eq!(term.cursor().col, 7);
+    }
+
+    #[test]
+    fn test_cursor_up_down() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[10;1H");
+        assert_eq!(term.cursor().row, 9);
+        term.feed(b"\x1b[3A");
+        assert_eq!(term.cursor().row, 6);
+        term.feed(b"\x1b[2B");
+        assert_eq!(term.cursor().row, 8);
+    }
+
+    #[test]
+    fn test_decaln_fill_screen_with_e() {
+        let mut term = Terminal::new(5, 3);
+        // DECALN: ESC # 8
+        term.feed(b"\x1b#8");
+        for row in 0..3 {
+            for col in 0..5 {
+                assert_eq!(term.cell(row, col).ch, 'E');
+            }
+        }
+    }
+
+    #[test]
+    fn test_keypad_app_mode() {
+        let mut term = Terminal::new(80, 24);
+        assert!(!term.keypad_app_mode());
+        // DECKPAM: ESC =
+        term.feed(b"\x1b=");
+        assert!(term.keypad_app_mode());
+        // DECKPNM: ESC >
+        term.feed(b"\x1b>");
+        assert!(!term.keypad_app_mode());
+    }
+
+    #[test]
+    fn test_erase_characters() {
+        let mut term = Terminal::new(10, 1);
+        term.feed(b"ABCDEFGHIJ");
+        // Move to col 2 and erase 3 characters
+        term.feed(b"\x1b[1;3H\x1b[3X");
+        assert_eq!(term.cell(0, 0).ch, 'A');
+        assert_eq!(term.cell(0, 1).ch, 'B');
+        assert_eq!(term.cell(0, 2).ch, ' ');
+        assert_eq!(term.cell(0, 3).ch, ' ');
+        assert_eq!(term.cell(0, 4).ch, ' ');
+        assert_eq!(term.cell(0, 5).ch, 'F');
+    }
+
+    #[test]
+    fn test_resize_zero_is_noop() {
+        let mut term = Terminal::new(80, 24);
+        term.resize(0, 0);
+        assert_eq!(term.cols(), 80);
+        assert_eq!(term.rows(), 24);
+    }
+
+    #[test]
+    fn test_scroll_region_down() {
+        let mut term = Terminal::new(10, 5);
+        for i in 0..5 {
+            let line = format!("LINE{i}");
+            term.feed(line.as_bytes());
+            if i < 4 { term.feed(b"\r\n"); }
+        }
+        // Set scroll region rows 2-4 (1-based)
+        term.feed(b"\x1b[2;4r");
+        // Move cursor to top of scroll region and do reverse index
+        term.feed(b"\x1b[2;1H");
+        term.feed(b"\x1bM");
+        // First row outside region should be unchanged
+        assert_eq!(term.cell(0, 0).ch, 'L');
+    }
+
+    #[test]
+    fn test_osc_7_current_directory() {
+        let mut term = Terminal::new(80, 24);
+        assert!(term.cwd().is_none());
+        term.feed(b"\x1b]7;file:///path/to/file\x1b\\");
+        assert_eq!(term.cwd(), Some("/path/to/file"));
+    }
+
+    #[test]
+    fn test_scrollback_offset_zero_initially() {
+        let term = Terminal::new(80, 24);
+        assert_eq!(term.scroll_offset(), 0);
+    }
+
+    #[test]
+    fn test_scroll_up_then_down() {
+        let mut term = Terminal::new(10, 3);
+        for i in 0..15 {
+            let line = format!("LINE{i}\r\n");
+            term.feed(line.as_bytes());
+        }
+        let sb_len = term.primary.scrollback_len();
+        assert!(sb_len >= 5);
+
+        term.scroll_up(5);
+        assert_eq!(term.scroll_offset(), 5);
+
+        term.scroll_down(3);
+        assert_eq!(term.scroll_offset(), 2);
+    }
+
+    #[test]
+    fn test_terminal_large_resize() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"hello");
+        term.resize(400, 200);
+        assert_eq!(term.cols(), 400);
+        assert_eq!(term.rows(), 200);
+        assert_eq!(term.cell(0, 0).ch, 'h');
+
+        term.resize(10, 5);
+        assert_eq!(term.cols(), 10);
+        assert_eq!(term.rows(), 5);
+    }
+
+    #[test]
+    fn test_feed_empty_data() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(&[]);
+        term.feed(b"");
+        assert_eq!(term.cursor().row, 0);
+        assert_eq!(term.cursor().col, 0);
+    }
+
+    #[test]
+    fn test_feed_partial_escape() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b");
+        term.feed(b"[");
+        term.feed(b"2");
+        assert_eq!(term.cursor().row, 0);
+        term.feed(b"J");
+        assert_eq!(term.cell(0, 0).ch, ' ');
+    }
+
+    #[test]
+    fn test_cursor_save_restore() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"abc");
+        assert_eq!(term.cursor().col, 3);
+        term.feed(b"\x1b7");
+        term.feed(b"\x1b[5C");
+        assert_eq!(term.cursor().col, 8);
+        term.feed(b"\x1b8");
+        assert_eq!(term.cursor().col, 3);
+        assert_eq!(term.cursor().row, 0);
+    }
+
+    #[test]
+    fn test_reverse_index() {
+        let mut term = Terminal::new(10, 3);
+        term.feed(b"\x1b[1;1H");
+        assert_eq!(term.cursor().row, 0);
+        term.feed(b"X");
+        term.feed(b"\x1bM");
+        assert_eq!(term.cursor().row, 0);
+        assert_eq!(term.cell(0, 0).ch, ' ');
+        assert_eq!(term.cell(1, 0).ch, 'X');
+    }
+
+    #[test]
+    fn test_newline() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"A");
+        assert_eq!(term.cursor().row, 0);
+        term.feed(b"\n");
+        assert_eq!(term.cursor().row, 1);
+        assert_eq!(term.cell(0, 0).ch, 'A');
+    }
+
+    #[test]
+    fn test_osc_7_file_url_variant() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b]7;file://localhost/opt/project\x1b\\");
+        assert_eq!(term.cwd(), Some("/opt/project"));
+    }
+
+    #[test]
+    fn test_scroll_down_at_zero_noop() {
+        let mut term = Terminal::new(80, 24);
+        term.scroll_down(10);
+        assert_eq!(term.scroll_offset(), 0);
+    }
+
+    #[test]
+    fn test_cursor_save_restore_csi_form() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[10;5H");
+        term.feed(b"\x1b[s");
+        term.feed(b"\x1b[1;1H");
+        term.feed(b"\x1b[u");
+        assert_eq!(term.cursor().row, 9);
+        assert_eq!(term.cursor().col, 4);
+    }
+
+    #[test]
+    fn test_ind_index_down() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"X");
+        term.feed(b"\x1bD");
+        assert_eq!(term.cursor().row, 1);
+        assert_eq!(term.cell(0, 0).ch, 'X');
     }
 }
