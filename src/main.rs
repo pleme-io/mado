@@ -30,7 +30,6 @@ use clap::Parser;
 use hasami::{Clipboard, ClipboardProvider};
 use madori::event::{AppEvent, KeyEvent, MouseEvent};
 use madori::EventResponse;
-use tracing_subscriber::EnvFilter;
 
 use crate::keybind::{Action, KeybindManager};
 use crate::pane::SplitDir;
@@ -63,16 +62,13 @@ enum SubCmd {
 }
 
 fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env())
-        .with_writer(std::io::stderr)
-        .init();
+    shidou::init_tracing();
 
     let cli = Cli::parse();
 
     // Handle MCP subcommand before loading GUI config
     if let Some(SubCmd::Mcp) = cli.subcmd {
-        let rt = tokio::runtime::Runtime::new()?;
+        let rt = shidou::create_runtime()?;
         rt.block_on(mcp::run())
             .map_err(|e| anyhow::anyhow!("MCP server error: {e}"))?;
         return Ok(());
