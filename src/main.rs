@@ -13,6 +13,7 @@ mod mcp;
 mod scripting;
 mod pane;
 mod platform;
+mod pointer_shape;
 mod prompt_mark;
 mod pty;
 mod render;

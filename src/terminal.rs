@@ -688,6 +688,10 @@ pub struct Terminal {
     // see `prompt_mark::PromptHistory` for the jump API.
     prompt_marks: crate::prompt_mark::PromptHistory,
 
+    // OSC 22 — shell-requested mouse pointer shape. Default until
+    // an app opts in via `ESC ] 22 ; <css-cursor-name> ST`.
+    pointer_shape: crate::pointer_shape::PointerShape,
+
     // Kitty keyboard protocol — progressive enhancement mode stack.
     // Each entry is the flags bitmask pushed by the application.
     // Bit 0 (1):  Disambiguate escape codes
@@ -792,6 +796,7 @@ impl Terminal {
             prompt_marks: crate::prompt_mark::PromptHistory::with_capacity(
                 max_scrollback.max(256),
             ),
+            pointer_shape: crate::pointer_shape::PointerShape::default(),
             kitty_keyboard_stack: Vec::new(),
             images: HashMap::new(),
             image_placements: Vec::new(),
@@ -1289,6 +1294,56 @@ impl Terminal {
             self.default_fg = c;
             self.dirty();
         }
+    }
+
+    /// OSC 22 — Mouse pointer shape control.
+    ///
+    /// `ESC ] 22 ; <css-cursor-name> ST` — set the shape. The name
+    /// vocabulary is CSS Basic UI cursor keywords (`text`,
+    /// `pointer`, `wait`, …). Unknown names are dropped silently so
+    /// a shell that speaks a newer revision of the protocol can't
+    /// corrupt the typed state.
+    ///
+    /// `ESC ] 22 ; ? ST` — query the current shape. Respond with
+    /// `ESC ] 22 ; <current-shape-name> ST` echoing the typed
+    /// value's canonical name.
+    fn handle_osc_22_pointer_shape(&mut self, params: &[&[u8]]) {
+        if params.len() < 2 {
+            return;
+        }
+        let arg = params[1];
+        if arg == b"?" {
+            // Query form — emit current shape name.
+            let name = self.pointer_shape.as_name();
+            let mut resp = Vec::with_capacity(8 + name.len());
+            resp.extend_from_slice(b"\x1b]22;");
+            resp.extend_from_slice(name.as_bytes());
+            resp.extend_from_slice(b"\x1b\\");
+            self.response_bytes.extend_from_slice(&resp);
+            return;
+        }
+        let Ok(s) = std::str::from_utf8(arg) else {
+            tracing::trace!(?arg, "OSC 22: non-UTF8 shape name");
+            return;
+        };
+        match crate::pointer_shape::PointerShape::from_name(s) {
+            Some(shape) => {
+                self.pointer_shape = shape;
+                tracing::trace!(shape = s, "OSC 22: pointer shape set");
+            }
+            None => {
+                tracing::trace!(shape = s, "OSC 22: unknown shape, ignoring");
+            }
+        }
+    }
+
+    /// Currently active mouse pointer shape (from OSC 22).
+    /// Default until a shell opts in. Consumed by the input / cursor
+    /// rendering layer to drive the actual platform cursor.
+    #[must_use]
+    #[allow(dead_code)] // Typed surface for the pending renderer wire-up.
+    pub fn pointer_shape(&self) -> crate::pointer_shape::PointerShape {
+        self.pointer_shape
     }
 
     /// OSC 133 — Shell integration (semantic prompts).
@@ -2336,6 +2391,7 @@ impl vte::Perform for Terminal {
             b"10"      => self.handle_osc_10_foreground(params),
             b"11"      => self.handle_osc_11_background(params),
             b"12"      => self.handle_osc_12_cursor(params),
+            b"22"      => self.handle_osc_22_pointer_shape(params),
             b"52"      => self.handle_osc_52_clipboard(params),
             b"104"     => self.handle_osc_104_palette_reset(params),
             b"110"     => self.handle_osc_110_fg_reset(),
@@ -3615,6 +3671,67 @@ mod tests {
         let term = Terminal::new(80, 24);
         assert!(term.scroll_offset_to_prev_prompt().is_none());
         assert!(term.scroll_offset_to_next_prompt().is_none());
+    }
+
+    #[test]
+    fn osc_22_set_pointer_shape_updates_typed_state() {
+        use crate::pointer_shape::PointerShape;
+        let mut term = Terminal::new(80, 24);
+        assert_eq!(term.pointer_shape(), PointerShape::Default);
+
+        // Set to `text` (editor caret).
+        term.feed(b"\x1b]22;text\x1b\\");
+        assert_eq!(term.pointer_shape(), PointerShape::Text);
+
+        // Set to `pointer` (clickable).
+        term.feed(b"\x1b]22;pointer\x1b\\");
+        assert_eq!(term.pointer_shape(), PointerShape::Pointer);
+
+        // Set to a hyphenated name.
+        term.feed(b"\x1b]22;col-resize\x1b\\");
+        assert_eq!(term.pointer_shape(), PointerShape::ColResize);
+    }
+
+    #[test]
+    fn osc_22_unknown_shape_is_silently_dropped() {
+        use crate::pointer_shape::PointerShape;
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b]22;text\x1b\\");
+        assert_eq!(term.pointer_shape(), PointerShape::Text);
+
+        // An unknown name from a future protocol revision must
+        // leave the existing state intact, not fall back to Default.
+        term.feed(b"\x1b]22;laser\x1b\\");
+        assert_eq!(term.pointer_shape(), PointerShape::Text);
+    }
+
+    #[test]
+    fn osc_22_query_responds_with_current_shape_name() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b]22;wait\x1b\\");
+        term.feed(b"\x1b]22;?\x1b\\");
+        let response = term.take_response().expect("query should emit a response");
+        let response_str = String::from_utf8_lossy(&response);
+        assert!(
+            response_str.starts_with("\x1b]22;wait"),
+            "unexpected response: {response_str:?}",
+        );
+        assert!(
+            response_str.ends_with("\x1b\\"),
+            "response should terminate with ST (ESC \\): {response_str:?}",
+        );
+    }
+
+    #[test]
+    fn osc_22_query_on_default_state_echoes_default_name() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b]22;?\x1b\\");
+        let response = term.take_response().unwrap();
+        let response_str = String::from_utf8_lossy(&response);
+        assert!(
+            response_str.starts_with("\x1b]22;default"),
+            "unexpected response: {response_str:?}",
+        );
     }
 
     #[test]
