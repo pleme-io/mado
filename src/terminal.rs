@@ -1063,6 +1063,91 @@ impl Terminal {
         }
     }
 
+    /// OSC 4 — Set or query an indexed ANSI palette entry.
+    ///
+    /// Query form: `ESC ] 4 ; <idx> ; ? ST` — answers with the
+    /// current RGB. Set form: `ESC ] 4 ; <idx> ; <color> ST` where
+    /// `color` is either `#rrggbb` or `rgb:RR/GG/BB` / the xterm
+    /// double-width variant. Indices outside 0..16 are silently
+    /// ignored (we don't yet model the 16..=255 cube as mutable).
+    fn handle_osc_4_palette(&mut self, params: &[&[u8]]) {
+        if params.len() < 3 {
+            return;
+        }
+        let Some(idx) = parse_palette_index(params[1]) else {
+            return;
+        };
+        if idx >= 16 {
+            return;
+        }
+        if params[2] == b"?" {
+            let response = format!(
+                "\x1b]4;{idx};rgb:{r:02x}{r:02x}/{g:02x}{g:02x}/{b:02x}{b:02x}\x1b\\",
+                r = self.ansi_colors[idx].r,
+                g = self.ansi_colors[idx].g,
+                b = self.ansi_colors[idx].b,
+            );
+            self.response_bytes.extend_from_slice(response.as_bytes());
+            return;
+        }
+        if let Some(c) = parse_osc_color(params[2]) {
+            self.ansi_colors[idx] = c;
+            self.dirty();
+        }
+    }
+
+    /// OSC 10 — Query or set the default foreground color.
+    /// Query with `?`, set with `#rrggbb` or `rgb:RR/GG/BB`.
+    fn handle_osc_10_foreground(&mut self, params: &[&[u8]]) {
+        if params.len() < 2 {
+            return;
+        }
+        if params[1] == b"?" {
+            let resp = osc_rgb_query_response(10, self.pen_fg);
+            self.response_bytes.extend_from_slice(resp.as_bytes());
+            return;
+        }
+        if let Some(c) = parse_osc_color(params[1]) {
+            self.pen_fg = c;
+            self.default_fg = c;
+            self.dirty();
+        }
+    }
+
+    /// OSC 11 — Query or set the default background color.
+    fn handle_osc_11_background(&mut self, params: &[&[u8]]) {
+        if params.len() < 2 {
+            return;
+        }
+        if params[1] == b"?" {
+            let resp = osc_rgb_query_response(11, self.default_bg);
+            self.response_bytes.extend_from_slice(resp.as_bytes());
+            return;
+        }
+        if let Some(c) = parse_osc_color(params[1]) {
+            self.default_bg = c;
+            self.dirty();
+        }
+    }
+
+    /// OSC 12 — Query or set the cursor color. The cursor currently
+    /// tracks `default_fg`; set-path updates both so programs that
+    /// customize the cursor see the change reflected in queries.
+    fn handle_osc_12_cursor(&mut self, params: &[&[u8]]) {
+        if params.len() < 2 {
+            return;
+        }
+        if params[1] == b"?" {
+            let resp = osc_rgb_query_response(12, self.default_fg);
+            self.response_bytes.extend_from_slice(resp.as_bytes());
+            return;
+        }
+        if let Some(c) = parse_osc_color(params[1]) {
+            self.default_fg = c;
+            self.dirty();
+        }
+    }
+
     /// OSC 133 — Shell integration (semantic prompts).
     ///
     /// `A` = prompt start, `B` = command start, `C` = command output,
@@ -2031,26 +2116,7 @@ impl vte::Perform for Terminal {
                     self.dirty();
                 }
             }
-            b"4" => {
-                // OSC 4 — Set/query color palette entry
-                // Query: OSC 4 ; <index> ; ? ST
-                // Set: OSC 4 ; <index> ; <color> ST
-                // For now, respond to queries with current palette colors
-                if params.len() >= 3 && params[2] == b"?" {
-                    if let Ok(idx_str) = std::str::from_utf8(params[1]) {
-                        if let Ok(idx) = idx_str.parse::<usize>() {
-                            if idx < 16 {
-                                let color = self.ansi_colors[idx];
-                                let response = format!(
-                                    "\x1b]4;{idx};rgb:{:02x}{:02x}/{:02x}{:02x}/{:02x}{:02x}\x1b\\",
-                                    color.r, color.r, color.g, color.g, color.b, color.b
-                                );
-                                self.response_bytes.extend_from_slice(response.as_bytes());
-                            }
-                        }
-                    }
-                }
-            }
+            b"4" => self.handle_osc_4_palette(params),
             b"7" => {
                 // OSC 7 — Current Working Directory
                 // Format: file://hostname/path
@@ -2084,27 +2150,9 @@ impl vte::Perform for Terminal {
                     self.active_hyperlink = None;
                 }
             }
-            b"10" => {
-                // OSC 10 — Query/set foreground color
-                if params.len() >= 2 && params[1] == b"?" {
-                    let resp = osc_rgb_query_response(10, self.pen_fg);
-                    self.response_bytes.extend_from_slice(resp.as_bytes());
-                }
-            }
-            b"11" => {
-                // OSC 11 — Query/set background color
-                if params.len() >= 2 && params[1] == b"?" {
-                    let resp = osc_rgb_query_response(11, self.default_bg);
-                    self.response_bytes.extend_from_slice(resp.as_bytes());
-                }
-            }
-            b"12" => {
-                // OSC 12 — Query/set cursor color
-                if params.len() >= 2 && params[1] == b"?" {
-                    let resp = osc_rgb_query_response(12, self.default_fg);
-                    self.response_bytes.extend_from_slice(resp.as_bytes());
-                }
-            }
+            b"10" => self.handle_osc_10_foreground(params),
+            b"11" => self.handle_osc_11_background(params),
+            b"12" => self.handle_osc_12_cursor(params),
             b"9" => {
                 // OSC 9 — Desktop notification (iTerm2/ghostty compat).
                 // Format: `ESC ] 9 ; <body> ST`  (ST = `ESC \` or BEL).
@@ -2656,6 +2704,57 @@ fn osc_rgb_query_response(osc_id: u16, c: Color) -> String {
         "\x1b]{osc_id};rgb:{r:02x}{r:02x}/{g:02x}{g:02x}/{b:02x}{b:02x}\x1b\\",
         r = c.r, g = c.g, b = c.b
     )
+}
+
+/// Parse an OSC color payload into a [`Color`]. Accepts both common
+/// xterm/VTE formats:
+///
+///   - `#rrggbb`            — HTML-style hex triplet.
+///   - `rgb:RR/GG/BB`       — xterm short form.
+///   - `rgb:RRRR/GGGG/BBBB` — xterm full form; we take the high byte.
+///
+/// Returns `None` on anything else (named colors, rgba:, cmyk:, …);
+/// the OSC handler treats that as a no-op so a malformed payload
+/// never corrupts the palette.
+fn parse_osc_color(payload: &[u8]) -> Option<Color> {
+    let s = std::str::from_utf8(payload).ok()?;
+    // Hex triplet: `#rrggbb`.
+    if let Some(hex) = s.strip_prefix('#')
+        && hex.len() == 6
+    {
+        let r = u8::from_str_radix(&hex[0..2], 16).ok()?;
+        let g = u8::from_str_radix(&hex[2..4], 16).ok()?;
+        let b = u8::from_str_radix(&hex[4..6], 16).ok()?;
+        return Some(Color::new(r, g, b));
+    }
+    // xterm `rgb:RR/GG/BB` and `rgb:RRRR/GGGG/BBBB`.
+    if let Some(rest) = s.strip_prefix("rgb:") {
+        let parts: Vec<&str> = rest.split('/').collect();
+        if parts.len() != 3 {
+            return None;
+        }
+        let channel = |p: &str| -> Option<u8> {
+            match p.len() {
+                2 => u8::from_str_radix(p, 16).ok(),
+                // 4-digit form: take the high byte (xterm docs say
+                // the two values are equivalent precision-wise).
+                4 => u8::from_str_radix(&p[0..2], 16).ok(),
+                _ => None,
+            }
+        };
+        return Some(Color::new(
+            channel(parts[0])?,
+            channel(parts[1])?,
+            channel(parts[2])?,
+        ));
+    }
+    None
+}
+
+/// Parse a palette index byte slice (`b"3"` → `Some(3)`). `None`
+/// when the payload isn't a decimal integer.
+fn parse_palette_index(payload: &[u8]) -> Option<usize> {
+    std::str::from_utf8(payload).ok()?.parse().ok()
 }
 
 // ---------------------------------------------------------------------------
@@ -4423,6 +4522,78 @@ mod tests {
         // OSC 104 with explicit index resets just that one.
         term.feed(b"\x1b]104;1\x07");
         assert_eq!(term.ansi_palette()[1], original);
+    }
+
+    #[test]
+    fn test_parse_osc_color_accepts_hex_and_rgb_forms() {
+        // Hex triplet: `#rrggbb`.
+        assert_eq!(
+            parse_osc_color(b"#ff8000"),
+            Some(Color::new(0xff, 0x80, 0x00))
+        );
+        // xterm short: `rgb:RR/GG/BB`.
+        assert_eq!(
+            parse_osc_color(b"rgb:ff/80/00"),
+            Some(Color::new(0xff, 0x80, 0x00))
+        );
+        // xterm full: `rgb:RRRR/GGGG/BBBB` — high byte wins.
+        assert_eq!(
+            parse_osc_color(b"rgb:ffff/8080/0000"),
+            Some(Color::new(0xff, 0x80, 0x00))
+        );
+        // Invalid payloads return None (OSC handler treats as no-op).
+        assert_eq!(parse_osc_color(b"red"), None);
+        assert_eq!(parse_osc_color(b"#zzzzzz"), None);
+        assert_eq!(parse_osc_color(b"rgb:ff/80"), None);
+    }
+
+    #[test]
+    fn test_osc_10_set_foreground() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b]10;#aabbcc\x1b\\");
+        assert_eq!(term.pen_fg, Color::new(0xaa, 0xbb, 0xcc));
+    }
+
+    #[test]
+    fn test_osc_11_set_background() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b]11;rgb:11/22/33\x1b\\");
+        assert_eq!(term.default_bg, Color::new(0x11, 0x22, 0x33));
+    }
+
+    #[test]
+    fn test_osc_12_set_cursor_color() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b]12;rgb:44/55/66\x1b\\");
+        assert_eq!(term.default_fg, Color::new(0x44, 0x55, 0x66));
+    }
+
+    #[test]
+    fn test_osc_4_set_palette_index() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b]4;3;#deadbe\x1b\\");
+        assert_eq!(term.ansi_palette()[3], Color::new(0xde, 0xad, 0xbe));
+    }
+
+    #[test]
+    fn test_osc_4_set_ignored_for_out_of_range_index() {
+        // Indices 16..=255 aren't modeled as mutable yet; OSC 4 set
+        // on those should be a silent no-op (not a panic, not a
+        // partial overwrite of the 0..16 range).
+        let mut term = Terminal::new(80, 24);
+        let before = term.ansi_palette()[0];
+        term.feed(b"\x1b]4;200;#112233\x1b\\");
+        assert_eq!(term.ansi_palette()[0], before);
+    }
+
+    #[test]
+    fn test_osc_10_malformed_payload_is_noop() {
+        // Unparseable color string → handler returns early, no panic,
+        // pen_fg unchanged.
+        let mut term = Terminal::new(80, 24);
+        let before = term.pen_fg;
+        term.feed(b"\x1b]10;not-a-color\x1b\\");
+        assert_eq!(term.pen_fg, before);
     }
 
     #[test]
