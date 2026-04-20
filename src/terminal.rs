@@ -1006,6 +1006,86 @@ impl Terminal {
         self.pending_notifications.drain(..)
     }
 
+    // ── OSC dispatch helpers ────────────────────────────────────────────────
+    //
+    // The big `osc_dispatch` match keeps the per-code branches short; each
+    // delegates to one of these methods for anything beyond a one-liner.
+    // Names spell out which OSC code they handle so `grep osc_133` (etc.)
+    // drops you on the implementation.
+
+    /// OSC 52 — Clipboard manipulation.
+    ///
+    /// Format: `ESC ] 52 ; <clipboard> ; <data> ST`
+    ///   - `clipboard`: `c` (clipboard) / `p` (primary) / `s` (secondary)
+    ///   - `data`: base64-encoded string, or `?` to query.
+    ///
+    /// We don't surface the system clipboard's *contents* back through the
+    /// pty (that'd be a privacy regression — programs shouldn't read what
+    /// the user copied elsewhere), so queries answer with an empty payload.
+    fn handle_osc_52_clipboard(&mut self, params: &[&[u8]]) {
+        if params.len() < 3 {
+            return;
+        }
+        let data = params[2];
+        if data == b"?" {
+            // Query — answer empty; keeps the protocol happy without
+            // leaking host clipboard state.
+            self.response_bytes.extend_from_slice(b"\x1b]52;c;\x1b\\");
+            return;
+        }
+        if let Some(text) = base64_decode(data) {
+            tracing::debug!(len = text.len(), "OSC 52 clipboard set");
+            self.clipboard_content = Some(text);
+        }
+    }
+
+    /// OSC 104 — Reset indexed ANSI palette entries.
+    ///
+    /// Format: `ESC ] 104 ; <idx1> ; <idx2> … ST`
+    /// No indices = reset all 16 ANSI entries.
+    /// Listed indices in `0..16` reset to the compiled default palette;
+    /// entries outside that range are ignored (we don't yet model the
+    /// extended 16..=255 color cube as overridable).
+    fn handle_osc_104_palette_reset(&mut self, params: &[&[u8]]) {
+        if params.len() == 1 {
+            self.ansi_colors = default_ansi_palette();
+            self.dirty();
+            return;
+        }
+        for p in &params[1..] {
+            if let Ok(idx_str) = std::str::from_utf8(p)
+                && let Ok(idx) = idx_str.parse::<usize>()
+                && idx < 16
+            {
+                self.ansi_colors[idx] = default_ansi_palette()[idx];
+                self.dirty();
+            }
+        }
+    }
+
+    /// OSC 133 — Shell integration (semantic prompts).
+    ///
+    /// `A` = prompt start, `B` = command start, `C` = command output,
+    /// `D` = command end. Shells emit these via the installed
+    /// shell-integration scripts (see `shell-integration/mado.*`).
+    /// `A` captures the prompt row so the renderer can scroll back
+    /// to the *start* of the previous command on a keystroke.
+    fn handle_osc_133_shell_integration(&mut self, params: &[&[u8]]) {
+        if params.len() < 2 {
+            return;
+        }
+        match params[1] {
+            b"A" => {
+                self.prompt_start_row = Some(self.cursor.row);
+                tracing::trace!(row = self.cursor.row, "OSC 133 prompt start");
+            }
+            b"B" => tracing::trace!("OSC 133 command start"),
+            b"C" => tracing::trace!("OSC 133 command output"),
+            b"D" => tracing::trace!("OSC 133 command end"),
+            _ => {}
+        }
+    }
+
     /// Row where the last shell prompt started (from OSC 133).
     #[must_use]
     #[allow(dead_code)]
@@ -2036,47 +2116,8 @@ impl vte::Perform for Terminal {
                     self.pending_notifications.push(body);
                 }
             }
-            b"52" => {
-                // OSC 52 — Clipboard manipulation
-                // Format: OSC 52 ; <clipboard> ; <data> ST
-                // clipboard: c = clipboard, p = primary, s = secondary
-                // data: base64-encoded string, or ? to query
-                if params.len() >= 3 {
-                    let data = params[2];
-                    if data == b"?" {
-                        // Query — respond with empty (we don't expose clipboard to terminal)
-                        self.response_bytes.extend_from_slice(b"\x1b]52;c;\x1b\\");
-                    } else {
-                        // Set clipboard — decode base64
-                        let decoded = base64_decode(data);
-                        if let Some(text) = decoded {
-                            tracing::debug!(len = text.len(), "OSC 52 clipboard set");
-                            self.clipboard_content = Some(text);
-                        }
-                    }
-                }
-            }
-            b"104" => {
-                // OSC 104 — Reset indexed ANSI palette entries.
-                // Format: `ESC ] 104 ; <idx1> ; <idx2> … ST`
-                // No indices = reset all 256 entries. `0..=15` reset to the
-                // built-in ANSI palette; `16..=255` reset to the xterm 256-
-                // color cube.
-                if params.len() == 1 {
-                    self.ansi_colors = default_ansi_palette();
-                    self.dirty();
-                } else {
-                    for p in &params[1..] {
-                        if let Ok(idx_str) = std::str::from_utf8(p)
-                            && let Ok(idx) = idx_str.parse::<usize>()
-                            && idx < 16
-                        {
-                            self.ansi_colors[idx] = default_ansi_palette()[idx];
-                            self.dirty();
-                        }
-                    }
-                }
-            }
+            b"52" => self.handle_osc_52_clipboard(params),
+            b"104" => self.handle_osc_104_palette_reset(params),
             b"110" => {
                 // OSC 110 — Reset foreground color to compiled default.
                 self.pen_fg = self.default_fg;
@@ -2092,28 +2133,7 @@ impl vte::Perform for Terminal {
                 // OSC 112 — Reset cursor color to default.
                 self.dirty();
             }
-            b"133" => {
-                // OSC 133 — Shell integration (semantic prompts)
-                // A = prompt start, B = command start, C = command output, D = command end
-                if params.len() >= 2 {
-                    match params[1] {
-                        b"A" => {
-                            self.prompt_start_row = Some(self.cursor.row);
-                            tracing::trace!(row = self.cursor.row, "OSC 133 prompt start");
-                        }
-                        b"B" => {
-                            tracing::trace!("OSC 133 command start");
-                        }
-                        b"C" => {
-                            tracing::trace!("OSC 133 command output");
-                        }
-                        b"D" => {
-                            tracing::trace!("OSC 133 command end");
-                        }
-                        _ => {}
-                    }
-                }
-            }
+            b"133" => self.handle_osc_133_shell_integration(params),
             _ => tracing::trace!(?params, "unhandled OSC sequence"),
         }
     }
