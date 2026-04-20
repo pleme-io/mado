@@ -10,6 +10,7 @@ mod clipboard_store;
 mod config;
 mod keybind;
 mod mcp;
+mod osc_1337;
 mod scripting;
 mod pane;
 mod platform;

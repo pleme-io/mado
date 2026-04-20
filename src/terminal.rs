@@ -692,6 +692,15 @@ pub struct Terminal {
     // an app opts in via `ESC ] 22 ; <css-cursor-name> ST`.
     pointer_shape: crate::pointer_shape::PointerShape,
 
+    // OSC 1337 SetMark — user-emitted grid-row marks. Parallel to
+    // `prompt_marks` but with different provenance (script-echoed
+    // vs shell-emitted).
+    user_marks: crate::osc_1337::UserMarkHistory,
+
+    // OSC 1337 RequestAttention — flag the window manager should
+    // bounce the dock / flash the titlebar until focus returns.
+    attention_requested: bool,
+
     // Kitty keyboard protocol — progressive enhancement mode stack.
     // Each entry is the flags bitmask pushed by the application.
     // Bit 0 (1):  Disambiguate escape codes
@@ -797,6 +806,10 @@ impl Terminal {
                 max_scrollback.max(256),
             ),
             pointer_shape: crate::pointer_shape::PointerShape::default(),
+            user_marks: crate::osc_1337::UserMarkHistory::with_capacity(
+                max_scrollback.max(256),
+            ),
+            attention_requested: false,
             kitty_keyboard_stack: Vec::new(),
             images: HashMap::new(),
             image_placements: Vec::new(),
@@ -1344,6 +1357,56 @@ impl Terminal {
     #[allow(dead_code)] // Typed surface for the pending renderer wire-up.
     pub fn pointer_shape(&self) -> crate::pointer_shape::PointerShape {
         self.pointer_shape
+    }
+
+    /// OSC 1337 — iTerm2 proprietary extensions. Parses the
+    /// parameter into [`Osc1337Param`](crate::osc_1337::Osc1337Param)
+    /// and dispatches. `SetMark` records the cursor row into the
+    /// typed [`user_marks`](Self::user_marks) history.
+    /// `RequestAttention=<0|1>` flips the
+    /// [`attention_requested`](Self::attention_requested) flag the
+    /// platform layer reads to drive dock / titlebar notifications.
+    /// Unknown parameters log + ignore so a shell speaking a newer
+    /// dialect can't corrupt typed state.
+    fn handle_osc_1337_iterm2(&mut self, params: &[&[u8]]) {
+        if params.len() < 2 {
+            return;
+        }
+        match crate::osc_1337::parse_osc_1337(params[1]) {
+            crate::osc_1337::Osc1337Param::SetMark => {
+                if self.use_alternate {
+                    // Don't record marks on the alt screen — same
+                    // guarantee as OSC 133 prompt marks.
+                    return;
+                }
+                let grid_row = self.primary.scrollback_len() + self.cursor.row;
+                self.user_marks.record(grid_row);
+                tracing::trace!(grid_row, "OSC 1337 SetMark recorded");
+            }
+            crate::osc_1337::Osc1337Param::RequestAttention(flag) => {
+                self.attention_requested = flag;
+                tracing::trace!(flag, "OSC 1337 RequestAttention");
+            }
+            crate::osc_1337::Osc1337Param::Unknown(s) => {
+                tracing::trace!(key = %s, "OSC 1337 unknown parameter, ignoring");
+            }
+        }
+    }
+
+    /// Read-only handle on the OSC 1337 user-mark history.
+    #[must_use]
+    #[allow(dead_code)] // Typed surface for the pending MCP + jump API.
+    pub fn user_marks(&self) -> &crate::osc_1337::UserMarkHistory {
+        &self.user_marks
+    }
+
+    /// Current OSC 1337 RequestAttention state. The platform layer
+    /// (dock bounce on macOS, urgency hint on X11) reads this to
+    /// drive its attention-signal behavior.
+    #[must_use]
+    #[allow(dead_code)] // Typed surface for the pending platform wire-up.
+    pub fn attention_requested(&self) -> bool {
+        self.attention_requested
     }
 
     /// OSC 133 — Shell integration (semantic prompts).
@@ -1902,10 +1965,11 @@ impl Terminal {
         let bottom = self.scroll_bottom;
         let use_alt = self.use_alternate;
         let evicted = self.grid_mut().scroll_region_up(top, bottom);
-        // Only primary-grid evictions invalidate prompt marks —
-        // alternate has zero scrollback and doesn't record marks.
+        // Only primary-grid evictions invalidate prompt / user
+        // marks — alternate has zero scrollback and doesn't record.
         if !use_alt && evicted > 0 {
             self.prompt_marks.shift_on_evict(evicted);
+            self.user_marks.shift_on_evict(evicted);
         }
         self.dirty();
     }
@@ -2398,6 +2462,7 @@ impl vte::Perform for Terminal {
             b"111"     => self.handle_osc_111_bg_reset(),
             b"112"     => self.handle_osc_112_cursor_reset(),
             b"133"     => self.handle_osc_133_shell_integration(params),
+            b"1337"    => self.handle_osc_1337_iterm2(params),
             _          => tracing::trace!(?params, "unhandled OSC sequence"),
         }
     }
@@ -2672,6 +2737,7 @@ impl vte::Perform for Terminal {
                 }
                 if !use_alt && evicted > 0 {
                     self.prompt_marks.shift_on_evict(evicted);
+                    self.user_marks.shift_on_evict(evicted);
                 }
                 self.dirty();
             }
@@ -3720,6 +3786,65 @@ mod tests {
             response_str.ends_with("\x1b\\"),
             "response should terminate with ST (ESC \\): {response_str:?}",
         );
+    }
+
+    #[test]
+    fn osc_1337_set_mark_records_cursor_row() {
+        let mut term = Terminal::new(80, 24);
+        assert!(term.user_marks().is_empty());
+
+        // Emit SetMark — the current cursor row becomes a mark.
+        term.feed(b"\x1b]1337;SetMark\x1b\\");
+        assert_eq!(term.user_marks().len(), 1);
+
+        // Advance cursor with newlines + another SetMark.
+        term.feed(b"\n\n\n\x1b]1337;SetMark\x1b\\");
+        assert_eq!(term.user_marks().len(), 2);
+    }
+
+    #[test]
+    fn osc_1337_set_mark_skipped_on_alternate_screen() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[?1049h"); // alt screen
+        term.feed(b"\x1b]1337;SetMark\x1b\\");
+        assert!(term.user_marks().is_empty());
+    }
+
+    #[test]
+    fn osc_1337_request_attention_flips_flag() {
+        let mut term = Terminal::new(80, 24);
+        assert!(!term.attention_requested());
+
+        term.feed(b"\x1b]1337;RequestAttention=1\x1b\\");
+        assert!(term.attention_requested());
+
+        term.feed(b"\x1b]1337;RequestAttention=0\x1b\\");
+        assert!(!term.attention_requested());
+
+        // Truthy alternates — `true`, `yes`, bare anything other
+        // than the off-vocab all request attention.
+        term.feed(b"\x1b]1337;RequestAttention=true\x1b\\");
+        assert!(term.attention_requested());
+
+        term.feed(b"\x1b]1337;RequestAttention=no\x1b\\");
+        assert!(!term.attention_requested());
+    }
+
+    #[test]
+    fn osc_1337_unknown_key_logs_and_leaves_state_alone() {
+        // CopyToClipboard / File= are real iTerm2 params mado
+        // hasn't implemented. They must not corrupt user_marks or
+        // attention state.
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b]1337;SetMark\x1b\\");
+        let pre_mark_count = term.user_marks().len();
+        let pre_attention = term.attention_requested();
+
+        term.feed(b"\x1b]1337;CopyToClipboard=abc\x1b\\");
+        term.feed(b"\x1b]1337;File=base64:blah\x1b\\");
+
+        assert_eq!(term.user_marks().len(), pre_mark_count);
+        assert_eq!(term.attention_requested(), pre_attention);
     }
 
     #[test]
