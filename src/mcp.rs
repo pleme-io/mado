@@ -15,6 +15,7 @@ use rmcp::{
 use serde::Deserialize;
 
 use crate::clipboard_store::{ClipboardHash, ClipboardStore};
+use crate::osc_1337::UserMarkHistory;
 use crate::prompt_mark::PromptHistory;
 use crate::term_spec::TermSpec;
 
@@ -95,6 +96,18 @@ struct PromptMarksListInput {
     include_all_kinds: Option<bool>,
 }
 
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct UserMarksListInput {
+    #[schemars(description = "Maximum number of user marks to return, most-recent-first. Omit for the full history.")]
+    limit: Option<u32>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct AttentionSetInput {
+    #[schemars(description = "True to request user attention (bounce dock / flash titlebar); false to cancel any pending request.")]
+    requested: bool,
+}
+
 // ── MCP Server ──────────────────────────────────────────────────────────────
 
 /// Shared handle on the cross-session content-addressed clipboard
@@ -109,6 +122,16 @@ type SharedClipboard = Arc<Mutex<ClipboardStore>>;
 /// writes into this handle so MCP readers see live state.
 type SharedPromptMarks = Arc<Mutex<PromptHistory>>;
 
+/// Mirror of [`SharedPromptMarks`] for OSC 1337 SetMark history.
+/// User-emitted marks (script-echoed) live alongside shell-emitted
+/// prompt marks with identical ownership semantics.
+type SharedUserMarks = Arc<Mutex<UserMarkHistory>>;
+
+/// OSC 1337 RequestAttention flag — a simple bool wrapped for
+/// cross-thread sharing. When true, the platform layer bounces the
+/// dock / flashes the titlebar until focus returns.
+type SharedAttention = Arc<Mutex<bool>>;
+
 #[derive(Debug, Clone)]
 struct MadoMcp {
     tool_router: ToolRouter<Self>,
@@ -120,6 +143,13 @@ struct MadoMcp {
     /// escriba "jump to past command" picker + any agent that wants
     /// to replay past prompts.
     prompt_marks: SharedPromptMarks,
+    /// OSC 1337 SetMark history — user-emitted grid-row marks.
+    /// Parallel to prompt_marks but different provenance.
+    user_marks: SharedUserMarks,
+    /// OSC 1337 RequestAttention current state. Reads via
+    /// `attention_get`, flips via `attention_set` — escriba
+    /// workflows (e.g., "flash dock when tests pass") write here.
+    attention: SharedAttention,
 }
 
 #[tool_router]
@@ -128,6 +158,8 @@ impl MadoMcp {
         Self::with_handles(
             Arc::new(Mutex::new(ClipboardStore::new(128))),
             Arc::new(Mutex::new(PromptHistory::default())),
+            Arc::new(Mutex::new(UserMarkHistory::default())),
+            Arc::new(Mutex::new(false)),
         )
     }
 
@@ -137,22 +169,29 @@ impl MadoMcp {
     fn with_handles(
         clipboard: SharedClipboard,
         prompt_marks: SharedPromptMarks,
+        user_marks: SharedUserMarks,
+        attention: SharedAttention,
     ) -> Self {
         Self {
             tool_router: Self::tool_router(),
             clipboard,
             prompt_marks,
+            user_marks,
+            attention,
         }
     }
 
     /// Clipboard-only test fixture — for the scenarios that exercise
-    /// only the clipboard bridge. Equivalent to
-    /// `with_handles(clipboard, PromptHistory::default())`.
+    /// only the clipboard bridge. Defaults every other handle to
+    /// empty state so the MCP server behaves as if no OSC 133 /
+    /// OSC 1337 activity has occurred yet.
     #[cfg(test)]
     fn with_clipboard(clipboard: SharedClipboard) -> Self {
         Self::with_handles(
             clipboard,
             Arc::new(Mutex::new(PromptHistory::default())),
+            Arc::new(Mutex::new(UserMarkHistory::default())),
+            Arc::new(Mutex::new(false)),
         )
     }
 
@@ -390,6 +429,73 @@ impl MadoMcp {
         serde_json::json!({
             "ok": true,
             "cleared": cleared,
+        })
+        .to_string()
+    }
+
+    // ── OSC 1337 user-mark + attention surface ─────────────────────────────
+    //
+    // Complements the OSC 133 prompt-mark tools: user marks are
+    // script-echoed (`echo -e "\e]1337;SetMark\e\\"`) whereas
+    // prompt marks are shell-emitted. Both live in the terminal;
+    // both surface over MCP so escriba's picker exposes each as a
+    // separate jump surface without cross-contamination.
+
+    #[tool(description = "List OSC 1337 SetMark user marks the session has seen, most-recent-first. Returns `{count, total, marks: [{grid_row}]}`. Unlike prompt_marks_list, no kind filter — user marks are a flat history of explicit script-echoed markers.")]
+    async fn user_marks_list(
+        &self,
+        Parameters(input): Parameters<UserMarksListInput>,
+    ) -> String {
+        let limit = input.limit.map(|n| n as usize);
+        let guard = self.user_marks.lock().expect("user_marks lock poisoned");
+        let iter = guard.iter().rev().map(|m| {
+            serde_json::json!({
+                "grid_row": m.grid_row,
+            })
+        });
+        let marks: Vec<_> = match limit {
+            Some(n) => iter.take(n).collect(),
+            None => iter.collect(),
+        };
+        serde_json::json!({
+            "count": marks.len(),
+            "total": guard.len(),
+            "marks": marks,
+        })
+        .to_string()
+    }
+
+    #[tool(description = "Clear the OSC 1337 user-mark history. Returns `{ok, cleared}`. Paired with prompt_marks_clear for a full mark-history reset.")]
+    async fn user_marks_clear(&self) -> String {
+        let mut guard = self.user_marks.lock().expect("user_marks lock poisoned");
+        let cleared = guard.len();
+        guard.clear();
+        serde_json::json!({
+            "ok": true,
+            "cleared": cleared,
+        })
+        .to_string()
+    }
+
+    #[tool(description = "Read the current OSC 1337 RequestAttention flag. Returns `{attention_requested}`. Used by escriba workflows that want to know whether a terminal is currently asking for user attention (e.g., long-running test signals completion).")]
+    async fn attention_get(&self) -> String {
+        let guard = self.attention.lock().expect("attention lock poisoned");
+        serde_json::json!({
+            "attention_requested": *guard,
+        })
+        .to_string()
+    }
+
+    #[tool(description = "Set the OSC 1337 RequestAttention flag. Returns `{ok, attention_requested}`. Lets escriba workflows drive the dock-bounce / titlebar-flash signal without emitting an ANSI sequence through a shell — e.g., a `defworkflow` can flash the dock when tests pass or a deployment completes.")]
+    async fn attention_set(
+        &self,
+        Parameters(input): Parameters<AttentionSetInput>,
+    ) -> String {
+        let mut guard = self.attention.lock().expect("attention lock poisoned");
+        *guard = input.requested;
+        serde_json::json!({
+            "ok": true,
+            "attention_requested": *guard,
         })
         .to_string()
     }
@@ -955,6 +1061,7 @@ mod tests {
 
     // ── Prompt-mark MCP tools ────────────────────────────────────────────
 
+    use crate::osc_1337::UserMarkHistory;
     use crate::prompt_mark::{PromptHistory, PromptKind};
 
     fn server_with_seeded_prompt_marks(
@@ -968,7 +1075,12 @@ mod tests {
             }
         }
         let clipboard = Arc::new(Mutex::new(ClipboardStore::new(16)));
-        let server = MadoMcp::with_handles(clipboard, history.clone());
+        let server = MadoMcp::with_handles(
+            clipboard,
+            history.clone(),
+            Arc::new(Mutex::new(UserMarkHistory::default())),
+            Arc::new(Mutex::new(false)),
+        );
         (server, history)
     }
 
@@ -1076,6 +1188,107 @@ mod tests {
         assert_eq!(parsed["count"], 0);
         assert_eq!(parsed["total"], 0);
         assert_eq!(parsed["marks"].as_array().unwrap().len(), 0);
+    }
+
+    // ── User-mark + attention MCP tools ──────────────────────────────────
+
+    fn server_with_seeded_user_marks(
+        rows: &[usize],
+    ) -> (MadoMcp, Arc<Mutex<UserMarkHistory>>, Arc<Mutex<bool>>) {
+        let clipboard = Arc::new(Mutex::new(ClipboardStore::new(16)));
+        let prompt_marks = Arc::new(Mutex::new(PromptHistory::default()));
+        let user_marks = Arc::new(Mutex::new(UserMarkHistory::default()));
+        let attention = Arc::new(Mutex::new(false));
+        {
+            let mut guard = user_marks.lock().unwrap();
+            for row in rows {
+                guard.record(*row);
+            }
+        }
+        let server = MadoMcp::with_handles(
+            clipboard,
+            prompt_marks,
+            user_marks.clone(),
+            attention.clone(),
+        );
+        (server, user_marks, attention)
+    }
+
+    #[tokio::test]
+    async fn user_marks_list_returns_most_recent_first() {
+        let (server, _, _) = server_with_seeded_user_marks(&[1, 3, 7, 15]);
+        let raw = server
+            .user_marks_list(Parameters(UserMarksListInput { limit: None }))
+            .await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed["count"], 4);
+        assert_eq!(parsed["total"], 4);
+        let marks = parsed["marks"].as_array().unwrap();
+        assert_eq!(marks[0]["grid_row"], 15);
+        assert_eq!(marks[1]["grid_row"], 7);
+        assert_eq!(marks[2]["grid_row"], 3);
+        assert_eq!(marks[3]["grid_row"], 1);
+    }
+
+    #[tokio::test]
+    async fn user_marks_list_honours_limit_with_total_unchanged() {
+        let (server, _, _) = server_with_seeded_user_marks(&[1, 2, 3, 4, 5]);
+        let raw = server
+            .user_marks_list(Parameters(UserMarksListInput { limit: Some(2) }))
+            .await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed["count"], 2);
+        // total reflects the full history regardless of limit.
+        assert_eq!(parsed["total"], 5);
+    }
+
+    #[tokio::test]
+    async fn user_marks_clear_wipes_history() {
+        let (server, history, _) = server_with_seeded_user_marks(&[5, 10, 20]);
+        let raw = server.user_marks_clear().await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed["ok"], true);
+        assert_eq!(parsed["cleared"], 3);
+        assert!(history.lock().unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn attention_get_reflects_shared_state() {
+        let (server, _, attention) = server_with_seeded_user_marks(&[]);
+        // Defaults to false.
+        let raw = server.attention_get().await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed["attention_requested"], false);
+
+        // Flip externally (simulating a Terminal receiving OSC 1337
+        // RequestAttention=1) and confirm the getter sees it.
+        *attention.lock().unwrap() = true;
+        let raw = server.attention_get().await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed["attention_requested"], true);
+    }
+
+    #[tokio::test]
+    async fn attention_set_updates_shared_state() {
+        let (server, _, attention) = server_with_seeded_user_marks(&[]);
+        let raw = server
+            .attention_set(Parameters(AttentionSetInput { requested: true }))
+            .await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed["ok"], true);
+        assert_eq!(parsed["attention_requested"], true);
+        // The shared handle sees the write — the Terminal reads from
+        // this same handle on every frame to decide whether to
+        // signal the window manager.
+        assert!(*attention.lock().unwrap());
+
+        // Cancel.
+        let raw = server
+            .attention_set(Parameters(AttentionSetInput { requested: false }))
+            .await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed["attention_requested"], false);
+        assert!(!*attention.lock().unwrap());
     }
 
     #[test]
