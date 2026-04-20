@@ -1,6 +1,4 @@
 //! Content-addressed clipboard store.
-
-#![allow(dead_code)] // Some helpers (kind.label, entry.content clones) are only exercised by tests / future IPC.
 //!
 //! Invention. Every terminal implements OSC 52 as "set the system
 //! clipboard to this string" — the payload vanishes into the OS
@@ -209,6 +207,7 @@ impl ClipboardStore {
 
     /// True when empty.
     #[must_use]
+    #[allow(dead_code)] // Idiomatic alongside `len()`; consumed by tests + future IPC.
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }

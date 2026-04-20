@@ -64,6 +64,7 @@ impl PromptKind {
     /// Inverse of [`Self::from_osc_param`] — useful for tests and
     /// MCP payloads that echo prompt state back to the caller.
     #[must_use]
+    #[allow(dead_code)] // Consumed by tests + future MCP prompt-history exposure.
     pub fn as_osc_byte(self) -> u8 {
         match self {
             Self::Start => b'A',

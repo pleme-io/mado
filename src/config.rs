@@ -486,6 +486,7 @@ impl QuickTerminalConfig {
     /// make sense. An enabled config without a hotkey is valid (MCP-
     /// driven) but `is_active_hotkey()` is false.
     #[must_use]
+    #[allow(dead_code)] // Typed surface for the pending runtime wire-up.
     pub fn is_active_hotkey(&self) -> bool {
         self.enabled && !self.hotkey.is_empty()
     }
@@ -497,6 +498,7 @@ impl QuickTerminalConfig {
     /// The math mirrors ghostty's resolution: edge-pinned variants
     /// fill the perpendicular axis; `Center` fractionates both axes.
     #[must_use]
+    #[allow(dead_code)] // Typed surface for the pending runtime wire-up.
     pub fn resolve_size_pixels(&self, (screen_w, screen_h): (u32, u32)) -> (u32, u32) {
         let fraction = self.size_fraction.clamp(0.1, 1.0);
         // Minimum-1 pixel so downstream winit calls can't panic on 0.
@@ -519,6 +521,7 @@ impl QuickTerminalConfig {
     /// full placement tuple. `Center` returns the origin that
     /// centers a `size_fraction × size_fraction` rectangle.
     #[must_use]
+    #[allow(dead_code)] // Typed surface for the pending runtime wire-up.
     pub fn resolve_origin_pixels(&self, screen: (u32, u32)) -> (u32, u32) {
         let (w, h) = self.resolve_size_pixels(screen);
         let (sw, sh) = screen;

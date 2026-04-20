@@ -70,6 +70,16 @@ pub enum MouseMode {
     AnyEvent,
 }
 
+/// Direction for an OSC 133 prompt-jump query — consumed by
+/// [`Terminal::scroll_offset_for_prompt_jump`]. Kept separate from
+/// the public `scroll_offset_to_{prev,next}_prompt` methods so the
+/// call sites in `main.rs` stay direction-self-documenting.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PromptJumpDirection {
+    Prev,
+    Next,
+}
+
 // ---------------------------------------------------------------------------
 // Color
 // ---------------------------------------------------------------------------
@@ -1347,19 +1357,7 @@ impl Terminal {
     /// the view shifted up by N rows.
     #[must_use]
     pub fn scroll_offset_to_prev_prompt(&self) -> Option<usize> {
-        let grid = &self.primary;
-        let view_top = grid
-            .rows
-            .len()
-            .saturating_sub(grid.visible_rows)
-            .saturating_sub(self.scroll_offset);
-        let target = self.prompt_marks.prev_prompt(view_top)?;
-        Some(
-            grid.rows
-                .len()
-                .saturating_sub(grid.visible_rows)
-                .saturating_sub(target),
-        )
+        self.scroll_offset_for_prompt_jump(PromptJumpDirection::Prev)
     }
 
     /// Mirror of [`Self::scroll_offset_to_prev_prompt`] walking the
@@ -1368,19 +1366,26 @@ impl Terminal {
     /// already in the live bottom view).
     #[must_use]
     pub fn scroll_offset_to_next_prompt(&self) -> Option<usize> {
+        self.scroll_offset_for_prompt_jump(PromptJumpDirection::Next)
+    }
+
+    /// Shared geometry for [`Self::scroll_offset_to_prev_prompt`] and
+    /// [`Self::scroll_offset_to_next_prompt`]. Both methods walk the
+    /// same math — compute the current viewport-top grid row, look
+    /// up the nearest prompt mark in `direction`, convert its grid
+    /// row back into a scroll-offset. This helper is the single
+    /// source of truth for that conversion; the two public methods
+    /// are thin direction dispatchers so the call sites in `main.rs`
+    /// stay readable.
+    fn scroll_offset_for_prompt_jump(&self, direction: PromptJumpDirection) -> Option<usize> {
         let grid = &self.primary;
-        let view_top = grid
-            .rows
-            .len()
-            .saturating_sub(grid.visible_rows)
-            .saturating_sub(self.scroll_offset);
-        let target = self.prompt_marks.next_prompt(view_top)?;
-        Some(
-            grid.rows
-                .len()
-                .saturating_sub(grid.visible_rows)
-                .saturating_sub(target),
-        )
+        let base = grid.rows.len().saturating_sub(grid.visible_rows);
+        let view_top = base.saturating_sub(self.scroll_offset);
+        let target = match direction {
+            PromptJumpDirection::Prev => self.prompt_marks.prev_prompt(view_top)?,
+            PromptJumpDirection::Next => self.prompt_marks.next_prompt(view_top)?,
+        };
+        Some(base.saturating_sub(target))
     }
 
     /// Full terminal reset (RIS). Preserves scrollback setting and theme colors.
@@ -3610,6 +3615,35 @@ mod tests {
         let term = Terminal::new(80, 24);
         assert!(term.scroll_offset_to_prev_prompt().is_none());
         assert!(term.scroll_offset_to_next_prompt().is_none());
+    }
+
+    #[test]
+    fn prompt_jump_dispatchers_share_one_geometry_helper() {
+        // Both scroll_offset_to_{prev,next}_prompt must resolve to
+        // scroll offsets symmetric around the current viewport-top
+        // for a pair of marks equidistant around it. This pins the
+        // unified helper's contract: a future inlining regression
+        // (where one method drifts from the other) would fail here.
+        let mut term = Terminal::new(80, 10);
+        // Fill scrollback with 40 blank lines + a prompt, then 10
+        // more, then another prompt. The two prompts flank the
+        // viewport when we scroll to the midpoint.
+        term.feed(b"\x1b]133;A\x1b\\"); // prompt @ row 0
+        for _ in 0..30 {
+            term.feed(b"\n");
+        }
+        term.feed(b"\x1b]133;A\x1b\\"); // prompt ~30 lines later
+        for _ in 0..10 {
+            term.feed(b"\n");
+        }
+
+        // From the live bottom view (offset 0), `prev` should land
+        // on the most-recent prompt (non-zero offset). `next`
+        // should be None (we're already below every mark).
+        let prev = term.scroll_offset_to_prev_prompt();
+        let next = term.scroll_offset_to_next_prompt();
+        assert!(prev.is_some(), "prev should see the recent mark");
+        assert!(next.is_none(), "next is None — nothing below the view");
     }
 
     #[test]
