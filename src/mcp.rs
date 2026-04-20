@@ -78,6 +78,14 @@ struct ClipboardListInput {
     include_content: Option<bool>,
 }
 
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct ClipboardPutInput {
+    #[schemars(description = "Payload to store. UTF-8 text. Hashed under BLAKE3-128 and indexed by the resulting token.")]
+    content: String,
+    #[schemars(description = "OSC 52 selection kind — `c` (system, default), `p` (primary), `s` (secondary). Persisted with the entry so callers can distinguish \"give me the last primary\" later.")]
+    kind: Option<String>,
+}
+
 // ── MCP Server ──────────────────────────────────────────────────────────────
 
 /// Shared handle on the cross-session content-addressed clipboard
@@ -261,6 +269,39 @@ impl MadoMcp {
             })
             .to_string(),
         }
+    }
+
+    #[tool(description = "Publish a payload into the session's content-addressed clipboard store. Returns `{ok, hash, bytes, kind, duplicate}` — `duplicate: true` when the content was already indexed (the hash is stable across calls, so this is idempotent). Used by escriba workflows that yank text in the editor and want the mado side to resolve the same payload by hash later.")]
+    async fn clipboard_put(&self, Parameters(input): Parameters<ClipboardPutInput>) -> String {
+        let kind = input
+            .kind
+            .as_deref()
+            .map(|s| crate::clipboard_store::ClipboardKind::from_osc52_byte(s.as_bytes()))
+            .unwrap_or(crate::clipboard_store::ClipboardKind::System);
+        let bytes = input.content.len();
+        let mut guard = self.clipboard.lock().expect("clipboard lock poisoned");
+        let pre_hash = ClipboardHash::of(&input.content);
+        let duplicate = guard.contains(pre_hash);
+        let hash = guard.store(input.content, kind);
+        serde_json::json!({
+            "ok": true,
+            "hash": hash.to_hex(),
+            "bytes": bytes,
+            "kind": kind.label(),
+            "duplicate": duplicate,
+        })
+        .to_string()
+    }
+
+    #[tool(description = "Wipe every entry in the session's clipboard store. Returns `{ok, cleared}` with the count of entries that were removed. Used when a workflow touches sensitive content and wants the session's copy history scrubbed.")]
+    async fn clipboard_clear(&self) -> String {
+        let mut guard = self.clipboard.lock().expect("clipboard lock poisoned");
+        let cleared = guard.clear();
+        serde_json::json!({
+            "ok": true,
+            "cleared": cleared,
+        })
+        .to_string()
     }
 
     #[tool(description = "List clipboard payloads the session has seen, most-recent-first. Returns `{count, entries: [{hash, preview, bytes, kind, set_at}]}`. Set `include_content: true` to also pull the full payload (for scripted pipelines); default is preview-only to keep the response compact.")]
@@ -680,6 +721,146 @@ mod tests {
         assert_eq!(parsed["ok"], false);
         assert_eq!(parsed["tool"], "empty");
         assert!(parsed["note"].is_string());
+    }
+
+    #[tokio::test]
+    async fn clipboard_put_indexes_and_reports_duplicate_on_repeat() {
+        // First put: stored, duplicate=false. Second identical put:
+        // same hash, duplicate=true. Round-trips the hash back via
+        // `clipboard_get` to prove store + MCP agree on the address.
+        let store = Arc::new(Mutex::new(ClipboardStore::new(8)));
+        let server = MadoMcp::with_clipboard(store);
+
+        let raw1 = server
+            .clipboard_put(Parameters(ClipboardPutInput {
+                content: "deploy.sh --prod".into(),
+                kind: None,
+            }))
+            .await;
+        let first: serde_json::Value = serde_json::from_str(&raw1).unwrap();
+        assert_eq!(first["ok"], true);
+        assert_eq!(first["duplicate"], false);
+        let hash = first["hash"].as_str().unwrap().to_string();
+        assert_eq!(hash.len(), 32);
+        assert_eq!(first["bytes"], "deploy.sh --prod".len());
+        assert_eq!(first["kind"], "c"); // default
+
+        let raw2 = server
+            .clipboard_put(Parameters(ClipboardPutInput {
+                content: "deploy.sh --prod".into(),
+                kind: None,
+            }))
+            .await;
+        let second: serde_json::Value = serde_json::from_str(&raw2).unwrap();
+        assert_eq!(second["duplicate"], true);
+        assert_eq!(second["hash"], hash);
+
+        // Now fetch via clipboard_get — round-trip completes.
+        let got = server
+            .clipboard_get(Parameters(ClipboardGetInput { hash: hash.clone() }))
+            .await;
+        let got: serde_json::Value = serde_json::from_str(&got).unwrap();
+        assert_eq!(got["found"], true);
+        assert_eq!(got["content"], "deploy.sh --prod");
+    }
+
+    #[tokio::test]
+    async fn clipboard_put_honours_explicit_kind() {
+        let store = Arc::new(Mutex::new(ClipboardStore::new(8)));
+        let server = MadoMcp::with_clipboard(store);
+
+        let raw = server
+            .clipboard_put(Parameters(ClipboardPutInput {
+                content: "primary selection".into(),
+                kind: Some("p".into()),
+            }))
+            .await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed["kind"], "p");
+
+        // Unknown kind falls back to System (ghostty-permissive parse).
+        let raw = server
+            .clipboard_put(Parameters(ClipboardPutInput {
+                content: "another".into(),
+                kind: Some("zzz".into()),
+            }))
+            .await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed["kind"], "c");
+    }
+
+    #[tokio::test]
+    async fn clipboard_clear_wipes_store_and_returns_count() {
+        let store = Arc::new(Mutex::new(ClipboardStore::new(8)));
+        {
+            let mut guard = store.lock().unwrap();
+            guard.store("a".into(), crate::clipboard_store::ClipboardKind::System);
+            guard.store("b".into(), crate::clipboard_store::ClipboardKind::System);
+            guard.store("c".into(), crate::clipboard_store::ClipboardKind::System);
+        }
+        let server = MadoMcp::with_clipboard(store.clone());
+
+        let raw = server.clipboard_clear().await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed["ok"], true);
+        assert_eq!(parsed["cleared"], 3);
+
+        // Store is actually empty afterwards.
+        assert!(store.lock().unwrap().is_empty());
+
+        // Clearing again is well-defined — just returns 0.
+        let raw = server.clipboard_clear().await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed["cleared"], 0);
+    }
+
+    #[tokio::test]
+    async fn clipboard_put_list_get_clear_lifecycle() {
+        // End-to-end invariant: put → list sees it → get resolves it
+        // → clear drops it → list is empty → get reports miss.
+        let store = Arc::new(Mutex::new(ClipboardStore::new(8)));
+        let server = MadoMcp::with_clipboard(store);
+
+        let put_raw = server
+            .clipboard_put(Parameters(ClipboardPutInput {
+                content: "pipeline payload".into(),
+                kind: None,
+            }))
+            .await;
+        let put: serde_json::Value = serde_json::from_str(&put_raw).unwrap();
+        let hash = put["hash"].as_str().unwrap().to_string();
+
+        let list_raw = server
+            .clipboard_list(Parameters(ClipboardListInput {
+                limit: None,
+                include_content: None,
+            }))
+            .await;
+        let list: serde_json::Value = serde_json::from_str(&list_raw).unwrap();
+        assert_eq!(list["count"], 1);
+
+        let get_raw = server
+            .clipboard_get(Parameters(ClipboardGetInput { hash: hash.clone() }))
+            .await;
+        let got: serde_json::Value = serde_json::from_str(&get_raw).unwrap();
+        assert_eq!(got["found"], true);
+
+        server.clipboard_clear().await;
+
+        let list_raw = server
+            .clipboard_list(Parameters(ClipboardListInput {
+                limit: None,
+                include_content: None,
+            }))
+            .await;
+        let list: serde_json::Value = serde_json::from_str(&list_raw).unwrap();
+        assert_eq!(list["count"], 0);
+
+        let get_raw = server
+            .clipboard_get(Parameters(ClipboardGetInput { hash }))
+            .await;
+        let got: serde_json::Value = serde_json::from_str(&get_raw).unwrap();
+        assert_eq!(got["found"], false);
     }
 
     #[test]

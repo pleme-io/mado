@@ -212,6 +212,31 @@ impl ClipboardStore {
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
+
+    /// Cheap membership probe — `true` when `hash` is currently
+    /// indexed. Used by the MCP `clipboard_put` tool to tell the
+    /// caller "this payload was already in the store" without
+    /// cloning the entry.
+    #[must_use]
+    pub fn contains(&self, hash: ClipboardHash) -> bool {
+        self.entries.contains_key(&hash)
+    }
+
+    /// Drop every entry. Returns the number of entries that were
+    /// removed. Used by the MCP `clipboard_clear` tool when an
+    /// escriba workflow wants to scrub the session's copy history
+    /// (e.g., after touching credentials / secrets).
+    pub fn clear(&mut self) -> usize {
+        let n = self.entries.len();
+        self.entries.clear();
+        self.order.clear();
+        // Keep `tick` monotonic — don't reset it. LRU ordering after
+        // clear starts fresh from the current tick value, which
+        // keeps later `store()` calls strictly greater than any
+        // future-referencing external consumer (rare, but cheap to
+        // preserve).
+        n
+    }
 }
 
 #[cfg(test)]
@@ -314,5 +339,37 @@ mod tests {
         let entry = store.get(h).unwrap();
         assert_eq!(entry.kind, ClipboardKind::Primary);
         assert_eq!(entry.kind.label(), "p");
+    }
+
+    #[test]
+    fn contains_probes_without_cloning() {
+        let mut store = ClipboardStore::new(4);
+        let h = store.store("present".into(), ClipboardKind::System);
+        assert!(store.contains(h));
+        let missing = ClipboardHash::of("not-in-store");
+        assert!(!store.contains(missing));
+    }
+
+    #[test]
+    fn clear_returns_prior_len_and_wipes_both_indexes() {
+        let mut store = ClipboardStore::new(8);
+        store.store("a".into(), ClipboardKind::System);
+        store.store("b".into(), ClipboardKind::System);
+        store.store("c".into(), ClipboardKind::System);
+        assert_eq!(store.len(), 3);
+        let cleared = store.clear();
+        assert_eq!(cleared, 3);
+        assert!(store.is_empty());
+        // After clear, a fresh store() still works — tick stayed
+        // monotonic so new entries are strictly more recent.
+        let h = store.store("d".into(), ClipboardKind::System);
+        assert_eq!(store.len(), 1);
+        assert!(store.contains(h));
+    }
+
+    #[test]
+    fn clear_on_empty_store_returns_zero() {
+        let mut store = ClipboardStore::new(4);
+        assert_eq!(store.clear(), 0);
     }
 }
