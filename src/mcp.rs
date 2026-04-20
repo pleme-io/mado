@@ -131,9 +131,9 @@ impl MadoMcp {
         )
     }
 
-    /// Construct with externally-owned shared handles — lets the
-    /// binary hand over the same stores its Terminal populates, so
-    /// reads see live session state.
+    /// Construct with externally-owned shared handles — the future
+    /// IPC bridge + the test fixtures both route through here.
+    /// `new()` is the prod entrypoint and calls this internally.
     fn with_handles(
         clipboard: SharedClipboard,
         prompt_marks: SharedPromptMarks,
@@ -145,9 +145,10 @@ impl MadoMcp {
         }
     }
 
-    /// Clipboard-only constructor — back-compat for tests that only
-    /// exercise the clipboard bridge. Equivalent to
+    /// Clipboard-only test fixture — for the scenarios that exercise
+    /// only the clipboard bridge. Equivalent to
     /// `with_handles(clipboard, PromptHistory::default())`.
+    #[cfg(test)]
     fn with_clipboard(clipboard: SharedClipboard) -> Self {
         Self::with_handles(
             clipboard,

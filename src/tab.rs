@@ -316,6 +316,10 @@ mod tests {
         assert!(closed.is_some());
         assert_eq!(closed.unwrap(), id1);
         assert_eq!(mgr.active_tab().id, id2);
+        // id0 (the initial tab created by `new()`) is still intact —
+        // pin that so a close-adjacency regression where closing id1
+        // accidentally removes id0 gets caught here.
+        assert!(mgr.tabs().iter().any(|t| t.id == id0));
     }
 
     #[test]

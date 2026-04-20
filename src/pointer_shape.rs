@@ -134,6 +134,7 @@ impl PointerShape {
     /// Every recognized variant. Useful for round-trip tests + the
     /// MCP tool that exposes the valid shape vocabulary to clients.
     #[must_use]
+    #[allow(dead_code)] // Consumed by round-trip tests + pending MCP surface.
     pub fn all() -> &'static [PointerShape] {
         &[
             Self::Default,
