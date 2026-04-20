@@ -132,67 +132,68 @@ type SharedUserMarks = Arc<Mutex<UserMarkHistory>>;
 /// dock / flashes the titlebar until focus returns.
 type SharedAttention = Arc<Mutex<bool>>;
 
+/// Bundle of every shared-state handle the MCP server reads / writes.
+///
+/// Collecting the handles into one struct means adding a new shared
+/// surface is a single field edit instead of threading a new
+/// positional argument through every caller + test fixture. Struct
+/// update syntax (`..SharedState::default()`) gives tests the
+/// "override one handle, accept defaults for everything else"
+/// shape naturally.
+#[derive(Debug, Clone)]
+struct SharedState {
+    clipboard: SharedClipboard,
+    prompt_marks: SharedPromptMarks,
+    user_marks: SharedUserMarks,
+    attention: SharedAttention,
+}
+
+impl Default for SharedState {
+    fn default() -> Self {
+        Self {
+            clipboard: Arc::new(Mutex::new(ClipboardStore::new(128))),
+            prompt_marks: Arc::new(Mutex::new(PromptHistory::default())),
+            user_marks: Arc::new(Mutex::new(UserMarkHistory::default())),
+            attention: Arc::new(Mutex::new(false)),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 struct MadoMcp {
     tool_router: ToolRouter<Self>,
-    /// Content-addressed clipboard shared with (eventually) every
-    /// Terminal's OSC 52 pipe. For now the server owns the only copy
-    /// — the IPC bridge will merge Terminal-side stores on demand.
-    clipboard: SharedClipboard,
-    /// OSC 133 prompt-mark history — the typed backing for the
-    /// escriba "jump to past command" picker + any agent that wants
-    /// to replay past prompts.
-    prompt_marks: SharedPromptMarks,
-    /// OSC 1337 SetMark history — user-emitted grid-row marks.
-    /// Parallel to prompt_marks but different provenance.
-    user_marks: SharedUserMarks,
-    /// OSC 1337 RequestAttention current state. Reads via
-    /// `attention_get`, flips via `attention_set` — escriba
-    /// workflows (e.g., "flash dock when tests pass") write here.
-    attention: SharedAttention,
+    /// Every shared handle the MCP tools read / write. See
+    /// [`SharedState`] for field-level docs.
+    state: SharedState,
 }
 
 #[tool_router]
 impl MadoMcp {
     fn new() -> Self {
-        Self::with_handles(
-            Arc::new(Mutex::new(ClipboardStore::new(128))),
-            Arc::new(Mutex::new(PromptHistory::default())),
-            Arc::new(Mutex::new(UserMarkHistory::default())),
-            Arc::new(Mutex::new(false)),
-        )
+        Self::with_state(SharedState::default())
     }
 
-    /// Construct with externally-owned shared handles — the future
-    /// IPC bridge + the test fixtures both route through here.
-    /// `new()` is the prod entrypoint and calls this internally.
-    fn with_handles(
-        clipboard: SharedClipboard,
-        prompt_marks: SharedPromptMarks,
-        user_marks: SharedUserMarks,
-        attention: SharedAttention,
-    ) -> Self {
+    /// Construct with an externally-owned shared-state bundle —
+    /// the future IPC bridge + the test fixtures both route through
+    /// here. `new()` is the prod entrypoint and calls this with
+    /// `SharedState::default()`.
+    fn with_state(state: SharedState) -> Self {
         Self {
             tool_router: Self::tool_router(),
-            clipboard,
-            prompt_marks,
-            user_marks,
-            attention,
+            state,
         }
     }
 
     /// Clipboard-only test fixture — for the scenarios that exercise
-    /// only the clipboard bridge. Defaults every other handle to
-    /// empty state so the MCP server behaves as if no OSC 133 /
+    /// only the clipboard bridge. Every other handle defaults to
+    /// empty state so the server behaves as if no OSC 133 /
     /// OSC 1337 activity has occurred yet.
     #[cfg(test)]
     fn with_clipboard(clipboard: SharedClipboard) -> Self {
-        Self::with_handles(
+        Self::with_state(SharedState {
             clipboard,
-            Arc::new(Mutex::new(PromptHistory::default())),
-            Arc::new(Mutex::new(UserMarkHistory::default())),
-            Arc::new(Mutex::new(false)),
-        )
+            ..SharedState::default()
+        })
     }
 
     // ── Standard tools ──────────────────────────────────────────────────────
@@ -328,7 +329,7 @@ impl MadoMcp {
             })
             .to_string();
         };
-        let guard = self.clipboard.lock().expect("clipboard lock poisoned");
+        let guard = self.state.clipboard.lock().expect("clipboard lock poisoned");
         match guard.get(hash) {
             Some(entry) => serde_json::json!({
                 "found": true,
@@ -354,7 +355,7 @@ impl MadoMcp {
             .map(|s| crate::clipboard_store::ClipboardKind::from_osc52_byte(s.as_bytes()))
             .unwrap_or(crate::clipboard_store::ClipboardKind::System);
         let bytes = input.content.len();
-        let mut guard = self.clipboard.lock().expect("clipboard lock poisoned");
+        let mut guard = self.state.clipboard.lock().expect("clipboard lock poisoned");
         let pre_hash = ClipboardHash::of(&input.content);
         let duplicate = guard.contains(pre_hash);
         let hash = guard.store(input.content, kind);
@@ -370,7 +371,7 @@ impl MadoMcp {
 
     #[tool(description = "Wipe every entry in the session's clipboard store. Returns `{ok, cleared}` with the count of entries that were removed. Used when a workflow touches sensitive content and wants the session's copy history scrubbed.")]
     async fn clipboard_clear(&self) -> String {
-        let mut guard = self.clipboard.lock().expect("clipboard lock poisoned");
+        let mut guard = self.state.clipboard.lock().expect("clipboard lock poisoned");
         let cleared = guard.clear();
         serde_json::json!({
             "ok": true,
@@ -396,7 +397,7 @@ impl MadoMcp {
         use crate::prompt_mark::PromptKind;
         let include_all = input.include_all_kinds.unwrap_or(false);
         let limit = input.limit.map(|n| n as usize);
-        let guard = self.prompt_marks.lock().expect("prompt_marks lock poisoned");
+        let guard = self.state.prompt_marks.lock().expect("prompt_marks lock poisoned");
         // Most-recent-first: walk the underlying VecDeque in reverse.
         let filtered: Vec<serde_json::Value> = guard
             .iter()
@@ -423,7 +424,7 @@ impl MadoMcp {
 
     #[tool(description = "Clear the OSC 133 prompt-mark history. Returns `{ok, cleared}`. Used when a session needs a fresh jump surface (e.g. after `reset`) or when sensitive shell output should no longer be jumpable-to.")]
     async fn prompt_marks_clear(&self) -> String {
-        let mut guard = self.prompt_marks.lock().expect("prompt_marks lock poisoned");
+        let mut guard = self.state.prompt_marks.lock().expect("prompt_marks lock poisoned");
         let cleared = guard.len();
         guard.clear();
         serde_json::json!({
@@ -447,7 +448,7 @@ impl MadoMcp {
         Parameters(input): Parameters<UserMarksListInput>,
     ) -> String {
         let limit = input.limit.map(|n| n as usize);
-        let guard = self.user_marks.lock().expect("user_marks lock poisoned");
+        let guard = self.state.user_marks.lock().expect("user_marks lock poisoned");
         let iter = guard.iter().rev().map(|m| {
             serde_json::json!({
                 "grid_row": m.grid_row,
@@ -467,7 +468,7 @@ impl MadoMcp {
 
     #[tool(description = "Clear the OSC 1337 user-mark history. Returns `{ok, cleared}`. Paired with prompt_marks_clear for a full mark-history reset.")]
     async fn user_marks_clear(&self) -> String {
-        let mut guard = self.user_marks.lock().expect("user_marks lock poisoned");
+        let mut guard = self.state.user_marks.lock().expect("user_marks lock poisoned");
         let cleared = guard.len();
         guard.clear();
         serde_json::json!({
@@ -479,7 +480,7 @@ impl MadoMcp {
 
     #[tool(description = "Read the current OSC 1337 RequestAttention flag. Returns `{attention_requested}`. Used by escriba workflows that want to know whether a terminal is currently asking for user attention (e.g., long-running test signals completion).")]
     async fn attention_get(&self) -> String {
-        let guard = self.attention.lock().expect("attention lock poisoned");
+        let guard = self.state.attention.lock().expect("attention lock poisoned");
         serde_json::json!({
             "attention_requested": *guard,
         })
@@ -491,7 +492,7 @@ impl MadoMcp {
         &self,
         Parameters(input): Parameters<AttentionSetInput>,
     ) -> String {
-        let mut guard = self.attention.lock().expect("attention lock poisoned");
+        let mut guard = self.state.attention.lock().expect("attention lock poisoned");
         *guard = input.requested;
         serde_json::json!({
             "ok": true,
@@ -504,7 +505,7 @@ impl MadoMcp {
     async fn clipboard_list(&self, Parameters(input): Parameters<ClipboardListInput>) -> String {
         let include_content = input.include_content.unwrap_or(false);
         let limit = input.limit.map(|n| n as usize);
-        let guard = self.clipboard.lock().expect("clipboard lock poisoned");
+        let guard = self.state.clipboard.lock().expect("clipboard lock poisoned");
         let iter = guard.entries_recent_first();
         let entries: Vec<serde_json::Value> = match limit {
             Some(n) => iter.take(n).map(|e| entry_json(e, include_content)).collect(),
@@ -1075,12 +1076,11 @@ mod tests {
             }
         }
         let clipboard = Arc::new(Mutex::new(ClipboardStore::new(16)));
-        let server = MadoMcp::with_handles(
+        let server = MadoMcp::with_state(SharedState {
             clipboard,
-            history.clone(),
-            Arc::new(Mutex::new(UserMarkHistory::default())),
-            Arc::new(Mutex::new(false)),
-        );
+            prompt_marks: history.clone(),
+            ..SharedState::default()
+        });
         (server, history)
     }
 
@@ -1205,12 +1205,12 @@ mod tests {
                 guard.record(*row);
             }
         }
-        let server = MadoMcp::with_handles(
+        let server = MadoMcp::with_state(SharedState {
             clipboard,
             prompt_marks,
-            user_marks.clone(),
-            attention.clone(),
-        );
+            user_marks: user_marks.clone(),
+            attention: attention.clone(),
+        });
         (server, user_marks, attention)
     }
 
@@ -1266,6 +1266,31 @@ mod tests {
         let raw = server.attention_get().await;
         let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
         assert_eq!(parsed["attention_requested"], true);
+    }
+
+    #[test]
+    fn shared_state_default_initializes_every_handle() {
+        // Struct-update contract: SharedState::default() gives a
+        // server that behaves as if no activity has occurred.
+        let state = SharedState::default();
+        assert!(state.clipboard.lock().unwrap().is_empty());
+        assert!(state.prompt_marks.lock().unwrap().is_empty());
+        assert!(state.user_marks.lock().unwrap().is_empty());
+        assert!(!*state.attention.lock().unwrap());
+    }
+
+    #[test]
+    fn shared_state_struct_update_preserves_overridden_handle() {
+        // Tests rely on `..SharedState::default()` to override one
+        // handle. Pin that the overridden handle is the same Arc
+        // (ptr equality) — struct-update must forward the user's
+        // handle verbatim, not clone-reset it.
+        let clipboard = Arc::new(Mutex::new(ClipboardStore::new(4)));
+        let state = SharedState {
+            clipboard: clipboard.clone(),
+            ..SharedState::default()
+        };
+        assert!(Arc::ptr_eq(&state.clipboard, &clipboard));
     }
 
     #[tokio::test]

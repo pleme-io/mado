@@ -143,6 +143,7 @@ impl UserMarkHistory {
 
     /// True when empty.
     #[must_use]
+    #[allow(dead_code)] // Idiomatic alongside `len()`; consumed by tests.
     pub fn is_empty(&self) -> bool {
         self.marks.is_empty()
     }
