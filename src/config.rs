@@ -43,6 +43,8 @@ pub struct MadoConfig {
     pub search: SearchColorsConfig,
     #[serde(default)]
     pub keybinds: KeybindConfig,
+    #[serde(default)]
+    pub quick_terminal: QuickTerminalConfig,
 }
 
 /// Font family and rendering configuration (mirrors Ghostty's font-* options).
@@ -404,6 +406,141 @@ fn default_font_scale() -> f32 {
     1.0
 }
 
+// ── Quick Terminal ──────────────────────────────────────────────────────────
+//
+// ghostty's distinguishing UX feature: a terminal window that stays
+// hidden under a global hotkey and slides in from a screen edge when
+// the user presses it (similar to Tilda, Guake, iTerm2's hotkey
+// window, macOS "Visor"). mado absorbs the typed surface here; the
+// runtime wire-up (global-hotkey listener + slide animation) arrives
+// in a subsequent tick.
+
+/// Which screen edge a Quick Terminal slides in from.
+///
+/// `Center` is a floating panel variant — width × height are both
+/// `size_fraction * screen_dim`, positioned centered. The other
+/// variants pin to one edge with the perpendicular axis filling
+/// the screen.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum QuickTerminalEdge {
+    #[default]
+    Top,
+    Bottom,
+    Left,
+    Right,
+    Center,
+}
+
+/// Typed Quick Terminal config — declarative equivalent of ghostty's
+/// `quick-terminal-*` keys.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QuickTerminalConfig {
+    /// When false, the Quick Terminal machinery is dormant — no
+    /// global hotkey registration, no hidden window. Default: false
+    /// (opt-in).
+    #[serde(default)]
+    pub enabled: bool,
+    /// Which edge of the focused screen the Quick Terminal slides in
+    /// from. Default: `top`.
+    #[serde(default)]
+    pub edge: QuickTerminalEdge,
+    /// Fraction of the screen's long-axis size (relative to `edge`)
+    /// the Quick Terminal occupies. For `top` / `bottom`, this is
+    /// the height fraction; for `left` / `right`, the width; for
+    /// `center`, both dimensions. Clamped to `[0.1, 1.0]` at
+    /// resolution time. Default: 0.4 (40%).
+    #[serde(default = "default_quick_terminal_size_fraction")]
+    pub size_fraction: f32,
+    /// Slide / fade animation duration in milliseconds. Zero disables
+    /// animation and snaps to the final position. Default: 150ms.
+    #[serde(default = "default_quick_terminal_animation_ms")]
+    pub animation_ms: u64,
+    /// Hide automatically when the window loses focus. Matches
+    /// ghostty's `quick-terminal-autohide` default: true.
+    #[serde(default = "default_true")]
+    pub autohide_on_blur: bool,
+    /// Global hotkey that toggles visibility — parsed by `awase`.
+    /// Empty string = no automatic toggle (the Quick Terminal can
+    /// still be driven via MCP). Default: empty.
+    #[serde(default)]
+    pub hotkey: String,
+}
+
+impl Default for QuickTerminalConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            edge: QuickTerminalEdge::Top,
+            size_fraction: default_quick_terminal_size_fraction(),
+            animation_ms: default_quick_terminal_animation_ms(),
+            autohide_on_blur: true,
+            hotkey: String::new(),
+        }
+    }
+}
+
+impl QuickTerminalConfig {
+    /// True when the config is both `enabled` and has a non-empty
+    /// `hotkey` — the minimum for the global-hotkey registration to
+    /// make sense. An enabled config without a hotkey is valid (MCP-
+    /// driven) but `is_active_hotkey()` is false.
+    #[must_use]
+    pub fn is_active_hotkey(&self) -> bool {
+        self.enabled && !self.hotkey.is_empty()
+    }
+
+    /// Compute the Quick Terminal window size for the given screen
+    /// pixel dimensions. Returns `(width, height)` after clamping
+    /// `size_fraction` into `[0.1, 1.0]`.
+    ///
+    /// The math mirrors ghostty's resolution: edge-pinned variants
+    /// fill the perpendicular axis; `Center` fractionates both axes.
+    #[must_use]
+    pub fn resolve_size_pixels(&self, (screen_w, screen_h): (u32, u32)) -> (u32, u32) {
+        let fraction = self.size_fraction.clamp(0.1, 1.0);
+        // Minimum-1 pixel so downstream winit calls can't panic on 0.
+        let axis = |n: u32, f: f32| ((n as f32 * f).round() as u32).max(1);
+        match self.edge {
+            QuickTerminalEdge::Top | QuickTerminalEdge::Bottom => {
+                (screen_w, axis(screen_h, fraction))
+            }
+            QuickTerminalEdge::Left | QuickTerminalEdge::Right => {
+                (axis(screen_w, fraction), screen_h)
+            }
+            QuickTerminalEdge::Center => {
+                (axis(screen_w, fraction), axis(screen_h, fraction))
+            }
+        }
+    }
+
+    /// Window-origin (top-left) in screen pixels for the computed
+    /// size. Paired with [`Self::resolve_size_pixels`] gives the
+    /// full placement tuple. `Center` returns the origin that
+    /// centers a `size_fraction × size_fraction` rectangle.
+    #[must_use]
+    pub fn resolve_origin_pixels(&self, screen: (u32, u32)) -> (u32, u32) {
+        let (w, h) = self.resolve_size_pixels(screen);
+        let (sw, sh) = screen;
+        match self.edge {
+            QuickTerminalEdge::Top | QuickTerminalEdge::Left => (0, 0),
+            QuickTerminalEdge::Bottom => (0, sh.saturating_sub(h)),
+            QuickTerminalEdge::Right => (sw.saturating_sub(w), 0),
+            QuickTerminalEdge::Center => {
+                ((sw.saturating_sub(w)) / 2, (sh.saturating_sub(h)) / 2)
+            }
+        }
+    }
+}
+
+fn default_quick_terminal_size_fraction() -> f32 {
+    0.4
+}
+
+fn default_quick_terminal_animation_ms() -> u64 {
+    150
+}
+
 impl MadoConfig {
     /// Apply a named profile's overrides to this config.
     /// Returns a new config with the profile's values merged in.
@@ -479,6 +616,7 @@ impl Default for MadoConfig {
             selection: SelectionConfig::default(),
             search: SearchColorsConfig::default(),
             keybinds: KeybindConfig::default(),
+            quick_terminal: QuickTerminalConfig::default(),
         }
     }
 }
@@ -1315,5 +1453,155 @@ active_profile: "dark"
         let applied = config.with_profile("fullscreen");
         assert!(applied.window.fullscreen);
         assert!(applied.window.maximize);
+    }
+
+    // ── Quick Terminal ──────────────────────────────────────────────────────
+
+    #[test]
+    fn quick_terminal_defaults_are_opt_in() {
+        let qt = QuickTerminalConfig::default();
+        assert!(!qt.enabled);
+        assert_eq!(qt.edge, QuickTerminalEdge::Top);
+        assert!((qt.size_fraction - 0.4).abs() < 1e-6);
+        assert_eq!(qt.animation_ms, 150);
+        assert!(qt.autohide_on_blur);
+        assert!(qt.hotkey.is_empty());
+        assert!(!qt.is_active_hotkey());
+    }
+
+    #[test]
+    fn quick_terminal_is_active_hotkey_requires_both_fields() {
+        let qt = QuickTerminalConfig {
+            enabled: true,
+            hotkey: String::new(),
+            ..Default::default()
+        };
+        assert!(!qt.is_active_hotkey(), "enabled w/o hotkey is MCP-only");
+
+        let qt = QuickTerminalConfig {
+            enabled: false,
+            hotkey: "cmd+`".into(),
+            ..Default::default()
+        };
+        assert!(!qt.is_active_hotkey(), "hotkey w/o enabled stays dormant");
+
+        let qt = QuickTerminalConfig {
+            enabled: true,
+            hotkey: "cmd+`".into(),
+            ..Default::default()
+        };
+        assert!(qt.is_active_hotkey());
+    }
+
+    #[test]
+    fn quick_terminal_resolves_size_for_each_edge() {
+        let screen = (1600u32, 1000u32);
+
+        // Top / Bottom: full width, fractional height.
+        let qt = QuickTerminalConfig {
+            edge: QuickTerminalEdge::Top,
+            size_fraction: 0.5,
+            ..Default::default()
+        };
+        assert_eq!(qt.resolve_size_pixels(screen), (1600, 500));
+        let qt = QuickTerminalConfig {
+            edge: QuickTerminalEdge::Bottom,
+            size_fraction: 0.3,
+            ..Default::default()
+        };
+        assert_eq!(qt.resolve_size_pixels(screen), (1600, 300));
+
+        // Left / Right: fractional width, full height.
+        let qt = QuickTerminalConfig {
+            edge: QuickTerminalEdge::Left,
+            size_fraction: 0.25,
+            ..Default::default()
+        };
+        assert_eq!(qt.resolve_size_pixels(screen), (400, 1000));
+
+        // Center: fractional in both axes.
+        let qt = QuickTerminalConfig {
+            edge: QuickTerminalEdge::Center,
+            size_fraction: 0.5,
+            ..Default::default()
+        };
+        assert_eq!(qt.resolve_size_pixels(screen), (800, 500));
+    }
+
+    #[test]
+    fn quick_terminal_clamps_size_fraction() {
+        let screen = (1000u32, 800u32);
+
+        // Below floor (0.1).
+        let qt = QuickTerminalConfig {
+            edge: QuickTerminalEdge::Top,
+            size_fraction: -1.0,
+            ..Default::default()
+        };
+        assert_eq!(qt.resolve_size_pixels(screen), (1000, 80));
+
+        // Above ceiling (1.0).
+        let qt = QuickTerminalConfig {
+            edge: QuickTerminalEdge::Top,
+            size_fraction: 5.0,
+            ..Default::default()
+        };
+        assert_eq!(qt.resolve_size_pixels(screen), (1000, 800));
+    }
+
+    #[test]
+    fn quick_terminal_origin_pins_to_edge() {
+        let screen = (1600u32, 1000u32);
+
+        let qt = QuickTerminalConfig {
+            edge: QuickTerminalEdge::Top,
+            size_fraction: 0.5,
+            ..Default::default()
+        };
+        assert_eq!(qt.resolve_origin_pixels(screen), (0, 0));
+
+        let qt = QuickTerminalConfig {
+            edge: QuickTerminalEdge::Bottom,
+            size_fraction: 0.3,
+            ..Default::default()
+        };
+        // Bottom edge: origin.y = screen.h - window.h.
+        assert_eq!(qt.resolve_origin_pixels(screen), (0, 700));
+
+        let qt = QuickTerminalConfig {
+            edge: QuickTerminalEdge::Right,
+            size_fraction: 0.25,
+            ..Default::default()
+        };
+        // Right edge: origin.x = screen.w - window.w.
+        assert_eq!(qt.resolve_origin_pixels(screen), (1200, 0));
+
+        let qt = QuickTerminalConfig {
+            edge: QuickTerminalEdge::Center,
+            size_fraction: 0.5,
+            ..Default::default()
+        };
+        // Center: origin = (screen - window) / 2.
+        assert_eq!(qt.resolve_origin_pixels(screen), (400, 250));
+    }
+
+    #[test]
+    fn quick_terminal_deserializes_from_snake_case_edge() {
+        // Edge enum uses serde rename_all = snake_case, so YAML
+        // authors write `edge: bottom` / `edge: center`.
+        let yaml = r#"
+            enabled: true
+            edge: bottom
+            size_fraction: 0.35
+            hotkey: "cmd+`"
+            "#;
+        let qt: QuickTerminalConfig = serde_yaml::from_str(yaml).unwrap();
+        assert!(qt.enabled);
+        assert_eq!(qt.edge, QuickTerminalEdge::Bottom);
+        assert!((qt.size_fraction - 0.35).abs() < 1e-6);
+        assert_eq!(qt.hotkey, "cmd+`");
+        // Non-specified fields fall back to defaults.
+        assert_eq!(qt.animation_ms, 150);
+        assert!(qt.autohide_on_blur);
     }
 }
