@@ -659,6 +659,13 @@ pub struct Terminal {
     // `\x1b]9;BODY\x07` from `notify.sh` pushes a single string.
     pending_notifications: Vec<String>,
 
+    // Content-addressed mirror of every OSC 52 payload this session
+    // has seen. The system clipboard still takes the top-of-stack
+    // (via `clipboard_content`), but `clipboard_store` keeps the
+    // full history keyed by BLAKE3 prefix so MCP tools + escriba
+    // workflows can reference a specific past copy by hash.
+    clipboard_store: crate::clipboard_store::ClipboardStore,
+
     // Shell integration markers (from OSC 133)
     prompt_start_row: Option<usize>,
 
@@ -762,6 +769,7 @@ impl Terminal {
             active_hyperlink: None,
             clipboard_content: None,
             pending_notifications: Vec::new(),
+            clipboard_store: crate::clipboard_store::ClipboardStore::new(128),
             prompt_start_row: None,
             kitty_keyboard_stack: Vec::new(),
             images: HashMap::new(),
@@ -1022,6 +1030,9 @@ impl Terminal {
     /// We don't surface the system clipboard's *contents* back through the
     /// pty (that'd be a privacy regression — programs shouldn't read what
     /// the user copied elsewhere), so queries answer with an empty payload.
+    /// Every successful set additionally indexes into [`clipboard_store`]
+    /// so the session keeps a content-addressed history callable by
+    /// BLAKE3-prefix hash via the planned MCP tool.
     fn handle_osc_52_clipboard(&mut self, params: &[&[u8]]) {
         if params.len() < 3 {
             return;
@@ -1034,9 +1045,26 @@ impl Terminal {
             return;
         }
         if let Some(text) = base64_decode(data) {
-            tracing::debug!(len = text.len(), "OSC 52 clipboard set");
+            let kind = crate::clipboard_store::ClipboardKind::from_osc52_byte(params[1]);
+            let hash = self.clipboard_store.store(text.clone(), kind);
+            tracing::debug!(
+                len = text.len(),
+                kind = kind.label(),
+                hash = %hash.to_hex(),
+                "OSC 52 clipboard set"
+            );
             self.clipboard_content = Some(text);
         }
+    }
+
+    /// Read-only access to the content-addressed clipboard history.
+    /// Consumed by the `clipboard_list` / `clipboard_get` MCP tools
+    /// so external clients can fetch a specific past copy by hash
+    /// without needing OS-clipboard access.
+    #[must_use]
+    #[allow(dead_code)] // Wired by mcp.rs once the clipboard tool lands.
+    pub fn clipboard_store(&self) -> &crate::clipboard_store::ClipboardStore {
+        &self.clipboard_store
     }
 
     /// OSC 104 — Reset indexed ANSI palette entries.

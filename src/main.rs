@@ -6,6 +6,7 @@
 //! - WGSL shader plugins for visual effects
 //! - Hot-reloadable configuration via shikumi
 
+mod clipboard_store;
 mod config;
 mod keybind;
 mod mcp;

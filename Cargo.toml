@@ -23,6 +23,13 @@ opt-level = "z"
 strip = true
 
 [dependencies]
+# Content-addressed clipboard + future attestation anchors.
+# BLAKE3 is the pleme-io convergence-computing stack's canonical hash
+# (tatara, tameshi, sekiban all use it) — keeping mado in the same
+# algorithm family means session-stable clipboard hashes can cross
+# MCP boundaries without re-hashing.
+blake3 = "1"
+
 # Pleme-io shared libraries
 shidou = { git = "https://github.com/pleme-io/shidou" }
 garasu = { git = "https://github.com/pleme-io/garasu" }
