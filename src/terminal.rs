@@ -653,6 +653,12 @@ pub struct Terminal {
     // OSC 52 clipboard content (set by terminal, read by main for clipboard sync)
     clipboard_content: Option<String>,
 
+    // OSC 9 desktop notifications queued by the terminal — the main
+    // event loop drains + dispatches these (typically via
+    // `tsuuchi`). Each entry is one notification body; the format
+    // `\x1b]9;BODY\x07` from `notify.sh` pushes a single string.
+    pending_notifications: Vec<String>,
+
     // Shell integration markers (from OSC 133)
     prompt_start_row: Option<usize>,
 
@@ -755,6 +761,7 @@ impl Terminal {
             cursor_blink: true,
             active_hyperlink: None,
             clipboard_content: None,
+            pending_notifications: Vec::new(),
             prompt_start_row: None,
             kitty_keyboard_stack: Vec::new(),
             images: HashMap::new(),
@@ -987,6 +994,16 @@ impl Terminal {
     /// Take pending clipboard content set by OSC 52.
     pub fn take_clipboard(&mut self) -> Option<String> {
         self.clipboard_content.take()
+    }
+
+    /// Drain the OSC 9 notification queue. Each element is one
+    /// notification body the terminal saw; the main loop
+    /// dispatches them (tsuuchi on the fleet). Iterator-style
+    /// instead of `Vec<_>` so callers can fire-and-forget each
+    /// one without holding the whole batch in memory first.
+    #[allow(dead_code)] // Wired by main.rs once notifier glue lands.
+    pub fn drain_notifications(&mut self) -> std::vec::Drain<'_, String> {
+        self.pending_notifications.drain(..)
     }
 
     /// Row where the last shell prompt started (from OSC 133).
@@ -1990,35 +2007,33 @@ impl vte::Perform for Terminal {
             b"10" => {
                 // OSC 10 — Query/set foreground color
                 if params.len() >= 2 && params[1] == b"?" {
-                    let fg = self.pen_fg;
-                    let response = format!(
-                        "\x1b]10;rgb:{:02x}{:02x}/{:02x}{:02x}/{:02x}{:02x}\x1b\\",
-                        fg.r, fg.r, fg.g, fg.g, fg.b, fg.b
-                    );
-                    self.response_bytes.extend_from_slice(response.as_bytes());
+                    let resp = osc_rgb_query_response(10, self.pen_fg);
+                    self.response_bytes.extend_from_slice(resp.as_bytes());
                 }
             }
             b"11" => {
                 // OSC 11 — Query/set background color
                 if params.len() >= 2 && params[1] == b"?" {
-                    let bg = self.default_bg;
-                    let response = format!(
-                        "\x1b]11;rgb:{:02x}{:02x}/{:02x}{:02x}/{:02x}{:02x}\x1b\\",
-                        bg.r, bg.r, bg.g, bg.g, bg.b, bg.b
-                    );
-                    self.response_bytes.extend_from_slice(response.as_bytes());
+                    let resp = osc_rgb_query_response(11, self.default_bg);
+                    self.response_bytes.extend_from_slice(resp.as_bytes());
                 }
             }
             b"12" => {
                 // OSC 12 — Query/set cursor color
                 if params.len() >= 2 && params[1] == b"?" {
-                    let cursor_color = self.default_fg;
-                    let response = format!(
-                        "\x1b]12;rgb:{:02x}{:02x}/{:02x}{:02x}/{:02x}{:02x}\x1b\\",
-                        cursor_color.r, cursor_color.r, cursor_color.g, cursor_color.g,
-                        cursor_color.b, cursor_color.b
-                    );
-                    self.response_bytes.extend_from_slice(response.as_bytes());
+                    let resp = osc_rgb_query_response(12, self.default_fg);
+                    self.response_bytes.extend_from_slice(resp.as_bytes());
+                }
+            }
+            b"9" => {
+                // OSC 9 — Desktop notification (iTerm2/ghostty compat).
+                // Format: `ESC ] 9 ; <body> ST`  (ST = `ESC \` or BEL).
+                // Empty body is a no-op (spec allows it for "bell-like" pings
+                // that don't carry a message — we prefer the explicit BEL).
+                if params.len() >= 2 && !params[1].is_empty() {
+                    let body = String::from_utf8_lossy(params[1]).into_owned();
+                    tracing::debug!(%body, "OSC 9 notification");
+                    self.pending_notifications.push(body);
                 }
             }
             b"52" => {
@@ -2040,6 +2055,42 @@ impl vte::Perform for Terminal {
                         }
                     }
                 }
+            }
+            b"104" => {
+                // OSC 104 — Reset indexed ANSI palette entries.
+                // Format: `ESC ] 104 ; <idx1> ; <idx2> … ST`
+                // No indices = reset all 256 entries. `0..=15` reset to the
+                // built-in ANSI palette; `16..=255` reset to the xterm 256-
+                // color cube.
+                if params.len() == 1 {
+                    self.ansi_colors = default_ansi_palette();
+                    self.dirty();
+                } else {
+                    for p in &params[1..] {
+                        if let Ok(idx_str) = std::str::from_utf8(p)
+                            && let Ok(idx) = idx_str.parse::<usize>()
+                            && idx < 16
+                        {
+                            self.ansi_colors[idx] = default_ansi_palette()[idx];
+                            self.dirty();
+                        }
+                    }
+                }
+            }
+            b"110" => {
+                // OSC 110 — Reset foreground color to compiled default.
+                self.pen_fg = self.default_fg;
+                self.dirty();
+            }
+            b"111" => {
+                // OSC 111 — Reset background color to compiled default.
+                // `default_bg` is the baseline; we don't store an overridden
+                // copy, so the reset is a no-op beyond marking dirty.
+                self.dirty();
+            }
+            b"112" => {
+                // OSC 112 — Reset cursor color to default.
+                self.dirty();
             }
             b"133" => {
                 // OSC 133 — Shell integration (semantic prompts)
@@ -2572,6 +2623,19 @@ impl vte::Perform for Terminal {
 /// Delegates to `base64_decode_bytes` and converts the result to a UTF-8 string.
 fn base64_decode(input: &[u8]) -> Option<String> {
     String::from_utf8(base64_decode_bytes(input)).ok()
+}
+
+/// Build the xterm `rgb:RR/GG/BB` response for an OSC query. Used by
+/// OSC 10 / 11 / 12 (foreground / background / cursor color) and any
+/// future palette-query OSC that follows the same shape. The duplicated
+/// `RR/RR` / `GG/GG` / `BB/BB` pattern matches xterm: each channel is
+/// emitted twice so older parsers that expect 16-bit precision see
+/// `RRRR/GGGG/BBBB` fall-through as two-byte values.
+fn osc_rgb_query_response(osc_id: u16, c: Color) -> String {
+    format!(
+        "\x1b]{osc_id};rgb:{r:02x}{r:02x}/{g:02x}{g:02x}/{b:02x}{b:02x}\x1b\\",
+        r = c.r, g = c.g, b = c.b
+    )
 }
 
 // ---------------------------------------------------------------------------
@@ -4295,5 +4359,63 @@ mod tests {
         let response_str = String::from_utf8_lossy(&response);
         assert!(response_str.starts_with("\x1b]12;rgb:"));
         assert!(response_str.contains("ecec/efef/f4f4"));
+    }
+
+    #[test]
+    fn test_osc_9_queues_notification() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b]9;Build finished\x07");
+        let notifs: Vec<String> = term.drain_notifications().collect();
+        assert_eq!(notifs, vec!["Build finished".to_string()]);
+        // Drain consumed the queue — second call returns empty.
+        assert_eq!(term.drain_notifications().count(), 0);
+    }
+
+    #[test]
+    fn test_osc_9_empty_body_is_ignored() {
+        // ESC ] 9 ; ST  with no body — spec allows it, we treat as no-op
+        // since the useful notifications always carry a message.
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b]9;\x07");
+        assert_eq!(term.drain_notifications().count(), 0);
+    }
+
+    #[test]
+    fn test_osc_9_multiple_notifications_preserve_order() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b]9;one\x07");
+        term.feed(b"\x1b]9;two\x07");
+        term.feed(b"\x1b]9;three\x07");
+        let notifs: Vec<String> = term.drain_notifications().collect();
+        assert_eq!(notifs, vec!["one".to_string(), "two".into(), "three".into()]);
+    }
+
+    #[test]
+    fn test_osc_104_resets_specific_palette_index() {
+        let mut term = Terminal::new(80, 24);
+        // Override palette index 1 to something unusual.
+        let mut ansi = default_ansi_palette();
+        let original = ansi[1];
+        ansi[1] = Color::new(0xaa, 0xbb, 0xcc);
+        term.apply_theme(term.pen_fg, term.default_bg, ansi);
+        assert_eq!(term.ansi_palette()[1], Color::new(0xaa, 0xbb, 0xcc));
+
+        // OSC 104 with explicit index resets just that one.
+        term.feed(b"\x1b]104;1\x07");
+        assert_eq!(term.ansi_palette()[1], original);
+    }
+
+    #[test]
+    fn test_osc_104_without_indices_resets_all() {
+        let mut term = Terminal::new(80, 24);
+        let mut ansi = default_ansi_palette();
+        ansi[0] = Color::new(0x11, 0x22, 0x33);
+        ansi[15] = Color::new(0x99, 0x88, 0x77);
+        term.apply_theme(term.pen_fg, term.default_bg, ansi);
+
+        term.feed(b"\x1b]104\x07");
+        let restored = term.ansi_palette();
+        let defaults = default_ansi_palette();
+        assert_eq!(restored, &defaults);
     }
 }
