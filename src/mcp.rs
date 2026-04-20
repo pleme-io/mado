@@ -15,6 +15,7 @@ use rmcp::{
 use serde::Deserialize;
 
 use crate::clipboard_store::{ClipboardHash, ClipboardStore};
+use crate::prompt_mark::PromptHistory;
 use crate::term_spec::TermSpec;
 
 // ── Tool input types ────────────────────────────────────────────────────────
@@ -86,6 +87,14 @@ struct ClipboardPutInput {
     kind: Option<String>,
 }
 
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct PromptMarksListInput {
+    #[schemars(description = "Maximum number of marks to return, most-recent-first. Omit for the full history.")]
+    limit: Option<u32>,
+    #[schemars(description = "If true, include non-Start kinds (CommandStart/Output/End) in the result. Default false — jump-capable Start marks only.")]
+    include_all_kinds: Option<bool>,
+}
+
 // ── MCP Server ──────────────────────────────────────────────────────────────
 
 /// Shared handle on the cross-session content-addressed clipboard
@@ -95,6 +104,11 @@ struct ClipboardPutInput {
 /// store itself.
 type SharedClipboard = Arc<Mutex<ClipboardStore>>;
 
+/// Mirror of [`SharedClipboard`] for the typed OSC 133 prompt-mark
+/// history. Same ownership model — future IPC bridge routes Terminal
+/// writes into this handle so MCP readers see live state.
+type SharedPromptMarks = Arc<Mutex<PromptHistory>>;
+
 #[derive(Debug, Clone)]
 struct MadoMcp {
     tool_router: ToolRouter<Self>,
@@ -102,22 +116,43 @@ struct MadoMcp {
     /// Terminal's OSC 52 pipe. For now the server owns the only copy
     /// — the IPC bridge will merge Terminal-side stores on demand.
     clipboard: SharedClipboard,
+    /// OSC 133 prompt-mark history — the typed backing for the
+    /// escriba "jump to past command" picker + any agent that wants
+    /// to replay past prompts.
+    prompt_marks: SharedPromptMarks,
 }
 
 #[tool_router]
 impl MadoMcp {
     fn new() -> Self {
-        Self::with_clipboard(Arc::new(Mutex::new(ClipboardStore::new(128))))
+        Self::with_handles(
+            Arc::new(Mutex::new(ClipboardStore::new(128))),
+            Arc::new(Mutex::new(PromptHistory::default())),
+        )
     }
 
-    /// Construct with an externally-owned clipboard store — lets the
-    /// binary hand over the same store its Terminal populates, so
+    /// Construct with externally-owned shared handles — lets the
+    /// binary hand over the same stores its Terminal populates, so
     /// reads see live session state.
-    fn with_clipboard(clipboard: SharedClipboard) -> Self {
+    fn with_handles(
+        clipboard: SharedClipboard,
+        prompt_marks: SharedPromptMarks,
+    ) -> Self {
         Self {
             tool_router: Self::tool_router(),
             clipboard,
+            prompt_marks,
         }
+    }
+
+    /// Clipboard-only constructor — back-compat for tests that only
+    /// exercise the clipboard bridge. Equivalent to
+    /// `with_handles(clipboard, PromptHistory::default())`.
+    fn with_clipboard(clipboard: SharedClipboard) -> Self {
+        Self::with_handles(
+            clipboard,
+            Arc::new(Mutex::new(PromptHistory::default())),
+        )
     }
 
     // ── Standard tools ──────────────────────────────────────────────────────
@@ -297,6 +332,60 @@ impl MadoMcp {
     async fn clipboard_clear(&self) -> String {
         let mut guard = self.clipboard.lock().expect("clipboard lock poisoned");
         let cleared = guard.clear();
+        serde_json::json!({
+            "ok": true,
+            "cleared": cleared,
+        })
+        .to_string()
+    }
+
+    // ── OSC 133 prompt-mark history — escriba "past command" picker ────────
+    //
+    // Mado captures every OSC 133 marker (prompt start / command start /
+    // output / end) in a typed bounded history. These tools surface
+    // the history over MCP so escriba's picker can render a "jump to
+    // past command" list spanning every terminal pane the agent has
+    // access to. No editor / terminal pair exposes this: ghostty +
+    // kitty + iterm2 keep prompt-jump internal.
+
+    #[tool(description = "List OSC 133 prompt marks the session has seen, most-recent-first. Returns `{count, total, marks: [{grid_row, kind}]}`. Default filters to `Start` kind only — the jump-capable marker. Set `include_all_kinds: true` to also surface CommandStart / CommandOutput / CommandEnd marks for finer-grained replays.")]
+    async fn prompt_marks_list(
+        &self,
+        Parameters(input): Parameters<PromptMarksListInput>,
+    ) -> String {
+        use crate::prompt_mark::PromptKind;
+        let include_all = input.include_all_kinds.unwrap_or(false);
+        let limit = input.limit.map(|n| n as usize);
+        let guard = self.prompt_marks.lock().expect("prompt_marks lock poisoned");
+        // Most-recent-first: walk the underlying VecDeque in reverse.
+        let filtered: Vec<serde_json::Value> = guard
+            .iter()
+            .rev()
+            .filter(|m| include_all || m.kind == PromptKind::Start)
+            .map(|m| {
+                serde_json::json!({
+                    "grid_row": m.grid_row,
+                    "kind": format!("{:?}", m.kind),
+                })
+            })
+            .collect();
+        let marks: Vec<_> = match limit {
+            Some(n) => filtered.into_iter().take(n).collect(),
+            None => filtered,
+        };
+        serde_json::json!({
+            "count": marks.len(),
+            "total": guard.len(),
+            "marks": marks,
+        })
+        .to_string()
+    }
+
+    #[tool(description = "Clear the OSC 133 prompt-mark history. Returns `{ok, cleared}`. Used when a session needs a fresh jump surface (e.g. after `reset`) or when sensitive shell output should no longer be jumpable-to.")]
+    async fn prompt_marks_clear(&self) -> String {
+        let mut guard = self.prompt_marks.lock().expect("prompt_marks lock poisoned");
+        let cleared = guard.len();
+        guard.clear();
         serde_json::json!({
             "ok": true,
             "cleared": cleared,
@@ -861,6 +950,131 @@ mod tests {
             .await;
         let got: serde_json::Value = serde_json::from_str(&get_raw).unwrap();
         assert_eq!(got["found"], false);
+    }
+
+    // ── Prompt-mark MCP tools ────────────────────────────────────────────
+
+    use crate::prompt_mark::{PromptHistory, PromptKind};
+
+    fn server_with_seeded_prompt_marks(
+        marks: &[(usize, PromptKind)],
+    ) -> (MadoMcp, Arc<Mutex<PromptHistory>>) {
+        let history = Arc::new(Mutex::new(PromptHistory::default()));
+        {
+            let mut guard = history.lock().unwrap();
+            for (row, kind) in marks {
+                guard.record(*row, *kind);
+            }
+        }
+        let clipboard = Arc::new(Mutex::new(ClipboardStore::new(16)));
+        let server = MadoMcp::with_handles(clipboard, history.clone());
+        (server, history)
+    }
+
+    #[tokio::test]
+    async fn prompt_marks_list_defaults_to_start_only() {
+        let (server, _) = server_with_seeded_prompt_marks(&[
+            (5, PromptKind::Start),
+            (6, PromptKind::CommandStart),
+            (10, PromptKind::Start),
+            (11, PromptKind::CommandOutput),
+            (20, PromptKind::Start),
+        ]);
+        let raw = server
+            .prompt_marks_list(Parameters(PromptMarksListInput {
+                limit: None,
+                include_all_kinds: None,
+            }))
+            .await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        // Only Start marks by default — 3 of them.
+        assert_eq!(parsed["count"], 3);
+        assert_eq!(parsed["total"], 5);
+        let marks = parsed["marks"].as_array().unwrap();
+        // Most-recent-first.
+        assert_eq!(marks[0]["grid_row"], 20);
+        assert_eq!(marks[0]["kind"], "Start");
+        assert_eq!(marks[1]["grid_row"], 10);
+        assert_eq!(marks[2]["grid_row"], 5);
+    }
+
+    #[tokio::test]
+    async fn prompt_marks_list_honours_include_all_kinds() {
+        let (server, _) = server_with_seeded_prompt_marks(&[
+            (5, PromptKind::Start),
+            (6, PromptKind::CommandStart),
+            (7, PromptKind::CommandOutput),
+            (8, PromptKind::CommandEnd),
+        ]);
+        let raw = server
+            .prompt_marks_list(Parameters(PromptMarksListInput {
+                limit: None,
+                include_all_kinds: Some(true),
+            }))
+            .await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed["count"], 4);
+        let marks = parsed["marks"].as_array().unwrap();
+        // Most-recent-first across every kind.
+        assert_eq!(marks[0]["kind"], "CommandEnd");
+        assert_eq!(marks[3]["kind"], "Start");
+    }
+
+    #[tokio::test]
+    async fn prompt_marks_list_honours_limit() {
+        let (server, _) = server_with_seeded_prompt_marks(&[
+            (1, PromptKind::Start),
+            (2, PromptKind::Start),
+            (3, PromptKind::Start),
+            (4, PromptKind::Start),
+        ]);
+        let raw = server
+            .prompt_marks_list(Parameters(PromptMarksListInput {
+                limit: Some(2),
+                include_all_kinds: None,
+            }))
+            .await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed["count"], 2);
+        // total reflects the full history.
+        assert_eq!(parsed["total"], 4);
+        let marks = parsed["marks"].as_array().unwrap();
+        assert_eq!(marks[0]["grid_row"], 4);
+        assert_eq!(marks[1]["grid_row"], 3);
+    }
+
+    #[tokio::test]
+    async fn prompt_marks_clear_wipes_history_and_returns_prior_count() {
+        let (server, history) = server_with_seeded_prompt_marks(&[
+            (5, PromptKind::Start),
+            (10, PromptKind::Start),
+            (15, PromptKind::Start),
+        ]);
+        let raw = server.prompt_marks_clear().await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed["ok"], true);
+        assert_eq!(parsed["cleared"], 3);
+        assert!(history.lock().unwrap().is_empty());
+
+        // Clearing again reports 0.
+        let raw = server.prompt_marks_clear().await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed["cleared"], 0);
+    }
+
+    #[tokio::test]
+    async fn prompt_marks_list_on_empty_history_returns_empty_array() {
+        let (server, _) = server_with_seeded_prompt_marks(&[]);
+        let raw = server
+            .prompt_marks_list(Parameters(PromptMarksListInput {
+                limit: None,
+                include_all_kinds: None,
+            }))
+            .await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed["count"], 0);
+        assert_eq!(parsed["total"], 0);
+        assert_eq!(parsed["marks"].as_array().unwrap().len(), 0);
     }
 
     #[test]
