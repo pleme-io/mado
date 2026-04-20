@@ -1091,6 +1091,100 @@ impl Terminal {
         }
     }
 
+    /// OSC 0 / 2 — Set window title.
+    ///
+    /// Format: `ESC ] 0 ; <title> ST` (OSC 0 sets both icon-name
+    /// and window title; OSC 2 sets just the window title — mado
+    /// treats them identically since we don't surface icon names).
+    fn handle_osc_0_2_title(&mut self, params: &[&[u8]]) {
+        if params.len() < 2 {
+            return;
+        }
+        let title = String::from_utf8_lossy(params[1]).into_owned();
+        tracing::debug!(%title, "OSC set title");
+        self.title = Some(title);
+        self.dirty();
+    }
+
+    /// OSC 7 — Report current working directory.
+    ///
+    /// Shells emit this after every `cd` via the installed
+    /// shell-integration scripts. Payload is a `file://hostname/path`
+    /// URI; we strip the scheme + host for the internal `cwd`
+    /// field. Format: `ESC ] 7 ; file://HOST/PATH ST`.
+    fn handle_osc_7_cwd(&mut self, params: &[&[u8]]) {
+        if params.len() < 2 {
+            return;
+        }
+        let uri = String::from_utf8_lossy(params[1]).into_owned();
+        let path = if let Some(stripped) = uri.strip_prefix("file://") {
+            // Skip the hostname — everything up to the first `/` of
+            // the path component.
+            stripped
+                .find('/')
+                .map_or(stripped, |idx| &stripped[idx..])
+                .to_string()
+        } else {
+            // No scheme — accept as-is. Ghostty / iTerm2 also tolerate
+            // this even though the spec wants the URI form.
+            uri
+        };
+        tracing::debug!(%path, "OSC 7 set CWD");
+        self.cwd = Some(path);
+    }
+
+    /// OSC 8 — Hyperlink delimiter.
+    ///
+    /// Format: `ESC ] 8 ; <params> ; <URI> ST`. Empty URI (or a
+    /// short-form sequence with only one param) ends the active
+    /// hyperlink run; subsequent cells paint without underline-style
+    /// hyperlinking until the next non-empty OSC 8.
+    fn handle_osc_8_hyperlink(&mut self, params: &[&[u8]]) {
+        if params.len() < 3 {
+            self.active_hyperlink = None;
+            return;
+        }
+        let uri = String::from_utf8_lossy(params[2]).into_owned();
+        self.active_hyperlink = if uri.is_empty() { None } else { Some(uri) };
+    }
+
+    /// OSC 9 — Desktop notification (iTerm2 / ghostty compat).
+    ///
+    /// Format: `ESC ] 9 ; <body> ST`  (ST = `ESC \` or BEL). Empty
+    /// body is a no-op (the spec lets `ESC ] 9 ; ST` mean a
+    /// "bell-like ping" — we prefer the explicit BEL for that so
+    /// the notification queue only carries real messages).
+    fn handle_osc_9_notification(&mut self, params: &[&[u8]]) {
+        if params.len() < 2 || params[1].is_empty() {
+            return;
+        }
+        let body = String::from_utf8_lossy(params[1]).into_owned();
+        tracing::debug!(%body, "OSC 9 notification");
+        self.pending_notifications.push(body);
+    }
+
+    /// OSC 110 — Reset foreground to the compiled default. Matches
+    /// the xterm idiom shells use to un-do an earlier `\e]10;…` set.
+    fn handle_osc_110_fg_reset(&mut self) {
+        self.pen_fg = self.default_fg;
+        self.dirty();
+    }
+
+    /// OSC 111 — Reset background to the compiled default. We don't
+    /// store an overridden copy of the baseline bg, so the reset is
+    /// a no-op beyond marking dirty; lives as a named method so the
+    /// dispatch table stays symmetric with 110 / 112.
+    fn handle_osc_111_bg_reset(&mut self) {
+        self.dirty();
+    }
+
+    /// OSC 112 — Reset cursor color to default. Cursor color isn't
+    /// separately stored yet; reset marks dirty for future
+    /// consistency.
+    fn handle_osc_112_cursor_reset(&mut self) {
+        self.dirty();
+    }
+
     /// OSC 4 — Set or query an indexed ANSI palette entry.
     ///
     /// Query form: `ESC ] 4 ; <idx> ; ? ST` — answers with the
@@ -2135,82 +2229,26 @@ impl vte::Perform for Terminal {
         if params.is_empty() {
             return;
         }
+        // Dispatch table — each branch either delegates to a named
+        // `handle_osc_N_*` method (the preferred shape, grep-friendly)
+        // or a single-liner field reset. Adding a new OSC code = one
+        // method plus one line here.
         match params[0] {
-            b"0" | b"2" => {
-                if params.len() > 1 {
-                    let title = String::from_utf8_lossy(params[1]).into_owned();
-                    tracing::debug!(%title, "OSC set title");
-                    self.title = Some(title);
-                    self.dirty();
-                }
-            }
-            b"4" => self.handle_osc_4_palette(params),
-            b"7" => {
-                // OSC 7 — Current Working Directory
-                // Format: file://hostname/path
-                if params.len() > 1 {
-                    let uri = String::from_utf8_lossy(params[1]).into_owned();
-                    // Extract path from file:// URI
-                    let path = if let Some(stripped) = uri.strip_prefix("file://") {
-                        // Skip hostname (everything before the second /)
-                        stripped
-                            .find('/')
-                            .map_or(stripped, |idx| &stripped[idx..])
-                            .to_string()
-                    } else {
-                        uri
-                    };
-                    tracing::debug!(%path, "OSC 7 set CWD");
-                    self.cwd = Some(path);
-                }
-            }
-            b"8" => {
-                // OSC 8 — Hyperlinks
-                // Format: OSC 8 ; params ; URI ST  (empty URI = end hyperlink)
-                if params.len() >= 3 {
-                    let uri = String::from_utf8_lossy(params[2]).into_owned();
-                    if uri.is_empty() {
-                        self.active_hyperlink = None;
-                    } else {
-                        self.active_hyperlink = Some(uri);
-                    }
-                } else {
-                    self.active_hyperlink = None;
-                }
-            }
-            b"10" => self.handle_osc_10_foreground(params),
-            b"11" => self.handle_osc_11_background(params),
-            b"12" => self.handle_osc_12_cursor(params),
-            b"9" => {
-                // OSC 9 — Desktop notification (iTerm2/ghostty compat).
-                // Format: `ESC ] 9 ; <body> ST`  (ST = `ESC \` or BEL).
-                // Empty body is a no-op (spec allows it for "bell-like" pings
-                // that don't carry a message — we prefer the explicit BEL).
-                if params.len() >= 2 && !params[1].is_empty() {
-                    let body = String::from_utf8_lossy(params[1]).into_owned();
-                    tracing::debug!(%body, "OSC 9 notification");
-                    self.pending_notifications.push(body);
-                }
-            }
-            b"52" => self.handle_osc_52_clipboard(params),
-            b"104" => self.handle_osc_104_palette_reset(params),
-            b"110" => {
-                // OSC 110 — Reset foreground color to compiled default.
-                self.pen_fg = self.default_fg;
-                self.dirty();
-            }
-            b"111" => {
-                // OSC 111 — Reset background color to compiled default.
-                // `default_bg` is the baseline; we don't store an overridden
-                // copy, so the reset is a no-op beyond marking dirty.
-                self.dirty();
-            }
-            b"112" => {
-                // OSC 112 — Reset cursor color to default.
-                self.dirty();
-            }
-            b"133" => self.handle_osc_133_shell_integration(params),
-            _ => tracing::trace!(?params, "unhandled OSC sequence"),
+            b"0" | b"2" => self.handle_osc_0_2_title(params),
+            b"4"       => self.handle_osc_4_palette(params),
+            b"7"       => self.handle_osc_7_cwd(params),
+            b"8"       => self.handle_osc_8_hyperlink(params),
+            b"9"       => self.handle_osc_9_notification(params),
+            b"10"      => self.handle_osc_10_foreground(params),
+            b"11"      => self.handle_osc_11_background(params),
+            b"12"      => self.handle_osc_12_cursor(params),
+            b"52"      => self.handle_osc_52_clipboard(params),
+            b"104"     => self.handle_osc_104_palette_reset(params),
+            b"110"     => self.handle_osc_110_fg_reset(),
+            b"111"     => self.handle_osc_111_bg_reset(),
+            b"112"     => self.handle_osc_112_cursor_reset(),
+            b"133"     => self.handle_osc_133_shell_integration(params),
+            _          => tracing::trace!(?params, "unhandled OSC sequence"),
         }
     }
 
