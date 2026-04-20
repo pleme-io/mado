@@ -294,8 +294,14 @@ impl Grid {
     /// Scroll the region [top..=bottom] up by one line.
     /// Top row is pushed to scrollback (only if top == 0).
     /// Bottom row becomes blank.
-    fn scroll_region_up(&mut self, top: usize, bottom: usize) {
+    ///
+    /// Returns the number of rows evicted from the front of the
+    /// scrollback this call — callers (e.g., `Terminal::scroll_grid_up`)
+    /// use this to shift prompt-mark indices and any other
+    /// grid-row-referencing state.
+    fn scroll_region_up(&mut self, top: usize, bottom: usize) -> usize {
         let sb_offset = self.scrollback_len();
+        let mut evicted = 0;
 
         if top == 0 && bottom == self.visible_rows - 1 {
             // Full-screen scroll: push top to scrollback, append blank
@@ -303,6 +309,7 @@ impl Grid {
             // Evict oldest scrollback if over limit
             while self.scrollback_len() > self.max_scrollback {
                 self.rows.pop_front();
+                evicted += 1;
             }
         } else {
             // Partial scroll region: remove the top row, insert blank at bottom
@@ -312,6 +319,7 @@ impl Grid {
             // After removal, indexes shifted down, so insert at the same logical position
             self.rows.insert(insert_idx, vec![Cell::default(); self.cols]);
         }
+        evicted
     }
 
     /// Scroll the region [top..=bottom] down by one line.
@@ -666,8 +674,9 @@ pub struct Terminal {
     // workflows can reference a specific past copy by hash.
     clipboard_store: crate::clipboard_store::ClipboardStore,
 
-    // Shell integration markers (from OSC 133)
-    prompt_start_row: Option<usize>,
+    // Shell integration markers (from OSC 133). Typed history —
+    // see `prompt_mark::PromptHistory` for the jump API.
+    prompt_marks: crate::prompt_mark::PromptHistory,
 
     // Kitty keyboard protocol — progressive enhancement mode stack.
     // Each entry is the flags bitmask pushed by the application.
@@ -770,7 +779,9 @@ impl Terminal {
             clipboard_content: None,
             pending_notifications: Vec::new(),
             clipboard_store: crate::clipboard_store::ClipboardStore::new(128),
-            prompt_start_row: None,
+            prompt_marks: crate::prompt_mark::PromptHistory::with_capacity(
+                max_scrollback.max(256),
+            ),
             kitty_keyboard_stack: Vec::new(),
             images: HashMap::new(),
             image_placements: Vec::new(),
@@ -1275,29 +1286,101 @@ impl Terminal {
     /// `A` = prompt start, `B` = command start, `C` = command output,
     /// `D` = command end. Shells emit these via the installed
     /// shell-integration scripts (see `shell-integration/mado.*`).
-    /// `A` captures the prompt row so the renderer can scroll back
-    /// to the *start* of the previous command on a keystroke.
+    /// Every mark is recorded in the typed [`prompt_mark::PromptHistory`]
+    /// so the user can jump between prompts with a keybind (see
+    /// [`Terminal::scroll_offset_to_prev_prompt`] /
+    /// [`Terminal::scroll_offset_to_next_prompt`]).
     fn handle_osc_133_shell_integration(&mut self, params: &[&[u8]]) {
         if params.len() < 2 {
             return;
         }
-        match params[1] {
-            b"A" => {
-                self.prompt_start_row = Some(self.cursor.row);
-                tracing::trace!(row = self.cursor.row, "OSC 133 prompt start");
-            }
-            b"B" => tracing::trace!("OSC 133 command start"),
-            b"C" => tracing::trace!("OSC 133 command output"),
-            b"D" => tracing::trace!("OSC 133 command end"),
-            _ => {}
+        let Some(kind) = crate::prompt_mark::PromptKind::from_osc_param(params[1]) else {
+            return;
+        };
+        // Only record marks on the primary screen — shells don't
+        // emit OSC 133 from inside full-screen TUIs (vim, less, …)
+        // that use the alternate screen, and mark rows wouldn't
+        // mean anything if they did.
+        if self.use_alternate {
+            return;
         }
+        let grid_row = self.primary.scrollback_len() + self.cursor.row;
+        self.prompt_marks.record(grid_row, kind);
+        tracing::trace!(
+            row = self.cursor.row,
+            grid_row,
+            kind = ?kind,
+            "OSC 133 mark recorded",
+        );
     }
 
-    /// Row where the last shell prompt started (from OSC 133).
+    /// Grid-internal row of the most recent prompt start, if any.
+    /// Preserved under the old name for the existing unit test +
+    /// any MCP consumer — the richer [`prompt_marks`](Self::prompt_marks)
+    /// accessor is the canonical new surface.
     #[must_use]
     #[allow(dead_code)]
     pub fn prompt_start_row(&self) -> Option<usize> {
-        self.prompt_start_row
+        self.prompt_marks
+            .iter()
+            .rev()
+            .find(|m| m.kind == crate::prompt_mark::PromptKind::Start)
+            .map(|m| m.grid_row)
+    }
+
+    /// Read-only handle to the OSC 133 mark history. Exposed for
+    /// unit tests + MCP tools that want to render a "jump to past
+    /// prompt" picker.
+    #[must_use]
+    #[allow(dead_code)]
+    pub fn prompt_marks(&self) -> &crate::prompt_mark::PromptHistory {
+        &self.prompt_marks
+    }
+
+    /// Compute the scroll offset that would bring the nearest
+    /// Start-kind prompt *above* the current viewport top into the
+    /// top row of the viewport. Returns `None` when no such mark
+    /// is recorded yet.
+    ///
+    /// The coordinate math mirrors [`Terminal::scroll_up`]: a
+    /// `scroll_offset` of 0 shows the live bottom; offset = N shows
+    /// the view shifted up by N rows.
+    #[must_use]
+    pub fn scroll_offset_to_prev_prompt(&self) -> Option<usize> {
+        let grid = &self.primary;
+        let view_top = grid
+            .rows
+            .len()
+            .saturating_sub(grid.visible_rows)
+            .saturating_sub(self.scroll_offset);
+        let target = self.prompt_marks.prev_prompt(view_top)?;
+        Some(
+            grid.rows
+                .len()
+                .saturating_sub(grid.visible_rows)
+                .saturating_sub(target),
+        )
+    }
+
+    /// Mirror of [`Self::scroll_offset_to_prev_prompt`] walking the
+    /// opposite direction — finds the nearest prompt *below* the
+    /// viewport top. Returning `Some(0)` is legal (next prompt is
+    /// already in the live bottom view).
+    #[must_use]
+    pub fn scroll_offset_to_next_prompt(&self) -> Option<usize> {
+        let grid = &self.primary;
+        let view_top = grid
+            .rows
+            .len()
+            .saturating_sub(grid.visible_rows)
+            .saturating_sub(self.scroll_offset);
+        let target = self.prompt_marks.next_prompt(view_top)?;
+        Some(
+            grid.rows
+                .len()
+                .saturating_sub(grid.visible_rows)
+                .saturating_sub(target),
+        )
     }
 
     /// Full terminal reset (RIS). Preserves scrollback setting and theme colors.
@@ -1757,7 +1840,13 @@ impl Terminal {
     fn scroll_grid_up(&mut self) {
         let top = self.scroll_top;
         let bottom = self.scroll_bottom;
-        self.grid_mut().scroll_region_up(top, bottom);
+        let use_alt = self.use_alternate;
+        let evicted = self.grid_mut().scroll_region_up(top, bottom);
+        // Only primary-grid evictions invalidate prompt marks —
+        // alternate has zero scrollback and doesn't record marks.
+        if !use_alt && evicted > 0 {
+            self.prompt_marks.shift_on_evict(evicted);
+        }
         self.dirty();
     }
 
@@ -2515,8 +2604,13 @@ impl vte::Perform for Terminal {
                 let n = first_param(1);
                 let cursor_row = self.cursor.row;
                 let bottom = self.scroll_bottom;
+                let use_alt = self.use_alternate;
+                let mut evicted = 0;
                 for _ in 0..n.min(bottom - cursor_row + 1) {
-                    self.grid_mut().scroll_region_up(cursor_row, bottom);
+                    evicted += self.grid_mut().scroll_region_up(cursor_row, bottom);
+                }
+                if !use_alt && evicted > 0 {
+                    self.prompt_marks.shift_on_evict(evicted);
                 }
                 self.dirty();
             }
@@ -3457,6 +3551,65 @@ mod tests {
         // Send prompt start marker
         term.feed(b"\x1b]133;A\x1b\\");
         assert_eq!(term.prompt_start_row(), Some(0));
+    }
+
+    #[test]
+    fn osc_133_records_typed_history_across_lifecycle() {
+        // Each OSC 133 letter lands as a [`PromptKind`] in the
+        // typed history — the jump API reads back only the Start
+        // marks, but A/B/C/D all go into the record.
+        let mut term = Terminal::new(80, 24);
+        assert!(term.prompt_marks().is_empty());
+
+        term.feed(b"\x1b]133;A\x1b\\");
+        term.feed(b"\x1b]133;B\x1b\\");
+        term.feed(b"\x1b]133;C\x1b\\");
+        term.feed(b"\x1b]133;D\x1b\\");
+        assert_eq!(term.prompt_marks().len(), 4);
+
+        // Unknown letter is ignored — no mark recorded.
+        term.feed(b"\x1b]133;Z\x1b\\");
+        assert_eq!(term.prompt_marks().len(), 4);
+    }
+
+    #[test]
+    fn osc_133_skipped_on_alternate_screen() {
+        // Shells never emit OSC 133 from inside the alt screen —
+        // if something malicious does, we silently drop it rather
+        // than polluting the jump history with rows that don't
+        // mean anything.
+        let mut term = Terminal::new(80, 24);
+        // DECSET 1049 — switch to alt screen.
+        term.feed(b"\x1b[?1049h");
+        term.feed(b"\x1b]133;A\x1b\\");
+        assert!(term.prompt_marks().is_empty());
+    }
+
+    #[test]
+    fn scroll_offset_to_prev_prompt_walks_backwards() {
+        let mut term = Terminal::new(80, 24);
+        // Emit a prompt on the first line, then scroll the grid up
+        // enough that the prompt is in scrollback.
+        term.feed(b"\x1b]133;A\x1b\\");
+        // Fill the rest of the screen + some scrollback by newlines.
+        for _ in 0..50 {
+            term.feed(b"\n");
+        }
+        // Emit a second prompt. Now there's a prev prompt ~50 rows up.
+        term.feed(b"\x1b]133;A\x1b\\");
+        // No scroll yet — calling prev should resolve to the earlier mark.
+        let off = term.scroll_offset_to_prev_prompt();
+        assert!(off.is_some());
+        let off = off.unwrap();
+        // Two marks, so prev from cursor must scroll non-zero.
+        assert!(off > 0, "expected non-zero scroll offset, got {off}");
+    }
+
+    #[test]
+    fn prev_prompt_none_when_no_marks_recorded() {
+        let term = Terminal::new(80, 24);
+        assert!(term.scroll_offset_to_prev_prompt().is_none());
+        assert!(term.scroll_offset_to_next_prompt().is_none());
     }
 
     #[test]

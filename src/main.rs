@@ -13,6 +13,7 @@ mod mcp;
 mod scripting;
 mod pane;
 mod platform;
+mod prompt_mark;
 mod pty;
 mod render;
 mod search;
@@ -639,9 +640,44 @@ fn main() -> anyhow::Result<()> {
                                     ws.send_input(text.into_bytes());
                                 }
                             }
-                            Action::JumpToPrompt => {
-                                // Shell integration prompt jump (requires OSC 133 markers)
-                                tracing::debug!("jump_to_prompt not yet wired to OSC 133 marks");
+                            Action::JumpToPrompt | Action::JumpToPromptPrev => {
+                                // Scroll to the previous OSC 133 A mark (ghostty's
+                                // canonical Cmd-Up binding).
+                                let ws = window_for_events.lock().unwrap();
+                                if let Some(pane) = ws.focused_pane() {
+                                    let mut term = pane.terminal.lock().unwrap();
+                                    if let Some(target) = term.scroll_offset_to_prev_prompt() {
+                                        let delta = target.saturating_sub(term.scroll_offset());
+                                        if delta > 0 {
+                                            term.scroll_up(delta);
+                                        } else {
+                                            let back = term.scroll_offset().saturating_sub(target);
+                                            term.scroll_down(back);
+                                        }
+                                        tracing::trace!(target, "jumped to prev prompt");
+                                    } else {
+                                        tracing::debug!("no prompt marks above viewport");
+                                    }
+                                }
+                            }
+                            Action::JumpToPromptNext => {
+                                // Scroll to the next OSC 133 A mark forward from
+                                // the current view top (ghostty's Cmd-Down).
+                                let ws = window_for_events.lock().unwrap();
+                                if let Some(pane) = ws.focused_pane() {
+                                    let mut term = pane.terminal.lock().unwrap();
+                                    if let Some(target) = term.scroll_offset_to_next_prompt() {
+                                        let cur = term.scroll_offset();
+                                        if target < cur {
+                                            term.scroll_down(cur - target);
+                                        } else if target > cur {
+                                            term.scroll_up(target - cur);
+                                        }
+                                        tracing::trace!(target, "jumped to next prompt");
+                                    } else {
+                                        tracing::debug!("no prompt marks below viewport");
+                                    }
+                                }
                             }
                             Action::ClearScreen => {
                                 let ws = window_for_events.lock().unwrap();

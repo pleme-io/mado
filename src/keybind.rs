@@ -20,6 +20,8 @@ pub enum Action {
     ScrollToTop,
     ScrollToBottom,
     JumpToPrompt,
+    JumpToPromptPrev,
+    JumpToPromptNext,
     SearchOpen,
     SearchClose,
     SearchNext,
@@ -126,6 +128,12 @@ pub fn parse_action(name: &str) -> Option<Action> {
         "scroll_to_top" => Some(Action::ScrollToTop),
         "scroll_to_bottom" => Some(Action::ScrollToBottom),
         "jump_to_prompt" => Some(Action::JumpToPrompt),
+        "jump_to_prompt:prev" | "jump_to_prompt_prev" | "jump_to_previous_prompt" => {
+            Some(Action::JumpToPromptPrev)
+        }
+        "jump_to_prompt:next" | "jump_to_prompt_next" | "jump_to_next_prompt" => {
+            Some(Action::JumpToPromptNext)
+        }
         "search_open" | "search" => Some(Action::SearchOpen),
         "search_close" => Some(Action::SearchClose),
         "search_next" => Some(Action::SearchNext),
@@ -190,6 +198,11 @@ fn default_bindings() -> Vec<Keybinding> {
         Keybinding { hotkey: hk(none, Key::PageDown), action: Action::ScrollPageDown },
         Keybinding { hotkey: hk(cmd, Key::Home), action: Action::ScrollToTop },
         Keybinding { hotkey: hk(cmd, Key::End), action: Action::ScrollToBottom },
+        // Prompt navigation — ghostty-canonical Cmd+Up / Cmd+Down on
+        // OSC 133 prompt marks. Requires the shell integration scripts
+        // (see shell-integration/mado.*) to be sourced.
+        Keybinding { hotkey: hk(cmd, Key::Up), action: Action::JumpToPromptPrev },
+        Keybinding { hotkey: hk(cmd, Key::Down), action: Action::JumpToPromptNext },
         // Pane navigation
         Keybinding { hotkey: hk(cmd, Key::RightBracket), action: Action::FocusNext },
         Keybinding { hotkey: hk(cmd, Key::LeftBracket), action: Action::FocusPrev },
@@ -296,11 +309,10 @@ mod tests {
     #[test]
     fn default_bindings_count() {
         let mgr = KeybindManager::new();
-        // Default bindings include Copy, Paste, SearchOpen, SearchClose,
-        // SearchNext, SearchPrev, FontIncrease, FontDecrease, FontReset,
-        // NewTab, CloseTab, SplitVertical, SplitHorizontal, plus scroll,
-        // pane, tab, terminal, fullscreen = 24
-        assert_eq!(mgr.bindings().len(), 24);
+        // Default bindings: clipboard (2) + search (4) + font (3) +
+        // tabs (2) + splits (2) + scroll (4) + prompt jump (2) +
+        // pane nav (3) + tab nav (2) + terminal (1) + fullscreen (1) = 26.
+        assert_eq!(mgr.bindings().len(), 26);
     }
 
     #[test]
@@ -310,6 +322,7 @@ mod tests {
             Action::ScrollUp, Action::ScrollDown,
             Action::ScrollPageUp, Action::ScrollPageDown, Action::ScrollToTop,
             Action::ScrollToBottom, Action::JumpToPrompt,
+            Action::JumpToPromptPrev, Action::JumpToPromptNext,
             Action::SearchOpen, Action::SearchClose,
             Action::SearchNext, Action::SearchPrev, Action::FontIncrease,
             Action::FontDecrease, Action::FontReset, Action::NewTab,
@@ -390,7 +403,7 @@ mod tests {
     #[test]
     fn test_total_default_bindings_count() {
         let mgr = KeybindManager::new();
-        assert_eq!(mgr.bindings().len(), 24);
+        assert_eq!(mgr.bindings().len(), 26);
     }
 
     #[test]
