@@ -140,83 +140,70 @@ impl MadoMcp {
     #[tool(description = "Get a mado configuration value. Pass a key for a specific value, or omit for the full config.")]
     async fn config_get(&self, Parameters(input): Parameters<ConfigGetInput>) -> String {
         match input.key {
-            Some(key) => serde_json::json!({
-                "key": key,
-                "value": null,
-                "note": "Config queries require IPC to a running mado instance."
-            })
-            .to_string(),
-            None => serde_json::json!({
-                "note": "Full config retrieval requires IPC to a running mado instance.",
-                "config_path": "~/.config/mado/mado.yaml"
-            })
-            .to_string(),
+            Some(key) => stub_response(
+                "config_get",
+                serde_json::json!({ "key": key, "value": null }),
+            ),
+            None => stub_response(
+                "config_get",
+                serde_json::json!({ "config_path": "~/.config/mado/mado.yaml" }),
+            ),
         }
     }
 
     #[tool(description = "Set a mado configuration value at runtime. Changes take effect immediately via hot-reload.")]
     async fn config_set(&self, Parameters(input): Parameters<ConfigSetInput>) -> String {
-        serde_json::json!({
-            "key": input.key,
-            "value": input.value,
-            "applied": false,
-            "note": "Config mutations require IPC to a running mado instance."
-        })
-        .to_string()
+        stub_response(
+            "config_set",
+            serde_json::json!({ "key": input.key, "value": input.value }),
+        )
     }
 
     // ── Terminal-specific tools ─────────────────────────────────────────────
 
     #[tool(description = "List all open terminal sessions (panes and tabs). Returns JSON array with session IDs, titles, working directories, and dimensions.")]
     async fn list_sessions(&self) -> String {
-        serde_json::json!({
-            "sessions": [],
-            "note": "Session listing requires IPC to a running mado instance."
-        })
-        .to_string()
+        stub_response("list_sessions", serde_json::json!({ "sessions": [] }))
     }
 
     #[tool(description = "Send keystrokes to a specific terminal session. Supports escape sequences for special keys.")]
     async fn send_keys(&self, Parameters(input): Parameters<SendKeysInput>) -> String {
-        serde_json::json!({
-            "session_id": input.session_id,
-            "keys_sent": input.keys,
-            "ok": false,
-            "note": "Keystroke delivery requires IPC to a running mado instance."
-        })
-        .to_string()
+        stub_response(
+            "send_keys",
+            serde_json::json!({
+                "session_id": input.session_id,
+                "keys_sent": input.keys,
+            }),
+        )
     }
 
     #[tool(description = "Get recent terminal output from a session. Returns the last N lines of visible and scrollback content.")]
     async fn get_output(&self, Parameters(input): Parameters<GetOutputInput>) -> String {
         let lines = input.lines.unwrap_or(50);
-        serde_json::json!({
-            "session_id": input.session_id,
-            "lines_requested": lines,
-            "output": [],
-            "note": "Output retrieval requires IPC to a running mado instance."
-        })
-        .to_string()
+        stub_response(
+            "get_output",
+            serde_json::json!({
+                "session_id": input.session_id,
+                "lines_requested": lines,
+                "output": [],
+            }),
+        )
     }
 
     #[tool(description = "Create a new split pane in the active tab. Specify horizontal or vertical split direction.")]
     async fn split_pane(&self, Parameters(input): Parameters<SplitPaneInput>) -> String {
-        serde_json::json!({
-            "direction": input.direction,
-            "command": input.command,
-            "ok": false,
-            "note": "Pane creation requires IPC to a running mado instance."
-        })
-        .to_string()
+        stub_response(
+            "split_pane",
+            serde_json::json!({
+                "direction": input.direction,
+                "command": input.command,
+            }),
+        )
     }
 
     #[tool(description = "Create a new tab in the terminal window. Optionally run a command in the new tab.")]
     async fn new_tab(&self) -> String {
-        serde_json::json!({
-            "ok": false,
-            "note": "Tab creation requires IPC to a running mado instance."
-        })
-        .to_string()
+        stub_response("new_tab", serde_json::json!({}))
     }
 
     // ── Typed session spawning — the escriba integration surface ─────────────
@@ -228,14 +215,14 @@ impl MadoMcp {
     // the escriba-lisp `defterm` form authored in the rc.
     #[tool(description = "Spawn a terminal session from a typed TermSpec. Fields: shell, args, cwd, env, title, placement (tab/split-horizontal/split-vertical/window), attach (existing session id), effects (shader names). All optional — empty spec opens a default shell in a new tab.")]
     async fn spawn_term(&self, Parameters(spec): Parameters<TermSpec>) -> String {
-        serde_json::json!({
-            "ok": false,
-            "placement": format!("{:?}", spec.resolved_placement()),
-            "title": spec.display_title(),
-            "is_attach": spec.is_attach(),
-            "note": "Session spawning requires IPC to a running mado instance. Spec accepted + parsed."
-        })
-        .to_string()
+        stub_response(
+            "spawn_term",
+            serde_json::json!({
+                "placement": format!("{:?}", spec.resolved_placement()),
+                "title": spec.display_title(),
+                "is_attach": spec.is_attach(),
+            }),
+        )
     }
 
     // ── Content-addressed clipboard — the escriba snippet integration ────────
@@ -293,6 +280,33 @@ impl MadoMcp {
         })
         .to_string()
     }
+}
+
+/// Render the "stubbed — requires IPC" response shape used by every
+/// tool that can't be satisfied without a running mado instance. The
+/// shape is: `{ok: false, tool: <name>, note: "<name> requires IPC
+/// to a running mado instance.", …extra}`. Extracted so the 8
+/// stubbed tools can't drift into slightly different phrasings — the
+/// wire contract is a single predicate instead of 8 hand-written
+/// JSON objects.
+///
+/// `extra` MUST be a JSON object; any other shape is flattened and
+/// discarded (serde_json's `Map::extend` signature prevents mixing
+/// keyed + unkeyed values).
+fn stub_response(tool: &str, extra: serde_json::Value) -> String {
+    let mut obj = serde_json::Map::with_capacity(8);
+    obj.insert("ok".into(), serde_json::Value::Bool(false));
+    obj.insert("tool".into(), serde_json::Value::String(tool.to_string()));
+    obj.insert(
+        "note".into(),
+        serde_json::Value::String(format!(
+            "{tool} requires IPC to a running mado instance."
+        )),
+    );
+    if let serde_json::Value::Object(fields) = extra {
+        obj.extend(fields);
+    }
+    serde_json::Value::Object(obj).to_string()
 }
 
 /// Render one [`ClipboardEntry`] as the MCP wire shape. `preview`
@@ -561,6 +575,111 @@ mod tests {
         let entries = parsed["entries"].as_array().unwrap();
         assert_eq!(entries[0]["content"], "c");
         assert_eq!(entries[1]["content"], "b");
+    }
+
+    #[tokio::test]
+    async fn every_stubbed_tool_follows_uniform_shape() {
+        // Contract: every IPC-stubbed tool returns {ok: false, tool,
+        // note} at minimum, with the `tool` value matching the
+        // method name and the `note` derivable from `tool`. Adding
+        // a new stub that forgets this structure trips this test.
+        let server = new_server();
+        let responses: Vec<(&str, String)> = vec![
+            (
+                "config_get",
+                server
+                    .config_get(Parameters(ConfigGetInput { key: None }))
+                    .await,
+            ),
+            (
+                "config_set",
+                server
+                    .config_set(Parameters(ConfigSetInput {
+                        key: "font_size".into(),
+                        value: "14".into(),
+                    }))
+                    .await,
+            ),
+            ("list_sessions", server.list_sessions().await),
+            (
+                "send_keys",
+                server
+                    .send_keys(Parameters(SendKeysInput {
+                        session_id: "active".into(),
+                        keys: "x".into(),
+                    }))
+                    .await,
+            ),
+            (
+                "get_output",
+                server
+                    .get_output(Parameters(GetOutputInput {
+                        session_id: "active".into(),
+                        lines: None,
+                    }))
+                    .await,
+            ),
+            (
+                "split_pane",
+                server
+                    .split_pane(Parameters(SplitPaneInput {
+                        direction: "vertical".into(),
+                        command: None,
+                    }))
+                    .await,
+            ),
+            ("new_tab", server.new_tab().await),
+            (
+                "spawn_term",
+                server
+                    .spawn_term(Parameters(TermSpec::default()))
+                    .await,
+            ),
+        ];
+        for (tool_name, raw) in responses {
+            let parsed: serde_json::Value = serde_json::from_str(&raw)
+                .unwrap_or_else(|e| panic!("{tool_name} returned non-JSON: {e} in {raw:?}"));
+            assert_eq!(parsed["ok"], false, "{tool_name}: ok should be false");
+            assert_eq!(parsed["tool"], tool_name, "{tool_name}: tool field mismatch");
+            let note = parsed["note"]
+                .as_str()
+                .unwrap_or_else(|| panic!("{tool_name}: note missing / non-string"));
+            assert!(
+                note.starts_with(tool_name),
+                "{tool_name}: note should start with the tool name (got {note:?})",
+            );
+            assert!(
+                note.contains("requires IPC"),
+                "{tool_name}: note should mention IPC requirement",
+            );
+        }
+    }
+
+    #[test]
+    fn stub_response_flattens_extra_fields_into_object() {
+        // The helper must merge the `extra` object's fields into the
+        // top-level response — callers should be able to add
+        // tool-specific context without wrapping it.
+        let raw = stub_response(
+            "probe",
+            serde_json::json!({ "hello": "world", "count": 3 }),
+        );
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed["ok"], false);
+        assert_eq!(parsed["tool"], "probe");
+        assert_eq!(parsed["hello"], "world");
+        assert_eq!(parsed["count"], 3);
+    }
+
+    #[test]
+    fn stub_response_handles_empty_extra() {
+        // A stub with no tool-specific context is still a valid
+        // payload — used by new_tab() which has nothing to echo.
+        let raw = stub_response("empty", serde_json::json!({}));
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed["ok"], false);
+        assert_eq!(parsed["tool"], "empty");
+        assert!(parsed["note"].is_string());
     }
 
     #[test]
