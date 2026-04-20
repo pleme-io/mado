@@ -81,8 +81,9 @@ objc2-app-kit = { version = "0.3", features = ["NSApplication", "NSWindow", "NSD
 tempfile = "3"
 serde_yaml = "0.9"
 
-[patch."https://github.com/pleme-io/madori"]
-madori = { path = "../madori" }
-
-[patch."https://github.com/pleme-io/shidou"]
-shidou = { path = "../shidou" }
+# Local path patches are opt-in via a dedicated workspace profile —
+# out of the default Cargo.toml so nix sandbox builds resolve the git
+# deps reproducibly. For local iteration against unreleased madori /
+# shidou, create a `.cargo/config.toml` or use `cargo run --config`
+# to re-introduce the `[patch]` sections without poisoning the flake
+# build.

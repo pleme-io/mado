@@ -24,6 +24,26 @@
       toolName = "mado";
       src = self;
       repo = "pleme-io/mado";
+
+      # rmcp 0.15 (and its macros crate) read `env!("CARGO_CRATE_NAME")`
+      # at compile time. crate2nix's default build step doesn't set
+      # that env var, so the crate fails with "environment variable
+      # not defined at compile time". substrate exposes
+      # `crateOverrides` as the canonical per-crate build-attrs hook
+      # — we thread the CARGO_CRATE_NAME env through here so rmcp's
+      # macro expansions resolve. No ad-hoc flake rewrite; same
+      # pattern any fleet crate can use for the same issue.
+      crateOverrides = {
+        rmcp = attrs: {
+          CARGO_CRATE_NAME = "rmcp";
+        };
+        rmcp-macros = attrs: {
+          CARGO_CRATE_NAME = "rmcp_macros";
+        };
+        kaname = attrs: {
+          CARGO_CRATE_NAME = "kaname";
+        };
+      };
     }
     // {
       homeManagerModules.default = import ./module {
