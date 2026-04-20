@@ -12,6 +12,8 @@ use rmcp::{
 };
 use serde::Deserialize;
 
+use crate::term_spec::TermSpec;
+
 // ── Tool input types ────────────────────────────────────────────────────────
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
@@ -177,6 +179,25 @@ impl MadoMcp {
         serde_json::json!({
             "ok": false,
             "note": "Tab creation requires IPC to a running mado instance."
+        })
+        .to_string()
+    }
+
+    // ── Typed session spawning — the escriba integration surface ─────────────
+    //
+    // `spawn_term` is the MCP tool escriba (and any other typed client)
+    // calls when it wants mado to open a new session from a declarative
+    // spec. The JSON schema advertised to clients is `TermSpec` — every
+    // field has a default so the minimal payload is `{}`. This mirrors
+    // the escriba-lisp `defterm` form authored in the rc.
+    #[tool(description = "Spawn a terminal session from a typed TermSpec. Fields: shell, args, cwd, env, title, placement (tab/split-horizontal/split-vertical/window), attach (existing session id), effects (shader names). All optional — empty spec opens a default shell in a new tab.")]
+    async fn spawn_term(&self, Parameters(spec): Parameters<TermSpec>) -> String {
+        serde_json::json!({
+            "ok": false,
+            "placement": format!("{:?}", spec.resolved_placement()),
+            "title": spec.display_title(),
+            "is_attach": spec.is_attach(),
+            "note": "Session spawning requires IPC to a running mado instance. Spec accepted + parsed."
         })
         .to_string()
     }

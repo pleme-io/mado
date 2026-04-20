@@ -17,6 +17,7 @@ mod render;
 mod search;
 mod selection;
 mod tab;
+mod term_spec;
 mod terminal;
 mod theme;
 mod url;
