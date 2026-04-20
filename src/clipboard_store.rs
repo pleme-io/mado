@@ -1,6 +1,6 @@
 //! Content-addressed clipboard store.
 
-#![allow(dead_code)] // Readers (MCP tool, future IPC) land in subsequent ticks.
+#![allow(dead_code)] // Some helpers (kind.label, entry.content clones) are only exercised by tests / future IPC.
 //!
 //! Invention. Every terminal implements OSC 52 as "set the system
 //! clipboard to this string" — the payload vanishes into the OS
@@ -133,6 +133,7 @@ pub struct ClipboardEntry {
 }
 
 /// Bounded LRU-eviction clipboard store, content-addressed.
+#[derive(Debug)]
 pub struct ClipboardStore {
     entries: HashMap<ClipboardHash, ClipboardEntry>,
     /// Insertion/access order; oldest at the front, most recent at

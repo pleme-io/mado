@@ -3,6 +3,8 @@
 //! Provides tools for inspecting and controlling terminal sessions,
 //! sending keystrokes, reading output, and managing panes/tabs.
 
+use std::sync::{Arc, Mutex};
+
 use rmcp::{
     ServerHandler, ServiceExt,
     handler::server::{router::tool::ToolRouter, wrapper::Parameters},
@@ -12,6 +14,7 @@ use rmcp::{
 };
 use serde::Deserialize;
 
+use crate::clipboard_store::{ClipboardHash, ClipboardStore};
 use crate::term_spec::TermSpec;
 
 // ── Tool input types ────────────────────────────────────────────────────────
@@ -61,18 +64,51 @@ struct ConfigSetInput {
     value: String,
 }
 
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct ClipboardGetInput {
+    #[schemars(description = "32-char lowercase BLAKE3-128 hex hash (matches the token escriba's `defsnippet :hash \"…\"` uses).")]
+    hash: String,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct ClipboardListInput {
+    #[schemars(description = "Maximum number of entries to return — most recent first. Omit for the full list.")]
+    limit: Option<u32>,
+    #[schemars(description = "If true, include the full payload `content` in each entry. Defaults to false — only preview + hash are returned so the response stays compact.")]
+    include_content: Option<bool>,
+}
+
 // ── MCP Server ──────────────────────────────────────────────────────────────
+
+/// Shared handle on the cross-session content-addressed clipboard
+/// mirror the MCP server exposes. Wrapping in `Arc<Mutex<_>>` means
+/// multiple tool handlers (and the future IPC bridge that feeds this
+/// from the live Terminal) can hold references without cloning the
+/// store itself.
+type SharedClipboard = Arc<Mutex<ClipboardStore>>;
 
 #[derive(Debug, Clone)]
 struct MadoMcp {
     tool_router: ToolRouter<Self>,
+    /// Content-addressed clipboard shared with (eventually) every
+    /// Terminal's OSC 52 pipe. For now the server owns the only copy
+    /// — the IPC bridge will merge Terminal-side stores on demand.
+    clipboard: SharedClipboard,
 }
 
 #[tool_router]
 impl MadoMcp {
     fn new() -> Self {
+        Self::with_clipboard(Arc::new(Mutex::new(ClipboardStore::new(128))))
+    }
+
+    /// Construct with an externally-owned clipboard store — lets the
+    /// binary hand over the same store its Terminal populates, so
+    /// reads see live session state.
+    fn with_clipboard(clipboard: SharedClipboard) -> Self {
         Self {
             tool_router: Self::tool_router(),
+            clipboard,
         }
     }
 
@@ -201,6 +237,114 @@ impl MadoMcp {
         })
         .to_string()
     }
+
+    // ── Content-addressed clipboard — the escriba snippet integration ────────
+    //
+    // Mado mirrors every OSC 52 payload into a BLAKE3-indexed
+    // `ClipboardStore`. These tools expose that store to any typed
+    // client — chief consumer is escriba's `defsnippet :hash "…"`
+    // form, which resolves the body by asking mado for the payload
+    // associated with the hash. No editor / terminal pair in the
+    // category ships this: the hash is the API.
+
+    #[tool(description = "Fetch a clipboard payload by its 32-char BLAKE3-128 hash. Returns `{found, hash, content, kind, set_at}` on hit; `{found: false, hash}` when the hash isn't in the session store. Used by escriba's `defsnippet :hash \"…\"` to resolve snippet bodies without copying bytes across the socket.")]
+    async fn clipboard_get(&self, Parameters(input): Parameters<ClipboardGetInput>) -> String {
+        let Some(hash) = ClipboardHash::from_hex(&input.hash) else {
+            return serde_json::json!({
+                "found": false,
+                "hash": input.hash,
+                "error": "malformed-hash",
+                "note": "hash must be 32 lowercase hex chars (BLAKE3-128)"
+            })
+            .to_string();
+        };
+        let guard = self.clipboard.lock().expect("clipboard lock poisoned");
+        match guard.get(hash) {
+            Some(entry) => serde_json::json!({
+                "found": true,
+                "hash": entry.hash.to_hex(),
+                "content": entry.content,
+                "kind": entry.kind.label(),
+                "set_at": entry.set_at,
+            })
+            .to_string(),
+            None => serde_json::json!({
+                "found": false,
+                "hash": input.hash,
+            })
+            .to_string(),
+        }
+    }
+
+    #[tool(description = "List clipboard payloads the session has seen, most-recent-first. Returns `{count, entries: [{hash, preview, bytes, kind, set_at}]}`. Set `include_content: true` to also pull the full payload (for scripted pipelines); default is preview-only to keep the response compact.")]
+    async fn clipboard_list(&self, Parameters(input): Parameters<ClipboardListInput>) -> String {
+        let include_content = input.include_content.unwrap_or(false);
+        let limit = input.limit.map(|n| n as usize);
+        let guard = self.clipboard.lock().expect("clipboard lock poisoned");
+        let iter = guard.entries_recent_first();
+        let entries: Vec<serde_json::Value> = match limit {
+            Some(n) => iter.take(n).map(|e| entry_json(e, include_content)).collect(),
+            None => iter.map(|e| entry_json(e, include_content)).collect(),
+        };
+        serde_json::json!({
+            "count": entries.len(),
+            "total": guard.len(),
+            "entries": entries,
+        })
+        .to_string()
+    }
+}
+
+/// Render one [`ClipboardEntry`] as the MCP wire shape. `preview`
+/// is always the first 60 chars of the payload with newlines folded
+/// into `⏎` so callers can eyeball an entry without pulling the full
+/// body. `bytes` is the payload's byte length — lets clients decide
+/// whether to request `include_content: true` on the next call.
+fn entry_json(
+    entry: &crate::clipboard_store::ClipboardEntry,
+    include_content: bool,
+) -> serde_json::Value {
+    let preview = preview_from(&entry.content);
+    let bytes = entry.content.len();
+    if include_content {
+        serde_json::json!({
+            "hash": entry.hash.to_hex(),
+            "preview": preview,
+            "bytes": bytes,
+            "content": entry.content,
+            "kind": entry.kind.label(),
+            "set_at": entry.set_at,
+        })
+    } else {
+        serde_json::json!({
+            "hash": entry.hash.to_hex(),
+            "preview": preview,
+            "bytes": bytes,
+            "kind": entry.kind.label(),
+            "set_at": entry.set_at,
+        })
+    }
+}
+
+/// Build the `preview` field — up to 60 chars, newlines rendered as
+/// `⏎` so the preview stays single-line in the MCP response.
+fn preview_from(content: &str) -> String {
+    const MAX: usize = 60;
+    let mut out = String::with_capacity(MAX + 4);
+    let mut taken = 0;
+    for ch in content.chars() {
+        if taken >= MAX {
+            out.push('…');
+            break;
+        }
+        match ch {
+            '\n' => out.push('⏎'),
+            '\r' => {}
+            c => out.push(c),
+        }
+        taken += 1;
+    }
+    out
 }
 
 #[tool_handler]
@@ -316,6 +460,124 @@ mod tests {
         let result = server.new_tab().await;
         let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
         assert!(parsed.get("ok").is_some());
+    }
+
+    // ── Clipboard tools — round-trip through the shared store ────────────────
+
+    use crate::clipboard_store::ClipboardKind;
+
+    fn server_with_seeded_clipboard(payloads: &[(&str, ClipboardKind)]) -> (MadoMcp, Vec<String>) {
+        let store = Arc::new(Mutex::new(ClipboardStore::new(64)));
+        let mut hashes = Vec::new();
+        {
+            let mut guard = store.lock().unwrap();
+            for (content, kind) in payloads {
+                let hash = guard.store((*content).to_string(), *kind);
+                hashes.push(hash.to_hex());
+            }
+        }
+        (MadoMcp::with_clipboard(store), hashes)
+    }
+
+    #[tokio::test]
+    async fn clipboard_get_resolves_known_hash() {
+        let (server, hashes) = server_with_seeded_clipboard(&[
+            ("deploy.sh --prod", ClipboardKind::System),
+            ("kubectl logs -f", ClipboardKind::System),
+        ]);
+        let hash = hashes[0].clone();
+        let input = ClipboardGetInput { hash: hash.clone() };
+        let result = server.clipboard_get(Parameters(input)).await;
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+        assert_eq!(parsed["found"], true);
+        assert_eq!(parsed["content"], "deploy.sh --prod");
+        assert_eq!(parsed["hash"], hash);
+        assert_eq!(parsed["kind"], "c");
+    }
+
+    #[tokio::test]
+    async fn clipboard_get_reports_miss_without_content() {
+        let (server, _) = server_with_seeded_clipboard(&[]);
+        let input = ClipboardGetInput {
+            hash: "af42c0d18e9b3f4aa18b7c3ef1de93a4".into(),
+        };
+        let result = server.clipboard_get(Parameters(input)).await;
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+        assert_eq!(parsed["found"], false);
+        assert!(parsed.get("content").is_none());
+    }
+
+    #[tokio::test]
+    async fn clipboard_get_rejects_malformed_hash() {
+        let (server, _) = server_with_seeded_clipboard(&[]);
+        let input = ClipboardGetInput { hash: "too-short".into() };
+        let result = server.clipboard_get(Parameters(input)).await;
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+        assert_eq!(parsed["found"], false);
+        assert_eq!(parsed["error"], "malformed-hash");
+    }
+
+    #[tokio::test]
+    async fn clipboard_list_returns_preview_by_default() {
+        let (server, _) = server_with_seeded_clipboard(&[
+            ("payload one", ClipboardKind::System),
+            ("payload two", ClipboardKind::Primary),
+        ]);
+        let input = ClipboardListInput {
+            limit: None,
+            include_content: None,
+        };
+        let result = server.clipboard_list(Parameters(input)).await;
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+        assert_eq!(parsed["count"], 2);
+        assert_eq!(parsed["total"], 2);
+        let entries = parsed["entries"].as_array().unwrap();
+        // Most-recent first.
+        assert_eq!(entries[0]["preview"], "payload two");
+        assert_eq!(entries[0]["kind"], "p");
+        assert_eq!(entries[1]["preview"], "payload one");
+        // Content is NOT included by default.
+        assert!(entries[0].get("content").is_none());
+        // Bytes are always present.
+        assert_eq!(entries[0]["bytes"], "payload two".len());
+    }
+
+    #[tokio::test]
+    async fn clipboard_list_honours_limit_and_include_content() {
+        let (server, _) = server_with_seeded_clipboard(&[
+            ("a", ClipboardKind::System),
+            ("b", ClipboardKind::System),
+            ("c", ClipboardKind::System),
+        ]);
+        let input = ClipboardListInput {
+            limit: Some(2),
+            include_content: Some(true),
+        };
+        let result = server.clipboard_list(Parameters(input)).await;
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+        assert_eq!(parsed["count"], 2);
+        // Total reflects the underlying store, not the returned slice.
+        assert_eq!(parsed["total"], 3);
+        let entries = parsed["entries"].as_array().unwrap();
+        assert_eq!(entries[0]["content"], "c");
+        assert_eq!(entries[1]["content"], "b");
+    }
+
+    #[test]
+    fn preview_from_folds_newlines_and_truncates() {
+        // Newlines render as ⏎; \r drops entirely; >60 chars gets …
+        // The 60-char cap is measured in *chars*, not bytes, so
+        // multibyte input doesn't truncate mid-codepoint.
+        let folded = preview_from("line-a\nline-b\r\nline-c");
+        assert!(!folded.contains('\n'));
+        assert!(!folded.contains('\r'));
+        assert!(folded.contains('⏎'));
+
+        let long = "x".repeat(80);
+        let trunc = preview_from(&long);
+        assert!(trunc.ends_with('…'));
+        // 60 'x' chars + the ellipsis.
+        assert_eq!(trunc.chars().count(), 61);
     }
 }
 
