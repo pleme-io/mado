@@ -1,5 +1,15 @@
 # Mado (窓) — GPU-Rendered Terminal Emulator
 
+> **★★★ CSE / Knowable Construction.** This repo operates under
+> **Constructive Substrate Engineering** — canonical specification at
+> [`pleme-io/theory/CONSTRUCTIVE-SUBSTRATE-ENGINEERING.md`](https://github.com/pleme-io/theory/blob/main/CONSTRUCTIVE-SUBSTRATE-ENGINEERING.md).
+> The Compounding Directive (operational rules: solve once, load-bearing
+> fixes only, idiom-first, models stay current, direction beats velocity)
+> is in the org-level pleme-io/CLAUDE.md ★★★ section. Read both before
+> non-trivial changes. GPU terminal emulator built on the typed
+> garasu/madori/shikumi/hasami primitive set; pure-safe Rust via objc2,
+> a 5-pass render pipeline, and a vt100/xterm/Kitty surface authored once.
+
 A GPU-accelerated terminal emulator built in pure Rust. Follows Ghostty's philosophy
 of speed + features + native UI without compromise, but adds Rhai scripting, an
 embedded MCP server, and deep Nix integration that no competitor offers.
