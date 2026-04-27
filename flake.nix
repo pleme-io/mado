@@ -44,10 +44,92 @@
           CARGO_CRATE_NAME = "kaname";
         };
       };
-    }
-    // {
-      homeManagerModules.default = import ./module {
-        hmHelpers = import "${substrate}/lib/hm-service-helpers.nix" { lib = nixpkgs.lib; };
+
+      # Migration to substrate module-trio + shikumiTypedGroups.
+      # See kekkai (2fc3c84) for the canonical template. Mado uses
+      # nullable fields for every option (filterNulls in legacy
+      # module). With typed groups, defaults always serialize — this
+      # is identical to hikki's pattern and matches what shikumi
+      # expects (defaults from Nix override shikumi's compile-time
+      # defaults; users override via Nix).
+      module = {
+        description = "Mado (窓) — GPU-rendered terminal emulator";
+        hmNamespace = "blackmatter.components";
+
+        # Shikumi YAML config at ~/.config/mado/mado.yaml.
+        withShikumiConfig = true;
+
+        shikumiTypedGroups = {
+          window = {
+            width   = { type = "int"; default = 1280; description = "Window width in pixels."; };
+            height  = { type = "int"; default = 800;  description = "Window height in pixels."; };
+            padding = { type = "int"; default = 8;    description = "Window padding in pixels."; };
+          };
+
+          shell = {
+            command = {
+              type        = "nullOrStr";
+              default     = null;
+              description = "Shell command to run (default: user's SHELL).";
+            };
+          };
+
+          cursor = {
+            style = {
+              type        = nixpkgs.lib.types.enum [ "block" "bar" "underline" ];
+              default     = "block";
+              description = "Cursor style.";
+            };
+            blink         = { type = "bool"; default = true; description = "Whether the cursor blinks."; };
+            blink_rate_ms = { type = "int";  default = 500;  description = "Cursor blink rate in milliseconds."; };
+          };
+
+          behavior = {
+            scrollback_lines = { type = "int";  default = 10000; description = "Number of scrollback lines retained."; };
+            copy_on_select   = { type = "bool"; default = false; description = "Copy selection to clipboard automatically."; };
+          };
+
+          appearance = {
+            background = { type = "str";   default = "#2e3440"; description = "Background color (hex)."; };
+            foreground = { type = "str";   default = "#eceff4"; description = "Foreground color (hex)."; };
+            opacity    = { type = "float"; default = 1.0;       description = "Window opacity (0.0-1.0)."; };
+          };
+        };
+
+        # Top-level font_family / font_size live outside any typed group
+        # in the legacy module — keep them as bespoke options so the YAML
+        # round-trips byte-identical to the hand-rolled module's shape
+        # (font_family / font_size at the top level, not under a group).
+        extraHmOptions = {
+          fontFamily = nixpkgs.lib.mkOption {
+            type = nixpkgs.lib.types.nullOr nixpkgs.lib.types.str;
+            default = null;
+            description = "Font family for terminal text.";
+          };
+          fontSize = nixpkgs.lib.mkOption {
+            type = nixpkgs.lib.types.nullOr nixpkgs.lib.types.float;
+            default = null;
+            description = "Font size in pixels.";
+          };
+          extraSettings = nixpkgs.lib.mkOption {
+            type = nixpkgs.lib.types.attrs;
+            default = { };
+            description = "Additional raw settings merged on top of the typed YAML.";
+          };
+        };
+
+        # Merge font_family / font_size / extraSettings into the YAML
+        # payload at the top level. The trio serializes
+        # services.mado.settings; this hook adds bespoke top-level keys.
+        extraHmConfigFn = { cfg, lib, ... }:
+          let
+            fontExtras =
+              (if cfg.fontFamily != null then { font_family = cfg.fontFamily; } else { })
+              // (if cfg.fontSize != null then { font_size = cfg.fontSize; } else { });
+            extras = fontExtras // cfg.extraSettings;
+          in lib.mkIf (extras != { }) {
+            services.mado.settings = extras;
+          };
       };
     };
 }
