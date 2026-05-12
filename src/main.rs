@@ -80,7 +80,7 @@ fn main() -> anyhow::Result<()> {
     }
 
     let (config, _config_store) = config::load_and_watch(&cli.config, |new_config| {
-        tracing::info!("config reloaded: {:?}", new_config);
+        tracing::debug!("config reloaded: {:?}", new_config);
     })?;
 
     // Apply active profile if set
@@ -89,7 +89,14 @@ fn main() -> anyhow::Result<()> {
         None => config,
     };
 
-    tracing::info!("mado starting with config: {:?}", config);
+    tracing::debug!("mado starting with config: {:?}", config);
+    tracing::info!(
+        version = env!("CARGO_PKG_VERSION"),
+        theme = %config.theme,
+        font = %config.font_family,
+        size = config.font_size,
+        "mado starting"
+    );
 
     if crate::platform::is_dark_mode() {
         tracing::debug!("system dark mode detected");
@@ -175,7 +182,7 @@ fn main() -> anyhow::Result<()> {
 
     // Apply theme colors to terminal and renderer
     if let Some(theme) = Theme::by_name(&config.theme) {
-        tracing::info!(theme = theme.name, "applying terminal color theme");
+        tracing::debug!(theme = theme.name, "applying terminal color theme");
         renderer.set_ansi_colors(theme.ansi);
         renderer.set_selection_bg(theme.selection_bg);
         renderer.set_cursor_color(color_to_f32_rgba(&theme.cursor, 0.85));

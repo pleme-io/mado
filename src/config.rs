@@ -752,7 +752,11 @@ fn default_vsync() -> bool {
     true
 }
 fn default_target_fps() -> u32 {
-    120
+    // 60 is the Ghostty default and the standard refresh rate across most
+    // displays. 120 was over-aggressive — extra GPU/CPU cost for no
+    // visible benefit on standard 60Hz panels. Users with high-refresh
+    // displays can opt into 120 explicitly via config.
+    60
 }
 fn default_theme() -> String {
     "nord".into()
@@ -877,7 +881,7 @@ mod tests {
         assert!(config.shell_integration.enabled);
         assert_eq!(config.shell_integration.features, ["cursor", "sudo", "title"]);
         assert!(config.performance.vsync);
-        assert_eq!(config.performance.target_fps, 120);
+        assert_eq!(config.performance.target_fps, 60);
         assert!(!config.shaders.enabled);
         assert!(config.shaders.files.is_empty());
         assert_eq!(config.accessibility.colorblind, ColorblindMode::None);
@@ -1122,7 +1126,7 @@ window:
     fn test_performance_config_defaults() {
         let p = PerformanceConfig::default();
         assert!(p.vsync);
-        assert_eq!(p.target_fps, 120);
+        assert_eq!(p.target_fps, 60);
     }
 
     #[test]
