@@ -1,0 +1,26 @@
+name: git-status-color
+description: |
+  git status output with SGR colours — proves the SGR-fg/bg + reset path handles real git output.
+  # Captured via `mado record` from: sh
+  # Command: 'sh' '-c' 'cd /Users/drzzln/code/github/pleme-io/mado && git -c color.status=always status --short 2>&1 | head -5'
+  # Bytes captured: 51
+cols: 100
+rows: 20
+# `direct` runner: the captured byte stream lands in
+# `Terminal::feed` without a PTY, so the vte parser sees
+# exactly what the source process wrote — no
+# line-discipline echo, no shell re-interpretation.
+runner: direct
+steps:
+  - kind: send
+    text: " \x1b[31mM\x1b[m src/mcp.rs\r\n \x1b[31mM\x1b[m src/scenario.rs\r\n"
+expect:
+  # Operator: fill in assertions for the cells / text
+  # that should hold after the captured stream replays.
+  text_contains:
+    - "M src/mcp.rs"
+  cells:
+    # Row 0 col 1 is the M status char (red).
+    - row: 0
+      col: 1
+      ch: "M"

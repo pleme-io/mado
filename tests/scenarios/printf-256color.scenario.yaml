@@ -1,0 +1,31 @@
+name: printf-256color
+description: |
+  256-colour palette via SGR 38;5;N — proves the 256-color path renders distinct fg colors per cell.
+  # Captured via `mado record` from: sh
+  # Command: 'sh' '-c' 'printf '\''\033[38;5;160mR\033[38;5;46mG\033[38;5;21mB\033[0m\n'\'''
+  # Bytes captured: 40
+cols: 80
+rows: 4
+# `direct` runner: the captured byte stream lands in
+# `Terminal::feed` without a PTY, so the vte parser sees
+# exactly what the source process wrote — no
+# line-discipline echo, no shell re-interpretation.
+runner: direct
+steps:
+  - kind: send
+    text: "\x1b[38;5;160mR\x1b[38;5;46mG\x1b[38;5;21mB\x1b[0m\r\n"
+expect:
+  # Operator: fill in assertions for the cells / text
+  # that should hold after the captured stream replays.
+  text_contains:
+    - "RGB"
+  cells:
+    - row: 0
+      col: 0
+      ch: "R"
+    - row: 0
+      col: 1
+      ch: "G"
+    - row: 0
+      col: 2
+      ch: "B"

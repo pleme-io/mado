@@ -112,8 +112,10 @@ struct AttentionSetInput {
 struct SnapshotGridInput {
     #[schemars(description = "Session identifier (returned by `spawn_term`).")]
     session_id: String,
-    #[schemars(description = "Include the full `cells[][]` array in the response. Default true. Set false when you only need cursor + dimensions (much smaller payload for repeated polling).")]
+    #[schemars(description = "Include the `cells[][]` array in the response. Default true. Set false when you only need cursor + dimensions (much smaller payload for repeated polling).")]
     include_cells: Option<bool>,
+    #[schemars(description = "How to filter cells in the response. `non_default` (default) emits only cells with non-default content — shrinks an 80×24 grid response from ~50KB to ~2KB. `non_blank` emits cells whose char isn't space OR whose bg isn't black. `all` emits every cell (use sparingly; can exceed MCP token limits).")]
+    cells_filter: Option<String>,
     #[schemars(description = "If true, include a human-readable `pretty` string field — one row per line, cursor cell marked `▓`, empty cells `·`. Useful for quick visual scans in chat without parsing the cell array.")]
     pretty: Option<bool>,
 }
@@ -341,7 +343,7 @@ impl MadoMcp {
         .to_string()
     }
 
-    #[tool(description = "Take a full structured snapshot of a session's terminal grid — every cell (char + fg + bg + attrs + width) plus cursor row/col/visibility. The load-bearing introspection tool: any visual rendering bug can be triaged by diffing two snapshots or comparing against the on-screen pixels. Set `pretty: true` to also include a human-readable text grid where cells with empty bg become `·` and the cursor cell becomes `▓`.")]
+    #[tool(description = "Take a full structured snapshot of a session's terminal grid — every cell (char + fg + bg + attrs + width) plus cursor row/col/visibility. The load-bearing introspection tool: any visual rendering bug can be triaged by diffing two snapshots or comparing against the on-screen pixels. Set `pretty: true` to also include a human-readable text grid where cells with empty bg become `·` and the cursor cell becomes `▓`. Default `cells_filter: non_default` shrinks response by ~95% by skipping blank cells.")]
     async fn snapshot_grid(&self, Parameters(input): Parameters<SnapshotGridInput>) -> String {
         let Some(session) = self.state.sessions.get(&input.session_id) else {
             return serde_json::json!({
@@ -362,7 +364,10 @@ impl MadoMcp {
             "cursor_visible": snap.cursor_visible,
         });
         if input.include_cells.unwrap_or(true) {
-            payload["cells"] = serde_json::to_value(&snap.cells).unwrap_or(serde_json::Value::Null);
+            let filter = input.cells_filter.as_deref().unwrap_or("non_default");
+            let cells = filtered_cells(&snap, filter);
+            payload["cells_filter"] = serde_json::Value::String(filter.to_string());
+            payload["cells"] = cells;
         }
         if input.pretty.unwrap_or(false) {
             payload["pretty"] = serde_json::Value::String(snap.to_pretty());
@@ -756,6 +761,59 @@ fn preview_from(content: &str) -> String {
     out
 }
 
+/// Filter cells in a [`GridSnapshot`] for MCP serialisation.
+///
+/// `all` emits the full row-major grid (large — ~50KB for 80×24).
+/// `non_default` keeps only cells whose char isn't U+0020 *or* whose
+/// bg/fg differs from the [0,0,0] / [255,255,255] defaults. Each
+/// kept cell is emitted as `{row, col, ...}` with positional fields
+/// added so the client knows where the cell lives.
+/// `non_blank` is the looser sibling — keeps any cell whose char
+/// isn't space OR whose bg isn't black; equivalent to "what
+/// `to_pretty` would print".
+fn filtered_cells(snap: &crate::session::GridSnapshot, mode: &str) -> serde_json::Value {
+    use serde_json::json;
+    let blank_ch = ' ';
+    let blank_bg = [0u8, 0u8, 0u8];
+    let blank_fg = [255u8, 255u8, 255u8];
+
+    if mode == "all" {
+        // Row-major shape — same as the raw snapshot. Caller asked
+        // for the full grid; they own the response-size implications.
+        return serde_json::to_value(&snap.cells).unwrap_or(serde_json::Value::Null);
+    }
+
+    let mut entries: Vec<serde_json::Value> = Vec::new();
+    for (r, row) in snap.cells.iter().enumerate() {
+        for (c, cell) in row.iter().enumerate() {
+            let is_default = cell.ch == blank_ch
+                && cell.bg == blank_bg
+                && cell.fg == blank_fg
+                && cell.attrs == 0
+                && cell.width == 1;
+            let is_blank = cell.ch == blank_ch && cell.bg == blank_bg;
+            let keep = match mode {
+                "non_blank" => !is_blank,
+                // default: non_default
+                _ => !is_default,
+            };
+            if !keep {
+                continue;
+            }
+            entries.push(json!({
+                "row": r,
+                "col": c,
+                "ch": cell.ch.to_string(),
+                "fg": cell.fg,
+                "bg": cell.bg,
+                "attrs": cell.attrs,
+                "width": cell.width,
+            }));
+        }
+    }
+    serde_json::Value::Array(entries)
+}
+
 /// Decode a `send_keys` payload into raw bytes for the PTY.
 ///
 /// Backslash escapes (`\n`, `\r`, `\t`, `\\`, `\0`, `\x1b`, `\xHH`)
@@ -960,6 +1018,7 @@ mod tests {
             .snapshot_grid(Parameters(SnapshotGridInput {
                 session_id: id.clone(),
                 include_cells: Some(true),
+                cells_filter: Some("non_default".into()),
                 pretty: Some(true),
             }))
             .await;

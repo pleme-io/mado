@@ -83,10 +83,30 @@ pub struct Scenario {
     pub cwd: String,
     #[serde(default)]
     pub env: std::collections::HashMap<String, String>,
+    /// Runner mode. `pty` (default) spawns the `shell` in a real PTY
+    /// and feeds bytes through it — the path that catches input-side
+    /// line-discipline behaviour. `direct` skips the PTY entirely and
+    /// feeds each `send` step directly to a fresh `Terminal::feed` —
+    /// the right path when the scenario captures a raw byte stream
+    /// (e.g. via `mado record`) that's meant to land in the vte
+    /// parser without shell or PTY re-interpretation.
+    #[serde(default)]
+    pub runner: Runner,
     #[serde(default)]
     pub steps: Vec<Step>,
     #[serde(default)]
     pub expect: Expect,
+}
+
+/// Runner backend for a scenario. PTY by default — captures the full
+/// PTY ↔ shell ↔ terminal stack. `Direct` for byte-stream replays
+/// where the PTY would re-interpret the input.
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case", deny_unknown_fields)]
+pub enum Runner {
+    #[default]
+    Pty,
+    Direct,
 }
 
 const fn default_cols() -> u16 { 80 }
@@ -223,6 +243,13 @@ pub fn run_sync(path: &Path) -> Result<()> {
 
 /// Run a scenario in an existing tokio runtime.
 pub async fn run(scenario: &Scenario) -> Result<()> {
+    match scenario.runner {
+        Runner::Pty => run_pty(scenario).await,
+        Runner::Direct => run_direct(scenario),
+    }
+}
+
+async fn run_pty(scenario: &Scenario) -> Result<()> {
     let registry = Arc::new(SessionRegistry::default());
     let spec = TermSpec {
         shell: scenario.shell.clone(),
@@ -255,6 +282,81 @@ pub async fn run(scenario: &Scenario) -> Result<()> {
     check_expectations(&scenario.expect, &snap)
         .with_context(|| format!("scenario {:?} assertions", scenario.name))?;
     Ok(())
+}
+
+/// Direct-feed runner — no PTY, no shell. Each `send` step's bytes
+/// land in the vte parser immediately via `Terminal::feed`. This is
+/// the right path for scenarios captured via `mado record` where the
+/// captured bytes are already the exact stream the shell wrote and
+/// the goal is to replay them into the terminal core verbatim
+/// (cat-via-PTY adds a line-discipline echo layer that pollutes the
+/// grid).
+///
+/// `wait_for_text` and `wait_ms` are honoured but the wait is moot —
+/// every `send` step feeds synchronously. `resize` calls
+/// `Terminal::resize`. `reset` feeds `\x1bc`.
+fn run_direct(scenario: &Scenario) -> Result<()> {
+    use crate::terminal::Terminal;
+    let mut term = Terminal::new(scenario.cols as usize, scenario.rows as usize);
+    for (idx, step) in scenario.steps.iter().enumerate() {
+        match step {
+            Step::Send { text } => term.feed(text.as_bytes()),
+            Step::WaitForText { text, .. } => {
+                // Synchronous — either the previous feed already
+                // produced the text or it never will.
+                let snap = snapshot_from_terminal(&term);
+                if !snap.to_text().contains(text.as_str()) {
+                    bail!(
+                        "scenario {:?} step #{idx} wait_for_text {text:?} not present\n\
+                         after-step grid:\n{}",
+                        scenario.name,
+                        snap.to_pretty()
+                    );
+                }
+            }
+            Step::WaitMs { .. } => {} // no-op in direct mode
+            Step::Resize { cols, rows } => {
+                term.resize(*cols as usize, *rows as usize);
+            }
+            Step::Reset => term.feed(b"\x1bc"),
+        }
+    }
+    let snap = snapshot_from_terminal(&term);
+    check_expectations(&scenario.expect, &snap)
+        .with_context(|| format!("scenario {:?} assertions", scenario.name))?;
+    Ok(())
+}
+
+/// Build a [`GridSnapshot`] from an owned [`Terminal`] without going
+/// through `Session` (which expects an `Arc<Mutex<Terminal>>`).
+fn snapshot_from_terminal(term: &crate::terminal::Terminal) -> GridSnapshot {
+    use crate::session::CellSnapshot;
+    let cols = term.cols();
+    let rows = term.rows();
+    let cursor = *term.cursor();
+    let cells: Vec<Vec<CellSnapshot>> = term
+        .visible_rows()
+        .map(|row| {
+            row.iter()
+                .take(cols)
+                .map(|c| CellSnapshot {
+                    ch: c.ch,
+                    width: c.width,
+                    fg: [c.fg.r, c.fg.g, c.fg.b],
+                    bg: [c.bg.r, c.bg.g, c.bg.b],
+                    attrs: c.attrs.bits(),
+                })
+                .collect()
+        })
+        .collect();
+    GridSnapshot {
+        cols,
+        rows,
+        cursor_row: cursor.row,
+        cursor_col: cursor.col,
+        cursor_visible: cursor.visible,
+        cells,
+    }
 }
 
 async fn run_step(
@@ -570,10 +672,11 @@ fn render_scenario_yaml(
     out.push_str(&format!("  # Bytes captured: {}\n", captured.len()));
     out.push_str(&format!("cols: {cols}\n"));
     out.push_str(&format!("rows: {rows}\n"));
-    out.push_str("# `cat` is a byte passthrough — the captured stream replays\n");
-    out.push_str("# verbatim through mado's terminal core without any shell\n");
-    out.push_str("# re-interpretation.\n");
-    out.push_str("shell: /bin/cat\n");
+    out.push_str("# `direct` runner: the captured byte stream lands in\n");
+    out.push_str("# `Terminal::feed` without a PTY, so the vte parser sees\n");
+    out.push_str("# exactly what the source process wrote — no\n");
+    out.push_str("# line-discipline echo, no shell re-interpretation.\n");
+    out.push_str("runner: direct\n");
     out.push_str("steps:\n");
     out.push_str("  - kind: send\n");
     out.push_str("    text: \"");
