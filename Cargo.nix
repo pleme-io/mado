@@ -2186,8 +2186,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/egaku";
-          rev = "b42c7ff76f2d13f0277dc7a16fb20adaf4c09a02";
-          sha256 = "011fmfwgkikq6yw2xm4xby8q31dfxdc08jsqrzk74b2qqv0dkm4m";
+          rev = "b67e5bb1ab7b817bcc2ecd4ef7a8ea0e06fa814f";
+          sha256 = "0sdr8mg3rq9r8nhg7wm77v7nh2z4vx3j5p3qswkgfacgpbvkalqa";
         };
         dependencies = [
           {
@@ -2992,8 +2992,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/garasu";
-          rev = "8776429bbfba46197f0914c3749d2a0fb9ab9969";
-          sha256 = "1v9myrjncl6g40shpxfqwqq44nllj41g0hs8jl8hgy7vj3p0fvh3";
+          rev = "6404e797bc3891661add99ae0d72f59a42a38d12";
+          sha256 = "0ah4jb91bw3a8n3pc4cr8fww36w171y0ci6qnblikn06xv6z5jl7";
         };
         dependencies = [
           {
@@ -4768,6 +4768,10 @@ rec {
             name = "wgpu";
             packageId = "wgpu";
           }
+          {
+            name = "winit";
+            packageId = "winit";
+          }
         ];
         devDependencies = [
           {
@@ -4788,8 +4792,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/madori";
-          rev = "8e7a2e0d96a9ed26313de6623e216affc50da8a8";
-          sha256 = "02xa6zw30bz3pczcjgw44dias95k8jcbafgga0194zwvhciq8557";
+          rev = "94d55f7554513b34a74826a136e50bd642966754";
+          sha256 = "122vnpmzq14p0qyvfimwmbgc5vd2ra1m9ams4wp7yjyv7zn4ywcz";
         };
         dependencies = [
           {
@@ -10748,8 +10752,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
-          rev = "18617d7735a65b701cb60f64eba4cca67668c188";
-          sha256 = "1zhg1j61yj5wg3l0v0b63s87jacjmm5x6bmv415fw0d5rslgkmlc";
+          rev = "3058a084e866cb5c3eaaa9b2c742d0d11978afc1";
+          sha256 = "0jxj0dm1i69dvczn1vbysrmqsl370w7jqn1i8b3ad8dgz4f0arwj";
         };
         dependencies = [
           {
