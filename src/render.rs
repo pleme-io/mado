@@ -1758,13 +1758,18 @@ struct SpanRun {
     italic: bool,
 }
 
+/// Convert a per-cell sRGB colour into the linear [f32; 4] tuple the
+/// rect-pipeline shader expects. The shader returns its colour value
+/// directly into a `Bgra8UnormSrgb` surface, where wgpu performs the
+/// final linear→sRGB transform on storage. Feeding raw sRGB values
+/// (the byte-divided-by-255 form) into the shader output caused the
+/// "washed-out medium grey" gamma bug visible on Retina pre-M3 —
+/// passing through `ishou_tokens::Srgb::to_linear` is the typed path
+/// that makes the storage write end up as the operator-perceived
+/// colour. Alpha stays linear by convention.
 fn color_to_f32(c: &Color) -> [f32; 4] {
-    [
-        c.r as f32 / 255.0,
-        c.g as f32 / 255.0,
-        c.b as f32 / 255.0,
-        1.0,
-    ]
+    let linear = ishou_tokens::Srgb::new(c.r, c.g, c.b).to_linear();
+    [linear.r, linear.g, linear.b, 1.0]
 }
 
 /// Check if a character is a box drawing character that we render via rects.
@@ -2494,12 +2499,20 @@ mod tests {
     }
 
     #[test]
-    fn test_color_to_f32_mid_gray() {
+    fn test_color_to_f32_mid_gray_returns_linear_not_srgb() {
+        // After M3, color_to_f32 returns LINEAR values, not the raw
+        // sRGB byte/255 form. sRGB 128 → linear ≈ 0.2159 (per IEC
+        // 61966-2-1). The wgpu pipeline expects linear input on an
+        // sRGB-storage surface; the previous sRGB-pass-through caused
+        // the washed-out gamma bug.
         let [r, g, b, a] = color_to_f32(&Color::new(128, 128, 128));
-        assert!((r - 128.0 / 255.0).abs() < 0.001);
-        assert!((g - 128.0 / 255.0).abs() < 0.001);
-        assert!((b - 128.0 / 255.0).abs() < 0.001);
+        let expected = ishou_tokens::Srgb::new(128, 128, 128).to_linear();
+        assert!((r - expected.r).abs() < 1e-6);
+        assert!((g - expected.g).abs() < 1e-6);
+        assert!((b - expected.b).abs() < 1e-6);
         assert!((a - 1.0).abs() < f32::EPSILON);
+        // Cross-pin: linear value is markedly darker than raw byte/255.
+        assert!(r < 128.0 / 255.0, "linear must be darker than sRGB byte/255");
     }
 
     #[test]
@@ -2722,12 +2735,17 @@ mod tests {
     // ---- color_to_f32 with RGBA ----
 
     #[test]
-    fn test_color_to_f32_rgba_helper() {
+    fn test_color_to_f32_returns_linear_through_ishou() {
+        // Pin the typed path: color_to_f32 delegates to
+        // `ishou_tokens::Srgb::to_linear`. Any future regression that
+        // bypasses ishou (e.g. inlining the byte-divide-by-255 form
+        // again) reintroduces the gamma bug and fails this test.
         let c = Color::new(51, 102, 153);
         let [r, g, b, a] = color_to_f32(&c);
-        assert!((r - 51.0 / 255.0).abs() < 0.001);
-        assert!((g - 102.0 / 255.0).abs() < 0.001);
-        assert!((b - 153.0 / 255.0).abs() < 0.001);
+        let expected = ishou_tokens::Srgb::new(51, 102, 153).to_linear();
+        assert!((r - expected.r).abs() < 1e-6);
+        assert!((g - expected.g).abs() < 1e-6);
+        assert!((b - expected.b).abs() < 1e-6);
         assert!((a - 1.0).abs() < f32::EPSILON);
     }
 

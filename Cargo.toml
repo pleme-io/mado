@@ -46,6 +46,15 @@ hasami = { git = "https://github.com/pleme-io/hasami" }
 soushi = { git = "https://github.com/pleme-io/soushi" }
 awase = { git = "https://github.com/pleme-io/awase" }
 kaname = { git = "https://github.com/pleme-io/kaname" }
+# ishou-tokens — the typed colour-space + design-token primitive owns
+# Nord for the fleet. The `wgpu` feature exposes
+# `impl From<LinearRgba> for wgpu_types::Color` so the gamma path is
+# load-bearing at the type level: every wgpu::Color the renderer
+# constructs goes through `Srgb::to_linear()` first. The previous
+# direct-sRGB-to-wgpu construction (the cause of the washed-out gray
+# background visible on Retina pre-M3) cannot recompile.
+# Architecture: pleme-io/theory/THEME-ARCHITECTURE.md
+ishou-tokens = { git = "https://github.com/pleme-io/ishou", features = ["wgpu"] }
 rmcp = { version = "0.15", features = ["server", "transport-io"] }
 schemars = "0.8"
 

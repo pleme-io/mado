@@ -227,8 +227,26 @@ fn main() -> anyhow::Result<()> {
         Arc::clone(&pane.terminal)
     };
 
-    let bg_color = parse_hex_color(&config.appearance.background, 0.180, 0.204, 0.251);
-    let fg_hex = parse_hex_rgb(&config.appearance.foreground, 236, 239, 244);
+    // ─── Theme architecture M3 (HiDPI gamma fix by construction) ──────
+    //
+    // sRGB → Linear → wgpu::Color via ishou_tokens. The previous
+    // `parse_hex_color(...)` returning raw sRGB floats and being
+    // assigned straight to `wgpu::Color { r, g, b, a }` on a
+    // `Bgra8UnormSrgb` surface caused wgpu to gamma-correct the values
+    // a second time — the washed-out medium-gray instead of dark Nord
+    // visible in screenshots prior to M3. The typed path makes this
+    // class of bug uncompilable: there is no `From<Srgb> for
+    // wgpu_types::Color` in ishou-tokens — every wgpu::Color must come
+    // from a LinearRgba. Architecture:
+    // pleme-io/theory/THEME-ARCHITECTURE.md
+    let bg_srgb = ishou_tokens::Srgb::from_hex(&config.appearance.background)
+        .unwrap_or(ishou_tokens::Srgb::new(0x2e, 0x34, 0x40));
+    let bg_color: wgpu::Color = bg_srgb
+        .to_linear()
+        .with_alpha(config.appearance.opacity)
+        .into();
+    let fg_srgb = ishou_tokens::Srgb::from_hex(&config.appearance.foreground)
+        .unwrap_or(ishou_tokens::Srgb::new(0xec, 0xef, 0xf4));
 
     let cursor_blink = config.cursor.blink && !config.accessibility.reduce_motion;
     let mut renderer = TerminalRenderer::new(
@@ -239,13 +257,8 @@ fn main() -> anyhow::Result<()> {
         config.cursor.style,
         cursor_blink,
         config.cursor.blink_rate_ms,
-        wgpu::Color {
-            r: bg_color.0,
-            g: bg_color.1,
-            b: bg_color.2,
-            a: f64::from(config.appearance.opacity),
-        },
-        Color::new(fg_hex.0, fg_hex.1, fg_hex.2),
+        bg_color,
+        Color::new(fg_srgb.r, fg_srgb.g, fg_srgb.b),
     );
 
     // Apply accessibility and appearance settings from config
@@ -272,15 +285,18 @@ fn main() -> anyhow::Result<()> {
         renderer.set_ansi_colors(theme.ansi);
         renderer.set_selection_bg(theme.selection_bg);
         renderer.set_cursor_color(color_to_f32_rgba(&theme.cursor, 0.85));
-        renderer.set_bg_fg(
-            wgpu::Color {
-                r: f64::from(theme.background.r) / 255.0,
-                g: f64::from(theme.background.g) / 255.0,
-                b: f64::from(theme.background.b) / 255.0,
-                a: f64::from(config.appearance.opacity),
-            },
-            theme.foreground,
-        );
+        // Theme bg also flows through the typed Srgb → Linear path so
+        // theme-swap doesn't reintroduce the gamma confusion the
+        // architecture eliminated above.
+        let theme_bg: wgpu::Color = ishou_tokens::Srgb::new(
+            theme.background.r,
+            theme.background.g,
+            theme.background.b,
+        )
+        .to_linear()
+        .with_alpha(config.appearance.opacity)
+        .into();
+        renderer.set_bg_fg(theme_bg, theme.foreground);
         let mut ws = window.lock().unwrap();
         ws.set_theme(theme.foreground, theme.background, theme.ansi);
         for pane in ws.all_panes() {
@@ -1531,123 +1547,93 @@ fn exit_response(
     }
 }
 
-/// Convert terminal Color to RGBA [f32; 4].
+/// Convert a terminal `Color` (sRGB-byte) + alpha into the linear
+/// `[f32; 4]` shape the rect-pipeline shader writes into a
+/// `Bgra8UnormSrgb` surface. Goes through ishou-tokens' typed
+/// `Srgb::to_linear` — see the gamma docstring on
+/// `render::color_to_f32` (it's the same correctness argument; this
+/// variant just carries an explicit alpha channel for selection /
+/// cursor / search-highlight overlays).
 fn color_to_f32_rgba(c: &Color, alpha: f32) -> [f32; 4] {
-    [
-        f32::from(c.r) / 255.0,
-        f32::from(c.g) / 255.0,
-        f32::from(c.b) / 255.0,
-        alpha,
-    ]
+    let linear = ishou_tokens::Srgb::new(c.r, c.g, c.b).to_linear();
+    [linear.r, linear.g, linear.b, alpha]
 }
 
-/// Parse a hex color string like "#2e3440" into (f64, f64, f64) normalized to 0.0..1.0.
-fn parse_hex_color(hex: &str, dr: f64, dg: f64, db: f64) -> (f64, f64, f64) {
-    let hex = hex.trim_start_matches('#');
-    if hex.len() != 6 {
-        return (dr, dg, db);
-    }
-    let Ok(r) = u8::from_str_radix(&hex[0..2], 16) else {
-        return (dr, dg, db);
-    };
-    let Ok(g) = u8::from_str_radix(&hex[2..4], 16) else {
-        return (dr, dg, db);
-    };
-    let Ok(b) = u8::from_str_radix(&hex[4..6], 16) else {
-        return (dr, dg, db);
-    };
-    (
-        f64::from(r) / 255.0,
-        f64::from(g) / 255.0,
-        f64::from(b) / 255.0,
-    )
-}
-
-/// Parse a hex color string like "#eceff4" into (u8, u8, u8).
-fn parse_hex_rgb(hex: &str, dr: u8, dg: u8, db: u8) -> (u8, u8, u8) {
-    let hex = hex.trim_start_matches('#');
-    if hex.len() != 6 {
-        return (dr, dg, db);
-    }
-    let r = u8::from_str_radix(&hex[0..2], 16).unwrap_or(dr);
-    let g = u8::from_str_radix(&hex[2..4], 16).unwrap_or(dg);
-    let b = u8::from_str_radix(&hex[4..6], 16).unwrap_or(db);
-    (r, g, b)
-}
+// `parse_hex_color` and `parse_hex_rgb` removed in theme architecture
+// M3 — every consumer now flows through `ishou_tokens::Srgb::from_hex`
+// + `to_linear`. Keeping local hex parsers would re-introduce the
+// untyped path that produced the gamma bug; their absence is part of
+// the type-level guarantee.
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::sync::atomic::AtomicBool;
 
-    // ---- parse_hex_color ----
+    // ---- hex parsing (now delegated to ishou_tokens::Srgb) ----
+    //
+    // The hex-parse + gamma path moved into ishou-tokens at M3. These
+    // tests pin the typed call site shape mado uses — equivalent
+    // coverage to the deleted `parse_hex_color` / `parse_hex_rgb`
+    // tests, but with the gamma-correct path the architecture now
+    // mandates.
 
     #[test]
-    fn test_parse_hex_color_valid_black() {
-        let (r, g, b) = parse_hex_color("#000000", 0.5, 0.5, 0.5);
-        assert!((r - 0.0).abs() < f64::EPSILON);
-        assert!((g - 0.0).abs() < f64::EPSILON);
-        assert!((b - 0.0).abs() < f64::EPSILON);
+    fn ishou_srgb_from_hex_black() {
+        let s = ishou_tokens::Srgb::from_hex("#000000").unwrap();
+        assert_eq!(s, ishou_tokens::Srgb::new(0, 0, 0));
+        let l = s.to_linear();
+        assert!((l.r - 0.0).abs() < 1e-6);
     }
 
     #[test]
-    fn test_parse_hex_color_valid_white() {
-        let (r, g, b) = parse_hex_color("#ffffff", 0.0, 0.0, 0.0);
-        assert!((r - 1.0).abs() < f64::EPSILON);
-        assert!((g - 1.0).abs() < f64::EPSILON);
-        assert!((b - 1.0).abs() < f64::EPSILON);
+    fn ishou_srgb_from_hex_white() {
+        let s = ishou_tokens::Srgb::from_hex("#ffffff").unwrap();
+        assert_eq!(s, ishou_tokens::Srgb::new(255, 255, 255));
+        let l = s.to_linear();
+        assert!((l.r - 1.0).abs() < 1e-6);
     }
 
     #[test]
-    fn test_parse_hex_color_valid_red() {
-        let (r, g, b) = parse_hex_color("#ff0000", 0.0, 0.0, 0.0);
-        assert!((r - 1.0).abs() < f64::EPSILON);
-        assert!((g - 0.0).abs() < f64::EPSILON);
-        assert!((b - 0.0).abs() < f64::EPSILON);
+    fn ishou_srgb_from_hex_nord_polar_night_0() {
+        // The exact colour the M3 gamma fix was about. After M3,
+        // `#2e3440` reaches a wgpu surface through
+        // `Srgb → Linear → LinearRgba → wgpu::Color`, producing the
+        // operator-perceived dark Nord — not the washed-out medium
+        // gray the direct-sRGB-write path produced before.
+        let s = ishou_tokens::Srgb::from_hex("#2e3440").unwrap();
+        let l = s.to_linear();
+        // Same canonical values pinned in ishou-tokens' tests.
+        assert!((l.r - 0.027_320_892).abs() < 1e-5);
+        assert!((l.g - 0.034_339_808).abs() < 1e-5);
     }
 
     #[test]
-    fn test_parse_hex_color_no_hash() {
-        let (r, _g, _b) = parse_hex_color("ffffff", 0.0, 0.0, 0.0);
-        assert!((r - 1.0).abs() < f64::EPSILON, "trim_start_matches strips # so bare hex still works");
+    fn ishou_srgb_from_hex_no_hash_prefix() {
+        // mirrors the legacy parse_hex_color "no hash" test.
+        let a = ishou_tokens::Srgb::from_hex("ffffff");
+        let b = ishou_tokens::Srgb::from_hex("#ffffff");
+        assert_eq!(a, b);
     }
 
     #[test]
-    fn test_parse_hex_color_empty() {
-        let (r, g, b) = parse_hex_color("", 0.1, 0.2, 0.3);
-        assert!((r - 0.1).abs() < f64::EPSILON);
-        assert!((g - 0.2).abs() < f64::EPSILON);
-        assert!((b - 0.3).abs() < f64::EPSILON);
+    fn ishou_srgb_from_hex_empty_returns_none() {
+        assert!(ishou_tokens::Srgb::from_hex("").is_none());
     }
 
     #[test]
-    fn test_parse_hex_color_short_string() {
-        let (r, g, b) = parse_hex_color("#abc", 0.5, 0.6, 0.7);
-        assert!((r - 0.5).abs() < f64::EPSILON, "too-short hex returns defaults");
-        assert!((g - 0.6).abs() < f64::EPSILON);
-        assert!((b - 0.7).abs() < f64::EPSILON);
-    }
-
-    // ---- parse_hex_rgb ----
-
-    #[test]
-    fn test_parse_hex_rgb_valid() {
-        assert_eq!(parse_hex_rgb("#ff8040", 0, 0, 0), (255, 128, 64));
+    fn ishou_srgb_from_hex_short_returns_none() {
+        // The legacy `parse_hex_color` silently returned the default
+        // on short input; the typed `Srgb::from_hex` returns None so
+        // the call site explicitly chooses a fallback. This is the
+        // architectural win: malformed input cannot silently pretend
+        // to be a colour.
+        assert!(ishou_tokens::Srgb::from_hex("#abc").is_none());
     }
 
     #[test]
-    fn test_parse_hex_rgb_zeros() {
-        assert_eq!(parse_hex_rgb("#000000", 99, 99, 99), (0, 0, 0));
-    }
-
-    #[test]
-    fn test_parse_hex_rgb_no_hash() {
-        assert_eq!(parse_hex_rgb("abcdef", 0, 0, 0), (0xab, 0xcd, 0xef));
-    }
-
-    #[test]
-    fn test_parse_hex_rgb_invalid_returns_defaults() {
-        assert_eq!(parse_hex_rgb("xyz", 10, 20, 30), (10, 20, 30));
+    fn ishou_srgb_from_hex_invalid_returns_none() {
+        assert!(ishou_tokens::Srgb::from_hex("#zzzzzz").is_none());
     }
 
     // ---- cursor_key ----
@@ -2013,29 +1999,10 @@ mod tests {
         assert!(resp.exit);
     }
 
-    #[test]
-    fn test_parse_hex_color_red() {
-        let (r, g, b) = parse_hex_color("#ff0000", 0.0, 0.0, 0.0);
-        assert!((r - 1.0).abs() < 0.01);
-        assert!(g.abs() < 0.01);
-        assert!(b.abs() < 0.01);
-    }
-
-    #[test]
-    fn test_parse_hex_color_fallback_defaults() {
-        let (r, g, b) = parse_hex_color("not-a-color", 0.5, 0.6, 0.7);
-        assert!((r - 0.5).abs() < 0.01);
-        assert!((g - 0.6).abs() < 0.01);
-        assert!((b - 0.7).abs() < 0.01);
-    }
-
-    #[test]
-    fn test_parse_hex_rgb_green() {
-        let (r, g, b) = parse_hex_rgb("#00ff00", 0, 0, 0);
-        assert_eq!(r, 0);
-        assert_eq!(g, 255);
-        assert_eq!(b, 0);
-    }
+    // The hex-parse smoke tests above (test_parse_hex_color_red etc.)
+    // moved to `ishou_srgb_from_hex_*` callers earlier in this module
+    // after the M3 migration replaced both `parse_hex_color` and
+    // `parse_hex_rgb` with `ishou_tokens::Srgb::from_hex`.
 
     #[test]
     fn test_color_to_rgba_white_full() {
