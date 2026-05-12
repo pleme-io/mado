@@ -1,0 +1,680 @@
+//! Scenario harness for headless mado.
+//!
+//! A *scenario* is a YAML file declaring a terminal session, a
+//! sequence of input steps, and a set of assertions on the resulting
+//! grid state. The runner spawns an in-process [`Session`] (no MCP,
+//! no winit, no GPU), replays the steps, snapshots the grid, and
+//! asserts. Each scenario becomes a permanent regression test the
+//! moment it lands.
+//!
+//! ## Why this exists (Constructive Substrate Engineering)
+//!
+//! Every bug reported by an operator looking at a mado window has
+//! always been "I saw weird thing X" — by the time it reaches code,
+//! the byte stream that produced X is gone. With scenarios, the
+//! exact byte stream becomes a typed artifact. The fix lands with
+//! its test as a single commit, and the substrate gets *strictly*
+//! stronger: there is no fix-and-forget path. Pattern lifts into
+//! `garasu-introspect` (or `kaname-app-introspect`) when the
+//! second GPU app needs it — see
+//! `pleme-io/theory/HEADLESS-INTROSPECTION.md`.
+//!
+//! ## YAML shape
+//!
+//! ```yaml
+//! name: basic-prompt
+//! description: |
+//!   Shell starts, prompt appears, basic ASCII renders correctly.
+//! cols: 80
+//! rows: 10
+//! shell: /bin/sh
+//! # Optional: env, cwd, title — same shape as TermSpec.
+//! steps:
+//!   - send: "echo hello\n"
+//!   - wait_for_text: "hello"
+//!     timeout_ms: 500
+//! expect:
+//!   text_contains:
+//!     - "echo hello"
+//!     - "hello"
+//!   cursor:
+//!     visible: true
+//!   cells:
+//!     - row: 1
+//!       col: 0
+//!       ch: "h"
+//! ```
+//!
+//! ## Runner contract
+//!
+//! - Each scenario spawns a fresh `Session` — no cross-test state.
+//! - Default global timeout is 5s; any single `wait_for_text` step
+//!   can override via its own `timeout_ms`.
+//! - `send` strings honour the same `\n / \r / \t / \xHH / \e`
+//!   escapes as the MCP `send_keys` tool.
+//! - On failure, the runner prints a structured cell-by-cell diff
+//!   showing exactly which assertions failed against which cells.
+
+use std::path::Path;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+
+use anyhow::{Context, Result, anyhow, bail};
+use serde::{Deserialize, Serialize};
+
+use crate::session::{GridSnapshot, SessionRegistry};
+use crate::term_spec::TermSpec;
+
+/// Top-level YAML scenario. `serde(deny_unknown_fields)` keeps the
+/// format honest — a typo doesn't silently drop a step / assertion.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Scenario {
+    pub name: String,
+    #[serde(default)]
+    pub description: String,
+    #[serde(default = "default_cols")]
+    pub cols: u16,
+    #[serde(default = "default_rows")]
+    pub rows: u16,
+    #[serde(default = "default_shell")]
+    pub shell: String,
+    #[serde(default)]
+    pub cwd: String,
+    #[serde(default)]
+    pub env: std::collections::HashMap<String, String>,
+    #[serde(default)]
+    pub steps: Vec<Step>,
+    #[serde(default)]
+    pub expect: Expect,
+}
+
+const fn default_cols() -> u16 { 80 }
+const fn default_rows() -> u16 { 24 }
+fn default_shell() -> String { "/bin/sh".to_string() }
+
+/// One step in a scenario. Internally tagged on `kind` so the YAML
+/// stays unambiguous and serde_yaml_ng deserializes consistently
+/// across newtype, struct-variant, and unit shapes.
+///
+/// YAML example:
+///
+/// ```yaml
+/// steps:
+///   - kind: send
+///     text: "echo hi\n"
+///   - kind: wait_for_text
+///     text: "hi"
+///     timeout_ms: 500
+///   - kind: wait_ms
+///     ms: 100
+///   - kind: resize
+///     cols: 100
+///     rows: 30
+///   - kind: reset
+/// ```
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+pub enum Step {
+    /// Write raw bytes to the PTY master. Supports the same escape
+    /// decoding as the MCP `send_keys` tool: `\n` `\r` `\t` `\\`
+    /// `\e` `\xHH` `\0`.
+    Send { text: String },
+    /// Poll the grid until `to_text()` contains the substring, or
+    /// until `timeout_ms` elapses (default 1000ms). On timeout the
+    /// scenario fails with a diff showing the last-observed grid.
+    WaitForText {
+        text: String,
+        #[serde(default = "default_wait_ms")]
+        timeout_ms: u64,
+    },
+    /// Fixed delay, useful for "let the shell settle".
+    WaitMs { ms: u64 },
+    /// Resize the PTY+grid mid-scenario.
+    Resize { cols: u16, rows: u16 },
+    /// Send `\x1bc` (full reset). Equivalent to a fresh terminal.
+    Reset,
+}
+
+const fn default_wait_ms() -> u64 { 1000 }
+
+/// Assertions checked after every step completes.
+///
+/// All fields are optional — a scenario that only cares about
+/// "didn't panic" can ship `expect: {}`. Tests pass when every
+/// declared assertion passes; an empty assertion set passes.
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Expect {
+    /// Every string in this list must appear in `snapshot.to_text()`.
+    #[serde(default)]
+    pub text_contains: Vec<String>,
+    /// Inverse: every string must *not* appear. Useful for "popup
+    /// fully cleared after Esc" assertions.
+    #[serde(default)]
+    pub text_not_contains: Vec<String>,
+    /// Expected cursor state. Each field optional.
+    #[serde(default)]
+    pub cursor: CursorAssert,
+    /// Specific-cell assertions. Each entry pins one cell.
+    #[serde(default)]
+    pub cells: Vec<CellAssert>,
+    /// Expected grid dimensions after replay. Useful when a
+    /// scenario tests a `resize` step.
+    #[serde(default)]
+    pub cols: Option<usize>,
+    #[serde(default)]
+    pub rows: Option<usize>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct CursorAssert {
+    #[serde(default)]
+    pub row: Option<usize>,
+    #[serde(default)]
+    pub col: Option<usize>,
+    #[serde(default)]
+    pub visible: Option<bool>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct CellAssert {
+    pub row: usize,
+    pub col: usize,
+    #[serde(default)]
+    pub ch: Option<String>,
+    #[serde(default)]
+    pub fg: Option<[u8; 3]>,
+    #[serde(default)]
+    pub bg: Option<[u8; 3]>,
+    /// Bit-OR of CellAttrs bits (see `terminal::CellAttrs::bits`).
+    #[serde(default)]
+    pub attrs: Option<u8>,
+    /// Cell width: 1 = normal, 2 = wide char, 0 = continuation.
+    #[serde(default)]
+    pub width: Option<u8>,
+}
+
+/// Load a scenario from a YAML file.
+pub fn load(path: &Path) -> Result<Scenario> {
+    let raw = std::fs::read_to_string(path)
+        .with_context(|| format!("read {}", path.display()))?;
+    let scenario: Scenario = serde_yaml_ng::from_str(&raw)
+        .with_context(|| format!("parse {}", path.display()))?;
+    Ok(scenario)
+}
+
+/// Run a scenario synchronously inside an ad-hoc tokio runtime.
+///
+/// This is the `#[test]` entrypoint. Each test gets its own runtime
+/// + session — no shared state. The runtime is single-threaded
+/// because the session's reader pump is the only async consumer
+/// and it lives inside `tokio::spawn`.
+pub fn run_sync(path: &Path) -> Result<()> {
+    let scenario = load(path)?;
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .context("build tokio runtime")?;
+    rt.block_on(async { run(&scenario).await })
+}
+
+/// Run a scenario in an existing tokio runtime.
+pub async fn run(scenario: &Scenario) -> Result<()> {
+    let registry = Arc::new(SessionRegistry::default());
+    let spec = TermSpec {
+        shell: scenario.shell.clone(),
+        cwd: scenario.cwd.clone(),
+        env: scenario.env.clone(),
+        cols: scenario.cols,
+        rows: scenario.rows,
+        ..TermSpec::default()
+    };
+    let id = registry.spawn(&spec).await
+        .with_context(|| format!("spawn scenario {:?}", scenario.name))?;
+    let session = registry.get(&id).ok_or_else(|| anyhow!("session vanished after spawn"))?;
+
+    // Give the shell ~100ms to print its initial prompt — most
+    // scenarios reference the prompt in `text_contains`. Scenarios
+    // that need a shell-clean start can add `- reset` as the first
+    // step.
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    for (idx, step) in scenario.steps.iter().enumerate() {
+        run_step(&session, step, idx).await
+            .with_context(|| format!("scenario {:?} step #{idx}", scenario.name))?;
+    }
+
+    // Final settle — give the reader pump a moment to drain the
+    // PTY for whatever the last step produced.
+    tokio::time::sleep(Duration::from_millis(50)).await;
+
+    let snap = session.snapshot_grid();
+    check_expectations(&scenario.expect, &snap)
+        .with_context(|| format!("scenario {:?} assertions", scenario.name))?;
+    Ok(())
+}
+
+async fn run_step(
+    session: &Arc<crate::session::Session>,
+    step: &Step,
+    _idx: usize,
+) -> Result<()> {
+    match step {
+        Step::Send { text } => {
+            // YAML's native double-quoted string escapes already
+            // decode `\n / \r / \t / \xNN / \uNNNN` into the right
+            // bytes — we just forward the parsed string as UTF-8.
+            //
+            // Authors who need to send a literal "\033" string to
+            // the shell (so shell + printf interprets it) write
+            // YAML single-quoted strings or escape the backslash
+            // (`"\\033"`). This is symmetric with how every other
+            // YAML consumer in pleme-io treats escape strings; we
+            // intentionally don't add a second layer of decoding.
+            session.send_input(text.as_bytes()).await?;
+        }
+        Step::WaitForText { text, timeout_ms } => {
+            let deadline = Instant::now() + Duration::from_millis(*timeout_ms);
+            loop {
+                let snap = session.snapshot_grid();
+                if snap.to_text().contains(text.as_str()) {
+                    return Ok(());
+                }
+                if Instant::now() >= deadline {
+                    bail!(
+                        "wait_for_text {text:?} timed out after {timeout_ms}ms\n\
+                         last-observed grid:\n{}",
+                        snap.to_pretty()
+                    );
+                }
+                tokio::time::sleep(Duration::from_millis(20)).await;
+            }
+        }
+        Step::WaitMs { ms } => {
+            tokio::time::sleep(Duration::from_millis(*ms)).await;
+        }
+        Step::Resize { cols, rows } => {
+            session.resize(*cols, *rows).await?;
+        }
+        Step::Reset => {
+            session.send_input(b"\x1bc").await?;
+            // Reset takes a moment to flush.
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+    }
+    Ok(())
+}
+
+fn check_expectations(expect: &Expect, snap: &GridSnapshot) -> Result<()> {
+    let mut failures: Vec<String> = Vec::new();
+    let text = snap.to_text();
+
+    for needle in &expect.text_contains {
+        if !text.contains(needle.as_str()) {
+            failures.push(format!("text_contains: missing {needle:?}"));
+        }
+    }
+    for forbidden in &expect.text_not_contains {
+        if text.contains(forbidden.as_str()) {
+            failures.push(format!("text_not_contains: found {forbidden:?}"));
+        }
+    }
+    if let Some(want) = expect.cursor.row
+        && snap.cursor_row != want
+    {
+        failures.push(format!("cursor.row: want {want}, got {}", snap.cursor_row));
+    }
+    if let Some(want) = expect.cursor.col
+        && snap.cursor_col != want
+    {
+        failures.push(format!("cursor.col: want {want}, got {}", snap.cursor_col));
+    }
+    if let Some(want) = expect.cursor.visible
+        && snap.cursor_visible != want
+    {
+        failures.push(format!(
+            "cursor.visible: want {want}, got {}",
+            snap.cursor_visible
+        ));
+    }
+    if let Some(want) = expect.cols
+        && snap.cols != want
+    {
+        failures.push(format!("cols: want {want}, got {}", snap.cols));
+    }
+    if let Some(want) = expect.rows
+        && snap.rows != want
+    {
+        failures.push(format!("rows: want {want}, got {}", snap.rows));
+    }
+    for assert in &expect.cells {
+        check_cell(assert, snap, &mut failures);
+    }
+
+    if !failures.is_empty() {
+        bail!(
+            "{} assertion(s) failed:\n{}\n\nfinal grid:\n{}",
+            failures.len(),
+            failures
+                .iter()
+                .map(|f| format!("  ✗ {f}"))
+                .collect::<Vec<_>>()
+                .join("\n"),
+            snap.to_pretty()
+        );
+    }
+    Ok(())
+}
+
+fn check_cell(assert: &CellAssert, snap: &GridSnapshot, failures: &mut Vec<String>) {
+    let Some(row) = snap.cells.get(assert.row) else {
+        failures.push(format!(
+            "cell[{},{}]: row out of bounds (grid has {} rows)",
+            assert.row, assert.col, snap.cells.len()
+        ));
+        return;
+    };
+    let Some(cell) = row.get(assert.col) else {
+        failures.push(format!(
+            "cell[{},{}]: col out of bounds (row has {} cols)",
+            assert.row, assert.col, row.len()
+        ));
+        return;
+    };
+    if let Some(want_ch) = &assert.ch {
+        let want_char = want_ch.chars().next().unwrap_or('\0');
+        if cell.ch != want_char {
+            failures.push(format!(
+                "cell[{},{}].ch: want {:?}, got {:?}",
+                assert.row, assert.col, want_char, cell.ch
+            ));
+        }
+    }
+    if let Some(want_fg) = assert.fg
+        && cell.fg != want_fg
+    {
+        failures.push(format!(
+            "cell[{},{}].fg: want {:?}, got {:?}",
+            assert.row, assert.col, want_fg, cell.fg
+        ));
+    }
+    if let Some(want_bg) = assert.bg
+        && cell.bg != want_bg
+    {
+        failures.push(format!(
+            "cell[{},{}].bg: want {:?}, got {:?}",
+            assert.row, assert.col, want_bg, cell.bg
+        ));
+    }
+    if let Some(want_attrs) = assert.attrs
+        && cell.attrs != want_attrs
+    {
+        failures.push(format!(
+            "cell[{},{}].attrs: want 0b{:08b}, got 0b{:08b}",
+            assert.row, assert.col, want_attrs, cell.attrs
+        ));
+    }
+    if let Some(want_width) = assert.width
+        && cell.width != want_width
+    {
+        failures.push(format!(
+            "cell[{},{}].width: want {want_width}, got {}",
+            assert.row, assert.col, cell.width
+        ));
+    }
+}
+
+// ── Recording ─────────────────────────────────────────────────────
+
+/// Options for the `mado record` subcommand.
+#[derive(Debug, Clone)]
+pub struct RecordOpts {
+    pub output: std::path::PathBuf,
+    pub name: String,
+    pub description: String,
+    pub cols: u16,
+    pub rows: u16,
+    pub cmd: Vec<String>,
+}
+
+/// Capture every byte the child writes to its PTY into a scenario
+/// YAML that replays the same byte stream against a `cat` passthrough.
+///
+/// The recorded scenario uses `shell: cat` so the captured bytes —
+/// which already contain the escape sequences atuin / fzf / vim
+/// emitted — replay verbatim through the terminal core. `expect: {}`
+/// is the default; operators add their assertions before committing.
+///
+/// Non-interactive: stdin is `/dev/null`. The recorder is for
+/// capturing one-shot reproducers, not live sessions — interactive
+/// recording is a future iteration once `garasu-introspect` lifts.
+pub async fn record_session(opts: RecordOpts) -> Result<()> {
+    use tokio::io::AsyncReadExt;
+    let RecordOpts {
+        output,
+        name,
+        description,
+        cols,
+        rows,
+        cmd,
+    } = opts;
+
+    if cmd.is_empty() {
+        bail!("record: empty command — pass `-- cmd [args...]` after the mado flags");
+    }
+
+    let program = &cmd[0];
+    // Glue the command + args into a single shell invocation so we
+    // can route through the existing `Pty::spawn` path (which takes
+    // a shell + an optional command). Quoting is deliberately naive
+    // here — escape any embedded single-quote.
+    let joined: String = cmd
+        .iter()
+        .map(|s| {
+            let escaped = s.replace('\'', "'\\''");
+            format!("'{escaped}'")
+        })
+        .collect::<Vec<_>>()
+        .join(" ");
+
+    let pty = crate::pty::Pty::spawn(
+        "/bin/sh",
+        cols,
+        rows,
+        &std::collections::HashMap::new(),
+        None,
+        Some(&format!("exec {joined}")),
+    )
+    .await
+    .context("record: spawn PTY")?;
+
+    let mut reader = pty.reader().context("record: reader")?;
+    let mut captured: Vec<u8> = Vec::new();
+    let mut buf = vec![0u8; 4096];
+    // Cap total capture at 1 MiB — guards against runaway processes.
+    const MAX_BYTES: usize = 1_048_576;
+    loop {
+        match reader.read(&mut buf).await {
+            Ok(0) => break, // child exited / PTY closed
+            Ok(n) => {
+                let take = (MAX_BYTES.saturating_sub(captured.len())).min(n);
+                captured.extend_from_slice(&buf[..take]);
+                if captured.len() >= MAX_BYTES {
+                    tracing::warn!(
+                        "record: captured byte cap ({MAX_BYTES}) reached — truncating"
+                    );
+                    break;
+                }
+            }
+            Err(e) => {
+                tracing::warn!(error = %e, "record: reader error — stopping");
+                break;
+            }
+        }
+    }
+
+    drop(pty); // ensure child is reaped before writing the file
+
+    let scenario_text = render_scenario_yaml(
+        &name,
+        &description,
+        program,
+        &joined,
+        cols,
+        rows,
+        &captured,
+    );
+    if let Some(parent) = output.parent()
+        && !parent.as_os_str().is_empty()
+    {
+        std::fs::create_dir_all(parent).with_context(|| format!("mkdir {parent:?}"))?;
+    }
+    std::fs::write(&output, scenario_text)
+        .with_context(|| format!("write {output:?}"))?;
+    eprintln!(
+        "mado record: wrote {} bytes of capture to {} ({} bytes captured from {})",
+        std::fs::metadata(&output).map(|m| m.len()).unwrap_or(0),
+        output.display(),
+        captured.len(),
+        program,
+    );
+    Ok(())
+}
+
+/// Render a captured byte stream into a scenario YAML using
+/// `shell: cat` for replay. The captured bytes are emitted as a
+/// double-quoted string with `\xNN` for every non-printable byte so
+/// the YAML parser reconstructs them losslessly.
+fn render_scenario_yaml(
+    name: &str,
+    description: &str,
+    program: &str,
+    cmd_quoted: &str,
+    cols: u16,
+    rows: u16,
+    captured: &[u8],
+) -> String {
+    let mut out = String::new();
+    out.push_str(&format!("name: {name}\n"));
+    out.push_str("description: |\n");
+    for line in description.lines() {
+        out.push_str("  ");
+        out.push_str(line);
+        out.push('\n');
+    }
+    out.push_str(&format!("  # Captured via `mado record` from: {program}\n"));
+    out.push_str(&format!("  # Command: {cmd_quoted}\n"));
+    out.push_str(&format!("  # Bytes captured: {}\n", captured.len()));
+    out.push_str(&format!("cols: {cols}\n"));
+    out.push_str(&format!("rows: {rows}\n"));
+    out.push_str("# `cat` is a byte passthrough — the captured stream replays\n");
+    out.push_str("# verbatim through mado's terminal core without any shell\n");
+    out.push_str("# re-interpretation.\n");
+    out.push_str("shell: /bin/cat\n");
+    out.push_str("steps:\n");
+    out.push_str("  - kind: send\n");
+    out.push_str("    text: \"");
+    for &b in captured {
+        match b {
+            b'"' => out.push_str("\\\""),
+            b'\\' => out.push_str("\\\\"),
+            b'\n' => out.push_str("\\n"),
+            b'\r' => out.push_str("\\r"),
+            b'\t' => out.push_str("\\t"),
+            0x20..=0x7e => out.push(b as char),
+            _ => out.push_str(&format!("\\x{b:02x}")),
+        }
+    }
+    out.push_str("\"\n");
+    out.push_str("expect:\n");
+    out.push_str("  # Operator: fill in assertions for the cells / text\n");
+    out.push_str("  # that should hold after the captured stream replays.\n");
+    out.push_str("  text_contains: []\n");
+    out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn scenario_yaml_round_trips() {
+        let raw = r#"
+name: example
+description: a tiny test
+cols: 40
+rows: 6
+shell: /bin/sh
+steps:
+  - kind: send
+    text: "echo hi\n"
+  - kind: wait_for_text
+    text: "hi"
+    timeout_ms: 300
+expect:
+  text_contains:
+    - "hi"
+  cursor:
+    visible: true
+  cells:
+    - row: 1
+      col: 0
+      ch: "h"
+"#;
+        let s: Scenario = serde_yaml_ng::from_str(raw).unwrap();
+        assert_eq!(s.name, "example");
+        assert_eq!(s.cols, 40);
+        assert_eq!(s.steps.len(), 2);
+        assert!(matches!(&s.steps[0], Step::Send { text } if text.contains("echo")));
+        assert!(matches!(&s.steps[1], Step::WaitForText { text, timeout_ms: 300 } if text == "hi"));
+        assert_eq!(s.expect.text_contains[0], "hi");
+        assert_eq!(s.expect.cells[0].row, 1);
+        assert_eq!(s.expect.cells[0].ch.as_deref(), Some("h"));
+    }
+
+    #[test]
+    fn unknown_yaml_field_is_rejected() {
+        // serde(deny_unknown_fields) keeps the format honest.
+        let raw = r#"
+name: bogus
+typo_field: 42
+"#;
+        let err = serde_yaml_ng::from_str::<Scenario>(raw).unwrap_err();
+        assert!(err.to_string().contains("typo_field"), "{err}");
+    }
+
+    #[test]
+    fn empty_expectations_pass() {
+        // No assertions = trivially passes — a "didn't panic" test.
+        let snap = GridSnapshot {
+            cols: 4, rows: 2, cursor_row: 0, cursor_col: 0, cursor_visible: true,
+            cells: vec![vec![]; 2],
+        };
+        let res = check_expectations(&Expect::default(), &snap);
+        assert!(res.is_ok());
+    }
+
+    #[test]
+    fn missing_text_contains_fails_with_diff() {
+        let snap = GridSnapshot {
+            cols: 4, rows: 1, cursor_row: 0, cursor_col: 0, cursor_visible: true,
+            cells: vec![vec![
+                crate::session::CellSnapshot { ch: 'a', width: 1, fg: [255;3], bg: [0;3], attrs: 0 },
+                crate::session::CellSnapshot { ch: 'b', width: 1, fg: [255;3], bg: [0;3], attrs: 0 },
+                crate::session::CellSnapshot { ch: 'c', width: 1, fg: [255;3], bg: [0;3], attrs: 0 },
+                crate::session::CellSnapshot { ch: 'd', width: 1, fg: [255;3], bg: [0;3], attrs: 0 },
+            ]],
+        };
+        let exp = Expect {
+            text_contains: vec!["xyz".into()],
+            ..Expect::default()
+        };
+        let err = check_expectations(&exp, &snap).unwrap_err();
+        let s = format!("{err:#}");
+        assert!(s.contains("missing"), "diff text missing: {s}");
+        assert!(s.contains("xyz"), "diff text missing: {s}");
+    }
+}

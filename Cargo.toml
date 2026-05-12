@@ -98,6 +98,12 @@ image = { version = "0.25", default-features = false, features = ["png"] }
 tokio = { version = "1", features = ["rt-multi-thread", "process", "io-util", "sync", "macros", "net"] }
 libc = "0.2"
 
+# Scenario harness — `mado scenario-run` consumes YAML so the format is
+# operator-facing, not test-only. serde_yaml_ng is the actively-maintained
+# successor to the (now-deprecated) serde_yaml crate; pleme-io tooling
+# (sekkei, etc.) already standardised on it.
+serde_yaml_ng = "0.10"
+
 # macOS platform integration (safe Rust wrappers for Cocoa APIs)
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
@@ -106,7 +112,7 @@ objc2-app-kit = { version = "0.3", features = ["NSApplication", "NSWindow", "NSD
 
 [dev-dependencies]
 tempfile = "3"
-serde_yaml = "0.9"
+proptest = "1"
 
 # crate-source redirect — every consumer of crates.io garasu / shikumi
 # (us directly + madori transitively) lands on the same git rev. This

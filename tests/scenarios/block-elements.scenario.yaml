@@ -1,0 +1,31 @@
+name: block-elements
+description: |
+  Block-element characters (U+2580..U+259F) land in the terminal as
+  distinct codepoints. atuin / ratatui / fzf emit these as popup
+  borders. Combine with CSI 2J;H to render to a known absolute
+  position so we can pin specific cells.
+cols: 40
+rows: 6
+shell: /bin/sh
+steps:
+  - kind: send
+    text: "stty -echo; PS1=''\n"
+  - kind: wait_ms
+    ms: 50
+  - kind: send
+    # Clear, home, then write ▌█▐ at row 0 col 0.
+    text: "printf '\\e[2J\\e[H\\xe2\\x96\\x8c\\xe2\\x96\\x88\\xe2\\x96\\x90'\n"
+  - kind: wait_for_text
+    text: "▌"
+    timeout_ms: 500
+expect:
+  cells:
+    - row: 0
+      col: 0
+      ch: "▌"
+    - row: 0
+      col: 1
+      ch: "█"
+    - row: 0
+      col: 2
+      ch: "▐"

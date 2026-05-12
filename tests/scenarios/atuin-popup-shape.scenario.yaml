@@ -1,0 +1,37 @@
+name: atuin-popup-shape
+description: |
+  Reproduce the "rectangles at the right of every popup row" shape
+  the operator saw in the live atuin session. The U+2588 FULL BLOCK
+  characters at column 79 are atuin's intentional ratatui-block
+  borders (theme choice, not a mado bug).
+
+  This scenario pins exactly which cells contain `█` — if a future
+  refactor were to ever drop U+2588 chars or render them as something
+  else (space, tofu, half-block), this test catches it.
+cols: 80
+rows: 10
+shell: /bin/sh
+steps:
+  - kind: send
+    text: "stty -echo; PS1=''\n"
+  - kind: wait_ms
+    ms: 50
+  - kind: send
+    # Clear, home, then for each of the first 3 rows: write some
+    # text then jump to col 80 and emit a U+2588 FULL BLOCK.
+    text: "printf '\\e[2J\\e[H\\e[1;1Hgit·status\\e[1;80H\\xe2\\x96\\x88\\e[2;1Hecho·hi\\e[2;80H\\xe2\\x96\\x88\\e[3;1Hls\\e[3;80H\\xe2\\x96\\x88'\n"
+  - kind: wait_for_text
+    text: "git"
+    timeout_ms: 500
+expect:
+  cells:
+    # Every popup row terminates in a U+2588 at column 79 (0-indexed).
+    - row: 0
+      col: 79
+      ch: "█"
+    - row: 1
+      col: 79
+      ch: "█"
+    - row: 2
+      col: 79
+      ch: "█"

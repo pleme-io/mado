@@ -18,6 +18,7 @@ mod pointer_shape;
 mod prompt_mark;
 mod pty;
 mod render;
+mod scenario;
 mod search;
 mod selection;
 mod session;
@@ -70,6 +71,51 @@ enum SubCmd {
     /// mado see on this machine" + fleet-wide auditing via
     /// `tend` / scripted queries.
     PrintPosture,
+    /// Run a `*.scenario.yaml` file in headless mode and exit non-zero
+    /// on assertion failure. Used by `tests/scenarios.rs` to dispatch
+    /// each scenario as its own process — and by operators to replay
+    /// a captured scenario locally without firing up Claude.
+    ScenarioRun {
+        /// Path to the scenario YAML file.
+        path: std::path::PathBuf,
+    },
+    /// Capture a terminal session as a `*.scenario.yaml` regression
+    /// test. Spawns the command non-interactively in a PTY, records
+    /// every byte the child writes, and emits a scenario whose single
+    /// `send` step replays that byte stream against a `cat` passthrough.
+    ///
+    /// Typical workflow:
+    ///
+    /// ```bash
+    /// mado record --output tests/scenarios/atuin-bug.scenario.yaml \
+    ///     --cols 80 --rows 24 --name atuin-stu-search \
+    ///     -- sh -c 'atuin search stu < /dev/null'
+    /// ```
+    ///
+    /// Open the resulting YAML, add `expect:` assertions, drop into
+    /// `tests/scenarios/`, and it becomes a permanent regression test.
+    /// Any future commit that breaks the recorded behaviour fails CI.
+    Record {
+        /// Output scenario YAML path.
+        #[arg(long)]
+        output: std::path::PathBuf,
+        /// Scenario name (defaults to the output filename stem).
+        #[arg(long)]
+        name: Option<String>,
+        /// Grid width in columns (default 80).
+        #[arg(long, default_value_t = 80)]
+        cols: u16,
+        /// Grid height in rows (default 24).
+        #[arg(long, default_value_t = 24)]
+        rows: u16,
+        /// Description text to embed in the scenario.
+        #[arg(long, default_value = "Captured via `mado record`.")]
+        description: String,
+        /// The command + args to run inside the PTY. Use `--` to
+        /// separate from mado's own flags.
+        #[arg(trailing_var_arg = true, required = true)]
+        cmd: Vec<String>,
+    },
 }
 
 /// Detect the runtime posture via a transient winit event loop.
@@ -150,6 +196,45 @@ fn main() -> anyhow::Result<()> {
         Some(SubCmd::PrintPosture) => {
             let posture = detect_runtime_posture()?;
             println!("{}", serde_json::to_string_pretty(&posture)?);
+            return Ok(());
+        }
+        Some(SubCmd::ScenarioRun { ref path }) => {
+            // Stderr-only tracing so the scenario harness can route
+            // failure context to the test runner without interleaving
+            // with the test runner's own JSON output.
+            shidou::init_tracing_to_stderr();
+            scenario::run_sync(path)
+                .map_err(|e| anyhow::anyhow!("scenario {path:?} failed:\n{e:#}"))?;
+            return Ok(());
+        }
+        Some(SubCmd::Record {
+            ref output,
+            ref name,
+            cols,
+            rows,
+            ref description,
+            ref cmd,
+        }) => {
+            shidou::init_tracing_to_stderr();
+            let rt = shidou::create_runtime()?;
+            let scenario_name = name
+                .clone()
+                .or_else(|| {
+                    output
+                        .file_stem()
+                        .and_then(|s| s.to_str())
+                        .map(|s| s.trim_end_matches(".scenario").to_string())
+                })
+                .unwrap_or_else(|| "captured-session".to_string());
+            rt.block_on(scenario::record_session(scenario::RecordOpts {
+                output: output.clone(),
+                name: scenario_name,
+                description: description.clone(),
+                cols,
+                rows,
+                cmd: cmd.clone(),
+            }))
+            .map_err(|e| anyhow::anyhow!("mado record failed:\n{e:#}"))?;
             return Ok(());
         }
         None => {}

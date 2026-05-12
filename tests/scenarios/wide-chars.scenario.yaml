@@ -1,0 +1,47 @@
+name: wide-chars
+description: |
+  East-Asian wide characters occupy two cells. The first cell holds
+  the codepoint with `width=2`; the second is a continuation cell
+  with `width=0`. A renderer that treats them as 1-wide will draw
+  overlapping glyphs. Use absolute-position writes so the assertion
+  isn't sensitive to shell-prompt layout.
+cols: 40
+rows: 6
+shell: /bin/sh
+steps:
+  - kind: send
+    text: "stty -echo; PS1=''\n"
+  - kind: wait_ms
+    ms: 50
+  - kind: send
+    # Clear, home, then write 日本語 — three CJK wide chars at row 0.
+    text: "printf '\\e[2J\\e[H\\xe6\\x97\\xa5\\xe6\\x9c\\xac\\xe8\\xaa\\x9e'\n"
+  - kind: wait_for_text
+    text: "日"
+    timeout_ms: 500
+expect:
+  cells:
+    # 日 at col 0 width 2; continuation at col 1 width 0.
+    - row: 0
+      col: 0
+      ch: "日"
+      width: 2
+    - row: 0
+      col: 1
+      width: 0
+    # 本 at col 2 width 2; continuation at col 3.
+    - row: 0
+      col: 2
+      ch: "本"
+      width: 2
+    - row: 0
+      col: 3
+      width: 0
+    # 語 at col 4 width 2; continuation at col 5.
+    - row: 0
+      col: 4
+      ch: "語"
+      width: 2
+    - row: 0
+      col: 5
+      width: 0

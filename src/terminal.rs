@@ -5113,3 +5113,107 @@ mod tests {
         assert_eq!(restored, &defaults);
     }
 }
+
+// ---------------------------------------------------------------------------
+// Property tests (proptest)
+//
+// Invariants every VT100 / xterm core must hold under arbitrary input.
+// Each property is a class of bugs we provably can't ship — if a
+// regression breaks one, the proptest shrinker hands us the minimal
+// failing byte sequence, and we add it as a scenario.
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+mod proptests {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        /// **Invariant: parser never panics, cursor stays in bounds.**
+        ///
+        /// Random byte streams of up to 1 KiB are fed to a fresh
+        /// terminal. After every feed, the cursor must be inside the
+        /// grid bounds. If proptest ever finds a panic or
+        /// out-of-bounds cursor, the shrunk input becomes the next
+        /// scenario.
+        #[test]
+        fn random_byte_stream_never_panics_and_keeps_cursor_in_bounds(
+            input in proptest::collection::vec(any::<u8>(), 0..1024)
+        ) {
+            let mut term = Terminal::new(80, 24);
+            term.feed(&input);
+            let cur = term.cursor();
+            // Cursor may sit at `cols` exactly (pending-wrap state)
+            // but must not exceed it; rows must stay inside the grid.
+            prop_assert!(cur.col <= term.cols(),
+                "cursor.col={} > cols={}", cur.col, term.cols());
+            prop_assert!(cur.row < term.rows(),
+                "cursor.row={} >= rows={}", cur.row, term.rows());
+        }
+
+        /// **Invariant: resize preserves grid consistency.**
+        ///
+        /// After resizing to any (cols, rows) in [1, 200] × [1, 100],
+        /// the reported dimensions match exactly and the cursor sits
+        /// inside the new bounds.
+        #[test]
+        fn resize_preserves_dimensions_and_cursor_bounds(
+            cols in 1u16..200,
+            rows in 1u16..100,
+        ) {
+            let mut term = Terminal::new(80, 24);
+            term.feed(b"hello world\nsecond line\n");
+            term.resize(cols as usize, rows as usize);
+            prop_assert_eq!(term.cols(), cols as usize);
+            prop_assert_eq!(term.rows(), rows as usize);
+            prop_assert!(term.cursor().col <= term.cols());
+            prop_assert!(term.cursor().row < term.rows());
+        }
+
+        /// **Invariant: ASCII printable strings advance cursor by their
+        /// byte length (mod wrap).**
+        ///
+        /// For any printable-ASCII string shorter than one row, after
+        /// feeding it from a fresh terminal the cursor either sits at
+        /// `(0, len)` or — for strings of exactly `cols` — at the
+        /// pending-wrap edge `(0, cols)`. Wider-than-cols strings are
+        /// excluded so this stays a clean linear invariant.
+        #[test]
+        fn ascii_print_advances_cursor_linearly(
+            s in proptest::string::string_regex("[A-Za-z0-9 ]{0,79}").unwrap()
+        ) {
+            let mut term = Terminal::new(80, 24);
+            term.feed(s.as_bytes());
+            let cur = term.cursor();
+            prop_assert_eq!(cur.row, 0);
+            prop_assert_eq!(cur.col, s.len(),
+                "want col={}, got col={}, str={:?}", s.len(), cur.col, s);
+        }
+
+        /// **Invariant: wide-char cells consume exactly 2 columns.**
+        ///
+        /// For any Hiragana string (each char is East-Asian Wide),
+        /// feeding `n` chars advances the cursor by `2n` (mod wrap)
+        /// and every emitted glyph's cell has `width == 2`.
+        #[test]
+        fn wide_chars_consume_two_columns(
+            n in 0usize..30,
+        ) {
+            // Hiragana あ U+3042 is East-Asian-Wide — 2 columns per
+            // glyph per Unicode East Asian Width.
+            let s: String = std::iter::repeat_n('あ', n).collect();
+            let mut term = Terminal::new(80, 24);
+            term.feed(s.as_bytes());
+            prop_assert_eq!(term.cursor().row, 0);
+            prop_assert_eq!(term.cursor().col, 2 * n);
+            for i in 0..n {
+                let cell = term.cell(0, 2 * i);
+                prop_assert_eq!(cell.ch, 'あ');
+                prop_assert_eq!(cell.width, 2);
+                // continuation cell width=0
+                let cont = term.cell(0, 2 * i + 1);
+                prop_assert_eq!(cont.width, 0);
+            }
+        }
+    }
+}

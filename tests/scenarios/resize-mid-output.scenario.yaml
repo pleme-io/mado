@@ -1,0 +1,31 @@
+name: resize-mid-output
+description: |
+  Resize the PTY+grid in the middle of a session. After the resize
+  the new dimensions take effect, and a subsequent write lands at
+  the right column count. Proves cordel between PTY winsize and
+  in-memory grid stays consistent.
+cols: 40
+rows: 6
+shell: /bin/sh
+steps:
+  - kind: send
+    text: "PS1=$ \n"
+  - kind: send
+    text: "echo BEFORE\n"
+  - kind: wait_for_text
+    text: "BEFORE"
+    timeout_ms: 500
+  - kind: resize
+    cols: 80
+    rows: 12
+  - kind: send
+    text: "echo AFTER\n"
+  - kind: wait_for_text
+    text: "AFTER"
+    timeout_ms: 500
+expect:
+  text_contains:
+    - "BEFORE"
+    - "AFTER"
+  cols: 80
+  rows: 12

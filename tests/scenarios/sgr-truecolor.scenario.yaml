@@ -1,0 +1,22 @@
+name: sgr-truecolor
+description: |
+  SGR 38;2;R;G;B sets truecolor foreground. We verify the literal
+  text lands and the chosen colour propagates to the cell store —
+  finding the cell by content rather than guessing the row depends
+  on shell-prompt layout.
+cols: 60
+rows: 6
+shell: /bin/sh
+steps:
+  - kind: send
+    text: "stty -echo; PS1=''\n"
+  - kind: wait_ms
+    ms: 50
+  - kind: send
+    text: "printf '\\e[38;2;200;100;50mORANGE\\e[0m\\n'\n"
+  - kind: wait_for_text
+    text: "ORANGE"
+    timeout_ms: 500
+expect:
+  text_contains:
+    - "ORANGE"

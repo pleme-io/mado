@@ -1,0 +1,52 @@
+name: box-drawing
+description: |
+  Box-drawing characters (U+2500..U+257F) — the alphabet that every
+  TUI uses for borders. atuin, fzf, vim/ncurses, ranger all rely on
+  these. Render to absolute positions via CSI <row>;<col>H so the
+  assertion isn't sensitive to shell-prompt layout.
+cols: 40
+rows: 6
+shell: /bin/sh
+steps:
+  - kind: send
+    text: "stty -echo; PS1=''\n"
+  - kind: wait_ms
+    ms: 50
+  - kind: send
+    # Clear, home, then write a 3x3 box at the origin:
+    # ┌─┐
+    # │X│
+    # └─┘
+    text: "printf '\\e[2J\\e[H\\xe2\\x94\\x8c\\xe2\\x94\\x80\\xe2\\x94\\x90\\e[2;1H\\xe2\\x94\\x82X\\xe2\\x94\\x82\\e[3;1H\\xe2\\x94\\x94\\xe2\\x94\\x80\\xe2\\x94\\x98'\n"
+  - kind: wait_for_text
+    text: "┌"
+    timeout_ms: 500
+expect:
+  cells:
+    - row: 0
+      col: 0
+      ch: "┌"
+    - row: 0
+      col: 1
+      ch: "─"
+    - row: 0
+      col: 2
+      ch: "┐"
+    - row: 1
+      col: 0
+      ch: "│"
+    - row: 1
+      col: 1
+      ch: "X"
+    - row: 1
+      col: 2
+      ch: "│"
+    - row: 2
+      col: 0
+      ch: "└"
+    - row: 2
+      col: 1
+      ch: "─"
+    - row: 2
+      col: 2
+      ch: "┘"

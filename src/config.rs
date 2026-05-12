@@ -991,7 +991,7 @@ window:
   width: 1600
   height: 900
 "#;
-        let config: MadoConfig = serde_yaml::from_str(yaml).unwrap();
+        let config: MadoConfig = serde_yaml_ng::from_str(yaml).unwrap();
         assert_eq!(config.font_family, "Fira Code");
         assert_eq!(config.font_size, 16.0);
         assert_eq!(config.theme, "dracula");
@@ -1256,7 +1256,7 @@ window:
         // The bare minimum YAML — only vsync set — leaves all
         // adaptive-eligible fields at None so detection can fill them.
         let yaml = "vsync: true\n";
-        let p: PerformanceConfig = serde_yaml::from_str(yaml).unwrap();
+        let p: PerformanceConfig = serde_yaml_ng::from_str(yaml).unwrap();
         assert!(p.vsync);
         assert_eq!(p.target_fps, None);
         assert_eq!(p.fps_cap, None);
@@ -1267,7 +1267,7 @@ window:
     fn performance_yaml_explicit_target_fps_deserializes_as_some() {
         // Operator explicitly pinning target_fps: 144 → Some(144).
         let yaml = "vsync: true\ntarget_fps: 144\n";
-        let p: PerformanceConfig = serde_yaml::from_str(yaml).unwrap();
+        let p: PerformanceConfig = serde_yaml_ng::from_str(yaml).unwrap();
         assert_eq!(p.target_fps, Some(144));
         assert_eq!(p.fps_cap, None);
     }
@@ -1280,7 +1280,7 @@ window:
             "fps_cap: 120\n",
             "battery_fps_cap: 30\n",
         );
-        let p: PerformanceConfig = serde_yaml::from_str(yaml).unwrap();
+        let p: PerformanceConfig = serde_yaml_ng::from_str(yaml).unwrap();
         assert!(!p.vsync);
         assert_eq!(p.target_fps, Some(60));
         assert_eq!(p.fps_cap, Some(120));
@@ -1292,7 +1292,7 @@ window:
         // Some YAML authors write `target_fps: null` to signal "no
         // override, let adaptive decide." Must deserialize as None.
         let yaml = "vsync: true\ntarget_fps: null\n";
-        let p: PerformanceConfig = serde_yaml::from_str(yaml).unwrap();
+        let p: PerformanceConfig = serde_yaml_ng::from_str(yaml).unwrap();
         assert_eq!(p.target_fps, None);
     }
 
@@ -1438,7 +1438,7 @@ window:
         let yaml = r#"
 active_profile: "dark"
 "#;
-        let config: MadoConfig = serde_yaml::from_str(yaml).unwrap();
+        let config: MadoConfig = serde_yaml_ng::from_str(yaml).unwrap();
         assert_eq!(config.active_profile.as_deref(), Some("dark"));
     }
 
@@ -1465,7 +1465,7 @@ active_profile: "dark"
             "  - '-calt'\n",
             "  - '-liga'\n",
         );
-        let f: FontConfig = serde_yaml::from_str(yaml).unwrap();
+        let f: FontConfig = serde_yaml_ng::from_str(yaml).unwrap();
         assert_eq!(f.family_bold.as_deref(), Some("Fira Code Bold"));
         assert_eq!(f.family_italic.as_deref(), Some("Fira Code Italic"));
         assert!(f.thicken);
@@ -1487,7 +1487,7 @@ active_profile: "dark"
     #[test]
     fn test_selection_config_yaml() {
         let yaml = "foreground: '#ffffff'\nbackground: '#005577'\nclear_on_typing: false\nclear_on_copy: true\n";
-        let s: SelectionConfig = serde_yaml::from_str(yaml).unwrap();
+        let s: SelectionConfig = serde_yaml_ng::from_str(yaml).unwrap();
         assert_eq!(s.foreground.as_deref(), Some("#ffffff"));
         assert_eq!(s.background.as_deref(), Some("#005577"));
         assert!(!s.clear_on_typing);
@@ -1506,7 +1506,7 @@ active_profile: "dark"
     #[test]
     fn test_search_colors_config_yaml() {
         let yaml = "foreground: '#000000'\nbackground: '#ffcc00'\nselected_foreground: '#000000'\nselected_background: '#ff9900'\n";
-        let s: SearchColorsConfig = serde_yaml::from_str(yaml).unwrap();
+        let s: SearchColorsConfig = serde_yaml_ng::from_str(yaml).unwrap();
         assert_eq!(s.foreground.as_deref(), Some("#000000"));
         assert_eq!(s.background.as_deref(), Some("#ffcc00"));
         assert_eq!(s.selected_foreground.as_deref(), Some("#000000"));
@@ -1522,7 +1522,7 @@ active_profile: "dark"
             "  - trigger: ctrl+shift+c\n",
             "    action: copy\n",
         );
-        let k: KeybindConfig = serde_yaml::from_str(yaml).unwrap();
+        let k: KeybindConfig = serde_yaml_ng::from_str(yaml).unwrap();
         assert_eq!(k.custom.len(), 2);
         assert_eq!(k.custom[0].trigger, "cmd+k");
         assert_eq!(k.custom[0].action, "clear_screen");
@@ -1608,7 +1608,7 @@ active_profile: "dark"
             "working_directory: /tmp/test\n",
             "initial_command: nvim\n",
         );
-        let e: EnvironmentConfig = serde_yaml::from_str(yaml).unwrap();
+        let e: EnvironmentConfig = serde_yaml_ng::from_str(yaml).unwrap();
         assert_eq!(e.vars.get("EDITOR").unwrap(), "nvim");
         assert_eq!(e.vars.get("MY_VAR").unwrap(), "hello");
         assert_eq!(e.working_directory.as_ref().unwrap().to_str().unwrap(), "/tmp/test");
@@ -1644,7 +1644,7 @@ active_profile: "dark"
             "  link_url: false\n",
             "  mouse_reporting: false\n",
         );
-        let config: MadoConfig = serde_yaml::from_str(yaml).unwrap();
+        let config: MadoConfig = serde_yaml_ng::from_str(yaml).unwrap();
         assert_eq!(config.font_family, "Hack");
         assert_eq!(config.font_size, 13.5);
         assert_eq!(config.theme, "dracula");
@@ -1847,7 +1847,7 @@ active_profile: "dark"
             size_fraction: 0.35
             hotkey: "cmd+`"
             "#;
-        let qt: QuickTerminalConfig = serde_yaml::from_str(yaml).unwrap();
+        let qt: QuickTerminalConfig = serde_yaml_ng::from_str(yaml).unwrap();
         assert!(qt.enabled);
         assert_eq!(qt.edge, QuickTerminalEdge::Bottom);
         assert!((qt.size_fraction - 0.35).abs() < 1e-6);

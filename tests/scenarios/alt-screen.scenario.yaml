@@ -1,0 +1,29 @@
+name: alt-screen
+description: |
+  CSI ?1049h enters the alternate screen buffer (vim/less/htop/atuin
+  all use this). CSI ?1049l exits and restores the primary screen.
+  After entering alt-screen + writing content + exiting, the primary
+  screen is restored to what it was before — the alt-screen text is
+  gone, but the original output remains.
+cols: 40
+rows: 6
+shell: /bin/sh
+steps:
+  - kind: send
+    text: "stty -echo; PS1=''\n"
+  - kind: wait_ms
+    ms: 50
+  - kind: send
+    text: "printf 'PRIMARY_BEFORE\\n'\n"
+  - kind: wait_for_text
+    text: "PRIMARY_BEFORE"
+    timeout_ms: 500
+  - kind: send
+    text: "printf '\\033[?1049hON_ALT_SCREEN\\033[?1049l'\n"
+  - kind: wait_ms
+    ms: 200
+expect:
+  text_contains:
+    - "PRIMARY_BEFORE"
+  text_not_contains:
+    - "ON_ALT_SCREEN"

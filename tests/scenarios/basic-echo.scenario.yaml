@@ -1,0 +1,25 @@
+name: basic-echo
+description: |
+  The smallest possible scenario — a shell starts, echo runs, output
+  appears. Proves the PTY → vte → Terminal chain is alive and that
+  `Session::send_input` writes reach the child correctly.
+cols: 40
+rows: 6
+shell: /bin/sh
+steps:
+  - kind: send
+    text: "stty -echo; PS1=''\n"
+  - kind: wait_ms
+    ms: 50
+  - kind: send
+    text: "echo MADO_BASIC_ECHO\n"
+  - kind: wait_for_text
+    text: "MADO_BASIC_ECHO"
+    timeout_ms: 500
+expect:
+  text_contains:
+    - "MADO_BASIC_ECHO"
+  cursor:
+    visible: true
+  cols: 40
+  rows: 6

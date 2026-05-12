@@ -1,0 +1,27 @@
+name: cursor-positioning
+description: |
+  CSI <row>;<col>H (CUP) moves the cursor to (row, col), 1-indexed.
+  After moving + writing a glyph, the glyph lands at exactly that
+  cell. We send the literal text "\033[2J\033[5;10HX" to the shell
+  so /bin/sh's printf interprets the `\033` octal escape (gives us
+  an ESC byte) before it reaches the terminal — sending raw ESC
+  bytes directly through the PTY trips the shell's line editor.
+cols: 40
+rows: 8
+shell: /bin/sh
+steps:
+  - kind: send
+    text: "stty -echo; PS1=''\n"
+  - kind: wait_ms
+    ms: 50
+  - kind: send
+    text: "printf '\\033[2J\\033[H\\033[5;10HX'\n"
+  - kind: wait_for_text
+    text: "X"
+    timeout_ms: 500
+expect:
+  cells:
+    # CSI 5;10H → 1-indexed → row 4, col 9 in 0-indexed grid coords.
+    - row: 4
+      col: 9
+      ch: "X"
