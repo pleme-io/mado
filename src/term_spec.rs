@@ -55,6 +55,18 @@ pub struct TermSpec {
     /// defaults.
     #[serde(default)]
     pub effects: Vec<String>,
+    /// Initial column count for the spawned session's grid. `0`
+    /// means "inherit from the active window" (windowed spawns) or
+    /// "use the standard 80" (headless spawns). Load-bearing for
+    /// the headless MCP path — agent-driven debug sessions must be
+    /// able to declare grid size up front so layout-sensitive bugs
+    /// can be reproduced deterministically.
+    #[serde(default)]
+    pub cols: u16,
+    /// Initial row count for the spawned session's grid. Mirror of
+    /// [`Self::cols`] — `0` = "inherit" / "default to 24".
+    #[serde(default)]
+    pub rows: u16,
 }
 
 /// Canonical placement values — where the new session opens.
@@ -143,7 +155,23 @@ impl Default for TermSpec {
             placement: String::new(),
             attach: String::new(),
             effects: Vec::new(),
+            cols: 0,
+            rows: 0,
         }
+    }
+}
+
+impl TermSpec {
+    /// Resolve [`Self::cols`] / [`Self::rows`] into a concrete pair
+    /// of dimensions. `0` requests "use the headless default" —
+    /// 80×24, the historically-stable terminal size matched by every
+    /// VT line discipline. Non-zero values pass through unchanged so
+    /// agent-driven tests can declare reproducible grid sizes.
+    #[must_use]
+    pub fn resolved_dimensions(&self) -> (u16, u16) {
+        let cols = if self.cols == 0 { 80 } else { self.cols };
+        let rows = if self.rows == 0 { 24 } else { self.rows };
+        (cols, rows)
     }
 }
 

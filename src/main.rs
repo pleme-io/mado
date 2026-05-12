@@ -20,6 +20,7 @@ mod pty;
 mod render;
 mod search;
 mod selection;
+mod session;
 mod tab;
 mod term_spec;
 mod terminal;
@@ -133,13 +134,14 @@ fn detect_runtime_posture() -> anyhow::Result<garasu::adaptive::RuntimePosture> 
 }
 
 fn main() -> anyhow::Result<()> {
-    shidou::init_tracing();
-
     let cli = Cli::parse();
 
-    // Handle subcommands before loading GUI config
+    // Handle subcommands before loading GUI config. MCP must init
+    // tracing to stderr only — stdout is the JSON-RPC framing channel
+    // and any tracing line on stdout breaks the protocol.
     match cli.subcmd {
         Some(SubCmd::Mcp) => {
+            shidou::init_tracing_to_stderr();
             let rt = shidou::create_runtime()?;
             rt.block_on(mcp::run())
                 .map_err(|e| anyhow::anyhow!("MCP server error: {e}"))?;
@@ -152,6 +154,9 @@ fn main() -> anyhow::Result<()> {
         }
         None => {}
     }
+
+    // Windowed mado uses the default stdout-fmt subscriber.
+    shidou::init_tracing();
 
     let (config, _config_store) = config::load_and_watch(&cli.config, |new_config| {
         tracing::debug!("config reloaded: {:?}", new_config);

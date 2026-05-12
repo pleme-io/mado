@@ -17,12 +17,12 @@ use serde::Deserialize;
 use crate::clipboard_store::{ClipboardHash, ClipboardStore};
 use crate::osc_1337::UserMarkHistory;
 use crate::prompt_mark::PromptHistory;
+use crate::session::SessionRegistry;
 use crate::term_spec::TermSpec;
 
 // ── Tool input types ────────────────────────────────────────────────────────
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
-#[allow(dead_code)]
 struct SessionIdInput {
     #[schemars(description = "Session identifier (pane or tab ID).")]
     session_id: String,
@@ -108,6 +108,26 @@ struct AttentionSetInput {
     requested: bool,
 }
 
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct SnapshotGridInput {
+    #[schemars(description = "Session identifier (returned by `spawn_term`).")]
+    session_id: String,
+    #[schemars(description = "Include the full `cells[][]` array in the response. Default true. Set false when you only need cursor + dimensions (much smaller payload for repeated polling).")]
+    include_cells: Option<bool>,
+    #[schemars(description = "If true, include a human-readable `pretty` string field — one row per line, cursor cell marked `▓`, empty cells `·`. Useful for quick visual scans in chat without parsing the cell array.")]
+    pretty: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct ResizeSessionInput {
+    #[schemars(description = "Session identifier (returned by `spawn_term`).")]
+    session_id: String,
+    #[schemars(description = "New column count.")]
+    cols: u16,
+    #[schemars(description = "New row count.")]
+    rows: u16,
+}
+
 // ── MCP Server ──────────────────────────────────────────────────────────────
 
 /// Shared handle on the cross-session content-addressed clipboard
@@ -132,6 +152,13 @@ type SharedUserMarks = Arc<Mutex<UserMarkHistory>>;
 /// dock / flashes the titlebar until focus returns.
 type SharedAttention = Arc<Mutex<bool>>;
 
+/// Registry of headless terminal sessions the MCP server owns.
+/// `spawn_term`, `list_sessions`, `send_keys`, `get_output`,
+/// `snapshot_grid` all read/write through this handle — the
+/// constructive-substrate primitive that turns "drive mado over MCP"
+/// from a stub into a real surface.
+type SharedSessions = Arc<SessionRegistry>;
+
 /// Bundle of every shared-state handle the MCP server reads / writes.
 ///
 /// Collecting the handles into one struct means adding a new shared
@@ -146,6 +173,7 @@ struct SharedState {
     prompt_marks: SharedPromptMarks,
     user_marks: SharedUserMarks,
     attention: SharedAttention,
+    sessions: SharedSessions,
 }
 
 impl Default for SharedState {
@@ -155,6 +183,7 @@ impl Default for SharedState {
             prompt_marks: Arc::new(Mutex::new(PromptHistory::default())),
             user_marks: Arc::new(Mutex::new(UserMarkHistory::default())),
             attention: Arc::new(Mutex::new(false)),
+            sessions: Arc::new(SessionRegistry::default()),
         }
     }
 }
@@ -244,34 +273,146 @@ impl MadoMcp {
     }
 
     // ── Terminal-specific tools ─────────────────────────────────────────────
+    //
+    // Backed by `SessionRegistry`. Every tool here operates on a live
+    // headless session — PTY + terminal-state-machine + reader pump.
+    // The `--mcp` mado process owns the registry; `spawn_term` opens
+    // sessions inside it, every subsequent tool refers to them by id.
 
-    #[tool(description = "List all open terminal sessions (panes and tabs). Returns JSON array with session IDs, titles, working directories, and dimensions.")]
+    #[tool(description = "List every live headless terminal session. Each entry has `id`, `title`, `shell`, `cols`, `rows`, `created_at_unix_ms`, `uptime_ms`. Sorted most-recently-spawned first.")]
     async fn list_sessions(&self) -> String {
-        stub_response("list_sessions", serde_json::json!({ "sessions": [] }))
+        let summaries = self.state.sessions.list();
+        serde_json::json!({ "sessions": summaries }).to_string()
     }
 
-    #[tool(description = "Send keystrokes to a specific terminal session. Supports escape sequences for special keys.")]
+    #[tool(description = "Send keystrokes / raw bytes to a terminal session. The string is sent as UTF-8 bytes to the PTY master — the child's read() advances. Use `\\n` for Enter, `\\x1b` for ESC, `\\x03` for Ctrl-C, etc.")]
     async fn send_keys(&self, Parameters(input): Parameters<SendKeysInput>) -> String {
-        stub_response(
-            "send_keys",
-            serde_json::json!({
+        let Some(session) = self.state.sessions.get(&input.session_id) else {
+            return serde_json::json!({
+                "ok": false,
+                "error": "no-such-session",
                 "session_id": input.session_id,
-                "keys_sent": input.keys,
-            }),
-        )
+            })
+            .to_string();
+        };
+        let bytes = decode_send_keys(&input.keys);
+        match session.send_input(&bytes).await {
+            Ok(()) => serde_json::json!({
+                "ok": true,
+                "session_id": input.session_id,
+                "bytes_written": bytes.len(),
+            })
+            .to_string(),
+            Err(e) => serde_json::json!({
+                "ok": false,
+                "session_id": input.session_id,
+                "error": e.to_string(),
+            })
+            .to_string(),
+        }
     }
 
-    #[tool(description = "Get recent terminal output from a session. Returns the last N lines of visible and scrollback content.")]
+    #[tool(description = "Get the visible terminal output as plain text (trailing whitespace stripped per row). Lighter than `snapshot_grid` when the agent only needs to grep / match output. `lines` clips to the most recent N rows; omit for the full grid.")]
     async fn get_output(&self, Parameters(input): Parameters<GetOutputInput>) -> String {
-        let lines = input.lines.unwrap_or(50);
-        stub_response(
-            "get_output",
-            serde_json::json!({
+        let Some(session) = self.state.sessions.get(&input.session_id) else {
+            return serde_json::json!({
+                "ok": false,
+                "error": "no-such-session",
                 "session_id": input.session_id,
-                "lines_requested": lines,
-                "output": [],
-            }),
-        )
+            })
+            .to_string();
+        };
+        let snap = session.snapshot_grid();
+        let text = snap.to_text();
+        let output = if let Some(n) = input.lines {
+            let lines: Vec<&str> = text.lines().collect();
+            let start = lines.len().saturating_sub(n as usize);
+            lines[start..].join("\n")
+        } else {
+            text
+        };
+        serde_json::json!({
+            "ok": true,
+            "session_id": input.session_id,
+            "cols": snap.cols,
+            "rows": snap.rows,
+            "output": output,
+        })
+        .to_string()
+    }
+
+    #[tool(description = "Take a full structured snapshot of a session's terminal grid — every cell (char + fg + bg + attrs + width) plus cursor row/col/visibility. The load-bearing introspection tool: any visual rendering bug can be triaged by diffing two snapshots or comparing against the on-screen pixels. Set `pretty: true` to also include a human-readable text grid where cells with empty bg become `·` and the cursor cell becomes `▓`.")]
+    async fn snapshot_grid(&self, Parameters(input): Parameters<SnapshotGridInput>) -> String {
+        let Some(session) = self.state.sessions.get(&input.session_id) else {
+            return serde_json::json!({
+                "ok": false,
+                "error": "no-such-session",
+                "session_id": input.session_id,
+            })
+            .to_string();
+        };
+        let snap = session.snapshot_grid();
+        let mut payload = serde_json::json!({
+            "ok": true,
+            "session_id": input.session_id,
+            "cols": snap.cols,
+            "rows": snap.rows,
+            "cursor_row": snap.cursor_row,
+            "cursor_col": snap.cursor_col,
+            "cursor_visible": snap.cursor_visible,
+        });
+        if input.include_cells.unwrap_or(true) {
+            payload["cells"] = serde_json::to_value(&snap.cells).unwrap_or(serde_json::Value::Null);
+        }
+        if input.pretty.unwrap_or(false) {
+            payload["pretty"] = serde_json::Value::String(snap.to_pretty());
+        }
+        payload.to_string()
+    }
+
+    #[tool(description = "Resize a session's PTY + terminal grid together. Both the kernel winsize (so the child gets SIGWINCH) and the in-memory grid are updated. Use to reproduce layout-sensitive bugs at specific widths.")]
+    async fn resize_session(&self, Parameters(input): Parameters<ResizeSessionInput>) -> String {
+        let Some(session) = self.state.sessions.get(&input.session_id) else {
+            return serde_json::json!({
+                "ok": false,
+                "error": "no-such-session",
+                "session_id": input.session_id,
+            })
+            .to_string();
+        };
+        match session.resize(input.cols, input.rows).await {
+            Ok(()) => serde_json::json!({
+                "ok": true,
+                "session_id": input.session_id,
+                "cols": input.cols,
+                "rows": input.rows,
+            })
+            .to_string(),
+            Err(e) => serde_json::json!({
+                "ok": false,
+                "session_id": input.session_id,
+                "error": e.to_string(),
+            })
+            .to_string(),
+        }
+    }
+
+    #[tool(description = "Close a headless terminal session. The PTY is dropped (killing the child if still alive) and the reader task is aborted. Returns `{ok, closed}` — `closed: true` when the id matched a live session, `false` when it was already gone.")]
+    async fn close_session(&self, Parameters(input): Parameters<SessionIdInput>) -> String {
+        match self.state.sessions.close(&input.session_id) {
+            Ok(closed) => serde_json::json!({
+                "ok": true,
+                "session_id": input.session_id,
+                "closed": closed,
+            })
+            .to_string(),
+            Err(e) => serde_json::json!({
+                "ok": false,
+                "session_id": input.session_id,
+                "error": e.to_string(),
+            })
+            .to_string(),
+        }
     }
 
     #[tool(description = "Create a new split pane in the active tab. Specify horizontal or vertical split direction.")]
@@ -297,16 +438,32 @@ impl MadoMcp {
     // spec. The JSON schema advertised to clients is `TermSpec` — every
     // field has a default so the minimal payload is `{}`. This mirrors
     // the escriba-lisp `defterm` form authored in the rc.
-    #[tool(description = "Spawn a terminal session from a typed TermSpec. Fields: shell, args, cwd, env, title, placement (tab/split-horizontal/split-vertical/window), attach (existing session id), effects (shader names). All optional — empty spec opens a default shell in a new tab.")]
+    #[tool(description = "Spawn a headless terminal session from a typed TermSpec. Fields: shell (default $SHELL → /bin/sh), args, cwd (~/ expands), env, title (derives from shell/cwd if empty), placement (advisory — headless ignores; future window mode honors), attach (existing session id), effects (shader names — visual only), cols/rows (default 80/24). Returns `{ok, session_id, title, shell, cols, rows}`. The new session is live: the reader pump is already pulling bytes from the PTY into the terminal state machine.")]
     async fn spawn_term(&self, Parameters(spec): Parameters<TermSpec>) -> String {
-        stub_response(
-            "spawn_term",
-            serde_json::json!({
-                "placement": format!("{:?}", spec.resolved_placement()),
-                "title": spec.display_title(),
-                "is_attach": spec.is_attach(),
-            }),
-        )
+        match self.state.sessions.spawn(&spec).await {
+            Ok(id) => {
+                let (cols, rows) = spec.resolved_dimensions();
+                serde_json::json!({
+                    "ok": true,
+                    "session_id": id,
+                    "title": spec.display_title(),
+                    "shell": if spec.shell.is_empty() {
+                        std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string())
+                    } else {
+                        spec.shell.clone()
+                    },
+                    "cols": cols,
+                    "rows": rows,
+                    "placement": format!("{:?}", spec.resolved_placement()),
+                })
+                .to_string()
+            }
+            Err(e) => serde_json::json!({
+                "ok": false,
+                "error": e.to_string(),
+            })
+            .to_string(),
+        }
     }
 
     // ── Content-addressed clipboard — the escriba snippet integration ────────
@@ -599,6 +756,63 @@ fn preview_from(content: &str) -> String {
     out
 }
 
+/// Decode a `send_keys` payload into raw bytes for the PTY.
+///
+/// Backslash escapes (`\n`, `\r`, `\t`, `\\`, `\0`, `\x1b`, `\xHH`)
+/// are honoured so agents can author "press Enter then Ctrl-C" as
+/// `"foo\n\x03"` without juggling JSON-encoded literals. Anything
+/// else passes through unchanged; an unrecognised escape produces
+/// the literal backslash + char (best-effort, never panics on
+/// malformed input).
+fn decode_send_keys(input: &str) -> Vec<u8> {
+    let mut out: Vec<u8> = Vec::with_capacity(input.len());
+    let mut chars = input.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c != '\\' {
+            let mut buf = [0u8; 4];
+            out.extend_from_slice(c.encode_utf8(&mut buf).as_bytes());
+            continue;
+        }
+        match chars.next() {
+            None => {
+                out.push(b'\\');
+                break;
+            }
+            Some('n') => out.push(b'\n'),
+            Some('r') => out.push(b'\r'),
+            Some('t') => out.push(b'\t'),
+            Some('0') => out.push(0),
+            Some('\\') => out.push(b'\\'),
+            Some('\'') => out.push(b'\''),
+            Some('"') => out.push(b'"'),
+            Some('e') => out.push(0x1b),
+            Some('x') => {
+                let h1 = chars.next();
+                let h2 = chars.next();
+                match (h1, h2) {
+                    (Some(a), Some(b)) => {
+                        let hex = format!("{a}{b}");
+                        if let Ok(byte) = u8::from_str_radix(&hex, 16) {
+                            out.push(byte);
+                        } else {
+                            out.extend_from_slice(b"\\x");
+                            out.push(a as u8);
+                            out.push(b as u8);
+                        }
+                    }
+                    _ => out.extend_from_slice(b"\\x"),
+                }
+            }
+            Some(other) => {
+                out.push(b'\\');
+                let mut buf = [0u8; 4];
+                out.extend_from_slice(other.encode_utf8(&mut buf).as_bytes());
+            }
+        }
+    }
+    out
+}
+
 #[tool_handler]
 impl ServerHandler for MadoMcp {
     fn get_info(&self) -> ServerInfo {
@@ -668,7 +882,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn mcp_send_keys_json() {
+    async fn mcp_send_keys_unknown_session_errors_cleanly() {
         let server = new_server();
         let input = SendKeysInput {
             session_id: "active".to_string(),
@@ -676,12 +890,13 @@ mod tests {
         };
         let result = server.send_keys(Parameters(input)).await;
         let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+        assert_eq!(parsed["ok"], false);
+        assert_eq!(parsed["error"], "no-such-session");
         assert_eq!(parsed["session_id"], "active");
-        assert!(parsed["keys_sent"].is_string());
     }
 
     #[tokio::test]
-    async fn mcp_get_output_json() {
+    async fn mcp_get_output_unknown_session_errors_cleanly() {
         let server = new_server();
         let input = GetOutputInput {
             session_id: "active".to_string(),
@@ -689,9 +904,92 @@ mod tests {
         };
         let result = server.get_output(Parameters(input)).await;
         let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
-        assert_eq!(parsed["session_id"], "active");
-        assert_eq!(parsed["lines_requested"], 10);
-        assert!(parsed["output"].is_array());
+        assert_eq!(parsed["ok"], false);
+        assert_eq!(parsed["error"], "no-such-session");
+    }
+
+    #[tokio::test]
+    async fn mcp_spawn_send_snapshot_end_to_end() {
+        // The load-bearing test — proves the entire MCP→Session→PTY→
+        // Terminal chain works end-to-end without a window or GPU.
+        let server = new_server();
+
+        // spawn a tiny shell session
+        let spec = TermSpec {
+            shell: "/bin/sh".into(),
+            cols: 40,
+            rows: 8,
+            ..TermSpec::default()
+        };
+        let raw = server.spawn_term(Parameters(spec)).await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed["ok"], true);
+        let id = parsed["session_id"].as_str().unwrap().to_string();
+
+        // send a deterministic echo
+        let raw = server
+            .send_keys(Parameters(SendKeysInput {
+                session_id: id.clone(),
+                keys: "PS1=''; echo MADO_E2E\\n".into(),
+            }))
+            .await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed["ok"], true);
+
+        // poll the grid for the sentinel to land
+        let mut found = false;
+        for _ in 0..40 {
+            tokio::time::sleep(std::time::Duration::from_millis(25)).await;
+            let raw = server
+                .get_output(Parameters(GetOutputInput {
+                    session_id: id.clone(),
+                    lines: None,
+                }))
+                .await;
+            let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+            let text = parsed["output"].as_str().unwrap_or("");
+            if text.contains("MADO_E2E") {
+                found = true;
+                break;
+            }
+        }
+        assert!(found, "MCP→Session→PTY→Terminal chain did not deliver echo");
+
+        // snapshot_grid returns full structured data
+        let raw = server
+            .snapshot_grid(Parameters(SnapshotGridInput {
+                session_id: id.clone(),
+                include_cells: Some(true),
+                pretty: Some(true),
+            }))
+            .await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed["ok"], true);
+        assert_eq!(parsed["cols"], 40);
+        assert_eq!(parsed["rows"], 8);
+        assert!(parsed["cells"].is_array());
+        assert!(parsed["pretty"].is_string());
+
+        // cleanup
+        let raw = server
+            .close_session(Parameters(SessionIdInput {
+                session_id: id.clone(),
+            }))
+            .await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed["closed"], true);
+    }
+
+    #[test]
+    fn decode_send_keys_handles_common_escapes() {
+        assert_eq!(decode_send_keys("ab\\n"), b"ab\n");
+        assert_eq!(decode_send_keys("\\r\\t"), b"\r\t");
+        assert_eq!(decode_send_keys("\\x1b[A"), b"\x1b[A");
+        assert_eq!(decode_send_keys("\\x03"), &[0x03]);
+        // unknown escape falls through to literal backslash + char
+        assert_eq!(decode_send_keys("\\q"), b"\\q");
+        // utf-8 passthrough
+        assert_eq!(decode_send_keys("café"), "café".as_bytes());
     }
 
     #[tokio::test]
@@ -818,9 +1116,12 @@ mod tests {
     #[tokio::test]
     async fn every_stubbed_tool_follows_uniform_shape() {
         // Contract: every IPC-stubbed tool returns {ok: false, tool,
-        // note} at minimum, with the `tool` value matching the
-        // method name and the `note` derivable from `tool`. Adding
-        // a new stub that forgets this structure trips this test.
+        // note} at minimum. The session-aware tools (`spawn_term`,
+        // `list_sessions`, `send_keys`, `get_output`, `snapshot_grid`,
+        // `resize_session`, `close_session`) are real implementations
+        // backed by `SessionRegistry` — they no longer go through
+        // `stub_response`. Only the tools that still need a windowed
+        // mado process (config_*, split_pane, new_tab) live here.
         let server = new_server();
         let responses: Vec<(&str, String)> = vec![
             (
@@ -838,25 +1139,6 @@ mod tests {
                     }))
                     .await,
             ),
-            ("list_sessions", server.list_sessions().await),
-            (
-                "send_keys",
-                server
-                    .send_keys(Parameters(SendKeysInput {
-                        session_id: "active".into(),
-                        keys: "x".into(),
-                    }))
-                    .await,
-            ),
-            (
-                "get_output",
-                server
-                    .get_output(Parameters(GetOutputInput {
-                        session_id: "active".into(),
-                        lines: None,
-                    }))
-                    .await,
-            ),
             (
                 "split_pane",
                 server
@@ -867,12 +1149,6 @@ mod tests {
                     .await,
             ),
             ("new_tab", server.new_tab().await),
-            (
-                "spawn_term",
-                server
-                    .spawn_term(Parameters(TermSpec::default()))
-                    .await,
-            ),
         ];
         for (tool_name, raw) in responses {
             let parsed: serde_json::Value = serde_json::from_str(&raw)
@@ -1210,6 +1486,7 @@ mod tests {
             prompt_marks,
             user_marks: user_marks.clone(),
             attention: attention.clone(),
+            ..SharedState::default()
         });
         (server, user_marks, attention)
     }

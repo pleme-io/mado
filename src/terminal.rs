@@ -51,6 +51,14 @@ impl CellAttrs {
     pub const fn is_empty(self) -> bool {
         self.0 == 0
     }
+
+    /// Raw bitfield — exposed for MCP snapshot serialization. The
+    /// bit positions match the BOLD/ITALIC/UNDERLINE/BLINK/INVERSE/
+    /// STRIKETHROUGH/DIM/HIDDEN constants above, in that order.
+    #[must_use]
+    pub const fn bits(self) -> u8 {
+        self.0
+    }
 }
 
 // ---------------------------------------------------------------------------
