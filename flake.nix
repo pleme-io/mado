@@ -94,6 +94,36 @@
             foreground = { type = "str";   default = "#eceff4"; description = "Foreground color (hex)."; };
             opacity    = { type = "float"; default = 1.0;       description = "Window opacity (0.0-1.0)."; };
           };
+
+          # ── Performance / pacing — adaptive runtime-posture knobs ──
+          #
+          # Every field except `vsync` is `nullOrInt`. `null` (default)
+          # means: defer to garasu::adaptive — the detected display
+          # refresh rate becomes the smart default. Pin to a specific
+          # number to override detection on this node.
+          #
+          # See pleme-io/garasu/src/adaptive.rs for the recommender
+          # rule table and pleme-io/mado/src/config.rs for the typed
+          # precedence chain: hardcoded fallback (60) ← detected ←
+          # this YAML ← named profile ← CLI flag.
+          performance = {
+            vsync = { type = "bool"; default = true; description = "Enable vsync for smoother rendering."; };
+            target_fps = {
+              type = "nullOrInt";
+              default = null;
+              description = "Explicit fps target. null = defer to garasu::adaptive detected refresh (per-display).";
+            };
+            fps_cap = {
+              type = "nullOrInt";
+              default = null;
+              description = "Upper bound on the adaptive recommendation. null = no ceiling.";
+            };
+            battery_fps_cap = {
+              type = "nullOrInt";
+              default = null;
+              description = "Upper bound when on battery (laptops). null = same as fps_cap. Inert until M1 battery detection lands.";
+            };
+          };
         };
 
         # Top-level font_family / font_size live outside any typed group
