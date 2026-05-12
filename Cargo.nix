@@ -3953,6 +3953,20 @@ rec {
         ];
 
       };
+      "irodori" = rec {
+        crateName = "irodori";
+        version = "0.1.0";
+        edition = "2024";
+        sha256 = "07nbryqvivbpg0gw9sbb8c8lbhvmrp1pcmlr6w7nq68jry44ph8d";
+        dependencies = [
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+        ];
+
+      };
       "is-docker" = rec {
         crateName = "is-docker";
         version = "0.2.0";
@@ -3999,6 +4013,42 @@ rec {
         features = {
         };
         resolvedDefaultFeatures = [ "default" ];
+      };
+      "ishou-tokens" = rec {
+        crateName = "ishou-tokens";
+        version = "0.1.0";
+        edition = "2024";
+        workspace_member = null;
+        src = pkgs.fetchgit {
+          url = "https://github.com/pleme-io/ishou";
+          rev = "b5089152df026c1d703f8012360e387fde4ba4c1";
+          sha256 = "1czd9klrmjvlmsqnyhfr0l28gbzn4dp4rvd2r48a39pr0zpplv4b";
+        };
+        libName = "ishou_tokens";
+        dependencies = [
+          {
+            name = "irodori";
+            packageId = "irodori";
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
+            name = "wgpu-types";
+            packageId = "wgpu-types";
+            optional = true;
+          }
+        ];
+        features = {
+          "wgpu" = [ "dep:wgpu-types" ];
+        };
+        resolvedDefaultFeatures = [ "default" "wgpu" ];
       };
       "itoa" = rec {
         crateName = "itoa";
@@ -4675,6 +4725,11 @@ rec {
             packageId = "image";
             usesDefaultFeatures = false;
             features = [ "png" ];
+          }
+          {
+            name = "ishou-tokens";
+            packageId = "ishou-tokens";
+            features = [ "wgpu" ];
           }
           {
             name = "kaname";
