@@ -31,10 +31,17 @@ strip = true
 blake3 = "1"
 
 # Pleme-io shared libraries
+# garasu / shikumi declared as crates.io versions here AND redirected via
+# `[patch.crates-io]` below to the git source so madori's transitive
+# `garasu = "0.1"` / `shikumi = "0.1"` resolves to the same git rev as
+# our direct dep — avoiding the two-versions-of-same-crate diamond at
+# link time while keeping the published crates.io version usable for
+# external consumers. Until garasu/shikumi publish a release with the
+# rich-text APIs mado depends on, the patch keeps us on git.
 shidou = { git = "https://github.com/pleme-io/shidou" }
-garasu = { git = "https://github.com/pleme-io/garasu" }
+garasu = "0.1"
 madori = { git = "https://github.com/pleme-io/madori" }
-shikumi = { git = "https://github.com/pleme-io/shikumi" }
+shikumi = "0.1"
 hasami = { git = "https://github.com/pleme-io/hasami" }
 soushi = { git = "https://github.com/pleme-io/soushi" }
 awase = { git = "https://github.com/pleme-io/awase" }
@@ -88,9 +95,14 @@ objc2-app-kit = { version = "0.3", features = ["NSApplication", "NSWindow", "NSD
 tempfile = "3"
 serde_yaml = "0.9"
 
-# Local path patches are opt-in via a dedicated workspace profile —
-# out of the default Cargo.toml so nix sandbox builds resolve the git
-# deps reproducibly. For local iteration against unreleased madori /
-# shidou, create a `.cargo/config.toml` or use `cargo run --config`
-# to re-introduce the `[patch]` sections without poisoning the flake
-# build.
+# crate-source redirect — every consumer of crates.io garasu / shikumi
+# (us directly + madori transitively) lands on the same git rev. This
+# is the load-bearing fix for the "two versions of same crate" diamond
+# that emerged once madori switched its declared sources to crates.io
+# while garasu kept evolving on git ahead of its crates.io publication.
+# crate2nix consumes Cargo.lock which records the patched URL, so this
+# also resolves cleanly in the flake / nix sandbox build.
+[patch.crates-io]
+garasu = { git = "https://github.com/pleme-io/garasu" }
+shikumi = { git = "https://github.com/pleme-io/shikumi" }
+egaku = { git = "https://github.com/pleme-io/egaku" }

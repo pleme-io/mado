@@ -737,7 +737,7 @@ checksum = "d0881ea181b1df73ff77ffaaf9c7544ecc11e82fba9b5f27b262a3c73a332555"
 [[package]]
 name = "egaku"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/egaku#b42c7ff76f2d13f0277dc7a16fb20adaf4c09a02"
+source = "git+https://github.com/pleme-io/egaku#b67e5bb1ab7b817bcc2ecd4ef7a8ea0e06fa814f"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -1018,7 +1018,7 @@ dependencies = [
 [[package]]
 name = "garasu"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/garasu#8776429bbfba46197f0914c3749d2a0fb9ab9969"
+source = "git+https://github.com/pleme-io/garasu#15d8799b67d8b6aeab823a04bf2ee32337d358bc"
 dependencies = [
  "glyphon",
  "pollster",
@@ -1615,7 +1615,7 @@ dependencies = [
 [[package]]
 name = "madori"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/madori#8e7a2e0d96a9ed26313de6623e216affc50da8a8"
+source = "git+https://github.com/pleme-io/madori#94d55f7554513b34a74826a136e50bd642966754"
 dependencies = [
  "egaku",
  "garasu",
@@ -2962,7 +2962,7 @@ dependencies = [
 [[package]]
 name = "shikumi"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/shikumi#18617d7735a65b701cb60f64eba4cca67668c188"
+source = "git+https://github.com/pleme-io/shikumi#3058a084e866cb5c3eaaa9b2c742d0d11978afc1"
 dependencies = [
  "arc-swap",
  "async-trait",
