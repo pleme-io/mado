@@ -845,6 +845,14 @@ pub struct TerminalRenderer {
     cursor_color: [f32; 4],
     /// Reduce motion: disable cursor blink and bell flash.
     reduce_motion: bool,
+    /// HiDPI scale factor (1.0 on non-Retina, 2.0 on most Mac Retina,
+    /// other values on Linux/Windows). Multiplies font_size and padding
+    /// before they touch the GPU pipeline — the wgpu surface is sized
+    /// in physical pixels, so all draw positions / cell metrics must
+    /// be physical too, otherwise the rendered content only covers a
+    /// `1/scale_factor`-sized chunk of the window. Refreshed each
+    /// frame from `RenderContext::scale_factor`.
+    scale_factor: f32,
 }
 
 impl TerminalRenderer {
@@ -890,7 +898,41 @@ impl TerminalRenderer {
             selection_bg: [0.533, 0.753, 0.816, 0.3], // Nord frost default
             cursor_color: [0.925, 0.937, 0.957, 0.85], // Nord snow default
             reduce_motion: false,
+            // 1.0 = no scaling; overwritten on the first render frame
+            // by `set_scale_factor(ctx.scale_factor)`.
+            scale_factor: 1.0,
         }
+    }
+
+    /// Update the HiDPI scale factor. If the value actually changed,
+    /// invalidates the cached cell metrics so the next render
+    /// re-measures glyphs at the new resolution. Called from the
+    /// `render` entry point each frame; the cost when nothing changed
+    /// is one float comparison.
+    pub fn set_scale_factor(&mut self, scale: f32) {
+        if (self.scale_factor - scale).abs() > f32::EPSILON {
+            self.scale_factor = scale;
+            // Force re-measurement of cell_width/cell_height at the
+            // new pixel density so glyphon's reported glyph advance is
+            // in physical pixels matching the wgpu surface.
+            self.metrics_measured = false;
+        }
+    }
+
+    /// Physical-pixel padding. The stored `padding` is logical
+    /// (operator-authored in mado.yaml as "8 pixels"); GPU draws need
+    /// it scaled into physical pixels to align with the wgpu surface.
+    #[inline]
+    fn padding_px(&self) -> f32 {
+        self.padding * self.scale_factor
+    }
+
+    /// Physical-pixel font size. Mirrors `padding_px` — logical
+    /// `font_size` from config, scaled into physical pixels for the
+    /// glyphon font-system + buffer creation.
+    #[inline]
+    fn font_size_px(&self) -> f32 {
+        self.font_size * self.scale_factor
     }
 
     /// Set selection highlight background (RGBA).
@@ -983,8 +1025,14 @@ impl TerminalRenderer {
         }
         self.metrics_measured = true;
 
-        // Render a reference character and measure its glyph advance width
-        let mut buf = text.create_buffer("M", self.font_size, self.font_size * 1.4);
+        // Render a reference character at the physical-pixel font size
+        // so the measured advance width / line height come back in the
+        // same units as the wgpu surface. Without the scale_factor
+        // multiplication, cell positions end up in logical pixels and
+        // the rendered content only fills a 1/scale_factor portion of
+        // the HiDPI window (the symptom: prompts visible top-left only).
+        let fs = self.font_size_px();
+        let mut buf = text.create_buffer("M", fs, fs * 1.4);
         buf.shape_until_scroll(&mut text.font_system, false);
 
         let mut measured_width: Option<f32> = None;
@@ -1363,7 +1411,10 @@ impl TerminalRenderer {
 
             if runs.is_empty() {
                 if row_idx == snap.cursor.row {
-                    let buf = text.create_buffer(" ", self.font_size, self.cell_height);
+                    // font_size in physical pixels so the rendered
+                    // glyph aligns with the cell_height already
+                    // measured in physical pixels.
+                    let buf = text.create_buffer(" ", self.font_size_px(), self.cell_height);
                     buffers.push((row_idx, buf));
                 }
                 continue;
@@ -1387,7 +1438,7 @@ impl TerminalRenderer {
                 })
                 .collect();
 
-            let buf = text.create_rich_buffer(&spans, self.font_size, self.cell_height);
+            let buf = text.create_rich_buffer(&spans, self.font_size_px(), self.cell_height);
             buffers.push((row_idx, buf));
         }
 
@@ -1437,11 +1488,12 @@ impl TerminalRenderer {
     fn render_multi_pane(&mut self, ctx: &mut RenderContext<'_>) {
         let window = self.window.clone().unwrap();
         let ws = window.lock().unwrap();
+        let pad = self.padding_px();
         let pane_rects = ws.layout(
-            self.padding,
-            self.padding,
-            ctx.width as f32 - 2.0 * self.padding,
-            ctx.height as f32 - 2.0 * self.padding,
+            pad,
+            pad,
+            ctx.width as f32 - 2.0 * pad,
+            ctx.height as f32 - 2.0 * pad,
         );
         let focused_id = ws.focused_pane_id();
         let pane_count = pane_rects.len();
@@ -2164,7 +2216,15 @@ impl RenderCallback for TerminalRenderer {
     }
 
     fn render(&mut self, ctx: &mut RenderContext<'_>) {
-        // Measure actual font metrics on first render
+        // Pull the live HiDPI scale factor in first. If it changed, the
+        // setter clears `metrics_measured` so `measure_cell_metrics`
+        // below re-measures glyph widths in the new pixel density.
+        // This is the load-bearing fix for "rendered content only fills
+        // 1/scale_factor of the window" on Retina displays.
+        self.set_scale_factor(ctx.scale_factor as f32);
+
+        // Measure actual font metrics on first render (or after a
+        // scale-factor change).
         self.measure_cell_metrics(ctx.text);
 
         // Multi-pane path: render all panes from WindowState
@@ -2194,7 +2254,7 @@ impl RenderCallback for TerminalRenderer {
         // Build rect instances (cell backgrounds + cursor + decorations)
         let sel = self.selection.lock().unwrap();
         let mut rect_instances =
-            self.build_rect_instances(&snap, ctx.elapsed, self.padding, self.padding, &sel);
+            self.build_rect_instances(&snap, ctx.elapsed, self.padding_px(), self.padding_px(), &sel);
         drop(sel);
 
         // Bell flash: add full-screen semi-transparent overlay (before GPU upload)
@@ -2310,16 +2370,17 @@ impl RenderCallback for TerminalRenderer {
         // Pass 2.5: Kitty graphics images
         {
             let view = scene_view!(self, ctx);
-            self.draw_kitty_images(ctx, &mut encoder, view, &snap.image_placements, self.padding, self.padding);
+            self.draw_kitty_images(ctx, &mut encoder, view, &snap.image_placements, self.padding_px(), self.padding_px());
         }
 
         // Pass 3: Text with per-cell colors
         let mut text_areas = Vec::new();
+        let pad = self.padding_px();
         for (row_idx, buffer) in &text_buffers {
-            let y = self.padding + (*row_idx as f32 * self.cell_height);
+            let y = pad + (*row_idx as f32 * self.cell_height);
             text_areas.push(glyphon::TextArea {
                 buffer,
-                left: self.padding,
+                left: pad,
                 top: y,
                 scale: 1.0,
                 bounds: glyphon::TextBounds {
