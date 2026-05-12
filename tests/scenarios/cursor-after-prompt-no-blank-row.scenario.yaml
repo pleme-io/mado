@@ -1,0 +1,43 @@
+name: cursor-after-prompt-no-blank-row
+description: |
+  Regression test for the "cursor looks detached from the last prompt"
+  bug the operator reported on 2026-05-12. Root cause was starship's
+  `add_newline = true` config inserting a literal blank row before
+  every prompt — not a mado rendering bug. The cursor was always in
+  the right CELL coordinates; the blank-row pattern between prompts
+  made it look visually wrong.
+
+  This scenario replays a minimal three-prompt pattern with no
+  blanks between them and pins the cursor to be on the SAME row as
+  the last prompt's last character — the shape that holds when the
+  shell does NOT insert blank rows. If a future starship / blackmatter-
+  shell config flip re-introduces add_newline=true (or mado renders
+  empty rows from nowhere), this fails CI.
+cols: 60
+rows: 6
+runner: direct
+steps:
+  - kind: send
+    # Three "prompts" on adjacent rows. The trailing space after the
+    # last $ marks the cursor cell. No newlines between prompts.
+    text: "prompt$ \r\nprompt$ \r\nprompt$ "
+expect:
+  text_contains:
+    - "prompt$"
+  cells:
+    # Row 0 starts with 'p', row 1 starts with 'p', row 2 starts with
+    # 'p'. No blank rows between prompts.
+    - row: 0
+      col: 0
+      ch: "p"
+    - row: 1
+      col: 0
+      ch: "p"
+    - row: 2
+      col: 0
+      ch: "p"
+  cursor:
+    # Cursor lands one cell past the trailing space of the last
+    # prompt — on the SAME row as the last prompt, not below it.
+    row: 2
+    col: 8
