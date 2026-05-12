@@ -1018,7 +1018,7 @@ dependencies = [
 [[package]]
 name = "garasu"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/garasu#15d8799b67d8b6aeab823a04bf2ee32337d358bc"
+source = "git+https://github.com/pleme-io/garasu#6404e797bc3891661add99ae0d72f59a42a38d12"
 dependencies = [
  "glyphon",
  "pollster",
@@ -1610,6 +1610,7 @@ dependencies = [
  "unicode-width",
  "vte",
  "wgpu",
+ "winit",
 ]
 
 [[package]]

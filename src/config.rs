@@ -271,20 +271,66 @@ impl Default for ShellIntegrationConfig {
     }
 }
 
+/// Performance / pacing knobs. Fields use `Option<u32>` for the
+/// hardcoded ← detected ← user precedence chain: `None` means "let
+/// `garasu::adaptive` recommend", `Some(v)` means "operator said so,
+/// no detection override."
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PerformanceConfig {
     #[serde(default = "default_vsync")]
     pub vsync: bool,
-    #[serde(default = "default_target_fps")]
-    pub target_fps: u32,
+    /// Explicit frame-rate target. `None` (the default) defers to
+    /// `garasu::adaptive::recommend` — typically the primary display's
+    /// refresh rate. Set explicitly to override detection.
+    #[serde(default)]
+    pub target_fps: Option<u32>,
+    /// Upper bound on the adaptive recommendation. `None` = no ceiling.
+    /// Use e.g. `240` to prevent a 360Hz panel from pushing too high.
+    #[serde(default)]
+    pub fps_cap: Option<u32>,
+    /// Upper bound applied when on battery power. `None` = same as
+    /// `fps_cap`. Battery detection lands in a follow-up — this slot
+    /// is wired now so config schemas don't churn later.
+    #[serde(default)]
+    pub battery_fps_cap: Option<u32>,
 }
 
 impl Default for PerformanceConfig {
     fn default() -> Self {
         Self {
             vsync: default_vsync(),
-            target_fps: default_target_fps(),
+            target_fps: None,
+            fps_cap: None,
+            battery_fps_cap: None,
         }
+    }
+}
+
+impl PerformanceConfig {
+    /// Hardcoded fallback frame rate used when neither the user config
+    /// nor the adaptive recommender supplies a value. The safe floor —
+    /// every panel since 2003 supports 60Hz.
+    pub const FALLBACK_FPS: u32 = 60;
+
+    /// Resolve the effective fps target by walking the precedence
+    /// chain: user `target_fps` → adaptive recommendation → hardcoded
+    /// [`FALLBACK_FPS`].
+    #[must_use]
+    pub fn resolve_target_fps(&self, posture: Option<&garasu::adaptive::RuntimePosture>) -> u32 {
+        if let Some(fps) = self.target_fps {
+            return fps;
+        }
+        if let Some(p) = posture {
+            let profile = garasu::adaptive::RecommendationProfile {
+                fps_cap: self.fps_cap,
+                battery_fps_cap: self.battery_fps_cap,
+                force_battery_mode: false,
+            };
+            if let Some(fps) = garasu::adaptive::recommend(p, &profile).fps_target {
+                return fps;
+            }
+        }
+        Self::FALLBACK_FPS
     }
 }
 
@@ -751,13 +797,10 @@ fn default_shell_integration_features() -> Vec<String> {
 fn default_vsync() -> bool {
     true
 }
-fn default_target_fps() -> u32 {
-    // 60 is the Ghostty default and the standard refresh rate across most
-    // displays. 120 was over-aggressive — extra GPU/CPU cost for no
-    // visible benefit on standard 60Hz panels. Users with high-refresh
-    // displays can opt into 120 explicitly via config.
-    60
-}
+// `default_target_fps` removed — the field is now `Option<u32>` with the
+// `None` default deferring to `garasu::adaptive`. The hardcoded floor
+// (60) lives on `PerformanceConfig::FALLBACK_FPS` so the precedence
+// chain has one canonical name for it.
 fn default_theme() -> String {
     "nord".into()
 }
@@ -881,7 +924,9 @@ mod tests {
         assert!(config.shell_integration.enabled);
         assert_eq!(config.shell_integration.features, ["cursor", "sudo", "title"]);
         assert!(config.performance.vsync);
-        assert_eq!(config.performance.target_fps, 60);
+        assert_eq!(config.performance.target_fps, None);
+        assert_eq!(config.performance.fps_cap, None);
+        assert_eq!(config.performance.battery_fps_cap, None);
         assert!(!config.shaders.enabled);
         assert!(config.shaders.files.is_empty());
         assert_eq!(config.accessibility.colorblind, ColorblindMode::None);
@@ -1126,7 +1171,196 @@ window:
     fn test_performance_config_defaults() {
         let p = PerformanceConfig::default();
         assert!(p.vsync);
-        assert_eq!(p.target_fps, 60);
+        assert_eq!(p.target_fps, None);
+        assert_eq!(p.fps_cap, None);
+        assert_eq!(p.battery_fps_cap, None);
+    }
+
+    #[test]
+    fn resolve_target_fps_user_wins_over_detection() {
+        let p = PerformanceConfig {
+            vsync: true,
+            target_fps: Some(144),
+            fps_cap: Some(60),
+            battery_fps_cap: None,
+        };
+        // Posture present, but user-set value preempts.
+        let posture = make_posture_with_refresh(Some(120));
+        assert_eq!(p.resolve_target_fps(Some(&posture)), 144);
+    }
+
+    #[test]
+    fn resolve_target_fps_detection_when_no_user_value() {
+        let p = PerformanceConfig {
+            vsync: true,
+            target_fps: None,
+            fps_cap: None,
+            battery_fps_cap: None,
+        };
+        let posture = make_posture_with_refresh(Some(120));
+        assert_eq!(p.resolve_target_fps(Some(&posture)), 120);
+    }
+
+    #[test]
+    fn resolve_target_fps_detection_respects_fps_cap() {
+        let p = PerformanceConfig {
+            vsync: true,
+            target_fps: None,
+            fps_cap: Some(90),
+            battery_fps_cap: None,
+        };
+        let posture = make_posture_with_refresh(Some(240));
+        assert_eq!(p.resolve_target_fps(Some(&posture)), 90);
+    }
+
+    #[test]
+    fn resolve_target_fps_falls_back_to_60_when_no_posture() {
+        let p = PerformanceConfig::default();
+        assert_eq!(p.resolve_target_fps(None), PerformanceConfig::FALLBACK_FPS);
+        assert_eq!(p.resolve_target_fps(None), 60);
+    }
+
+    #[test]
+    fn resolve_target_fps_falls_back_to_60_when_posture_has_no_refresh() {
+        let p = PerformanceConfig::default();
+        let posture = make_posture_with_refresh(None);
+        assert_eq!(p.resolve_target_fps(Some(&posture)), 60);
+    }
+
+    fn make_posture_with_refresh(hz: Option<u32>) -> garasu::adaptive::RuntimePosture {
+        garasu::adaptive::RuntimePosture {
+            displays: vec![garasu::adaptive::Display {
+                name: Some("test".into()),
+                size: (1920, 1080),
+                scale_factor: 2.0,
+                refresh_hz: hz,
+                primary: true,
+            }],
+            gpu: None,
+            platform: garasu::adaptive::detect_platform(),
+            high_refresh: hz.is_some_and(|v| v > 60),
+        }
+    }
+
+    #[test]
+    fn performance_yaml_missing_fields_default_to_none() {
+        // The bare minimum YAML — only vsync set — leaves all
+        // adaptive-eligible fields at None so detection can fill them.
+        let yaml = "vsync: true\n";
+        let p: PerformanceConfig = serde_yaml::from_str(yaml).unwrap();
+        assert!(p.vsync);
+        assert_eq!(p.target_fps, None);
+        assert_eq!(p.fps_cap, None);
+        assert_eq!(p.battery_fps_cap, None);
+    }
+
+    #[test]
+    fn performance_yaml_explicit_target_fps_deserializes_as_some() {
+        // Operator explicitly pinning target_fps: 144 → Some(144).
+        let yaml = "vsync: true\ntarget_fps: 144\n";
+        let p: PerformanceConfig = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(p.target_fps, Some(144));
+        assert_eq!(p.fps_cap, None);
+    }
+
+    #[test]
+    fn performance_yaml_all_caps_present() {
+        let yaml = concat!(
+            "vsync: false\n",
+            "target_fps: 60\n",
+            "fps_cap: 120\n",
+            "battery_fps_cap: 30\n",
+        );
+        let p: PerformanceConfig = serde_yaml::from_str(yaml).unwrap();
+        assert!(!p.vsync);
+        assert_eq!(p.target_fps, Some(60));
+        assert_eq!(p.fps_cap, Some(120));
+        assert_eq!(p.battery_fps_cap, Some(30));
+    }
+
+    #[test]
+    fn performance_yaml_explicit_null_target_fps_round_trips() {
+        // Some YAML authors write `target_fps: null` to signal "no
+        // override, let adaptive decide." Must deserialize as None.
+        let yaml = "vsync: true\ntarget_fps: null\n";
+        let p: PerformanceConfig = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(p.target_fps, None);
+    }
+
+    #[test]
+    fn performance_serde_full_round_trip() {
+        let p = PerformanceConfig {
+            vsync: true,
+            target_fps: Some(120),
+            fps_cap: Some(240),
+            battery_fps_cap: Some(60),
+        };
+        let json = serde_json::to_string(&p).unwrap();
+        let back: PerformanceConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.vsync, p.vsync);
+        assert_eq!(back.target_fps, p.target_fps);
+        assert_eq!(back.fps_cap, p.fps_cap);
+        assert_eq!(back.battery_fps_cap, p.battery_fps_cap);
+    }
+
+    #[test]
+    fn performance_fallback_fps_is_60() {
+        // Pin the canonical hardcoded floor as a named constant. Future
+        // changes to this number break this test on purpose — it's a
+        // promise to operators that without detection AND without
+        // config, mado lands on the universally-supported 60Hz baseline.
+        assert_eq!(PerformanceConfig::FALLBACK_FPS, 60);
+    }
+
+    #[test]
+    fn resolve_target_fps_battery_cap_only_kicks_in_when_forced() {
+        // The battery_fps_cap field is plumbed but force_battery_mode
+        // is always false in M0. Setting battery_fps_cap alone has no
+        // effect on the resolved fps until force_battery_mode flips.
+        let p = PerformanceConfig {
+            vsync: true,
+            target_fps: None,
+            fps_cap: Some(120),
+            battery_fps_cap: Some(30),
+        };
+        let posture = make_posture_with_refresh(Some(144));
+        // Without force_battery_mode, fps_cap (120) clamps, not battery_fps_cap.
+        assert_eq!(p.resolve_target_fps(Some(&posture)), 120);
+    }
+
+    #[test]
+    fn resolve_target_fps_explicit_zero_is_honoured() {
+        // Edge case: operator pins target_fps: 0 (uncapped). User
+        // explicit always wins, even if it's a degenerate value. The
+        // renderer is responsible for sanity-checking; resolve_*
+        // doesn't second-guess.
+        let p = PerformanceConfig {
+            vsync: true,
+            target_fps: Some(0),
+            fps_cap: None,
+            battery_fps_cap: None,
+        };
+        let posture = make_posture_with_refresh(Some(120));
+        assert_eq!(p.resolve_target_fps(Some(&posture)), 0);
+    }
+
+    #[test]
+    fn resolve_target_fps_with_120hz_promotion() {
+        // Real-world case: 14" MBP with ProMotion (120Hz variable).
+        // User left target_fps unset; we want the renderer to know.
+        let p = PerformanceConfig::default();
+        let posture = make_posture_with_refresh(Some(120));
+        assert_eq!(p.resolve_target_fps(Some(&posture)), 120);
+    }
+
+    #[test]
+    fn resolve_target_fps_with_60hz_external_display() {
+        // Real-world case: external 4K monitor at 60Hz on the same MBP.
+        // Detected refresh becomes the new default — operator never
+        // needed to touch config.
+        let p = PerformanceConfig::default();
+        let posture = make_posture_with_refresh(Some(60));
+        assert_eq!(p.resolve_target_fps(Some(&posture)), 60);
     }
 
     #[test]
@@ -1160,7 +1394,9 @@ window:
             ProfileConfig {
                 performance: Some(PerformanceConfig {
                     vsync: false,
-                    target_fps: 240,
+                    target_fps: Some(240),
+                    fps_cap: None,
+                    battery_fps_cap: None,
                 }),
                 ..ProfileConfig::default()
             },
@@ -1171,7 +1407,7 @@ window:
         };
         let applied = config.with_profile("gaming");
         assert!(!applied.performance.vsync);
-        assert_eq!(applied.performance.target_fps, 240);
+        assert_eq!(applied.performance.target_fps, Some(240));
     }
 
     #[test]

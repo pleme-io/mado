@@ -64,6 +64,72 @@ struct Cli {
 enum SubCmd {
     /// Run as MCP server (stdio transport) for Claude Code integration.
     Mcp,
+    /// Detect the runtime posture (displays, refresh rates, GPU,
+    /// platform) and print it as JSON. Useful for debugging "what does
+    /// mado see on this machine" + fleet-wide auditing via
+    /// `tend` / scripted queries.
+    PrintPosture,
+}
+
+/// Detect the runtime posture via a transient winit event loop.
+///
+/// winit 0.30 exposes monitor queries only on `ActiveEventLoop`, which
+/// you only get *inside* a running loop. We therefore run a one-tick
+/// loop whose `resumed` handler captures the monitors then exits. This
+/// is fine for `--print-posture` (process exits afterward) but not for
+/// in-app startup detection — macOS won't allow a second `EventLoop`
+/// in the same process. Startup-time detection lands in M1 by plumbing
+/// a posture event through madori's own loop.
+fn detect_runtime_posture() -> anyhow::Result<garasu::adaptive::RuntimePosture> {
+    use std::sync::{Arc, Mutex};
+    use winit::application::ApplicationHandler;
+    use winit::event::WindowEvent;
+    use winit::event_loop::{ActiveEventLoop, EventLoop};
+    use winit::monitor::MonitorHandle;
+
+    struct Capture {
+        monitors: Arc<Mutex<Vec<MonitorHandle>>>,
+        primary: Arc<Mutex<Option<MonitorHandle>>>,
+    }
+
+    impl ApplicationHandler for Capture {
+        fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+            *self.monitors.lock().unwrap() = event_loop.available_monitors().collect();
+            *self.primary.lock().unwrap() = event_loop.primary_monitor();
+            event_loop.exit();
+        }
+        fn window_event(
+            &mut self,
+            _: &ActiveEventLoop,
+            _: winit::window::WindowId,
+            _: WindowEvent,
+        ) {
+        }
+    }
+
+    let event_loop = EventLoop::new()?;
+    let monitors_cell = Arc::new(Mutex::new(Vec::new()));
+    let primary_cell = Arc::new(Mutex::new(None));
+    let mut handler = Capture {
+        monitors: Arc::clone(&monitors_cell),
+        primary: Arc::clone(&primary_cell),
+    };
+    event_loop.run_app(&mut handler)?;
+    // The handler still owns Arc clones, so `try_unwrap` would fail —
+    // drain via `take()` instead. After this the handler holds empty
+    // cells but we're about to drop it anyway.
+    let monitors = std::mem::take(&mut *monitors_cell.lock().unwrap());
+    let primary = primary_cell.lock().unwrap().take();
+    drop(handler);
+
+    Ok(garasu::adaptive::detect_all(
+        monitors,
+        primary,
+        // GPU adapter detection requires a wgpu instance/surface —
+        // deferred to M1 when we can hand the existing adapter from
+        // garasu's GpuContext into recommend() at hot-reload time.
+        None,
+    ))
 }
 
 fn main() -> anyhow::Result<()> {
@@ -71,12 +137,20 @@ fn main() -> anyhow::Result<()> {
 
     let cli = Cli::parse();
 
-    // Handle MCP subcommand before loading GUI config
-    if let Some(SubCmd::Mcp) = cli.subcmd {
-        let rt = shidou::create_runtime()?;
-        rt.block_on(mcp::run())
-            .map_err(|e| anyhow::anyhow!("MCP server error: {e}"))?;
-        return Ok(());
+    // Handle subcommands before loading GUI config
+    match cli.subcmd {
+        Some(SubCmd::Mcp) => {
+            let rt = shidou::create_runtime()?;
+            rt.block_on(mcp::run())
+                .map_err(|e| anyhow::anyhow!("MCP server error: {e}"))?;
+            return Ok(());
+        }
+        Some(SubCmd::PrintPosture) => {
+            let posture = detect_runtime_posture()?;
+            println!("{}", serde_json::to_string_pretty(&posture)?);
+            return Ok(());
+        }
+        None => {}
     }
 
     let (config, _config_store) = config::load_and_watch(&cli.config, |new_config| {
@@ -101,6 +175,18 @@ fn main() -> anyhow::Result<()> {
     if crate::platform::is_dark_mode() {
         tracing::debug!("system dark mode detected");
     }
+
+    // Adaptive posture detection at startup is deferred to M1 because
+    // winit 0.30 requires a running event loop to enumerate monitors,
+    // and macOS forbids a second EventLoop after the first. For now we
+    // resolve target_fps against `None` (falls through to user explicit
+    // or hardcoded FALLBACK_FPS); fleet operators can still inspect
+    // the detected posture via `mado print-posture`. M1 plumbs a
+    // typed posture event through madori so the live event loop owns
+    // detection and feeds it back to the renderer.
+    let runtime_posture: Option<garasu::adaptive::RuntimePosture> = None;
+    let _effective_fps = config.performance.resolve_target_fps(runtime_posture.as_ref());
+    tracing::debug!(target_fps = _effective_fps, "resolved target fps");
 
     let shell = cli
         .command

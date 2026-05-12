@@ -55,6 +55,10 @@ wgpu = "25"
 # Re-export glyphon for text area construction
 glyphon = "0.9"
 
+# Used directly by main.rs for the transient EventLoop in the
+# adaptive-posture detection path (before madori owns one).
+winit = "0.30"
+
 # Terminal emulation
 vte = "0.15"
 
