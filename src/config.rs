@@ -744,7 +744,16 @@ impl Default for BehaviorConfig {
 }
 
 fn default_font_family() -> String {
-    "JetBrains Mono".into()
+    // JetBrainsMono Nerd Font — the patched-variant ships every
+    // powerline / starship / nerd-symbol glyph the fleet's shell
+    // configuration assumes (starship prompts, atuin search markers,
+    // git/branch icons, language icons). Plain "JetBrains Mono" causes
+    // missing-glyph tofu rectangles to show as floating placeholders,
+    // which is what made earlier mado screenshots look noisy.
+    //
+    // The HM module ships `pkgs.nerd-fonts.jetbrains-mono` declaratively
+    // so this default Just Works without operator action.
+    "JetBrainsMono Nerd Font".into()
 }
 fn default_font_size() -> f32 {
     14.0
@@ -881,7 +890,7 @@ mod tests {
     #[test]
     fn test_default_config_values() {
         let config = MadoConfig::default();
-        assert_eq!(config.font_family, "JetBrains Mono");
+        assert_eq!(config.font_family, "JetBrainsMono Nerd Font");
         assert_eq!(config.font_size, 14.0);
         assert_eq!(config.theme, "nord");
         assert!(config.active_profile.is_none());

@@ -1025,33 +1025,45 @@ impl TerminalRenderer {
         }
         self.metrics_measured = true;
 
-        // Render a reference character at the physical-pixel font size
-        // so the measured advance width / line height come back in the
-        // same units as the wgpu surface. Without the scale_factor
-        // multiplication, cell positions end up in logical pixels and
-        // the rendered content only fills a 1/scale_factor portion of
-        // the HiDPI window (the symptom: prompts visible top-left only).
+        // Render TWO reference characters at physical-pixel font size
+        // and measure the **advance** between them (delta of glyph.x).
+        // Previous code measured `glyph.w` (the rendered width of "M"),
+        // which for many fonts is wider than the actual mono advance —
+        // every per-cell rect-instance was then drawn ~10% wider than
+        // the glyph sitting inside it, producing the floating "ghost
+        // rectangles" visible on atuin's per-character highlights. The
+        // advance is the canonical mono cell width: for a true mono
+        // font every glyph occupies one advance, and that's what the
+        // rect-pipeline must paint backgrounds at.
         let fs = self.font_size_px();
-        let mut buf = text.create_buffer("M", fs, fs * 1.4);
+        let mut buf = text.create_buffer("MM", fs, fs * 1.4);
         buf.shape_until_scroll(&mut text.font_system, false);
 
-        let mut measured_width: Option<f32> = None;
+        let mut measured_advance: Option<f32> = None;
         let mut measured_height: Option<f32> = None;
+        let mut first_glyph_x: Option<f32> = None;
 
         for run in buf.layout_runs() {
             if measured_height.is_none() {
                 measured_height = Some(run.line_height);
             }
             for glyph in run.glyphs.iter() {
-                if measured_width.is_none() {
-                    measured_width = Some(glyph.w);
+                match first_glyph_x {
+                    None => first_glyph_x = Some(glyph.x),
+                    Some(prev) => {
+                        measured_advance = Some(glyph.x - prev);
+                        break;
+                    }
                 }
+            }
+            if measured_advance.is_some() {
+                break;
             }
         }
 
-        if let Some(w) = measured_width {
+        if let Some(w) = measured_advance {
             self.cell_width = w;
-            tracing::info!(cell_width = w, "measured cell width from font");
+            tracing::info!(cell_width = w, "measured cell advance from font");
         }
         if let Some(h) = measured_height {
             self.cell_height = h;
