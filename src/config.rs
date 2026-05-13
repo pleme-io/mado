@@ -755,23 +755,26 @@ impl Default for BehaviorConfig {
 }
 
 fn default_font_family() -> String {
-    // "JetBrainsMono Nerd Font" — the canonical pleme-io fleet font
-    // per `ishou-tokens::MonoFonts::pleme()`. This default is what
-    // ships if mado is invoked WITHOUT shikumi config — i.e. on a
-    // host that hasn't enabled blackmatter-mado's HM module. When
-    // blackmatter-mado IS enabled, its HM module:
-    //   1. installs `pkgs.nerd-fonts.jetbrains-mono` via home.packages
-    //      (so cosmic-text's fontdb can resolve the family name),
-    //   2. writes `font_family: "JetBrainsMono Nerd Font"` into
-    //      ~/.config/mado/mado.yaml (sourced from ishou::fleet-fonts).
+    // "JetBrainsMono Nerd Font Mono" — the canonical pleme-io fleet
+    // terminal font per `ishou-tokens::MonoFonts::pleme()`. The
+    // **Mono**-suffixed Nerd Fonts family forces every glyph (icons
+    // included) into a single-cell advance equal to plain
+    // `JetBrains Mono`. The non-`Mono` variant widens ASCII advance
+    // to ~0.83em to leave room for double-cell icons — correct for
+    // editor/web monospace, but disastrous for terminal layout
+    // where cell_width is measured from "MM" advance and ASCII
+    // glyphs then render with a visible gap between every character
+    // (the 2026-05-13 wide-gap rendering bug).
     //
-    // Both paths converge on the same name — but the HM module is
-    // the load-bearing one because it ALSO installs the underlying
-    // nixpkgs package. Without that install the family resolves to
-    // a fallback face whose metrics differ from what mado measured
-    // cell_width against (the 2026-05-13 'gap between characters'
-    // rendering bug).
-    "JetBrainsMono Nerd Font".into()
+    // This default is what ships if mado is invoked WITHOUT shikumi
+    // config. When blackmatter-mado's HM module is enabled, it
+    // writes the same name into ~/.config/mado/mado.yaml sourced
+    // from `ishou::fleet-fonts` AND installs
+    // `pkgs.nerd-fonts.jetbrains-mono` via home.packages — that
+    // single package ships both `JetBrainsMono Nerd Font` (variable)
+    // and `JetBrainsMono Nerd Font Mono` (strict-monospace) faces,
+    // so the install half is identical.
+    "JetBrainsMono Nerd Font Mono".into()
 }
 
 fn default_font_italic() -> String {
@@ -919,7 +922,7 @@ mod tests {
     #[test]
     fn test_default_config_values() {
         let config = MadoConfig::default();
-        assert_eq!(config.font_family, "JetBrainsMono Nerd Font");
+        assert_eq!(config.font_family, "JetBrainsMono Nerd Font Mono");
         assert_eq!(config.font_italic, "Iosevka");
         assert_eq!(config.font_size, 14.0);
         assert_eq!(config.theme, "nord");
