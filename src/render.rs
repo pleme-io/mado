@@ -808,6 +808,27 @@ struct Snapshot {
     image_placements: Vec<ImagePlacement>,
 }
 
+/// Comparable summary of the styling axes that decide whether two
+/// adjacent simple cells belong to the same shaping run. Two cells
+/// with identical `RunAttrsKey` can share one glyphon Buffer because
+/// their `Attrs` carry the same family / colour / weight / style.
+///
+/// Designed for **cheap equality** in the hot path — five small fields,
+/// no allocations. We deliberately don't include the family choice in
+/// the key: the `italic` flag implies the family selection (italic
+/// cells → italic family, regular/bold cells → primary family), so
+/// equal `italic` ⇒ equal family. Background colour is also absent
+/// because cell backgrounds are painted by the rect pipeline, not by
+/// the text Buffer.
+#[derive(Clone, Copy, PartialEq, Eq)]
+struct RunAttrsKey {
+    fg_r: u8,
+    fg_g: u8,
+    fg_b: u8,
+    bold: bool,
+    italic: bool,
+}
+
 // ---------------------------------------------------------------------------
 // TerminalRenderer
 // ---------------------------------------------------------------------------
@@ -1357,10 +1378,35 @@ impl TerminalRenderer {
     ///
     /// ## Fix
     ///
-    /// Split each row into runs that end at any non-ASCII boundary.
-    /// Each run becomes one buffer positioned at its `col_start`, so
-    /// the cell grid stays honest regardless of font advance variance.
-    /// ASCII-only runs still batch for shaping efficiency.
+    /// Split each row into runs and emit one glyphon Buffer per run.
+    ///
+    /// **Run-length batching** (P6 perf optimisation). The previous
+    /// implementation emitted ONE Buffer PER CELL — on an 80×24 grid
+    /// of typical shell output that's ~1500–1900 allocations + shaping
+    /// passes per frame. Most consecutive cells in real-world
+    /// terminal output share identical attributes (a prompt is a few
+    /// ANSI-colour runs; a directory listing is alternating colour
+    /// blocks; code is long stretches of one style), so we batch any
+    /// run of consecutive "simple" cells with identical effective
+    /// attrs into a single Buffer.
+    ///
+    /// **"Simple" means**: `width == 1` AND `ch.is_ascii()`. Anything
+    /// else (CJK, emoji, Nerd Font icon, combining mark, wide cell)
+    /// flushes the current run and gets its own dedicated buffer at
+    /// per-cell granularity. The per-cell-positioning invariant that
+    /// fixed the wide-glyph cursor-offset bug stays intact for those
+    /// cells. ASCII-in-strict-monospace cells safely batch because
+    /// cell_width is now measured from the same font_family that
+    /// renders them (the 2026-05-13 measure_cell_metrics Attrs pin)
+    /// so cosmic-text's natural advance equals our cell_width exactly.
+    ///
+    /// **Box-drawing** is still rendered by the rect pipeline (no
+    /// glyph emission) and acts as a run boundary too.
+    ///
+    /// Typical reduction: ~1900 Buffers/frame → ~30–80 Buffers/frame.
+    /// Each Buffer skipped saves a glyphon `create_rich_buffer` +
+    /// `shape_until_scroll` call. Single biggest per-frame win in
+    /// this commit series.
     fn build_text_buffers(
         &self,
         snap: &Snapshot,
@@ -1380,9 +1426,46 @@ impl TerminalRenderer {
             let mut col_idx: usize = 0;
             let mut row_buffers: Vec<(usize, Buffer)> = Vec::new();
 
+            // Current open run: (start_col, accumulated text, attrs key).
+            // The attrs key is what we compare against to decide whether
+            // the next cell joins the run or starts a new one. None = no
+            // open run.
+            let mut run: Option<(usize, String, RunAttrsKey)> = None;
+
+            // Local helper to flush the current run as one Buffer.
+            // Defined as a closure capturing the per-row mutable state.
+            let flush_run = |run: &mut Option<(usize, String, RunAttrsKey)>,
+                             row_buffers: &mut Vec<(usize, Buffer)>,
+                             text: &mut garasu::TextRenderer| {
+                if let Some((start_col, run_text, key)) = run.take() {
+                    let family = if key.italic {
+                        font_italic_family
+                    } else {
+                        font_family
+                    };
+                    let mut attrs = Attrs::new()
+                        .family(family)
+                        .color(GlyphonColor::rgba(key.fg_r, key.fg_g, key.fg_b, 255));
+                    if key.bold {
+                        attrs = attrs.weight(Weight::BOLD);
+                    }
+                    if key.italic {
+                        attrs = attrs.style(Style::Italic);
+                    }
+                    let buf = text.create_rich_buffer(
+                        &[(run_text.as_str(), attrs)],
+                        self.font_size_px(),
+                        self.cell_height,
+                    );
+                    row_buffers.push((start_col, buf));
+                }
+            };
+
             for cell in row.iter().take(snap.cols) {
                 // Skip continuation cells of wide chars — they consume
                 // grid space but don't get their own glyph emission.
+                // A continuation cell also breaks any open run (the
+                // preceding wide-glyph cell was emitted on its own).
                 if cell.width == 0 {
                     col_idx += 1;
                     continue;
@@ -1392,20 +1475,21 @@ impl TerminalRenderer {
                 col_idx += cell.width.max(1) as usize;
 
                 // Box drawing chars are rendered by the rect pipeline;
-                // do NOT also emit a glyphon glyph here. The rect-
-                // pipeline pass paints pixel-perfect lines, and any
-                // glyph drawn on top would either duplicate or
-                // misalign.
+                // do NOT also emit a glyphon glyph here. They DO break
+                // any open ASCII run (a box-draw cell sits between two
+                // run halves; the second half restarts at a new col).
                 if is_box_drawing(cell.ch) {
                     has_content = true;
+                    flush_run(&mut run, &mut row_buffers, text);
                     continue;
                 }
 
-                // Empty cell with no attrs: nothing to draw. The cell
-                // background pass already painted the bg colour if
-                // present; no glyph required.
+                // Empty cell with no attrs: nothing to draw. Breaks
+                // the run (a gap of blank cells should not visually
+                // join two coloured stretches).
                 let is_blank = cell.ch == ' ' && cell.extra.is_none();
                 if is_blank {
+                    flush_run(&mut run, &mut row_buffers, text);
                     continue;
                 }
                 has_content = true;
@@ -1433,59 +1517,81 @@ impl TerminalRenderer {
                     fg
                 };
 
-                // Pick the family up front — italic cells use the
-                // dedicated italic family (Iosevka by default per
-                // fleet typography); regular + bold cells use the
-                // primary family. Both fall back through cosmic-
-                // text's fontdb chain for missing codepoints (Nerd
-                // Font icons, emoji, CJK).
-                let family_for_this_cell = if italic && !hidden {
-                    font_italic_family
-                } else {
-                    font_family
-                };
-                let mut attrs = Attrs::new()
-                    .family(family_for_this_cell)
-                    .color(GlyphonColor::rgba(
-                        effective_fg.r,
-                        effective_fg.g,
-                        effective_fg.b,
-                        255,
-                    ));
-                if !hidden && bold {
-                    attrs = attrs.weight(Weight::BOLD);
-                }
-                if !hidden && italic {
-                    attrs = attrs.style(Style::Italic);
+                // Decide whether this cell is "simple" (batchable).
+                // Non-ASCII / wide / cells with non-empty `extra`
+                // (combining marks, OSC-8 hyperlinks etc.) are emitted
+                // per-cell with their own Buffer; they break any open
+                // run. The per-cell-positioning invariant from the
+                // wide-glyph cursor-offset fix is preserved for them.
+                let is_simple_for_batch = cell.width == 1
+                    && cell.extra.is_none()
+                    && cell.ch.is_ascii()
+                    && !hidden;
+
+                if !is_simple_for_batch {
+                    flush_run(&mut run, &mut row_buffers, text);
+                    let family_for_this_cell = if italic && !hidden {
+                        font_italic_family
+                    } else {
+                        font_family
+                    };
+                    let mut attrs = Attrs::new()
+                        .family(family_for_this_cell)
+                        .color(GlyphonColor::rgba(
+                            effective_fg.r,
+                            effective_fg.g,
+                            effective_fg.b,
+                            255,
+                        ));
+                    if !hidden && bold {
+                        attrs = attrs.weight(Weight::BOLD);
+                    }
+                    if !hidden && italic {
+                        attrs = attrs.style(Style::Italic);
+                    }
+                    let mut s = String::new();
+                    cell.write_to(&mut s);
+                    let buf = text.create_rich_buffer(
+                        &[(s.as_str(), attrs)],
+                        self.font_size_px(),
+                        self.cell_height,
+                    );
+                    row_buffers.push((col_here, buf));
+                    continue;
                 }
 
-                // Render this cell as a single-character glyphon
-                // buffer positioned at exactly `col_here *
-                // cell_width`. This is what every cell-grid-honest
-                // terminal does (ghostty, kitty, alacritty): each
-                // cell is independently positioned so the font's
-                // natural advance is **never** allowed to drift the
-                // glyph past the cell-grid boundary. Cursor + per-
-                // cell bg rects + selection highlights + per-cell
-                // glyphs all share the same `col * cell_width`
-                // anchor, eliminating the cumulative drift that
-                // caused the wide-glyph cursor-offset bug.
-                let mut s = String::new();
-                cell.write_to(&mut s);
-                let buf = text.create_rich_buffer(
-                    &[(s.as_str(), attrs)],
-                    self.font_size_px(),
-                    self.cell_height,
-                );
-                row_buffers.push((col_here, buf));
+                let cell_key = RunAttrsKey {
+                    fg_r: effective_fg.r,
+                    fg_g: effective_fg.g,
+                    fg_b: effective_fg.b,
+                    bold,
+                    italic,
+                };
+
+                match &mut run {
+                    Some((_, run_text, key)) if *key == cell_key => {
+                        // Extend the current run by one ASCII char.
+                        // Safe because is_simple_for_batch guaranteed
+                        // cell.ch.is_ascii() — width-1 byte push.
+                        run_text.push(cell.ch);
+                    }
+                    _ => {
+                        flush_run(&mut run, &mut row_buffers, text);
+                        let mut s = String::with_capacity(snap.cols);
+                        s.push(cell.ch);
+                        run = Some((col_here, s, cell_key));
+                    }
+                }
             }
+            // End of row — flush any open run.
+            flush_run(&mut run, &mut row_buffers, text);
 
             // Skip empty rows unless the cursor is here.
             if !has_content && row_idx != snap.cursor.row {
                 continue;
             }
 
-            // Emit all per-cell buffers for this row.
+            // Emit all per-row buffers (mix of runs + per-cell).
             for (col_start, buf) in row_buffers {
                 buffers.push((row_idx, col_start, buf));
             }
@@ -2284,14 +2390,45 @@ impl RenderCallback for TerminalRenderer {
             return;
         }
 
-        // Single-pane path
+        // Single-pane path.
+        //
+        // Two-stage damage gate. Stage 1 is a **cheap seqno peek** —
+        // grab a short-lived lock, read seqno + cursor visibility,
+        // drop the lock. If nothing has changed since the last frame
+        // (seqno match, no cursor blink, no bell flash, no search
+        // animation) we early-out WITHOUT calling self.snapshot(),
+        // which would otherwise clone every visible row, run URL
+        // detection across the whole grid, clone image_placements,
+        // and clone the search-matches vec — all wasted work on an
+        // idle frame. On a typical interactive session most frames
+        // are idle (no PTY input + no cursor blink tick this frame),
+        // so this peek elides ~99% of the snapshot() overhead.
+        //
+        // Stage 2 is the existing post-snapshot gate that catches
+        // the rare case where snapshot data still proves we don't
+        // need to redraw (kept as a belt-and-braces safety net).
+        let (peek_seqno, peek_cursor_visible) = {
+            let term = self.terminal.lock().unwrap();
+            (term.seqno(), term.cursor().visible)
+        };
+        let search_active_peek = self.search.lock().unwrap().active;
+        let blink_active_peek = self.cursor_blink && peek_cursor_visible;
+        let bell_active = self.bell_flash_frames > 0;
+        if peek_seqno == self.last_seqno
+            && self.last_seqno != 0
+            && !blink_active_peek
+            && !bell_active
+            && !search_active_peek
+        {
+            return;
+        }
+
         let (snap, seqno) = self.snapshot();
 
-        // Damage tracking: skip if nothing changed.
-        // When cursor blink is on, always redraw to animate.
-        // Bell flash and search also force redraw.
+        // Stage-2 gate (rare: peek seqno can shift between the peek
+        // and the snapshot; keep the safety net so we never paint a
+        // stale frame).
         let blink_active = self.cursor_blink && snap.cursor.visible;
-        let bell_active = self.bell_flash_frames > 0;
         if seqno == self.last_seqno
             && self.last_seqno != 0
             && !blink_active

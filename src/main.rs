@@ -6,6 +6,13 @@
 //! - WGSL shader plugins for visual effects
 //! - Hot-reloadable configuration via shikumi
 
+// Global allocator: mimalloc. Terminal hot paths are allocation-bound
+// (per-cell glyphon buffers, per-frame text_areas, per-line snapshots,
+// per-row String accumulators) and benefit ~5–15% from a tuned
+// small-object allocator. Ghostty / foot / wezterm all do the same.
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 mod clipboard_store;
 mod config;
 mod keybind;

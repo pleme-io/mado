@@ -311,7 +311,15 @@ impl SessionRegistry {
         let terminal_for_pump = Arc::clone(&terminal);
 
         let reader_task = tokio::spawn(async move {
-            let mut buf = vec![0u8; 8192];
+            // 64 KiB read buffer (was 8 KiB). High-throughput PTY
+            // streams (`cat large.bin`, `journalctl -f` bursts, build
+            // logs) saturate the kernel-side pipe; a 64 KiB read
+            // drains ~8× more bytes per syscall + per Tokio scheduler
+            // wake-up. Matches refterm's read-chunk + Ghostty's
+            // io-thread buffer sizing. The cost is 56 KiB extra
+            // resident per session, which is negligible at any
+            // realistic session count.
+            let mut buf = vec![0u8; 64 * 1024];
             loop {
                 match reader.read(&mut buf).await {
                     Ok(0) => {

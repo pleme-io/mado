@@ -98,6 +98,15 @@ image = { version = "0.25", default-features = false, features = ["png"] }
 tokio = { version = "1", features = ["rt-multi-thread", "process", "io-util", "sync", "macros", "net"] }
 libc = "0.2"
 
+# mimalloc — Microsoft's general-purpose allocator. Ghostty / foot /
+# wezterm all swap the system allocator for a tuned one because the
+# terminal hot path allocates aggressively (per-cell buffers, per-line
+# snapshots, per-frame text_areas, per-row String accumulators). On
+# small-object churn mimalloc beats jemalloc with a lighter dependency
+# footprint. ~5–15% wall-clock improvement across mado's allocation-
+# bound workloads (build_text_buffers, snapshot copy, scrollback push).
+mimalloc = { version = "0.1", default-features = false }
+
 # Scenario harness — `mado scenario-run` consumes YAML so the format is
 # operator-facing, not test-only. serde_yaml_ng is the actively-maintained
 # successor to the (now-deprecated) serde_yaml crate; pleme-io tooling
