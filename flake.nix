@@ -9,6 +9,21 @@
       url = "github:pleme-io/substrate";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # ishou owns the fleet typography. The mado HM module reads
+    # `ishou.packages.${system}.fleet-fonts` to (a) default
+    # font_family / font_italic / font_size to the canonical
+    # MonoFonts::pleme() values and (b) install the underlying
+    # nixpkgs font packages via home.packages so glyphon's cosmic-
+    # text fontdb can actually resolve them at runtime. Without the
+    # install, glyphon falls back to whichever face the system has
+    # (FiraCode on the current fleet) and mado's cell_width
+    # measurement diverges from the actually-rendered ASCII advance
+    # — the operator-visible 'gap between every character' bug
+    # diagnosed via MCP snapshot_grid on 2026-05-13.
+    ishou = {
+      url = "github:pleme-io/ishou";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = {
@@ -17,6 +32,7 @@
     crate2nix,
     flake-utils,
     substrate,
+    ishou,
   }:
     (import "${substrate}/lib/rust-tool-release-flake.nix" {
       inherit nixpkgs crate2nix flake-utils;
@@ -134,7 +150,22 @@
           fontFamily = nixpkgs.lib.mkOption {
             type = nixpkgs.lib.types.nullOr nixpkgs.lib.types.str;
             default = null;
-            description = "Font family for terminal text.";
+            description = ''
+              Primary monospace family. null = inherit the fleet
+              canonical name from `ishou::fleet-fonts.primary.name`
+              (currently 'JetBrainsMono Nerd Font' per
+              ishou-tokens::MonoFonts::pleme()).
+            '';
+          };
+          fontItalic = nixpkgs.lib.mkOption {
+            type = nixpkgs.lib.types.nullOr nixpkgs.lib.types.str;
+            default = null;
+            description = ''
+              Italic-face family. null = inherit
+              `ishou::fleet-fonts.italic.name` (currently 'Iosevka',
+              calligraphic style intent per
+              ishou-tokens::MonoFonts::pleme()).
+            '';
           };
           fontSize = nixpkgs.lib.mkOption {
             type = nixpkgs.lib.types.nullOr nixpkgs.lib.types.float;
@@ -148,17 +179,49 @@
           };
         };
 
-        # Merge font_family / font_size / extraSettings into the YAML
-        # payload at the top level. The trio serializes
-        # services.mado.settings; this hook adds bespoke top-level keys.
-        extraHmConfigFn = { cfg, lib, ... }:
+        # Merge font_family / font_italic / font_size / extraSettings
+        # into the YAML payload at the top level, AND install the
+        # canonical fleet font packages via home.packages.
+        #
+        # Defaults are sourced from `ishou::fleet-fonts` — the typed
+        # fleet typography. Operators can override per-host via
+        # `services.mado.fontFamily = "...";` but the canonical
+        # answer lives in pleme-io/ishou/crates/ishou-tokens/src/typography.rs.
+        # Installing the underlying nixpkgs font packages is
+        # load-bearing: without it, glyphon's cosmic-text fontdb falls
+        # back to a different metric than mado's cell_width
+        # measurement (the 2026-05-13 'gap between every character'
+        # rendering bug).
+        extraHmConfigFn = { cfg, pkgs, lib, ... }:
           let
-            fontExtras =
-              (if cfg.fontFamily != null then { font_family = cfg.fontFamily; } else { })
-              // (if cfg.fontSize != null then { font_size = cfg.fontSize; } else { });
+            fleetFonts = import "${ishou.packages.${pkgs.stdenv.hostPlatform.system}.fleet-fonts}"
+              { inherit pkgs; };
+            # Resolved values: explicit option override beats fleet
+            # default. nullable fields → either operator's value or
+            # the canonical fleet name from ishou.
+            resolvedFontFamily = if cfg.fontFamily != null
+              then cfg.fontFamily
+              else fleetFonts.primary.name;
+            resolvedFontItalic = if cfg.fontItalic != null
+              then cfg.fontItalic
+              else fleetFonts.italic.name;
+            fontExtras = {
+              font_family = resolvedFontFamily;
+              font_italic = resolvedFontItalic;
+            } // (if cfg.fontSize != null
+              then { font_size = cfg.fontSize; }
+              else { });
             extras = fontExtras // cfg.extraSettings;
-          in lib.mkIf (extras != { }) {
+            # Filter null packages — emoji is OS-shipped on macOS.
+            fontPackages = lib.filter (p: p != null) [
+              fleetFonts.primary.package
+              fleetFonts.italic.package
+              fleetFonts.bold.package
+              fleetFonts.symbols.package
+            ];
+          in {
             services.mado.settings = extras;
+            home.packages = fontPackages;
           };
       };
     };
