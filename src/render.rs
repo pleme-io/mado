@@ -1043,8 +1043,22 @@ impl TerminalRenderer {
         // advance is the canonical mono cell width: for a true mono
         // font every glyph occupies one advance, and that's what the
         // rect-pipeline must paint backgrounds at.
+        //
+        // CRITICAL: the measurement buffer MUST carry the same font
+        // family the per-cell rendering uses. Until 2026-05-13 this
+        // function used `text.create_buffer()` which falls back to
+        // cosmic-text's default `Attrs::new()` (Family::SansSerif).
+        // glyphon then resolved a system sans-serif (SF Pro / Helvetica)
+        // whose "MM" advance is ~0.83em, set cell_width to that, but
+        // rendered actual cells at the configured monospace family's
+        // natural ~0.6em advance — the visible 0.23em gap between
+        // every character in the operator's mado screenshot. Build
+        // the measurement attrs against the same family used at
+        // per-cell render time so cell_width matches the cells'
+        // natural advance, exactly.
         let fs = self.font_size_px();
-        let mut buf = text.create_buffer("MM", fs, fs * 1.4);
+        let attrs = Attrs::new().family(Family::Name(&self.font_family));
+        let mut buf = text.create_rich_buffer(&[("MM", attrs)], fs, fs * 1.4);
         buf.shape_until_scroll(&mut text.font_system, false);
 
         let mut measured_advance: Option<f32> = None;
