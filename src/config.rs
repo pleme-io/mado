@@ -7,6 +7,16 @@ use serde::{Deserialize, Serialize};
 pub struct MadoConfig {
     #[serde(default = "default_font_family")]
     pub font_family: String,
+    /// Family used for italic cells. cosmic-text's
+    /// `Attrs::style(Style::Italic)` walks the fontdb for an italic
+    /// face matching the primary family by default, but explicit
+    /// per-app override here lets the operator point italics at a
+    /// dedicated calligraphic family (Iosevka Etoile, Maple Mono
+    /// Italic, Operator Mono) independent of the regular face.
+    /// Sourced from `ishou-tokens::MonoFonts::pleme().italic` when
+    /// blackmatter-mado renders the YAML.
+    #[serde(default = "default_font_italic")]
+    pub font_italic: String,
     #[serde(default = "default_font_size")]
     pub font_size: f32,
     #[serde(default)]
@@ -647,6 +657,7 @@ impl Default for MadoConfig {
     fn default() -> Self {
         Self {
             font_family: default_font_family(),
+            font_italic: default_font_italic(),
             font_size: default_font_size(),
             font: FontConfig::default(),
             window: WindowConfig::default(),
@@ -744,26 +755,34 @@ impl Default for BehaviorConfig {
 }
 
 fn default_font_family() -> String {
-    // "FiraCode Nerd Font" — the actually-installed Nerd-Font-patched
-    // monospace family on the pleme-io fleet. Empirically verified
-    // 2026-05-13: `find ~/Library/Fonts/HomeManager` shows only
-    // FiraCode variants; `JetBrains Mono` is referenced by stylix /
-    // ghostty config but not actually installed by any HM package.
+    // "JetBrainsMono Nerd Font" — the canonical pleme-io fleet font
+    // per `ishou-tokens::MonoFonts::pleme()`. This default is what
+    // ships if mado is invoked WITHOUT shikumi config — i.e. on a
+    // host that hasn't enabled blackmatter-mado's HM module. When
+    // blackmatter-mado IS enabled, its HM module:
+    //   1. installs `pkgs.nerd-fonts.jetbrains-mono` via home.packages
+    //      (so cosmic-text's fontdb can resolve the family name),
+    //   2. writes `font_family: "JetBrainsMono Nerd Font"` into
+    //      ~/.config/mado/mado.yaml (sourced from ishou::fleet-fonts).
     //
-    // Ghostty asks for "JetBrains Mono" and macOS CoreText silently
-    // falls back to FiraCode (the only installed monospace). cosmic-
-    // text's fallback chain inside glyphon is less generous — it
-    // measures `cell_width` against whichever face the font_system
-    // returned first and renders glyphs from a different face when
-    // codepoints don't match, producing the metric-mismatch gap
-    // visible in the 2026-05-13 mado screenshots.
-    //
-    // Pinning to the actually-installed family makes glyphon's
-    // measurement AND its rendering use the same face, so per-cell
-    // positioning honours the real `cell_width = advance(M)`. Once
-    // ishou's stylix package actually installs nerd-fonts.jetbrains-mono
-    // (rather than just naming it), we can flip this back.
-    "FiraCode Nerd Font".into()
+    // Both paths converge on the same name — but the HM module is
+    // the load-bearing one because it ALSO installs the underlying
+    // nixpkgs package. Without that install the family resolves to
+    // a fallback face whose metrics differ from what mado measured
+    // cell_width against (the 2026-05-13 'gap between characters'
+    // rendering bug).
+    "JetBrainsMono Nerd Font".into()
+}
+
+fn default_font_italic() -> String {
+    // Calligraphic italic per `ishou-tokens::MonoFonts::pleme()`.
+    // cosmic-text's `Attrs::style(Style::Italic)` walks the fontdb
+    // for an italic face; pinning the family here lets mado render
+    // italic cells in Iosevka (the fleet's calligraphic italic)
+    // independent of which family the primary regular face uses.
+    // blackmatter-mado's HM module installs `pkgs.iosevka` so the
+    // resolution succeeds at runtime.
+    "Iosevka".into()
 }
 fn default_font_size() -> f32 {
     14.0
@@ -900,7 +919,8 @@ mod tests {
     #[test]
     fn test_default_config_values() {
         let config = MadoConfig::default();
-        assert_eq!(config.font_family, "FiraCode Nerd Font");
+        assert_eq!(config.font_family, "JetBrainsMono Nerd Font");
+        assert_eq!(config.font_italic, "Iosevka");
         assert_eq!(config.font_size, 14.0);
         assert_eq!(config.theme, "nord");
         assert!(config.active_profile.is_none());

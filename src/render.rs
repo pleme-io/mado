@@ -820,6 +820,12 @@ pub struct TerminalRenderer {
     window: Option<Arc<Mutex<WindowState>>>,
     font_size: f32,
     font_family: String,
+    /// Italic-face family. cosmic-text resolves italics by walking
+    /// the fontdb for `Style::Italic`; pinning the family explicitly
+    /// lets mado route italic cells to a calligraphic alternative
+    /// (Iosevka Etoile, Maple Mono Italic, etc.) regardless of which
+    /// family `font_family` names.
+    font_italic: String,
     cell_width: f32,
     cell_height: f32,
     padding: f32,
@@ -860,6 +866,7 @@ impl TerminalRenderer {
         terminal: SharedTerminal,
         font_size: f32,
         font_family: String,
+        font_italic: String,
         padding: f32,
         cursor_style: CursorStyle,
         cursor_blink: bool,
@@ -877,6 +884,7 @@ impl TerminalRenderer {
             window: None,
             font_size,
             font_family,
+            font_italic,
             cell_width,
             cell_height,
             padding,
@@ -1346,6 +1354,12 @@ impl TerminalRenderer {
     ) -> Vec<(usize, usize, Buffer)> {
         let mut buffers: Vec<(usize, usize, Buffer)> = Vec::new();
         let font_family = Family::Name(&self.font_family);
+        // Italic cells route to a separate family — typically Iosevka
+        // (the fleet's calligraphic italic per
+        // ishou-tokens::MonoFonts::pleme().italic). cosmic-text's
+        // fontdb resolves `Style::Italic` against this family for
+        // italic cells; ASCII regular cells stay on `font_family`.
+        let font_italic_family = Family::Name(&self.font_italic);
 
         for (row_idx, row) in snap.rows.iter().enumerate() {
             let mut has_content = false;
@@ -1405,8 +1419,19 @@ impl TerminalRenderer {
                     fg
                 };
 
+                // Pick the family up front — italic cells use the
+                // dedicated italic family (Iosevka by default per
+                // fleet typography); regular + bold cells use the
+                // primary family. Both fall back through cosmic-
+                // text's fontdb chain for missing codepoints (Nerd
+                // Font icons, emoji, CJK).
+                let family_for_this_cell = if italic && !hidden {
+                    font_italic_family
+                } else {
+                    font_family
+                };
                 let mut attrs = Attrs::new()
-                    .family(font_family)
+                    .family(family_for_this_cell)
                     .color(GlyphonColor::rgba(
                         effective_fg.r,
                         effective_fg.g,
@@ -2768,6 +2793,7 @@ mod tests {
             term,
             14.0,
             "JetBrains Mono".into(),
+            "Iosevka".into(),
             8.0,
             CursorStyle::Block,
             true,
@@ -2790,6 +2816,7 @@ mod tests {
             term,
             14.0,
             "JetBrains Mono".into(),
+            "Iosevka".into(),
             8.0,
             CursorStyle::Block,
             true,

@@ -343,6 +343,7 @@ fn main() -> anyhow::Result<()> {
         initial_terminal,
         effective_font_size,
         config.font_family.clone(),
+        config.font_italic.clone(),
         padding,
         config.cursor.style,
         cursor_blink,
