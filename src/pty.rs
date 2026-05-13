@@ -371,7 +371,22 @@ fn spawn_child(
     }
 
     // Set terminal type so programs know our capabilities.
-    cmd.env("TERM", "xterm-256color");
+    //
+    // mado is ghostty-compatible — same GPU + wgpu + glyphon stack,
+    // same OSC 7 / 8 / 52 / 133 / 1337 surface, same Kitty graphics
+    // protocol, same truecolor, same synchronized output, same
+    // bracketed paste. Advertising `xterm-ghostty` (instead of the
+    // safer-but-narrower `xterm-256color`) lets apps unlock the full
+    // shell-integration repertoire that ghostty's terminfo describes:
+    // OSC 133 prompt marks, scrollback push/pop, italics + underline
+    // styles, decoration colours, and the same starship / atuin /
+    // fzf integrations operators already configured for ghostty.
+    //
+    // Falls back to `xterm-256color` for SSH sessions automatically
+    // via the shell-init hook in blackmatter-shell/.zshenv — remote
+    // hosts that lack the `xterm-ghostty` terminfo entry get the
+    // canonical lowest-common-denominator behaviour.
+    cmd.env("TERM", "xterm-ghostty");
     cmd.env("COLORTERM", "truecolor");
     cmd.env("TERM_PROGRAM", "mado");
     cmd.env("TERM_PROGRAM_VERSION", env!("CARGO_PKG_VERSION"));
