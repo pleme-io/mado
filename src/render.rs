@@ -1345,13 +1345,12 @@ impl TerminalRenderer {
         text: &mut garasu::TextRenderer,
     ) -> Vec<(usize, usize, Buffer)> {
         let mut buffers: Vec<(usize, usize, Buffer)> = Vec::new();
+        let font_family = Family::Name(&self.font_family);
 
         for (row_idx, row) in snap.rows.iter().enumerate() {
-            // Each emitted run: (start_col, text, fg, bold, italic, is_ascii_only).
-            // `is_ascii_only` controls whether the next cell can extend this run.
-            let mut runs: Vec<CellRun> = Vec::new();
             let mut has_content = false;
             let mut col_idx: usize = 0;
+            let mut row_buffers: Vec<(usize, Buffer)> = Vec::new();
 
             for cell in row.iter().take(snap.cols) {
                 // Skip continuation cells of wide chars — they consume
@@ -1364,26 +1363,24 @@ impl TerminalRenderer {
                 let col_here = col_idx;
                 col_idx += cell.width.max(1) as usize;
 
-                // Box drawing chars are rendered via rect pipeline — emit
-                // a space to keep column alignment in the rendered text
-                // glyph stream. Box-drawing cells always start their own
-                // run (since they need a 1-cell-wide placeholder).
+                // Box drawing chars are rendered by the rect pipeline;
+                // do NOT also emit a glyphon glyph here. The rect-
+                // pipeline pass paints pixel-perfect lines, and any
+                // glyph drawn on top would either duplicate or
+                // misalign.
                 if is_box_drawing(cell.ch) {
                     has_content = true;
-                    runs.push(CellRun {
-                        start_col: col_here,
-                        text: " ".to_string(),
-                        fg: cell.fg,
-                        bold: false,
-                        italic: false,
-                        is_ascii_only: true,
-                    });
                     continue;
                 }
 
-                if cell.ch != ' ' || cell.extra.is_some() {
-                    has_content = true;
+                // Empty cell with no attrs: nothing to draw. The cell
+                // background pass already painted the bg colour if
+                // present; no glyph required.
+                let is_blank = cell.ch == ' ' && cell.extra.is_none();
+                if is_blank {
+                    continue;
                 }
+                has_content = true;
 
                 let inverse = cell.attrs.contains(CellAttrs::INVERSE);
                 let bold = cell.attrs.contains(CellAttrs::BOLD);
@@ -1408,36 +1405,40 @@ impl TerminalRenderer {
                     fg
                 };
 
-                let cell_is_ascii = is_ascii_grid_safe(cell.ch);
-
-                // Try to extend the last run iff attrs match AND BOTH
-                // the last run and the current cell are ASCII-safe AND
-                // this cell sits immediately after the last run's end.
-                let extend_ok = runs.last().is_some_and(|last| {
-                    last.is_ascii_only
-                        && cell_is_ascii
-                        && last.fg == effective_fg
-                        && last.bold == bold
-                        && last.italic == italic
-                        && last.start_col + last.text.len() == col_here
-                });
-
-                if extend_ok {
-                    let last = runs.last_mut().unwrap();
-                    cell.write_to(&mut last.text);
-                    continue;
+                let mut attrs = Attrs::new()
+                    .family(font_family)
+                    .color(GlyphonColor::rgba(
+                        effective_fg.r,
+                        effective_fg.g,
+                        effective_fg.b,
+                        255,
+                    ));
+                if !hidden && bold {
+                    attrs = attrs.weight(Weight::BOLD);
+                }
+                if !hidden && italic {
+                    attrs = attrs.style(Style::Italic);
                 }
 
+                // Render this cell as a single-character glyphon
+                // buffer positioned at exactly `col_here *
+                // cell_width`. This is what every cell-grid-honest
+                // terminal does (ghostty, kitty, alacritty): each
+                // cell is independently positioned so the font's
+                // natural advance is **never** allowed to drift the
+                // glyph past the cell-grid boundary. Cursor + per-
+                // cell bg rects + selection highlights + per-cell
+                // glyphs all share the same `col * cell_width`
+                // anchor, eliminating the cumulative drift that
+                // caused the wide-glyph cursor-offset bug.
                 let mut s = String::new();
                 cell.write_to(&mut s);
-                runs.push(CellRun {
-                    start_col: col_here,
-                    text: s,
-                    fg: effective_fg,
-                    bold: hidden.not() && bold,
-                    italic: hidden.not() && italic,
-                    is_ascii_only: cell_is_ascii,
-                });
+                let buf = text.create_rich_buffer(
+                    &[(s.as_str(), attrs)],
+                    self.font_size_px(),
+                    self.cell_height,
+                );
+                row_buffers.push((col_here, buf));
             }
 
             // Skip empty rows unless the cursor is here.
@@ -1445,46 +1446,9 @@ impl TerminalRenderer {
                 continue;
             }
 
-            // Trim trailing whitespace from the last ASCII run.
-            if let Some(last) = runs.last_mut()
-                && last.is_ascii_only
-            {
-                let trimmed_len = last.text.trim_end().len();
-                if trimmed_len == 0 {
-                    runs.pop();
-                } else {
-                    last.text.truncate(trimmed_len);
-                }
-            }
-
-            if runs.is_empty() {
-                if row_idx == snap.cursor.row {
-                    let buf = text.create_buffer(" ", self.font_size_px(), self.cell_height);
-                    buffers.push((row_idx, 0, buf));
-                }
-                continue;
-            }
-
-            // Emit each run as its own buffer positioned at its
-            // start column. ASCII-only runs hold their full text;
-            // non-ASCII runs hold a single cell.
-            let font_family = Family::Name(&self.font_family);
-            for run in runs {
-                let mut attrs = Attrs::new()
-                    .family(font_family)
-                    .color(GlyphonColor::rgba(run.fg.r, run.fg.g, run.fg.b, 255));
-                if run.bold {
-                    attrs = attrs.weight(Weight::BOLD);
-                }
-                if run.italic {
-                    attrs = attrs.style(Style::Italic);
-                }
-                let buf = text.create_rich_buffer(
-                    &[(run.text.as_str(), attrs)],
-                    self.font_size_px(),
-                    self.cell_height,
-                );
-                buffers.push((row_idx, run.start_col, buf));
+            // Emit all per-cell buffers for this row.
+            for (col_start, buf) in row_buffers {
+                buffers.push((row_idx, col_start, buf));
             }
         }
 
@@ -1797,42 +1761,9 @@ impl TerminalRenderer {
     }
 }
 
-/// A cell-grid-aligned run of text with uniform visual attributes.
-///
-/// `start_col` is the column where the run's first character should be
-/// painted (in cell units, NOT pixels). `is_ascii_only` controls
-/// whether a subsequent cell can extend this run — non-ASCII cells
-/// always start a new single-cell run so the font's natural advance
-/// doesn't drift past the cell grid.
-struct CellRun {
-    start_col: usize,
-    text: String,
-    fg: Color,
-    bold: bool,
-    italic: bool,
-    is_ascii_only: bool,
-}
-
-/// `true` when the character can be safely batched into a run with
-/// neighbouring ASCII characters because monospace fonts ship a
-/// uniform `cell_width` advance for it. We restrict to printable
-/// ASCII (0x20–0x7E) — every char outside this range gets its own
-/// single-cell buffer in `build_text_buffers` so the cursor and
-/// per-cell background rects stay column-aligned regardless of how
-/// the font shapes the glyph.
-fn is_ascii_grid_safe(ch: char) -> bool {
-    let c = ch as u32;
-    (0x20..=0x7E).contains(&c)
-}
-
-// Tiny extension trait so the existing builder can write `bool.not()`
-// inline without pulling `std::ops::Not` into scope at every call site.
-trait BoolNot {
-    fn not(self) -> bool;
-}
-impl BoolNot for bool {
-    fn not(self) -> bool { !self }
-}
+// (Earlier iteration's CellRun / is_ascii_grid_safe helpers removed:
+// per-cell rendering doesn't need them — every cell becomes its own
+// buffer at `col * cell_width`, batching no longer applies.)
 
 /// Convert a per-cell sRGB colour into the linear [f32; 4] tuple the
 /// rect-pipeline shader expects. The shader returns its colour value
