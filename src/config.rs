@@ -744,16 +744,26 @@ impl Default for BehaviorConfig {
 }
 
 fn default_font_family() -> String {
-    // JetBrainsMono Nerd Font — the patched-variant ships every
-    // powerline / starship / nerd-symbol glyph the fleet's shell
-    // configuration assumes (starship prompts, atuin search markers,
-    // git/branch icons, language icons). Plain "JetBrains Mono" causes
-    // missing-glyph tofu rectangles to show as floating placeholders,
-    // which is what made earlier mado screenshots look noisy.
+    // "FiraCode Nerd Font" — the actually-installed Nerd-Font-patched
+    // monospace family on the pleme-io fleet. Empirically verified
+    // 2026-05-13: `find ~/Library/Fonts/HomeManager` shows only
+    // FiraCode variants; `JetBrains Mono` is referenced by stylix /
+    // ghostty config but not actually installed by any HM package.
     //
-    // The HM module ships `pkgs.nerd-fonts.jetbrains-mono` declaratively
-    // so this default Just Works without operator action.
-    "JetBrainsMono Nerd Font".into()
+    // Ghostty asks for "JetBrains Mono" and macOS CoreText silently
+    // falls back to FiraCode (the only installed monospace). cosmic-
+    // text's fallback chain inside glyphon is less generous — it
+    // measures `cell_width` against whichever face the font_system
+    // returned first and renders glyphs from a different face when
+    // codepoints don't match, producing the metric-mismatch gap
+    // visible in the 2026-05-13 mado screenshots.
+    //
+    // Pinning to the actually-installed family makes glyphon's
+    // measurement AND its rendering use the same face, so per-cell
+    // positioning honours the real `cell_width = advance(M)`. Once
+    // ishou's stylix package actually installs nerd-fonts.jetbrains-mono
+    // (rather than just naming it), we can flip this back.
+    "FiraCode Nerd Font".into()
 }
 fn default_font_size() -> f32 {
     14.0
@@ -890,7 +900,7 @@ mod tests {
     #[test]
     fn test_default_config_values() {
         let config = MadoConfig::default();
-        assert_eq!(config.font_family, "JetBrainsMono Nerd Font");
+        assert_eq!(config.font_family, "FiraCode Nerd Font");
         assert_eq!(config.font_size, 14.0);
         assert_eq!(config.theme, "nord");
         assert!(config.active_profile.is_none());
