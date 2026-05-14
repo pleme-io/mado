@@ -11,6 +11,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::num::NonZeroUsize;
 use std::sync::{Arc, Mutex};
+use std::time::Instant;
 
 use bytemuck::{Pod, Zeroable};
 use glyphon::{Attrs, Buffer, Color as GlyphonColor, Family, Style, Weight};
@@ -1003,6 +1004,14 @@ impl TerminalRenderer {
             // new pixel density so glyphon's reported glyph advance is
             // in physical pixels matching the wgpu surface.
             self.metrics_measured = false;
+            // P20 — clear the shape cache. The cache key includes
+            // font_size_bits = font_size_px.to_bits() and font_size_px
+            // depends on scale_factor; entries cached at the old
+            // physical-pixel size are now unreachable. LRU would
+            // eventually evict them but explicit clear keeps memory
+            // tight and avoids serving the wrong-DPI shape if hashes
+            // ever collide.
+            self.shape_cache.borrow_mut().clear();
         }
     }
 
@@ -1077,6 +1086,10 @@ impl TerminalRenderer {
         self.cell_height = size * 1.4;
         self.metrics_measured = false;
         self.last_seqno = 0;
+        // P20 — same rationale as set_scale_factor: shape cache keys
+        // include font_size_bits, so a size change makes every cached
+        // Arc<Buffer> unreachable. Clear to keep memory tight.
+        self.shape_cache.borrow_mut().clear();
     }
 
     /// Set the colorblind simulation mode for accessibility.
@@ -2597,6 +2610,13 @@ impl RenderCallback for TerminalRenderer {
     }
 
     fn render(&mut self, ctx: &mut RenderContext<'_>) {
+        // P19 — frame-timing instrumentation. Each phase records its
+        // elapsed time so operators can capture render-path breakdowns
+        // via `RUST_LOG=mado::render=debug` without recompiling. The
+        // `tracing::debug!` macros compile to ~5 ns NOPs when the
+        // level is disabled (default), so this is free in normal runs.
+        let frame_start = Instant::now();
+
         // Pull the live HiDPI scale factor in first. If it changed, the
         // setter clears `metrics_measured` so `measure_cell_metrics`
         // below re-measures glyph widths in the new pixel density.
@@ -2611,30 +2631,50 @@ impl RenderCallback for TerminalRenderer {
         // Multi-pane path: render all panes from WindowState
         if self.window.is_some() {
             self.render_multi_pane(ctx);
+            tracing::debug!(
+                frame_us = frame_start.elapsed().as_micros() as u64,
+                path = "multi_pane",
+                "frame complete"
+            );
             return;
         }
 
         // Single-pane path.
         //
         // Two-stage damage gate. Stage 1 is a **cheap seqno peek** —
-        // grab a short-lived lock, read seqno + cursor visibility,
-        // drop the lock. If nothing has changed since the last frame
-        // (seqno match, no cursor blink, no bell flash, no search
-        // animation) we early-out WITHOUT calling self.snapshot(),
-        // which would otherwise clone every visible row, run URL
-        // detection across the whole grid, clone image_placements,
-        // and clone the search-matches vec — all wasted work on an
-        // idle frame. On a typical interactive session most frames
-        // are idle (no PTY input + no cursor blink tick this frame),
-        // so this peek elides ~99% of the snapshot() overhead.
+        // grab a short-lived lock, read seqno + cursor visibility +
+        // DEC-2026 synchronized-output flag, drop the lock. If
+        // nothing has changed since the last frame (seqno match, no
+        // cursor blink, no bell flash, no search animation) we
+        // early-out WITHOUT calling self.snapshot(), which would
+        // otherwise clone every visible row, run URL detection
+        // across the whole grid, clone image_placements, and clone
+        // the search-matches vec — all wasted work on an idle frame.
+        //
+        // **P14 — synchronized output (DEC mode 2026)**: when the
+        // app has emitted BSU (CSI ? 2026 h) we hold off rendering
+        // until the matching ESU (CSI ? 2026 l). DEC's spec exists
+        // precisely so full-screen TUI redraws (helix, lazygit,
+        // btop) don't tear; Kitty measured +20–50% throughput from
+        // not painting intermediate states. We deliberately DO NOT
+        // update `self.last_seqno` while held — that way once the
+        // app emits ESU, the very next frame sees the seqno bumped
+        // (by the buffered writes done during the BSU window) and
+        // proceeds to render the final state in one frame.
         //
         // Stage 2 is the existing post-snapshot gate that catches
         // the rare case where snapshot data still proves we don't
         // need to redraw (kept as a belt-and-braces safety net).
-        let (peek_seqno, peek_cursor_visible) = {
+        let (peek_seqno, peek_cursor_visible, peek_sync_output) = {
             let term = self.terminal.lock().unwrap();
-            (term.seqno(), term.cursor().visible)
+            (term.seqno(), term.cursor().visible, term.synchronized_output())
         };
+        if peek_sync_output {
+            // BSU is in flight — skip this frame entirely. Don't bump
+            // last_seqno so the matching ESU triggers the catch-up
+            // render on the next frame.
+            return;
+        }
         let search_active_peek = self.search.lock().unwrap().active;
         let blink_active_peek = self.cursor_blink && peek_cursor_visible;
         let bell_active = self.bell_flash_frames > 0;
@@ -2644,10 +2684,17 @@ impl RenderCallback for TerminalRenderer {
             && !bell_active
             && !search_active_peek
         {
+            tracing::debug!(
+                peek_us = frame_start.elapsed().as_micros() as u64,
+                path = "idle_peek_skip",
+                "frame skipped"
+            );
             return;
         }
 
+        let snapshot_start = Instant::now();
         let (snap, seqno) = self.snapshot();
+        let snapshot_us = snapshot_start.elapsed().as_micros() as u64;
 
         // Stage-2 gate (rare: peek seqno can shift between the peek
         // and the snapshot; keep the safety net so we never paint a
@@ -2664,10 +2711,13 @@ impl RenderCallback for TerminalRenderer {
         self.last_seqno = seqno;
 
         // Build rect instances (cell backgrounds + cursor + decorations)
+        let rects_start = Instant::now();
         let sel = self.selection.lock().unwrap();
         let mut rect_instances =
             self.build_rect_instances(&snap, ctx.elapsed, self.padding_px(), self.padding_px(), &sel);
         drop(sel);
+        let rects_us = rects_start.elapsed().as_micros() as u64;
+        let rects_count = rect_instances.len();
 
         // Bell flash: add full-screen semi-transparent overlay (before GPU upload)
         if self.bell_flash_frames > 0 {
@@ -2694,7 +2744,11 @@ impl RenderCallback for TerminalRenderer {
         }
 
         // Build text buffers with per-cell colors
+        let text_start = Instant::now();
         let text_buffers = self.build_text_buffers(&snap, ctx.text);
+        let text_us = text_start.elapsed().as_micros() as u64;
+        let text_count = text_buffers.len();
+        let shape_cache_len = self.shape_cache.borrow().len();
 
         // Determine post-processing mode
         let colorblind_mode = match self.colorblind_mode {
@@ -2878,6 +2932,18 @@ impl RenderCallback for TerminalRenderer {
         }
 
         ctx.gpu.queue.submit(std::iter::once(encoder.finish()));
+
+        tracing::debug!(
+            frame_us = frame_start.elapsed().as_micros() as u64,
+            snapshot_us,
+            rects_us,
+            rects_count,
+            text_us,
+            text_count,
+            shape_cache_len,
+            path = "single_pane",
+            "frame complete"
+        );
     }
 
     fn resize(&mut self, _width: u32, _height: u32) {

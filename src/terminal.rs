@@ -969,6 +969,17 @@ impl Terminal {
         self.seqno
     }
 
+    /// Whether the application has set DEC mode 2026 (synchronized
+    /// output / BSU pending). When true the renderer is expected to
+    /// hold off on painting until the matching DECRST clears the
+    /// flag — eliminates tearing during full-screen TUI redraws
+    /// (helix, lazygit, btop). Kitty measured +20–50% throughput
+    /// on TUI apps that emit this.
+    #[must_use]
+    pub fn synchronized_output(&self) -> bool {
+        self.synchronized_output
+    }
+
     #[must_use]
     pub fn cursor_keys_mode(&self) -> bool {
         self.cursor_keys_mode
