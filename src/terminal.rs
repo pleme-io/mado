@@ -19,7 +19,7 @@ use crate::config::CursorStyle;
 // Cell attributes (bitflags-style)
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub struct CellAttrs(u8);
 
 impl CellAttrs {
@@ -92,7 +92,7 @@ enum PromptJumpDirection {
 // Color
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Color {
     pub r: u8,
     pub g: u8,
@@ -195,6 +195,20 @@ pub struct Cell {
     pub fg: Color,
     pub bg: Color,
     pub attrs: CellAttrs,
+    /// P32 — interned style ID. Populated on every cell write by
+    /// `put_char` from Terminal's `style_table` so that adjacent
+    /// cells with identical (fg, bg, attrs) share a u16 tag. The
+    /// renderer's shape cache key uses this u16 instead of three
+    /// raw bytes — smaller key, faster equality. Existing inline
+    /// fg/bg/attrs are kept too so all read sites continue to work
+    /// unchanged; the eventual Cell-shrink (drop inline fields, keep
+    /// only style_id) is a follow-up that the table interning here
+    /// is the prerequisite for.
+    ///
+    /// `0` is reserved for the default style (Color::WHITE on
+    /// Color::BLACK, no attrs) so a fresh Cell::default never has to
+    /// touch the table.
+    pub style_id: u16,
     /// Hyperlink URL (from OSC 8). None for most cells. `Arc<str>`
     /// rather than `Box<String>` so that adjacent cells inside the same
     /// hyperlink share one allocation — printing N characters under an
@@ -233,8 +247,103 @@ impl Default for Cell {
             fg: Color::WHITE,
             bg: Color::BLACK,
             attrs: CellAttrs::NONE,
+            // style_id 0 == DEFAULT_STYLE_ID (reserved for the canonical
+            // WHITE-on-BLACK no-attrs style). Cell::default never has to
+            // touch the StyleTable.
+            style_id: DEFAULT_STYLE_ID,
             hyperlink: None,
         }
+    }
+}
+
+/// Reserved style ID for the canonical default style
+/// (Color::WHITE fg, Color::BLACK bg, CellAttrs::NONE). StyleTable's
+/// constructor pre-populates this entry so it's always valid.
+pub const DEFAULT_STYLE_ID: u16 = 0;
+
+/// Style (fg, bg, attrs) interned as a single value. P32. The
+/// styling axes that define how a Cell renders. Cell stores both
+/// the inline triple (transition compatibility) and an interned
+/// u16 ID into [`StyleTable`] (lookup-friendly). Future Cell shrink
+/// will drop the inline fields.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct Style {
+    pub fg: Color,
+    pub bg: Color,
+    pub attrs: CellAttrs,
+}
+
+/// Interning table mapping `Style` ↔ `u16` ID. Each Terminal owns
+/// one. `intern(style)` returns the existing ID or allocates a new
+/// one; `lookup(id)` resolves an ID back to the Style. Capacity is
+/// bounded at `u16::MAX - 1` styles (more than enough for any
+/// realistic terminal session — typical sessions have &lt;50 unique
+/// styles).
+#[derive(Debug, Clone)]
+pub struct StyleTable {
+    styles: Vec<Style>,
+    by_style: std::collections::HashMap<Style, u16>,
+}
+
+impl Default for StyleTable {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl StyleTable {
+    /// Construct a fresh table with the default style pre-interned
+    /// at index `DEFAULT_STYLE_ID` (= 0).
+    #[must_use]
+    pub fn new() -> Self {
+        let default = Style {
+            fg: Color::WHITE,
+            bg: Color::BLACK,
+            attrs: CellAttrs::NONE,
+        };
+        let mut by_style = std::collections::HashMap::new();
+        by_style.insert(default, DEFAULT_STYLE_ID);
+        Self {
+            styles: vec![default],
+            by_style,
+        }
+    }
+
+    /// Intern a style: return the existing ID or allocate a new one.
+    /// Capacity bounded at `u16::MAX - 1`; beyond that the default
+    /// is returned (silent saturation rather than panic — the table
+    /// is renderer-hint, not load-bearing for correctness because
+    /// Cell still carries the inline fg/bg/attrs triple).
+    pub fn intern(&mut self, style: Style) -> u16 {
+        if let Some(&id) = self.by_style.get(&style) {
+            return id;
+        }
+        let id = self.styles.len();
+        if id >= u16::MAX as usize {
+            return DEFAULT_STYLE_ID;
+        }
+        let id = id as u16;
+        self.styles.push(style);
+        self.by_style.insert(style, id);
+        id
+    }
+
+    /// Resolve an ID back to its Style. Returns the default style if
+    /// `id` is out of bounds (defensive — should never happen with
+    /// IDs allocated by this table).
+    #[must_use]
+    pub fn lookup(&self, id: u16) -> Style {
+        self.styles
+            .get(id as usize)
+            .copied()
+            .unwrap_or_default()
+    }
+
+    /// Number of distinct interned styles (≥ 1 — the default style
+    /// is always present at index 0).
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.styles.len()
     }
 }
 
@@ -670,6 +779,13 @@ pub struct Terminal {
     /// inlineable loop with no state-machine overhead.
     vte_in_ground: bool,
 
+    /// P32 — style ID interning table. Maps (fg, bg, attrs) triples
+    /// to a u16 tag stored on every Cell. The renderer's shape cache
+    /// can key on style_id u16 instead of three raw bytes; ID equality
+    /// implies styling equality (cheaper than triple-byte comparison
+    /// in the hash + on lookup).
+    pub(crate) style_table: StyleTable,
+
     // Focus reporting (CSI ? 1004)
     focus_reporting: bool,
 
@@ -821,6 +937,7 @@ impl Terminal {
             response_bytes: Vec::new(),
             synchronized_output: false,
             vte_in_ground: true,
+            style_table: StyleTable::new(),
             focus_reporting: false,
             last_char: ' ',
             title: None,
@@ -2165,12 +2282,19 @@ impl Terminal {
             let fg = self.pen_fg;
             let bg = self.pen_bg;
             let attrs = self.pen_attrs;
+            // P32 — intern the current pen state into the style
+            // table. Adjacent cells with identical pen state share
+            // a u16 ID (the table dedups). cell.style_id lets the
+            // renderer's shape cache key on a u16 instead of the
+            // raw (fg, bg, attrs) triple.
+            let style_id = self.style_table.intern(Style { fg, bg, attrs });
             let hyperlink = self.active_hyperlink.clone();
             let cell = self.grid_mut().cell_mut(row, col);
             cell.ch = ch;
             cell.fg = fg;
             cell.bg = bg;
             cell.attrs = attrs;
+            cell.style_id = style_id;
             cell.extra = None;
             cell.width = char_width as u8;
             cell.hyperlink = hyperlink;
@@ -2184,6 +2308,7 @@ impl Terminal {
                 cont.fg = fg;
                 cont.bg = bg;
                 cont.attrs = attrs;
+                cont.style_id = style_id;
                 cont.extra = None;
                 cont.hyperlink = hyperlink;
             }
