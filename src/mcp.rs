@@ -343,7 +343,7 @@ impl MadoMcp {
         .to_string()
     }
 
-    #[tool(description = "Take a full structured snapshot of a session's terminal grid — every cell (char + fg + bg + attrs + width) plus cursor row/col/visibility. The load-bearing introspection tool: any visual rendering bug can be triaged by diffing two snapshots or comparing against the on-screen pixels. Set `pretty: true` to also include a human-readable text grid where cells with empty bg become `·` and the cursor cell becomes `▓`. Default `cells_filter: non_default` shrinks response by ~95% by skipping blank cells.")]
+    #[tool(description = "Take a full structured snapshot of a session's terminal grid — every cell (char + fg + bg + attrs + width) plus cursor row/col/visibility. The load-bearing introspection tool: any visual rendering bug can be triaged by diffing two snapshots or comparing against the on-screen pixels. Set `pretty: true` to also include a human-readable text grid where cells with empty bg become `·` and the cursor cell becomes `▓`. Default `cells_filter: runs` (RLE same-attrs contiguous cells into one entry — ~10–50× smaller payload than `non_default` on typical interactive grids). Alternatives: `non_default` (per-cell sparse), `non_blank` (looser sparse), `all` (full row-major grid — caller owns the size implications).")]
     async fn snapshot_grid(&self, Parameters(input): Parameters<SnapshotGridInput>) -> String {
         let Some(session) = self.state.sessions.get(&input.session_id) else {
             return serde_json::json!({
@@ -364,7 +364,13 @@ impl MadoMcp {
             "cursor_visible": snap.cursor_visible,
         });
         if input.include_cells.unwrap_or(true) {
-            let filter = input.cells_filter.as_deref().unwrap_or("non_default");
+            // P10: default switched to `runs` — collapses every same-
+            // attrs contiguous span into one RLE entry. Wire size on
+            // a typical 120×40 interactive grid drops from ~300 KB
+            // (non_default per-cell sparse) to ~5–25 KB. Agents that
+            // need per-cell granularity can still pass
+            // `cells_filter: "non_default"` explicitly.
+            let filter = input.cells_filter.as_deref().unwrap_or("runs");
             let cells = filtered_cells(&snap, filter);
             payload["cells_filter"] = serde_json::Value::String(filter.to_string());
             payload["cells"] = cells;
@@ -761,57 +767,166 @@ fn preview_from(content: &str) -> String {
     out
 }
 
+/// Per-cell snapshot entry used by the `non_default` / `non_blank`
+/// MCP serialisation modes. Direct serde struct — much faster than
+/// the previous `serde_json::json!` macro that built a BTreeMap per
+/// cell. `ch` is a single-codepoint String because JSON has no char
+/// type; everything else round-trips as small primitives or `[u8;3]`
+/// arrays so the wire format is obvious without a glossary.
+#[derive(serde::Serialize)]
+struct SparseCellEntry {
+    row: usize,
+    col: usize,
+    ch: String,
+    fg: [u8; 3],
+    bg: [u8; 3],
+    attrs: u8,
+    width: u8,
+}
+
+/// Run-length-encoded contiguous cells with identical styling, used
+/// by the `runs` MCP serialisation mode (the default). Collapses
+/// e.g. a 25-char same-colour prompt line from ~25 SparseCellEntry
+/// objects (~1.2 KB) into ONE CellRun (~80 B). Typical interactive
+/// grid: 4800 cells → ~30–80 runs, ~10–50× smaller payload than
+/// `non_default`. Wide cells (width != 1) are emitted as solo runs
+/// to keep advance semantics unambiguous on the client.
+#[derive(serde::Serialize)]
+struct CellRun {
+    row: usize,
+    col: usize,
+    text: String,
+    fg: [u8; 3],
+    bg: [u8; 3],
+    attrs: u8,
+}
+
 /// Filter cells in a [`GridSnapshot`] for MCP serialisation.
 ///
-/// `all` emits the full row-major grid (large — ~50KB for 80×24).
-/// `non_default` keeps only cells whose char isn't U+0020 *or* whose
-/// bg/fg differs from the [0,0,0] / [255,255,255] defaults. Each
-/// kept cell is emitted as `{row, col, ...}` with positional fields
-/// added so the client knows where the cell lives.
-/// `non_blank` is the looser sibling — keeps any cell whose char
-/// isn't space OR whose bg isn't black; equivalent to "what
-/// `to_pretty` would print".
+/// **Modes** (the `cells_filter` MCP tool parameter):
+///   - `runs` — DEFAULT. RLE same-attrs contiguous cells into one
+///     [`CellRun`] each. 10–50× smaller payload than `non_default`
+///     on typical interactive grids. The structure agents need to
+///     "what's at this position in this colour" is preserved; only
+///     redundant per-cell repetition is dropped.
+///   - `non_default` — one [`SparseCellEntry`] per non-default cell.
+///     Drops space / WHITE-on-BLACK / no-attrs cells. Useful when an
+///     agent needs per-cell granularity (e.g. computing per-cell
+///     diffs across snapshots).
+///   - `non_blank` — like `non_default` but only filters cells whose
+///     char is space AND bg is BLACK. Keeps cells whose only
+///     non-default trait is a non-WHITE fg.
+///   - `all` — emit the full row-major grid. Caller owns the
+///     response-size implications; useful for byte-perfect
+///     deterministic snapshots in CI.
+///
+/// Cell::default semantics: `ch == ' ' && fg == WHITE && bg == BLACK
+/// && attrs == 0 && width == 1` (the post-reset terminal cell
+/// before any SGR has been applied).
 fn filtered_cells(snap: &crate::session::GridSnapshot, mode: &str) -> serde_json::Value {
-    use serde_json::json;
     let blank_ch = ' ';
     let blank_bg = [0u8, 0u8, 0u8];
     let blank_fg = [255u8, 255u8, 255u8];
 
+    let is_default = |cell: &crate::session::CellSnapshot| -> bool {
+        cell.ch == blank_ch
+            && cell.bg == blank_bg
+            && cell.fg == blank_fg
+            && cell.attrs == 0
+            && cell.width == 1
+    };
+    let is_blank = |cell: &crate::session::CellSnapshot| -> bool {
+        cell.ch == blank_ch && cell.bg == blank_bg
+    };
+
     if mode == "all" {
-        // Row-major shape — same as the raw snapshot. Caller asked
-        // for the full grid; they own the response-size implications.
         return serde_json::to_value(&snap.cells).unwrap_or(serde_json::Value::Null);
     }
 
-    let mut entries: Vec<serde_json::Value> = Vec::new();
+    if mode == "runs" {
+        // Walk each row, batching width-1 same-style cells into one
+        // CellRun. Default cells terminate any open run. Wide cells
+        // flush + emit solo.
+        let mut runs: Vec<CellRun> = Vec::new();
+        for (r, row) in snap.cells.iter().enumerate() {
+            // Open run: (start_col, accumulated text, fg, bg, attrs).
+            let mut cur: Option<(usize, String, [u8; 3], [u8; 3], u8)> = None;
+            let flush = |cur: &mut Option<(usize, String, [u8; 3], [u8; 3], u8)>,
+                         runs: &mut Vec<CellRun>| {
+                if let Some((col, text, fg, bg, attrs)) = cur.take() {
+                    runs.push(CellRun { row: r, col, text, fg, bg, attrs });
+                }
+            };
+            for (c, cell) in row.iter().enumerate() {
+                if is_default(cell) {
+                    flush(&mut cur, &mut runs);
+                    continue;
+                }
+                if cell.width != 1 {
+                    // Wide / continuation: flush, emit solo, no
+                    // attempt to merge into a row run because column
+                    // accounting would lie about the run's length.
+                    flush(&mut cur, &mut runs);
+                    if cell.width >= 1 {
+                        runs.push(CellRun {
+                            row: r,
+                            col: c,
+                            text: cell.ch.to_string(),
+                            fg: cell.fg,
+                            bg: cell.bg,
+                            attrs: cell.attrs,
+                        });
+                    }
+                    continue;
+                }
+                match &mut cur {
+                    Some((_, text, fg, bg, attrs))
+                        if *fg == cell.fg && *bg == cell.bg && *attrs == cell.attrs =>
+                    {
+                        text.push(cell.ch);
+                    }
+                    _ => {
+                        flush(&mut cur, &mut runs);
+                        cur = Some((
+                            c,
+                            cell.ch.to_string(),
+                            cell.fg,
+                            cell.bg,
+                            cell.attrs,
+                        ));
+                    }
+                }
+            }
+            flush(&mut cur, &mut runs);
+        }
+        return serde_json::to_value(&runs).unwrap_or(serde_json::Value::Null);
+    }
+
+    // Sparse modes (non_default / non_blank). Direct struct serde,
+    // no per-cell BTreeMap allocation (the old json!{...} macro path
+    // was a major share of the per-call CPU on a quiescent grid).
+    let mut entries: Vec<SparseCellEntry> = Vec::new();
     for (r, row) in snap.cells.iter().enumerate() {
         for (c, cell) in row.iter().enumerate() {
-            let is_default = cell.ch == blank_ch
-                && cell.bg == blank_bg
-                && cell.fg == blank_fg
-                && cell.attrs == 0
-                && cell.width == 1;
-            let is_blank = cell.ch == blank_ch && cell.bg == blank_bg;
             let keep = match mode {
-                "non_blank" => !is_blank,
-                // default: non_default
-                _ => !is_default,
+                "non_blank" => !is_blank(cell),
+                _ => !is_default(cell),
             };
             if !keep {
                 continue;
             }
-            entries.push(json!({
-                "row": r,
-                "col": c,
-                "ch": cell.ch.to_string(),
-                "fg": cell.fg,
-                "bg": cell.bg,
-                "attrs": cell.attrs,
-                "width": cell.width,
-            }));
+            entries.push(SparseCellEntry {
+                row: r,
+                col: c,
+                ch: cell.ch.to_string(),
+                fg: cell.fg,
+                bg: cell.bg,
+                attrs: cell.attrs,
+                width: cell.width,
+            });
         }
     }
-    serde_json::Value::Array(entries)
+    serde_json::to_value(&entries).unwrap_or(serde_json::Value::Null)
 }
 
 /// Decode a `send_keys` payload into raw bytes for the PTY.
@@ -1037,6 +1152,42 @@ mod tests {
             .await;
         let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
         assert_eq!(parsed["closed"], true);
+    }
+
+    #[test]
+    fn filtered_cells_runs_rle_same_attrs_run() {
+        use crate::session::{CellSnapshot, GridSnapshot};
+        // One 3-cell ASCII run with identical styling on row 0,
+        // separated by a default cell, then another 2-cell run with
+        // different fg. Expect: 2 runs total, both with the right
+        // start col + accumulated text.
+        let row: Vec<CellSnapshot> = vec![
+            CellSnapshot { ch: 'a', width: 1, fg: [1, 2, 3], bg: [0, 0, 0], attrs: 0 },
+            CellSnapshot { ch: 'b', width: 1, fg: [1, 2, 3], bg: [0, 0, 0], attrs: 0 },
+            CellSnapshot { ch: 'c', width: 1, fg: [1, 2, 3], bg: [0, 0, 0], attrs: 0 },
+            CellSnapshot { ch: ' ', width: 1, fg: [255, 255, 255], bg: [0, 0, 0], attrs: 0 },
+            CellSnapshot { ch: 'x', width: 1, fg: [9, 9, 9], bg: [0, 0, 0], attrs: 0 },
+            CellSnapshot { ch: 'y', width: 1, fg: [9, 9, 9], bg: [0, 0, 0], attrs: 0 },
+        ];
+        let snap = GridSnapshot {
+            cols: 6,
+            rows: 1,
+            cursor_row: 0,
+            cursor_col: 0,
+            cursor_visible: false,
+            cells: vec![row],
+        };
+        let runs = filtered_cells(&snap, "runs");
+        let arr = runs.as_array().expect("runs returns array");
+        assert_eq!(arr.len(), 2, "two RLE runs expected");
+        assert_eq!(arr[0]["row"], 0);
+        assert_eq!(arr[0]["col"], 0);
+        assert_eq!(arr[0]["text"], "abc");
+        assert_eq!(arr[0]["fg"], serde_json::json!([1, 2, 3]));
+        assert_eq!(arr[1]["row"], 0);
+        assert_eq!(arr[1]["col"], 4);
+        assert_eq!(arr[1]["text"], "xy");
+        assert_eq!(arr[1]["fg"], serde_json::json!([9, 9, 9]));
     }
 
     #[test]
