@@ -230,6 +230,22 @@ rec {
         };
         resolvedDefaultFeatures = [ "std" ];
       };
+      "allocator-api2" = rec {
+        crateName = "allocator-api2";
+        version = "0.2.21";
+        edition = "2018";
+        sha256 = "08zrzs022xwndihvzdn78yqarv2b9696y67i6h78nla3ww87jgb8";
+        libName = "allocator_api2";
+        authors = [
+          "Zakarum <zaq.dev@icloud.com>"
+        ];
+        features = {
+          "default" = [ "std" ];
+          "serde" = [ "dep:serde" ];
+          "std" = [ "alloc" ];
+        };
+        resolvedDefaultFeatures = [ "alloc" ];
+      };
       "android-activity" = rec {
         crateName = "android-activity";
         version = "0.6.1";
@@ -3632,6 +3648,19 @@ rec {
         ];
         dependencies = [
           {
+            name = "allocator-api2";
+            packageId = "allocator-api2";
+            optional = true;
+            usesDefaultFeatures = false;
+            features = [ "alloc" ];
+          }
+          {
+            name = "equivalent";
+            packageId = "equivalent";
+            optional = true;
+            usesDefaultFeatures = false;
+          }
+          {
             name = "foldhash";
             packageId = "foldhash";
             optional = true;
@@ -3650,7 +3679,7 @@ rec {
           "rustc-dep-of-std" = [ "nightly" "core" "alloc" "rustc-internal-api" ];
           "serde" = [ "dep:serde" ];
         };
-        resolvedDefaultFeatures = [ "default-hasher" "inline-more" ];
+        resolvedDefaultFeatures = [ "allocator-api2" "default" "default-hasher" "equivalent" "inline-more" "raw-entry" ];
       };
       "hashbrown 0.17.0" = rec {
         crateName = "hashbrown";
@@ -4513,6 +4542,27 @@ rec {
         };
         resolvedDefaultFeatures = [ "arch" "default" ];
       };
+      "libmimalloc-sys" = rec {
+        crateName = "libmimalloc-sys";
+        version = "0.1.47";
+        edition = "2018";
+        links = "mimalloc";
+        sha256 = "1xkx0r1pwgsdpskvx206dn3gj04zcsjnn4rwhxgc4gn367xaq7id";
+        libName = "libmimalloc_sys";
+        authors = [
+          "Octavian Oncescu <octavonce@gmail.com>"
+        ];
+        buildDependencies = [
+          {
+            name = "cc";
+            packageId = "cc";
+          }
+        ];
+        features = {
+          "cty" = [ "dep:cty" ];
+          "extended" = [ "cty" ];
+        };
+      };
       "libredox" = rec {
         crateName = "libredox";
         version = "0.1.16";
@@ -4675,11 +4725,19 @@ rec {
         authors = [
           "Jerome Froelich <jeromefroelic@hotmail.com>"
         ];
+        dependencies = [
+          {
+            name = "hashbrown";
+            packageId = "hashbrown 0.15.5";
+            optional = true;
+          }
+        ];
         features = {
           "default" = [ "hashbrown" ];
           "hashbrown" = [ "dep:hashbrown" ];
           "nightly" = [ "hashbrown" "hashbrown/nightly" ];
         };
+        resolvedDefaultFeatures = [ "default" "hashbrown" ];
       };
       "mado" = rec {
         crateName = "mado";
@@ -4760,8 +4818,17 @@ rec {
             packageId = "linkify";
           }
           {
+            name = "lru";
+            packageId = "lru";
+          }
+          {
             name = "madori";
             packageId = "madori";
+          }
+          {
+            name = "mimalloc";
+            packageId = "mimalloc";
+            usesDefaultFeatures = false;
           }
           {
             name = "objc2";
@@ -4783,6 +4850,10 @@ rec {
           {
             name = "open";
             packageId = "open";
+          }
+          {
+            name = "parking_lot";
+            packageId = "parking_lot";
           }
           {
             name = "rmcp";
@@ -5032,6 +5103,34 @@ rec {
           "link" = [ "core-graphics-types/link" ];
         };
         resolvedDefaultFeatures = [ "default" "link" ];
+      };
+      "mimalloc" = rec {
+        crateName = "mimalloc";
+        version = "0.1.50";
+        edition = "2018";
+        sha256 = "0h06df0h7ia6yqz4qgbjvqzcjn8xxima9fnac296ny6zf917qqmk";
+        authors = [
+          "Octavian Oncescu <octavonce@gmail.com>"
+          "Vincent Rouillé <vincent@speedy37.fr>"
+          "Thom Chiovoloni <chiovolonit@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "libmimalloc-sys";
+            packageId = "libmimalloc-sys";
+            usesDefaultFeatures = false;
+          }
+        ];
+        features = {
+          "debug" = [ "libmimalloc-sys/debug" ];
+          "debug_in_debug" = [ "libmimalloc-sys/debug_in_debug" ];
+          "extended" = [ "libmimalloc-sys/extended" ];
+          "local_dynamic_tls" = [ "libmimalloc-sys/local_dynamic_tls" ];
+          "no_thp" = [ "libmimalloc-sys/no_thp" ];
+          "override" = [ "libmimalloc-sys/override" ];
+          "secure" = [ "libmimalloc-sys/secure" ];
+          "v2" = [ "libmimalloc-sys/v2" ];
+        };
       };
       "miniz_oxide" = rec {
         crateName = "miniz_oxide";
