@@ -659,6 +659,17 @@ pub struct Terminal {
     // Synchronized output (CSI ? 2026) — batch drawing
     synchronized_output: bool,
 
+    /// P33 — vte parser state tracker. True iff vte's internal state
+    /// is Ground (= ready for the next sequence). vte 0.15 doesn't
+    /// expose its state externally, but every Perform callback fires
+    /// after a deterministic state transition, so we mirror the bit
+    /// from callbacks. Used by `feed()` to short-circuit the parser
+    /// for runs of printable ASCII when vte is known to be in Ground:
+    /// instead of vte's per-byte ground_dispatch → print(c) loop, we
+    /// call `print_ascii_run(slice)` which writes cells in a tight
+    /// inlineable loop with no state-machine overhead.
+    vte_in_ground: bool,
+
     // Focus reporting (CSI ? 1004)
     focus_reporting: bool,
 
@@ -809,6 +820,7 @@ impl Terminal {
             tab_stops,
             response_bytes: Vec::new(),
             synchronized_output: false,
+            vte_in_ground: true,
             focus_reporting: false,
             last_char: ' ',
             title: None,
@@ -906,13 +918,94 @@ impl Terminal {
                 i += 1;
             }
 
-            // Feed the non-APC portion to vte
+            // Feed the non-APC portion to vte (with P33 fast-path).
             if start < i {
-                parser.advance(self, &bytes[start..i]);
+                self.feed_chunk_fastpath(&mut parser, &bytes[start..i]);
             }
         }
 
         self.parser = parser;
+    }
+
+    /// P33 — SIMD-friendly fast path for the inner feed loop. When
+    /// `vte_in_ground` is true, find the longest run of printable
+    /// ASCII (0x20..=0x7E) at the start of the chunk and write those
+    /// cells in a tight loop, skipping vte's per-byte state machine +
+    /// `ground_dispatch` → `print(char)` callback chain. Anything that
+    /// isn't pure printable ASCII goes to vte unchanged.
+    ///
+    /// Correctness: `vte_in_ground` is tracked from Perform callbacks
+    /// — every callback fires after a deterministic state transition,
+    /// so we know when vte is back in Ground. We pessimistically set
+    /// `vte_in_ground = false` *before* feeding non-fast-path bytes
+    /// to vte; the callbacks then re-set it to true at the natural
+    /// Ground re-entry points (print / execute / csi_dispatch /
+    /// esc_dispatch / osc_dispatch / unhook). If vte ends mid-
+    /// sequence (e.g. saw ESC[ without final byte), no Ground
+    /// re-entry callback fires this feed and vte_in_ground stays
+    /// false — exactly correct.
+    fn feed_chunk_fastpath(&mut self, parser: &mut vte::Parser, mut chunk: &[u8]) {
+        while !chunk.is_empty() {
+            // Fast-path the printable-ASCII prefix when vte is in
+            // Ground state. Carve off the longest 0x20..=0x7E run at
+            // the start of the chunk and write those cells directly,
+            // bypassing vte's per-byte ground_dispatch → print(char)
+            // dispatch.
+            if self.vte_in_ground {
+                let printable_end = chunk
+                    .iter()
+                    .position(|&b| !(0x20..=0x7E).contains(&b))
+                    .unwrap_or(chunk.len());
+                if printable_end > 0 {
+                    let prefix = &chunk[..printable_end];
+                    // SAFETY: `prefix` is guaranteed pure ASCII
+                    // (0x20..=0x7E) by the predicate above, so the
+                    // bytes are valid single-byte UTF-8.
+                    let s = unsafe { std::str::from_utf8_unchecked(prefix) };
+                    self.print_ascii_run(s);
+                    chunk = &chunk[printable_end..];
+                    // Loop back: vte stayed in Ground, so the next
+                    // iteration can try the fast path again on the
+                    // rest of the chunk if its prefix is also
+                    // printable (rare — there'd have to be a
+                    // non-printable byte in the middle).
+                    continue;
+                }
+            }
+            // Slow path: feed the rest of the chunk to vte directly.
+            // We can't intersperse fast-paths inside vte's per-byte
+            // loop without exposing vte's internal state (which the
+            // 0.15 crate doesn't), so once we're in the slow path we
+            // commit to it for the rest of this chunk. The Perform
+            // callbacks above (print / execute / csi_dispatch /
+            // esc_dispatch / osc_dispatch / unhook) re-set
+            // vte_in_ground = true at each natural Ground re-entry,
+            // so the NEXT feed() call's first iteration can resume
+            // the fast path if vte ended this chunk in Ground.
+            self.vte_in_ground = false;
+            parser.advance(self, chunk);
+            return;
+        }
+    }
+
+    /// P33 — write a printable-ASCII run as cells in a tight loop.
+    /// Caller guarantees every byte in `text` is in 0x20..=0x7E.
+    /// Mirrors what `Perform::print()` does on a per-char basis but
+    /// skips vte's state-machine bookkeeping and the function-call
+    /// boundary per byte. Charset translation still applies (DEC
+    /// Special Graphics is the one charset that can transform plain
+    /// ASCII into box-drawing).
+    fn print_ascii_run(&mut self, text: &str) {
+        // Reset scroll-on-input (mirrors Perform::print behaviour).
+        self.scroll_offset = 0;
+        for ch in text.chars() {
+            // For pure printable ASCII width is always 1, so no need
+            // to call UnicodeWidthChar::width(ch) inside put_char.
+            // But charset translation may swap into a wide char in
+            // theory — keep the conservative path for safety.
+            let ch = self.translate_charset(ch);
+            self.put_char(ch);
+        }
     }
 
     pub fn resize(&mut self, cols: usize, rows: usize) {
@@ -2341,6 +2434,8 @@ impl TerminalOps for Terminal {
 
 impl vte::Perform for Terminal {
     fn print(&mut self, ch: char) {
+        // P33 — print() returns vte to Ground state.
+        self.vte_in_ground = true;
         // Reset scroll offset when new content arrives
         self.scroll_offset = 0;
 
@@ -2373,6 +2468,8 @@ impl vte::Perform for Terminal {
     }
 
     fn execute(&mut self, byte: u8) {
+        // P33 — execute() returns vte to Ground state.
+        self.vte_in_ground = true;
         match byte {
             b'\n' | 0x0B | 0x0C => {
                 // LF, VT, FF all act as newline
@@ -2446,6 +2543,8 @@ impl vte::Perform for Terminal {
         }
     }
     fn unhook(&mut self) {
+        // P33 — unhook() ends DCS and returns vte to Ground state.
+        self.vte_in_ground = true;
         match self.dcs_handler {
             Some(DcsHandler::Decrqss(ref query)) => {
                 let response = match query.as_slice() {
@@ -2483,6 +2582,8 @@ impl vte::Perform for Terminal {
     }
 
     fn osc_dispatch(&mut self, params: &[&[u8]], _bell_terminated: bool) {
+        // P33 — osc_dispatch() returns vte to Ground state.
+        self.vte_in_ground = true;
         if params.is_empty() {
             return;
         }
@@ -2518,6 +2619,8 @@ impl vte::Perform for Terminal {
         _ignore: bool,
         action: char,
     ) {
+        // P33 — csi_dispatch() returns vte to Ground state.
+        self.vte_in_ground = true;
         let first_param = |default: usize| -> usize {
             params.iter().next().map_or(default, |p| (p[0] as usize).max(1))
         };
@@ -2962,6 +3065,8 @@ impl vte::Perform for Terminal {
     }
 
     fn esc_dispatch(&mut self, intermediates: &[u8], _ignore: bool, byte: u8) {
+        // P33 — esc_dispatch() returns vte to Ground state.
+        self.vte_in_ground = true;
         match (intermediates, byte) {
             // RIS — Full reset
             ([], b'c') => {
