@@ -18,9 +18,26 @@ pedantic = "warn"
 
 [profile.release]
 codegen-units = 1
-lto = true
-opt-level = "z"
+lto = "fat"
+# opt-level = 3 (speed), NOT "z" (size). Terminal hot paths are
+# alloc-/branch-/cache-bound; size optimization disables loop
+# unrolling, vectorisation, function inlining heuristics that the
+# render and VT-parse paths benefit from. Mado is distributed via Nix
+# so binary size is uninteresting; ~few MB saved is worth a measurable
+# speed regression in build_text_buffers + build_rect_instances.
+opt-level = 3
+# panic = "abort" drops unwinding tables (~5% binary, marginal hot-path
+# perf because unwind metadata is no longer carried on each
+# `?`/Result-bubble site) and matches Ghostty / Alacritty / WezTerm's
+# release shape. No code in mado depends on catch_unwind / UnwindSafe.
+panic = "abort"
 strip = true
+# Don't carry debug-info eviction lookups in the release binary —
+# nothing inspects backtraces in a release-shipped terminal.
+debug = false
+incremental = false
+# Overflow checks off in release (default for release but explicit).
+overflow-checks = false
 
 [dependencies]
 # Content-addressed clipboard + future attestation anchors.

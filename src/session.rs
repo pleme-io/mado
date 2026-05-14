@@ -194,20 +194,29 @@ impl GridSnapshot {
     /// Compact text representation — one row per line, trailing
     /// whitespace stripped. Useful when the agent only needs to
     /// pattern-match the prompt or read command output.
+    ///
+    /// P16 — trim per-row in a scratch buffer, not on the cumulative
+    /// `out`. The previous implementation trimmed the cumulative
+    /// String after each row, which was correct in most cases but
+    /// fragile around (a) all-blank rows, (b) cells with `ch == '\0'`
+    /// inside a row (legitimate when a CSI hard-resets the buffer
+    /// mid-row), and (c) preserving the "newline per row" contract
+    /// the agent baseline depends on. Per-row trim is the obviously-
+    /// correct shape, and the cost is one small String per row.
     #[must_use]
     pub fn to_text(&self) -> String {
         let mut out = String::with_capacity(self.cols * self.rows);
+        let mut row_buf = String::with_capacity(self.cols);
         for (idx, row) in self.cells.iter().enumerate() {
+            row_buf.clear();
             for cell in row {
                 if cell.width == 0 {
                     continue;
                 }
-                out.push(cell.ch);
+                row_buf.push(cell.ch);
             }
-            // Strip trailing whitespace per line — agents grepping the
-            // text don't care about column padding.
-            let trimmed = out.trim_end_matches([' ', '\0']).len();
-            out.truncate(trimmed);
+            let trimmed = row_buf.trim_end_matches([' ', '\0']);
+            out.push_str(trimmed);
             if idx + 1 < self.cells.len() {
                 out.push('\n');
             }

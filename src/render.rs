@@ -858,6 +858,20 @@ struct ShapeKey {
 /// is a few MB worst-case.
 const SHAPE_CACHE_CAP: usize = 4096;
 
+/// Per-row run kind enum for P11 — tells `push_run` which y/height
+/// math to apply when flushing an open RLE span. The three kinds are
+/// the only per-row rect kinds whose pixel geometry can be described
+/// as "start_col × cell_width wide, on row_idx" — cell backgrounds
+/// fill the whole cell height, underlines sit two pixels above the
+/// bottom edge, strikethroughs sit at mid-cell. Box-drawing rects
+/// have per-glyph shapes and stay per-cell.
+#[derive(Clone, Copy)]
+enum RectKindForRle {
+    Background,
+    Underline,
+    Strikethrough,
+}
+
 // ---------------------------------------------------------------------------
 // TerminalRenderer
 // ---------------------------------------------------------------------------
@@ -1217,66 +1231,161 @@ impl TerminalRenderer {
         let mut instances = Vec::new();
         let default_bg = Color::BLACK;
 
+        // P11 — run-length batch every per-row "single-row, same-color
+        // wide span" rect kind: backgrounds, underlines, strikethroughs.
+        // Adjacent cells with identical (bg) or identical (underline +
+        // fg) collapse into ONE wide RectInstance. On a typical
+        // interactive grid this cuts the rect-pipeline upload from a
+        // potential cells × 4 kinds per row down to ~2–10 spans per row
+        // — and the rect_pipeline does an instanced draw call sized by
+        // instance count, so fewer instances = smaller upload + smaller
+        // vertex-shader cost. Box drawing stays per-cell (each glyph
+        // has its own shape; no run shape exists).
+        //
+        // Per-row state for the three RLE-able kinds. Each is `Option<
+        // (start_col, run_width_cells, color)>`; `None` = no run open.
+        // `run_width_cells` accumulates by cell.width so wide chars
+        // (CJK / emoji) contribute 2 cells to the span — the painted
+        // rect ends up `run_width_cells × cell_width` wide.
+        type RowRun = Option<(usize, usize, [f32; 4])>;
+        let push_run =
+            |instances: &mut Vec<RectInstance>,
+             run: &mut RowRun,
+             row_idx: usize,
+             kind: RectKindForRle| {
+                if let Some((start_col, cells, color)) = run.take() {
+                    let x = origin_x + start_col as f32 * self.cell_width;
+                    let w = cells as f32 * self.cell_width;
+                    let (y, h) = match kind {
+                        RectKindForRle::Background => (
+                            origin_y + row_idx as f32 * self.cell_height,
+                            self.cell_height,
+                        ),
+                        RectKindForRle::Underline => (
+                            origin_y + (row_idx as f32 + 1.0) * self.cell_height - 2.0,
+                            1.0,
+                        ),
+                        RectKindForRle::Strikethrough => (
+                            origin_y + row_idx as f32 * self.cell_height
+                                + self.cell_height * 0.5,
+                            1.0,
+                        ),
+                    };
+                    instances.push(RectInstance {
+                        pos: [x, y],
+                        size: [w, h],
+                        color,
+                    });
+                }
+            };
+
         for (row_idx, row) in snap.rows.iter().enumerate() {
+            let mut bg_run: RowRun = None;
+            let mut underline_run: RowRun = None;
+            let mut strike_run: RowRun = None;
+
             for (col_idx, cell) in row.iter().enumerate().take(snap.cols) {
-                // Skip continuation cells (width == 0, part of wide char)
+                // Continuation cells: don't break or extend the run on
+                // their own — the wide-glyph cell already booked 2 cells
+                // worth of width when it joined. Skip without flushing.
                 if cell.width == 0 {
                     continue;
                 }
 
                 let inverse = cell.attrs.contains(CellAttrs::INVERSE);
                 let dim = cell.attrs.contains(CellAttrs::DIM);
-                let bg = if inverse { &cell.fg } else { &cell.bg };
+                let bg = if inverse { cell.fg } else { cell.bg };
                 let base_fg = if inverse { cell.bg } else { cell.fg };
                 let fg = if dim {
                     Color::new(base_fg.r / 2, base_fg.g / 2, base_fg.b / 2)
                 } else {
                     base_fg
                 };
+                let width_cells = cell.width.max(1) as usize;
 
-                // Cell background
-                if *bg != default_bg {
-                    let w = if cell.width == 2 {
-                        self.cell_width * 2.0
-                    } else {
-                        self.cell_width
-                    };
-                    instances.push(RectInstance {
-                        pos: [
-                            origin_x + col_idx as f32 * self.cell_width,
-                            origin_y + row_idx as f32 * self.cell_height,
-                        ],
-                        size: [w, self.cell_height],
-                        color: color_to_f32(bg),
-                    });
+                // ── Background span ─────────────────────────────────
+                if bg != default_bg {
+                    let color = color_to_f32(&bg);
+                    match &mut bg_run {
+                        Some((_, cells, c)) if *c == color => {
+                            *cells += width_cells;
+                        }
+                        _ => {
+                            push_run(
+                                &mut instances,
+                                &mut bg_run,
+                                row_idx,
+                                RectKindForRle::Background,
+                            );
+                            bg_run = Some((col_idx, width_cells, color));
+                        }
+                    }
+                } else {
+                    push_run(
+                        &mut instances,
+                        &mut bg_run,
+                        row_idx,
+                        RectKindForRle::Background,
+                    );
                 }
 
-                // Underline decoration
+                // ── Underline span ──────────────────────────────────
                 if cell.attrs.contains(CellAttrs::UNDERLINE) {
-                    instances.push(RectInstance {
-                        pos: [
-                            origin_x + col_idx as f32 * self.cell_width,
-                            origin_y + (row_idx as f32 + 1.0) * self.cell_height - 2.0,
-                        ],
-                        size: [self.cell_width, 1.0],
-                        color: color_to_f32(&fg),
-                    });
+                    let color = color_to_f32(&fg);
+                    match &mut underline_run {
+                        Some((_, cells, c)) if *c == color => {
+                            *cells += width_cells;
+                        }
+                        _ => {
+                            push_run(
+                                &mut instances,
+                                &mut underline_run,
+                                row_idx,
+                                RectKindForRle::Underline,
+                            );
+                            underline_run = Some((col_idx, width_cells, color));
+                        }
+                    }
+                } else {
+                    push_run(
+                        &mut instances,
+                        &mut underline_run,
+                        row_idx,
+                        RectKindForRle::Underline,
+                    );
                 }
 
-                // Strikethrough decoration
+                // ── Strikethrough span ──────────────────────────────
                 if cell.attrs.contains(CellAttrs::STRIKETHROUGH) {
-                    instances.push(RectInstance {
-                        pos: [
-                            origin_x + col_idx as f32 * self.cell_width,
-                            origin_y + row_idx as f32 * self.cell_height
-                                + self.cell_height * 0.5,
-                        ],
-                        size: [self.cell_width, 1.0],
-                        color: color_to_f32(&fg),
-                    });
+                    let color = color_to_f32(&fg);
+                    match &mut strike_run {
+                        Some((_, cells, c)) if *c == color => {
+                            *cells += width_cells;
+                        }
+                        _ => {
+                            push_run(
+                                &mut instances,
+                                &mut strike_run,
+                                row_idx,
+                                RectKindForRle::Strikethrough,
+                            );
+                            strike_run = Some((col_idx, width_cells, color));
+                        }
+                    }
+                } else {
+                    push_run(
+                        &mut instances,
+                        &mut strike_run,
+                        row_idx,
+                        RectKindForRle::Strikethrough,
+                    );
                 }
 
-                // Box drawing / block element characters — render as pixel-perfect rects
+                // Box drawing stays per-cell — each char produces its
+                // own typed set of rects (no run shape would represent
+                // a run of mixed box-draw glyphs correctly). Flushing
+                // is implicit: a box-draw cell has bg == default_bg
+                // (the above branch already closed bg_run if open).
                 if is_box_drawing(cell.ch) {
                     let bx = origin_x + col_idx as f32 * self.cell_width;
                     let by = origin_y + row_idx as f32 * self.cell_height;
@@ -1290,62 +1399,95 @@ impl TerminalRenderer {
                     ));
                 }
             }
+
+            // Row end — flush every open run.
+            push_run(&mut instances, &mut bg_run, row_idx, RectKindForRle::Background);
+            push_run(&mut instances, &mut underline_run, row_idx, RectKindForRle::Underline);
+            push_run(&mut instances, &mut strike_run, row_idx, RectKindForRle::Strikethrough);
         }
 
-        // Selection highlight
+        // Selection highlight — RLE'd. Selection spans are almost
+        // always contiguous within a row (a triple-click line, a
+        // drag selection from col A to col B); per-cell rects were
+        // pure waste.
         if sel.is_active() {
-            for (row_idx, _row) in snap.rows.iter().enumerate() {
+            for row_idx in 0..snap.rows.len() {
+                let mut run_start: Option<usize> = None;
                 for col_idx in 0..snap.cols {
                     if sel.contains(row_idx, col_idx) {
+                        if run_start.is_none() {
+                            run_start = Some(col_idx);
+                        }
+                    } else if let Some(start) = run_start.take() {
                         instances.push(RectInstance {
                             pos: [
-                                origin_x + col_idx as f32 * self.cell_width,
+                                origin_x + start as f32 * self.cell_width,
                                 origin_y + row_idx as f32 * self.cell_height,
                             ],
-                            size: [self.cell_width, self.cell_height],
+                            size: [
+                                (col_idx - start) as f32 * self.cell_width,
+                                self.cell_height,
+                            ],
                             color: self.selection_bg,
                         });
                     }
                 }
-            }
-        }
-
-        // Search match highlights
-        if snap.search_active {
-            for (i, m) in snap.search_matches.iter().enumerate() {
-                let is_current = i == snap.search_current;
-                // Current match: brighter, other matches: dimmer
-                let color = if is_current {
-                    [0.922, 0.796, 0.545, 0.5] // Nord aurora yellow
-                } else {
-                    [0.922, 0.796, 0.545, 0.2] // Dimmer yellow
-                };
-                for col in m.col_start..=m.col_end {
+                if let Some(start) = run_start {
                     instances.push(RectInstance {
                         pos: [
-                            origin_x + col as f32 * self.cell_width,
-                            origin_y + m.row as f32 * self.cell_height,
+                            origin_x + start as f32 * self.cell_width,
+                            origin_y + row_idx as f32 * self.cell_height,
                         ],
-                        size: [self.cell_width, self.cell_height],
-                        color,
+                        size: [
+                            (snap.cols - start) as f32 * self.cell_width,
+                            self.cell_height,
+                        ],
+                        color: self.selection_bg,
                     });
                 }
             }
         }
 
-        // URL underline decorations (hyperlinks from OSC 8 or detected URLs)
-        for detected_url in &snap.urls {
-            for col in detected_url.col_start..=detected_url.col_end {
+        // Search match highlights — RLE'd (one rect per match span).
+        if snap.search_active {
+            for (i, m) in snap.search_matches.iter().enumerate() {
+                let is_current = i == snap.search_current;
+                let color = if is_current {
+                    [0.922, 0.796, 0.545, 0.5] // Nord aurora yellow
+                } else {
+                    [0.922, 0.796, 0.545, 0.2] // Dimmer yellow
+                };
                 instances.push(RectInstance {
                     pos: [
-                        origin_x + col as f32 * self.cell_width,
-                        origin_y + (detected_url.row as f32 + 1.0) * self.cell_height - 1.5,
+                        origin_x + m.col_start as f32 * self.cell_width,
+                        origin_y + m.row as f32 * self.cell_height,
                     ],
-                    size: [self.cell_width, 1.0],
-                    // Nord frost blue underline
-                    color: [0.533, 0.753, 0.816, 0.6],
+                    size: [
+                        (m.col_end + 1 - m.col_start) as f32 * self.cell_width,
+                        self.cell_height,
+                    ],
+                    color,
                 });
             }
+        }
+
+        // URL underline decorations — RLE'd (one rect per URL).
+        for detected_url in &snap.urls {
+            instances.push(RectInstance {
+                pos: [
+                    origin_x + detected_url.col_start as f32 * self.cell_width,
+                    origin_y
+                        + (detected_url.row as f32 + 1.0) * self.cell_height
+                        - 1.5,
+                ],
+                size: [
+                    (detected_url.col_end + 1 - detected_url.col_start) as f32
+                        * self.cell_width,
+                    1.0,
+                ],
+                // Nord frost blue underline
+                color: [0.533, 0.753, 0.816, 0.6],
+            });
         }
 
         // Cursor (with optional blink)
@@ -1680,6 +1822,19 @@ impl TerminalRenderer {
     }
 
     /// Multi-pane render path — renders all panes from WindowState.
+    ///
+    /// P17 — analog of P2's peek path for multi-pane. Before doing
+    /// the per-pane snapshot (which clones every visible row and
+    /// runs URL detection per pane), XOR all panes' seqnos and any
+    /// cursor-visible bit into a single u64 fingerprint. If the
+    /// fingerprint matches the last frame AND nothing is animating,
+    /// early-return.
+    ///
+    /// XOR is associative + commutative so the order doesn't matter,
+    /// and collision probability for "real change in any pane" is
+    /// vanishingly small at u64 granularity. The pane lock is held
+    /// only for the seqno + cursor.visible read per pane — micro-
+    /// seconds total even on 8-pane layouts.
     fn render_multi_pane(&mut self, ctx: &mut RenderContext<'_>) {
         let window = self.window.clone().unwrap();
         let ws = window.lock().unwrap();
@@ -1692,6 +1847,35 @@ impl TerminalRenderer {
         );
         let focused_id = ws.focused_pane_id();
         let pane_count = pane_rects.len();
+
+        // Stage-1 peek: fingerprint = XOR of all panes' seqnos with
+        // each pane's cursor-visible bit folded in. Identical
+        // fingerprint + no animations + no search/bell → skip frame.
+        let mut fingerprint: u64 = 0;
+        let mut any_cursor_visible = false;
+        for rect in &pane_rects {
+            if let Some(pane) = ws.pane(&rect.id) {
+                let term = pane.terminal.lock().unwrap();
+                let seqno = term.seqno();
+                let cur = *term.cursor();
+                drop(term);
+                fingerprint ^= seqno;
+                if cur.visible {
+                    fingerprint ^= 1u64.rotate_left((rect.id.0 % 64) as u32);
+                    any_cursor_visible = true;
+                }
+            }
+        }
+        let blink_active = self.cursor_blink && any_cursor_visible;
+        let bell_active = self.bell_flash_frames > 0;
+        if fingerprint == self.last_seqno
+            && self.last_seqno != 0
+            && !blink_active
+            && !bell_active
+        {
+            return;
+        }
+        self.last_seqno = fingerprint;
 
         let mut all_rects = Vec::new();
         let mut text_entries: Vec<(f32, f32, usize, usize, Arc<Buffer>, PaneRect)> = Vec::new();

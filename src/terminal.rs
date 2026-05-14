@@ -195,8 +195,13 @@ pub struct Cell {
     pub fg: Color,
     pub bg: Color,
     pub attrs: CellAttrs,
-    /// Hyperlink URL (from OSC 8). None for most cells.
-    pub hyperlink: Option<Box<String>>,
+    /// Hyperlink URL (from OSC 8). None for most cells. `Arc<str>`
+    /// rather than `Box<String>` so that adjacent cells inside the same
+    /// hyperlink share one allocation — printing N characters under an
+    /// OSC-8 hyperlink used to allocate N strings + N boxes (~2N
+    /// per-byte allocations on hyperlink-heavy `ls` output); after this
+    /// change it's one Arc::clone per cell (ref-count bump).
+    pub hyperlink: Option<std::sync::Arc<str>>,
 }
 
 impl Cell {
@@ -673,8 +678,13 @@ pub struct Terminal {
     pub cursor_style: CursorStyle,
     pub cursor_blink: bool,
 
-    // Active hyperlink URI (from OSC 8, applied to subsequent cells)
-    active_hyperlink: Option<String>,
+    // Active hyperlink URI (from OSC 8, applied to subsequent cells).
+    // Arc<str> so that the per-character paint path can clone the Arc
+    // (ref-count bump) instead of allocating a fresh String + Box per
+    // cell. One OSC-8 hyperlink over N characters used to allocate
+    // ~2N strings; with Arc it's one allocation for the URI plus N
+    // ref-count bumps.
+    active_hyperlink: Option<std::sync::Arc<str>>,
 
     // OSC 52 clipboard content (set by terminal, read by main for clipboard sync)
     clipboard_content: Option<String>,
@@ -1191,8 +1201,12 @@ impl Terminal {
             self.active_hyperlink = None;
             return;
         }
-        let uri = String::from_utf8_lossy(params[2]).into_owned();
-        self.active_hyperlink = if uri.is_empty() { None } else { Some(uri) };
+        let uri = String::from_utf8_lossy(params[2]);
+        self.active_hyperlink = if uri.is_empty() {
+            None
+        } else {
+            Some(std::sync::Arc::from(uri.as_ref()))
+        };
     }
 
     /// OSC 9 — Desktop notification (iTerm2 / ghostty compat).
@@ -2036,7 +2050,7 @@ impl Terminal {
             let fg = self.pen_fg;
             let bg = self.pen_bg;
             let attrs = self.pen_attrs;
-            let hyperlink = self.active_hyperlink.as_ref().map(|u| Box::new(u.clone()));
+            let hyperlink = self.active_hyperlink.clone();
             let cell = self.grid_mut().cell_mut(row, col);
             cell.ch = ch;
             cell.fg = fg;
@@ -2048,7 +2062,7 @@ impl Terminal {
 
             // Wide chars occupy 2 cells — mark next cell as continuation
             if char_width == 2 && col + 1 < self.cols {
-                let hyperlink = self.active_hyperlink.as_ref().map(|u| Box::new(u.clone()));
+                let hyperlink = self.active_hyperlink.clone();
                 let cont = self.grid_mut().cell_mut(row, col + 1);
                 cont.ch = ' ';
                 cont.width = 0;
@@ -3657,11 +3671,11 @@ mod tests {
 
         // Cells within the hyperlink should have the URL
         assert_eq!(
-            term.cell(0, 0).hyperlink.as_deref().map(String::as_str),
+            term.cell(0, 0).hyperlink.as_deref(),
             Some("https://example.com")
         );
         assert_eq!(
-            term.cell(0, 3).hyperlink.as_deref().map(String::as_str),
+            term.cell(0, 3).hyperlink.as_deref(),
             Some("https://example.com")
         );
         // Cell after the hyperlink should not

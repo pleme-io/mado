@@ -231,10 +231,15 @@ impl MadoMcp {
 
     #[tool(description = "Get mado application status and health information. Returns JSON with running state, session count, and uptime.")]
     async fn status(&self) -> String {
+        // P15 — read the live count from the session registry rather
+        // than the hardcoded 0 the field had before. The mismatch
+        // (`status` reporting 0 while `list_sessions` returned ≥2)
+        // was visible in the 2026-05-13 MCP baseline.
+        let sessions = self.state.sessions.list().len();
         serde_json::json!({
             "status": "running",
             "app": "mado",
-            "sessions": 0,
+            "sessions": sessions,
             "note": "MCP server is operational. GUI state queries require a running mado instance with IPC."
         })
         .to_string()
