@@ -10,8 +10,26 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::num::NonZeroUsize;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
+
+/// Process-wide frame-timing samples — written at the end of each
+/// `render()` call (single-pane and multi-pane paths). Read by the
+/// MCP `frame_perf` tool so agents can introspect mado's render
+/// performance live without parsing log lines. Static because
+/// there's only ever one TerminalRenderer per process and we want
+/// the MCP handler (which doesn't hold a reference to the renderer)
+/// to read it without plumbing a handle through.
+///
+/// Atomics rather than a mutexed ring buffer so the renderer writes
+/// are wait-free and never compete for a lock with the MCP reader.
+pub(crate) static LAST_FRAME_US: AtomicU64 = AtomicU64::new(0);
+pub(crate) static LAST_FRAME_RECTS: AtomicU64 = AtomicU64::new(0);
+pub(crate) static LAST_FRAME_TEXT: AtomicU64 = AtomicU64::new(0);
+pub(crate) static LAST_FRAME_SHAPE_CACHE: AtomicU64 = AtomicU64::new(0);
+pub(crate) static TOTAL_FRAMES: AtomicU64 = AtomicU64::new(0);
+pub(crate) static TOTAL_FRAMES_SKIPPED: AtomicU64 = AtomicU64::new(0);
 
 use bytemuck::{Pod, Zeroable};
 use glyphon::{Attrs, Buffer, Color as GlyphonColor, Family, Style, Weight};
@@ -2665,11 +2683,10 @@ impl RenderCallback for TerminalRenderer {
         // Multi-pane path: render all panes from WindowState
         if self.window.is_some() {
             self.render_multi_pane(ctx);
-            tracing::debug!(
-                frame_us = frame_start.elapsed().as_micros() as u64,
-                path = "multi_pane",
-                "frame complete"
-            );
+            let frame_us = frame_start.elapsed().as_micros() as u64;
+            LAST_FRAME_US.store(frame_us, Ordering::Relaxed);
+            TOTAL_FRAMES.fetch_add(1, Ordering::Relaxed);
+            tracing::debug!(frame_us, path = "multi_pane", "frame complete");
             return;
         }
 
@@ -2718,6 +2735,7 @@ impl RenderCallback for TerminalRenderer {
             && !bell_active
             && !search_active_peek
         {
+            TOTAL_FRAMES_SKIPPED.fetch_add(1, Ordering::Relaxed);
             tracing::debug!(
                 peek_us = frame_start.elapsed().as_micros() as u64,
                 path = "idle_peek_skip",
@@ -2974,8 +2992,15 @@ impl RenderCallback for TerminalRenderer {
 
         ctx.gpu.queue.submit(std::iter::once(encoder.finish()));
 
+        let frame_us = frame_start.elapsed().as_micros() as u64;
+        LAST_FRAME_US.store(frame_us, Ordering::Relaxed);
+        LAST_FRAME_RECTS.store(rects_count as u64, Ordering::Relaxed);
+        LAST_FRAME_TEXT.store(text_count as u64, Ordering::Relaxed);
+        LAST_FRAME_SHAPE_CACHE.store(shape_cache_len as u64, Ordering::Relaxed);
+        TOTAL_FRAMES.fetch_add(1, Ordering::Relaxed);
+
         tracing::debug!(
-            frame_us = frame_start.elapsed().as_micros() as u64,
+            frame_us,
             snapshot_us,
             rects_us,
             rects_count,

@@ -245,6 +245,27 @@ impl MadoMcp {
         .to_string()
     }
 
+    #[tool(description = "Get the most recent render-loop frame timing snapshot. Returns: last_frame_us (most recent non-skipped frame's wall time in µs), last_frame_rects (rect-pipeline instance count), last_frame_text (text-pipeline TextArea count), last_frame_shape_cache (shape cache entry count), total_frames (cumulative non-skipped frame count since launch), total_frames_skipped (cumulative idle-peek-skip count). Use this to introspect mado's per-frame cost live without enabling RUST_LOG=debug. Counters are wait-free atomics — reading is zero-overhead.")]
+    async fn frame_perf(&self) -> String {
+        use std::sync::atomic::Ordering;
+        let last_frame_us = crate::render::LAST_FRAME_US.load(Ordering::Relaxed);
+        let last_frame_rects = crate::render::LAST_FRAME_RECTS.load(Ordering::Relaxed);
+        let last_frame_text = crate::render::LAST_FRAME_TEXT.load(Ordering::Relaxed);
+        let last_frame_shape_cache = crate::render::LAST_FRAME_SHAPE_CACHE.load(Ordering::Relaxed);
+        let total_frames = crate::render::TOTAL_FRAMES.load(Ordering::Relaxed);
+        let total_frames_skipped = crate::render::TOTAL_FRAMES_SKIPPED.load(Ordering::Relaxed);
+        serde_json::json!({
+            "ok": true,
+            "last_frame_us": last_frame_us,
+            "last_frame_rects": last_frame_rects,
+            "last_frame_text": last_frame_text,
+            "last_frame_shape_cache": last_frame_shape_cache,
+            "total_frames": total_frames,
+            "total_frames_skipped": total_frames_skipped,
+        })
+        .to_string()
+    }
+
     #[tool(description = "Get mado version information. Returns JSON with version, build, and feature details.")]
     async fn version(&self) -> String {
         serde_json::json!({
