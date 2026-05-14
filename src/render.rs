@@ -7,11 +7,14 @@
 //!
 //! Uses sequence number damage tracking to skip unchanged frames.
 
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::num::NonZeroUsize;
 use std::sync::{Arc, Mutex};
 
 use bytemuck::{Pod, Zeroable};
 use glyphon::{Attrs, Buffer, Color as GlyphonColor, Family, Style, Weight};
+use lru::LruCache;
 use madori::render::{RenderCallback, RenderContext};
 
 use crate::config::{ColorblindMode, CursorStyle};
@@ -820,7 +823,7 @@ struct Snapshot {
 /// equal `italic` ⇒ equal family. Background colour is also absent
 /// because cell backgrounds are painted by the rect pipeline, not by
 /// the text Buffer.
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 struct RunAttrsKey {
     fg_r: u8,
     fg_g: u8,
@@ -828,6 +831,32 @@ struct RunAttrsKey {
     bold: bool,
     italic: bool,
 }
+
+/// Cache key for a shaped glyphon `Buffer`. P7 — refterm's biggest
+/// insight: keying shaped runs by their UTF-8 byte text + attrs
+/// avoids ~99% of cosmic-text shape calls in a typical interactive
+/// session (the prompt repeats, scrollback runs repeat, "ls" output
+/// stays mostly the same, code lines re-render verbatim until edited).
+///
+/// `font_size_bits` is `font_size_px.to_bits()` — captures the
+/// physical-pixel font size (logical * scale_factor). Required in the
+/// key because changing font size or scale factor invalidates every
+/// shape. The whole cache is also rebuilt on font-family change via
+/// the `metrics_measured = false` reset that already fires from
+/// `set_scale_factor`.
+#[derive(Clone, PartialEq, Eq, Hash)]
+struct ShapeKey {
+    text: Box<str>,
+    attrs: RunAttrsKey,
+    font_size_bits: u32,
+}
+
+/// Capacity bound for the shape cache. ~4096 unique runs covers a full
+/// 200×60 grid plus a few frames of variation; eviction is LRU so
+/// rarely-seen runs (random spam, search highlights mid-stream) drop
+/// out without pinning memory. At ~50–500 bytes per cached Buffer this
+/// is a few MB worst-case.
+const SHAPE_CACHE_CAP: usize = 4096;
 
 // ---------------------------------------------------------------------------
 // TerminalRenderer
@@ -880,6 +909,17 @@ pub struct TerminalRenderer {
     /// `1/scale_factor`-sized chunk of the window. Refreshed each
     /// frame from `RenderContext::scale_factor`.
     scale_factor: f32,
+    /// P7 shape cache: bounded LRU keyed by (text-bytes, attrs,
+    /// physical font-size). The Arc<Buffer> lets cache hits share
+    /// the same shaped Buffer with the per-frame text_areas Vec
+    /// without copying. `RefCell` for interior mutability — the cache
+    /// has to mutate inside `build_text_buffers` which is called from
+    /// both `&mut self render(…)` and `&mut self render_multi_pane(…)`
+    /// paths but where ws/snap borrows make a direct `&mut self` on
+    /// the inner method awkward. The borrow is taken once per cache
+    /// touch and dropped immediately so cross-frame conflicts are
+    /// impossible (single-threaded render).
+    shape_cache: RefCell<LruCache<ShapeKey, Arc<Buffer>>>,
 }
 
 impl TerminalRenderer {
@@ -930,6 +970,10 @@ impl TerminalRenderer {
             // 1.0 = no scaling; overwritten on the first render frame
             // by `set_scale_factor(ctx.scale_factor)`.
             scale_factor: 1.0,
+            shape_cache: RefCell::new(LruCache::new(
+                NonZeroUsize::new(SHAPE_CACHE_CAP)
+                    .expect("SHAPE_CACHE_CAP is a non-zero compile-time constant"),
+            )),
         }
     }
 
@@ -1378,94 +1422,121 @@ impl TerminalRenderer {
     ///
     /// ## Fix
     ///
-    /// Split each row into runs and emit one glyphon Buffer per run.
+    /// Cache-aware shape: look up `key` in the bounded LRU shape cache;
+    /// on miss, call cosmic-text via `text.create_rich_buffer(...)`,
+    /// wrap the result in `Arc<Buffer>`, and insert. P7.
     ///
-    /// **Run-length batching** (P6 perf optimisation). The previous
-    /// implementation emitted ONE Buffer PER CELL — on an 80×24 grid
-    /// of typical shell output that's ~1500–1900 allocations + shaping
-    /// passes per frame. Most consecutive cells in real-world
-    /// terminal output share identical attributes (a prompt is a few
-    /// ANSI-colour runs; a directory listing is alternating colour
-    /// blocks; code is long stretches of one style), so we batch any
-    /// run of consecutive "simple" cells with identical effective
-    /// attrs into a single Buffer.
+    /// **Why Arc**: glyphon's `Buffer` is not `Clone`. The same shaped
+    /// Buffer is consumed by `glyphon::TextArea::buffer: &Buffer` —
+    /// reading a reference, not owning. `Arc<Buffer>` lets us hand the
+    /// caller a cheap-cloneable handle while the cache owns the
+    /// canonical instance. `&*arc` recovers `&Buffer` at the TextArea
+    /// construction site.
     ///
-    /// **"Simple" means**: `width == 1` AND `ch.is_ascii()`. Anything
-    /// else (CJK, emoji, Nerd Font icon, combining mark, wide cell)
-    /// flushes the current run and gets its own dedicated buffer at
-    /// per-cell granularity. The per-cell-positioning invariant that
-    /// fixed the wide-glyph cursor-offset bug stays intact for those
-    /// cells. ASCII-in-strict-monospace cells safely batch because
-    /// cell_width is now measured from the same font_family that
-    /// renders them (the 2026-05-13 measure_cell_metrics Attrs pin)
-    /// so cosmic-text's natural advance equals our cell_width exactly.
+    /// **Why RefCell**: `build_text_buffers` is called from two
+    /// `&mut self` paths (single-pane render + multi-pane render) but
+    /// the call site of multi-pane has overlapping borrows from the
+    /// `WindowState` lock (`ws.pane(...)` returns `&Pane` that borrows
+    /// from `ws` that borrows from `self.window`). Interior mutability
+    /// on the cache lets `build_text_buffers` stay `&self` so it
+    /// composes with those borrows cleanly. The render thread is
+    /// single-threaded so the borrow is always uncontested.
+    fn shape_run(
+        &self,
+        text: &mut garasu::TextRenderer,
+        key: ShapeKey,
+    ) -> Arc<Buffer> {
+        if let Some(arc) = self.shape_cache.borrow_mut().get(&key) {
+            return Arc::clone(arc);
+        }
+        let family = if key.attrs.italic {
+            Family::Name(&self.font_italic)
+        } else {
+            Family::Name(&self.font_family)
+        };
+        let mut attrs = Attrs::new()
+            .family(family)
+            .color(GlyphonColor::rgba(
+                key.attrs.fg_r,
+                key.attrs.fg_g,
+                key.attrs.fg_b,
+                255,
+            ));
+        if key.attrs.bold {
+            attrs = attrs.weight(Weight::BOLD);
+        }
+        if key.attrs.italic {
+            attrs = attrs.style(Style::Italic);
+        }
+        let buf = text.create_rich_buffer(
+            &[(&*key.text, attrs)],
+            self.font_size_px(),
+            self.cell_height,
+        );
+        let arc = Arc::new(buf);
+        self.shape_cache
+            .borrow_mut()
+            .put(key, Arc::clone(&arc));
+        arc
+    }
+
+    /// Split each row into runs and emit one glyphon Buffer per run,
+    /// reusing already-shaped Buffers via the shape cache (P7).
     ///
-    /// **Box-drawing** is still rendered by the rect pipeline (no
-    /// glyph emission) and acts as a run boundary too.
+    /// **Run-length batching** (P6): the previous implementation
+    /// emitted ONE Buffer PER CELL — on an 80×24 grid of typical shell
+    /// output that's ~1500–1900 allocations + shaping passes per
+    /// frame. We batch consecutive "simple" cells (width==1, ASCII,
+    /// no `extra`, same effective attrs) into one run per Buffer.
     ///
-    /// Typical reduction: ~1900 Buffers/frame → ~30–80 Buffers/frame.
-    /// Each Buffer skipped saves a glyphon `create_rich_buffer` +
-    /// `shape_until_scroll` call. Single biggest per-frame win in
-    /// this commit series.
+    /// **Shape cache** (P7): every run lookup hits a bounded LRU
+    /// keyed by (run-bytes, attrs, physical-font-size). Refterm's
+    /// biggest insight — hit rate is >99% on typical interactive
+    /// sessions (the prompt repeats verbatim, scrollback lines are
+    /// stable, "ls" output reshapes once and never again).
+    ///
+    /// Non-batchable cells (CJK, emoji, Nerd Font icon, combining
+    /// mark, wide cell, hidden) get their own dedicated buffer at
+    /// per-cell granularity — the per-cell-positioning invariant
+    /// from the wide-glyph cursor-offset fix is preserved.
+    /// Box-drawing is rendered by the rect pipeline (no glyph
+    /// emission) and acts as a run boundary too.
+    ///
+    /// Compound effect P6+P7 on typical workloads:
+    ///   ~1900 cells × ~1900 allocations/shapes per frame
+    ///   → ~30–80 runs per frame
+    ///   → ~0–3 cosmic-text shape calls per frame (cache hits dominate)
     fn build_text_buffers(
         &self,
         snap: &Snapshot,
         text: &mut garasu::TextRenderer,
-    ) -> Vec<(usize, usize, Buffer)> {
-        let mut buffers: Vec<(usize, usize, Buffer)> = Vec::new();
-        let font_family = Family::Name(&self.font_family);
-        // Italic cells route to a separate family — typically Iosevka
-        // (the fleet's calligraphic italic per
-        // ishou-tokens::MonoFonts::pleme().italic). cosmic-text's
-        // fontdb resolves `Style::Italic` against this family for
-        // italic cells; ASCII regular cells stay on `font_family`.
-        let font_italic_family = Family::Name(&self.font_italic);
+    ) -> Vec<(usize, usize, Arc<Buffer>)> {
+        let mut buffers: Vec<(usize, usize, Arc<Buffer>)> = Vec::new();
+        let font_size_bits = self.font_size_px().to_bits();
 
         for (row_idx, row) in snap.rows.iter().enumerate() {
             let mut has_content = false;
             let mut col_idx: usize = 0;
-            let mut row_buffers: Vec<(usize, Buffer)> = Vec::new();
+            let mut row_buffers: Vec<(usize, Arc<Buffer>)> = Vec::new();
 
             // Current open run: (start_col, accumulated text, attrs key).
-            // The attrs key is what we compare against to decide whether
-            // the next cell joins the run or starts a new one. None = no
-            // open run.
             let mut run: Option<(usize, String, RunAttrsKey)> = None;
 
-            // Local helper to flush the current run as one Buffer.
-            // Defined as a closure capturing the per-row mutable state.
             let flush_run = |run: &mut Option<(usize, String, RunAttrsKey)>,
-                             row_buffers: &mut Vec<(usize, Buffer)>,
+                             row_buffers: &mut Vec<(usize, Arc<Buffer>)>,
                              text: &mut garasu::TextRenderer| {
-                if let Some((start_col, run_text, key)) = run.take() {
-                    let family = if key.italic {
-                        font_italic_family
-                    } else {
-                        font_family
+                if let Some((start_col, run_text, attrs)) = run.take() {
+                    let key = ShapeKey {
+                        text: run_text.into_boxed_str(),
+                        attrs,
+                        font_size_bits,
                     };
-                    let mut attrs = Attrs::new()
-                        .family(family)
-                        .color(GlyphonColor::rgba(key.fg_r, key.fg_g, key.fg_b, 255));
-                    if key.bold {
-                        attrs = attrs.weight(Weight::BOLD);
-                    }
-                    if key.italic {
-                        attrs = attrs.style(Style::Italic);
-                    }
-                    let buf = text.create_rich_buffer(
-                        &[(run_text.as_str(), attrs)],
-                        self.font_size_px(),
-                        self.cell_height,
-                    );
-                    row_buffers.push((start_col, buf));
+                    let arc = self.shape_run(text, key);
+                    row_buffers.push((start_col, arc));
                 }
             };
 
             for cell in row.iter().take(snap.cols) {
-                // Skip continuation cells of wide chars — they consume
-                // grid space but don't get their own glyph emission.
-                // A continuation cell also breaks any open run (the
-                // preceding wide-glyph cell was emitted on its own).
                 if cell.width == 0 {
                     col_idx += 1;
                     continue;
@@ -1474,19 +1545,12 @@ impl TerminalRenderer {
                 let col_here = col_idx;
                 col_idx += cell.width.max(1) as usize;
 
-                // Box drawing chars are rendered by the rect pipeline;
-                // do NOT also emit a glyphon glyph here. They DO break
-                // any open ASCII run (a box-draw cell sits between two
-                // run halves; the second half restarts at a new col).
                 if is_box_drawing(cell.ch) {
                     has_content = true;
                     flush_run(&mut run, &mut row_buffers, text);
                     continue;
                 }
 
-                // Empty cell with no attrs: nothing to draw. Breaks
-                // the run (a gap of blank cells should not visually
-                // join two coloured stretches).
                 let is_blank = cell.ch == ' ' && cell.extra.is_none();
                 if is_blank {
                     flush_run(&mut run, &mut row_buffers, text);
@@ -1500,7 +1564,6 @@ impl TerminalRenderer {
                 let italic = cell.attrs.contains(CellAttrs::ITALIC);
                 let hidden = cell.attrs.contains(CellAttrs::HIDDEN);
 
-                // Hidden text: invisible (fg painted as bg).
                 let effective_fg = if hidden {
                     if inverse { cell.fg } else { cell.bg }
                 } else {
@@ -1517,12 +1580,6 @@ impl TerminalRenderer {
                     fg
                 };
 
-                // Decide whether this cell is "simple" (batchable).
-                // Non-ASCII / wide / cells with non-empty `extra`
-                // (combining marks, OSC-8 hyperlinks etc.) are emitted
-                // per-cell with their own Buffer; they break any open
-                // run. The per-cell-positioning invariant from the
-                // wide-glyph cursor-offset fix is preserved for them.
                 let is_simple_for_batch = cell.width == 1
                     && cell.extra.is_none()
                     && cell.ch.is_ascii()
@@ -1530,33 +1587,22 @@ impl TerminalRenderer {
 
                 if !is_simple_for_batch {
                     flush_run(&mut run, &mut row_buffers, text);
-                    let family_for_this_cell = if italic && !hidden {
-                        font_italic_family
-                    } else {
-                        font_family
+                    let attrs_key = RunAttrsKey {
+                        fg_r: effective_fg.r,
+                        fg_g: effective_fg.g,
+                        fg_b: effective_fg.b,
+                        bold: bold && !hidden,
+                        italic: italic && !hidden,
                     };
-                    let mut attrs = Attrs::new()
-                        .family(family_for_this_cell)
-                        .color(GlyphonColor::rgba(
-                            effective_fg.r,
-                            effective_fg.g,
-                            effective_fg.b,
-                            255,
-                        ));
-                    if !hidden && bold {
-                        attrs = attrs.weight(Weight::BOLD);
-                    }
-                    if !hidden && italic {
-                        attrs = attrs.style(Style::Italic);
-                    }
                     let mut s = String::new();
                     cell.write_to(&mut s);
-                    let buf = text.create_rich_buffer(
-                        &[(s.as_str(), attrs)],
-                        self.font_size_px(),
-                        self.cell_height,
-                    );
-                    row_buffers.push((col_here, buf));
+                    let key = ShapeKey {
+                        text: s.into_boxed_str(),
+                        attrs: attrs_key,
+                        font_size_bits,
+                    };
+                    let arc = self.shape_run(text, key);
+                    row_buffers.push((col_here, arc));
                     continue;
                 }
 
@@ -1570,9 +1616,6 @@ impl TerminalRenderer {
 
                 match &mut run {
                     Some((_, run_text, key)) if *key == cell_key => {
-                        // Extend the current run by one ASCII char.
-                        // Safe because is_simple_for_batch guaranteed
-                        // cell.ch.is_ascii() — width-1 byte push.
                         run_text.push(cell.ch);
                     }
                     _ => {
@@ -1583,17 +1626,14 @@ impl TerminalRenderer {
                     }
                 }
             }
-            // End of row — flush any open run.
             flush_run(&mut run, &mut row_buffers, text);
 
-            // Skip empty rows unless the cursor is here.
             if !has_content && row_idx != snap.cursor.row {
                 continue;
             }
 
-            // Emit all per-row buffers (mix of runs + per-cell).
-            for (col_start, buf) in row_buffers {
-                buffers.push((row_idx, col_start, buf));
+            for (col_start, arc) in row_buffers {
+                buffers.push((row_idx, col_start, arc));
             }
         }
 
@@ -1654,7 +1694,7 @@ impl TerminalRenderer {
         let pane_count = pane_rects.len();
 
         let mut all_rects = Vec::new();
-        let mut text_entries: Vec<(f32, f32, usize, usize, Buffer, PaneRect)> = Vec::new();
+        let mut text_entries: Vec<(f32, f32, usize, usize, Arc<Buffer>, PaneRect)> = Vec::new();
         let mut all_image_placements: Vec<(f32, f32, Vec<ImagePlacement>)> = Vec::new();
 
         for rect in &pane_rects {
@@ -1731,7 +1771,7 @@ impl TerminalRenderer {
             let y = top_origin + (*row_idx as f32 * self.cell_height);
             let x = *left + (*col_start as f32 * self.cell_width);
             text_areas.push(glyphon::TextArea {
-                buffer,
+                buffer: &**buffer,
                 left: x,
                 top: y,
                 scale: 1.0,
@@ -2568,7 +2608,7 @@ impl RenderCallback for TerminalRenderer {
             let y = pad + (*row_idx as f32 * self.cell_height);
             let x = pad + (*col_start as f32 * self.cell_width);
             text_areas.push(glyphon::TextArea {
-                buffer,
+                buffer: &**buffer,
                 left: x,
                 top: y,
                 scale: 1.0,

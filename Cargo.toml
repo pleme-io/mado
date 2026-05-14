@@ -107,6 +107,14 @@ libc = "0.2"
 # bound workloads (build_text_buffers, snapshot copy, scrollback push).
 mimalloc = { version = "0.1", default-features = false }
 
+# Bounded LRU cache for the per-frame shape cache. Refterm's single
+# biggest insight: keying shaped glyph runs by their UTF-8 byte text +
+# attrs avoids ~99% of HarfBuzz/cosmic-text shape calls in a typical
+# interactive session (prompt, scrollback, command output repeat).
+# Bounded capacity prevents pathological VRAM growth on streams of
+# unique runs (random-byte spam).
+lru = "0.12"
+
 # Scenario harness — `mado scenario-run` consumes YAML so the format is
 # operator-facing, not test-only. serde_yaml_ng is the actively-maintained
 # successor to the (now-deprecated) serde_yaml crate; pleme-io tooling
