@@ -399,8 +399,7 @@ fn main() -> anyhow::Result<()> {
         ws.set_theme(theme.foreground, theme.background, theme.ansi);
         for pane in ws.all_panes() {
             pane.terminal
-                .lock()
-                .unwrap()
+                .write()
                 .apply_theme(theme.foreground, theme.background, theme.ansi);
         }
     }
@@ -537,7 +536,7 @@ fn main() -> anyhow::Result<()> {
                                             let mut s = pane.search.lock().unwrap();
                                             let mut query = s.query.clone();
                                             query.push_str(text);
-                                            let term = pane.terminal.lock().unwrap();
+                                            let term = pane.terminal.read();
                                             let rows: Vec<_> =
                                                 term.visible_rows().map(|r| r.to_vec()).collect();
                                             let cols = term.cols();
@@ -554,7 +553,7 @@ fn main() -> anyhow::Result<()> {
                                         let mut s = pane.search.lock().unwrap();
                                         let mut query = s.query.clone();
                                         query.pop();
-                                        let term = pane.terminal.lock().unwrap();
+                                        let term = pane.terminal.read();
                                         let rows: Vec<_> =
                                             term.visible_rows().map(|r| r.to_vec()).collect();
                                         let cols = term.cols();
@@ -582,7 +581,7 @@ fn main() -> anyhow::Result<()> {
                                     let ws = window_for_events.lock().unwrap();
                                     ws.focused_pane().and_then(|pane| {
                                         let sel = pane.selection.lock().unwrap();
-                                        let term = pane.terminal.lock().unwrap();
+                                        let term = pane.terminal.read();
                                         let rows: Vec<_> =
                                             term.visible_rows().map(|r| r.to_vec()).collect();
                                         let cols = term.cols();
@@ -607,7 +606,7 @@ fn main() -> anyhow::Result<()> {
                                     if !pasted.is_empty() {
                                         let ws = window_for_events.lock().unwrap();
                                         if let Some(pane) = ws.focused_pane() {
-                                            let term = pane.terminal.lock().unwrap();
+                                            let term = pane.terminal.read();
                                             let bracketed = term.bracketed_paste();
                                             drop(term);
                                             if bracketed {
@@ -647,7 +646,7 @@ fn main() -> anyhow::Result<()> {
                             Action::ScrollPageUp => {
                                 let ws = window_for_events.lock().unwrap();
                                 if let Some(pane) = ws.focused_pane() {
-                                    let mut term = pane.terminal.lock().unwrap();
+                                    let mut term = pane.terminal.write();
                                     let page = term.rows();
                                     term.scroll_up(page);
                                 }
@@ -659,7 +658,7 @@ fn main() -> anyhow::Result<()> {
                             Action::ScrollPageDown => {
                                 let ws = window_for_events.lock().unwrap();
                                 if let Some(pane) = ws.focused_pane() {
-                                    let mut term = pane.terminal.lock().unwrap();
+                                    let mut term = pane.terminal.write();
                                     let page = term.rows();
                                     term.scroll_down(page);
                                 }
@@ -786,14 +785,14 @@ fn main() -> anyhow::Result<()> {
                             Action::ScrollToTop => {
                                 let ws = window_for_events.lock().unwrap();
                                 if let Some(pane) = ws.focused_pane() {
-                                    pane.terminal.lock().unwrap().scroll_to_top();
+                                    pane.terminal.write().scroll_to_top();
                                 }
                                 return EventResponse::consumed();
                             }
                             Action::ScrollToBottom => {
                                 let ws = window_for_events.lock().unwrap();
                                 if let Some(pane) = ws.focused_pane() {
-                                    pane.terminal.lock().unwrap().scroll_to_bottom();
+                                    pane.terminal.write().scroll_to_bottom();
                                 }
                                 return with_cursor_visibility(
                                     EventResponse::consumed(),
@@ -803,7 +802,7 @@ fn main() -> anyhow::Result<()> {
                             Action::ResetTerminal => {
                                 let ws = window_for_events.lock().unwrap();
                                 if let Some(pane) = ws.focused_pane() {
-                                    pane.terminal.lock().unwrap().reset();
+                                    pane.terminal.write().reset();
                                 }
                                 return with_cursor_visibility(
                                     EventResponse::consumed(),
@@ -854,7 +853,7 @@ fn main() -> anyhow::Result<()> {
                                 // canonical Cmd-Up binding).
                                 let ws = window_for_events.lock().unwrap();
                                 if let Some(pane) = ws.focused_pane() {
-                                    let mut term = pane.terminal.lock().unwrap();
+                                    let mut term = pane.terminal.write();
                                     if let Some(target) = term.scroll_offset_to_prev_prompt() {
                                         let delta = target.saturating_sub(term.scroll_offset());
                                         if delta > 0 {
@@ -874,7 +873,7 @@ fn main() -> anyhow::Result<()> {
                                 // the current view top (ghostty's Cmd-Down).
                                 let ws = window_for_events.lock().unwrap();
                                 if let Some(pane) = ws.focused_pane() {
-                                    let mut term = pane.terminal.lock().unwrap();
+                                    let mut term = pane.terminal.write();
                                     if let Some(target) = term.scroll_offset_to_next_prompt() {
                                         let cur = term.scroll_offset();
                                         if target < cur {
@@ -895,7 +894,7 @@ fn main() -> anyhow::Result<()> {
                             Action::SelectAll => {
                                 let ws = window_for_events.lock().unwrap();
                                 if let Some(pane) = ws.focused_pane() {
-                                    let term = pane.terminal.lock().unwrap();
+                                    let term = pane.terminal.read();
                                     let cols = term.cols();
                                     let num_rows = term.rows();
                                     drop(term);
@@ -908,7 +907,7 @@ fn main() -> anyhow::Result<()> {
                             Action::CopyUrlToClipboard => {
                                 let ws = window_for_events.lock().unwrap();
                                 if let Some(pane) = ws.focused_pane() {
-                                    let term = pane.terminal.lock().unwrap();
+                                    let term = pane.terminal.read();
                                     let cols = term.cols();
                                     let cursor_row = term.cursor().row;
                                     let row_cells: Vec<_> = (0..cols).map(|c| term.cell(cursor_row, c).clone()).collect();
@@ -940,7 +939,7 @@ fn main() -> anyhow::Result<()> {
                         let ws = window_for_events.lock().unwrap();
                         if let Some(pane) = ws.focused_pane() {
                             let kitty_flags =
-                                pane.terminal.lock().unwrap().kitty_keyboard_flags();
+                                pane.terminal.read().kitty_keyboard_flags();
                             if kitty_flags > 0 {
                                 if let Some(encoded) =
                                     kitty_encode_key(key, text, modifiers, kitty_flags)
@@ -998,7 +997,7 @@ fn main() -> anyhow::Result<()> {
                     let ws = window_for_events.lock().unwrap();
                     let app_mode = ws
                         .focused_pane()
-                        .map(|p| p.terminal.lock().unwrap().cursor_keys_mode())
+                        .map(|p| p.terminal.read().cursor_keys_mode())
                         .unwrap_or(false);
 
                     // Ctrl+letter for Char keys without text
@@ -1087,7 +1086,7 @@ fn main() -> anyhow::Result<()> {
                         return EventResponse::consumed();
                     };
 
-                    let term = pane.terminal.lock().unwrap();
+                    let term = pane.terminal.read();
                     let mouse_mode = term.mouse_mode();
                     let sgr = term.sgr_mouse();
                     let term_cols = term.cols();
@@ -1136,7 +1135,7 @@ fn main() -> anyhow::Result<()> {
                             match click_count {
                                 2 => {
                                     // Double-click: select word
-                                    let term = pane.terminal.lock().unwrap();
+                                    let term = pane.terminal.read();
                                     let rows: Vec<_> =
                                         term.visible_rows().map(|r| r.to_vec()).collect();
                                     let cols_count = term.cols();
@@ -1145,7 +1144,7 @@ fn main() -> anyhow::Result<()> {
                                 }
                                 3 => {
                                     // Triple-click: select entire line
-                                    let term = pane.terminal.lock().unwrap();
+                                    let term = pane.terminal.read();
                                     let cols_count = term.cols();
                                     drop(term);
                                     sel.select_line(row, cols_count);
@@ -1159,7 +1158,7 @@ fn main() -> anyhow::Result<()> {
                             if click_count == 1 {
                                 sel.finish();
                                 if copy_on_select {
-                                    let term = pane.terminal.lock().unwrap();
+                                    let term = pane.terminal.read();
                                     let rows: Vec<_> =
                                         term.visible_rows().map(|r| r.to_vec()).collect();
                                     let cols = term.cols();
@@ -1173,7 +1172,7 @@ fn main() -> anyhow::Result<()> {
                                 // Cmd+click (macOS) / Ctrl+click (Linux) to open URLs
                                 if modifiers.meta || modifiers.ctrl {
                                     drop(sel);
-                                    let term = pane.terminal.lock().unwrap();
+                                    let term = pane.terminal.read();
                                     let row_cells: Vec<Vec<crate::terminal::Cell>> =
                                         term.visible_rows().map(|r| r.to_vec()).collect();
                                     let cols = term.cols();
@@ -1212,7 +1211,7 @@ fn main() -> anyhow::Result<()> {
                         return EventResponse::consumed();
                     };
 
-                    let term = pane.terminal.lock().unwrap();
+                    let term = pane.terminal.read();
                     let mouse_mode = term.mouse_mode();
                     let sgr = term.sgr_mouse();
                     let term_cols = term.cols();
@@ -1260,7 +1259,7 @@ fn main() -> anyhow::Result<()> {
                         return EventResponse::consumed();
                     };
 
-                    let mut term = pane.terminal.lock().unwrap();
+                    let mut term = pane.terminal.write();
                     let mouse_mode = term.mouse_mode();
                     let sgr = term.sgr_mouse();
 
@@ -1291,7 +1290,7 @@ fn main() -> anyhow::Result<()> {
                 AppEvent::Focused(focused) => {
                     let ws = window_for_events.lock().unwrap();
                     if let Some(pane) = ws.focused_pane() {
-                        let term = pane.terminal.lock().unwrap();
+                        let term = pane.terminal.read();
                         let reporting = term.focus_reporting();
                         drop(term);
                         if reporting {
@@ -1322,7 +1321,7 @@ fn main() -> anyhow::Result<()> {
                     }
                     let ws = window_for_events.lock().unwrap();
                     if let Some(pane) = ws.focused_pane() {
-                        let mut term = pane.terminal.lock().unwrap();
+                        let mut term = pane.terminal.write();
                         let current_title = term.title().map(String::from);
                         let bell = term.take_bell();
                         let osc52_clip = term.take_clipboard();

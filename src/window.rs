@@ -210,7 +210,7 @@ impl WindowState {
             let pane_rows = pane_rows.max(3);
 
             if let Some(pt) = tab.terminals.get(&rect.id) {
-                let mut term = pt.terminal.lock().unwrap();
+                let mut term = pt.terminal.write();
                 term.resize(pane_cols, pane_rows);
                 drop(term);
             }
@@ -341,7 +341,7 @@ impl WindowState {
         if let Some((fg, bg, ansi)) = theme_colors {
             term.apply_theme(fg, bg, ansi);
         }
-        let terminal: SharedTerminal = Arc::new(Mutex::new(term));
+        let terminal: SharedTerminal = Arc::new(parking_lot::RwLock::new(term));
         let terminal_for_pty = Arc::clone(&terminal);
 
         let pty_exited = Arc::new(AtomicBool::new(false));
@@ -434,7 +434,7 @@ impl WindowState {
                     match reader.read(&mut buf).await {
                         Ok(0) => break,
                         Ok(n) => {
-                            let mut term = terminal_for_pty.lock().unwrap();
+                            let mut term = terminal_for_pty.write();
                             term.feed(&buf[..n]);
                             if let Some(response) = term.take_response() {
                                 drop(term);

@@ -132,6 +132,15 @@ mimalloc = { version = "0.1", default-features = false }
 # unique runs (random-byte spam).
 lru = "0.12"
 
+# parking_lot — faster Mutex / RwLock primitives (no LockResult
+# wrapper, ~30% faster acquire on the uncontended path, true reader-
+# writer semantics on RwLock that the std::sync impl doesn't fully
+# guarantee on every platform). mado's terminal lock is a hot
+# contention point between PTY pump (writer) and snapshot/MCP (many
+# readers); using a real RwLock lets multiple readers observe state
+# concurrently without serialising behind a Mutex.
+parking_lot = "0.12"
+
 # Scenario harness — `mado scenario-run` consumes YAML so the format is
 # operator-facing, not test-only. serde_yaml_ng is the actively-maintained
 # successor to the (now-deprecated) serde_yaml crate; pleme-io tooling

@@ -45,7 +45,23 @@ use crate::url::{self, DetectedUrl};
 use crate::window::WindowState;
 
 /// Shared terminal state between the render thread and PTY I/O thread.
-pub type SharedTerminal = Arc<Mutex<Terminal>>;
+///
+/// P30 — `parking_lot::RwLock` instead of `std::sync::Mutex<Terminal>`:
+///
+///   * **Real reader-writer semantics** — the renderer's snapshot
+///     pass and MCP introspection are reads (no terminal mutation);
+///     the PTY pump's `term.feed(...)` is a write. With a plain
+///     Mutex they all serialised, which mattered most when MCP and
+///     snapshot wanted to observe state during a heavy PTY burst.
+///     A real RwLock lets all readers proceed concurrently and only
+///     blocks them while a write is in flight.
+///   * **No LockResult wrapper** — call sites lose `.unwrap()`/
+///     `.expect("poisoned")` ceremony. Cleaner code, smaller IR
+///     because there's no PoisonError path to monomorphise.
+///   * **Faster acquire** — parking_lot's lock primitives use a
+///     hashed-park strategy that's measurably faster than the OS-
+///     futex Mutex on uncontended acquire (~30% on macOS / Linux).
+pub type SharedTerminal = Arc<parking_lot::RwLock<Terminal>>;
 
 // ---------------------------------------------------------------------------
 // Rect instance data for GPU
@@ -1223,7 +1239,7 @@ impl TerminalRenderer {
     }
 
     fn snapshot(&self) -> (Snapshot, u64) {
-        let term = self.terminal.lock().unwrap();
+        let term = self.terminal.read();
         let seqno = term.seqno();
         let cursor = *term.cursor();
         let cols = term.cols();
@@ -1846,7 +1862,7 @@ impl TerminalRenderer {
         terminal: &SharedTerminal,
         search: &Arc<Mutex<SearchState>>,
     ) -> (Snapshot, u64) {
-        let term = terminal.lock().unwrap();
+        let term = terminal.read();
         let seqno = term.seqno();
         let cursor = *term.cursor();
         let cols = term.cols();
@@ -1919,7 +1935,7 @@ impl TerminalRenderer {
         let mut any_cursor_visible = false;
         for rect in &pane_rects {
             if let Some(pane) = ws.pane(&rect.id) {
-                let term = pane.terminal.lock().unwrap();
+                let term = pane.terminal.read();
                 let seqno = term.seqno();
                 let cur = *term.cursor();
                 drop(term);
@@ -2505,7 +2521,7 @@ impl TerminalRenderer {
             None => return,
         };
 
-        let term = self.terminal.lock().unwrap();
+        let term = self.terminal.read();
         let term_images = term.images();
         for (id, kitty_img) in term_images {
             let needs_upload = match self.gpu_images.get(id) {
@@ -2742,7 +2758,7 @@ impl RenderCallback for TerminalRenderer {
         // the rare case where snapshot data still proves we don't
         // need to redraw (kept as a belt-and-braces safety net).
         let (peek_seqno, peek_cursor_visible, peek_sync_output) = {
-            let term = self.terminal.lock().unwrap();
+            let term = self.terminal.read();
             (term.seqno(), term.cursor().visible, term.synchronized_output())
         };
         if peek_sync_output {
@@ -3338,7 +3354,7 @@ mod tests {
 
     #[test]
     fn test_selection_bg_default() {
-        let term = std::sync::Arc::new(std::sync::Mutex::new(
+        let term = std::sync::Arc::new(parking_lot::RwLock::new(
             crate::terminal::Terminal::new(80, 24),
         ));
         let renderer = TerminalRenderer::new(
@@ -3361,7 +3377,7 @@ mod tests {
 
     #[test]
     fn test_cursor_color_default() {
-        let term = std::sync::Arc::new(std::sync::Mutex::new(
+        let term = std::sync::Arc::new(parking_lot::RwLock::new(
             crate::terminal::Terminal::new(80, 24),
         ));
         let renderer = TerminalRenderer::new(

@@ -59,7 +59,7 @@ pub struct Session {
     pub shell: String,
     pub created_at_unix_ms: u128,
     pub created_at_instant: Instant,
-    terminal: Arc<Mutex<Terminal>>,
+    terminal: Arc<parking_lot::RwLock<Terminal>>,
     pty: Arc<AsyncMutex<Pty>>,
     /// Lock around the PTY writer half. Held only while a write is in
     /// flight so concurrent `send_keys` calls serialize correctly.
@@ -70,7 +70,7 @@ pub struct Session {
 
 impl std::fmt::Debug for Session {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let term = self.terminal.lock().unwrap();
+        let term = self.terminal.read();
         f.debug_struct("Session")
             .field("id", &self.id)
             .field("title", &self.title)
@@ -104,7 +104,7 @@ impl Session {
     pub async fn resize(&self, cols: u16, rows: u16) -> Result<()> {
         let pty = self.pty.lock().await;
         pty.resize(cols, rows).context("pty resize")?;
-        let mut term = self.terminal.lock().expect("terminal lock poisoned");
+        let mut term = self.terminal.write();
         term.resize(cols as usize, rows as usize);
         Ok(())
     }
@@ -114,7 +114,7 @@ impl Session {
     /// every visual-rendering question can be answered by diffing
     /// this against the rendered output.
     pub fn snapshot_grid(&self) -> GridSnapshot {
-        let term = self.terminal.lock().expect("terminal lock poisoned");
+        let term = self.terminal.read();
         let cols = term.cols();
         let rows = term.rows();
         let cursor = *term.cursor();
@@ -316,7 +316,7 @@ impl SessionRegistry {
         let pty = Arc::new(AsyncMutex::new(pty));
         let writer = Arc::new(AsyncMutex::new(writer));
 
-        let terminal = Arc::new(Mutex::new(Terminal::new(cols as usize, rows as usize)));
+        let terminal = Arc::new(parking_lot::RwLock::new(Terminal::new(cols as usize, rows as usize)));
         let terminal_for_pump = Arc::clone(&terminal);
 
         let reader_task = tokio::spawn(async move {
@@ -336,7 +336,7 @@ impl SessionRegistry {
                         break;
                     }
                     Ok(n) => {
-                        let mut term = terminal_for_pump.lock().expect("terminal lock poisoned");
+                        let mut term = terminal_for_pump.write();
                         term.feed(&buf[..n]);
                     }
                     Err(e) => {
@@ -393,7 +393,7 @@ impl SessionRegistry {
         let mut summaries: Vec<SessionSummary> = guard
             .values()
             .map(|s| {
-                let term = s.terminal.lock().expect("terminal lock poisoned");
+                let term = s.terminal.read();
                 SessionSummary {
                     id: s.id.clone(),
                     title: s.title.clone(),
