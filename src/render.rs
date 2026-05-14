@@ -953,6 +953,12 @@ pub struct TerminalRenderer {
     /// touch and dropped immediately so cross-frame conflicts are
     /// impossible (single-threaded render).
     shape_cache: RefCell<LruCache<ShapeKey, Arc<Buffer>>>,
+    /// P28 — last-rendered cursor_on bit. Cursor blink is a 1–4 Hz
+    /// animation (period 500 ms default); we'd otherwise wake every
+    /// 16 ms vsync just to repaint the SAME cursor state. Skip frames
+    /// where neither seqno NOR this bit have flipped — drops idle
+    /// render rate from 60 Hz to ~4 Hz.
+    last_cursor_on: bool,
 }
 
 impl TerminalRenderer {
@@ -1007,6 +1013,7 @@ impl TerminalRenderer {
                 NonZeroUsize::new(SHAPE_CACHE_CAP)
                     .expect("SHAPE_CACHE_CAP is a non-zero compile-time constant"),
             )),
+            last_cursor_on: false,
         }
     }
 
@@ -1923,16 +1930,32 @@ impl TerminalRenderer {
                 }
             }
         }
-        let blink_active = self.cursor_blink && any_cursor_visible;
+        // P28 — same cursor-on flip detection as the single-pane
+        // path. Only force a render if blink actually changes state
+        // this frame; the idle steady state runs at the blink toggle
+        // rate (~4 Hz), not the vsync rate (60 Hz).
+        let cursor_on_now = !self.cursor_blink || {
+            let period = self.cursor_blink_rate_ms as f32 / 1000.0 * 2.0;
+            (ctx.elapsed % period) < period / 2.0
+        };
+        let blink_flip =
+            self.cursor_blink && any_cursor_visible && cursor_on_now != self.last_cursor_on;
         let bell_active = self.bell_flash_frames > 0;
         if fingerprint == self.last_seqno
             && self.last_seqno != 0
-            && !blink_active
+            && !blink_flip
             && !bell_active
         {
+            TOTAL_FRAMES_SKIPPED.fetch_add(1, Ordering::Relaxed);
+            tracing::debug!(
+                fingerprint,
+                path = "multi_pane_skip",
+                "frame skipped"
+            );
             return;
         }
         self.last_seqno = fingerprint;
+        self.last_cursor_on = cursor_on_now;
 
         let mut all_rects = Vec::new();
         let mut text_entries: Vec<(f32, f32, usize, usize, Arc<Buffer>, PaneRect)> =
@@ -2729,11 +2752,22 @@ impl RenderCallback for TerminalRenderer {
             return;
         }
         let search_active_peek = self.search.lock().unwrap().active;
-        let blink_active_peek = self.cursor_blink && peek_cursor_visible;
+        // P28 — cursor_on is a 1–4 Hz boolean (default 4 Hz at 500 ms
+        // period). Compute it here and compare to last_cursor_on; only
+        // mark blink_flip when the value actually FLIPPED. Without
+        // this we'd repaint every vsync just to redraw the same
+        // cursor state, which was the case before this change (idle
+        // render rate stuck at 60 Hz instead of 4 Hz).
+        let cursor_on_now = !self.cursor_blink || {
+            let period = self.cursor_blink_rate_ms as f32 / 1000.0 * 2.0;
+            (ctx.elapsed % period) < period / 2.0
+        };
+        let blink_flip =
+            self.cursor_blink && peek_cursor_visible && cursor_on_now != self.last_cursor_on;
         let bell_active = self.bell_flash_frames > 0;
         if peek_seqno == self.last_seqno
             && self.last_seqno != 0
-            && !blink_active_peek
+            && !blink_flip
             && !bell_active
             && !search_active_peek
         {
@@ -2749,6 +2783,8 @@ impl RenderCallback for TerminalRenderer {
         let snapshot_start = Instant::now();
         let (snap, seqno) = self.snapshot();
         let snapshot_us = snapshot_start.elapsed().as_micros() as u64;
+        // Memoise cursor_on for the next-frame peek's flip detection.
+        self.last_cursor_on = cursor_on_now;
 
         // Stage-2 gate (rare: peek seqno can shift between the peek
         // and the snapshot; keep the safety net so we never paint a
