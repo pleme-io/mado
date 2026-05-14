@@ -2108,24 +2108,26 @@ impl TerminalRenderer {
             });
         }
 
-        // Pass 2: Rects
-        if let Some(ref pipeline) = self.rect_pipeline {
-            let view = scene_view!(self, ctx);
-            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("mado_rects"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Load,
-                        store: wgpu::StoreOp::Store,
-                    },
-                })],
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-            });
-            pipeline.draw(&mut pass, all_rects.len() as u32);
+        // Pass 2: Rects — skip when no rect instances queued (P27).
+        if !all_rects.is_empty() {
+            if let Some(ref pipeline) = self.rect_pipeline {
+                let view = scene_view!(self, ctx);
+                let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("mado_rects"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Load,
+                            store: wgpu::StoreOp::Store,
+                        },
+                    })],
+                    depth_stencil_attachment: None,
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                });
+                pipeline.draw(&mut pass, all_rects.len() as u32);
+            }
         }
 
         // Pass 2.5: Kitty graphics images (per-pane)
@@ -2865,28 +2867,35 @@ impl RenderCallback for TerminalRenderer {
             });
         }
 
-        // Pass 2: Cell backgrounds + cursor + decorations
-        if let Some(ref pipeline) = self.rect_pipeline {
-            let view = scene_view!(self, ctx);
-            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("mado_rects"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Load,
-                        store: wgpu::StoreOp::Store,
-                    },
-                })],
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-            });
-            pipeline.draw(&mut pass, rect_instances.len() as u32);
+        // Pass 2: Cell backgrounds + cursor + decorations.
+        // P27 — skip the pass entirely when no rect instances would
+        // be drawn. The bg-pass-elision case kicks in on monochrome
+        // frames (no per-cell bg + cursor blink-off this tick + no
+        // selection / search / URL underlines) — symmetric to P25
+        // for the text pipeline.
+        if !rect_instances.is_empty() {
+            if let Some(ref pipeline) = self.rect_pipeline {
+                let view = scene_view!(self, ctx);
+                let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("mado_rects"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Load,
+                            store: wgpu::StoreOp::Store,
+                        },
+                    })],
+                    depth_stencil_attachment: None,
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                });
+                pipeline.draw(&mut pass, rect_instances.len() as u32);
+            }
         }
 
         // Pass 2.5: Kitty graphics images
-        {
+        if !snap.image_placements.is_empty() {
             let view = scene_view!(self, ctx);
             self.draw_kitty_images(ctx, &mut encoder, view, &snap.image_placements, self.padding_px(), self.padding_px());
         }
