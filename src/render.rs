@@ -1203,12 +1203,21 @@ impl TerminalRenderer {
         let cursor = *term.cursor();
         let cols = term.cols();
         let num_rows = term.rows();
+        let on_alt = term.on_alt_screen();
         let rows: Vec<Vec<Cell>> = term.visible_rows().map(|r| r.to_vec()).collect();
         let image_placements = term.image_placements().to_vec();
         drop(term);
 
-        // Detect URLs in visible rows
-        let urls = url::detect_urls(&rows, cols);
+        // P24 — URL detection is wasted on alt-screen TUIs: vim,
+        // helix, lazygit, btop never want links in their rendered
+        // content (they author their own typed output). Skip the
+        // per-cell linkify pass when the alt-screen buffer is
+        // active; pass an empty Vec instead.
+        let urls = if on_alt {
+            Vec::new()
+        } else {
+            url::detect_urls(&rows, cols)
+        };
 
         // Capture search state
         let search = self.search.lock().unwrap();
@@ -1241,7 +1250,12 @@ impl TerminalRenderer {
         origin_y: f32,
         sel: &Selection,
     ) -> Vec<RectInstance> {
-        let mut instances = Vec::new();
+        // P23 — pre-size by expected rect-instance count. Typical
+        // interactive grid produces 2–4 spans per row (background,
+        // optional underline, occasional strikethrough). 4 × rows is
+        // a safe upper estimate; +cells for selection / search /
+        // URLs spans.
+        let mut instances = Vec::with_capacity(snap.num_rows * 4 + snap.cols);
         let default_bg = Color::BLACK;
 
         // P11 — run-length batch every per-row "single-row, same-color
@@ -1666,13 +1680,19 @@ impl TerminalRenderer {
         snap: &Snapshot,
         text: &mut garasu::TextRenderer,
     ) -> Vec<(usize, usize, Arc<Buffer>)> {
-        let mut buffers: Vec<(usize, usize, Arc<Buffer>)> = Vec::new();
+        // P23 — pre-size. Typical interactive grid produces ~3-8
+        // runs per row after P6 batching. 8 × rows is a generous
+        // upper bound; the Vec will grow if needed (mimalloc + amortized
+        // doubling makes this cheap) but pre-sizing eliminates the
+        // first ~4 reallocations on each frame.
+        let mut buffers: Vec<(usize, usize, Arc<Buffer>)> =
+            Vec::with_capacity(snap.num_rows * 8);
         let font_size_bits = self.font_size_px().to_bits();
 
         for (row_idx, row) in snap.rows.iter().enumerate() {
             let mut has_content = false;
             let mut col_idx: usize = 0;
-            let mut row_buffers: Vec<(usize, Arc<Buffer>)> = Vec::new();
+            let mut row_buffers: Vec<(usize, Arc<Buffer>)> = Vec::with_capacity(8);
 
             // Current open run: (start_col, accumulated text, attrs key).
             let mut run: Option<(usize, String, RunAttrsKey)> = None;
@@ -1806,11 +1826,17 @@ impl TerminalRenderer {
         let cursor = *term.cursor();
         let cols = term.cols();
         let num_rows = term.rows();
+        let on_alt = term.on_alt_screen();
         let rows: Vec<Vec<Cell>> = term.visible_rows().map(|r| r.to_vec()).collect();
         let image_placements = term.image_placements().to_vec();
         drop(term);
 
-        let urls = url::detect_urls(&rows, cols);
+        // P24 — alt-screen panes also skip URL detection.
+        let urls = if on_alt {
+            Vec::new()
+        } else {
+            url::detect_urls(&rows, cols)
+        };
 
         let search = search.lock().unwrap();
         let search_active = search.active;
@@ -1891,7 +1917,8 @@ impl TerminalRenderer {
         self.last_seqno = fingerprint;
 
         let mut all_rects = Vec::new();
-        let mut text_entries: Vec<(f32, f32, usize, usize, Arc<Buffer>, PaneRect)> = Vec::new();
+        let mut text_entries: Vec<(f32, f32, usize, usize, Arc<Buffer>, PaneRect)> =
+            Vec::with_capacity(pane_count * 24 * 8);
         let mut all_image_placements: Vec<(f32, f32, Vec<ImagePlacement>)> = Vec::new();
 
         for rect in &pane_rects {
@@ -1988,14 +2015,20 @@ impl TerminalRenderer {
             });
         }
 
-        if let Err(e) = ctx.text.prepare(
-            &ctx.gpu.device,
-            &ctx.gpu.queue,
-            ctx.width,
-            ctx.height,
-            text_areas,
-        ) {
-            tracing::warn!("text prepare error: {e}");
+        // P25 — same skip-if-empty optimisation as the single-pane
+        // path. Save the empty flag to gate the later text render
+        // pass too.
+        let text_areas_empty = text_areas.is_empty();
+        if !text_areas_empty {
+            if let Err(e) = ctx.text.prepare(
+                &ctx.gpu.device,
+                &ctx.gpu.queue,
+                ctx.width,
+                ctx.height,
+                text_areas,
+            ) {
+                tracing::warn!("text prepare error: {e}");
+            }
         }
 
         // Determine post-processing mode
@@ -2083,8 +2116,9 @@ impl TerminalRenderer {
             self.draw_kitty_images(ctx, &mut encoder, view, placements, *ox, *oy);
         }
 
-        // Pass 3: Text
-        {
+        // Pass 3: Text — skip when there are no glyphs (text_areas
+        // empty, e.g. a blank screen or box-draw-only frame).
+        if !text_areas_empty {
             let view = scene_view!(self, ctx);
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("mado_text"),
@@ -2866,17 +2900,24 @@ impl RenderCallback for TerminalRenderer {
             });
         }
 
-        if let Err(e) = ctx.text.prepare(
-            &ctx.gpu.device,
-            &ctx.gpu.queue,
-            ctx.width,
-            ctx.height,
-            text_areas,
-        ) {
-            tracing::warn!("text prepare error: {e}");
-        }
+        // P25 — skip the text pipeline entirely when there are no
+        // glyphs to draw. text_areas is empty in two common cases:
+        // a blank terminal (boot, after clear), and a terminal whose
+        // rows contain only box-draw glyphs (which the rect pipeline
+        // already painted). begin_render_pass with no draws is not
+        // free — the encoder still records the pass state.
+        let text_areas_empty = text_areas.is_empty();
+        if !text_areas_empty {
+            if let Err(e) = ctx.text.prepare(
+                &ctx.gpu.device,
+                &ctx.gpu.queue,
+                ctx.width,
+                ctx.height,
+                text_areas,
+            ) {
+                tracing::warn!("text prepare error: {e}");
+            }
 
-        {
             let view = scene_view!(self, ctx);
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("mado_text"),

@@ -980,6 +980,17 @@ impl Terminal {
         self.synchronized_output
     }
 
+    /// Whether the alternate-screen buffer is active (DECSET 47 / 1047
+    /// / 1049). TUI apps (vim, helix, lazygit, btop, top) switch into
+    /// the alt-screen on launch and back out on exit. While here, the
+    /// renderer can skip URL detection (TUI apps don't render
+    /// hyperlinks) and is unlikely to see Kitty graphics — both
+    /// elide-able snapshots' work.
+    #[must_use]
+    pub fn on_alt_screen(&self) -> bool {
+        self.use_alternate
+    }
+
     #[must_use]
     pub fn cursor_keys_mode(&self) -> bool {
         self.cursor_keys_mode
