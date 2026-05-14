@@ -975,6 +975,15 @@ pub struct TerminalRenderer {
     /// where neither seqno NOR this bit have flipped — drops idle
     /// render rate from 60 Hz to ~4 Hz.
     last_cursor_on: bool,
+    /// P31 — sprite atlas analog for box-drawing / block-element
+    /// rect templates. Each entry stores the *relative* sub-rects
+    /// (rel_x, rel_y, w, h) that compose a glyph at the renderer's
+    /// current `cell_width`/`cell_height`. Per-frame box-drawing cell
+    /// emission becomes a table lookup + a translate-by-(x,y) loop —
+    /// no per-cell match-arm dispatch, no per-cell vec allocation
+    /// inside `box_drawing_rects`. Invalidated when cell metrics
+    /// change via `set_scale_factor` / `set_font_size`.
+    box_draw_templates: RefCell<HashMap<char, Vec<(f32, f32, f32, f32)>>>,
 }
 
 impl TerminalRenderer {
@@ -1030,6 +1039,7 @@ impl TerminalRenderer {
                     .expect("SHAPE_CACHE_CAP is a non-zero compile-time constant"),
             )),
             last_cursor_on: false,
+            box_draw_templates: RefCell::new(HashMap::new()),
         }
     }
 
@@ -1053,6 +1063,11 @@ impl TerminalRenderer {
             // tight and avoids serving the wrong-DPI shape if hashes
             // ever collide.
             self.shape_cache.borrow_mut().clear();
+            // P31 — same rationale: box-draw templates are
+            // dimensioned in physical pixels via cell_width /
+            // cell_height. Drop them on scale change so the next
+            // emission rebuilds at the new resolution.
+            self.box_draw_templates.borrow_mut().clear();
         }
     }
 
@@ -1131,6 +1146,9 @@ impl TerminalRenderer {
         // include font_size_bits, so a size change makes every cached
         // Arc<Buffer> unreachable. Clear to keep memory tight.
         self.shape_cache.borrow_mut().clear();
+        // P31 — box-draw templates depend on cell_width/cell_height
+        // which depend on font_size. Drop on size change.
+        self.box_draw_templates.borrow_mut().clear();
     }
 
     /// Set the colorblind simulation mode for accessibility.
@@ -1449,22 +1467,44 @@ impl TerminalRenderer {
                     );
                 }
 
-                // Box drawing stays per-cell — each char produces its
-                // own typed set of rects (no run shape would represent
-                // a run of mixed box-draw glyphs correctly). Flushing
-                // is implicit: a box-draw cell has bg == default_bg
-                // (the above branch already closed bg_run if open).
+                // P31 — Box drawing through the rect template cache.
+                // The first time we see a given box-drawing glyph at
+                // the current cell metrics, compute its sub-rects
+                // (via the same `box_drawing_rects` geometry) once,
+                // strip the per-cell origin + color, and store. On
+                // subsequent cells with the same glyph, just translate
+                // by (bx, by) and apply the current fg color. Drops
+                // the per-cell match-arm dispatch + Vec allocation.
                 if is_box_drawing(cell.ch) {
                     let bx = origin_x + col_idx as f32 * self.cell_width;
                     let by = origin_y + row_idx as f32 * self.cell_height;
-                    instances.extend(box_drawing_rects(
-                        cell.ch,
-                        bx,
-                        by,
-                        self.cell_width,
-                        self.cell_height,
-                        color_to_f32(&fg),
-                    ));
+                    let color = color_to_f32(&fg);
+                    let template = {
+                        let mut cache = self.box_draw_templates.borrow_mut();
+                        cache
+                            .entry(cell.ch)
+                            .or_insert_with(|| {
+                                box_drawing_rects(
+                                    cell.ch,
+                                    0.0,
+                                    0.0,
+                                    self.cell_width,
+                                    self.cell_height,
+                                    [1.0, 1.0, 1.0, 1.0],
+                                )
+                                .into_iter()
+                                .map(|r| (r.pos[0], r.pos[1], r.size[0], r.size[1]))
+                                .collect()
+                            })
+                            .clone()
+                    };
+                    for (rx, ry, rw, rh) in template {
+                        instances.push(RectInstance {
+                            pos: [bx + rx, by + ry],
+                            size: [rw, rh],
+                            color,
+                        });
+                    }
                 }
             }
 
