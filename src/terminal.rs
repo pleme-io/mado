@@ -2975,6 +2975,12 @@ impl vte::Perform for Terminal {
                     }
                     _ => {}
                 }
+                // Bump seqno so the renderer's idle-skip path (P2/P28)
+                // re-renders. Without this, a clear-screen (CSI 2J)
+                // emitted without follow-up output would leave the
+                // previous frame's pixels on screen until the next
+                // write — a class of "shadow trail" symptom.
+                self.dirty();
             }
             // EL — Erase in Line
             'K' => {

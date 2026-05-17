@@ -984,7 +984,21 @@ pub struct TerminalRenderer {
     /// inside `box_drawing_rects`. Invalidated when cell metrics
     /// change via `set_scale_factor` / `set_font_size`.
     box_draw_templates: RefCell<HashMap<char, Vec<(f32, f32, f32, f32)>>>,
+    /// Timestamp when the most recent BSU defer began. P14 holds off
+    /// rendering between DEC mode 2026 BSU/ESU so full-screen TUI
+    /// redraws don't tear. A misbehaving emitter (BSU without matching
+    /// ESU, or a crash before ESU) would freeze the screen
+    /// indefinitely without this cap. Once the defer exceeds
+    /// `SYNC_OUTPUT_MAX_DEFER`, we force a render and reset the
+    /// timestamp.
+    sync_output_deferred_since: Option<Instant>,
 }
+
+/// Maximum time the BSU/ESU defer is allowed to skip frames. Kitty
+/// uses ~150 ms; we choose 100 ms — long enough to absorb a normal
+/// helix / lazygit / btop full-screen redraw burst, short enough that
+/// a stuck BSU is invisible to the user (~6 dropped frames at 60 Hz).
+const SYNC_OUTPUT_MAX_DEFER: std::time::Duration = std::time::Duration::from_millis(100);
 
 impl TerminalRenderer {
     pub fn new(
@@ -1040,6 +1054,7 @@ impl TerminalRenderer {
             )),
             last_cursor_on: false,
             box_draw_templates: RefCell::new(HashMap::new()),
+            sync_output_deferred_since: None,
         }
     }
 
@@ -2802,10 +2817,22 @@ impl RenderCallback for TerminalRenderer {
             (term.seqno(), term.cursor().visible, term.synchronized_output())
         };
         if peek_sync_output {
-            // BSU is in flight — skip this frame entirely. Don't bump
-            // last_seqno so the matching ESU triggers the catch-up
-            // render on the next frame.
-            return;
+            // BSU is in flight — defer. Don't bump last_seqno so the
+            // matching ESU triggers the catch-up render on the next
+            // frame. But cap the defer at SYNC_OUTPUT_MAX_DEFER: a
+            // missing/late ESU shouldn't freeze the screen indefinitely.
+            let now = Instant::now();
+            let since = *self.sync_output_deferred_since.get_or_insert(now);
+            if now.duration_since(since) < SYNC_OUTPUT_MAX_DEFER {
+                return;
+            }
+            // Defer cap exceeded — fall through and render whatever
+            // partial state the terminal currently has. Reset the
+            // marker so the next BSU starts a fresh defer window.
+            self.sync_output_deferred_since = None;
+        } else {
+            // Not deferring — clear any stale marker from a prior BSU.
+            self.sync_output_deferred_since = None;
         }
         let search_active_peek = self.search.lock().unwrap().active;
         // P28 — cursor_on is a 1–4 Hz boolean (default 4 Hz at 500 ms
