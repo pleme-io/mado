@@ -3735,7 +3735,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/hasami";
           rev = "9157d4ddcb041755bf6de1eeb4981ab6e919a283";
-          sha256 = "15y5lid6dnn9kwmfkjxqkp6cygkplq41a198yzcjh3q2jzmcmdmr";
+          sha256 = "sha256-DNuNpf7OP6ylcyOzvML/V3O6S9M1/ZeKRR2vrc32iIs=";
         };
         dependencies = [
           {
