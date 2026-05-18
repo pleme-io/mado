@@ -823,13 +823,20 @@ impl MadoMcp {
         })
     }
 
-    #[tool(description = "Create a new tear session running `shell` (default /bin/sh). Returns {ok, session_id, first_pane_id}.")]
+    #[tool(description = "Create a new tear session running `shell` (default /bin/sh). Session is tagged with SessionSource::Agent so `tear list --source agent` can audit MCP-created sessions. Returns {ok, session_id, first_pane_id}.")]
     async fn tear_new_session(&self, Parameters(input): Parameters<TearNewSessionInput>) -> String {
         use tear_types::MultiplexerControl;
         with_tear_client(|client| {
             let shell = input.shell.unwrap_or_else(|| "/bin/sh".to_string());
             let name = input.name.unwrap_or_else(|| "mcp-session".to_string());
-            match client.new_session(&name, &shell) {
+            // Every mado-MCP-created session is provenance-tagged
+            // as `Agent` so operators can `tear list --source agent`
+            // to triage what an agent has spawned behind their back.
+            match client.new_session_with_source(
+                &name,
+                &shell,
+                tear_types::SessionSource::Agent,
+            ) {
                 Ok(sid) => {
                     let first_pane = client
                         .get_session(sid)
