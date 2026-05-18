@@ -3227,6 +3227,193 @@ mod render_invariants {
             "no OSC 133 marks should emit no separators: {seps:?}"
         );
     }
+
+    // ── search-highlight invariants ───────────────────────────────
+
+    /// Search-match colors (Nord aurora yellow at two alphas).
+    /// Hardcoded here to mirror build_rect_instances; if the
+    /// renderer's color choice changes, the test must update too
+    /// — and that's the point: explicit pin on the contract.
+    const SEARCH_CURRENT_COLOR: [f32; 4] = [0.922, 0.796, 0.545, 0.5];
+    const SEARCH_OTHER_COLOR: [f32; 4] = [0.922, 0.796, 0.545, 0.2];
+
+    #[test]
+    fn active_search_with_matches_emits_match_rects() {
+        let (r, t) = harness(40, 3);
+        t.write().feed(b"hello world hello again hello");
+        // Populate the renderer's search state directly.
+        {
+            let mut s = r.search.lock().unwrap();
+            s.active = true;
+            s.matches = vec![
+                crate::search::SearchMatch { row: 0, col_start: 0, col_end: 4 },
+                crate::search::SearchMatch { row: 0, col_start: 12, col_end: 16 },
+                crate::search::SearchMatch { row: 0, col_start: 24, col_end: 28 },
+            ];
+            s.current = 1;
+        }
+        let rects = compute_rects(&r);
+        let current_hits: Vec<_> = rects
+            .iter()
+            .filter(|rt| colors_approx_eq(rt.color, SEARCH_CURRENT_COLOR))
+            .collect();
+        let other_hits: Vec<_> = rects
+            .iter()
+            .filter(|rt| colors_approx_eq(rt.color, SEARCH_OTHER_COLOR))
+            .collect();
+        assert_eq!(current_hits.len(), 1, "exactly one current match");
+        assert_eq!(other_hits.len(), 2, "two non-current matches");
+        // The current-match rect is the one whose x-start matches
+        // col 12 (=index 1 in the matches vec).
+        let expected_x = 12.0 * r.cell_width;
+        assert!((current_hits[0].pos[0] - expected_x).abs() < 0.01);
+    }
+
+    #[test]
+    fn inactive_search_emits_no_match_rects_even_if_matches_set() {
+        let (r, t) = harness(40, 3);
+        t.write().feed(b"hello world");
+        {
+            let mut s = r.search.lock().unwrap();
+            s.active = false; // closed
+            s.matches = vec![crate::search::SearchMatch {
+                row: 0,
+                col_start: 0,
+                col_end: 4,
+            }];
+            s.current = 0;
+        }
+        let rects = compute_rects(&r);
+        let any_search: Vec<_> = rects
+            .iter()
+            .filter(|rt| {
+                colors_approx_eq(rt.color, SEARCH_CURRENT_COLOR)
+                    || colors_approx_eq(rt.color, SEARCH_OTHER_COLOR)
+            })
+            .collect();
+        assert!(
+            any_search.is_empty(),
+            "closed search must emit no match rects: {any_search:?}"
+        );
+    }
+
+    // ── determinism: resize doesn't leak state ────────────────────
+
+    #[test]
+    fn frame_after_resize_contains_only_current_grid_state() {
+        // Render at 40×10; resize to 80×24 and verify the new
+        // frame reflects the new dimensions with no stale rect
+        // from the old grid's geometry.
+        let (r, t) = harness(40, 10);
+        t.write().feed(b"before resize content");
+        let pre = compute_rects(&r);
+        assert!(!pre.is_empty());
+        // Resize the underlying terminal.
+        t.write().resize(80, 24);
+        t.write().feed(b"\x1b[2J\x1b[H");
+        t.write().feed(b"after");
+        let post = compute_rects(&r);
+        // Cursor at col=5 ("after" = 5 chars).
+        let cur = cursor_rects(&post, r.cursor_color);
+        assert_eq!(cur.len(), 1);
+        let expected_x = 5.0 * r.cell_width;
+        assert!(
+            (cur[0].pos[0] - expected_x).abs() < 0.01,
+            "post-resize cursor x = {}, expected ~{expected_x}",
+            cur[0].pos[0]
+        );
+        // No rect should overhang the NEW viewport.
+        let max_y = 24.0 * r.cell_height + 1.0;
+        for rect in &post {
+            assert!(
+                rect.pos[1] + rect.size[1] <= max_y,
+                "post-resize rect exceeds new viewport: {rect:?}"
+            );
+        }
+    }
+
+    // ── property-based fuzz: invariants hold for all inputs ───────
+
+    proptest::proptest! {
+        /// Whatever byte sequence comes in, the rect set must:
+        /// 1. Contain at most one cursor rect (Block style).
+        /// 2. Have no negative-dim or out-of-viewport rects.
+        /// 3. Stay finite (no NaN or Inf in coordinates).
+        ///
+        /// Generator: printable ASCII (0x20..0x7f) + newline,
+        /// carriage return, and ESC (0x1b) — the bytes that
+        /// produce non-trivial parser behavior without invalid
+        /// UTF-8 sequences that vte handles separately.
+        #[test]
+        fn arbitrary_ascii_text_keeps_invariants(
+            text in proptest::collection::vec(
+                proptest::prop_oneof![
+                    proptest::prelude::Just(b'\n'),
+                    proptest::prelude::Just(b'\r'),
+                    proptest::prelude::Just(0x1bu8),
+                    0x20u8..0x7f,
+                ],
+                0..200usize,
+            )
+        ) {
+            let (r, t) = harness(40, 12);
+            t.write().feed(&text);
+            let rects = compute_rects(&r);
+
+            // 1. ≤ 1 cursor rect (Block style).
+            let cur = cursor_rects(&rects, r.cursor_color);
+            proptest::prop_assert!(cur.len() <= 1, "cursor count = {}", cur.len());
+
+            // 2. All rects in-viewport with positive dims.
+            let max_x = 40.0 * r.cell_width + 1.0;
+            let max_y = 12.0 * r.cell_height + 1.0;
+            for rect in &rects {
+                proptest::prop_assert!(rect.pos[0] >= 0.0);
+                proptest::prop_assert!(rect.pos[1] >= 0.0);
+                proptest::prop_assert!(rect.size[0] > 0.0);
+                proptest::prop_assert!(rect.size[1] > 0.0);
+                proptest::prop_assert!(rect.pos[0] + rect.size[0] <= max_x);
+                proptest::prop_assert!(rect.pos[1] + rect.size[1] <= max_y);
+            }
+
+            // 3. No NaN / Inf.
+            for rect in &rects {
+                for v in [
+                    rect.pos[0], rect.pos[1], rect.size[0], rect.size[1],
+                    rect.color[0], rect.color[1], rect.color[2], rect.color[3],
+                ] {
+                    proptest::prop_assert!(v.is_finite(), "non-finite: {v}");
+                }
+            }
+        }
+
+        /// Idempotency under repeated identical writes: a write,
+        /// then clear, then write again must produce the same
+        /// rects as a single write — proves no shape-cache /
+        /// rect-buffer state leaks across clear cycles.
+        #[test]
+        fn repeated_identical_writes_match_single_write(
+            text in proptest::collection::vec(0x20u8..0x7f, 0..50usize)
+        ) {
+            let (r_once, t_once) = harness(40, 8);
+            t_once.write().feed(&text);
+            let rects_once = compute_rects(&r_once);
+
+            let (r_repeat, t_repeat) = harness(40, 8);
+            t_repeat.write().feed(b"\x1b[2J\x1b[H");
+            t_repeat.write().feed(&text);
+            t_repeat.write().feed(b"\x1b[2J\x1b[H");
+            t_repeat.write().feed(&text);
+            let rects_repeat = compute_rects(&r_repeat);
+
+            proptest::prop_assert_eq!(rects_once.len(), rects_repeat.len(),
+                "clear+write+clear+write produced different rect count from single write");
+            for (a, b) in rects_once.iter().zip(rects_repeat.iter()) {
+                proptest::prop_assert_eq!(a.pos, b.pos);
+                proptest::prop_assert_eq!(a.size, b.size);
+            }
+        }
+    }
 }
 
 /// Layer 2 of the verification strategy: headless wgpu render
@@ -3425,6 +3612,34 @@ mod render_gpu_invariants {
             px[0] > 100 || px[1] > 100 || px[2] > 100,
             "cursor cell pixel = {px:?}; expected at least one channel > 100 \
              (cursor rect should overpaint bg)"
+        );
+    }
+
+    #[test]
+    fn thirty_two_consecutive_renders_produce_one_unique_frame_hash() {
+        // N-frame determinism stress: any non-determinism (uninit
+        // memory, frame-counter-dependent uniform, accidental
+        // animation tick at elapsed=0) shows up as multiple
+        // distinct hashes across N renders of the same state.
+        use garasu::headless::frame_hash;
+        use std::collections::HashSet;
+
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let target =
+            HeadlessTarget::new(&gpu, 96, 48, wgpu::TextureFormat::Bgra8UnormSrgb);
+        let (mut r, t, mut text) = build_gpu_renderer(&gpu, 30, 6);
+        t.write().feed(b"stress-32");
+
+        let mut hashes = HashSet::new();
+        for _ in 0..32 {
+            let pixels = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+            hashes.insert(frame_hash(&pixels).to_hex().to_string());
+        }
+        assert_eq!(
+            hashes.len(),
+            1,
+            "32 renders of the same state produced {} distinct hashes — non-deterministic pipeline",
+            hashes.len()
         );
     }
 
