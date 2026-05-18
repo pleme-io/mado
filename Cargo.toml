@@ -60,6 +60,15 @@ garasu = "0.1"
 madori = { git = "https://github.com/pleme-io/madori" }
 shikumi = "0.1"
 hasami = { git = "https://github.com/pleme-io/hasami" }
+# Tear multiplexer — typed types + UDS RPC client. mado uses these
+# for the `mado tear-attach` mode (subscribe to a remote pane's
+# byte stream + stream it to stdout for now; future Phase 3.1
+# renders it in the GPU window). Phase 3 MVP of the mado⇄tear
+# de-overlap roadmap — see theory/MADO-TEAR-M5.md.
+tear-types = { git = "https://github.com/pleme-io/tear" }
+tear-client = { git = "https://github.com/pleme-io/tear" }
+# Signal handling for the long-running `mado tear-attach` loop.
+ctrlc = "3"
 soushi = { git = "https://github.com/pleme-io/soushi" }
 awase = { git = "https://github.com/pleme-io/awase" }
 kaname = { git = "https://github.com/pleme-io/kaname" }
@@ -156,6 +165,11 @@ objc2-app-kit = { version = "0.3", features = ["NSApplication", "NSWindow", "NSD
 [dev-dependencies]
 tempfile = "3"
 proptest = "1"
+# tear-core + tear-daemon are pulled in only for the
+# `tests/tear_attach_integration.rs` Phase-3-MVP cross-process
+# smoke. The binary itself only needs tear-types + tear-client.
+tear-core = { git = "https://github.com/pleme-io/tear" }
+tear-daemon = { git = "https://github.com/pleme-io/tear" }
 
 # crate-source redirect — every consumer of crates.io garasu / shikumi
 # (us directly + madori transitively) lands on the same git rev. This

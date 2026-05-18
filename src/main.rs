@@ -102,6 +102,30 @@ enum SubCmd {
     /// Open the resulting YAML, add `expect:` assertions, drop into
     /// `tests/scenarios/`, and it becomes a permanent regression test.
     /// Any future commit that breaks the recorded behaviour fails CI.
+    /// **Phase 3 MVP** — subscribe to a tear-daemon pane's byte
+    /// stream and print it to stdout. Proves the cross-app binary
+    /// integration end-to-end (mado links tear-client, opens a
+    /// fresh UDS, subscribes, receives bytes). A future Phase 3.1
+    /// will feed those bytes into mado's own GPU-rendered Terminal
+    /// in a window — but the print mode ships first because the
+    /// wire is the load-bearing piece.
+    ///
+    /// Typical usage:
+    /// ```bash
+    /// tear daemon &                          # one terminal
+    /// # ... start a session via a client ...
+    /// mado tear-attach <pane-id>             # another terminal
+    /// ```
+    TearAttach {
+        /// 16-char lowercase-hex pane id (as printed by
+        /// `tear list` or returned by `tear up`).
+        pane: String,
+        /// Daemon UDS path. Defaults to
+        /// `$XDG_RUNTIME_DIR/tear.sock` (or
+        /// `~/.local/share/tear/tear.sock`).
+        #[arg(long)]
+        socket: Option<std::path::PathBuf>,
+    },
     Record {
         /// Output scenario YAML path.
         #[arg(long)]
@@ -134,6 +158,62 @@ enum SubCmd {
 /// in-app startup detection — macOS won't allow a second `EventLoop`
 /// in the same process. Startup-time detection lands in M1 by plumbing
 /// a posture event through madori's own loop.
+/// Phase 3 MVP — subscribe to a tear-daemon pane's PTY byte
+/// stream and stream it to stdout. Proves that mado links
+/// against tear-client end-to-end + the cross-app subscription
+/// wire works in real time. Future Phase 3.1 will route the
+/// bytes into mado's own GPU Terminal instead of stdout.
+fn cmd_tear_attach(
+    pane: &str,
+    socket: Option<std::path::PathBuf>,
+) -> anyhow::Result<()> {
+    let socket_path = socket.unwrap_or_else(tear_types::wire::default_socket_path);
+    let client = tear_client::Client::connect(&socket_path).map_err(|e| {
+        anyhow::anyhow!(
+            "tear-daemon not reachable at {}: {}\n\
+             Start it with: tear daemon",
+            socket_path.display(),
+            e
+        )
+    })?;
+    let pane_id: tear_types::PaneId = pane
+        .parse()
+        .map_err(|e: anyhow::Error| anyhow::anyhow!("invalid pane id `{pane}`: {e}"))?;
+
+    // Signal handler so Ctrl-C cleanly exits the subscribe loop.
+    use std::io::Write;
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
+    let running = Arc::new(AtomicBool::new(true));
+    let r2 = running.clone();
+    ctrlc::set_handler(move || r2.store(false, Ordering::SeqCst))
+        .map_err(|e| anyhow::anyhow!("signal handler: {e}"))?;
+
+    eprintln!(
+        "mado tear-attach: subscribing to pane {pane_id} on {} (Ctrl-C to exit)",
+        socket_path.display()
+    );
+    let stdout = std::io::stdout();
+    let handle = client
+        .subscribe_pane_bytes(pane_id, move |bytes| {
+            // Direct passthrough — the daemon delivers exactly the
+            // bytes the PTY produced, including all SGR escapes.
+            // Running this in a real terminal renders the colored
+            // output correctly via the host terminal's own VT
+            // parser.
+            let mut out = stdout.lock();
+            let _ = out.write_all(bytes);
+            let _ = out.flush();
+        })
+        .map_err(|e| anyhow::anyhow!("subscribe: {e}"))?;
+    while running.load(Ordering::SeqCst) {
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
+    handle.stop();
+    eprintln!("\nmado tear-attach: disconnected");
+    Ok(())
+}
+
 fn detect_runtime_posture() -> anyhow::Result<garasu::adaptive::RuntimePosture> {
     use std::sync::{Arc, Mutex};
     use winit::application::ApplicationHandler;
@@ -212,6 +292,11 @@ fn main() -> anyhow::Result<()> {
             shidou::init_tracing_to_stderr();
             scenario::run_sync(path)
                 .map_err(|e| anyhow::anyhow!("scenario {path:?} failed:\n{e:#}"))?;
+            return Ok(());
+        }
+        Some(SubCmd::TearAttach { ref pane, ref socket }) => {
+            shidou::init_tracing_to_stderr();
+            cmd_tear_attach(pane, socket.clone())?;
             return Ok(());
         }
         Some(SubCmd::Record {
