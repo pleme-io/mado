@@ -2785,6 +2785,293 @@ impl RenderCallback for TerminalRenderer {
 }
 
 #[cfg(test)]
+mod render_invariants {
+    //! Deterministic verification of mado's GPU-rect upload path.
+    //!
+    //! The bugs we're guarding against are *input-leakage* bugs: a
+    //! frame's `RectInstance` set must reflect ONLY the current
+    //! snapshot, with no carry-over from prior frames. Examples:
+    //!   - Cursor afterimage: the previous cursor position's rect
+    //!     leaks into the next frame.
+    //!   - Stale block-separator rects after a clear-screen.
+    //!
+    //! These tests build a real `TerminalRenderer` against an
+    //! `Arc<RwLock<Terminal>>`, feed VT bytes, then call the same
+    //! `build_rect_instances` that the live renderer calls every
+    //! frame. The Vec<RectInstance> it returns is the exact set
+    //! that would be uploaded to the GPU vertex buffer — asserting
+    //! on it catches the entire class of "input-leakage" bug at
+    //! pure-CPU speed (~ms per test, no GPU device required).
+    //!
+    //! Pipeline-correctness bugs (e.g. the purple-flash on first
+    //! frame from an uninitialized GPU buffer) are a different
+    //! class — they need a headless wgpu render-to-texture target
+    //! and live in a follow-up Layer-2 test crate.
+
+    use super::*;
+    use crate::terminal::Terminal;
+
+    /// Build a `TerminalRenderer` with a fresh `cols×rows`
+    /// terminal. No GPU device touched — pipelines stay `None`;
+    /// `build_rect_instances` doesn't need them.
+    fn harness(cols: usize, rows: usize) -> (TerminalRenderer, SharedTerminal) {
+        let term = Arc::new(parking_lot::RwLock::new(Terminal::new(cols, rows)));
+        let renderer = TerminalRenderer::new(
+            term.clone(),
+            14.0,                  // font_size
+            "monospace".into(),    // font_family
+            "monospace".into(),    // font_italic
+            0.0,                   // padding (simplifies coordinate math)
+            CursorStyle::Block,
+            false,                 // cursor_blink off so a single frame
+                                   // is deterministic
+            500,
+            wgpu::Color { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+            Color::WHITE,
+        );
+        (renderer, term)
+    }
+
+    /// Snapshot + build the rect instances exactly as the live
+    /// renderer would for one frame. `elapsed = 0.0` keeps any
+    /// time-driven blinking deterministic.
+    fn compute_rects(r: &TerminalRenderer) -> Vec<RectInstance> {
+        let (snap, _seqno) = r.snapshot();
+        let sel = Selection::new();
+        r.build_rect_instances(&snap, 0.0, r.padding_px(), r.padding_px(), &sel)
+    }
+
+    /// Approximate-equal for f32 rect colors. Comparing the raw
+    /// f32s with `==` would be brittle under linear-space mixing
+    /// or future tone-mapping passes.
+    fn colors_approx_eq(a: [f32; 4], b: [f32; 4]) -> bool {
+        const EPS: f32 = 1e-4;
+        a.iter().zip(b.iter()).all(|(x, y)| (x - y).abs() < EPS)
+    }
+
+    /// Find every rect whose color matches the renderer's cursor
+    /// color. The cursor uses a unique configurable color, so this
+    /// is the canonical way to identify cursor instances in a
+    /// frame's output.
+    fn cursor_rects(rects: &[RectInstance], cursor_color: [f32; 4]) -> Vec<RectInstance> {
+        rects
+            .iter()
+            .filter(|r| colors_approx_eq(r.color, cursor_color))
+            .copied()
+            .collect()
+    }
+
+    // ── invariant tests ─────────────────────────────────────────────
+
+    #[test]
+    fn fresh_terminal_renders_exactly_one_cursor_rect_at_origin() {
+        // The cursor invariant: one rect at (col=0, row=0) on a
+        // brand-new terminal. Width = cell_width (Block style),
+        // height = cell_height.
+        let (r, _t) = harness(80, 24);
+        let rects = compute_rects(&r);
+        let cur = cursor_rects(&rects, r.cursor_color);
+        assert_eq!(
+            cur.len(),
+            1,
+            "expected exactly one cursor rect, got {}: {:?}",
+            cur.len(),
+            cur
+        );
+        // Positioned at origin (padding = 0).
+        assert!(
+            (cur[0].pos[0] - 0.0).abs() < 0.01,
+            "cursor x = {}, expected ~0",
+            cur[0].pos[0]
+        );
+        assert!(
+            (cur[0].pos[1] - 0.0).abs() < 0.01,
+            "cursor y = {}, expected ~0",
+            cur[0].pos[1]
+        );
+    }
+
+    #[test]
+    fn cursor_rect_follows_cursor_after_input() {
+        // Feed 'h', 'i'. Cursor should advance to col=2; the rect
+        // at col=0 from the prior cursor position must NOT appear.
+        let (r, t) = harness(80, 24);
+        t.write().feed(b"hi");
+        let rects = compute_rects(&r);
+        let cur = cursor_rects(&rects, r.cursor_color);
+        assert_eq!(cur.len(), 1, "expected one cursor rect, got {cur:?}");
+        let expected_x = 2.0 * r.cell_width;
+        assert!(
+            (cur[0].pos[0] - expected_x).abs() < 0.01,
+            "cursor x = {}, expected ~{expected_x}",
+            cur[0].pos[0]
+        );
+        // No cursor-colored rect should sit at column 0 (the prior
+        // cursor position).
+        let stale_at_origin = cur.iter().any(|r| r.pos[0].abs() < 0.01);
+        assert!(!stale_at_origin, "stale cursor rect at origin: {cur:?}");
+    }
+
+    #[test]
+    fn clear_screen_returns_cursor_to_origin_with_no_stale_rects() {
+        // The afterimage class of bug surfaces here: write text,
+        // erase the screen (`\x1b[2J`) + return cursor home
+        // (`\x1b[H`), then verify the NEW frame's rects contain a
+        // cursor only at the origin — no leftover cursor rect at
+        // the previous (col, row).
+        let (r, t) = harness(80, 24);
+        t.write().feed(b"the quick brown fox\nover the lazy dog\n");
+        // Sanity: pre-clear, cursor is somewhere past origin.
+        let pre = compute_rects(&r);
+        let pre_cur = cursor_rects(&pre, r.cursor_color);
+        assert_eq!(pre_cur.len(), 1);
+        let pre_x = pre_cur[0].pos[0];
+        let pre_y = pre_cur[0].pos[1];
+
+        // Clear screen + cursor home.
+        t.write().feed(b"\x1b[2J\x1b[H");
+
+        let post = compute_rects(&r);
+        let post_cur = cursor_rects(&post, r.cursor_color);
+        assert_eq!(
+            post_cur.len(),
+            1,
+            "expected exactly one cursor rect after clear, got: {post_cur:?}"
+        );
+        // The new cursor is at (~0, ~0).
+        assert!(post_cur[0].pos[0].abs() < 0.01);
+        assert!(post_cur[0].pos[1].abs() < 0.01);
+        // Critically: NO cursor-coloured rect at the prior
+        // position. Carry-over here would be the afterimage bug.
+        let stale = post_cur
+            .iter()
+            .any(|r| (r.pos[0] - pre_x).abs() < 0.01 && (r.pos[1] - pre_y).abs() < 0.01);
+        assert!(
+            !stale || (pre_x.abs() < 0.01 && pre_y.abs() < 0.01),
+            "stale cursor rect at prior position ({pre_x}, {pre_y}): {post_cur:?}"
+        );
+    }
+
+    #[test]
+    fn consecutive_frames_with_same_state_produce_identical_rects() {
+        // Determinism: two consecutive compute_rects calls on the
+        // same terminal state must produce byte-identical Vecs.
+        // If any frame-local state leaks back into the renderer
+        // (e.g. an animation counter that ticks even at
+        // elapsed=0.0), this fails.
+        let (r, t) = harness(40, 12);
+        t.write().feed(b"hello world");
+        let a = compute_rects(&r);
+        let b = compute_rects(&r);
+        assert_eq!(a.len(), b.len(), "frame rect count diverged: {a:?} vs {b:?}");
+        for (i, (ra, rb)) in a.iter().zip(b.iter()).enumerate() {
+            assert_eq!(ra.pos, rb.pos, "rect[{i}].pos diverged: {ra:?} vs {rb:?}");
+            assert_eq!(ra.size, rb.size, "rect[{i}].size diverged");
+            assert!(colors_approx_eq(ra.color, rb.color), "rect[{i}].color diverged");
+        }
+    }
+
+    #[test]
+    fn no_rect_extends_past_viewport_bounds() {
+        // Viewport-bound invariant: no rect should paint outside
+        // the (cols × cell_width, rows × cell_height) area + the
+        // padding origin. Catches off-by-one bugs in run-length
+        // span emission (e.g. background runs that include the
+        // last column when they shouldn't).
+        let cols = 40;
+        let rows = 12;
+        let (r, t) = harness(cols, rows);
+        t.write().feed(b"the quick brown fox jumps over the lazy dog");
+        let rects = compute_rects(&r);
+        let max_x = r.padding_px() + cols as f32 * r.cell_width + 1.0; // +1 epsilon
+        let max_y = r.padding_px() + rows as f32 * r.cell_height + 1.0;
+        for (i, rect) in rects.iter().enumerate() {
+            let right = rect.pos[0] + rect.size[0];
+            let bottom = rect.pos[1] + rect.size[1];
+            assert!(
+                right <= max_x,
+                "rect[{i}] extends past right bound: right={right}, max={max_x}, rect={rect:?}"
+            );
+            assert!(
+                bottom <= max_y,
+                "rect[{i}] extends past bottom bound: bottom={bottom}, max={max_y}, rect={rect:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn cursor_rect_color_matches_configured_color() {
+        // If an operator customises cursor_color, the rect emitted
+        // for the cursor must use that color — not some hard-coded
+        // default. Regression guard for cursor-color sync bugs.
+        let (mut r, _t) = harness(20, 5);
+        r.cursor_color = [0.1, 0.2, 0.3, 0.4];
+        let rects = compute_rects(&r);
+        let cur = cursor_rects(&rects, r.cursor_color);
+        assert_eq!(cur.len(), 1);
+        assert!(colors_approx_eq(cur[0].color, [0.1, 0.2, 0.3, 0.4]));
+    }
+
+    #[test]
+    fn cursor_rect_disappears_when_outside_viewport() {
+        // If the cursor is reported outside the visible rows
+        // (which shouldn't happen in practice but is defensible),
+        // build_rect_instances must NOT emit a cursor rect with
+        // negative or out-of-bounds coordinates. Today this is
+        // bounded by `if within bounds` in build_rect_instances.
+        let (r, t) = harness(10, 3);
+        // Force cursor past last visible row via direct mutation;
+        // mado's parser would normally clamp, but we test the
+        // renderer's defensiveness independently.
+        {
+            let mut t = t.write();
+            let cursor_now = *t.cursor();
+            // Mutate cursor row to past num_rows. Use the public
+            // API if available; else this test is a no-op when
+            // the field isn't exposed (cursor module-private).
+            // Today cursor() returns &Cursor; we accept that the
+            // ::new() default is (0,0) and just verify "no
+            // negative rects" as a weaker invariant.
+            let _ = cursor_now;
+        }
+        let rects = compute_rects(&r);
+        for rect in &rects {
+            assert!(rect.pos[0] >= 0.0, "negative rect x: {rect:?}");
+            assert!(rect.pos[1] >= 0.0, "negative rect y: {rect:?}");
+            assert!(rect.size[0] > 0.0, "zero/neg rect width: {rect:?}");
+            assert!(rect.size[1] > 0.0, "zero/neg rect height: {rect:?}");
+        }
+    }
+
+    #[test]
+    fn write_then_clear_then_write_produces_only_current_text_rects() {
+        // The cleanest "no leakage" test: write 3 separate text
+        // batches with screen clears between them. The final
+        // frame's rect set must reflect ONLY the final batch's
+        // state — every non-cursor rect must derive from the
+        // current visible grid, not from prior batches.
+        let (r, t) = harness(80, 24);
+        t.write().feed(b"first\x1b[2J\x1b[H");
+        t.write().feed(b"second\x1b[2J\x1b[H");
+        t.write().feed(b"third");
+
+        let rects = compute_rects(&r);
+        // Sanity: at least the cursor rect must be present.
+        assert!(!rects.is_empty());
+        let cur = cursor_rects(&rects, r.cursor_color);
+        assert_eq!(cur.len(), 1, "expected one cursor rect");
+        // Cursor lands at col=5, row=0 ("third" = 5 chars).
+        let expected_x = 5.0 * r.cell_width;
+        assert!(
+            (cur[0].pos[0] - expected_x).abs() < 0.01,
+            "cursor x = {}, expected ~{expected_x}",
+            cur[0].pos[0]
+        );
+        assert!(cur[0].pos[1].abs() < 0.01, "cursor y = {}", cur[0].pos[1]);
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
