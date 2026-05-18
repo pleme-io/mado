@@ -86,6 +86,16 @@ struct TearSendKeysInput {
     keys: String,
 }
 
+/// Phase-A: input policy for `tear_set_input_policy`. Maps 1:1 to
+/// `tear_types::InputPolicy`.
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct TearSetInputPolicyInput {
+    #[schemars(description = "16-char lowercase-hex tear pane id.")]
+    pane_id: String,
+    #[schemars(description = "Either \"free\" (default; accepts every send_keys) or \"locked\" (rejects send_keys with WireError::Rejected).")]
+    policy: String,
+}
+
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 struct ConfigGetInput {
     #[schemars(description = "Config key to retrieve (e.g., 'font_size', 'theme'). Omit for full config.")]
@@ -879,6 +889,97 @@ impl MadoMcp {
                     "cursor_col": snap.cursor_col,
                     "alt_screen_active": snap.alt_screen_active,
                     "text_rows": snap.to_text_rows(),
+                })),
+                Err(e) => err_json(e),
+            },
+        )
+    }
+
+    // ── #2 input policy ───────────────────────────────────────
+
+    #[tool(description = "Set a tear pane's typed InputPolicy. `policy = free` (default, accepts send_keys) or `locked` (rejects send_keys; useful for observer / demo / agent-only panes). Returns {ok} or {ok: false, error}.")]
+    async fn tear_set_input_policy(&self, Parameters(input): Parameters<TearSetInputPolicyInput>) -> String {
+        use tear_types::MultiplexerControl;
+        let policy = match input.policy.as_str() {
+            "free" => tear_types::InputPolicy::Free,
+            "locked" => tear_types::InputPolicy::Locked,
+            other => return err_json(format!("invalid policy `{other}` — accepted: free | locked")),
+        };
+        with_tear_id::<tear_types::PaneId, _>(
+            "pane_id",
+            &input.pane_id,
+            move |client, id| match client.set_input_policy(id, policy) {
+                Ok(()) => ok_json(serde_json::json!({ "policy": match policy {
+                    tear_types::InputPolicy::Free => "free",
+                    tear_types::InputPolicy::Locked => "locked",
+                }})),
+                Err(e) => err_json(e),
+            },
+        )
+    }
+
+    // ── #3 migration ergonomic ────────────────────────────────
+
+    #[tool(description = "Subscriber count for a tear pane. Tells you whether the pane is already attached elsewhere before you open a second renderer. Returns {ok, subscribers}.")]
+    async fn tear_pane_subscriber_count(&self, Parameters(input): Parameters<TearPaneIdInput>) -> String {
+        use tear_types::MultiplexerControl;
+        with_tear_id::<tear_types::PaneId, _>(
+            "pane_id",
+            &input.pane_id,
+            |client, id| match client.pane_subscriber_count(id) {
+                Ok(n) => ok_json(serde_json::json!({ "subscribers": n })),
+                Err(e) => err_json(e),
+            },
+        )
+    }
+
+    // ── #4 recording ──────────────────────────────────────────
+
+    #[tool(description = "Start daemon-native recording on a tear pane. Captures every PTY byte with a relative timestamp; export via `tear_pane_record_export` as asciinema v2 .cast. Returns {ok}.")]
+    async fn tear_pane_record_start(&self, Parameters(input): Parameters<TearPaneIdInput>) -> String {
+        with_tear_id::<tear_types::PaneId, _>(
+            "pane_id",
+            &input.pane_id,
+            |client, id| match client.start_pane_recording(id) {
+                Ok(()) => ok_json(serde_json::Value::Null),
+                Err(e) => err_json(e),
+            },
+        )
+    }
+
+    #[tool(description = "Stop recording on a tear pane. Captured buffer is retained for export. Returns {ok}.")]
+    async fn tear_pane_record_stop(&self, Parameters(input): Parameters<TearPaneIdInput>) -> String {
+        with_tear_id::<tear_types::PaneId, _>(
+            "pane_id",
+            &input.pane_id,
+            |client, id| match client.stop_pane_recording(id) {
+                Ok(()) => ok_json(serde_json::Value::Null),
+                Err(e) => err_json(e),
+            },
+        )
+    }
+
+    #[tool(description = "Export the captured asciinema v2 .cast (JSON-lines string) of a recorded pane. Returns {ok, cast}.")]
+    async fn tear_pane_record_export(&self, Parameters(input): Parameters<TearPaneIdInput>) -> String {
+        with_tear_id::<tear_types::PaneId, _>(
+            "pane_id",
+            &input.pane_id,
+            |client, id| match client.export_pane_recording(id) {
+                Ok(cast) => ok_json(serde_json::json!({ "cast": cast })),
+                Err(e) => err_json(e),
+            },
+        )
+    }
+
+    #[tool(description = "Recording status for a tear pane. Returns {ok, recording: bool, events: number}.")]
+    async fn tear_pane_record_status(&self, Parameters(input): Parameters<TearPaneIdInput>) -> String {
+        with_tear_id::<tear_types::PaneId, _>(
+            "pane_id",
+            &input.pane_id,
+            |client, id| match client.pane_recording_status(id) {
+                Ok((enabled, events)) => ok_json(serde_json::json!({
+                    "recording": enabled,
+                    "events": events,
                 })),
                 Err(e) => err_json(e),
             },
@@ -2542,15 +2643,16 @@ mod tests {
                 .tear_new_session(Parameters(TearNewSessionInput::default()))
                 .await,
         );
-        let pid_str = new["first_pane_id"].as_str().unwrap().to_owned();
-        let v = TearMcpHarness::parse(
-            &h.server
-                .tear_pane_snapshot(Parameters(TearPaneIdInput {
-                    pane_id: pid_str,
-                }))
-                .await,
-        );
-        assert_eq!(v["ok"], true);
+        let pid_str = new["first_pane_id"].as_str().unwrap_or_else(|| {
+            panic!("first_pane_id missing from new_session response: {new}")
+        }).to_owned();
+        let raw = h.server
+            .tear_pane_snapshot(Parameters(TearPaneIdInput {
+                pane_id: pid_str,
+            }))
+            .await;
+        let v = TearMcpHarness::parse(&raw);
+        assert_eq!(v["ok"], true, "snapshot returned ok=false: {raw}");
         assert!(v["cols"].as_u64().unwrap() > 0);
         assert!(v["rows"].as_u64().unwrap() > 0);
         // Cursor must be inside the grid.
