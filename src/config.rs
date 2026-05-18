@@ -1164,6 +1164,78 @@ impose:
         assert!(with_status.has_any_override());
     }
 
+    /// Property: applying impose-A twice is identical to applying
+    /// impose-A once (idempotent under repetition). Catches future
+    /// regressions where a "merge" semantics accidentally
+    /// accumulates state across applies.
+    #[test]
+    fn impose_apply_to_is_idempotent_under_double_apply() {
+        use proptest::prelude::*;
+        proptest!(|(
+            prefix in proptest::option::of("[A-Za-z0-9:_-]{0,20}"),
+            shell in proptest::option::of("[/A-Za-z0-9_-]{1,40}"),
+            status in proptest::option::of(any::<bool>())
+        )| {
+            let imp = MadoTearImpose {
+                prefix,
+                default_shell: shell,
+                status_visible: status,
+            };
+            let mut once = tear_config::TearConfig::default();
+            imp.apply_to(&mut once);
+            let mut twice = tear_config::TearConfig::default();
+            imp.apply_to(&mut twice);
+            imp.apply_to(&mut twice);
+            prop_assert_eq!(once.prefix, twice.prefix);
+            prop_assert_eq!(once.default_shell, twice.default_shell);
+            prop_assert_eq!(once.status.visible, twice.status.visible);
+        });
+    }
+
+    /// Property: a field whose impose value is None is preserved
+    /// bit-for-bit from the input config. Catches regressions where
+    /// `apply_to` accidentally overwrites with a default when the
+    /// override is absent.
+    #[test]
+    fn impose_apply_to_leaves_none_fields_untouched() {
+        use proptest::prelude::*;
+        proptest!(|(
+            // Random non-default starting state.
+            seed_prefix in "[A-Za-z0-9:_-]{1,12}",
+            seed_shell in "[/A-Za-z0-9_-]{2,30}",
+            seed_status in any::<bool>(),
+            // Random impose overlay (every field independently optional).
+            imp_prefix in proptest::option::of("[A-Za-z0-9:_-]{1,12}"),
+            imp_shell in proptest::option::of("[/A-Za-z0-9_-]{2,30}"),
+            imp_status in proptest::option::of(any::<bool>())
+        )| {
+            let mut cfg = tear_config::TearConfig {
+                prefix: seed_prefix.clone(),
+                default_shell: seed_shell.clone(),
+                ..tear_config::TearConfig::default()
+            };
+            cfg.status.visible = seed_status;
+            let imp = MadoTearImpose {
+                prefix: imp_prefix.clone(),
+                default_shell: imp_shell.clone(),
+                status_visible: imp_status,
+            };
+            imp.apply_to(&mut cfg);
+            match imp_prefix {
+                Some(p) => prop_assert_eq!(cfg.prefix, p),
+                None    => prop_assert_eq!(cfg.prefix, seed_prefix),
+            }
+            match imp_shell {
+                Some(s) => prop_assert_eq!(cfg.default_shell, s),
+                None    => prop_assert_eq!(cfg.default_shell, seed_shell),
+            }
+            match imp_status {
+                Some(b) => prop_assert_eq!(cfg.status.visible, b),
+                None    => prop_assert_eq!(cfg.status.visible, seed_status),
+            }
+        });
+    }
+
     #[test]
     fn impose_apply_to_only_changes_some_fields() {
         let mut cfg = tear_config::TearConfig::default();

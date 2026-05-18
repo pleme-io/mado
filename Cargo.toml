@@ -168,10 +168,17 @@ tempfile = "3"
 proptest = "1"
 # tear-core + tear-daemon are pulled in for:
 #   - tests/tear_attach_integration.rs (Phase-3-MVP cross-process)
+#   - tests/mcp_cross_process.rs (mado bin spawned as `mado mcp`)
 #   - tear_discovery::tests::discovers_a_real_in_process_daemon
 # The binary itself only needs tear-types + tear-client.
 tear-core = { git = "https://github.com/pleme-io/tear" }
 tear-daemon = { git = "https://github.com/pleme-io/tear" }
+# Cross-process MCP integration test: spawn the mado bin as
+# `mado mcp` and drive it via the rmcp client + child-process
+# transport. The main rmcp dep only declares "server" +
+# "transport-io"; we add the client side here so test-only code
+# doesn't pull rmcp client glue into the production binary.
+rmcp = { version = "0.15", features = ["client", "transport-child-process"] }
 
 # crate-source redirect — every consumer of crates.io garasu / shikumi
 # (us directly + madori transitively) lands on the same git rev. This

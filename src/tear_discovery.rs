@@ -41,6 +41,20 @@ pub enum DiscoveryOutcome {
     Required(String),
 }
 
+impl DiscoveryOutcome {
+    /// Short label for diagnostics + tests. Lets callers compare
+    /// outcomes without matching past the inner data (which doesn't
+    /// implement Debug because Client doesn't).
+    #[must_use]
+    pub fn kind(&self) -> &'static str {
+        match self {
+            DiscoveryOutcome::Attached(_, _) => "Attached",
+            DiscoveryOutcome::Fallback => "Fallback",
+            DiscoveryOutcome::Required(_) => "Required",
+        }
+    }
+}
+
 /// Resolve the socket path: explicit config override wins; else
 /// fall back to the same default tear-daemon binds to (XDG runtime
 /// dir → ~/.local/share/tear/tear.sock → /tmp/tear.sock).
@@ -188,11 +202,7 @@ mod tests {
                 assert!(msg.contains("not reachable"));
                 assert!(msg.contains("Attach"));
             }
-            other => panic!("expected Required, got {}", match other {
-                DiscoveryOutcome::Attached(_, _) => "Attached",
-                DiscoveryOutcome::Fallback => "Fallback",
-                DiscoveryOutcome::Required(_) => unreachable!(),
-            }),
+            other => panic!("expected Required, got {}", other.kind()),
         }
     }
 
@@ -289,14 +299,7 @@ mod tests {
         // 1 — discover the daemon
         let client = match discover(&cfg) {
             DiscoveryOutcome::Attached(c, _) => c,
-            other => panic!(
-                "expected Attached, got {}",
-                match other {
-                    DiscoveryOutcome::Fallback => "Fallback",
-                    DiscoveryOutcome::Required(_) => "Required",
-                    DiscoveryOutcome::Attached(_, _) => unreachable!(),
-                }
-            ),
+            other => panic!("expected Attached, got {}", other.kind()),
         };
 
         // 2 — emulate the same impose flow gui_tear_attach runs at
