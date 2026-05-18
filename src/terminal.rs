@@ -1774,6 +1774,35 @@ impl Terminal {
         Some(base.saturating_sub(target))
     }
 
+    /// Block-aware rendering helper: viewport-relative row
+    /// indices where an OSC 133 `A` (prompt-start) mark sits.
+    /// The render layer draws a faint horizontal separator at
+    /// each of these rows so the operator sees discrete blocks
+    /// without needing a sidebar.
+    ///
+    /// Alt-screen TUIs (vim, helix, btop) don't have block
+    /// boundaries — those screens are atomic. Returns an empty
+    /// vec when alt is active.
+    #[must_use]
+    pub fn block_separator_viewport_rows(&self) -> Vec<usize> {
+        if self.use_alternate {
+            return Vec::new();
+        }
+        let grid = &self.primary;
+        let base = grid.rows.len().saturating_sub(grid.visible_rows);
+        let view_top = base.saturating_sub(self.scroll_offset);
+        let view_bottom = view_top + grid.visible_rows;
+        self.prompt_marks
+            .iter()
+            .filter(|m| {
+                m.kind == crate::prompt_mark::PromptKind::Start
+                    && m.grid_row >= view_top
+                    && m.grid_row < view_bottom
+            })
+            .map(|m| m.grid_row - view_top)
+            .collect()
+    }
+
     /// Full terminal reset (RIS). Preserves scrollback setting and theme colors.
     pub fn reset(&mut self) {
         let cols = self.cols;
@@ -3987,6 +4016,36 @@ mod tests {
         // Send prompt start marker
         term.feed(b"\x1b]133;A\x1b\\");
         assert_eq!(term.prompt_start_row(), Some(0));
+    }
+
+    #[test]
+    fn block_separator_viewport_rows_returns_visible_start_marks() {
+        let mut term = Terminal::new(80, 24);
+        // No marks → empty separators.
+        assert!(term.block_separator_viewport_rows().is_empty());
+
+        // Two prompt-start marks at row 0 and row 2 (advance
+        // cursor between them).
+        term.feed(b"\x1b]133;A\x1b\\");
+        term.feed(b"$ ls\r\n");          // row 0 → row 1
+        term.feed(b"file1 file2\r\n");   // row 1 → row 2
+        term.feed(b"\x1b]133;A\x1b\\");
+
+        let seps = term.block_separator_viewport_rows();
+        assert_eq!(seps.len(), 2, "expected two viewport-visible separators, got {seps:?}");
+        // First mark at the top (row 0), second after the 2
+        // lines of output (row 2).
+        assert!(seps.contains(&0), "first separator should land at row 0: {seps:?}");
+        assert!(seps.contains(&2), "second separator should land at row 2: {seps:?}");
+    }
+
+    #[test]
+    fn block_separator_viewport_rows_is_empty_on_alt_screen() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b]133;A\x1b\\");
+        // Enter alt screen (DEC mode 1049).
+        term.feed(b"\x1b[?1049h");
+        assert!(term.block_separator_viewport_rows().is_empty());
     }
 
     #[test]

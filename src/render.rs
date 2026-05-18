@@ -843,6 +843,11 @@ struct Snapshot {
     search_matches: Vec<crate::search::SearchMatch>,
     search_current: usize,
     image_placements: Vec<ImagePlacement>,
+    /// Viewport-relative rows where a Pane-as-block boundary
+    /// sits — each is an OSC 133 `A` prompt-start mark within
+    /// the visible viewport. The render layer draws a faint
+    /// horizontal separator above each.
+    block_separator_rows: Vec<usize>,
 }
 
 /// Comparable summary of the styling axes that decide whether two
@@ -1275,6 +1280,7 @@ impl TerminalRenderer {
         let on_alt = term.on_alt_screen();
         let rows: Vec<Vec<Cell>> = term.visible_rows().map(|r| r.to_vec()).collect();
         let image_placements = term.image_placements().to_vec();
+        let block_separator_rows = term.block_separator_viewport_rows();
         drop(term);
 
         // P24 — URL detection is wasted on alt-screen TUIs: vim,
@@ -1306,6 +1312,7 @@ impl TerminalRenderer {
                 search_matches,
                 search_current,
                 image_placements,
+                block_separator_rows,
             },
             seqno,
         )
@@ -1645,6 +1652,26 @@ impl TerminalRenderer {
                     color: self.cursor_color,
                 });
             }
+        }
+
+        // ── Pane-as-block separators ───────────────────────────
+        // A faint horizontal line (1px tall) at each OSC 133 A
+        // mark within the viewport. Nord frost-3 at ~30% alpha
+        // — visible but not distracting. Sits *above* the row
+        // so it visually separates "previous block ends here"
+        // from "next block starts below".
+        for sep_row in &snap.block_separator_rows {
+            // Skip row 0 — drawing above the top edge would
+            // be off-screen / visually noisy.
+            if *sep_row == 0 {
+                continue;
+            }
+            let y = origin_y + (*sep_row as f32) * self.cell_height;
+            instances.push(RectInstance {
+                pos: [origin_x, y],
+                size: [snap.cols as f32 * self.cell_width, 1.0],
+                color: [0.369, 0.506, 0.675, 0.30], // Nord #5E81AC @ 30% α
+            });
         }
 
         instances
