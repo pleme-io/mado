@@ -15,6 +15,7 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 mod clipboard_store;
 mod config;
+mod gui_tear_attach;
 mod keybind;
 mod mcp;
 mod osc_1337;
@@ -125,6 +126,14 @@ enum SubCmd {
         /// `~/.local/share/tear/tear.sock`).
         #[arg(long)]
         socket: Option<std::path::PathBuf>,
+        /// **Phase 3.1** — open a real mado GPU window backed by
+        /// a single Terminal that subscribes to the pane's PTY
+        /// byte stream. Keystrokes forward via `send_keys`;
+        /// window resize forwards via `pane_resize_absolute`.
+        /// Without this flag, mado runs in stdout-streaming mode
+        /// (Phase 3 MVP).
+        #[arg(long)]
+        gpu: bool,
     },
     Record {
         /// Output scenario YAML path.
@@ -294,9 +303,19 @@ fn main() -> anyhow::Result<()> {
                 .map_err(|e| anyhow::anyhow!("scenario {path:?} failed:\n{e:#}"))?;
             return Ok(());
         }
-        Some(SubCmd::TearAttach { ref pane, ref socket }) => {
+        Some(SubCmd::TearAttach { ref pane, ref socket, gpu }) => {
             shidou::init_tracing_to_stderr();
-            cmd_tear_attach(pane, socket.clone())?;
+            if gpu {
+                let pane_id: tear_types::PaneId = pane.parse().map_err(
+                    |e: anyhow::Error| anyhow::anyhow!("invalid pane id `{pane}`: {e}"),
+                )?;
+                let socket_path = socket
+                    .clone()
+                    .unwrap_or_else(tear_types::wire::default_socket_path);
+                gui_tear_attach::run(pane_id, socket_path)?;
+            } else {
+                cmd_tear_attach(pane, socket.clone())?;
+            }
             return Ok(());
         }
         Some(SubCmd::Record {
