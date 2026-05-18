@@ -42,14 +42,63 @@ pub fn run(pane_id: tear_types::PaneId, socket_path: PathBuf) -> Result<()> {
 
     let config = crate::config::load(&None).unwrap_or_default();
 
-    // ── Tear control connection ───────────────────────────────
-    let client = Arc::new(
-        tear_client::Client::connect(&socket_path)
-            .with_context(|| format!(
-                "tear-daemon not reachable at {}: start it with `tear daemon`",
-                socket_path.display()
-            ))?,
-    );
+    // ── Tear control connection — discovery-driven ────────────
+    // The `--socket` CLI flag is honoured by overlaying it onto
+    // the loaded MadoTearConfig before calling discover(). This
+    // means a user with `tear.mode = "never"` set in their config
+    // who passes `--gpu` on the CLI still gets sensible behaviour
+    // (we infer Auto for the explicit attach intent).
+    let tear_cfg = crate::config::MadoTearConfig {
+        socket: Some(socket_path.clone()),
+        // CLI invocation = explicit user intent to attach.
+        // Even with `mode = "never"` in YAML, Phase-3.1 GPU mode
+        // requires tear; override.
+        mode: match config.tear.mode {
+            crate::config::TearMode::Never => crate::config::TearMode::Auto,
+            other => other,
+        },
+        ..config.tear.clone()
+    };
+    let (client, _resolved_socket) = match crate::tear_discovery::discover(&tear_cfg) {
+        crate::tear_discovery::DiscoveryOutcome::Attached(c, p) => (Arc::new(c), p),
+        crate::tear_discovery::DiscoveryOutcome::Required(msg) => {
+            return Err(anyhow::anyhow!("{msg}"));
+        }
+        crate::tear_discovery::DiscoveryOutcome::Fallback => {
+            return Err(anyhow::anyhow!(
+                "tear-daemon not reachable at {} (tear.mode={:?}, auto_spawn={}).\n\
+                 Start one with `tear daemon` or set `tear.auto_spawn = true`.",
+                socket_path.display(),
+                tear_cfg.mode,
+                tear_cfg.auto_spawn
+            ));
+        }
+    };
+
+    // ── Impose mado-authored config on attach ─────────────────
+    // If the operator declared `tear.impose.*` overrides, mado
+    // fetches the daemon's current TearConfig, merges in the
+    // overrides, and pushes the result back via SetConfig. This
+    // is the M5 destination's "mado is the front-end + canonical
+    // config author" half — daemon-on-disk untouched; the next
+    // notify reload reverts.
+    if let Some(impose) = tear_cfg.impose.as_ref() {
+        if impose.has_any_override() {
+            match client.get_config() {
+                Ok(mut current) => {
+                    impose.apply_to(&mut current);
+                    if let Err(e) = client.set_config(&current) {
+                        tracing::warn!(error = %e, "set_config (impose) failed");
+                    } else {
+                        tracing::info!("imposed mado-authored TearConfig overrides on daemon");
+                    }
+                }
+                Err(e) => {
+                    tracing::warn!(error = %e, "get_config failed; skipping impose");
+                }
+            }
+        }
+    }
 
     // ── Pull the pane's current size so the Terminal starts with
     // ── the right dimensions (the daemon's PaneGrid already knows

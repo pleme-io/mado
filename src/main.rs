@@ -18,6 +18,7 @@ mod config;
 mod gui_tear_attach;
 mod keybind;
 mod single_pane;
+mod tear_discovery;
 mod mcp;
 mod osc_1337;
 mod scripting;
@@ -176,15 +177,45 @@ fn cmd_tear_attach(
     pane: &str,
     socket: Option<std::path::PathBuf>,
 ) -> anyhow::Result<()> {
-    let socket_path = socket.unwrap_or_else(tear_types::wire::default_socket_path);
-    let client = tear_client::Client::connect(&socket_path).map_err(|e| {
-        anyhow::anyhow!(
-            "tear-daemon not reachable at {}: {}\n\
-             Start it with: tear daemon",
-            socket_path.display(),
-            e
-        )
-    })?;
+    // Honour user's mado config but override mode = Never (CLI
+    // intent always wins over YAML `tear.mode = "never"` when the
+    // user explicitly typed `mado tear-attach`).
+    let mado_cfg = crate::config::load(&None).unwrap_or_default();
+    let tear_cfg = crate::config::MadoTearConfig {
+        socket: socket.or(mado_cfg.tear.socket.clone()),
+        mode: match mado_cfg.tear.mode {
+            crate::config::TearMode::Never => crate::config::TearMode::Auto,
+            other => other,
+        },
+        ..mado_cfg.tear.clone()
+    };
+    let (client, socket_path) = match crate::tear_discovery::discover(&tear_cfg) {
+        crate::tear_discovery::DiscoveryOutcome::Attached(c, p) => (c, p),
+        crate::tear_discovery::DiscoveryOutcome::Required(msg) => {
+            return Err(anyhow::anyhow!("tear-daemon required but not reachable: {msg}"));
+        }
+        crate::tear_discovery::DiscoveryOutcome::Fallback => {
+            return Err(anyhow::anyhow!(
+                "tear-daemon not reachable. Start one with `tear daemon` \
+                 or set `tear.auto_spawn = true` in your mado config."
+            ));
+        }
+    };
+    // Impose mado-authored TearConfig overrides if the operator
+    // set `tear.impose.*` — same shape as gui_tear_attach but for
+    // stdout-streaming mode. Failures here are non-fatal: a
+    // session can still proceed against the daemon's original
+    // config.
+    if let Some(impose) = tear_cfg.impose.as_ref() {
+        if impose.has_any_override() {
+            if let Ok(mut current) = client.get_config() {
+                impose.apply_to(&mut current);
+                if let Err(e) = client.set_config(&current) {
+                    tracing::warn!(error = %e, "set_config (impose) failed");
+                }
+            }
+        }
+    }
     let pane_id: tear_types::PaneId = pane
         .parse()
         .map_err(|e: anyhow::Error| anyhow::anyhow!("invalid pane id `{pane}`: {e}"))?;

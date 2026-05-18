@@ -55,6 +55,164 @@ pub struct MadoConfig {
     pub keybinds: KeybindConfig,
     #[serde(default)]
     pub quick_terminal: QuickTerminalConfig,
+    /// Tear-multiplexer integration (theory/MADO-TEAR-M5.md).
+    /// Mado discovers + optionally attaches to a tear-daemon at
+    /// launch; the mode + socket override + auto-spawn knob all
+    /// live here. Default = `TearMode::Auto` — try tear, fall
+    /// back to local PTY if not available.
+    #[serde(default)]
+    pub tear: MadoTearConfig,
+}
+
+/// Mado's `[tear]` config section — controls auto-discovery and
+/// fallback behaviour around the tear-daemon multiplexer.
+///
+/// Operating modes (`mode`):
+///   * `Auto` — try to connect to the daemon (auto-discovered
+///     socket OR explicit `socket` override). If successful, run
+///     in tear-attached mode; if not, fall back to local PTY.
+///     Optionally auto-spawn the daemon when `auto_spawn = true`.
+///   * `Always` — require tear. If no daemon is discoverable AND
+///     `auto_spawn = false`, mado refuses to start. If
+///     `auto_spawn = true`, mado spawns one and attaches.
+///   * `Never` — ignore tear entirely. Always use the local PTY.
+///     Useful for headless / scripted invocations where the user
+///     genuinely wants single-pane mado with no IPC.
+///   * `Attach` — like `Always` but never auto-spawns. Refuses to
+///     start if no daemon is reachable. The "I run my tear daemon
+///     as a service, mado must talk to that instance" mode.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MadoTearConfig {
+    #[serde(default)]
+    pub mode: TearMode,
+    /// Explicit UDS path override. `None` (default) → derive from
+    /// `$XDG_RUNTIME_DIR/tear.sock` (or `~/.local/share/tear/
+    /// tear.sock` fallback) — same default the tear daemon binds
+    /// to.
+    #[serde(default)]
+    pub socket: Option<std::path::PathBuf>,
+    /// When `true` and the discovery probe finds no live daemon,
+    /// mado spawns one via `Command::new("tear").args(["daemon",
+    /// "--socket", <socket>])` and waits up to
+    /// `spawn_wait_ms` for it to bind. When `false`, an absent
+    /// daemon is left absent (Auto falls back; Always errors out).
+    #[serde(default = "default_auto_spawn")]
+    pub auto_spawn: bool,
+    /// Milliseconds to wait for an auto-spawned daemon to bind
+    /// its socket before giving up. Default 2000 — plenty even on
+    /// slow CI hardware.
+    #[serde(default = "default_spawn_wait_ms")]
+    pub spawn_wait_ms: u64,
+    /// Session name to attach to / create on first attach. None
+    /// = let mado generate a unique name from the current
+    /// timestamp.
+    #[serde(default)]
+    pub session_name: Option<String>,
+    /// Pane id to attach to. Mutually exclusive with
+    /// `session_name`; if both set, `pane` wins. Use this when
+    /// reconnecting to a known long-lived pane.
+    #[serde(default)]
+    pub pane: Option<String>,
+    /// Optional TearConfig overrides mado pushes to the daemon
+    /// at attach time (and again on demand during the session).
+    /// Implements the "mado authors tear's config" half of the
+    /// M5 destination: mado is the front-end + the canonical
+    /// author of tear settings when it's the consumer.
+    ///
+    /// `None` (default) — mado leaves the daemon's config alone.
+    /// `Some(overrides)` — mado fetches the daemon's current
+    /// TearConfig at attach, merges these overrides in (None
+    /// fields leave the daemon value untouched; Some fields
+    /// replace it), and pushes the result back via `SetConfig`.
+    /// The daemon's on-disk file is NOT touched; a notify-driven
+    /// or manual `ReloadConfig` reverts to the file.
+    #[serde(default)]
+    pub impose: Option<MadoTearImpose>,
+}
+
+/// Per-field TearConfig overrides mado optionally pushes to the
+/// daemon at attach time. Every field is `Option`-wrapped so the
+/// merge is unambiguous: `None` = leave daemon's value alone,
+/// `Some(v)` = replace.
+///
+/// Today's surface is a small useful subset of TearConfig fields
+/// — the ones operators most often want mado to author centrally
+/// (so a fleet of mado windows agree on prefix / shell / status).
+/// New fields land here as new use cases surface; no breaking
+/// change to existing operators because every field is optional.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct MadoTearImpose {
+    #[serde(default)]
+    pub prefix: Option<String>,
+    #[serde(default)]
+    pub default_shell: Option<String>,
+    #[serde(default)]
+    pub status_visible: Option<bool>,
+}
+
+impl MadoTearImpose {
+    /// True iff at least one override is set. Lets the caller
+    /// skip the get_config → mutate → set_config round-trip
+    /// when there's nothing to impose.
+    pub fn has_any_override(&self) -> bool {
+        self.prefix.is_some()
+            || self.default_shell.is_some()
+            || self.status_visible.is_some()
+    }
+
+    /// Apply overrides in-place onto a TearConfig snapshot. Each
+    /// `Some(v)` overwrites the corresponding field; `None`
+    /// fields leave the snapshot untouched.
+    pub fn apply_to(&self, cfg: &mut tear_config::TearConfig) {
+        if let Some(p) = &self.prefix {
+            cfg.prefix = p.clone();
+        }
+        if let Some(s) = &self.default_shell {
+            cfg.default_shell = s.clone();
+        }
+        if let Some(v) = self.status_visible {
+            cfg.status.visible = v;
+        }
+    }
+}
+
+impl Default for MadoTearConfig {
+    fn default() -> Self {
+        Self {
+            mode: TearMode::default(),
+            socket: None,
+            auto_spawn: default_auto_spawn(),
+            spawn_wait_ms: default_spawn_wait_ms(),
+            session_name: None,
+            pane: None,
+            impose: None,
+        }
+    }
+}
+
+/// How mado interacts with the tear-daemon multiplexer. See
+/// [`MadoTearConfig`] for the per-mode contract.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum TearMode {
+    /// Try tear; fall back to local PTY on failure. Default.
+    #[default]
+    Auto,
+    /// Require tear; auto-spawn if missing-AND `auto_spawn=true`,
+    /// else error.
+    Always,
+    /// Ignore tear entirely; always local PTY.
+    Never,
+    /// Like Always but never spawns — must find an existing daemon.
+    Attach,
+}
+
+fn default_auto_spawn() -> bool {
+    true
+}
+
+fn default_spawn_wait_ms() -> u64 {
+    2000
 }
 
 /// Font family and rendering configuration (mirrors Ghostty's font-* options).
@@ -677,6 +835,7 @@ impl Default for MadoConfig {
             search: SearchColorsConfig::default(),
             keybinds: KeybindConfig::default(),
             quick_terminal: QuickTerminalConfig::default(),
+            tear: MadoTearConfig::default(),
         }
     }
 }
@@ -913,6 +1072,137 @@ where
     let store = shikumi::ConfigStore::<MadoConfig>::load_and_watch(&path, "MADO_", on_reload)?;
     let config = MadoConfig::clone(&store.get());
     Ok((config, store))
+}
+
+#[cfg(test)]
+mod tear_tests {
+    use super::*;
+
+    #[test]
+    fn default_tear_mode_is_auto() {
+        let cfg = MadoTearConfig::default();
+        assert_eq!(cfg.mode, TearMode::Auto);
+        assert!(cfg.auto_spawn, "auto_spawn defaults to true");
+        assert_eq!(cfg.spawn_wait_ms, 2000);
+        assert!(cfg.socket.is_none());
+        assert!(cfg.impose.is_none());
+    }
+
+    #[test]
+    fn mado_config_default_includes_tear_section() {
+        let cfg = MadoConfig::default();
+        assert_eq!(cfg.tear.mode, TearMode::Auto);
+    }
+
+    #[test]
+    fn tear_mode_serde_uses_snake_case() {
+        let yaml_auto = serde_yaml_ng::to_string(&TearMode::Auto).unwrap();
+        assert!(yaml_auto.contains("auto"));
+        let yaml_attach = serde_yaml_ng::to_string(&TearMode::Attach).unwrap();
+        assert!(yaml_attach.contains("attach"));
+        let parsed: TearMode = serde_yaml_ng::from_str("never").unwrap();
+        assert_eq!(parsed, TearMode::Never);
+    }
+
+    #[test]
+    fn tear_section_parses_from_yaml() {
+        let yaml = r#"
+mode: always
+socket: /tmp/managed-tear.sock
+auto_spawn: false
+spawn_wait_ms: 5000
+session_name: mado-main
+impose:
+  prefix: C-z
+  default_shell: /bin/zsh
+  status_visible: false
+"#;
+        let cfg: MadoTearConfig = serde_yaml_ng::from_str(yaml).unwrap();
+        assert_eq!(cfg.mode, TearMode::Always);
+        assert_eq!(
+            cfg.socket.as_deref().map(|p| p.to_string_lossy().to_string()),
+            Some("/tmp/managed-tear.sock".to_string())
+        );
+        assert!(!cfg.auto_spawn);
+        assert_eq!(cfg.spawn_wait_ms, 5000);
+        assert_eq!(cfg.session_name.as_deref(), Some("mado-main"));
+        let imp = cfg.impose.as_ref().unwrap();
+        assert_eq!(imp.prefix.as_deref(), Some("C-z"));
+        assert_eq!(imp.default_shell.as_deref(), Some("/bin/zsh"));
+        assert_eq!(imp.status_visible, Some(false));
+    }
+
+    #[test]
+    fn empty_tear_section_uses_all_defaults() {
+        let yaml = "{}";
+        let cfg: MadoTearConfig = serde_yaml_ng::from_str(yaml).unwrap();
+        assert_eq!(cfg.mode, TearMode::Auto);
+        assert!(cfg.auto_spawn);
+    }
+
+    #[test]
+    fn impose_has_any_override_is_true_only_when_set() {
+        let empty = MadoTearImpose::default();
+        assert!(!empty.has_any_override());
+
+        let with_prefix = MadoTearImpose {
+            prefix: Some("C-x".into()),
+            ..Default::default()
+        };
+        assert!(with_prefix.has_any_override());
+
+        let with_shell = MadoTearImpose {
+            default_shell: Some("/bin/fish".into()),
+            ..Default::default()
+        };
+        assert!(with_shell.has_any_override());
+
+        let with_status = MadoTearImpose {
+            status_visible: Some(false),
+            ..Default::default()
+        };
+        assert!(with_status.has_any_override());
+    }
+
+    #[test]
+    fn impose_apply_to_only_changes_some_fields() {
+        let mut cfg = tear_config::TearConfig::default();
+        let original_prefix = cfg.prefix.clone();
+        let original_shell = cfg.default_shell.clone();
+        let original_status_visible = cfg.status.visible;
+
+        // Override only prefix.
+        let imp = MadoTearImpose {
+            prefix: Some("C-Space".into()),
+            ..Default::default()
+        };
+        imp.apply_to(&mut cfg);
+        assert_eq!(cfg.prefix, "C-Space");
+        assert_eq!(cfg.default_shell, original_shell);
+        assert_eq!(cfg.status.visible, original_status_visible);
+
+        // Override only shell.
+        let mut cfg2 = tear_config::TearConfig::default();
+        let imp2 = MadoTearImpose {
+            default_shell: Some("/bin/fish".into()),
+            ..Default::default()
+        };
+        imp2.apply_to(&mut cfg2);
+        assert_eq!(cfg2.default_shell, "/bin/fish");
+        assert_eq!(cfg2.prefix, original_prefix);
+
+        // Override all three.
+        let mut cfg3 = tear_config::TearConfig::default();
+        let imp3 = MadoTearImpose {
+            prefix: Some("C-z".into()),
+            default_shell: Some("/usr/bin/dash".into()),
+            status_visible: Some(false),
+        };
+        imp3.apply_to(&mut cfg3);
+        assert_eq!(cfg3.prefix, "C-z");
+        assert_eq!(cfg3.default_shell, "/usr/bin/dash");
+        assert!(!cfg3.status.visible);
+    }
 }
 
 #[cfg(test)]
