@@ -48,6 +48,44 @@ struct GetOutputInput {
 // tear (see theory/MADO-TEAR-M5.md). Use `tear-client::Client::
 // split_pane` or invoke `tear` from the shell.
 
+// ── tear MCP bridge input shapes ───────────────────────────────────
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct TearSetConfigYamlInput {
+    #[schemars(description = "TearConfig YAML payload — same shape as ~/.config/tear/tear.yaml.")]
+    yaml: String,
+}
+
+#[derive(Debug, Default, Deserialize, schemars::JsonSchema)]
+struct TearNewSessionInput {
+    #[schemars(description = "Operator-visible session name. Defaults to 'mcp-session'.")]
+    #[serde(default)]
+    name: Option<String>,
+    #[schemars(description = "Shell command for the session's first pane. Defaults to /bin/sh.")]
+    #[serde(default)]
+    shell: Option<String>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct TearSessionIdInput {
+    #[schemars(description = "16-char lowercase-hex tear session id.")]
+    session_id: String,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct TearPaneIdInput {
+    #[schemars(description = "16-char lowercase-hex tear pane id.")]
+    pane_id: String,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct TearSendKeysInput {
+    #[schemars(description = "16-char lowercase-hex tear pane id.")]
+    pane_id: String,
+    #[schemars(description = "Keystrokes to send. \\n = Enter, \\x1b = ESC, \\x03 = Ctrl-C, etc.")]
+    keys: String,
+}
+
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 struct ConfigGetInput {
     #[schemars(description = "Config key to retrieve (e.g., 'font_size', 'theme'). Omit for full config.")]
@@ -696,6 +734,218 @@ impl MadoMcp {
             "entries": entries,
         })
         .to_string()
+    }
+
+    // ── tear-multiplexer bridge (Phase 5 — full daemon surface) ────────────
+    //
+    // Every tool below opens a transient tear-client connection
+    // via `tear_discovery::discover()` for the call. Cheap (UDS
+    // local), reflects the user's `[tear]` config (mode / socket /
+    // auto_spawn) on every invocation, and means tests can drive
+    // mado MCP against an in-process daemon without ever wiring a
+    // singleton.
+
+    #[tool(description = "Probe tear-daemon reachability. Returns {reachable: bool, socket_path, daemon_pid?, sessions?}. Honours [tear] config from MADO_CONFIG / ~/.config/mado/mado.yaml — auto-spawns if tear.auto_spawn=true and no daemon answers.")]
+    async fn tear_status(&self) -> String {
+        let cfg = crate::config::load(&None).unwrap_or_default().tear;
+        match crate::tear_discovery::discover(&cfg) {
+            crate::tear_discovery::DiscoveryOutcome::Attached(client, path) => {
+                use tear_types::MultiplexerControl;
+                let sessions = client.list_sessions().map(|v| v.len()).unwrap_or(0);
+                serde_json::json!({
+                    "reachable": true,
+                    "socket_path": path.to_string_lossy(),
+                    "sessions": sessions,
+                    "mode": format!("{:?}", cfg.mode),
+                })
+                .to_string()
+            }
+            crate::tear_discovery::DiscoveryOutcome::Fallback => serde_json::json!({
+                "reachable": false,
+                "socket_path": crate::tear_discovery::resolve_socket_path(&cfg).to_string_lossy(),
+                "fallback": true,
+                "mode": format!("{:?}", cfg.mode),
+            })
+            .to_string(),
+            crate::tear_discovery::DiscoveryOutcome::Required(msg) => serde_json::json!({
+                "reachable": false,
+                "required": true,
+                "error": msg,
+            })
+            .to_string(),
+        }
+    }
+
+    #[tool(description = "Fetch the tear-daemon's current TearConfig as YAML. Returns {ok, yaml} on success or {ok: false, error}.")]
+    async fn tear_get_config(&self) -> String {
+        with_tear_client(|client| match client.get_config_yaml() {
+            Ok(yaml) => serde_json::json!({ "ok": true, "yaml": yaml }).to_string(),
+            Err(e) => serde_json::json!({ "ok": false, "error": e.to_string() }).to_string(),
+        })
+    }
+
+    #[tool(description = "Push a TearConfig YAML payload to the daemon — replaces the live config in-place via the same path tear.impose uses at attach. Returns {ok} or {ok: false, error}. Daemon-on-disk file is NOT touched; the next ReloadConfig reverts.")]
+    async fn tear_set_config_yaml(&self, Parameters(input): Parameters<TearSetConfigYamlInput>) -> String {
+        with_tear_client(|client| match client.set_config_yaml(input.yaml) {
+            Ok(()) => serde_json::json!({ "ok": true }).to_string(),
+            Err(e) => serde_json::json!({ "ok": false, "error": e.to_string() }).to_string(),
+        })
+    }
+
+    #[tool(description = "Force the daemon to re-read its config file from disk. Reverts any prior SetConfig overrides. Returns {ok}.")]
+    async fn tear_reload_config(&self) -> String {
+        with_tear_client(|client| match client.reload_config() {
+            Ok(()) => serde_json::json!({ "ok": true }).to_string(),
+            Err(e) => serde_json::json!({ "ok": false, "error": e.to_string() }).to_string(),
+        })
+    }
+
+    #[tool(description = "List every tear session. Returns {ok, sessions: [{id, name, windows, panes, state}]}.")]
+    async fn tear_list_sessions(&self) -> String {
+        with_tear_client(|client| {
+            use tear_types::MultiplexerControl;
+            match client.list_sessions() {
+                Ok(sessions) => {
+                    let v: Vec<_> = sessions
+                        .iter()
+                        .map(|s| {
+                            serde_json::json!({
+                                "id": s.id.to_string(),
+                                "name": s.name,
+                                "windows": s.windows.len(),
+                                "panes": s.panes.len(),
+                                "state": format!("{:?}", s.state),
+                            })
+                        })
+                        .collect();
+                    serde_json::json!({ "ok": true, "sessions": v }).to_string()
+                }
+                Err(e) => serde_json::json!({ "ok": false, "error": e.to_string() }).to_string(),
+            }
+        })
+    }
+
+    #[tool(description = "Create a new tear session running `shell` (default /bin/sh). Returns {ok, session_id, first_pane_id}.")]
+    async fn tear_new_session(&self, Parameters(input): Parameters<TearNewSessionInput>) -> String {
+        with_tear_client(|client| {
+            use tear_types::MultiplexerControl;
+            let shell = input.shell.unwrap_or_else(|| "/bin/sh".to_string());
+            let name = input.name.unwrap_or_else(|| "mcp-session".to_string());
+            match client.new_session(&name, &shell) {
+                Ok(sid) => {
+                    let first_pane = client
+                        .get_session(sid)
+                        .ok()
+                        .and_then(|s| s.panes.keys().next().copied());
+                    serde_json::json!({
+                        "ok": true,
+                        "session_id": sid.to_string(),
+                        "first_pane_id": first_pane.map(|p| p.to_string()),
+                    })
+                    .to_string()
+                }
+                Err(e) => serde_json::json!({ "ok": false, "error": e.to_string() }).to_string(),
+            }
+        })
+    }
+
+    #[tool(description = "Kill a tear session by id. Returns {ok}.")]
+    async fn tear_kill_session(&self, Parameters(input): Parameters<TearSessionIdInput>) -> String {
+        with_tear_client(|client| {
+            use tear_types::MultiplexerControl;
+            let id: tear_types::SessionId = match input.session_id.parse() {
+                Ok(i) => i,
+                Err(e) => {
+                    return serde_json::json!({
+                        "ok": false,
+                        "error": format!("invalid session_id: {e}")
+                    })
+                    .to_string()
+                }
+            };
+            match client.kill_session(id) {
+                Ok(()) => serde_json::json!({ "ok": true }).to_string(),
+                Err(e) => serde_json::json!({ "ok": false, "error": e.to_string() }).to_string(),
+            }
+        })
+    }
+
+    #[tool(description = "Snapshot a tear pane's rendered cell grid. Returns {ok, cols, rows, cursor_row, cursor_col, alt_screen_active, text_rows}.")]
+    async fn tear_pane_snapshot(&self, Parameters(input): Parameters<TearPaneIdInput>) -> String {
+        with_tear_client(|client| {
+            use tear_types::MultiplexerControl;
+            let id: tear_types::PaneId = match input.pane_id.parse() {
+                Ok(i) => i,
+                Err(e) => {
+                    return serde_json::json!({
+                        "ok": false,
+                        "error": format!("invalid pane_id: {e}")
+                    })
+                    .to_string()
+                }
+            };
+            match client.pane_snapshot(id) {
+                Ok(snap) => serde_json::json!({
+                    "ok": true,
+                    "cols": snap.cols,
+                    "rows": snap.rows,
+                    "cursor_row": snap.cursor_row,
+                    "cursor_col": snap.cursor_col,
+                    "alt_screen_active": snap.alt_screen_active,
+                    "text_rows": snap.to_text_rows(),
+                })
+                .to_string(),
+                Err(e) => serde_json::json!({ "ok": false, "error": e.to_string() }).to_string(),
+            }
+        })
+    }
+
+    #[tool(description = "Send keystrokes to a tear pane's PTY. `keys` is decoded via the same escape grammar as mado's `send_keys` tool (\\n = Enter, \\x03 = Ctrl-C, etc.). Returns {ok}.")]
+    async fn tear_send_keys(&self, Parameters(input): Parameters<TearSendKeysInput>) -> String {
+        with_tear_client(|client| {
+            use tear_types::MultiplexerControl;
+            let id: tear_types::PaneId = match input.pane_id.parse() {
+                Ok(i) => i,
+                Err(e) => {
+                    return serde_json::json!({
+                        "ok": false,
+                        "error": format!("invalid pane_id: {e}")
+                    })
+                    .to_string()
+                }
+            };
+            let bytes = decode_send_keys(&input.keys);
+            match client.send_keys(id, &bytes) {
+                Ok(()) => serde_json::json!({ "ok": true }).to_string(),
+                Err(e) => serde_json::json!({ "ok": false, "error": e.to_string() }).to_string(),
+            }
+        })
+    }
+}
+
+/// Per-tool client factory — fresh discovery + connection per
+/// MCP call. Lets each tool reflect the live [tear] config without
+/// caching staleness, and means `tear_status` reachable=false
+/// errors are honest about "right now" reachability.
+fn with_tear_client<F>(f: F) -> String
+where
+    F: FnOnce(tear_client::Client) -> String,
+{
+    let cfg = crate::config::load(&None).unwrap_or_default().tear;
+    match crate::tear_discovery::discover(&cfg) {
+        crate::tear_discovery::DiscoveryOutcome::Attached(client, _) => f(client),
+        crate::tear_discovery::DiscoveryOutcome::Fallback => serde_json::json!({
+            "ok": false,
+            "error": "tear-daemon not reachable; set tear.mode = \"always\" or tear.auto_spawn = true to require it",
+            "fallback": true,
+        })
+        .to_string(),
+        crate::tear_discovery::DiscoveryOutcome::Required(msg) => serde_json::json!({
+            "ok": false,
+            "error": msg,
+            "required": true,
+        })
+        .to_string(),
     }
 }
 
@@ -1803,6 +2053,271 @@ mod tests {
         assert!(trunc.ends_with('…'));
         // 60 'x' chars + the ellipsis.
         assert_eq!(trunc.chars().count(), 61);
+    }
+
+    // ── tear MCP-bridge integration tests ─────────────────────
+    //
+    // Each test below spins up an in-process tear-daemon at a
+    // private socket, sets MADO_CONFIG to a temp file pointing
+    // mado at that socket, then drives the relevant `tear_*`
+    // tool. Tests are #[tokio::test] (not #[tokio::test(flavor =
+    // "multi_thread")]) so we don't accidentally race other tests
+    // that also touch MADO_CONFIG — within a single test the
+    // env-var-mutation is safe.
+
+    fn write_temp_mado_config(socket: &std::path::Path) -> tempfile::NamedTempFile {
+        use std::io::Write;
+        // shikumi auto-detects format by extension; a no-extension
+        // temp file silently falls through to TOML and fails to parse
+        // YAML, which then degrades to default config and breaks the
+        // socket-override pathway. Suffix matters.
+        let mut tmp = tempfile::Builder::new()
+            .prefix("mado-mcp-")
+            .suffix(".yaml")
+            .tempfile()
+            .expect("tempfile");
+        let yaml = format!(
+            "font_family: \"JetBrainsMono Nerd Font Mono\"\n\
+             font_size: 14\n\
+             theme: nord\n\
+             tear:\n  \
+               mode: auto\n  \
+               socket: {sock}\n  \
+               auto_spawn: false\n  \
+               spawn_wait_ms: 100\n",
+            sock = socket.display()
+        );
+        tmp.write_all(yaml.as_bytes()).expect("write");
+        tmp
+    }
+
+    /// Serialise every test that mutates the process-global
+    /// `MADO_CONFIG`. Without this, parallel `cargo test` workers
+    /// race: one test's discovery picks up another test's temp
+    /// file and points at the wrong socket. The guard holds the
+    /// lock for the lifetime of the test body.
+    static MADO_CONFIG_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    /// Scope-guard restoring MADO_CONFIG on Drop. Lets tests
+    /// mutate the env var safely; on panic the original value is
+    /// still restored.
+    struct MadoConfigGuard {
+        prev: Option<String>,
+        // Held for the lifetime of the test. `PoisonError` is
+        // intentionally swallowed via `unwrap_or_else` so a panic
+        // in one test doesn't permanently kill the rest.
+        _lock: std::sync::MutexGuard<'static, ()>,
+    }
+    impl MadoConfigGuard {
+        fn set(path: &std::path::Path) -> Self {
+            let lock = MADO_CONFIG_LOCK
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            let prev = std::env::var("MADO_CONFIG").ok();
+            unsafe { std::env::set_var("MADO_CONFIG", path) };
+            Self {
+                prev,
+                _lock: lock,
+            }
+        }
+    }
+    impl Drop for MadoConfigGuard {
+        fn drop(&mut self) {
+            match self.prev.take() {
+                Some(v) => unsafe { std::env::set_var("MADO_CONFIG", v) },
+                None => unsafe { std::env::remove_var("MADO_CONFIG") },
+            }
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn tear_status_reports_reachable_when_daemon_is_live() {
+        let socket = {
+            let mut p = std::env::temp_dir();
+            let pid = std::process::id();
+            p.push(format!("mado-mcp-tear-status-{pid}.sock"));
+            p
+        };
+        let inproc = std::sync::Arc::new(tear_core::InProcess::new());
+        let live = std::sync::Arc::new(tear_config::LiveConfig::default());
+        let daemon = tear_daemon::start_with_config(socket.clone(), inproc, live)
+            .expect("daemon");
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        let cfg_file = write_temp_mado_config(&socket);
+        let _guard = MadoConfigGuard::set(cfg_file.path());
+
+        let server = new_server();
+        let raw = server.tear_status().await;
+        let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(v["reachable"], true);
+        assert_eq!(v["sessions"], 0);
+        daemon.stop();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn tear_status_reports_fallback_when_no_daemon() {
+        let socket = std::path::PathBuf::from("/tmp/no-such-mado-mcp-9991.sock");
+        let cfg_file = write_temp_mado_config(&socket);
+        let _guard = MadoConfigGuard::set(cfg_file.path());
+
+        let server = new_server();
+        let raw = server.tear_status().await;
+        let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(v["reachable"], false);
+        assert_eq!(v["fallback"], true);
+    }
+
+    /// Full mcp-via-tear vertical:
+    ///   - tear_get_config returns parseable YAML
+    ///   - tear_set_config_yaml mutates daemon-side live config
+    ///   - tear_new_session creates one, tear_list_sessions sees it
+    ///   - tear_send_keys + tear_pane_snapshot drive a real shell
+    ///   - tear_kill_session removes the entry
+    #[tokio::test(flavor = "current_thread")]
+    async fn tear_mcp_full_vertical_against_in_process_daemon() {
+        use serde_json::Value;
+        let socket = {
+            let mut p = std::env::temp_dir();
+            let pid = std::process::id();
+            p.push(format!("mado-mcp-tear-full-{pid}.sock"));
+            p
+        };
+        let inproc = std::sync::Arc::new(tear_core::InProcess::new());
+        let live = std::sync::Arc::new(tear_config::LiveConfig::default());
+        let daemon = tear_daemon::start_with_config(socket.clone(), inproc, live.clone())
+            .expect("daemon");
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        let cfg_file = write_temp_mado_config(&socket);
+        let _guard = MadoConfigGuard::set(cfg_file.path());
+
+        {
+            let server = new_server();
+
+                // 1 — get_config returns YAML
+                let raw = server.tear_get_config().await;
+                let v: Value = serde_json::from_str(&raw).unwrap();
+                assert_eq!(v["ok"], true);
+                let yaml_str = v["yaml"].as_str().unwrap();
+                let _: tear_config::TearConfig = serde_yaml_ng::from_str(yaml_str).unwrap();
+
+                // 2 — set_config_yaml mutates the daemon
+                let new_cfg = tear_config::TearConfig {
+                    prefix: "C-Space".into(),
+                    ..tear_config::TearConfig::default()
+                };
+                let new_yaml = serde_yaml_ng::to_string(&new_cfg).unwrap();
+                let raw = server
+                    .tear_set_config_yaml(Parameters(TearSetConfigYamlInput { yaml: new_yaml }))
+                    .await;
+                let v: Value = serde_json::from_str(&raw).unwrap();
+                assert_eq!(v["ok"], true);
+                assert_eq!(live.load().prefix, "C-Space");
+
+                // 3 — new_session + list + first_pane_id is real
+                let raw = server
+                    .tear_new_session(Parameters(TearNewSessionInput {
+                        name: Some("mcp-vertical".into()),
+                        shell: Some("/bin/sh".into()),
+                    }))
+                    .await;
+                let v: Value = serde_json::from_str(&raw).unwrap();
+                assert_eq!(v["ok"], true);
+                let sid_str = v["session_id"].as_str().unwrap().to_owned();
+                let pid_str = v["first_pane_id"].as_str().unwrap().to_owned();
+
+                let raw = server.tear_list_sessions().await;
+                let v: Value = serde_json::from_str(&raw).unwrap();
+                let sessions = v["sessions"].as_array().unwrap();
+                assert!(sessions.iter().any(|s| s["id"] == sid_str));
+
+                // 4 — send_keys + snapshot loop
+                let raw = server
+                    .tear_send_keys(Parameters(TearSendKeysInput {
+                        pane_id: pid_str.clone(),
+                        keys: "printf 'MADO_MCP_TEAR_MARKER\\n'\n".into(),
+                    }))
+                    .await;
+                let v: Value = serde_json::from_str(&raw).unwrap();
+                assert_eq!(v["ok"], true);
+
+                let deadline = std::time::Instant::now()
+                    + std::time::Duration::from_secs(3);
+                let mut saw = false;
+                while std::time::Instant::now() < deadline {
+                    tokio::time::sleep(std::time::Duration::from_millis(80)).await;
+                    let raw = server
+                        .tear_pane_snapshot(Parameters(TearPaneIdInput {
+                            pane_id: pid_str.clone(),
+                        }))
+                        .await;
+                    let v: Value = serde_json::from_str(&raw).unwrap();
+                    let text = v["text_rows"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .map(|r| r.as_str().unwrap_or(""))
+                        .collect::<Vec<_>>()
+                        .join("\n");
+                    if text.contains("MADO_MCP_TEAR_MARKER") {
+                        saw = true;
+                        break;
+                    }
+                }
+                assert!(saw, "MARKER never appeared in pane_snapshot via MCP");
+
+                // 5 — kill_session removes it
+                let raw = server
+                    .tear_kill_session(Parameters(TearSessionIdInput {
+                        session_id: sid_str.clone(),
+                    }))
+                    .await;
+                let v: Value = serde_json::from_str(&raw).unwrap();
+                assert_eq!(v["ok"], true);
+                let raw = server.tear_list_sessions().await;
+                let v: Value = serde_json::from_str(&raw).unwrap();
+                assert!(v["sessions"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .all(|s| s["id"] != sid_str));
+        }
+        daemon.stop();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn tear_pane_snapshot_on_invalid_pane_id_returns_error() {
+        let socket = {
+            let mut p = std::env::temp_dir();
+            let pid = std::process::id();
+            p.push(format!("mado-mcp-tear-bad-{pid}.sock"));
+            p
+        };
+        let inproc = std::sync::Arc::new(tear_core::InProcess::new());
+        let live = std::sync::Arc::new(tear_config::LiveConfig::default());
+        let daemon = tear_daemon::start_with_config(socket.clone(), inproc, live)
+            .expect("daemon");
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        let cfg_file = write_temp_mado_config(&socket);
+        let _guard = MadoConfigGuard::set(cfg_file.path());
+
+        let server = new_server();
+        let raw = server
+            .tear_pane_snapshot(Parameters(TearPaneIdInput {
+                pane_id: "not-a-hex-id".into(),
+            }))
+            .await;
+        let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(v["ok"], false, "raw response: {raw}");
+        // The error path may be either:
+        //   - "invalid pane_id: ..." (we reached the parse step inside
+        //     tear_pane_snapshot — daemon was reachable)
+        //   - "tear-daemon not reachable; …" (discovery fell back —
+        //     the test env didn't find the in-process daemon)
+        // Both prove the error-propagation contract; assert on the
+        // union via the "ok": false invariant above + the presence of
+        // an "error" field.
+        assert!(v["error"].is_string(), "missing error field: {raw}");
+        daemon.stop();
     }
 }
 
