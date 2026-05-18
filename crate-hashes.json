@@ -5,13 +5,13 @@
   "git+https://github.com/pleme-io/hasami#0.1.0": "12w8yv6svbqx8n59gz9msd5vlwspzz1brcr3ffjsqgyfzsjqvnqc",
   "git+https://github.com/pleme-io/ishou#ishou-tokens@0.1.0": "0fbhnd881b5aykb6k6r2zixwffvhpl79mx5b1d3g7s5z0lfkjv7k",
   "git+https://github.com/pleme-io/kaname#0.1.0": "0yw9kavqcpqd3dihpfn4mwdlrbz586043cbszlkcmw9c4bry2d4x",
-  "git+https://github.com/pleme-io/madori#0.1.0": "0s5gi4gi2q4fyangz1q82lz4437w5icpq7wsdpqh4j7yz45hbvnr",
+  "git+https://github.com/pleme-io/madori#0.1.0": "18hl69pyjpl11aqrsnd5878imfsf6a42rnqhggnapmxa873c9y5w",
   "git+https://github.com/pleme-io/shidou#0.1.0": "0haaxr2zc623ayjmbf1ag8vghqwfgcd215dax3pkmcng1mm7lzy2",
   "git+https://github.com/pleme-io/shikumi#0.1.0": "1g39z73mp2hpccrqfiy4108hxlkkc8g0imgq3msinjmhl3rpzzpn",
   "git+https://github.com/pleme-io/soushi#0.1.0": "0prhgpvqzn0j1axlvb0a4dgx7hx2fr7cm800v92mx59ik3n0lvf0",
-  "git+https://github.com/pleme-io/tear#tear-client@0.1.0": "0nvdwa9hv9llq59hlm3inh3f1ri0gaqr8xa9spdzspc540zqn7nq",
-  "git+https://github.com/pleme-io/tear#tear-config@0.1.0": "0nvdwa9hv9llq59hlm3inh3f1ri0gaqr8xa9spdzspc540zqn7nq",
-  "git+https://github.com/pleme-io/tear#tear-core@0.1.0": "0nvdwa9hv9llq59hlm3inh3f1ri0gaqr8xa9spdzspc540zqn7nq",
-  "git+https://github.com/pleme-io/tear#tear-daemon@0.1.0": "0nvdwa9hv9llq59hlm3inh3f1ri0gaqr8xa9spdzspc540zqn7nq",
-  "git+https://github.com/pleme-io/tear#tear-types@0.1.0": "0nvdwa9hv9llq59hlm3inh3f1ri0gaqr8xa9spdzspc540zqn7nq"
+  "git+https://github.com/pleme-io/tear#tear-client@0.1.0": "02dcp811f7by3whc1d5ya2bnxi2gg7wksb6kn35wwlz2hsb5if0p",
+  "git+https://github.com/pleme-io/tear#tear-config@0.1.0": "02dcp811f7by3whc1d5ya2bnxi2gg7wksb6kn35wwlz2hsb5if0p",
+  "git+https://github.com/pleme-io/tear#tear-core@0.1.0": "02dcp811f7by3whc1d5ya2bnxi2gg7wksb6kn35wwlz2hsb5if0p",
+  "git+https://github.com/pleme-io/tear#tear-daemon@0.1.0": "02dcp811f7by3whc1d5ya2bnxi2gg7wksb6kn35wwlz2hsb5if0p",
+  "git+https://github.com/pleme-io/tear#tear-types@0.1.0": "02dcp811f7by3whc1d5ya2bnxi2gg7wksb6kn35wwlz2hsb5if0p"
 }
