@@ -230,3 +230,107 @@ pub fn spawn(
         exited,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Construct a SinglePane without a PTY — for shim unit tests.
+    /// The input_tx / resize_tx receivers are dropped so any sends
+    /// silently fail (matches the post-PTY-exit shape exactly).
+    fn for_test(cols: usize, rows: usize) -> SinglePane {
+        let terminal: SharedTerminal =
+            Arc::new(parking_lot::RwLock::new(Terminal::with_scrollback(cols, rows, 100)));
+        let (input_tx, _input_rx) = unbounded_channel::<Vec<u8>>();
+        let (resize_tx, _resize_rx) = unbounded_channel::<(u16, u16)>();
+        // Drop the receivers so subsequent sends return Err — exactly
+        // what happens after a real PTY's writer / resize task exits.
+        SinglePane {
+            terminal,
+            input_tx,
+            resize_tx,
+            selection: Arc::new(Mutex::new(Selection::new())),
+            search: Arc::new(Mutex::new(SearchState::new())),
+            exited: Arc::new(AtomicBool::new(false)),
+        }
+    }
+
+    #[test]
+    fn focused_pane_always_returns_some_self() {
+        let p = for_test(80, 24);
+        let f = p.focused_pane();
+        assert!(f.is_some());
+        // Same pointer — focused_pane returns &self.
+        let f_ref = f.unwrap();
+        assert!(std::ptr::eq(f_ref, &p));
+    }
+
+    #[test]
+    fn any_exited_mirrors_has_exited() {
+        let p = for_test(80, 24);
+        assert!(!p.has_exited());
+        assert!(!p.any_exited());
+        p.exited.store(true, Ordering::Release);
+        assert!(p.has_exited());
+        assert!(p.any_exited());
+    }
+
+    #[test]
+    fn send_input_is_no_op_after_receiver_dropped() {
+        // for_test drops the receiver so any send errors. The shim
+        // swallows the error — must not panic.
+        let p = for_test(80, 24);
+        p.send_input(b"keystroke".to_vec());
+        p.send_input(b"another".to_vec());
+        // No assertion needed — the test passes if it doesn't panic.
+    }
+
+    #[test]
+    fn resize_is_no_op_after_receiver_dropped() {
+        let p = for_test(80, 24);
+        p.resize(120, 40);
+        p.resize(0, 0);
+        // No assertion needed — test passes if no panic.
+    }
+
+    #[test]
+    fn resize_panes_converts_pixels_to_cells() {
+        // width 800, height 600, padding 10, cell 8x16
+        //   cols = (800 - 20) / 8 = 97
+        //   rows = (600 - 20) / 16 = 36
+        let p = for_test(80, 24);
+        p.resize_panes(800.0, 600.0, 10.0, 8.0, 16.0);
+        // Verify the terminal grid was resized:
+        let t = p.terminal.read();
+        assert_eq!(t.cols(), 97);
+        assert_eq!(t.rows(), 36);
+    }
+
+    #[test]
+    fn resize_panes_with_invalid_cell_metrics_is_noop() {
+        // Zero or negative cell metrics shouldn't crash the
+        // terminal — happens during HiDPI initialisation race
+        // before the renderer measures actual cell metrics.
+        let p = for_test(80, 24);
+        let original_cols = p.terminal.read().cols();
+        let original_rows = p.terminal.read().rows();
+        p.resize_panes(800.0, 600.0, 10.0, 0.0, 16.0);
+        assert_eq!(p.terminal.read().cols(), original_cols);
+        assert_eq!(p.terminal.read().rows(), original_rows);
+        p.resize_panes(800.0, 600.0, 10.0, 8.0, -1.0);
+        assert_eq!(p.terminal.read().cols(), original_cols);
+        assert_eq!(p.terminal.read().rows(), original_rows);
+    }
+
+    #[test]
+    fn resize_panes_clamps_to_min_one() {
+        // Width 5, padding 10 → (5 - 20) / 8 = negative → clamp to 1.
+        let p = for_test(80, 24);
+        p.resize_panes(5.0, 5.0, 10.0, 8.0, 16.0);
+        // saturating math: cell_w_logical = 8, width - 2*pad = -15;
+        // `as u16` of negative f32 saturates to 0 on Rust, then max(1).
+        let t = p.terminal.read();
+        assert!(t.cols() >= 1);
+        assert!(t.rows() >= 1);
+    }
+}
