@@ -12,7 +12,6 @@
 //! only the wrapping (single pane, not a tab/pane tree) differs.
 
 use std::collections::HashMap;
-use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
@@ -72,11 +71,6 @@ impl SinglePane {
     /// Compat alias for WindowState's `any_exited`.
     pub fn any_exited(&self) -> bool {
         self.has_exited()
-    }
-
-    /// Compat alias for WindowState's iterator API.
-    pub fn all_panes(&self) -> impl Iterator<Item = &Self> {
-        std::iter::once(self)
     }
 
     /// Compat: WindowState took pixel dims + cell metrics and

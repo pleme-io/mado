@@ -1906,52 +1906,7 @@ impl TerminalRenderer {
         buffers
     }
 
-    /// Snapshot a specific pane's terminal state (for multi-pane rendering).
-    fn snapshot_pane(
-        &self,
-        terminal: &SharedTerminal,
-        search: &Arc<Mutex<SearchState>>,
-    ) -> (Snapshot, u64) {
-        let term = terminal.read();
-        let seqno = term.seqno();
-        let cursor = *term.cursor();
-        let cols = term.cols();
-        let num_rows = term.rows();
-        let on_alt = term.on_alt_screen();
-        let rows: Vec<Vec<Cell>> = term.visible_rows().map(|r| r.to_vec()).collect();
-        let image_placements = term.image_placements().to_vec();
-        drop(term);
-
-        // P24 — alt-screen panes also skip URL detection.
-        let urls = if on_alt {
-            Vec::new()
-        } else {
-            url::detect_urls(&rows, cols)
-        };
-
-        let search = search.lock().unwrap();
-        let search_active = search.active;
-        let search_matches = search.matches.clone();
-        let search_current = search.current;
-        drop(search);
-
-        (
-            Snapshot {
-                rows,
-                cursor,
-                cols,
-                num_rows,
-                urls,
-                search_active,
-                search_matches,
-                search_current,
-                image_placements,
-            },
-            seqno,
-        )
-    }
-
-    // render_multi_pane + its docstring removed at Phase 4 —
+    // snapshot_pane + render_multi_pane both removed at Phase 4 —
     // multi-pane rendering belongs in tear's MultiplexerControl
     // path, not in mado.
 }

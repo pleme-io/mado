@@ -1198,7 +1198,10 @@ fn main() -> anyhow::Result<()> {
                                     if let Some(url) =
                                         crate::url::url_at(&detected, row, col)
                                     {
-                                        drop(ws);
+                                        // Phase-4 note: `ws` is a `&SinglePane` now
+                                        // (not a MutexGuard). `drop(&ws)` was a no-op
+                                        // and clippy flagged it; the old code dropped
+                                        // a real WindowState lock here.
                                         if let Err(e) = open::that(&url.url) {
                                             tracing::warn!(
                                                 error = %e,
@@ -1342,7 +1345,9 @@ fn main() -> anyhow::Result<()> {
                         let bell = term.take_bell();
                         let osc52_clip = term.take_clipboard();
                         drop(term);
-                        drop(ws);
+                        // Phase-4 note: `ws` is `&SinglePane`; `drop(&ws)`
+                        // is a no-op clippy flagged. `term` was a real
+                        // RwLockWriteGuard — dropping it above is real.
 
                         // OSC 52 clipboard sync — copy terminal clipboard to system
                         if let Some(clip_text) = osc52_clip {
