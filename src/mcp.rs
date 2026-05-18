@@ -44,13 +44,9 @@ struct GetOutputInput {
     lines: Option<u32>,
 }
 
-#[derive(Debug, Deserialize, schemars::JsonSchema)]
-struct SplitPaneInput {
-    #[schemars(description = "Split direction: 'horizontal' or 'vertical'.")]
-    direction: String,
-    #[schemars(description = "Optional command to run in the new pane.")]
-    command: Option<String>,
-}
+// SplitPaneInput removed at Phase 4 — multiplexing belongs in
+// tear (see theory/MADO-TEAR-M5.md). Use `tear-client::Client::
+// split_pane` or invoke `tear` from the shell.
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 struct ConfigGetInput {
@@ -452,21 +448,10 @@ impl MadoMcp {
         }
     }
 
-    #[tool(description = "Create a new split pane in the active tab. Specify horizontal or vertical split direction.")]
-    async fn split_pane(&self, Parameters(input): Parameters<SplitPaneInput>) -> String {
-        stub_response(
-            "split_pane",
-            serde_json::json!({
-                "direction": input.direction,
-                "command": input.command,
-            }),
-        )
-    }
-
-    #[tool(description = "Create a new tab in the terminal window. Optionally run a command in the new tab.")]
-    async fn new_tab(&self) -> String {
-        stub_response("new_tab", serde_json::json!({}))
-    }
+    // split_pane / new_tab removed at Phase 4 — mado is now a
+    // single-pane terminal. Multi-pane / tab operations live in
+    // tear (theory/MADO-TEAR-M5.md). Clients that need to drive
+    // panes call tear-client (or `tear` from the shell) directly.
 
     // ── Typed session spawning — the escriba integration surface ─────────────
     //
@@ -1228,25 +1213,9 @@ mod tests {
         assert_eq!(decode_send_keys("café"), "café".as_bytes());
     }
 
-    #[tokio::test]
-    async fn mcp_split_pane_json() {
-        let server = new_server();
-        let input = SplitPaneInput {
-            direction: "vertical".to_string(),
-            command: None,
-        };
-        let result = server.split_pane(Parameters(input)).await;
-        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
-        assert_eq!(parsed["direction"], "vertical");
-    }
-
-    #[tokio::test]
-    async fn mcp_new_tab_json() {
-        let server = new_server();
-        let result = server.new_tab().await;
-        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
-        assert!(parsed.get("ok").is_some());
-    }
+    // mcp_split_pane_json / mcp_new_tab_json removed at Phase 4 —
+    // the tools they exercised no longer exist (multiplexing is
+    // tear's domain now).
 
     // ── Clipboard tools — round-trip through the shared store ────────────────
 
@@ -1375,16 +1344,6 @@ mod tests {
                     }))
                     .await,
             ),
-            (
-                "split_pane",
-                server
-                    .split_pane(Parameters(SplitPaneInput {
-                        direction: "vertical".into(),
-                        command: None,
-                    }))
-                    .await,
-            ),
-            ("new_tab", server.new_tab().await),
         ];
         for (tool_name, raw) in responses {
             let parsed: serde_json::Value = serde_json::from_str(&raw)

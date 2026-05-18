@@ -771,68 +771,9 @@ fn main() -> anyhow::Result<()> {
                                     hide_cursor.then_some(false),
                                 );
                             }
-                            Action::SplitHorizontal => {
-                                let cw = renderer.cell_width();
-                                let ch = renderer.cell_height();
-                                let mut ws = window_for_events.lock().unwrap();
-                                let new_id = ws.split(SplitDir::Horizontal, cols, rows);
-                                ws.resize_panes(
-                                    last_width as f32,
-                                    last_height as f32,
-                                    padding,
-                                    cw,
-                                    ch,
-                                );
-                                tracing::info!(pane = new_id.0, "horizontal split");
-                                return with_cursor_visibility(
-                                    EventResponse::consumed(),
-                                    hide_cursor.then_some(false),
-                                );
-                            }
-                            Action::SplitVertical => {
-                                let cw = renderer.cell_width();
-                                let ch = renderer.cell_height();
-                                let mut ws = window_for_events.lock().unwrap();
-                                let new_id = ws.split(SplitDir::Vertical, cols, rows);
-                                ws.resize_panes(
-                                    last_width as f32,
-                                    last_height as f32,
-                                    padding,
-                                    cw,
-                                    ch,
-                                );
-                                tracing::info!(pane = new_id.0, "vertical split");
-                                return with_cursor_visibility(
-                                    EventResponse::consumed(),
-                                    hide_cursor.then_some(false),
-                                );
-                            }
-                            Action::ClosePane => {
-                                let mut ws = window_for_events.lock().unwrap();
-                                if let Some(closed) = ws.close_focused_pane() {
-                                    tracing::info!(pane = closed.0, "closed pane");
-                                }
-                                return with_cursor_visibility(
-                                    EventResponse::consumed(),
-                                    hide_cursor.then_some(false),
-                                );
-                            }
-                            Action::FocusNext => {
-                                let mut ws = window_for_events.lock().unwrap();
-                                ws.focus_next();
-                                return with_cursor_visibility(
-                                    EventResponse::consumed(),
-                                    hide_cursor.then_some(false),
-                                );
-                            }
-                            Action::FocusPrev => {
-                                let mut ws = window_for_events.lock().unwrap();
-                                ws.focus_prev();
-                                return with_cursor_visibility(
-                                    EventResponse::consumed(),
-                                    hide_cursor.then_some(false),
-                                );
-                            }
+                            // Action::SplitHorizontal / SplitVertical /
+                            // ClosePane / FocusNext / FocusPrev removed
+                            // at Phase 4 — tear owns multiplexing.
                             Action::FontIncrease => {
                                 let new_size = renderer.font_size() + 1.0;
                                 renderer.set_font_size(new_size);
@@ -913,25 +854,8 @@ fn main() -> anyhow::Result<()> {
                                     hide_cursor.then_some(false),
                                 );
                             }
-                            Action::NewTab => {
-                                pending_close.store(false, Ordering::Release);
-                                let mut ws = window_for_events.lock().unwrap();
-                                ws.new_tab();
-                            }
-                            Action::CloseTab => {
-                                let mut ws = window_for_events.lock().unwrap();
-                                if ws.close_tab().is_none() {
-                                    return exit_response(confirm_close, &pending_close);
-                                }
-                            }
-                            Action::NextTab => {
-                                let mut ws = window_for_events.lock().unwrap();
-                                ws.next_tab();
-                            }
-                            Action::PrevTab => {
-                                let mut ws = window_for_events.lock().unwrap();
-                                ws.prev_tab();
-                            }
+                            // Action::NewTab / CloseTab / NextTab /
+                            // PrevTab removed at Phase 4 — tear's job.
                             Action::ToggleFullscreen => {
                                 return with_cursor_visibility(
                                     EventResponse {

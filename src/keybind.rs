@@ -29,15 +29,11 @@ pub enum Action {
     FontIncrease,
     FontDecrease,
     FontReset,
-    NewTab,
-    CloseTab,
-    NextTab,
-    PrevTab,
-    SplitHorizontal,
-    SplitVertical,
-    FocusNext,
-    FocusPrev,
-    ClosePane,
+    // NewTab / CloseTab / NextTab / PrevTab / SplitHorizontal /
+    // SplitVertical / FocusNext / FocusPrev / ClosePane removed
+    // at Phase 4 — multiplexing lives in tear, not mado. See
+    // theory/MADO-TEAR-M5.md. Users who want splits / tabs run
+    // tear inside mado (or use `mado tear-attach --gpu`).
     ResetTerminal,
     ClearScreen,
     ToggleFullscreen,
@@ -141,15 +137,13 @@ pub fn parse_action(name: &str) -> Option<Action> {
         "font_increase" | "increase_font_size" => Some(Action::FontIncrease),
         "font_decrease" | "decrease_font_size" => Some(Action::FontDecrease),
         "font_reset" | "reset_font_size" => Some(Action::FontReset),
-        "new_tab" => Some(Action::NewTab),
-        "close_tab" => Some(Action::CloseTab),
-        "next_tab" => Some(Action::NextTab),
-        "prev_tab" => Some(Action::PrevTab),
-        "split_horizontal" => Some(Action::SplitHorizontal),
-        "split_vertical" => Some(Action::SplitVertical),
-        "focus_next" | "goto_split:next" => Some(Action::FocusNext),
-        "focus_prev" | "goto_split:previous" => Some(Action::FocusPrev),
-        "close_pane" | "close_surface" => Some(Action::ClosePane),
+        // Multiplexing actions removed at Phase 4 — tear's job now.
+        "new_tab" | "close_tab" | "next_tab" | "prev_tab"
+        | "split_horizontal" | "split_vertical"
+        | "focus_next" | "focus_prev"
+        | "close_pane" | "close_surface" => None,
+        // goto_split:* also resolved to None above (Phase 4).
+        "goto_split:next" | "goto_split:previous" => None,
         "reset_terminal" | "reset" => Some(Action::ResetTerminal),
         "clear_screen" => Some(Action::ClearScreen),
         "toggle_fullscreen" => Some(Action::ToggleFullscreen),
@@ -187,12 +181,7 @@ fn default_bindings() -> Vec<Keybinding> {
         Keybinding { hotkey: hk(cmd, Key::Equal), action: Action::FontIncrease },
         Keybinding { hotkey: hk(cmd, Key::Minus), action: Action::FontDecrease },
         Keybinding { hotkey: hk(cmd, Key::Num0), action: Action::FontReset },
-        // Tabs
-        Keybinding { hotkey: hk(cmd, Key::T), action: Action::NewTab },
-        Keybinding { hotkey: hk(cmd, Key::W), action: Action::CloseTab },
-        // Splits
-        Keybinding { hotkey: hk(cmd, Key::D), action: Action::SplitVertical },
-        Keybinding { hotkey: hk(cmd_shift, Key::D), action: Action::SplitHorizontal },
+        // Tabs / splits removed at Phase 4 — tear owns multiplexing.
         // Scroll
         Keybinding { hotkey: hk(none, Key::PageUp), action: Action::ScrollPageUp },
         Keybinding { hotkey: hk(none, Key::PageDown), action: Action::ScrollPageDown },
@@ -203,13 +192,7 @@ fn default_bindings() -> Vec<Keybinding> {
         // (see shell-integration/mado.*) to be sourced.
         Keybinding { hotkey: hk(cmd, Key::Up), action: Action::JumpToPromptPrev },
         Keybinding { hotkey: hk(cmd, Key::Down), action: Action::JumpToPromptNext },
-        // Pane navigation
-        Keybinding { hotkey: hk(cmd, Key::RightBracket), action: Action::FocusNext },
-        Keybinding { hotkey: hk(cmd, Key::LeftBracket), action: Action::FocusPrev },
-        Keybinding { hotkey: hk(cmd_shift, Key::W), action: Action::ClosePane },
-        // Tab navigation
-        Keybinding { hotkey: hk(cmd_shift, Key::RightBracket), action: Action::NextTab },
-        Keybinding { hotkey: hk(cmd_shift, Key::LeftBracket), action: Action::PrevTab },
+        // Pane / tab navigation removed at Phase 4.
         // Terminal
         Keybinding { hotkey: hk(cmd_shift, Key::R), action: Action::ResetTerminal },
         // Fullscreen
@@ -293,10 +276,10 @@ mod tests {
     #[test]
     fn bind_str_valid() {
         let mut mgr = KeybindManager::new();
-        let result = mgr.bind_str("cmd+t", Action::NewTab);
+        let result = mgr.bind_str("cmd+t", Action::Copy);
         assert!(result.is_ok());
         let hk = awase::Hotkey::parse("cmd+t").unwrap();
-        assert_eq!(mgr.lookup(&hk), Some(Action::NewTab));
+        assert_eq!(mgr.lookup(&hk), Some(Action::Copy));
     }
 
     #[test]
@@ -309,10 +292,11 @@ mod tests {
     #[test]
     fn default_bindings_count() {
         let mgr = KeybindManager::new();
-        // Default bindings: clipboard (2) + search (4) + font (3) +
-        // tabs (2) + splits (2) + scroll (4) + prompt jump (2) +
-        // pane nav (3) + tab nav (2) + terminal (1) + fullscreen (1) = 26.
-        assert_eq!(mgr.bindings().len(), 26);
+        // Default bindings after Phase 4 (multiplexing actions
+        // removed): clipboard (2) + search (4) + font (3) +
+        // scroll (4) + prompt jump (2) + terminal (1) + fullscreen
+        // (1) = 17.
+        assert_eq!(mgr.bindings().len(), 17);
     }
 
     #[test]
@@ -325,10 +309,8 @@ mod tests {
             Action::JumpToPromptPrev, Action::JumpToPromptNext,
             Action::SearchOpen, Action::SearchClose,
             Action::SearchNext, Action::SearchPrev, Action::FontIncrease,
-            Action::FontDecrease, Action::FontReset, Action::NewTab,
-            Action::CloseTab, Action::NextTab, Action::PrevTab,
-            Action::SplitHorizontal, Action::SplitVertical, Action::FocusNext,
-            Action::FocusPrev, Action::ClosePane, Action::ResetTerminal,
+            Action::FontDecrease, Action::FontReset,
+            Action::ResetTerminal,
             Action::ClearScreen, Action::ToggleFullscreen, Action::SelectAll,
             Action::CopyUrlToClipboard, Action::ToggleMouseReporting,
         ];
@@ -356,29 +338,9 @@ mod tests {
         assert_eq!(mgr.lookup(&hk), Some(Action::ScrollPageDown));
     }
 
-    #[test]
-    fn test_focus_next_binding() {
-        let mgr = KeybindManager::new();
-        let hk = awase::Hotkey::new(awase::Modifiers::CMD, awase::Key::RightBracket);
-        assert_eq!(mgr.lookup(&hk), Some(Action::FocusNext));
-    }
-
-    #[test]
-    fn test_focus_prev_binding() {
-        let mgr = KeybindManager::new();
-        let hk = awase::Hotkey::new(awase::Modifiers::CMD, awase::Key::LeftBracket);
-        assert_eq!(mgr.lookup(&hk), Some(Action::FocusPrev));
-    }
-
-    #[test]
-    fn test_close_pane_binding() {
-        let mgr = KeybindManager::new();
-        let hk = awase::Hotkey::new(
-            awase::Modifiers::CMD | awase::Modifiers::SHIFT,
-            awase::Key::W,
-        );
-        assert_eq!(mgr.lookup(&hk), Some(Action::ClosePane));
-    }
+    // test_focus_next_binding / test_focus_prev_binding /
+    // test_close_pane_binding removed at Phase 4 — the actions
+    // they exercised no longer exist; mado is single-pane now.
 
     #[test]
     fn test_toggle_fullscreen_binding() {
@@ -403,7 +365,7 @@ mod tests {
     #[test]
     fn test_total_default_bindings_count() {
         let mgr = KeybindManager::new();
-        assert_eq!(mgr.bindings().len(), 26);
+        assert_eq!(mgr.bindings().len(), 17);
     }
 
     #[test]
@@ -425,9 +387,11 @@ mod tests {
         assert_eq!(parse_action("increase_font_size"), Some(Action::FontIncrease));
         assert_eq!(parse_action("decrease_font_size"), Some(Action::FontDecrease));
         assert_eq!(parse_action("reset_font_size"), Some(Action::FontReset));
-        assert_eq!(parse_action("goto_split:next"), Some(Action::FocusNext));
-        assert_eq!(parse_action("goto_split:previous"), Some(Action::FocusPrev));
-        assert_eq!(parse_action("close_surface"), Some(Action::ClosePane));
+        // Phase 4 — goto_split:* / close_surface resolve to None
+        // (multiplexing belongs in tear).
+        assert_eq!(parse_action("goto_split:next"), None);
+        assert_eq!(parse_action("goto_split:previous"), None);
+        assert_eq!(parse_action("close_surface"), None);
         assert_eq!(parse_action("reset"), Some(Action::ResetTerminal));
     }
 
