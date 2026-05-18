@@ -37,12 +37,11 @@ use lru::LruCache;
 use madori::render::{RenderCallback, RenderContext};
 
 use crate::config::{ColorblindMode, CursorStyle};
-use crate::pane::PaneRect;
+// PaneRect / WindowState removed at Phase 4 — single-pane mado.
 use crate::search::SearchState;
 use crate::selection::Selection;
 use crate::terminal::{bold_bright_color, default_ansi_palette, Cell, CellAttrs, Color, Cursor, ImagePlacement, Terminal};
 use crate::url::{self, DetectedUrl};
-use crate::window::WindowState;
 
 /// Shared terminal state between the render thread and PTY I/O thread.
 ///
@@ -915,8 +914,7 @@ pub struct TerminalRenderer {
     terminal: SharedTerminal,
     selection: Arc<Mutex<Selection>>,
     search: Arc<Mutex<SearchState>>,
-    /// Multi-pane window state. When set, overrides single-terminal rendering.
-    window: Option<Arc<Mutex<WindowState>>>,
+    // window field removed at Phase 4 — single-pane mado.
     font_size: f32,
     font_family: String,
     /// Italic-face family. cosmic-text resolves italics by walking
@@ -1020,7 +1018,7 @@ impl TerminalRenderer {
             terminal,
             selection: Arc::new(Mutex::new(Selection::new())),
             search: Arc::new(Mutex::new(SearchState::new())),
-            window: None,
+            // window: removed Phase 4
             font_size,
             font_family,
             font_italic,
@@ -1130,10 +1128,7 @@ impl TerminalRenderer {
         self.search = search;
     }
 
-    /// Set the window state for multi-pane rendering.
-    pub fn set_window(&mut self, window: Arc<Mutex<WindowState>>) {
-        self.window = Some(window);
-    }
+    // set_window removed at Phase 4 — single-pane mado; no multi-pane state to set.
 
     /// Trigger a bell flash effect. No-op when reduce_motion is enabled.
     pub fn trigger_bell(&mut self) {
@@ -1956,339 +1951,9 @@ impl TerminalRenderer {
         )
     }
 
-    /// Multi-pane render path — renders all panes from WindowState.
-    ///
-    /// P17 — analog of P2's peek path for multi-pane. Before doing
-    /// the per-pane snapshot (which clones every visible row and
-    /// runs URL detection per pane), XOR all panes' seqnos and any
-    /// cursor-visible bit into a single u64 fingerprint. If the
-    /// fingerprint matches the last frame AND nothing is animating,
-    /// early-return.
-    ///
-    /// XOR is associative + commutative so the order doesn't matter,
-    /// and collision probability for "real change in any pane" is
-    /// vanishingly small at u64 granularity. The pane lock is held
-    /// only for the seqno + cursor.visible read per pane — micro-
-    /// seconds total even on 8-pane layouts.
-    fn render_multi_pane(&mut self, ctx: &mut RenderContext<'_>) {
-        let window = self.window.clone().unwrap();
-        let ws = window.lock().unwrap();
-        let pad = self.padding_px();
-        let pane_rects = ws.layout(
-            pad,
-            pad,
-            ctx.width as f32 - 2.0 * pad,
-            ctx.height as f32 - 2.0 * pad,
-        );
-        let focused_id = ws.focused_pane_id();
-        let pane_count = pane_rects.len();
-
-        // Stage-1 peek: fingerprint = XOR of all panes' seqnos with
-        // each pane's cursor-visible bit folded in. Identical
-        // fingerprint + no animations + no search/bell → skip frame.
-        let mut fingerprint: u64 = 0;
-        let mut any_cursor_visible = false;
-        for rect in &pane_rects {
-            if let Some(pane) = ws.pane(&rect.id) {
-                let term = pane.terminal.read();
-                let seqno = term.seqno();
-                let cur = *term.cursor();
-                drop(term);
-                fingerprint ^= seqno;
-                if cur.visible {
-                    fingerprint ^= 1u64.rotate_left((rect.id.0 % 64) as u32);
-                    any_cursor_visible = true;
-                }
-            }
-        }
-        // P28 — same cursor-on flip detection as the single-pane
-        // path. Only force a render if blink actually changes state
-        // this frame; the idle steady state runs at the blink toggle
-        // rate (~4 Hz), not the vsync rate (60 Hz).
-        let cursor_on_now = !self.cursor_blink || {
-            let period = self.cursor_blink_rate_ms as f32 / 1000.0 * 2.0;
-            (ctx.elapsed % period) < period / 2.0
-        };
-        let blink_flip =
-            self.cursor_blink && any_cursor_visible && cursor_on_now != self.last_cursor_on;
-        let bell_active = self.bell_flash_frames > 0;
-        if fingerprint == self.last_seqno
-            && self.last_seqno != 0
-            && !blink_flip
-            && !bell_active
-        {
-            TOTAL_FRAMES_SKIPPED.fetch_add(1, Ordering::Relaxed);
-            tracing::debug!(
-                fingerprint,
-                path = "multi_pane_skip",
-                "frame skipped"
-            );
-            return;
-        }
-        self.last_seqno = fingerprint;
-        self.last_cursor_on = cursor_on_now;
-
-        let mut all_rects = Vec::new();
-        let mut text_entries: Vec<(f32, f32, usize, usize, Arc<Buffer>, PaneRect)> =
-            Vec::with_capacity(pane_count * 24 * 8);
-        let mut all_image_placements: Vec<(f32, f32, Vec<ImagePlacement>)> = Vec::new();
-
-        for rect in &pane_rects {
-            if let Some(pane) = ws.pane(&rect.id) {
-                let (snap, _) = self.snapshot_pane(&pane.terminal, &pane.search);
-                let sel = pane.selection.lock().unwrap();
-                all_rects.extend(self.build_rect_instances(
-                    &snap,
-                    ctx.elapsed,
-                    rect.x,
-                    rect.y,
-                    &sel,
-                ));
-                drop(sel);
-                for (row_idx, col_start, buf) in self.build_text_buffers(&snap, ctx.text) {
-                    text_entries.push((rect.x, rect.y, row_idx, col_start, buf, *rect));
-                }
-                if !snap.image_placements.is_empty() {
-                    all_image_placements.push((rect.x, rect.y, snap.image_placements));
-                }
-            }
-        }
-
-        // Pane borders (only when >1 pane)
-        if pane_count > 1 {
-            for rect in &pane_rects {
-                let color = if rect.id == focused_id {
-                    [0.533, 0.753, 0.816, 0.6] // Nord frost
-                } else {
-                    [0.369, 0.396, 0.435, 0.4] // Nord dim
-                };
-                all_rects.push(RectInstance {
-                    pos: [rect.x + rect.width, rect.y],
-                    size: [1.0, rect.height],
-                    color,
-                });
-                all_rects.push(RectInstance {
-                    pos: [rect.x, rect.y + rect.height],
-                    size: [rect.width + 1.0, 1.0],
-                    color,
-                });
-            }
-        }
-
-        drop(ws);
-
-        // Bell flash
-        if self.bell_flash_frames > 0 {
-            let alpha = self.bell_flash_frames as f32 / 4.0 * 0.15;
-            all_rects.push(RectInstance {
-                pos: [0.0, 0.0],
-                size: [ctx.width as f32, ctx.height as f32],
-                color: [1.0, 1.0, 1.0, alpha],
-            });
-            self.bell_flash_frames -= 1;
-        }
-
-        // Upload rect instances
-        if let Some(ref mut pipeline) = self.rect_pipeline {
-            pipeline.update_resolution(&ctx.gpu.queue, ctx.width, ctx.height);
-            pipeline.ensure_capacity(&ctx.gpu.device, all_rects.len());
-            if !all_rects.is_empty() {
-                ctx.gpu.queue.write_buffer(
-                    &pipeline.instance_buffer,
-                    0,
-                    bytemuck::cast_slice(&all_rects),
-                );
-            }
-        }
-
-        // Build text areas
-        let mut text_areas = Vec::new();
-        for (left, top_origin, row_idx, col_start, buffer, rect) in &text_entries {
-            let y = top_origin + (*row_idx as f32 * self.cell_height);
-            let x = *left + (*col_start as f32 * self.cell_width);
-            text_areas.push(glyphon::TextArea {
-                buffer: &**buffer,
-                left: x,
-                top: y,
-                scale: 1.0,
-                bounds: glyphon::TextBounds {
-                    left: rect.x as i32,
-                    top: rect.y as i32,
-                    right: (rect.x + rect.width) as i32,
-                    bottom: (rect.y + rect.height) as i32,
-                },
-                default_color: GlyphonColor::rgba(
-                    self.fg_color.r,
-                    self.fg_color.g,
-                    self.fg_color.b,
-                    255,
-                ),
-                custom_glyphs: &[],
-            });
-        }
-
-        // P25 — same skip-if-empty optimisation as the single-pane
-        // path. Save the empty flag to gate the later text render
-        // pass too.
-        let text_areas_empty = text_areas.is_empty();
-        if !text_areas_empty {
-            if let Err(e) = ctx.text.prepare(
-                &ctx.gpu.device,
-                &ctx.gpu.queue,
-                ctx.width,
-                ctx.height,
-                text_areas,
-            ) {
-                tracing::warn!("text prepare error: {e}");
-            }
-        }
-
-        // Determine post-processing mode
-        let colorblind_mode = match self.colorblind_mode {
-            ColorblindMode::None => 0u32,
-            ColorblindMode::Protanopia => 1,
-            ColorblindMode::Deuteranopia => 2,
-            ColorblindMode::Tritanopia => 3,
-        };
-        let use_postprocess = colorblind_mode > 0;
-
-        if use_postprocess {
-            if let Some(ref mut post) = self.post_pipeline {
-                let format = wgpu::TextureFormat::Bgra8UnormSrgb;
-                post.ensure_offscreen(&ctx.gpu.device, ctx.width, ctx.height, format);
-            }
-        }
-
-        // Sync Kitty GPU textures before render passes
-        self.sync_kitty_images(ctx);
-
-        let mut encoder = ctx
-            .gpu
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("mado_render"),
-            });
-
-        macro_rules! scene_view {
-            ($self:expr, $ctx:expr) => {
-                if use_postprocess {
-                    $self
-                        .post_pipeline
-                        .as_ref()
-                        .and_then(|p| p.offscreen_view.as_ref())
-                        .unwrap_or($ctx.surface_view)
-                } else {
-                    $ctx.surface_view
-                }
-            };
-        }
-
-        // Pass 1: Clear background
-        {
-            let view = scene_view!(self, ctx);
-            let _pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("mado_clear"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(self.bg_color),
-                        store: wgpu::StoreOp::Store,
-                    },
-                })],
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-            });
-        }
-
-        // Pass 2: Rects — skip when no rect instances queued (P27).
-        if !all_rects.is_empty() {
-            if let Some(ref pipeline) = self.rect_pipeline {
-                let view = scene_view!(self, ctx);
-                let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                    label: Some("mado_rects"),
-                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                        view,
-                        resolve_target: None,
-                        ops: wgpu::Operations {
-                            load: wgpu::LoadOp::Load,
-                            store: wgpu::StoreOp::Store,
-                        },
-                    })],
-                    depth_stencil_attachment: None,
-                    timestamp_writes: None,
-                    occlusion_query_set: None,
-                });
-                pipeline.draw(&mut pass, all_rects.len() as u32);
-            }
-        }
-
-        // Pass 2.5: Kitty graphics images (per-pane)
-        for (ox, oy, placements) in &all_image_placements {
-            let view = scene_view!(self, ctx);
-            self.draw_kitty_images(ctx, &mut encoder, view, placements, *ox, *oy);
-        }
-
-        // Pass 3: Text — skip when there are no glyphs (text_areas
-        // empty, e.g. a blank screen or box-draw-only frame).
-        if !text_areas_empty {
-            let view = scene_view!(self, ctx);
-            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("mado_text"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Load,
-                        store: wgpu::StoreOp::Store,
-                    },
-                })],
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-            });
-            if let Err(e) = ctx.text.render(&mut pass) {
-                tracing::warn!("text render error: {e}");
-            }
-        }
-
-        // Pass 4: Post-processing blit (offscreen → surface through shader)
-        if use_postprocess {
-            if let Some(ref post) = self.post_pipeline {
-                let params = PostParams {
-                    resolution: [ctx.width as f32, ctx.height as f32],
-                    time: ctx.elapsed,
-                    mode: colorblind_mode,
-                };
-                ctx.gpu
-                    .queue
-                    .write_buffer(&post.params_buffer, 0, bytemuck::bytes_of(&params));
-
-                if let Some(ref bind_group) = post.bind_group {
-                    let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                        label: Some("mado_postprocess"),
-                        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                            view: ctx.surface_view,
-                            resolve_target: None,
-                            ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                                store: wgpu::StoreOp::Store,
-                            },
-                        })],
-                        depth_stencil_attachment: None,
-                        timestamp_writes: None,
-                        occlusion_query_set: None,
-                    });
-                    pass.set_pipeline(&post.pipeline);
-                    pass.set_bind_group(0, bind_group, &[]);
-                    pass.draw(0..6, 0..1);
-                }
-            }
-        }
-
-        ctx.gpu.queue.submit(std::iter::once(encoder.finish()));
-    }
+    // render_multi_pane + its docstring removed at Phase 4 —
+    // multi-pane rendering belongs in tear's MultiplexerControl
+    // path, not in mado.
 }
 
 // (Earlier iteration's CellRun / is_ascii_grid_safe helpers removed:
@@ -2776,15 +2441,7 @@ impl RenderCallback for TerminalRenderer {
         // scale-factor change).
         self.measure_cell_metrics(ctx.text);
 
-        // Multi-pane path: render all panes from WindowState
-        if self.window.is_some() {
-            self.render_multi_pane(ctx);
-            let frame_us = frame_start.elapsed().as_micros() as u64;
-            LAST_FRAME_US.store(frame_us, Ordering::Relaxed);
-            TOTAL_FRAMES.fetch_add(1, Ordering::Relaxed);
-            tracing::debug!(frame_us, path = "multi_pane", "frame complete");
-            return;
-        }
+        // Multi-pane dispatch removed at Phase 4 — single-pane mado.
 
         // Single-pane path.
         //

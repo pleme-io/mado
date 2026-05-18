@@ -17,10 +17,10 @@ mod clipboard_store;
 mod config;
 mod gui_tear_attach;
 mod keybind;
+mod single_pane;
 mod mcp;
 mod osc_1337;
 mod scripting;
-mod pane;
 mod platform;
 mod pointer_shape;
 mod prompt_mark;
@@ -30,12 +30,12 @@ mod scenario;
 mod search;
 mod selection;
 mod session;
-mod tab;
+// mod tab removed at Phase 4 — single-pane mado.
 mod term_spec;
 mod terminal;
 mod theme;
 mod url;
-mod window;
+// mod window removed at Phase 4 — single-pane mado uses single_pane.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -47,13 +47,13 @@ use madori::event::{AppEvent, KeyEvent, MouseEvent};
 use madori::EventResponse;
 
 use crate::keybind::{Action, KeybindManager};
-use crate::pane::SplitDir;
+// SplitDir removed at Phase 4 — single-pane mado.
 use crate::render::{SharedTerminal, TerminalRenderer};
 use crate::scripting::{ScriptEvent, ScriptManager};
 use crate::selection::CellPos;
 use crate::terminal::{Color, MouseMode};
 use crate::theme::Theme;
-use crate::window::WindowState;
+// WindowState removed at Phase 4 — single-pane mado uses single_pane::SinglePane.
 
 #[derive(Parser)]
 #[command(name = "mado", version, about = "GPU-rendered terminal emulator")]
@@ -410,23 +410,20 @@ fn main() -> anyhow::Result<()> {
 
     let scrollback = config.behavior.scrollback_lines;
 
-    // Create window state — manages tabs, panes, and per-pane terminals+PTYs
-    let window = Arc::new(Mutex::new(WindowState::new(
+    // Phase-4 — single pane only. Multiplexing belongs in tear
+    // (theory/MADO-TEAR-M5.md). One Terminal + one PTY +
+    // single SinglePane wrapper, all in single_pane.rs.
+    let pane = Arc::new(single_pane::spawn(
         shell,
         cols,
         rows,
         scrollback,
+        None,
         extra_env,
         working_directory,
         initial_command,
-    )));
-
-    // Get initial pane's terminal for the renderer
-    let initial_terminal: SharedTerminal = {
-        let ws = window.lock().unwrap();
-        let pane = ws.focused_pane().expect("initial pane");
-        Arc::clone(&pane.terminal)
-    };
+    ));
+    let initial_terminal: SharedTerminal = Arc::clone(&pane.terminal);
 
     // ─── Theme architecture M3 (HiDPI gamma fix by construction) ──────
     //
@@ -468,14 +465,9 @@ fn main() -> anyhow::Result<()> {
     renderer.set_bold_is_bright(config.appearance.bold_is_bright);
     renderer.set_reduce_motion(config.accessibility.reduce_motion);
 
-    // Set initial pane's selection/search on renderer (for single-pane fallback)
-    {
-        let ws = window.lock().unwrap();
-        let pane = ws.focused_pane().expect("initial pane");
-        renderer.set_selection(Arc::clone(&pane.selection));
-        renderer.set_search(Arc::clone(&pane.search));
-    }
-    renderer.set_window(Arc::clone(&window));
+    // Set selection/search on renderer (Phase 4 — single pane).
+    renderer.set_selection(Arc::clone(&pane.selection));
+    renderer.set_search(Arc::clone(&pane.search));
 
     // Log available themes on startup (debug)
     let theme_names: Vec<&str> = Theme::available().iter().map(|t| t.name).collect();
@@ -499,19 +491,15 @@ fn main() -> anyhow::Result<()> {
         .with_alpha(config.appearance.opacity)
         .into();
         renderer.set_bg_fg(theme_bg, theme.foreground);
-        let mut ws = window.lock().unwrap();
-        ws.set_theme(theme.foreground, theme.background, theme.ansi);
-        for pane in ws.all_panes() {
-            pane.terminal
-                .write()
-                .apply_theme(theme.foreground, theme.background, theme.ansi);
-        }
+        pane.terminal
+            .write()
+            .apply_theme(theme.foreground, theme.background, theme.ansi);
     }
 
     let scripts = ScriptManager::new();
     scripts.fire_event(ScriptEvent::OnStart);
 
-    let window_for_events = Arc::clone(&window);
+    let pane_for_events = Arc::clone(&pane);
     let clipboard = Arc::new(Mutex::new(
         Clipboard::new().expect("failed to initialize clipboard"),
     ));
@@ -561,7 +549,7 @@ fn main() -> anyhow::Result<()> {
         .on_event(move |event, renderer| -> EventResponse {
             // Check if PTY has exited — request window close
             {
-                let ws = window_for_events.lock().unwrap();
+                let ws = &*pane_for_events;
                 if ws.any_exited() {
                     return exit_response(confirm_close, &pending_close);
                 }
@@ -605,7 +593,7 @@ fn main() -> anyhow::Result<()> {
 
                     // Handle search mode input
                     {
-                        let ws = window_for_events.lock().unwrap();
+                        let ws = &*pane_for_events;
                         if let Some(pane) = ws.focused_pane() {
                             let search_active = pane.search.lock().unwrap().active;
                             if search_active {
@@ -682,7 +670,7 @@ fn main() -> anyhow::Result<()> {
                         match action {
                             Action::Copy => {
                                 let selected_text = {
-                                    let ws = window_for_events.lock().unwrap();
+                                    let ws = &*pane_for_events;
                                     ws.focused_pane().and_then(|pane| {
                                         let sel = pane.selection.lock().unwrap();
                                         let term = pane.terminal.read();
@@ -708,7 +696,7 @@ fn main() -> anyhow::Result<()> {
                                     clipboard.lock().ok().and_then(|cb| cb.paste_text().ok());
                                 if let Some(pasted) = pasted_text {
                                     if !pasted.is_empty() {
-                                        let ws = window_for_events.lock().unwrap();
+                                        let ws = &*pane_for_events;
                                         if let Some(pane) = ws.focused_pane() {
                                             let term = pane.terminal.read();
                                             let bracketed = term.bracketed_paste();
@@ -731,7 +719,7 @@ fn main() -> anyhow::Result<()> {
                                 );
                             }
                             Action::SearchOpen => {
-                                let ws = window_for_events.lock().unwrap();
+                                let ws = &*pane_for_events;
                                 if let Some(pane) = ws.focused_pane() {
                                     pane.search.lock().unwrap().open();
                                 }
@@ -748,7 +736,7 @@ fn main() -> anyhow::Result<()> {
                                 );
                             }
                             Action::ScrollPageUp => {
-                                let ws = window_for_events.lock().unwrap();
+                                let ws = &*pane_for_events;
                                 if let Some(pane) = ws.focused_pane() {
                                     let mut term = pane.terminal.write();
                                     let page = term.rows();
@@ -760,7 +748,7 @@ fn main() -> anyhow::Result<()> {
                                 );
                             }
                             Action::ScrollPageDown => {
-                                let ws = window_for_events.lock().unwrap();
+                                let ws = &*pane_for_events;
                                 if let Some(pane) = ws.focused_pane() {
                                     let mut term = pane.terminal.write();
                                     let page = term.rows();
@@ -779,7 +767,7 @@ fn main() -> anyhow::Result<()> {
                                 renderer.set_font_size(new_size);
                                 let cw = renderer.cell_width();
                                 let ch = renderer.cell_height();
-                                let ws = window_for_events.lock().unwrap();
+                                let ws = &*pane_for_events;
                                 ws.resize_panes(
                                     last_width as f32,
                                     last_height as f32,
@@ -797,7 +785,7 @@ fn main() -> anyhow::Result<()> {
                                 renderer.set_font_size(new_size);
                                 let cw = renderer.cell_width();
                                 let ch = renderer.cell_height();
-                                let ws = window_for_events.lock().unwrap();
+                                let ws = &*pane_for_events;
                                 ws.resize_panes(
                                     last_width as f32,
                                     last_height as f32,
@@ -814,7 +802,7 @@ fn main() -> anyhow::Result<()> {
                                 renderer.set_font_size(default_font_size);
                                 let cw = renderer.cell_width();
                                 let ch = renderer.cell_height();
-                                let ws = window_for_events.lock().unwrap();
+                                let ws = &*pane_for_events;
                                 ws.resize_panes(
                                     last_width as f32,
                                     last_height as f32,
@@ -828,14 +816,14 @@ fn main() -> anyhow::Result<()> {
                                 );
                             }
                             Action::ScrollToTop => {
-                                let ws = window_for_events.lock().unwrap();
+                                let ws = &*pane_for_events;
                                 if let Some(pane) = ws.focused_pane() {
                                     pane.terminal.write().scroll_to_top();
                                 }
                                 return EventResponse::consumed();
                             }
                             Action::ScrollToBottom => {
-                                let ws = window_for_events.lock().unwrap();
+                                let ws = &*pane_for_events;
                                 if let Some(pane) = ws.focused_pane() {
                                     pane.terminal.write().scroll_to_bottom();
                                 }
@@ -845,7 +833,7 @@ fn main() -> anyhow::Result<()> {
                                 );
                             }
                             Action::ResetTerminal => {
-                                let ws = window_for_events.lock().unwrap();
+                                let ws = &*pane_for_events;
                                 if let Some(pane) = ws.focused_pane() {
                                     pane.terminal.write().reset();
                                 }
@@ -872,14 +860,14 @@ fn main() -> anyhow::Result<()> {
                             Action::PasteFromSelection => {
                                 let pasted = clipboard.lock().ok().and_then(|cb| cb.paste_text().ok());
                                 if let Some(text) = pasted {
-                                    let ws = window_for_events.lock().unwrap();
+                                    let ws = &*pane_for_events;
                                     ws.send_input(text.into_bytes());
                                 }
                             }
                             Action::JumpToPrompt | Action::JumpToPromptPrev => {
                                 // Scroll to the previous OSC 133 A mark (ghostty's
                                 // canonical Cmd-Up binding).
-                                let ws = window_for_events.lock().unwrap();
+                                let ws = &*pane_for_events;
                                 if let Some(pane) = ws.focused_pane() {
                                     let mut term = pane.terminal.write();
                                     if let Some(target) = term.scroll_offset_to_prev_prompt() {
@@ -899,7 +887,7 @@ fn main() -> anyhow::Result<()> {
                             Action::JumpToPromptNext => {
                                 // Scroll to the next OSC 133 A mark forward from
                                 // the current view top (ghostty's Cmd-Down).
-                                let ws = window_for_events.lock().unwrap();
+                                let ws = &*pane_for_events;
                                 if let Some(pane) = ws.focused_pane() {
                                     let mut term = pane.terminal.write();
                                     if let Some(target) = term.scroll_offset_to_next_prompt() {
@@ -916,11 +904,11 @@ fn main() -> anyhow::Result<()> {
                                 }
                             }
                             Action::ClearScreen => {
-                                let ws = window_for_events.lock().unwrap();
+                                let ws = &*pane_for_events;
                                 ws.send_input(b"\x0c".to_vec()); // Ctrl+L
                             }
                             Action::SelectAll => {
-                                let ws = window_for_events.lock().unwrap();
+                                let ws = &*pane_for_events;
                                 if let Some(pane) = ws.focused_pane() {
                                     let term = pane.terminal.read();
                                     let cols = term.cols();
@@ -933,7 +921,7 @@ fn main() -> anyhow::Result<()> {
                                 }
                             }
                             Action::CopyUrlToClipboard => {
-                                let ws = window_for_events.lock().unwrap();
+                                let ws = &*pane_for_events;
                                 if let Some(pane) = ws.focused_pane() {
                                     let term = pane.terminal.read();
                                     let cols = term.cols();
@@ -956,7 +944,7 @@ fn main() -> anyhow::Result<()> {
 
                     // Clear selection on any key press
                     {
-                        let ws = window_for_events.lock().unwrap();
+                        let ws = &*pane_for_events;
                         if let Some(pane) = ws.focused_pane() {
                             pane.selection.lock().unwrap().clear();
                         }
@@ -964,7 +952,7 @@ fn main() -> anyhow::Result<()> {
 
                     // Kitty keyboard protocol: if active, encode keys using the protocol
                     {
-                        let ws = window_for_events.lock().unwrap();
+                        let ws = &*pane_for_events;
                         if let Some(pane) = ws.focused_pane() {
                             let kitty_flags =
                                 pane.terminal.read().kitty_keyboard_flags();
@@ -991,7 +979,7 @@ fn main() -> anyhow::Result<()> {
                                 if ch.is_ascii_alphabetic() {
                                     let ctrl_byte =
                                         (ch.to_ascii_lowercase() as u8) - b'a' + 1;
-                                    let ws = window_for_events.lock().unwrap();
+                                    let ws = &*pane_for_events;
                                     ws.send_input(vec![ctrl_byte]);
                                     return with_cursor_visibility(
                                         EventResponse::consumed(),
@@ -1004,7 +992,7 @@ fn main() -> anyhow::Result<()> {
                             if modifiers.alt {
                                 let mut bytes = vec![0x1b];
                                 bytes.extend_from_slice(text.as_bytes());
-                                let ws = window_for_events.lock().unwrap();
+                                let ws = &*pane_for_events;
                                 ws.send_input(bytes);
                                 return with_cursor_visibility(
                                     EventResponse::consumed(),
@@ -1012,7 +1000,7 @@ fn main() -> anyhow::Result<()> {
                                 );
                             }
 
-                            let ws = window_for_events.lock().unwrap();
+                            let ws = &*pane_for_events;
                             ws.send_input(text.as_bytes().to_vec());
                             return with_cursor_visibility(
                                 EventResponse::consumed(),
@@ -1022,7 +1010,7 @@ fn main() -> anyhow::Result<()> {
                     }
 
                     // Handle keys without text
-                    let ws = window_for_events.lock().unwrap();
+                    let ws = &*pane_for_events;
                     let app_mode = ws
                         .focused_pane()
                         .map(|p| p.terminal.read().cursor_keys_mode())
@@ -1091,7 +1079,7 @@ fn main() -> anyhow::Result<()> {
                 // IME commit — forward composed text to PTY
                 AppEvent::Ime(madori::ImeEvent::Commit(text)) => {
                     if !text.is_empty() {
-                        let ws = window_for_events.lock().unwrap();
+                        let ws = &*pane_for_events;
                         ws.send_input(text.as_bytes().to_vec());
                     }
                     EventResponse::consumed()
@@ -1109,7 +1097,7 @@ fn main() -> anyhow::Result<()> {
                     let col = ((*x as f32 - padding) / cw).max(0.0) as usize;
                     let row = ((*y as f32 - padding) / ch).max(0.0) as usize;
 
-                    let ws = window_for_events.lock().unwrap();
+                    let ws = &*pane_for_events;
                     let Some(pane) = ws.focused_pane() else {
                         return EventResponse::consumed();
                     };
@@ -1234,7 +1222,7 @@ fn main() -> anyhow::Result<()> {
                     let col = ((*x as f32 - padding) / cw).max(0.0) as usize;
                     let row = ((*y as f32 - padding) / ch).max(0.0) as usize;
 
-                    let ws = window_for_events.lock().unwrap();
+                    let ws = &*pane_for_events;
                     let Some(pane) = ws.focused_pane() else {
                         return EventResponse::consumed();
                     };
@@ -1282,7 +1270,7 @@ fn main() -> anyhow::Result<()> {
                     }
                 }
                 AppEvent::Mouse(MouseEvent::Scroll { dy, .. }) => {
-                    let ws = window_for_events.lock().unwrap();
+                    let ws = &*pane_for_events;
                     let Some(pane) = ws.focused_pane() else {
                         return EventResponse::consumed();
                     };
@@ -1316,7 +1304,7 @@ fn main() -> anyhow::Result<()> {
                 }
                 // Focus events → send to PTY if focus reporting is enabled
                 AppEvent::Focused(focused) => {
-                    let ws = window_for_events.lock().unwrap();
+                    let ws = &*pane_for_events;
                     if let Some(pane) = ws.focused_pane() {
                         let term = pane.terminal.read();
                         let reporting = term.focus_reporting();
@@ -1337,7 +1325,7 @@ fn main() -> anyhow::Result<()> {
                     last_height = *height;
                     let cw = renderer.cell_width();
                     let ch = renderer.cell_height();
-                    let ws = window_for_events.lock().unwrap();
+                    let ws = &*pane_for_events;
                     ws.resize_panes(*width as f32, *height as f32, padding, cw, ch);
                     EventResponse::consumed()
                 }
@@ -1347,7 +1335,7 @@ fn main() -> anyhow::Result<()> {
                         native_styling_applied = true;
                         crate::platform::apply_native_styling();
                     }
-                    let ws = window_for_events.lock().unwrap();
+                    let ws = &*pane_for_events;
                     if let Some(pane) = ws.focused_pane() {
                         let mut term = pane.terminal.write();
                         let current_title = term.title().map(String::from);
