@@ -111,6 +111,53 @@
             opacity    = { type = "float"; default = 1.0;       description = "Window opacity (0.0-1.0)."; };
           };
 
+          # ── Tear-multiplexer integration ──────────────────────────
+          #
+          # The pleme.terminal aggregator and any per-host override
+          # writes through this group. Lands at
+          # `blackmatter.components.mado.tear.*` in Nix and
+          # `tear: { … }` in ~/.config/mado/mado.yaml — exactly the
+          # shape `mado/src/config.rs::MadoTearConfig` deserializes.
+          # Auto-detect contract:
+          #   * `mode = "auto"` + `auto_spawn = true` — mado attempts
+          #     to attach to `tear.socket` (or `default_socket_path()`
+          #     when null); on miss, mado fork-execs `tear daemon`
+          #     and retries. The pleme fleet runs `programs.tear.
+          #     daemon.enable = true` so connection succeeds first.
+          #   * `mode = "never"` — opt-out of tear entirely (mado
+          #     falls back to its local PTY).
+          # `impose.*` lets the operator declare the tear-side
+          # settings (prefix / shell / status visibility) that mado
+          # pushes to the daemon at attach via the SetConfig RPC.
+          # Only the FLAT fields of MadoTearConfig fit a
+          # shikumiTypedGroup (the macro emits one nesting level —
+          # group → field). The nested `impose` section is reached
+          # via `extraSettings.tear.impose = { ... }` from the
+          # aggregator module (`pleme.terminal`) — see
+          # nix/modules/shared/terminal.nix in pleme-io/nix.
+          tear = {
+            mode = {
+              type = nixpkgs.lib.types.enum [ "auto" "always" "never" "attach" ];
+              default = "auto";
+              description = "Mado-side tear attachment policy. auto = try, fallback ok. always = require. never = disable. attach = require without auto_spawn.";
+            };
+            socket = {
+              type = "nullOrStr";
+              default = null;
+              description = "Daemon socket path. null = default_socket_path() (XDG runtime dir / ~/.local/share/tear/tear.sock).";
+            };
+            auto_spawn = {
+              type = "bool";
+              default = true;
+              description = "Spawn `tear daemon` on demand when no daemon answers. Inert when the launchd / systemd unit is running.";
+            };
+            spawn_wait_ms = {
+              type = "int";
+              default = 2000;
+              description = "Milliseconds to wait for the auto-spawned daemon to bind before falling back.";
+            };
+          };
+
           # ── Performance / pacing — adaptive runtime-posture knobs ──
           #
           # Every field except `vsync` is `nullOrInt`. `null` (default)
