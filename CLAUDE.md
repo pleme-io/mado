@@ -14,6 +14,18 @@ A GPU-accelerated terminal emulator built in pure Rust. Follows Ghostty's philos
 of speed + features + native UI without compromise, but adds Rhai scripting, an
 embedded MCP server, and deep Nix integration that no competitor offers.
 
+> **★ M5 de-overlap with tear.** Mado's `pane.rs` / `tab.rs` /
+> `window.rs` are **legacy** — multiplexing belongs in
+> [`pleme-io/tear`](https://github.com/pleme-io/tear) (the
+> tmux-compatible multiplexer), not here. The canonical destination
+> and phased plan live in
+> [`theory/MADO-TEAR-M5.md`](../theory/MADO-TEAR-M5.md). Phase 1
+> (tear-daemon UDS RPC + tear-client) shipped at tear@0d0a240; Phase 2
+> (tear-core gains per-pane vte parsing + cell grids) is the next
+> heavy lift. **Do not add features to the legacy modules** — every
+> line of new pane/tab/window code added today is debt that has to
+> be ripped out at Phase 4.
+
 ## Build & Test
 
 ```bash
@@ -58,13 +70,13 @@ Config <-- shikumi (hot-reload, ArcSwap) <-- ~/.config/mado/mado.yaml
 | `main.rs` | ~1000 | Event loop, input dispatch | CLI args, clipboard, double/triple click, pane/tab wiring |
 | `selection.rs` | ~390 | Mouse text selection | `Selection`, `CellPos` |
 | `config.rs` | ~380 | shikumi config with hot-reload | `MadoConfig`, `load_and_watch()` |
-| `window.rs` | ~380 | Multi-pane/tab state | `WindowState`, `PaneTerminal` |
+| `window.rs` | ~380 | **LEGACY** — multi-pane/tab state. Slated for deletion at M5; see [`theory/MADO-TEAR-M5.md`](../theory/MADO-TEAR-M5.md). | `WindowState`, `PaneTerminal` |
 | `keybind.rs` | ~350 | Configurable keybindings | `KeybindManager`, `Action`, `Key` |
-| `pane.rs` | ~340 | Split pane layout | `PaneManager`, `PaneNode`, `SplitDir` |
+| `pane.rs` | ~340 | **LEGACY** — split pane layout. Slated for deletion at M5; tear-core owns multiplexing. | `PaneManager`, `PaneNode`, `SplitDir` |
 | `pty.rs` | ~330 | PTY allocation + async I/O | `Pty`, `PtyReader`, `PtyWriter` |
 | `theme.rs` | ~280 | Color theme system | `Theme`, 8 built-in themes (Nord, Dracula, etc.) |
 | `search.rs` | ~270 | Scrollback search | `SearchState`, `SearchMatch` |
-| `tab.rs` | ~220 | Tab management | `TabManager`, `Tab`, `TabId` |
+| `tab.rs` | ~220 | **LEGACY** — tab management. Slated for deletion at M5; tear owns sessions/windows/tabs. | `TabManager`, `Tab`, `TabId` |
 | `url.rs` | ~180 | URL detection (no regex) | `DetectedUrl`, `detect_urls_in_row` |
 | `platform.rs` | ~95 | Platform-native integration | Pure safe Rust via objc2 (macOS styling, dark mode, dock badge) |
 | `module/default.nix` | | Home-manager module | `blackmatter.components.mado.*` |
