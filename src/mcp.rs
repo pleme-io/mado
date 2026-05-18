@@ -86,6 +86,27 @@ struct TearSendKeysInput {
     keys: String,
 }
 
+/// Pane-as-block: list blocks for a pane, optionally since N.
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct TearPaneBlocksListInput {
+    #[schemars(description = "16-char lowercase-hex tear pane id.")]
+    pane_id: String,
+    #[schemars(description = "Filter to blocks with index >= since (default 0 = all retained).")]
+    #[serde(default)]
+    since: Option<u64>,
+    #[schemars(description = "Max blocks to return (default 50).")]
+    #[serde(default)]
+    limit: Option<u32>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct TearPaneBlockAtInput {
+    #[schemars(description = "16-char lowercase-hex tear pane id.")]
+    pane_id: String,
+    #[schemars(description = "Per-pane block index (0-based, stable across eviction). Use tear_pane_blocks_status to get the latest index.")]
+    index: u64,
+}
+
 /// Phase-A: input policy for `tear_set_input_policy`. Maps 1:1 to
 /// `tear_types::InputPolicy`.
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
@@ -966,6 +987,50 @@ impl MadoMcp {
             &input.pane_id,
             |client, id| match client.export_pane_recording(id) {
                 Ok(cast) => ok_json(serde_json::json!({ "cast": cast })),
+                Err(e) => err_json(e),
+            },
+        )
+    }
+
+    // ── Pane-as-block (OSC 133 prompt-mark capture) ──────────
+
+    #[tool(description = "List captured prompt+command+output blocks for a tear pane. Blocks are extracted from OSC 133 prompt marks (powerlevel10k / starship / VS Code shell-integration emit these). Each block has {index, prompt, command, output, exit_code, started_at_unix_ms, ended_at_unix_ms}. Returns {ok, blocks: [...]}.")]
+    async fn tear_pane_blocks_list(&self, Parameters(input): Parameters<TearPaneBlocksListInput>) -> String {
+        let since = input.since.unwrap_or(0);
+        let limit = input.limit.unwrap_or(50);
+        with_tear_id::<tear_types::PaneId, _>(
+            "pane_id",
+            &input.pane_id,
+            move |client, id| match client.pane_blocks_list(id, since, limit) {
+                Ok(blocks) => ok_json(serde_json::json!({ "blocks": blocks })),
+                Err(e) => err_json(e),
+            },
+        )
+    }
+
+    #[tool(description = "Fetch one block by per-pane index. Use tear_pane_blocks_status first to get the current total. Returns {ok, block: {...}} or {ok: false, error} if the block has been evicted or never existed.")]
+    async fn tear_pane_block_at(&self, Parameters(input): Parameters<TearPaneBlockAtInput>) -> String {
+        let index = input.index;
+        with_tear_id::<tear_types::PaneId, _>(
+            "pane_id",
+            &input.pane_id,
+            move |client, id| match client.pane_block_at(id, index) {
+                Ok(block) => ok_json(serde_json::json!({ "block": block })),
+                Err(e) => err_json(e),
+            },
+        )
+    }
+
+    #[tool(description = "Pane block summary — {total_completed, in_progress}. `tear top` polls this each refresh.")]
+    async fn tear_pane_blocks_status(&self, Parameters(input): Parameters<TearPaneIdInput>) -> String {
+        with_tear_id::<tear_types::PaneId, _>(
+            "pane_id",
+            &input.pane_id,
+            |client, id| match client.pane_blocks_status(id) {
+                Ok((total, in_progress)) => ok_json(serde_json::json!({
+                    "total_completed": total,
+                    "in_progress": in_progress,
+                })),
                 Err(e) => err_json(e),
             },
         )
