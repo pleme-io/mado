@@ -179,14 +179,19 @@ tear-daemon = { git = "https://github.com/pleme-io/tear" }
 # "transport-io"; we add the client side here so test-only code
 # doesn't pull rmcp client glue into the production binary.
 rmcp = { version = "0.15", features = ["client", "transport-child-process"] }
+# Layer-2 headless GPU tests need a sync wrapper around garasu's
+# async GpuContext::new. Test-only; production mado uses madori's
+# winit-driven init path.
+pollster = "0.4"
 
-# crate-source redirect — every consumer of crates.io garasu / shikumi
-# (us directly + madori transitively) lands on the same git rev. This
-# is the load-bearing fix for the "two versions of same crate" diamond
-# that emerged once madori switched its declared sources to crates.io
-# while garasu kept evolving on git ahead of its crates.io publication.
-# crate2nix consumes Cargo.lock which records the patched URL, so this
-# also resolves cleanly in the flake / nix sandbox build.
+[features]
+default = []
+# Opt-in: runs Layer-2 headless-wgpu pixel-readback tests that
+# need a real GPU adapter. cid + dev workstations have one; CI
+# runners typically don't, so default is off. Match
+# garasu/headless gating.
+gpu_tests = []
+
 [patch.crates-io]
 garasu = { git = "https://github.com/pleme-io/garasu" }
 shikumi = { git = "https://github.com/pleme-io/shikumi" }

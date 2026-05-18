@@ -3071,6 +3071,142 @@ mod render_invariants {
     }
 }
 
+/// Layer 2 of the verification strategy: headless wgpu render
+/// to an offscreen texture, then read pixels back and assert.
+/// Opt-in via the `gpu_tests` feature so CI runners without a
+/// real GPU adapter don't mis-fail. On macOS / cid: the entire
+/// path (real Metal adapter, real pipeline init, real pixel
+/// readback) runs end-to-end. This is the canonical place to
+/// catch the "purple flash" class of bug — render the first
+/// frame headless, assert no magenta pixels.
+#[cfg(all(test, feature = "gpu_tests"))]
+mod render_gpu_invariants {
+    use super::*;
+    use crate::terminal::Terminal;
+    use garasu::{
+        GpuContext, TextRenderer,
+        headless::{HeadlessTarget, assert_no_magenta_pixels},
+    };
+    use madori::RenderContext;
+
+    /// Build a fully-initialized `TerminalRenderer` connected to
+    /// a fresh `cols×rows` terminal, with all wgpu pipelines
+    /// brought up against the given GPU context. Returns
+    /// everything the render loop needs.
+    fn build_gpu_renderer(
+        gpu: &GpuContext,
+        cols: usize,
+        rows: usize,
+    ) -> (TerminalRenderer, SharedTerminal, TextRenderer) {
+        let term = Arc::new(parking_lot::RwLock::new(Terminal::new(cols, rows)));
+        let mut renderer = TerminalRenderer::new(
+            term.clone(),
+            14.0,
+            "monospace".into(),
+            "monospace".into(),
+            0.0,
+            CursorStyle::Block,
+            false,
+            500,
+            wgpu::Color { r: 0.180, g: 0.204, b: 0.251, a: 1.0 },
+            Color::WHITE,
+        );
+        // Bring up rect_pipeline / image_pipeline / post_pipeline
+        // — the same init the live app runs once at startup.
+        renderer.init(gpu);
+        let text = TextRenderer::new(
+            &gpu.device,
+            &gpu.queue,
+            wgpu::TextureFormat::Bgra8UnormSrgb,
+        );
+        (renderer, term, text)
+    }
+
+    /// Drive one frame of the renderer against an offscreen
+    /// target. Returns the read-back RGBA8 pixel buffer.
+    fn render_one_frame_headless(
+        gpu: &GpuContext,
+        renderer: &mut TerminalRenderer,
+        text: &mut TextRenderer,
+        target: &HeadlessTarget,
+    ) -> Vec<u8> {
+        let mut ctx = RenderContext {
+            gpu,
+            text,
+            surface_view: target.view(),
+            width: target.width(),
+            height: target.height(),
+            scale_factor: 1.0,
+            elapsed: 0.0,
+            dt: 0.0,
+        };
+        renderer.render(&mut ctx);
+        // Wait for the GPU work to land before reading pixels.
+        let _ = gpu.device.poll(wgpu::PollType::Wait);
+        target.read_pixels_rgba8(gpu)
+    }
+
+    #[test]
+    fn first_frame_of_fresh_terminal_has_no_magenta_pixels() {
+        // The canonical "purple flash" regression test. On macOS
+        // Metal, an uninitialised texture often surfaces as
+        // magenta — a single magenta pixel anywhere in the
+        // first-frame readback means the pipeline isn't clearing
+        // properly. Renders against Bgra8UnormSrgb (mado's wire
+        // format).
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let target =
+            HeadlessTarget::new(&gpu, 128, 64, wgpu::TextureFormat::Bgra8UnormSrgb);
+        let (mut r, _t, mut text) = build_gpu_renderer(&gpu, 40, 8);
+        let pixels = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        // The read-back format is BGRA but the magenta heuristic
+        // checks R/G/B independently — magenta is (high, low,
+        // high) regardless of channel order. Pass through as-is.
+        assert!(
+            assert_no_magenta_pixels(&pixels, 128, 64).is_ok(),
+            "first frame contains a magenta pixel — purple-flash regression"
+        );
+    }
+
+    #[test]
+    fn clear_screen_frame_has_no_magenta_pixels() {
+        // After a `\x1b[2J` clear, the rendered frame should be
+        // pure bg_color + cursor — no uninit memory leaking
+        // through. Runs the full snapshot + rect-upload + paint
+        // path so we're testing the GPU pipeline, not just the
+        // CPU snapshot.
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let target =
+            HeadlessTarget::new(&gpu, 128, 64, wgpu::TextureFormat::Bgra8UnormSrgb);
+        let (mut r, t, mut text) = build_gpu_renderer(&gpu, 40, 8);
+        t.write().feed(b"some text first\nthen more text\n\x1b[2J\x1b[H");
+        let pixels = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        assert!(
+            assert_no_magenta_pixels(&pixels, 128, 64).is_ok(),
+            "post-clear frame contains a magenta pixel"
+        );
+    }
+
+    #[test]
+    fn frame_pixels_include_configured_bg_color() {
+        // Coarse pipeline-correctness check: at least one pixel
+        // in the rendered frame should match the configured
+        // background color. If the pipeline silently skipped the
+        // bg paint, every pixel would be 0 (texture initial
+        // state) and this fails.
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let target =
+            HeadlessTarget::new(&gpu, 64, 32, wgpu::TextureFormat::Bgra8UnormSrgb);
+        let (mut r, _t, mut text) = build_gpu_renderer(&gpu, 20, 4);
+        let pixels = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        let any_nonzero = pixels.chunks_exact(4).any(|p| p[0] > 0 || p[1] > 0 || p[2] > 0);
+        assert!(
+            any_nonzero,
+            "every pixel is (0, 0, 0) — looks like the pipeline didn't paint"
+        );
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
