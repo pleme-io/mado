@@ -3069,6 +3069,164 @@ mod render_invariants {
         );
         assert!(cur[0].pos[1].abs() < 0.01, "cursor y = {}", cur[0].pos[1]);
     }
+
+    // ── cursor-style invariants ───────────────────────────────────
+
+    /// Build the harness with a specific cursor style. Saves
+    /// repeating the constructor each variant.
+    fn harness_with_style(cols: usize, rows: usize, style: CursorStyle) -> (TerminalRenderer, SharedTerminal) {
+        let term = Arc::new(parking_lot::RwLock::new(Terminal::new(cols, rows)));
+        let renderer = TerminalRenderer::new(
+            term.clone(),
+            14.0,
+            "monospace".into(),
+            "monospace".into(),
+            0.0,
+            style,
+            false,
+            500,
+            wgpu::Color { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+            Color::WHITE,
+        );
+        (renderer, term)
+    }
+
+    #[test]
+    fn cursor_style_block_produces_full_cell_rect() {
+        let (r, _t) = harness_with_style(10, 3, CursorStyle::Block);
+        let rects = compute_rects(&r);
+        let cur = cursor_rects(&rects, r.cursor_color);
+        assert_eq!(cur.len(), 1);
+        assert!((cur[0].size[0] - r.cell_width).abs() < 0.01);
+        assert!((cur[0].size[1] - r.cell_height).abs() < 0.01);
+    }
+
+    #[test]
+    fn cursor_style_bar_produces_thin_vertical_rect() {
+        let (r, _t) = harness_with_style(10, 3, CursorStyle::Bar);
+        let rects = compute_rects(&r);
+        let cur = cursor_rects(&rects, r.cursor_color);
+        assert_eq!(cur.len(), 1);
+        // Bar = 2px wide × cell_height.
+        assert!((cur[0].size[0] - 2.0).abs() < 0.01, "bar width: {}", cur[0].size[0]);
+        assert!((cur[0].size[1] - r.cell_height).abs() < 0.01);
+    }
+
+    #[test]
+    fn cursor_style_underline_produces_thin_horizontal_rect_at_bottom() {
+        let (r, _t) = harness_with_style(10, 3, CursorStyle::Underline);
+        let rects = compute_rects(&r);
+        let cur = cursor_rects(&rects, r.cursor_color);
+        assert_eq!(cur.len(), 1);
+        // Underline = cell_width × 2px, positioned at cell bottom.
+        assert!((cur[0].size[0] - r.cell_width).abs() < 0.01);
+        assert!((cur[0].size[1] - 2.0).abs() < 0.01);
+        // y = origin + cell_height - 2.0
+        let expected_y = r.cell_height - 2.0;
+        assert!((cur[0].pos[1] - expected_y).abs() < 0.01);
+    }
+
+    #[test]
+    fn cursor_style_block_hollow_produces_four_edge_rects() {
+        let (r, _t) = harness_with_style(10, 3, CursorStyle::BlockHollow);
+        let rects = compute_rects(&r);
+        let cur = cursor_rects(&rects, r.cursor_color);
+        // Block-hollow = top + bottom + left + right edges = 4 rects.
+        assert_eq!(cur.len(), 4, "block-hollow should emit 4 edge rects: {cur:?}");
+    }
+
+    // ── selection invariants ──────────────────────────────────────
+
+    /// Compute rect instances with an active selection.
+    fn compute_rects_with_selection(r: &TerminalRenderer, sel: &Selection) -> Vec<RectInstance> {
+        let (snap, _seqno) = r.snapshot();
+        r.build_rect_instances(&snap, 0.0, r.padding_px(), r.padding_px(), sel)
+    }
+
+    #[test]
+    fn active_selection_emits_selection_colored_rects() {
+        // Make a selection from (0, 0) to (0, 5). We expect at
+        // least one rect with the selection_bg color.
+        let (r, t) = harness(20, 3);
+        t.write().feed(b"hello world");
+        let mut sel = Selection::new();
+        sel.start(crate::selection::CellPos { row: 0, col: 0 });
+        sel.update(crate::selection::CellPos { row: 0, col: 5 });
+        sel.finish();
+        assert!(sel.is_active());
+        let rects = compute_rects_with_selection(&r, &sel);
+        let sel_rects: Vec<_> = rects
+            .iter()
+            .filter(|rt| colors_approx_eq(rt.color, r.selection_bg))
+            .collect();
+        assert!(
+            !sel_rects.is_empty(),
+            "expected ≥1 selection-colored rect, got {sel_rects:?}"
+        );
+    }
+
+    #[test]
+    fn cleared_selection_emits_no_selection_rects() {
+        let (r, t) = harness(20, 3);
+        t.write().feed(b"hello");
+        let sel = Selection::new(); // never .start()'d
+        let rects = compute_rects_with_selection(&r, &sel);
+        let sel_rects: Vec<_> = rects
+            .iter()
+            .filter(|rt| colors_approx_eq(rt.color, r.selection_bg))
+            .collect();
+        assert!(
+            sel_rects.is_empty(),
+            "no selection should emit no selection-colored rects: {sel_rects:?}"
+        );
+    }
+
+    // ── block-separator invariants ────────────────────────────────
+
+    #[test]
+    fn osc_133_prompt_marks_emit_block_separators() {
+        // Feed an OSC 133 A (prompt-start) mark. The renderer
+        // should emit a 1px-tall faint rect spanning the row.
+        let (r, t) = harness(40, 8);
+        // Drop a few newlines so the prompt mark lands past row 0
+        // (row-0 marks are intentionally skipped).
+        t.write().feed(b"\n\n\x1b]133;A\x1b\\");
+        let rects = compute_rects(&r);
+        // Separator color is Nord #5E81AC @ 30% α = ~ [0.369, 0.506, 0.675, 0.30].
+        let sep_color = [0.369, 0.506, 0.675, 0.30];
+        let seps: Vec<_> = rects
+            .iter()
+            .filter(|rt| colors_approx_eq(rt.color, sep_color))
+            .collect();
+        assert!(
+            !seps.is_empty(),
+            "expected ≥1 block-separator rect for the OSC 133 mark: {rects:?}"
+        );
+        // 1px tall, full viewport width.
+        for s in &seps {
+            assert!((s.size[1] - 1.0).abs() < 0.01, "separator height: {s:?}");
+            assert!(
+                (s.size[0] - 40.0 * r.cell_width).abs() < 0.01,
+                "separator width: {s:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn no_block_separators_when_no_osc_133_marks() {
+        let (r, t) = harness(40, 8);
+        t.write().feed(b"plain text no prompt marks");
+        let rects = compute_rects(&r);
+        let sep_color = [0.369, 0.506, 0.675, 0.30];
+        let seps: Vec<_> = rects
+            .iter()
+            .filter(|rt| colors_approx_eq(rt.color, sep_color))
+            .collect();
+        assert!(
+            seps.is_empty(),
+            "no OSC 133 marks should emit no separators: {seps:?}"
+        );
+    }
 }
 
 /// Layer 2 of the verification strategy: headless wgpu render
@@ -3204,6 +3362,98 @@ mod render_gpu_invariants {
             any_nonzero,
             "every pixel is (0, 0, 0) — looks like the pipeline didn't paint"
         );
+    }
+
+    #[test]
+    fn two_identical_renders_produce_identical_frame_hashes() {
+        // Frame-hash determinism — the canonical L2 invariant that
+        // proves "same input → same pixels, byte-for-byte". If
+        // the pipeline introduces any non-determinism (uninit
+        // memory, time-dependent uniforms, animation that ticks
+        // even at elapsed=0), the two hashes diverge.
+        use garasu::headless::frame_hash;
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let target =
+            HeadlessTarget::new(&gpu, 64, 32, wgpu::TextureFormat::Bgra8UnormSrgb);
+        let (mut r, t, mut text) = build_gpu_renderer(&gpu, 20, 4);
+        t.write().feed(b"deterministic");
+
+        let pixels_a = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        let pixels_b = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        let hash_a = frame_hash(&pixels_a);
+        let hash_b = frame_hash(&pixels_b);
+        assert_eq!(
+            hash_a, hash_b,
+            "frame hashes diverged between two identical renders — \
+             pipeline is non-deterministic"
+        );
+    }
+
+    #[test]
+    fn cursor_cell_has_non_background_pixels_after_first_frame() {
+        // Pixel-level cursor sanity: the pixel at the cursor's
+        // cell center should NOT match the background color
+        // (the cursor rect overpaints the bg, by design). Uses
+        // garasu's cell_center_pixel helper to convert
+        // (col, row) into a pixel coord.
+        use garasu::headless::{cell_center_pixel, pixel_at};
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let (cols, rows) = (20u32, 4u32);
+        // Use Block cursor + the small grid so cell_width *
+        // cols + a little padding gives us the surface dims.
+        let (mut r, _t, mut text) = build_gpu_renderer(&gpu, cols as usize, rows as usize);
+        // Surface sized to fit the full grid (no padding).
+        let surface_w = (r.cell_width * cols as f32).ceil() as u32;
+        let surface_h = (r.cell_height * rows as f32).ceil() as u32;
+        let target = HeadlessTarget::new(
+            &gpu,
+            surface_w,
+            surface_h,
+            wgpu::TextureFormat::Bgra8UnormSrgb,
+        );
+
+        let pixels = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        // Cursor lives at (0, 0). Find its center pixel.
+        let (cx, cy) = cell_center_pixel(0, 0, r.cell_width, r.cell_height, 0.0, 0.0);
+        let px = pixel_at(&pixels, surface_w, cx.min(surface_w - 1), cy.min(surface_h - 1));
+        // Surface is BGRA; channels in order are B, G, R, A.
+        // Background is Nord polar-night dark (~46, 52, 64 in
+        // sRGB) — the cursor rect overpaints it with the
+        // cursor color, which is much brighter. Any channel
+        // exceeding 100 means the cursor is painting through.
+        assert!(
+            px[0] > 100 || px[1] > 100 || px[2] > 100,
+            "cursor cell pixel = {px:?}; expected at least one channel > 100 \
+             (cursor rect should overpaint bg)"
+        );
+    }
+
+    #[test]
+    fn render_one_frame_via_garasu_harness_round_trips() {
+        // Validate the garasu::HeadlessHarness convenience layer
+        // against mado's renderer. If this compiles + asserts,
+        // every other garasu consumer can copy the pattern.
+        use garasu::headless::{HeadlessHarness, assert_no_magenta_pixels};
+        use madori::RenderContext;
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let mut harness =
+            HeadlessHarness::new(&gpu, 128, 64, wgpu::TextureFormat::Bgra8UnormSrgb);
+        let (mut r, _t, _drop_text) = build_gpu_renderer(&gpu, 40, 8);
+
+        let pixels = harness.render_one_frame(&gpu, |text, view, w, h| {
+            let mut ctx = RenderContext {
+                gpu: &gpu,
+                text,
+                surface_view: view,
+                width: w,
+                height: h,
+                scale_factor: 1.0,
+                elapsed: 0.0,
+                dt: 0.0,
+            };
+            r.render(&mut ctx);
+        });
+        assert!(assert_no_magenta_pixels(&pixels, 128, 64).is_ok());
     }
 }
 
