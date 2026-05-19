@@ -159,7 +159,7 @@ dependencies = [
  "objc2-foundation 0.3.2",
  "parking_lot",
  "percent-encoding",
- "windows-sys 0.60.2",
+ "windows-sys 0.52.0",
  "x11rb",
 ]
 
@@ -850,7 +850,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3019,7 +3019,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.12.1",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3542,7 +3542,7 @@ dependencies = [
 [[package]]
 name = "tear-client"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#8a605b10f4c90dbef8ae7d9a98a9954c87b79815"
+source = "git+https://github.com/pleme-io/tear#86b7d2cada73ed5def748652e2ff831d04508f1b"
 dependencies = [
  "parking_lot",
  "serde_yaml_ng",
@@ -3553,7 +3553,7 @@ dependencies = [
 [[package]]
 name = "tear-config"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#8a605b10f4c90dbef8ae7d9a98a9954c87b79815"
+source = "git+https://github.com/pleme-io/tear#86b7d2cada73ed5def748652e2ff831d04508f1b"
 dependencies = [
  "anyhow",
  "arc-swap",
@@ -3570,7 +3570,7 @@ dependencies = [
 [[package]]
 name = "tear-core"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#8a605b10f4c90dbef8ae7d9a98a9954c87b79815"
+source = "git+https://github.com/pleme-io/tear#86b7d2cada73ed5def748652e2ff831d04508f1b"
 dependencies = [
  "anyhow",
  "blake3",
@@ -3589,7 +3589,7 @@ dependencies = [
 [[package]]
 name = "tear-daemon"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#8a605b10f4c90dbef8ae7d9a98a9954c87b79815"
+source = "git+https://github.com/pleme-io/tear#86b7d2cada73ed5def748652e2ff831d04508f1b"
 dependencies = [
  "anyhow",
  "blake3",
@@ -3606,7 +3606,7 @@ dependencies = [
 [[package]]
 name = "tear-types"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#8a605b10f4c90dbef8ae7d9a98a9954c87b79815"
+source = "git+https://github.com/pleme-io/tear#86b7d2cada73ed5def748652e2ff831d04508f1b"
 dependencies = [
  "anyhow",
  "blake3",
@@ -3626,7 +3626,7 @@ dependencies = [
  "getrandom 0.4.2",
  "once_cell",
  "rustix 1.1.4",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -4515,7 +4515,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
