@@ -368,7 +368,25 @@ pub struct WindowConfig {
     pub height: u32,
     #[serde(default = "default_padding")]
     pub padding: u32,
-    #[serde(default = "default_true")]
+    /// Show server / window-manager decorations (titlebar, border,
+    /// close/minimize buttons). Default is **platform-aware**:
+    ///
+    /// * macOS: `true` — preserves the traffic-light buttons.
+    ///   Combined with `platform::apply_native_styling()`'s
+    ///   `FullSizeContentView` + transparent titlebar, the chrome
+    ///   integrates into the content area for a "minimal but
+    ///   functional" look. Operators who want a truly chromeless
+    ///   look (no traffic lights) override to `false`.
+    /// * Linux / Windows: `false` — server/wm decorations are
+    ///   removed entirely for a pure borderless window. Most
+    ///   tiling-WM operators on Linux already disable
+    ///   decorations via their WM; this aligns mado's default.
+    ///
+    /// The operator-facing contract: "as little chrome as
+    /// possible by default, per platform." Override in
+    /// `~/.config/mado/mado.yaml` if you want a specific
+    /// behavior.
+    #[serde(default = "default_decorations")]
     pub decorations: bool,
     #[serde(default)]
     pub title: Option<String>,
@@ -904,7 +922,7 @@ impl Default for WindowConfig {
             width: default_width(),
             height: default_height(),
             padding: default_padding(),
-            decorations: true,
+            decorations: default_decorations(),
             title: None,
             unfocused_split_opacity: default_unfocused_split_opacity(),
             split_divider_color: None,
@@ -1014,7 +1032,23 @@ fn default_height() -> u32 {
     800
 }
 fn default_padding() -> u32 {
-    8
+    // Operator-facing default: zero internal padding so the
+    // first cell sits flush against the window edge. Pre-2026-05
+    // default was 8 px to mimic VTE's slight inset; flipped to
+    // 0 as part of the "minimal borders + edges everywhere"
+    // operator UX. Operators who want padding back set
+    // `window.padding: 8` (or whatever value they prefer) in
+    // `~/.config/mado/mado.yaml`.
+    0
+}
+
+fn default_decorations() -> bool {
+    // Platform-aware: true on macOS so traffic-light buttons
+    // stay (and platform::apply_native_styling can integrate
+    // chrome via FullSizeContentView + transparent titlebar);
+    // false on Linux/Windows for pure borderless. See
+    // WindowConfig::decorations doc for the operator contract.
+    cfg!(target_os = "macos")
 }
 fn default_bg() -> String {
     "#2e3440".into()
@@ -1358,8 +1392,13 @@ mod tests {
         assert!(config.active_profile.is_none());
         assert_eq!(config.window.width, 1200);
         assert_eq!(config.window.height, 800);
-        assert_eq!(config.window.padding, 8);
-        assert!(config.window.decorations);
+        // Operator-facing default flipped to 0 (minimal edges).
+        assert_eq!(config.window.padding, 0);
+        // Platform-aware decorations default: true on macOS so
+        // traffic-light buttons stay (and apply_native_styling
+        // integrates the chrome); false on Linux/Windows for
+        // pure borderless. See WindowConfig::decorations doc.
+        assert_eq!(config.window.decorations, cfg!(target_os = "macos"));
         assert!(config.window.title.is_none());
         assert!((config.window.unfocused_split_opacity - 0.85).abs() < 0.001);
         assert!(config.window.split_divider_color.is_none());
@@ -1523,7 +1562,7 @@ window:
         let w = WindowConfig::default();
         assert_eq!(w.width, 1200);
         assert_eq!(w.height, 800);
-        assert_eq!(w.padding, 8);
+        assert_eq!(w.padding, 0);
     }
 
     #[test]
@@ -2014,7 +2053,9 @@ active_profile: "dark"
     #[test]
     fn test_window_config_new_fields() {
         let w = WindowConfig::default();
-        assert!(w.decorations);
+        // Platform-aware: macOS keeps decorations (traffic
+        // lights stay usable); Linux/Windows borderless.
+        assert_eq!(w.decorations, cfg!(target_os = "macos"));
         assert!(w.title.is_none());
         assert!((w.unfocused_split_opacity - 0.85).abs() < 0.001);
         assert!(!w.fullscreen);

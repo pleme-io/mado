@@ -574,6 +574,7 @@ fn main() -> anyhow::Result<()> {
         resizable: true,
         vsync: config.performance.vsync,
         transparent: false,
+        decorations: config.window.decorations,
     };
     madori::App::builder(renderer)
         .config(app_config)

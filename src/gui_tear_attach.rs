@@ -159,6 +159,7 @@ pub fn run(pane_id: tear_types::PaneId, socket_path: PathBuf) -> Result<()> {
         resizable: true,
         vsync: config.performance.vsync,
         transparent: false,
+        decorations: config.window.decorations,
     };
     // Same cell-metric formula TerminalRenderer::new uses internally.
     // The HiDPI scale factor multiplies in at first render; for the
