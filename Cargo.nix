@@ -3152,7 +3152,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/garasu";
           rev = "051b655e4eb3a57f4ec1a98619a163f97e5c8f54";
-          sha256 = "0ah4jb91bw3a8n3pc4cr8fww36w171y0ci6qnblikn06xv6z5jl7";
+          sha256 = "0670523067pqnyg3wm941angqpynmj8basx077ilw1bny0i31x0f";
         };
         dependencies = [
           {
@@ -11692,7 +11692,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
           rev = "f573f2bb60ea3b1f54612c36801d8570d30dd1be";
-          sha256 = "1g39z73mp2hpccrqfiy4108hxlkkc8g0imgq3msinjmhl3rpzzpn";
+          sha256 = "0b9f23kykr858ghc36fl3w0v6ywm59pbgrrzpbiyjlw6chhasw9b";
         };
         dependencies = [
           {
@@ -12382,7 +12382,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
           rev = "212bb4321202945fc3235db82ae31ad261daf916";
-          sha256 = "02dcp811f7by3whc1d5ya2bnxi2gg7wksb6kn35wwlz2hsb5if0p";
+          sha256 = "0zg4bhkkdpk3s9jl68xvm79d37s6cpvw0lr27s1ijplqarw1jsyn";
         };
         libName = "tear_client";
         authors = [
@@ -12416,7 +12416,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
           rev = "212bb4321202945fc3235db82ae31ad261daf916";
-          sha256 = "02dcp811f7by3whc1d5ya2bnxi2gg7wksb6kn35wwlz2hsb5if0p";
+          sha256 = "0zg4bhkkdpk3s9jl68xvm79d37s6cpvw0lr27s1ijplqarw1jsyn";
         };
         libName = "tear_config";
         authors = [
@@ -12475,7 +12475,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
           rev = "212bb4321202945fc3235db82ae31ad261daf916";
-          sha256 = "02dcp811f7by3whc1d5ya2bnxi2gg7wksb6kn35wwlz2hsb5if0p";
+          sha256 = "0zg4bhkkdpk3s9jl68xvm79d37s6cpvw0lr27s1ijplqarw1jsyn";
         };
         libName = "tear_core";
         authors = [
@@ -12542,7 +12542,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
           rev = "212bb4321202945fc3235db82ae31ad261daf916";
-          sha256 = "02dcp811f7by3whc1d5ya2bnxi2gg7wksb6kn35wwlz2hsb5if0p";
+          sha256 = "0zg4bhkkdpk3s9jl68xvm79d37s6cpvw0lr27s1ijplqarw1jsyn";
         };
         libName = "tear_daemon";
         authors = [
@@ -12603,7 +12603,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
           rev = "212bb4321202945fc3235db82ae31ad261daf916";
-          sha256 = "02dcp811f7by3whc1d5ya2bnxi2gg7wksb6kn35wwlz2hsb5if0p";
+          sha256 = "0zg4bhkkdpk3s9jl68xvm79d37s6cpvw0lr27s1ijplqarw1jsyn";
         };
         libName = "tear_types";
         authors = [
