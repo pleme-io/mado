@@ -565,7 +565,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.60.2";
+            packageId = "windows-sys 0.59.0";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Storage_FileSystem" "Win32_System_DataExchange" "Win32_System_Memory" "Win32_System_Ole" "Win32_UI_Shell" ];
           }
@@ -2190,7 +2190,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.61.2";
+            packageId = "windows-sys 0.59.0";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_UI_Shell" "Win32_Foundation" "Win32_Globalization" "Win32_System_Com" ];
           }
@@ -2400,7 +2400,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.61.2";
+            packageId = "windows-sys 0.59.0";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_System_Diagnostics_Debug" ];
           }
@@ -3151,10 +3151,14 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/garasu";
-          rev = "6404e797bc3891661add99ae0d72f59a42a38d12";
+          rev = "051b655e4eb3a57f4ec1a98619a163f97e5c8f54";
           sha256 = "0ah4jb91bw3a8n3pc4cr8fww36w171y0ci6qnblikn06xv6z5jl7";
         };
         dependencies = [
+          {
+            name = "blake3";
+            packageId = "blake3";
+          }
           {
             name = "glyphon";
             packageId = "glyphon";
@@ -3189,7 +3193,9 @@ rec {
             packageId = "winit";
           }
         ];
-
+        features = {
+        };
+        resolvedDefaultFeatures = [ "default" ];
       };
       "gethostname" = rec {
         crateName = "gethostname";
@@ -4983,6 +4989,11 @@ rec {
             packageId = "parking_lot";
           }
           {
+            name = "pollster";
+            packageId = "pollster";
+            optional = true;
+          }
+          {
             name = "rmcp";
             packageId = "rmcp";
             features = [ "server" "transport-io" ];
@@ -5081,7 +5092,10 @@ rec {
             packageId = "tempfile";
           }
         ];
-
+        features = {
+          "gpu_tests" = [ "dep:pollster" ];
+        };
+        resolvedDefaultFeatures = [ "default" "gpu_tests" ];
       };
       "madori" = rec {
         crateName = "madori";
@@ -5881,7 +5895,7 @@ rec {
         dependencies = [
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.61.2";
+            packageId = "windows-sys 0.59.0";
             rename = "windows";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_System_Console" "Win32_Storage_FileSystem" "Win32_Security" ];
@@ -10807,7 +10821,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.61.2";
+            packageId = "windows-sys 0.59.0";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Networking_WinSock" ];
           }
@@ -11677,7 +11691,7 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
-          rev = "a2f2f40a196513fef17d140833174fc35a545772";
+          rev = "f573f2bb60ea3b1f54612c36801d8570d30dd1be";
           sha256 = "1g39z73mp2hpccrqfiy4108hxlkkc8g0imgq3msinjmhl3rpzzpn";
         };
         dependencies = [
@@ -12367,7 +12381,7 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
-          rev = "2047d1969a46729c5a564e7f0b68f3d1f2001a63";
+          rev = "212bb4321202945fc3235db82ae31ad261daf916";
           sha256 = "02dcp811f7by3whc1d5ya2bnxi2gg7wksb6kn35wwlz2hsb5if0p";
         };
         libName = "tear_client";
@@ -12401,7 +12415,7 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
-          rev = "2047d1969a46729c5a564e7f0b68f3d1f2001a63";
+          rev = "212bb4321202945fc3235db82ae31ad261daf916";
           sha256 = "02dcp811f7by3whc1d5ya2bnxi2gg7wksb6kn35wwlz2hsb5if0p";
         };
         libName = "tear_config";
@@ -12435,6 +12449,10 @@ rec {
             packageId = "serde_yaml_ng";
           }
           {
+            name = "shikumi";
+            packageId = "shikumi";
+          }
+          {
             name = "tear-types";
             packageId = "tear-types";
           }
@@ -12456,7 +12474,7 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
-          rev = "2047d1969a46729c5a564e7f0b68f3d1f2001a63";
+          rev = "212bb4321202945fc3235db82ae31ad261daf916";
           sha256 = "02dcp811f7by3whc1d5ya2bnxi2gg7wksb6kn35wwlz2hsb5if0p";
         };
         libName = "tear_core";
@@ -12523,7 +12541,7 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
-          rev = "2047d1969a46729c5a564e7f0b68f3d1f2001a63";
+          rev = "212bb4321202945fc3235db82ae31ad261daf916";
           sha256 = "02dcp811f7by3whc1d5ya2bnxi2gg7wksb6kn35wwlz2hsb5if0p";
         };
         libName = "tear_daemon";
@@ -12536,8 +12554,21 @@ rec {
             packageId = "anyhow";
           }
           {
+            name = "blake3";
+            packageId = "blake3";
+          }
+          {
             name = "notify";
             packageId = "notify";
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
           }
           {
             name = "serde_yaml_ng";
@@ -12560,7 +12591,9 @@ rec {
             packageId = "tracing";
           }
         ];
-
+        features = {
+        };
+        resolvedDefaultFeatures = [ "default" ];
       };
       "tear-types" = rec {
         crateName = "tear-types";
@@ -12569,7 +12602,7 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
-          rev = "2047d1969a46729c5a564e7f0b68f3d1f2001a63";
+          rev = "212bb4321202945fc3235db82ae31ad261daf916";
           sha256 = "02dcp811f7by3whc1d5ya2bnxi2gg7wksb6kn35wwlz2hsb5if0p";
         };
         libName = "tear_types";
@@ -12593,6 +12626,10 @@ rec {
             name = "serde";
             packageId = "serde";
             features = [ "derive" ];
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
           }
           {
             name = "thiserror";
@@ -12638,7 +12675,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.61.2";
+            packageId = "windows-sys 0.59.0";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Storage_FileSystem" "Win32_Foundation" ];
           }
@@ -16022,7 +16059,7 @@ rec {
         dependencies = [
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.61.2";
+            packageId = "windows-sys 0.59.0";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Storage_FileSystem" "Win32_System_Console" "Win32_System_SystemInformation" ];
           }
@@ -18303,7 +18340,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_NetworkManagement" "Win32_NetworkManagement_IpHelper" "Win32_Networking" "Win32_Networking_WinSock" "Win32_System" "Win32_System_Threading" "default" ];
+        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Globalization" "Win32_Graphics" "Win32_Graphics_Gdi" "Win32_NetworkManagement" "Win32_NetworkManagement_IpHelper" "Win32_Networking" "Win32_Networking_WinSock" "Win32_Security" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Console" "Win32_System_DataExchange" "Win32_System_Diagnostics" "Win32_System_Diagnostics_Debug" "Win32_System_Memory" "Win32_System_Ole" "Win32_System_SystemInformation" "Win32_System_Threading" "Win32_UI" "Win32_UI_Shell" "default" ];
       };
       "windows-sys 0.60.2" = rec {
         crateName = "windows-sys";
@@ -18568,7 +18605,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Graphics" "Win32_Graphics_Gdi" "Win32_Security" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_DataExchange" "Win32_System_IO" "Win32_System_Memory" "Win32_System_Ole" "Win32_System_Threading" "Win32_System_WindowsProgramming" "Win32_UI" "Win32_UI_Shell" "default" ];
+        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Security" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_IO" "Win32_System_Threading" "Win32_System_WindowsProgramming" "default" ];
       };
       "windows-sys 0.61.2" = rec {
         crateName = "windows-sys";
@@ -18830,7 +18867,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Wdk" "Wdk_Foundation" "Wdk_Storage" "Wdk_Storage_FileSystem" "Wdk_System" "Wdk_System_IO" "Win32" "Win32_Devices" "Win32_Devices_Communication" "Win32_Foundation" "Win32_Globalization" "Win32_Networking" "Win32_Networking_WinSock" "Win32_Security" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Console" "Win32_System_Diagnostics" "Win32_System_Diagnostics_Debug" "Win32_System_IO" "Win32_System_LibraryLoader" "Win32_System_Pipes" "Win32_System_Registry" "Win32_System_SystemInformation" "Win32_System_SystemServices" "Win32_System_Threading" "Win32_System_WindowsProgramming" "Win32_UI" "Win32_UI_Shell" "default" ];
+        resolvedDefaultFeatures = [ "Wdk" "Wdk_Foundation" "Wdk_Storage" "Wdk_Storage_FileSystem" "Wdk_System" "Wdk_System_IO" "Win32" "Win32_Devices" "Win32_Devices_Communication" "Win32_Foundation" "Win32_Networking" "Win32_Networking_WinSock" "Win32_Security" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Console" "Win32_System_IO" "Win32_System_LibraryLoader" "Win32_System_Pipes" "Win32_System_Registry" "Win32_System_SystemServices" "Win32_System_Threading" "Win32_System_WindowsProgramming" "default" ];
       };
       "windows-targets 0.52.6" = rec {
         crateName = "windows-targets";
