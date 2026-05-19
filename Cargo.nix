@@ -5105,7 +5105,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/madori";
           rev = "b8b13e14b8ce4e96a0c7c45eb47e706d6b72beb8";
-          sha256 = "18hl69pyjpl11aqrsnd5878imfsf6a42rnqhggnapmxa873c9y5w";
+          sha256 = "14w3l3xrsp2fpjqyr57ybc1y3bq2b0b44a7nr2xgd21hc10pn93f";
         };
         dependencies = [
           {
