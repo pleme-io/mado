@@ -22,6 +22,12 @@ steps:
     text: "┌"
     timeout_ms: 500
 expect:
+  # L3 visual-golden hash (blake3 hex of an 800x600 BGRA8 headless
+  # render of the final terminal state). Enforced only with
+  # --features gpu_tests; without it, the field is parsed but
+  # ignored. Re-record by emptying the string, running the
+  # scenario test, copying the printed hex.
+  frame_hash: "2b900e5e842875937af87f5e793cef725d153cc7412326f33152f8fd1dadd2e8"
   cells:
     - row: 0
       col: 0

@@ -185,7 +185,33 @@ pub struct Expect {
     pub cols: Option<usize>,
     #[serde(default)]
     pub rows: Option<usize>,
+    /// L3 visual-golden hash (lower-case hex blake3 of the
+    /// RGBA8 pixels produced by a headless render of the final
+    /// terminal state). Locked baseline pinned the moment a
+    /// scenario lands; any single-pixel change to the rendered
+    /// output flips the hash and fires the test.
+    ///
+    /// Only enforced when the `gpu_tests` cargo feature is
+    /// active (the runner needs a real wgpu adapter). Without
+    /// the feature, the field is parsed and silently skipped
+    /// so CI runners without a GPU don't mis-fail.
+    ///
+    /// Recording: leave empty, run the scenario, copy the hash
+    /// from the failure message into the YAML, re-run to lock.
+    #[serde(default)]
+    pub frame_hash: Option<String>,
+    /// Surface dimensions for the L3 golden render (physical
+    /// pixels). Default 800×600 — picked to leave generous
+    /// margin around the scenario's grid without making the
+    /// hash sensitive to tiny dim tweaks.
+    #[serde(default = "default_frame_width")]
+    pub frame_width: u32,
+    #[serde(default = "default_frame_height")]
+    pub frame_height: u32,
 }
+
+const fn default_frame_width() -> u32 { 800 }
+const fn default_frame_height() -> u32 { 600 }
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -249,6 +275,117 @@ pub async fn run(scenario: &Scenario) -> Result<()> {
     }
 }
 
+/// L3 visual-golden hash check. Builds a headless GPU render
+/// pipeline against the scenario's final terminal state, hashes
+/// the resulting RGBA8 pixels via garasu's blake3 frame_hash,
+/// compares against the locked YAML golden.
+///
+/// Gated on the `gpu_tests` feature so CI runners without a real
+/// wgpu adapter don't mis-fail. Without the feature, this is a
+/// no-op — the YAML field is still parsed (so authors can record
+/// goldens during local dev) but enforcement is off.
+///
+/// Returns `Ok(())` when the hash matches or the feature is off;
+/// `Err` with the actual hex hash in the message on mismatch so
+/// operators can copy-paste into YAML to update the golden.
+#[cfg(feature = "gpu_tests")]
+fn check_frame_hash_golden(
+    scenario: &Scenario,
+    final_state: FinalState<'_>,
+) -> Result<()> {
+    let Some(want) = scenario.expect.frame_hash.as_deref() else {
+        return Ok(());
+    };
+    if want.is_empty() {
+        // Author left it empty intentionally — fall through to
+        // the recording path so the failure message shows what
+        // to paste in.
+    }
+    use garasu::headless::{HeadlessTarget, frame_hash};
+    use crate::config::CursorStyle;
+    use crate::render::TerminalRenderer;
+    use crate::terminal::Color;
+    use madori::{RenderCallback, RenderContext};
+    use std::sync::Arc;
+
+    let term = match final_state {
+        FinalState::Owned(t) => Arc::new(parking_lot::RwLock::new(t)),
+        FinalState::Shared(t) => t,
+        FinalState::_Phantom(_) => unreachable!(),
+    };
+    let gpu = pollster::block_on(garasu::GpuContext::new())
+        .context("scenario L3 golden: gpu init")?;
+    let target = HeadlessTarget::new(
+        &gpu,
+        scenario.expect.frame_width,
+        scenario.expect.frame_height,
+        wgpu::TextureFormat::Bgra8UnormSrgb,
+    );
+    let mut renderer = TerminalRenderer::new(
+        term,
+        14.0,
+        "monospace".into(),
+        "monospace".into(),
+        0.0,
+        CursorStyle::Block,
+        false, // no blink — deterministic
+        500,
+        wgpu::Color { r: 0.180, g: 0.204, b: 0.251, a: 1.0 },
+        Color::WHITE,
+    );
+    renderer.init(&gpu);
+    let mut text = garasu::TextRenderer::new(
+        &gpu.device,
+        &gpu.queue,
+        wgpu::TextureFormat::Bgra8UnormSrgb,
+    );
+    let mut ctx = RenderContext {
+        gpu: &gpu,
+        text: &mut text,
+        surface_view: target.view(),
+        width: target.width(),
+        height: target.height(),
+        scale_factor: 1.0,
+        elapsed: 0.0,
+        dt: 0.0,
+    };
+    renderer.render(&mut ctx);
+    let _ = gpu.device.poll(wgpu::PollType::Wait);
+    let pixels = target.read_pixels_rgba8(&gpu);
+    let got = frame_hash(&pixels).to_hex().to_string();
+    if got == want {
+        return Ok(());
+    }
+    bail!(
+        "L3 frame_hash mismatch for scenario {:?}:\n  want: {}\n  got:  {}\n\n\
+         If this change is intentional, replace the frame_hash in the YAML \
+         with the new hash. Otherwise the rendered output regressed pixel-\
+         exactly relative to the locked baseline.",
+        scenario.name, want, got
+    );
+}
+
+#[cfg(not(feature = "gpu_tests"))]
+fn check_frame_hash_golden(
+    _scenario: &Scenario,
+    _final_state: FinalState<'_>,
+) -> Result<()> {
+    // No GPU available — silently skip. The YAML field still
+    // round-trips through serde so authors can record locally.
+    Ok(())
+}
+
+/// What we hand to the L3 golden check. Direct-runner gives us
+/// an owned Terminal; PTY runner gives us a shared Arc<Mutex<...>>
+/// already wrapped by Session.
+enum FinalState<'a> {
+    Owned(crate::terminal::Terminal),
+    #[allow(dead_code)]
+    Shared(std::sync::Arc<parking_lot::RwLock<crate::terminal::Terminal>>),
+    #[allow(dead_code)]
+    _Phantom(std::marker::PhantomData<&'a ()>),
+}
+
 async fn run_pty(scenario: &Scenario) -> Result<()> {
     let registry = Arc::new(SessionRegistry::default());
     let spec = TermSpec {
@@ -281,6 +418,9 @@ async fn run_pty(scenario: &Scenario) -> Result<()> {
     let snap = session.snapshot_grid();
     check_expectations(&scenario.expect, &snap)
         .with_context(|| format!("scenario {:?} assertions", scenario.name))?;
+    // L3 visual-golden check (no-op without --features gpu_tests).
+    check_frame_hash_golden(scenario, FinalState::Shared(session.terminal_arc()))
+        .with_context(|| format!("scenario {:?} L3 golden", scenario.name))?;
     Ok(())
 }
 
@@ -324,6 +464,11 @@ fn run_direct(scenario: &Scenario) -> Result<()> {
     let snap = snapshot_from_terminal(&term);
     check_expectations(&scenario.expect, &snap)
         .with_context(|| format!("scenario {:?} assertions", scenario.name))?;
+    // L3 visual-golden check (no-op without --features gpu_tests).
+    // Done AFTER the text/cell assertions so an operator sees
+    // semantic failures first, then visual mismatches.
+    check_frame_hash_golden(scenario, FinalState::Owned(term))
+        .with_context(|| format!("scenario {:?} L3 golden", scenario.name))?;
     Ok(())
 }
 

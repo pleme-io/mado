@@ -109,6 +109,14 @@ impl Session {
         Ok(())
     }
 
+    /// Shared handle to the underlying terminal. Lets the L3 visual-
+    /// golden check in `scenario.rs` build a TerminalRenderer over
+    /// the live session state without going through GridSnapshot
+    /// (which loses fg/bg/attrs needed for accurate rendering).
+    pub fn terminal_arc(&self) -> std::sync::Arc<parking_lot::RwLock<Terminal>> {
+        self.terminal.clone()
+    }
+
     /// Take a complete snapshot of the terminal grid + cursor +
     /// metadata. This is the load-bearing introspection primitive —
     /// every visual-rendering question can be answered by diffing

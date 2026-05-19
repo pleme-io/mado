@@ -157,6 +157,8 @@ parking_lot = "0.12"
 # (sekkei, etc.) already standardised on it.
 serde_yaml_ng = "0.10"
 
+pollster = { version = "0.4", optional = true }
+
 # macOS platform integration (safe Rust wrappers for Cocoa APIs)
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
@@ -179,10 +181,6 @@ tear-daemon = { git = "https://github.com/pleme-io/tear" }
 # "transport-io"; we add the client side here so test-only code
 # doesn't pull rmcp client glue into the production binary.
 rmcp = { version = "0.15", features = ["client", "transport-child-process"] }
-# Layer-2 headless GPU tests need a sync wrapper around garasu's
-# async GpuContext::new. Test-only; production mado uses madori's
-# winit-driven init path.
-pollster = "0.4"
 
 [features]
 default = []
@@ -190,7 +188,12 @@ default = []
 # need a real GPU adapter. cid + dev workstations have one; CI
 # runners typically don't, so default is off. Match
 # garasu/headless gating.
-gpu_tests = []
+#
+# Activates pollster as a runtime dep (sync wrapper around
+# garasu's async GpuContext::new) — only needed inside the
+# gpu_tests code paths, so production builds keep pollster out
+# of the binary.
+gpu_tests = ["dep:pollster"]
 
 [patch.crates-io]
 garasu = { git = "https://github.com/pleme-io/garasu" }
