@@ -62,6 +62,59 @@ pub struct MadoConfig {
     /// back to local PTY if not available.
     #[serde(default)]
     pub tear: MadoTearConfig,
+    /// Default-on visual effects rendered as overlays after the
+    /// text pass. Snow is on by default — set `effects.snow.enabled
+    /// = false` to disable.
+    #[serde(default)]
+    pub effects: MadoEffectsConfig,
+}
+
+/// Mado's overlay-effect configuration. Each field is one effect's
+/// knobs. Effects are rendered in declaration order after the text
+/// pass via `LoadOp::Load` alpha blending.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct MadoEffectsConfig {
+    #[serde(default)]
+    pub snow: MadoSnowConfig,
+}
+
+/// Snow overlay knobs. Mirrors `engawa_snow::SnowParams` but only
+/// the operator-facing dials; runtime state (time, cursor,
+/// typing_pulse) is mado-managed.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MadoSnowConfig {
+    /// Master enable. Default `true` — snow is the flagship
+    /// effect.
+    #[serde(default = "default_snow_enabled")]
+    pub enabled: bool,
+    /// Master gain, 0..1. Default 0.85.
+    #[serde(default = "default_snow_intensity")]
+    pub intensity: f32,
+    /// Horizontal wind, -1..1. Default 0.0.
+    #[serde(default)]
+    pub wind: f32,
+    /// Ground-pile accumulation, 0..1. Default 0.0.
+    #[serde(default)]
+    pub accumulation: f32,
+    /// Parallax layer count, 1..3. Default 3.
+    #[serde(default = "default_snow_layer_count")]
+    pub layer_count: f32,
+}
+
+fn default_snow_enabled() -> bool { true }
+fn default_snow_intensity() -> f32 { 0.85 }
+fn default_snow_layer_count() -> f32 { 3.0 }
+
+impl Default for MadoSnowConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_snow_enabled(),
+            intensity: default_snow_intensity(),
+            wind: 0.0,
+            accumulation: 0.0,
+            layer_count: default_snow_layer_count(),
+        }
+    }
 }
 
 /// Mado's `[tear]` config section — controls auto-discovery and
@@ -912,6 +965,7 @@ impl Default for MadoConfig {
             keybinds: KeybindConfig::default(),
             quick_terminal: QuickTerminalConfig::default(),
             tear: MadoTearConfig::default(),
+            effects: MadoEffectsConfig::default(),
         }
     }
 }

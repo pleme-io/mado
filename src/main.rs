@@ -27,6 +27,7 @@ mod pointer_shape;
 mod prompt_mark;
 mod pty;
 mod render;
+mod render_snow;
 mod scenario;
 mod search;
 mod selection;
@@ -495,6 +496,10 @@ fn main() -> anyhow::Result<()> {
     renderer.set_colorblind_mode(config.accessibility.colorblind);
     renderer.set_bold_is_bright(config.appearance.bold_is_bright);
     renderer.set_reduce_motion(config.accessibility.reduce_motion);
+    // Snow overlay — the default mado effect. Pre-init so the
+    // overlay constructor in `init()` picks up the operator's
+    // knobs (intensity, wind, accumulation, layer_count, enabled).
+    renderer.set_snow_config(config.effects.snow.clone());
 
     // Set selection/search on renderer (Phase 4 — single pane).
     renderer.set_selection(Arc::clone(&pane.selection));
@@ -595,6 +600,10 @@ fn main() -> anyhow::Result<()> {
                     modifiers,
                     ..
                 }) => {
+                    // Snow overlay: every keystroke pulses the
+                    // typing-shimmer; pulse decays per frame at ~0.5s
+                    // half-life so rapid typing builds up brightness.
+                    renderer.snow_pulse_typing();
                     let hide_cursor =
                         mouse_hide_while_typing && mouse_visible.swap(false, Ordering::SeqCst);
                     // Map winit modifiers to awase modifiers
@@ -1252,6 +1261,9 @@ fn main() -> anyhow::Result<()> {
                 AppEvent::Mouse(MouseEvent::Moved { x, y }) => {
                     let was_hidden = !mouse_visible.swap(true, Ordering::SeqCst);
                     let show_cursor = mouse_hide_while_typing && was_hidden;
+                    // Snow overlay: track cursor for the deflection ring
+                    // on the near-layer flakes.
+                    renderer.snow_set_cursor(*x as f32, *y as f32);
                     let cw = renderer.cell_width();
                     let ch = renderer.cell_height();
                     let col = ((*x as f32 - padding) / cw).max(0.0) as usize;

@@ -995,6 +995,14 @@ pub struct TerminalRenderer {
     /// `SYNC_OUTPUT_MAX_DEFER`, we force a render and reset the
     /// timestamp.
     sync_output_deferred_since: Option<Instant>,
+    /// Snow overlay — the default mado effect. Constructed lazily
+    /// in `init()` once the wgpu device is available. `None` when
+    /// `effects.snow.enabled = false` or before init.
+    snow_overlay: Option<crate::render_snow::SnowOverlay>,
+    /// Snow overlay config — captured at construction so init()
+    /// can build the overlay with the right knobs. Mirrors
+    /// `MadoConfig.effects.snow` exactly.
+    snow_config: crate::config::MadoSnowConfig,
 }
 
 /// Maximum time the BSU/ESU defer is allowed to skip frames. Kitty
@@ -1058,6 +1066,42 @@ impl TerminalRenderer {
             last_cursor_on: false,
             box_draw_templates: RefCell::new(HashMap::new()),
             sync_output_deferred_since: None,
+            snow_overlay: None,
+            snow_config: crate::config::MadoSnowConfig::default(),
+        }
+    }
+
+    /// Override the snow overlay config. Must be called BEFORE
+    /// the first render (i.e. before `init` runs) for the snow
+    /// pass to pick it up; otherwise it builds with defaults.
+    pub fn set_snow_config(&mut self, cfg: crate::config::MadoSnowConfig) {
+        self.snow_config = cfg.clone();
+        if let Some(snow) = self.snow_overlay.as_mut() {
+            snow.update_config(cfg);
+        }
+    }
+
+    /// Push the current mouse position into the snow overlay so
+    /// the cursor-deflection ring tracks the pointer.
+    pub fn snow_set_cursor(&mut self, x: f32, y: f32) {
+        if let Some(snow) = self.snow_overlay.as_mut() {
+            snow.set_cursor(x, y);
+        }
+    }
+
+    /// Mark the cursor as off-window — the snow overlay turns
+    /// off cursor deflection.
+    pub fn snow_cursor_left(&mut self) {
+        if let Some(snow) = self.snow_overlay.as_mut() {
+            snow.cursor_left();
+        }
+    }
+
+    /// Bump the typing-pulse on the snow overlay. Called from
+    /// the keyboard handler.
+    pub fn snow_pulse_typing(&mut self) {
+        if let Some(snow) = self.snow_overlay.as_mut() {
+            snow.pulse_typing();
         }
     }
 
@@ -2402,6 +2446,13 @@ impl RenderCallback for TerminalRenderer {
         self.rect_pipeline = Some(RectPipeline::new(&gpu.device, format));
         self.image_pipeline = Some(ImagePipeline::new(&gpu.device, format));
         self.post_pipeline = Some(PostProcessPipeline::new(&gpu.device, format));
+        if self.snow_config.enabled {
+            self.snow_overlay = Some(crate::render_snow::SnowOverlay::new(
+                &gpu.device,
+                format,
+                self.snow_config.clone(),
+            ));
+        }
     }
 
     fn render(&mut self, ctx: &mut RenderContext<'_>) {
@@ -2784,6 +2835,16 @@ impl RenderCallback for TerminalRenderer {
                     pass.draw(0..6, 0..1);
                 }
             }
+        }
+
+        // Pass 5: Snow overlay (default-on effect). Renders AFTER
+        // post-process so it composes onto the final color-space
+        // pixels — text + colorblind grade + snow all live together.
+        // The overlay uses LoadOp::Load + alpha blending so terminal
+        // contents show through where there are no flakes.
+        if let Some(ref mut snow) = self.snow_overlay {
+            snow.set_resolution(ctx.width as f32, ctx.height as f32);
+            snow.render(&ctx.gpu.device, &ctx.gpu.queue, &mut encoder, ctx.surface_view);
         }
 
         ctx.gpu.queue.submit(std::iter::once(encoder.finish()));
