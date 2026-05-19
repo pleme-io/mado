@@ -3,7 +3,7 @@
   "git+https://github.com/pleme-io/egaku#0.1.0": "0sdr8mg3rq9r8nhg7wm77v7nh2z4vx3j5p3qswkgfacgpbvkalqa",
   "git+https://github.com/pleme-io/engawa#0.1.0": "1rby75m4ymxh4gwrkbhckmajmflxyyb2yf6zl95w7p9qg1wzwxyg",
   "git+https://github.com/pleme-io/engawa-lisp#0.1.0": "0s04ipr2g896js4r3zhcg0cnqgsd65j1jlz19dwbhijp4bibvjbk",
-  "git+https://github.com/pleme-io/engawa-snow#0.1.0": "03w8y19c8s8gifkfcx1ck9wrpvim8fw6fm90qcvlj8bq0rqk50p6",
+  "git+https://github.com/pleme-io/engawa-snow#0.1.0": "0fq9rw69rs220c6lm1ykslsif3br8lkylqda8y20867wah36rqya",
   "git+https://github.com/pleme-io/engawa-wgpu#0.1.0": "11rbcg57ssxhcbrjhzy60j5h3cx1y8h6plc2iixk5b8jpxc22c3s",
   "git+https://github.com/pleme-io/garasu#0.1.0": "0670523067pqnyg3wm941angqpynmj8basx077ilw1bny0i31x0f",
   "git+https://github.com/pleme-io/hasami#0.1.0": "12w8yv6svbqx8n59gz9msd5vlwspzz1brcr3ffjsqgyfzsjqvnqc",
@@ -13,9 +13,9 @@
   "git+https://github.com/pleme-io/shidou#0.1.0": "0haaxr2zc623ayjmbf1ag8vghqwfgcd215dax3pkmcng1mm7lzy2",
   "git+https://github.com/pleme-io/shikumi#0.1.0": "0b9f23kykr858ghc36fl3w0v6ywm59pbgrrzpbiyjlw6chhasw9b",
   "git+https://github.com/pleme-io/soushi#0.1.0": "0prhgpvqzn0j1axlvb0a4dgx7hx2fr7cm800v92mx59ik3n0lvf0",
-  "git+https://github.com/pleme-io/tear#tear-client@0.1.0": "1h426hx2zd6wkr61pmr7h3l6v173pxldzp0n8jcidz63fizn2nz4",
-  "git+https://github.com/pleme-io/tear#tear-config@0.1.0": "1h426hx2zd6wkr61pmr7h3l6v173pxldzp0n8jcidz63fizn2nz4",
-  "git+https://github.com/pleme-io/tear#tear-core@0.1.0": "1h426hx2zd6wkr61pmr7h3l6v173pxldzp0n8jcidz63fizn2nz4",
-  "git+https://github.com/pleme-io/tear#tear-daemon@0.1.0": "1h426hx2zd6wkr61pmr7h3l6v173pxldzp0n8jcidz63fizn2nz4",
-  "git+https://github.com/pleme-io/tear#tear-types@0.1.0": "1h426hx2zd6wkr61pmr7h3l6v173pxldzp0n8jcidz63fizn2nz4"
+  "git+https://github.com/pleme-io/tear#tear-client@0.1.0": "1l542r0qwv58jlak7j94d764x0avbxjq76x0s3xj10f3fd1b33am",
+  "git+https://github.com/pleme-io/tear#tear-config@0.1.0": "1l542r0qwv58jlak7j94d764x0avbxjq76x0s3xj10f3fd1b33am",
+  "git+https://github.com/pleme-io/tear#tear-core@0.1.0": "1l542r0qwv58jlak7j94d764x0avbxjq76x0s3xj10f3fd1b33am",
+  "git+https://github.com/pleme-io/tear#tear-daemon@0.1.0": "1l542r0qwv58jlak7j94d764x0avbxjq76x0s3xj10f3fd1b33am",
+  "git+https://github.com/pleme-io/tear#tear-types@0.1.0": "1l542r0qwv58jlak7j94d764x0avbxjq76x0s3xj10f3fd1b33am"
 }
