@@ -384,7 +384,13 @@ fn main() -> anyhow::Result<()> {
     }
 
     // Windowed mado uses the default stdout-fmt subscriber.
-    shidou::init_tracing();
+    //
+    // Default filter silences cosmic-text's per-font-load WARN
+    // for legacy bitmap-only system fonts (GB18030Bitmap and
+    // friends ship on macOS but cosmic-text's TrueType parser
+    // can't load them — the warning is informational, not a
+    // failure). `RUST_LOG` always wins if the operator sets it.
+    shidou::init_tracing_with_level("info,cosmic_text::font::system=error");
 
     let (config, _config_store) = config::load_and_watch(&cli.config, |new_config| {
         tracing::debug!("config reloaded: {:?}", new_config);
