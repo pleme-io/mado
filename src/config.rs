@@ -120,7 +120,12 @@ pub struct MadoSnowConfig {
     pub melt_rate: f32,
 }
 
-fn default_snow_enabled() -> bool { true }
+// TEMPORARY: defaulted OFF for an A/B launch-perf test. Flip
+// back to true once we've isolated whether the perceived "giant
+// loading time" is dominated by the snow render pass or by
+// mado's GPU + tear cold start. Operators who want snow can set
+// `effects.snow.enabled = true` in mado.yaml.
+fn default_snow_enabled() -> bool { false }
 // Subtle by default — the shader's MAX_ALPHA cap (0.35) keeps
 // text readable, but a lower intensity makes the snow feel like
 // a gentle backdrop rather than a foreground effect.

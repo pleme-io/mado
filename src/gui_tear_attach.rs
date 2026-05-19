@@ -99,6 +99,7 @@ pub fn try_run_default(config: MadoConfig, shell: String) -> TearDefaultOutcome 
             return TearDefaultOutcome::Error(anyhow::anyhow!("{msg}"));
         }
     };
+    crate::perf::log_phase("tear_daemon_discovered");
 
     // Impose ASAP — before the session exists, so the new pane
     // inherits prefix/shell/scrollback knobs the operator declared.
@@ -155,6 +156,7 @@ pub fn try_run_default(config: MadoConfig, shell: String) -> TearDefaultOutcome 
         socket = %socket_path.display(),
         "mado default: tear session created + attached"
     );
+    crate::perf::log_phase("tear_session_created");
 
     match run_against_pane(client, pane_id, socket_path, config) {
         Ok(()) => TearDefaultOutcome::Ran,
@@ -253,6 +255,7 @@ fn run_against_pane(
             terminal_for_sub.write().feed(bytes);
         })
         .with_context(|| format!("subscribe_pane_bytes({pane_id})"))?;
+    crate::perf::log_phase("pane_subscribed");
 
     let client_for_events = Arc::clone(&client);
     let app_config = AppConfig {
@@ -266,6 +269,7 @@ fn run_against_pane(
     };
     let cell_w_logical = effective_font_size * 0.6;
     let cell_h_logical = effective_font_size * 1.4;
+    crate::perf::log_phase("event_loop_entering");
     madori::App::builder(renderer)
         .config(app_config)
         .on_event(move |event, renderer| -> EventResponse {

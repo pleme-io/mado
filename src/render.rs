@@ -2442,6 +2442,7 @@ impl TerminalRenderer {
 
 impl RenderCallback for TerminalRenderer {
     fn init(&mut self, gpu: &garasu::GpuContext) {
+        crate::perf::log_phase("renderer_init_start");
         let format = wgpu::TextureFormat::Bgra8UnormSrgb;
         self.rect_pipeline = Some(RectPipeline::new(&gpu.device, format));
         self.image_pipeline = Some(ImagePipeline::new(&gpu.device, format));
@@ -2453,6 +2454,7 @@ impl RenderCallback for TerminalRenderer {
                 self.snow_config.clone(),
             ));
         }
+        crate::perf::log_phase("renderer_init_done");
     }
 
     fn render(&mut self, ctx: &mut RenderContext<'_>) {
@@ -2848,6 +2850,13 @@ impl RenderCallback for TerminalRenderer {
         }
 
         ctx.gpu.queue.submit(std::iter::once(encoder.finish()));
+
+        // One-shot: stamp the first-rendered-frame milestone so
+        // operators can read total exec → pixel-on-screen latency.
+        // The atomic guard ensures we only log it once.
+        if TOTAL_FRAMES.load(Ordering::Relaxed) == 0 {
+            crate::perf::log_phase("first_frame_rendered");
+        }
 
         let frame_us = frame_start.elapsed().as_micros() as u64;
         LAST_FRAME_US.store(frame_us, Ordering::Relaxed);

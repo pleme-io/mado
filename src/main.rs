@@ -26,6 +26,7 @@ mod platform;
 mod pointer_shape;
 mod prompt_mark;
 mod pty;
+mod perf;
 mod render;
 mod render_snow;
 mod scenario;
@@ -392,9 +393,22 @@ fn main() -> anyhow::Result<()> {
     // failure). `RUST_LOG` always wins if the operator sets it.
     shidou::init_tracing_with_level("info,cosmic_text::font::system=error");
 
+    // Launch-perf timeline. Every "phase reached" log stamps
+    // milliseconds since process exec so the operator can read
+    // the cold-start breakdown right out of `mado` stderr:
+    //   `info mado: phase=tracing_init ms=12`
+    //   `info mado: phase=config_loaded ms=48`
+    //   `info mado: phase=tear_attached ms=210`
+    //   `info mado: phase=first_frame_rendered ms=1180`
+    // Disable by setting RUST_LOG=warn or filtering mado=warn.
+    let launch_start = std::time::Instant::now();
+    crate::perf::set_launch_start(launch_start);
+    crate::perf::log_phase("tracing_init");
+
     let (config, _config_store) = config::load_and_watch(&cli.config, |new_config| {
         tracing::debug!("config reloaded: {:?}", new_config);
     })?;
+    crate::perf::log_phase("config_loaded");
 
     // Apply active profile if set
     let config = match &config.active_profile {
@@ -440,6 +454,7 @@ fn main() -> anyhow::Result<()> {
     //   * the daemon is unreachable AND spawn failed
     // Hard errors (e.g. tear.mode = "always" + daemon dead +
     // spawn failed) bubble out via the `Error` arm.
+    crate::perf::log_phase("pre_tear_attach");
     match gui_tear_attach::try_run_default(config.clone(), shell.clone()) {
         gui_tear_attach::TearDefaultOutcome::Ran => return Ok(()),
         gui_tear_attach::TearDefaultOutcome::Error(e) => return Err(e),
