@@ -13,9 +13,9 @@
   "git+https://github.com/pleme-io/shidou#0.1.0": "0haaxr2zc623ayjmbf1ag8vghqwfgcd215dax3pkmcng1mm7lzy2",
   "git+https://github.com/pleme-io/shikumi#0.1.0": "0b9f23kykr858ghc36fl3w0v6ywm59pbgrrzpbiyjlw6chhasw9b",
   "git+https://github.com/pleme-io/soushi#0.1.0": "0prhgpvqzn0j1axlvb0a4dgx7hx2fr7cm800v92mx59ik3n0lvf0",
-  "git+https://github.com/pleme-io/tear#tear-client@0.1.0": "0zg4bhkkdpk3s9jl68xvm79d37s6cpvw0lr27s1ijplqarw1jsyn",
-  "git+https://github.com/pleme-io/tear#tear-config@0.1.0": "0zg4bhkkdpk3s9jl68xvm79d37s6cpvw0lr27s1ijplqarw1jsyn",
-  "git+https://github.com/pleme-io/tear#tear-core@0.1.0": "0zg4bhkkdpk3s9jl68xvm79d37s6cpvw0lr27s1ijplqarw1jsyn",
-  "git+https://github.com/pleme-io/tear#tear-daemon@0.1.0": "0zg4bhkkdpk3s9jl68xvm79d37s6cpvw0lr27s1ijplqarw1jsyn",
-  "git+https://github.com/pleme-io/tear#tear-types@0.1.0": "0zg4bhkkdpk3s9jl68xvm79d37s6cpvw0lr27s1ijplqarw1jsyn"
+  "git+https://github.com/pleme-io/tear#tear-client@0.1.0": "05cc5s3wzsr3i2q7mbn212cgv3ggryy1xk2yc24a9nkwd4zhrk89",
+  "git+https://github.com/pleme-io/tear#tear-config@0.1.0": "05cc5s3wzsr3i2q7mbn212cgv3ggryy1xk2yc24a9nkwd4zhrk89",
+  "git+https://github.com/pleme-io/tear#tear-core@0.1.0": "05cc5s3wzsr3i2q7mbn212cgv3ggryy1xk2yc24a9nkwd4zhrk89",
+  "git+https://github.com/pleme-io/tear#tear-daemon@0.1.0": "05cc5s3wzsr3i2q7mbn212cgv3ggryy1xk2yc24a9nkwd4zhrk89",
+  "git+https://github.com/pleme-io/tear#tear-types@0.1.0": "05cc5s3wzsr3i2q7mbn212cgv3ggryy1xk2yc24a9nkwd4zhrk89"
 }
