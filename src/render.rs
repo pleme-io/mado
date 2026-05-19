@@ -3672,6 +3672,121 @@ mod render_gpu_invariants {
         );
     }
 
+    /// Regression test for mado@044a206 (damage-gate skip → shadow
+    /// + recurring purple flash). Renders three full frames of
+    /// identical state into a 3-slot HeadlessSwapchain (one per
+    /// slot) and asserts:
+    ///
+    ///   1. All three slot hashes are identical — no stale-slot
+    ///      bug. If render() ever returned without writing the
+    ///      current slot, one slot would hold prior content (or
+    ///      no content) and its hash would diverge.
+    ///   2. No slot surfaces magenta — no Metal-uninit leakage
+    ///      in any chain position.
+    ///
+    /// This is the test that would have caught the shadow +
+    /// purple-flash bug class BEFORE operators saw it. The bug's
+    /// signature is: hashes [a, a, a] when the gate doesn't
+    /// fire vs. [a, b, c] when it does and leaves slots
+    /// inconsistent.
+    #[test]
+    fn three_slot_swapchain_full_renders_yield_identical_hashes_and_no_magenta() {
+        use garasu::headless::{HeadlessSwapchain, assert_no_magenta_pixels, frame_hash};
+        use madori::RenderContext;
+
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let mut chain = HeadlessSwapchain::new(
+            &gpu,
+            3,
+            128,
+            64,
+            wgpu::TextureFormat::Bgra8UnormSrgb,
+        );
+        let (mut r, t, _) = build_gpu_renderer(&gpu, 40, 8);
+        t.write().feed(b"shadow-regression");
+
+        // Render once per slot; collect hashes.
+        let mut hashes = Vec::new();
+        for _ in 0..3 {
+            let pixels = chain.render_into_next(&gpu, |text, view, w, h| {
+                let mut ctx = RenderContext {
+                    gpu: &gpu,
+                    text,
+                    surface_view: view,
+                    width: w,
+                    height: h,
+                    scale_factor: 1.0,
+                    elapsed: 0.0,
+                    dt: 0.0,
+                };
+                r.render(&mut ctx);
+            });
+            hashes.push(frame_hash(&pixels));
+        }
+        assert_eq!(
+            hashes[0], hashes[1],
+            "slots 0 and 1 diverged — damage-gate stale-slot regression"
+        );
+        assert_eq!(
+            hashes[1], hashes[2],
+            "slots 1 and 2 diverged — damage-gate stale-slot regression"
+        );
+        // And every slot stays magenta-clean.
+        for (i, slot_pixels) in chain.read_all_slots_rgba8(&gpu).into_iter().enumerate() {
+            assert!(
+                assert_no_magenta_pixels(&slot_pixels, chain.width(), chain.height()).is_ok(),
+                "slot {i} surfaced magenta — Metal-uninit-leakage regression"
+            );
+        }
+    }
+
+    /// Stress variant: render 12 frames into a 3-slot chain
+    /// (each slot painted 4 times). Asserts all 12 hashes equal —
+    /// proves the rendering pipeline is truly slot-independent
+    /// AND deterministic across the swapchain rotation.
+    #[test]
+    fn twelve_renders_across_three_slot_swapchain_produce_one_unique_hash() {
+        use garasu::headless::{HeadlessSwapchain, frame_hash};
+        use madori::RenderContext;
+        use std::collections::HashSet;
+
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let mut chain = HeadlessSwapchain::new(
+            &gpu,
+            3,
+            96,
+            48,
+            wgpu::TextureFormat::Bgra8UnormSrgb,
+        );
+        let (mut r, t, _) = build_gpu_renderer(&gpu, 30, 6);
+        t.write().feed(b"swapchain-stress");
+
+        let mut hashes = HashSet::new();
+        for _ in 0..12 {
+            let pixels = chain.render_into_next(&gpu, |text, view, w, h| {
+                let mut ctx = RenderContext {
+                    gpu: &gpu,
+                    text,
+                    surface_view: view,
+                    width: w,
+                    height: h,
+                    scale_factor: 1.0,
+                    elapsed: 0.0,
+                    dt: 0.0,
+                };
+                r.render(&mut ctx);
+            });
+            hashes.insert(frame_hash(&pixels).to_hex().to_string());
+        }
+        assert_eq!(
+            hashes.len(),
+            1,
+            "12 renders across 3 swapchain slots produced {} unique hashes — \
+             pipeline is slot-dependent or non-deterministic",
+            hashes.len()
+        );
+    }
+
     #[test]
     fn render_one_frame_via_garasu_harness_round_trips() {
         // Validate the garasu::HeadlessHarness convenience layer
