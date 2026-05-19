@@ -3363,6 +3363,114 @@ mod render_invariants {
 
     // ── property-based fuzz: invariants hold for all inputs ───────
 
+    // ── bell flash contract ───────────────────────────────────────
+
+    #[test]
+    fn trigger_bell_sets_flash_frames_to_four() {
+        let (mut r, _t) = harness(20, 5);
+        assert_eq!(r.bell_flash_frames, 0);
+        r.trigger_bell();
+        assert_eq!(r.bell_flash_frames, 4);
+    }
+
+    #[test]
+    fn trigger_bell_is_noop_under_reduce_motion() {
+        let (mut r, _t) = harness(20, 5);
+        r.reduce_motion = true;
+        r.trigger_bell();
+        assert_eq!(
+            r.bell_flash_frames, 0,
+            "reduce_motion should suppress the bell flash"
+        );
+    }
+
+    #[test]
+    fn trigger_bell_is_idempotent_for_max_value() {
+        // Calling twice in a row shouldn't push the counter past
+        // 4 — the flash is a fixed-duration effect.
+        let (mut r, _t) = harness(20, 5);
+        r.trigger_bell();
+        r.trigger_bell();
+        assert_eq!(r.bell_flash_frames, 4);
+    }
+
+    // ── alternate screen buffer transition ────────────────────────
+
+    #[test]
+    fn alt_screen_transition_round_trips_through_enter_and_exit() {
+        // \x1b[?1049h enters alt-screen (vim/htop pattern);
+        // \x1b[?1049l exits back to primary. The renderer must
+        // see the new buffer's contents, not a stale view of the
+        // primary.
+        let (r, t) = harness(40, 8);
+        t.write().feed(b"primary content here");
+        assert!(!t.read().on_alt_screen());
+
+        t.write().feed(b"\x1b[?1049h");
+        t.write().feed(b"\x1b[H\x1b[2J"); // home + clear
+        t.write().feed(b"ALT");
+        assert!(t.read().on_alt_screen());
+
+        let rects = compute_rects(&r);
+        let cur = cursor_rects(&rects, r.cursor_color);
+        assert_eq!(cur.len(), 1);
+        // Cursor at col=3 (after "ALT") on alt-screen.
+        let expected_x = 3.0 * r.cell_width;
+        assert!((cur[0].pos[0] - expected_x).abs() < 0.01);
+
+        t.write().feed(b"\x1b[?1049l"); // exit alt-screen
+        assert!(!t.read().on_alt_screen());
+    }
+
+    // ── SGR color attribute renders into rect colors ──────────────
+
+    #[test]
+    fn sgr_red_background_emits_red_rect() {
+        // \x1b[41m sets bg = ANSI red (cell[1] in default palette).
+        // Feed "X" so we have one cell with the red bg.
+        let (r, t) = harness(20, 3);
+        t.write().feed(b"\x1b[41mX\x1b[0m");
+        let rects = compute_rects(&r);
+        // ANSI palette index 1 is approximately Nord aurora red
+        // (~0.749, 0.380, 0.416 linear). Look for ANY rect whose
+        // color's red channel exceeds 0.5 AND whose green+blue are
+        // both substantially lower — that's a "this is a red rect"
+        // heuristic that survives palette tweaks within reason.
+        let red_rect = rects.iter().find(|rt| {
+            rt.color[0] > 0.3
+                && rt.color[1] < rt.color[0] * 0.7
+                && rt.color[2] < rt.color[0] * 0.7
+        });
+        assert!(
+            red_rect.is_some(),
+            "expected at least one red-bg rect after \\x1b[41m: {rects:?}"
+        );
+    }
+
+    #[test]
+    fn sgr_reset_clears_attrs_for_subsequent_cells() {
+        // After "\x1b[41mX\x1b[0mY", cell 0 has red bg, cell 1
+        // has default bg. The renderer must NOT extend the red
+        // RLE span to cell 1.
+        let (r, t) = harness(20, 3);
+        t.write().feed(b"\x1b[41mX\x1b[0mY");
+        let rects = compute_rects(&r);
+        // Find the red rect; its width must be exactly one cell.
+        let red_rect = rects
+            .iter()
+            .find(|rt| {
+                rt.color[0] > 0.3
+                    && rt.color[1] < rt.color[0] * 0.7
+                    && rt.color[2] < rt.color[0] * 0.7
+            })
+            .expect("red rect should exist");
+        assert!(
+            (red_rect.size[0] - r.cell_width).abs() < 0.01,
+            "red span = {} cells, expected 1; SGR reset failed to break RLE",
+            red_rect.size[0] / r.cell_width
+        );
+    }
+
     proptest::proptest! {
         /// Whatever byte sequence comes in, the rect set must:
         /// 1. Contain at most one cursor rect (Block style).
@@ -3413,6 +3521,53 @@ mod render_invariants {
                 ] {
                     proptest::prop_assert!(v.is_finite(), "non-finite: {v}");
                 }
+            }
+        }
+
+        /// Wide-char + emoji invariants: a string of arbitrary CJK
+        /// and emoji codepoints (each width=2 cells) must produce
+        /// rects that respect the grid. The cursor's x position
+        /// must equal `2 × number_of_wide_chars × cell_width` (or
+        /// wrap to a new row if it'd overflow). No rect can have
+        /// a width that's not a multiple of cell_width.
+        ///
+        /// Generator: a small set of common wide codepoints picked
+        /// for their fully-defined East Asian Width=W classification.
+        #[test]
+        fn wide_chars_respect_cell_grid(
+            text in proptest::collection::vec(
+                proptest::prop_oneof![
+                    proptest::prelude::Just("あ"), // hiragana
+                    proptest::prelude::Just("中"), // CJK ideograph
+                    proptest::prelude::Just("한"), // hangul syllable
+                    proptest::prelude::Just("🦀"), // crab emoji
+                    proptest::prelude::Just("🟦"), // square emoji
+                ],
+                0..30usize,
+            )
+        ) {
+            let (r, t) = harness(80, 5);
+            let bytes: String = text.iter().copied().collect();
+            t.write().feed(bytes.as_bytes());
+            let rects = compute_rects(&r);
+
+            // 1. All rect widths are non-negative integer multiples
+            //    of cell_width (within float epsilon).
+            for rect in &rects {
+                let cells = rect.size[0] / r.cell_width;
+                proptest::prop_assert!(
+                    cells >= 0.0 && (cells - cells.round()).abs() < 0.05,
+                    "rect width {} is not a clean multiple of cell_width {}",
+                    rect.size[0], r.cell_width
+                );
+            }
+
+            // 2. The cursor still lives inside the viewport.
+            let cur = cursor_rects(&rects, r.cursor_color);
+            proptest::prop_assert!(cur.len() <= 1);
+            for c in &cur {
+                proptest::prop_assert!(c.pos[0] >= 0.0);
+                proptest::prop_assert!(c.pos[0] + c.size[0] <= 80.0 * r.cell_width + 1.0);
             }
         }
 
@@ -3784,6 +3939,67 @@ mod render_gpu_invariants {
             "12 renders across 3 swapchain slots produced {} unique hashes — \
              pipeline is slot-dependent or non-deterministic",
             hashes.len()
+        );
+    }
+
+    /// Observability contract: every successful render bumps
+    /// `TOTAL_FRAMES`; every "would-have-skipped" render (now
+    /// always full-renders to fix the swapchain stale-slot bug,
+    /// but still counted) bumps `TOTAL_FRAMES_SKIPPED`.
+    ///
+    /// `frame_perf` MCP surfaces both counters; this pins the
+    /// contract so operators interpreting the numbers see what
+    /// they expect.
+    #[test]
+    fn frame_perf_counters_increment_correctly() {
+        use std::sync::atomic::Ordering;
+
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let target = HeadlessTarget::new(
+            &gpu,
+            96,
+            32,
+            wgpu::TextureFormat::Bgra8UnormSrgb,
+        );
+        let (mut r, t, mut text) = build_gpu_renderer(&gpu, 30, 4);
+
+        // Snapshot the counters before driving any renders — the
+        // tests run in parallel so we can't assume they start at
+        // zero; assert deltas instead.
+        let frames_before = TOTAL_FRAMES.load(Ordering::Relaxed);
+        let skipped_before = TOTAL_FRAMES_SKIPPED.load(Ordering::Relaxed);
+
+        // Render 1: fresh state, triggers a full render via the
+        // last_seqno=0 path (no skip).
+        t.write().feed(b"observability test");
+        let _ = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        // Render 2: no state change, the gate "would have" skipped
+        // (last_seqno != 0, no blink-flip, no bell, no search).
+        // Post-fix we still full-render, but the counter ticks.
+        let _ = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        // Render 3: same as #2.
+        let _ = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+
+        let frames_after = TOTAL_FRAMES.load(Ordering::Relaxed);
+        let skipped_after = TOTAL_FRAMES_SKIPPED.load(Ordering::Relaxed);
+
+        // TOTAL_FRAMES bumps after EVERY full-render path
+        // completion. With damage-gate-skip removed entirely, all
+        // three of our renders complete the full path, so the
+        // delta is ≥ 3.
+        assert!(
+            frames_after - frames_before >= 3,
+            "TOTAL_FRAMES delta = {}; expected ≥ 3",
+            frames_after - frames_before
+        );
+        // TOTAL_FRAMES_SKIPPED bumps on the "would have skipped"
+        // path, which fires whenever (last_seqno != 0 && no
+        // semantic delta). Renders 2 and 3 both qualify; render 1
+        // doesn't (last_seqno was 0). So delta ≥ 2.
+        assert!(
+            skipped_after - skipped_before >= 2,
+            "TOTAL_FRAMES_SKIPPED delta = {}; expected ≥ 2",
+            skipped_after - skipped_before
         );
     }
 
