@@ -80,25 +80,44 @@ pub struct MadoEffectsConfig {
 
 /// Snow overlay knobs. Mirrors `engawa_snow::SnowParams` but only
 /// the operator-facing dials; runtime state (time, cursor,
-/// typing_pulse) is mado-managed.
+/// typing_pulse, accumulation drift) is mado-managed.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MadoSnowConfig {
     /// Master enable. Default `true` — snow is the flagship
     /// effect.
     #[serde(default = "default_snow_enabled")]
     pub enabled: bool,
-    /// Master gain, 0..1. Default 0.85.
+    /// Master gain, 0..1. Default 0.30.
     #[serde(default = "default_snow_intensity")]
     pub intensity: f32,
-    /// Horizontal wind, -1..1. Default 0.0.
+    /// Horizontal wind, -1..1. Default 0.0. The current shader
+    /// is pure-vertical-gravity, so this knob is currently a
+    /// no-op at the shader level (retained for forward-compat).
     #[serde(default)]
     pub wind: f32,
-    /// Ground-pile accumulation, 0..1. Default 0.0.
+    /// Starting pile level, 0..1. The host integrates real
+    /// accumulation over wall time on top of this baseline.
+    /// Default 0.0 (empty floor at launch).
     #[serde(default)]
     pub accumulation: f32,
-    /// Parallax layer count, 1..3. Default 3.
+    /// Parallax layer count, 1..3. Default 2.
     #[serde(default = "default_snow_layer_count")]
     pub layer_count: f32,
+    /// Temperature 0..1. 0 = freezing — the host increases the
+    /// pile from incoming snowfall, no melt. 0.5 = neutral —
+    /// pile holds. 1 = warm — pile melts visibly over time. The
+    /// host integrates pile drift each frame based on this value.
+    /// Default 0.20 (cold — pile grows slowly).
+    #[serde(default = "default_snow_temperature")]
+    pub temperature: f32,
+    /// How fast the pile fills when cold (units per second of
+    /// wall time, scaled by `1 - temperature * 2` when below
+    /// 0.5). Default 0.04 — fills to max over ~25s at temp=0.
+    #[serde(default = "default_snow_pile_rate")]
+    pub pile_rate: f32,
+    /// How fast the pile melts when warm. Default 0.06.
+    #[serde(default = "default_snow_melt_rate")]
+    pub melt_rate: f32,
 }
 
 fn default_snow_enabled() -> bool { true }
@@ -107,6 +126,9 @@ fn default_snow_enabled() -> bool { true }
 // a gentle backdrop rather than a foreground effect.
 fn default_snow_intensity() -> f32 { 0.30 }
 fn default_snow_layer_count() -> f32 { 2.0 }
+fn default_snow_temperature() -> f32 { 0.20 }
+fn default_snow_pile_rate() -> f32 { 0.04 }
+fn default_snow_melt_rate() -> f32 { 0.06 }
 
 impl Default for MadoSnowConfig {
     fn default() -> Self {
@@ -116,6 +138,9 @@ impl Default for MadoSnowConfig {
             wind: 0.0,
             accumulation: 0.0,
             layer_count: default_snow_layer_count(),
+            temperature: default_snow_temperature(),
+            pile_rate: default_snow_pile_rate(),
+            melt_rate: default_snow_melt_rate(),
         }
     }
 }

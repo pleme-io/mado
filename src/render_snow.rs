@@ -54,7 +54,8 @@ impl SnowOverlay {
             .with_intensity(config.intensity)
             .with_wind(config.wind)
             .with_accumulation(config.accumulation)
-            .with_layer_count(config.layer_count);
+            .with_layer_count(config.layer_count)
+            .with_temperature(config.temperature);
         let _ = &mut params;
 
         let uniform_buf =
@@ -174,6 +175,7 @@ impl SnowOverlay {
         self.params.set_wind(self.config.wind);
         self.params.set_accumulation(self.config.accumulation);
         self.params.set_layer_count(self.config.layer_count);
+        self.params.set_temperature(self.config.temperature);
     }
 
     /// Encode the snow overlay pass into `encoder`, drawing into
@@ -199,6 +201,26 @@ impl SnowOverlay {
         let decay = (0.92_f32).powf(dt * 60.0);
         self.params.set_typing_pulse(self.params.frame[3] * decay);
         self.params.set_time(t);
+
+        // Host-integrated accumulation. Temperature drives the
+        // sign:
+        //   * temp < 0.5  → cold zone — pile grows at pile_rate,
+        //     scaled by how cold (full rate at temp=0).
+        //   * temp > 0.5  → warm zone — pile melts at melt_rate,
+        //     scaled by how warm (full rate at temp=1).
+        //   * temp == 0.5 → neutral — pile holds.
+        // The shader is stateless per-frame; this is the only
+        // place pile state lives on the host between frames.
+        let temp = self.config.temperature.clamp(0.0, 1.0);
+        let pile_delta = if temp < 0.5 {
+            // Cold zone — fill rate proportional to how cold.
+            self.config.pile_rate * (1.0 - temp * 2.0) * dt
+        } else {
+            // Warm zone — melt rate proportional to how warm.
+            -self.config.melt_rate * ((temp - 0.5) * 2.0) * dt
+        };
+        let new_acc = (self.params.params[0] + pile_delta).clamp(0.0, 1.0);
+        self.params.set_accumulation(new_acc);
 
         queue.write_buffer(
             &self.uniform_buf,

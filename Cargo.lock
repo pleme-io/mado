@@ -819,7 +819,7 @@ dependencies = [
 [[package]]
 name = "engawa-snow"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/engawa-snow#15929f09e34a101c2119419a42c6efb0514ad4d2"
+source = "git+https://github.com/pleme-io/engawa-snow#a6b175a5ecb8a825c50d94b395826f2ca0ea76b9"
 dependencies = [
  "bytemuck",
  "engawa",

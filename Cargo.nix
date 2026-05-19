@@ -2422,8 +2422,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/engawa-snow";
-          rev = "15929f09e34a101c2119419a42c6efb0514ad4d2";
-          sha256 = "0fq9rw69rs220c6lm1ykslsif3br8lkylqda8y20867wah36rqya";
+          rev = "a6b175a5ecb8a825c50d94b395826f2ca0ea76b9";
+          sha256 = "06614qsi9lqkphbjhrgp95arg4983hf0i2b9kxfg1kpyg00mq17n";
         };
         libName = "engawa_snow";
         authors = [
