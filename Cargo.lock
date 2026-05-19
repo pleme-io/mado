@@ -1112,7 +1112,7 @@ dependencies = [
 [[package]]
 name = "garasu"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/garasu#051b655e4eb3a57f4ec1a98619a163f97e5c8f54"
+source = "git+https://github.com/pleme-io/garasu#a2949f391574b0fdefe2f4224f9831033fb0a4f6"
 dependencies = [
  "blake3",
  "glyphon",
@@ -1760,7 +1760,7 @@ dependencies = [
 [[package]]
 name = "madori"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/madori#b8b13e14b8ce4e96a0c7c45eb47e706d6b72beb8"
+source = "git+https://github.com/pleme-io/madori#ba92181df71eae608b4e701a1b8c9eff2ce478d2"
 dependencies = [
  "egaku",
  "garasu",

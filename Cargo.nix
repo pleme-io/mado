@@ -3272,8 +3272,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/garasu";
-          rev = "051b655e4eb3a57f4ec1a98619a163f97e5c8f54";
-          sha256 = "0670523067pqnyg3wm941angqpynmj8basx077ilw1bny0i31x0f";
+          rev = "a2949f391574b0fdefe2f4224f9831033fb0a4f6";
+          sha256 = "0l893kx1jizykwkfrbqn0wnngm9p3pvjj2k3z9p556dw5xrmcpa0";
         };
         dependencies = [
           {
@@ -5237,8 +5237,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/madori";
-          rev = "b8b13e14b8ce4e96a0c7c45eb47e706d6b72beb8";
-          sha256 = "14w3l3xrsp2fpjqyr57ybc1y3bq2b0b44a7nr2xgd21hc10pn93f";
+          rev = "ba92181df71eae608b4e701a1b8c9eff2ce478d2";
+          sha256 = "1lkp3dp7i2nql7apbqvic2l4ivb20w9gjxzcpsi06k90l4inin48";
         };
         dependencies = [
           {
