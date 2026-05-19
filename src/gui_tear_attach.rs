@@ -160,6 +160,25 @@ pub fn try_run_default(config: MadoConfig, shell: String) -> TearDefaultOutcome 
     );
     crate::perf::log_phase("tear_session_created");
 
+    // SIGTERM / SIGINT reaper. winit's CloseRequested only fires
+    // when the user closes the window — `kill mado` / `timeout
+    // mado` / launchd-restart bypasses winit entirely. A signal
+    // handler that holds a clone of the client + session_id reaps
+    // before the process exits, so orphans don't pile up even
+    // under abnormal termination.
+    {
+        let reap_client = Arc::clone(&client);
+        let sid = session_id;
+        ctrlc::set_handler(move || {
+            tracing::info!(session = %sid, "signal received — reaping owned tear session");
+            let _ = reap_client.kill_session(sid);
+            std::process::exit(130);  // 128 + SIGINT
+        })
+        .ok();  // ok() — second mado in the same process would
+                // double-register; the first wins. ctrlc::Error
+                // here is non-fatal (reap-on-close still works).
+    }
+
     // We own this session — kill it when our window closes so
     // it doesn't accumulate as an orphan in the daemon. The
     // `mado tear-attach <existing-pane>` CLI path does NOT pass
