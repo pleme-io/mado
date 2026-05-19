@@ -78,7 +78,9 @@ pub fn run(pane_id: PaneId, socket_path: PathBuf) -> Result<()> {
     };
 
     impose_if_any(&client, &tear_cfg);
-    run_against_pane(client, pane_id, socket_path, config)
+    // CLI `mado tear-attach <pane>` is attaching to a session
+    // somebody else created — don't kill it on our close.
+    run_against_pane(client, pane_id, None, socket_path, config)
 }
 
 /// Default-launch path: try to attach to (or auto-spawn) the tear
@@ -158,7 +160,12 @@ pub fn try_run_default(config: MadoConfig, shell: String) -> TearDefaultOutcome 
     );
     crate::perf::log_phase("tear_session_created");
 
-    match run_against_pane(client, pane_id, socket_path, config) {
+    // We own this session — kill it when our window closes so
+    // it doesn't accumulate as an orphan in the daemon. The
+    // `mado tear-attach <existing-pane>` CLI path does NOT pass
+    // session_id (it's attaching to someone else's session,
+    // shouldn't reap it on close).
+    match run_against_pane(client, pane_id, Some(session_id), socket_path, config) {
         Ok(()) => TearDefaultOutcome::Ran,
         Err(e) => TearDefaultOutcome::Error(e),
     }
@@ -202,10 +209,12 @@ fn impose_if_any(client: &Arc<tear_client::Client>, tear_cfg: &MadoTearConfig) {
 /// The shared render loop: snapshot pane size, build Terminal +
 /// Renderer, subscribe to pane bytes, run the madori App loop with
 /// key + resize forwarding via tear-client. Called by both `run()`
-/// (CLI tear-attach) and `try_run_default()` (default launch).
+/// (CLI tear-attach, no owned session) and `try_run_default()`
+/// (default launch, owns the session and will reap it on close).
 fn run_against_pane(
     client: Arc<tear_client::Client>,
     pane_id: PaneId,
+    owned_session_id: Option<tear_types::SessionId>,
     socket_path: PathBuf,
     config: MadoConfig,
 ) -> Result<()> {
@@ -270,6 +279,11 @@ fn run_against_pane(
     let cell_w_logical = effective_font_size * 0.6;
     let cell_h_logical = effective_font_size * 1.4;
     crate::perf::log_phase("event_loop_entering");
+    // Wrap the owned session id so we can move it into the
+    // event closure (CloseRequested reaps).
+    let session_reap_target = std::sync::Arc::new(std::sync::Mutex::new(owned_session_id));
+    let client_for_reap = Arc::clone(&client);
+    let session_reap = Arc::clone(&session_reap_target);
     madori::App::builder(renderer)
         .config(app_config)
         .on_event(move |event, renderer| -> EventResponse {
@@ -303,9 +317,25 @@ fn run_against_pane(
                     EventResponse::consumed()
                 }
                 AppEvent::CloseRequested => {
-                    // Drop the SubscribeHandle (happens when the run
-                    // loop returns) — daemon prunes the dead sender
-                    // on next chunk.
+                    // Reap our owned tear session so it doesn't
+                    // accumulate as an orphan in the daemon. The
+                    // take() makes this idempotent — second
+                    // CloseRequested is a no-op.
+                    if let Ok(mut slot) = session_reap.lock() {
+                        if let Some(sid) = slot.take() {
+                            match client_for_reap.kill_session(sid) {
+                                Ok(()) => tracing::info!(
+                                    session = %sid,
+                                    "reaped owned tear session on window close"
+                                ),
+                                Err(e) => tracing::warn!(
+                                    error = %e,
+                                    session = %sid,
+                                    "kill_session on close failed"
+                                ),
+                            }
+                        }
+                    }
                     EventResponse::ignored()
                 }
                 _ => EventResponse::ignored(),
