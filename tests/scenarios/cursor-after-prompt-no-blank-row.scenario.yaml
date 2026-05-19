@@ -22,6 +22,7 @@ steps:
     # last $ marks the cursor cell. No newlines between prompts.
     text: "prompt$ \r\nprompt$ \r\nprompt$ "
 expect:
+  frame_hash: "50a3ca45dc4592b91b8715180e5346b1872799dbf56b455bfed758dd11de917c"
   text_contains:
     - "prompt$"
   cells:

@@ -23,6 +23,7 @@ steps:
     text: "TERM_IS_"
     timeout_ms: 500
 expect:
+  frame_hash: "8d88ee0d5fe95e48ba2a5051ec2c555fa7884cb2f170edadf9f4bb45d4acca9b"
   text_contains:
     - "TERM_IS_xterm-ghostty"
   text_not_contains:

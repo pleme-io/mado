@@ -19,6 +19,7 @@ steps:
     text: "▌"
     timeout_ms: 500
 expect:
+  frame_hash: "d238bb29c8831df2792174ff0500aa4593f7d2a5321985c6914f3bfdc314d2c1"
   cells:
     - row: 0
       col: 0

@@ -264,14 +264,21 @@ pub fn run_sync(path: &Path) -> Result<()> {
         .enable_all()
         .build()
         .context("build tokio runtime")?;
-    rt.block_on(async { run(&scenario).await })
+    rt.block_on(async { run_with_path(&scenario, Some(path)).await })
 }
 
 /// Run a scenario in an existing tokio runtime.
 pub async fn run(scenario: &Scenario) -> Result<()> {
+    run_with_path(scenario, None).await
+}
+
+/// Run a scenario, with optional path-back-reference so the L3
+/// golden auto-recorder (MADO_GOLDEN_UPDATE=1) can rewrite the
+/// YAML in place when a frame_hash needs to be (re-)captured.
+pub async fn run_with_path(scenario: &Scenario, path: Option<&Path>) -> Result<()> {
     match scenario.runner {
-        Runner::Pty => run_pty(scenario).await,
-        Runner::Direct => run_direct(scenario),
+        Runner::Pty => run_pty(scenario, path).await,
+        Runner::Direct => run_direct(scenario, path),
     }
 }
 
@@ -292,15 +299,20 @@ pub async fn run(scenario: &Scenario) -> Result<()> {
 fn check_frame_hash_golden(
     scenario: &Scenario,
     final_state: FinalState<'_>,
+    yaml_path: Option<&Path>,
 ) -> Result<()> {
-    let Some(want) = scenario.expect.frame_hash.as_deref() else {
-        return Ok(());
+    let updating = std::env::var("MADO_GOLDEN_UPDATE")
+        .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+        .unwrap_or(false);
+    // When the field is absent we normally skip — but if the
+    // operator is bulk-recording (MADO_GOLDEN_UPDATE=1), treat
+    // absence as "please insert" so one test run captures every
+    // scenario's golden at once.
+    let want = match scenario.expect.frame_hash.as_deref() {
+        Some(w) => w.to_string(),
+        None if updating => String::new(),
+        None => return Ok(()),
     };
-    if want.is_empty() {
-        // Author left it empty intentionally — fall through to
-        // the recording path so the failure message shows what
-        // to paste in.
-    }
     use garasu::headless::{HeadlessTarget, frame_hash};
     use crate::config::CursorStyle;
     use crate::render::TerminalRenderer;
@@ -356,19 +368,102 @@ fn check_frame_hash_golden(
     if got == want {
         return Ok(());
     }
+    // Auto-recorder: when MADO_GOLDEN_UPDATE=1 + we know the
+    // YAML path, rewrite the file's `frame_hash:` line in place
+    // with the new hash. Lets `MADO_GOLDEN_UPDATE=1 cargo test
+    // --test scenarios --features gpu_tests` re-record every
+    // scenario's golden in one pass instead of paste-and-pray.
+    if updating {
+        if let Some(p) = yaml_path {
+            match rewrite_frame_hash_in_yaml(p, &got) {
+                Ok(()) => {
+                    eprintln!(
+                        "scenario {:?}: MADO_GOLDEN_UPDATE — rewrote {} \
+                         with new frame_hash {}",
+                        scenario.name, p.display(), got
+                    );
+                    return Ok(());
+                }
+                Err(e) => {
+                    bail!(
+                        "scenario {:?}: MADO_GOLDEN_UPDATE failed to rewrite \
+                         {}: {e}\n  (would-be hash: {got})",
+                        scenario.name, p.display()
+                    );
+                }
+            }
+        }
+    }
     bail!(
         "L3 frame_hash mismatch for scenario {:?}:\n  want: {}\n  got:  {}\n\n\
-         If this change is intentional, replace the frame_hash in the YAML \
-         with the new hash. Otherwise the rendered output regressed pixel-\
-         exactly relative to the locked baseline.",
+         To accept the new hash: re-run with MADO_GOLDEN_UPDATE=1 in the env. \
+         Otherwise the rendered output regressed pixel-exactly relative to the \
+         locked baseline.",
         scenario.name, want, got
     );
+}
+
+/// Surgical rewrite of the `frame_hash:` line in a scenario YAML.
+/// Looks for the first line starting with `frame_hash:` (any
+/// leading whitespace is preserved) and replaces the value with
+/// the new hash, quoted. Leaves every other character untouched —
+/// no full YAML round-trip, no comment loss, no field reorder.
+///
+/// If the field is missing (because the operator pre-emptied with
+/// `frame_hash: ""` but the line doesn't exist), the function
+/// inserts it as the first child of the `expect:` block.
+#[cfg(feature = "gpu_tests")]
+fn rewrite_frame_hash_in_yaml(path: &Path, new_hash: &str) -> Result<()> {
+    let raw = std::fs::read_to_string(path)
+        .with_context(|| format!("read {}", path.display()))?;
+    let mut out = String::with_capacity(raw.len() + 80);
+    let mut hash_replaced = false;
+    let mut expect_seen = false;
+    for line in raw.lines() {
+        let trimmed = line.trim_start();
+        if !hash_replaced && trimmed.starts_with("frame_hash:") {
+            let indent = &line[..line.len() - trimmed.len()];
+            out.push_str(indent);
+            out.push_str("frame_hash: \"");
+            out.push_str(new_hash);
+            out.push('"');
+            out.push('\n');
+            hash_replaced = true;
+            continue;
+        }
+        out.push_str(line);
+        out.push('\n');
+        if !hash_replaced && trimmed == "expect:" {
+            expect_seen = true;
+        }
+    }
+    if !hash_replaced {
+        if !expect_seen {
+            bail!(
+                "no `frame_hash:` line and no `expect:` block found in {}; \
+                 cannot auto-insert",
+                path.display()
+            );
+        }
+        // Insert a frame_hash line as the first child of expect:.
+        // Find expect: again and inject after it. Simpler: do
+        // string replace on the first occurrence.
+        let needle = "expect:\n";
+        if let Some(pos) = out.find(needle) {
+            let inject = format!("  frame_hash: \"{new_hash}\"\n");
+            out.insert_str(pos + needle.len(), &inject);
+        }
+    }
+    std::fs::write(path, out)
+        .with_context(|| format!("write {}", path.display()))?;
+    Ok(())
 }
 
 #[cfg(not(feature = "gpu_tests"))]
 fn check_frame_hash_golden(
     _scenario: &Scenario,
     _final_state: FinalState<'_>,
+    _yaml_path: Option<&Path>,
 ) -> Result<()> {
     // No GPU available — silently skip. The YAML field still
     // round-trips through serde so authors can record locally.
@@ -386,7 +481,7 @@ enum FinalState<'a> {
     _Phantom(std::marker::PhantomData<&'a ()>),
 }
 
-async fn run_pty(scenario: &Scenario) -> Result<()> {
+async fn run_pty(scenario: &Scenario, yaml_path: Option<&Path>) -> Result<()> {
     let registry = Arc::new(SessionRegistry::default());
     let spec = TermSpec {
         shell: scenario.shell.clone(),
@@ -419,7 +514,7 @@ async fn run_pty(scenario: &Scenario) -> Result<()> {
     check_expectations(&scenario.expect, &snap)
         .with_context(|| format!("scenario {:?} assertions", scenario.name))?;
     // L3 visual-golden check (no-op without --features gpu_tests).
-    check_frame_hash_golden(scenario, FinalState::Shared(session.terminal_arc()))
+    check_frame_hash_golden(scenario, FinalState::Shared(session.terminal_arc()), yaml_path)
         .with_context(|| format!("scenario {:?} L3 golden", scenario.name))?;
     Ok(())
 }
@@ -435,7 +530,7 @@ async fn run_pty(scenario: &Scenario) -> Result<()> {
 /// `wait_for_text` and `wait_ms` are honoured but the wait is moot —
 /// every `send` step feeds synchronously. `resize` calls
 /// `Terminal::resize`. `reset` feeds `\x1bc`.
-fn run_direct(scenario: &Scenario) -> Result<()> {
+fn run_direct(scenario: &Scenario, yaml_path: Option<&Path>) -> Result<()> {
     use crate::terminal::Terminal;
     let mut term = Terminal::new(scenario.cols as usize, scenario.rows as usize);
     for (idx, step) in scenario.steps.iter().enumerate() {
@@ -467,7 +562,7 @@ fn run_direct(scenario: &Scenario) -> Result<()> {
     // L3 visual-golden check (no-op without --features gpu_tests).
     // Done AFTER the text/cell assertions so an operator sees
     // semantic failures first, then visual mismatches.
-    check_frame_hash_golden(scenario, FinalState::Owned(term))
+    check_frame_hash_golden(scenario, FinalState::Owned(term), yaml_path)
         .with_context(|| format!("scenario {:?} L3 golden", scenario.name))?;
     Ok(())
 }

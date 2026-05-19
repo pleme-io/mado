@@ -15,6 +15,7 @@ steps:
   - kind: send
     text: "\x1b[38;5;160mR\x1b[38;5;46mG\x1b[38;5;21mB\x1b[0m\r\n"
 expect:
+  frame_hash: "5e7981bb4fbabd32e9b925c3e0422682d2afac6f34150604c1788184f1b7aafc"
   # Operator: fill in assertions for the cells / text
   # that should hold after the captured stream replays.
   text_contains:
