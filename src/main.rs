@@ -393,6 +393,14 @@ fn main() -> anyhow::Result<()> {
     // failure). `RUST_LOG` always wins if the operator sets it.
     shidou::init_tracing_with_level("info,cosmic_text::font::system=error");
 
+    // Kick off the system-font scan on a background thread RIGHT
+    // NOW so the ~150-250 ms cosmic-text scan overlaps with
+    // tear discovery + window creation + wgpu init. By the time
+    // madori's TextRenderer::new wants the FontSystem, the
+    // preload thread has already finished and the get is a
+    // thread-join that returns immediately.
+    garasu::preload_fonts();
+
     // Launch-perf timeline. Every "phase reached" log stamps
     // milliseconds since process exec so the operator can read
     // the cold-start breakdown right out of `mado` stderr:
