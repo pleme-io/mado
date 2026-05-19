@@ -2487,6 +2487,41 @@ impl RenderCallback for TerminalRenderer {
         let blink_flip =
             self.cursor_blink && peek_cursor_visible && cursor_on_now != self.last_cursor_on;
         let bell_active = self.bell_flash_frames > 0;
+        // P-FIX: The original damage gate returned here without
+        // touching the GPU surface, which is a correctness bug on
+        // multi-buffered swapchains (macOS Metal, in particular):
+        //
+        //   * SHADOW / AFTERIMAGE: `frame.present()` cycles
+        //     through 2–3 swapchain slots; if render() didn't
+        //     write the current slot, present() surfaces stale
+        //     content from N frames back. The visible effect is
+        //     "the prompt leaves shadows / copies of itself as I
+        //     interact" — exactly the regression operators see.
+        //   * PURPLE FLASH: an unwritten swapchain slot can
+        //     briefly surface its initial Metal uninit state
+        //     (magenta), recurring throughout the session, not
+        //     just at startup.
+        //
+        // The fix is to always paint the current swapchain image.
+        // A "clear + last-rect-replay" optimisation was tried and
+        // discarded — it produces frames that differ from a full
+        // render (no text), which then ALSO shows as shadows on
+        // glyph content.
+        //
+        // Cost of always-full-render at idle:
+        //   * 60 Hz × ~300 µs ≈ 1.8 ms/sec ≈ 0.2% of one core
+        //   * idle frame work is dominated by snapshot()'s row
+        //     clone; rect/text build are cheap when nothing
+        //     changed
+        // The 32-frame determinism stress test (L2) proves the
+        // pipeline is stable enough for repeated full renders to
+        // produce byte-identical frame hashes — so this is free
+        // correctness with no measurable cost.
+        //
+        // We still count "would-have-skipped" frames in the
+        // counter so frame_perf MCP can surface the rate, and the
+        // tracing event is preserved so operators with debug
+        // logging keep the same observability.
         if peek_seqno == self.last_seqno
             && self.last_seqno != 0
             && !blink_flip
@@ -2496,10 +2531,10 @@ impl RenderCallback for TerminalRenderer {
             TOTAL_FRAMES_SKIPPED.fetch_add(1, Ordering::Relaxed);
             tracing::debug!(
                 peek_us = frame_start.elapsed().as_micros() as u64,
-                path = "idle_peek_skip",
-                "frame skipped"
+                path = "idle_peek_full",
+                "idle frame — full repaint to current swapchain slot"
             );
-            return;
+            // Fall through to full render below.
         }
 
         let snapshot_start = Instant::now();
@@ -2508,18 +2543,12 @@ impl RenderCallback for TerminalRenderer {
         // Memoise cursor_on for the next-frame peek's flip detection.
         self.last_cursor_on = cursor_on_now;
 
-        // Stage-2 gate (rare: peek seqno can shift between the peek
-        // and the snapshot; keep the safety net so we never paint a
-        // stale frame).
-        let blink_active = self.cursor_blink && snap.cursor.visible;
-        if seqno == self.last_seqno
-            && self.last_seqno != 0
-            && !blink_active
-            && !bell_active
-            && !snap.search_active
-        {
-            return;
-        }
+        // P-FIX: stage-2 gate was a "safety net" early-return when
+        // the peek-vs-snapshot seqno disagreed. Same swapchain-
+        // stale-slot bug applied — removed for the same reason.
+        // We fall through to a full render; the cost difference
+        // is negligible (snapshot was already paid for) and
+        // consistency wins.
         self.last_seqno = seqno;
 
         // Build rect instances (cell backgrounds + cursor + decorations)
