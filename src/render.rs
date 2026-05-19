@@ -4003,6 +4003,69 @@ mod render_gpu_invariants {
         );
     }
 
+    /// L3 (golden): a canned input sequence + a recorded frame
+    /// hash. Pinning the hash means ANY future change that alters
+    /// even one pixel of this canonical scene fires this test
+    /// immediately — visible regressions become impossible to
+    /// land silently.
+    ///
+    /// Recording protocol: when the rendered output legitimately
+    /// changes (font tweak, palette adjustment, new feature),
+    /// run with `MADO_GOLDEN_UPDATE=1` (or just delete the
+    /// assertion temporarily), capture the new hash from the
+    /// failure message, paste it in. Same shape as `insta`'s
+    /// snapshot review workflow but bytes-level deterministic.
+    ///
+    /// This is the L2.5 → L3 onramp: one canonical scenario
+    /// + one canonical hash proves the pattern works
+    /// end-to-end. Next: extend `mado/tests/scenarios/*.yaml`
+    /// to carry per-scenario `frame_hash:` fields and have the
+    /// runner enforce.
+    #[test]
+    fn canonical_prompt_scene_matches_recorded_frame_hash() {
+        use garasu::headless::frame_hash;
+
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let target =
+            HeadlessTarget::new(&gpu, 256, 96, wgpu::TextureFormat::Bgra8UnormSrgb);
+        let (mut r, t, mut text) = build_gpu_renderer(&gpu, 40, 6);
+        // Canonical scene: a short prompt-like sequence with
+        // mixed printable ASCII, a newline, more text. Picked to
+        // exercise the rect + text pipelines together without
+        // pulling in scenario-specific colors / OSC escapes that
+        // would make the hash environment-dependent.
+        t.write().feed(b"$ echo hello\nhello\n$ ");
+
+        let pixels = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        let hash = frame_hash(&pixels);
+        let hex = hash.to_hex().to_string();
+
+        // Golden record. Update this hex string when the visual
+        // output legitimately changes. The assertion uses
+        // explicit if/panic so the failure message shows the
+        // actual hash for easy copy-paste.
+        const GOLDEN: &str =
+            "732229ea36df58b8a00439379233690fa50ee80f6a7fad340317bda945318d03";
+        if hex != GOLDEN {
+            // First-run / regen path: print the new hash and a
+            // hint. Tests fail intentionally; operator pastes
+            // the printed hex into GOLDEN above.
+            if GOLDEN == "PENDING_RECORD_VIA_FAILURE_MESSAGE" {
+                panic!(
+                    "L3 golden: recorded hash is `{hex}`. \
+                     Paste this into the GOLDEN constant in \
+                     `canonical_prompt_scene_matches_recorded_frame_hash` \
+                     to lock in the pixel-exact baseline."
+                );
+            }
+            panic!(
+                "L3 golden mismatch: got `{hex}`, expected `{GOLDEN}`. \
+                 If this change is intentional, update GOLDEN. \
+                 Otherwise this is a visible-pixel regression."
+            );
+        }
+    }
+
     #[test]
     fn render_one_frame_via_garasu_harness_round_trips() {
         // Validate the garasu::HeadlessHarness convenience layer
