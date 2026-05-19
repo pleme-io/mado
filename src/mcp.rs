@@ -933,6 +933,7 @@ impl MadoMcp {
                 Ok(()) => ok_json(serde_json::json!({ "policy": match policy {
                     tear_types::InputPolicy::Free => "free",
                     tear_types::InputPolicy::Locked => "locked",
+                    tear_types::InputPolicy::Leader { .. } => "leader",
                 }})),
                 Err(e) => err_json(e),
             },

@@ -293,6 +293,7 @@ mod tests {
                 prefix: Some("C-x".into()),
                 default_shell: Some("/bin/fish".into()),
                 status_visible: Some(false),
+                scrollback: None,
             }),
         };
 

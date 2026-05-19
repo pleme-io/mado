@@ -148,6 +148,60 @@ pub struct MadoTearImpose {
     pub default_shell: Option<String>,
     #[serde(default)]
     pub status_visible: Option<bool>,
+    /// Per-pane scrollback policy that mado imposes on the tear
+    /// daemon at attach time. Default `None` means "let the
+    /// daemon's own tear.yaml settings apply"; set this to
+    /// propagate mado's preferred scrollback semantics into every
+    /// tear session mado spawns or attaches to.
+    ///
+    /// Operators almost always want mado's "never lose anything"
+    /// scrollback default to apply to tear sessions too. The
+    /// pleme.terminal aggregator module sets this by default so
+    /// the operator experience is consistent across mado-local
+    /// PTYs AND tear-multiplexed sessions.
+    #[serde(default)]
+    pub scrollback: Option<MadoTearScrollbackImpose>,
+}
+
+/// Subset of tear-config's `ScrollbackConfig` that mado can
+/// override via the impose mechanism. Mirrors the upstream
+/// schema one-to-one but every field is optional so partial
+/// overrides land cleanly (operator imposes one knob, daemon
+/// keeps the rest of its own settings).
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct MadoTearScrollbackImpose {
+    #[serde(default)]
+    pub rows: Option<usize>,
+    #[serde(default)]
+    pub max_bytes: Option<Option<usize>>,
+    #[serde(default)]
+    pub keep_on_clear: Option<bool>,
+    #[serde(default)]
+    pub on_alt_screen: Option<bool>,
+    #[serde(default)]
+    pub skip_blank_rows: Option<bool>,
+    #[serde(default)]
+    pub reflow_on_resize: Option<bool>,
+}
+
+impl MadoTearScrollbackImpose {
+    pub fn has_any_override(&self) -> bool {
+        self.rows.is_some()
+            || self.max_bytes.is_some()
+            || self.keep_on_clear.is_some()
+            || self.on_alt_screen.is_some()
+            || self.skip_blank_rows.is_some()
+            || self.reflow_on_resize.is_some()
+    }
+
+    pub fn apply_to(&self, cfg: &mut tear_config::ScrollbackConfig) {
+        if let Some(v) = self.rows { cfg.rows = v; }
+        if let Some(v) = self.max_bytes { cfg.max_bytes = v; }
+        if let Some(v) = self.keep_on_clear { cfg.keep_on_clear = v; }
+        if let Some(v) = self.on_alt_screen { cfg.on_alt_screen = v; }
+        if let Some(v) = self.skip_blank_rows { cfg.skip_blank_rows = v; }
+        if let Some(v) = self.reflow_on_resize { cfg.reflow_on_resize = v; }
+    }
 }
 
 impl MadoTearImpose {
@@ -158,6 +212,7 @@ impl MadoTearImpose {
         self.prefix.is_some()
             || self.default_shell.is_some()
             || self.status_visible.is_some()
+            || self.scrollback.as_ref().is_some_and(|s| s.has_any_override())
     }
 
     /// Apply overrides in-place onto a TearConfig snapshot. Each
@@ -172,6 +227,9 @@ impl MadoTearImpose {
         }
         if let Some(v) = self.status_visible {
             cfg.status.visible = v;
+        }
+        if let Some(sb) = &self.scrollback {
+            sb.apply_to(&mut cfg.scrollback);
         }
     }
 }
@@ -977,7 +1035,13 @@ fn default_cursor_color() -> String {
     "#eceff4".into()
 }
 fn default_scrollback() -> usize {
-    10_000
+    // Operator-facing contract: "never lose anything." Host RAM
+    // is the only ceiling; VecDeque grows on demand so memory
+    // tracks actual scrollback usage, not the cap. Matches
+    // tear-config's ScrollbackConfig::default — operators
+    // get effectively-unlimited scrollback in mado AND in any
+    // tear sessions mado attaches to.
+    usize::MAX
 }
 fn default_copy_on_select() -> bool {
     false
@@ -1180,6 +1244,7 @@ impose:
                 prefix,
                 default_shell: shell,
                 status_visible: status,
+                scrollback: None,
             };
             let mut once = tear_config::TearConfig::default();
             imp.apply_to(&mut once);
@@ -1219,6 +1284,7 @@ impose:
                 prefix: imp_prefix.clone(),
                 default_shell: imp_shell.clone(),
                 status_visible: imp_status,
+                scrollback: None,
             };
             imp.apply_to(&mut cfg);
             match imp_prefix {
@@ -1269,6 +1335,7 @@ impose:
             prefix: Some("C-z".into()),
             default_shell: Some("/usr/bin/dash".into()),
             status_visible: Some(false),
+            scrollback: None,
         };
         imp3.apply_to(&mut cfg3);
         assert_eq!(cfg3.prefix, "C-z");
@@ -1316,7 +1383,9 @@ mod tests {
         assert!((config.cursor.opacity - 1.0).abs() < 0.001);
         assert!(config.cursor.text_color.is_none());
         assert!(!config.cursor.click_to_move);
-        assert_eq!(config.behavior.scrollback_lines, 10_000);
+        // Operator-facing default: "never lose anything"; host
+        // RAM is the only ceiling. VecDeque grows on demand.
+        assert_eq!(config.behavior.scrollback_lines, usize::MAX);
         assert!(!config.behavior.copy_on_select);
         assert!(!config.behavior.confirm_close);
         assert!(config.behavior.mouse_hide_while_typing);
@@ -1485,7 +1554,7 @@ window:
     #[test]
     fn test_behavior_config_defaults() {
         let b = BehaviorConfig::default();
-        assert_eq!(b.scrollback_lines, 10_000);
+        assert_eq!(b.scrollback_lines, usize::MAX);
         assert!(!b.copy_on_select);
         assert!(!b.confirm_close);
         assert!(b.mouse_hide_while_typing);
