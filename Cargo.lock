@@ -159,7 +159,7 @@ dependencies = [
  "objc2-foundation 0.3.2",
  "parking_lot",
  "percent-encoding",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
  "x11rb",
 ]
 
@@ -729,7 +729,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -801,7 +801,7 @@ dependencies = [
 [[package]]
 name = "engawa"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/engawa#50b6a22ca79fe3a2cc7f14d088e4d098010a9168"
+source = "git+https://github.com/pleme-io/engawa#acb36403ea7af6483c728496527ca2184603ca3c"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -810,7 +810,7 @@ dependencies = [
 [[package]]
 name = "engawa-lisp"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/engawa-lisp#9ceae6248ba10423e33b451ef81fe78914b54727"
+source = "git+https://github.com/pleme-io/engawa-lisp#369bbb4bdf9aea48fd90de8d10cfff5102a3abe7"
 dependencies = [
  "engawa",
  "thiserror 2.0.18",
@@ -819,7 +819,7 @@ dependencies = [
 [[package]]
 name = "engawa-snow"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/engawa-snow#53e1070c4e198669ce146fa9636f505ca7621f2c"
+source = "git+https://github.com/pleme-io/engawa-snow#d822f20991eba7ab40bb11253149712c0159e0c1"
 dependencies = [
  "bytemuck",
  "engawa",
@@ -850,7 +850,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -1992,7 +1992,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3006,7 +3006,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.4.15",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3019,7 +3019,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.12.1",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3542,7 +3542,7 @@ dependencies = [
 [[package]]
 name = "tear-client"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#e8edec210cc2098b723c84a863ff885a115c7482"
+source = "git+https://github.com/pleme-io/tear#66e988f70c43523ed5c3c3d90a4f12f17a49b82f"
 dependencies = [
  "parking_lot",
  "serde_yaml_ng",
@@ -3553,7 +3553,7 @@ dependencies = [
 [[package]]
 name = "tear-config"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#e8edec210cc2098b723c84a863ff885a115c7482"
+source = "git+https://github.com/pleme-io/tear#66e988f70c43523ed5c3c3d90a4f12f17a49b82f"
 dependencies = [
  "anyhow",
  "arc-swap",
@@ -3570,7 +3570,7 @@ dependencies = [
 [[package]]
 name = "tear-core"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#e8edec210cc2098b723c84a863ff885a115c7482"
+source = "git+https://github.com/pleme-io/tear#66e988f70c43523ed5c3c3d90a4f12f17a49b82f"
 dependencies = [
  "anyhow",
  "blake3",
@@ -3589,7 +3589,7 @@ dependencies = [
 [[package]]
 name = "tear-daemon"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#e8edec210cc2098b723c84a863ff885a115c7482"
+source = "git+https://github.com/pleme-io/tear#66e988f70c43523ed5c3c3d90a4f12f17a49b82f"
 dependencies = [
  "anyhow",
  "blake3",
@@ -3606,7 +3606,7 @@ dependencies = [
 [[package]]
 name = "tear-types"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#e8edec210cc2098b723c84a863ff885a115c7482"
+source = "git+https://github.com/pleme-io/tear#66e988f70c43523ed5c3c3d90a4f12f17a49b82f"
 dependencies = [
  "anyhow",
  "blake3",
@@ -3626,7 +3626,7 @@ dependencies = [
  "getrandom 0.4.2",
  "once_cell",
  "rustix 1.1.4",
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -4515,7 +4515,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -4694,15 +4694,6 @@ name = "windows-sys"
 version = "0.52.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "282be5f36a8ce781fad8c8ae18fa3f9beff57ec1b52cb3de0789201425d9a33d"
-dependencies = [
- "windows-targets 0.52.6",
-]
-
-[[package]]
-name = "windows-sys"
-version = "0.59.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e38bc4d79ed67fd075bcc251a1c39b32a1776bbe92e5bef1f0bf1f8c531853b"
 dependencies = [
  "windows-targets 0.52.6",
 ]

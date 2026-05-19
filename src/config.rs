@@ -102,8 +102,11 @@ pub struct MadoSnowConfig {
 }
 
 fn default_snow_enabled() -> bool { true }
-fn default_snow_intensity() -> f32 { 0.85 }
-fn default_snow_layer_count() -> f32 { 3.0 }
+// Subtle by default — the shader's MAX_ALPHA cap (0.35) keeps
+// text readable, but a lower intensity makes the snow feel like
+// a gentle backdrop rather than a foreground effect.
+fn default_snow_intensity() -> f32 { 0.30 }
+fn default_snow_layer_count() -> f32 { 2.0 }
 
 impl Default for MadoSnowConfig {
     fn default() -> Self {
