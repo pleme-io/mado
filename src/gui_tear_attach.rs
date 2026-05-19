@@ -1,4 +1,6 @@
-//! Phase-3.1 GPU GUI mode for `mado tear-attach --gpu`.
+//! Phase-3.1 GPU GUI mode for `mado tear-attach --gpu`, AND the
+//! default-launch path that auto-attaches to a freshly-created tear
+//! session when one is reachable (`try_run_default`).
 //!
 //! Opens a real mado GPU window backed by:
 //! - A single `Terminal` (no WindowState, no PaneManager, no local PTY).
@@ -18,53 +20,53 @@
 //! - No clipboard / selection / search / Rhai scripts.
 //! - No multi-pane (that's tear's job — this mode renders one
 //!   tear pane in one mado window).
-//!
-//! The point of the MVP is to prove the GPU vertical end-to-end:
-//! `mado tear-attach --gpu <pane>` opens a window that shows
-//! exactly what the same pane would show in `tear snapshot`,
-//! updated live as the child shell produces output, with a real
-//! cursor + scrollback + colors. Phase 3.1.x slices add the
-//! missing features.
 
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use anyhow::{Context, Result};
 use parking_lot::RwLock;
+use tear_types::{MultiplexerControl, PaneId, SessionSource};
 
+use crate::config::{MadoConfig, MadoTearConfig, TearMode};
 use crate::render::{SharedTerminal, TerminalRenderer};
+use crate::tear_discovery::{discover, DiscoveryOutcome};
 use crate::terminal::{Color as TermColor, Terminal};
+
+/// Result of attempting to start mado in default tear-attached mode.
+pub enum TearDefaultOutcome {
+    /// Tear-attached event loop ran to completion (window closed).
+    /// Main should exit normally.
+    Ran,
+    /// Daemon unavailable and config allowed fallback. Main should
+    /// fall through to the local-PTY path.
+    Unavailable,
+    /// Hard error — propagate to the operator.
+    Error(anyhow::Error),
+}
 
 /// Entry point — assembles the GUI from a connected tear-client +
 /// a subscribed pane id, then runs the madori::App event loop.
-pub fn run(pane_id: tear_types::PaneId, socket_path: PathBuf) -> Result<()> {
-    use madori::{AppConfig, AppEvent, EventResponse, KeyEvent};
-
+/// This is the `mado tear-attach --gpu <pane>` path.
+pub fn run(pane_id: PaneId, socket_path: PathBuf) -> Result<()> {
     let config = crate::config::load(&None).unwrap_or_default();
 
     // ── Tear control connection — discovery-driven ────────────
-    // The `--socket` CLI flag is honoured by overlaying it onto
-    // the loaded MadoTearConfig before calling discover(). This
-    // means a user with `tear.mode = "never"` set in their config
-    // who passes `--gpu` on the CLI still gets sensible behaviour
-    // (we infer Auto for the explicit attach intent).
-    let tear_cfg = crate::config::MadoTearConfig {
+    let tear_cfg = MadoTearConfig {
         socket: Some(socket_path.clone()),
         // CLI invocation = explicit user intent to attach.
-        // Even with `mode = "never"` in YAML, Phase-3.1 GPU mode
-        // requires tear; override.
         mode: match config.tear.mode {
-            crate::config::TearMode::Never => crate::config::TearMode::Auto,
+            TearMode::Never => TearMode::Auto,
             other => other,
         },
         ..config.tear.clone()
     };
-    let (client, _resolved_socket) = match crate::tear_discovery::discover(&tear_cfg) {
-        crate::tear_discovery::DiscoveryOutcome::Attached(c, p) => (Arc::new(c), p),
-        crate::tear_discovery::DiscoveryOutcome::Required(msg) => {
+    let (client, _resolved_socket) = match discover(&tear_cfg) {
+        DiscoveryOutcome::Attached(c, p) => (Arc::new(c), p),
+        DiscoveryOutcome::Required(msg) => {
             return Err(anyhow::anyhow!("{msg}"));
         }
-        crate::tear_discovery::DiscoveryOutcome::Fallback => {
+        DiscoveryOutcome::Fallback => {
             return Err(anyhow::anyhow!(
                 "tear-daemon not reachable at {} (tear.mode={:?}, auto_spawn={}).\n\
                  Start one with `tear daemon` or set `tear.auto_spawn = true`.",
@@ -75,47 +77,148 @@ pub fn run(pane_id: tear_types::PaneId, socket_path: PathBuf) -> Result<()> {
         }
     };
 
-    // ── Impose mado-authored config on attach ─────────────────
-    // If the operator declared `tear.impose.*` overrides, mado
-    // fetches the daemon's current TearConfig, merges in the
-    // overrides, and pushes the result back via SetConfig. This
-    // is the M5 destination's "mado is the front-end + canonical
-    // config author" half — daemon-on-disk untouched; the next
-    // notify reload reverts.
-    if let Some(impose) = tear_cfg.impose.as_ref() {
-        if impose.has_any_override() {
-            match client.get_config() {
-                Ok(mut current) => {
-                    impose.apply_to(&mut current);
-                    if let Err(e) = client.set_config(&current) {
-                        tracing::warn!(error = %e, "set_config (impose) failed");
-                    } else {
-                        tracing::info!("imposed mado-authored TearConfig overrides on daemon");
-                    }
-                }
-                Err(e) => {
-                    tracing::warn!(error = %e, "get_config failed; skipping impose");
-                }
+    impose_if_any(&client, &tear_cfg);
+    run_against_pane(client, pane_id, socket_path, config)
+}
+
+/// Default-launch path: try to attach to (or auto-spawn) the tear
+/// daemon, create a fresh session named for this mado instance, and
+/// render its first pane in a GPU window. Returns `Unavailable` if
+/// tear is configured `Never` or the daemon is unreachable + spawn
+/// failed AND fallback is allowed — main should then run the local-
+/// PTY path. Returns `Error` for hard failures (config says
+/// `Always` but daemon dead, session create failed, etc.).
+pub fn try_run_default(config: MadoConfig, shell: String) -> TearDefaultOutcome {
+    if matches!(config.tear.mode, TearMode::Never) {
+        return TearDefaultOutcome::Unavailable;
+    }
+    let (client, socket_path) = match discover(&config.tear) {
+        DiscoveryOutcome::Attached(c, p) => (Arc::new(c), p),
+        DiscoveryOutcome::Fallback => return TearDefaultOutcome::Unavailable,
+        DiscoveryOutcome::Required(msg) => {
+            return TearDefaultOutcome::Error(anyhow::anyhow!("{msg}"));
+        }
+    };
+
+    // Impose ASAP — before the session exists, so the new pane
+    // inherits prefix/shell/scrollback knobs the operator declared.
+    impose_if_any(&client, &config.tear);
+
+    // Session name: explicit override OR auto-generated tag that
+    // distinguishes per-process while staying human-readable.
+    let session_name = config
+        .tear
+        .session_name
+        .clone()
+        .unwrap_or_else(default_session_name);
+
+    let session_id = match client.new_session_with_source(
+        &session_name,
+        &shell,
+        SessionSource::Named("mado".into()),
+    ) {
+        Ok(sid) => sid,
+        Err(e) => {
+            tracing::warn!(error = %e, "tear new_session failed; falling back to local PTY");
+            return TearDefaultOutcome::Unavailable;
+        }
+    };
+
+    let session = match client.get_session(session_id) {
+        Ok(s) => s,
+        Err(e) => {
+            tracing::warn!(error = %e, "tear get_session failed; falling back");
+            return TearDefaultOutcome::Unavailable;
+        }
+    };
+
+    let pane_id = match session
+        .windows
+        .values()
+        .next()
+        .map(|w| w.active_pane)
+    {
+        Some(id) => id,
+        None => {
+            tracing::warn!(
+                session = %session_id,
+                "tear session created without any windows; falling back"
+            );
+            return TearDefaultOutcome::Unavailable;
+        }
+    };
+
+    tracing::info!(
+        session = %session_id,
+        pane = %pane_id,
+        name = %session_name,
+        socket = %socket_path.display(),
+        "mado default: tear session created + attached"
+    );
+
+    match run_against_pane(client, pane_id, socket_path, config) {
+        Ok(()) => TearDefaultOutcome::Ran,
+        Err(e) => TearDefaultOutcome::Error(e),
+    }
+}
+
+/// Default session name: `mado-<unix-seconds>-<pid>`. Stable
+/// per-process; sortable by creation time in `tear list`.
+fn default_session_name() -> String {
+    let pid = std::process::id();
+    let ts = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    format!("mado-{ts}-{pid}")
+}
+
+/// If the operator declared `tear.impose.*` overrides, fetch the
+/// daemon's current TearConfig, merge in the overrides, and push
+/// the result back via SetConfig. Errors are logged + non-fatal —
+/// failing to impose shouldn't break attach.
+fn impose_if_any(client: &Arc<tear_client::Client>, tear_cfg: &MadoTearConfig) {
+    let Some(impose) = tear_cfg.impose.as_ref() else { return };
+    if !impose.has_any_override() {
+        return;
+    }
+    match client.get_config() {
+        Ok(mut current) => {
+            impose.apply_to(&mut current);
+            if let Err(e) = client.set_config(&current) {
+                tracing::warn!(error = %e, "set_config (impose) failed");
+            } else {
+                tracing::info!("imposed mado-authored TearConfig overrides on daemon");
             }
         }
+        Err(e) => {
+            tracing::warn!(error = %e, "get_config failed; skipping impose");
+        }
     }
+}
 
-    // ── Pull the pane's current size so the Terminal starts with
-    // ── the right dimensions (the daemon's PaneGrid already knows
-    // ── them; we read via pane_snapshot rather than guessing).
-    use tear_types::MultiplexerControl;
+/// The shared render loop: snapshot pane size, build Terminal +
+/// Renderer, subscribe to pane bytes, run the madori App loop with
+/// key + resize forwarding via tear-client. Called by both `run()`
+/// (CLI tear-attach) and `try_run_default()` (default launch).
+fn run_against_pane(
+    client: Arc<tear_client::Client>,
+    pane_id: PaneId,
+    socket_path: PathBuf,
+    config: MadoConfig,
+) -> Result<()> {
+    use madori::{AppConfig, AppEvent, EventResponse, KeyEvent};
+
     let snapshot = client
         .pane_snapshot(pane_id)
         .with_context(|| format!("pane_snapshot({pane_id})"))?;
     let cols = snapshot.cols.max(1);
     let rows = snapshot.rows.max(1);
 
-    // ── Single Terminal — no WindowState ──────────────────────
     let terminal: SharedTerminal = Arc::new(RwLock::new(
         Terminal::with_scrollback(cols, rows, 10_000),
     ));
 
-    // ── Renderer construction (mirrors main.rs single-pane path) ─
     let effective_font_size = config.font_size;
     let padding = config.window.padding as f32;
     let bg_srgb = ishou_tokens::Srgb::from_hex(&config.appearance.background)
@@ -127,7 +230,7 @@ pub fn run(pane_id: tear_types::PaneId, socket_path: PathBuf) -> Result<()> {
     let fg_srgb = ishou_tokens::Srgb::from_hex(&config.appearance.foreground)
         .unwrap_or(ishou_tokens::Srgb::new(0xec, 0xef, 0xf4));
     let cursor_blink = config.cursor.blink && !config.accessibility.reduce_motion;
-    let renderer = TerminalRenderer::new(
+    let mut renderer = TerminalRenderer::new(
         Arc::clone(&terminal),
         effective_font_size,
         config.font_family.clone(),
@@ -139,10 +242,11 @@ pub fn run(pane_id: tear_types::PaneId, socket_path: PathBuf) -> Result<()> {
         bg_color,
         TermColor::new(fg_srgb.r, fg_srgb.g, fg_srgb.b),
     );
+    // Snow overlay is enabled by default in MadoConfig — flow it
+    // through here too so the tear-attached window is visually
+    // consistent with the local-PTY default.
+    renderer.set_snow_config(config.effects.snow.clone());
 
-    // ── Subscribe to the pane's PTY byte stream ────────────────
-    // Feed bytes into the local Terminal's vte parser. Mado's
-    // existing render pipeline reads the same Terminal each frame.
     let terminal_for_sub = Arc::clone(&terminal);
     let _subscribe = client
         .subscribe_pane_bytes(pane_id, move |bytes| {
@@ -150,10 +254,9 @@ pub fn run(pane_id: tear_types::PaneId, socket_path: PathBuf) -> Result<()> {
         })
         .with_context(|| format!("subscribe_pane_bytes({pane_id})"))?;
 
-    // ── App event handlers ─────────────────────────────────────
     let client_for_events = Arc::clone(&client);
     let app_config = AppConfig {
-        title: format!("mado tear-attach {pane_id}"),
+        title: format!("mado · tear {pane_id}"),
         width: config.window.width,
         height: config.window.height,
         resizable: true,
@@ -161,22 +264,21 @@ pub fn run(pane_id: tear_types::PaneId, socket_path: PathBuf) -> Result<()> {
         transparent: false,
         decorations: config.window.decorations,
     };
-    // Same cell-metric formula TerminalRenderer::new uses internally.
-    // The HiDPI scale factor multiplies in at first render; for the
-    // resize math here we use logical-pixel metrics — good enough
-    // for the MVP, exact-cell match comes when the renderer
-    // exposes cell_size_px().
     let cell_w_logical = effective_font_size * 0.6;
     let cell_h_logical = effective_font_size * 1.4;
     madori::App::builder(renderer)
         .config(app_config)
-        .on_event(move |event, _renderer| -> EventResponse {
+        .on_event(move |event, renderer| -> EventResponse {
             match event {
                 AppEvent::Resized { width, height } => {
                     let cols = ((*width as f32 / cell_w_logical) as u16).max(1);
                     let rows = ((*height as f32 / cell_h_logical) as u16).max(1);
-                    let _ = client_for_events
-                        .pane_resize_absolute(pane_id, cols, rows);
+                    let _ = client_for_events.pane_resize_absolute(pane_id, cols, rows);
+                    EventResponse::ignored()
+                }
+                AppEvent::Mouse(madori::MouseEvent::Moved { x, y }) => {
+                    // Snow cursor deflection — applies in tear mode too.
+                    renderer.snow_set_cursor(*x as f32, *y as f32);
                     EventResponse::ignored()
                 }
                 AppEvent::Key(KeyEvent {
@@ -184,22 +286,22 @@ pub fn run(pane_id: tear_types::PaneId, socket_path: PathBuf) -> Result<()> {
                     text,
                     ..
                 }) => {
+                    // Visual feedback: pulse the snow shimmer on every keystroke.
+                    renderer.snow_pulse_typing();
                     // MVP: only forward text-producing keys. Special
-                    // keys (arrows, ctrl chords, function keys)
-                    // need the mado main.rs key-table port —
-                    // tracked as a Phase 3.1.x slice.
+                    // keys (arrows, ctrl chords, function keys) need
+                    // the mado main.rs key-table port.
                     if let Some(t) = text {
                         if !t.is_empty() {
-                            let _ = client_for_events
-                                .send_keys(pane_id, t.as_bytes());
+                            let _ = client_for_events.send_keys(pane_id, t.as_bytes());
                         }
                     }
                     EventResponse::consumed()
                 }
                 AppEvent::CloseRequested => {
-                    // Drop the SubscribeHandle (happens when the
-                    // closure / run loop returns) — daemon prunes
-                    // the dead sender on next chunk.
+                    // Drop the SubscribeHandle (happens when the run
+                    // loop returns) — daemon prunes the dead sender
+                    // on next chunk.
                     EventResponse::ignored()
                 }
                 _ => EventResponse::ignored(),
@@ -207,7 +309,7 @@ pub fn run(pane_id: tear_types::PaneId, socket_path: PathBuf) -> Result<()> {
         })
         .run()
         .map_err(|e| anyhow::anyhow!("madori::App run: {e}"))?;
-    // Keep the subscribe alive for the lifetime of the run loop.
     drop(_subscribe);
+    let _ = socket_path; // used in window title in a future iteration
     Ok(())
 }

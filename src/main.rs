@@ -426,6 +426,22 @@ fn main() -> anyhow::Result<()> {
         .or(config.shell.command.clone())
         .unwrap_or_else(default_shell);
 
+    // ── Default-on tear attachment ───────────────────────────────
+    // Discover (or auto-spawn) the tear-daemon and run mado as a
+    // tear-attached window with a freshly-created session. Falls
+    // through to the local-PTY path below when:
+    //   * tear.mode = "never"
+    //   * the daemon is unreachable AND spawn failed
+    // Hard errors (e.g. tear.mode = "always" + daemon dead +
+    // spawn failed) bubble out via the `Error` arm.
+    match gui_tear_attach::try_run_default(config.clone(), shell.clone()) {
+        gui_tear_attach::TearDefaultOutcome::Ran => return Ok(()),
+        gui_tear_attach::TearDefaultOutcome::Error(e) => return Err(e),
+        gui_tear_attach::TearDefaultOutcome::Unavailable => {
+            tracing::debug!("tear unavailable — falling through to local-PTY mode");
+        }
+    }
+
     let extra_env = config.environment.vars.clone();
     let working_directory = config.environment.working_directory.clone();
     let initial_command = config.environment.initial_command.clone();
