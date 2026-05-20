@@ -5229,7 +5229,7 @@ rec {
             name = "objc2-app-kit";
             packageId = "objc2-app-kit 0.3.2";
             target = { target, features }: ("macos" == target."os" or null);
-            features = [ "NSApplication" "NSWindow" "NSDockTile" "NSResponder" ];
+            features = [ "NSApplication" "NSWindow" "NSDockTile" "NSResponder" "NSScreen" ];
           }
           {
             name = "objc2-foundation";
