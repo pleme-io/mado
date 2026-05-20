@@ -62,9 +62,11 @@ pub struct MadoConfig {
     /// back to local PTY if not available.
     #[serde(default)]
     pub tear: MadoTearConfig,
-    /// Default-on visual effects rendered as overlays after the
-    /// text pass. Snow is on by default — set `effects.snow.enabled
-    /// = false` to disable.
+    /// Opt-in visual effects rendered as overlays after the text
+    /// pass. **Snow defaults OFF** as of the May 2026 prescribed
+    /// default (matches the clean blackmatter + stylix + nord-dark
+    /// fleet look). Set `effects.snow.enabled = true` in
+    /// `~/.config/mado/mado.yaml` to enable.
     #[serde(default)]
     pub effects: MadoEffectsConfig,
 }
@@ -120,11 +122,13 @@ pub struct MadoSnowConfig {
     pub melt_rate: f32,
 }
 
-// TEMPORARY: defaulted OFF for an A/B launch-perf test. Flip
-// back to true once we've isolated whether the perceived "giant
-// loading time" is dominated by the snow render pass or by
-// mado's GPU + tear cold start. Operators who want snow can set
-// `effects.snow.enabled = true` in mado.yaml.
+// PRESCRIBED DEFAULT: snow OFF. The launch-perf A/B test (May
+// 2026) confirmed the snow render pass adds measurable cold-start
+// + per-frame work; the canonical pleme-io default is the clean
+// no-effects look (matches blackmatter + stylix + nord-dark
+// aesthetic of escriba / tear / frost / frostmourne). Operators
+// who want snow opt in via `effects.snow.enabled = true` in
+// mado.yaml — every snow param remains tuned + ready for them.
 fn default_snow_enabled() -> bool { false }
 // Subtle by default — the shader's MAX_ALPHA cap (0.35) keeps
 // text readable, but a lower intensity makes the snow feel like
@@ -1242,6 +1246,22 @@ impl MadoConfig {
     }
 }
 
+/// Fleet-wide TieredConfig contract for MadoConfig. Operators run
+/// `mado config-show bare|discovered|default` to see each tier and
+/// diff via shell — the trait makes the operator surface identical
+/// to every other shikumi-typed config in the pleme-io fleet.
+impl shikumi::TieredConfig for MadoConfig {
+    fn bare() -> Self {
+        MadoConfig::bare()
+    }
+    fn discovered() -> Self {
+        MadoConfig::bare_plus_discovered()
+    }
+    fn prescribed_default() -> Self {
+        MadoConfig::default()
+    }
+}
+
 impl Default for MadoConfig {
     /// **Tier 2 — bare + defaults + discovered**: mado-as-the-
     /// developers-believe-it-should-be-used. This is what operators
@@ -1914,6 +1934,29 @@ mod tests {
         let bare_yaml = serde_yaml_ng::to_string(&MadoConfig::bare()).unwrap();
         let default_yaml = serde_yaml_ng::to_string(&MadoConfig::default()).unwrap();
         assert_ne!(bare_yaml, default_yaml);
+    }
+
+    #[test]
+    fn mado_impls_shikumi_tiered_config() {
+        use shikumi::TieredConfig;
+        let b = <MadoConfig as TieredConfig>::bare();
+        let d = <MadoConfig as TieredConfig>::prescribed_default();
+        assert_ne!(b.font_family, d.font_family);
+        // diff_against produces a non-empty diff between bare + default
+        let diff = d.diff_against(&b);
+        assert!(!diff.is_empty_diff(), "bare vs default must differ");
+        let unified = diff.render_unified();
+        // Sanity: the prescribed default's theme is in the diff.
+        assert!(unified.contains("theme"));
+    }
+
+    #[test]
+    fn prescribed_default_has_snow_off() {
+        // Per the May 2026 prescribed default — snow stays OFF
+        // unless the operator explicitly opts in. Matches the
+        // blackmatter + stylix + nord-dark fleet aesthetic.
+        let d = MadoConfig::default();
+        assert!(!d.effects.snow.enabled);
     }
 
     #[test]
