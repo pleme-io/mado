@@ -1026,61 +1026,197 @@ impl MadoConfig {
 // `mado config-show <tier>` (M-148 follow-up CLI subcommand).
 
 impl MadoConfig {
-    /// **Tier 0 — bare**: empty / minimum-viable / zero-opinion
-    /// config. No keybindings, no font preference, smallest
-    /// reasonable window, no theme overlay, no effects. Operators
-    /// rarely WANT this directly — it's the documented floor
-    /// against which the layered tiers diff. Particularly useful
-    /// for debugging "is this option enabled in MY config or did
-    /// the default add it?".
+    /// **Tier 0 — bare**: minimum-viable / zero-opinion config.
+    ///
+    /// Every field's value is the deliberate "do nothing extra"
+    /// floor. Strings are empty, opt-in features are off, counts +
+    /// scales are at unity/zero, optionals are None. Where the type
+    /// has no None/zero analogue (enums, required numerics) the
+    /// most universal / least-surprising variant is picked + the
+    /// rationale documented inline.
+    ///
+    /// The bare config IS USABLE — mado launches with it, the
+    /// renderer paints, a shell spawns — but it carries zero
+    /// developer opinions. Mostly used as:
+    ///
+    /// 1. The documented floor visible via `mado config-show bare`.
+    /// 2. The diff baseline against `mado config-show default` so
+    ///    operators see exactly what defaults bought them.
+    /// 3. A starting point for operators who want to build their
+    ///    own config from the absolute minimum.
+    ///
+    /// Per operator principle: no future user should ever have to
+    /// guess what bare means. This function IS the answer.
     #[must_use]
     pub fn bare() -> Self {
         Self {
+            // ── Fonts ────────────────────────────────────────────
+            // Empty = no preference; cosmic-text resolves a system
+            // fallback face. Not "fallback constant" — that's the
+            // `discovered` tier's job.
             font_family: String::new(),
             font_italic: String::new(),
-            font_size: 12.0, // smallest readable
-            font: FontConfig::default(),
+            // 12.0 = smallest universally-readable point size.
+            // Not 0 (would break the renderer); not auto-detected
+            // (that's `discovered`).
+            font_size: 12.0,
+            font: FontConfig {
+                family_bold: None,
+                family_italic: None,
+                family_bold_italic: None,
+                thicken: false,
+                synthetic_style: false, // bare = no synthesized style faces
+                features: Vec::new(),
+                codepoint_map: HashMap::new(),
+            },
+            // ── Window ───────────────────────────────────────────
             window: WindowConfig {
                 width: 800,
                 height: 600,
                 padding: 0,
-                decorations: default_decorations(),
+                // Decorations = false: truly chromeless. Default
+                // tier overrides on macOS to keep traffic lights.
+                decorations: false,
                 title: None,
-                unfocused_split_opacity: 1.0,
+                unfocused_split_opacity: 1.0, // no dimming
                 split_divider_color: None,
                 background_image: None,
                 fullscreen: false,
                 maximize: false,
-                inherit_working_directory: true,
-                inherit_font_size: true,
-                padding_balance: true,
+                // bare = no assumed inheritance from parent shell.
+                inherit_working_directory: false,
+                inherit_font_size: false,
+                padding_balance: false,
             },
-            shell: ShellConfig::default(),
-            appearance: AppearanceConfig::default(),
-            cursor: CursorConfig::default(),
-            behavior: BehaviorConfig::default(),
-            theme: String::new(), // no theme — use raw fg/bg
+            // ── Shell ────────────────────────────────────────────
+            shell: ShellConfig {
+                // None = use OS $SHELL; bare has no explicit
+                // opinion. Empty args.
+                command: None,
+                args: Vec::new(),
+            },
+            // ── Appearance ───────────────────────────────────────
+            appearance: AppearanceConfig {
+                // Black background, white foreground = universal
+                // terminal colors since the 70s. No theme overlay.
+                background: "#000000".into(),
+                foreground: "#ffffff".into(),
+                opacity: 1.0, // opaque
+                bold_is_bright: false,
+                minimum_contrast: 0.0, // no contrast enforcement
+                background_blur: false,
+                unfocused_split_fill: None,
+            },
+            // ── Cursor ───────────────────────────────────────────
+            cursor: CursorConfig {
+                style: CursorStyle::Block,    // most universal
+                blink: false,                  // no animation in bare
+                blink_rate_ms: 0,              // moot since blink=false
+                color: String::new(),          // empty = use foreground
+                opacity: 1.0,
+                text_color: None,
+                click_to_move: false,
+            },
+            // ── Behavior ─────────────────────────────────────────
+            behavior: BehaviorConfig {
+                scrollback_lines: 0, // bare = no scrollback at all
+                copy_on_select: false,
+                confirm_close: false,
+                mouse_hide_while_typing: false,
+                mouse_scroll_multiplier: 1, // no multiplication
+                wait_after_command: false,
+                link_url: false,        // bare = no URL detection
+                mouse_reporting: false, // bare = no mouse events to apps
+                mouse_shift_capture: MouseShiftCapture::False,
+            },
+            // ── Theme ────────────────────────────────────────────
+            // Empty = no theme overlay; appearance.background +
+            // foreground are the truth.
+            theme: String::new(),
+            // ── Profiles ─────────────────────────────────────────
             profiles: HashMap::new(),
             active_profile: None,
-            shaders: ShaderConfig::default(),
-            accessibility: AccessibilityConfig::default(),
-            shell_integration: ShellIntegrationConfig::default(),
-            performance: PerformanceConfig::default(),
-            environment: EnvironmentConfig::default(),
-            selection: SelectionConfig::default(),
-            search: SearchColorsConfig::default(),
-            keybinds: KeybindConfig::default(), // empty — operator principle
-            quick_terminal: QuickTerminalConfig::default(),
+            // ── Shaders ──────────────────────────────────────────
+            shaders: ShaderConfig {
+                enabled: false,
+                files: Vec::new(),
+            },
+            // ── Accessibility ────────────────────────────────────
+            accessibility: AccessibilityConfig {
+                colorblind: ColorblindMode::None,
+                min_contrast: 0.0,
+                font_scale: 1.0, // unity
+                reduce_motion: false,
+            },
+            // ── Shell integration ────────────────────────────────
+            shell_integration: ShellIntegrationConfig {
+                enabled: false,
+                features: Vec::new(),
+            },
+            // ── Performance ──────────────────────────────────────
+            performance: PerformanceConfig {
+                vsync: false, // bare = no vsync opinion (driver default)
+                target_fps: None,
+                fps_cap: None,
+                battery_fps_cap: None,
+            },
+            // ── Environment ──────────────────────────────────────
+            environment: EnvironmentConfig {
+                vars: HashMap::new(),
+                working_directory: None,
+                initial_command: None,
+            },
+            // ── Selection ────────────────────────────────────────
+            selection: SelectionConfig {
+                foreground: None,
+                background: None,
+                word_chars: String::new(), // bare = no word-char hints
+                clear_on_typing: false,
+                clear_on_copy: false,
+            },
+            // ── Search colors ────────────────────────────────────
+            search: SearchColorsConfig {
+                foreground: None,
+                background: None,
+                selected_foreground: None,
+                selected_background: None,
+            },
+            // ── Keybindings ──────────────────────────────────────
+            // Empty custom list. KeybindManager-side (the runtime
+            // dispatch) also constructs via ::new() (zero bindings)
+            // in bare contexts. Per operator principle:
+            // nothing bound until explicitly opted in.
+            keybinds: KeybindConfig {
+                custom: Vec::new(),
+            },
+            // ── Quick Terminal ───────────────────────────────────
+            quick_terminal: QuickTerminalConfig {
+                enabled: false,
+                edge: QuickTerminalEdge::Top, // moot since disabled
+                size_fraction: 0.4,
+                animation_ms: 0, // no animation when bare
+                autohide_on_blur: false,
+                hotkey: String::new(),
+            },
+            // ── Tear ─────────────────────────────────────────────
             tear: MadoTearConfig {
-                mode: TearMode::default(),
-                runtime: TearRuntime::default(), // Embedded — zero-IPC
+                // bare = don't try tear at all. Operator opts in.
+                mode: TearMode::Never,
+                // If they do opt in, embedded is the lightest path —
+                // zero IPC, zero daemon spawn. Picked even in bare
+                // because it's structurally minimal.
+                runtime: TearRuntime::Embedded,
                 socket: None,
                 auto_spawn: false,
-                spawn_wait_ms: 1000,
+                spawn_wait_ms: 0, // no wait
                 session_name: None,
                 pane: None,
                 impose: None,
             },
+            // ── Effects ──────────────────────────────────────────
+            // All effects disabled in bare. Snow params stay at
+            // MadoEffectsConfig's own Default (which keeps `enabled
+            // = false` already).
             effects: MadoEffectsConfig::default(),
         }
     }
@@ -1595,19 +1731,137 @@ mod tests {
     #[test]
     fn bare_tier_has_zero_opinion_defaults() {
         let bare = MadoConfig::bare();
-        // Operator-visible properties at floor.
+
+        // ── Fonts ──────────────────────────────────────────────
         assert_eq!(bare.font_family, "");
-        assert_eq!(bare.theme, "");
+        assert_eq!(bare.font_italic, "");
+        assert!((bare.font_size - 12.0).abs() < 0.001);
+        assert!(bare.font.family_bold.is_none());
+        assert!(bare.font.family_italic.is_none());
+        assert!(bare.font.family_bold_italic.is_none());
+        assert!(!bare.font.thicken);
+        assert!(!bare.font.synthetic_style);
+        assert!(bare.font.features.is_empty());
+        assert!(bare.font.codepoint_map.is_empty());
+
+        // ── Window ─────────────────────────────────────────────
         assert_eq!(bare.window.width, 800);
         assert_eq!(bare.window.height, 600);
         assert_eq!(bare.window.padding, 0);
-        // tear.runtime stays at TearRuntime::default() = Embedded
-        // even in bare — embedded is structurally the lightest path
-        // (no IPC, no daemon) so it's the bare-floor choice too.
+        assert!(!bare.window.decorations);
+        assert!(bare.window.title.is_none());
+        assert!((bare.window.unfocused_split_opacity - 1.0).abs() < 0.001);
+        assert!(bare.window.split_divider_color.is_none());
+        assert!(bare.window.background_image.is_none());
+        assert!(!bare.window.fullscreen);
+        assert!(!bare.window.maximize);
+        assert!(!bare.window.inherit_working_directory);
+        assert!(!bare.window.inherit_font_size);
+        assert!(!bare.window.padding_balance);
+
+        // ── Shell ──────────────────────────────────────────────
+        assert!(bare.shell.command.is_none());
+        assert!(bare.shell.args.is_empty());
+
+        // ── Appearance ─────────────────────────────────────────
+        assert_eq!(bare.appearance.background, "#000000");
+        assert_eq!(bare.appearance.foreground, "#ffffff");
+        assert!((bare.appearance.opacity - 1.0).abs() < 0.001);
+        assert!(!bare.appearance.bold_is_bright);
+        assert!((bare.appearance.minimum_contrast - 0.0).abs() < 0.001);
+        assert!(!bare.appearance.background_blur);
+        assert!(bare.appearance.unfocused_split_fill.is_none());
+
+        // ── Cursor ─────────────────────────────────────────────
+        assert_eq!(bare.cursor.style, CursorStyle::Block);
+        assert!(!bare.cursor.blink);
+        assert_eq!(bare.cursor.blink_rate_ms, 0);
+        assert_eq!(bare.cursor.color, "");
+        assert!((bare.cursor.opacity - 1.0).abs() < 0.001);
+        assert!(bare.cursor.text_color.is_none());
+        assert!(!bare.cursor.click_to_move);
+
+        // ── Behavior ───────────────────────────────────────────
+        assert_eq!(bare.behavior.scrollback_lines, 0);
+        assert!(!bare.behavior.copy_on_select);
+        assert!(!bare.behavior.confirm_close);
+        assert!(!bare.behavior.mouse_hide_while_typing);
+        assert_eq!(bare.behavior.mouse_scroll_multiplier, 1);
+        assert!(!bare.behavior.wait_after_command);
+        assert!(!bare.behavior.link_url);
+        assert!(!bare.behavior.mouse_reporting);
+        assert_eq!(bare.behavior.mouse_shift_capture, MouseShiftCapture::False);
+
+        // ── Theme / Profiles ───────────────────────────────────
+        assert_eq!(bare.theme, "");
+        assert!(bare.profiles.is_empty());
+        assert!(bare.active_profile.is_none());
+
+        // ── Shaders ────────────────────────────────────────────
+        assert!(!bare.shaders.enabled);
+        assert!(bare.shaders.files.is_empty());
+
+        // ── Accessibility ──────────────────────────────────────
+        assert_eq!(bare.accessibility.colorblind, ColorblindMode::None);
+        assert!((bare.accessibility.min_contrast - 0.0).abs() < 0.001);
+        assert!((bare.accessibility.font_scale - 1.0).abs() < 0.001);
+        assert!(!bare.accessibility.reduce_motion);
+
+        // ── Shell integration ──────────────────────────────────
+        assert!(!bare.shell_integration.enabled);
+        assert!(bare.shell_integration.features.is_empty());
+
+        // ── Performance ────────────────────────────────────────
+        assert!(!bare.performance.vsync);
+        assert!(bare.performance.target_fps.is_none());
+        assert!(bare.performance.fps_cap.is_none());
+        assert!(bare.performance.battery_fps_cap.is_none());
+
+        // ── Environment ────────────────────────────────────────
+        assert!(bare.environment.vars.is_empty());
+        assert!(bare.environment.working_directory.is_none());
+        assert!(bare.environment.initial_command.is_none());
+
+        // ── Selection ──────────────────────────────────────────
+        assert!(bare.selection.foreground.is_none());
+        assert!(bare.selection.background.is_none());
+        assert_eq!(bare.selection.word_chars, "");
+        assert!(!bare.selection.clear_on_typing);
+        assert!(!bare.selection.clear_on_copy);
+
+        // ── Search ─────────────────────────────────────────────
+        assert!(bare.search.foreground.is_none());
+        assert!(bare.search.background.is_none());
+        assert!(bare.search.selected_foreground.is_none());
+        assert!(bare.search.selected_background.is_none());
+
+        // ── Keybindings ────────────────────────────────────────
+        assert!(bare.keybinds.custom.is_empty());
+
+        // ── Quick Terminal ─────────────────────────────────────
+        assert!(!bare.quick_terminal.enabled);
+        assert_eq!(bare.quick_terminal.edge, QuickTerminalEdge::Top);
+        assert!((bare.quick_terminal.size_fraction - 0.4).abs() < 0.001);
+        assert_eq!(bare.quick_terminal.animation_ms, 0);
+        assert!(!bare.quick_terminal.autohide_on_blur);
+        assert_eq!(bare.quick_terminal.hotkey, "");
+
+        // ── Tear ───────────────────────────────────────────────
+        assert_eq!(bare.tear.mode, TearMode::Never);
+        // Embedded is the structurally lightest tear runtime
+        // (no IPC, no daemon) — picked even in bare.
         assert_eq!(bare.tear.runtime, TearRuntime::Embedded);
-        // bare disables daemon auto-spawn (we won't spawn anything
-        // we didn't ask for in bare mode).
+        assert!(bare.tear.socket.is_none());
         assert!(!bare.tear.auto_spawn);
+        assert_eq!(bare.tear.spawn_wait_ms, 0);
+        assert!(bare.tear.session_name.is_none());
+        assert!(bare.tear.pane.is_none());
+        assert!(bare.tear.impose.is_none());
+
+        // ── Effects ────────────────────────────────────────────
+        // Snow is currently default-off; bare reuses Default for
+        // the typed effects struct.
+        assert!(!bare.effects.snow.enabled);
     }
 
     #[test]
