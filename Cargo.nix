@@ -4692,7 +4692,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/kaname";
           rev = "098386a943f6ecd0fe25b27ef6a2ca15b49417af";
-          sha256 = "0yw9kavqcpqd3dihpfn4mwdlrbz586043cbszlkcmw9c4bry2d4x";
+          sha256 = "1hpbdi8lzxsia2j0pcpza1izj95z1zwl3j7ihxbf3r0f9n8kvsim";
         };
         dependencies = [
           {
