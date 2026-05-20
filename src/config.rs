@@ -171,6 +171,12 @@ impl Default for MadoSnowConfig {
 pub struct MadoTearConfig {
     #[serde(default)]
     pub mode: TearMode,
+    /// Where tear's runtime LIVES. `Daemon` (default) talks over
+    /// Unix socket to the tear-daemon process; `Embedded` runs
+    /// tear's PTY+grid in-process via `tear_core::InProcess`. See
+    /// [`TearRuntime`] for the latency/multi-attach tradeoff.
+    #[serde(default)]
+    pub runtime: TearRuntime,
     /// Explicit UDS path override. `None` (default) → derive from
     /// `$XDG_RUNTIME_DIR/tear.sock` (or `~/.local/share/tear/
     /// tear.sock` fallback) — same default the tear daemon binds
@@ -324,6 +330,7 @@ impl Default for MadoTearConfig {
     fn default() -> Self {
         Self {
             mode: TearMode::default(),
+            runtime: TearRuntime::default(),
             socket: None,
             auto_spawn: default_auto_spawn(),
             spawn_wait_ms: default_spawn_wait_ms(),
@@ -349,6 +356,34 @@ pub enum TearMode {
     Never,
     /// Like Always but never spawns — must find an existing daemon.
     Attach,
+}
+
+/// Where the tear runtime LIVES. Orthogonal to [`TearMode`] (which
+/// is about discovery / fallback semantics): `TearRuntime` picks
+/// IPC topology.
+///
+/// * `Daemon` (default for safety / backwards-compat) — talk to the
+///   tear-daemon over a Unix socket. ~5-10ms IPC hop per render
+///   frame; required for multi-attach scenarios where ≥2 consumers
+///   (ayatsuri overlay, namimado debug inspector, remote ssh)
+///   share the same session.
+///
+/// * `Embedded` — run tear's PTY+grid in-process inside mado via
+///   `tear_core::InProcess`. Zero IPC, ~16ms ghostty-class
+///   latency. The right choice for the default single-window case
+///   (operator opens mado, types, closes — no one else needs the
+///   session). See `pleme-io/maestro/stacks/mado-default.yaml`
+///   for the maestro declaration of this mode.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum TearRuntime {
+    /// In-process via `tear_core::InProcess` (no IPC, no daemon
+    /// spawn, ghostty-class latency).
+    Embedded,
+    /// Over Unix socket via `tear_client::Client` (multi-attach
+    /// safe). Default for backwards compat.
+    #[default]
+    Daemon,
 }
 
 fn default_auto_spawn() -> bool {
