@@ -115,10 +115,25 @@ pub fn try_run_default(config: MadoConfig, shell: String) -> TearDefaultOutcome 
         .clone()
         .unwrap_or_else(default_session_name);
 
-    let session_id = match client.new_session_with_source(
+    // Compute the desired pane size up front from the operator's
+    // configured window dimensions + font cell metrics, then pass
+    // it to new_session_with_source_and_size so the shell spawns
+    // at the right grid from t=0. Eliminates the brief 80×24
+    // default + post-attach SIGWINCH re-layout.
+    let cell_w_logical = config.font_size * 0.6;
+    let cell_h_logical = config.font_size * 1.4;
+    let pad_logical = config.window.padding as f32;
+    let init_cols = (((config.window.width as f32 - 2.0 * pad_logical) / cell_w_logical)
+        .floor() as u16)
+        .max(1);
+    let init_rows = (((config.window.height as f32 - 2.0 * pad_logical) / cell_h_logical)
+        .floor() as u16)
+        .max(1);
+    let session_id = match client.new_session_with_source_and_size(
         &session_name,
         &shell,
         SessionSource::Named("mado".into()),
+        (init_cols, init_rows),
     ) {
         Ok(sid) => sid,
         Err(e) => {
