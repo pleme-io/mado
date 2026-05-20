@@ -295,8 +295,6 @@ fn run_against_pane(
         transparent: false,
         decorations: config.window.decorations,
     };
-    let cell_w_logical = effective_font_size * 0.6;
-    let cell_h_logical = effective_font_size * 1.4;
     crate::perf::log_phase("event_loop_entering");
     // Wrap the owned session id so we can move it into the
     // event closure (CloseRequested reaps).
@@ -308,8 +306,16 @@ fn run_against_pane(
         .on_event(move |event, renderer| -> EventResponse {
             match event {
                 AppEvent::Resized { width, height } => {
-                    let cols = ((*width as f32 / cell_w_logical) as u16).max(1);
-                    let rows = ((*height as f32 / cell_h_logical) as u16).max(1);
+                    // ARCHITECTURE: mado is the size authority. The
+                    // renderer knows the exact PHYSICAL cell dims +
+                    // scale factor; cells_for_window_phys is the
+                    // single source of truth. Push the result to
+                    // tear so the daemon's pane size mirrors mado's
+                    // visible grid — and the child shell sees the
+                    // correct cols/rows via TIOCGWINSZ. Without
+                    // this match, nvim and other TUI apps render
+                    // at the wrong size.
+                    let (cols, rows) = renderer.cells_for_window_phys(*width, *height);
                     let _ = client_for_events.pane_resize_absolute(pane_id, cols, rows);
                     EventResponse::ignored()
                 }

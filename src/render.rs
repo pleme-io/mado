@@ -1141,6 +1141,44 @@ impl TerminalRenderer {
         self.padding * self.scale_factor
     }
 
+    /// Current HiDPI scale factor. Public so consumers (gui_tear_attach's
+    /// resize event handler) can compute the same physical-pixel cell
+    /// dimensions the renderer uses. Without this getter, the resize
+    /// handler would mix physical pixels (winit's Resized event) with
+    /// logical cell sizes (font_size × 0.6/1.4) and on Retina compute
+    /// 2× as many cells as the window actually shows.
+    #[inline]
+    pub fn scale_factor(&self) -> f32 {
+        self.scale_factor
+    }
+
+    /// Physical-pixel cell dimensions matching what the renderer
+    /// actually draws. Use this from any code that needs to convert
+    /// window pixels (from winit Resized events) to cell counts (for
+    /// pane_resize_absolute calls).
+    #[inline]
+    pub fn cell_size_phys(&self) -> (f32, f32) {
+        (self.cell_width, self.cell_height)
+    }
+
+    /// Compute the (cols, rows) visible in the given physical window
+    /// dimensions, using THIS renderer's exact cell metrics + padding.
+    /// One source of truth for the cell math; used by gui_tear_attach
+    /// to push pane_resize_absolute(...) so tear's pane geometry
+    /// always matches mado's visible cell grid (= what nvim and other
+    /// TUI apps query via TIOCGWINSZ).
+    #[must_use]
+    pub fn cells_for_window_phys(&self, width_phys: u32, height_phys: u32) -> (u16, u16) {
+        let pad_phys = self.padding_px();
+        let inner_w = (width_phys as f32 - 2.0 * pad_phys).max(0.0);
+        let inner_h = (height_phys as f32 - 2.0 * pad_phys).max(0.0);
+        let cw = self.cell_width.max(1.0);
+        let ch = self.cell_height.max(1.0);
+        let cols = ((inner_w / cw).floor() as u16).max(1);
+        let rows = ((inner_h / ch).floor() as u16).max(1);
+        (cols, rows)
+    }
+
     /// Physical-pixel font size. Mirrors `padding_px` — logical
     /// `font_size` from config, scaled into physical pixels for the
     /// glyphon font-system + buffer creation.
