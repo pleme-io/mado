@@ -4433,7 +4433,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/ishou";
           rev = "ba660fea59bbc580a22c1d21a634e8cd02decc75";
-          sha256 = "0fbhnd881b5aykb6k6r2zixwffvhpl79mx5b1d3g7s5z0lfkjv7k";
+          sha256 = "0a0xf6qaaj89bll0dj4h4mgplgkww8wz6yv230zja4z8sj80y6jz";
         };
         libName = "ishou_tokens";
         dependencies = [
