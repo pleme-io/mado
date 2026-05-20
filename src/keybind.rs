@@ -57,8 +57,32 @@ pub struct KeybindManager {
 #[allow(dead_code)]
 impl KeybindManager {
     /// Create with platform-appropriate default bindings.
+    /// Construct an EMPTY KeybindManager — zero bindings, every
+    /// keystroke falls through to the PTY by default. Operator
+    /// principle: nothing is bound until explicitly opted in.
+    ///
+    /// For mado's curated baseline (Cmd-+/Cmd--/Cmd-0/Cmd-C/...)
+    /// call [`KeybindManager::with_mado_defaults`] instead. That
+    /// constructor IS the documented "default mado experience" —
+    /// `new()` is for headless paths, tests, and operators who
+    /// want to start from scratch.
     #[must_use]
     pub fn new() -> Self {
+        Self {
+            bindings: Vec::new(),
+        }
+    }
+
+    /// Construct a KeybindManager pre-populated with mado's curated
+    /// baseline (`default_bindings()`). This is what `main.rs` +
+    /// `gui_tear_attach.rs` call so operators get a useful first-
+    /// launch experience without writing a yaml file.
+    ///
+    /// Each binding can be removed via [`KeybindManager::unbind`]
+    /// or replaced via [`KeybindManager::bind`]; the operator-
+    /// visible set is `manager.bindings()`.
+    #[must_use]
+    pub fn with_mado_defaults() -> Self {
         Self {
             bindings: default_bindings(),
         }
@@ -102,6 +126,148 @@ impl KeybindManager {
     #[must_use]
     pub fn bindings(&self) -> &[Keybinding] {
         &self.bindings
+    }
+
+    /// Convenience: look up an action directly from a madori
+    /// KeyEvent. Encapsulates the modifier → awase + key → awase
+    /// conversion so the tear-attach event loop (which doesn't
+    /// pull main.rs's helpers) can dispatch keybindings the same
+    /// way the local-PTY path does.
+    ///
+    /// Returns `None` when the key + modifiers don't match a
+    /// bound action — caller falls back to forwarding the text
+    /// to the PTY (or dropping it if a non-text modifier is held).
+    #[must_use]
+    pub fn lookup_madori(&self, event: &madori::event::KeyEvent) -> Option<Action> {
+        let key = madori_key_to_awase(&event.key, &event.text)?;
+        let mods = madori_modifiers_to_awase(event.modifiers);
+        self.lookup(&awase::Hotkey::new(mods, key))
+    }
+}
+
+/// Convert a madori::Modifiers to awase::Modifiers. Shared by
+/// main.rs (local-PTY path) and gui_tear_attach.rs (tear path)
+/// so both use the same modifier rules. `meta` (winit's term for
+/// macOS Cmd) maps to `awase::Modifiers::CMD`.
+#[must_use]
+pub fn madori_modifiers_to_awase(m: madori::event::Modifiers) -> awase::Modifiers {
+    let mut out = awase::Modifiers::NONE;
+    if m.ctrl {
+        out = out | awase::Modifiers::CTRL;
+    }
+    if m.alt {
+        out = out | awase::Modifiers::ALT;
+    }
+    if m.shift {
+        out = out | awase::Modifiers::SHIFT;
+    }
+    if m.meta {
+        out = out | awase::Modifiers::CMD;
+    }
+    out
+}
+
+/// Convert a madori::KeyCode + optional text into an awase::Key.
+/// Returns None for keys with no awase equivalent (e.g. unknown
+/// scancode, multi-char text).
+#[must_use]
+pub fn madori_key_to_awase(
+    key: &madori::event::KeyCode,
+    text: &Option<String>,
+) -> Option<awase::Key> {
+    match key {
+        madori::event::KeyCode::Enter => Some(awase::Key::Return),
+        madori::event::KeyCode::Escape => Some(awase::Key::Escape),
+        madori::event::KeyCode::Tab => Some(awase::Key::Tab),
+        madori::event::KeyCode::Backspace => Some(awase::Key::Backspace),
+        madori::event::KeyCode::Delete => Some(awase::Key::Delete),
+        madori::event::KeyCode::Home => Some(awase::Key::Home),
+        madori::event::KeyCode::End => Some(awase::Key::End),
+        madori::event::KeyCode::PageUp => Some(awase::Key::PageUp),
+        madori::event::KeyCode::PageDown => Some(awase::Key::PageDown),
+        madori::event::KeyCode::Up => Some(awase::Key::Up),
+        madori::event::KeyCode::Down => Some(awase::Key::Down),
+        madori::event::KeyCode::Left => Some(awase::Key::Left),
+        madori::event::KeyCode::Right => Some(awase::Key::Right),
+        madori::event::KeyCode::F(n) => match n {
+            1 => Some(awase::Key::F1),
+            2 => Some(awase::Key::F2),
+            3 => Some(awase::Key::F3),
+            4 => Some(awase::Key::F4),
+            5 => Some(awase::Key::F5),
+            6 => Some(awase::Key::F6),
+            7 => Some(awase::Key::F7),
+            8 => Some(awase::Key::F8),
+            9 => Some(awase::Key::F9),
+            10 => Some(awase::Key::F10),
+            11 => Some(awase::Key::F11),
+            12 => Some(awase::Key::F12),
+            _ => None,
+        },
+        madori::event::KeyCode::Char(ch) => char_to_awase_key(*ch),
+        madori::event::KeyCode::Space => Some(awase::Key::Space),
+        _ => {
+            // Try to extract from text (e.g. shifted symbols).
+            if let Some(t) = text {
+                if let Some(ch) = t.chars().next() {
+                    if t.len() == ch.len_utf8() {
+                        return char_to_awase_key(ch);
+                    }
+                }
+            }
+            None
+        }
+    }
+}
+
+/// Lowercase-folded char → awase::Key. Centralizes the
+/// printable-to-key map both event paths use.
+#[must_use]
+pub fn char_to_awase_key(ch: char) -> Option<awase::Key> {
+    match ch.to_ascii_lowercase() {
+        'a' => Some(awase::Key::A),
+        'b' => Some(awase::Key::B),
+        'c' => Some(awase::Key::C),
+        'd' => Some(awase::Key::D),
+        'e' => Some(awase::Key::E),
+        'f' => Some(awase::Key::F),
+        'g' => Some(awase::Key::G),
+        'h' => Some(awase::Key::H),
+        'i' => Some(awase::Key::I),
+        'j' => Some(awase::Key::J),
+        'k' => Some(awase::Key::K),
+        'l' => Some(awase::Key::L),
+        'm' => Some(awase::Key::M),
+        'n' => Some(awase::Key::N),
+        'o' => Some(awase::Key::O),
+        'p' => Some(awase::Key::P),
+        'q' => Some(awase::Key::Q),
+        'r' => Some(awase::Key::R),
+        's' => Some(awase::Key::S),
+        't' => Some(awase::Key::T),
+        'u' => Some(awase::Key::U),
+        'v' => Some(awase::Key::V),
+        'w' => Some(awase::Key::W),
+        'x' => Some(awase::Key::X),
+        'y' => Some(awase::Key::Y),
+        'z' => Some(awase::Key::Z),
+        '0' => Some(awase::Key::Num0),
+        '1' => Some(awase::Key::Num1),
+        '2' => Some(awase::Key::Num2),
+        '3' => Some(awase::Key::Num3),
+        '4' => Some(awase::Key::Num4),
+        '5' => Some(awase::Key::Num5),
+        '6' => Some(awase::Key::Num6),
+        '7' => Some(awase::Key::Num7),
+        '8' => Some(awase::Key::Num8),
+        '9' => Some(awase::Key::Num9),
+        ' ' => Some(awase::Key::Space),
+        '/' => Some(awase::Key::Slash),
+        '+' | '=' => Some(awase::Key::Equal),
+        '-' => Some(awase::Key::Minus),
+        ',' => Some(awase::Key::Comma),
+        '.' => Some(awase::Key::Period),
+        _ => None,
     }
 }
 
@@ -205,35 +371,56 @@ mod tests {
     use super::*;
 
     #[test]
-    fn default_bindings_exist() {
+    fn new_is_empty() {
+        // Operator principle: zero bindings until explicitly opted in.
         let mgr = KeybindManager::new();
+        assert!(mgr.bindings().is_empty());
+    }
+
+    #[test]
+    fn with_mado_defaults_populates_baseline() {
+        let mgr = KeybindManager::with_mado_defaults();
         assert!(!mgr.bindings().is_empty());
+        // Sanity-check the canonical font-zoom triplet is present.
+        let cmd = awase::Modifiers::CMD;
+        assert_eq!(
+            mgr.lookup(&awase::Hotkey::new(cmd, awase::Key::Equal)),
+            Some(Action::FontIncrease)
+        );
+        assert_eq!(
+            mgr.lookup(&awase::Hotkey::new(cmd, awase::Key::Minus)),
+            Some(Action::FontDecrease)
+        );
+        assert_eq!(
+            mgr.lookup(&awase::Hotkey::new(cmd, awase::Key::Num0)),
+            Some(Action::FontReset)
+        );
     }
 
     #[test]
     fn lookup_copy() {
-        let mgr = KeybindManager::new();
+        let mgr = KeybindManager::with_mado_defaults();
         let hk = awase::Hotkey::new(awase::Modifiers::CMD, awase::Key::C);
         assert_eq!(mgr.lookup(&hk), Some(Action::Copy));
     }
 
     #[test]
     fn lookup_paste() {
-        let mgr = KeybindManager::new();
+        let mgr = KeybindManager::with_mado_defaults();
         let hk = awase::Hotkey::new(awase::Modifiers::CMD, awase::Key::V);
         assert_eq!(mgr.lookup(&hk), Some(Action::Paste));
     }
 
     #[test]
     fn lookup_no_match() {
-        let mgr = KeybindManager::new();
+        let mgr = KeybindManager::with_mado_defaults();
         let hk = awase::Hotkey::new(awase::Modifiers::NONE, awase::Key::X);
         assert_eq!(mgr.lookup(&hk), None);
     }
 
     #[test]
     fn custom_binding() {
-        let mut mgr = KeybindManager::new();
+        let mut mgr = KeybindManager::with_mado_defaults();
         let hk = awase::Hotkey::new(awase::Modifiers::CTRL, awase::Key::R);
         mgr.bind(hk, Action::ResetTerminal);
         assert_eq!(mgr.lookup(&hk), Some(Action::ResetTerminal));
@@ -241,7 +428,7 @@ mod tests {
 
     #[test]
     fn unbind() {
-        let mut mgr = KeybindManager::new();
+        let mut mgr = KeybindManager::with_mado_defaults();
         let hk = awase::Hotkey::new(awase::Modifiers::CMD, awase::Key::C);
         assert!(mgr.lookup(&hk).is_some());
         mgr.unbind(&hk);
@@ -250,7 +437,7 @@ mod tests {
 
     #[test]
     fn rebind_replaces() {
-        let mut mgr = KeybindManager::new();
+        let mut mgr = KeybindManager::with_mado_defaults();
         let hk = awase::Hotkey::new(awase::Modifiers::CMD, awase::Key::C);
         mgr.bind(hk, Action::ResetTerminal);
         assert_eq!(mgr.lookup(&hk), Some(Action::ResetTerminal));
@@ -258,14 +445,14 @@ mod tests {
 
     #[test]
     fn lookup_key_works() {
-        let mgr = KeybindManager::new();
+        let mgr = KeybindManager::with_mado_defaults();
         let action = mgr.lookup_key(awase::Key::C, awase::Modifiers::CMD);
         assert_eq!(action, Some(Action::Copy));
     }
 
     #[test]
     fn search_bindings() {
-        let mgr = KeybindManager::new();
+        let mgr = KeybindManager::with_mado_defaults();
         let hk_open = awase::Hotkey::new(awase::Modifiers::CMD, awase::Key::F);
         assert_eq!(mgr.lookup(&hk_open), Some(Action::SearchOpen));
 
@@ -275,7 +462,7 @@ mod tests {
 
     #[test]
     fn bind_str_valid() {
-        let mut mgr = KeybindManager::new();
+        let mut mgr = KeybindManager::with_mado_defaults();
         let result = mgr.bind_str("cmd+t", Action::Copy);
         assert!(result.is_ok());
         let hk = awase::Hotkey::parse("cmd+t").unwrap();
@@ -284,14 +471,14 @@ mod tests {
 
     #[test]
     fn bind_str_invalid() {
-        let mut mgr = KeybindManager::new();
+        let mut mgr = KeybindManager::with_mado_defaults();
         let result = mgr.bind_str("not_a_real_hotkey!!!", Action::Copy);
         assert!(result.is_err());
     }
 
     #[test]
     fn default_bindings_count() {
-        let mgr = KeybindManager::new();
+        let mgr = KeybindManager::with_mado_defaults();
         // Default bindings after Phase 4 (multiplexing actions
         // removed): clipboard (2) + search (4) + font (3) +
         // scroll (4) + prompt jump (2) + terminal (1) + fullscreen
@@ -326,14 +513,14 @@ mod tests {
 
     #[test]
     fn test_scroll_page_up_binding() {
-        let mgr = KeybindManager::new();
+        let mgr = KeybindManager::with_mado_defaults();
         let hk = awase::Hotkey::new(awase::Modifiers::NONE, awase::Key::PageUp);
         assert_eq!(mgr.lookup(&hk), Some(Action::ScrollPageUp));
     }
 
     #[test]
     fn test_scroll_page_down_binding() {
-        let mgr = KeybindManager::new();
+        let mgr = KeybindManager::with_mado_defaults();
         let hk = awase::Hotkey::new(awase::Modifiers::NONE, awase::Key::PageDown);
         assert_eq!(mgr.lookup(&hk), Some(Action::ScrollPageDown));
     }
@@ -344,7 +531,7 @@ mod tests {
 
     #[test]
     fn test_toggle_fullscreen_binding() {
-        let mgr = KeybindManager::new();
+        let mgr = KeybindManager::with_mado_defaults();
         let hk = awase::Hotkey::new(
             awase::Modifiers::CMD | awase::Modifiers::CTRL,
             awase::Key::F,
@@ -354,7 +541,7 @@ mod tests {
 
     #[test]
     fn test_reset_terminal_binding() {
-        let mgr = KeybindManager::new();
+        let mgr = KeybindManager::with_mado_defaults();
         let hk = awase::Hotkey::new(
             awase::Modifiers::CMD | awase::Modifiers::SHIFT,
             awase::Key::R,
@@ -364,7 +551,7 @@ mod tests {
 
     #[test]
     fn test_total_default_bindings_count() {
-        let mgr = KeybindManager::new();
+        let mgr = KeybindManager::with_mado_defaults();
         assert_eq!(mgr.bindings().len(), 17);
     }
 

@@ -354,6 +354,18 @@ where
     let session_reap_target = std::sync::Arc::new(std::sync::Mutex::new(owned_session_id));
     let control_for_reap = Arc::clone(&control);
     let session_reap = Arc::clone(&session_reap_target);
+    // Tear-mode keybindings. Use the operator-prescribed default
+    // baseline (with_mado_defaults). Per the three-tier model in
+    // MadoConfig: bare → bare+discovered → bare+defaults+discovered;
+    // here we're in the third tier. Operator overrides via
+    // mado.yaml are loaded into the typed keybinds config but the
+    // tear-mode event loop only dispatches the action-firing
+    // subset relevant in single-pane tear mode (font zoom +
+    // fullscreen + future). Other actions like Copy/Paste need
+    // mado-side state we don't have here yet — they fall through
+    // to PTY forwarding (terminal apps handle them).
+    let keybinds = crate::keybind::KeybindManager::with_mado_defaults();
+    let default_font_size_for_reset = config.font_size;
     madori::App::builder(renderer)
         .config(app_config)
         .on_event(move |event, renderer| -> EventResponse {
@@ -367,9 +379,60 @@ where
                     renderer.snow_set_cursor(*x as f32, *y as f32);
                     EventResponse::ignored()
                 }
-                AppEvent::Key(KeyEvent { pressed: true, text, .. }) => {
+                AppEvent::Key(key_event @ KeyEvent { pressed: true, .. }) => {
                     renderer.snow_pulse_typing();
-                    if let Some(t) = text {
+                    // First: consult the prescribed keybinding map.
+                    // Cmd-= / Cmd-- / Cmd-0 → font zoom in/out/reset
+                    // BEFORE the text falls through to the PTY.
+                    if let Some(action) = keybinds.lookup_madori(key_event) {
+                        use crate::keybind::Action;
+                        match action {
+                            Action::FontIncrease => {
+                                let new_size = (renderer.font_size() + 1.0).min(64.0);
+                                renderer.set_font_size(new_size);
+                                // Push the new grid dims to tear so the
+                                // shell sees the right cols/rows after
+                                // the cell-size change.
+                                let (cols, rows) = renderer
+                                    .cells_for_window_phys(config.window.width, config.window.height);
+                                let _ = control_for_events
+                                    .pane_resize_absolute(pane_id, cols, rows);
+                                return EventResponse::consumed();
+                            }
+                            Action::FontDecrease => {
+                                let new_size = (renderer.font_size() - 1.0).max(6.0);
+                                renderer.set_font_size(new_size);
+                                let (cols, rows) = renderer
+                                    .cells_for_window_phys(config.window.width, config.window.height);
+                                let _ = control_for_events
+                                    .pane_resize_absolute(pane_id, cols, rows);
+                                return EventResponse::consumed();
+                            }
+                            Action::FontReset => {
+                                renderer.set_font_size(default_font_size_for_reset);
+                                let (cols, rows) = renderer
+                                    .cells_for_window_phys(config.window.width, config.window.height);
+                                let _ = control_for_events
+                                    .pane_resize_absolute(pane_id, cols, rows);
+                                return EventResponse::consumed();
+                            }
+                            // Other actions (Copy, Paste, search,
+                            // scroll, fullscreen, etc.) fall through
+                            // to PTY forwarding for now; terminal
+                            // apps + mado-side state wiring lands in
+                            // a follow-up.
+                            _ => {}
+                        }
+                    }
+                    // No bound action AND no platform modifier is held
+                    // (avoid forwarding `=` to PTY when the operator
+                    // typed Cmd-+ but the binding wasn't recognized).
+                    let mods = key_event.modifiers;
+                    let has_platform_mod = mods.meta || mods.ctrl;
+                    if has_platform_mod {
+                        return EventResponse::consumed();
+                    }
+                    if let Some(t) = &key_event.text {
                         if !t.is_empty() {
                             let _ = control_for_events.send_keys(pane_id, t.as_bytes());
                         }

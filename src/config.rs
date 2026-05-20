@@ -1012,9 +1012,108 @@ impl MadoConfig {
     }
 }
 
-// Defaults
+// ── Defaults + tiered constructors ──────────────────────────────
+//
+// Per operator principle: every tier is explicit, inspectable, and
+// composable. Operators (and curious developers) can ask:
+//   * `MadoConfig::bare()` → minimum-viable config, zero opinions
+//   * `MadoConfig::bare_plus_discovered()` → bare + auto_detect outputs
+//   * `MadoConfig::default()` → bare + defaults + discovered (== what
+//      ships); this is mado-as-the-developers-believe-it-should-be-used
+//   * Loaded config from disk → user-overlay on top of any of the above
+//
+// Each tier serializes to YAML cleanly; operators see + diff them via
+// `mado config-show <tier>` (M-148 follow-up CLI subcommand).
+
+impl MadoConfig {
+    /// **Tier 0 — bare**: empty / minimum-viable / zero-opinion
+    /// config. No keybindings, no font preference, smallest
+    /// reasonable window, no theme overlay, no effects. Operators
+    /// rarely WANT this directly — it's the documented floor
+    /// against which the layered tiers diff. Particularly useful
+    /// for debugging "is this option enabled in MY config or did
+    /// the default add it?".
+    #[must_use]
+    pub fn bare() -> Self {
+        Self {
+            font_family: String::new(),
+            font_italic: String::new(),
+            font_size: 12.0, // smallest readable
+            font: FontConfig::default(),
+            window: WindowConfig {
+                width: 800,
+                height: 600,
+                padding: 0,
+                decorations: default_decorations(),
+                title: None,
+                unfocused_split_opacity: 1.0,
+                split_divider_color: None,
+                background_image: None,
+                fullscreen: false,
+                maximize: false,
+                inherit_working_directory: true,
+                inherit_font_size: true,
+                padding_balance: true,
+            },
+            shell: ShellConfig::default(),
+            appearance: AppearanceConfig::default(),
+            cursor: CursorConfig::default(),
+            behavior: BehaviorConfig::default(),
+            theme: String::new(), // no theme — use raw fg/bg
+            profiles: HashMap::new(),
+            active_profile: None,
+            shaders: ShaderConfig::default(),
+            accessibility: AccessibilityConfig::default(),
+            shell_integration: ShellIntegrationConfig::default(),
+            performance: PerformanceConfig::default(),
+            environment: EnvironmentConfig::default(),
+            selection: SelectionConfig::default(),
+            search: SearchColorsConfig::default(),
+            keybinds: KeybindConfig::default(), // empty — operator principle
+            quick_terminal: QuickTerminalConfig::default(),
+            tear: MadoTearConfig {
+                mode: TearMode::default(),
+                runtime: TearRuntime::default(), // Embedded — zero-IPC
+                socket: None,
+                auto_spawn: false,
+                spawn_wait_ms: 1000,
+                session_name: None,
+                pane: None,
+                impose: None,
+            },
+            effects: MadoEffectsConfig::default(),
+        }
+    }
+
+    /// **Tier 1 — bare + discovered**: `bare()` with `auto_detect`
+    /// outputs layered in. No prescribed mado opinions; everything
+    /// the runtime can probe (display size, future: theme, font,
+    /// font_size) replaces the bare floor.
+    ///
+    /// Surfaces the "what would mado look like with ONLY detection,
+    /// no developer opinions" question.
+    #[must_use]
+    pub fn bare_plus_discovered() -> Self {
+        let mut c = Self::bare();
+        let (w, h) = crate::auto_detect::detect_window_dims_or_fallback();
+        c.window.width = w;
+        c.window.height = h;
+        c.theme = crate::auto_detect::detect_theme_or_fallback().to_string();
+        c.font_family = crate::auto_detect::detect_font_family_or_fallback().to_string();
+        c.font_size = crate::auto_detect::detect_font_size_or_fallback();
+        c.window.padding = crate::auto_detect::detect_padding_or_fallback();
+        c
+    }
+}
 
 impl Default for MadoConfig {
+    /// **Tier 2 — bare + defaults + discovered**: mado-as-the-
+    /// developers-believe-it-should-be-used. This is what operators
+    /// get on first launch without writing any yaml. Layers
+    /// `bare_plus_discovered` + the curated mado defaults (font,
+    /// theme, behaviors). Most users will run this tier; the
+    /// `mado config-show default` subcommand (M-148 followup)
+    /// makes every value visible.
     fn default() -> Self {
         Self {
             font_family: default_font_family(),
@@ -1490,6 +1589,78 @@ impose:
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ── Config tier model ──────────────────────────────────────
+
+    #[test]
+    fn bare_tier_has_zero_opinion_defaults() {
+        let bare = MadoConfig::bare();
+        // Operator-visible properties at floor.
+        assert_eq!(bare.font_family, "");
+        assert_eq!(bare.theme, "");
+        assert_eq!(bare.window.width, 800);
+        assert_eq!(bare.window.height, 600);
+        assert_eq!(bare.window.padding, 0);
+        // tear.runtime stays at TearRuntime::default() = Embedded
+        // even in bare — embedded is structurally the lightest path
+        // (no IPC, no daemon) so it's the bare-floor choice too.
+        assert_eq!(bare.tear.runtime, TearRuntime::Embedded);
+        // bare disables daemon auto-spawn (we won't spawn anything
+        // we didn't ask for in bare mode).
+        assert!(!bare.tear.auto_spawn);
+    }
+
+    #[test]
+    fn bare_plus_discovered_overrides_window_dims() {
+        let bare = MadoConfig::bare();
+        let discovered = MadoConfig::bare_plus_discovered();
+        // The window dims came from auto_detect, not the bare floor.
+        // Either we detected display dims (so they're different from
+        // bare's 800x600) OR detection failed and we got the
+        // FALLBACK constant (1200, 800).
+        let detected_dims = (discovered.window.width, discovered.window.height);
+        let bare_dims = (bare.window.width, bare.window.height);
+        // discovered window is at least as big as bare on every axis
+        // (auto_detect clamps to 800 minimum).
+        assert!(detected_dims.0 >= bare_dims.0);
+        assert!(detected_dims.1 >= bare_dims.1);
+        // Theme/font come from auto_detect's FALLBACK constants in
+        // M1 (detection stubs return None).
+        assert_eq!(discovered.theme, crate::auto_detect::FALLBACK_THEME);
+        assert_eq!(
+            discovered.font_family,
+            crate::auto_detect::FALLBACK_FONT_FAMILY
+        );
+    }
+
+    #[test]
+    fn default_tier_is_bare_plus_defaults_plus_discovered() {
+        // Default() is the operator-facing tier: bare + defaults + discovered.
+        // Compared to bare_plus_discovered, it picks up the curated
+        // mado opinions (e.g. snow effects config, full keybind set in
+        // the typed keybinds group, etc.).
+        let default_cfg = MadoConfig::default();
+        // Confirm we land on the FALLBACK_THEME (since detect_theme
+        // is still a stub in M1) — same value the discovered tier picks.
+        assert_eq!(default_cfg.theme, crate::auto_detect::FALLBACK_THEME);
+        // Confirm window dims came from auto_detect.
+        assert!(default_cfg.window.width >= 800);
+        assert!(default_cfg.window.height >= 600);
+        // Confirm tear runtime is Embedded (the zero-IPC default).
+        assert_eq!(default_cfg.tear.runtime, TearRuntime::Embedded);
+    }
+
+    #[test]
+    fn tier_yaml_serialization_diff_is_visible() {
+        // The fundamental contract: serializing each tier to YAML
+        // yields BYTE-DIFFERENT strings (proves the tiers actually
+        // differ — operators run `diff <(mado config-show bare)
+        // <(mado config-show default)` to see what defaults bought
+        // them).
+        let bare_yaml = serde_yaml_ng::to_string(&MadoConfig::bare()).unwrap();
+        let default_yaml = serde_yaml_ng::to_string(&MadoConfig::default()).unwrap();
+        assert_ne!(bare_yaml, default_yaml);
+    }
 
     #[test]
     fn tear_runtime_default_is_embedded_for_zero_config_speed() {
