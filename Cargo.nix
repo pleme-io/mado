@@ -11910,7 +11910,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shidou";
           rev = "10fa22aaa1da69456aa82987e18dd4a2208c443c";
-          sha256 = "0haaxr2zc623ayjmbf1ag8vghqwfgcd215dax3pkmcng1mm7lzy2";
+          sha256 = "10nkqrw2wrjmimdq1jr5kgibnsi5hqp73dbsj58z8skp739g8hdr";
         };
         dependencies = [
           {
