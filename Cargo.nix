@@ -2563,7 +2563,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/engawa-wgpu";
           rev = "cf6909d9d8c5d39fcdc40bb26af1c7a3e0f45024";
-          sha256 = "11rbcg57ssxhcbrjhzy60j5h3cx1y8h6plc2iixk5b8jpxc22c3s";
+          sha256 = "0krkzra3dvhqmxs6jnqbf5a04p396dkkm5h46in90qdjh117xf50";
         };
         libName = "engawa_wgpu";
         authors = [
