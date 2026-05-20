@@ -292,13 +292,57 @@ fn run_against_pane(
     // consistent with the local-PTY default.
     renderer.set_snow_config(config.effects.snow.clone());
 
-    let terminal_for_sub = Arc::clone(&terminal);
-    let _subscribe = client
-        .subscribe_pane_bytes(pane_id, move |bytes| {
-            terminal_for_sub.write().feed(bytes);
-        })
-        .with_context(|| format!("subscribe_pane_bytes({pane_id})"))?;
+    // ── engate M3c: typed Attach lifecycle ──────────────────────────
+    //
+    // The subscribe + replay + feed dance previously lived as a
+    // ~10-line closure. With engate the same shape becomes a typed
+    // lifecycle that the compiler enforces:
+    //
+    //   builder() -> Attach<Spawned>
+    //     .subscribe()  -> (Attach<Subscribed>, History)
+    //     .replay(history) -> Attach<Synced>
+    //     .start_live() -> Attach<Live>
+    //
+    // Attach<Live> is the only phase that delivers items; reaching
+    // it requires consuming the History (drop-bomb otherwise) which
+    // forces the snapshot-replay-before-live invariant by
+    // construction. The engate M0 daemon-side snapshot replay is
+    // STILL delivered as the first item in the live stream — engate
+    // sees it as just another item and feeds it through the same
+    // Consumer::consume path the live items use; idempotent at the
+    // VT-parser level.
+    let producer =
+        tear_client::engate_producer::PaneProducer::new(Arc::clone(&client), pane_id);
+    let consumer = crate::engate_consumer::TerminalSink::new(Arc::clone(&terminal));
+    let attach_builder = engate_attach::Attach::builder()
+        .producer(producer)
+        .consumer(consumer)
+        .build();
+    let (attach_subscribed, history) = attach_builder
+        .subscribe()
+        .with_context(|| format!("engate.subscribe({pane_id})"))?;
+    let attach_synced = attach_subscribed
+        .replay(history)
+        .with_context(|| format!("engate.replay({pane_id})"))?;
+    let attach_live = attach_synced.start_live();
     crate::perf::log_phase("pane_subscribed");
+
+    // Drain the live engate stream on a background thread. The
+    // engate Attach<Live> owns the receiver + consumer; run()
+    // blocks until the producer drops its sender (PaneClosed /
+    // daemon shutdown / network drop), then returns the consumer
+    // for any final-state inspection the caller wants.
+    //
+    // The handle is dropped on function exit, but by then the
+    // attach is either still running (held by the spawned thread)
+    // or has cleanly terminated. Either way the typestate guarantees
+    // no half-attached state escapes into the renderer.
+    let _attach_thread = std::thread::Builder::new()
+        .name("mado-engate-live".into())
+        .spawn(move || {
+            let _consumer = attach_live.run();
+        })
+        .ok();
 
     // Initial size-sync: push pane_resize_absolute BEFORE the
     // event loop starts so tear's default 80×24 doesn't briefly
@@ -417,7 +461,10 @@ fn run_against_pane(
         })
         .run()
         .map_err(|e| anyhow::anyhow!("madori::App run: {e}"))?;
-    drop(_subscribe);
+    // _attach_thread is the engate worker — it owns the Attach<Live>
+    // and the consumer; dropping the JoinHandle here lets the OS
+    // reap when the producer's sender closes. The engate typestate
+    // already guarantees there's no half-attached state to clean up.
     let _ = socket_path; // used in window title in a future iteration
     Ok(())
 }

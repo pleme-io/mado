@@ -15,6 +15,7 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 mod clipboard_store;
 mod config;
+mod engate_consumer;
 mod gui_tear_attach;
 mod keybind;
 mod single_pane;
