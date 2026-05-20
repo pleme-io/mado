@@ -164,6 +164,7 @@ mod tests {
     fn cfg_with(mode: TearMode, socket: &Path, auto_spawn: bool) -> MadoTearConfig {
         MadoTearConfig {
             mode,
+            runtime: crate::config::TearRuntime::default(),
             socket: Some(socket.to_path_buf()),
             auto_spawn,
             spawn_wait_ms: 100,
@@ -284,6 +285,7 @@ mod tests {
 
         let cfg = MadoTearConfig {
             mode: TearMode::Auto,
+            runtime: crate::config::TearRuntime::default(),
             socket: Some(socket.clone()),
             auto_spawn: false,
             spawn_wait_ms: 100,

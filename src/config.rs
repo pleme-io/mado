@@ -1505,6 +1505,28 @@ mod tests {
     use super::*;
 
     #[test]
+    fn tear_runtime_default_is_daemon_for_backcompat() {
+        let cfg = MadoTearConfig::default();
+        assert_eq!(cfg.runtime, TearRuntime::Daemon);
+    }
+
+    #[test]
+    fn tear_runtime_parses_embedded_from_yaml() {
+        let yaml = "mode: auto\nruntime: embedded\n";
+        let cfg: MadoTearConfig = serde_yaml_ng::from_str(yaml).unwrap();
+        assert_eq!(cfg.runtime, TearRuntime::Embedded);
+    }
+
+    #[test]
+    fn tear_runtime_round_trips_via_serde() {
+        for &rt in &[TearRuntime::Embedded, TearRuntime::Daemon] {
+            let s = serde_yaml_ng::to_string(&rt).unwrap();
+            let back: TearRuntime = serde_yaml_ng::from_str(&s).unwrap();
+            assert_eq!(rt, back);
+        }
+    }
+
+    #[test]
     fn test_default_config_values() {
         let config = MadoConfig::default();
         assert_eq!(config.font_family, "JetBrainsMono Nerd Font Mono");
