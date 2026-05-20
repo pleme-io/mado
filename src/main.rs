@@ -75,6 +75,16 @@ struct Cli {
     subcmd: Option<SubCmd>,
 }
 
+#[derive(Debug, Clone, Copy, clap::ValueEnum)]
+enum ConfigTierArg {
+    /// Zero-opinion floor.
+    Bare,
+    /// Bare + auto_detect outputs (no prescribed defaults).
+    Discovered,
+    /// Bare + prescribed mado defaults + discovered (first-launch tier).
+    Default,
+}
+
 #[derive(clap::Subcommand)]
 enum SubCmd {
     /// Run as MCP server (stdio transport) for Claude Code integration.
@@ -84,6 +94,25 @@ enum SubCmd {
     /// mado see on this machine" + fleet-wide auditing via
     /// `tend` / scripted queries.
     PrintPosture,
+    /// Print one of mado's config tiers as YAML on stdout. Use to
+    /// answer "what does the bare floor look like?" or "what did
+    /// the prescribed default give me?" Operator principle: every
+    /// tier is explicit + diffable + opt-in.
+    ///
+    /// Tiers:
+    /// * `bare`       — zero-opinion floor (empty bindings, smallest
+    ///                  window, empty theme + font).
+    /// * `discovered` — bare + auto_detect outputs (display dims,
+    ///                  detected theme/font).
+    /// * `default`    — bare + prescribed mado defaults + discovered.
+    ///                  The first-launch tier ~90% of users land on.
+    ///
+    /// Diff via shell: `diff <(mado config-show bare) <(mado config-show default)`.
+    ConfigShow {
+        /// Which tier to dump.
+        #[arg(value_enum)]
+        tier: ConfigTierArg,
+    },
     /// Run a `*.scenario.yaml` file in headless mode and exit non-zero
     /// on assertion failure. Used by `tests/scenarios.rs` to dispatch
     /// each scenario as its own process — and by operators to replay
@@ -327,6 +356,21 @@ fn main() -> anyhow::Result<()> {
         Some(SubCmd::PrintPosture) => {
             let posture = detect_runtime_posture()?;
             println!("{}", serde_json::to_string_pretty(&posture)?);
+            return Ok(());
+        }
+        Some(SubCmd::ConfigShow { tier }) => {
+            // No tracing setup — pure stdout YAML so the output
+            // pipes cleanly into `diff` / `yq` / etc.
+            let cfg = match tier {
+                ConfigTierArg::Bare => crate::config::MadoConfig::bare(),
+                ConfigTierArg::Discovered => {
+                    crate::config::MadoConfig::bare_plus_discovered()
+                }
+                ConfigTierArg::Default => crate::config::MadoConfig::default(),
+            };
+            let yaml = serde_yaml_ng::to_string(&cfg)
+                .map_err(|e| anyhow::anyhow!("serialize mado config: {e}"))?;
+            print!("{yaml}");
             return Ok(());
         }
         Some(SubCmd::ScenarioRun { ref path }) => {
