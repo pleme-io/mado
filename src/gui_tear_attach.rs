@@ -215,6 +215,186 @@ pub fn try_run_default(config: MadoConfig, shell: String) -> TearDefaultOutcome 
     }
 }
 
+/// Refactored unified renderer + event loop for both daemon-mode
+/// and embedded-mode tear backends. Generic over:
+///
+///   * `P` — the engate Producer (tear_client or tear_core impl)
+///   * `C` — the control plane (Client or InProcess, both impl
+///           MultiplexerControl for resize/send_keys/kill_session)
+///
+/// `owned_session_id`:
+///   * `Some(sid)` — daemon mode: mado owns the session, reaps on
+///     CloseRequested + on SIGTERM via ctrlc handler
+///   * `None` — embedded mode: the session lives in mado's process,
+///     dies naturally on process exit; no reap needed
+///
+/// This collapses what was previously 320 lines of duplicated daemon
+/// + embedded paths into one ~150-line function. Prime directive
+/// duplication-is-a-bug satisfied. Embedded mode also picks up
+/// features the daemon path had (mouse-cursor snow deflection, snow
+/// pulse on keypress) for free.
+fn run_against_pane_unified<P, C>(
+    producer: P,
+    control: Arc<C>,
+    pane_id: PaneId,
+    snapshot_cols: usize,
+    snapshot_rows: usize,
+    config: MadoConfig,
+    owned_session_id: Option<tear_types::SessionId>,
+    title_kind: &str,
+) -> Result<()>
+where
+    P: engate_attach::Producer<
+            Item = Vec<u8>,
+            Snap = tear_types::engate_wrap::PaneSnapshotWrap,
+        > + 'static,
+    C: tear_types::MultiplexerControl + Send + Sync + 'static,
+{
+    use madori::{AppConfig, AppEvent, EventResponse, KeyEvent};
+
+    let cols = snapshot_cols.max(1);
+    let rows = snapshot_rows.max(1);
+
+    let terminal: SharedTerminal = Arc::new(RwLock::new(
+        Terminal::with_scrollback(cols, rows, 10_000),
+    ));
+
+    let effective_font_size = config.font_size;
+    let padding = config.window.padding as f32;
+    let bg_srgb = ishou_tokens::Srgb::from_hex(&config.appearance.background)
+        .unwrap_or(ishou_tokens::Srgb::new(0x2e, 0x34, 0x40));
+    let bg_color: wgpu::Color = bg_srgb
+        .to_linear()
+        .with_alpha(config.appearance.opacity)
+        .into();
+    let fg_srgb = ishou_tokens::Srgb::from_hex(&config.appearance.foreground)
+        .unwrap_or(ishou_tokens::Srgb::new(0xec, 0xef, 0xf4));
+    let cursor_blink = config.cursor.blink && !config.accessibility.reduce_motion;
+    let mut renderer = TerminalRenderer::new(
+        Arc::clone(&terminal),
+        effective_font_size,
+        config.font_family.clone(),
+        config.font_italic.clone(),
+        padding,
+        config.cursor.style,
+        cursor_blink,
+        config.cursor.blink_rate_ms,
+        bg_color,
+        TermColor::new(fg_srgb.r, fg_srgb.g, fg_srgb.b),
+    );
+    renderer.set_snow_config(config.effects.snow.clone());
+
+    // engate typed Attach lifecycle — same shape both backends.
+    let consumer = crate::engate_consumer::TerminalSink::new(Arc::clone(&terminal));
+    let attach_builder = engate_attach::Attach::builder()
+        .producer(producer)
+        .consumer(consumer)
+        .build();
+    let (attach_subscribed, history) = attach_builder
+        .subscribe()
+        .with_context(|| format!("engate.subscribe({pane_id})"))?;
+    let attach_synced = attach_subscribed
+        .replay(history)
+        .with_context(|| format!("engate.replay({pane_id})"))?;
+    let attach_live = attach_synced.start_live();
+    crate::perf::log_phase("pane_subscribed");
+
+    let _attach_thread = std::thread::Builder::new()
+        .name(format!("mado-engate-live-{title_kind}"))
+        .spawn(move || {
+            let _consumer = attach_live.run();
+        })
+        .ok();
+
+    // Initial size-sync: push pane_resize_absolute BEFORE the event
+    // loop so tear's default 80×24 doesn't briefly hold while the
+    // shell runs zshrc + renders its first prompt. Mado is the size
+    // authority.
+    {
+        let logical_w = config.window.width as f32;
+        let logical_h = config.window.height as f32;
+        let pad = padding;
+        let cell_w_logical = effective_font_size * 0.6;
+        let cell_h_logical = effective_font_size * 1.4;
+        let init_cols: u16 =
+            (((logical_w - 2.0 * pad) / cell_w_logical).floor() as u16).max(1);
+        let init_rows: u16 =
+            (((logical_h - 2.0 * pad) / cell_h_logical).floor() as u16).max(1);
+        if init_cols as usize != cols || init_rows as usize != rows {
+            if let Err(e) = control.pane_resize_absolute(pane_id, init_cols, init_rows) {
+                tracing::warn!(error = %e, init_cols, init_rows, "initial pane_resize_absolute failed");
+            }
+        }
+    }
+
+    // SIGTERM/SIGINT reaper — only when mado owns the session.
+    // Embedded mode doesn't need this; the in-process tear runtime
+    // dies with mado.
+    if let Some(sid) = owned_session_id {
+        let reap_control = Arc::clone(&control);
+        ctrlc::set_handler(move || {
+            tracing::info!(session = %sid, "signal received — reaping owned tear session");
+            let _ = reap_control.kill_session(sid);
+            std::process::exit(130);
+        })
+        .ok();
+    }
+
+    let control_for_events = Arc::clone(&control);
+    let app_config = AppConfig {
+        title: format!("mado · {title_kind} {pane_id}"),
+        width: config.window.width,
+        height: config.window.height,
+        resizable: true,
+        vsync: config.performance.vsync,
+        transparent: false,
+        decorations: config.window.decorations,
+    };
+    crate::perf::log_phase("event_loop_entering");
+    let session_reap_target = std::sync::Arc::new(std::sync::Mutex::new(owned_session_id));
+    let control_for_reap = Arc::clone(&control);
+    let session_reap = Arc::clone(&session_reap_target);
+    madori::App::builder(renderer)
+        .config(app_config)
+        .on_event(move |event, renderer| -> EventResponse {
+            match event {
+                AppEvent::Resized { width, height } => {
+                    let (cols, rows) = renderer.cells_for_window_phys(*width, *height);
+                    let _ = control_for_events.pane_resize_absolute(pane_id, cols, rows);
+                    EventResponse::ignored()
+                }
+                AppEvent::Mouse(madori::MouseEvent::Moved { x, y }) => {
+                    renderer.snow_set_cursor(*x as f32, *y as f32);
+                    EventResponse::ignored()
+                }
+                AppEvent::Key(KeyEvent { pressed: true, text, .. }) => {
+                    renderer.snow_pulse_typing();
+                    if let Some(t) = text {
+                        if !t.is_empty() {
+                            let _ = control_for_events.send_keys(pane_id, t.as_bytes());
+                        }
+                    }
+                    EventResponse::consumed()
+                }
+                AppEvent::CloseRequested => {
+                    if let Ok(mut slot) = session_reap.lock() {
+                        if let Some(sid) = slot.take() {
+                            match control_for_reap.kill_session(sid) {
+                                Ok(()) => tracing::info!(session = %sid, "reaped owned tear session on window close"),
+                                Err(e) => tracing::warn!(error = %e, session = %sid, "kill_session on close failed"),
+                            }
+                        }
+                    }
+                    EventResponse::ignored()
+                }
+                _ => EventResponse::ignored(),
+            }
+        })
+        .run()
+        .map_err(|e| anyhow::anyhow!("madori::App run: {e}"))?;
+    Ok(())
+}
+
 /// M3c.1 — embedded-tear default-launch path.
 ///
 /// Identical operator-visible contract to `try_run_default` but
@@ -291,129 +471,30 @@ fn try_run_default_embedded(config: MadoConfig, shell: String) -> TearDefaultOut
     }
 }
 
-/// Embedded-mode renderer + event loop. Mirrors `run_against_pane`
-/// but talks to `InProcess` directly (no daemon) and uses the
-/// `tear_core` engate Producer instead of the `tear_client` one.
-///
-/// TODO(M3c.2) — unify with run_against_pane via a small trait
-/// covering (pane_snapshot, send_keys, pane_resize_absolute,
-/// kill_session) so the only diff is the engate Producer
-/// construction. The MultiplexerControl trait already covers most
-/// of this surface.
+/// Embedded-mode renderer + event loop — thin wrapper around
+/// `run_against_pane_unified`. Constructs the `tear_core` engate
+/// Producer + uses `Arc<InProcess>` as the control plane; the
+/// unified function handles the rest.
 fn run_against_embedded_pane(
     inproc: std::sync::Arc<tear_core::InProcess>,
     pane_id: PaneId,
     config: MadoConfig,
 ) -> Result<()> {
-    use madori::{AppConfig, AppEvent, EventResponse, KeyEvent};
-    use tear_core::engate_producer::PaneProducer as EmbeddedProducer;
-
     let snapshot = inproc
         .pane_snapshot(pane_id)
         .with_context(|| format!("inproc.pane_snapshot({pane_id})"))?;
-    let cols = snapshot.cols.max(1);
-    let rows = snapshot.rows.max(1);
-
-    let terminal: SharedTerminal = Arc::new(RwLock::new(
-        Terminal::with_scrollback(cols, rows, 10_000),
-    ));
-
-    let effective_font_size = config.font_size;
-    let padding = config.window.padding as f32;
-    let bg_srgb = ishou_tokens::Srgb::from_hex(&config.appearance.background)
-        .unwrap_or(ishou_tokens::Srgb::new(0x2e, 0x34, 0x40));
-    let bg_color: wgpu::Color = bg_srgb
-        .to_linear()
-        .with_alpha(config.appearance.opacity)
-        .into();
-    let fg_srgb = ishou_tokens::Srgb::from_hex(&config.appearance.foreground)
-        .unwrap_or(ishou_tokens::Srgb::new(0xec, 0xef, 0xf4));
-    let cursor_blink = config.cursor.blink && !config.accessibility.reduce_motion;
-    let mut renderer = TerminalRenderer::new(
-        Arc::clone(&terminal),
-        effective_font_size,
-        config.font_family.clone(),
-        config.font_italic.clone(),
-        padding,
-        config.cursor.style,
-        cursor_blink,
-        config.cursor.blink_rate_ms,
-        bg_color,
-        TermColor::new(fg_srgb.r, fg_srgb.g, fg_srgb.b),
-    );
-    renderer.set_snow_config(config.effects.snow.clone());
-
-    // engate Attach over the in-process pane. Same typed lifecycle
-    // as daemon mode — the producer type is the only difference.
-    let producer = EmbeddedProducer::new(Arc::clone(&inproc), pane_id);
-    let consumer = crate::engate_consumer::TerminalSink::new(Arc::clone(&terminal));
-    let attach_builder = engate_attach::Attach::builder()
-        .producer(producer)
-        .consumer(consumer)
-        .build();
-    let (attach_subscribed, history) = attach_builder
-        .subscribe()
-        .with_context(|| format!("engate.subscribe({pane_id})"))?;
-    let attach_synced = attach_subscribed
-        .replay(history)
-        .with_context(|| format!("engate.replay({pane_id})"))?;
-    let attach_live = attach_synced.start_live();
-    crate::perf::log_phase("pane_subscribed");
-
-    let _attach_thread = std::thread::Builder::new()
-        .name("mado-engate-live-embedded".into())
-        .spawn(move || {
-            let _consumer = attach_live.run();
-        })
-        .ok();
-
-    let inproc_for_events = Arc::clone(&inproc);
-    let app_config = AppConfig {
-        title: format!("mado · tear[embedded] {pane_id}"),
-        width: config.window.width,
-        height: config.window.height,
-        resizable: true,
-        vsync: config.performance.vsync,
-        transparent: false,
-        decorations: config.window.decorations,
-    };
-    crate::perf::log_phase("event_loop_entering");
-
-    madori::App::builder(renderer)
-        .config(app_config)
-        .on_event(move |event, _renderer| -> EventResponse {
-            match event {
-                AppEvent::Resized { width, height } => {
-                    let cell_w_logical = config.font_size * 0.6;
-                    let cell_h_logical = config.font_size * 1.4;
-                    let pad_logical = config.window.padding as f32;
-                    let cols = ((((*width as f32) - 2.0 * pad_logical) / cell_w_logical).floor()
-                        as u16)
-                        .max(1);
-                    let rows = ((((*height as f32) - 2.0 * pad_logical) / cell_h_logical).floor()
-                        as u16)
-                        .max(1);
-                    if let Err(e) = inproc_for_events.pane_resize_absolute(pane_id, cols, rows) {
-                        tracing::warn!(error = %e, "embedded pane_resize_absolute failed");
-                    }
-                }
-                AppEvent::Key(KeyEvent { pressed: true, text, .. }) => {
-                    if let Some(t) = text {
-                        if !t.is_empty() {
-                            if let Err(e) = inproc_for_events.send_keys(pane_id, t.as_bytes()) {
-                                tracing::warn!(error = %e, "embedded send_keys failed");
-                            }
-                        }
-                    }
-                }
-                _ => {}
-            }
-            EventResponse::default()
-        })
-        .run()
-        .map_err(|e| anyhow::anyhow!("madori::App run (embedded): {e}"))?;
-
-    Ok(())
+    let producer =
+        tear_core::engate_producer::PaneProducer::new(Arc::clone(&inproc), pane_id);
+    run_against_pane_unified(
+        producer,
+        inproc,
+        pane_id,
+        snapshot.cols,
+        snapshot.rows,
+        config,
+        None, // embedded session dies with mado; no reap needed
+        "tear[embedded]",
+    )
 }
 
 /// Default session name: `mado-<unix-seconds>-<pid>`. Stable
@@ -456,226 +537,31 @@ fn impose_if_any(client: &Arc<tear_client::Client>, tear_cfg: &MadoTearConfig) {
 /// key + resize forwarding via tear-client. Called by both `run()`
 /// (CLI tear-attach, no owned session) and `try_run_default()`
 /// (default launch, owns the session and will reap it on close).
+/// Daemon-mode renderer + event loop — thin wrapper around
+/// `run_against_pane_unified`. Constructs the `tear_client` engate
+/// Producer + uses `Arc<Client>` as the control plane; the unified
+/// function handles the rest including the SIGTERM/CloseRequested
+/// reap path for the owned session.
 fn run_against_pane(
     client: Arc<tear_client::Client>,
     pane_id: PaneId,
     owned_session_id: Option<tear_types::SessionId>,
-    socket_path: PathBuf,
+    _socket_path: PathBuf,
     config: MadoConfig,
 ) -> Result<()> {
-    use madori::{AppConfig, AppEvent, EventResponse, KeyEvent};
-
     let snapshot = client
         .pane_snapshot(pane_id)
         .with_context(|| format!("pane_snapshot({pane_id})"))?;
-    let cols = snapshot.cols.max(1);
-    let rows = snapshot.rows.max(1);
-
-    let terminal: SharedTerminal = Arc::new(RwLock::new(
-        Terminal::with_scrollback(cols, rows, 10_000),
-    ));
-
-    let effective_font_size = config.font_size;
-    let padding = config.window.padding as f32;
-    let bg_srgb = ishou_tokens::Srgb::from_hex(&config.appearance.background)
-        .unwrap_or(ishou_tokens::Srgb::new(0x2e, 0x34, 0x40));
-    let bg_color: wgpu::Color = bg_srgb
-        .to_linear()
-        .with_alpha(config.appearance.opacity)
-        .into();
-    let fg_srgb = ishou_tokens::Srgb::from_hex(&config.appearance.foreground)
-        .unwrap_or(ishou_tokens::Srgb::new(0xec, 0xef, 0xf4));
-    let cursor_blink = config.cursor.blink && !config.accessibility.reduce_motion;
-    let mut renderer = TerminalRenderer::new(
-        Arc::clone(&terminal),
-        effective_font_size,
-        config.font_family.clone(),
-        config.font_italic.clone(),
-        padding,
-        config.cursor.style,
-        cursor_blink,
-        config.cursor.blink_rate_ms,
-        bg_color,
-        TermColor::new(fg_srgb.r, fg_srgb.g, fg_srgb.b),
-    );
-    // Snow overlay is enabled by default in MadoConfig — flow it
-    // through here too so the tear-attached window is visually
-    // consistent with the local-PTY default.
-    renderer.set_snow_config(config.effects.snow.clone());
-
-    // ── engate M3c: typed Attach lifecycle ──────────────────────────
-    //
-    // The subscribe + replay + feed dance previously lived as a
-    // ~10-line closure. With engate the same shape becomes a typed
-    // lifecycle that the compiler enforces:
-    //
-    //   builder() -> Attach<Spawned>
-    //     .subscribe()  -> (Attach<Subscribed>, History)
-    //     .replay(history) -> Attach<Synced>
-    //     .start_live() -> Attach<Live>
-    //
-    // Attach<Live> is the only phase that delivers items; reaching
-    // it requires consuming the History (drop-bomb otherwise) which
-    // forces the snapshot-replay-before-live invariant by
-    // construction. The engate M0 daemon-side snapshot replay is
-    // STILL delivered as the first item in the live stream — engate
-    // sees it as just another item and feeds it through the same
-    // Consumer::consume path the live items use; idempotent at the
-    // VT-parser level.
     let producer =
         tear_client::engate_producer::PaneProducer::new(Arc::clone(&client), pane_id);
-    let consumer = crate::engate_consumer::TerminalSink::new(Arc::clone(&terminal));
-    let attach_builder = engate_attach::Attach::builder()
-        .producer(producer)
-        .consumer(consumer)
-        .build();
-    let (attach_subscribed, history) = attach_builder
-        .subscribe()
-        .with_context(|| format!("engate.subscribe({pane_id})"))?;
-    let attach_synced = attach_subscribed
-        .replay(history)
-        .with_context(|| format!("engate.replay({pane_id})"))?;
-    let attach_live = attach_synced.start_live();
-    crate::perf::log_phase("pane_subscribed");
-
-    // Drain the live engate stream on a background thread. The
-    // engate Attach<Live> owns the receiver + consumer; run()
-    // blocks until the producer drops its sender (PaneClosed /
-    // daemon shutdown / network drop), then returns the consumer
-    // for any final-state inspection the caller wants.
-    //
-    // The handle is dropped on function exit, but by then the
-    // attach is either still running (held by the spawned thread)
-    // or has cleanly terminated. Either way the typestate guarantees
-    // no half-attached state escapes into the renderer.
-    let _attach_thread = std::thread::Builder::new()
-        .name("mado-engate-live".into())
-        .spawn(move || {
-            let _consumer = attach_live.run();
-        })
-        .ok();
-
-    // Initial size-sync: push pane_resize_absolute BEFORE the
-    // event loop starts so tear's default 80×24 doesn't briefly
-    // hold while the shell runs zshrc + renders its first prompt.
-    // We estimate cols/rows from config.window.{width,height}
-    // (operator-authored logical pixels) and the renderer's
-    // logical cell metrics. This is close enough that the
-    // shell's TIOCGWINSZ on first prompt-render gets the right
-    // number, and the FIRST winit Resized event (which fires
-    // shortly after window create) corrects any small drift via
-    // the precise physical-pixel path below.
-    {
-        let logical_w = config.window.width as f32;
-        let logical_h = config.window.height as f32;
-        let pad = padding;
-        let cell_w_logical = effective_font_size * 0.6;
-        let cell_h_logical = effective_font_size * 1.4;
-        let init_cols: u16 = (((logical_w - 2.0 * pad) / cell_w_logical).floor() as u16).max(1);
-        let init_rows: u16 = (((logical_h - 2.0 * pad) / cell_h_logical).floor() as u16).max(1);
-        if init_cols as usize != cols as usize || init_rows as usize != rows as usize {
-            if let Err(e) = client.pane_resize_absolute(pane_id, init_cols, init_rows) {
-                tracing::warn!(
-                    error = %e,
-                    init_cols, init_rows,
-                    "initial pane_resize_absolute failed; tear stays at snapshot size"
-                );
-            } else {
-                tracing::info!(
-                    init_cols, init_rows,
-                    "initial pane_resize_absolute pushed (mado is size authority)"
-                );
-            }
-        }
-    }
-
-    let client_for_events = Arc::clone(&client);
-    let app_config = AppConfig {
-        title: format!("mado · tear {pane_id}"),
-        width: config.window.width,
-        height: config.window.height,
-        resizable: true,
-        vsync: config.performance.vsync,
-        transparent: false,
-        decorations: config.window.decorations,
-    };
-    crate::perf::log_phase("event_loop_entering");
-    // Wrap the owned session id so we can move it into the
-    // event closure (CloseRequested reaps).
-    let session_reap_target = std::sync::Arc::new(std::sync::Mutex::new(owned_session_id));
-    let client_for_reap = Arc::clone(&client);
-    let session_reap = Arc::clone(&session_reap_target);
-    madori::App::builder(renderer)
-        .config(app_config)
-        .on_event(move |event, renderer| -> EventResponse {
-            match event {
-                AppEvent::Resized { width, height } => {
-                    // ARCHITECTURE: mado is the size authority. The
-                    // renderer knows the exact PHYSICAL cell dims +
-                    // scale factor; cells_for_window_phys is the
-                    // single source of truth. Push the result to
-                    // tear so the daemon's pane size mirrors mado's
-                    // visible grid — and the child shell sees the
-                    // correct cols/rows via TIOCGWINSZ. Without
-                    // this match, nvim and other TUI apps render
-                    // at the wrong size.
-                    let (cols, rows) = renderer.cells_for_window_phys(*width, *height);
-                    let _ = client_for_events.pane_resize_absolute(pane_id, cols, rows);
-                    EventResponse::ignored()
-                }
-                AppEvent::Mouse(madori::MouseEvent::Moved { x, y }) => {
-                    // Snow cursor deflection — applies in tear mode too.
-                    renderer.snow_set_cursor(*x as f32, *y as f32);
-                    EventResponse::ignored()
-                }
-                AppEvent::Key(KeyEvent {
-                    pressed: true,
-                    text,
-                    ..
-                }) => {
-                    // Visual feedback: pulse the snow shimmer on every keystroke.
-                    renderer.snow_pulse_typing();
-                    // MVP: only forward text-producing keys. Special
-                    // keys (arrows, ctrl chords, function keys) need
-                    // the mado main.rs key-table port.
-                    if let Some(t) = text {
-                        if !t.is_empty() {
-                            let _ = client_for_events.send_keys(pane_id, t.as_bytes());
-                        }
-                    }
-                    EventResponse::consumed()
-                }
-                AppEvent::CloseRequested => {
-                    // Reap our owned tear session so it doesn't
-                    // accumulate as an orphan in the daemon. The
-                    // take() makes this idempotent — second
-                    // CloseRequested is a no-op.
-                    if let Ok(mut slot) = session_reap.lock() {
-                        if let Some(sid) = slot.take() {
-                            match client_for_reap.kill_session(sid) {
-                                Ok(()) => tracing::info!(
-                                    session = %sid,
-                                    "reaped owned tear session on window close"
-                                ),
-                                Err(e) => tracing::warn!(
-                                    error = %e,
-                                    session = %sid,
-                                    "kill_session on close failed"
-                                ),
-                            }
-                        }
-                    }
-                    EventResponse::ignored()
-                }
-                _ => EventResponse::ignored(),
-            }
-        })
-        .run()
-        .map_err(|e| anyhow::anyhow!("madori::App run: {e}"))?;
-    // _attach_thread is the engate worker — it owns the Attach<Live>
-    // and the consumer; dropping the JoinHandle here lets the OS
-    // reap when the producer's sender closes. The engate typestate
-    // already guarantees there's no half-attached state to clean up.
-    let _ = socket_path; // used in window title in a future iteration
-    Ok(())
+    run_against_pane_unified(
+        producer,
+        client,
+        pane_id,
+        snapshot.cols,
+        snapshot.rows,
+        config,
+        owned_session_id,
+        "tear",
+    )
 }
