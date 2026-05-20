@@ -285,6 +285,40 @@ fn run_against_pane(
         .with_context(|| format!("subscribe_pane_bytes({pane_id})"))?;
     crate::perf::log_phase("pane_subscribed");
 
+    // Initial size-sync: push pane_resize_absolute BEFORE the
+    // event loop starts so tear's default 80×24 doesn't briefly
+    // hold while the shell runs zshrc + renders its first prompt.
+    // We estimate cols/rows from config.window.{width,height}
+    // (operator-authored logical pixels) and the renderer's
+    // logical cell metrics. This is close enough that the
+    // shell's TIOCGWINSZ on first prompt-render gets the right
+    // number, and the FIRST winit Resized event (which fires
+    // shortly after window create) corrects any small drift via
+    // the precise physical-pixel path below.
+    {
+        let logical_w = config.window.width as f32;
+        let logical_h = config.window.height as f32;
+        let pad = padding;
+        let cell_w_logical = effective_font_size * 0.6;
+        let cell_h_logical = effective_font_size * 1.4;
+        let init_cols: u16 = (((logical_w - 2.0 * pad) / cell_w_logical).floor() as u16).max(1);
+        let init_rows: u16 = (((logical_h - 2.0 * pad) / cell_h_logical).floor() as u16).max(1);
+        if init_cols as usize != cols as usize || init_rows as usize != rows as usize {
+            if let Err(e) = client.pane_resize_absolute(pane_id, init_cols, init_rows) {
+                tracing::warn!(
+                    error = %e,
+                    init_cols, init_rows,
+                    "initial pane_resize_absolute failed; tear stays at snapshot size"
+                );
+            } else {
+                tracing::info!(
+                    init_cols, init_rows,
+                    "initial pane_resize_absolute pushed (mado is size authority)"
+                );
+            }
+        }
+    }
+
     let client_for_events = Arc::clone(&client);
     let app_config = AppConfig {
         title: format!("mado · tear {pane_id}"),
