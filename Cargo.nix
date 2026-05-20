@@ -2500,7 +2500,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/engawa-lisp";
           rev = "3d61cb21fc27615d1faf0863b27e4c8f37b54835";
-          sha256 = "0s04ipr2g896js4r3zhcg0cnqgsd65j1jlz19dwbhijp4bibvjbk";
+          sha256 = "0zcniabkfpn4cyxp7q0zcih3isyfvyrql4jqh3f0cnjsf59a3jdj";
         };
         libName = "engawa_lisp";
         authors = [
@@ -2526,7 +2526,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/engawa-snow";
           rev = "9bfd590126e45891528ecad4086585824063cc67";
-          sha256 = "12gvliqg7ar075v22nd52w5sxjdpnwpciw0m55yj5jiz5vzd2qvn";
+          sha256 = "03l9z0gl3hk4g76cj5wmady7b788ny665shmwg64dbn7xx407ibz";
         };
         libName = "engawa_snow";
         authors = [
