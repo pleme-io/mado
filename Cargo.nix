@@ -2367,7 +2367,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/egaku";
           rev = "50a692900903940a311f2a75105127b07f3660e3";
-          sha256 = "0sdr8mg3rq9r8nhg7wm77v7nh2z4vx3j5p3qswkgfacgpbvkalqa";
+          sha256 = "1pr6sf47qfhyhpsnw81b3f9ic6g2g6jcrbh6fhx4ajl9cp5i8ihy";
         };
         dependencies = [
           {
@@ -2474,7 +2474,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/engawa";
           rev = "162ca8fa85e9609ae19cf329fee9fa1e040bf84a";
-          sha256 = "1rby75m4ymxh4gwrkbhckmajmflxyyb2yf6zl95w7p9qg1wzwxyg";
+          sha256 = "079flzf320zn9rhhg0kjd5xk7bjmf82g15wlc5vr5j6h3f9mfi1b";
         };
         authors = [
           "pleme-io"
