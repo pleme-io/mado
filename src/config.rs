@@ -378,11 +378,17 @@ pub enum TearMode {
 #[serde(rename_all = "snake_case")]
 pub enum TearRuntime {
     /// In-process via `tear_core::InProcess` (no IPC, no daemon
-    /// spawn, ghostty-class latency).
-    Embedded,
-    /// Over Unix socket via `tear_client::Client` (multi-attach
-    /// safe). Default for backwards compat.
+    /// spawn, ghostty-class latency). **The default** — every fresh
+    /// `mado` invocation lands here without operator action. Per
+    /// the maestro mado-default.yaml stack spec; single-window is
+    /// the 90% case and shouldn't pay the IPC tax.
     #[default]
+    Embedded,
+    /// Over Unix socket via `tear_client::Client`. Multi-attach
+    /// safe — required when ayatsuri overlay + namimado debug +
+    /// remote ssh-mux need to share the same session. Operator
+    /// opts in via `mado.tear.runtime = "daemon"` (or the maestro
+    /// mado-shared.yaml stack spec).
     Daemon,
 }
 
@@ -1112,26 +1118,11 @@ impl Default for BehaviorConfig {
 }
 
 fn default_font_family() -> String {
-    // "JetBrainsMono Nerd Font Mono" — the canonical pleme-io fleet
-    // terminal font per `ishou-tokens::MonoFonts::pleme()`. The
-    // **Mono**-suffixed Nerd Fonts family forces every glyph (icons
-    // included) into a single-cell advance equal to plain
-    // `JetBrains Mono`. The non-`Mono` variant widens ASCII advance
-    // to ~0.83em to leave room for double-cell icons — correct for
-    // editor/web monospace, but disastrous for terminal layout
-    // where cell_width is measured from "MM" advance and ASCII
-    // glyphs then render with a visible gap between every character
-    // (the 2026-05-13 wide-gap rendering bug).
-    //
-    // This default is what ships if mado is invoked WITHOUT shikumi
-    // config. When blackmatter-mado's HM module is enabled, it
-    // writes the same name into ~/.config/mado/mado.yaml sourced
-    // from `ishou::fleet-fonts` AND installs
-    // `pkgs.nerd-fonts.jetbrains-mono` via home.packages — that
-    // single package ships both `JetBrainsMono Nerd Font` (variable)
-    // and `JetBrainsMono Nerd Font Mono` (strict-monospace) faces,
-    // so the install half is identical.
-    "JetBrainsMono Nerd Font Mono".into()
+    // detect_font_family probes the installed Nerd-Font ladder
+    // (M1: detection stubbed, falls back to FALLBACK_FONT_FAMILY).
+    // Operators with strong opinions override via mado.yaml. The
+    // fallback constant lives in auto_detect.rs alongside its peers.
+    crate::auto_detect::detect_font_family_or_fallback().to_string()
 }
 
 fn default_font_italic() -> String {
@@ -1145,23 +1136,16 @@ fn default_font_italic() -> String {
     "Iosevka".into()
 }
 fn default_font_size() -> f32 {
-    14.0
+    crate::auto_detect::detect_font_size_or_fallback()
 }
 fn default_width() -> u32 {
-    1200
+    crate::auto_detect::detect_window_dims_or_fallback().0
 }
 fn default_height() -> u32 {
-    800
+    crate::auto_detect::detect_window_dims_or_fallback().1
 }
 fn default_padding() -> u32 {
-    // Operator-facing default: zero internal padding so the
-    // first cell sits flush against the window edge. Pre-2026-05
-    // default was 8 px to mimic VTE's slight inset; flipped to
-    // 0 as part of the "minimal borders + edges everywhere"
-    // operator UX. Operators who want padding back set
-    // `window.padding: 8` (or whatever value they prefer) in
-    // `~/.config/mado/mado.yaml`.
-    0
+    crate::auto_detect::detect_padding_or_fallback()
 }
 
 fn default_decorations() -> bool {
@@ -1222,7 +1206,10 @@ fn default_vsync() -> bool {
 // (60) lives on `PerformanceConfig::FALLBACK_FPS` so the precedence
 // chain has one canonical name for it.
 fn default_theme() -> String {
-    "nord".into()
+    // detect_theme probes macOS appearance (M1 stub: returns None);
+    // falls back to FALLBACK_THEME = "nord". Operators override via
+    // mado.yaml. Constant lives in auto_detect.rs.
+    crate::auto_detect::detect_theme_or_fallback().to_string()
 }
 fn default_true() -> bool {
     true
@@ -1505,9 +1492,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn tear_runtime_default_is_daemon_for_backcompat() {
+    fn tear_runtime_default_is_embedded_for_zero_config_speed() {
+        // The 90% case (single mado window, no overlay, no remote
+        // ssh-mux) gets ghostty-class latency with zero operator
+        // action. Multi-attach scenarios opt into Daemon via config.
         let cfg = MadoTearConfig::default();
-        assert_eq!(cfg.runtime, TearRuntime::Daemon);
+        assert_eq!(cfg.runtime, TearRuntime::Embedded);
     }
 
     #[test]
@@ -1534,8 +1524,11 @@ mod tests {
         assert_eq!(config.font_size, 14.0);
         assert_eq!(config.theme, "nord");
         assert!(config.active_profile.is_none());
-        assert_eq!(config.window.width, 1200);
-        assert_eq!(config.window.height, 800);
+        // Window dims are auto-detected from the focused display
+        // (macOS NSScreen); range-asserted because the exact value
+        // depends on the test machine's monitor.
+        assert!(config.window.width >= 800 && config.window.width <= 1600);
+        assert!(config.window.height >= 600 && config.window.height <= 1100);
         // Operator-facing default flipped to 0 (minimal edges).
         assert_eq!(config.window.padding, 0);
         // Platform-aware decorations default: true on macOS so

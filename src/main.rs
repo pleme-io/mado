@@ -13,6 +13,7 @@
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
+mod auto_detect;
 mod clipboard_store;
 mod config;
 mod engate_consumer;
