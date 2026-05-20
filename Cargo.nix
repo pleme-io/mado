@@ -3376,7 +3376,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/garasu";
           rev = "03422907360978ee149110e5d1338fad9859b9ea";
-          sha256 = "0k6jqmml8p83qc2bi2vpv611c4ig8305bcg85slzpplfxv0a0d71";
+          sha256 = "1sbd5z7vfrn3mp70wf151nq9c7411h7mj7afdy20hci15475046g";
         };
         dependencies = [
           {
