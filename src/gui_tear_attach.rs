@@ -408,7 +408,7 @@ where
                     // Cmd-= / Cmd-- / Cmd-0 → font zoom in/out/reset
                     // BEFORE the text falls through to the PTY.
                     if let Some(action) = keybinds.lookup_madori(key_event) {
-                        use crate::font_size::BoundedFontSize;
+                        use crate::font_size::{BoundedFontSize, FontSizeSteps};
                         use crate::keybind::Action;
                         // Font scaling: rate-limit + bound by type.
                         // The gate drops OS key-repeat storms; the
