@@ -1,5 +1,5 @@
 {
-  "git+https://github.com/pleme-io/awase#0.1.0": "19562ygiwlffqr3d6xdb6qdznrwfhh89v6kf793nbh7nhsy9lx2v",
+  "git+https://github.com/pleme-io/awase#0.1.0": "1cflwcxrj52c3nd6rg1jwz9phsajmszzlh0bmbxy8dh7h9pir3m4",
   "git+https://github.com/pleme-io/egaku#0.1.0": "1hrys15qyi1fxqqq1mixfvlww5bkx5xkwgv6licb3ii08jq0m3z8",
   "git+https://github.com/pleme-io/engate?branch=main#engate-attach@0.1.0": "1cfmxczzba21qf39305gl4ncgzl78lq4265mzmbizna9brbyhjzf",
   "git+https://github.com/pleme-io/engate?branch=main#engate-types@0.1.0": "1cfmxczzba21qf39305gl4ncgzl78lq4265mzmbizna9brbyhjzf",
@@ -24,10 +24,10 @@
   "git+https://github.com/pleme-io/tear#tear-core@0.1.0": "038cjj4h14cf12y42y4jl2nw8brv2ib9y8k51js0ayc3qhyg142w",
   "git+https://github.com/pleme-io/tear#tear-daemon@0.1.0": "038cjj4h14cf12y42y4jl2nw8brv2ib9y8k51js0ayc3qhyg142w",
   "git+https://github.com/pleme-io/tear#tear-types@0.1.0": "038cjj4h14cf12y42y4jl2nw8brv2ib9y8k51js0ayc3qhyg142w",
-  "git+https://github.com/pleme-io/vigy#0.1.0": "0d6y5gazibn880rliqps94x947il3j9567afsd4h2i2rgbyn6z4k",
-  "git+https://github.com/pleme-io/vigy#vigy-eval@0.1.0": "0d6y5gazibn880rliqps94x947il3j9567afsd4h2i2rgbyn6z4k",
-  "git+https://github.com/pleme-io/vigy#vigy-mcp@0.1.0": "0d6y5gazibn880rliqps94x947il3j9567afsd4h2i2rgbyn6z4k",
-  "git+https://github.com/pleme-io/vigy#vigy-runtime@0.1.0": "0d6y5gazibn880rliqps94x947il3j9567afsd4h2i2rgbyn6z4k",
-  "git+https://github.com/pleme-io/vigy#vigy-store@0.1.0": "0d6y5gazibn880rliqps94x947il3j9567afsd4h2i2rgbyn6z4k",
-  "git+https://github.com/pleme-io/vigy#vigy-types@0.1.0": "0d6y5gazibn880rliqps94x947il3j9567afsd4h2i2rgbyn6z4k"
+  "git+https://github.com/pleme-io/vigy#0.1.0": "1ba753g4q19kxh9zkjmwfblv4b16c42a0swmvwrk7x5wykjffp2l",
+  "git+https://github.com/pleme-io/vigy#vigy-eval@0.1.0": "1ba753g4q19kxh9zkjmwfblv4b16c42a0swmvwrk7x5wykjffp2l",
+  "git+https://github.com/pleme-io/vigy#vigy-mcp@0.1.0": "1ba753g4q19kxh9zkjmwfblv4b16c42a0swmvwrk7x5wykjffp2l",
+  "git+https://github.com/pleme-io/vigy#vigy-runtime@0.1.0": "1ba753g4q19kxh9zkjmwfblv4b16c42a0swmvwrk7x5wykjffp2l",
+  "git+https://github.com/pleme-io/vigy#vigy-store@0.1.0": "1ba753g4q19kxh9zkjmwfblv4b16c42a0swmvwrk7x5wykjffp2l",
+  "git+https://github.com/pleme-io/vigy#vigy-types@0.1.0": "1ba753g4q19kxh9zkjmwfblv4b16c42a0swmvwrk7x5wykjffp2l"
 }
