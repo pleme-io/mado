@@ -440,6 +440,39 @@ fn main() -> anyhow::Result<()> {
     crate::perf::set_launch_start(launch_start);
     crate::perf::log_phase("tracing_init");
 
+    // Embedded vigy reconciler runtime — spawn a dedicated background
+    // tokio runtime on its own OS thread so it lives for the entire
+    // mado session, independent of the (sync) winit event loop on the
+    // main thread. The MCP subcommand path has its own block_on; this
+    // is the GUI path's symmetric boot. Best-effort: if vigy startup
+    // fails, mado keeps running without the reconciler runtime.
+    std::thread::Builder::new()
+        .name("vigy-runtime".into())
+        .spawn(|| {
+            match tokio::runtime::Builder::new_multi_thread()
+                .worker_threads(2)
+                .enable_all()
+                .thread_name("vigy-tokio")
+                .build()
+            {
+                Ok(rt) => rt.block_on(async {
+                    if let Err(e) = vigy_host::init().await {
+                        tracing::warn!(err = %e, "embedded vigy runtime failed to start");
+                        return;
+                    }
+                    tracing::info!("embedded vigy runtime live; default heartbeat ticking");
+                    // Hold the runtime open for the lifetime of the
+                    // process — tick tasks live in spawned futures
+                    // off the runtime; the main task just parks.
+                    std::future::pending::<()>().await;
+                }),
+                Err(e) => {
+                    tracing::warn!(err = %e, "could not create vigy tokio runtime; reconcilers disabled");
+                }
+            }
+        })
+        .expect("spawn vigy-runtime thread");
+
     let (config, _config_store) = config::load_and_watch(&cli.config, |new_config| {
         tracing::debug!("config reloaded: {:?}", new_config);
     })?;

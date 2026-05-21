@@ -104,15 +104,28 @@ impl MadoVigyHost {
     }
 }
 
+/// Resolve the vigy SQLite DB path with three precedence levels:
+///
+///   1. `MADO_VIGY_DB` env var (explicit mado-specific override)
+///   2. `VIGY_DB` env var (matches what `vigy` CLI honors)
+///   3. `~/.local/share/vigy/vigy.db` (the canonical vigy default)
+///
+/// Defaulting to vigy's canonical path — not a mado-private path —
+/// means a vigy registered via `vigy register` from any pane is
+/// visible to mado's embedded runtime, and vice versa. Single
+/// source of truth across the operator's whole workstation.
 fn db_path() -> anyhow::Result<PathBuf> {
     if let Ok(p) = std::env::var("MADO_VIGY_DB") {
+        return Ok(PathBuf::from(p));
+    }
+    if let Ok(p) = std::env::var("VIGY_DB") {
         return Ok(PathBuf::from(p));
     }
     let home = std::env::var("HOME").context("HOME unset")?;
     let mut p = PathBuf::from(home);
     p.push(".local");
     p.push("share");
-    p.push("mado");
+    p.push("vigy");
     p.push("vigy.db");
     Ok(p)
 }
