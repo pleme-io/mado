@@ -16,9 +16,18 @@
   "git+https://github.com/pleme-io/shikumi#0.1.0": "1nim2cs1gcwix77bgqmk3ry83svvcg3bwfzkm672scbjiq9f96ic",
   "git+https://github.com/pleme-io/shikumi?branch=main#0.1.0": "1nim2cs1gcwix77bgqmk3ry83svvcg3bwfzkm672scbjiq9f96ic",
   "git+https://github.com/pleme-io/soushi#0.1.0": "0c77gassdwragb27fsry97dabzqrfnxc61id6sk71qqdw6xiwndw",
+  "git+https://github.com/pleme-io/tatara-lisp#0.2.0": "1j1j7jpla8bp6s8k2fn0ksgfmw608lkm1l4q9s2vnlbg96j79g7l",
+  "git+https://github.com/pleme-io/tatara-lisp#tatara-lisp-derive@0.2.0": "1j1j7jpla8bp6s8k2fn0ksgfmw608lkm1l4q9s2vnlbg96j79g7l",
+  "git+https://github.com/pleme-io/tatara-lisp#tatara-lisp-eval@0.2.0": "1j1j7jpla8bp6s8k2fn0ksgfmw608lkm1l4q9s2vnlbg96j79g7l",
   "git+https://github.com/pleme-io/tear#tear-client@0.1.0": "038cjj4h14cf12y42y4jl2nw8brv2ib9y8k51js0ayc3qhyg142w",
   "git+https://github.com/pleme-io/tear#tear-config@0.1.0": "038cjj4h14cf12y42y4jl2nw8brv2ib9y8k51js0ayc3qhyg142w",
   "git+https://github.com/pleme-io/tear#tear-core@0.1.0": "038cjj4h14cf12y42y4jl2nw8brv2ib9y8k51js0ayc3qhyg142w",
   "git+https://github.com/pleme-io/tear#tear-daemon@0.1.0": "038cjj4h14cf12y42y4jl2nw8brv2ib9y8k51js0ayc3qhyg142w",
-  "git+https://github.com/pleme-io/tear#tear-types@0.1.0": "038cjj4h14cf12y42y4jl2nw8brv2ib9y8k51js0ayc3qhyg142w"
+  "git+https://github.com/pleme-io/tear#tear-types@0.1.0": "038cjj4h14cf12y42y4jl2nw8brv2ib9y8k51js0ayc3qhyg142w",
+  "git+https://github.com/pleme-io/vigy#0.1.0": "0d6y5gazibn880rliqps94x947il3j9567afsd4h2i2rgbyn6z4k",
+  "git+https://github.com/pleme-io/vigy#vigy-eval@0.1.0": "0d6y5gazibn880rliqps94x947il3j9567afsd4h2i2rgbyn6z4k",
+  "git+https://github.com/pleme-io/vigy#vigy-mcp@0.1.0": "0d6y5gazibn880rliqps94x947il3j9567afsd4h2i2rgbyn6z4k",
+  "git+https://github.com/pleme-io/vigy#vigy-runtime@0.1.0": "0d6y5gazibn880rliqps94x947il3j9567afsd4h2i2rgbyn6z4k",
+  "git+https://github.com/pleme-io/vigy#vigy-store@0.1.0": "0d6y5gazibn880rliqps94x947il3j9567afsd4h2i2rgbyn6z4k",
+  "git+https://github.com/pleme-io/vigy#vigy-types@0.1.0": "0d6y5gazibn880rliqps94x947il3j9567afsd4h2i2rgbyn6z4k"
 }
