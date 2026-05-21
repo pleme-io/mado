@@ -365,6 +365,14 @@ where
     // mado-side state we don't have here yet — they fall through
     // to PTY forwarding (terminal apps handle them).
     let keybinds = crate::keybind::KeybindManager::with_mado_defaults();
+    // Per-action debouncer for OS key-repeat storms. Default 80ms
+    // window — OS key-repeat is ~30-50ms, this drops storm-ticks
+    // while allowing 12 intentional presses per second. Per the
+    // 2026-05-21 runaway-font incident (Cmd-= held → font grew
+    // 14 → 32pt in 1.5s); the gate caps that to ~19 transitions
+    // and `BoundedFontSize` caps the final value at FONT_MAX = 64.
+    let mut key_repeat_gate =
+        crate::key_repeat_gate::KeyRepeatGate::<crate::keybind::Action>::new();
     let default_font_size_for_reset = config.font_size;
     madori::App::builder(renderer)
         .config(app_config)
@@ -385,10 +393,28 @@ where
                     // Cmd-= / Cmd-- / Cmd-0 → font zoom in/out/reset
                     // BEFORE the text falls through to the PTY.
                     if let Some(action) = keybinds.lookup_madori(key_event) {
+                        use crate::font_size::BoundedFontSize;
                         use crate::keybind::Action;
+                        // Font scaling: rate-limit + bound by type.
+                        // The gate drops OS key-repeat storms; the
+                        // BoundedFontSize newtype saturates at
+                        // FONT_MAX so even a passed storm can't
+                        // explode the font onscreen.
+                        let scale_action = matches!(
+                            action,
+                            Action::FontIncrease | Action::FontDecrease | Action::FontReset
+                        );
+                        if scale_action && !key_repeat_gate.try_pass(action) {
+                            // Storm tick — drop silently. Consume so
+                            // the keystroke doesn't fall through to
+                            // the PTY as literal text.
+                            return EventResponse::consumed();
+                        }
                         match action {
                             Action::FontIncrease => {
-                                let new_size = (renderer.font_size() + 1.0).min(64.0);
+                                let new_size = BoundedFontSize::new(renderer.font_size())
+                                    .inc_step()
+                                    .get();
                                 renderer.set_font_size(new_size);
                                 // Push the new grid dims to tear so the
                                 // shell sees the right cols/rows after
@@ -400,7 +426,9 @@ where
                                 return EventResponse::consumed();
                             }
                             Action::FontDecrease => {
-                                let new_size = (renderer.font_size() - 1.0).max(6.0);
+                                let new_size = BoundedFontSize::new(renderer.font_size())
+                                    .dec_step()
+                                    .get();
                                 renderer.set_font_size(new_size);
                                 let (cols, rows) = renderer
                                     .cells_for_window_phys(config.window.width, config.window.height);
@@ -409,7 +437,8 @@ where
                                 return EventResponse::consumed();
                             }
                             Action::FontReset => {
-                                renderer.set_font_size(default_font_size_for_reset);
+                                let reset_size = BoundedFontSize::new(default_font_size_for_reset).get();
+                                renderer.set_font_size(reset_size);
                                 let (cols, rows) = renderer
                                     .cells_for_window_phys(config.window.width, config.window.height);
                                 let _ = control_for_events
