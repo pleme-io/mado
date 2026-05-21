@@ -2402,7 +2402,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/engate";
           rev = "2dd9f06bd39b99cc6dcf190d9d47b629092984d8";
-          sha256 = "1c62kzyznxxf71r9byvy02sq7yhwbg8rb3ngyd898rmnzcazwyz8";
+          sha256 = "7kvoV15J2R9X/bUYQTBFh/7HLKGvgJGGw0Go9T/r1bE=";
         };
         libName = "engate_attach";
         authors = [
@@ -2447,7 +2447,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/engate";
           rev = "2dd9f06bd39b99cc6dcf190d9d47b629092984d8";
-          sha256 = "1c62kzyznxxf71r9byvy02sq7yhwbg8rb3ngyd898rmnzcazwyz8";
+          sha256 = "7kvoV15J2R9X/bUYQTBFh/7HLKGvgJGGw0Go9T/r1bE=";
         };
         libName = "engate_types";
         authors = [
