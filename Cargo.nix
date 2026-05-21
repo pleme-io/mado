@@ -2500,7 +2500,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/engawa-lisp";
           rev = "c33b483fa84a4aa8b0341e55d4e29ba8a36e209e";
-          sha256 = "0zcniabkfpn4cyxp7q0zcih3isyfvyrql4jqh3f0cnjsf59a3jdj";
+          sha256 = "sha256-4xPNMkz48aUDOhzdeC8vQZKd+pLQ5x/Eaf9HhYitGTs=";
         };
         libName = "engawa_lisp";
         authors = [
