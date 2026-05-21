@@ -2474,7 +2474,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/engawa";
           rev = "1474cdfd05848044ce4a0f6eabab51bc7eed6dad";
-          sha256 = "079flzf320zn9rhhg0kjd5xk7bjmf82g15wlc5vr5j6h3f9mfi1b";
+          sha256 = "sha256-z8m8VKyxq5GoQGqwC794B7ln/PbkCbJ2rw1SJobkjVI=";
         };
         authors = [
           "pleme-io"
