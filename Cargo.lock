@@ -159,7 +159,7 @@ dependencies = [
  "objc2-foundation 0.3.2",
  "parking_lot",
  "percent-encoding",
- "windows-sys 0.59.0",
+ "windows-sys 0.60.2",
  "x11rb",
 ]
 
@@ -234,7 +234,7 @@ checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 [[package]]
 name = "awase"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/awase#c6ba9ba561545c19c4e765db00e43ae97267bf7d"
+source = "git+https://github.com/pleme-io/awase#37f49c458c15259afc49268e0bcf51f5fcd6acab"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -738,7 +738,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -804,7 +804,7 @@ checksum = "d0881ea181b1df73ff77ffaaf9c7544ecc11e82fba9b5f27b262a3c73a332555"
 [[package]]
 name = "egaku"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/egaku#50a692900903940a311f2a75105127b07f3660e3"
+source = "git+https://github.com/pleme-io/egaku#a6dc7913a0690ff4c6a24636ce58baac7ae16cba"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -816,7 +816,7 @@ dependencies = [
 [[package]]
 name = "engate-attach"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/engate?branch=main#43931c1fa16bf28d506cbdb6f1a72f7df2d03a8d"
+source = "git+https://github.com/pleme-io/engate?branch=main#2dd9f06bd39b99cc6dcf190d9d47b629092984d8"
 dependencies = [
  "drop_bomb",
  "engate-types",
@@ -829,7 +829,7 @@ dependencies = [
 [[package]]
 name = "engate-types"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/engate?branch=main#43931c1fa16bf28d506cbdb6f1a72f7df2d03a8d"
+source = "git+https://github.com/pleme-io/engate?branch=main#2dd9f06bd39b99cc6dcf190d9d47b629092984d8"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -838,7 +838,7 @@ dependencies = [
 [[package]]
 name = "engawa"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/engawa#162ca8fa85e9609ae19cf329fee9fa1e040bf84a"
+source = "git+https://github.com/pleme-io/engawa#1474cdfd05848044ce4a0f6eabab51bc7eed6dad"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -847,7 +847,7 @@ dependencies = [
 [[package]]
 name = "engawa-lisp"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/engawa-lisp#3d61cb21fc27615d1faf0863b27e4c8f37b54835"
+source = "git+https://github.com/pleme-io/engawa-lisp#c33b483fa84a4aa8b0341e55d4e29ba8a36e209e"
 dependencies = [
  "engawa",
  "thiserror 2.0.18",
@@ -856,7 +856,7 @@ dependencies = [
 [[package]]
 name = "engawa-snow"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/engawa-snow#9bfd590126e45891528ecad4086585824063cc67"
+source = "git+https://github.com/pleme-io/engawa-snow#71d080de0bea2972cd7b9114ce6b4d672503ec9e"
 dependencies = [
  "bytemuck",
  "engawa",
@@ -867,7 +867,7 @@ dependencies = [
 [[package]]
 name = "engawa-wgpu"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/engawa-wgpu#cf6909d9d8c5d39fcdc40bb26af1c7a3e0f45024"
+source = "git+https://github.com/pleme-io/engawa-wgpu#34616638d3be2abf156d356054fa02224a9502f0"
 dependencies = [
  "engawa",
  "thiserror 2.0.18",
@@ -887,7 +887,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1149,7 +1149,7 @@ dependencies = [
 [[package]]
 name = "garasu"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/garasu#03422907360978ee149110e5d1338fad9859b9ea"
+source = "git+https://github.com/pleme-io/garasu#6388c3c61fcc19f546ac048f0228554d56ef3f27"
 dependencies = [
  "bincode",
  "blake3",
@@ -1322,7 +1322,7 @@ dependencies = [
 [[package]]
 name = "hasami"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/hasami#536b26dcd50d779fa2749e091761b14ba58fb2a6"
+source = "git+https://github.com/pleme-io/hasami#18c3d943033dbbcd9fa1f24c0a0f8e05ee277b7a"
 dependencies = [
  "arboard",
  "thiserror 2.0.18",
@@ -1490,7 +1490,7 @@ checksum = "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695"
 [[package]]
 name = "ishou-tokens"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/ishou#ba660fea59bbc580a22c1d21a634e8cd02decc75"
+source = "git+https://github.com/pleme-io/ishou#b2f5bf3bd3b38e27e40682afbee34105de509c19"
 dependencies = [
  "irodori",
  "serde",
@@ -1587,7 +1587,7 @@ dependencies = [
 [[package]]
 name = "kaname"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/kaname#098386a943f6ecd0fe25b27ef6a2ca15b49417af"
+source = "git+https://github.com/pleme-io/kaname#e3ad595fb4d9b3534bdad2214798e09f3f4e2f64"
 dependencies = [
  "rmcp",
  "schemars 1.2.1",
@@ -1671,9 +1671,9 @@ checksum = "b6d2cec3eae94f9f509c767b45932f1ada8350c4bdb85af2fcab4a3c14807981"
 
 [[package]]
 name = "libmimalloc-sys"
-version = "0.1.47"
+version = "0.1.48"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d1eacfa31c33ec25e873c136ba5669f00f9866d0688bea7be4d3f7e43067df6"
+checksum = "2892ae4ea6fa2cb7acb0e236a6880d39523239cd9089de71d220910ccc806790"
 dependencies = [
  "cc",
 ]
@@ -1782,7 +1782,7 @@ dependencies = [
  "serde_json",
  "serde_yaml_ng",
  "shidou",
- "shikumi",
+ "shikumi 0.1.0 (git+https://github.com/pleme-io/shikumi?branch=main)",
  "soushi",
  "tear-client",
  "tear-config",
@@ -1802,13 +1802,13 @@ dependencies = [
 [[package]]
 name = "madori"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/madori#667cb7ec1ffc8543da805b5e01f12ec8c1ce6127"
+source = "git+https://github.com/pleme-io/madori#68821b2bd84291feba55065104c121a968facf03"
 dependencies = [
  "egaku",
  "garasu",
  "pollster",
  "serde",
- "shikumi",
+ "shikumi 0.1.0 (git+https://github.com/pleme-io/shikumi?branch=main)",
  "thiserror 2.0.18",
  "tracing",
  "wgpu",
@@ -1865,9 +1865,9 @@ dependencies = [
 
 [[package]]
 name = "mimalloc"
-version = "0.1.50"
+version = "0.1.51"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3627c4272df786b9260cabaa46aec1d59c93ede723d4c3ef646c503816b0640"
+checksum = "ebca48a43116bc25f18a61360f1be98412f50cc218f5e52c823086b999a4a21a"
 dependencies = [
  "libmimalloc-sys",
 ]
@@ -2034,7 +2034,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3061,7 +3061,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.12.1",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3329,12 +3329,12 @@ checksum = "dc6fe69c597f9c37bfeeeeeb33da3530379845f10be461a66d16d03eca2ded77"
 [[package]]
 name = "shidou"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/shidou#10fa22aaa1da69456aa82987e18dd4a2208c443c"
+source = "git+https://github.com/pleme-io/shidou#a6fc83d91e5010346e89a37010f26f1c0d45ff9a"
 dependencies = [
  "anyhow",
  "clap",
  "serde",
- "shikumi",
+ "shikumi 0.1.0 (git+https://github.com/pleme-io/shikumi)",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -3343,7 +3343,24 @@ dependencies = [
 [[package]]
 name = "shikumi"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/shikumi#0ea40034ba9d06bb286c620b54077167af3a1de2"
+source = "git+https://github.com/pleme-io/shikumi?branch=main#5db7873c9a109f619474228cbea15d64b4825b8a"
+dependencies = [
+ "arc-swap",
+ "async-trait",
+ "clap",
+ "figment",
+ "notify",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "thiserror 2.0.18",
+ "tracing",
+]
+
+[[package]]
+name = "shikumi"
+version = "0.1.0"
+source = "git+https://github.com/pleme-io/shikumi#5db7873c9a109f619474228cbea15d64b4825b8a"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -3483,7 +3500,7 @@ dependencies = [
 [[package]]
 name = "soushi"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/soushi#0fb8c7b1f794d83bbe3ac42e69984e54f53993c5"
+source = "git+https://github.com/pleme-io/soushi#bdf50c79255e1f12bd1829f13bdf4ec4ff03b88b"
 dependencies = [
  "rhai",
  "thiserror 2.0.18",
@@ -3585,7 +3602,7 @@ dependencies = [
 [[package]]
 name = "tear-client"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#b2b4857f2756ce1357bc3c7afb0839c9d2f09965"
+source = "git+https://github.com/pleme-io/tear#c52d55f59d8b79b7c163002c6fd76cd3c3e3561f"
 dependencies = [
  "engate-attach",
  "engate-types",
@@ -3598,7 +3615,7 @@ dependencies = [
 [[package]]
 name = "tear-config"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#b2b4857f2756ce1357bc3c7afb0839c9d2f09965"
+source = "git+https://github.com/pleme-io/tear#c52d55f59d8b79b7c163002c6fd76cd3c3e3561f"
 dependencies = [
  "anyhow",
  "arc-swap",
@@ -3606,7 +3623,7 @@ dependencies = [
  "once_cell",
  "serde",
  "serde_yaml_ng",
- "shikumi",
+ "shikumi 0.1.0 (git+https://github.com/pleme-io/shikumi)",
  "tear-types",
  "thiserror 2.0.18",
  "tracing",
@@ -3615,7 +3632,7 @@ dependencies = [
 [[package]]
 name = "tear-core"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#b2b4857f2756ce1357bc3c7afb0839c9d2f09965"
+source = "git+https://github.com/pleme-io/tear#c52d55f59d8b79b7c163002c6fd76cd3c3e3561f"
 dependencies = [
  "anyhow",
  "blake3",
@@ -3636,7 +3653,7 @@ dependencies = [
 [[package]]
 name = "tear-daemon"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#b2b4857f2756ce1357bc3c7afb0839c9d2f09965"
+source = "git+https://github.com/pleme-io/tear#c52d55f59d8b79b7c163002c6fd76cd3c3e3561f"
 dependencies = [
  "anyhow",
  "blake3",
@@ -3653,7 +3670,7 @@ dependencies = [
 [[package]]
 name = "tear-types"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#b2b4857f2756ce1357bc3c7afb0839c9d2f09965"
+source = "git+https://github.com/pleme-io/tear#c52d55f59d8b79b7c163002c6fd76cd3c3e3561f"
 dependencies = [
  "anyhow",
  "blake3",
@@ -3674,7 +3691,7 @@ dependencies = [
  "getrandom 0.4.2",
  "once_cell",
  "rustix 1.1.4",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4583,7 +4600,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

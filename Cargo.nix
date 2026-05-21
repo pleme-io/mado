@@ -565,7 +565,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.59.0";
+            packageId = "windows-sys 0.60.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Storage_FileSystem" "Win32_System_DataExchange" "Win32_System_Memory" "Win32_System_Ole" "Win32_UI_Shell" ];
           }
@@ -751,7 +751,7 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/awase";
-          rev = "c6ba9ba561545c19c4e765db00e43ae97267bf7d";
+          rev = "37f49c458c15259afc49268e0bcf51f5fcd6acab";
           sha256 = "07rickn8am93zc7gi67xhli7p5ny6hx4l4sz468mq4pbcs90jnd4";
         };
         dependencies = [
@@ -2211,7 +2211,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.59.0";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_UI_Shell" "Win32_Foundation" "Win32_Globalization" "Win32_System_Com" ];
           }
@@ -2366,7 +2366,7 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/egaku";
-          rev = "50a692900903940a311f2a75105127b07f3660e3";
+          rev = "a6dc7913a0690ff4c6a24636ce58baac7ae16cba";
           sha256 = "1pr6sf47qfhyhpsnw81b3f9ic6g2g6jcrbh6fhx4ajl9cp5i8ihy";
         };
         dependencies = [
@@ -2401,7 +2401,7 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/engate";
-          rev = "43931c1fa16bf28d506cbdb6f1a72f7df2d03a8d";
+          rev = "2dd9f06bd39b99cc6dcf190d9d47b629092984d8";
           sha256 = "1c62kzyznxxf71r9byvy02sq7yhwbg8rb3ngyd898rmnzcazwyz8";
         };
         libName = "engate_attach";
@@ -2446,7 +2446,7 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/engate";
-          rev = "43931c1fa16bf28d506cbdb6f1a72f7df2d03a8d";
+          rev = "2dd9f06bd39b99cc6dcf190d9d47b629092984d8";
           sha256 = "1c62kzyznxxf71r9byvy02sq7yhwbg8rb3ngyd898rmnzcazwyz8";
         };
         libName = "engate_types";
@@ -2473,7 +2473,7 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/engawa";
-          rev = "162ca8fa85e9609ae19cf329fee9fa1e040bf84a";
+          rev = "1474cdfd05848044ce4a0f6eabab51bc7eed6dad";
           sha256 = "079flzf320zn9rhhg0kjd5xk7bjmf82g15wlc5vr5j6h3f9mfi1b";
         };
         authors = [
@@ -2499,7 +2499,7 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/engawa-lisp";
-          rev = "3d61cb21fc27615d1faf0863b27e4c8f37b54835";
+          rev = "c33b483fa84a4aa8b0341e55d4e29ba8a36e209e";
           sha256 = "0zcniabkfpn4cyxp7q0zcih3isyfvyrql4jqh3f0cnjsf59a3jdj";
         };
         libName = "engawa_lisp";
@@ -2525,7 +2525,7 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/engawa-snow";
-          rev = "9bfd590126e45891528ecad4086585824063cc67";
+          rev = "71d080de0bea2972cd7b9114ce6b4d672503ec9e";
           sha256 = "03l9z0gl3hk4g76cj5wmady7b788ny665shmwg64dbn7xx407ibz";
         };
         libName = "engawa_snow";
@@ -2562,7 +2562,7 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/engawa-wgpu";
-          rev = "cf6909d9d8c5d39fcdc40bb26af1c7a3e0f45024";
+          rev = "34616638d3be2abf156d356054fa02224a9502f0";
           sha256 = "0krkzra3dvhqmxs6jnqbf5a04p396dkkm5h46in90qdjh117xf50";
         };
         libName = "engawa_wgpu";
@@ -2624,7 +2624,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.59.0";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_System_Diagnostics_Debug" ];
           }
@@ -3375,7 +3375,7 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/garasu";
-          rev = "03422907360978ee149110e5d1338fad9859b9ea";
+          rev = "6388c3c61fcc19f546ac048f0228554d56ef3f27";
           sha256 = "1sbd5z7vfrn3mp70wf151nq9c7411h7mj7afdy20hci15475046g";
         };
         dependencies = [
@@ -3655,6 +3655,154 @@ rec {
           "sys_rng" = [ "dep:rand_core" ];
           "wasm_js" = [ "dep:wasm-bindgen" "dep:js-sys" ];
         };
+      };
+      "git+https://github.com/pleme-io/shikumi#0.1.0" = rec {
+        crateName = "shikumi";
+        version = "0.1.0";
+        edition = "2024";
+        workspace_member = null;
+        src = pkgs.fetchgit {
+          url = "https://github.com/pleme-io/shikumi";
+          rev = "5db7873c9a109f619474228cbea15d64b4825b8a";
+          sha256 = "0wx0058js6a4z3d7ds50vj1jd3gqsfa3minlqikg2i5d12nbwb6x";
+        };
+        dependencies = [
+          {
+            name = "arc-swap";
+            packageId = "arc-swap";
+          }
+          {
+            name = "async-trait";
+            packageId = "async-trait";
+          }
+          {
+            name = "figment";
+            packageId = "figment";
+            features = [ "env" "yaml" "toml" ];
+          }
+          {
+            name = "notify";
+            packageId = "notify";
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
+            name = "serde_yaml";
+            packageId = "serde_yaml";
+          }
+          {
+            name = "thiserror";
+            packageId = "thiserror 2.0.18";
+          }
+          {
+            name = "tracing";
+            packageId = "tracing";
+          }
+        ];
+        devDependencies = [
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
+            name = "serde_yaml";
+            packageId = "serde_yaml";
+          }
+        ];
+        features = {
+          "akeyless-native" = [ "dep:akeyless-api" "dep:tokio" ];
+          "aws-native" = [ "dep:aws-sdk-secretsmanager" "dep:aws-config" "dep:tokio" ];
+          "cli" = [ "dep:clap" ];
+          "gcp-native" = [ "dep:reqwest" "dep:tokio" ];
+          "lisp" = [ "dep:tatara-lisp" ];
+          "op-native" = [ "dep:reqwest" "dep:tokio" ];
+          "vault-native" = [ "dep:reqwest" "dep:tokio" ];
+        };
+        resolvedDefaultFeatures = [ "default" ];
+      };
+      "git+https://github.com/pleme-io/shikumi?branch=main#0.1.0" = rec {
+        crateName = "shikumi";
+        version = "0.1.0";
+        edition = "2024";
+        workspace_member = null;
+        src = pkgs.fetchgit {
+          url = "https://github.com/pleme-io/shikumi";
+          rev = "5db7873c9a109f619474228cbea15d64b4825b8a";
+          sha256 = "1nim2cs1gcwix77bgqmk3ry83svvcg3bwfzkm672scbjiq9f96ic";
+        };
+        dependencies = [
+          {
+            name = "arc-swap";
+            packageId = "arc-swap";
+          }
+          {
+            name = "async-trait";
+            packageId = "async-trait";
+          }
+          {
+            name = "clap";
+            packageId = "clap";
+            optional = true;
+            features = [ "derive" ];
+          }
+          {
+            name = "figment";
+            packageId = "figment";
+            features = [ "env" "yaml" "toml" ];
+          }
+          {
+            name = "notify";
+            packageId = "notify";
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
+            name = "serde_yaml";
+            packageId = "serde_yaml";
+          }
+          {
+            name = "thiserror";
+            packageId = "thiserror 2.0.18";
+          }
+          {
+            name = "tracing";
+            packageId = "tracing";
+          }
+        ];
+        devDependencies = [
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
+            name = "serde_yaml";
+            packageId = "serde_yaml";
+          }
+        ];
+        features = {
+          "akeyless-native" = [ "dep:akeyless-api" "dep:tokio" ];
+          "aws-native" = [ "dep:aws-sdk-secretsmanager" "dep:aws-config" "dep:tokio" ];
+          "cli" = [ "dep:clap" ];
+          "gcp-native" = [ "dep:reqwest" "dep:tokio" ];
+          "lisp" = [ "dep:tatara-lisp" ];
+          "op-native" = [ "dep:reqwest" "dep:tokio" ];
+          "vault-native" = [ "dep:reqwest" "dep:tokio" ];
+        };
+        resolvedDefaultFeatures = [ "cli" "default" ];
       };
       "gl_generator" = rec {
         crateName = "gl_generator";
@@ -3976,7 +4124,7 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/hasami";
-          rev = "536b26dcd50d779fa2749e091761b14ba58fb2a6";
+          rev = "18c3d943033dbbcd9fa1f24c0a0f8e05ee277b7a";
           sha256 = "0ii3vxgi8f3abl0dhyxrq61m5d59jb88513f0bja4wsagqhypdin";
         };
         dependencies = [
@@ -4432,7 +4580,7 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/ishou";
-          rev = "ba660fea59bbc580a22c1d21a634e8cd02decc75";
+          rev = "b2f5bf3bd3b38e27e40682afbee34105de509c19";
           sha256 = "0a0xf6qaaj89bll0dj4h4mgplgkww8wz6yv230zja4z8sj80y6jz";
         };
         libName = "ishou_tokens";
@@ -4691,7 +4839,7 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/kaname";
-          rev = "098386a943f6ecd0fe25b27ef6a2ca15b49417af";
+          rev = "e3ad595fb4d9b3534bdad2214798e09f3f4e2f64";
           sha256 = "1hpbdi8lzxsia2j0pcpza1izj95z1zwl3j7ihxbf3r0f9n8kvsim";
         };
         dependencies = [
@@ -4909,10 +5057,10 @@ rec {
       };
       "libmimalloc-sys" = rec {
         crateName = "libmimalloc-sys";
-        version = "0.1.47";
+        version = "0.1.48";
         edition = "2018";
         links = "mimalloc";
-        sha256 = "1xkx0r1pwgsdpskvx206dn3gj04zcsjnn4rwhxgc4gn367xaq7id";
+        sha256 = "1437h360r490s9qxx2chrlwk4lir1n4acdp2n2nbfb7slr7ax4i8";
         libName = "libmimalloc_sys";
         authors = [
           "Octavian Oncescu <octavonce@gmail.com>"
@@ -5177,6 +5325,11 @@ rec {
             packageId = "garasu";
           }
           {
+            name = "shikumi";
+            packageId = "git+https://github.com/pleme-io/shikumi?branch=main#0.1.0";
+            features = [ "cli" ];
+          }
+          {
             name = "glyphon";
             packageId = "glyphon";
           }
@@ -5277,10 +5430,6 @@ rec {
             packageId = "shidou";
           }
           {
-            name = "shikumi";
-            packageId = "shikumi";
-          }
-          {
             name = "soushi";
             packageId = "soushi";
           }
@@ -5368,7 +5517,7 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/madori";
-          rev = "667cb7ec1ffc8543da805b5e01f12ec8c1ce6127";
+          rev = "68821b2bd84291feba55065104c121a968facf03";
           sha256 = "1kr979sm6pdlzwnnyi3r53ir4dj3sd2fqcgkpfvqq9kvynrhkyd9";
         };
         dependencies = [
@@ -5381,6 +5530,10 @@ rec {
             packageId = "garasu";
           }
           {
+            name = "shikumi";
+            packageId = "git+https://github.com/pleme-io/shikumi?branch=main#0.1.0";
+          }
+          {
             name = "pollster";
             packageId = "pollster";
           }
@@ -5388,10 +5541,6 @@ rec {
             name = "serde";
             packageId = "serde";
             features = [ "derive" ];
-          }
-          {
-            name = "shikumi";
-            packageId = "shikumi";
           }
           {
             name = "thiserror";
@@ -5536,9 +5685,9 @@ rec {
       };
       "mimalloc" = rec {
         crateName = "mimalloc";
-        version = "0.1.50";
+        version = "0.1.51";
         edition = "2018";
-        sha256 = "0h06df0h7ia6yqz4qgbjvqzcjn8xxima9fnac296ny6zf917qqmk";
+        sha256 = "06m2ljcvk1ihh8nfbx8qq86ga4l4x4dhydk1ibqjbg0n66j4ijpb";
         authors = [
           "Octavian Oncescu <octavonce@gmail.com>"
           "Vincent Rouillé <vincent@speedy37.fr>"
@@ -5560,6 +5709,7 @@ rec {
           "override" = [ "libmimalloc-sys/override" ];
           "secure" = [ "libmimalloc-sys/secure" ];
           "v2" = [ "libmimalloc-sys/v2" ];
+          "win_direct_tls" = [ "libmimalloc-sys/win_direct_tls" ];
         };
       };
       "miniz_oxide" = rec {
@@ -6159,7 +6309,7 @@ rec {
         dependencies = [
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.59.0";
+            packageId = "windows-sys 0.61.2";
             rename = "windows";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_System_Console" "Win32_Storage_FileSystem" "Win32_Security" ];
@@ -11085,7 +11235,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.59.0";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Networking_WinSock" ];
           }
@@ -11909,7 +12059,7 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shidou";
-          rev = "10fa22aaa1da69456aa82987e18dd4a2208c443c";
+          rev = "a6fc83d91e5010346e89a37010f26f1c0d45ff9a";
           sha256 = "10nkqrw2wrjmimdq1jr5kgibnsi5hqp73dbsj58z8skp739g8hdr";
         };
         dependencies = [
@@ -11923,13 +12073,13 @@ rec {
             features = [ "derive" ];
           }
           {
+            name = "shikumi";
+            packageId = "git+https://github.com/pleme-io/shikumi#0.1.0";
+          }
+          {
             name = "serde";
             packageId = "serde";
             features = [ "derive" ];
-          }
-          {
-            name = "shikumi";
-            packageId = "shikumi";
           }
           {
             name = "tokio";
@@ -11947,76 +12097,6 @@ rec {
           }
         ];
 
-      };
-      "shikumi" = rec {
-        crateName = "shikumi";
-        version = "0.1.0";
-        edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/shikumi";
-          rev = "0ea40034ba9d06bb286c620b54077167af3a1de2";
-          sha256 = "0wx0058js6a4z3d7ds50vj1jd3gqsfa3minlqikg2i5d12nbwb6x";
-        };
-        dependencies = [
-          {
-            name = "arc-swap";
-            packageId = "arc-swap";
-          }
-          {
-            name = "async-trait";
-            packageId = "async-trait";
-          }
-          {
-            name = "figment";
-            packageId = "figment";
-            features = [ "env" "yaml" "toml" ];
-          }
-          {
-            name = "notify";
-            packageId = "notify";
-          }
-          {
-            name = "serde";
-            packageId = "serde";
-            features = [ "derive" ];
-          }
-          {
-            name = "serde_json";
-            packageId = "serde_json";
-          }
-          {
-            name = "serde_yaml";
-            packageId = "serde_yaml";
-          }
-          {
-            name = "thiserror";
-            packageId = "thiserror 2.0.18";
-          }
-          {
-            name = "tracing";
-            packageId = "tracing";
-          }
-        ];
-        devDependencies = [
-          {
-            name = "serde_json";
-            packageId = "serde_json";
-          }
-          {
-            name = "serde_yaml";
-            packageId = "serde_yaml";
-          }
-        ];
-        features = {
-          "akeyless-native" = [ "dep:akeyless-api" "dep:tokio" ];
-          "aws-native" = [ "dep:aws-sdk-secretsmanager" "dep:aws-config" "dep:tokio" ];
-          "gcp-native" = [ "dep:reqwest" "dep:tokio" ];
-          "lisp" = [ "dep:tatara-lisp" ];
-          "op-native" = [ "dep:reqwest" "dep:tokio" ];
-          "vault-native" = [ "dep:reqwest" "dep:tokio" ];
-        };
-        resolvedDefaultFeatures = [ "default" ];
       };
       "shlex" = rec {
         crateName = "shlex";
@@ -12392,7 +12472,7 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/soushi";
-          rev = "0fb8c7b1f794d83bbe3ac42e69984e54f53993c5";
+          rev = "bdf50c79255e1f12bd1829f13bdf4ec4ff03b88b";
           sha256 = "0k0lgcvil34fdfizg4b0is409bnwfr07h99d7idzmf1rw79hl7z4";
         };
         dependencies = [
@@ -12653,7 +12733,7 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
-          rev = "b2b4857f2756ce1357bc3c7afb0839c9d2f09965";
+          rev = "c52d55f59d8b79b7c163002c6fd76cd3c3e3561f";
           sha256 = "1rr7p4v1w6f3d72pkbmzf8fg6w90x3g5w5mj1w3glkmrmp3n2cr5";
         };
         libName = "tear_client";
@@ -12700,7 +12780,7 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
-          rev = "b2b4857f2756ce1357bc3c7afb0839c9d2f09965";
+          rev = "c52d55f59d8b79b7c163002c6fd76cd3c3e3561f";
           sha256 = "1rr7p4v1w6f3d72pkbmzf8fg6w90x3g5w5mj1w3glkmrmp3n2cr5";
         };
         libName = "tear_config";
@@ -12715,6 +12795,10 @@ rec {
           {
             name = "arc-swap";
             packageId = "arc-swap";
+          }
+          {
+            name = "shikumi";
+            packageId = "git+https://github.com/pleme-io/shikumi#0.1.0";
           }
           {
             name = "notify";
@@ -12732,10 +12816,6 @@ rec {
           {
             name = "serde_yaml_ng";
             packageId = "serde_yaml_ng";
-          }
-          {
-            name = "shikumi";
-            packageId = "shikumi";
           }
           {
             name = "tear-types";
@@ -12759,7 +12839,7 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
-          rev = "b2b4857f2756ce1357bc3c7afb0839c9d2f09965";
+          rev = "c52d55f59d8b79b7c163002c6fd76cd3c3e3561f";
           sha256 = "1rr7p4v1w6f3d72pkbmzf8fg6w90x3g5w5mj1w3glkmrmp3n2cr5";
         };
         libName = "tear_core";
@@ -12839,7 +12919,7 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
-          rev = "b2b4857f2756ce1357bc3c7afb0839c9d2f09965";
+          rev = "c52d55f59d8b79b7c163002c6fd76cd3c3e3561f";
           sha256 = "1rr7p4v1w6f3d72pkbmzf8fg6w90x3g5w5mj1w3glkmrmp3n2cr5";
         };
         libName = "tear_daemon";
@@ -12900,7 +12980,7 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
-          rev = "b2b4857f2756ce1357bc3c7afb0839c9d2f09965";
+          rev = "c52d55f59d8b79b7c163002c6fd76cd3c3e3561f";
           sha256 = "1rr7p4v1w6f3d72pkbmzf8fg6w90x3g5w5mj1w3glkmrmp3n2cr5";
         };
         libName = "tear_types";
@@ -12981,7 +13061,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.59.0";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Storage_FileSystem" "Win32_Foundation" ];
           }
@@ -16411,7 +16491,7 @@ rec {
         dependencies = [
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.59.0";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Storage_FileSystem" "Win32_System_Console" "Win32_System_SystemInformation" ];
           }
@@ -18692,7 +18772,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Globalization" "Win32_Graphics" "Win32_Graphics_Gdi" "Win32_NetworkManagement" "Win32_NetworkManagement_IpHelper" "Win32_Networking" "Win32_Networking_WinSock" "Win32_Security" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Console" "Win32_System_DataExchange" "Win32_System_Diagnostics" "Win32_System_Diagnostics_Debug" "Win32_System_Memory" "Win32_System_Ole" "Win32_System_SystemInformation" "Win32_System_Threading" "Win32_UI" "Win32_UI_Shell" "default" ];
+        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_NetworkManagement" "Win32_NetworkManagement_IpHelper" "Win32_Networking" "Win32_Networking_WinSock" "Win32_System" "Win32_System_Threading" "default" ];
       };
       "windows-sys 0.60.2" = rec {
         crateName = "windows-sys";
@@ -18957,7 +19037,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Security" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_IO" "Win32_System_Threading" "Win32_System_WindowsProgramming" "default" ];
+        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Graphics" "Win32_Graphics_Gdi" "Win32_Security" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_DataExchange" "Win32_System_IO" "Win32_System_Memory" "Win32_System_Ole" "Win32_System_Threading" "Win32_System_WindowsProgramming" "Win32_UI" "Win32_UI_Shell" "default" ];
       };
       "windows-sys 0.61.2" = rec {
         crateName = "windows-sys";
@@ -19219,7 +19299,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Wdk" "Wdk_Foundation" "Wdk_Storage" "Wdk_Storage_FileSystem" "Wdk_System" "Wdk_System_IO" "Win32" "Win32_Devices" "Win32_Devices_Communication" "Win32_Foundation" "Win32_Networking" "Win32_Networking_WinSock" "Win32_Security" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Console" "Win32_System_IO" "Win32_System_LibraryLoader" "Win32_System_Pipes" "Win32_System_Registry" "Win32_System_SystemServices" "Win32_System_Threading" "Win32_System_WindowsProgramming" "default" ];
+        resolvedDefaultFeatures = [ "Wdk" "Wdk_Foundation" "Wdk_Storage" "Wdk_Storage_FileSystem" "Wdk_System" "Wdk_System_IO" "Win32" "Win32_Devices" "Win32_Devices_Communication" "Win32_Foundation" "Win32_Globalization" "Win32_Networking" "Win32_Networking_WinSock" "Win32_Security" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Console" "Win32_System_Diagnostics" "Win32_System_Diagnostics_Debug" "Win32_System_IO" "Win32_System_LibraryLoader" "Win32_System_Pipes" "Win32_System_Registry" "Win32_System_SystemInformation" "Win32_System_SystemServices" "Win32_System_Threading" "Win32_System_WindowsProgramming" "Win32_UI" "Win32_UI_Shell" "default" ];
       };
       "windows-targets 0.52.6" = rec {
         crateName = "windows-targets";

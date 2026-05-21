@@ -14,6 +14,7 @@
   "git+https://github.com/pleme-io/madori#0.1.0": "1kr979sm6pdlzwnnyi3r53ir4dj3sd2fqcgkpfvqq9kvynrhkyd9",
   "git+https://github.com/pleme-io/shidou#0.1.0": "10nkqrw2wrjmimdq1jr5kgibnsi5hqp73dbsj58z8skp739g8hdr",
   "git+https://github.com/pleme-io/shikumi#0.1.0": "0wx0058js6a4z3d7ds50vj1jd3gqsfa3minlqikg2i5d12nbwb6x",
+  "git+https://github.com/pleme-io/shikumi?branch=main#0.1.0": "1nim2cs1gcwix77bgqmk3ry83svvcg3bwfzkm672scbjiq9f96ic",
   "git+https://github.com/pleme-io/soushi#0.1.0": "0k0lgcvil34fdfizg4b0is409bnwfr07h99d7idzmf1rw79hl7z4",
   "git+https://github.com/pleme-io/tear#tear-client@0.1.0": "1rr7p4v1w6f3d72pkbmzf8fg6w90x3g5w5mj1w3glkmrmp3n2cr5",
   "git+https://github.com/pleme-io/tear#tear-config@0.1.0": "1rr7p4v1w6f3d72pkbmzf8fg6w90x3g5w5mj1w3glkmrmp3n2cr5",

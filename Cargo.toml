@@ -58,7 +58,7 @@ blake3 = "1"
 shidou = { git = "https://github.com/pleme-io/shidou" }
 garasu = "0.1"
 madori = { git = "https://github.com/pleme-io/madori" }
-shikumi = "0.1"
+shikumi = { version = "0.1", features = ["cli"] }
 hasami = { git = "https://github.com/pleme-io/hasami" }
 # Tear multiplexer — typed types + UDS RPC client. mado uses these
 # for the `mado tear-attach` mode (subscribe to a remote pane's
@@ -214,5 +214,5 @@ gpu_tests = ["dep:pollster"]
 
 [patch.crates-io]
 garasu = { git = "https://github.com/pleme-io/garasu" }
-shikumi = { git = "https://github.com/pleme-io/shikumi" }
+shikumi = { git = "https://github.com/pleme-io/shikumi", branch = "main" }
 egaku = { git = "https://github.com/pleme-io/egaku" }
