@@ -85,8 +85,13 @@
           shell = {
             command = {
               type        = "nullOrStr";
-              default     = null;
-              description = "Shell command to run (default: user's SHELL).";
+              # Fleet directive (mado → frostmourne stack, 2026-05-21):
+              # frostmourne is the official mado default shell. Ships
+              # skim + atuin + Ctrl-R history picker + 100M scrollback.
+              # Operators who want $SHELL fallback set this to null.
+              # Matches the Rust ShellConfig::default() at mado@7dfe46a.
+              default     = "frostmourne";
+              description = "Shell command to run (default: frostmourne; set null for $SHELL fallback).";
             };
           };
 
