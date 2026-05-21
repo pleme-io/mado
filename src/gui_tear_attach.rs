@@ -373,7 +373,15 @@ where
 
     let control_for_events = Arc::clone(&control);
     let app_config = AppConfig {
-        title: format!("mado · {title_kind} {pane_id}"),
+        // Snowflake-only title — the operator-facing identifier IS the
+        // window itself; pane-id + tear-kind don't need to be repeated
+        // in the titlebar (they're in the seki prompt + mado MCP).
+        // platform::apply_native_styling hides the text anyway via
+        // NSWindowTitleVisibility::Hidden, but setting it to ❄ means
+        // any path that bypasses styling (initial frame, accessibility,
+        // window-menu list, screen-recordings) shows the brand mark
+        // instead of a debug string.
+        title: "❄".to_string(),
         width: config.window.width,
         height: config.window.height,
         resizable: true,
