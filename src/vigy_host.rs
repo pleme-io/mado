@@ -28,6 +28,10 @@ use std::sync::Arc;
 
 use anyhow::Context;
 use tokio::sync::OnceCell;
+use vigy::eval::{
+    closure_extension, standard_extensions, ExtArity, ExtEvalError, ExtInterpreter, ExtValue,
+    ExtensionHandle, VigyHost,
+};
 use vigy::{RuntimeHandle, TickInterval, Vigy};
 
 const DEFAULT_HEARTBEAT_NAME: &str = "mado-heartbeat";
@@ -57,7 +61,15 @@ impl MadoVigyHost {
     pub async fn start() -> anyhow::Result<Self> {
         let db = db_path()?;
         tracing::info!(?db, "starting embedded vigy runtime");
-        let rt = RuntimeHandle::open(&db)
+
+        // Open the runtime with mado-side intrinsics layered onto the
+        // standard extension bundle. Programs running inside this
+        // runtime can call (mado-version) / (mado-tear-attached?) /
+        // (mado-pane-count) etc. as native lisp forms — no MCP / RPC
+        // hop required.
+        let mut extensions = standard_extensions();
+        extensions.push(mado_intrinsics_extension());
+        let rt = RuntimeHandle::open_with_extensions(&db, extensions)
             .await
             .with_context(|| format!("open vigy runtime at {}", db.display()))?;
 
@@ -146,3 +158,136 @@ pub async fn init() -> anyhow::Result<MadoVigyHost> {
 pub fn get() -> Option<MadoVigyHost> {
     HOST.get().cloned()
 }
+
+// ─────────────────────────────────────────────────────────────────
+// MadoIntrinsicsExtension — mado-side host intrinsics
+// ─────────────────────────────────────────────────────────────────
+//
+// Exposes mado runtime state to vigy programs through tatara-lisp
+// intrinsics. A vigy program can call these directly:
+//
+//   (vigy-log "info" (string-append "mado " (mado-version)))
+//   (if (mado-tear-attached?)
+//       (vigy-pull "tear-sessions")
+//       (vigy-defer "tear not attached"))
+//
+// The trait surface keeps this clean: mado defines its intrinsics in
+// one place (this function), passes them as a HostExtension when
+// constructing the runtime, and vigy programs see them as if they
+// were built into tatara-lisp.
+//
+// Pattern for adding more: just register more callables in the
+// closure. No vigy-eval changes needed.
+
+fn mado_intrinsics_extension() -> ExtensionHandle {
+    closure_extension(|interp: &mut ExtInterpreter| {
+        // (mado-version) → string
+        // The mado binary's CARGO_PKG_VERSION. Useful for vigies that
+        // need to gate behavior on mado version (e.g. "if mado >= 0.2
+        // assume the new OSC 1338 path exists").
+        interp.register_fn(
+            "mado-version",
+            ExtArity::Exact(0),
+            |_args: &[ExtValue], _host: &mut VigyHost, _sp| {
+                Ok(ExtValue::Str(std::sync::Arc::from(env!("CARGO_PKG_VERSION"))))
+            },
+        );
+
+        // (mado-host) → string
+        // The hostname mado is running on (best-effort via `hostname`
+        // crate). Reconcilers running across a heterogeneous fleet
+        // use this to gate host-specific behavior.
+        interp.register_fn(
+            "mado-host",
+            ExtArity::Exact(0),
+            |_args: &[ExtValue], _host: &mut VigyHost, _sp| {
+                let h = hostname_best_effort();
+                Ok(ExtValue::Str(std::sync::Arc::from(h.as_str())))
+            },
+        );
+
+        // (mado-process-uptime-ms) → int
+        // Milliseconds since the mado process started. Lets vigies
+        // implement "wait until mado has been up for at least N ms
+        // before doing anything" patterns without rolling their own
+        // start-time bookkeeping.
+        interp.register_fn(
+            "mado-process-uptime-ms",
+            ExtArity::Exact(0),
+            |_args: &[ExtValue], _host: &mut VigyHost, _sp| {
+                let ms = MADO_START
+                    .get_or_init(|| std::time::Instant::now())
+                    .elapsed()
+                    .as_millis() as i64;
+                Ok(ExtValue::Int(ms))
+            },
+        );
+
+        // (mado-tear-attached?) → bool
+        // Whether mado has an active tear-daemon attachment right
+        // now. Vigies that sync tear state should defer when this is
+        // false. Reads through tear-discovery's cached state — cheap.
+        interp.register_fn(
+            "mado-tear-attached?",
+            ExtArity::Exact(0),
+            |_args: &[ExtValue], _host: &mut VigyHost, _sp| {
+                Ok(ExtValue::Bool(probe_tear_attached()))
+            },
+        );
+
+        // (mado-emit-event "kind" "message")
+        // Sugar around tracing::info! tagged with `source = "mado-vigy"`
+        // so operators tailing mado logs can filter just the events
+        // that originated from vigy programs.
+        interp.register_fn(
+            "mado-emit-event",
+            ExtArity::Exact(2),
+            |args: &[ExtValue], _host: &mut VigyHost, sp| {
+                let kind = lisp_string(&args[0], sp)?;
+                let message = lisp_string(&args[1], sp)?;
+                tracing::info!(
+                    source = "mado-vigy",
+                    kind = %kind,
+                    message = %message,
+                    "mado-vigy event",
+                );
+                Ok(ExtValue::Nil)
+            },
+        );
+    })
+}
+
+fn hostname_best_effort() -> String {
+    // Use std's env first (cheap), fall back to a generic name.
+    std::env::var("HOSTNAME")
+        .or_else(|_| std::env::var("HOST"))
+        .unwrap_or_else(|_| "unknown".to_string())
+}
+
+fn probe_tear_attached() -> bool {
+    // Best-effort: try a tear-discovery probe. The discover() helper
+    // is sync + cheap (reads a config snapshot + checks socket path).
+    let cfg = crate::config::load(&None).unwrap_or_default().tear;
+    matches!(
+        crate::tear_discovery::discover(&cfg),
+        crate::tear_discovery::DiscoveryOutcome::Attached(_, _)
+    )
+}
+
+fn lisp_string(v: &ExtValue, sp: vigy::eval::Span) -> std::result::Result<String, ExtEvalError> {
+    match v {
+        ExtValue::Str(s) => Ok(s.to_string()),
+        ExtValue::Symbol(s) => Ok(s.to_string()),
+        ExtValue::Keyword(s) => Ok(s.to_string()),
+        other => Err(ExtEvalError::type_mismatch(
+            "string|symbol|keyword",
+            other.type_name(),
+            sp,
+        )),
+    }
+}
+
+/// Process start time — lazily initialised on first call to
+/// `(mado-process-uptime-ms)`. `OnceCell` so concurrent vigy ticks
+/// agree on a single anchor.
+static MADO_START: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
