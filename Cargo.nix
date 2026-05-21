@@ -877,7 +877,7 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/awase";
-          rev = "8e8b73ec32dcba2431d471395a3d888536ded406";
+          rev = "bdab6149f5a078f420b0490e390c71b08fe165d5";
           sha256 = "1cflwcxrj52c3nd6rg1jwz9phsajmszzlh0bmbxy8dh7h9pir3m4";
         };
         dependencies = [
@@ -6205,8 +6205,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/ishou";
-          rev = "befd51e17b2b55ce480c8f62e0d7a41fa4d2a3aa";
-          sha256 = "sha256-koP3kp5Ux+ILqKJbpB0cApKQwpAjDyAnQDSvHuv2Lu8=";
+          rev = "4f106c9221cbdb5fdf98ad1e7c818f9c024fe3e6";
+          sha256 = "0az8c9a8nqvc5lalg3dhb1yalsnqk8sjrildcvkwpniymgypfqas";
         };
         libName = "ishou_tokens";
         dependencies = [

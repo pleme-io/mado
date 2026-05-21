@@ -330,39 +330,54 @@ fn default_bindings() -> Vec<Keybinding> {
     use awase::Key;
     use awase::Modifiers;
 
+    // Atlas-resolved chords — every cross-GUI-terminal binding pulls
+    // its chord from `ishou_tokens::FleetKeybinds::prescribed()` and
+    // routes through `awase::Hotkey::parse_atlas_chord`. Drift in
+    // either layer surfaces as a build-time `expect()` panic here,
+    // and as a Guard test failure in `tests::mado_default_bindings_
+    // converge_with_fleet_atlas`. The expect() messages name the
+    // exact intent so an atlas change that breaks mado's parse is
+    // immediately attributable.
+    let kb = ishou_tokens::FleetKeybinds::prescribed();
+    let atlas = |chord: &str, intent: &'static str| -> awase::Hotkey {
+        awase::Hotkey::parse_atlas_chord(chord)
+            .unwrap_or_else(|e| panic!("atlas chord {intent} = {chord:?} failed to parse: {e}"))
+    };
+
+    // App-specific chords NOT in the atlas (mado-only ergonomics +
+    // OSC-133 prompt navigation + scroll keys). These stay
+    // hand-wired until the atlas earns a third consumer for each.
     let cmd = Modifiers::CMD;
     let cmd_shift = Modifiers::CMD | Modifiers::SHIFT;
     let none = Modifiers::NONE;
 
     vec![
-        // Clipboard
-        Keybinding { hotkey: hk(cmd, Key::C), action: Action::Copy },
-        Keybinding { hotkey: hk(cmd, Key::V), action: Action::Paste },
-        // Search
-        Keybinding { hotkey: hk(cmd, Key::F), action: Action::SearchOpen },
-        Keybinding { hotkey: hk(none, Key::Escape), action: Action::SearchClose },
-        Keybinding { hotkey: hk(cmd, Key::G), action: Action::SearchNext },
-        Keybinding { hotkey: hk(cmd_shift, Key::G), action: Action::SearchPrev },
-        // Font
-        Keybinding { hotkey: hk(cmd, Key::Equal), action: Action::FontIncrease },
-        Keybinding { hotkey: hk(cmd, Key::Minus), action: Action::FontDecrease },
-        Keybinding { hotkey: hk(cmd, Key::Num0), action: Action::FontReset },
-        // Tabs / splits removed at Phase 4 — tear owns multiplexing.
-        // Scroll
-        Keybinding { hotkey: hk(none, Key::PageUp), action: Action::ScrollPageUp },
+        // Clipboard — atlas-sourced.
+        Keybinding { hotkey: atlas(kb.copy,  "copy"),  action: Action::Copy },
+        Keybinding { hotkey: atlas(kb.paste, "paste"), action: Action::Paste },
+        // Search — atlas-sourced.
+        Keybinding { hotkey: atlas(kb.search_open,  "search_open"),  action: Action::SearchOpen },
+        Keybinding { hotkey: atlas(kb.search_close, "search_close"), action: Action::SearchClose },
+        Keybinding { hotkey: atlas(kb.search_next,  "search_next"),  action: Action::SearchNext },
+        Keybinding { hotkey: atlas(kb.search_prev,  "search_prev"),  action: Action::SearchPrev },
+        // Font — atlas-sourced.
+        Keybinding { hotkey: atlas(kb.font_increase, "font_increase"), action: Action::FontIncrease },
+        Keybinding { hotkey: atlas(kb.font_decrease, "font_decrease"), action: Action::FontDecrease },
+        Keybinding { hotkey: atlas(kb.font_reset,    "font_reset"),    action: Action::FontReset },
+        // Fullscreen — atlas-sourced.
+        Keybinding { hotkey: atlas(kb.toggle_fullscreen, "toggle_fullscreen"), action: Action::ToggleFullscreen },
+        // Scroll — mado-specific (no atlas intent yet).
+        Keybinding { hotkey: hk(none, Key::PageUp),   action: Action::ScrollPageUp },
         Keybinding { hotkey: hk(none, Key::PageDown), action: Action::ScrollPageDown },
-        Keybinding { hotkey: hk(cmd, Key::Home), action: Action::ScrollToTop },
-        Keybinding { hotkey: hk(cmd, Key::End), action: Action::ScrollToBottom },
+        Keybinding { hotkey: hk(cmd,  Key::Home),     action: Action::ScrollToTop },
+        Keybinding { hotkey: hk(cmd,  Key::End),      action: Action::ScrollToBottom },
         // Prompt navigation — ghostty-canonical Cmd+Up / Cmd+Down on
         // OSC 133 prompt marks. Requires the shell integration scripts
-        // (see shell-integration/mado.*) to be sourced.
-        Keybinding { hotkey: hk(cmd, Key::Up), action: Action::JumpToPromptPrev },
+        // (see shell-integration/mado.*) to be sourced. mado-specific.
+        Keybinding { hotkey: hk(cmd, Key::Up),   action: Action::JumpToPromptPrev },
         Keybinding { hotkey: hk(cmd, Key::Down), action: Action::JumpToPromptNext },
-        // Pane / tab navigation removed at Phase 4.
-        // Terminal
+        // Terminal — mado-specific (no atlas reset intent).
         Keybinding { hotkey: hk(cmd_shift, Key::R), action: Action::ResetTerminal },
-        // Fullscreen
-        Keybinding { hotkey: hk(cmd | Modifiers::CTRL, Key::F), action: Action::ToggleFullscreen },
     ]
 }
 
@@ -395,6 +410,61 @@ mod tests {
             mgr.lookup(&awase::Hotkey::new(cmd, awase::Key::Num0)),
             Some(Action::FontReset)
         );
+    }
+
+    #[test]
+    fn mado_default_bindings_converge_with_fleet_atlas() {
+        // The 10 atlas-sourced chords in `default_bindings()` must
+        // round-trip through `awase::Hotkey::parse_atlas_chord` and
+        // match the chord declared in `ishou_tokens::FleetKeybinds::
+        // prescribed()`. Drift in either layer (atlas changes a
+        // chord, or mado's default_bindings starts hand-coding again)
+        // fails this Guard chain loudly rather than at operator-press
+        // time.
+        let mgr = KeybindManager::with_mado_defaults();
+        let kb = ishou_tokens::FleetKeybinds::prescribed();
+
+        // For each (intent, expected action), the binding manager
+        // must return that action when looked up with the
+        // atlas-parsed hotkey.
+        let atlas_actions: &[(&str, Action)] = &[
+            (kb.copy,              Action::Copy),
+            (kb.paste,             Action::Paste),
+            (kb.search_open,       Action::SearchOpen),
+            (kb.search_close,      Action::SearchClose),
+            (kb.search_next,       Action::SearchNext),
+            (kb.search_prev,       Action::SearchPrev),
+            (kb.font_increase,     Action::FontIncrease),
+            (kb.font_decrease,     Action::FontDecrease),
+            (kb.font_reset,        Action::FontReset),
+            (kb.toggle_fullscreen, Action::ToggleFullscreen),
+        ];
+        for (chord, expected) in atlas_actions {
+            let hk = awase::Hotkey::parse_atlas_chord(chord)
+                .unwrap_or_else(|e| panic!("atlas chord {chord:?} parse failed: {e}"));
+            assert_eq!(
+                mgr.lookup(&hk),
+                Some(*expected),
+                "mado default for atlas chord {chord:?} does not bind {expected:?}",
+            );
+        }
+
+        // Symmetric Guard assertion via ishou's typed convergence
+        // helper. Catches the same drift class but with the named-
+        // intent error message ("font_increase chord drift") rather
+        // than the action-lookup mismatch above.
+        ishou_tokens::convergence::Guard::for_app("mado")
+            .expect_copy(kb.copy)
+            .expect_paste(kb.paste)
+            .expect_search_open(kb.search_open)
+            .expect_search_close(kb.search_close)
+            .expect_search_next(kb.search_next)
+            .expect_search_prev(kb.search_prev)
+            .expect_font_increase(kb.font_increase)
+            .expect_font_decrease(kb.font_decrease)
+            .expect_font_reset(kb.font_reset)
+            .expect_toggle_fullscreen(kb.toggle_fullscreen)
+            .run();
     }
 
     #[test]

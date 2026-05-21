@@ -282,7 +282,7 @@ checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 [[package]]
 name = "awase"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/awase#8e8b73ec32dcba2431d471395a3d888536ded406"
+source = "git+https://github.com/pleme-io/awase#bdab6149f5a078f420b0490e390c71b08fe165d5"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -2041,7 +2041,7 @@ checksum = "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695"
 [[package]]
 name = "ishou-tokens"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/ishou#befd51e17b2b55ce480c8f62e0d7a41fa4d2a3aa"
+source = "git+https://github.com/pleme-io/ishou#4f106c9221cbdb5fdf98ad1e7c818f9c024fe3e6"
 dependencies = [
  "irodori",
  "serde",
