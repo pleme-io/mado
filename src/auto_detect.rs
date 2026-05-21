@@ -303,44 +303,19 @@ pub const FALLBACK_SCROLLBACK_LINES: u32 = 10_000;
 #[cfg(test)]
 mod fleet_convergence_tests {
     use super::*;
-    use ishou_tokens::FleetDefaults;
 
+    /// One-line convergence guard — pinned to `ishou_tokens::convergence::Guard`
+    /// (ishou@cc704f8). Drift on any FALLBACK_* surfaces as a single
+    /// panic listing every field that diverged, instead of the
+    /// previous 4 hand-rolled assertions.
     #[test]
-    fn fallback_font_family_matches_fleet_defaults() {
-        let fd = FleetDefaults::prescribed();
-        assert_eq!(
-            FALLBACK_FONT_FAMILY, fd.font_family,
-            "mado's FALLBACK_FONT_FAMILY drifted from FleetDefaults::prescribed().font_family — \
-             pick ONE source. Per the configuration prime directive, FleetDefaults wins."
-        );
-    }
-
-    #[test]
-    fn fallback_font_size_matches_fleet_defaults() {
-        let fd = FleetDefaults::prescribed();
-        assert!(
-            (FALLBACK_FONT_SIZE - fd.font_size).abs() < 0.001,
-            "FALLBACK_FONT_SIZE ({}) drifted from FleetDefaults ({}).",
-            FALLBACK_FONT_SIZE, fd.font_size
-        );
-    }
-
-    #[test]
-    fn fallback_padding_matches_fleet_defaults() {
-        let fd = FleetDefaults::prescribed();
-        assert_eq!(
-            FALLBACK_PADDING, fd.padding,
-            "FALLBACK_PADDING drifted from FleetDefaults::prescribed().padding"
-        );
-    }
-
-    #[test]
-    fn fallback_scrollback_matches_fleet_defaults() {
-        let fd = FleetDefaults::prescribed();
-        assert_eq!(
-            FALLBACK_SCROLLBACK_LINES as usize, fd.scrollback_lines,
-            "FALLBACK_SCROLLBACK_LINES drifted from FleetDefaults::prescribed().scrollback_lines"
-        );
+    fn fallback_defaults_converge_with_fleet() {
+        ishou_tokens::convergence::Guard::for_app("mado")
+            .expect_font_family(FALLBACK_FONT_FAMILY)
+            .expect_font_size(FALLBACK_FONT_SIZE)
+            .expect_padding(FALLBACK_PADDING)
+            .expect_scrollback_lines(FALLBACK_SCROLLBACK_LINES as usize)
+            .run();
     }
 }
 

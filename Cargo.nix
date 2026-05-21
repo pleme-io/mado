@@ -4580,7 +4580,7 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/ishou";
-          rev = "7bb972da0bc984e87ad2141892d4a229e9e513c7";
+          rev = "1cfd3cf0231c461a484df7c79309f8201ca42c0a";
           sha256 = "0a0xf6qaaj89bll0dj4h4mgplgkww8wz6yv230zja4z8sj80y6jz";
         };
         libName = "ishou_tokens";
