@@ -327,22 +327,17 @@ fn hk(modifiers: awase::Modifiers, key: awase::Key) -> awase::Hotkey {
 
 /// Default keybindings (macOS-style: Cmd as primary modifier).
 fn default_bindings() -> Vec<Keybinding> {
+    use awase::atlas_chord;
     use awase::Key;
     use awase::Modifiers;
 
     // Atlas-resolved chords — every cross-GUI-terminal binding pulls
-    // its chord from `ishou_tokens::FleetKeybinds::prescribed()` and
-    // routes through `awase::Hotkey::parse_atlas_chord`. Drift in
-    // either layer surfaces as a build-time `expect()` panic here,
-    // and as a Guard test failure in `tests::mado_default_bindings_
-    // converge_with_fleet_atlas`. The expect() messages name the
-    // exact intent so an atlas change that breaks mado's parse is
-    // immediately attributable.
+    // its chord from `ishou_tokens::FleetKeybinds::prescribed()` via
+    // `awase::atlas_chord!`. The macro stringifies the field name as
+    // the panic label so an atlas drift names the offending intent
+    // automatically. Guard convergence test in `tests::mado_default
+    // _bindings_converge_with_fleet_atlas` pins the mapping.
     let kb = ishou_tokens::FleetKeybinds::prescribed();
-    let atlas = |chord: &str, intent: &'static str| -> awase::Hotkey {
-        awase::Hotkey::parse_atlas_chord(chord)
-            .unwrap_or_else(|e| panic!("atlas chord {intent} = {chord:?} failed to parse: {e}"))
-    };
 
     // App-specific chords NOT in the atlas (mado-only ergonomics +
     // OSC-133 prompt navigation + scroll keys). These stay
@@ -353,19 +348,19 @@ fn default_bindings() -> Vec<Keybinding> {
 
     vec![
         // Clipboard — atlas-sourced.
-        Keybinding { hotkey: atlas(kb.copy,  "copy"),  action: Action::Copy },
-        Keybinding { hotkey: atlas(kb.paste, "paste"), action: Action::Paste },
+        Keybinding { hotkey: atlas_chord!(kb.copy),  action: Action::Copy },
+        Keybinding { hotkey: atlas_chord!(kb.paste), action: Action::Paste },
         // Search — atlas-sourced.
-        Keybinding { hotkey: atlas(kb.search_open,  "search_open"),  action: Action::SearchOpen },
-        Keybinding { hotkey: atlas(kb.search_close, "search_close"), action: Action::SearchClose },
-        Keybinding { hotkey: atlas(kb.search_next,  "search_next"),  action: Action::SearchNext },
-        Keybinding { hotkey: atlas(kb.search_prev,  "search_prev"),  action: Action::SearchPrev },
+        Keybinding { hotkey: atlas_chord!(kb.search_open),  action: Action::SearchOpen },
+        Keybinding { hotkey: atlas_chord!(kb.search_close), action: Action::SearchClose },
+        Keybinding { hotkey: atlas_chord!(kb.search_next),  action: Action::SearchNext },
+        Keybinding { hotkey: atlas_chord!(kb.search_prev),  action: Action::SearchPrev },
         // Font — atlas-sourced.
-        Keybinding { hotkey: atlas(kb.font_increase, "font_increase"), action: Action::FontIncrease },
-        Keybinding { hotkey: atlas(kb.font_decrease, "font_decrease"), action: Action::FontDecrease },
-        Keybinding { hotkey: atlas(kb.font_reset,    "font_reset"),    action: Action::FontReset },
+        Keybinding { hotkey: atlas_chord!(kb.font_increase), action: Action::FontIncrease },
+        Keybinding { hotkey: atlas_chord!(kb.font_decrease), action: Action::FontDecrease },
+        Keybinding { hotkey: atlas_chord!(kb.font_reset),    action: Action::FontReset },
         // Fullscreen — atlas-sourced.
-        Keybinding { hotkey: atlas(kb.toggle_fullscreen, "toggle_fullscreen"), action: Action::ToggleFullscreen },
+        Keybinding { hotkey: atlas_chord!(kb.toggle_fullscreen), action: Action::ToggleFullscreen },
         // Scroll — mado-specific (no atlas intent yet).
         Keybinding { hotkey: hk(none, Key::PageUp),   action: Action::ScrollPageUp },
         Keybinding { hotkey: hk(none, Key::PageDown), action: Action::ScrollPageDown },

@@ -282,7 +282,7 @@ checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 [[package]]
 name = "awase"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/awase#bdab6149f5a078f420b0490e390c71b08fe165d5"
+source = "git+https://github.com/pleme-io/awase#579f52fafb73cec2263f2a590cddfe28ede8e3cb"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
