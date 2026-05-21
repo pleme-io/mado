@@ -1320,9 +1320,17 @@ impl Default for WindowConfig {
 }
 
 impl Default for ShellConfig {
+    /// The prescribed default shell for mado is `frostmourne` — the
+    /// curated pleme-io shell distribution that ships skim + atuin +
+    /// the typed `(defbind :key "C-r" :action "__frost_picker_history__")`
+    /// keybind out of the box. Operators who want plain `$SHELL` /
+    /// `/bin/zsh` / `/bin/sh` override via `mado.yaml` or via the
+    /// blackmatter-mado HM module's `programs.mado.shell.command`
+    /// option. Falls back to `$SHELL → /bin/sh` at runtime if
+    /// frostmourne isn't on PATH (see `session.rs`).
     fn default() -> Self {
         Self {
-            command: None,
+            command: Some("frostmourne".to_string()),
             args: vec![],
         }
     }
@@ -2172,8 +2180,11 @@ window:
 
     #[test]
     fn test_shell_config_defaults() {
+        // Prescribed default: frostmourne (mado's official curated
+        // shell — ships skim+atuin+Ctrl-R out of the box). Operators
+        // who want $SHELL override via mado.yaml.
         let s = ShellConfig::default();
-        assert!(s.command.is_none());
+        assert_eq!(s.command.as_deref(), Some("frostmourne"));
         assert!(s.args.is_empty());
     }
 

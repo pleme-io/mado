@@ -752,7 +752,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/awase";
           rev = "37f49c458c15259afc49268e0bcf51f5fcd6acab";
-          sha256 = "sha256-W3SavIb2wGVHOm6anRCEjmf7GzarddNGxs5RHp8XpqQ=";
+          sha256 = "07rickn8am93zc7gi67xhli7p5ny6hx4l4sz468mq4pbcs90jnd4";
         };
         dependencies = [
           {
@@ -2367,7 +2367,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/egaku";
           rev = "a6dc7913a0690ff4c6a24636ce58baac7ae16cba";
-          sha256 = "sha256-6I8KsEQgxrFYpGY/PnvpcxXO6XY91oAx7i5Ej0vQPsM=";
+          sha256 = "1pr6sf47qfhyhpsnw81b3f9ic6g2g6jcrbh6fhx4ajl9cp5i8ihy";
         };
         dependencies = [
           {
@@ -2402,7 +2402,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/engate";
           rev = "2dd9f06bd39b99cc6dcf190d9d47b629092984d8";
-          sha256 = "sha256-7kvoV15J2R9X/bUYQTBFh/7HLKGvgJGGw0Go9T/r1bE=";
+          sha256 = "1c62kzyznxxf71r9byvy02sq7yhwbg8rb3ngyd898rmnzcazwyz8";
         };
         libName = "engate_attach";
         authors = [
@@ -2447,7 +2447,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/engate";
           rev = "2dd9f06bd39b99cc6dcf190d9d47b629092984d8";
-          sha256 = "sha256-7kvoV15J2R9X/bUYQTBFh/7HLKGvgJGGw0Go9T/r1bE=";
+          sha256 = "1c62kzyznxxf71r9byvy02sq7yhwbg8rb3ngyd898rmnzcazwyz8";
         };
         libName = "engate_types";
         authors = [
@@ -2474,7 +2474,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/engawa";
           rev = "1474cdfd05848044ce4a0f6eabab51bc7eed6dad";
-          sha256 = "sha256-z8m8VKyxq5GoQGqwC794B7ln/PbkCbJ2rw1SJobkjVI=";
+          sha256 = "079flzf320zn9rhhg0kjd5xk7bjmf82g15wlc5vr5j6h3f9mfi1b";
         };
         authors = [
           "pleme-io"
@@ -2500,7 +2500,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/engawa-lisp";
           rev = "c33b483fa84a4aa8b0341e55d4e29ba8a36e209e";
-          sha256 = "sha256-4xPNMkz48aUDOhzdeC8vQZKd+pLQ5x/Eaf9HhYitGTs=";
+          sha256 = "0zcniabkfpn4cyxp7q0zcih3isyfvyrql4jqh3f0cnjsf59a3jdj";
         };
         libName = "engawa_lisp";
         authors = [
@@ -2526,7 +2526,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/engawa-snow";
           rev = "71d080de0bea2972cd7b9114ce6b4d672503ec9e";
-          sha256 = "sha256-zjKEALbJAJIKQNbor3QtJOetx2hoCPth7MzmbNxcz2k=";
+          sha256 = "03l9z0gl3hk4g76cj5wmady7b788ny665shmwg64dbn7xx407ibz";
         };
         libName = "engawa_snow";
         authors = [
@@ -2563,7 +2563,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/engawa-wgpu";
           rev = "34616638d3be2abf156d356054fa02224a9502f0";
-          sha256 = "sha256-dm4lsICRdLNMfLvmNQv4n5yUMHiGVF03iokN7DpswiQ=";
+          sha256 = "0krkzra3dvhqmxs6jnqbf5a04p396dkkm5h46in90qdjh117xf50";
         };
         libName = "engawa_wgpu";
         authors = [
@@ -3376,7 +3376,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/garasu";
           rev = "6388c3c61fcc19f546ac048f0228554d56ef3f27";
-          sha256 = "sha256-uPCfyAyMNWcmPkNyKevwMtboJssTRpiVF+fADD9oma8=";
+          sha256 = "1sbd5z7vfrn3mp70wf151nq9c7411h7mj7afdy20hci15475046g";
         };
         dependencies = [
           {
@@ -3664,7 +3664,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
           rev = "5db7873c9a109f619474228cbea15d64b4825b8a";
-          sha256 = "sha256-LJrkEo5yMS2OqfM7vsZje+uBfB6z4rfO6ZGzFzQTNdo=";
+          sha256 = "0wx0058js6a4z3d7ds50vj1jd3gqsfa3minlqikg2i5d12nbwb6x";
         };
         dependencies = [
           {
@@ -3735,7 +3735,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
           rev = "5db7873c9a109f619474228cbea15d64b4825b8a";
-          sha256 = "sha256-LJrkEo5yMS2OqfM7vsZje+uBfB6z4rfO6ZGzFzQTNdo=";
+          sha256 = "1nim2cs1gcwix77bgqmk3ry83svvcg3bwfzkm672scbjiq9f96ic";
         };
         dependencies = [
           {
@@ -4125,7 +4125,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/hasami";
           rev = "18c3d943033dbbcd9fa1f24c0a0f8e05ee277b7a";
-          sha256 = "sha256-cUKBx933A4Cyh7yGii+kkPkS+Qb8m9xEYp7rLPkL0dM=";
+          sha256 = "0ii3vxgi8f3abl0dhyxrq61m5d59jb88513f0bja4wsagqhypdin";
         };
         dependencies = [
           {
@@ -4581,7 +4581,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/ishou";
           rev = "1cfd3cf0231c461a484df7c79309f8201ca42c0a";
-          sha256 = "sha256-WmF3/as+2svnZo3GLDWa2GqqfFiwjUcVLWxji1Ri6Cs=";
+          sha256 = "0a0xf6qaaj89bll0dj4h4mgplgkww8wz6yv230zja4z8sj80y6jz";
         };
         libName = "ishou_tokens";
         dependencies = [
@@ -4840,7 +4840,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/kaname";
           rev = "e3ad595fb4d9b3534bdad2214798e09f3f4e2f64";
-          sha256 = "sha256-iTmJKDZdwunzGPvYin6iqcBJ7CSniI30LIpdW8an8m8=";
+          sha256 = "1hpbdi8lzxsia2j0pcpza1izj95z1zwl3j7ihxbf3r0f9n8kvsim";
         };
         dependencies = [
           {
@@ -5518,7 +5518,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/madori";
           rev = "68821b2bd84291feba55065104c121a968facf03";
-          sha256 = "sha256-ZJFizr5L8bo3ZOhk+Y047/GHE12WU7kUb6bR2LofYm8=";
+          sha256 = "1kr979sm6pdlzwnnyi3r53ir4dj3sd2fqcgkpfvqq9kvynrhkyd9";
         };
         dependencies = [
           {
@@ -12060,7 +12060,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shidou";
           rev = "a6fc83d91e5010346e89a37010f26f1c0d45ff9a";
-          sha256 = "sha256-vNiIikvEAfXg8whPJxPhaCkXotc7yIYfED2qBhO8FSU=";
+          sha256 = "10nkqrw2wrjmimdq1jr5kgibnsi5hqp73dbsj58z8skp739g8hdr";
         };
         dependencies = [
           {
@@ -12473,7 +12473,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/soushi";
           rev = "bdf50c79255e1f12bd1829f13bdf4ec4ff03b88b";
-          sha256 = "sha256-vFkeu+EN43CmNi0Gw7p1Gf+l2kk+a3fEeirzprV65zA=";
+          sha256 = "0k0lgcvil34fdfizg4b0is409bnwfr07h99d7idzmf1rw79hl7z4";
         };
         dependencies = [
           {
@@ -12734,7 +12734,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
           rev = "c52d55f59d8b79b7c163002c6fd76cd3c3e3561f";
-          sha256 = "sha256-XJDwPMSDeQW0DGUin1YUOy/EraCSeEG8CI6RAImUDA0=";
+          sha256 = "1rr7p4v1w6f3d72pkbmzf8fg6w90x3g5w5mj1w3glkmrmp3n2cr5";
         };
         libName = "tear_client";
         authors = [
@@ -12781,7 +12781,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
           rev = "c52d55f59d8b79b7c163002c6fd76cd3c3e3561f";
-          sha256 = "sha256-XJDwPMSDeQW0DGUin1YUOy/EraCSeEG8CI6RAImUDA0=";
+          sha256 = "1rr7p4v1w6f3d72pkbmzf8fg6w90x3g5w5mj1w3glkmrmp3n2cr5";
         };
         libName = "tear_config";
         authors = [
@@ -12840,7 +12840,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
           rev = "c52d55f59d8b79b7c163002c6fd76cd3c3e3561f";
-          sha256 = "sha256-XJDwPMSDeQW0DGUin1YUOy/EraCSeEG8CI6RAImUDA0=";
+          sha256 = "1rr7p4v1w6f3d72pkbmzf8fg6w90x3g5w5mj1w3glkmrmp3n2cr5";
         };
         libName = "tear_core";
         authors = [
@@ -12920,7 +12920,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
           rev = "c52d55f59d8b79b7c163002c6fd76cd3c3e3561f";
-          sha256 = "sha256-XJDwPMSDeQW0DGUin1YUOy/EraCSeEG8CI6RAImUDA0=";
+          sha256 = "1rr7p4v1w6f3d72pkbmzf8fg6w90x3g5w5mj1w3glkmrmp3n2cr5";
         };
         libName = "tear_daemon";
         authors = [
@@ -12981,7 +12981,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
           rev = "c52d55f59d8b79b7c163002c6fd76cd3c3e3561f";
-          sha256 = "sha256-XJDwPMSDeQW0DGUin1YUOy/EraCSeEG8CI6RAImUDA0=";
+          sha256 = "1rr7p4v1w6f3d72pkbmzf8fg6w90x3g5w5mj1w3glkmrmp3n2cr5";
         };
         libName = "tear_types";
         authors = [
