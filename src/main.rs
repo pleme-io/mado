@@ -42,6 +42,7 @@ mod term_spec;
 mod terminal;
 mod theme;
 mod url;
+mod vigy_host;
 // mod window removed at Phase 4 — single-pane mado uses single_pane.
 
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -328,8 +329,17 @@ fn main() -> anyhow::Result<()> {
         Some(SubCmd::Mcp) => {
             shidou::init_tracing_to_stderr();
             let rt = shidou::create_runtime()?;
-            rt.block_on(mcp::run())
-                .map_err(|e| anyhow::anyhow!("MCP server error: {e}"))?;
+            rt.block_on(async {
+                // Boot the embedded vigy reconciler runtime before the
+                // MCP server starts — its tool catalog is registered on
+                // the same kaname tool router. Best-effort: if it fails,
+                // we log + continue with the bare MCP surface.
+                if let Err(e) = vigy_host::init().await {
+                    tracing::warn!(err = %e, "embedded vigy runtime failed to start; continuing without it");
+                }
+                mcp::run().await
+            })
+            .map_err(|e| anyhow::anyhow!("MCP server error: {e}"))?;
             return Ok(());
         }
         Some(SubCmd::PrintPosture) => {

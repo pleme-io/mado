@@ -70,6 +70,13 @@ tear-core = { git = "https://github.com/pleme-io/tear", features = ["engate"] }
 tear-client = { git = "https://github.com/pleme-io/tear", features = ["engate"] }
 tear-config = { git = "https://github.com/pleme-io/tear" }
 
+# Vigy — always-on tatara-lisp reconciler runtime, embedded in-process.
+# Hosts small reconcilers ("vigies") that tick continuously to keep
+# pieces of mado's state always-converging toward desired. Apps inside
+# panes can register more vigies at runtime via the MCP tools (and via
+# the OSC 1338 extension, future). See pleme-io/vigy for the primitive.
+vigy = { git = "https://github.com/pleme-io/vigy", default-features = false, features = ["mcp"] }
+
 # engate typed-attach primitive — mado's gui_tear_attach uses it to
 # wrap the daemon-mode or embedded-mode tear Producer into one
 # typestate-enforced attach lifecycle. branch=main pinned to match

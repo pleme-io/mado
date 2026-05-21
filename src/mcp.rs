@@ -1065,6 +1065,104 @@ impl MadoMcp {
             },
         )
     }
+
+    // ─────────────────────────────────────────────────────────────────
+    // vigy — embedded tatara-lisp reconciler runtime
+    // ─────────────────────────────────────────────────────────────────
+    //
+    // All five tools delegate to `vigy::mcp::dispatch` via the
+    // process-wide MadoVigyHost (see crate::vigy_host). If the host
+    // failed to start (rare — disk full / sqlite open error), the
+    // tools return {ok: false, error: ...} rather than panicking.
+
+    #[tool(description = "Register a new tatara-lisp reconciler (vigy) in mado's embedded vigy runtime. Vigies tick continuously inside mado; their tatara-lisp programs emit ReconcileActions via (vigy-emit / vigy-pull / vigy-push / vigy-noop). Idempotent: same name+program yields the same id.")]
+    async fn vigy_register(&self, Parameters(input): Parameters<VigyRegisterInput>) -> String {
+        vigy_dispatch(
+            "vigy_register",
+            serde_json::json!({
+                "name": input.name,
+                "program": input.program,
+                "tick_interval_ms": input.tick_interval_ms.unwrap_or(1000),
+                "enabled": input.enabled.unwrap_or(true),
+                "labels": input.labels.unwrap_or_default(),
+            }),
+        )
+        .await
+    }
+
+    #[tool(description = "List registered vigies. Optional kubernetes-style label selector (k=v,k=v).")]
+    async fn vigy_list(&self, Parameters(input): Parameters<VigyListInput>) -> String {
+        vigy_dispatch(
+            "vigy_list",
+            serde_json::json!({
+                "label_selector": input.label_selector,
+                "limit": input.limit,
+            }),
+        )
+        .await
+    }
+
+    #[tool(description = "Inspect a single vigy + its 5 most-recent runs (id + result + actions emitted).")]
+    async fn vigy_inspect(&self, Parameters(input): Parameters<VigyIdInput>) -> String {
+        vigy_dispatch("vigy_inspect", serde_json::json!({ "id": input.id })).await
+    }
+
+    #[tool(description = "Force-tick a vigy now. Returns the resulting VigyRun (actions, result, error if any).")]
+    async fn vigy_tick(&self, Parameters(input): Parameters<VigyIdInput>) -> String {
+        vigy_dispatch("vigy_tick", serde_json::json!({ "id": input.id })).await
+    }
+
+    #[tool(description = "Delete a vigy permanently. Recorded VigyRuns remain in the SQLite store for audit.")]
+    async fn vigy_delete(&self, Parameters(input): Parameters<VigyIdInput>) -> String {
+        vigy_dispatch("vigy_delete", serde_json::json!({ "id": input.id })).await
+    }
+}
+
+// ── vigy MCP plumbing ───────────────────────────────────────────────
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct VigyRegisterInput {
+    #[schemars(description = "Human-readable name. Combined with program to derive a stable id.")]
+    name: String,
+    #[schemars(description = "tatara-lisp source. See pleme-io/vigy README for the intrinsic surface (vigy-emit / vigy-pull / vigy-push / vigy-noop / vigy-log / vigy-tick).")]
+    program: String,
+    #[schemars(description = "Tick interval in milliseconds (≥ 100). Default 1000.")]
+    tick_interval_ms: Option<u64>,
+    #[schemars(description = "Whether the vigy ticks immediately. Default true.")]
+    enabled: Option<bool>,
+    #[schemars(description = "k=v labels. Useful for grouping (e.g. scope=tear-sync).")]
+    labels: Option<std::collections::BTreeMap<String, String>>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct VigyListInput {
+    #[schemars(description = "k=v,k=v selector.")]
+    label_selector: Option<String>,
+    #[schemars(description = "Max number of results.")]
+    limit: Option<u32>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct VigyIdInput {
+    #[schemars(description = "VigyId (16 lowercase hex chars).")]
+    id: String,
+}
+
+async fn vigy_dispatch(tool: &str, args: serde_json::Value) -> String {
+    let host = match crate::vigy_host::get() {
+        Some(h) => h,
+        None => {
+            return serde_json::json!({
+                "ok": false,
+                "error": "embedded vigy runtime not initialised; restart mado",
+            })
+            .to_string();
+        }
+    };
+    match host.dispatch(tool, args).await {
+        Ok(value) => serde_json::json!({ "ok": true, "result": value }).to_string(),
+        Err(e) => serde_json::json!({ "ok": false, "error": e.to_string() }).to_string(),
+    }
 }
 
 /// Per-tool client factory — fresh discovery + connection per
