@@ -287,6 +287,63 @@ pub fn detect_padding_or_fallback() -> u32 {
 /// `grep` over yesterday's output works.
 pub const FALLBACK_SCROLLBACK_LINES: u32 = 10_000;
 
+// ── Fleet convergence guard ──────────────────────────────────────
+//
+// Every FALLBACK_* constant above MUST match the corresponding
+// field on `ishou_tokens::FleetDefaults::prescribed()`. If they
+// drift, mado's defaults silently diverge from the rest of the
+// fleet (escriba, namimado, hibiki, hikki, etc.). The tests below
+// enforce convergence at compile-time-of-the-test-suite.
+//
+// When the next "fleet rebrand" comes — bump font, switch theme,
+// raise default scrollback — touch `FleetDefaults::prescribed()`
+// once; this test fails until the matching FALLBACK_* is updated
+// to match. Drift becomes a build failure, not a silent slip.
+
+#[cfg(test)]
+mod fleet_convergence_tests {
+    use super::*;
+    use ishou_tokens::FleetDefaults;
+
+    #[test]
+    fn fallback_font_family_matches_fleet_defaults() {
+        let fd = FleetDefaults::prescribed();
+        assert_eq!(
+            FALLBACK_FONT_FAMILY, fd.font_family,
+            "mado's FALLBACK_FONT_FAMILY drifted from FleetDefaults::prescribed().font_family — \
+             pick ONE source. Per the configuration prime directive, FleetDefaults wins."
+        );
+    }
+
+    #[test]
+    fn fallback_font_size_matches_fleet_defaults() {
+        let fd = FleetDefaults::prescribed();
+        assert!(
+            (FALLBACK_FONT_SIZE - fd.font_size).abs() < 0.001,
+            "FALLBACK_FONT_SIZE ({}) drifted from FleetDefaults ({}).",
+            FALLBACK_FONT_SIZE, fd.font_size
+        );
+    }
+
+    #[test]
+    fn fallback_padding_matches_fleet_defaults() {
+        let fd = FleetDefaults::prescribed();
+        assert_eq!(
+            FALLBACK_PADDING, fd.padding,
+            "FALLBACK_PADDING drifted from FleetDefaults::prescribed().padding"
+        );
+    }
+
+    #[test]
+    fn fallback_scrollback_matches_fleet_defaults() {
+        let fd = FleetDefaults::prescribed();
+        assert_eq!(
+            FALLBACK_SCROLLBACK_LINES as usize, fd.scrollback_lines,
+            "FALLBACK_SCROLLBACK_LINES drifted from FleetDefaults::prescribed().scrollback_lines"
+        );
+    }
+}
+
 /// Detect scrollback based on available RAM (high-memory machines
 /// get more). M1 returns None; the RAM probe is a follow-up.
 #[must_use]
