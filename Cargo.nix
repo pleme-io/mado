@@ -12473,7 +12473,7 @@ rec {
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/soushi";
           rev = "bdf50c79255e1f12bd1829f13bdf4ec4ff03b88b";
-          sha256 = "0k0lgcvil34fdfizg4b0is409bnwfr07h99d7idzmf1rw79hl7z4";
+          sha256 = "sha256-vFkeu+EN43CmNi0Gw7p1Gf+l2kk+a3fEeirzprV65zA=";
         };
         dependencies = [
           {
