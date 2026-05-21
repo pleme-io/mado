@@ -314,10 +314,26 @@ where
     let attach_live = attach_synced.start_live();
     crate::perf::log_phase("pane_subscribed");
 
+    // Shell-exit detection: when the engate Producer's bytes channel
+    // closes (= tear pane dropped = child PTY EOF), `attach_live.run()`
+    // returns. We flip this AtomicBool so the on_event handler can
+    // request a clean window close on the next tick — instead of the
+    // window hanging on a dead PTY (real incident: frostmourne `exit`
+    // 2026-05-21, window stayed blank until force-quit).
+    use std::sync::atomic::{AtomicBool, Ordering};
+    let child_exited = Arc::new(AtomicBool::new(false));
+    let child_exited_engate = Arc::clone(&child_exited);
+    let title_kind_owned: String = title_kind.to_owned();
     let _attach_thread = std::thread::Builder::new()
         .name(format!("mado-engate-live-{title_kind}"))
         .spawn(move || {
             let _consumer = attach_live.run();
+            tracing::info!(
+                kind = %title_kind_owned,
+                pane = ?pane_id,
+                "engate channel closed — child PTY EOF, signalling window exit"
+            );
+            child_exited_engate.store(true, Ordering::Release);
         })
         .ok();
 
@@ -389,9 +405,28 @@ where
     let mut key_repeat_gate =
         awase::KeyRepeatGate::<crate::keybind::Action>::new();
     let default_font_size_for_reset = config.font_size;
+    let child_exited_for_events = Arc::clone(&child_exited);
     madori::App::builder(renderer)
         .config(app_config)
         .on_event(move |event, renderer| -> EventResponse {
+            // ── Elegant child-exit close ──────────────────────
+            // engate signalled the producer channel closed (shell
+            // exited / PTY EOF). Request a clean window-loop exit
+            // on the next event tick. Reap the owned tear session
+            // too so we don't leak the multiplexer entry.
+            if child_exited_for_events.load(Ordering::Acquire) {
+                if let Ok(mut slot) = session_reap.lock() {
+                    if let Some(sid) = slot.take() {
+                        let _ = control_for_reap.kill_session(sid);
+                    }
+                }
+                return EventResponse {
+                    consumed: true,
+                    exit: true,
+                    ..Default::default()
+                };
+            }
+
             match event {
                 AppEvent::Resized { width, height } => {
                     let (cols, rows) = renderer.cells_for_window_phys(*width, *height);
