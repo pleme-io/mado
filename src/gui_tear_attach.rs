@@ -387,7 +387,7 @@ where
     // 14 → 32pt in 1.5s); the gate caps that to ~19 transitions
     // and `BoundedFontSize` caps the final value at FONT_MAX = 64.
     let mut key_repeat_gate =
-        crate::key_repeat_gate::KeyRepeatGate::<crate::keybind::Action>::new();
+        awase::KeyRepeatGate::<crate::keybind::Action>::new();
     let default_font_size_for_reset = config.font_size;
     madori::App::builder(renderer)
         .config(app_config)

@@ -19,7 +19,6 @@ mod config;
 mod engate_consumer;
 mod font_size;
 mod gui_tear_attach;
-mod key_repeat_gate;
 mod keybind;
 mod single_pane;
 mod tear_discovery;
