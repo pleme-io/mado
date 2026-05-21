@@ -285,7 +285,22 @@ where
     renderer.set_snow_config(config.effects.snow.clone());
 
     // engate typed Attach lifecycle — same shape both backends.
-    let consumer = crate::engate_consumer::TerminalSink::new(Arc::clone(&terminal));
+    // The TerminalSink writeback path closes the DSR/DA/OSC query
+    // loop: when the shell (frost, frostmourne, bash, zsh) sends
+    // `\x1b[6n` (cursor position query) etc., mado's VT engine
+    // generates the response, and this writer forwards it back to
+    // the tear pane's PTY. Without this, reedline-based shells
+    // (frost) time out with "cursor position could not be read".
+    let control_for_response_writer = Arc::clone(&control);
+    let response_writer: crate::engate_consumer::ResponseWriter = Arc::new(
+        move |bytes: &[u8]| {
+            let _ = control_for_response_writer.send_keys(pane_id, bytes);
+        },
+    );
+    let consumer = crate::engate_consumer::TerminalSink::new(
+        Arc::clone(&terminal),
+        response_writer,
+    );
     let attach_builder = engate_attach::Attach::builder()
         .producer(producer)
         .consumer(consumer)
