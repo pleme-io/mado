@@ -511,20 +511,52 @@ where
                             _ => {}
                         }
                     }
-                    // No bound action AND no platform modifier is held
-                    // (avoid forwarding `=` to PTY when the operator
-                    // typed Cmd-+ but the binding wasn't recognized).
-                    let mods = key_event.modifiers;
-                    let has_platform_mod = mods.meta || mods.ctrl;
-                    if has_platform_mod {
+                    // No bound mado action — translate to PTY bytes via
+                    // the shared helper. This is the same call shape the
+                    // legacy single-pane path in `main.rs` uses; both
+                    // sites flow through `keybind::madori_key_to_pty_
+                    // bytes` so Ctrl+letter (and Alt+char, cursor keys,
+                    // F-keys, Enter/Backspace/Tab/Escape/Space/Delete/
+                    // Home/End/PageUp/PageDown) reach the shell.
+                    //
+                    // Before consolidation this site dropped every
+                    // Ctrl+letter on the floor, killing frostmourne's
+                    // atuin/skim Ctrl-R history picker. Regression
+                    // guard: `keybind::tests::embedded_tear_flow_ctrl_
+                    // r_reaches_pty`.
+                    //
+                    // DECCKM (cursor-keys application mode) is queried
+                    // per keystroke via the typed `pane_cursor_keys_
+                    // mode` accessor on `MultiplexerControl` — no-alloc
+                    // on the `InProcess` backend, default fallback to
+                    // `pane_snapshot` on other backends. When vim /
+                    // less / etc. enter alt-screen and set DECCKM, this
+                    // returns true and the helper emits `ESC O A/B/C/D`
+                    // instead of `ESC [ A/B/C/D` for arrow keys. Errors
+                    // (`NoSuchPane` during shutdown race) degrade to
+                    // normal mode — the editor still receives valid
+                    // cursor keys.
+                    let app_cursor_mode = control_for_events
+                        .pane_cursor_keys_mode(pane_id)
+                        .unwrap_or(false);
+                    if let Some(bytes) = crate::keybind::madori_key_to_pty_bytes(
+                        &key_event.key,
+                        &key_event.text,
+                        key_event.modifiers,
+                        app_cursor_mode,
+                    ) {
+                        let _ = control_for_events.send_keys(pane_id, &bytes);
                         return EventResponse::consumed();
                     }
-                    if let Some(t) = &key_event.text {
-                        if !t.is_empty() {
-                            let _ = control_for_events.send_keys(pane_id, t.as_bytes());
-                        }
+                    // Helper returned None — bare Cmd shortcut with no
+                    // matching binding (consume, don't leak the bare
+                    // letter to the PTY) or a key with no PTY meaning
+                    // (let the OS handle media keys / F13+).
+                    if key_event.modifiers.meta {
+                        EventResponse::consumed()
+                    } else {
+                        EventResponse::ignored()
                     }
-                    EventResponse::consumed()
                 }
                 AppEvent::CloseRequested => {
                     if let Ok(mut slot) = session_reap.lock() {

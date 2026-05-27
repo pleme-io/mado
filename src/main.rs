@@ -1115,111 +1115,37 @@ fn main() -> anyhow::Result<()> {
                         }
                     }
 
-                    // Handle text input
-                    if let Some(text) = text {
-                        if !text.is_empty() {
-                            // Ctrl+letter → control byte (0x01..0x1A)
-                            if modifiers.ctrl && text.len() == 1 {
-                                let ch = text.chars().next().unwrap();
-                                if ch.is_ascii_alphabetic() {
-                                    let ctrl_byte =
-                                        (ch.to_ascii_lowercase() as u8) - b'a' + 1;
-                                    let ws = &*pane_for_events;
-                                    ws.send_input(vec![ctrl_byte]);
-                                    return with_cursor_visibility(
-                                        EventResponse::consumed(),
-                                        hide_cursor.then_some(false),
-                                    );
-                                }
-                            }
-
-                            // Alt+key → ESC prefix + character
-                            if modifiers.alt {
-                                let mut bytes = vec![0x1b];
-                                bytes.extend_from_slice(text.as_bytes());
-                                let ws = &*pane_for_events;
-                                ws.send_input(bytes);
-                                return with_cursor_visibility(
-                                    EventResponse::consumed(),
-                                    hide_cursor.then_some(false),
-                                );
-                            }
-
-                            let ws = &*pane_for_events;
-                            ws.send_input(text.as_bytes().to_vec());
-                            return with_cursor_visibility(
-                                EventResponse::consumed(),
-                                hide_cursor.then_some(false),
-                            );
-                        }
-                    }
-
-                    // Handle keys without text
+                    // Translate the key + text + modifiers to PTY bytes
+                    // through the shared helper. Single source of truth
+                    // across the legacy single-pane path here and the
+                    // embedded-tear path in `gui_tear_attach.rs`. See
+                    // `keybind::madori_key_to_pty_bytes` — and the
+                    // `embedded_tear_flow_ctrl_r_reaches_pty` regression
+                    // test that pins the 2026-05-26 Ctrl-R bug shut.
                     let ws = &*pane_for_events;
                     let app_mode = ws
                         .focused_pane()
                         .map(|p| p.terminal.read().cursor_keys_mode())
                         .unwrap_or(false);
-
-                    // Ctrl+letter for Char keys without text
-                    if modifiers.ctrl {
-                        if let madori::event::KeyCode::Char(ch) = key {
-                            if ch.is_ascii_alphabetic() {
-                                let ctrl_byte = (ch.to_ascii_lowercase() as u8) - b'a' + 1;
-                                ws.send_input(vec![ctrl_byte]);
-                                return with_cursor_visibility(
-                                    EventResponse::consumed(),
-                                    hide_cursor.then_some(false),
-                                );
-                            }
-                        }
-                    }
-
-                    // Alt+char for Char keys without text
-                    if modifiers.alt {
-                        if let madori::event::KeyCode::Char(ch) = key {
-                            let mut bytes = vec![0x1b];
-                            let mut buf = [0u8; 4];
-                            bytes.extend_from_slice(ch.encode_utf8(&mut buf).as_bytes());
-                            ws.send_input(bytes);
-                            return with_cursor_visibility(
-                                EventResponse::consumed(),
-                                hide_cursor.then_some(false),
-                            );
-                        }
-                    }
-
-                    let bytes: Option<Vec<u8>> = match key {
-                        madori::event::KeyCode::Enter => Some(b"\r".to_vec()),
-                        madori::event::KeyCode::Backspace => Some(b"\x7f".to_vec()),
-                        madori::event::KeyCode::Tab => Some(b"\t".to_vec()),
-                        madori::event::KeyCode::Escape => Some(b"\x1b".to_vec()),
-                        madori::event::KeyCode::Space => Some(b" ".to_vec()),
-                        // Cursor keys: application mode (ESC O x) vs normal (ESC [ x)
-                        madori::event::KeyCode::Up => Some(cursor_key(b'A', app_mode)),
-                        madori::event::KeyCode::Down => Some(cursor_key(b'B', app_mode)),
-                        madori::event::KeyCode::Right => Some(cursor_key(b'C', app_mode)),
-                        madori::event::KeyCode::Left => Some(cursor_key(b'D', app_mode)),
-                        madori::event::KeyCode::Home => Some(cursor_key(b'H', app_mode)),
-                        madori::event::KeyCode::End => Some(cursor_key(b'F', app_mode)),
-                        madori::event::KeyCode::Delete => Some(b"\x1b[3~".to_vec()),
-                        madori::event::KeyCode::PageUp => Some(b"\x1b[5~".to_vec()),
-                        madori::event::KeyCode::PageDown => Some(b"\x1b[6~".to_vec()),
-                        // F1-F12
-                        madori::event::KeyCode::F(n) => Some(f_key_escape(*n)),
-                        _ => None,
-                    };
-                    if let Some(bytes) = bytes {
+                    if let Some(bytes) = crate::keybind::madori_key_to_pty_bytes(
+                        key, text, *modifiers, app_mode,
+                    ) {
                         ws.send_input(bytes);
                         return with_cursor_visibility(
                             EventResponse::consumed(),
                             hide_cursor.then_some(false),
                         );
                     }
-                    with_cursor_visibility(
-                        EventResponse::ignored(),
-                        hide_cursor.then_some(false),
-                    )
+                    // Helper returned None — bare Cmd shortcut (consume
+                    // so the bare letter doesn't leak to the PTY) or a
+                    // truly unmapped key (ignored so the OS can handle
+                    // media keys / F13+ / etc.).
+                    let resp = if modifiers.meta {
+                        EventResponse::consumed()
+                    } else {
+                        EventResponse::ignored()
+                    };
+                    with_cursor_visibility(resp, hide_cursor.then_some(false))
                 }
                 // IME commit — forward composed text to PTY
                 AppEvent::Ime(madori::ImeEvent::Commit(text)) => {
@@ -1741,34 +1667,6 @@ fn char_to_awase_key(ch: char) -> Option<awase::Key> {
     }
 }
 
-/// Generate cursor key escape sequence based on mode.
-fn cursor_key(ch: u8, application_mode: bool) -> Vec<u8> {
-    if application_mode {
-        vec![0x1b, b'O', ch]
-    } else {
-        vec![0x1b, b'[', ch]
-    }
-}
-
-/// Generate F-key escape sequences.
-fn f_key_escape(n: u8) -> Vec<u8> {
-    match n {
-        1 => b"\x1bOP".to_vec(),
-        2 => b"\x1bOQ".to_vec(),
-        3 => b"\x1bOR".to_vec(),
-        4 => b"\x1bOS".to_vec(),
-        5 => b"\x1b[15~".to_vec(),
-        6 => b"\x1b[17~".to_vec(),
-        7 => b"\x1b[18~".to_vec(),
-        8 => b"\x1b[19~".to_vec(),
-        9 => b"\x1b[20~".to_vec(),
-        10 => b"\x1b[21~".to_vec(),
-        11 => b"\x1b[23~".to_vec(),
-        12 => b"\x1b[24~".to_vec(),
-        _ => vec![],
-    }
-}
-
 fn default_shell() -> String {
     std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_string())
 }
@@ -1902,79 +1800,14 @@ mod tests {
         assert!(ishou_tokens::Srgb::from_hex("#zzzzzz").is_none());
     }
 
-    // ---- cursor_key ----
-
-    #[test]
-    fn test_cursor_key_up_normal() {
-        assert_eq!(cursor_key(b'A', false), b"\x1b[A");
-    }
-
-    #[test]
-    fn test_cursor_key_up_app_mode() {
-        assert_eq!(cursor_key(b'A', true), b"\x1bOA");
-    }
-
-    #[test]
-    fn test_cursor_key_down_normal() {
-        assert_eq!(cursor_key(b'B', false), b"\x1b[B");
-    }
-
-    #[test]
-    fn test_cursor_key_left_normal() {
-        assert_eq!(cursor_key(b'D', false), b"\x1b[D");
-    }
-
-    #[test]
-    fn test_cursor_key_right_normal() {
-        assert_eq!(cursor_key(b'C', false), b"\x1b[C");
-    }
-
-    #[test]
-    fn test_cursor_key_home_app_mode() {
-        assert_eq!(cursor_key(b'H', true), b"\x1bOH");
-    }
-
-    // ---- f_key_escape ----
-
-    #[test]
-    fn test_f_key_f1() {
-        assert_eq!(f_key_escape(1), b"\x1bOP");
-    }
-
-    #[test]
-    fn test_f_key_f2() {
-        assert_eq!(f_key_escape(2), b"\x1bOQ");
-    }
-
-    #[test]
-    fn test_f_key_f3() {
-        assert_eq!(f_key_escape(3), b"\x1bOR");
-    }
-
-    #[test]
-    fn test_f_key_f4() {
-        assert_eq!(f_key_escape(4), b"\x1bOS");
-    }
-
-    #[test]
-    fn test_f_key_f5() {
-        assert_eq!(f_key_escape(5), b"\x1b[15~");
-    }
-
-    #[test]
-    fn test_f_key_f12() {
-        assert_eq!(f_key_escape(12), b"\x1b[24~");
-    }
-
-    #[test]
-    fn test_f_key_out_of_range() {
-        assert!(f_key_escape(13).is_empty());
-    }
-
-    #[test]
-    fn test_f_key_zero() {
-        assert!(f_key_escape(0).is_empty());
-    }
+    // cursor_key + f_key_escape moved into `keybind::cursor_key_bytes`
+    // and `keybind::f_key_escape` as part of the input-encoding
+    // consolidation. Coverage lives next to the helpers — see the
+    // `cursor_keys_normal_mode_emit_csi`, `cursor_keys_application_
+    // mode_emit_ss3`, and `f_keys_map_to_xterm_sequences` tests in
+    // `keybind.rs`. The `embedded_tear_flow_ctrl_r_reaches_pty` test
+    // there is the dedicated regression guard for the 2026-05-26
+    // Ctrl-R bug.
 
     // ---- default_shell ----
 

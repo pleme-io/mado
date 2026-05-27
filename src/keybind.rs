@@ -277,6 +277,134 @@ impl Default for KeybindManager {
     }
 }
 
+/// Encode a cursor key under the active DECCKM mode.
+///
+/// `application_mode = true` → `ESC O <ch>` (DECCKM set, mode `?1h`).
+/// `application_mode = false` → `ESC [ <ch>` (DECCKM reset, default).
+///
+/// `ch` is the trailing letter for the sequence:
+/// `b'A'` Up, `b'B'` Down, `b'C'` Right, `b'D'` Left, `b'H'` Home,
+/// `b'F'` End.
+#[must_use]
+pub fn cursor_key_bytes(ch: u8, application_mode: bool) -> Vec<u8> {
+    if application_mode {
+        vec![0x1b, b'O', ch]
+    } else {
+        vec![0x1b, b'[', ch]
+    }
+}
+
+/// Encode an F1–F12 keystroke as the xterm-canonical escape sequence.
+/// Returns an empty `Vec` for `n` outside `1..=12` to match the
+/// legacy `main.rs` helper this consolidates.
+#[must_use]
+pub fn f_key_escape(n: u8) -> Vec<u8> {
+    match n {
+        1 => b"\x1bOP".to_vec(),
+        2 => b"\x1bOQ".to_vec(),
+        3 => b"\x1bOR".to_vec(),
+        4 => b"\x1bOS".to_vec(),
+        5 => b"\x1b[15~".to_vec(),
+        6 => b"\x1b[17~".to_vec(),
+        7 => b"\x1b[18~".to_vec(),
+        8 => b"\x1b[19~".to_vec(),
+        9 => b"\x1b[20~".to_vec(),
+        10 => b"\x1b[21~".to_vec(),
+        11 => b"\x1b[23~".to_vec(),
+        12 => b"\x1b[24~".to_vec(),
+        _ => vec![],
+    }
+}
+
+/// Translate a madori `KeyEvent` (key + text + modifiers) into the
+/// raw PTY byte sequence the running shell expects.
+///
+/// **Single source of truth** for the legacy `main.rs` path and the
+/// embedded-tear `gui_tear_attach.rs` path. Prior to consolidation
+/// these two paths had divergent logic — the tear path silently
+/// dropped every `Ctrl+letter` keystroke (including `Ctrl-R`, which
+/// killed atuin/skim history search). See the dedicated regression
+/// test `ctrl_r_produces_0x12_via_helper` below — that one exists
+/// to prevent the regression.
+///
+/// Returns:
+/// - `Some(bytes)` when the keystroke maps to PTY bytes.
+/// - `None` when the keystroke has no PTY translation — caller
+///   decides whether to drop it (bare Cmd + no matching binding)
+///   or ignore it (e.g. modifier-only keystroke).
+///
+/// `app_cursor_mode` is the active DECCKM state for the destination
+/// terminal. Pass `false` for the embedded-tear path until tear-core
+/// gains DECCKM tracking.
+#[must_use]
+pub fn madori_key_to_pty_bytes(
+    key: &madori::event::KeyCode,
+    text: &Option<String>,
+    modifiers: madori::event::Modifiers,
+    app_cursor_mode: bool,
+) -> Option<Vec<u8>> {
+    // Cmd-only (no Ctrl, no Alt) with no matching keybinding is a
+    // GUI shortcut, not PTY input. Caller drops.
+    if modifiers.meta && !modifiers.ctrl && !modifiers.alt {
+        return None;
+    }
+
+    if let Some(t) = text {
+        if !t.is_empty() {
+            if modifiers.ctrl && t.len() == 1 {
+                let ch = t.chars().next().unwrap();
+                if ch.is_ascii_alphabetic() {
+                    let ctrl_byte = (ch.to_ascii_lowercase() as u8) - b'a' + 1;
+                    return Some(vec![ctrl_byte]);
+                }
+            }
+            if modifiers.alt {
+                let mut bytes = vec![0x1b];
+                bytes.extend_from_slice(t.as_bytes());
+                return Some(bytes);
+            }
+            return Some(t.as_bytes().to_vec());
+        }
+    }
+
+    if modifiers.ctrl {
+        if let madori::event::KeyCode::Char(ch) = key {
+            if ch.is_ascii_alphabetic() {
+                let ctrl_byte = (ch.to_ascii_lowercase() as u8) - b'a' + 1;
+                return Some(vec![ctrl_byte]);
+            }
+        }
+    }
+
+    if modifiers.alt {
+        if let madori::event::KeyCode::Char(ch) = key {
+            let mut bytes = vec![0x1b];
+            let mut buf = [0u8; 4];
+            bytes.extend_from_slice(ch.encode_utf8(&mut buf).as_bytes());
+            return Some(bytes);
+        }
+    }
+
+    match key {
+        madori::event::KeyCode::Enter => Some(b"\r".to_vec()),
+        madori::event::KeyCode::Backspace => Some(b"\x7f".to_vec()),
+        madori::event::KeyCode::Tab => Some(b"\t".to_vec()),
+        madori::event::KeyCode::Escape => Some(b"\x1b".to_vec()),
+        madori::event::KeyCode::Space => Some(b" ".to_vec()),
+        madori::event::KeyCode::Up => Some(cursor_key_bytes(b'A', app_cursor_mode)),
+        madori::event::KeyCode::Down => Some(cursor_key_bytes(b'B', app_cursor_mode)),
+        madori::event::KeyCode::Right => Some(cursor_key_bytes(b'C', app_cursor_mode)),
+        madori::event::KeyCode::Left => Some(cursor_key_bytes(b'D', app_cursor_mode)),
+        madori::event::KeyCode::Home => Some(cursor_key_bytes(b'H', app_cursor_mode)),
+        madori::event::KeyCode::End => Some(cursor_key_bytes(b'F', app_cursor_mode)),
+        madori::event::KeyCode::Delete => Some(b"\x1b[3~".to_vec()),
+        madori::event::KeyCode::PageUp => Some(b"\x1b[5~".to_vec()),
+        madori::event::KeyCode::PageDown => Some(b"\x1b[6~".to_vec()),
+        madori::event::KeyCode::F(n) => Some(f_key_escape(*n)),
+        _ => None,
+    }
+}
+
 /// Parse an action name from config into an Action enum.
 pub fn parse_action(name: &str) -> Option<Action> {
     match name {
@@ -651,5 +779,340 @@ mod tests {
     fn test_parse_action_unknown() {
         assert_eq!(parse_action("not_a_real_action"), None);
         assert_eq!(parse_action(""), None);
+    }
+
+    // ── madori_key_to_pty_bytes coverage ─────────────────────────
+    //
+    // The block below pins the byte translation that BOTH the
+    // legacy single-pane (`main.rs`) and embedded-tear
+    // (`gui_tear_attach.rs`) input paths now share. The named
+    // `ctrl_r_produces_0x12_via_helper` test is the dedicated
+    // regression guard for the 2026-05-26 Ctrl-R bug — the
+    // embedded-tear path used to drop every Ctrl+letter on the
+    // floor before reaching the PTY.
+
+    fn mods(ctrl: bool, alt: bool, shift: bool, meta: bool) -> madori::event::Modifiers {
+        madori::event::Modifiers { ctrl, alt, shift, meta }
+    }
+
+    #[test]
+    fn ctrl_r_produces_0x12_via_helper() {
+        // ─── REGRESSION GUARD ───────────────────────────────────
+        // Pressing Ctrl-R in a mado window MUST produce the byte
+        // 0x12 on the PTY so frostmourne's atuin/skim history
+        // picker can fire. Before consolidation, the embedded-tear
+        // path swallowed this keystroke. If this test fails, the
+        // history picker is broken for every operator. Do not
+        // weaken or delete it without an explicit replacement
+        // assertion at the call site.
+        let key = madori::event::KeyCode::Char('r');
+        let bytes = madori_key_to_pty_bytes(&key, &None, mods(true, false, false, false), false);
+        assert_eq!(bytes.as_deref(), Some(&[0x12u8][..]),
+            "Ctrl-R must produce 0x12 (DC2 / ^R) — frostmourne's history picker relies on it");
+    }
+
+    #[test]
+    fn every_ctrl_letter_produces_correct_control_byte() {
+        // The 26 Ctrl+letter sequences MUST translate to 0x01..0x1A.
+        // Anything else regresses readline / atuin / vim / etc.
+        for (idx, letter) in ('a'..='z').enumerate() {
+            let expected = (idx as u8) + 1;
+            let key = madori::event::KeyCode::Char(letter);
+            let bytes = madori_key_to_pty_bytes(&key, &None, mods(true, false, false, false), false);
+            assert_eq!(bytes.as_deref(), Some(&[expected][..]),
+                "Ctrl-{} should map to {:#04x} (got {:?})", letter, expected, bytes);
+        }
+    }
+
+    #[test]
+    fn ctrl_letter_via_text_branch_also_works() {
+        // Some keyboard layouts surface Ctrl+letter as `text = Some("r")`
+        // instead of `KeyCode::Char('r')` with empty text. Both shapes
+        // must produce the same control byte.
+        let key = madori::event::KeyCode::Char('r');
+        let bytes = madori_key_to_pty_bytes(
+            &key, &Some("r".to_string()), mods(true, false, false, false), false,
+        );
+        assert_eq!(bytes.as_deref(), Some(&[0x12u8][..]));
+    }
+
+    #[test]
+    fn alt_char_prepends_escape() {
+        let key = madori::event::KeyCode::Char('b');
+        let bytes = madori_key_to_pty_bytes(&key, &None, mods(false, true, false, false), false);
+        assert_eq!(bytes.as_deref(), Some(&[0x1b, b'b'][..]));
+    }
+
+    #[test]
+    fn alt_text_prepends_escape() {
+        let key = madori::event::KeyCode::Char('b');
+        let bytes = madori_key_to_pty_bytes(
+            &key, &Some("b".to_string()), mods(false, true, false, false), false,
+        );
+        assert_eq!(bytes.as_deref(), Some(&[0x1b, b'b'][..]));
+    }
+
+    #[test]
+    fn bare_cmd_returns_none_so_caller_can_drop() {
+        // Cmd-X with no matching keybinding is a GUI shortcut, not
+        // PTY input. Helper returns None — caller drops.
+        let key = madori::event::KeyCode::Char('x');
+        let bytes = madori_key_to_pty_bytes(
+            &key, &Some("x".to_string()), mods(false, false, false, true), false,
+        );
+        assert_eq!(bytes, None);
+    }
+
+    #[test]
+    fn ctrl_cmd_letter_still_produces_control_byte() {
+        // If both Ctrl and Cmd are held (e.g. global shortcut
+        // intent that includes Ctrl), the helper still emits the
+        // Ctrl byte; the keybinding lookup at the call site is
+        // what decides whether to consume vs forward.
+        let key = madori::event::KeyCode::Char('r');
+        let bytes = madori_key_to_pty_bytes(
+            &key, &None, mods(true, false, false, true), false,
+        );
+        assert_eq!(bytes.as_deref(), Some(&[0x12u8][..]));
+    }
+
+    #[test]
+    fn plain_text_passes_through() {
+        let key = madori::event::KeyCode::Char('a');
+        let bytes = madori_key_to_pty_bytes(
+            &key, &Some("a".to_string()), mods(false, false, false, false), false,
+        );
+        assert_eq!(bytes.as_deref(), Some(&b"a"[..]));
+    }
+
+    #[test]
+    fn shift_text_passes_through_uppercase() {
+        // madori does OS-level composition so Shift+r arrives as text="R".
+        let key = madori::event::KeyCode::Char('r');
+        let bytes = madori_key_to_pty_bytes(
+            &key, &Some("R".to_string()), mods(false, false, true, false), false,
+        );
+        assert_eq!(bytes.as_deref(), Some(&b"R"[..]));
+    }
+
+    #[test]
+    fn named_keys_map_to_canonical_bytes() {
+        let m = mods(false, false, false, false);
+        let cases: &[(madori::event::KeyCode, &[u8])] = &[
+            (madori::event::KeyCode::Enter,     b"\r"),
+            (madori::event::KeyCode::Backspace, b"\x7f"),
+            (madori::event::KeyCode::Tab,       b"\t"),
+            (madori::event::KeyCode::Escape,    b"\x1b"),
+            (madori::event::KeyCode::Space,     b" "),
+            (madori::event::KeyCode::Delete,    b"\x1b[3~"),
+            (madori::event::KeyCode::PageUp,    b"\x1b[5~"),
+            (madori::event::KeyCode::PageDown,  b"\x1b[6~"),
+        ];
+        for (key, expected) in cases {
+            let bytes = madori_key_to_pty_bytes(key, &None, m, false);
+            assert_eq!(bytes.as_deref(), Some(*expected),
+                "named key {:?} should map to {:?}", key, expected);
+        }
+    }
+
+    #[test]
+    fn cursor_keys_normal_mode_emit_csi() {
+        // DECCKM reset (default) → ESC [ <ch>
+        let m = mods(false, false, false, false);
+        for (key, ch) in [
+            (madori::event::KeyCode::Up,    b'A'),
+            (madori::event::KeyCode::Down,  b'B'),
+            (madori::event::KeyCode::Right, b'C'),
+            (madori::event::KeyCode::Left,  b'D'),
+            (madori::event::KeyCode::Home,  b'H'),
+            (madori::event::KeyCode::End,   b'F'),
+        ] {
+            let bytes = madori_key_to_pty_bytes(&key, &None, m, false);
+            assert_eq!(bytes.as_deref(), Some(&[0x1b, b'[', ch][..]),
+                "cursor key {:?} in normal mode should emit ESC [ {}", key, ch as char);
+        }
+    }
+
+    #[test]
+    fn cursor_keys_application_mode_emit_ss3() {
+        // DECCKM set → ESC O <ch>
+        let m = mods(false, false, false, false);
+        for (key, ch) in [
+            (madori::event::KeyCode::Up,    b'A'),
+            (madori::event::KeyCode::Down,  b'B'),
+            (madori::event::KeyCode::Right, b'C'),
+            (madori::event::KeyCode::Left,  b'D'),
+        ] {
+            let bytes = madori_key_to_pty_bytes(&key, &None, m, true);
+            assert_eq!(bytes.as_deref(), Some(&[0x1b, b'O', ch][..]),
+                "cursor key {:?} in app mode should emit ESC O {}", key, ch as char);
+        }
+    }
+
+    #[test]
+    fn f_keys_map_to_xterm_sequences() {
+        let m = mods(false, false, false, false);
+        let cases: &[(u8, &[u8])] = &[
+            (1,  b"\x1bOP"),     (2,  b"\x1bOQ"),     (3,  b"\x1bOR"),     (4,  b"\x1bOS"),
+            (5,  b"\x1b[15~"),   (6,  b"\x1b[17~"),   (7,  b"\x1b[18~"),   (8,  b"\x1b[19~"),
+            (9,  b"\x1b[20~"),   (10, b"\x1b[21~"),   (11, b"\x1b[23~"),   (12, b"\x1b[24~"),
+        ];
+        for (n, expected) in cases {
+            let bytes = madori_key_to_pty_bytes(&madori::event::KeyCode::F(*n), &None, m, false);
+            assert_eq!(bytes.as_deref(), Some(*expected),
+                "F{} should map to {:?}", n, expected);
+        }
+    }
+
+    #[test]
+    fn unknown_key_with_no_text_returns_none() {
+        // A keystroke that has no text and no name (e.g. media keys)
+        // returns None so the call site can ignore it.
+        let bytes = madori_key_to_pty_bytes(
+            &madori::event::KeyCode::F(99),
+            &None,
+            mods(false, false, false, false),
+            false,
+        );
+        // F(99) hits the F-key arm → f_key_escape returns an empty
+        // Vec by design. Caller should treat empty-byte payload as
+        // "ignore" semantically — that's preserved from the legacy
+        // helper.
+        assert_eq!(bytes.as_deref(), Some(&[][..]));
+    }
+
+    #[test]
+    fn ctrl_non_letter_falls_through_to_text() {
+        // Ctrl+] arrives as text="]" (or similar). The helper has no
+        // ctrl-symbol mapping; it forwards the text as-is. That
+        // preserves the legacy behaviour — terminal apps that want
+        // ctrl-symbol handling read raw bytes via termios.
+        let key = madori::event::KeyCode::Char(']');
+        let bytes = madori_key_to_pty_bytes(
+            &key, &Some("]".to_string()), mods(true, false, false, false), false,
+        );
+        assert_eq!(bytes.as_deref(), Some(&b"]"[..]));
+    }
+
+    // ── End-to-end regression: simulate the embedded-tear flow ──
+    //
+    // This test composes the keybind action lookup with the byte
+    // helper exactly the way `gui_tear_attach.rs` does. It is the
+    // canonical "the Ctrl-R bug cannot return" guard — if anyone
+    // re-introduces a `meta || ctrl` drop guard in the tear path
+    // without first calling `madori_key_to_pty_bytes`, this test
+    // catches it at the unit level.
+
+    #[test]
+    fn embedded_tear_flow_ctrl_r_reaches_pty() {
+        let manager = KeybindManager::with_mado_defaults();
+        let event = madori::event::KeyEvent {
+            key: madori::event::KeyCode::Char('r'),
+            text: None,
+            modifiers: mods(true, false, false, false),
+            pressed: true,
+        };
+
+        // Step 1: keybind lookup. Ctrl-R has no default action —
+        // so we MUST fall through to PTY translation.
+        let action = manager.lookup_madori(&event);
+        assert!(action.is_none(),
+            "Ctrl-R must not have a default mado keybinding — \
+             frostmourne owns it via skim+atuin");
+
+        // Step 2: byte translation. Must produce 0x12 (^R / DC2).
+        let bytes = madori_key_to_pty_bytes(
+            &event.key, &event.text, event.modifiers, false,
+        );
+        assert_eq!(bytes.as_deref(), Some(&[0x12u8][..]),
+            "Ctrl-R MUST be translated to 0x12 for frostmourne to receive it");
+    }
+
+    #[test]
+    fn embedded_tear_flow_bare_cmd_drops() {
+        // The symmetric case: Cmd+letter with no matching binding
+        // returns None so the call site can drop (don't leak the
+        // bare letter to the PTY).
+        let manager = KeybindManager::with_mado_defaults();
+        let event = madori::event::KeyEvent {
+            key: madori::event::KeyCode::Char('j'),
+            text: Some("j".to_string()),
+            modifiers: mods(false, false, false, true),
+            pressed: true,
+        };
+
+        let action = manager.lookup_madori(&event);
+        assert!(action.is_none(), "Cmd+J has no default binding");
+
+        let bytes = madori_key_to_pty_bytes(
+            &event.key, &event.text, event.modifiers, false,
+        );
+        assert_eq!(bytes, None,
+            "bare Cmd with no matching binding must NOT leak text to the PTY");
+    }
+
+    #[test]
+    fn embedded_tear_flow_arrow_keys_respect_decckm() {
+        // Vim, less, htop, btop, etc. set DECCKM (CSI ? 1 h) on
+        // alt-screen entry and reset it on exit. The embedded-tear
+        // path queries `pane_cursor_keys_mode` and passes the result
+        // here; this test pins that arrow-key encoding flips
+        // correctly with that input.
+        let event = madori::event::KeyEvent {
+            key: madori::event::KeyCode::Up,
+            text: None,
+            modifiers: mods(false, false, false, false),
+            pressed: true,
+        };
+
+        // Normal mode (DECCKM reset, shell at the prompt) → ESC [ A.
+        let normal = madori_key_to_pty_bytes(
+            &event.key, &event.text, event.modifiers, false,
+        );
+        assert_eq!(normal.as_deref(), Some(&b"\x1b[A"[..]),
+            "Up in normal mode must emit ESC [ A — bash prompt-history navigation depends on it");
+
+        // Application mode (DECCKM set, vim in alt-screen) → ESC O A.
+        let app = madori_key_to_pty_bytes(
+            &event.key, &event.text, event.modifiers, true,
+        );
+        assert_eq!(app.as_deref(), Some(&b"\x1bOA"[..]),
+            "Up in application mode must emit ESC O A — vim cursor-key handling depends on it");
+    }
+
+    #[test]
+    fn embedded_tear_flow_common_shell_chords_all_reach_pty() {
+        // Pin the full set of shell control chords that the embedded-
+        // tear path must forward. If any one of these regresses to
+        // None, the corresponding shell behaviour breaks.
+        let cases: &[(char, u8, &str)] = &[
+            ('a', 0x01, "Ctrl-A: beginning-of-line"),
+            ('b', 0x02, "Ctrl-B: backward-char"),
+            ('c', 0x03, "Ctrl-C: SIGINT"),
+            ('d', 0x04, "Ctrl-D: EOF"),
+            ('e', 0x05, "Ctrl-E: end-of-line"),
+            ('f', 0x06, "Ctrl-F: forward-char"),
+            ('k', 0x0b, "Ctrl-K: kill-line"),
+            ('l', 0x0c, "Ctrl-L: clear-screen"),
+            ('n', 0x0e, "Ctrl-N: next-history"),
+            ('p', 0x10, "Ctrl-P: prev-history"),
+            ('r', 0x12, "Ctrl-R: history-search-backward / atuin"),
+            ('u', 0x15, "Ctrl-U: kill-line-backward"),
+            ('w', 0x17, "Ctrl-W: kill-word-backward"),
+            ('z', 0x1a, "Ctrl-Z: SIGTSTP"),
+        ];
+        for (ch, expected, label) in cases {
+            let event = madori::event::KeyEvent {
+                key: madori::event::KeyCode::Char(*ch),
+                text: None,
+                modifiers: mods(true, false, false, false),
+                pressed: true,
+            };
+            let bytes = madori_key_to_pty_bytes(
+                &event.key, &event.text, event.modifiers, false,
+            );
+            assert_eq!(bytes.as_deref(), Some(&[*expected][..]),
+                "{} — Ctrl-{} must map to {:#04x}", label, ch, expected);
+        }
     }
 }

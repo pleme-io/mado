@@ -275,14 +275,14 @@ checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
 name = "autocfg"
-version = "1.5.0"
+version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
+checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
 
 [[package]]
 name = "awase"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/awase#579f52fafb73cec2263f2a590cddfe28ede8e3cb"
+source = "git+https://github.com/pleme-io/awase#46f455818572b154e83fa1d0e9c7e33125f4c818"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -439,9 +439,9 @@ dependencies = [
 
 [[package]]
 name = "bumpalo"
-version = "3.20.2"
+version = "3.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d20789868f4b01b2f2caec9f5c4e0213b41e3e5702a50157d699ae31ced2fcb"
+checksum = "72f5acc6cb2ba439de613abc23857ec3d78374d8ed5ac84e9d11336e87da8649"
 
 [[package]]
 name = "bytecheck"
@@ -1040,9 +1040,9 @@ dependencies = [
 
 [[package]]
 name = "displaydoc"
-version = "0.2.5"
+version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97369cbbc041bc366949bc74d34658d6cda5621039731c6310521892a3a20ae0"
+checksum = "1ac70aa55017e108007fbaf5aa0f54b021c98f92ff8af59d42eda9da96e3dd4f"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1100,7 +1100,7 @@ checksum = "d0881ea181b1df73ff77ffaaf9c7544ecc11e82fba9b5f27b262a3c73a332555"
 [[package]]
 name = "egaku"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/egaku#a6dc7913a0690ff4c6a24636ce58baac7ae16cba"
+source = "git+https://github.com/pleme-io/egaku#1691840331f43a6d1cd707dc7397058e73494cc1"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -1121,7 +1121,7 @@ dependencies = [
 [[package]]
 name = "engate-attach"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/engate?branch=main#2dd9f06bd39b99cc6dcf190d9d47b629092984d8"
+source = "git+https://github.com/pleme-io/engate?branch=main#5b877a2025d34eb86346c95ca430f275e6441087"
 dependencies = [
  "drop_bomb",
  "engate-types",
@@ -1134,7 +1134,7 @@ dependencies = [
 [[package]]
 name = "engate-types"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/engate?branch=main#2dd9f06bd39b99cc6dcf190d9d47b629092984d8"
+source = "git+https://github.com/pleme-io/engate?branch=main#5b877a2025d34eb86346c95ca430f275e6441087"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -1143,7 +1143,7 @@ dependencies = [
 [[package]]
 name = "engawa"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/engawa#1474cdfd05848044ce4a0f6eabab51bc7eed6dad"
+source = "git+https://github.com/pleme-io/engawa#9b377af61a3c261b894649161186fb0361bc70bc"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -1152,7 +1152,7 @@ dependencies = [
 [[package]]
 name = "engawa-lisp"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/engawa-lisp#c33b483fa84a4aa8b0341e55d4e29ba8a36e209e"
+source = "git+https://github.com/pleme-io/engawa-lisp#c490e5b6edf432b4f840645e80180752cc9bdc96"
 dependencies = [
  "engawa",
  "thiserror 2.0.18",
@@ -1161,7 +1161,7 @@ dependencies = [
 [[package]]
 name = "engawa-snow"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/engawa-snow#71d080de0bea2972cd7b9114ce6b4d672503ec9e"
+source = "git+https://github.com/pleme-io/engawa-snow#e1ab71d6853e06095f22150288ca30381c2aab06"
 dependencies = [
  "bytemuck",
  "engawa",
@@ -1172,7 +1172,7 @@ dependencies = [
 [[package]]
 name = "engawa-wgpu"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/engawa-wgpu#34616638d3be2abf156d356054fa02224a9502f0"
+source = "git+https://github.com/pleme-io/engawa-wgpu#74ecf2491ad0680fecdde66b41a42705438a8dcd"
 dependencies = [
  "engawa",
  "thiserror 2.0.18",
@@ -1513,7 +1513,7 @@ dependencies = [
 [[package]]
 name = "garasu"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/garasu#6388c3c61fcc19f546ac048f0228554d56ef3f27"
+source = "git+https://github.com/pleme-io/garasu#d6a869906dc1f9fd2caf7ea7a182249b942d8a68"
 dependencies = [
  "bincode",
  "blake3",
@@ -1702,7 +1702,7 @@ dependencies = [
 [[package]]
 name = "hasami"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/hasami#18c3d943033dbbcd9fa1f24c0a0f8e05ee277b7a"
+source = "git+https://github.com/pleme-io/hasami#cc6563f18a5469bc9513c7a93d331f56eb18539f"
 dependencies = [
  "arboard",
  "thiserror 2.0.18",
@@ -2006,11 +2006,12 @@ dependencies = [
 
 [[package]]
 name = "irodori"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0dc14b88cf12196c0f37995676c3cd75c34511436be9c41f7877edb8b1cfcb1e"
+checksum = "7c1e6ec2a36084626fdbd4dcfb8beb53d0b5f6125b4cd54a4d45abddf6ffbbb9"
 dependencies = [
  "serde",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
@@ -2041,7 +2042,7 @@ checksum = "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695"
 [[package]]
 name = "ishou-tokens"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/ishou#4f106c9221cbdb5fdf98ad1e7c818f9c024fe3e6"
+source = "git+https://github.com/pleme-io/ishou#592d4488aa14f2b650d913a464381a94bda98e7a"
 dependencies = [
  "irodori",
  "serde",
@@ -2125,9 +2126,9 @@ dependencies = [
 
 [[package]]
 name = "js-sys"
-version = "0.3.98"
+version = "0.3.99"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67df7112613f8bfd9150013a0314e196f4800d3201ae742489d999db2f979f08"
+checksum = "142bc4740e452c1e57ade0cbc129f139c9093e354346f0872ef985f4f5cf5f11"
 dependencies = [
  "cfg-if",
  "futures-util",
@@ -2137,8 +2138,8 @@ dependencies = [
 
 [[package]]
 name = "kaname"
-version = "0.1.0"
-source = "git+https://github.com/pleme-io/kaname#e3ad595fb4d9b3534bdad2214798e09f3f4e2f64"
+version = "0.1.1"
+source = "git+https://github.com/pleme-io/kaname#a5b5a1bb88fc2bdd51d9f87221f01e21fdb9f34c"
 dependencies = [
  "rmcp",
  "schemars 1.2.1",
@@ -2225,9 +2226,9 @@ checksum = "b6d2cec3eae94f9f509c767b45932f1ada8350c4bdb85af2fcab4a3c14807981"
 
 [[package]]
 name = "libmimalloc-sys"
-version = "0.1.48"
+version = "0.1.49"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2892ae4ea6fa2cb7acb0e236a6880d39523239cd9089de71d220910ccc806790"
+checksum = "6a45a52f43e1c16f667ccfe4dd8c85b7f7c204fd5e3bf46c5b0db9a5c3c0b8e9"
 dependencies = [
  "cc",
 ]
@@ -2299,9 +2300,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.29"
+version = "0.4.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e5032e24019045c762d3c0f28f5b6b8bbf38563a65908389bf7978758920897"
+checksum = "616ec5685824bcc94416c6d4a7a446eea774a31efd7062c8480ba6fd06d7a6e5"
 
 [[package]]
 name = "lru"
@@ -2384,8 +2385,8 @@ dependencies = [
 
 [[package]]
 name = "madori"
-version = "0.1.0"
-source = "git+https://github.com/pleme-io/madori#68821b2bd84291feba55065104c121a968facf03"
+version = "0.1.1"
+source = "git+https://github.com/pleme-io/madori#34b3582ce0bcc8ac5a241ef12c112a221a3a87a0"
 dependencies = [
  "egaku",
  "garasu",
@@ -2428,9 +2429,9 @@ dependencies = [
 
 [[package]]
 name = "memchr"
-version = "2.8.0"
+version = "2.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8ca58f447f06ed17d5fc4043ce1b10dd205e060fb3ce5b979b8ed8e59ff3f79"
+checksum = "6b947ae49db0d222b1dbc6b113ce7248a3fc3a6ca21b696717bfc000ba4484d8"
 
 [[package]]
 name = "memmap2"
@@ -2467,9 +2468,9 @@ dependencies = [
 
 [[package]]
 name = "mimalloc"
-version = "0.1.51"
+version = "0.1.52"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ebca48a43116bc25f18a61360f1be98412f50cc218f5e52c823086b999a4a21a"
+checksum = "2d4139bb28d14ad1facf21d5eb8825051b326e172d216b39f6d31df53cc97862"
 dependencies = [
  "libmimalloc-sys",
 ]
@@ -3128,9 +3129,9 @@ checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
 
 [[package]]
 name = "orbclient"
-version = "0.3.54"
+version = "0.3.55"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a570f6bca41d29acb2139229a7c873ec99bc9a313bd10804081d89bfac8ff329"
+checksum = "5df339f526ea9a60e371768d50efc2f2508c7203290731565d1f7a6f71d21747"
 dependencies = [
  "libc",
  "libredox",
@@ -3265,9 +3266,9 @@ checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
 
 [[package]]
 name = "pgvector"
-version = "0.4.1"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc58e2d255979a31caa7cabfa7aac654af0354220719ab7a68520ae7a91e8c0b"
+checksum = "3673cba5b9a124916096a423b806a9f29620972c6c97b08db5f2053e9428b481"
 dependencies = [
  "serde",
 ]
@@ -3797,9 +3798,9 @@ checksum = "19b30a45b0cd0bcca8037f3d0dc3421eaf95327a17cad11964fb8179b4fc4832"
 
 [[package]]
 name = "rhai"
-version = "1.24.0"
+version = "1.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f9ef5dabe4c0b43d8f1187dc6beb67b53fe607fff7e30c5eb7f71b814b8c2c1"
+checksum = "5cdc552c1c198f0565e1deb9d85d380caedcc488e6ac3cb6f947c7ae77041e08"
 dependencies = [
  "ahash 0.8.12",
  "bitflags 2.11.1",
@@ -3815,9 +3816,9 @@ dependencies = [
 
 [[package]]
 name = "rhai_codegen"
-version = "3.1.0"
+version = "3.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d4322a2a4e8cf30771dd9f27f7f37ca9ac8fe812dddd811096a98483080dabe6"
+checksum = "3cd3a7535e50bf36857e7be7bec276d334e8c2dfa469c2201226fd01638ea5ca"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4379,9 +4380,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.149"
+version = "1.0.150"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83fc039473c5595ace860d8c4fafa220ff474b3fc6bfdb4293327f1a37e94d86"
+checksum = "e8014e44b4736ed0538adeecded0fce2a272f22dc9578a7eb6b2d9993c74cfb9"
 dependencies = [
  "itoa",
  "memchr",
@@ -4497,8 +4498,8 @@ checksum = "dc6fe69c597f9c37bfeeeeeb33da3530379845f10be461a66d16d03eca2ded77"
 
 [[package]]
 name = "shidou"
-version = "0.1.0"
-source = "git+https://github.com/pleme-io/shidou#a6fc83d91e5010346e89a37010f26f1c0d45ff9a"
+version = "0.1.1"
+source = "git+https://github.com/pleme-io/shidou#f95b3129cf945b921b7557121227a49e9c1d4199"
 dependencies = [
  "anyhow",
  "clap",
@@ -4512,7 +4513,7 @@ dependencies = [
 [[package]]
 name = "shikumi"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/shikumi?branch=main#5db7873c9a109f619474228cbea15d64b4825b8a"
+source = "git+https://github.com/pleme-io/shikumi?branch=main#922325ddb4c7dcca145880f29eee4a8ef39e77b4"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -4529,7 +4530,7 @@ dependencies = [
 [[package]]
 name = "shikumi"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/shikumi#5db7873c9a109f619474228cbea15d64b4825b8a"
+source = "git+https://github.com/pleme-io/shikumi#922325ddb4c7dcca145880f29eee4a8ef39e77b4"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -4681,8 +4682,8 @@ dependencies = [
 
 [[package]]
 name = "soushi"
-version = "0.1.0"
-source = "git+https://github.com/pleme-io/soushi#bdf50c79255e1f12bd1829f13bdf4ec4ff03b88b"
+version = "0.1.1"
+source = "git+https://github.com/pleme-io/soushi#b9ef651487776e8efb59e88da07feee6349073f9"
 dependencies = [
  "rhai",
  "thiserror 2.0.18",
@@ -5062,8 +5063,8 @@ checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 
 [[package]]
 name = "tatara-lisp"
-version = "0.2.0"
-source = "git+https://github.com/pleme-io/tatara-lisp#1708dda4413d843f0445f1305e202f0f8afa04b5"
+version = "0.2.2"
+source = "git+https://github.com/pleme-io/tatara-lisp#7069de3e81001f8f6dd862305bd029d035527e9d"
 dependencies = [
  "blake3",
  "serde",
@@ -5074,8 +5075,8 @@ dependencies = [
 
 [[package]]
 name = "tatara-lisp-derive"
-version = "0.2.0"
-source = "git+https://github.com/pleme-io/tatara-lisp#1708dda4413d843f0445f1305e202f0f8afa04b5"
+version = "0.2.2"
+source = "git+https://github.com/pleme-io/tatara-lisp#7069de3e81001f8f6dd862305bd029d035527e9d"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5084,8 +5085,8 @@ dependencies = [
 
 [[package]]
 name = "tatara-lisp-eval"
-version = "0.2.0"
-source = "git+https://github.com/pleme-io/tatara-lisp#1708dda4413d843f0445f1305e202f0f8afa04b5"
+version = "0.2.2"
+source = "git+https://github.com/pleme-io/tatara-lisp#7069de3e81001f8f6dd862305bd029d035527e9d"
 dependencies = [
  "tatara-lisp",
  "thiserror 2.0.18",
@@ -5094,7 +5095,7 @@ dependencies = [
 [[package]]
 name = "tear-client"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#c52d55f59d8b79b7c163002c6fd76cd3c3e3561f"
+source = "git+https://github.com/pleme-io/tear#0e38bb00c6fe0f6b20f5b629bb383a7f4beead85"
 dependencies = [
  "engate-attach",
  "engate-types",
@@ -5107,15 +5108,16 @@ dependencies = [
 [[package]]
 name = "tear-config"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#c52d55f59d8b79b7c163002c6fd76cd3c3e3561f"
+source = "git+https://github.com/pleme-io/tear#0e38bb00c6fe0f6b20f5b629bb383a7f4beead85"
 dependencies = [
  "anyhow",
  "arc-swap",
+ "ishou-tokens",
  "notify",
  "once_cell",
  "serde",
  "serde_yaml_ng",
- "shikumi 0.1.0 (git+https://github.com/pleme-io/shikumi)",
+ "shikumi 0.1.0 (git+https://github.com/pleme-io/shikumi?branch=main)",
  "tear-types",
  "thiserror 2.0.18",
  "tracing",
@@ -5124,7 +5126,7 @@ dependencies = [
 [[package]]
 name = "tear-core"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#c52d55f59d8b79b7c163002c6fd76cd3c3e3561f"
+source = "git+https://github.com/pleme-io/tear#0e38bb00c6fe0f6b20f5b629bb383a7f4beead85"
 dependencies = [
  "anyhow",
  "blake3",
@@ -5145,7 +5147,7 @@ dependencies = [
 [[package]]
 name = "tear-daemon"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#c52d55f59d8b79b7c163002c6fd76cd3c3e3561f"
+source = "git+https://github.com/pleme-io/tear#0e38bb00c6fe0f6b20f5b629bb383a7f4beead85"
 dependencies = [
  "anyhow",
  "blake3",
@@ -5162,7 +5164,7 @@ dependencies = [
 [[package]]
 name = "tear-types"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#c52d55f59d8b79b7c163002c6fd76cd3c3e3561f"
+source = "git+https://github.com/pleme-io/tear#0e38bb00c6fe0f6b20f5b629bb383a7f4beead85"
 dependencies = [
  "anyhow",
  "blake3",
@@ -5772,8 +5774,8 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "vigy"
-version = "0.1.0"
-source = "git+https://github.com/pleme-io/vigy#d04a5d01625fd75ede317f934f2a5a313104c92f"
+version = "0.1.1"
+source = "git+https://github.com/pleme-io/vigy#351c803166fcb3f4ab5458090f08816a1fb5c7f3"
 dependencies = [
  "vigy-eval",
  "vigy-mcp",
@@ -5784,8 +5786,8 @@ dependencies = [
 
 [[package]]
 name = "vigy-eval"
-version = "0.1.0"
-source = "git+https://github.com/pleme-io/vigy#d04a5d01625fd75ede317f934f2a5a313104c92f"
+version = "0.1.1"
+source = "git+https://github.com/pleme-io/vigy#351c803166fcb3f4ab5458090f08816a1fb5c7f3"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5802,8 +5804,8 @@ dependencies = [
 
 [[package]]
 name = "vigy-mcp"
-version = "0.1.0"
-source = "git+https://github.com/pleme-io/vigy#d04a5d01625fd75ede317f934f2a5a313104c92f"
+version = "0.1.1"
+source = "git+https://github.com/pleme-io/vigy#351c803166fcb3f4ab5458090f08816a1fb5c7f3"
 dependencies = [
  "anyhow",
  "serde",
@@ -5816,8 +5818,8 @@ dependencies = [
 
 [[package]]
 name = "vigy-runtime"
-version = "0.1.0"
-source = "git+https://github.com/pleme-io/vigy#d04a5d01625fd75ede317f934f2a5a313104c92f"
+version = "0.1.1"
+source = "git+https://github.com/pleme-io/vigy#351c803166fcb3f4ab5458090f08816a1fb5c7f3"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5834,8 +5836,8 @@ dependencies = [
 
 [[package]]
 name = "vigy-store"
-version = "0.1.0"
-source = "git+https://github.com/pleme-io/vigy#d04a5d01625fd75ede317f934f2a5a313104c92f"
+version = "0.1.1"
+source = "git+https://github.com/pleme-io/vigy#351c803166fcb3f4ab5458090f08816a1fb5c7f3"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5854,8 +5856,8 @@ dependencies = [
 
 [[package]]
 name = "vigy-types"
-version = "0.1.0"
-source = "git+https://github.com/pleme-io/vigy#d04a5d01625fd75ede317f934f2a5a313104c92f"
+version = "0.1.1"
+source = "git+https://github.com/pleme-io/vigy#351c803166fcb3f4ab5458090f08816a1fb5c7f3"
 dependencies = [
  "blake3",
  "serde",
@@ -5927,9 +5929,9 @@ checksum = "b8dad83b4f25e74f184f64c43b150b91efe7647395b42289f38e50566d82855b"
 
 [[package]]
 name = "wasm-bindgen"
-version = "0.2.121"
+version = "0.2.122"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49ace1d07c165b0864824eee619580c4689389afa9dc9ed3a4c75040d82e6790"
+checksum = "3ed04576f974d2b2fba0f38c51dbc5518011e38c36bf1143164be765528fd409"
 dependencies = [
  "cfg-if",
  "once_cell",
@@ -5941,9 +5943,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-futures"
-version = "0.4.71"
+version = "0.4.72"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96492d0d3ffba25305a7dc88720d250b1401d7edca02cc3bcd50633b424673b8"
+checksum = "9473dbd2991ae90b6291c3c32c30c6187ac49aa32f9905d1cce280ec1e110b0f"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
@@ -5951,9 +5953,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-macro"
-version = "0.2.121"
+version = "0.2.122"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e68e6f4afd367a562002c05637acb8578ff2dea1943df76afb9e83d177c8578"
+checksum = "916151b09da36bd82f6615cbf3a419e2f0ba23a03c6160e8e92eb6bd4aa1dec6"
 dependencies = [
  "quote",
  "wasm-bindgen-macro-support",
@@ -5961,9 +5963,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-macro-support"
-version = "0.2.121"
+version = "0.2.122"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d95a9ec35c64b2a7cb35d3fead40c4238d0940c86d107136999567a4703259f2"
+checksum = "299047362ccbfce148b67ab7e73349f77748e00c8296f9542adfad2ad82c5c5e"
 dependencies = [
  "bumpalo",
  "proc-macro2",
@@ -5974,9 +5976,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-shared"
-version = "0.2.121"
+version = "0.2.122"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c4e0100b01e9f0d03189a92b96772a1fb998639d981193d7dbab487302513441"
+checksum = "9a929b2c61f11ba3e9bc35b50c1f25cb38e0e892c0c231ae2b8cf78d5dad4437"
 dependencies = [
  "unicode-ident",
 ]
@@ -6126,9 +6128,9 @@ dependencies = [
 
 [[package]]
 name = "web-sys"
-version = "0.3.98"
+version = "0.3.99"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b572dff8bcf38bad0fa19729c89bb5748b2b9b1d8be70cf90df697e3a8f32aa"
+checksum = "6d621441cfc37b84979402712047321980c178f299193a3589d05b99e8763436"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
