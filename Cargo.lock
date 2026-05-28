@@ -282,7 +282,7 @@ checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
 [[package]]
 name = "awase"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/awase#46f455818572b154e83fa1d0e9c7e33125f4c818"
+source = "git+https://github.com/pleme-io/awase#379fb1de7e99c0f1ec11b98a2e92eef86edc7f2e"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -1100,7 +1100,7 @@ checksum = "d0881ea181b1df73ff77ffaaf9c7544ecc11e82fba9b5f27b262a3c73a332555"
 [[package]]
 name = "egaku"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/egaku#1691840331f43a6d1cd707dc7397058e73494cc1"
+source = "git+https://github.com/pleme-io/egaku#b66aab8fb4bd689000d498619177cce5ecbe46c3"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -1121,7 +1121,7 @@ dependencies = [
 [[package]]
 name = "engate-attach"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/engate?branch=main#5b877a2025d34eb86346c95ca430f275e6441087"
+source = "git+https://github.com/pleme-io/engate?branch=main#f7c0ea7baed05c0d3ffe3627a7a0a9e77db05e7f"
 dependencies = [
  "drop_bomb",
  "engate-types",
@@ -1134,7 +1134,7 @@ dependencies = [
 [[package]]
 name = "engate-types"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/engate?branch=main#5b877a2025d34eb86346c95ca430f275e6441087"
+source = "git+https://github.com/pleme-io/engate?branch=main#f7c0ea7baed05c0d3ffe3627a7a0a9e77db05e7f"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -1143,7 +1143,7 @@ dependencies = [
 [[package]]
 name = "engawa"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/engawa#9b377af61a3c261b894649161186fb0361bc70bc"
+source = "git+https://github.com/pleme-io/engawa#8adf8696b95f173ebf4a353ccbb7fe631b79f91b"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -1152,7 +1152,7 @@ dependencies = [
 [[package]]
 name = "engawa-lisp"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/engawa-lisp#c490e5b6edf432b4f840645e80180752cc9bdc96"
+source = "git+https://github.com/pleme-io/engawa-lisp#2b110df649a2a128165261307490c1f77c0cfa9e"
 dependencies = [
  "engawa",
  "thiserror 2.0.18",
@@ -1161,7 +1161,7 @@ dependencies = [
 [[package]]
 name = "engawa-snow"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/engawa-snow#e1ab71d6853e06095f22150288ca30381c2aab06"
+source = "git+https://github.com/pleme-io/engawa-snow#ff9c5512b19e082f1005b51514ddb97532f9fae7"
 dependencies = [
  "bytemuck",
  "engawa",
@@ -1172,7 +1172,7 @@ dependencies = [
 [[package]]
 name = "engawa-wgpu"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/engawa-wgpu#74ecf2491ad0680fecdde66b41a42705438a8dcd"
+source = "git+https://github.com/pleme-io/engawa-wgpu#c75f946478872954467c13469e4b799980e7e270"
 dependencies = [
  "engawa",
  "thiserror 2.0.18",
@@ -1513,7 +1513,7 @@ dependencies = [
 [[package]]
 name = "garasu"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/garasu#d6a869906dc1f9fd2caf7ea7a182249b942d8a68"
+source = "git+https://github.com/pleme-io/garasu#5f9d4fec35ffff36d957cce64e9055e9fd9f3a5c"
 dependencies = [
  "bincode",
  "blake3",
@@ -1702,7 +1702,7 @@ dependencies = [
 [[package]]
 name = "hasami"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/hasami#cc6563f18a5469bc9513c7a93d331f56eb18539f"
+source = "git+https://github.com/pleme-io/hasami#25846db58bbd493ded04243a41bc08eaf2bf007b"
 dependencies = [
  "arboard",
  "thiserror 2.0.18",
@@ -2042,7 +2042,7 @@ checksum = "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695"
 [[package]]
 name = "ishou-tokens"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/ishou#592d4488aa14f2b650d913a464381a94bda98e7a"
+source = "git+https://github.com/pleme-io/ishou#90dbe071d6d961a718b06972e0ec55a6f231ab2b"
 dependencies = [
  "irodori",
  "serde",
@@ -2139,7 +2139,7 @@ dependencies = [
 [[package]]
 name = "kaname"
 version = "0.1.1"
-source = "git+https://github.com/pleme-io/kaname#a5b5a1bb88fc2bdd51d9f87221f01e21fdb9f34c"
+source = "git+https://github.com/pleme-io/kaname#fd494ac8e42d54f439d73fa19d9298ba792197f5"
 dependencies = [
  "rmcp",
  "schemars 1.2.1",
@@ -2235,14 +2235,14 @@ dependencies = [
 
 [[package]]
 name = "libredox"
-version = "0.1.16"
+version = "0.1.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e02f3bb43d335493c96bf3fd3a321600bf6bd07ed34bc64118e9293bdffea46c"
+checksum = "f02ab6bace2054fb888a3c16f990117b579d14a3088e472d63c6011fa185c9d3"
 dependencies = [
  "bitflags 2.11.1",
  "libc",
  "plain",
- "redox_syscall 0.7.5",
+ "redox_syscall 0.8.0",
 ]
 
 [[package]]
@@ -2387,7 +2387,7 @@ dependencies = [
 [[package]]
 name = "madori"
 version = "0.1.1"
-source = "git+https://github.com/pleme-io/madori#34b3582ce0bcc8ac5a241ef12c112a221a3a87a0"
+source = "git+https://github.com/pleme-io/madori#53302e5d607e847f388ba161fb17d3b8d2f15474"
 dependencies = [
  "egaku",
  "garasu",
@@ -3449,7 +3449,7 @@ version = "3.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e67ba7e9b2b56446f1d419b1d807906278ffa1a658a8a5d8a39dcb1f5a78614f"
 dependencies = [
- "toml_edit 0.25.11+spec-1.1.0",
+ "toml_edit 0.25.12+spec-1.1.0",
 ]
 
 [[package]]
@@ -3725,9 +3725,9 @@ dependencies = [
 
 [[package]]
 name = "redox_syscall"
-version = "0.7.5"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4666a1a60d8412eab19d94f6d13dcc9cea0a5ef4fdf6a5db306537413c661b1b"
+checksum = "7c7591fa2c6b601dfcfe5f043f65a1c39fcdf50efefcd7f1572e538c1f4b398d"
 dependencies = [
  "bitflags 2.11.1",
 ]
@@ -4510,7 +4510,7 @@ checksum = "dc6fe69c597f9c37bfeeeeeb33da3530379845f10be461a66d16d03eca2ded77"
 [[package]]
 name = "shidou"
 version = "0.1.1"
-source = "git+https://github.com/pleme-io/shidou#f95b3129cf945b921b7557121227a49e9c1d4199"
+source = "git+https://github.com/pleme-io/shidou#fe4e6a37aeae2af28d23c7fcadc0114ada5ba9c6"
 dependencies = [
  "anyhow",
  "clap",
@@ -4524,7 +4524,7 @@ dependencies = [
 [[package]]
 name = "shikumi"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/shikumi?branch=main#922325ddb4c7dcca145880f29eee4a8ef39e77b4"
+source = "git+https://github.com/pleme-io/shikumi?branch=main#5139dd2d37cae674912c169b4b20a03aecc08484"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -4541,7 +4541,7 @@ dependencies = [
 [[package]]
 name = "shikumi"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/shikumi#922325ddb4c7dcca145880f29eee4a8ef39e77b4"
+source = "git+https://github.com/pleme-io/shikumi#5139dd2d37cae674912c169b4b20a03aecc08484"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -4694,7 +4694,7 @@ dependencies = [
 [[package]]
 name = "soushi"
 version = "0.1.1"
-source = "git+https://github.com/pleme-io/soushi#b9ef651487776e8efb59e88da07feee6349073f9"
+source = "git+https://github.com/pleme-io/soushi#42f8cf5a3aadaf2e83c92cfbe4d3c09b6a48ecef"
 dependencies = [
  "rhai",
  "thiserror 2.0.18",
@@ -5075,7 +5075,7 @@ checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 [[package]]
 name = "tatara-lisp"
 version = "0.2.2"
-source = "git+https://github.com/pleme-io/tatara-lisp#7069de3e81001f8f6dd862305bd029d035527e9d"
+source = "git+https://github.com/pleme-io/tatara-lisp#3658c1d45ef48cc5efc3ed703a834830fc2f93b5"
 dependencies = [
  "blake3",
  "serde",
@@ -5087,7 +5087,7 @@ dependencies = [
 [[package]]
 name = "tatara-lisp-derive"
 version = "0.2.2"
-source = "git+https://github.com/pleme-io/tatara-lisp#7069de3e81001f8f6dd862305bd029d035527e9d"
+source = "git+https://github.com/pleme-io/tatara-lisp#3658c1d45ef48cc5efc3ed703a834830fc2f93b5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5097,7 +5097,7 @@ dependencies = [
 [[package]]
 name = "tatara-lisp-eval"
 version = "0.2.2"
-source = "git+https://github.com/pleme-io/tatara-lisp#7069de3e81001f8f6dd862305bd029d035527e9d"
+source = "git+https://github.com/pleme-io/tatara-lisp#3658c1d45ef48cc5efc3ed703a834830fc2f93b5"
 dependencies = [
  "tatara-lisp",
  "thiserror 2.0.18",
@@ -5106,7 +5106,7 @@ dependencies = [
 [[package]]
 name = "tear-client"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#0e38bb00c6fe0f6b20f5b629bb383a7f4beead85"
+source = "git+https://github.com/pleme-io/tear#e198d4c01df5a001157eebff823d2de788157bc8"
 dependencies = [
  "engate-attach",
  "engate-types",
@@ -5119,7 +5119,7 @@ dependencies = [
 [[package]]
 name = "tear-config"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#0e38bb00c6fe0f6b20f5b629bb383a7f4beead85"
+source = "git+https://github.com/pleme-io/tear#e198d4c01df5a001157eebff823d2de788157bc8"
 dependencies = [
  "anyhow",
  "arc-swap",
@@ -5137,7 +5137,7 @@ dependencies = [
 [[package]]
 name = "tear-core"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#0e38bb00c6fe0f6b20f5b629bb383a7f4beead85"
+source = "git+https://github.com/pleme-io/tear#e198d4c01df5a001157eebff823d2de788157bc8"
 dependencies = [
  "anyhow",
  "blake3",
@@ -5158,7 +5158,7 @@ dependencies = [
 [[package]]
 name = "tear-daemon"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#0e38bb00c6fe0f6b20f5b629bb383a7f4beead85"
+source = "git+https://github.com/pleme-io/tear#e198d4c01df5a001157eebff823d2de788157bc8"
 dependencies = [
  "anyhow",
  "blake3",
@@ -5175,7 +5175,7 @@ dependencies = [
 [[package]]
 name = "tear-types"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#0e38bb00c6fe0f6b20f5b629bb383a7f4beead85"
+source = "git+https://github.com/pleme-io/tear#e198d4c01df5a001157eebff823d2de788157bc8"
 dependencies = [
  "anyhow",
  "blake3",
@@ -5464,9 +5464,9 @@ dependencies = [
 
 [[package]]
 name = "toml_edit"
-version = "0.25.11+spec-1.1.0"
+version = "0.25.12+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b59c4d22ed448339746c59b905d24568fcbb3ab65a500494f7b8c3e97739f2b"
+checksum = "d2153edc6955a6c354fad8f5efd38b6a8769bdccf9fe50f8e1329f81b0baa5d7"
 dependencies = [
  "indexmap",
  "toml_datetime 1.1.1+spec-1.1.0",
@@ -5786,7 +5786,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 [[package]]
 name = "vigy"
 version = "0.1.1"
-source = "git+https://github.com/pleme-io/vigy#351c803166fcb3f4ab5458090f08816a1fb5c7f3"
+source = "git+https://github.com/pleme-io/vigy#f173e8ee45e08e08d09b09d123fc16a27ebd7957"
 dependencies = [
  "vigy-eval",
  "vigy-mcp",
@@ -5798,7 +5798,7 @@ dependencies = [
 [[package]]
 name = "vigy-eval"
 version = "0.1.1"
-source = "git+https://github.com/pleme-io/vigy#351c803166fcb3f4ab5458090f08816a1fb5c7f3"
+source = "git+https://github.com/pleme-io/vigy#f173e8ee45e08e08d09b09d123fc16a27ebd7957"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5816,7 +5816,7 @@ dependencies = [
 [[package]]
 name = "vigy-mcp"
 version = "0.1.1"
-source = "git+https://github.com/pleme-io/vigy#351c803166fcb3f4ab5458090f08816a1fb5c7f3"
+source = "git+https://github.com/pleme-io/vigy#f173e8ee45e08e08d09b09d123fc16a27ebd7957"
 dependencies = [
  "anyhow",
  "serde",
@@ -5830,7 +5830,7 @@ dependencies = [
 [[package]]
 name = "vigy-runtime"
 version = "0.1.1"
-source = "git+https://github.com/pleme-io/vigy#351c803166fcb3f4ab5458090f08816a1fb5c7f3"
+source = "git+https://github.com/pleme-io/vigy#f173e8ee45e08e08d09b09d123fc16a27ebd7957"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5848,7 +5848,7 @@ dependencies = [
 [[package]]
 name = "vigy-store"
 version = "0.1.1"
-source = "git+https://github.com/pleme-io/vigy#351c803166fcb3f4ab5458090f08816a1fb5c7f3"
+source = "git+https://github.com/pleme-io/vigy#f173e8ee45e08e08d09b09d123fc16a27ebd7957"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -5868,7 +5868,7 @@ dependencies = [
 [[package]]
 name = "vigy-types"
 version = "0.1.1"
-source = "git+https://github.com/pleme-io/vigy#351c803166fcb3f4ab5458090f08816a1fb5c7f3"
+source = "git+https://github.com/pleme-io/vigy#f173e8ee45e08e08d09b09d123fc16a27ebd7957"
 dependencies = [
  "blake3",
  "serde",
@@ -7068,18 +7068,18 @@ checksum = "6df3dc4292935e51816d896edcd52aa30bc297907c26167fec31e2b0c6a32524"
 
 [[package]]
 name = "zerocopy"
-version = "0.8.48"
+version = "0.8.49"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eed437bf9d6692032087e337407a86f04cd8d6a16a37199ed57949d415bd68e9"
+checksum = "bce33a6288fa3f072a8c2c7d0f2fdbb90e28298f0135c1f99b96c3db2efcc60b"
 dependencies = [
  "zerocopy-derive",
 ]
 
 [[package]]
 name = "zerocopy-derive"
-version = "0.8.48"
+version = "0.8.49"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70e3cd084b1788766f53af483dd21f93881ff30d7320490ec3ef7526d203bad4"
+checksum = "8fd425244944f4ab65ccff928e7323354c5a018c75838362fdce749dfad2ee1e"
 dependencies = [
  "proc-macro2",
  "quote",
