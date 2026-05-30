@@ -2151,6 +2151,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "kanshou"
+version = "0.1.0"
+source = "git+https://github.com/pleme-io/kanshou#84b6aface14cc9ae4a23559b94dff89a75c4033e"
+dependencies = [
+ "kanshou-derive",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "kanshou-derive"
+version = "0.1.0"
+source = "git+https://github.com/pleme-io/kanshou#84b6aface14cc9ae4a23559b94dff89a75c4033e"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
+]
+
+[[package]]
 name = "khronos-egl"
 version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2347,6 +2370,7 @@ dependencies = [
  "image",
  "ishou-tokens",
  "kaname",
+ "kanshou",
  "libc",
  "linkify",
  "lru",

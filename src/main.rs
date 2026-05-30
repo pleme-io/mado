@@ -19,6 +19,7 @@ mod config;
 mod engate_consumer;
 mod font_size;
 mod gui_tear_attach;
+mod kanshou_state;
 mod keybind;
 mod single_pane;
 mod tear_discovery;
@@ -476,6 +477,48 @@ fn main() -> anyhow::Result<()> {
         tracing::debug!("config reloaded: {:?}", new_config);
     })?;
     crate::perf::log_phase("config_loaded");
+
+    // ── Kanshou introspection server ─────────────────────────────────
+    // Expose the GUI's live AppState (frame_perf atomics, session
+    // registry, loaded config, process metadata) over a Unix socket
+    // so operator tools, MCP servers, and sibling processes query
+    // the actual state instead of process-local zeros. See
+    // pleme-io/kanshou. Best-effort: bind failure is non-fatal —
+    // mado runs without the socket and the operator sees the
+    // warn-level log explaining why introspection is unavailable.
+    let kanshou_state = std::sync::Arc::new(kanshou_state::MadoAppState::new(
+        std::sync::Arc::new(config.clone()),
+        std::sync::Arc::new(crate::session::SessionRegistry::default()),
+    ));
+    std::thread::Builder::new()
+        .name("kanshou".into())
+        .spawn(move || {
+            match tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .thread_name("kanshou-tokio")
+                .build()
+            {
+                Ok(rt) => rt.block_on(async {
+                    match kanshou_state::spawn_server("mado", kanshou_state) {
+                        Ok(path) => {
+                            tracing::info!(
+                                socket = %path.display(),
+                                "kanshou introspection live"
+                            );
+                            std::future::pending::<()>().await;
+                        }
+                        Err(e) => {
+                            tracing::warn!(err = %e, "kanshou bind failed; introspection disabled");
+                        }
+                    }
+                }),
+                Err(e) => {
+                    tracing::warn!(err = %e, "could not create kanshou tokio runtime");
+                }
+            }
+        })
+        .expect("spawn kanshou thread");
+    crate::perf::log_phase("kanshou_started");
 
     // Apply active profile if set
     let config = match &config.active_profile {

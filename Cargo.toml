@@ -57,6 +57,14 @@ blake3 = "1"
 # rich-text APIs mado depends on, the patch keeps us on git.
 shidou = { git = "https://github.com/pleme-io/shidou" }
 
+# Kanshou — live process introspection over Unix sockets. Mado opens
+# a kanshou socket on startup exposing the GUI's actual AppState
+# (frame counters, session registry, config, embedded-tear runtime
+# state). The MCP server in `mado mcp` connects to that socket and
+# forwards queries — closing the "MCP returns process-local zeros
+# while GUI renders 120 fps" class. See pleme-io/kanshou.
+kanshou = { git = "https://github.com/pleme-io/kanshou" }
+
 # Macro-farm-emitted derive — `#[derive(InvalidatingSetter)]` with
 # `#[invalidating_setter]` field opt-in. Replaces the hand-written
 # cache-invalidating setters on TerminalRenderer (selection_bg,
