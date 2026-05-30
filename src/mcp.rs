@@ -294,41 +294,72 @@ impl MadoMcp {
 
     // ── Standard tools ──────────────────────────────────────────────────────
 
-    #[tool(description = "Get mado application status and health information. Returns JSON with running state, session count, and uptime.")]
+    #[tool(description = "Get mado application status and health information. When a GUI mado is running, this forwards via kanshou to that process's live AppState; when no GUI is reachable, falls back to the MCP server's process-local count.")]
     async fn status(&self) -> String {
-        // P15 — read the live count from the session registry rather
-        // than the hardcoded 0 the field had before. The mismatch
-        // (`status` reporting 0 while `list_sessions` returned ≥2)
-        // was visible in the 2026-05-13 MCP baseline.
-        let sessions = self.state.sessions.list().len();
-        serde_json::json!({
-            "status": "running",
-            "app": "mado",
-            "sessions": sessions,
-            "note": "MCP server is operational. GUI state queries require a running mado instance with IPC."
-        })
-        .to_string()
+        match kanshou::mcp::forward_status(
+            "mado",
+            &kanshou::Query::field(["sessions"]),
+            || {
+                let count = self.state.sessions.list().len();
+                Ok(serde_json::json!({ "count": count, "sessions": [] }))
+            },
+        )
+        .await
+        {
+            kanshou::mcp::ForwardOutcome::Live { pid, value } => {
+                serde_json::json!({
+                    "status": "running",
+                    "app": "mado",
+                    "live_gui_pid": pid,
+                    "sessions": value.get("count").cloned().unwrap_or_else(|| serde_json::json!(0)),
+                })
+                .to_string()
+            }
+            kanshou::mcp::ForwardOutcome::Fallback { value } => serde_json::json!({
+                "status": "running",
+                "app": "mado",
+                "live_gui_pid": serde_json::Value::Null,
+                "sessions": value.get("count").cloned().unwrap_or_else(|| serde_json::json!(0)),
+                "note": "no live GUI mado discoverable via kanshou; reporting MCP-server-local state",
+            })
+            .to_string(),
+            kanshou::mcp::ForwardOutcome::LiveError { pid, error } => serde_json::json!({
+                "status": "running",
+                "app": "mado",
+                "live_gui_pid": pid,
+                "kanshou_error": error.to_string(),
+            })
+            .to_string(),
+        }
     }
 
-    #[tool(description = "Get the most recent render-loop frame timing snapshot. Returns: last_frame_us (most recent non-skipped frame's wall time in µs), last_frame_rects (rect-pipeline instance count), last_frame_text (text-pipeline TextArea count), last_frame_shape_cache (shape cache entry count), total_frames (cumulative non-skipped frame count since launch), total_frames_skipped (cumulative idle-peek-skip count). Use this to introspect mado's per-frame cost live without enabling RUST_LOG=debug. Counters are wait-free atomics — reading is zero-overhead.")]
+    #[tool(description = "Get the most recent render-loop frame timing snapshot from the LIVE GUI mado. When a GUI is running, this forwards via kanshou to the GUI's render atomics (last_frame_us, last_frame_rects, last_frame_text, last_frame_shape_cache, total_frames, total_frames_skipped). When no GUI is reachable, returns zeros from the MCP server's process-local atomics (which are never updated by the MCP-only process).")]
     async fn frame_perf(&self) -> String {
-        use std::sync::atomic::Ordering;
-        let last_frame_us = crate::render::LAST_FRAME_US.load(Ordering::Relaxed);
-        let last_frame_rects = crate::render::LAST_FRAME_RECTS.load(Ordering::Relaxed);
-        let last_frame_text = crate::render::LAST_FRAME_TEXT.load(Ordering::Relaxed);
-        let last_frame_shape_cache = crate::render::LAST_FRAME_SHAPE_CACHE.load(Ordering::Relaxed);
-        let total_frames = crate::render::TOTAL_FRAMES.load(Ordering::Relaxed);
-        let total_frames_skipped = crate::render::TOTAL_FRAMES_SKIPPED.load(Ordering::Relaxed);
-        serde_json::json!({
-            "ok": true,
-            "last_frame_us": last_frame_us,
-            "last_frame_rects": last_frame_rects,
-            "last_frame_text": last_frame_text,
-            "last_frame_shape_cache": last_frame_shape_cache,
-            "total_frames": total_frames,
-            "total_frames_skipped": total_frames_skipped,
-        })
-        .to_string()
+        let value = kanshou::mcp::forward(
+            "mado",
+            &kanshou::Query::field(["frame_perf"]),
+            || {
+                use std::sync::atomic::Ordering;
+                Ok(serde_json::json!({
+                    "last_frame_us": crate::render::LAST_FRAME_US.load(Ordering::Relaxed),
+                    "last_frame_rects": crate::render::LAST_FRAME_RECTS.load(Ordering::Relaxed),
+                    "last_frame_text": crate::render::LAST_FRAME_TEXT.load(Ordering::Relaxed),
+                    "last_frame_shape_cache": crate::render::LAST_FRAME_SHAPE_CACHE.load(Ordering::Relaxed),
+                    "total_frames": crate::render::TOTAL_FRAMES.load(Ordering::Relaxed),
+                    "total_frames_skipped": crate::render::TOTAL_FRAMES_SKIPPED.load(Ordering::Relaxed),
+                }))
+            },
+        )
+        .await
+        .unwrap_or_else(|e| serde_json::json!({ "error": e.to_string() }));
+        let merged = match value {
+            serde_json::Value::Object(mut m) => {
+                m.insert("ok".into(), serde_json::Value::Bool(true));
+                serde_json::Value::Object(m)
+            }
+            other => other,
+        };
+        merged.to_string()
     }
 
     #[tool(description = "Get mado version information. Returns JSON with version, build, and feature details.")]
