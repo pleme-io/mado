@@ -374,18 +374,27 @@ impl MadoMcp {
         .to_string()
     }
 
-    #[tool(description = "Get a mado configuration value. Pass a key for a specific value, or omit for the full config.")]
+    #[tool(description = "Get a mado configuration value. Forwards through kanshou to the LIVE GUI mado's MadoConfig snapshot. Pass a key for nested access (e.g. 'shell.command', 'tear.runtime') or omit for the full config.")]
     async fn config_get(&self, Parameters(input): Parameters<ConfigGetInput>) -> String {
-        match input.key {
-            Some(key) => stub_response(
-                "config_get",
-                serde_json::json!({ "key": key, "value": null }),
-            ),
-            None => stub_response(
-                "config_get",
-                serde_json::json!({ "config_path": "~/.config/mado/mado.yaml" }),
-            ),
-        }
+        let path: Vec<String> = match &input.key {
+            Some(k) => std::iter::once("config".to_string())
+                .chain(k.split('.').map(str::to_string))
+                .collect(),
+            None => vec!["config".into()],
+        };
+        let value = kanshou::mcp::forward(
+            "mado",
+            &kanshou::Query { path, args: vec![] },
+            || {
+                Ok(serde_json::json!({
+                    "note": "no live GUI mado discoverable via kanshou",
+                    "config_path": "~/.config/mado/mado.yaml",
+                }))
+            },
+        )
+        .await
+        .unwrap_or_else(|e| serde_json::json!({ "error": e.to_string() }));
+        value.to_string()
     }
 
     #[tool(description = "Set a mado configuration value at runtime. Changes take effect immediately via hot-reload.")]
@@ -403,10 +412,19 @@ impl MadoMcp {
     // The `--mcp` mado process owns the registry; `spawn_term` opens
     // sessions inside it, every subsequent tool refers to them by id.
 
-    #[tool(description = "List every live headless terminal session. Each entry has `id`, `title`, `shell`, `cols`, `rows`, `created_at_unix_ms`, `uptime_ms`. Sorted most-recently-spawned first.")]
+    #[tool(description = "List every live headless terminal session. When a GUI mado is running, forwards through kanshou to the live SessionRegistry; when not, falls back to the MCP-server-local registry (sessions spawn_term created here).")]
     async fn list_sessions(&self) -> String {
-        let summaries = self.state.sessions.list();
-        serde_json::json!({ "sessions": summaries }).to_string()
+        let live = kanshou::mcp::forward(
+            "mado",
+            &kanshou::Query::field(["sessions"]),
+            || {
+                let summaries = self.state.sessions.list();
+                Ok(serde_json::json!({ "sessions": summaries, "count": summaries.len() }))
+            },
+        )
+        .await
+        .unwrap_or_else(|e| serde_json::json!({ "error": e.to_string() }));
+        live.to_string()
     }
 
     #[tool(description = "Send keystrokes / raw bytes to a terminal session. The string is sent as UTF-8 bytes to the PTY master — the child's read() advances. Use `\\n` for Enter, `\\x1b` for ESC, `\\x03` for Ctrl-C, etc.")]
