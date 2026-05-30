@@ -2015,6 +2015,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "irodzuki"
+version = "0.1.1"
+source = "git+https://github.com/pleme-io/irodzuki#82e3910183a8b8ac930744e5b6aeab3e1d4adf7b"
+dependencies = [
+ "bytemuck",
+ "egaku",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "thiserror 2.0.18",
+ "tracing",
+]
+
+[[package]]
 name = "is-docker"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2368,6 +2382,7 @@ dependencies = [
  "glyphon",
  "hasami",
  "image",
+ "irodzuki",
  "ishou-tokens",
  "kaname",
  "kanshou",

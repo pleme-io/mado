@@ -115,6 +115,12 @@ kaname = { git = "https://github.com/pleme-io/kaname" }
 # background visible on Retina pre-M3) cannot recompile.
 # Architecture: pleme-io/theory/THEME-ARCHITECTURE.md
 ishou-tokens = { git = "https://github.com/pleme-io/ishou", features = ["wgpu"] }
+# irodzuki — typed base16 color schemes + curated 16-color ANSI
+# palettes. The 8 terminal-grade presets (nord, dracula, ...) live
+# here in `irodzuki::presets`, NOT in mado. Mado's theme.rs is a
+# thin shim that adapts irodzuki::ColorScheme → mado's
+# terminal::Color (u8 RGB) for the renderer.
+irodzuki = { git = "https://github.com/pleme-io/irodzuki" }
 rmcp = { version = "0.15", features = ["server", "transport-io"] }
 schemars = "0.8"
 
