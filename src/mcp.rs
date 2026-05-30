@@ -1203,7 +1203,7 @@ async fn vigy_dispatch(tool: &str, args: serde_json::Value) -> String {
         None => {
             return serde_json::json!({
                 "ok": false,
-                "error": "embedded vigy runtime not initialised; restart mado",
+                "error": "embedded vigy runtime not initialised — set `vigy.enabled = true` in mado.yaml and restart mado",
             })
             .to_string();
         }

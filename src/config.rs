@@ -69,6 +69,24 @@ pub struct MadoConfig {
     /// `~/.config/mado/mado.yaml` to enable.
     #[serde(default)]
     pub effects: MadoEffectsConfig,
+    /// Embedded vigy reconciler runtime. **Defaults OFF.** Operator
+    /// sets `vigy.enabled = true` to spawn the in-process
+    /// tatara-lisp reconciler runtime + open the vigy MCP tool
+    /// surface. When disabled, the GUI thread + MCP-path init are
+    /// skipped and the vigy MCP tools (vigy_register / vigy_list
+    /// / vigy_inspect / vigy_tick / vigy_delete) return a typed
+    /// `{ok: false, error: "vigy disabled in mado config"}` so
+    /// callers see a clean reason rather than a panic or hang.
+    #[serde(default)]
+    pub vigy: MadoVigyConfig,
+}
+
+/// Mado's embedded-vigy gate. Defaults the runtime OFF — operators
+/// who want the in-process reconciler set `vigy.enabled = true`.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct MadoVigyConfig {
+    #[serde(default)]
+    pub enabled: bool,
 }
 
 /// Mado's overlay-effect configuration. Each field is one effect's
@@ -1222,6 +1240,7 @@ impl MadoConfig {
             // MadoEffectsConfig's own Default (which keeps `enabled
             // = false` already).
             effects: MadoEffectsConfig::default(),
+            vigy: MadoVigyConfig::default(),
         }
     }
 
@@ -1295,6 +1314,7 @@ impl Default for MadoConfig {
             quick_terminal: QuickTerminalConfig::default(),
             tear: MadoTearConfig::default(),
             effects: MadoEffectsConfig::default(),
+            vigy: MadoVigyConfig::default(),
         }
     }
 }
