@@ -7,6 +7,7 @@
 //! process-local zeros while the GUI renders" class structurally.
 
 use std::sync::Arc;
+use std::sync::OnceLock;
 use std::sync::atomic::Ordering;
 
 use kanshou::{Introspect, Query, QueryError, QueryResult};
@@ -23,9 +24,18 @@ pub struct MadoAppState {
     /// Snapshot of the config the GUI actually loaded. Cloned at
     /// startup; queries over this never read the on-disk file.
     pub config: Arc<crate::config::MadoConfig>,
-    /// Session registry the MCP tools populate. Same `Arc` the GUI
-    /// holds; live reads.
+    /// MCP-side session registry — populated by `spawn_term` /
+    /// `tear_new_session` MCP tools when mado runs as the MCP
+    /// server. The GUI process leaves this empty; live GUI
+    /// sessions live in `tear_inproc` instead.
     pub sessions: Arc<crate::session::SessionRegistry>,
+    /// Live in-process tear control plane — populated AFTER the
+    /// GUI calls `tear_core::InProcess::new()` in
+    /// `try_run_default_embedded`. Set once with [`OnceLock`]; reads
+    /// are lock-free. The `sessions` leaf prefers this when set so
+    /// kanshou queries reflect the GUI's actual session graph
+    /// rather than the empty MCP-side registry.
+    pub tear_inproc: OnceLock<Arc<tear_core::InProcess>>,
 }
 
 impl MadoAppState {
@@ -34,7 +44,18 @@ impl MadoAppState {
         config: Arc<crate::config::MadoConfig>,
         sessions: Arc<crate::session::SessionRegistry>,
     ) -> Self {
-        Self { config, sessions }
+        Self {
+            config,
+            sessions,
+            tear_inproc: OnceLock::new(),
+        }
+    }
+
+    /// Plumb the live `InProcess` in once tear-attach has constructed
+    /// it. Best-effort: second-set is silently ignored (we trust the
+    /// first attach path).
+    pub fn set_tear_inproc(&self, inproc: Arc<tear_core::InProcess>) {
+        let _ = self.tear_inproc.set(inproc);
     }
 }
 
@@ -53,11 +74,41 @@ impl Introspect for MadoAppState {
                 "total_frames_skipped": crate::render::TOTAL_FRAMES_SKIPPED.load(Ordering::Relaxed),
             })),
             "sessions" => {
-                let summaries = self.sessions.list();
-                Ok(serde_json::json!({
-                    "count": summaries.len(),
-                    "sessions": summaries,
-                }))
+                // GUI mode: live tear-core registry IS the truth.
+                // MCP-only mode: tear_inproc never gets populated,
+                // fall back to SessionRegistry (which holds the
+                // sessions `spawn_term` created in-MCP).
+                if let Some(inproc) = self.tear_inproc.get() {
+                    let sessions: Vec<serde_json::Value> = inproc.with_registry(|r| {
+                        r.sessions
+                            .values()
+                            .map(|s| {
+                                serde_json::json!({
+                                    "id": s.id.to_string(),
+                                    "name": s.name,
+                                    "created_at_unix": s.created_at_unix,
+                                    "active_window": s.active_window.to_string(),
+                                    "windows": s.windows.len(),
+                                    "panes": s.panes.len(),
+                                    "source": format!("{:?}", s.source),
+                                    "state": format!("{:?}", s.state),
+                                })
+                            })
+                            .collect()
+                    });
+                    Ok(serde_json::json!({
+                        "count": sessions.len(),
+                        "sessions": sessions,
+                        "source": "tear-inproc",
+                    }))
+                } else {
+                    let summaries = self.sessions.list();
+                    Ok(serde_json::json!({
+                        "count": summaries.len(),
+                        "sessions": summaries,
+                        "source": "mcp-session-registry",
+                    }))
+                }
             }
             "config" => serde_json::to_value(&*self.config).map_err(|e| {
                 QueryError::internal(format!("serialize MadoConfig: {e}"))

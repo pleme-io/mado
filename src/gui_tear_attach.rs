@@ -90,7 +90,11 @@ pub fn run(pane_id: PaneId, socket_path: PathBuf) -> Result<()> {
 /// failed AND fallback is allowed — main should then run the local-
 /// PTY path. Returns `Error` for hard failures (config says
 /// `Always` but daemon dead, session create failed, etc.).
-pub fn try_run_default(config: MadoConfig, shell: String) -> TearDefaultOutcome {
+pub fn try_run_default(
+    config: MadoConfig,
+    shell: String,
+    kanshou_state: std::sync::Arc<crate::kanshou_state::MadoAppState>,
+) -> TearDefaultOutcome {
     if matches!(config.tear.mode, TearMode::Never) {
         return TearDefaultOutcome::Unavailable;
     }
@@ -102,7 +106,7 @@ pub fn try_run_default(config: MadoConfig, shell: String) -> TearDefaultOutcome 
     // need the daemon; embedded is for the default
     // single-window case the operator opens 99% of the time.
     if matches!(config.tear.runtime, TearRuntime::Embedded) {
-        return try_run_default_embedded(config, shell);
+        return try_run_default_embedded(config, shell, kanshou_state);
     }
     let (client, socket_path) = match discover(&config.tear) {
         DiscoveryOutcome::Attached(c, p) => (Arc::new(c), p),
@@ -590,13 +594,22 @@ where
 /// Trade-off: single-attach only. ayatsuri overlays, namimado-debug,
 /// and remote ssh-mux scenarios require the daemon. Operator opts
 /// into Daemon via `mado.tear.runtime = "daemon"` for those.
-fn try_run_default_embedded(config: MadoConfig, shell: String) -> TearDefaultOutcome {
+fn try_run_default_embedded(
+    config: MadoConfig,
+    shell: String,
+    kanshou_state: std::sync::Arc<crate::kanshou_state::MadoAppState>,
+) -> TearDefaultOutcome {
     use std::sync::Arc;
     use tear_core::engate_producer::PaneProducer as EmbeddedProducer;
     use tear_core::InProcess;
     use tear_types::SessionSource;
 
     let inproc = Arc::new(InProcess::new());
+    // Publish the live InProcess to the kanshou aggregator so the
+    // `sessions` leaf reflects the GUI's actual session graph,
+    // not the empty MCP-side registry that's only populated by
+    // `spawn_term` in the --mcp path.
+    kanshou_state.set_tear_inproc(inproc.clone());
     crate::perf::log_phase("tear_inproc_constructed");
 
     let session_name = config

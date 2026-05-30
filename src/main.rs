@@ -490,6 +490,7 @@ fn main() -> anyhow::Result<()> {
         std::sync::Arc::new(config.clone()),
         std::sync::Arc::new(crate::session::SessionRegistry::default()),
     ));
+    let kanshou_state_for_server = std::sync::Arc::clone(&kanshou_state);
     std::thread::Builder::new()
         .name("kanshou".into())
         .spawn(move || {
@@ -499,7 +500,7 @@ fn main() -> anyhow::Result<()> {
                 .build()
             {
                 Ok(rt) => rt.block_on(async {
-                    match kanshou_state::spawn_server("mado", kanshou_state) {
+                    match kanshou_state::spawn_server("mado", kanshou_state_for_server) {
                         Ok(path) => {
                             tracing::info!(
                                 socket = %path.display(),
@@ -565,7 +566,7 @@ fn main() -> anyhow::Result<()> {
     // Hard errors (e.g. tear.mode = "always" + daemon dead +
     // spawn failed) bubble out via the `Error` arm.
     crate::perf::log_phase("pre_tear_attach");
-    match gui_tear_attach::try_run_default(config.clone(), shell.clone()) {
+    match gui_tear_attach::try_run_default(config.clone(), shell.clone(), std::sync::Arc::clone(&kanshou_state)) {
         gui_tear_attach::TearDefaultOutcome::Ran => return Ok(()),
         gui_tear_attach::TearDefaultOutcome::Error(e) => return Err(e),
         gui_tear_attach::TearDefaultOutcome::Unavailable => {
