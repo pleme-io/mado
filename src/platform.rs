@@ -56,7 +56,10 @@ mod tests {
 #[cfg(target_os = "macos")]
 mod macos {
     use objc2::MainThreadMarker;
-    use objc2_app_kit::{NSApplication, NSColor, NSWindowStyleMask, NSWindowTitleVisibility};
+    use objc2_app_kit::{
+        NSApplication, NSColor, NSTitlebarSeparatorStyle, NSWindowStyleMask,
+        NSWindowTitleVisibility,
+    };
     use objc2_foundation::{NSString, NSUserDefaults};
 
     /// Nord polar-night background (`#2E3440`) — the canonical
@@ -96,16 +99,37 @@ mod macos {
         // empty title string callers usually set.
         window.setTitleVisibility(NSWindowTitleVisibility::Hidden);
 
+        // Remove the macOS 11+ hairline separator macOS draws under the
+        // titlebar. With FullSizeContentView + a transparent titlebar +
+        // the same Nord backing colour, that separator was the one thing
+        // making the titlebar read as a distinct band rather than a
+        // seamless extension of the content — the "doesn't blend like
+        // ghostty" symptom. `.None` removes it so the titlebar is flush
+        // with the cell grid below (ghostty's flush look).
+        window.setTitlebarSeparatorStyle(NSTitlebarSeparatorStyle::None);
+
+        // Drag the window from anywhere in the (seamless) titlebar/content
+        // band, matching ghostty's integrated chrome feel. Safe because
+        // the GPU surface consumes mouse events for selection only inside
+        // the content rect; the titlebar band has no interactive cells.
+        window.setMovableByWindowBackground(true);
+
         // Tint the NSWindow backing to Nord polar-night so the titlebar
         // area inherits the pleme-io palette instead of the macOS
         // default (which the operator sees as "brown" against the
-        // Nord content area). Snowflake glyph in the (hidden) title
-        // is the brand mark; if anything peeks through it's Nord.
+        // Nord content area). The GPU surface renders opaque content
+        // over the backing, so a true vibrancy/blur (NSVisualEffectView)
+        // would never show through — a flush, same-colour titlebar is
+        // the correct seamless result here. Snowflake glyph in the
+        // (hidden) title is the brand mark; if anything peeks through
+        // it's Nord.
         let (r, g, b, a) = NORD_POLAR_NIGHT;
         let bg = unsafe { NSColor::colorWithSRGBRed_green_blue_alpha(r, g, b, a) };
         window.setBackgroundColor(Some(&bg));
 
-        tracing::debug!("applied macOS native window styling (nord-tinted titlebar)");
+        tracing::debug!(
+            "applied macOS native window styling (flush nord titlebar, no separator)"
+        );
     }
 
     /// Set dock badge text.
