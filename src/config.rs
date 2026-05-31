@@ -17,6 +17,19 @@ pub struct MadoConfig {
     /// blackmatter-mado renders the YAML.
     #[serde(default = "default_font_italic")]
     pub font_italic: String,
+    /// Family used for powerline separators (U+E0B0…) and Nerd-Font
+    /// Private-Use-Area icon codepoints (see
+    /// [`crate::glyph_class::is_symbol_glyph`]). Routing the symbol
+    /// ranges to a dedicated family — ghostty's "Symbols Nerd Font"
+    /// model — keeps icon glyphs shaping from ONE curated source
+    /// instead of whatever installed font cosmic-text's coverage walk
+    /// picks first (the "wrong glyph in mado, right in ghostty" class).
+    /// Empty = no preference; symbol cells then shape against
+    /// `font_family` (which, on the default JetBrainsMono Nerd Font,
+    /// already carries the patched ranges). Sourced from
+    /// `ishou-tokens::MonoFonts` when blackmatter-mado renders the YAML.
+    #[serde(default = "default_font_symbols")]
+    pub font_symbols: String,
     #[serde(default = "default_font_size")]
     pub font_size: f32,
     #[serde(default)]
@@ -1078,6 +1091,9 @@ impl MadoConfig {
             // `discovered` tier's job.
             font_family: String::new(),
             font_italic: String::new(),
+            // Empty = no symbol-family preference; symbol cells shape
+            // against `font_family` (cosmic-text fallback otherwise).
+            font_symbols: String::new(),
             // 12.0 = smallest universally-readable point size.
             // Not 0 (would break the renderer); not auto-detected
             // (that's `discovered`).
@@ -1259,6 +1275,7 @@ impl MadoConfig {
         c.window.height = h;
         c.theme = crate::auto_detect::detect_theme_or_fallback().to_string();
         c.font_family = crate::auto_detect::detect_font_family_or_fallback().to_string();
+        c.font_symbols = crate::auto_detect::detect_font_symbols_or_fallback().to_string();
         c.font_size = crate::auto_detect::detect_font_size_or_fallback();
         c.window.padding = crate::auto_detect::detect_padding_or_fallback();
         c
@@ -1293,6 +1310,7 @@ impl Default for MadoConfig {
         Self {
             font_family: default_font_family(),
             font_italic: default_font_italic(),
+            font_symbols: default_font_symbols(),
             font_size: default_font_size(),
             font: FontConfig::default(),
             window: WindowConfig::default(),
@@ -1417,6 +1435,12 @@ fn default_font_italic() -> String {
     // blackmatter-mado's HM module installs `pkgs.iosevka` so the
     // resolution succeeds at runtime.
     "Iosevka".into()
+}
+fn default_font_symbols() -> String {
+    // Dedicated symbols/Nerd-icon family per ghostty's model. M1:
+    // detection stubbed, falls back to FALLBACK_FONT_SYMBOLS. The
+    // fallback constant lives in auto_detect.rs alongside its peers.
+    crate::auto_detect::detect_font_symbols_or_fallback().to_string()
 }
 fn default_font_size() -> f32 {
     crate::auto_detect::detect_font_size_or_fallback()
@@ -1783,6 +1807,7 @@ mod tests {
         // ── Fonts ──────────────────────────────────────────────
         assert_eq!(bare.font_family, "");
         assert_eq!(bare.font_italic, "");
+        assert_eq!(bare.font_symbols, "");
         assert!((bare.font_size - 12.0).abs() < 0.001);
         assert!(bare.font.family_bold.is_none());
         assert!(bare.font.family_italic.is_none());
@@ -1932,6 +1957,10 @@ mod tests {
         assert_eq!(
             discovered.font_family,
             crate::auto_detect::FALLBACK_FONT_FAMILY
+        );
+        assert_eq!(
+            discovered.font_symbols,
+            crate::auto_detect::FALLBACK_FONT_SYMBOLS
         );
     }
 

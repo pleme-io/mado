@@ -280,6 +280,7 @@ where
         effective_font_size,
         config.font_family.clone(),
         config.font_italic.clone(),
+        config.font_symbols.clone(),
         padding,
         config.cursor.style,
         cursor_blink,

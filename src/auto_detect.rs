@@ -244,6 +244,44 @@ pub fn detect_font_family_or_fallback() -> &'static str {
     detect_font_family().unwrap_or(FALLBACK_FONT_FAMILY)
 }
 
+// ── Symbol / Nerd-icon fallback family ───────────────────────────
+
+/// Safe-fallback family for symbol / Nerd-icon / powerline codepoints
+/// (see [`crate::glyph_class::is_symbol_glyph`]). Ghostty ships a
+/// dedicated "Symbols Nerd Font" so the powerline separators (U+E0B0…)
+/// and the PUA icon blocks render from ONE curated source instead of
+/// whatever arbitrary installed font cosmic-text's coverage walk
+/// happens to pick first — the cause of "wrong glyph in mado, right in
+/// ghostty." `JetBrainsMono Nerd Font Mono` is the primary default and
+/// already carries the same patched ranges, so it is the natural
+/// symbols family when no standalone symbols font is configured.
+pub const FALLBACK_FONT_SYMBOLS: &str = "Symbols Nerd Font Mono";
+
+/// Preferred-fallback ladder for the symbols family. The first one
+/// installed wins; operators with a strong opinion set `font_symbols`
+/// in mado.yaml. Ends at the primary Nerd font (which patches the same
+/// ranges) so a host without a standalone symbols font still routes
+/// icon codepoints to a font that has them.
+#[allow(dead_code)] // referenced by detect_font_symbols when wired
+const FONT_SYMBOLS_LADDER: &[&str] = &[
+    "Symbols Nerd Font Mono",
+    "Symbols Nerd Font",
+    "JetBrainsMono Nerd Font Mono",
+];
+
+/// Detect the highest-preference installed symbols font. Mirrors
+/// [`detect_font_family`]: fontdb enumeration is lazy, so M1 returns
+/// `None` and the caller lands on [`FALLBACK_FONT_SYMBOLS`].
+#[must_use]
+pub fn detect_font_symbols() -> Option<&'static str> {
+    None
+}
+
+#[must_use]
+pub fn detect_font_symbols_or_fallback() -> &'static str {
+    detect_font_symbols().unwrap_or(FALLBACK_FONT_SYMBOLS)
+}
+
 // ── Font size (DPR-aware) ────────────────────────────────────────
 
 /// Safe-fallback font size at 14pt — readable on standard-density

@@ -338,6 +338,7 @@ fn check_frame_hash_golden(
         14.0,
         "monospace".into(),
         "monospace".into(),
+        "monospace".into(), // font_symbols
         0.0,
         CursorStyle::Block,
         false, // no blink — deterministic

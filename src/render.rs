@@ -929,6 +929,13 @@ pub struct TerminalRenderer {
     /// (Iosevka Etoile, Maple Mono Italic, etc.) regardless of which
     /// family `font_family` names.
     font_italic: String,
+    /// Symbols / Nerd-icon family. Cells whose glyph is in the
+    /// powerline / PUA ranges (`glyph_class::is_symbol_glyph`) shape
+    /// against this family instead of the primary, so icon glyphs come
+    /// from one curated source rather than cosmic-text's arbitrary
+    /// coverage-walk pick (ghostty's symbols-font model). Empty falls
+    /// back to `font_family`.
+    font_symbols: String,
     cell_width: f32,
     cell_height: f32,
     padding: f32,
@@ -1024,6 +1031,7 @@ impl TerminalRenderer {
         font_size: f32,
         font_family: String,
         font_italic: String,
+        font_symbols: String,
         padding: f32,
         cursor_style: CursorStyle,
         cursor_blink: bool,
@@ -1042,6 +1050,7 @@ impl TerminalRenderer {
             font_size,
             font_family,
             font_italic,
+            font_symbols,
             cell_width,
             cell_height,
             padding,
@@ -1801,11 +1810,18 @@ impl TerminalRenderer {
         if let Some(arc) = self.shape_cache.borrow_mut().get(&key) {
             return Arc::clone(arc);
         }
-        let family = if key.attrs.italic {
-            Family::Name(&self.font_italic)
-        } else {
-            Family::Name(&self.font_family)
-        };
+        // Route powerline / Nerd-PUA icon runs to the dedicated symbols
+        // family (ghostty's model) so they don't depend on cosmic-text's
+        // arbitrary coverage-walk pick. Selection is a pure function of
+        // (run-text, italic, the three configured families) so it's
+        // unit-testable without a GPU — see `select_run_family`.
+        let family = Family::Name(select_run_family(
+            &key.text,
+            key.attrs.italic,
+            &self.font_family,
+            &self.font_italic,
+            &self.font_symbols,
+        ));
         let mut attrs = Attrs::new()
             .family(family)
             .color(GlyphonColor::rgba(
@@ -2024,6 +2040,34 @@ fn color_to_f32(c: &Color) -> [f32; 4] {
 /// Check if a character is a box drawing character that we render via rects.
 fn is_box_drawing(ch: char) -> bool {
     matches!(ch, '\u{2500}'..='\u{257F}' | '\u{2580}'..='\u{259F}')
+}
+
+/// Pick the font family name a shaped run should use.
+///
+/// Pure selection rule (no GPU, no cosmic-text state) so the
+/// font-fallback decision is unit-testable:
+///   1. If a non-empty `symbols` family is configured AND the run is
+///      all powerline / Nerd-PUA icon codepoints → `symbols`.
+///   2. Else if the run is italic → `italic`.
+///   3. Else → `primary`.
+///
+/// An empty `symbols` (bare config tier) is treated as "no preference"
+/// so symbol cells fall through to the primary family — which on the
+/// default JetBrainsMono Nerd Font already carries the patched ranges.
+fn select_run_family<'a>(
+    text: &str,
+    italic: bool,
+    primary: &'a str,
+    italic_family: &'a str,
+    symbols: &'a str,
+) -> &'a str {
+    if !symbols.is_empty() && crate::glyph_class::run_is_all_symbols(text) {
+        symbols
+    } else if italic {
+        italic_family
+    } else {
+        primary
+    }
 }
 
 /// Render box drawing and block element characters as pixel-perfect rectangles.
@@ -2941,6 +2985,7 @@ mod render_invariants {
             14.0,                  // font_size
             "monospace".into(),    // font_family
             "monospace".into(),    // font_italic
+            "monospace".into(),    // font_symbols
             0.0,                   // padding (simplifies coordinate math)
             CursorStyle::Block,
             false,                 // cursor_blink off so a single frame
@@ -3201,6 +3246,7 @@ mod render_invariants {
             14.0,
             "monospace".into(),
             "monospace".into(),
+            "monospace".into(), // font_symbols
             0.0,
             style,
             false,
@@ -3724,6 +3770,7 @@ mod render_gpu_invariants {
             14.0,
             "monospace".into(),
             "monospace".into(),
+            "monospace".into(), // font_symbols
             0.0,
             CursorStyle::Block,
             false,
@@ -4202,6 +4249,53 @@ mod tests {
         assert_eq!(color_to_f32(&Color::BLACK), [0.0, 0.0, 0.0, 1.0]);
     }
 
+    // ---- select_run_family (symbol / Nerd-icon font fallback) ----
+
+    #[test]
+    fn symbol_run_routes_to_symbols_family() {
+        // A powerline separator and a Nerd-PUA icon shape against the
+        // configured symbols family, not the primary — even when the
+        // cell is marked italic (icons have no italic face).
+        let fam = select_run_family(
+            "\u{E0B0}", false, "JetBrains Mono", "Iosevka", "Symbols Nerd Font Mono",
+        );
+        assert_eq!(fam, "Symbols Nerd Font Mono");
+        let fam_icon = select_run_family(
+            "\u{F300}", true, "JetBrains Mono", "Iosevka", "Symbols Nerd Font Mono",
+        );
+        assert_eq!(fam_icon, "Symbols Nerd Font Mono",
+            "icon runs ignore italic and route to the symbols family");
+    }
+
+    #[test]
+    fn text_run_routes_to_primary_or_italic() {
+        // Ordinary text uses primary; italic text uses the italic face.
+        assert_eq!(
+            select_run_family("abc", false, "JetBrains Mono", "Iosevka", "Symbols Nerd Font Mono"),
+            "JetBrains Mono",
+        );
+        assert_eq!(
+            select_run_family("abc", true, "JetBrains Mono", "Iosevka", "Symbols Nerd Font Mono"),
+            "Iosevka",
+        );
+        // A mixed run (icon + letter) is NOT all-symbols → primary/italic.
+        assert_eq!(
+            select_run_family("\u{E0B0}a", false, "JetBrains Mono", "Iosevka", "Symbols Nerd Font Mono"),
+            "JetBrains Mono",
+        );
+    }
+
+    #[test]
+    fn empty_symbols_family_falls_back_to_primary() {
+        // Bare config tier has no symbols preference — symbol cells then
+        // shape against the primary family (which on the default Nerd
+        // font already carries the ranges), never against an empty name.
+        assert_eq!(
+            select_run_family("\u{E0B0}", false, "JetBrainsMono Nerd Font Mono", "Iosevka", ""),
+            "JetBrainsMono Nerd Font Mono",
+        );
+    }
+
     #[test]
     fn test_color_to_f32_red() {
         assert_eq!(color_to_f32(&Color::new(255, 0, 0)), [1.0, 0.0, 0.0, 1.0]);
@@ -4470,6 +4564,7 @@ mod tests {
             14.0,
             "JetBrains Mono".into(),
             "Iosevka".into(),
+            "Symbols Nerd Font Mono".into(), // font_symbols
             8.0,
             CursorStyle::Block,
             true,
@@ -4493,6 +4588,7 @@ mod tests {
             14.0,
             "JetBrains Mono".into(),
             "Iosevka".into(),
+            "Symbols Nerd Font Mono".into(), // font_symbols
             8.0,
             CursorStyle::Block,
             true,

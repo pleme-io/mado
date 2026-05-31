@@ -18,6 +18,7 @@ mod clipboard_store;
 mod config;
 mod engate_consumer;
 mod font_size;
+mod glyph_class;
 mod gui_tear_attach;
 mod kanshou_state;
 mod keybind;
@@ -637,6 +638,7 @@ fn main() -> anyhow::Result<()> {
         effective_font_size,
         config.font_family.clone(),
         config.font_italic.clone(),
+        config.font_symbols.clone(),
         padding,
         config.cursor.style,
         cursor_blink,
