@@ -11,8 +11,8 @@
 > a 5-pass render pipeline, and a vt100/xterm/Kitty surface authored once.
 
 A GPU-accelerated terminal emulator built in pure Rust. Follows Ghostty's philosophy
-of speed + features + native UI without compromise, but adds Rhai scripting, an
-embedded MCP server, and deep Nix integration that no competitor offers.
+of speed + features + native UI without compromise, plus an embedded MCP server,
+an embedded vigy reconciler, and deep Nix integration that no competitor offers.
 
 > **★ M5 de-overlap with tear.** Mado's `pane.rs` / `tab.rs` /
 > `window.rs` are **legacy** — multiplexing belongs in
@@ -57,11 +57,11 @@ nix run .#rebuild             # rebuild HM module (from nix repo)
 
 | vs | Mado advantage |
 |----|----------------|
-| **Ghostty** | Rhai scripting (Ghostty has none), embedded MCP server, plugin ecosystem, Nix-native config |
-| **WezTerm** | wgpu not OpenGL, pure Rust (no C deps), Nix-managed config via shikumi, MCP |
-| **Kitty** | Modal vim-style hotkeys (awase), MCP, Rhai scripting instead of Python kittens |
-| **Alacritty** | Split panes, tabs, scripting, MCP, plugins (Alacritty is intentionally minimal) |
-| **Rio** | Rhai not WASM, deeper Nix integration, MCP automation |
+| **Ghostty** | embedded MCP automation (~42 typed tools), tatara-lisp scripting via the embedded vigy reconciler, Nix-native typed config (shikumi) |
+| **WezTerm** | wgpu not OpenGL, pure-safe Rust (no C deps), tatara-lisp scripting (vigy) not Lua, Nix-managed config via shikumi, MCP |
+| **Kitty** | Modal vim-style hotkeys (awase), MCP + tatara-lisp scripting (vigy) instead of Python kittens |
+| **Alacritty** | Embedded tear multiplexer (panes/tabs/sessions), MCP automation (Alacritty is intentionally minimal) |
+| **Rio** | embedded MCP + vigy automation, deeper Nix integration |
 
 ## Architecture
 
@@ -264,7 +264,6 @@ transitive git deps. Published to crates.io as `mado`.
 | **irodori** | Color palette for themes (replace hardcoded Nord values) |
 | **irodzuki** | GPU theming: base16 to wgpu uniforms, ANSI color table generation |
 | **kaname** | Embedded MCP server (stdio transport) |
-| **soushi** | Rhai scripting engine for user plugins |
 | **awase** | Modal hotkey system (Normal/Insert/Command modes) |
 | **mojiban** | Rich text in command palette and help overlays |
 | **tsunagu** | Daemon mode (background multiplexer with IPC) |
@@ -314,30 +313,41 @@ Embedded MCP server via stdio transport, discoverable at `~/.config/mado/mcp.jso
 
 ---
 
-## Plugin System (soushi + Rhai)
+## Automation & scripting (MCP + vigy / tatara-lisp)
 
-Scripts loaded from `~/.config/mado/scripts/*.rhai`.
+mado exposes two typed automation primitives — **no third scripting engine**:
 
-**Rhai API**:
-```
-mado.send(text)              // send text to active PTY
-mado.split(direction)        // "horizontal" or "vertical"
-mado.tab_new()               // open new tab
-mado.tab_switch(n)           // switch to tab n
-mado.set_opacity(f)          // set window opacity (0.0-1.0)
-mado.shader_enable(name)     // enable a WGSL shader from shaders/
-mado.font_size(n)            // set font size
-mado.theme(name)             // switch theme
-mado.title()                 // get current terminal title
-mado.cwd()                   // get current working directory
-mado.scrollback(n)           // get last n lines of scrollback
-mado.selection()             // get current text selection
-```
+- **kaname MCP server** (~42 typed tools — session/grid snapshots, send-keys,
+  clipboard history, prompt/command blocks, asciinema recording; see the MCP
+  Server section below) for agent / external drive.
+- **embedded vigy reconciler** running **tatara-lisp** in-process (see
+  `vigy_host.rs`). Scripting IS tatara-lisp: user automation is authored as
+  `(def…)` forms over mado intrinsics registered through vigy's `register_fn`
+  / `ExtInterpreter` (e.g. `(mado-tear-attached?)`). Output-driven triggers
+  and a shell-facing `mado` control CLI land as a thin layer over this + the
+  MCP surface (see [`docs/REMEDIATION-PLAN.md`](./docs/REMEDIATION-PLAN.md) M7).
 
-**Event hooks**: `on_startup`, `on_shutdown`, `on_bell`, `on_title_change`,
-`on_directory_change`, `on_output(pattern)`, `on_focus`, `on_blur`
+**Scope boundary — mado-memory-privileged only.** Built-in tatara-lisp
+scripting exists *only* for operations that require privileged access to
+mado's live in-process state: the grid + scrollback, selection,
+prompt/command blocks, clipboard history, pane/session graph,
+cursor/mode/VT state, typed config, and the send-to-PTY / window / title /
+theme / bell / font handles. The vigy intrinsics expose exactly this
+"reach into mado's brain" surface — nothing more. If a task can be done by
+running a command in a **shell, it belongs in the shell (frostmourne)**, not
+in mado scripting; mado scripting is NOT a general automation/orchestration
+language and must never reimplement shell-doable work (file ops, git,
+process spawning, pipelines). The test for every proposed intrinsic: *"does
+this need mado's live state to work?"* — yes → mado intrinsic; no →
+frostmourne. This keeps the scripting surface small, typed, and
+non-overlapping with the shell.
 
-**Custom commands**: Plugins register commands accessible via command palette (`:` mode).
+> A Rhai/soushi scripting stub previously lived here; it was **deleted
+> (2026-05-31)** — the functions never had a real terminal handle (they
+> returned format-string placeholders), so the API was doc/code drift and
+> carried TYPED-EMISSION `format!()` violations. Per the Four-Lisps /
+> solve-once discipline, scripting consolidates on **tatara-lisp via vigy**,
+> not a second engine.
 
 ---
 

@@ -17,7 +17,8 @@
 //! - No special-key translation (arrows / function / chord keys);
 //!   only `KeyEvent.text` (UTF-8 char input) is forwarded. Phase
 //!   3.1.1 will port mado's existing key-table.
-//! - No clipboard / selection / search / Rhai scripts.
+//! - No clipboard / selection / search (lifted into the shared input
+//!   path at M1 — see docs/REMEDIATION-PLAN.md).
 //! - No multi-pane (that's tear's job — this mode renders one
 //!   tear pane in one mado window).
 

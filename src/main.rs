@@ -25,7 +25,6 @@ mod single_pane;
 mod tear_discovery;
 mod mcp;
 mod osc_1337;
-mod scripting;
 mod platform;
 mod pointer_shape;
 mod prompt_mark;
@@ -57,7 +56,6 @@ use madori::EventResponse;
 use crate::keybind::{Action, KeybindManager};
 // SplitDir removed at Phase 4 — single-pane mado.
 use crate::render::{SharedTerminal, TerminalRenderer};
-use crate::scripting::{ScriptEvent, ScriptManager};
 use crate::selection::CellPos;
 use crate::terminal::{Color, MouseMode};
 use crate::theme::Theme;
@@ -685,9 +683,6 @@ fn main() -> anyhow::Result<()> {
             .write()
             .apply_theme(theme.foreground, theme.background, theme.ansi);
     }
-
-    let scripts = ScriptManager::new();
-    scripts.fire_event(ScriptEvent::OnStart);
 
     let pane_for_events = Arc::clone(&pane);
     let clipboard = Arc::new(Mutex::new(
@@ -1502,8 +1497,6 @@ fn main() -> anyhow::Result<()> {
         })
         .run()
         .map_err(|e| anyhow::anyhow!("madori error: {e}"))?;
-
-    scripts.fire_event(ScriptEvent::OnQuit);
 
     Ok(())
 }

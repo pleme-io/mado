@@ -103,7 +103,6 @@ engate-types = { git = "https://github.com/pleme-io/engate", branch = "main" }
 engate-attach = { git = "https://github.com/pleme-io/engate", branch = "main" }
 # Signal handling for the long-running `mado tear-attach` loop.
 ctrlc = { version = "3", features = ["termination"] }
-soushi = { git = "https://github.com/pleme-io/soushi" }
 awase = { git = "https://github.com/pleme-io/awase" }
 kaname = { git = "https://github.com/pleme-io/kaname" }
 # ishou-tokens — the typed colour-space + design-token primitive owns
