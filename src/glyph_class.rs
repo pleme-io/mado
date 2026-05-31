@@ -111,6 +111,10 @@ mod tests {
         assert!(is_symbol_glyph('\u{E000}'));
         assert!(is_symbol_glyph('\u{F8FF}'));
         assert!(is_symbol_glyph('\u{F300}')); // e.g. nf-linux-* block
+        // nf-dev-ruby (U+E791) — the lualine "red ruby" devicon. A PUA
+        // devicon, classified as a symbol → routed to the symbols family
+        // where it correctly takes the cell's SGR fg (the red span colour).
+        assert!(is_symbol_glyph('\u{E791}'));
         // Supplementary PUA-A (modern Nerd releases).
         assert!(is_symbol_glyph('\u{F0001}'));
         assert!(is_symbol_glyph('\u{FFFFD}'));

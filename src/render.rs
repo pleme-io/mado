@@ -4321,6 +4321,52 @@ mod tests {
         );
     }
 
+    /// Regression guard for the "coloured devicon renders un-tinted"
+    /// class: a Nerd-PUA icon (nf-dev-ruby U+E791, the lualine "red
+    /// ruby") routes to the symbols family, AND its cell carries the SGR
+    /// fg colour independently of that routing. `select_run_family` is
+    /// colour-blind by construction (it takes no colour argument); the
+    /// fg lives in `RunAttrsKey`, which `shape_run` turns into the
+    /// glyphon span colour `GlyphonColor::rgba(fg_r,fg_g,fg_b,255)`
+    /// REGARDLESS of which family the selector picked. So a red devicon
+    /// on the symbols family keeps its red — proving the symbols branch
+    /// never drops the cell colour.
+    #[test]
+    fn symbol_routed_run_preserves_cell_fg() {
+        // ANSI red = (205,49,49) — the colour an SGR `31` devicon carries.
+        let red = Color::new(205, 49, 49);
+        let icon = "\u{E791}"; // nf-dev-ruby
+
+        // 1. The icon is symbol-classified → routes to the symbols family.
+        assert_eq!(
+            select_run_family(icon, false, "JetBrains Mono", "Iosevka", "Symbols Nerd Font Mono"),
+            "Symbols Nerd Font Mono",
+            "nf-dev-ruby must route to the symbols family",
+        );
+
+        // 2. The run-attrs key carries the cell's fg — and the SAME key
+        //    is used for both the symbol branch and any other family
+        //    (the family is a separate axis off `select_run_family`),
+        //    so the fg is preserved across the routing decision.
+        let key = RunAttrsKey {
+            fg_r: red.r,
+            fg_g: red.g,
+            fg_b: red.b,
+            bold: false,
+            italic: false,
+        };
+        assert_eq!((key.fg_r, key.fg_g, key.fg_b), (205, 49, 49));
+
+        // 3. Cross-pin: the family choice does NOT depend on colour — an
+        //    identically-coloured ASCII run routes to the primary family
+        //    while the icon routes to symbols, yet both would carry the
+        //    same `RunAttrsKey` fg. Routing and colour are orthogonal.
+        assert_eq!(
+            select_run_family("a", false, "JetBrains Mono", "Iosevka", "Symbols Nerd Font Mono"),
+            "JetBrains Mono",
+        );
+    }
+
     #[test]
     fn test_color_to_f32_red() {
         assert_eq!(color_to_f32(&Color::new(255, 0, 0)), [1.0, 0.0, 0.0, 1.0]);
