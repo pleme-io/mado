@@ -1069,7 +1069,10 @@ impl TerminalRenderer {
             cursor_blink_rate_ms,
             metrics_measured: false,
             bell_flash_frames: 0,
-            selection_bg: [0.533, 0.753, 0.816, 0.3], // Nord frost default
+            // Nord frost #88C0D0 at 0.3 alpha, linearized for the rect
+            // pipeline (see `overlay_rect_color`). NOT the raw byte/255
+            // triple — that would render washed-out on the sRGB surface.
+            selection_bg: overlay_rect_color(0x88, 0xC0, 0xD0, 0.3),
             cursor_color: [0.925, 0.937, 0.957, 0.85], // Nord snow default
             reduce_motion: false,
             // 1.0 = no scaling; overwritten on the first render frame
@@ -1651,10 +1654,12 @@ impl TerminalRenderer {
         if snap.search_active {
             for (i, m) in snap.search_matches.iter().enumerate() {
                 let is_current = i == snap.search_current;
+                // Nord aurora yellow #EBCB8B, linearized for the rect
+                // pipeline (current match brighter than other matches).
                 let color = if is_current {
-                    [0.922, 0.796, 0.545, 0.5] // Nord aurora yellow
+                    overlay_rect_color(0xEB, 0xCB, 0x8B, 0.5)
                 } else {
-                    [0.922, 0.796, 0.545, 0.2] // Dimmer yellow
+                    overlay_rect_color(0xEB, 0xCB, 0x8B, 0.2)
                 };
                 instances.push(RectInstance {
                     pos: [
@@ -1684,8 +1689,9 @@ impl TerminalRenderer {
                         * self.cell_width,
                     1.0,
                 ],
-                // Nord frost blue underline
-                color: [0.533, 0.753, 0.816, 0.6],
+                // Nord frost blue #88C0D0 underline, linearized for the
+                // rect pipeline (see `overlay_rect_color`).
+                color: overlay_rect_color(0x88, 0xC0, 0xD0, 0.6),
             });
         }
 
@@ -2035,6 +2041,19 @@ impl TerminalRenderer {
 fn color_to_f32(c: &Color) -> [f32; 4] {
     let linear = ishou_tokens::Srgb::new(c.r, c.g, c.b).to_linear();
     [linear.r, linear.g, linear.b, 1.0]
+}
+
+/// The single typed surface for translucent overlay-decoration rects
+/// (selection highlight, search-match highlight, URL underline). Like
+/// every other colour the rect pipeline consumes, the value MUST be
+/// linear before it reaches the sRGB-storage surface — wgpu re-encodes
+/// linear→sRGB on store, so a raw-sRGB triple here renders washed-out
+/// (the prior-incident gamma bug, isolated to the overlay class). The
+/// RGB channels go through the typed `ishou_tokens::Srgb::to_linear`
+/// path; alpha is linear by convention and passes through unchanged.
+fn overlay_rect_color(r: u8, g: u8, b: u8, alpha: f32) -> [f32; 4] {
+    let linear = ishou_tokens::Srgb::new(r, g, b).to_linear();
+    [linear.r, linear.g, linear.b, alpha]
 }
 
 /// Check if a character is a box drawing character that we render via rects.
@@ -3396,12 +3415,18 @@ mod render_invariants {
 
     // ── search-highlight invariants ───────────────────────────────
 
-    /// Search-match colors (Nord aurora yellow at two alphas).
-    /// Hardcoded here to mirror build_rect_instances; if the
-    /// renderer's color choice changes, the test must update too
-    /// — and that's the point: explicit pin on the contract.
-    const SEARCH_CURRENT_COLOR: [f32; 4] = [0.922, 0.796, 0.545, 0.5];
-    const SEARCH_OTHER_COLOR: [f32; 4] = [0.922, 0.796, 0.545, 0.2];
+    /// Search-match colors (Nord aurora yellow #EBCB8B at two alphas),
+    /// **linearized** to mirror `build_rect_instances` (the rect
+    /// pipeline writes verbatim to the sRGB surface, so it consumes
+    /// linear values via `overlay_rect_color`). Built through the same
+    /// typed path so this pin tracks the renderer's contract by
+    /// construction instead of carrying a frozen raw-sRGB triple.
+    fn search_current_color() -> [f32; 4] {
+        super::overlay_rect_color(0xEB, 0xCB, 0x8B, 0.5)
+    }
+    fn search_other_color() -> [f32; 4] {
+        super::overlay_rect_color(0xEB, 0xCB, 0x8B, 0.2)
+    }
 
     #[test]
     fn active_search_with_matches_emits_match_rects() {
@@ -3421,11 +3446,11 @@ mod render_invariants {
         let rects = compute_rects(&r);
         let current_hits: Vec<_> = rects
             .iter()
-            .filter(|rt| colors_approx_eq(rt.color, SEARCH_CURRENT_COLOR))
+            .filter(|rt| colors_approx_eq(rt.color, search_current_color()))
             .collect();
         let other_hits: Vec<_> = rects
             .iter()
-            .filter(|rt| colors_approx_eq(rt.color, SEARCH_OTHER_COLOR))
+            .filter(|rt| colors_approx_eq(rt.color, search_other_color()))
             .collect();
         assert_eq!(current_hits.len(), 1, "exactly one current match");
         assert_eq!(other_hits.len(), 2, "two non-current matches");
@@ -3453,8 +3478,8 @@ mod render_invariants {
         let any_search: Vec<_> = rects
             .iter()
             .filter(|rt| {
-                colors_approx_eq(rt.color, SEARCH_CURRENT_COLOR)
-                    || colors_approx_eq(rt.color, SEARCH_OTHER_COLOR)
+                colors_approx_eq(rt.color, search_current_color())
+                    || colors_approx_eq(rt.color, search_other_color())
             })
             .collect();
         assert!(
@@ -4572,10 +4597,99 @@ mod tests {
             wgpu::Color { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
             Color::WHITE,
         );
-        assert!((renderer.selection_bg[0] - 0.533).abs() < 0.01);
-        assert!((renderer.selection_bg[1] - 0.753).abs() < 0.01);
-        assert!((renderer.selection_bg[2] - 0.816).abs() < 0.01);
-        assert!((renderer.selection_bg[3] - 0.3).abs() < 0.01);
+        // Default selection_bg is Nord frost #88C0D0 at 0.3 alpha,
+        // LINEARIZED for the rect pipeline (not the raw byte/255 triple
+        // 0.533/0.753/0.816 — that would render washed-out on the sRGB
+        // surface). See `selection_bg_is_linearized_not_raw_srgb`.
+        let expected = ishou_tokens::Srgb::new(0x88, 0xC0, 0xD0).to_linear();
+        assert!((renderer.selection_bg[0] - expected.r).abs() < 1e-4);
+        assert!((renderer.selection_bg[1] - expected.g).abs() < 1e-4);
+        assert!((renderer.selection_bg[2] - expected.b).abs() < 1e-4);
+        assert!((renderer.selection_bg[3] - 0.3).abs() < 1e-6);
+    }
+
+    /// The rect pipeline writes `selection_bg` verbatim to a sRGB-storage
+    /// surface, so the value MUST be linear (strictly darker per channel
+    /// than the raw sRGB form). This pins the load-bearing colour-fidelity
+    /// fix: the overlay-decoration rect path linearizes like every other
+    /// rect colour.
+    #[test]
+    fn selection_bg_is_linearized_not_raw_srgb() {
+        // Nord frost #88C0D0 = (136,192,208). Raw byte/255 = the
+        // washed-out triple the pre-fix default carried.
+        let raw = [136.0 / 255.0, 192.0 / 255.0, 208.0 / 255.0];
+        let expected = ishou_tokens::Srgb::new(0x88, 0xC0, 0xD0).to_linear();
+
+        let sel = overlay_rect_color(0x88, 0xC0, 0xD0, 0.3);
+        assert!((sel[0] - expected.r).abs() < 1e-4);
+        assert!((sel[1] - expected.g).abs() < 1e-4);
+        assert!((sel[2] - expected.b).abs() < 1e-4);
+        // Cross-pin: linear is markedly darker than raw sRGB (the
+        // wash-out signature). Each channel strictly drops.
+        assert!(
+            sel[0] < raw[0] && sel[1] < raw[1] && sel[2] < raw[2],
+            "selection_bg must be linear (darker) not raw sRGB: got {sel:?} vs raw {raw:?}"
+        );
+        assert!((sel[3] - 0.3).abs() < 1e-6, "alpha stays linear/unchanged");
+    }
+
+    /// Pin the search-match (Nord aurora #EBCB8B) and URL-underline
+    /// (Nord frost #88C0D0) overlay literals to the same linearized path
+    /// so a future edit can't reintroduce a raw-sRGB triple.
+    #[test]
+    fn search_and_url_overlays_are_linearized() {
+        let aurora = ishou_tokens::Srgb::new(0xEB, 0xCB, 0x8B).to_linear();
+        let frost = ishou_tokens::Srgb::new(0x88, 0xC0, 0xD0).to_linear();
+
+        // Search current-match (alpha 0.5) and other-match (alpha 0.2).
+        let cur = overlay_rect_color(0xEB, 0xCB, 0x8B, 0.5);
+        let other = overlay_rect_color(0xEB, 0xCB, 0x8B, 0.2);
+        for c in [cur, other] {
+            assert!((c[0] - aurora.r).abs() < 1e-4);
+            assert!((c[1] - aurora.g).abs() < 1e-4);
+            assert!((c[2] - aurora.b).abs() < 1e-4);
+        }
+        assert!((cur[3] - 0.5).abs() < 1e-6);
+        assert!((other[3] - 0.2).abs() < 1e-6);
+
+        // URL underline (alpha 0.6).
+        let url = overlay_rect_color(0x88, 0xC0, 0xD0, 0.6);
+        assert!((url[0] - frost.r).abs() < 1e-4);
+        assert!((url[1] - frost.g).abs() < 1e-4);
+        assert!((url[2] - frost.b).abs() < 1e-4);
+        assert!((url[3] - 0.6).abs() < 1e-6);
+
+        // Cross-pin: aurora linear strictly darker than raw byte/255.
+        let aurora_raw = [0xEB as f32 / 255.0, 0xCB as f32 / 255.0, 0x8B as f32 / 255.0];
+        assert!(aurora.r < aurora_raw[0] && aurora.g < aurora_raw[1] && aurora.b < aurora_raw[2]);
+    }
+
+    /// Curve-agreement invariant: the rect-pipeline linearizer
+    /// (`ishou_tokens::Srgb::to_linear`, used by `color_to_f32` /
+    /// `overlay_rect_color`) must match the text-pipeline linearizer
+    /// (glyphon's `srgb_to_linear` in `ColorMode::Accurate`, the same
+    /// IEC 61966-2-1 curve). If both feed the SAME linear value to the
+    /// SAME sRGB surface, text and rect colours match by construction.
+    #[test]
+    fn text_and_rect_share_the_same_srgb_to_linear_curve() {
+        // glyphon shader.wgsl `srgb_to_linear` (ColorMode::Accurate):
+        //   c <= 0.04045 ? c/12.92 : ((c+0.055)/1.055)^2.4
+        fn glyphon_srgb_to_linear(c: f32) -> f32 {
+            if c <= 0.040_45 {
+                c / 12.92
+            } else {
+                ((c + 0.055) / 1.055).powf(2.4)
+            }
+        }
+        for g in [0u8, 1, 18, 64, 128, 192, 205, 254, 255] {
+            let rect = color_to_f32(&Color::new(g, g, g));
+            let text = glyphon_srgb_to_linear(f32::from(g) / 255.0);
+            assert!(
+                (rect[0] - text).abs() < 1e-6,
+                "rect-vs-text linear mismatch at g={g}: rect={} text={text}",
+                rect[0]
+            );
+        }
     }
 
     #[test]

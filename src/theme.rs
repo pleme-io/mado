@@ -23,6 +23,14 @@ pub struct Theme {
     pub background: Color,
     pub foreground: Color,
     pub cursor: Color,
+    /// Selection-overlay colour, **already linearized**. The rect
+    /// pipeline (`RectInstance.color`) writes its value verbatim to the
+    /// sRGB-storage surface where wgpu performs the linear→sRGB encode
+    /// on store, so every colour that pipeline consumes MUST be linear
+    /// (the same discipline `render::color_to_f32` enforces for per-cell
+    /// backgrounds). `theme_from_scheme` runs `scheme.base02` (raw sRGB)
+    /// through `ishou_tokens::SrgbA::to_linear` before it lands here, so
+    /// a raw-sRGB value can never reach the GPU through this field.
     pub selection_bg: [f32; 4],
     pub ansi: [Color; 16],
 }
@@ -58,6 +66,22 @@ fn iro_to_color(c: IroColor) -> Color {
     )
 }
 
+/// Project an irodzuki `Color` (raw sRGB floats, byte/255 with no gamma)
+/// into a **linear** RGBA tuple for the rect pipeline. The overlay rect
+/// shader writes its colour verbatim to the sRGB-storage surface, so the
+/// value handed to it must already be linear — exactly the discipline
+/// `render::color_to_f32` applies to per-cell backgrounds. We round-trip
+/// the 8-bit channels through the typed `ishou_tokens::SrgbA::to_linear`
+/// path (alpha stays linear by convention) so a raw-sRGB value can never
+/// reach the GPU through `Theme::selection_bg`.
+fn iro_to_linear_rgba(c: IroColor) -> [f32; 4] {
+    let to_u8 = |v: f32| (v.clamp(0.0, 1.0) * 255.0).round() as u8;
+    let lin = ishou_tokens::Srgb::new(to_u8(c.r), to_u8(c.g), to_u8(c.b))
+        .with_alpha(to_u8(c.a))
+        .to_linear();
+    [lin.r, lin.g, lin.b, lin.a]
+}
+
 fn f32_array_to_color(a: [f32; 4]) -> Color {
     Color::new(
         (a[0].clamp(0.0, 1.0) * 255.0).round() as u8,
@@ -82,7 +106,7 @@ fn theme_from_scheme(scheme: ColorScheme) -> Theme {
         background: iro_to_color(scheme.base00),
         foreground: iro_to_color(scheme.base05),
         cursor: iro_to_color(cursor),
-        selection_bg: scheme.base02.to_array(),
+        selection_bg: iro_to_linear_rgba(scheme.base02),
         ansi,
     }
 }
