@@ -372,21 +372,20 @@ fn spawn_child(
 
     // Set terminal type so programs know our capabilities.
     //
-    // mado is ghostty-compatible — same GPU + wgpu + glyphon stack,
-    // same OSC 7 / 8 / 52 / 133 / 1337 surface, same Kitty graphics
-    // protocol, same truecolor, same synchronized output, same
-    // bracketed paste. Advertising `xterm-ghostty` (instead of the
-    // safer-but-narrower `xterm-256color`) lets apps unlock the full
-    // shell-integration repertoire that ghostty's terminfo describes:
-    // OSC 133 prompt marks, scrollback push/pop, italics + underline
-    // styles, decoration colours, and the same starship / atuin /
-    // fzf integrations operators already configured for ghostty.
-    //
-    // Falls back to `xterm-256color` for SSH sessions automatically
-    // via the shell-init hook in blackmatter-shell/.zshenv — remote
-    // hosts that lack the `xterm-ghostty` terminfo entry get the
-    // canonical lowest-common-denominator behaviour.
-    cmd.env("TERM", "xterm-ghostty");
+    // TERM is a PROJECTION of mado's real capability set
+    // (`caps::TerminalCaps`), never a hand-picked string — so mado can
+    // never advertise a capability it does not implement. Until styled
+    // underlines render (M3) this resolves to `xterm-256color`, which does
+    // NOT claim `Smulx`, so editors won't emit undercurl that mado would
+    // silently drop; truecolor is signalled out-of-band via COLORTERM
+    // below (apps honour it regardless of TERM). When the styled-underline
+    // render path lands, `advertised_term()` upgrades to the richer entry.
+    // SSH sessions fall back to `xterm-256color` via blackmatter-shell's
+    // .zshenv for remote hosts lacking the advertised terminfo entry.
+    cmd.env(
+        "TERM",
+        crate::caps::TerminalCaps::prescribed().advertised_term(),
+    );
     cmd.env("COLORTERM", "truecolor");
     cmd.env("TERM_PROGRAM", "mado");
     cmd.env("TERM_PROGRAM_VERSION", env!("CARGO_PKG_VERSION"));

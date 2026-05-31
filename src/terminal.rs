@@ -2841,10 +2841,10 @@ impl vte::Perform for Terminal {
         if intermediates == [b'>'] {
             match action {
                 'c' => {
-                    // Secondary DA: report terminal type and version
-                    // Format: CSI > Pp ; Pv ; Pc c
-                    // 1 = VT220, 0 = firmware version, 0 = ROM version
-                    self.response_bytes.extend_from_slice(b"\x1b[>1;0;0c");
+                    // Secondary DA (DA2): CSI > Pp ; Pv ; Pc c.
+                    // Single source of truth: TerminalCaps::SECONDARY_DA.
+                    self.response_bytes
+                        .extend_from_slice(crate::caps::TerminalCaps::SECONDARY_DA);
                 }
                 'u' => {
                     // Kitty keyboard protocol: push flags onto stack
@@ -3188,10 +3188,11 @@ impl vte::Perform for Terminal {
                     self.dirty();
                 }
             }
-            // DA — Device Attributes
+            // DA — Device Attributes (DA1). Single source of truth:
+            // crate::caps::TerminalCaps::PRIMARY_DA.
             'c' => {
-                // Report VT220 compatible terminal
-                self.response_bytes.extend_from_slice(b"\x1b[?62;22c");
+                self.response_bytes
+                    .extend_from_slice(crate::caps::TerminalCaps::PRIMARY_DA);
             }
             // CBT — Cursor Backward Tabulation
             'Z' => {

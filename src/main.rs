@@ -23,6 +23,7 @@ mod kanshou_state;
 mod keybind;
 mod single_pane;
 mod tear_discovery;
+mod caps;
 mod mcp;
 mod osc_1337;
 mod platform;
