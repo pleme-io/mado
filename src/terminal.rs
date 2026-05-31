@@ -595,6 +595,25 @@ enum DcsHandler {
     Sixel,
 }
 
+/// A lone `ESC` carried across a [`Terminal::feed`] boundary.
+///
+/// mado intercepts APC (`ESC _ … ST`) in `feed()` before vte sees it,
+/// so the two-byte `ESC _` introducer and `ESC \` ST terminator must
+/// be reassembled when a `feed()` chunk ends exactly on the `ESC`.
+/// The variant records the context the trailing `ESC` appeared in so
+/// the next feed's first byte can complete (or reject) the pair.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PendingEsc {
+    /// No carried ESC.
+    None,
+    /// A trailing `ESC` in ground state — could begin `ESC _` (APC
+    /// start) or any other ESC-initiated sequence vte owns.
+    Ground,
+    /// A trailing `ESC` while inside the APC accumulator — could begin
+    /// the `ESC \` ST terminator, or be literal APC payload.
+    InApc,
+}
+
 /// Accumulator for multi-chunk Kitty image transmissions.
 struct KittyPending {
     params: HashMap<u8, String>,
@@ -651,6 +670,55 @@ fn parse_kitty_params(payload: &[u8]) -> (HashMap<u8, String>, Vec<u8>) {
     };
 
     (params, decoded)
+}
+
+/// Length of an incomplete UTF-8 sequence at the END of `bytes`.
+///
+/// Returns the number of trailing bytes that form the start of a
+/// multi-byte UTF-8 codepoint whose continuation bytes have not all
+/// arrived yet (so `bytes[..len - tail]` is valid UTF-8 up to a
+/// codepoint boundary, or up to an *invalid* byte we leave for vte to
+/// turn into a replacement char). Returns `0` when `bytes` ends on a
+/// complete codepoint or on an invalid byte (vte handles those in the
+/// same advance() call). A lead byte indicates its own length via its
+/// high bits; we only treat the tail as incomplete when fewer
+/// continuation bytes than the lead promises are present. Caps the
+/// scan at the last 3 bytes — no UTF-8 codepoint exceeds 4 bytes.
+fn incomplete_utf8_tail_len(bytes: &[u8]) -> usize {
+    // Walk back over continuation bytes (0b10xx_xxxx) to find the lead.
+    let n = bytes.len();
+    let mut cont = 0usize;
+    while cont < 3 && cont < n && (bytes[n - 1 - cont] & 0b1100_0000) == 0b1000_0000 {
+        cont += 1;
+    }
+    if cont == n {
+        // The whole (short) buffer is continuation bytes with no lead —
+        // not our incomplete-tail case (vte emits replacements). Leave it.
+        return 0;
+    }
+    let lead_idx = n - 1 - cont;
+    let lead = bytes[lead_idx];
+    // Expected total length encoded by the lead byte's high bits.
+    let expected = if lead & 0b1000_0000 == 0 {
+        1 // ASCII — complete.
+    } else if lead & 0b1110_0000 == 0b1100_0000 {
+        2
+    } else if lead & 0b1111_0000 == 0b1110_0000 {
+        3
+    } else if lead & 0b1111_1000 == 0b1111_0000 {
+        4
+    } else {
+        // Not a valid lead byte (stray continuation / 0xF8+) — let vte
+        // emit the replacement char; nothing incomplete to hold.
+        return 0;
+    };
+    let have = cont + 1; // continuation bytes + the lead.
+    if have < expected {
+        // Incomplete: hold the lead + the continuation bytes we have.
+        have
+    } else {
+        0
+    }
 }
 
 /// Base64 decode to raw bytes (not string).
@@ -870,6 +938,31 @@ pub struct Terminal {
     // APC sequence accumulator (ESC _ ... ST)
     apc_buf: Option<Vec<u8>>,
 
+    // Carried-over ESC state across feed() boundaries. mado intercepts
+    // APC (ESC _ … ST) BEFORE vte sees it (vte silently swallows APC
+    // content), so the two-byte introducer (ESC _) and the two-byte
+    // ST terminator (ESC \) must survive a feed() split. A lone ESC at
+    // the end of a feed can't peek its successor — we record which
+    // context it appeared in and resolve it on the next feed's first
+    // byte. Without this, a multi-byte char (e.g. an em-dash) that
+    // follows a split ESC \ ST gets swallowed into the never-terminated
+    // APC buffer. See split_esc_st_across_feeds regression test.
+    pending_esc: PendingEsc,
+
+    // Incomplete trailing UTF-8 bytes carried across feed() boundaries.
+    // vte 0.15's own partial-UTF-8 completion (advance_partial_utf8)
+    // silently DROPS any valid bytes that follow the completed
+    // codepoint inside its 4-byte window — e.g. feeding `C2 A1 41` after
+    // a partial `C2` completes `¡` but discards the `A`. We sidestep
+    // that by never leaving a partial codepoint inside vte: feed() holds
+    // back any incomplete UTF-8 tail of a ground run and prepends it to
+    // the next feed, so vte always receives whole codepoints in one
+    // advance() and never enters the lossy partial path. ESC/APC bytes
+    // are never part of a multi-byte sequence, so a held tail is always
+    // pure ground content safe to prepend. See
+    // split_multibyte_char_across_feeds + the well-formed proptest.
+    utf8_tail: Vec<u8>,
+
     // DCS handler state
     dcs_handler: Option<DcsHandler>,
 
@@ -968,6 +1061,8 @@ impl Terminal {
             sixel_images: Vec::new(),
             sixel_buffer: None,
             apc_buf: None,
+            pending_esc: PendingEsc::None,
+            utf8_tail: Vec::new(),
             dcs_handler: None,
             parser: vte::Parser::new(),
         }
@@ -993,11 +1088,70 @@ impl Terminal {
 
     // ── Public API ──────────────────────────────────────────────────
 
-    pub fn feed(&mut self, bytes: &[u8]) {
+    pub fn feed(&mut self, input: &[u8]) {
         // Intercept APC sequences (ESC _ G ... ST) for Kitty graphics.
         // vte swallows APC content without dispatching, so we parse it manually.
         let mut i = 0;
         let mut parser = std::mem::replace(&mut self.parser, vte::Parser::new());
+
+        // Prepend any incomplete UTF-8 tail held back from the previous
+        // feed() so vte sees whole codepoints (see `utf8_tail`). A held
+        // tail is pure ground content (ESC/APC bytes are never UTF-8
+        // continuations), so this prepend can't disturb the APC/ESC
+        // index logic below. utf8_tail and pending_esc are mutually
+        // exclusive — a trailing ESC can't be a UTF-8 continuation byte —
+        // so we never need to combine the two carries.
+        let combined: Vec<u8>;
+        let bytes: &[u8] = if self.utf8_tail.is_empty() {
+            input
+        } else {
+            combined = self.utf8_tail.drain(..).chain(input.iter().copied()).collect();
+            &combined
+        };
+
+        // Resolve any ESC carried from the previous feed() against this
+        // chunk's first byte. A lone trailing ESC is ambiguous until its
+        // successor arrives — `ESC _` (APC start) and `ESC \` (APC ST)
+        // are the two pairs mado reassembles itself; anything else
+        // belongs to vte. Without this, a split `ESC \` ST never
+        // terminates the APC and silently eats whatever follows (e.g. a
+        // multi-byte char). See split_esc_st_across_feeds.
+        // An empty chunk can't disambiguate a carried ESC — keep the
+        // carry untouched and return. (Common: a flush with no new PTY
+        // bytes must not force-resolve the pending ESC.)
+        if bytes.is_empty() {
+            self.parser = parser;
+            return;
+        }
+        match self.pending_esc {
+            PendingEsc::None => {}
+            PendingEsc::InApc => {
+                self.pending_esc = PendingEsc::None;
+                if bytes[0] == b'\\' {
+                    // Carried ESC + `\` = ST — terminate the APC now.
+                    if let Some(buf) = self.apc_buf.take() {
+                        self.handle_apc(&buf);
+                    }
+                    i = 1;
+                } else if let Some(ref mut buf) = self.apc_buf {
+                    // The ESC was literal APC payload; reprocess byte 0
+                    // as ordinary APC content in the loop below.
+                    buf.push(0x1b);
+                }
+            }
+            PendingEsc::Ground => {
+                self.pending_esc = PendingEsc::None;
+                if bytes[0] == b'_' {
+                    // Carried ESC + `_` = APC introducer.
+                    self.apc_buf = Some(Vec::new());
+                    i = 1;
+                } else {
+                    // The ESC belongs to vte — hand it over so vte's own
+                    // (chunk-boundary-preserving) parser resolves it.
+                    parser.advance(self, &[0x1b]);
+                }
+            }
+        }
 
         while i < bytes.len() {
             // If we're inside an APC sequence, accumulate until ST
@@ -1010,11 +1164,24 @@ impl Terminal {
                     i += 1;
                     continue;
                 }
-                if bytes[i] == 0x1b && i + 1 < bytes.len() && bytes[i + 1] == b'\\' {
-                    let payload = std::mem::take(buf);
-                    self.apc_buf = None;
-                    self.handle_apc(&payload);
-                    i += 2;
+                if bytes[i] == 0x1b {
+                    if i + 1 < bytes.len() {
+                        if bytes[i + 1] == b'\\' {
+                            let payload = std::mem::take(buf);
+                            self.apc_buf = None;
+                            self.handle_apc(&payload);
+                            i += 2;
+                            continue;
+                        }
+                        // ESC followed by a non-`\` byte: literal payload.
+                        buf.push(bytes[i]);
+                        i += 1;
+                        continue;
+                    }
+                    // Trailing ESC inside the APC — carry it; the next
+                    // feed decides whether it completes the `ESC \` ST.
+                    self.pending_esc = PendingEsc::InApc;
+                    i += 1;
                     continue;
                 }
                 buf.push(bytes[i]);
@@ -1023,32 +1190,67 @@ impl Terminal {
             }
 
             // Detect APC start: ESC _ (0x1b 0x5f)
-            if bytes[i] == 0x1b && i + 1 < bytes.len() && bytes[i + 1] == b'_' {
-                self.apc_buf = Some(Vec::new());
-                i += 2;
-                continue;
+            if bytes[i] == 0x1b {
+                if i + 1 < bytes.len() {
+                    if bytes[i + 1] == b'_' {
+                        self.apc_buf = Some(Vec::new());
+                        i += 2;
+                        continue;
+                    }
+                    // ESC + non-`_`: a vte-owned sequence. Fall through
+                    // to the ground scan below, which begins AT this ESC
+                    // and hands the run (ESC + payload) to vte.
+                } else {
+                    // Trailing ESC in ground — carry it; the next feed
+                    // decides whether it begins an `ESC _` APC start.
+                    self.pending_esc = PendingEsc::Ground;
+                    i += 1;
+                    continue;
+                }
             }
 
-            // Find the next ESC that might start an APC
+            // Accumulate a ground run for vte. The run always includes
+            // the current byte (which may be a vte-owned ESC we just
+            // cleared as a non-APC introducer) and extends until the
+            // NEXT ESC, which the loop head re-examines (peeking its
+            // successor for `ESC _`, or carrying it across the feed
+            // boundary). Starting the scan one byte in guarantees forward
+            // progress even when `bytes[i]` is itself an ESC.
             let start = i;
-            while i < bytes.len() {
-                if bytes[i] == 0x1b && i + 1 < bytes.len() && bytes[i + 1] == b'_' {
-                    break;
-                }
+            i += 1;
+            while i < bytes.len() && bytes[i] != 0x1b {
                 i += 1;
             }
 
-            // Feed the non-APC portion to vte. vte 0.15 already SIMD-
-            // fast-paths printable-ASCII runs internally (advance_ground
-            // via memchr) AND — unlike the removed P33 mirror-flag fast
-            // path — correctly preserves parser state across chunk
-            // boundaries (mid-CSI, partial UTF-8). Chunk-boundary
-            // independence is the load-bearing invariant: a styled line
-            // whose SGR intro splits across two feed() calls must render
-            // identically to the whole-stream feed. See the
-            // split_csi_* regression tests + the chunk-boundary proptest.
-            if start < i {
-                parser.advance(self, &bytes[start..i]);
+            // Feed the non-APC portion to vte. vte 0.15 SIMD-fast-paths
+            // printable-ASCII runs internally (advance_ground via memchr)
+            // and preserves mid-CSI state across advance() calls because
+            // we reuse the same Parser. Chunk-boundary independence is
+            // the load-bearing invariant: a styled line whose SGR intro
+            // splits across two feed() calls must render identically to
+            // the whole-stream feed. See the split_csi_* /
+            // split_esc_st_across_feeds tests + the well-formed proptest.
+            //
+            // If this run ran to the end of the chunk (not cut by an ESC)
+            // and ends on an incomplete UTF-8 lead, hold those tail bytes
+            // back for the next feed rather than letting vte buffer them:
+            // vte's advance_partial_utf8 DROPS valid bytes that trail the
+            // completed codepoint inside its 4-byte window (e.g. the `A`
+            // in `C2 A1 41`). Holding the tail at this layer keeps every
+            // codepoint whole within a single advance() so vte never
+            // enters that lossy path. An ESC-terminated run is always
+            // complete (ESC is never a UTF-8 continuation), so we only
+            // trim when the run reaches the chunk end.
+            let mut run_end = i;
+            if i == bytes.len() {
+                let tail = incomplete_utf8_tail_len(&bytes[start..run_end]);
+                if tail > 0 {
+                    self.utf8_tail.extend_from_slice(&bytes[run_end - tail..run_end]);
+                    run_end -= tail;
+                }
+            }
+            if start < run_end {
+                parser.advance(self, &bytes[start..run_end]);
             }
         }
 
@@ -4849,6 +5051,80 @@ mod tests {
     }
 
     #[test]
+    fn split_multibyte_char_across_feeds_renders_one_grapheme() {
+        // A multi-byte UTF-8 char split at every internal byte boundary
+        // across two feed() calls must render as the single correct
+        // grapheme. vte 0.15's `partial_utf8` buffer survives between
+        // advance() calls because feed() reuses the same Parser — this
+        // pins that invariant for 3-byte (em-dash) and 4-byte (emoji)
+        // codepoints.
+        for s in ["—", "😀", "本"] {
+            let raw = s.as_bytes();
+            let expected = s.chars().next().unwrap();
+            for split in 1..raw.len() {
+                let mut term = Terminal::new(80, 24);
+                term.feed(&raw[..split]);
+                term.feed(&raw[split..]);
+                assert_eq!(
+                    term.cell(0, 0).ch,
+                    expected,
+                    "{s:?} split at byte {split} should render as {expected:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn split_esc_st_across_feeds_terminates_apc_and_renders_next_char() {
+        // ─── REGRESSION GUARD (Base-1 chunk-boundary crack) ──────────
+        // An APC sequence whose `ESC \` ST terminator splits across two
+        // feed() calls (the `ESC` ends chunk 1, the `\` begins chunk 2)
+        // must still terminate the APC — otherwise the never-closed APC
+        // buffer silently swallows everything after it, including the
+        // following printable char. Before the pending_esc carry fix the
+        // em-dash below rendered as a blank cell.
+        let stream = b"\x1b_Gfoo\x1b\\\xe2\x80\x94"; // APC `Gfoo` + ST + em-dash
+        let split = 7; // chunk 1 ends on the ST's ESC: [ESC _ G f o o ESC]
+        let mut whole = Terminal::new(80, 24);
+        whole.feed(stream);
+        let mut term = Terminal::new(80, 24);
+        term.feed(&stream[..split]);
+        term.feed(&stream[split..]);
+        assert_eq!(whole.cell(0, 0).ch, '—', "whole-feed sanity");
+        assert_eq!(
+            term.cell(0, 0).ch,
+            '—',
+            "split ESC \\ ST must terminate the APC so the em-dash renders"
+        );
+        // The full chunk-boundary sweep over a mix of APC + multi-byte
+        // streams must be split-independent at every offset.
+        let streams: &[&[u8]] = &[
+            "a—😀本z".as_bytes(),
+            b"x\xf0\x9f\x98\x80y",
+            b"\x1b_Gfoo\x1b\\\xe2\x80\x94",
+            b"\xe2\x80\x94\x1b_Gfoo\x1b\\",
+        ];
+        for s in streams {
+            let mut w = Terminal::new(80, 24);
+            w.feed(s);
+            for off in 0..=s.len() {
+                let mut t = Terminal::new(80, 24);
+                t.feed(&s[..off]);
+                t.feed(&s[off..]);
+                for r in 0..2 {
+                    for c in 0..10 {
+                        assert_eq!(
+                            w.cell(r, c).ch,
+                            t.cell(r, c).ch,
+                            "stream {s:?} split at {off}: cell ({r},{c}) differs"
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
     fn test_terminal_line_wrap_cursor() {
         let mut term = Terminal::new(5, 3);
         term.feed(b"ABCDE");
@@ -5453,21 +5729,77 @@ mod proptests {
         /// not corrupt. tear-core delivers one chunk per `read()`
         /// syscall, so mid-sequence splits are the common case.
         ///
-        /// Scope: the input domain is the 7-bit range (ASCII + C0
-        /// controls + ESC) — exactly where the P33 / SGR-leak bug lived.
-        /// A FULL-byte version of this property surfaced a *separate*
-        /// Base-1 crack — multi-byte UTF-8 split across `feed()`
-        /// boundaries corrupts because vte 0.15 flushes incomplete UTF-8
-        /// at `advance()` boundaries rather than holding it across calls;
-        /// the load-bearing fix is a state-aware UTF-8-tail buffer in
-        /// `feed()`. Tracked as the next Base-1 (proven-VT-core) fix; see
-        /// docs/REMEDIATION-PLAN.md. Widen this generator to `any::<u8>()`
-        /// when that lands.
+        /// Scope: the 7-bit range (ASCII + C0 controls + ESC) — where
+        /// the P33 / SGR-leak bug lived. The multi-byte UTF-8 + APC-ST
+        /// split class (the Base-1 crack now fixed by [`PendingEsc`]) is
+        /// guarded by the dedicated, well-formed-input properties below
+        /// (`valid_multibyte_*` / `apc_st_split_*`) plus the
+        /// `split_esc_st_across_feeds` / `split_multibyte_char` unit
+        /// regressions. The generator is deliberately NOT widened to
+        /// `any::<u8>()`: arbitrary *invalid* UTF-8 split at a boundary
+        /// can legitimately differ in vte 0.15's replacement-character
+        /// resync (a maximal-subpart property of the third-party
+        /// streaming decoder, not mado's `feed()` layer), so a full-byte
+        /// generator would assert a property the decoder does not hold.
         #[test]
         fn parsing_is_chunk_boundary_independent(
             stream in proptest::collection::vec(0x00u8..=0x7Fu8, 0..512),
             raw_split in 0usize..512,
         ) {
+            let split = if stream.is_empty() { 0 } else { raw_split % (stream.len() + 1) };
+            let mut whole = Terminal::new(80, 24);
+            whole.feed(&stream);
+            let mut split_term = Terminal::new(80, 24);
+            split_term.feed(&stream[..split]);
+            split_term.feed(&stream[split..]);
+            for r in 0..whole.rows() {
+                for c in 0..whole.cols() {
+                    prop_assert_eq!(
+                        whole.cell(r, c).ch, split_term.cell(r, c).ch,
+                        "cell ({},{}) differs: whole={:?} split={:?} (split at {})",
+                        r, c, whole.cell(r, c).ch, split_term.cell(r, c).ch, split
+                    );
+                }
+            }
+        }
+
+        /// **Invariant: well-formed streams (ASCII + valid multi-byte
+        /// UTF-8 + APC sequences) are chunk-boundary independent at the
+        /// FULL byte level.**
+        ///
+        /// This is the property the [`PendingEsc`] carry fix makes hold:
+        /// any stream built from printable ASCII chars, arbitrary VALID
+        /// multi-byte codepoints, and complete `ESC _ … ESC \` APC
+        /// sequences renders identically whether fed whole or split at
+        /// any offset — including splits that land mid-codepoint or
+        /// inside the two-byte APC introducer / ST terminator. The input
+        /// is well-formed by construction (the generator emits whole
+        /// codepoints + whole APC frames), so the only variable is WHERE
+        /// the bytes are split — exactly the chunk-boundary axis.
+        #[test]
+        fn wellformed_multibyte_and_apc_streams_are_chunk_boundary_independent(
+            tokens in proptest::collection::vec(
+                prop_oneof![
+                    // Printable ASCII char.
+                    (0x41u8..=0x7Eu8).prop_map(|b| vec![b]),
+                    // A valid non-ASCII codepoint (BMP + astral) as its
+                    // UTF-8 bytes.
+                    any::<char>().prop_filter("non-ascii", |c| !c.is_ascii())
+                        .prop_map(|c| c.to_string().into_bytes()),
+                    // A complete APC frame: ESC _ <payload> ESC \.
+                    proptest::collection::vec(0x41u8..=0x7Eu8, 0..6)
+                        .prop_map(|p| {
+                            let mut v = vec![0x1b, b'_'];
+                            v.extend_from_slice(&p);
+                            v.extend_from_slice(&[0x1b, b'\\']);
+                            v
+                        }),
+                ],
+                0..40,
+            ),
+            raw_split in 0usize..2048,
+        ) {
+            let stream: Vec<u8> = tokens.into_iter().flatten().collect();
             let split = if stream.is_empty() { 0 } else { raw_split % (stream.len() + 1) };
             let mut whole = Terminal::new(80, 24);
             whole.feed(&stream);
