@@ -2367,6 +2367,7 @@ dependencies = [
  "open",
  "parking_lot",
  "pleme-invalidating-setter-derive",
+ "pleme-kindstr-derive",
  "pollster",
  "proptest",
  "rmcp",
@@ -3332,6 +3333,16 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 name = "pleme-invalidating-setter-derive"
 version = "0.1.0"
 source = "git+https://github.com/pleme-io/pleme-invalidating-setter-derive#25e7f5154e62584a5a5b505bf1429ad04776a61d"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
+]
+
+[[package]]
+name = "pleme-kindstr-derive"
+version = "0.1.0"
+source = "git+https://github.com/pleme-io/pleme-kindstr-derive#df74ba0424aa7542cee2e7d5ed595f9258bc4885"
 dependencies = [
  "proc-macro2",
  "quote",

@@ -1511,7 +1511,7 @@ impl Terminal {
         let arg = params[1];
         if arg == b"?" {
             // Query form — emit current shape name.
-            let name = self.pointer_shape.as_name();
+            let name = self.pointer_shape.as_str();
             let mut resp = Vec::with_capacity(8 + name.len());
             resp.extend_from_slice(b"\x1b]22;");
             resp.extend_from_slice(name.as_bytes());
@@ -1523,7 +1523,7 @@ impl Terminal {
             tracing::trace!(?arg, "OSC 22: non-UTF8 shape name");
             return;
         };
-        match crate::pointer_shape::PointerShape::from_name(s) {
+        match crate::pointer_shape::PointerShape::from_str_kind(s) {
             Some(shape) => {
                 self.pointer_shape = shape;
                 tracing::trace!(shape = s, "OSC 22: pointer shape set");
