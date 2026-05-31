@@ -26,6 +26,22 @@ embedded MCP server, and deep Nix integration that no competitor offers.
 > line of new pane/tab/window code added today is debt that has to
 > be ripped out at Phase 4.
 
+> **★ Capability gap analysis + remediation plan (2026-05-31).** A full
+> 13-agent audit of mado against the modern terminal landscape
+> (Kitty/Ghostty/WezTerm/iTerm2/foot/rio/Contour/Windows Terminal/Warp/
+> tmux/zellij) and the destination-first plan to close every gap live in
+> [`docs/GAP-ANALYSIS.md`](./docs/GAP-ANALYSIS.md) (120-capability matrix +
+> prioritized P0–P2 gaps, evidence-cited) and
+> [`docs/REMEDIATION-PLAN.md`](./docs/REMEDIATION-PLAN.md) (8 milestones
+> M0–M7, the one-touch Cell/Grid co-design, substrate-extraction map).
+> **Headline:** the DEFAULT (embedded-tear) render mode currently lacks
+> copy/paste/selection/search/mouse — they exist only in the legacy
+> local-PTY path; M1 unifies both into one `mado::ux::InputEngine` so a
+> capability proven once holds in every mode. M0 quick-wins (capability-
+> honest TERM, shikumi dead-knob invariant, delete the Rhai/soushi stubs,
+> paste-safety) gate nothing and ship from day one. Read these before
+> adding terminal features.
+
 ## Build & Test
 
 ```bash
