@@ -419,6 +419,10 @@ where
         awase::KeyRepeatGate::<crate::keybind::Action>::new();
     let default_font_size_for_reset = config.font_size;
     let child_exited_for_events = Arc::clone(&child_exited);
+    // Scrollback-view handle for the wheel/scroll arm below. mado owns
+    // its own Terminal; the renderer + consumer hold clones, so the
+    // original `terminal` binding is still live to clone here.
+    let terminal_for_scroll = Arc::clone(&terminal);
     madori::App::builder(renderer)
         .config(app_config)
         .on_event(move |event, renderer| -> EventResponse {
@@ -449,6 +453,43 @@ where
                 AppEvent::Mouse(madori::MouseEvent::Moved { x, y }) => {
                     renderer.snow_set_cursor(*x as f32, *y as f32);
                     EventResponse::ignored()
+                }
+                AppEvent::Mouse(madori::MouseEvent::Scroll { dy, .. }) => {
+                    // Wheel / two-finger scroll. The embedded path had no
+                    // Scroll arm, so wheel events hit the catch-all and
+                    // were silently dropped. When the app has enabled
+                    // mouse tracking, forward wheel buttons to the PTY;
+                    // otherwise scroll mado's own scrollback view. Mirrors
+                    // the local-PTY path so scroll works in the default
+                    // mode too. SGR/X10 bytes are built byte-wise (typed
+                    // emission — no format!).
+                    let (mouse_mode, sgr) = {
+                        let term = terminal_for_scroll.read();
+                        (term.mouse_mode(), term.sgr_mouse())
+                    };
+                    if mouse_mode != crate::terminal::MouseMode::Off {
+                        let mut seq: Vec<u8> = Vec::with_capacity(10);
+                        if sgr {
+                            seq.extend_from_slice(b"\x1b[<");
+                            seq.extend_from_slice(if *dy > 0.0 { b"64" } else { b"65" });
+                            seq.extend_from_slice(b";1;1M");
+                        } else {
+                            let cb = (if *dy > 0.0 { 64u8 } else { 65u8 }) + 32;
+                            seq.extend_from_slice(&[0x1b, b'[', b'M', cb, 33, 33]);
+                        }
+                        let _ = control_for_events.send_keys(pane_id, &seq);
+                    } else {
+                        let mult =
+                            (config.behavior.mouse_scroll_multiplier as usize).max(1);
+                        let lines = (dy.abs() as usize).max(1) * mult;
+                        let mut term = terminal_for_scroll.write();
+                        if *dy > 0.0 {
+                            term.scroll_up(lines);
+                        } else {
+                            term.scroll_down(lines);
+                        }
+                    }
+                    EventResponse::consumed()
                 }
                 AppEvent::Key(key_event @ KeyEvent { pressed: true, .. }) => {
                     renderer.snow_pulse_typing();

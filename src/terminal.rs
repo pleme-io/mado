@@ -2195,6 +2195,13 @@ impl Terminal {
     }
 
     fn newline(&mut self) {
+        // Scroll-to-bottom on output: a line feed is new output, so
+        // re-pin the live viewport (matching print()'s reset). Without
+        // this, once the view is scrolled up, pressing Enter advances the
+        // grid but the frozen viewport never follows the cursor down —
+        // the reported "screen won't go down with me" bug. Benefits both
+        // render modes (the VT core is the single source of truth).
+        self.scroll_offset = 0;
         if self.cursor.row >= self.scroll_bottom {
             self.scroll_grid_up();
         } else {
@@ -3465,6 +3472,23 @@ mod tests {
             "SGR params leaked into the rendered row: {:?}",
             row.trim_end()
         );
+    }
+
+    /// Regression (mado embedded "screen won't follow output"): a line
+    /// feed is new output, so it must re-pin a scrolled-up viewport to
+    /// the live bottom. Before the fix, only printable chars reset
+    /// scroll_offset; bare newlines (repeated Enter) advanced the grid
+    /// without following the cursor down.
+    #[test]
+    fn output_newline_pins_view_to_bottom() {
+        let mut term = Terminal::with_scrollback(80, 4, 100);
+        for _ in 0..20 {
+            term.feed(b"line\r\n");
+        }
+        term.scroll_up(5);
+        assert!(term.scroll_offset() > 0, "precondition: scrolled into history");
+        term.feed(b"\n"); // new output → must scroll-to-bottom
+        assert_eq!(term.scroll_offset(), 0, "newline output must re-pin to bottom");
     }
 
     #[test]
