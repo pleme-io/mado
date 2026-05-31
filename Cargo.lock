@@ -140,7 +140,7 @@ version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40c48f72fd53cd289104fc64099abca73db4166ad86ea0b4341abe65af83dadc"
 dependencies = [
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -151,7 +151,7 @@ checksum = "291e6a250ff86cd4a820112fb8898808a366d8f9f58ce16d1f538353ad55747d"
 dependencies = [
  "anstyle",
  "once_cell_polyfill",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -176,7 +176,7 @@ dependencies = [
  "objc2-foundation 0.3.2",
  "parking_lot",
  "percent-encoding",
- "windows-sys 0.60.2",
+ "windows-sys 0.52.0",
  "x11rb",
 ]
 
@@ -1394,15 +1394,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cb4cb245038516f5f85277875cdaa4f7d2c9a0fa0468de06ed190163b1581fcf"
 dependencies = [
  "percent-encoding",
-]
-
-[[package]]
-name = "fsevent-sys"
-version = "4.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "76ee7a02da4d231650c7cea31349b889be2f45ddb3ef3032d2ec8185f6313fd2"
-dependencies = [
- "libc",
 ]
 
 [[package]]
@@ -2664,7 +2655,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4d3d07927151ff8575b7087f245456e549fea62edf0ec4e565a5ee50c8402bc3"
 dependencies = [
  "bitflags 2.11.1",
- "fsevent-sys",
  "inotify",
  "kqueue",
  "libc",
@@ -4727,7 +4717,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3a766e1110788c36f4fa1c2b71b387a7815aa65f88ce0229841826633d93723e"
 dependencies = [
  "libc",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5145,7 +5135,7 @@ dependencies = [
 [[package]]
 name = "tear-client"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#e198d4c01df5a001157eebff823d2de788157bc8"
+source = "git+https://github.com/pleme-io/tear#b4730ef133e3eac3d553ff4fb1df5d8d22368881"
 dependencies = [
  "engate-attach",
  "engate-types",
@@ -5158,7 +5148,7 @@ dependencies = [
 [[package]]
 name = "tear-config"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#e198d4c01df5a001157eebff823d2de788157bc8"
+source = "git+https://github.com/pleme-io/tear#b4730ef133e3eac3d553ff4fb1df5d8d22368881"
 dependencies = [
  "anyhow",
  "arc-swap",
@@ -5176,7 +5166,7 @@ dependencies = [
 [[package]]
 name = "tear-core"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#e198d4c01df5a001157eebff823d2de788157bc8"
+source = "git+https://github.com/pleme-io/tear#b4730ef133e3eac3d553ff4fb1df5d8d22368881"
 dependencies = [
  "anyhow",
  "blake3",
@@ -5197,10 +5187,11 @@ dependencies = [
 [[package]]
 name = "tear-daemon"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#e198d4c01df5a001157eebff823d2de788157bc8"
+source = "git+https://github.com/pleme-io/tear#b4730ef133e3eac3d553ff4fb1df5d8d22368881"
 dependencies = [
  "anyhow",
  "blake3",
+ "kanshou",
  "notify",
  "serde",
  "serde_json",
@@ -5208,13 +5199,14 @@ dependencies = [
  "tear-config",
  "tear-core",
  "tear-types",
+ "tokio",
  "tracing",
 ]
 
 [[package]]
 name = "tear-types"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#e198d4c01df5a001157eebff823d2de788157bc8"
+source = "git+https://github.com/pleme-io/tear#b4730ef133e3eac3d553ff4fb1df5d8d22368881"
 dependencies = [
  "anyhow",
  "blake3",
@@ -6399,7 +6391,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
