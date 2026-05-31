@@ -3363,6 +3363,46 @@ impl vte::Perform for Terminal {
             's' => self.save_cursor(),
             // DECRC — Restore Cursor (alternate form)
             'u' => self.restore_cursor(),
+            // XTWINOPS — window manipulation / report.
+            //
+            // Modern TUIs (vim/nvim powerline tablines, fzf, lazygit)
+            // probe the text-area size to lay out their UI; a terminal
+            // that ignores the probe leaves the TUI guessing and can
+            // make it withhold whole rows (the missing-tabline symptom).
+            // We answer the SIZE REPORTS the substrate has the data for
+            // (character-cell dimensions), and ignore the manipulation
+            // ops (resize/move/raise/iconify) — mado is the size
+            // authority, a TUI can't drive our window geometry.
+            //
+            // CSI 18 t  → report text-area size in characters:
+            //             CSI 8 ; <rows> ; <cols> t
+            //
+            // Built through typed byte-vector construction (escape
+            // framing as byte literals, the numeric dimensions as their
+            // decimal value) — never a `format!()` of the escape syntax,
+            // per the ★★ TYPED EMISSION rule. Pixel-size reports
+            // (CSI 14 t / CSI 16 t) are intentionally NOT answered here:
+            // the Terminal grid model holds character dimensions only;
+            // cell pixel metrics live in the renderer. Wiring those is a
+            // separate change that threads cell_width/cell_height down.
+            't' => {
+                let op = params.iter().next().map_or(0, |p| p[0]);
+                if op == 18 {
+                    // u16 fits any realistic terminal dimension; the
+                    // decimal string is a VALUE, not escape syntax.
+                    let rows = u16::try_from(self.rows).unwrap_or(u16::MAX);
+                    let cols = u16::try_from(self.cols).unwrap_or(u16::MAX);
+                    let mut resp = Vec::with_capacity(16);
+                    resp.extend_from_slice(b"\x1b[8;");
+                    resp.extend_from_slice(rows.to_string().as_bytes());
+                    resp.push(b';');
+                    resp.extend_from_slice(cols.to_string().as_bytes());
+                    resp.push(b't');
+                    self.response_bytes.extend_from_slice(&resp);
+                } else {
+                    tracing::trace!(op, "unhandled XTWINOPS (CSI Ps t)");
+                }
+            }
             _ => {
                 tracing::trace!(action = %action, "unhandled CSI action");
             }
@@ -3984,6 +4024,45 @@ mod tests {
         term.feed(b"\x1b[c");
         let response = term.take_response().unwrap();
         assert_eq!(response, b"\x1b[?62;22c");
+    }
+
+    /// XTWINOPS `CSI 18 t` — report text-area size in characters. The
+    /// answer is `CSI 8 ; <rows> ; <cols> t`. Modern TUIs (vim/nvim
+    /// powerline tablines) probe this to lay out their UI; a terminal
+    /// that ignores it can make the TUI withhold rows (missing-tabline).
+    #[test]
+    fn xtwinops_18_reports_text_area_char_size() {
+        // Terminal::new(cols, rows) → here cols=80, rows=24.
+        let mut term = Terminal::with_scrollback(80, 24, 100);
+        term.feed(b"\x1b[18t");
+        let response = term.take_response().unwrap();
+        assert_eq!(response.as_slice(), &b"\x1b[8;24;80t"[..]);
+        assert!(term.take_response().is_none());
+    }
+
+    /// The report tracks the live grid size after a resize.
+    #[test]
+    fn xtwinops_18_tracks_resize() {
+        let mut term = Terminal::with_scrollback(80, 24, 100);
+        term.resize(120, 40);
+        term.feed(b"\x1b[18t");
+        let response = term.take_response().unwrap();
+        assert_eq!(response.as_slice(), &b"\x1b[8;40;120t"[..]);
+    }
+
+    /// Unrecognised XTWINOPS ops (resize/move/raise/iconify, pixel-size
+    /// reports we don't yet wire) are silently ignored — never answered
+    /// with a malformed or guessed reply.
+    #[test]
+    fn xtwinops_other_ops_emit_no_response() {
+        let mut term = Terminal::with_scrollback(80, 24, 100);
+        // CSI 14 t (pixel size) — not answered at the grid layer.
+        term.feed(b"\x1b[14t");
+        assert!(term.take_response().is_none());
+        // CSI 8 ; 30 ; 100 t (resize request) — mado is the size
+        // authority; ignored, no response.
+        term.feed(b"\x1b[8;30;100t");
+        assert!(term.take_response().is_none());
     }
 
     #[test]
