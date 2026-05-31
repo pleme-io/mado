@@ -632,7 +632,7 @@ impl MadoMcp {
                 "found": true,
                 "hash": entry.hash.to_hex(),
                 "content": entry.content,
-                "kind": entry.kind.label(),
+                "kind": entry.kind.as_str(),
                 "set_at": entry.set_at,
             })
             .to_string(),
@@ -660,7 +660,7 @@ impl MadoMcp {
             "ok": true,
             "hash": hash.to_hex(),
             "bytes": bytes,
-            "kind": kind.label(),
+            "kind": kind.as_str(),
             "duplicate": duplicate,
         })
         .to_string()
@@ -1321,7 +1321,7 @@ fn entry_json(
             "preview": preview,
             "bytes": bytes,
             "content": entry.content,
-            "kind": entry.kind.label(),
+            "kind": entry.kind.as_str(),
             "set_at": entry.set_at,
         })
     } else {
@@ -1329,7 +1329,7 @@ fn entry_json(
             "hash": entry.hash.to_hex(),
             "preview": preview,
             "bytes": bytes,
-            "kind": entry.kind.label(),
+            "kind": entry.kind.as_str(),
             "set_at": entry.set_at,
         })
     }

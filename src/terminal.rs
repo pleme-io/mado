@@ -1268,7 +1268,7 @@ impl Terminal {
             let hash = self.clipboard_store.store(text.clone(), kind);
             tracing::debug!(
                 len = text.len(),
-                kind = kind.label(),
+                kind = kind.as_str(),
                 hash = %hash.to_hex(),
                 "OSC 52 clipboard set"
             );
