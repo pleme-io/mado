@@ -3544,6 +3544,50 @@ mod tests {
         assert_eq!(term.cell(0, 8).ch, 'B');
     }
 
+    /// HELD-ENTER SPACING isolation: the VT core must converge to the
+    /// SAME visible grid regardless of how the PTY byte stream is split
+    /// across `feed()` calls. A reedline/frostmourne empty-prompt cycle
+    /// (submit `\r\n`, erase `ESC[J`, seki's leading `\n`, re-print the
+    /// `❄ ` prompt) under a held-Enter burst arrives split across many
+    /// chunks on the engate consumer thread. If this test PASSES (it
+    /// should), the inconsistent inter-prompt spacing operators saw is
+    /// NOT a feed()/newline() corruption — it's the render thread
+    /// sampling un-converged intermediate grid states between feeds. The
+    /// fix then belongs in the render/present path (drain-then-render or
+    /// a quiescence defer), not in the VT core, which this pins as sound.
+    #[test]
+    fn held_enter_repaint_converges_identically_across_chunk_splits() {
+        // One reedline-style empty-prompt cycle.
+        // \r\n (submit) ; ESC[J (erase to end of display) ;
+        // \n (seki add_newline) ; "❄ " (prompt).
+        let cycle: &[u8] = b"\r\n\x1b[J\n\xe2\x9d\x84 ";
+        let mut stream = Vec::new();
+        for _ in 0..30 {
+            stream.extend_from_slice(cycle);
+        }
+
+        // Reference: whole-stream feed in one shot.
+        let mut whole = Terminal::with_scrollback(80, 24, 10_000);
+        whole.feed(&stream);
+        let want: Vec<String> = whole
+            .visible_rows()
+            .map(|r| r.iter().map(|c| c.ch).collect())
+            .collect();
+
+        // Every split point must converge to the same visible grid.
+        for split in [1usize, 2, 3, 5, 7, 11, 13, 64, 128] {
+            let mut t = Terminal::with_scrollback(80, 24, 10_000);
+            for chunk in stream.chunks(split) {
+                t.feed(chunk);
+            }
+            let got: Vec<String> = t
+                .visible_rows()
+                .map(|r| r.iter().map(|c| c.ch).collect())
+                .collect();
+            assert_eq!(got, want, "converged grid differs at chunk size {split}");
+        }
+    }
+
     #[test]
     fn backspace() {
         let mut term = Terminal::new(80, 24);
