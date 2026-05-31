@@ -1750,7 +1750,10 @@ impl TerminalRenderer {
             instances.push(RectInstance {
                 pos: [origin_x, y],
                 size: [snap.cols as f32 * self.cell_width, 1.0],
-                color: [0.369, 0.506, 0.675, 0.30], // Nord #5E81AC @ 30% α
+                // Nord #5E81AC @ 30% α — through the typed linearizer like
+                // every other overlay rect (raw sRGB here renders washed-out
+                // on the sRGB-storage surface).
+                color: overlay_rect_color(0x5E, 0x81, 0xAC, 0.30),
             });
         }
 
