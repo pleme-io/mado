@@ -256,8 +256,10 @@ mod tests {
     fn snow_overlay_obeys_disabled_config() {
         let cfg = MadoSnowConfig { enabled: false, ..MadoSnowConfig::default() };
         assert!(!cfg.enabled);
+        // Per the May 2026 prescribed default, snow is OFF unless the
+        // operator opts in — so the overlay must NOT render by default.
         let default = MadoSnowConfig::default();
-        assert!(default.enabled, "snow is the DEFAULT effect — must be on by default");
+        assert!(!default.enabled, "snow defaults OFF — operators opt in via effects.snow.enabled");
     }
 
     #[test]

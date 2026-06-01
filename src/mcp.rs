@@ -386,10 +386,16 @@ impl MadoMcp {
             "mado",
             &kanshou::Query { path, args: vec![] },
             || {
-                Ok(serde_json::json!({
-                    "note": "no live GUI mado discoverable via kanshou",
-                    "config_path": "~/.config/mado/mado.yaml",
-                }))
+                // No live GUI mado reachable — fall back to the
+                // windowed-required stub shape (the same contract
+                // config_set uses), echoing the requested key or the
+                // config path so the caller knows which slot stayed
+                // unresolved.
+                let extra = match &input.key {
+                    Some(key) => serde_json::json!({ "key": key, "value": null }),
+                    None => serde_json::json!({ "config_path": "~/.config/mado/mado.yaml" }),
+                };
+                Ok(stub_value("config_get", extra))
             },
         )
         .await
@@ -1289,6 +1295,15 @@ fn err_json<E: std::fmt::Display>(error: E) -> String {
 /// discarded (serde_json's `Map::extend` signature prevents mixing
 /// keyed + unkeyed values).
 fn stub_response(tool: &str, extra: serde_json::Value) -> String {
+    stub_value(tool, extra).to_string()
+}
+
+/// `serde_json::Value` form of [`stub_response`] — same wire contract,
+/// returned as a `Value` so it can serve as a kanshou-`forward`
+/// fallback closure result (which must yield a `Value`, not a
+/// `String`). The two share one source of truth so the no-live-GUI
+/// fallback and the windowed-required stub can't drift apart.
+fn stub_value(tool: &str, extra: serde_json::Value) -> serde_json::Value {
     let mut obj = serde_json::Map::with_capacity(8);
     obj.insert("ok".into(), serde_json::Value::Bool(false));
     obj.insert("tool".into(), serde_json::Value::String(tool.to_string()));
@@ -1301,7 +1316,7 @@ fn stub_response(tool: &str, extra: serde_json::Value) -> String {
     if let serde_json::Value::Object(fields) = extra {
         obj.extend(fields);
     }
-    serde_json::Value::Object(obj).to_string()
+    serde_json::Value::Object(obj)
 }
 
 /// Render one [`ClipboardEntry`] as the MCP wire shape. `preview`

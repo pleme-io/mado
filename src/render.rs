@@ -3380,8 +3380,10 @@ mod render_invariants {
         // (row-0 marks are intentionally skipped).
         t.write().feed(b"\n\n\x1b]133;A\x1b\\");
         let rects = compute_rects(&r);
-        // Separator color is Nord #5E81AC @ 30% α = ~ [0.369, 0.506, 0.675, 0.30].
-        let sep_color = [0.369, 0.506, 0.675, 0.30];
+        // Separator color is Nord #5E81AC @ 30% α, **linearized** through
+        // `overlay_rect_color` like every other overlay rect (raw sRGB
+        // renders washed-out on the sRGB-storage surface).
+        let sep_color = overlay_rect_color(0x5E, 0x81, 0xAC, 0.30);
         let seps: Vec<_> = rects
             .iter()
             .filter(|rt| colors_approx_eq(rt.color, sep_color))
@@ -3405,7 +3407,7 @@ mod render_invariants {
         let (r, t) = harness(40, 8);
         t.write().feed(b"plain text no prompt marks");
         let rects = compute_rects(&r);
-        let sep_color = [0.369, 0.506, 0.675, 0.30];
+        let sep_color = overlay_rect_color(0x5E, 0x81, 0xAC, 0.30);
         let seps: Vec<_> = rects
             .iter()
             .filter(|rt| colors_approx_eq(rt.color, sep_color))
