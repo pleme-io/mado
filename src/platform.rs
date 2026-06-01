@@ -3,14 +3,38 @@
 //! macOS: window styling via objc2 safe bindings (transparent titlebar, native appearance).
 //! Linux: placeholder for Wayland-specific integration.
 
-/// Apply platform-native window styling.
-/// On macOS, this configures the titlebar to be transparent and integrated.
-pub fn apply_native_styling() {
+/// Operator-configured macOS window-chrome inputs, extracted from
+/// `MadoConfig` before the event loop so the (`'static`) loop closure
+/// owns a small value instead of borrowing the whole config. Fields
+/// mirror `config.window.macos` plus the resolved backing color from
+/// `config.appearance.background`. Every axis here is a shikumi config
+/// value — the operator controls all of it via `~/.config/mado/mado.yaml`.
+#[derive(Debug, Clone)]
+pub struct MacOsWindowStyle {
+    /// Allow the macOS-native window tab bar (`window.macos.native_tabs`).
+    pub native_tabs: bool,
+    /// Titlebar integration style (`window.macos.titlebar`).
+    pub titlebar: crate::config::TitlebarStyle,
+    /// Forced window appearance (`window.macos.appearance`).
+    pub appearance: crate::config::WindowAppearance,
+    /// sRGB window backing color, resolved from
+    /// `config.appearance.background`. A `Flush` titlebar tints the
+    /// NSWindow backing to this so the band matches the cell grid.
+    pub background: ishou_tokens::Srgb,
+}
+
+/// Apply platform-native window styling from the operator config.
+/// On macOS this drives titlebar integration, native-tab suppression,
+/// and forced appearance — all shikumi-configured; a no-op elsewhere.
+pub fn apply_native_styling(style: &MacOsWindowStyle) {
     #[cfg(target_os = "macos")]
-    macos::apply_styling();
+    macos::apply_styling(style);
 
     #[cfg(not(target_os = "macos"))]
-    tracing::debug!("no platform-specific styling for this OS");
+    {
+        let _ = style;
+        tracing::debug!("no platform-specific styling for this OS");
+    }
 }
 
 /// Set the macOS dock icon badge text (e.g., for bell notifications).
@@ -57,23 +81,21 @@ mod tests {
 mod macos {
     use objc2::MainThreadMarker;
     use objc2_app_kit::{
-        NSApplication, NSColor, NSTitlebarSeparatorStyle, NSWindowStyleMask,
-        NSWindowTitleVisibility,
+        NSAppearance, NSAppearanceCustomization, NSAppearanceNameAqua, NSAppearanceNameDarkAqua,
+        NSApplication, NSColor, NSTitlebarSeparatorStyle, NSWindow, NSWindowStyleMask,
+        NSWindowTabbingMode, NSWindowTitleVisibility,
     };
     use objc2_foundation::{NSString, NSUserDefaults};
 
-    /// Nord polar-night background (`#2E3440`) — the canonical
-    /// pleme-io GUI app window color. Operators can override via
-    /// `config.appearance.background` (the renderer uses that for
-    /// the cell-grid area), but the NSWindow backing store is
-    /// always Nord so the macOS titlebar tint inherits the same
-    /// color and the brown/cream macOS default never shows through.
-    const NORD_POLAR_NIGHT: (f64, f64, f64, f64) =
-        (0x2E as f64 / 255.0, 0x34 as f64 / 255.0, 0x40 as f64 / 255.0, 1.0);
+    use crate::config::{TitlebarStyle, WindowAppearance};
 
-    /// Apply macOS-specific window styling.
-    /// Pure safe Rust via objc2 bindings — zero raw FFI.
-    pub fn apply_styling() {
+    /// Apply macOS-specific window styling from the operator's shikumi
+    /// config. Pure safe Rust via objc2 bindings — zero raw FFI. Every
+    /// branch below is driven by a `MacOsWindowStyle` field, which the
+    /// operator authors under `window.macos.*` / `appearance.background`
+    /// in `~/.config/mado/mado.yaml`. Defaults bias to "just the
+    /// terminal": flush titlebar, no native tabs, dark appearance.
+    pub fn apply_styling(style: &super::MacOsWindowStyle) {
         // We're called from the main event loop, so main thread is guaranteed.
         let Some(mtm) = MainThreadMarker::new() else {
             tracing::warn!("apply_styling called off main thread");
@@ -87,48 +109,81 @@ mod macos {
             return;
         };
 
-        // Set titlebar appearance: transparent + full-size content view
-        let mut mask = window.styleMask();
-        mask.insert(NSWindowStyleMask::FullSizeContentView);
-        window.setStyleMask(mask);
+        // ── Titlebar integration (window.macos.titlebar) ─────────────
+        match style.titlebar {
+            TitlebarStyle::Flush => {
+                // FullSizeContentView + transparent titlebar + hidden
+                // title + no hairline separator + drag-from-anywhere:
+                // the cell grid runs flush to the window's top edge and
+                // the traffic lights float over it (ghostty's look).
+                let mut mask = window.styleMask();
+                mask.insert(NSWindowStyleMask::FullSizeContentView);
+                window.setStyleMask(mask);
+                window.setTitlebarAppearsTransparent(true);
+                window.setTitleVisibility(NSWindowTitleVisibility::Hidden);
+                window.setTitlebarSeparatorStyle(NSTitlebarSeparatorStyle::None);
+                window.setMovableByWindowBackground(true);
 
-        // Make titlebar transparent
-        window.setTitlebarAppearsTransparent(true);
+                // Tint the NSWindow backing to the configured terminal
+                // background so the titlebar band matches the cell grid
+                // instead of the macOS default. The GPU surface renders
+                // opaque content over the backing, so a flush same-colour
+                // band is the seamless result.
+                let r = f64::from(style.background.r) / 255.0;
+                let g = f64::from(style.background.g) / 255.0;
+                let b = f64::from(style.background.b) / 255.0;
+                let bg = unsafe { NSColor::colorWithSRGBRed_green_blue_alpha(r, g, b, 1.0) };
+                window.setBackgroundColor(Some(&bg));
+            }
+            TitlebarStyle::Native => {
+                // Leave the stock macOS titlebar untouched — operators
+                // who set `titlebar: native` want a conventional Mac
+                // window frame (opaque band, separator, visible title).
+                tracing::debug!("titlebar: native — leaving stock macOS chrome");
+            }
+        }
 
-        // Set title visibility to hidden — belt + suspenders with the
-        // empty title string callers usually set.
-        window.setTitleVisibility(NSWindowTitleVisibility::Hidden);
+        // ── Native window tabbing (window.macos.native_tabs) ─────────
+        // The macOS-native tab bar — the `⌘1 / ⌘2 / …` tab strip plus the
+        // `+` new-tab button that render as a grey band under the titlebar
+        // — is redundant chrome by default: mado owns sessions, panes, and
+        // windows through its integrated `tear` runtime. Default-off
+        // disallows it globally (the strip + `+` never appear, ghostty's
+        // behaviour) and per-window as belt-and-suspenders for the already
+        // -created window that predated the global flag. Operators can opt
+        // back into the OS tab bar with `native_tabs: true`.
+        if style.native_tabs {
+            NSWindow::setAllowsAutomaticWindowTabbing(true, mtm);
+            window.setTabbingMode(NSWindowTabbingMode::Automatic);
+        } else {
+            NSWindow::setAllowsAutomaticWindowTabbing(false, mtm);
+            window.setTabbingMode(NSWindowTabbingMode::Disallowed);
+        }
 
-        // Remove the macOS 11+ hairline separator macOS draws under the
-        // titlebar. With FullSizeContentView + a transparent titlebar +
-        // the same Nord backing colour, that separator was the one thing
-        // making the titlebar read as a distinct band rather than a
-        // seamless extension of the content — the "doesn't blend like
-        // ghostty" symptom. `.None` removes it so the titlebar is flush
-        // with the cell grid below (ghostty's flush look).
-        window.setTitlebarSeparatorStyle(NSTitlebarSeparatorStyle::None);
-
-        // Drag the window from anywhere in the (seamless) titlebar/content
-        // band, matching ghostty's integrated chrome feel. Safe because
-        // the GPU surface consumes mouse events for selection only inside
-        // the content rect; the titlebar band has no interactive cells.
-        window.setMovableByWindowBackground(true);
-
-        // Tint the NSWindow backing to Nord polar-night so the titlebar
-        // area inherits the pleme-io palette instead of the macOS
-        // default (which the operator sees as "brown" against the
-        // Nord content area). The GPU surface renders opaque content
-        // over the backing, so a true vibrancy/blur (NSVisualEffectView)
-        // would never show through — a flush, same-colour titlebar is
-        // the correct seamless result here. Snowflake glyph in the
-        // (hidden) title is the brand mark; if anything peeks through
-        // it's Nord.
-        let (r, g, b, a) = NORD_POLAR_NIGHT;
-        let bg = unsafe { NSColor::colorWithSRGBRed_green_blue_alpha(r, g, b, a) };
-        window.setBackgroundColor(Some(&bg));
+        // ── Forced appearance (window.macos.appearance) ──────────────
+        // Without a forced appearance, macOS renders the residual
+        // titlebar-container material in the *system* appearance — a
+        // translucent light fill that reads as a lighter-grey band over a
+        // dark background. `Dark` (the default) makes that material dark
+        // so the chrome is flush and the traffic-light glyphs render in
+        // dark mode; `Light` forces light; `Auto` follows the system.
+        let forced = match style.appearance {
+            WindowAppearance::Dark => {
+                NSAppearance::appearanceNamed(unsafe { NSAppearanceNameDarkAqua })
+            }
+            WindowAppearance::Light => {
+                NSAppearance::appearanceNamed(unsafe { NSAppearanceNameAqua })
+            }
+            // `None` resets the window to inherit the system appearance.
+            WindowAppearance::Auto => None,
+        };
+        window.setAppearance(forced.as_deref());
 
         tracing::debug!(
-            "applied macOS native window styling (flush nord titlebar, no separator)"
+            native_tabs = style.native_tabs,
+            titlebar = ?style.titlebar,
+            appearance = ?style.appearance,
+            "applied macOS native window styling from config"
         );
     }
 

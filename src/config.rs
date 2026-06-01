@@ -568,6 +568,75 @@ pub struct WindowConfig {
     pub inherit_font_size: bool,
     #[serde(default = "default_true")]
     pub padding_balance: bool,
+    /// macOS-specific window-chrome knobs — native window tabbing,
+    /// titlebar integration, and forced appearance. Defaults bias to
+    /// "just the terminal" (no OS tab strip, flush dark titlebar).
+    /// Ignored on Linux/Windows. Authored under `window.macos.*` in
+    /// `~/.config/mado/mado.yaml`.
+    #[serde(default)]
+    pub macos: MacosWindowConfig,
+}
+
+/// macOS window-chrome configuration. Every axis defaults to the
+/// minimal "just the terminal" look but is operator-overridable via
+/// shikumi YAML, exactly like every other `MadoConfig` field.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MacosWindowConfig {
+    /// macOS-native window tabbing: the `⌘1 / ⌘2 …` tab strip plus the
+    /// `+` new-tab button that render as a grey band under the titlebar.
+    /// Default `false` — mado owns sessions, panes, and windows through
+    /// its integrated `tear` runtime, so the OS tab strip is redundant
+    /// chrome. Set `true` to restore the native macOS tab bar.
+    #[serde(default)]
+    pub native_tabs: bool,
+    /// How the titlebar integrates with the cell grid.
+    #[serde(default)]
+    pub titlebar: TitlebarStyle,
+    /// Which `NSAppearance` the window is forced into.
+    #[serde(default)]
+    pub appearance: WindowAppearance,
+}
+
+impl Default for MacosWindowConfig {
+    fn default() -> Self {
+        Self {
+            native_tabs: false,
+            titlebar: TitlebarStyle::Flush,
+            appearance: WindowAppearance::Dark,
+        }
+    }
+}
+
+/// Titlebar integration style on macOS.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum TitlebarStyle {
+    /// `FullSizeContentView` + transparent titlebar + hidden title + no
+    /// hairline separator: the cell grid runs flush to the window's top
+    /// edge and the traffic-light buttons float over it (ghostty's
+    /// look). The window backing is tinted to the configured terminal
+    /// background so the band matches the content. The default.
+    #[default]
+    Flush,
+    /// Leave the stock macOS titlebar untouched — opaque band, hairline
+    /// separator, visible title. For operators who want a conventional
+    /// Mac window frame.
+    Native,
+}
+
+/// Forced `NSAppearance` for the window.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum WindowAppearance {
+    /// Force the dark appearance so the titlebar material and the
+    /// traffic-light glyphs render dark and blend with a dark (Nord)
+    /// background. The default.
+    #[default]
+    Dark,
+    /// Force the light appearance.
+    Light,
+    /// Follow the system appearance setting (no override).
+    Auto,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1125,6 +1194,14 @@ impl MadoConfig {
                 inherit_working_directory: false,
                 inherit_font_size: false,
                 padding_balance: false,
+                // Chromeless even in the bare tier: no OS tab strip,
+                // flush titlebar, dark material to match the black bare
+                // background. "Just the terminal" all the way down.
+                macos: MacosWindowConfig {
+                    native_tabs: false,
+                    titlebar: TitlebarStyle::Flush,
+                    appearance: WindowAppearance::Dark,
+                },
             },
             // ── Shell ────────────────────────────────────────────
             shell: ShellConfig {
@@ -1353,6 +1430,7 @@ impl Default for WindowConfig {
             inherit_working_directory: true,
             inherit_font_size: true,
             padding_balance: true,
+            macos: MacosWindowConfig::default(),
         }
     }
 }
@@ -2014,6 +2092,42 @@ mod tests {
         // blackmatter + stylix + nord-dark fleet aesthetic.
         let d = MadoConfig::default();
         assert!(!d.effects.snow.enabled);
+    }
+
+    #[test]
+    fn macos_window_default_is_just_the_terminal() {
+        // The "just the terminal" contract: no macOS-native OS tab
+        // strip (mado owns sessions/panes/windows via tear), a flush
+        // titlebar, and a dark appearance so the chrome disappears into
+        // the Nord content. Holds in BOTH the prescribed-default and the
+        // chromeless bare tier.
+        let d = MadoConfig::default().window.macos;
+        assert!(!d.native_tabs, "native macOS tab bar must be OFF by default");
+        assert_eq!(d.titlebar, TitlebarStyle::Flush);
+        assert_eq!(d.appearance, WindowAppearance::Dark);
+
+        let b = MadoConfig::bare().window.macos;
+        assert!(!b.native_tabs, "bare tier is chromeless too");
+        assert_eq!(b.titlebar, TitlebarStyle::Flush);
+        assert_eq!(b.appearance, WindowAppearance::Dark);
+    }
+
+    #[test]
+    fn macos_window_knobs_round_trip_through_yaml() {
+        // Every chrome axis is operator-configurable via shikumi YAML.
+        // Prove all three parse from `window.macos.*` so flipping them in
+        // ~/.config/mado/mado.yaml actually reaches apply_native_styling.
+        let yaml = "\
+window:
+  macos:
+    native_tabs: true
+    titlebar: native
+    appearance: light
+";
+        let cfg: MadoConfig = serde_yaml_ng::from_str(yaml).expect("yaml parses");
+        assert!(cfg.window.macos.native_tabs);
+        assert_eq!(cfg.window.macos.titlebar, TitlebarStyle::Native);
+        assert_eq!(cfg.window.macos.appearance, WindowAppearance::Light);
     }
 
     #[test]

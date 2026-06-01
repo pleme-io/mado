@@ -723,6 +723,18 @@ fn main() -> anyhow::Result<()> {
     let mut click_count: u8 = 0;
     let mut last_click_pos = CellPos { row: 0, col: 0 };
     let mut native_styling_applied = false;
+    // macOS window-chrome styling, extracted from the shikumi config so
+    // the `'static` event-loop closure owns a small value (the config
+    // fields are Copy; the background is resolved once here). Applied on
+    // the first redraw, when the window exists and is key. Every axis is
+    // operator-configurable: `window.macos.*` + `appearance.background`.
+    let macos_window_style = crate::platform::MacOsWindowStyle {
+        native_tabs: config.window.macos.native_tabs,
+        titlebar: config.window.macos.titlebar,
+        appearance: config.window.macos.appearance,
+        background: ishou_tokens::Srgb::from_hex(&config.appearance.background)
+            .unwrap_or(ishou_tokens::Srgb::new(0x2e, 0x34, 0x40)),
+    };
 
     let app_config = madori::AppConfig {
         title: "mado".into(),
@@ -1458,7 +1470,7 @@ fn main() -> anyhow::Result<()> {
                 AppEvent::RedrawRequested => {
                     if !native_styling_applied {
                         native_styling_applied = true;
-                        crate::platform::apply_native_styling();
+                        crate::platform::apply_native_styling(&macos_window_style);
                     }
                     let ws = &*pane_for_events;
                     if let Some(pane) = ws.focused_pane() {
