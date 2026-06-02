@@ -1,371 +1,178 @@
-//! Runtime auto-detection helpers that feed `MadoConfig`'s defaults.
+//! Runtime auto-detection that feeds `MadoConfig`'s defaults — now declared
+//! via the shared [`kanchi`] environment-discovery primitive.
 //!
-//! The philosophy: mado's zero-config launch should be useful on
-//! every machine. Hardcoded magic numbers (window 1200×800, theme
-//! "nord", etc.) are progressively replaced with detect-then-default
-//! pairs here.
+//! mado's zero-config launch should be useful on every machine. Each axis
+//! below is one [`kanchi::defaxes!`] line that generates the trio mado (and
+//! the rest of the fleet) used to hand-roll per axis:
 //!
-//! Each axis exposes TWO things:
+//!   * `FALLBACK_<AXIS>` — the safe, opinionated value used when detection
+//!     fails / isn't applicable; documented + publicly inspectable.
+//!   * `detect_<axis>() -> Option<…>` — best-effort runtime probe; `None`
+//!     when it can't answer (off-main-thread, headless CI, missing API).
+//!   * `detect_<axis>_or_fallback() -> …` — the resolver `MadoConfig` calls.
 //!
-//!   1. A typed `FALLBACK_*` constant — the safe, opinionated value
-//!      used when detection fails OR isn't applicable to the
-//!      platform. Documented + publicly inspectable so operators
-//!      see exactly what they'd land on.
-//!   2. A `detect_*() -> Option<...>` function — best-effort
-//!      runtime query, returns `None` (not a default) when it
-//!      can't answer authoritatively (off-main-thread, headless
-//!      CI, missing platform API, implausible value).
-//!
-//! The "or fallback" wrapper (`detect_*_or_fallback()`) is the
-//! one `MadoConfig` calls — it makes the resolution explicit:
-//! "try detection; fall back to FALLBACK_*". Operators can
-//! always override the resolved value via `mado.yaml` per the
-//! usual config layering.
-//!
-//! Per task #147 in pleme-io/CLAUDE.md.
+//! The platform FFI (NSScreen, `sysctl hw.memsize`, `/proc/meminfo`,
+//! `AppleInterfaceStyle`) lives ONCE in [`kanchi::probe`] — no re-vendoring.
+//! Operators always override the resolved value via `mado.yaml`.
 
-// ── Window dimensions ────────────────────────────────────────────
+use kanchi::probe;
 
-/// Safe-fallback window dimensions when display detection isn't
-/// available (CI / off-main-thread / non-macOS / implausibly tiny
-/// virtual display). The original hardcoded mado default; operators
-/// can override per-config via `window.width` / `window.height`.
-pub const FALLBACK_WINDOW_DIMS: (u32, u32) = (1200, 800);
-
-/// Bounds the detected window comes from: at least 800×600 so it
-/// stays usable on small portable displays; at most 1600×1100 so
-/// even on an ultrawide it doesn't fill the screen.
+// Window-dim clamp bounds + screen fraction (fed to the window_dims probe):
+// at least 800×600 so mado stays usable on small displays; at most
+// 1600×1100 so even an ultrawide doesn't get filled; 60% of the visible
+// frame is comfortable alongside other panes.
 const WINDOW_DIM_MIN: (u32, u32) = (800, 600);
 const WINDOW_DIM_MAX: (u32, u32) = (1600, 1100);
-
-/// Fraction of the focused display's visible area mado claims by
-/// default. 0.60 = 60% — comfortable for a single mado window
-/// alongside other panes on the same monitor.
 const WINDOW_DIM_FRACTION: f64 = 0.60;
 
-/// Detect the focused display's preferred window dimensions.
-///
-/// Returns `None` when:
-/// * Detection is not implemented for the platform
-/// * Called off the main thread (macOS NSScreen requires main)
-/// * The detected display has an implausibly small visible frame
-///
-/// Caller decides what to do with the `None` — typically pass it
-/// to [`detect_window_dims_or_fallback`].
-#[must_use]
-pub fn detect_window_dims() -> Option<(u32, u32)> {
-    detect_window_dims_impl()
-}
-
-/// Try detection; if it returns `None`, use [`FALLBACK_WINDOW_DIMS`].
-/// This is the function `MadoConfig::default()` calls.
-#[must_use]
-pub fn detect_window_dims_or_fallback() -> (u32, u32) {
-    detect_window_dims().unwrap_or(FALLBACK_WINDOW_DIMS)
-}
-
-#[cfg(target_os = "macos")]
-fn detect_window_dims_impl() -> Option<(u32, u32)> {
-    use objc2_app_kit::NSScreen;
-    use objc2_foundation::MainThreadMarker;
-
-    let mtm = MainThreadMarker::new()?;
-    let screen = NSScreen::mainScreen(mtm)?;
-    let frame = unsafe { screen.visibleFrame() };
-    let visible_w = frame.size.width.max(0.0);
-    let visible_h = frame.size.height.max(0.0);
-    if visible_w < 200.0 || visible_h < 200.0 {
-        return None;
-    }
-    let proposed_w = (visible_w * WINDOW_DIM_FRACTION).round() as u32;
-    let proposed_h = (visible_h * WINDOW_DIM_FRACTION).round() as u32;
-    Some((
-        proposed_w.clamp(WINDOW_DIM_MIN.0, WINDOW_DIM_MAX.0),
-        proposed_h.clamp(WINDOW_DIM_MIN.1, WINDOW_DIM_MAX.1),
-    ))
-}
-
-#[cfg(not(target_os = "macos"))]
-fn detect_window_dims_impl() -> Option<(u32, u32)> {
-    // Future: x11/wayland + windows GetSystemMetrics paths. For M1
-    // we ship macOS-only and fall back to FALLBACK_WINDOW_DIMS
-    // elsewhere — pleme-io fleet is macOS-first today.
-    None
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// detect_window_dims_or_fallback ALWAYS returns a usable
-    /// value — that's the function MadoConfig::default() calls.
-    /// Range bounded by either the detection clamp OR the safe
-    /// fallback.
-    #[test]
-    fn detect_or_fallback_always_returns_usable() {
-        let (w, h) = detect_window_dims_or_fallback();
-        assert!(w >= WINDOW_DIM_MIN.0 || (w, h) == FALLBACK_WINDOW_DIMS);
-        assert!(h >= WINDOW_DIM_MIN.1 || (w, h) == FALLBACK_WINDOW_DIMS);
-        assert!(w <= 4000);
-        assert!(h <= 3000);
-    }
-
-    /// FALLBACK constant is honored explicitly when detection
-    /// returns None. Test runners hit this case (off-main-thread).
-    #[test]
-    fn fallback_constant_is_used_when_detection_returns_none() {
-        // detect_window_dims() is None off-main-thread on macOS +
-        // None on every non-macOS platform. The wrapper resolves
-        // to exactly FALLBACK_WINDOW_DIMS in those cases.
-        if detect_window_dims().is_none() {
-            assert_eq!(detect_window_dims_or_fallback(), FALLBACK_WINDOW_DIMS);
-        }
-    }
-
-    /// Bounds: detection-supplied dims are clamped to the
-    /// configured min/max so even on a 6K ultrawide we don't
-    /// explode past a comfortable size.
-    #[test]
-    fn detection_respects_min_max_bounds() {
-        if let Some((w, h)) = detect_window_dims() {
-            assert!(w >= WINDOW_DIM_MIN.0);
-            assert!(h >= WINDOW_DIM_MIN.1);
-            assert!(w <= WINDOW_DIM_MAX.0);
-            assert!(h <= WINDOW_DIM_MAX.1);
-        }
-    }
-
-    /// The fallback constant is the documented + opinionated
-    /// pre-detection default. Pinning so a future change is a
-    /// deliberate operator-visible diff.
-    #[test]
-    fn fallback_window_dims_pinned() {
-        assert_eq!(FALLBACK_WINDOW_DIMS, (1200, 800));
-    }
-
-    #[test]
-    fn fallback_theme_pinned() {
-        assert_eq!(FALLBACK_THEME, "nord");
-    }
-
-    #[test]
-    fn fallback_font_family_pinned() {
-        assert_eq!(FALLBACK_FONT_FAMILY, "JetBrainsMono Nerd Font Mono");
-    }
-
-    #[test]
-    fn fallback_font_size_pinned() {
-        assert!((FALLBACK_FONT_SIZE - 14.0).abs() < 0.001);
-    }
-
-    #[test]
-    fn fallback_padding_pinned() {
-        assert_eq!(FALLBACK_PADDING, 0);
-    }
-
-    #[test]
-    fn fallback_scrollback_pinned() {
-        assert_eq!(FALLBACK_SCROLLBACK_LINES, 10_000);
-    }
-
-    /// detect_theme_or_fallback returns SOMETHING — either the
-    /// detected macOS appearance or FALLBACK_THEME.
-    #[test]
-    fn detect_theme_or_fallback_always_returns_a_theme() {
-        let t = detect_theme_or_fallback();
-        assert!(!t.is_empty());
-    }
-
-    #[test]
-    fn detect_font_family_or_fallback_always_returns_a_family() {
-        let f = detect_font_family_or_fallback();
-        assert!(!f.is_empty());
+/// Map physical RAM (GiB) to a scrollback line budget — high-memory hosts
+/// keep more history, low-memory ones stay lean.
+fn scrollback_for_ram(gib: u64) -> u32 {
+    match gib {
+        0..=7 => 10_000,    // ≤8 GiB: lean (the fleet fallback)
+        8..=15 => 50_000,   // 8–16 GiB: comfortable
+        16..=31 => 100_000, // 16–32 GiB: generous
+        _ => 200_000,       // 32 GiB+: keep a lot
     }
 }
 
-// ── Theme (light/dark detection) ─────────────────────────────────
-
-/// Safe-fallback theme when display appearance can't be detected.
-/// Nord is the operator-blessed default — dark, high-contrast,
-/// terminal-friendly.
-pub const FALLBACK_THEME: &str = "nord";
-
-/// Detect the host's appearance (light/dark) and pick a
-/// terminal-friendly theme name accordingly. Returns None when
-/// detection isn't available; caller falls back to FALLBACK_THEME.
-///
-/// M1 returns None unconditionally — the appearance-detection FFI
-/// (macOS NSDistributedNotificationCenter watcher / xdg-portal
-/// dbus query) is a follow-up. The pattern + tests are in place
-/// so the implementation is a drop-in.
-#[must_use]
-pub fn detect_theme() -> Option<&'static str> {
-    None
-}
-
-#[must_use]
-pub fn detect_theme_or_fallback() -> &'static str {
-    detect_theme().unwrap_or(FALLBACK_THEME)
-}
-
-// ── Font family (Nerd-Font probe) ────────────────────────────────
-
-/// Safe-fallback font family. JetBrainsMono Nerd Font Mono ships
-/// in the pleme-io stack profile + has the widest icon coverage.
-pub const FALLBACK_FONT_FAMILY: &str = "JetBrainsMono Nerd Font Mono";
-
-/// Preferred-fallback ladder mado probes. The first one found
-/// installed on the host wins. Operators with a strong opinion
-/// just set `font_family` in mado.yaml.
-#[allow(dead_code)] // referenced by detect_font_family when wired
+/// Preferred-fallback Nerd-font ladder mado probes (first installed wins).
+/// Consumed when the fontdb probe is wired into the `font_family` axis.
+#[allow(dead_code)]
 const FONT_FAMILY_LADDER: &[&str] = &[
     "JetBrainsMono Nerd Font Mono",
     "Iosevka Nerd Font",
     "MesloLGS Nerd Font",
     "FiraCode Nerd Font",
     "Hack Nerd Font",
-    // System mono fallback — present everywhere.
     "Menlo",
     "Monaco",
     "Consolas",
 ];
 
-/// Detect the highest-preference installed Nerd Font (or system
-/// mono fallback). M1 returns None unconditionally — fontdb
-/// enumeration is loaded lazily for performance; this would need
-/// a small synchronous probe path. Wired but not yet active.
-#[must_use]
-pub fn detect_font_family() -> Option<&'static str> {
-    None
+/// Preferred-fallback ladder for the symbol/icon family (ends at the primary
+/// Nerd font, which patches the same ranges). Consumed when wired.
+#[allow(dead_code)]
+const FONT_SYMBOLS_LADDER: &[&str] = &["Symbols Nerd Font Mono", "Symbols Nerd Font", "JetBrainsMono Nerd Font Mono"];
+
+kanchi::defaxes! {
+    /// Window dimensions — 60% of the focused display's visible area,
+    /// clamped to [800×600, 1600×1100]; falls back to 1200×800. (macOS
+    /// NSScreen; `None` off-main-thread / non-macOS.)
+    window_dims: (u32, u32) = (1200, 800)
+        => || probe::screen_frac(WINDOW_DIM_FRACTION, WINDOW_DIM_MIN, WINDOW_DIM_MAX);
+
+    /// Theme — dark/light system-appearance auto-select is a follow-up (the
+    /// probe `kanchi::probe::appearance_dark()` is ready; the theme-name
+    /// mapping lands next). Falls back to the fleet-blessed Nord.
+    theme: &'static str = "nord" => kanchi::none;
+
+    /// Highest-preference installed Nerd font — fontdb-enumeration probe is
+    /// a follow-up. Falls back to JetBrainsMono Nerd Font Mono.
+    font_family: &'static str = "JetBrainsMono Nerd Font Mono" => kanchi::none;
+
+    /// Symbol / Nerd-icon / powerline family — probe wiring is a follow-up.
+    font_symbols: &'static str = "Symbols Nerd Font Mono" => kanchi::none;
+
+    /// DPR-aware font size — HiDPI Retina 14pt / low-DPI 16pt. (macOS
+    /// NSScreen backing scale.)
+    font_size: f32 = 14.0 => || probe::dpr_font_size(14.0, 16.0);
+
+    /// Window padding — flush against the edge by default (ghostty/alacritty).
+    padding: u32 = 0 => kanchi::none;
+
+    /// Scrollback — scaled to physical RAM (sysctl / `/proc/meminfo`).
+    scrollback_lines: u32 = 10_000 => || probe::total_ram_gib().map(scrollback_for_ram);
 }
 
-#[must_use]
-pub fn detect_font_family_or_fallback() -> &'static str {
-    detect_font_family().unwrap_or(FALLBACK_FONT_FAMILY)
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-// ── Symbol / Nerd-icon fallback family ───────────────────────────
-
-/// Safe-fallback family for symbol / Nerd-icon / powerline codepoints
-/// (see [`crate::glyph_class::is_symbol_glyph`]). Ghostty ships a
-/// dedicated "Symbols Nerd Font" so the powerline separators (U+E0B0…)
-/// and the PUA icon blocks render from ONE curated source instead of
-/// whatever arbitrary installed font cosmic-text's coverage walk
-/// happens to pick first — the cause of "wrong glyph in mado, right in
-/// ghostty." `JetBrainsMono Nerd Font Mono` is the primary default and
-/// already carries the same patched ranges, so it is the natural
-/// symbols family when no standalone symbols font is configured.
-pub const FALLBACK_FONT_SYMBOLS: &str = "Symbols Nerd Font Mono";
-
-/// Preferred-fallback ladder for the symbols family. The first one
-/// installed wins; operators with a strong opinion set `font_symbols`
-/// in mado.yaml. Ends at the primary Nerd font (which patches the same
-/// ranges) so a host without a standalone symbols font still routes
-/// icon codepoints to a font that has them.
-#[allow(dead_code)] // referenced by detect_font_symbols when wired
-const FONT_SYMBOLS_LADDER: &[&str] = &[
-    "Symbols Nerd Font Mono",
-    "Symbols Nerd Font",
-    "JetBrainsMono Nerd Font Mono",
-];
-
-/// Detect the highest-preference installed symbols font. Mirrors
-/// [`detect_font_family`]: fontdb enumeration is lazy, so M1 returns
-/// `None` and the caller lands on [`FALLBACK_FONT_SYMBOLS`].
-#[must_use]
-pub fn detect_font_symbols() -> Option<&'static str> {
-    None
-}
-
-#[must_use]
-pub fn detect_font_symbols_or_fallback() -> &'static str {
-    detect_font_symbols().unwrap_or(FALLBACK_FONT_SYMBOLS)
-}
-
-// ── Font size (DPR-aware) ────────────────────────────────────────
-
-/// Safe-fallback font size at 14pt — readable on standard-density
-/// displays, comfortable on HiDPI without operator intervention.
-pub const FALLBACK_FONT_SIZE: f32 = 14.0;
-
-/// Detect a font size scaled to the focused display's DPR.
-/// HiDPI Retina (≥1.5× backing scale) = 14pt — the OS handles the
-/// crisp upscale; low-DPI (<1.5×) = bump to 16pt so glyphs stay
-/// readable without operator intervention. Returns `None` when the
-/// scale can't be probed (off-main-thread / non-macOS) so the caller
-/// lands on [`FALLBACK_FONT_SIZE`].
-#[cfg(target_os = "macos")]
-#[must_use]
-pub fn detect_font_size() -> Option<f32> {
-    use objc2_app_kit::NSScreen;
-    use objc2_foundation::MainThreadMarker;
-
-    let mtm = MainThreadMarker::new()?;
-    let screen = NSScreen::mainScreen(mtm)?;
-    let scale = screen.backingScaleFactor();
-    if scale <= 0.0 {
-        return None;
+    /// `detect_window_dims_or_fallback` ALWAYS returns a usable value —
+    /// that's what `MadoConfig::default()` calls.
+    #[test]
+    fn detect_or_fallback_always_returns_usable() {
+        let (w, h) = detect_window_dims_or_fallback();
+        assert!(w >= WINDOW_DIM_MIN.0 || (w, h) == FALLBACK_WINDOW_DIMS);
+        assert!(h >= WINDOW_DIM_MIN.1 || (w, h) == FALLBACK_WINDOW_DIMS);
+        assert!(w <= 4000 && h <= 3000);
     }
-    Some(if scale >= 1.5 { 14.0 } else { 16.0 })
+
+    /// The documented FALLBACK is honored when detection returns None (test
+    /// runners hit this — off-main-thread).
+    #[test]
+    fn fallback_constant_is_used_when_detection_returns_none() {
+        if detect_window_dims().is_none() {
+            assert_eq!(detect_window_dims_or_fallback(), FALLBACK_WINDOW_DIMS);
+        }
+    }
+
+    /// Detection-supplied dims are clamped to the configured min/max.
+    #[test]
+    fn detection_respects_min_max_bounds() {
+        if let Some((w, h)) = detect_window_dims() {
+            assert!(w >= WINDOW_DIM_MIN.0 && w <= WINDOW_DIM_MAX.0);
+            assert!(h >= WINDOW_DIM_MIN.1 && h <= WINDOW_DIM_MAX.1);
+        }
+    }
+
+    #[test]
+    fn fallback_window_dims_pinned() {
+        assert_eq!(FALLBACK_WINDOW_DIMS, (1200, 800));
+    }
+    #[test]
+    fn fallback_theme_pinned() {
+        assert_eq!(FALLBACK_THEME, "nord");
+    }
+    #[test]
+    fn fallback_font_family_pinned() {
+        assert_eq!(FALLBACK_FONT_FAMILY, "JetBrainsMono Nerd Font Mono");
+    }
+    #[test]
+    fn fallback_font_size_pinned() {
+        assert!((FALLBACK_FONT_SIZE - 14.0).abs() < 0.001);
+    }
+    #[test]
+    fn fallback_padding_pinned() {
+        assert_eq!(FALLBACK_PADDING, 0);
+    }
+    #[test]
+    fn fallback_scrollback_pinned() {
+        assert_eq!(FALLBACK_SCROLLBACK_LINES, 10_000);
+    }
+
+    #[test]
+    fn detect_theme_or_fallback_always_returns_a_theme() {
+        assert!(!detect_theme_or_fallback().is_empty());
+    }
+    #[test]
+    fn detect_font_family_or_fallback_always_returns_a_family() {
+        assert!(!detect_font_family_or_fallback().is_empty());
+    }
+
+    /// RAM→scrollback tiers are monotonic + bounded by the fallback floor.
+    #[test]
+    fn scrollback_tiers_monotonic() {
+        assert_eq!(scrollback_for_ram(4), FALLBACK_SCROLLBACK_LINES);
+        assert!(scrollback_for_ram(12) >= scrollback_for_ram(4));
+        assert!(scrollback_for_ram(24) >= scrollback_for_ram(12));
+        assert!(scrollback_for_ram(64) >= scrollback_for_ram(24));
+    }
 }
-
-#[cfg(not(target_os = "macos"))]
-#[must_use]
-pub fn detect_font_size() -> Option<f32> {
-    // x11/wayland DPI + Windows GetDpiForMonitor paths are a follow-up;
-    // non-macOS falls back to FALLBACK_FONT_SIZE for now.
-    None
-}
-
-#[must_use]
-pub fn detect_font_size_or_fallback() -> f32 {
-    detect_font_size().unwrap_or(FALLBACK_FONT_SIZE)
-}
-
-// ── Padding (operator-facing default) ────────────────────────────
-
-/// Safe-fallback padding. Zero = first cell flush against window
-/// edge; matches ghostty / alacritty defaults.
-pub const FALLBACK_PADDING: u32 = 0;
-
-#[must_use]
-pub fn detect_padding() -> Option<u32> {
-    None
-}
-
-#[must_use]
-pub fn detect_padding_or_fallback() -> u32 {
-    detect_padding().unwrap_or(FALLBACK_PADDING)
-}
-
-// ── Scrollback lines ─────────────────────────────────────────────
-
-/// Safe-fallback scrollback. 10k lines = ~5MB of grid memory at
-/// 80×24; small enough to keep memory low, large enough that
-/// `grep` over yesterday's output works.
-pub const FALLBACK_SCROLLBACK_LINES: u32 = 10_000;
 
 // ── Fleet convergence guard ──────────────────────────────────────
 //
-// Every FALLBACK_* constant above MUST match the corresponding
-// field on `ishou_tokens::FleetDefaults::prescribed()`. If they
-// drift, mado's defaults silently diverge from the rest of the
-// fleet (escriba, namimado, hibiki, hikki, etc.). The tests below
-// enforce convergence at compile-time-of-the-test-suite.
-//
-// When the next "fleet rebrand" comes — bump font, switch theme,
-// raise default scrollback — touch `FleetDefaults::prescribed()`
-// once; this test fails until the matching FALLBACK_* is updated
-// to match. Drift becomes a build failure, not a silent slip.
-
+// Every FALLBACK_* generated above MUST match the corresponding field on
+// `ishou_tokens::FleetDefaults::prescribed()`. If they drift, mado's defaults
+// silently diverge from the rest of the fleet. The test enforces convergence
+// at test-suite-compile time; a future fleet rebrand touches
+// `FleetDefaults::prescribed()` once and this fails until the matching
+// FALLBACK_* is updated.
 #[cfg(test)]
 mod fleet_convergence_tests {
     use super::*;
 
-    /// One-line convergence guard — pinned to `ishou_tokens::convergence::Guard`
-    /// (ishou@cc704f8). Drift on any FALLBACK_* surfaces as a single
-    /// panic listing every field that diverged, instead of the
-    /// previous 4 hand-rolled assertions.
     #[test]
     fn fallback_defaults_converge_with_fleet() {
         ishou_tokens::convergence::Guard::for_app("mado")
@@ -375,63 +182,4 @@ mod fleet_convergence_tests {
             .expect_scrollback_lines(FALLBACK_SCROLLBACK_LINES as usize)
             .run();
     }
-}
-
-/// Total physical RAM in bytes, or `None` when it can't be probed.
-/// macOS: `sysctlbyname("hw.memsize")`; Linux: `/proc/meminfo`.
-#[cfg(target_os = "macos")]
-fn total_ram_bytes() -> Option<u64> {
-    let mut size: u64 = 0;
-    let mut len = std::mem::size_of::<u64>();
-    let name = c"hw.memsize";
-    // SAFETY: name is a valid NUL-terminated C string; size/len are
-    // sized for a u64 out-param; oldlenp is in/out per sysctl(3).
-    let rc = unsafe {
-        libc::sysctlbyname(
-            name.as_ptr(),
-            std::ptr::addr_of_mut!(size).cast(),
-            &mut len,
-            std::ptr::null_mut(),
-            0,
-        )
-    };
-    (rc == 0 && size > 0).then_some(size)
-}
-
-#[cfg(target_os = "linux")]
-fn total_ram_bytes() -> Option<u64> {
-    let meminfo = std::fs::read_to_string("/proc/meminfo").ok()?;
-    let kb: u64 = meminfo
-        .lines()
-        .find_map(|l| l.strip_prefix("MemTotal:"))?
-        .trim()
-        .trim_end_matches("kB")
-        .trim()
-        .parse()
-        .ok()?;
-    Some(kb * 1024)
-}
-
-#[cfg(not(any(target_os = "macos", target_os = "linux")))]
-fn total_ram_bytes() -> Option<u64> {
-    None
-}
-
-/// Detect scrollback scaled to physical RAM — high-memory machines
-/// keep more history, low-memory ones stay lean. Returns `None` when
-/// RAM can't be probed; the caller lands on [`FALLBACK_SCROLLBACK_LINES`].
-#[must_use]
-pub fn detect_scrollback_lines() -> Option<u32> {
-    let gib = total_ram_bytes()? / (1024 * 1024 * 1024);
-    Some(match gib {
-        0..=7 => 10_000,    // ≤8 GiB: lean (the fleet fallback)
-        8..=15 => 50_000,   // 8–16 GiB: comfortable
-        16..=31 => 100_000, // 16–32 GiB: generous
-        _ => 200_000,       // 32 GiB+: keep a lot
-    })
-}
-
-#[must_use]
-pub fn detect_scrollback_lines_or_fallback() -> u32 {
-    detect_scrollback_lines().unwrap_or(FALLBACK_SCROLLBACK_LINES)
 }

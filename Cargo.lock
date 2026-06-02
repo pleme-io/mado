@@ -2135,6 +2135,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "kanchi"
+version = "0.1.0"
+source = "git+https://github.com/pleme-io/kanchi#84df3425cca15e602515ccdcf27f83c91f7b6454"
+dependencies = [
+ "libc",
+ "objc2 0.6.4",
+ "objc2-app-kit 0.3.2",
+ "objc2-foundation 0.3.2",
+ "paste",
+]
+
+[[package]]
 name = "kanshou"
 version = "0.1.0"
 source = "git+https://github.com/pleme-io/kanshou#cb1fb0f30dd3a22e9773ad0e9fceae9d26daae16"
@@ -2355,6 +2367,7 @@ dependencies = [
  "irodzuki",
  "ishou-tokens",
  "kaname",
+ "kanchi",
  "kanshou",
  "libc",
  "linkify",
