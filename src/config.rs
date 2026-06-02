@@ -1355,6 +1355,8 @@ impl MadoConfig {
         c.font_symbols = crate::auto_detect::detect_font_symbols_or_fallback().to_string();
         c.font_size = crate::auto_detect::detect_font_size_or_fallback();
         c.window.padding = crate::auto_detect::detect_padding_or_fallback();
+        c.behavior.scrollback_lines =
+            crate::auto_detect::detect_scrollback_lines_or_fallback() as usize;
         c
     }
 }
@@ -1384,7 +1386,7 @@ impl Default for MadoConfig {
     /// `mado config-show default` subcommand (M-148 followup)
     /// makes every value visible.
     fn default() -> Self {
-        Self {
+        let mut c = Self {
             font_family: default_font_family(),
             font_italic: default_font_italic(),
             font_symbols: default_font_symbols(),
@@ -1410,7 +1412,19 @@ impl Default for MadoConfig {
             tear: MadoTearConfig::default(),
             effects: MadoEffectsConfig::default(),
             vigy: MadoVigyConfig::default(),
-        }
+        };
+        // Environment-adaptive overlay (prime-directive: best-fit defaults
+        // out of the box). Where the runtime can probe THIS host, the
+        // detected value replaces the static default just set above.
+        // Detection returns None off-main-thread / headless → fallback to
+        // that static default, so tests + CI are unaffected.
+        let (win_w, win_h) = crate::auto_detect::detect_window_dims_or_fallback();
+        c.window.width = win_w;
+        c.window.height = win_h;
+        c.font_size = crate::auto_detect::detect_font_size_or_fallback();
+        c.behavior.scrollback_lines =
+            crate::auto_detect::detect_scrollback_lines_or_fallback() as usize;
+        c
     }
 }
 

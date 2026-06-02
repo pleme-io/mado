@@ -289,11 +289,31 @@ pub fn detect_font_symbols_or_fallback() -> &'static str {
 pub const FALLBACK_FONT_SIZE: f32 = 14.0;
 
 /// Detect a font size scaled to the focused display's DPR.
-/// HiDPI Retina = 14pt (operating system handles the upscale);
-/// non-Retina low-DPI = bump to 16pt for readability. Returns
-/// None when DPR can't be probed.
+/// HiDPI Retina (≥1.5× backing scale) = 14pt — the OS handles the
+/// crisp upscale; low-DPI (<1.5×) = bump to 16pt so glyphs stay
+/// readable without operator intervention. Returns `None` when the
+/// scale can't be probed (off-main-thread / non-macOS) so the caller
+/// lands on [`FALLBACK_FONT_SIZE`].
+#[cfg(target_os = "macos")]
 #[must_use]
 pub fn detect_font_size() -> Option<f32> {
+    use objc2_app_kit::NSScreen;
+    use objc2_foundation::MainThreadMarker;
+
+    let mtm = MainThreadMarker::new()?;
+    let screen = NSScreen::mainScreen(mtm)?;
+    let scale = screen.backingScaleFactor();
+    if scale <= 0.0 {
+        return None;
+    }
+    Some(if scale >= 1.5 { 14.0 } else { 16.0 })
+}
+
+#[cfg(not(target_os = "macos"))]
+#[must_use]
+pub fn detect_font_size() -> Option<f32> {
+    // x11/wayland DPI + Windows GetDpiForMonitor paths are a follow-up;
+    // non-macOS falls back to FALLBACK_FONT_SIZE for now.
     None
 }
 
@@ -357,11 +377,58 @@ mod fleet_convergence_tests {
     }
 }
 
-/// Detect scrollback based on available RAM (high-memory machines
-/// get more). M1 returns None; the RAM probe is a follow-up.
+/// Total physical RAM in bytes, or `None` when it can't be probed.
+/// macOS: `sysctlbyname("hw.memsize")`; Linux: `/proc/meminfo`.
+#[cfg(target_os = "macos")]
+fn total_ram_bytes() -> Option<u64> {
+    let mut size: u64 = 0;
+    let mut len = std::mem::size_of::<u64>();
+    let name = c"hw.memsize";
+    // SAFETY: name is a valid NUL-terminated C string; size/len are
+    // sized for a u64 out-param; oldlenp is in/out per sysctl(3).
+    let rc = unsafe {
+        libc::sysctlbyname(
+            name.as_ptr(),
+            std::ptr::addr_of_mut!(size).cast(),
+            &mut len,
+            std::ptr::null_mut(),
+            0,
+        )
+    };
+    (rc == 0 && size > 0).then_some(size)
+}
+
+#[cfg(target_os = "linux")]
+fn total_ram_bytes() -> Option<u64> {
+    let meminfo = std::fs::read_to_string("/proc/meminfo").ok()?;
+    let kb: u64 = meminfo
+        .lines()
+        .find_map(|l| l.strip_prefix("MemTotal:"))?
+        .trim()
+        .trim_end_matches("kB")
+        .trim()
+        .parse()
+        .ok()?;
+    Some(kb * 1024)
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "linux")))]
+fn total_ram_bytes() -> Option<u64> {
+    None
+}
+
+/// Detect scrollback scaled to physical RAM — high-memory machines
+/// keep more history, low-memory ones stay lean. Returns `None` when
+/// RAM can't be probed; the caller lands on [`FALLBACK_SCROLLBACK_LINES`].
 #[must_use]
 pub fn detect_scrollback_lines() -> Option<u32> {
-    None
+    let gib = total_ram_bytes()? / (1024 * 1024 * 1024);
+    Some(match gib {
+        0..=7 => 10_000,    // ≤8 GiB: lean (the fleet fallback)
+        8..=15 => 50_000,   // 8–16 GiB: comfortable
+        16..=31 => 100_000, // 16–32 GiB: generous
+        _ => 200_000,       // 32 GiB+: keep a lot
+    })
 }
 
 #[must_use]
