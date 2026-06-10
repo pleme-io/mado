@@ -134,6 +134,20 @@ server**.
 - **M2**: `mado e2e` + `simulate_chord` MCP tool + shikumi smoke matrix;
   fix kanshou GUI-forwarding; `.#e2e-mado` from the built closure on a
   self-hosted mac runner; rebuild-gate wiring.
+  **mado-side SHIPPED 2026-06-10**: `mado e2e` (typed rmcp client
+  spawning `mado mcp`; 4-row matrix spawn_term → prompt_visible →
+  enter_fresh_prompt → echo_marker; typed JSON summary, nonzero exit
+  on any row; rows are typed Rust constants — shikumi matrix YAML
+  still pending); `simulate_chord` (chord → Action resolved in the
+  GUI process via a kanshou `simulate_chord` method leaf + typed
+  `InjectedActions` queue drained by the tear-mode event loop; typed
+  `not-forwardable` / `no-injection-sink` / `no-binding` errors);
+  kanshou forwarding fixed upstream (kanshou 2bfa132). First
+  frostmourne run caught a real E2-class defect: headless
+  `spawn_term` sessions parsed VT queries but never wrote
+  `take_response()` back to the PTY — reedline stalled on CPR;
+  reader-pump write-back + `reader_pump_answers_dsr…` guard shipped.
+  Remaining: shikumi matrix YAML, nix `.#e2e-mado` app, rebuild-gate.
 - **M3**: L3 fleet invariants; tear adopts espelho (third site); nightly
   wall-clock soak; all gates release/rebuild-blocking.
 

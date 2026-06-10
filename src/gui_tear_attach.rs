@@ -80,8 +80,9 @@ pub fn run(pane_id: PaneId, socket_path: PathBuf) -> Result<()> {
 
     impose_if_any(&client, &tear_cfg);
     // CLI `mado tear-attach <pane>` is attaching to a session
-    // somebody else created — don't kill it on our close.
-    run_against_pane(client, pane_id, None, socket_path, config)
+    // somebody else created — don't kill it on our close. No
+    // kanshou server runs on this path, so no injection queue.
+    run_against_pane(client, pane_id, None, socket_path, config, None)
 }
 
 /// Default-launch path: try to attach to (or auto-spawn) the tear
@@ -109,6 +110,9 @@ pub fn try_run_default(
     if matches!(config.tear.runtime, TearRuntime::Embedded) {
         return try_run_default_embedded(config, shell, kanshou_state);
     }
+    // Daemon path keeps a handle on the kanshou-published injection
+    // queue so `simulate_chord` works in both tear runtimes.
+    let injected = kanshou_state.injected.clone();
     let (client, socket_path) = match discover(&config.tear) {
         DiscoveryOutcome::Attached(c, p) => (Arc::new(c), p),
         DiscoveryOutcome::Fallback => return TearDefaultOutcome::Unavailable,
@@ -214,7 +218,7 @@ pub fn try_run_default(
     // `mado tear-attach <existing-pane>` CLI path does NOT pass
     // session_id (it's attaching to someone else's session,
     // shouldn't reap it on close).
-    match run_against_pane(client, pane_id, Some(session_id), socket_path, config) {
+    match run_against_pane(client, pane_id, Some(session_id), socket_path, config, Some(injected)) {
         Ok(()) => TearDefaultOutcome::Ran,
         Err(e) => TearDefaultOutcome::Error(e),
     }
@@ -247,6 +251,7 @@ fn run_against_pane_unified<P, C>(
     config: MadoConfig,
     owned_session_id: Option<tear_types::SessionId>,
     title_kind: &str,
+    injected: Option<crate::action_injection::InjectedActions>,
 ) -> Result<()>
 where
     P: engate_attach::Producer<
@@ -428,6 +433,13 @@ where
     let mut key_repeat_gate =
         awase::KeyRepeatGate::<crate::keybind::Action>::new();
     let default_font_size_for_reset = config.font_size;
+    // Register this event loop as the live drainer for kanshou-
+    // injected actions (`simulate_chord`). Until attach_sink() runs,
+    // the kanshou handler answers `no-injection-sink` instead of
+    // queueing into the void.
+    if let Some(inj) = injected.as_ref() {
+        inj.attach_sink();
+    }
     let child_exited_for_events = Arc::clone(&child_exited);
     // Scrollback-view handle for the wheel/scroll arm below. mado owns
     // its own Terminal; the renderer + consumer hold clones, so the
@@ -452,6 +464,34 @@ where
                     exit: true,
                     ..Default::default()
                 };
+            }
+
+            // ── kanshou-injected actions (`simulate_chord`) ──────
+            // Drain BEFORE the event match so injected actions
+            // dispatch on the very next loop tick (madori runs
+            // ControlFlow::Poll and emits RedrawRequested every
+            // frame — worst-case latency is one frame). Injection
+            // bypasses the key-repeat gate on purpose: these are
+            // deliberate typed requests, not OS auto-repeat storms,
+            // and BoundedFontSize still clamps the result.
+            if let Some(inj) = injected.as_ref() {
+                for action in inj.drain() {
+                    let handled = apply_tear_action(
+                        action,
+                        renderer,
+                        &control_for_events,
+                        pane_id,
+                        config.window.width,
+                        config.window.height,
+                        default_font_size_for_reset,
+                    );
+                    if !handled {
+                        tracing::debug!(
+                            action = action.as_str(),
+                            "injected action has no tear-mode handler yet — dropped"
+                        );
+                    }
+                }
             }
 
             match event {
@@ -507,7 +547,6 @@ where
                     // Cmd-= / Cmd-- / Cmd-0 → font zoom in/out/reset
                     // BEFORE the text falls through to the PTY.
                     if let Some(action) = keybinds.lookup_madori(key_event) {
-                        use crate::font_size::{BoundedFontSize, FontSizeSteps};
                         use crate::keybind::Action;
                         // Font scaling: rate-limit + bound by type.
                         // The gate drops OS key-repeat storms; the
@@ -524,48 +563,26 @@ where
                             // the PTY as literal text.
                             return EventResponse::consumed();
                         }
-                        match action {
-                            Action::FontIncrease => {
-                                let new_size = BoundedFontSize::new(renderer.font_size())
-                                    .inc_step()
-                                    .get();
-                                renderer.set_font_size(new_size);
-                                // Push the new grid dims to tear so the
-                                // shell sees the right cols/rows after
-                                // the cell-size change.
-                                let (cols, rows) = renderer
-                                    .cells_for_window_phys(config.window.width, config.window.height);
-                                let _ = control_for_events
-                                    .pane_resize_absolute(pane_id, cols, rows);
-                                return EventResponse::consumed();
-                            }
-                            Action::FontDecrease => {
-                                let new_size = BoundedFontSize::new(renderer.font_size())
-                                    .dec_step()
-                                    .get();
-                                renderer.set_font_size(new_size);
-                                let (cols, rows) = renderer
-                                    .cells_for_window_phys(config.window.width, config.window.height);
-                                let _ = control_for_events
-                                    .pane_resize_absolute(pane_id, cols, rows);
-                                return EventResponse::consumed();
-                            }
-                            Action::FontReset => {
-                                let reset_size = BoundedFontSize::new(default_font_size_for_reset).get();
-                                renderer.set_font_size(reset_size);
-                                let (cols, rows) = renderer
-                                    .cells_for_window_phys(config.window.width, config.window.height);
-                                let _ = control_for_events
-                                    .pane_resize_absolute(pane_id, cols, rows);
-                                return EventResponse::consumed();
-                            }
-                            // Other actions (Copy, Paste, search,
-                            // scroll, fullscreen, etc.) fall through
-                            // to PTY forwarding for now; terminal
-                            // apps + mado-side state wiring lands in
-                            // a follow-up.
-                            _ => {}
+                        // Shared dispatch — the same helper the
+                        // kanshou-injected path (`simulate_chord`)
+                        // calls, so a simulated chord exercises
+                        // EXACTLY the code a physical keypress hits.
+                        if apply_tear_action(
+                            action,
+                            renderer,
+                            &control_for_events,
+                            pane_id,
+                            config.window.width,
+                            config.window.height,
+                            default_font_size_for_reset,
+                        ) {
+                            return EventResponse::consumed();
                         }
+                        // Other actions (Copy, Paste, search,
+                        // scroll, fullscreen, etc.) fall through
+                        // to PTY forwarding for now; terminal
+                        // apps + mado-side state wiring lands in
+                        // a follow-up.
                     }
                     // No bound mado action — translate to PTY bytes via
                     // the shared helper. This is the same call shape the
@@ -633,6 +650,67 @@ where
     Ok(())
 }
 
+/// Dispatch a resolved keybind [`Action`](crate::keybind::Action) in
+/// tear mode. Shared by the physical-keypress path (Key arm above)
+/// and the kanshou-injected path (`simulate_chord` → `InjectedActions`
+/// drain) so an injected action exercises EXACTLY the dispatch a
+/// real chord hits — no parallel implementation to drift.
+///
+/// Returns `true` when the action has a tear-mode handler (caller
+/// consumes the event); `false` when it doesn't yet (key path falls
+/// through to PTY forwarding, injected path drops with a debug log).
+/// The key-repeat gate is deliberately NOT in here — storms are an
+/// input-path concern; injected actions are deliberate.
+fn apply_tear_action<C>(
+    action: crate::keybind::Action,
+    renderer: &mut TerminalRenderer,
+    control: &Arc<C>,
+    pane_id: PaneId,
+    window_width: u32,
+    window_height: u32,
+    default_font_size: f32,
+) -> bool
+where
+    C: tear_types::MultiplexerControl + Send + Sync,
+{
+    use crate::font_size::{BoundedFontSize, FontSizeSteps};
+    use crate::keybind::Action;
+    match action {
+        Action::FontIncrease => {
+            let new_size = BoundedFontSize::new(renderer.font_size())
+                .inc_step()
+                .get();
+            renderer.set_font_size(new_size);
+            // Push the new grid dims to tear so the shell sees the
+            // right cols/rows after the cell-size change.
+            let (cols, rows) = renderer.cells_for_window_phys(window_width, window_height);
+            let _ = control.pane_resize_absolute(pane_id, cols, rows);
+            true
+        }
+        Action::FontDecrease => {
+            let new_size = BoundedFontSize::new(renderer.font_size())
+                .dec_step()
+                .get();
+            renderer.set_font_size(new_size);
+            let (cols, rows) = renderer.cells_for_window_phys(window_width, window_height);
+            let _ = control.pane_resize_absolute(pane_id, cols, rows);
+            true
+        }
+        Action::FontReset => {
+            let reset_size = BoundedFontSize::new(default_font_size).get();
+            renderer.set_font_size(reset_size);
+            let (cols, rows) = renderer.cells_for_window_phys(window_width, window_height);
+            let _ = control.pane_resize_absolute(pane_id, cols, rows);
+            true
+        }
+        // Copy / Paste / search / scroll / dir-picker / fullscreen
+        // need mado-side state the tear path doesn't hold yet — the
+        // M1 InputEngine unification (docs/REMEDIATION-PLAN.md) is
+        // where they land. Until then they have no tear-mode handler.
+        _ => false,
+    }
+}
+
 /// M3c.1 — embedded-tear default-launch path.
 ///
 /// Identical operator-visible contract to `try_run_default` but
@@ -652,7 +730,6 @@ fn try_run_default_embedded(
     kanshou_state: std::sync::Arc<crate::kanshou_state::MadoAppState>,
 ) -> TearDefaultOutcome {
     use std::sync::Arc;
-    use tear_core::engate_producer::PaneProducer as EmbeddedProducer;
     use tear_core::InProcess;
     use tear_types::SessionSource;
 
@@ -712,7 +789,7 @@ fn try_run_default_embedded(
     );
     crate::perf::log_phase("tear_session_created");
 
-    match run_against_embedded_pane(inproc, pane_id, config) {
+    match run_against_embedded_pane(inproc, pane_id, config, Some(kanshou_state.injected.clone())) {
         Ok(()) => TearDefaultOutcome::Ran,
         Err(e) => TearDefaultOutcome::Error(e),
     }
@@ -726,6 +803,7 @@ fn run_against_embedded_pane(
     inproc: std::sync::Arc<tear_core::InProcess>,
     pane_id: PaneId,
     config: MadoConfig,
+    injected: Option<crate::action_injection::InjectedActions>,
 ) -> Result<()> {
     let snapshot = inproc
         .pane_snapshot(pane_id)
@@ -741,6 +819,7 @@ fn run_against_embedded_pane(
         config,
         None, // embedded session dies with mado; no reap needed
         "tear[embedded]",
+        injected,
     )
 }
 
@@ -795,6 +874,7 @@ fn run_against_pane(
     owned_session_id: Option<tear_types::SessionId>,
     _socket_path: PathBuf,
     config: MadoConfig,
+    injected: Option<crate::action_injection::InjectedActions>,
 ) -> Result<()> {
     let snapshot = client
         .pane_snapshot(pane_id)
@@ -810,5 +890,6 @@ fn run_against_pane(
         config,
         owned_session_id,
         "tear",
+        injected,
     )
 }

@@ -13,10 +13,12 @@
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
+mod action_injection;
 mod auto_detect;
 mod clipboard_store;
 mod config;
 mod dir_picker;
+mod e2e;
 mod engate_consumer;
 mod font_size;
 mod glyph_class;
@@ -89,6 +91,20 @@ struct Cli {
 enum SubCmd {
     /// Run as MCP server (stdio transport) for Claude Code integration.
     Mcp,
+    /// Run the L2 end-to-end smoke matrix (docs/INTEGRATION-TESTING.md
+    /// §L2): spawn `mado mcp` (this binary) as a stdio child, drive
+    /// spawn_term / get_output / send_keys through a typed rmcp
+    /// client, and print a JSON row summary
+    /// `{shell, rows: [{name, pass, detail}], pass}` to stdout.
+    /// Exits nonzero when any row fails. Matrix rows are typed Rust
+    /// constants today; a shikumi matrix-YAML surface + the nix
+    /// `.#e2e-mado` closure-resolved app are the documented follow-ups.
+    E2e {
+        /// Shell to spawn inside the smoke session. Defaults to
+        /// $MADO_E2E_SHELL, then `frostmourne` resolved on PATH.
+        #[arg(long, env = "MADO_E2E_SHELL", default_value = "frostmourne")]
+        shell: String,
+    },
     /// Detect the runtime posture (displays, refresh rates, GPU,
     /// platform) and print it as JSON. Useful for debugging "what does
     /// mado see on this machine" + fleet-wide auditing via
@@ -352,6 +368,24 @@ fn main() -> anyhow::Result<()> {
                 mcp::run().await
             })
             .map_err(|e| anyhow::anyhow!("MCP server error: {e}"))?;
+            return Ok(());
+        }
+        Some(SubCmd::E2e { ref shell }) => {
+            // Tracing to stderr — stdout carries exactly one JSON
+            // summary so CI / the nix `.#e2e-mado` app can parse it
+            // directly.
+            shidou::init_tracing_to_stderr();
+            let rt = shidou::create_runtime()?;
+            let summary = rt
+                .block_on(e2e::run(shell))
+                .map_err(|e| anyhow::anyhow!("e2e harness error: {e:#}"))?;
+            println!("{}", serde_json::to_string_pretty(&summary)?);
+            if !summary.pass {
+                // Row details are already on stdout; the exit code is
+                // the machine-readable verdict (matrix discipline:
+                // report every row, then fail once).
+                std::process::exit(1);
+            }
             return Ok(());
         }
         Some(SubCmd::PrintPosture) => {

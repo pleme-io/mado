@@ -326,6 +326,7 @@ impl SessionRegistry {
 
         let terminal = Arc::new(parking_lot::RwLock::new(Terminal::new(cols as usize, rows as usize)));
         let terminal_for_pump = Arc::clone(&terminal);
+        let writer_for_pump = Arc::clone(&writer);
 
         let reader_task = tokio::spawn(async move {
             // 64 KiB read buffer (was 8 KiB). High-throughput PTY
@@ -344,8 +345,32 @@ impl SessionRegistry {
                         break;
                     }
                     Ok(n) => {
-                        let mut term = terminal_for_pump.write();
-                        term.feed(&buf[..n]);
+                        // Feed + drain VT query answers under one
+                        // lock scope, then write back outside the
+                        // terminal lock (parking_lot guards must not
+                        // cross an await). Without the write-back,
+                        // a headless session never answers DSR/DA/
+                        // OSC queries and reedline-based shells
+                        // (frost, frostmourne) stall waiting for the
+                        // CPR reply — found by the `mado e2e`
+                        // frostmourne matrix (E2/E5 class; the GUI
+                        // paths route the same answers through
+                        // engate_consumer::ResponseWriter).
+                        let response = {
+                            let mut term = terminal_for_pump.write();
+                            term.feed(&buf[..n]);
+                            term.take_response()
+                        };
+                        if let Some(resp) = response {
+                            let mut w = writer_for_pump.lock().await;
+                            if let Err(e) = w.write_all(&resp).await {
+                                tracing::warn!(
+                                    error = %e,
+                                    len = resp.len(),
+                                    "VT query response write-back FAILED — shell may stall on an unanswered DSR/DA/OSC query"
+                                );
+                            }
+                        }
                     }
                     Err(e) => {
                         tracing::warn!(error = %e, "pty reader error");
@@ -497,6 +522,49 @@ mod tests {
             }
         }
         assert!(found, "sentinel did not propagate through PTY → terminal");
+    }
+
+    /// REGRESSION GUARD — headless sessions must ANSWER VT queries,
+    /// not just parse them. The child raw-modes its tty, emits a DSR
+    /// (`ESC[6n`), and blocks a 1-byte read on the reply; the marker
+    /// only prints if the reader pump wrote the CPR answer back to
+    /// the PTY. Before the write-back landed, reedline shells
+    /// (frost / frostmourne) hung at startup under `spawn_term` —
+    /// found by the `mado e2e` frostmourne matrix (E2/E5 class).
+    #[tokio::test]
+    async fn reader_pump_answers_dsr_so_raw_mode_readers_unblock() {
+        let registry = Arc::new(SessionRegistry::default());
+        let spec = TermSpec {
+            shell: "/bin/sh".into(),
+            cols: 40,
+            rows: 8,
+            ..TermSpec::default()
+        };
+        let id = registry.spawn(&spec).await.unwrap();
+        let s = registry.get(&id).unwrap();
+
+        // Raw mode so the reply's lack of a newline doesn't wedge the
+        // canonical-mode line discipline; dd blocks until ≥1 reply
+        // byte arrives. No reply ⇒ no CPR_ROUNDTRIP ⇒ test fails.
+        s.send_input(
+            b"PS1=''; stty raw -echo; printf '\\033[6n'; dd bs=1 count=1 >/dev/null 2>&1; stty sane; echo CPR_ROUNDTRIP\n",
+        )
+        .await
+        .unwrap();
+
+        let mut found = false;
+        for _ in 0..80 {
+            tokio::time::sleep(Duration::from_millis(25)).await;
+            let text = s.snapshot_grid().to_text();
+            if text.contains("CPR_ROUNDTRIP") {
+                found = true;
+                break;
+            }
+        }
+        assert!(
+            found,
+            "DSR reply never reached the child — reader pump is not writing take_response() back to the PTY"
+        );
     }
 
     #[tokio::test]

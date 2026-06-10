@@ -148,6 +148,12 @@ struct ConfigSetInput {
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct SimulateChordInput {
+    #[schemars(description = "Keybind chord in awase grammar — e.g. 'cmd+g', 'cmd+shift+r', 'ctrl+alt+f'. Resolved against the live GUI's keybinding table (mado defaults + the operator's keybinds.custom).")]
+    chord: String,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
 struct ClipboardGetInput {
     #[schemars(description = "32-char lowercase BLAKE3-128 hex hash (matches the token escriba's `defsnippet :hash \"…\"` uses).")]
     hash: String,
@@ -425,6 +431,86 @@ impl MadoMcp {
             "config_set",
             serde_json::json!({ "key": input.key, "value": input.value }),
         )
+    }
+
+    #[tool(description = "Simulate a keybind chord against the LIVE GUI mado. Parses `chord` (awase grammar, e.g. 'cmd+g'), forwards it via kanshou to the GUI process, where it is resolved against the keybinding table that window actually loaded and queued for dispatch on the GUI event loop — exactly the code path a physical keypress takes after key→action resolution. Unlike `send_keys` (which only reaches the PTY), this drives GUI-side actions (font zoom today; dir-picker/search/etc. as the tear-mode dispatch grows). Returns `{ok, queued, action, chord, live_gui_pid}` on success; `{ok: false, error: 'no-binding'}` for an unbound chord; `{ok: false, error: 'no-injection-sink'}` when the GUI isn't running the tear-attached event loop; `{ok: false, error: 'not-forwardable', resolved_action}` when no GUI mado is reachable (the chord is still resolved process-locally so bindings can be verified headlessly).")]
+    async fn simulate_chord(&self, Parameters(input): Parameters<SimulateChordInput>) -> String {
+        // Validate the chord grammar process-locally FIRST so a
+        // malformed chord is the same typed error whether or not a
+        // GUI is running.
+        if let Err(e) = awase::Hotkey::parse(&input.chord) {
+            return serde_json::json!({
+                "ok": false,
+                "error": "invalid-chord",
+                "chord": input.chord,
+                "detail": e.to_string(),
+            })
+            .to_string();
+        }
+        let chord = input.chord.clone();
+        let chord_for_fallback = input.chord.clone();
+        let outcome = kanshou::mcp::forward_status(
+            "mado",
+            &kanshou::Query::call(
+                ["simulate_chord"],
+                [serde_json::Value::String(input.chord)],
+            ),
+            move || {
+                // No live GUI reachable. Resolve chord→Action against
+                // the same defaults+config table the GUI builds
+                // (`keybind::manager_from_config`) so the caller still
+                // learns what WOULD have fired, then report the typed
+                // not-forwardable shape — an action queued with no
+                // event loop to drain it would be a silent lie.
+                let config = crate::config::load(&None).unwrap_or_default();
+                let manager = crate::keybind::manager_from_config(&config);
+                let resolved = awase::Hotkey::parse(&chord_for_fallback)
+                    .ok()
+                    .and_then(|hk| manager.lookup(&hk));
+                Ok(serde_json::json!({
+                    "queued": false,
+                    "error": "not-forwardable",
+                    "chord": chord_for_fallback,
+                    "resolved_action": resolved.map(|a| a.as_str()),
+                    "note": "no live GUI mado discoverable via kanshou; chord resolves but there is no event loop to inject into",
+                }))
+            },
+        )
+        .await;
+        match outcome {
+            // Live GUI answered — merge its typed result under a
+            // provenance header. `ok` mirrors `queued` so MCP
+            // clients branch on one field.
+            kanshou::mcp::ForwardOutcome::Live { pid, value } => {
+                let queued = value
+                    .get("queued")
+                    .and_then(serde_json::Value::as_bool)
+                    .unwrap_or(false);
+                let mut obj = serde_json::Map::with_capacity(8);
+                obj.insert("ok".into(), serde_json::Value::Bool(queued));
+                obj.insert("live_gui_pid".into(), serde_json::json!(pid));
+                if let serde_json::Value::Object(fields) = value {
+                    obj.extend(fields);
+                }
+                serde_json::Value::Object(obj).to_string()
+            }
+            kanshou::mcp::ForwardOutcome::Fallback { value } => {
+                let mut obj = serde_json::Map::with_capacity(8);
+                obj.insert("ok".into(), serde_json::Value::Bool(false));
+                obj.insert("live_gui_pid".into(), serde_json::Value::Null);
+                if let serde_json::Value::Object(fields) = value {
+                    obj.extend(fields);
+                }
+                serde_json::Value::Object(obj).to_string()
+            }
+            kanshou::mcp::ForwardOutcome::LiveError { pid, error } => serde_json::json!({
+                "ok": false,
+                "live_gui_pid": pid,
+                "chord": chord,
+                "kanshou_error": error.to_string(),
+            })
+            .to_string(),
+        }
     }
 
     // ── Terminal-specific tools ─────────────────────────────────────────────
@@ -1752,6 +1838,50 @@ mod tests {
         let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
         assert_eq!(parsed["ok"], false);
         assert_eq!(parsed["error"], "no-such-session");
+    }
+
+    #[tokio::test]
+    async fn simulate_chord_rejects_malformed_chord() {
+        // Grammar validation is process-local — same typed error with
+        // or without a live GUI, so this test is environment-stable.
+        let server = new_server();
+        let raw = server
+            .simulate_chord(Parameters(SimulateChordInput {
+                chord: "not_a_real_chord!!!".into(),
+            }))
+            .await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed["ok"], false);
+        assert_eq!(parsed["error"], "invalid-chord");
+        assert_eq!(parsed["chord"], "not_a_real_chord!!!");
+        assert!(parsed["detail"].is_string());
+    }
+
+    #[tokio::test]
+    async fn simulate_chord_unbound_chord_never_reports_ok() {
+        // This test runs on operator machines where a REAL GUI mado
+        // may be live — kanshou discovery would forward to it. Using
+        // a chord that parses but is never bound in mado's defaults
+        // keeps the call a no-op either way; we assert the typed
+        // not-ok shape without pinning which arm answered:
+        //   live GUI            → error: "no-binding"
+        //   live GUI, no sink   → error: "no-injection-sink"
+        //   no GUI              → error: "not-forwardable"
+        let server = new_server();
+        let raw = server
+            .simulate_chord(Parameters(SimulateChordInput {
+                chord: "ctrl+alt+shift+z".into(),
+            }))
+            .await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed["ok"], false, "unbound chord must not be ok: {parsed}");
+        let error = parsed["error"].as_str();
+        let kanshou_error = parsed["kanshou_error"].as_str();
+        assert!(
+            matches!(error, Some("no-binding" | "no-injection-sink" | "not-forwardable"))
+                || kanshou_error.is_some(),
+            "unexpected simulate_chord shape: {parsed}",
+        );
     }
 
     #[tokio::test]

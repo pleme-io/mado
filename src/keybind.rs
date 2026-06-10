@@ -457,6 +457,29 @@ pub fn parse_action(name: &str) -> Option<Action> {
     Action::from_str_kind(name)
 }
 
+/// Construct the keybind manager exactly as the GUI assembles it for
+/// the default (embedded-tear) window: mado's curated baseline
+/// (`with_mado_defaults`) plus the operator's `keybinds.custom`
+/// entries from config. Shared by the GUI-side kanshou
+/// `simulate_chord` resolver and the MCP-side no-GUI fallback so
+/// chord→Action resolution can't drift between the two surfaces.
+/// Unparseable triggers / unknown actions warn-and-skip, matching
+/// the tolerant load behaviour of the main.rs config path.
+#[must_use]
+pub fn manager_from_config(config: &crate::config::MadoConfig) -> KeybindManager {
+    let mut mgr = KeybindManager::with_mado_defaults();
+    for entry in &config.keybinds.custom {
+        if let Some(action) = parse_action(&entry.action) {
+            if let Err(e) = mgr.bind_str(&entry.trigger, action) {
+                tracing::warn!(trigger = %entry.trigger, error = %e, "failed to parse custom keybind trigger");
+            }
+        } else {
+            tracing::warn!(action = %entry.action, "unknown keybind action");
+        }
+    }
+    mgr
+}
+
 /// Helper to create a binding from an awase hotkey.
 fn hk(modifiers: awase::Modifiers, key: awase::Key) -> awase::Hotkey {
     awase::Hotkey::new(modifiers, key)

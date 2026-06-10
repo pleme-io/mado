@@ -147,7 +147,11 @@ pleme-io-wadachi = "0.1.4"
 # thin shim that adapts irodzuki::ColorScheme → mado's
 # terminal::Color (u8 RGB) for the renderer.
 irodzuki = { git = "https://github.com/pleme-io/irodzuki" }
-rmcp = { version = "0.15", features = ["server", "transport-io"] }
+# server + transport-io: the `mado mcp` stdio server. client +
+# transport-child-process: the `mado e2e` L2 smoke driver, which
+# spawns `mado mcp` as a child and drives it as a typed rmcp client
+# (docs/INTEGRATION-TESTING.md §L2).
+rmcp = { version = "0.15", features = ["server", "transport-io", "client", "transport-child-process"] }
 schemars = "0.8"
 
 # GPU rendering (via garasu, but needed for direct wgpu types in render code)
@@ -248,12 +252,10 @@ proptest = "1"
 # The binary itself only needs tear-types + tear-client.
 tear-core = { git = "https://github.com/pleme-io/tear" }
 tear-daemon = { git = "https://github.com/pleme-io/tear" }
-# Cross-process MCP integration test: spawn the mado bin as
-# `mado mcp` and drive it via the rmcp client + child-process
-# transport. The main rmcp dep only declares "server" +
-# "transport-io"; we add the client side here so test-only code
-# doesn't pull rmcp client glue into the production binary.
-rmcp = { version = "0.15", features = ["client", "transport-child-process"] }
+# Cross-process MCP integration test (tests/mcp_cross_process.rs)
+# uses the rmcp client + child-process transport. Those features now
+# ship in the main dependency (the `mado e2e` subcommand is a typed
+# rmcp client), so no dev-only rmcp entry is needed.
 
 [features]
 default = []

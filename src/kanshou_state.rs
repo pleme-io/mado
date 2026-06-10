@@ -36,6 +36,16 @@ pub struct MadoAppState {
     /// kanshou queries reflect the GUI's actual session graph
     /// rather than the empty MCP-side registry.
     pub tear_inproc: OnceLock<Arc<tear_core::InProcess>>,
+    /// Keybinding table the `simulate_chord` method leaf resolves
+    /// against — mado baseline + the operator's `keybinds.custom`
+    /// (see `keybind::manager_from_config`). Built from the same
+    /// config snapshot as `config` above so the resolution reflects
+    /// what this GUI process actually loaded.
+    pub keybinds: crate::keybind::KeybindManager,
+    /// Typed action-injection queue feeding the GUI event loop. The
+    /// `simulate_chord` leaf pushes; `run_against_pane_unified`
+    /// drains. See [`crate::action_injection::InjectedActions`].
+    pub injected: crate::action_injection::InjectedActions,
 }
 
 impl MadoAppState {
@@ -44,10 +54,13 @@ impl MadoAppState {
         config: Arc<crate::config::MadoConfig>,
         sessions: Arc<crate::session::SessionRegistry>,
     ) -> Self {
+        let keybinds = crate::keybind::manager_from_config(&config);
         Self {
             config,
             sessions,
             tear_inproc: OnceLock::new(),
+            keybinds,
+            injected: crate::action_injection::InjectedActions::default(),
         }
     }
 
@@ -121,12 +134,70 @@ impl Introspect for MadoAppState {
                     .unwrap_or_default(),
                 "version": env!("CARGO_PKG_VERSION"),
             })),
+            // Method-call leaf — args: [chord: String]. Resolves the
+            // chord against the keybinding table THIS GUI process
+            // loaded and queues the bound Action for the event loop
+            // to dispatch (see `action_injection::InjectedActions`).
+            // The MCP `simulate_chord` tool forwards here; doing the
+            // resolution GUI-side means the answer reflects the live
+            // window's bindings, never the MCP process's idea of them.
+            "simulate_chord" => {
+                if q.args.len() != 1 {
+                    return Err(QueryError::BadArity {
+                        expected: 1,
+                        actual: q.args.len(),
+                    });
+                }
+                let Some(chord) = q.args[0].as_str() else {
+                    return Err(QueryError::TypeMismatch {
+                        path: "simulate_chord".to_string(),
+                        expected: "string".to_string(),
+                        actual: format!("{:?}", q.args[0]),
+                    });
+                };
+                let hotkey = match awase::Hotkey::parse(chord) {
+                    Ok(h) => h,
+                    Err(e) => {
+                        return Err(QueryError::internal(format!(
+                            "invalid chord {chord:?}: {e}"
+                        )));
+                    }
+                };
+                // Honest-surface gate: refuse to queue when no event
+                // loop has registered as the drainer (e.g. local-PTY
+                // fallback mode) — `queued: true` with nothing
+                // draining would be a silent lie.
+                if !self.injected.sink_attached() {
+                    return Ok(serde_json::json!({
+                        "queued": false,
+                        "error": "no-injection-sink",
+                        "chord": chord,
+                        "note": "this mado is not running the tear-attached event loop; injected actions have no drainer",
+                    }));
+                }
+                match self.keybinds.lookup(&hotkey) {
+                    Some(action) => {
+                        self.injected.push(action);
+                        Ok(serde_json::json!({
+                            "queued": true,
+                            "action": action.as_str(),
+                            "chord": chord,
+                            "pending": self.injected.len(),
+                        }))
+                    }
+                    None => Ok(serde_json::json!({
+                        "queued": false,
+                        "error": "no-binding",
+                        "chord": chord,
+                    })),
+                }
+            }
             other => Err(QueryError::unknown_field(other.to_string())),
         }
     }
 
     fn schema(&self) -> &'static [&'static str] {
-        &["frame_perf", "sessions", "config", "process"]
+        &["frame_perf", "sessions", "config", "process", "simulate_chord"]
     }
 }
 
@@ -148,4 +219,86 @@ pub fn spawn_server(
         }
     });
     Ok(socket_path)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::keybind::Action;
+
+    fn state() -> MadoAppState {
+        MadoAppState::new(
+            Arc::new(crate::config::MadoConfig::default()),
+            Arc::new(crate::session::SessionRegistry::default()),
+        )
+    }
+
+    fn chord_query(chord: &str) -> Query {
+        Query::call(["simulate_chord"], [serde_json::json!(chord)])
+    }
+
+    #[test]
+    fn simulate_chord_queues_bound_action_when_sink_attached() {
+        let s = state();
+        s.injected.attach_sink();
+        // Cmd+0 is the atlas font-reset chord in mado's defaults.
+        let v = s.query(&chord_query("cmd+0")).expect("query ok");
+        assert_eq!(v["queued"], true);
+        assert_eq!(v["action"], "font_reset");
+        assert_eq!(s.injected.drain(), vec![Action::FontReset]);
+    }
+
+    #[test]
+    fn simulate_chord_without_sink_reports_no_injection_sink() {
+        // No event loop registered (e.g. local-PTY fallback) — must
+        // refuse to queue rather than report a queued-but-undrained
+        // action.
+        let s = state();
+        let v = s.query(&chord_query("cmd+0")).expect("query ok");
+        assert_eq!(v["queued"], false);
+        assert_eq!(v["error"], "no-injection-sink");
+        assert!(s.injected.is_empty());
+    }
+
+    #[test]
+    fn simulate_chord_unbound_chord_reports_no_binding() {
+        let s = state();
+        s.injected.attach_sink();
+        let v = s.query(&chord_query("ctrl+alt+shift+z")).expect("query ok");
+        assert_eq!(v["queued"], false);
+        assert_eq!(v["error"], "no-binding");
+        assert!(s.injected.is_empty());
+    }
+
+    #[test]
+    fn simulate_chord_malformed_chord_is_typed_error() {
+        let s = state();
+        s.injected.attach_sink();
+        let err = s
+            .query(&chord_query("not_a_real_chord!!!"))
+            .expect_err("malformed chord must not queue");
+        assert!(matches!(err, QueryError::Internal { .. }), "got {err:?}");
+        assert!(s.injected.is_empty());
+    }
+
+    #[test]
+    fn simulate_chord_bad_arity_is_typed_error() {
+        let s = state();
+        let err = s
+            .query(&Query::call(["simulate_chord"], []))
+            .expect_err("zero args must be BadArity");
+        assert!(
+            matches!(err, QueryError::BadArity { expected: 1, actual: 0 }),
+            "got {err:?}"
+        );
+        let err = s
+            .query(&Query::call(["simulate_chord"], [serde_json::json!(42)]))
+            .expect_err("non-string arg must be TypeMismatch");
+        assert!(matches!(err, QueryError::TypeMismatch { .. }), "got {err:?}");
+    }
+
+    #[test]
+    fn schema_advertises_simulate_chord() {
+        assert!(state().schema().contains(&"simulate_chord"));
+    }
 }

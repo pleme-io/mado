@@ -310,6 +310,13 @@ Embedded MCP server via stdio transport, discoverable at `~/.config/mado/mcp.jso
 | `get_terminal_state` | Get cursor position, dimensions, title, CWD |
 | `set_font` | Change font family/size at runtime |
 | `set_theme` | Switch color theme at runtime |
+| `simulate_chord` | Resolve a chord (e.g. `cmd+g`) against the LIVE GUI's keybindings via kanshou and inject the bound Action into the GUI event loop (typed `InjectedActions` queue; `send_keys` only reaches the PTY) |
+
+The `mado e2e` subcommand (docs/INTEGRATION-TESTING.md §L2) is the
+typed rmcp client for this surface: it spawns `mado mcp` as a stdio
+child and runs the smoke matrix (spawn_term → prompt visible → Enter
+→ fresh prompt → `echo E2E_MARKER` round-trip), printing a JSON row
+summary and exiting nonzero on any failure.
 
 ---
 
