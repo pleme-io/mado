@@ -18583,7 +18583,9 @@
                 "kind": "normal",
                 "features": [
                   "server",
-                  "transport-io"
+                  "transport-io",
+                  "client",
+                  "transport-child-process"
                 ],
                 "uses_default_features": true,
                 "optional": false,
@@ -22702,7 +22704,9 @@
                 "kind": "normal",
                 "features": [
                   "server",
-                  "transport-io"
+                  "transport-io",
+                  "client",
+                  "transport-child-process"
                 ],
                 "uses_default_features": true,
                 "optional": false,
@@ -26694,7 +26698,9 @@
                 "kind": "normal",
                 "features": [
                   "server",
-                  "transport-io"
+                  "transport-io",
+                  "client",
+                  "transport-child-process"
                 ],
                 "uses_default_features": true,
                 "optional": false,
@@ -30203,7 +30209,9 @@
                 "kind": "normal",
                 "features": [
                   "server",
-                  "transport-io"
+                  "transport-io",
+                  "client",
+                  "transport-child-process"
                 ],
                 "uses_default_features": true,
                 "optional": false,
@@ -33738,7 +33746,9 @@
                 "kind": "normal",
                 "features": [
                   "server",
-                  "transport-io"
+                  "transport-io",
+                  "client",
+                  "transport-child-process"
                 ],
                 "uses_default_features": true,
                 "optional": false,
@@ -37293,7 +37303,9 @@
                 "kind": "normal",
                 "features": [
                   "server",
-                  "transport-io"
+                  "transport-io",
+                  "client",
+                  "transport-child-process"
                 ],
                 "uses_default_features": true,
                 "optional": false,
