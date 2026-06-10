@@ -127,10 +127,21 @@ server**.
   proven against pre-fix frost); mado CPR-liveness ∀-prefix tests + anywhere-
   ESC APC fix + payload bound + ResponseWriter logging (mado 7748f47);
   nix frost pin bump + closure-pin check. CPR-retry deployed (frost 84b3b71).
-- **M1**: L1 embedded test (real TerminalSink + real frostmourne + probe
-  counters); E5-faithful frostmourne-rc persona row; extract `espelho` with
-  the `(defterm-conformance …)` triplet; **start the reedline fork**
-  (CPR-as-optimization — the destination that deletes the retry).
+- **M1 — LANDED 2026-06-10 (same day)**: ✅ L1 embedded test vs real
+  frostmourne + `ProbeCounters` (mado `src/l1_engate_loop.rs`); ✅ the
+  defnotify engine root-cause+fix (kqueue-deletion via fd cycling —
+  `redirect::touched_std_fds`, frost 1f66d1c); ✅ E5-faithful frostmourne-rc
+  persona row (frost L0, local-discovery); ✅ `espelho` triplet built (typed
+  border + personas incl. AnswerThenMute + interpreter + Lisp spec with the
+  host×guest matrix; **escriba added as a guest** — "together and apart");
+  ✅ reedline fork (CPR-as-optimization; frost Mute row upgraded to full
+  no-freeze round-trip); ✅ escriba-tui persona row (alt-screen entry,
+  mode-restore via termios witness, mute-survival, insert round-trip).
+  Pending publishes: espelho + reedline repos (operator/CLI flow), frost
+  fork-URL wiring. Honest residuals: fd0-targeting builtin redirects
+  (input-liveness, needs event-source reset); escriba emits no VT queries
+  yet (rows hold the invariant prospectively); upstream tear
+  `kill_session` lock-across-wait deadlock (found by L1 teardown).
 - **M2**: `mado e2e` + `simulate_chord` MCP tool + shikumi smoke matrix;
   fix kanshou GUI-forwarding; `.#e2e-mado` from the built closure on a
   self-hosted mac runner; rebuild-gate wiring.
