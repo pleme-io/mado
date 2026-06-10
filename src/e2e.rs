@@ -18,6 +18,13 @@
 //!    fresh prompt line appears (the E5 death point)
 //! 4. `echo_marker`  — `echo E2E_MARKER` round-trips: the marker
 //!    appears ≥2× (command echo + command output)
+//! 5. `single_recorder` — wadachi (轍) single-recorder rule: a `cd`
+//!    into a fresh nonce dir lands EXACTLY ONE visit in a hermetic
+//!    `WADACHI_DB` store (the shell records at its chdir chokepoint;
+//!    mado and every other reader never record). Shells without a
+//!    wadachi hook (`/bin/sh`) report a typed environment-skip
+//!    (`skipped: true`, non-fatal) — distinct from the fatal
+//!    dependency-skips above, which keep `pass: false`.
 //!
 //! Rows are typed Rust constants for now. mado's shikumi plumbing
 //! (`MadoConfig`) is *terminal* config, not operator-harness config —
@@ -43,14 +50,42 @@ const POLL_INTERVAL: Duration = Duration::from_millis(100);
 /// Sentinel for the echo round-trip row. Must appear ≥2× in the
 /// grid: once as the echoed command line, once as command output.
 const E2E_MARKER: &str = "E2E_MARKER";
+/// How long the `single_recorder` row waits for the shell's chdir
+/// hook to land a visit in the hermetic store before concluding the
+/// shell is a non-recorder (`/bin/sh` pays this in full every run —
+/// keep it well under [`ROW_TIMEOUT`]).
+const RECORD_WAIT: Duration = Duration::from_secs(2);
+/// Settle window between "first visit observed" and the final
+/// exactly-one recount — long enough for a second errant recorder
+/// (the bug class the row exists to catch) to betray itself.
+const RECORD_SETTLE: Duration = Duration::from_millis(400);
 
 /// One smoke-matrix row outcome. `detail` carries the human-readable
 /// evidence (elapsed ms, grid excerpts, skip reason).
+///
+/// `skipped` is the typed *environment*-skip: the row's contract
+/// cannot be exercised in this environment (e.g. a shell with no
+/// wadachi hook) — non-fatal for the summary verdict. Dependency
+/// skips (an earlier row failed) stay `pass: false, skipped: false`:
+/// the matrix is already red and they must not soften it.
 #[derive(Debug, Serialize)]
 pub struct RowResult {
     pub name: &'static str,
     pub pass: bool,
+    pub skipped: bool,
     pub detail: String,
+}
+
+impl RowResult {
+    fn passed(name: &'static str, detail: String) -> Self {
+        Self { name, pass: true, skipped: false, detail }
+    }
+    fn failed(name: &'static str, detail: String) -> Self {
+        Self { name, pass: false, skipped: false, detail }
+    }
+    fn env_skipped(name: &'static str, detail: String) -> Self {
+        Self { name, pass: false, skipped: true, detail }
+    }
 }
 
 /// Typed summary `mado e2e` prints to stdout as JSON. `pass` is the
@@ -87,21 +122,16 @@ pub async fn run(shell: &str) -> Result<E2eSummary> {
     let mut rows: Vec<RowResult> = Vec::new();
 
     // ── row 1: spawn_term ────────────────────────────────────────
-    let session_id = match spawn_term(&client, shell).await {
+    let session_id = match spawn_term(&client, shell, None).await {
         Ok(id) => {
-            rows.push(RowResult {
-                name: "spawn_term",
-                pass: true,
-                detail: format!("session_id={id} shell={shell}"),
-            });
+            rows.push(RowResult::passed(
+                "spawn_term",
+                format!("session_id={id} shell={shell}"),
+            ));
             Some(id)
         }
         Err(e) => {
-            rows.push(RowResult {
-                name: "spawn_term",
-                pass: false,
-                detail: format!("{e:#}"),
-            });
+            rows.push(RowResult::failed("spawn_term", format!("{e:#}")));
             None
         }
     };
@@ -114,21 +144,19 @@ pub async fn run(shell: &str) -> Result<E2eSummary> {
             match wait_for_output(&client, id, |text| non_blank_lines(text) >= 1).await {
                 Ok(text) => {
                     prompt_ok = true;
-                    rows.push(RowResult {
-                        name: "prompt_visible",
-                        pass: true,
-                        detail: format!(
+                    rows.push(RowResult::passed(
+                        "prompt_visible",
+                        format!(
                             "prompt rendered in {}ms (last line: {:?})",
                             started.elapsed().as_millis(),
                             last_non_blank_line(&text),
                         ),
-                    });
+                    ));
                 }
-                Err(e) => rows.push(RowResult {
-                    name: "prompt_visible",
-                    pass: false,
-                    detail: format!("no non-blank grid content within {ROW_TIMEOUT:?}: {e:#}"),
-                }),
+                Err(e) => rows.push(RowResult::failed(
+                    "prompt_visible",
+                    format!("no non-blank grid content within {ROW_TIMEOUT:?}: {e:#}"),
+                )),
             }
         }
         None => rows.push(skipped("prompt_visible", "spawn_term failed")),
@@ -145,21 +173,19 @@ pub async fn run(shell: &str) -> Result<E2eSummary> {
             match press_enter_and_wait(&client, id, before).await {
                 Ok(after) => {
                     enter_ok = true;
-                    rows.push(RowResult {
-                        name: "enter_fresh_prompt",
-                        pass: true,
-                        detail: format!(
+                    rows.push(RowResult::passed(
+                        "enter_fresh_prompt",
+                        format!(
                             "non-blank lines {before} → {after} after Enter (shell survived, fresh prompt)"
                         ),
-                    });
+                    ));
                 }
-                Err(e) => rows.push(RowResult {
-                    name: "enter_fresh_prompt",
-                    pass: false,
-                    detail: format!(
+                Err(e) => rows.push(RowResult::failed(
+                    "enter_fresh_prompt",
+                    format!(
                         "no fresh prompt within {ROW_TIMEOUT:?} after Enter (E5 class — shell dead or frozen): {e:#}"
                     ),
-                }),
+                )),
             }
         }
         Some(_) => rows.push(skipped("enter_fresh_prompt", "prompt_visible failed")),
@@ -182,32 +208,43 @@ pub async fn run(shell: &str) -> Result<E2eSummary> {
                     })
                     .await
                     {
-                        Ok(text) => rows.push(RowResult {
-                            name: "echo_marker",
-                            pass: true,
-                            detail: format!(
+                        Ok(text) => rows.push(RowResult::passed(
+                            "echo_marker",
+                            format!(
                                 "{} occurrences of {E2E_MARKER} (echo + output)",
                                 text.matches(E2E_MARKER).count()
                             ),
-                        }),
-                        Err(e) => rows.push(RowResult {
-                            name: "echo_marker",
-                            pass: false,
-                            detail: format!(
+                        )),
+                        Err(e) => rows.push(RowResult::failed(
+                            "echo_marker",
+                            format!(
                                 "marker did not round-trip ≥2× within {ROW_TIMEOUT:?}: {e:#}"
                             ),
-                        }),
+                        )),
                     }
                 }
-                Err(e) => rows.push(RowResult {
-                    name: "echo_marker",
-                    pass: false,
-                    detail: format!("send_keys failed: {e:#}"),
-                }),
+                Err(e) => rows.push(RowResult::failed(
+                    "echo_marker",
+                    format!("send_keys failed: {e:#}"),
+                )),
             }
         }
         Some(_) => rows.push(skipped("echo_marker", "enter_fresh_prompt failed")),
         None => rows.push(skipped("echo_marker", "spawn_term failed")),
+    }
+
+    // ── row 5: single_recorder (wadachi 轍) ──────────────────────
+    // Spawns its OWN session with a hermetic WADACHI_DB so the
+    // operator's real frecency store is never touched, then proves
+    // the single-recorder rule end-to-end: one `cd` → exactly one
+    // visit. Gated on enter_fresh_prompt — an uninteractive shell
+    // can't `cd`, so the row would only re-report the E5 failure.
+    if enter_ok {
+        rows.push(single_recorder_row(&client, shell).await);
+    } else if session_id.is_some() {
+        rows.push(skipped("single_recorder", "enter_fresh_prompt failed"));
+    } else {
+        rows.push(skipped("single_recorder", "spawn_term failed"));
     }
 
     // Best-effort cleanup — the child dies with the client transport
@@ -222,7 +259,7 @@ pub async fn run(shell: &str) -> Result<E2eSummary> {
     }
     client.cancel().await.ok();
 
-    let pass = rows.iter().all(|r| r.pass);
+    let pass = summary_pass(&rows);
     Ok(E2eSummary {
         shell: shell.to_string(),
         rows,
@@ -230,14 +267,173 @@ pub async fn run(shell: &str) -> Result<E2eSummary> {
     })
 }
 
+/// The matrix verdict: every row either passed or is a typed
+/// environment-skip. Dependency-skips (`pass: false, skipped: false`)
+/// still fail the matrix — the dependency row already did.
+fn summary_pass(rows: &[RowResult]) -> bool {
+    rows.iter().all(|r| r.pass || r.skipped)
+}
+
 /// Uniform "dependency failed" row — keeps the matrix complete (every
 /// row reported every run) without faking a pass.
 fn skipped(name: &'static str, dependency: &str) -> RowResult {
-    RowResult {
-        name,
-        pass: false,
-        detail: format!("skipped: {dependency}"),
+    RowResult::failed(name, format!("skipped: {dependency}"))
+}
+
+// ── row 5: wadachi single-recorder ──────────────────────────────────
+
+/// Drive the `single_recorder` row; infrastructure errors become a
+/// failed row (never a hard error — matrix discipline: every row
+/// reports). Cleanup (session close, nonce dir, hermetic store) is
+/// best-effort regardless of outcome.
+async fn single_recorder_row(client: &Client, shell: &str) -> RowResult {
+    const NAME: &str = "single_recorder";
+    // Nonce keeps runs hermetic against each other AND keeps the
+    // visit path unique so the count can't be polluted by the shell's
+    // startup cwd or a previous run.
+    let nonce = format!(
+        "{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or_default()
+    );
+    let dir = format!("/tmp/e2e-sr-{nonce}");
+    let db = std::path::PathBuf::from(format!("/tmp/e2e-sr-{nonce}.db"));
+
+    // The hermetic seam: WADACHI_DB lands in the SPAWNED shell's env
+    // (TermSpec.env → PTY child env), so a recording shell writes the
+    // throwaway store, never the operator's real one. The driver
+    // reads the same path directly via the wadachi store API — no
+    // env mutation in this process.
+    let env = serde_json::json!({ "WADACHI_DB": db.to_string_lossy() });
+    let row = match spawn_term(client, shell, Some(env)).await {
+        Ok(id) => {
+            let row = drive_single_recorder(client, &id, &dir, &db)
+                .await
+                .unwrap_or_else(|e| RowResult::failed(NAME, format!("{e:#}")));
+            let _ = call_tool(
+                client,
+                "close_session",
+                serde_json::json!({ "session_id": id }),
+            )
+            .await;
+            row
+        }
+        Err(e) => RowResult::failed(NAME, format!("hermetic spawn_term failed: {e:#}")),
+    };
+    // Best-effort cleanup of the nonce dir + the store (and SQLite
+    // WAL sidecars).
+    let _ = std::fs::remove_dir_all(&dir);
+    for suffix in ["", "-wal", "-shm"] {
+        let _ = std::fs::remove_file(format!("{}{suffix}", db.display()));
     }
+    row
+}
+
+/// The row body: mkdir + cd into the nonce dir, prove the commands
+/// were consumed via an echo round-trip, then count visits in the
+/// hermetic store. Exactly one → pass; zero → typed environment-skip
+/// (no wadachi chdir hook in this shell); two or more → the
+/// single-recorder rule is violated (a reader recorded) → fail.
+async fn drive_single_recorder(
+    client: &Client,
+    session_id: &str,
+    dir: &str,
+    db: &std::path::Path,
+) -> Result<RowResult> {
+    const NAME: &str = "single_recorder";
+    // Fresh session — wait for its prompt before typing.
+    let text = wait_for_output(client, session_id, |t| non_blank_lines(t) >= 1)
+        .await
+        .context("single_recorder: prompt never appeared in hermetic session")?;
+    // mkdir first so the cd cannot fail, then cd, then a marker echo.
+    // Sends are SEQUENCED — each command waits for the next prompt
+    // line before the following send. Reedline-family shells
+    // (frostmourne) probe the terminal between prompts (CPR) and can
+    // drop type-ahead, so back-to-back sends lose commands (observed
+    // live 2026-06-10: the third of three unsequenced sends vanished).
+    let mut lines = non_blank_lines(&text);
+    for cmd in [format!("mkdir -p {dir}"), format!("cd {dir}")] {
+        send_keys(client, session_id, &format!("{cmd}\r")).await?;
+        let text = wait_for_output(client, session_id, |t| non_blank_lines(t) > lines)
+            .await
+            .with_context(|| format!("single_recorder: no fresh prompt after {cmd:?}"))?;
+        lines = non_blank_lines(&text);
+    }
+    // ≥2 marker occurrences (command echo + output) proves the cd
+    // already executed — a recording shell records at its chdir
+    // chokepoint, i.e. before the marker output ever renders.
+    let marker = format!("SR_DONE_{}", std::process::id());
+    send_keys(client, session_id, &format!("echo {marker}\r")).await?;
+    wait_for_output(client, session_id, |t| t.matches(marker.as_str()).count() >= 2)
+        .await
+        .context("single_recorder: cd-confirm marker did not round-trip")?;
+
+    // Poll the hermetic store for the visit. A non-recording shell
+    // (/bin/sh — no wadachi hook) never writes one: that's the typed
+    // environment-skip, not a failure.
+    let deadline = Instant::now() + RECORD_WAIT;
+    let mut count = visits_for(db, dir)?;
+    while count == 0 && Instant::now() < deadline {
+        tokio::time::sleep(POLL_INTERVAL).await;
+        count = visits_for(db, dir)?;
+    }
+    if count == 0 {
+        return Ok(RowResult::env_skipped(
+            NAME,
+            format!(
+                "skipped: no visit recorded in the hermetic store within \
+                 {RECORD_WAIT:?} — shell has no wadachi chdir hook (e.g. /bin/sh)"
+            ),
+        ));
+    }
+    // Settle, then recount — a second errant recorder (mado, a
+    // reader, a doubled shell hook) lands here as count > 1.
+    tokio::time::sleep(RECORD_SETTLE).await;
+    let count = visits_for(db, dir)?;
+    if count == 1 {
+        Ok(RowResult::passed(
+            NAME,
+            format!("exactly 1 visit recorded for {dir} (shell is the sole recorder)"),
+        ))
+    } else {
+        Ok(RowResult::failed(
+            NAME,
+            format!(
+                "{count} visits recorded for {dir} — single-recorder rule \
+                 violated (expected exactly 1; readers must never record)"
+            ),
+        ))
+    }
+}
+
+/// Count visits in the hermetic store whose final path component is
+/// the nonce dir. Matching on the basename keeps the count robust to
+/// path canonicalization (macOS records `/private/tmp/…` for a
+/// logical `/tmp/…` cwd). An absent store file means zero visits —
+/// the driver never creates the store (opening would).
+fn visits_for(db: &std::path::Path, dir: &str) -> Result<usize> {
+    use pleme_io_wadachi::{DirFrecencyDb, DirStore};
+    if !db.exists() {
+        return Ok(0);
+    }
+    let basename = std::path::Path::new(dir)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .context("nonce dir has no basename")?
+        .to_string();
+    let store = DirFrecencyDb::open(db).context("open hermetic wadachi store")?;
+    Ok(store
+        .entries()
+        .context("read hermetic wadachi entries")?
+        .iter()
+        .filter(|e| {
+            e.path.file_name().and_then(|n| n.to_str()) == Some(basename.as_str())
+        })
+        .map(|e| e.visits.len())
+        .sum())
 }
 
 // ── typed tool-call plumbing ────────────────────────────────────────
@@ -274,9 +470,20 @@ async fn call_tool(
     serde_json::from_str(&text).with_context(|| format!("{name} returned non-JSON: {text}"))
 }
 
-/// `spawn_term` with the matrix shell; returns the session id.
-async fn spawn_term(client: &Client, shell: &str) -> Result<String> {
-    let v = call_tool(client, "spawn_term", serde_json::json!({ "shell": shell })).await?;
+/// `spawn_term` with the matrix shell; returns the session id. `env`
+/// (a JSON object) merges onto the spawned shell's environment via
+/// `TermSpec.env` — the single_recorder row uses it to point the
+/// shell at a hermetic `WADACHI_DB`.
+async fn spawn_term(
+    client: &Client,
+    shell: &str,
+    env: Option<serde_json::Value>,
+) -> Result<String> {
+    let mut args = serde_json::json!({ "shell": shell });
+    if let Some(env) = env {
+        args["env"] = env;
+    }
+    let v = call_tool(client, "spawn_term", args).await?;
     if v["ok"] != true {
         anyhow::bail!("spawn_term not ok: {v}");
     }
@@ -379,22 +586,38 @@ mod tests {
 
     #[test]
     fn skipped_rows_fail_with_reason() {
+        // Dependency-skips are FAILURES (skipped: false) — the matrix
+        // is red from the dependency row and must stay red.
         let row = skipped("echo_marker", "spawn_term failed");
         assert!(!row.pass);
+        assert!(!row.skipped);
         assert_eq!(row.detail, "skipped: spawn_term failed");
     }
 
     #[test]
+    fn environment_skips_are_non_fatal_but_dependency_skips_fail() {
+        // Typed environment-skip (no wadachi hook) keeps the summary
+        // green; a dependency-skip in the same matrix kills it.
+        let green = [
+            RowResult::passed("spawn_term", "ok".into()),
+            RowResult::env_skipped("single_recorder", "skipped: no hook".into()),
+        ];
+        assert!(summary_pass(&green));
+        let red = [
+            RowResult::failed("spawn_term", "boom".into()),
+            skipped("single_recorder", "spawn_term failed"),
+        ];
+        assert!(!summary_pass(&red));
+    }
+
+    #[test]
     fn summary_serializes_to_the_documented_shape() {
-        // The wire contract `{shell, rows: [{name, pass, detail}], pass}`
-        // is what the nix `.#e2e-mado` app + CI parse — pin it.
+        // The wire contract `{shell, rows: [{name, pass, skipped,
+        // detail}], pass}` is what the nix `.#e2e-mado` app + CI
+        // parse — pin it.
         let summary = E2eSummary {
             shell: "/bin/sh".into(),
-            rows: vec![RowResult {
-                name: "spawn_term",
-                pass: true,
-                detail: "session_id=abc".into(),
-            }],
+            rows: vec![RowResult::passed("spawn_term", "session_id=abc".into())],
             pass: true,
         };
         let v = serde_json::to_value(&summary).unwrap();
@@ -402,6 +625,38 @@ mod tests {
         assert_eq!(v["pass"], true);
         assert_eq!(v["rows"][0]["name"], "spawn_term");
         assert_eq!(v["rows"][0]["pass"], true);
+        assert_eq!(v["rows"][0]["skipped"], false);
         assert!(v["rows"][0]["detail"].is_string());
+    }
+
+    #[test]
+    fn visits_for_counts_only_the_nonce_dir() {
+        // Real schema, throwaway store: two visits to the nonce dir
+        // under DIFFERENT canonicalizations (/tmp vs /private/tmp)
+        // both count; an unrelated dir doesn't.
+        use pleme_io_wadachi::{DirFrecencyDb, DirStore};
+        let dir = std::env::temp_dir().join(format!(
+            "mado-e2e-visits-for-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or_default()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let db = dir.join("wadachi.db");
+        {
+            let store = DirFrecencyDb::open(&db).unwrap();
+            store.record("/tmp/e2e-sr-nonce").unwrap();
+            store.record("/private/tmp/e2e-sr-nonce").unwrap();
+            store.record("/tmp/unrelated").unwrap();
+        }
+        assert_eq!(visits_for(&db, "/tmp/e2e-sr-nonce").unwrap(), 2);
+        assert_eq!(visits_for(&db, "/tmp/never-visited").unwrap(), 0);
+        // Absent store = zero visits, and the read must NOT create it.
+        let missing = dir.join("missing.db");
+        assert_eq!(visits_for(&missing, "/tmp/e2e-sr-nonce").unwrap(), 0);
+        assert!(!missing.exists());
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

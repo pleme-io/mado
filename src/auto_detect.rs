@@ -82,6 +82,9 @@ kanchi::defaxes! {
     padding: u32 = 0 => kanchi::none;
 
     /// Scrollback — scaled to physical RAM (sysctl / `/proc/meminfo`).
+    /// Feeds the *discovered* tier only: the prescribed default keeps the
+    /// unlimited "never lose anything" contract (`config::default_scrollback`
+    /// = usize::MAX), which a RAM cap could only downgrade.
     scrollback_lines: u32 = 10_000 => || probe::total_ram_gib().map(scrollback_for_ram);
 }
 

@@ -1422,8 +1422,13 @@ impl Default for MadoConfig {
         c.window.width = win_w;
         c.window.height = win_h;
         c.font_size = crate::auto_detect::detect_font_size_or_fallback();
-        c.behavior.scrollback_lines =
-            crate::auto_detect::detect_scrollback_lines_or_fallback() as usize;
+        // Scrollback is deliberately NOT overlaid: detection can only
+        // *downgrade* the prescribed "never lose anything" contract
+        // (`default_scrollback()` = usize::MAX, commit 752cb01) to a
+        // RAM-tiered cap. Under the grows-on-demand VecDeque model a
+        // cap saves no memory — it only truncates history — so the
+        // RAM tiers live in the *discovered* tier only (the "what
+        // would detection alone give" question).
         c
     }
 }
