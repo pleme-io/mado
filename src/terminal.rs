@@ -1133,10 +1133,24 @@ impl Terminal {
                         self.handle_apc(&buf);
                     }
                     i = 1;
-                } else if let Some(ref mut buf) = self.apc_buf {
-                    // The ESC was literal APC payload; reprocess byte 0
-                    // as ordinary APC content in the loop below.
-                    buf.push(0x1b);
+                } else {
+                    // Anywhere-ESC rule (DEC/vte state machine): ESC followed
+                    // by anything but `\` ABORTS the string sequence — it is
+                    // never literal payload. Treating it as payload turned an
+                    // unterminated APC into a permanent black hole that
+                    // swallowed every later byte (including `ESC[6n` cursor
+                    // queries — the shell-killing class; see the CPR-liveness
+                    // test). Kitty APC payloads are base64/key-value and
+                    // never contain raw ESC, so aborting loses nothing real.
+                    self.apc_buf = None;
+                    // The carried ESC belongs to vte (or starts a new APC if
+                    // byte 0 is `_` — the ground path below handles both).
+                    if bytes[0] == b'_' {
+                        self.apc_buf = Some(Vec::new());
+                        i = 1;
+                    } else {
+                        parser.advance(self, &[0x1b]);
+                    }
                 }
             }
             PendingEsc::Ground => {
@@ -1173,15 +1187,26 @@ impl Terminal {
                             i += 2;
                             continue;
                         }
-                        // ESC followed by a non-`\` byte: literal payload.
-                        buf.push(bytes[i]);
-                        i += 1;
+                        // Anywhere-ESC rule: ESC + non-`\` ABORTS the APC —
+                        // it is never literal payload (see the carried-ESC
+                        // arm above for the full rationale). Reprocess the
+                        // ESC in ground state without consuming it.
+                        self.apc_buf = None;
                         continue;
                     }
                     // Trailing ESC inside the APC — carry it; the next
                     // feed decides whether it completes the `ESC \` ST.
                     self.pending_esc = PendingEsc::InApc;
                     i += 1;
+                    continue;
+                }
+                // Bound the payload: an APC whose ST never arrives must not
+                // accumulate without limit (kitty image payloads are large
+                // but chunked; 8 MiB is far beyond any legitimate chunk).
+                const APC_MAX: usize = 8 * 1024 * 1024;
+                if buf.len() >= APC_MAX {
+                    tracing::warn!(len = buf.len(), "APC payload exceeded bound — aborting sequence");
+                    self.apc_buf = None;
                     continue;
                 }
                 buf.push(bytes[i]);
@@ -3543,6 +3568,66 @@ fn parse_palette_index(payload: &[u8]) -> Option<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// CPR-liveness invariant (class-killer, 2026-06-10): for EVERY prefix of
+    /// a real captured frostmourne stream (one full prompt → Enter → re-prompt
+    /// cycle), the terminal must still answer `ESC[6n`. A VT pre-parser state
+    /// that swallows input (e.g. an unterminated APC accumulating forever)
+    /// fails this for every prefix entering the bad state — and a shell whose
+    /// CPR goes unanswered dies (reedline fatal timeout). The prefix itself
+    /// may legitimately enqueue responses (the corpus contains the shell's own
+    /// queries), so those are drained before the probe.
+    #[test]
+    fn cpr_liveness_for_every_prefix_of_a_real_shell_stream() {
+        let corpus: &[u8] =
+            include_bytes!("../tests/fixtures/frostmourne-enter-cycle.bin");
+        let mut failures = Vec::new();
+        for cut in 0..=corpus.len() {
+            let mut term = Terminal::new(80, 24);
+            term.feed(&corpus[..cut]);
+            let _ = term.take_response();
+            term.feed(b"\x1b[6n");
+            if term.take_response().is_none() {
+                failures.push(cut);
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "CPR unanswered after feeding corpus prefix(es) of length {:?} — \
+             a parser state is swallowing input",
+            failures
+        );
+    }
+
+    /// Same invariant under adversarial APC prefixes — unterminated kitty
+    /// graphics openers, carried trailing ESCs, anywhere-ESC aborts. Before
+    /// the anywhere-ESC fix, `ESC _` with no ST swallowed every later byte.
+    #[test]
+    fn cpr_liveness_survives_adversarial_apc_prefixes() {
+        let cases: &[&[u8]] = &[
+            b"\x1b_",                  // bare APC introducer, never terminated
+            b"\x1b_G",                 // kitty graphics opener, unterminated
+            b"\x1b_Gf=100,a=T;QUJD",   // kitty payload, no ST
+            b"\x1b_G;x\x1b",           // unterminated + trailing ESC carried
+            b"\x1b",                   // lone trailing ESC in ground
+            b"\x1b_x\x1b[31m",         // APC aborted mid-payload by a CSI
+        ];
+        let mut failures = Vec::new();
+        for (idx, prefix) in cases.iter().enumerate() {
+            let mut term = Terminal::new(80, 24);
+            term.feed(prefix);
+            let _ = term.take_response();
+            term.feed(b"\x1b[6n");
+            if term.take_response().is_none() {
+                failures.push(idx);
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "CPR unanswered after adversarial APC prefix case(s) {:?}",
+            failures
+        );
+    }
 
     #[test]
     fn new_terminal_has_empty_grid() {

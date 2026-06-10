@@ -300,7 +300,16 @@ where
     let control_for_response_writer = Arc::clone(&control);
     let response_writer: crate::engate_consumer::ResponseWriter = Arc::new(
         move |bytes: &[u8]| {
-            let _ = control_for_response_writer.send_keys(pane_id, bytes);
+            // A dropped VT-query answer kills reedline-based shells (fatal
+            // CPR timeout) — never swallow this error silently.
+            if let Err(e) = control_for_response_writer.send_keys(pane_id, bytes) {
+                tracing::warn!(
+                    pane = ?pane_id,
+                    len = bytes.len(),
+                    error = %e,
+                    "VT query response write-back FAILED — shell may stall on an unanswered DSR/DA/OSC query"
+                );
+            }
         },
     );
     let consumer = crate::engate_consumer::TerminalSink::new(
