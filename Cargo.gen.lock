@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "264f7077bf6296a4c56d009343f14b4c9fbee18bfe16c7b3d77a9bff62d0403c",
+  "cargo_lock_sha256": "5b4064e7cb619bf9b55cc536b1b6cbf75b36b3867eb59d56efab4754980c1bd1",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -5070,11 +5070,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "kanshou-0.1.0-cb1fb0f30dd3a22e9773ad0e9fceae9d26daae16": {
+      "kanshou-0.1.0-2bfa13230f9f2059739a440a932a2c141c01b1a6": {
         "runtime_dependencies": [
           {
             "name": "kanshou_derive",
-            "package_key": "kanshou-derive-0.1.0-cb1fb0f30dd3a22e9773ad0e9fceae9d26daae16",
+            "package_key": "kanshou-derive-0.1.0-2bfa13230f9f2059739a440a932a2c141c01b1a6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5148,7 +5148,7 @@
           "derive"
         ]
       },
-      "kanshou-derive-0.1.0-cb1fb0f30dd3a22e9773ad0e9fceae9d26daae16": {
+      "kanshou-derive-0.1.0-2bfa13230f9f2059739a440a932a2c141c01b1a6": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -13994,7 +13994,7 @@
           },
           {
             "name": "kanshou",
-            "package_key": "kanshou-0.1.0-cb1fb0f30dd3a22e9773ad0e9fceae9d26daae16",
+            "package_key": "kanshou-0.1.0-2bfa13230f9f2059739a440a932a2c141c01b1a6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18429,7 +18429,7 @@
               },
               {
                 "name": "kanshou",
-                "package_key": "kanshou-0.1.0-cb1fb0f30dd3a22e9773ad0e9fceae9d26daae16",
+                "package_key": "kanshou-0.1.0-2bfa13230f9f2059739a440a932a2c141c01b1a6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -22548,7 +22548,7 @@
               },
               {
                 "name": "kanshou",
-                "package_key": "kanshou-0.1.0-cb1fb0f30dd3a22e9773ad0e9fceae9d26daae16",
+                "package_key": "kanshou-0.1.0-2bfa13230f9f2059739a440a932a2c141c01b1a6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26570,7 +26570,7 @@
               },
               {
                 "name": "kanshou",
-                "package_key": "kanshou-0.1.0-cb1fb0f30dd3a22e9773ad0e9fceae9d26daae16",
+                "package_key": "kanshou-0.1.0-2bfa13230f9f2059739a440a932a2c141c01b1a6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30079,7 +30079,7 @@
               },
               {
                 "name": "kanshou",
-                "package_key": "kanshou-0.1.0-cb1fb0f30dd3a22e9773ad0e9fceae9d26daae16",
+                "package_key": "kanshou-0.1.0-2bfa13230f9f2059739a440a932a2c141c01b1a6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33614,7 +33614,7 @@
               },
               {
                 "name": "kanshou",
-                "package_key": "kanshou-0.1.0-cb1fb0f30dd3a22e9773ad0e9fceae9d26daae16",
+                "package_key": "kanshou-0.1.0-2bfa13230f9f2059739a440a932a2c141c01b1a6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37169,7 +37169,7 @@
               },
               {
                 "name": "kanshou",
-                "package_key": "kanshou-0.1.0-cb1fb0f30dd3a22e9773ad0e9fceae9d26daae16",
+                "package_key": "kanshou-0.1.0-2bfa13230f9f2059739a440a932a2c141c01b1a6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40457,10 +40457,10 @@
     "kanchi-0.1.0-84df3425cca15e602515ccdcf27f83c91f7b6454": {
       "edition": "2024"
     },
-    "kanshou-0.1.0-cb1fb0f30dd3a22e9773ad0e9fceae9d26daae16": {
+    "kanshou-0.1.0-2bfa13230f9f2059739a440a932a2c141c01b1a6": {
       "edition": "2024"
     },
-    "kanshou-derive-0.1.0-cb1fb0f30dd3a22e9773ad0e9fceae9d26daae16": {
+    "kanshou-derive-0.1.0-2bfa13230f9f2059739a440a932a2c141c01b1a6": {
       "edition": "2024",
       "proc_macro": true
     },
@@ -41765,8 +41765,8 @@
     "ishou-tokens-0.1.0-90dbe071d6d961a718b06972e0ec55a6f231ab2b": "sha256-KPEppMPcf7+tSgckXJdeQfA08oYR5iLVqFSecB8eYDo=",
     "kaname-0.1.1-fd494ac8e42d54f439d73fa19d9298ba792197f5": "sha256-lALdpjmrWAEpG5GP0g5kWuvBCKEluOpSfZ/vFggPyRw=",
     "kanchi-0.1.0-84df3425cca15e602515ccdcf27f83c91f7b6454": "sha256-psrgOySMybR6v90F3KQ5MSW3xvprcATulTfb55UlpwI=",
-    "kanshou-0.1.0-cb1fb0f30dd3a22e9773ad0e9fceae9d26daae16": "sha256-mXcqgumIEtvdzc5indo11F/M7Qib/Ep3qsDal8q0T24=",
-    "kanshou-derive-0.1.0-cb1fb0f30dd3a22e9773ad0e9fceae9d26daae16": "sha256-mXcqgumIEtvdzc5indo11F/M7Qib/Ep3qsDal8q0T24=",
+    "kanshou-0.1.0-2bfa13230f9f2059739a440a932a2c141c01b1a6": "sha256-XY25/uG+UzMyVw/+Iqm0RiZf1QICc4Ss09EtYwxhwuM=",
+    "kanshou-derive-0.1.0-2bfa13230f9f2059739a440a932a2c141c01b1a6": "sha256-XY25/uG+UzMyVw/+Iqm0RiZf1QICc4Ss09EtYwxhwuM=",
     "madori-0.1.1-53302e5d607e847f388ba161fb17d3b8d2f15474": "sha256-zG9IwaJuYe+/XcUG1+pMLBXEOvedad5Y0GcLdEz7dB8=",
     "pleme-invalidating-setter-derive-0.1.0-25e7f5154e62584a5a5b505bf1429ad04776a61d": "sha256-Zdlsbju29A8VmLjAC1YBbqV+x6B/PEITKblo1lpgpKM=",
     "pleme-kindbyte-derive-0.1.0-9af2dd18199de9437a0d32e33009c240d2aa8f2f": "sha256-vdUWIF6TMXJ5WBsFTwfbpg6OvED8BWF73Mck/oQ+3u8=",
