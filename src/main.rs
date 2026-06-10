@@ -23,6 +23,12 @@ mod glyph_class;
 mod gui_tear_attach;
 mod kanshou_state;
 mod keybind;
+// L1 integration-test brick (docs/INTEGRATION-TESTING.md §L1): real
+// shell + real TerminalSink + probe counters, headless. Unit-test
+// module (not tests/) because mado is binary-only — only unit tests
+// can reach crate::engate_consumer::TerminalSink.
+#[cfg(test)]
+mod l1_engate_loop;
 mod single_pane;
 mod tear_discovery;
 mod caps;

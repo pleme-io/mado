@@ -12,6 +12,11 @@
 //! engate construction time. The remaining verification (the
 //! visual paint loop) needs a real wgpu surface and is necessarily
 //! manual.
+//!
+//! L1 expansion (docs/INTEGRATION-TESTING.md §L1) — real shell +
+//! REAL `TerminalSink` + `ResponseWriter` + typed probe counters —
+//! lives in `src/l1_engate_loop.rs` as a unit-test module: mado is
+//! a binary-only crate, so `tests/` can't import the real consumer.
 
 use std::sync::Arc;
 use std::sync::Mutex;

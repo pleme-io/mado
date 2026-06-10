@@ -26,6 +26,7 @@
 //! (daemon mode) is a one-line config branch in `gui_tear_attach`;
 //! the Consumer impl below is identical for both.
 
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
 use engate_attach::Consumer;
@@ -46,6 +47,43 @@ use crate::terminal::Terminal;
 /// duration" (real incident, frostmourne under mado, 2026-05-21).
 pub type ResponseWriter = Arc<dyn Fn(&[u8]) + Send + Sync>;
 
+/// Typed probe counters for the VT query↔answer loop — the
+/// 2026-06-10 freeze-on-Enter incident probes made permanent
+/// (docs/INTEGRATION-TESTING.md §L1). Shared via `Arc` so a test
+/// (or future kanshou leaf) can observe the live attach loop from
+/// outside the consumer thread.
+///
+/// Invariant the pair encodes: after the loop quiesces,
+/// `responses_written == queries_seen` — every DSR/DA/OSC query the
+/// VT engine answered actually made it back through the
+/// `ResponseWriter`. A persistent gap means answers are being
+/// generated and then dropped (the exact failure shape that killed
+/// reedline-based shells).
+#[derive(Debug, Default)]
+pub struct ProbeCounters {
+    /// Queries the VT engine answered: incremented once per feed
+    /// whose `take_response()` yielded bytes. (One feed carrying two
+    /// queries drains as one response batch — counted once.)
+    queries_seen: AtomicU64,
+    /// Responses pushed back through the `ResponseWriter` callback:
+    /// incremented after the writer returns.
+    responses_written: AtomicU64,
+}
+
+impl ProbeCounters {
+    /// Queries answered by the VT engine so far.
+    #[must_use]
+    pub fn queries_seen(&self) -> u64 {
+        self.queries_seen.load(Ordering::Relaxed)
+    }
+
+    /// Responses written back through the `ResponseWriter` so far.
+    #[must_use]
+    pub fn responses_written(&self) -> u64 {
+        self.responses_written.load(Ordering::Relaxed)
+    }
+}
+
 /// engate Consumer wrapping an Arc<RwLock<Terminal>>. Clone-cheap;
 /// the inner Arc clone is the only cost. Designed for a single
 /// engate attach per Terminal — the engate typestate enforces this
@@ -57,15 +95,36 @@ pub type ResponseWriter = Arc<dyn Fn(&[u8]) + Send + Sync>;
 pub struct TerminalSink {
     inner: Arc<RwLock<Terminal>>,
     writer: ResponseWriter,
+    probes: Arc<ProbeCounters>,
 }
 
 impl TerminalSink {
     /// Construct a sink with an explicit VT-response writeback path.
     /// Pass a closure that forwards the response bytes to the
     /// pane's PTY (typically wraps `control.send_keys(pane_id, ..)`).
+    /// Probe counters default to a fresh (private) set; use
+    /// `Self::new_with_probes` when an observer needs them.
     #[must_use]
     pub fn new(terminal: Arc<RwLock<Terminal>>, writer: ResponseWriter) -> Self {
-        Self { inner: terminal, writer }
+        Self::new_with_probes(terminal, writer, Arc::new(ProbeCounters::default()))
+    }
+
+    /// `Self::new` with caller-supplied probe counters. The caller
+    /// keeps a clone of the `Arc` and observes the query↔answer loop
+    /// while the sink runs on the attach thread (L1 harness shape).
+    #[must_use]
+    pub fn new_with_probes(
+        terminal: Arc<RwLock<Terminal>>,
+        writer: ResponseWriter,
+        probes: Arc<ProbeCounters>,
+    ) -> Self {
+        Self { inner: terminal, writer, probes }
+    }
+
+    /// The sink's probe counters (clone of the shared handle).
+    #[must_use]
+    pub fn probes(&self) -> Arc<ProbeCounters> {
+        Arc::clone(&self.probes)
     }
 
     /// Backwards-compat constructor that drops VT responses on the
@@ -86,7 +145,14 @@ impl TerminalSink {
         // feed populating response_bytes between drop and re-grab.
         if let Some(resp) = term.take_response() {
             drop(term);
+            // Probe ordering matters: queries_seen first, writer,
+            // then responses_written — an observer polling the pair
+            // sees `responses_written <= queries_seen` converge to
+            // equality once the loop quiesces. Relaxed is enough:
+            // the counters are diagnostics, not synchronization.
+            self.probes.queries_seen.fetch_add(1, Ordering::Relaxed);
             (self.writer)(&resp);
+            self.probes.responses_written.fetch_add(1, Ordering::Relaxed);
         }
     }
 }
@@ -172,5 +238,52 @@ mod tests {
         let mut sink = TerminalSink::new_without_writeback(Arc::clone(&term));
         // No panic, no observable side effect.
         sink.consume(b"\x1b[6n".to_vec());
+    }
+
+    #[test]
+    fn probe_counters_track_answered_queries() {
+        // The incident probes made permanent: every answered query
+        // bumps queries_seen, every completed writeback bumps
+        // responses_written, and after the loop quiesces the pair
+        // is equal.
+        let term = Arc::new(RwLock::new(Terminal::with_scrollback(80, 24, 100)));
+        let (writer, collected) = collecting_writer();
+        let probes = Arc::new(ProbeCounters::default());
+        let mut sink =
+            TerminalSink::new_with_probes(Arc::clone(&term), writer, Arc::clone(&probes));
+        assert_eq!(sink.probes().queries_seen(), 0);
+        assert_eq!(sink.probes().responses_written(), 0);
+
+        sink.consume(b"\x1b[6n".to_vec()); // DSR-6 → CPR answer
+        sink.consume(b"\x1b[5n".to_vec()); // DSR-5 → status report
+        assert_eq!(probes.queries_seen(), 2);
+        assert_eq!(probes.responses_written(), 2);
+        assert_eq!(collected.lock().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn probe_counters_ignore_plain_text() {
+        let term = Arc::new(RwLock::new(Terminal::with_scrollback(80, 24, 100)));
+        let (writer, _collected) = collecting_writer();
+        let probes = Arc::new(ProbeCounters::default());
+        let mut sink =
+            TerminalSink::new_with_probes(Arc::clone(&term), writer, Arc::clone(&probes));
+        sink.consume(b"hello world".to_vec());
+        assert_eq!(probes.queries_seen(), 0);
+        assert_eq!(probes.responses_written(), 0);
+    }
+
+    #[test]
+    fn default_constructor_keeps_private_probes_observable() {
+        // `new` allocates a fresh counter set; `probes()` exposes it
+        // so even call sites that didn't pre-share counters can be
+        // observed after construction.
+        let term = Arc::new(RwLock::new(Terminal::with_scrollback(80, 24, 100)));
+        let (writer, _collected) = collecting_writer();
+        let mut sink = TerminalSink::new(Arc::clone(&term), writer);
+        let probes = sink.probes();
+        sink.consume(b"\x1b[6n".to_vec());
+        assert_eq!(probes.queries_seen(), 1);
+        assert_eq!(probes.responses_written(), 1);
     }
 }
