@@ -135,6 +135,12 @@ kanchi = { git = "https://github.com/pleme-io/kanchi" }
 # background visible on Retina pre-M3) cannot recompile.
 # Architecture: pleme-io/theory/THEME-ARCHITECTURE.md
 ishou-tokens = { git = "https://github.com/pleme-io/ishou", features = ["wgpu"] }
+# wadachi (轍) directory frecency — READER ONLY. mado calls pleme_io_wadachi::
+# top_n / resolve in-process for the DirPicker overlay + MCP tools, and NEVER
+# records (the shell owns recording — single-recorder rule). Published crate,
+# NOT git: a git workspace-member dep breaks gen's lockfile-builder; 0.1.4 is
+# root-level. Lib imports as `pleme_io_wadachi`.
+pleme-io-wadachi = "0.1.4"
 # irodzuki — typed base16 color schemes + curated 16-color ANSI
 # palettes. The 8 terminal-grade presets (nord, dracula, ...) live
 # here in `irodzuki::presets`, NOT in mado. Mado's theme.rs is a

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "028db2797b523b795c13bfb8eaabba686024bdfa818bfdbc5f9f74e3e6990997",
+  "cargo_lock_sha256": "264f7077bf6296a4c56d009343f14b4c9fbee18bfe16c7b3d77a9bff62d0403c",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -46,6 +46,73 @@
           }
         ],
         "features": []
+      },
+      "ahash-0.8.12": {
+        "runtime_dependencies": [
+          {
+            "name": "cfg_if",
+            "package_key": "cfg-if-1.0.4",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "getrandom",
+            "package_key": "getrandom-0.3.4",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "once_cell",
+            "package_key": "once_cell-1.21.4",
+            "kind": "normal",
+            "features": [
+              "alloc"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": "cfg(not(all(target_arch = \"arm\", target_os = \"none\")))",
+            "tree": "target"
+          },
+          {
+            "name": "zerocopy",
+            "package_key": "zerocopy-0.8.49",
+            "kind": "normal",
+            "features": [
+              "simd"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [
+          {
+            "name": "version_check",
+            "package_key": "version_check-0.9.5",
+            "kind": "build",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "host"
+          }
+        ],
+        "features": [
+          "default",
+          "getrandom",
+          "no-rng",
+          "runtime-rng",
+          "std"
+        ]
       },
       "aho-corasick-1.1.4": {
         "runtime_dependencies": [
@@ -2622,6 +2689,19 @@
           "std"
         ]
       },
+      "fallible-iterator-0.3.0": {
+        "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": [
+          "alloc",
+          "default"
+        ]
+      },
+      "fallible-streaming-iterator-0.1.9": {
+        "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": []
+      },
       "fastrand-2.4.1": {
         "runtime_dependencies": [],
         "build_dependencies": [],
@@ -3946,6 +4026,25 @@
           "inline-more"
         ]
       },
+      "hashbrown-0.14.5": {
+        "runtime_dependencies": [
+          {
+            "name": "ahash",
+            "package_key": "ahash-0.8.12",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "ahash",
+          "inline-more"
+        ]
+      },
       "hashbrown-0.15.5": {
         "runtime_dependencies": [
           {
@@ -3991,6 +4090,25 @@
       },
       "hashbrown-0.17.1": {
         "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": []
+      },
+      "hashlink-0.9.1": {
+        "runtime_dependencies": [
+          {
+            "name": "hashbrown",
+            "package_key": "hashbrown-0.14.5",
+            "kind": "normal",
+            "features": [
+              "ahash",
+              "inline-more"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
         "build_dependencies": [],
         "features": []
       },
@@ -5226,6 +5344,8 @@
           "bundled",
           "bundled_bindings",
           "cc",
+          "default",
+          "min_sqlite_version_3_14_0",
           "pkg-config",
           "unlock_notify",
           "vcpkg"
@@ -6706,6 +6826,91 @@
               "full",
               "extra-traits"
             ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "pleme-io-wadachi-0.1.4": {
+        "runtime_dependencies": [
+          {
+            "name": "anyhow",
+            "package_key": "anyhow-1.0.102",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "chrono",
+            "package_key": "chrono-0.4.44",
+            "kind": "normal",
+            "features": [
+              "clock",
+              "serde"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "clap",
+            "package_key": "clap-4.6.1",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "dirs",
+            "package_key": "dirs-6.0.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "rusqlite",
+            "package_key": "rusqlite-0.32.1",
+            "kind": "normal",
+            "features": [
+              "bundled"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.228",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "wadachi_spec",
+            "package_key": "wadachi-spec-0.1.4",
+            "kind": "normal",
+            "features": [],
             "uses_default_features": true,
             "optional": false,
             "target": null,
@@ -8464,6 +8669,75 @@
           "pem",
           "std",
           "u64_digit"
+        ]
+      },
+      "rusqlite-0.32.1": {
+        "runtime_dependencies": [
+          {
+            "name": "bitflags",
+            "package_key": "bitflags-2.11.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "fallible_iterator",
+            "package_key": "fallible-iterator-0.3.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "fallible_streaming_iterator",
+            "package_key": "fallible-streaming-iterator-0.1.9",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "hashlink",
+            "package_key": "hashlink-0.9.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "libsqlite3_sys",
+            "package_key": "libsqlite3-sys-0.30.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "smallvec",
+            "package_key": "smallvec-1.15.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "bundled",
+          "modern_sqlite"
         ]
       },
       "rust_decimal-1.42.0": {
@@ -16306,6 +16580,57 @@
           "std"
         ]
       },
+      "wadachi-spec-0.1.4": {
+        "runtime_dependencies": [
+          {
+            "name": "chrono",
+            "package_key": "chrono-0.4.44",
+            "kind": "normal",
+            "features": [
+              "clock",
+              "serde"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.228",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.150",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "thiserror",
+            "package_key": "thiserror-2.0.18",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
       "wait-timeout-0.2.1": {
         "runtime_dependencies": [
           {
@@ -18221,6 +18546,16 @@
                 "optional": false,
                 "target": null,
                 "tree": "host"
+              },
+              {
+                "name": "pleme_io_wadachi",
+                "package_key": "pleme-io-wadachi-0.1.4",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
               },
               {
                 "name": "pleme_kindbyte_derive",
@@ -22332,6 +22667,16 @@
                 "tree": "host"
               },
               {
+                "name": "pleme_io_wadachi",
+                "package_key": "pleme-io-wadachi-0.1.4",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "pleme_kindbyte_derive",
                 "package_key": "pleme-kindbyte-derive-0.1.0-9af2dd18199de9437a0d32e33009c240d2aa8f2f",
                 "kind": "normal",
@@ -25393,73 +25738,6 @@
               "std"
             ]
           },
-          "ahash-0.8.12": {
-            "runtime_dependencies": [
-              {
-                "name": "cfg_if",
-                "package_key": "cfg-if-1.0.4",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              },
-              {
-                "name": "getrandom",
-                "package_key": "getrandom-0.3.4",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": true,
-                "target": null,
-                "tree": "target"
-              },
-              {
-                "name": "once_cell",
-                "package_key": "once_cell-1.21.4",
-                "kind": "normal",
-                "features": [
-                  "alloc"
-                ],
-                "uses_default_features": false,
-                "optional": false,
-                "target": "cfg(not(all(target_arch = \"arm\", target_os = \"none\")))",
-                "tree": "target"
-              },
-              {
-                "name": "zerocopy",
-                "package_key": "zerocopy-0.8.49",
-                "kind": "normal",
-                "features": [
-                  "simd"
-                ],
-                "uses_default_features": false,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              }
-            ],
-            "build_dependencies": [
-              {
-                "name": "version_check",
-                "package_key": "version_check-0.9.5",
-                "kind": "build",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "host"
-              }
-            ],
-            "features": [
-              "default",
-              "getrandom",
-              "no-rng",
-              "runtime-rng",
-              "std"
-            ]
-          },
           "arboard-3.6.1": {
             "runtime_dependencies": [
               {
@@ -26379,6 +26657,16 @@
                 "optional": false,
                 "target": null,
                 "tree": "host"
+              },
+              {
+                "name": "pleme_io_wadachi",
+                "package_key": "pleme-io-wadachi-0.1.4",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
               },
               {
                 "name": "pleme_kindbyte_derive",
@@ -28959,73 +29247,6 @@
               "std"
             ]
           },
-          "ahash-0.8.12": {
-            "runtime_dependencies": [
-              {
-                "name": "cfg_if",
-                "package_key": "cfg-if-1.0.4",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              },
-              {
-                "name": "getrandom",
-                "package_key": "getrandom-0.3.4",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": true,
-                "target": null,
-                "tree": "target"
-              },
-              {
-                "name": "once_cell",
-                "package_key": "once_cell-1.21.4",
-                "kind": "normal",
-                "features": [
-                  "alloc"
-                ],
-                "uses_default_features": false,
-                "optional": false,
-                "target": "cfg(not(all(target_arch = \"arm\", target_os = \"none\")))",
-                "tree": "target"
-              },
-              {
-                "name": "zerocopy",
-                "package_key": "zerocopy-0.8.49",
-                "kind": "normal",
-                "features": [
-                  "simd"
-                ],
-                "uses_default_features": false,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              }
-            ],
-            "build_dependencies": [
-              {
-                "name": "version_check",
-                "package_key": "version_check-0.9.5",
-                "kind": "build",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "host"
-              }
-            ],
-            "features": [
-              "default",
-              "getrandom",
-              "no-rng",
-              "runtime-rng",
-              "std"
-            ]
-          },
           "arboard-3.6.1": {
             "runtime_dependencies": [
               {
@@ -29945,6 +30166,16 @@
                 "optional": false,
                 "target": null,
                 "tree": "host"
+              },
+              {
+                "name": "pleme_io_wadachi",
+                "package_key": "pleme-io-wadachi-0.1.4",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
               },
               {
                 "name": "pleme_kindbyte_derive",
@@ -32525,73 +32756,6 @@
               "std"
             ]
           },
-          "ahash-0.8.12": {
-            "runtime_dependencies": [
-              {
-                "name": "cfg_if",
-                "package_key": "cfg-if-1.0.4",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              },
-              {
-                "name": "getrandom",
-                "package_key": "getrandom-0.3.4",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": true,
-                "target": null,
-                "tree": "target"
-              },
-              {
-                "name": "once_cell",
-                "package_key": "once_cell-1.21.4",
-                "kind": "normal",
-                "features": [
-                  "alloc"
-                ],
-                "uses_default_features": false,
-                "optional": false,
-                "target": "cfg(not(all(target_arch = \"arm\", target_os = \"none\")))",
-                "tree": "target"
-              },
-              {
-                "name": "zerocopy",
-                "package_key": "zerocopy-0.8.49",
-                "kind": "normal",
-                "features": [
-                  "simd"
-                ],
-                "uses_default_features": false,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              }
-            ],
-            "build_dependencies": [
-              {
-                "name": "version_check",
-                "package_key": "version_check-0.9.5",
-                "kind": "build",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "host"
-              }
-            ],
-            "features": [
-              "default",
-              "getrandom",
-              "no-rng",
-              "runtime-rng",
-              "std"
-            ]
-          },
           "arboard-3.6.1": {
             "runtime_dependencies": [
               {
@@ -33537,6 +33701,16 @@
                 "optional": false,
                 "target": null,
                 "tree": "host"
+              },
+              {
+                "name": "pleme_io_wadachi",
+                "package_key": "pleme-io-wadachi-0.1.4",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
               },
               {
                 "name": "pleme_kindbyte_derive",
@@ -36137,73 +36311,6 @@
               "std"
             ]
           },
-          "ahash-0.8.12": {
-            "runtime_dependencies": [
-              {
-                "name": "cfg_if",
-                "package_key": "cfg-if-1.0.4",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              },
-              {
-                "name": "getrandom",
-                "package_key": "getrandom-0.3.4",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": true,
-                "target": null,
-                "tree": "target"
-              },
-              {
-                "name": "once_cell",
-                "package_key": "once_cell-1.21.4",
-                "kind": "normal",
-                "features": [
-                  "alloc"
-                ],
-                "uses_default_features": false,
-                "optional": false,
-                "target": "cfg(not(all(target_arch = \"arm\", target_os = \"none\")))",
-                "tree": "target"
-              },
-              {
-                "name": "zerocopy",
-                "package_key": "zerocopy-0.8.49",
-                "kind": "normal",
-                "features": [
-                  "simd"
-                ],
-                "uses_default_features": false,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              }
-            ],
-            "build_dependencies": [
-              {
-                "name": "version_check",
-                "package_key": "version_check-0.9.5",
-                "kind": "build",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "host"
-              }
-            ],
-            "features": [
-              "default",
-              "getrandom",
-              "no-rng",
-              "runtime-rng",
-              "std"
-            ]
-          },
           "arboard-3.6.1": {
             "runtime_dependencies": [
               {
@@ -37149,6 +37256,16 @@
                 "optional": false,
                 "target": null,
                 "tree": "host"
+              },
+              {
+                "name": "pleme_io_wadachi",
+                "package_key": "pleme-io-wadachi-0.1.4",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
               },
               {
                 "name": "pleme_kindbyte_derive",
@@ -39718,6 +39835,10 @@
       "edition": "2018",
       "build_script": "build.rs"
     },
+    "ahash-0.8.12": {
+      "edition": "2018",
+      "build_script": "build.rs"
+    },
     "aho-corasick-1.1.4": {
       "edition": "2021"
     },
@@ -40086,6 +40207,12 @@
     "event-listener-5.4.1": {
       "edition": "2021"
     },
+    "fallible-iterator-0.3.0": {
+      "edition": "2018"
+    },
+    "fallible-streaming-iterator-0.1.9": {
+      "edition": "2015"
+    },
     "fastrand-2.4.1": {
       "edition": "2018"
     },
@@ -40222,11 +40349,17 @@
     "hashbrown-0.12.3": {
       "edition": "2021"
     },
+    "hashbrown-0.14.5": {
+      "edition": "2021"
+    },
     "hashbrown-0.15.5": {
       "edition": "2021"
     },
     "hashbrown-0.17.1": {
       "edition": "2024"
+    },
+    "hashlink-0.9.1": {
+      "edition": "2018"
     },
     "hashlink-0.10.0": {
       "edition": "2018"
@@ -40629,6 +40762,15 @@
       "edition": "2024",
       "proc_macro": true
     },
+    "pleme-io-wadachi-0.1.4": {
+      "edition": "2024",
+      "binaries": [
+        {
+          "name": "wadachi",
+          "path": "src/bin/wadachi.rs"
+        }
+      ]
+    },
     "pleme-kindbyte-derive-0.1.0-9af2dd18199de9437a0d32e33009c240d2aa8f2f": {
       "edition": "2024",
       "proc_macro": true
@@ -40782,6 +40924,9 @@
       "proc_macro": true
     },
     "rsa-0.9.10": {
+      "edition": "2021"
+    },
+    "rusqlite-0.32.1": {
       "edition": "2021"
     },
     "rust_decimal-1.42.0": {
@@ -41315,6 +41460,9 @@
     "vte-0.15.0": {
       "edition": "2021"
     },
+    "wadachi-spec-0.1.4": {
+      "edition": "2024"
+    },
     "wait-timeout-0.2.1": {
       "edition": "2015",
       "binaries": [
@@ -41473,10 +41621,6 @@
     },
     "ab_glyph_rasterizer-0.1.10": {
       "edition": "2021"
-    },
-    "ahash-0.8.12": {
-      "edition": "2018",
-      "build_script": "build.rs"
     },
     "as-raw-xcb-connection-1.0.1": {
       "edition": "2021"

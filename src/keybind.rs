@@ -56,6 +56,8 @@ pub enum Action {
     SearchNext,
     #[kind(name = "search_prev")]
     SearchPrev,
+    #[kind(name = "dir_picker_open", alias = "dir_picker", alias = "recent_dirs")]
+    DirPickerOpen,
     #[kind(name = "font_increase", alias = "increase_font_size")]
     FontIncrease,
     #[kind(name = "font_decrease", alias = "decrease_font_size")]
@@ -506,6 +508,9 @@ fn default_bindings() -> Vec<Keybinding> {
         // (see shell-integration/mado.*) to be sourced. mado-specific.
         Keybinding { hotkey: hk(cmd, Key::Up),   action: Action::JumpToPromptPrev },
         Keybinding { hotkey: hk(cmd, Key::Down), action: Action::JumpToPromptNext },
+        // Directory frecency overlay (轍 wadachi) — Cmd+G ("go to dir").
+        // mado-specific (no atlas intent yet); reader-only picker.
+        Keybinding { hotkey: hk(cmd, Key::G), action: Action::DirPickerOpen },
         // Terminal — mado-specific (no atlas reset intent).
         Keybinding { hotkey: hk(cmd_shift, Key::R), action: Action::ResetTerminal },
     ]
@@ -682,8 +687,8 @@ mod tests {
         // Default bindings after Phase 4 (multiplexing actions
         // removed): clipboard (2) + search (4) + font (3) +
         // scroll (4) + prompt jump (2) + terminal (1) + fullscreen
-        // (1) = 17.
-        assert_eq!(mgr.bindings().len(), 17);
+        // (1) + dir-picker (1) = 18.
+        assert_eq!(mgr.bindings().len(), 18);
     }
 
     #[test]
@@ -695,7 +700,8 @@ mod tests {
             Action::ScrollToBottom, Action::JumpToPrompt,
             Action::JumpToPromptPrev, Action::JumpToPromptNext,
             Action::SearchOpen, Action::SearchClose,
-            Action::SearchNext, Action::SearchPrev, Action::FontIncrease,
+            Action::SearchNext, Action::SearchPrev, Action::DirPickerOpen,
+            Action::FontIncrease,
             Action::FontDecrease, Action::FontReset,
             Action::ResetTerminal,
             Action::ClearScreen, Action::ToggleFullscreen, Action::SelectAll,
@@ -752,7 +758,7 @@ mod tests {
     #[test]
     fn test_total_default_bindings_count() {
         let mgr = KeybindManager::with_mado_defaults();
-        assert_eq!(mgr.bindings().len(), 17);
+        assert_eq!(mgr.bindings().len(), 18);
     }
 
     #[test]
@@ -801,7 +807,8 @@ mod tests {
             Action::ScrollToBottom, Action::JumpToPrompt,
             Action::JumpToPromptPrev, Action::JumpToPromptNext,
             Action::SearchOpen, Action::SearchClose,
-            Action::SearchNext, Action::SearchPrev, Action::FontIncrease,
+            Action::SearchNext, Action::SearchPrev, Action::DirPickerOpen,
+            Action::FontIncrease,
             Action::FontDecrease, Action::FontReset,
             Action::ResetTerminal,
             Action::ClearScreen, Action::ToggleFullscreen, Action::SelectAll,

@@ -33,6 +33,10 @@ pub struct SinglePane {
     pub resize_tx: UnboundedSender<(u16, u16)>,
     pub selection: Arc<Mutex<Selection>>,
     pub search: Arc<Mutex<SearchState>>,
+    /// Reader-only directory-frecency overlay state (轍). Shared into the
+    /// renderer via `TerminalRenderer::set_dir_picker`, driven by the input
+    /// handler. Mirrors `search`.
+    pub dir_picker: Arc<Mutex<crate::dir_picker::DirPickerState>>,
     exited: Arc<AtomicBool>,
 }
 
@@ -227,6 +231,7 @@ pub fn spawn(
         resize_tx,
         selection: Arc::new(Mutex::new(Selection::new())),
         search: Arc::new(Mutex::new(SearchState::new())),
+        dir_picker: Arc::new(Mutex::new(crate::dir_picker::DirPickerState::new())),
         exited,
     }
 }
@@ -251,6 +256,7 @@ mod tests {
             resize_tx,
             selection: Arc::new(Mutex::new(Selection::new())),
             search: Arc::new(Mutex::new(SearchState::new())),
+            dir_picker: Arc::new(Mutex::new(crate::dir_picker::DirPickerState::new())),
             exited: Arc::new(AtomicBool::new(false)),
         }
     }

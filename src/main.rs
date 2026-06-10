@@ -16,6 +16,7 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 mod auto_detect;
 mod clipboard_store;
 mod config;
+mod dir_picker;
 mod engate_consumer;
 mod font_size;
 mod glyph_class;
@@ -659,6 +660,7 @@ fn main() -> anyhow::Result<()> {
     // Set selection/search on renderer (Phase 4 — single pane).
     renderer.set_selection(Arc::clone(&pane.selection));
     renderer.set_search(Arc::clone(&pane.search));
+    renderer.set_dir_picker(Arc::clone(&pane.dir_picker));
 
     // Log available themes on startup (debug)
     let theme_names: Vec<&str> = Theme::available().iter().map(|t| t.name).collect();
@@ -870,6 +872,77 @@ fn main() -> anyhow::Result<()> {
                         }
                     }
 
+                    // Handle dir-picker mode input (reader-only frecency overlay 轍).
+                    // Mirrors the search-mode block above; keys are fully consumed
+                    // while open. mado only READS wadachi + injects `cd` on select.
+                    {
+                        let ws = &*pane_for_events;
+                        if let Some(pane) = ws.focused_pane() {
+                            let dp_open = pane.dir_picker.lock().unwrap().open;
+                            if dp_open {
+                                if matches!(key, madori::event::KeyCode::Escape) {
+                                    pane.dir_picker.lock().unwrap().close();
+                                    return with_cursor_visibility(
+                                        EventResponse::consumed(),
+                                        hide_cursor.then_some(false),
+                                    );
+                                }
+                                if matches!(key, madori::event::KeyCode::Enter) {
+                                    let path = pane.dir_picker.lock().unwrap().selected_path().cloned();
+                                    if let Some(p) = path {
+                                        let cmd = format!(
+                                            "cd {}\n",
+                                            crate::dir_picker::shell_quote_path(&p.to_string_lossy())
+                                        );
+                                        pane.send_input(cmd.into_bytes());
+                                    }
+                                    pane.dir_picker.lock().unwrap().close();
+                                    return with_cursor_visibility(
+                                        EventResponse::consumed(),
+                                        hide_cursor.then_some(false),
+                                    );
+                                }
+                                if matches!(key, madori::event::KeyCode::Up) {
+                                    pane.dir_picker.lock().unwrap().move_up();
+                                    return with_cursor_visibility(
+                                        EventResponse::consumed(),
+                                        hide_cursor.then_some(false),
+                                    );
+                                }
+                                if matches!(key, madori::event::KeyCode::Down) {
+                                    pane.dir_picker.lock().unwrap().move_down();
+                                    return with_cursor_visibility(
+                                        EventResponse::consumed(),
+                                        hide_cursor.then_some(false),
+                                    );
+                                }
+                                if !mods.ctrl && !mods.meta && !mods.alt {
+                                    if matches!(key, madori::event::KeyCode::Backspace) {
+                                        pane.dir_picker.lock().unwrap().backspace();
+                                        return with_cursor_visibility(
+                                            EventResponse::consumed(),
+                                            hide_cursor.then_some(false),
+                                        );
+                                    }
+                                    if let Some(text) = text {
+                                        if !text.is_empty() {
+                                            pane.dir_picker.lock().unwrap().push_str(text);
+                                            return with_cursor_visibility(
+                                                EventResponse::consumed(),
+                                                hide_cursor.then_some(false),
+                                            );
+                                        }
+                                    }
+                                }
+                                // Consume everything else while the overlay is open.
+                                return with_cursor_visibility(
+                                    EventResponse::consumed(),
+                                    hide_cursor.then_some(false),
+                                );
+                            }
+                        }
+                    }
+
                     // Dispatch keybind action
                     if let Some(action) = action {
                         match action {
@@ -927,6 +1000,16 @@ fn main() -> anyhow::Result<()> {
                                 let ws = &*pane_for_events;
                                 if let Some(pane) = ws.focused_pane() {
                                     pane.search.lock().unwrap().open();
+                                }
+                                return with_cursor_visibility(
+                                    EventResponse::consumed(),
+                                    hide_cursor.then_some(false),
+                                );
+                            }
+                            Action::DirPickerOpen => {
+                                let ws = &*pane_for_events;
+                                if let Some(pane) = ws.focused_pane() {
+                                    pane.dir_picker.lock().unwrap().open();
                                 }
                                 return with_cursor_visibility(
                                     EventResponse::consumed(),

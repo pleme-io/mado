@@ -37,6 +37,22 @@ struct SendKeysInput {
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct RecentDirsListInput {
+    #[schemars(description = "Frecency filter needle. Omit for the full ranked list.")]
+    needle: Option<String>,
+    #[schemars(description = "Max dirs to return, ranked by frecency. Default 20.")]
+    limit: Option<u32>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct JumpToRecentDirInput {
+    #[schemars(description = "Target session id (pane/tab). Use the focused session's id.")]
+    session_id: String,
+    #[schemars(description = "Frecency needle to resolve and cd into.")]
+    needle: String,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
 struct GetOutputInput {
     #[schemars(description = "Session identifier (pane or tab ID). Use 'active' for the focused session.")]
     session_id: String,
@@ -447,6 +463,59 @@ impl MadoMcp {
         match session.send_input(&bytes).await {
             Ok(()) => serde_json::json!({
                 "ok": true,
+                "session_id": input.session_id,
+                "bytes_written": bytes.len(),
+            })
+            .to_string(),
+            Err(e) => serde_json::json!({
+                "ok": false,
+                "session_id": input.session_id,
+                "error": e.to_string(),
+            })
+            .to_string(),
+        }
+    }
+
+    #[tool(description = "List recently-accessed directories ranked by frecency (轍 wadachi). Returns `{ok, count, dirs:[{path, score}]}`. `needle` filters (substring); `limit` defaults 20. In-process wadachi READER — no recording.")]
+    async fn recent_dirs_list(&self, Parameters(input): Parameters<RecentDirsListInput>) -> String {
+        let needle = input.needle.as_deref().unwrap_or("");
+        let limit = input.limit.map_or(20, |n| n as usize);
+        match pleme_io_wadachi::top_n(needle, limit) {
+            Ok(ranked) => {
+                let dirs: Vec<_> = ranked
+                    .iter()
+                    .map(|d| serde_json::json!({ "path": d.path.to_string_lossy(), "score": d.score }))
+                    .collect();
+                serde_json::json!({ "ok": true, "count": dirs.len(), "dirs": dirs }).to_string()
+            }
+            Err(e) => serde_json::json!({ "ok": false, "error": e.to_string() }).to_string(),
+        }
+    }
+
+    #[tool(description = "Resolve a frecency needle via in-process wadachi and send `cd <path>\\n` to the session. Returns `{ok, resolved_path, session_id, bytes_written}`; `{ok:false, error:'no-such-dir'}` on miss. READER-only — no recording (the shell records the resulting cd).")]
+    async fn jump_to_recent_dir(&self, Parameters(input): Parameters<JumpToRecentDirInput>) -> String {
+        let Some(session) = self.state.sessions.get(&input.session_id) else {
+            return serde_json::json!({
+                "ok": false,
+                "error": "no-such-session",
+                "session_id": input.session_id,
+            })
+            .to_string();
+        };
+        let path = match pleme_io_wadachi::resolve(&input.needle) {
+            Ok(Some(p)) => p,
+            Ok(None) => {
+                return serde_json::json!({ "ok": false, "error": "no-such-dir", "needle": input.needle })
+                    .to_string();
+            }
+            Err(e) => return serde_json::json!({ "ok": false, "error": e.to_string() }).to_string(),
+        };
+        let cmd = format!("cd {}\n", crate::dir_picker::shell_quote_path(&path.to_string_lossy()));
+        let bytes = cmd.into_bytes();
+        match session.send_input(&bytes).await {
+            Ok(()) => serde_json::json!({
+                "ok": true,
+                "resolved_path": path.to_string_lossy(),
                 "session_id": input.session_id,
                 "bytes_written": bytes.len(),
             })

@@ -920,6 +920,9 @@ pub struct TerminalRenderer {
     terminal: SharedTerminal,
     selection: Arc<Mutex<Selection>>,
     search: Arc<Mutex<SearchState>>,
+    /// Reader-only directory-frecency overlay state (轍). Shared from the pane
+    /// via `set_dir_picker`; drawn (when `.open`) as a Pass-6 overlay.
+    dir_picker: Arc<Mutex<crate::dir_picker::DirPickerState>>,
     // window field removed at Phase 4 — single-pane mado.
     font_size: f32,
     font_family: String,
@@ -1046,6 +1049,7 @@ impl TerminalRenderer {
             terminal,
             selection: Arc::new(Mutex::new(Selection::new())),
             search: Arc::new(Mutex::new(SearchState::new())),
+            dir_picker: Arc::new(Mutex::new(crate::dir_picker::DirPickerState::new())),
             // window: removed Phase 4
             font_size,
             font_family,
@@ -1216,6 +1220,107 @@ impl TerminalRenderer {
     /// Set the shared selection state (called from main to share with event handler).
     pub fn set_selection(&mut self, selection: Arc<Mutex<Selection>>) {
         self.selection = selection;
+    }
+
+    /// Set the shared dir-picker state (called from main to share with the
+    /// event handler — the same Arc both the input handler and renderer read).
+    pub fn set_dir_picker(&mut self, dir_picker: Arc<Mutex<crate::dir_picker::DirPickerState>>) {
+        self.dir_picker = dir_picker;
+    }
+
+    /// Draw the directory-frecency overlay (轍) — a text-only floating list:
+    /// a `cd` query line plus the frecency-ranked rows, the highlighted row in
+    /// Nord green. Text-only (no bg/highlight rects) keeps this a pure addition
+    /// reusing the Pass-3 glyphon text path — no new pipeline, no visibility
+    /// changes to private types. Renders onto `ctx.surface_view` after snow.
+    fn draw_dir_picker(
+        &self,
+        query: &str,
+        results: &[(std::path::PathBuf, f64)],
+        selected: usize,
+        ctx: &mut RenderContext<'_>,
+        encoder: &mut wgpu::CommandEncoder,
+    ) {
+        let fs = self.font_size_px();
+        let line_h = fs * 1.4;
+        let left = self.padding_px() + self.cell_width * 2.0;
+        let top0 = self.padding_px() + self.cell_height;
+        let max_rows = 12usize;
+
+        // Build the line strings, then their shaped buffers (kept alive while
+        // the TextAreas borrow them through prepare).
+        let mut lines: Vec<String> = Vec::with_capacity(max_rows + 1);
+        lines.push(format!("\u{25b6} cd  {query}\u{2588}"));
+        if results.is_empty() {
+            lines.push("  (no matching directories)".to_owned());
+        } else {
+            for (i, (path, _score)) in results.iter().take(max_rows).enumerate() {
+                let marker = if i == selected { "\u{203a} " } else { "  " };
+                lines.push(format!("{marker}{}", path.display()));
+            }
+        }
+
+        let mut buffers: Vec<glyphon::Buffer> = Vec::with_capacity(lines.len());
+        for line in &lines {
+            let attrs = Attrs::new().family(Family::Name(&self.font_family));
+            let mut buf = ctx.text.create_rich_buffer(&[(line.as_str(), attrs)], fs, line_h);
+            buf.shape_until_scroll(&mut ctx.text.font_system, false);
+            buffers.push(buf);
+        }
+
+        let frost = GlyphonColor::rgba(136, 192, 208, 255); // Nord frost — query
+        let green = GlyphonColor::rgba(163, 190, 140, 255); // Nord green — selected
+        let fg = GlyphonColor::rgba(self.fg_color.r, self.fg_color.g, self.fg_color.b, 255);
+
+        let mut text_areas = Vec::with_capacity(buffers.len());
+        for (idx, buf) in buffers.iter().enumerate() {
+            let color = if idx == 0 {
+                frost
+            } else if !results.is_empty() && idx - 1 == selected {
+                green
+            } else {
+                fg
+            };
+            text_areas.push(glyphon::TextArea {
+                buffer: buf,
+                left,
+                top: top0 + (idx as f32) * line_h,
+                scale: 1.0,
+                bounds: glyphon::TextBounds {
+                    left: 0,
+                    top: 0,
+                    right: ctx.width as i32,
+                    bottom: ctx.height as i32,
+                },
+                default_color: color,
+                custom_glyphs: &[],
+            });
+        }
+
+        if let Err(e) =
+            ctx.text
+                .prepare(&ctx.gpu.device, &ctx.gpu.queue, ctx.width, ctx.height, text_areas)
+        {
+            tracing::warn!("dir_picker text prepare: {e}");
+            return;
+        }
+        let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("mado_dir_picker"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: ctx.surface_view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Load,
+                    store: wgpu::StoreOp::Store,
+                },
+            })],
+            depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
+        });
+        if let Err(e) = ctx.text.render(&mut pass) {
+            tracing::warn!("dir_picker text render: {e}");
+        }
     }
 
     /// Set the shared search state (called from main to share with event handler).
@@ -2934,6 +3039,20 @@ impl RenderCallback for TerminalRenderer {
         if let Some(ref mut snow) = self.snow_overlay {
             snow.set_resolution(ctx.width as f32, ctx.height as f32);
             snow.render(&ctx.gpu.device, &ctx.gpu.queue, &mut encoder, ctx.surface_view);
+        }
+
+        // Pass 6: directory-frecency overlay (轍 wadachi), reader-only. Renders
+        // AFTER snow so it floats on top, onto ctx.surface_view (post-blit), the
+        // same target snow uses. Gated on `.open` so idle frames are unchanged.
+        // State is snapshotted (lock dropped) before any GPU work.
+        {
+            let (dp_open, dp_query, dp_results, dp_selected) = {
+                let dp = self.dir_picker.lock().unwrap();
+                (dp.open, dp.query.clone(), dp.results.clone(), dp.selected)
+            };
+            if dp_open {
+                self.draw_dir_picker(&dp_query, &dp_results, dp_selected, ctx, &mut encoder);
+            }
         }
 
         ctx.gpu.queue.submit(std::iter::once(encoder.finish()));
