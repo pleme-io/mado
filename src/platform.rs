@@ -288,7 +288,17 @@ mod macos {
                 window.setTitlebarAppearsTransparent(true);
                 window.setTitleVisibility(NSWindowTitleVisibility::Hidden);
                 window.setTitlebarSeparatorStyle(NSTitlebarSeparatorStyle::None);
-                window.setMovableByWindowBackground(true);
+                // Deliberately NOT movable-by-window-background: that
+                // flag made every content-area drag a WINDOW drag, so
+                // selecting text also slid the window around (operator
+                // report 2026-06-11). The drag/select split is the
+                // titlebar contract (iTerm2/ghostty): the themed band
+                // — where the traffic lights live — drags the window
+                // natively (the NSTitlebarContainerView keeps handling
+                // drags in both Flush and Overlay, floating above the
+                // content view); the cell grid below it selects text
+                // and never moves the window.
+                window.setMovableByWindowBackground(false);
 
                 // Tint the NSWindow backing to the configured terminal
                 // background so the titlebar band matches the cell grid
