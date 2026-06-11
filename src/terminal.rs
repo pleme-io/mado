@@ -1395,6 +1395,13 @@ impl Terminal {
         self.scroll_offset
     }
 
+    /// Total scrollback rows currently held (active grid). The
+    /// renderer's history indicator sizes its thumb from this.
+    #[must_use]
+    pub fn scrollback_total(&self) -> usize {
+        self.grid().scrollback_len()
+    }
+
     /// Iterator over visible rows, accounting for scroll offset.
     pub fn visible_rows(&self) -> Box<dyn Iterator<Item = &[Cell]> + '_> {
         let grid = self.grid();

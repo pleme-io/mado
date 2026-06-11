@@ -852,7 +852,10 @@ fn main() -> anyhow::Result<()> {
                 }
                 // Focus events → engine emits ESC[I/ESC[O when focus
                 // reporting (mode 1004) is enabled.
-                AppEvent::Focused(focused) => engine.on_focus(*focused).into(),
+                AppEvent::Focused(focused) => {
+                    renderer.set_focused(*focused);
+                    engine.on_focus(*focused).into()
+                }
                 AppEvent::CloseRequested => exit_response(confirm_close, &pending_close),
                 AppEvent::Resized { width, height } => {
                     engine.on_resize(*width, *height, renderer).into()

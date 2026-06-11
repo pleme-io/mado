@@ -838,6 +838,13 @@ struct Snapshot {
     cursor: Cursor,
     cols: usize,
     num_rows: usize,
+    /// Viewport scroll offset (0 = live tail). Drives the history
+    /// indicator and suppresses the cursor draw — drawing the live
+    /// cursor over history rows implied an insertion point that
+    /// doesn't exist there (phantom-cursor finding 2026-06-11).
+    scroll_offset: usize,
+    /// Total scrollback rows — thumb sizing for the indicator.
+    scrollback_total: usize,
     urls: Vec<DetectedUrl>,
     search_active: bool,
     search_matches: Vec<crate::search::SearchMatch>,
@@ -970,6 +977,11 @@ pub struct TerminalRenderer {
     /// Reduce motion: disable cursor blink and bell flash.
     #[invalidating_setter]
     reduce_motion: bool,
+    /// Window focus — unfocused windows draw a hollow, steady cursor
+    /// (the which-window-owns-the-keyboard affordance). Set by the
+    /// adapters' Focused arms.
+    #[invalidating_setter]
+    focused: bool,
     /// HiDPI scale factor (1.0 on non-Retina, 2.0 on most Mac Retina,
     /// other values on Linux/Windows). Multiplies font_size and padding
     /// before they touch the GPU pipeline — the wgpu surface is sized
@@ -1084,6 +1096,7 @@ impl TerminalRenderer {
             selection_bg: overlay_rect_color(0x88, 0xC0, 0xD0, 0.3),
             cursor_color: [0.925, 0.937, 0.957, 0.85], // Nord snow default
             reduce_motion: false,
+            focused: true,
             // 1.0 = no scaling; overwritten on the first render frame
             // by `set_scale_factor(ctx.scale_factor)`.
             scale_factor: 1.0,
@@ -1273,6 +1286,78 @@ impl TerminalRenderer {
     /// Nord green. Text-only (no bg/highlight rects) keeps this a pure addition
     /// reusing the Pass-3 glyphon text path — no new pipeline, no visibility
     /// changes to private types. Renders onto `ctx.surface_view` after snow.
+    /// One-line search status (Pass 6 overlay, bottom-left):
+    /// `/query  n/m` or `/query  no matches`. Without it the overlay
+    /// was an invisible keystroke black hole — every key consumed,
+    /// nothing on screen (hunt finding 2026-06-11).
+    fn draw_search_status(
+        &self,
+        query: &str,
+        current: usize,
+        count: usize,
+        ctx: &mut RenderContext<'_>,
+        encoder: &mut wgpu::CommandEncoder,
+    ) {
+        let fs = self.font_size_px();
+        let line_h = fs * 1.4;
+        let left = self.padding_px() + self.cell_width;
+        let top = ctx.height as f32 - self.padding_px() - line_h * 1.2;
+
+        let status = if query.is_empty() {
+            "/ (type to search, Esc to close)".to_owned()
+        } else if count == 0 {
+            format!("/{query}  no matches")
+        } else {
+            format!("/{query}  {}/{count}", current + 1)
+        };
+
+        let attrs = Attrs::new().family(Family::Name(&self.font_family));
+        let mut buf = ctx
+            .text
+            .create_rich_buffer(&[(status.as_str(), attrs)], fs, line_h);
+        buf.shape_until_scroll(&mut ctx.text.font_system, false);
+
+        let frost = GlyphonColor::rgba(136, 192, 208, 255); // Nord frost
+        let text_areas = vec![glyphon::TextArea {
+            buffer: &buf,
+            left,
+            top,
+            scale: 1.0,
+            bounds: glyphon::TextBounds {
+                left: 0,
+                top: 0,
+                right: ctx.width as i32,
+                bottom: ctx.height as i32,
+            },
+            default_color: frost,
+            custom_glyphs: &[],
+        }];
+        if let Err(e) =
+            ctx.text
+                .prepare(&ctx.gpu.device, &ctx.gpu.queue, ctx.width, ctx.height, text_areas)
+        {
+            tracing::warn!("search status text prepare: {e}");
+            return;
+        }
+        let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("mado_search_status"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: ctx.surface_view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Load,
+                    store: wgpu::StoreOp::Store,
+                },
+            })],
+            depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
+        });
+        if let Err(e) = ctx.text.render(&mut pass) {
+            tracing::warn!("search status text render: {e}");
+        }
+    }
+
     fn draw_dir_picker(
         &self,
         query: &str,
@@ -1500,6 +1585,8 @@ impl TerminalRenderer {
         let cols = term.cols();
         let num_rows = term.rows();
         let on_alt = term.on_alt_screen();
+        let scroll_offset = term.scroll_offset();
+        let scrollback_total = term.scrollback_total();
         let rows: Vec<Vec<Cell>> = term.visible_rows().map(|r| r.to_vec()).collect();
         let image_placements = term.image_placements().to_vec();
         let block_separator_rows = term.block_separator_viewport_rows();
@@ -1529,6 +1616,8 @@ impl TerminalRenderer {
                 cursor,
                 cols,
                 num_rows,
+                scroll_offset,
+                scrollback_total,
                 urls,
                 search_active,
                 search_matches,
@@ -1840,21 +1929,35 @@ impl TerminalRenderer {
             });
         }
 
-        // Cursor (with optional blink)
-        let cursor_on = !self.cursor_blink || {
-            let period = self.cursor_blink_rate_ms as f32 / 1000.0 * 2.0;
-            (elapsed % period) < period / 2.0
-        };
+        // Cursor (with optional blink). Unfocused windows pin the
+        // cursor steady (no blink) and draw the hollow variant — the
+        // standard which-window-owns-the-keyboard affordance
+        // (kitty/ghostty/iTerm2/Terminal.app).
+        let cursor_on = !self.focused
+            || !self.cursor_blink
+            || {
+                let period = self.cursor_blink_rate_ms as f32 / 1000.0 * 2.0;
+                (elapsed % period) < period / 2.0
+            };
 
+        // While scrolled into history the live-grid cursor position
+        // is meaningless for the rows on screen — drawing it painted
+        // a phantom insertion point over history text (2026-06-11).
         if snap.cursor.visible
             && cursor_on
+            && snap.scroll_offset == 0
             && snap.cursor.row < snap.num_rows
             && snap.cursor.col < snap.cols
         {
             let cx = origin_x + snap.cursor.col as f32 * self.cell_width;
             let cy = origin_y + snap.cursor.row as f32 * self.cell_height;
 
-            let (pos, size) = match self.cursor_style {
+            let effective_style = if self.focused {
+                self.cursor_style
+            } else {
+                CursorStyle::BlockHollow
+            };
+            let (pos, size) = match effective_style {
                 CursorStyle::Block => ([cx, cy], [self.cell_width, self.cell_height]),
                 CursorStyle::BlockHollow => ([cx, cy], [self.cell_width, self.cell_height]),
                 CursorStyle::Bar => ([cx, cy], [2.0, self.cell_height]),
@@ -1864,7 +1967,7 @@ impl TerminalRenderer {
                 ),
             };
 
-            if self.cursor_style == CursorStyle::BlockHollow {
+            if effective_style == CursorStyle::BlockHollow {
                 let thickness = 2.0_f32;
                 instances.push(RectInstance { pos: [cx, cy], size: [self.cell_width, thickness], color: self.cursor_color });
                 instances.push(RectInstance { pos: [cx, cy + self.cell_height - thickness], size: [self.cell_width, thickness], color: self.cursor_color });
@@ -1877,6 +1980,32 @@ impl TerminalRenderer {
                     color: self.cursor_color,
                 });
             }
+        }
+
+        // ── Scrolled-into-history indicator ────────────────────
+        // With the content-pinned viewport (2026-06-11) the operator
+        // can sit in history while output streams below — without a
+        // cue the screen just looks frozen. A right-edge thumb shows
+        // position: top of track = oldest scrollback, bottom = live
+        // tail. Drawn ONLY while scrolled; the live view stays
+        // chrome-free.
+        if snap.scroll_offset > 0 && snap.scrollback_total > 0 {
+            let track_h = snap.num_rows as f32 * self.cell_height;
+            let total_rows = (snap.scrollback_total + snap.num_rows) as f32;
+            let thumb_h = (track_h * snap.num_rows as f32 / total_rows).max(24.0);
+            // scroll_offset = rows BELOW the viewport bottom edge…
+            // position the thumb so offset==scrollback_total → top.
+            let frac = 1.0 - (snap.scroll_offset as f32 / snap.scrollback_total as f32);
+            let thumb_y = origin_y + frac * (track_h - thumb_h);
+            let thumb_w = 4.0_f32;
+            let thumb_x = origin_x + snap.cols as f32 * self.cell_width - thumb_w;
+            // Nord frost #88C0D0 @ 35% α — typed linearizer like every
+            // overlay rect.
+            instances.push(RectInstance {
+                pos: [thumb_x, thumb_y],
+                size: [thumb_w, thumb_h],
+                color: overlay_rect_color(0x88, 0xC0, 0xD0, 0.35),
+            });
         }
 
         // ── Pane-as-block separators ───────────────────────────
@@ -3098,6 +3227,18 @@ impl RenderCallback for TerminalRenderer {
             };
             if dp_open {
                 self.draw_dir_picker(&dp_query, &dp_results, dp_selected, ctx, &mut encoder);
+            }
+        }
+
+        // Search status line — same Pass-6 model: state snapshotted,
+        // gated on `.active` so idle frames are unchanged.
+        {
+            let (s_active, s_query, s_current, s_count) = {
+                let st = self.search.lock().unwrap();
+                (st.active, st.query.clone(), st.current, st.matches.len())
+            };
+            if s_active {
+                self.draw_search_status(&s_query, s_current, s_count, ctx, &mut encoder);
             }
         }
 
@@ -4451,6 +4592,35 @@ mod tests {
             wgpu::Color::BLACK,
             crate::terminal::Color::new(0xec, 0xef, 0xf4),
         )
+    }
+
+    /// Phantom-cursor + unfocused-affordance invariants (2026-06-11):
+    /// the snapshot carries scroll state so the draw pass can suppress
+    /// the live-grid cursor over history rows, and `focused` defaults
+    /// true with the invalidating setter forcing a repaint on change.
+    #[test]
+    fn renderer_focus_state_defaults_true_and_invalidates() {
+        let mut r = gpu_free_renderer();
+        assert!(r.focused, "windows start focused");
+        r.set_focused(false);
+        assert!(!r.focused);
+        // The derive resets last_seqno so the next frame repaints.
+        assert_eq!(r.last_seqno, 0, "focus flip must invalidate the frame");
+    }
+
+    #[test]
+    fn snapshot_carries_scroll_state() {
+        let r = gpu_free_renderer();
+        {
+            let mut term = r.terminal.write();
+            for _ in 0..40 {
+                term.feed(b"line\r\n");
+            }
+            term.scroll_up(6);
+        }
+        let (snap, _) = r.snapshot();
+        assert_eq!(snap.scroll_offset, 6);
+        assert!(snap.scrollback_total >= 6);
     }
 
     #[test]
