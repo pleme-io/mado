@@ -122,7 +122,7 @@ pub async fn run(shell: &str) -> Result<E2eSummary> {
     let mut rows: Vec<RowResult> = Vec::new();
 
     // ── row 1: spawn_term ────────────────────────────────────────
-    let session_id = match spawn_term(&client, shell, None).await {
+    let session_id = match spawn_term(&client, shell, Some(hermetic_shell_env(&[]))).await {
         Ok(id) => {
             rows.push(RowResult::passed(
                 "spawn_term",
@@ -307,7 +307,7 @@ async fn single_recorder_row(client: &Client, shell: &str) -> RowResult {
     // throwaway store, never the operator's real one. The driver
     // reads the same path directly via the wadachi store API — no
     // env mutation in this process.
-    let env = serde_json::json!({ "WADACHI_DB": db.to_string_lossy() });
+    let env = hermetic_shell_env(&[("WADACHI_DB", db.to_string_lossy().into_owned())]);
     let row = match spawn_term(client, shell, Some(env)).await {
         Ok(id) => {
             let row = drive_single_recorder(client, &id, &dir, &db)
@@ -474,6 +474,47 @@ async fn call_tool(
 /// (a JSON object) merges onto the spawned shell's environment via
 /// `TermSpec.env` — the single_recorder row uses it to point the
 /// shell at a hermetic `WADACHI_DB`.
+
+/// Hermetic shell environment for every session this driver spawns.
+///
+/// 2026-06-10 incident: live e2e runs spawned real frostmourne with the
+/// operator's HOME — the shell recorded every test command (escape-bomb
+/// printfs, fake `git push`/`nix run .#rebuild` lines, marker echoes)
+/// into the REAL `~/.local/state/zsh/history`, which Ctrl-R then served
+/// back to the operator. The driver now gives each spawned shell a
+/// throwaway HOME + HISTFILE + XDG trio, so history/state isolation
+/// holds BY CONSTRUCTION for every row (WADACHI_DB merges on top for
+/// the single-recorder row).
+fn hermetic_shell_env(extra: &[(&str, String)]) -> serde_json::Value {
+    let nonce = format!(
+        "{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or_default()
+    );
+    let home = std::env::temp_dir().join(format!("mado-e2e-home-{nonce}"));
+    let _ = std::fs::create_dir_all(&home);
+    let h = home.to_string_lossy().into_owned();
+    let mut map = serde_json::Map::new();
+    map.insert("HOME".into(), serde_json::Value::String(h.clone()));
+    map.insert(
+        "HISTFILE".into(),
+        serde_json::Value::String(format!("{h}/.zsh_history")),
+    );
+    for k in ["XDG_STATE_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME", "XDG_CONFIG_HOME"] {
+        map.insert(
+            k.into(),
+            serde_json::Value::String(format!("{h}/{}", k.to_lowercase())),
+        );
+    }
+    for (k, v) in extra {
+        map.insert((*k).into(), serde_json::Value::String(v.clone()));
+    }
+    serde_json::Value::Object(map)
+}
+
 async fn spawn_term(
     client: &Client,
     shell: &str,
@@ -569,6 +610,34 @@ fn last_non_blank_line(text: &str) -> String {
 
 #[cfg(test)]
 mod tests {
+    /// 2026-06-10 regression: the driver must NEVER hand a spawned shell
+    /// the operator's real HOME/HISTFILE — live e2e runs polluted the real
+    /// shell history with test commands (incl. escape-sequence printf
+    /// bombs served back via Ctrl-R).
+    #[test]
+    fn hermetic_env_never_points_at_real_home() {
+        let real_home = std::env::var("HOME").unwrap_or_default();
+        let env = super::hermetic_shell_env(&[("WADACHI_DB", "/tmp/x.db".into())]);
+        let map = env.as_object().expect("object env");
+        let home = map["HOME"].as_str().expect("HOME set");
+        assert!(!home.is_empty() && home != real_home, "hermetic HOME must differ from real");
+        assert!(std::path::Path::new(home).is_dir(), "hermetic HOME is created");
+        let hist = map["HISTFILE"].as_str().expect("HISTFILE set");
+        assert!(hist.starts_with(home), "HISTFILE lives under the hermetic HOME");
+        for k in ["XDG_STATE_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME", "XDG_CONFIG_HOME"] {
+            assert!(map[k].as_str().unwrap().starts_with(home), "{k} under hermetic HOME");
+        }
+        assert_eq!(map["WADACHI_DB"].as_str().unwrap(), "/tmp/x.db", "extras merge");
+    }
+
+    /// Two calls must not share a HOME (parallel rows stay isolated).
+    #[test]
+    fn hermetic_env_is_unique_per_call() {
+        let a = super::hermetic_shell_env(&[]);
+        let b = super::hermetic_shell_env(&[]);
+        assert_ne!(a["HOME"], b["HOME"]);
+    }
+
     use super::*;
 
     #[test]
