@@ -1,15 +1,23 @@
 //! Scrollback search — find text in terminal history.
 //!
 //! Supports literal and case-insensitive matching across the terminal
-//! grid (scrollback + visible area). Returns match positions for
-//! rendering highlights and navigation.
+//! grid (scrollback + visible area — the engine feeds
+//! `Terminal::search_rows`, capped at the most recent
+//! `SEARCH_SCROLLBACK_CAP` history rows for cost). Match rows are
+//! ABSOLUTE grid indices (scrollback origin 0), so they stay valid
+//! while the viewport scrolls; navigation adjusts the viewport to
+//! bring the active match into view and the renderer maps absolute
+//! rows onto the current viewport at draw time.
 
 use crate::terminal::Cell;
 
 /// A single match location in the terminal grid.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SearchMatch {
-    /// Row index in the visible rows slice.
+    /// ABSOLUTE row index: 0 = oldest retained scrollback row;
+    /// `scrollback_total()` = first live-screen row. Stable across
+    /// viewport scrolling (a viewport-relative row went stale the
+    /// moment the view moved — hunt finding 2026-06-11).
     pub row: usize,
     /// Starting column (inclusive).
     pub col_start: usize,
@@ -56,8 +64,11 @@ impl SearchState {
         self.current = 0;
     }
 
-    /// Update the query and re-search the grid.
-    pub fn set_query(&mut self, query: &str, rows: &[Vec<Cell>], cols: usize) {
+    /// Update the query and re-search the grid. `rows` is the slice
+    /// [`crate::terminal::Terminal::search_rows`] returns;
+    /// `first_abs` is the absolute index of `rows[0]` so matches get
+    /// absolute addresses.
+    pub fn set_query(&mut self, query: &str, rows: &[Vec<Cell>], cols: usize, first_abs: usize) {
         self.query = query.to_string();
         self.matches.clear();
         self.current = 0;
@@ -85,7 +96,7 @@ impl SearchState {
                 let col_start = search_start + pos;
                 let col_end = col_start + needle.len() - 1;
                 self.matches.push(SearchMatch {
-                    row: row_idx,
+                    row: first_abs + row_idx,
                     col_start,
                     col_end: col_end.min(cols.saturating_sub(1)),
                 });
@@ -98,18 +109,24 @@ impl SearchState {
     /// Shared by both event loops' search-overlay input routing
     /// (`main.rs` local-PTY, `gui_tear_attach.rs` embedded-tear) so
     /// the query-edit semantics cannot drift.
-    pub fn append_query(&mut self, text: &str, rows: &[Vec<Cell>], cols: usize) {
+    pub fn append_query(
+        &mut self,
+        text: &str,
+        rows: &[Vec<Cell>],
+        cols: usize,
+        first_abs: usize,
+    ) {
         let mut query = self.query.clone();
         query.push_str(text);
-        self.set_query(&query, rows, cols);
+        self.set_query(&query, rows, cols, first_abs);
     }
 
     /// Remove the last query character (Backspace) and re-run the
     /// search. Counterpart of [`Self::append_query`].
-    pub fn backspace_query(&mut self, rows: &[Vec<Cell>], cols: usize) {
+    pub fn backspace_query(&mut self, rows: &[Vec<Cell>], cols: usize, first_abs: usize) {
         let mut query = self.query.clone();
         query.pop();
-        self.set_query(&query, rows, cols);
+        self.set_query(&query, rows, cols, first_abs);
     }
 
     /// Navigate to the next match.
@@ -260,7 +277,7 @@ mod tests {
             make_row("goodbye world"),
         ];
         let mut state = SearchState::new();
-        state.set_query("hello", &rows, 13);
+        state.set_query("hello", &rows, 13, 0);
         assert_eq!(state.match_count(), 2);
         assert_eq!(state.matches[0].row, 0);
         assert_eq!(state.matches[0].col_start, 0);
@@ -273,7 +290,7 @@ mod tests {
         let rows = vec![make_row("Hello HELLO hello")];
         let mut state = SearchState::new();
         state.ignore_case = true;
-        state.set_query("hello", &rows, 17);
+        state.set_query("hello", &rows, 17, 0);
         assert_eq!(state.match_count(), 3);
     }
 
@@ -282,7 +299,7 @@ mod tests {
         let rows = vec![make_row("Hello HELLO hello")];
         let mut state = SearchState::new();
         state.ignore_case = false;
-        state.set_query("hello", &rows, 17);
+        state.set_query("hello", &rows, 17, 0);
         assert_eq!(state.match_count(), 1);
         assert_eq!(state.matches[0].col_start, 12);
     }
@@ -295,7 +312,7 @@ mod tests {
             make_row("aaa"),
         ];
         let mut state = SearchState::new();
-        state.set_query("aaa", &rows, 3);
+        state.set_query("aaa", &rows, 3, 0);
         assert_eq!(state.current, 0);
 
         state.next();
@@ -313,7 +330,7 @@ mod tests {
     fn empty_query_no_matches() {
         let rows = vec![make_row("hello")];
         let mut state = SearchState::new();
-        state.set_query("", &rows, 5);
+        state.set_query("", &rows, 5, 0);
         assert_eq!(state.match_count(), 0);
     }
 
@@ -322,10 +339,10 @@ mod tests {
         let rows = vec![make_row("hello world")];
         let mut state = SearchState::new();
         state.open();
-        state.append_query("he", &rows, 11);
+        state.append_query("he", &rows, 11, 0);
         assert_eq!(state.query, "he");
         assert_eq!(state.match_count(), 1);
-        state.append_query("llo", &rows, 11);
+        state.append_query("llo", &rows, 11, 0);
         assert_eq!(state.query, "hello");
         assert_eq!(state.match_count(), 1);
         assert_eq!(state.matches[0].col_start, 0);
@@ -337,15 +354,15 @@ mod tests {
         let rows = vec![make_row("ab abc")];
         let mut state = SearchState::new();
         state.open();
-        state.append_query("abc", &rows, 6);
+        state.append_query("abc", &rows, 6, 0);
         assert_eq!(state.match_count(), 1);
-        state.backspace_query(&rows, 6);
+        state.backspace_query(&rows, 6, 0);
         assert_eq!(state.query, "ab");
         assert_eq!(state.match_count(), 2);
         // Backspacing past empty stays empty (no matches, no panic).
-        state.backspace_query(&rows, 6);
-        state.backspace_query(&rows, 6);
-        state.backspace_query(&rows, 6);
+        state.backspace_query(&rows, 6, 0);
+        state.backspace_query(&rows, 6, 0);
+        state.backspace_query(&rows, 6, 0);
         assert!(state.query.is_empty());
         assert_eq!(state.match_count(), 0);
     }
@@ -354,7 +371,7 @@ mod tests {
     fn is_match_check() {
         let rows = vec![make_row("hello world")];
         let mut state = SearchState::new();
-        state.set_query("world", &rows, 11);
+        state.set_query("world", &rows, 11, 0);
         assert!(state.is_match(0, 6));
         assert!(state.is_match(0, 10));
         assert!(!state.is_match(0, 5));
@@ -366,7 +383,7 @@ mod tests {
         let rows = vec![make_row("hello")];
         let mut state = SearchState::new();
         state.open();
-        state.set_query("hello", &rows, 5);
+        state.set_query("hello", &rows, 5, 0);
         assert!(state.active);
         assert_eq!(state.match_count(), 1);
 
@@ -380,7 +397,7 @@ mod tests {
     fn multiple_matches_same_row() {
         let rows = vec![make_row("aaaa")];
         let mut state = SearchState::new();
-        state.set_query("aa", &rows, 4);
+        state.set_query("aa", &rows, 4, 0);
         // "aa" in "aaaa" should find overlapping matches at 0, 1, 2
         assert_eq!(state.match_count(), 3);
         assert_eq!(state.matches[0].col_start, 0);
@@ -395,7 +412,7 @@ mod tests {
             make_row("hello"),
         ];
         let mut state = SearchState::new();
-        state.set_query("hello", &rows, 5);
+        state.set_query("hello", &rows, 5, 0);
         assert_eq!(state.match_count(), 2);
         // Current is 0
         assert!(state.is_current_match(0, 0));
@@ -415,7 +432,7 @@ mod tests {
             make_row("abc"),
         ];
         let mut state = SearchState::new();
-        state.set_query("abc", &rows, 3);
+        state.set_query("abc", &rows, 3, 0);
         assert_eq!(state.match_count(), 3);
 
         let m0 = *state.current_match().unwrap();
@@ -447,7 +464,7 @@ mod tests {
         assert!(state.active);
 
         let rows = vec![make_row("test")];
-        state.set_query("test", &rows, 4);
+        state.set_query("test", &rows, 4, 0);
         assert_eq!(state.match_count(), 1);
 
         state.close();
@@ -464,7 +481,7 @@ mod tests {
             make_row("foo bar"),
         ];
         let mut state = SearchState::new();
-        state.set_query("xyz", &rows, 11);
+        state.set_query("xyz", &rows, 11, 0);
         assert_eq!(state.match_count(), 0);
         assert!(state.current_match().is_none());
     }
@@ -473,10 +490,10 @@ mod tests {
     fn test_set_query_updates_existing() {
         let rows = vec![make_row("hello world"), make_row("foo bar")];
         let mut state = SearchState::new();
-        state.set_query("hello", &rows, 11);
+        state.set_query("hello", &rows, 11, 0);
         assert_eq!(state.match_count(), 1);
 
-        state.set_query("foo", &rows, 11);
+        state.set_query("foo", &rows, 11, 0);
         assert_eq!(state.match_count(), 1);
         assert_eq!(state.matches[0].col_start, 0);
         assert_eq!(state.matches[0].row, 1);
@@ -486,7 +503,7 @@ mod tests {
     fn test_navigate_empty_matches() {
         let rows = vec![make_row("hello")];
         let mut state = SearchState::new();
-        state.set_query("xyz", &rows, 5);
+        state.set_query("xyz", &rows, 5, 0);
         assert_eq!(state.match_count(), 0);
 
         state.next();
@@ -498,7 +515,7 @@ mod tests {
     fn test_is_match_boundaries() {
         let rows = vec![make_row("hello")];
         let mut state = SearchState::new();
-        state.set_query("ell", &rows, 5);
+        state.set_query("ell", &rows, 5, 0);
         assert!(state.is_match(0, 1));
         assert!(state.is_match(0, 2));
         assert!(state.is_match(0, 3));
@@ -563,7 +580,7 @@ mod tests {
     fn test_search_query_trait_on_real_state() {
         let rows = vec![make_row("hello world")];
         let mut state = SearchState::new();
-        state.set_query("world", &rows, 11);
+        state.set_query("world", &rows, 11, 0);
 
         let query: &dyn SearchQuery = &state;
         assert!(!query.is_active());
@@ -590,7 +607,7 @@ mod tests {
             make_row("baz foo qux"),
         ];
         let mut state = SearchState::new();
-        state.set_query("foo", &rows, 11);
+        state.set_query("foo", &rows, 11, 0);
 
         let query: &dyn SearchQuery = &state;
         assert_eq!(query.match_count(), 3);
@@ -601,7 +618,7 @@ mod tests {
         let rows = vec![make_row("Foo FOO foo")];
         let mut state = SearchState::new();
         state.ignore_case = false;
-        state.set_query("Foo", &rows, 11);
+        state.set_query("Foo", &rows, 11, 0);
         assert_eq!(state.match_count(), 1);
     }
 
@@ -609,7 +626,7 @@ mod tests {
     fn test_search_case_insensitive_default() {
         let rows = vec![make_row("Foo FOO foo")];
         let mut state = SearchState::new();
-        state.set_query("foo", &rows, 11);
+        state.set_query("foo", &rows, 11, 0);
         assert_eq!(state.match_count(), 3);
     }
 
@@ -617,7 +634,7 @@ mod tests {
     fn test_search_adjacent_matches() {
         let rows = vec![make_row("aaaaaa")];
         let mut state = SearchState::new();
-        state.set_query("aa", &rows, 6);
+        state.set_query("aa", &rows, 6, 0);
         assert!(state.match_count() >= 1);
     }
 
@@ -625,7 +642,7 @@ mod tests {
     fn test_search_empty_query_no_matches() {
         let rows = vec![make_row("hello world")];
         let mut state = SearchState::new();
-        state.set_query("", &rows, 11);
+        state.set_query("", &rows, 11, 0);
         assert_eq!(state.match_count(), 0);
     }
 
@@ -633,7 +650,7 @@ mod tests {
     fn test_search_next_wraps() {
         let rows = vec![make_row("aXa"), make_row("aXa")];
         let mut state = SearchState::new();
-        state.set_query("X", &rows, 3);
+        state.set_query("X", &rows, 3, 0);
         let count = state.match_count();
         assert_eq!(count, 2);
         for _ in 0..count + 1 {
@@ -646,7 +663,7 @@ mod tests {
     fn test_search_prev_wraps() {
         let rows = vec![make_row("aXa"), make_row("aXa")];
         let mut state = SearchState::new();
-        state.set_query("X", &rows, 3);
+        state.set_query("X", &rows, 3, 0);
         state.prev();
         assert!(state.current_match().is_some());
     }

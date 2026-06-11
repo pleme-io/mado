@@ -1886,7 +1886,18 @@ impl TerminalRenderer {
 
         // Search match highlights — RLE'd (one rect per match span).
         if snap.search_active {
+            // Match rows are ABSOLUTE (scrollback origin 0) — map
+            // each onto the current viewport and draw only the
+            // visible ones, so highlights track content instead of
+            // going stale the moment the view scrolls.
+            let viewport_top_abs = snap.scrollback_total.saturating_sub(snap.scroll_offset);
             for (i, m) in snap.search_matches.iter().enumerate() {
+                let Some(vp_row) = m.row.checked_sub(viewport_top_abs) else {
+                    continue; // above the viewport
+                };
+                if vp_row >= snap.num_rows {
+                    continue; // below the viewport
+                }
                 let is_current = i == snap.search_current;
                 // Nord aurora yellow #EBCB8B, linearized for the rect
                 // pipeline (current match brighter than other matches).
@@ -1898,7 +1909,7 @@ impl TerminalRenderer {
                 instances.push(RectInstance {
                     pos: [
                         origin_x + m.col_start as f32 * self.cell_width,
-                        origin_y + m.row as f32 * self.cell_height,
+                        origin_y + vp_row as f32 * self.cell_height,
                     ],
                     size: [
                         (m.col_end + 1 - m.col_start) as f32 * self.cell_width,

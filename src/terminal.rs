@@ -397,6 +397,12 @@ impl Grid {
     }
 
     /// Number of scrollback lines available.
+    /// Iterator over ALL rows (scrollback + visible) starting at the
+    /// absolute index `from` — the scrollback-search row source.
+    fn rows_from(&self, from: usize) -> impl Iterator<Item = &[Cell]> {
+        self.rows.iter().skip(from).map(Vec::as_slice)
+    }
+
     fn scrollback_len(&self) -> usize {
         self.rows.len().saturating_sub(self.visible_rows)
     }
@@ -1400,6 +1406,23 @@ impl Terminal {
     #[must_use]
     pub fn scrollback_total(&self) -> usize {
         self.grid().scrollback_len()
+    }
+
+    /// Rows for scrollback search: the most recent `cap` history rows
+    /// plus the live screen, with the ABSOLUTE index of the first
+    /// returned row (scrollback origin 0) so match addresses stay
+    /// valid while the viewport scrolls. The cap bounds the per-edit
+    /// scan cost on unbounded-scrollback configs.
+    #[must_use]
+    pub fn search_rows(&self, cap: usize) -> (Vec<Vec<Cell>>, usize) {
+        let grid = self.grid();
+        let sb_len = grid.scrollback_len();
+        let first_abs = sb_len.saturating_sub(cap);
+        let rows: Vec<Vec<Cell>> = grid
+            .rows_from(first_abs)
+            .map(<[Cell]>::to_vec)
+            .collect();
+        (rows, first_abs)
     }
 
     /// Iterator over visible rows, accounting for scroll offset.

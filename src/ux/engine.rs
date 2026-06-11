@@ -195,6 +195,52 @@ impl InputEngine {
     /// Snapshot the visible grid rows + column count under a short
     /// read lock — the shape every lifted handler used: collect, drop
     /// the guard, operate on the copy.
+    /// Rows the search scans: visible screen + up to this many of the
+    /// most recent scrollback rows. Bounds the per-keystroke scan on
+    /// unbounded-scrollback configs (~5k rows × 200 cols ≈ 1M cells,
+    /// well under a frame at memchr speeds).
+    const SEARCH_SCROLLBACK_CAP: usize = 5000;
+
+    /// Search row source: (rows, cols, absolute index of rows[0]).
+    fn search_rows(&self) -> (Vec<Vec<Cell>>, usize, usize) {
+        let term = self.terminal.read();
+        let (rows, first_abs) = term.search_rows(Self::SEARCH_SCROLLBACK_CAP);
+        (rows, term.cols(), first_abs)
+    }
+
+    /// Bring the active search match into view: matches carry
+    /// ABSOLUTE rows, so when the active one is outside the current
+    /// viewport, retarget the scroll offset to put it a few rows
+    /// below the top edge (search-reading posture). No-op when the
+    /// match is already visible.
+    fn scroll_to_active_match(&mut self) {
+        let target_abs = {
+            let st = self.search.lock().unwrap();
+            match st.current_match() {
+                Some(m) => m.row,
+                None => return,
+            }
+        };
+        let mut term = self.terminal.write();
+        let sb_len = term.scrollback_total();
+        let visible = term.rows();
+        let offset = term.scroll_offset();
+        // Viewport spans absolute rows [sb_len - offset, +visible).
+        let top_abs = sb_len.saturating_sub(offset);
+        if target_abs >= top_abs && target_abs < top_abs + visible {
+            return; // already on screen
+        }
+        // Put the match 2 rows below the viewport top (clamped).
+        let desired_top = target_abs.saturating_sub(2);
+        let new_offset = sb_len.saturating_sub(desired_top).min(sb_len);
+        let cur = term.scroll_offset();
+        if new_offset > cur {
+            term.scroll_up(new_offset - cur);
+        } else {
+            term.scroll_down(cur - new_offset);
+        }
+    }
+
     fn rows_snapshot(&self) -> (Vec<Vec<Cell>>, usize) {
         let term = self.terminal.read();
         let rows: Vec<_> = term.visible_rows().map(|r| r.to_vec()).collect();
@@ -238,10 +284,12 @@ impl InputEngine {
                     }
                     Some(Action::SearchNext) => {
                         self.search.lock().unwrap().next();
+                        self.scroll_to_active_match();
                         return EventOutcome::consumed().with_cursor_visibility(vis);
                     }
                     Some(Action::SearchPrev) => {
                         self.search.lock().unwrap().prev();
+                        self.scroll_to_active_match();
                         return EventOutcome::consumed().with_cursor_visibility(vis);
                     }
                     _ => {}
@@ -250,14 +298,22 @@ impl InputEngine {
                 if !mods.ctrl && !mods.meta && !mods.alt {
                     if let Some(text) = text {
                         if !text.is_empty() {
-                            let (rows, cols) = self.rows_snapshot();
-                            self.search.lock().unwrap().append_query(text, &rows, cols);
+                            let (rows, cols, first_abs) = self.search_rows();
+                            self.search
+                                .lock()
+                                .unwrap()
+                                .append_query(text, &rows, cols, first_abs);
+                            self.scroll_to_active_match();
                             return EventOutcome::consumed().with_cursor_visibility(vis);
                         }
                     }
                     if matches!(key, KeyCode::Backspace) {
-                        let (rows, cols) = self.rows_snapshot();
-                        self.search.lock().unwrap().backspace_query(&rows, cols);
+                        let (rows, cols, first_abs) = self.search_rows();
+                        self.search
+                            .lock()
+                            .unwrap()
+                            .backspace_query(&rows, cols, first_abs);
+                        self.scroll_to_active_match();
                         return EventOutcome::consumed().with_cursor_visibility(vis);
                     }
                 }
@@ -425,10 +481,15 @@ impl InputEngine {
                 if !st.active {
                     return ActionOutcome::FallThrough;
                 }
+                let close = matches!(action, Action::SearchClose);
                 match action {
                     Action::SearchClose => st.close(),
                     Action::SearchNext => st.next(),
                     _ => st.prev(),
+                }
+                drop(st);
+                if !close {
+                    self.scroll_to_active_match();
                 }
                 ActionOutcome::Consumed(EventOutcome::consumed())
             }
@@ -1356,6 +1417,79 @@ mod tests {
             "a keystroke that sends bytes must snap to the live tail"
         );
         assert_eq!(h.sent_bytes(), vec![b"a".to_vec()]);
+    }
+
+    /// **Scrollback search** (2026-06-11): a query that scrolled out
+    /// of the viewport must still match, and Next must bring the
+    /// match into view. Pre-fix the scan covered only the visible
+    /// rows — "Cmd+F for a string from two seconds ago: zero
+    /// matches, silently."
+    #[test]
+    fn search_finds_matches_in_scrollback_and_next_scrolls_to_them() {
+        let mut h = Harness::new(SinkKind::Closure);
+        h.feed(b"needle-here\r\n");
+        for _ in 0..40 {
+            h.feed(b"filler\r\n");
+        }
+        // The needle is now deep in scrollback (24-row screen).
+        assert_eq!(h.terminal.read().scroll_offset(), 0);
+        h.engine.apply_action(Action::SearchOpen, &mut h.renderer);
+        for ch in ["n", "e", "e", "d", "l", "e"] {
+            h.key(KeyCode::Char(ch.chars().next().unwrap()), Some(ch), no_mods());
+        }
+        let (count, target_abs) = {
+            let st = h.engine.search.lock().unwrap();
+            (
+                st.matches.len(),
+                st.current_match().map(|m| m.row).unwrap_or(usize::MAX),
+            )
+        };
+        assert!(count >= 1, "scrollback content must match");
+        // Query-edit already jumped the view to the active match.
+        let term = h.terminal.read();
+        let top_abs = term.scrollback_total() - term.scroll_offset();
+        assert!(
+            target_abs >= top_abs && target_abs < top_abs + term.rows(),
+            "active match (abs row {target_abs}) must be inside the \
+             viewport [{top_abs}, +{})",
+            term.rows()
+        );
+    }
+
+    /// Absolute match rows survive viewport scrolling — the matches
+    /// list doesn't go stale when the operator wheels around with
+    /// the overlay open.
+    #[test]
+    fn search_matches_keep_absolute_rows_across_scrolling() {
+        let mut h = Harness::new(SinkKind::Closure);
+        h.feed(b"needle\r\n");
+        for _ in 0..40 {
+            h.feed(b"filler\r\n");
+        }
+        h.engine.apply_action(Action::SearchOpen, &mut h.renderer);
+        for ch in ["n", "e", "e", "d", "l", "e"] {
+            h.key(KeyCode::Char(ch.chars().next().unwrap()), Some(ch), no_mods());
+        }
+        let before: Vec<usize> = h
+            .engine
+            .search
+            .lock()
+            .unwrap()
+            .matches
+            .iter()
+            .map(|m| m.row)
+            .collect();
+        h.terminal.write().scroll_down(3);
+        let after: Vec<usize> = h
+            .engine
+            .search
+            .lock()
+            .unwrap()
+            .matches
+            .iter()
+            .map(|m| m.row)
+            .collect();
+        assert_eq!(before, after, "absolute rows must not shift with the viewport");
     }
 
     /// **Bare modifier presses must NOT clear the selection** —
