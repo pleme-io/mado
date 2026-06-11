@@ -445,9 +445,20 @@ where
     // its own Terminal; the renderer + consumer hold clones, so the
     // original `terminal` binding is still live to clone here.
     let terminal_for_scroll = Arc::clone(&terminal);
+    // macOS window-chrome styling latch (window.macos.* +
+    // appearance.background) — same shape as the local-PTY path in
+    // main.rs. Without this the tear-attach window never ran
+    // `apply_native_styling` at all and kept the stock opaque titlebar
+    // (grey band + visible ❄ title, operator report 2026-06-11).
+    let mut native_styling = crate::platform::NativeStylingLatch::from_config(&config);
     madori::App::builder(renderer)
         .config(app_config)
         .on_event(move |event, renderer| -> EventResponse {
+            // ── macOS chrome (flush titlebar etc.) ───────────────
+            // The latch retries until a window exists: the first event
+            // ticks can arrive before AppKit registers the window, and
+            // a fire-once call would leave the stock titlebar up.
+            native_styling.tick();
             // ── Elegant child-exit close ──────────────────────
             // engate signalled the producer channel closed (shell
             // exited / PTY EOF). Request a clean window-loop exit

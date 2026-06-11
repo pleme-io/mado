@@ -23,17 +23,79 @@ pub struct MacOsWindowStyle {
     pub background: ishou_tokens::Srgb,
 }
 
+impl MacOsWindowStyle {
+    /// Extract the chrome inputs from the operator's shikumi config.
+    /// Both event-loop paths (local-PTY `main.rs`, tear-attach
+    /// `gui_tear_attach.rs`) call this so the chrome contract stays
+    /// one shape.
+    pub fn from_config(config: &crate::config::MadoConfig) -> Self {
+        Self {
+            native_tabs: config.window.macos.native_tabs,
+            titlebar: config.window.macos.titlebar,
+            appearance: config.window.macos.appearance,
+            background: ishou_tokens::Srgb::from_hex(&config.appearance.background)
+                .unwrap_or(ishou_tokens::Srgb::new(0x2e, 0x34, 0x40)),
+        }
+    }
+}
+
+/// One-shot latch tying the window-chrome style to its applied state.
+/// Event loops construct one before entering the loop and call
+/// [`tick`](Self::tick) on every event — styling applies on the first
+/// tick where a window actually exists, then the latch goes inert.
+///
+/// This is the only sanctioned consumption shape for
+/// [`apply_native_styling`]: holding the flag and the style in one
+/// value makes the historical fire-once bug (flag set before the
+/// styling actually landed, leaving the stock grey titlebar up
+/// forever) unwritable at the call site.
+pub struct NativeStylingLatch {
+    style: MacOsWindowStyle,
+    applied: bool,
+}
+
+impl NativeStylingLatch {
+    /// Build the latch from the operator's shikumi config.
+    pub fn from_config(config: &crate::config::MadoConfig) -> Self {
+        Self {
+            style: MacOsWindowStyle::from_config(config),
+            applied: false,
+        }
+    }
+
+    /// Apply styling if it hasn't landed yet; cheap no-op afterwards.
+    pub fn tick(&mut self) {
+        if !self.applied {
+            self.applied = apply_native_styling(&self.style);
+        }
+    }
+}
+
 /// Apply platform-native window styling from the operator config.
 /// On macOS this drives titlebar integration, native-tab suppression,
 /// and forced appearance — all shikumi-configured; a no-op elsewhere.
-pub fn apply_native_styling(style: &MacOsWindowStyle) {
+///
+/// Returns `true` once styling has actually been applied to at least
+/// one window (or there is nothing to do on this platform). Returns
+/// `false` when it could not apply: no window exists yet — during
+/// launch the first event ticks can arrive before AppKit registers
+/// the window — or the call is off the main thread. Callers MUST
+/// retry on subsequent main-thread ticks until this reports `true`
+/// (a fire-once call here is exactly the bug that left the stock
+/// grey titlebar + visible `❄` title on tear-attach windows); prefer
+/// [`NativeStylingLatch`], which packages that contract.
+#[must_use]
+pub fn apply_native_styling(style: &MacOsWindowStyle) -> bool {
     #[cfg(target_os = "macos")]
-    macos::apply_styling(style);
+    {
+        macos::apply_styling(style)
+    }
 
     #[cfg(not(target_os = "macos"))]
     {
         let _ = style;
         tracing::debug!("no platform-specific styling for this OS");
+        true
     }
 }
 
@@ -75,6 +137,52 @@ mod tests {
     fn set_badge_some_does_not_panic() {
         set_badge(Some("test"));
     }
+
+    #[test]
+    fn apply_native_styling_off_main_thread_is_a_safe_noop() {
+        let style = MacOsWindowStyle {
+            native_tabs: false,
+            titlebar: crate::config::TitlebarStyle::default(),
+            appearance: crate::config::WindowAppearance::default(),
+            background: ishou_tokens::Srgb::new(0x2e, 0x34, 0x40),
+        };
+        // Spawn so this is never the process main thread.
+        let applied = std::thread::spawn(move || apply_native_styling(&style))
+            .join()
+            .unwrap();
+        // On macOS the off-main-thread path must report not-applied so
+        // the event loop retries; elsewhere it's a successful no-op.
+        #[cfg(target_os = "macos")]
+        assert!(!applied);
+        #[cfg(not(target_os = "macos"))]
+        assert!(applied);
+    }
+
+    #[test]
+    fn native_styling_latch_ticks_are_safe_and_idempotent() {
+        let style = MacOsWindowStyle {
+            native_tabs: false,
+            titlebar: crate::config::TitlebarStyle::default(),
+            appearance: crate::config::WindowAppearance::default(),
+            background: ishou_tokens::Srgb::new(0x2e, 0x34, 0x40),
+        };
+        // Off the main thread the latch must keep retrying (macOS) or
+        // settle immediately (elsewhere) — and never panic either way.
+        std::thread::spawn(move || {
+            let mut latch = NativeStylingLatch {
+                style,
+                applied: false,
+            };
+            latch.tick();
+            latch.tick();
+            #[cfg(target_os = "macos")]
+            assert!(!latch.applied, "off-main-thread ticks must keep the latch armed");
+            #[cfg(not(target_os = "macos"))]
+            assert!(latch.applied);
+        })
+        .join()
+        .unwrap();
+    }
 }
 
 #[cfg(target_os = "macos")]
@@ -95,20 +203,57 @@ mod macos {
     /// operator authors under `window.macos.*` / `appearance.background`
     /// in `~/.config/mado/mado.yaml`. Defaults bias to "just the
     /// terminal": flush titlebar, no native tabs, dark appearance.
-    pub fn apply_styling(style: &super::MacOsWindowStyle) {
-        // We're called from the main event loop, so main thread is guaranteed.
+    ///
+    /// Styles EVERY app window, not just the key one — at the first
+    /// redraw the window often isn't key yet (`keyWindow()` is nil
+    /// during launch), which used to silently skip styling. Returns
+    /// `true` once at least one window was styled so callers can
+    /// retry until the window materializes.
+    pub fn apply_styling(style: &super::MacOsWindowStyle) -> bool {
+        // Off the main thread, AppKit is untouchable — report
+        // not-applied (part of the false/retry contract) so a
+        // main-thread tick can pick it up.
         let Some(mtm) = MainThreadMarker::new() else {
-            tracing::warn!("apply_styling called off main thread");
-            return;
+            tracing::warn!("apply_styling called off main thread — deferred");
+            return false;
         };
 
         let app = NSApplication::sharedApplication(mtm);
 
-        let Some(window) = app.keyWindow() else {
-            tracing::trace!("no key window for styling");
-            return;
-        };
+        let windows = app.windows();
+        if windows.count() == 0 {
+            tracing::trace!("no app windows yet — styling deferred to a later tick");
+            return false;
+        }
 
+        // ── Native window tabbing (window.macos.native_tabs) ─────────
+        // The macOS-native tab bar — the `⌘1 / ⌘2 / …` tab strip plus the
+        // `+` new-tab button that render as a grey band under the titlebar
+        // — is redundant chrome by default: mado owns sessions, panes, and
+        // windows through its integrated `tear` runtime. Default-off
+        // disallows it globally (the strip + `+` never appear, ghostty's
+        // behaviour); the per-window mode is set in the loop below.
+        // Operators can opt back into the OS tab bar with
+        // `native_tabs: true`.
+        NSWindow::setAllowsAutomaticWindowTabbing(style.native_tabs, mtm);
+
+        for window in windows.iter() {
+            style_window(&window, style);
+        }
+
+        tracing::debug!(
+            native_tabs = style.native_tabs,
+            titlebar = ?style.titlebar,
+            appearance = ?style.appearance,
+            windows = windows.count(),
+            "applied macOS native window styling from config"
+        );
+        true
+    }
+
+    /// Per-window half of [`apply_styling`] — titlebar integration,
+    /// per-window tabbing mode, and forced appearance.
+    fn style_window(window: &NSWindow, style: &super::MacOsWindowStyle) {
         // ── Titlebar integration (window.macos.titlebar) ─────────────
         match style.titlebar {
             TitlebarStyle::Flush => {
@@ -143,20 +288,13 @@ mod macos {
             }
         }
 
-        // ── Native window tabbing (window.macos.native_tabs) ─────────
-        // The macOS-native tab bar — the `⌘1 / ⌘2 / …` tab strip plus the
-        // `+` new-tab button that render as a grey band under the titlebar
-        // — is redundant chrome by default: mado owns sessions, panes, and
-        // windows through its integrated `tear` runtime. Default-off
-        // disallows it globally (the strip + `+` never appear, ghostty's
-        // behaviour) and per-window as belt-and-suspenders for the already
-        // -created window that predated the global flag. Operators can opt
-        // back into the OS tab bar with `native_tabs: true`.
+        // ── Per-window tabbing mode (window.macos.native_tabs) ───────
+        // Belt-and-suspenders next to the app-global
+        // `setAllowsAutomaticWindowTabbing` in `apply_styling` — covers
+        // a window created before the global flag landed.
         if style.native_tabs {
-            NSWindow::setAllowsAutomaticWindowTabbing(true, mtm);
             window.setTabbingMode(NSWindowTabbingMode::Automatic);
         } else {
-            NSWindow::setAllowsAutomaticWindowTabbing(false, mtm);
             window.setTabbingMode(NSWindowTabbingMode::Disallowed);
         }
 
@@ -178,13 +316,6 @@ mod macos {
             WindowAppearance::Auto => None,
         };
         window.setAppearance(forced.as_deref());
-
-        tracing::debug!(
-            native_tabs = style.native_tabs,
-            titlebar = ?style.titlebar,
-            appearance = ?style.appearance,
-            "applied macOS native window styling from config"
-        );
     }
 
     /// Set dock badge text.
