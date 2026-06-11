@@ -13,26 +13,23 @@
 //! - Resize forwarding: window resize → cell-dim math →
 //!   `client.pane_resize_absolute(pane, cols, rows)`.
 //!
-//! Deliberate non-goals for the MVP (updated 2026-06-11):
-//! - No special-key translation (arrows / function / chord keys);
-//!   only `KeyEvent.text` (UTF-8 char input) is forwarded. Phase
-//!   3.1.1 will port mado's existing key-table.
-//! - ~~No clipboard / selection~~ LIFTED 2026-06-11: click/word/line
-//!   selection, copy-on-select, Cmd+C/Cmd+V (PasteGuard-sanitized),
-//!   and full mouse forwarding via the shared typed
-//!   `mouse_report::MouseReport` emitter now run in this path.
-//! - ~~No search~~ LIFTED 2026-06-11: Cmd+F scrollback search,
-//!   kitty CSI-u key encoding, focus events (mode 1004), IME
-//!   commit, and Cmd+click URL open all ported from the local-PTY
-//!   path (docs/COMPETITIVE.md P0/P1 bifurcation ports).
-//! - No multi-pane (that's tear's job — this mode renders one
-//!   tear pane in one mado window).
+//! Since M1 (2026-06-11) every input/UX capability — keystroke
+//! translation, selection + clipboard, search + dir-picker overlays,
+//! full mouse forwarding, kitty CSI-u, focus events, IME, font zoom,
+//! the PTY-grid⇄display reconciler — runs through the shared
+//! `ux::InputEngine`, identical code to the local-PTY loop in
+//! `main.rs` (the pre-M1 second copy of the UX logic this file
+//! carried is gone; `tests/ux_unification.rs` pins that).
+//! This file only assembles the tear transport (engate attach,
+//! session lifecycle, reap) and adapts events to the engine.
+//!
+//! Deliberate non-goal: no multi-pane (that's tear's job — this
+//! mode renders one tear pane in one mado window).
 
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use anyhow::{Context, Result};
-use hasami::ClipboardProvider;
 use parking_lot::RwLock;
 use tear_types::{MultiplexerControl, PaneId, SessionSource};
 
@@ -404,7 +401,6 @@ where
         .ok();
     }
 
-    let control_for_events = Arc::clone(&control);
     let app_config = AppConfig {
         // Snowflake-only title — the operator-facing identifier IS the
         // window itself; pane-id + tear-kind don't need to be repeated
@@ -426,25 +422,6 @@ where
     let session_reap_target = std::sync::Arc::new(std::sync::Mutex::new(owned_session_id));
     let control_for_reap = Arc::clone(&control);
     let session_reap = Arc::clone(&session_reap_target);
-    // Tear-mode keybindings. Use the operator-prescribed default
-    // baseline (with_mado_defaults). Per the three-tier model in
-    // MadoConfig: bare → bare+discovered → bare+defaults+discovered;
-    // here we're in the third tier. Operator overrides via
-    // mado.yaml are loaded into the typed keybinds config but the
-    // tear-mode event loop only dispatches the action-firing
-    // subset relevant in single-pane tear mode (font zoom, Copy,
-    // Paste, Search* — see apply_tear_action). Remaining actions
-    // (scroll, fullscreen, prompt jump) fall through to PTY
-    // forwarding until the M1 InputEngine unification.
-    let keybinds = crate::keybind::KeybindManager::with_mado_defaults();
-    // Per-action debouncer for OS key-repeat storms. Default 80ms
-    // window — OS key-repeat is ~30-50ms, this drops storm-ticks
-    // while allowing 12 intentional presses per second. Per the
-    // 2026-05-21 runaway-font incident (Cmd-= held → font grew
-    // 14 → 32pt in 1.5s); the gate caps that to ~19 transitions
-    // and `BoundedFontSize` caps the final value at FONT_MAX = 64.
-    let mut key_repeat_gate =
-        awase::KeyRepeatGate::<crate::keybind::Action>::new();
     let default_font_size_for_reset = config.font_size;
     // Register this event loop as the live drainer for kanshou-
     // injected actions (`simulate_chord`). Until attach_sink() runs,
@@ -454,52 +431,71 @@ where
         inj.attach_sink();
     }
     let child_exited_for_events = Arc::clone(&child_exited);
-    // Scrollback-view handle for the wheel/scroll arm below. mado owns
-    // its own Terminal; the renderer + consumer hold clones, so the
-    // original `terminal` binding is still live to clone here.
-    let terminal_for_scroll = Arc::clone(&terminal);
     // macOS window-chrome styling latch (window.macos.* +
     // appearance.background) — same shape as the local-PTY path in
     // main.rs. Without this the tear-attach window never ran
     // `apply_native_styling` at all and kept the stock opaque titlebar
     // (grey band + visible ❄ title, operator report 2026-06-11).
     let mut native_styling = crate::platform::NativeStylingLatch::from_config(&config);
-    // ── Selection + clipboard (muscle-memory copy) ────────────────
-    // The tear-attach MVP shipped without selection; lifted 2026-06-11
-    // so the operator's DAILY path has the same highlight→copy muscle
-    // memory as the local-PTY loop: click-drag / double-click word /
-    // triple-click line, release → clipboard (copy_on_select), Cmd+C /
-    // Cmd+V via apply_tear_action.
-    let selection = Arc::new(std::sync::Mutex::new(crate::selection::Selection::new()));
-    renderer.set_selection(Arc::clone(&selection));
-    let selection_for_events = Arc::clone(&selection);
-    // ── In-scrollback search (Cmd+F) ──────────────────────────────
-    // Same engine as the local-PTY path (search.rs). Matching +
-    // navigation run on mado's mirror Terminal — engate keeps it fed,
-    // so no tear-side state is needed. The renderer shares the state
-    // for match-highlight rects (same set_search hook main.rs uses).
-    let search = Arc::new(std::sync::Mutex::new(crate::search::SearchState::new()));
-    renderer.set_search(Arc::clone(&search));
-    let search_for_events = Arc::clone(&search);
-    let clipboard = Arc::new(std::sync::Mutex::new(
-        hasami::Clipboard::new().expect("failed to initialize clipboard"),
-    ));
-    let copy_on_select = config.behavior.copy_on_select;
-    let mut click_count: u8 = 0;
-    let mut last_click_time = std::time::Instant::now();
-    let mut last_click_pos = crate::selection::CellPos { row: 0, col: 0 };
-    // Whether the left button is currently held — drives the SGR
-    // motion code (drag = 32 vs hover = 35) and 1002 ButtonEvent's
-    // motion-only-while-pressed contract.
-    let mut left_button_down = false;
-    let terminal_for_mouse = Arc::clone(&terminal);
-    // ── PTY-grid ⇄ display reconciler state ──────────────────────
-    // Signature of the RENDERED surface (dims + measured cell-metric
-    // bits) the grid was last derived from. Latching on render truth
-    // (never on what-was-pushed) is load-bearing: events dispatch
-    // before render, so event-derived bookkeeping is one frame ahead
-    // of measured_grid() and ping-pongs tear between old/new grids.
-    let mut grid_sync_sig: Option<(u32, u32, u32, u32)> = None;
+
+    // ── M1 unified input/UX engine ────────────────────────────────
+    // Every UX capability (selection + clipboard with the
+    // muscle-memory copy contract, search overlay, dir-picker, full
+    // mouse forwarding, kitty CSI-u, focus events, IME, font zoom,
+    // the PTY-grid⇄display reconciler) lives in ux::InputEngine —
+    // identical code to the local-PTY loop; this event loop is a thin
+    // adapter (tests/ux_unification.rs pins that structurally). The
+    // tear divergences are injected here: PTY writes →
+    // control.send_keys, grid pushes → control.pane_resize_absolute,
+    // DECCKM → pane_cursor_keys_mode.
+    let pty_sink: Box<dyn crate::ux::PtySink> = {
+        let control = Arc::clone(&control);
+        Box::new(move |bytes: &[u8]| {
+            let _ = control.send_keys(pane_id, bytes);
+        })
+    };
+    let resize_sink: Box<dyn crate::ux::ResizeSink> = {
+        let control = Arc::clone(&control);
+        Box::new(move |cols: u16, rows: u16| {
+            let _ = control.pane_resize_absolute(pane_id, cols, rows);
+        })
+    };
+    // DECCKM (cursor-keys application mode) is queried per keystroke
+    // via the typed `pane_cursor_keys_mode` accessor on
+    // `MultiplexerControl` — no-alloc on the `InProcess` backend,
+    // default fallback to `pane_snapshot` on other backends. When
+    // vim / less / etc. enter alt-screen and set DECCKM, this returns
+    // true and the engine emits `ESC O A/B/C/D` instead of
+    // `ESC [ A/B/C/D` for arrow keys. Errors (`NoSuchPane` during
+    // shutdown race) degrade to normal mode — the editor still
+    // receives valid cursor keys.
+    let cursor_keys_mode: Box<dyn Fn() -> bool + Send + Sync> = {
+        let control = Arc::clone(&control);
+        Box::new(move || control.pane_cursor_keys_mode(pane_id).unwrap_or(false))
+    };
+    let mut engine = crate::ux::InputEngine::attach_to_renderer(
+        &mut renderer,
+        crate::ux::InputEngineParams {
+            terminal: Arc::clone(&terminal),
+            pty: pty_sink,
+            resize: resize_sink,
+            shared: crate::ux::SharedUxState::fresh(),
+            clipboard: Arc::new(
+                hasami::Clipboard::new().expect("failed to initialize clipboard"),
+            ),
+            // Curated default baseline + operator `keybinds.custom`
+            // overrides via keybind::manager_from_config — the same
+            // assembly as the local-PTY path and the kanshou
+            // `simulate_chord` resolver (pre-M1 this path used the
+            // bare defaults and ignored custom binds).
+            keybinds: crate::keybind::manager_from_config(&config),
+            behavior: crate::ux::UxBehavior::from(&config),
+            cursor_keys_mode,
+            default_font_size: default_font_size_for_reset,
+            padding,
+        },
+    );
+
     madori::App::builder(renderer)
         .config(app_config)
         .on_event(move |event, renderer| -> EventResponse {
@@ -509,8 +505,9 @@ where
             // a fire-once call would leave the stock titlebar up.
             native_styling.tick();
             // ── PTY-grid ⇄ display reconciler ────────────────────
-            // Latches on the RENDERED surface signature (dims +
-            // measured cell metrics). Covers (a) the pre-window
+            // Engine-owned latch on the RENDERED surface signature
+            // (dims + measured cell metrics), run on every event tick
+            // (pre-M1 timing preserved). Covers (a) the pre-window
             // estimate being wrong — heuristic cell metrics, and a
             // Flush titlebar insets the content view while macOS
             // sends no initial Resized to correct it (the 2026-06-11
@@ -520,20 +517,7 @@ where
             // halves: mado's mirror VT grid (wrap math, CPR/XTWINOPS
             // answers, mouse clamps) and tear's PaneGrid+PTY — the
             // mirror half was missing entirely in tear mode.
-            if let Some((w, h)) = renderer.last_surface_size() {
-                let cw = renderer.cell_width();
-                let ch = renderer.cell_height();
-                let sig = (w, h, cw.to_bits(), ch.to_bits());
-                if grid_sync_sig != Some(sig) {
-                    grid_sync_sig = Some(sig);
-                    let (cols, rows) = renderer.cells_for_window_phys(w, h);
-                    terminal_for_mouse
-                        .write()
-                        .resize(cols as usize, rows as usize);
-                    let _ =
-                        control_for_events.pane_resize_absolute(pane_id, cols, rows);
-                }
-            }
+            engine.on_redraw_tick(renderer);
             // ── Elegant child-exit close ──────────────────────
             // engate signalled the producer channel closed (shell
             // exited / PTY EOF). Request a clean window-loop exit
@@ -559,34 +543,33 @@ where
             // frame — worst-case latency is one frame). Injection
             // bypasses the key-repeat gate on purpose: these are
             // deliberate typed requests, not OS auto-repeat storms,
-            // and BoundedFontSize still clamps the result.
+            // and BoundedFontSize still clamps the result. The drain
+            // goes through engine.apply_action — EXACTLY the dispatch
+            // a physical chord hits, no parallel implementation to
+            // drift.
             if let Some(inj) = injected.as_ref() {
                 for action in inj.drain() {
-                    let handled = apply_tear_action(
-                        action,
-                        renderer,
-                        &control_for_events,
-                        pane_id,
-                        default_font_size_for_reset,
-                        &terminal_for_mouse,
-                        &selection_for_events,
-                        &clipboard,
-                        &search_for_events,
-                    );
-                    if !handled {
+                    if let crate::ux::ActionOutcome::FallThrough =
+                        engine.apply_action(action, renderer)
+                    {
                         tracing::debug!(
                             action = action.as_str(),
-                            "injected action has no tear-mode handler yet — dropped"
+                            "injected action fell through (no consuming handler)"
                         );
                     }
                 }
             }
 
+            // M1 adapter: each arm translates AppEvent fields into one
+            // InputEngine call and maps the typed EventOutcome back to
+            // madori's EventResponse. Loop-specific concerns that stay
+            // here: child-exit close + session reap (above), the
+            // injection drain, NativeStylingLatch ticks, snow pulses.
             match event {
                 AppEvent::Resized { .. } => {
-                    // No push here: the reconciler (top of closure)
-                    // converges on RENDERED truth one frame later.
-                    // Pushing event dims raced the renderer's
+                    // No push here: the engine reconciler (top of
+                    // closure) converges on RENDERED truth one frame
+                    // later. Pushing event dims raced the renderer's
                     // one-frame lag and ping-ponged tear between old
                     // and new grids (review finding 2026-06-11).
                     EventResponse::ignored()
@@ -597,457 +580,28 @@ where
                     x,
                     y,
                     modifiers,
-                }) => {
-                    let cw = renderer.cell_width();
-                    let ch = renderer.cell_height();
-                    // Mouse coords are PHYSICAL pixels; padding is a
-                    // logical config value — scale before subtracting
-                    // or clicks land up to half a cell off on HiDPI.
-                    let pad_phys = padding * renderer.scale_factor();
-                    let col = ((*x as f32 - pad_phys) / cw).max(0.0) as usize;
-                    let row = ((*y as f32 - pad_phys) / ch).max(0.0) as usize;
-                    let (mouse_mode, sgr, term_cols, term_rows) = {
-                        let term = terminal_for_mouse.read();
-                        (term.mouse_mode(), term.sgr_mouse(), term.cols(), term.rows())
-                    };
-                    let col = col.min(term_cols.saturating_sub(1));
-                    let row = row.min(term_rows.saturating_sub(1));
-
-                    if *button == madori::event::MouseButton::Left {
-                        left_button_down = *pressed;
-                    }
-
-                    // TUI mouse tracking active → forward the click to
-                    // the PTY via the typed MouseReport emitter (shared
-                    // with the local-PTY path — the two loops cannot
-                    // drift). Before this arm existed, Button events
-                    // fell into the catch-all and TUI clicks were
-                    // silently dropped in tear mode.
-                    if mouse_mode != crate::terminal::MouseMode::Off
-                        && *button == madori::event::MouseButton::Left
-                    {
-                        let report = crate::mouse_report::MouseReport {
-                            kind: if *pressed {
-                                crate::mouse_report::MouseReportKind::Press
-                            } else {
-                                crate::mouse_report::MouseReportKind::Release
-                            },
-                            button: crate::mouse_report::MouseReportButton::Left,
-                            col: col + 1,
-                            row: row + 1,
-                        };
-                        let _ =
-                            control_for_events.send_keys(pane_id, &report.encode(sgr));
-                        return EventResponse::consumed();
-                    }
-
-                    // Text selection via left mouse button — click /
-                    // double-click word / triple-click line; on release
-                    // the highlight goes straight to the clipboard when
-                    // copy_on_select is on (the muscle-memory contract).
-                    if *button == madori::event::MouseButton::Left {
-                        if *pressed {
-                            let now = std::time::Instant::now();
-                            let same_pos =
-                                last_click_pos.row == row && last_click_pos.col == col;
-                            let quick =
-                                now.duration_since(last_click_time).as_millis() < 400;
-                            if same_pos && quick {
-                                click_count = (click_count + 1).min(3);
-                            } else {
-                                click_count = 1;
-                            }
-                            last_click_time = now;
-                            last_click_pos = crate::selection::CellPos { row, col };
-
-                            if let Ok(mut sel) = selection_for_events.lock() {
-                                match click_count {
-                                    2 => {
-                                        let (rows_vec, cols_count) = {
-                                            let term = terminal_for_mouse.read();
-                                            (
-                                                term.visible_rows()
-                                                    .map(|r| r.to_vec())
-                                                    .collect::<Vec<_>>(),
-                                                term.cols(),
-                                            )
-                                        };
-                                        sel.select_word(
-                                            crate::selection::CellPos { row, col },
-                                            &rows_vec,
-                                            cols_count,
-                                        );
-                                    }
-                                    3 => {
-                                        let cols_count = terminal_for_mouse.read().cols();
-                                        sel.select_line(row, cols_count);
-                                    }
-                                    _ => sel.start(crate::selection::CellPos { row, col }),
-                                }
-                            }
-                        } else {
-                            if let Ok(mut sel) = selection_for_events.lock() {
-                                if click_count == 1 {
-                                    sel.finish();
-                                }
-                                if copy_on_select {
-                                    let (rows_vec, cols_count) = {
-                                        let term = terminal_for_mouse.read();
-                                        (
-                                            term.visible_rows()
-                                                .map(|r| r.to_vec())
-                                                .collect::<Vec<_>>(),
-                                            term.cols(),
-                                        )
-                                    };
-                                    if let Some(text) =
-                                        sel.extract_text(&rows_vec, cols_count)
-                                        && let Ok(cb) = clipboard.lock()
-                                    {
-                                        let _ = cb.copy_text(&text);
-                                    }
-                                }
-                            }
-                            // Cmd+click (macOS) / Ctrl+click (Linux) to
-                            // open URLs — single-click release only,
-                            // never word/line selection (mirrors the
-                            // local-PTY path's click_count gate).
-                            if click_count == 1 && (modifiers.meta || modifiers.ctrl) {
-                                let (rows_vec, cols_count) = {
-                                    let term = terminal_for_mouse.read();
-                                    (
-                                        term.visible_rows()
-                                            .map(|r| r.to_vec())
-                                            .collect::<Vec<_>>(),
-                                        term.cols(),
-                                    )
-                                };
-                                let detected =
-                                    crate::url::detect_urls(&rows_vec, cols_count);
-                                if let Some(url) =
-                                    crate::url::url_at(&detected, row, col)
-                                {
-                                    if let Err(e) = open::that(&url.url) {
-                                        tracing::warn!(
-                                            error = %e,
-                                            url = %url.url,
-                                            "failed to open URL"
-                                        );
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    EventResponse::consumed()
-                }
+                }) => engine
+                    .on_mouse_button(*button, *pressed, *x, *y, *modifiers, renderer)
+                    .into(),
                 AppEvent::Mouse(madori::MouseEvent::Moved { x, y }) => {
                     renderer.snow_set_cursor(*x as f32, *y as f32);
-                    let cw = renderer.cell_width();
-                    let ch = renderer.cell_height();
-                    // Mouse coords are PHYSICAL pixels; padding is a
-                    // logical config value — scale before subtracting
-                    // or clicks land up to half a cell off on HiDPI.
-                    let pad_phys = padding * renderer.scale_factor();
-                    let col = ((*x as f32 - pad_phys) / cw).max(0.0) as usize;
-                    let row = ((*y as f32 - pad_phys) / ch).max(0.0) as usize;
-                    let (mouse_mode, sgr, term_cols, term_rows) = {
-                        let term = terminal_for_mouse.read();
-                        (term.mouse_mode(), term.sgr_mouse(), term.cols(), term.rows())
-                    };
-                    let col = col.min(term_cols.saturating_sub(1));
-                    let row = row.min(term_rows.saturating_sub(1));
-
-                    // Forward motion when the app tracks it, with the
-                    // spec-correct code: 1002 (ButtonEvent) only while
-                    // a button is held; 1003 (AnyEvent) always, hover
-                    // motion carrying the no-button code (35) rather
-                    // than a fabricated left-drag (32).
-                    if matches!(
-                        mouse_mode,
-                        crate::terminal::MouseMode::ButtonEvent
-                            | crate::terminal::MouseMode::AnyEvent
-                    ) {
-                        let forward = left_button_down
-                            || mouse_mode == crate::terminal::MouseMode::AnyEvent;
-                        if forward && sgr {
-                            let report = crate::mouse_report::MouseReport {
-                                kind: crate::mouse_report::MouseReportKind::Motion,
-                                button: if left_button_down {
-                                    crate::mouse_report::MouseReportButton::Left
-                                } else {
-                                    crate::mouse_report::MouseReportButton::None
-                                },
-                                col: col + 1,
-                                row: row + 1,
-                            };
-                            let _ = control_for_events
-                                .send_keys(pane_id, &report.encode(true));
-                        }
-                        return EventResponse::consumed();
-                    }
-
-                    // Drag-update the selection.
-                    if let Ok(mut sel) = selection_for_events.lock()
-                        && sel.is_active()
-                    {
-                        sel.update(crate::selection::CellPos { row, col });
-                    }
-                    EventResponse::ignored()
+                    engine.on_mouse_moved(*x, *y, renderer).into()
                 }
                 AppEvent::Mouse(madori::MouseEvent::Scroll { dy, .. }) => {
-                    // Wheel / two-finger scroll. The embedded path had no
-                    // Scroll arm, so wheel events hit the catch-all and
-                    // were silently dropped. When the app has enabled
-                    // mouse tracking, forward wheel buttons to the PTY;
-                    // otherwise scroll mado's own scrollback view. Mirrors
-                    // the local-PTY path so scroll works in the default
-                    // mode too. SGR/X10 bytes are built byte-wise (typed
-                    // emission — no format!).
-                    let (mouse_mode, sgr) = {
-                        let term = terminal_for_scroll.read();
-                        (term.mouse_mode(), term.sgr_mouse())
-                    };
-                    if mouse_mode != crate::terminal::MouseMode::Off {
-                        let report = crate::mouse_report::MouseReport {
-                            kind: crate::mouse_report::MouseReportKind::Press,
-                            button: if *dy > 0.0 {
-                                crate::mouse_report::MouseReportButton::WheelUp
-                            } else {
-                                crate::mouse_report::MouseReportButton::WheelDown
-                            },
-                            // Wheel coords not yet plumbed from the
-                            // Scroll event — 1;1 preserved (P1 item in
-                            // docs/COMPETITIVE.md queue).
-                            col: 1,
-                            row: 1,
-                        };
-                        let _ =
-                            control_for_events.send_keys(pane_id, &report.encode(sgr));
-                    } else {
-                        let mult =
-                            (config.behavior.mouse_scroll_multiplier as usize).max(1);
-                        let lines = (dy.abs() as usize).max(1) * mult;
-                        let mut term = terminal_for_scroll.write();
-                        if *dy > 0.0 {
-                            term.scroll_up(lines);
-                        } else {
-                            term.scroll_down(lines);
-                        }
-                    }
-                    EventResponse::consumed()
+                    engine.on_mouse_scroll(*dy, renderer).into()
                 }
                 AppEvent::Key(key_event @ KeyEvent { pressed: true, .. }) => {
                     renderer.snow_pulse_typing();
-                    let action = keybinds.lookup_madori(key_event);
-                    // ── Search-overlay input routing ──────────────
-                    // While the overlay is open every keystroke
-                    // belongs to it (mirrors main.rs): Close/Next/
-                    // Prev chords act on the overlay, unmodified
-                    // text edits the query, everything else is
-                    // consumed so it can't leak to the PTY.
-                    {
-                        use crate::keybind::Action;
-                        let search_active = search_for_events
-                            .lock()
-                            .expect("search mutex poisoned")
-                            .active;
-                        if search_active {
-                            match action {
-                                Some(
-                                    overlay_action @ (Action::SearchClose
-                                    | Action::SearchNext
-                                    | Action::SearchPrev),
-                                ) => {
-                                    apply_tear_action(
-                                        overlay_action,
-                                        renderer,
-                                        &control_for_events,
-                                        pane_id,
-                                        default_font_size_for_reset,
-                                        &terminal_for_mouse,
-                                        &selection_for_events,
-                                        &clipboard,
-                                        &search_for_events,
-                                    );
-                                    return EventResponse::consumed();
-                                }
-                                _ => {}
-                            }
-                            let mods = key_event.modifiers;
-                            if !mods.ctrl && !mods.meta && !mods.alt {
-                                if let Some(text) = &key_event.text
-                                    && !text.is_empty()
-                                {
-                                    let (rows, cols) = {
-                                        let term = terminal_for_mouse.read();
-                                        (
-                                            term.visible_rows()
-                                                .map(|r| r.to_vec())
-                                                .collect::<Vec<_>>(),
-                                            term.cols(),
-                                        )
-                                    };
-                                    search_for_events
-                                        .lock()
-                                        .expect("search mutex poisoned")
-                                        .append_query(text, &rows, cols);
-                                    return EventResponse::consumed();
-                                }
-                                if matches!(
-                                    key_event.key,
-                                    madori::event::KeyCode::Backspace
-                                ) {
-                                    let (rows, cols) = {
-                                        let term = terminal_for_mouse.read();
-                                        (
-                                            term.visible_rows()
-                                                .map(|r| r.to_vec())
-                                                .collect::<Vec<_>>(),
-                                            term.cols(),
-                                        )
-                                    };
-                                    search_for_events
-                                        .lock()
-                                        .expect("search mutex poisoned")
-                                        .backspace_query(&rows, cols);
-                                    return EventResponse::consumed();
-                                }
-                            }
-                            return EventResponse::consumed();
-                        }
-                    }
-                    // Consult the prescribed keybinding map.
-                    // Cmd-= / Cmd-- / Cmd-0 → font zoom in/out/reset
-                    // BEFORE the text falls through to the PTY.
-                    if let Some(action) = action {
-                        use crate::keybind::Action;
-                        // Font scaling: rate-limit + bound by type.
-                        // The gate drops OS key-repeat storms; the
-                        // BoundedFontSize newtype saturates at
-                        // FONT_MAX so even a passed storm can't
-                        // explode the font onscreen.
-                        let scale_action = matches!(
-                            action,
-                            Action::FontIncrease | Action::FontDecrease | Action::FontReset
-                        );
-                        if scale_action && !key_repeat_gate.try_pass(action) {
-                            // Storm tick — drop silently. Consume so
-                            // the keystroke doesn't fall through to
-                            // the PTY as literal text.
-                            return EventResponse::consumed();
-                        }
-                        // Shared dispatch — the same helper the
-                        // kanshou-injected path (`simulate_chord`)
-                        // calls, so a simulated chord exercises
-                        // EXACTLY the code a physical keypress hits.
-                        if apply_tear_action(
-                            action,
-                            renderer,
-                            &control_for_events,
-                            pane_id,
-                            default_font_size_for_reset,
-                            &terminal_for_mouse,
-                            &selection_for_events,
-                            &clipboard,
-                            &search_for_events,
-                        ) {
-                            return EventResponse::consumed();
-                        }
-                        // Remaining unhandled actions (scroll,
-                        // fullscreen, prompt jump) fall through
-                        // to PTY forwarding for now; the M1
-                        // InputEngine unification is where they
-                        // land.
-                    }
-                    // Kitty keyboard protocol — when the app pushed a
-                    // mode onto the kitty stack (nvim/helix/fish),
-                    // encode CSI-u via the shared encoder instead of
-                    // the legacy bytes. The mirror Terminal tracks
-                    // the stack from the engate byte stream, so the
-                    // gating is identical to the local-PTY path.
-                    let kitty_flags =
-                        terminal_for_mouse.read().kitty_keyboard_flags();
-                    if kitty_flags > 0
-                        && let Some(encoded) = crate::keybind::kitty_encode_key(
-                            &key_event.key,
-                            &key_event.text,
-                            &key_event.modifiers,
-                            kitty_flags,
-                        )
-                    {
-                        let _ = control_for_events.send_keys(pane_id, &encoded);
-                        return EventResponse::consumed();
-                    }
-                    // No bound mado action — translate to PTY bytes via
-                    // the shared helper. This is the same call shape the
-                    // legacy single-pane path in `main.rs` uses; both
-                    // sites flow through `keybind::madori_key_to_pty_
-                    // bytes` so Ctrl+letter (and Alt+char, cursor keys,
-                    // F-keys, Enter/Backspace/Tab/Escape/Space/Delete/
-                    // Home/End/PageUp/PageDown) reach the shell.
-                    //
-                    // Before consolidation this site dropped every
-                    // Ctrl+letter on the floor, killing frostmourne's
-                    // atuin/skim Ctrl-R history picker. Regression
-                    // guard: `keybind::tests::embedded_tear_flow_ctrl_
-                    // r_reaches_pty`.
-                    //
-                    // DECCKM (cursor-keys application mode) is queried
-                    // per keystroke via the typed `pane_cursor_keys_
-                    // mode` accessor on `MultiplexerControl` — no-alloc
-                    // on the `InProcess` backend, default fallback to
-                    // `pane_snapshot` on other backends. When vim /
-                    // less / etc. enter alt-screen and set DECCKM, this
-                    // returns true and the helper emits `ESC O A/B/C/D`
-                    // instead of `ESC [ A/B/C/D` for arrow keys. Errors
-                    // (`NoSuchPane` during shutdown race) degrade to
-                    // normal mode — the editor still receives valid
-                    // cursor keys.
-                    let app_cursor_mode = control_for_events
-                        .pane_cursor_keys_mode(pane_id)
-                        .unwrap_or(false);
-                    if let Some(bytes) = crate::keybind::madori_key_to_pty_bytes(
-                        &key_event.key,
-                        &key_event.text,
-                        key_event.modifiers,
-                        app_cursor_mode,
-                    ) {
-                        let _ = control_for_events.send_keys(pane_id, &bytes);
-                        return EventResponse::consumed();
-                    }
-                    // Helper returned None — bare Cmd shortcut with no
-                    // matching binding (consume, don't leak the bare
-                    // letter to the PTY) or a key with no PTY meaning
-                    // (let the OS handle media keys / F13+).
-                    if key_event.modifiers.meta {
-                        EventResponse::consumed()
-                    } else {
-                        EventResponse::ignored()
-                    }
+                    engine.on_key(key_event, renderer).into()
                 }
                 // IME commit — forward composed text (CJK, dead-key
-                // accents, emoji picker) to the PTY. Without this arm
-                // non-ASCII input was silently dropped in the default
-                // mode; mirrors the local-PTY path.
+                // accents, emoji picker) to the PTY.
                 AppEvent::Ime(madori::ImeEvent::Commit(text)) => {
-                    if !text.is_empty() {
-                        let _ = control_for_events.send_keys(pane_id, text.as_bytes());
-                    }
-                    EventResponse::consumed()
+                    engine.on_ime_commit(text).into()
                 }
-                // Focus events (mode 1004) — emit ESC[I / ESC[O when
-                // the app enabled focus reporting (nvim autoread,
-                // tmux-style dim). The mirror Terminal tracks the
-                // DECSET from the engate byte stream, so the gating
-                // is identical to the local-PTY path.
-                AppEvent::Focused(focused) => {
-                    if terminal_for_mouse.read().focus_reporting() {
-                        let report: &[u8] =
-                            if *focused { b"\x1b[I" } else { b"\x1b[O" };
-                        let _ = control_for_events.send_keys(pane_id, report);
-                    }
-                    EventResponse::consumed()
-                }
+                // Focus events (mode 1004) — engine emits ESC[I /
+                // ESC[O when the app enabled focus reporting.
+                AppEvent::Focused(focused) => engine.on_focus(*focused).into(),
                 AppEvent::CloseRequested => {
                     if let Ok(mut slot) = session_reap.lock() {
                         if let Some(sid) = slot.take() {
@@ -1067,130 +621,6 @@ where
     Ok(())
 }
 
-/// Dispatch a resolved keybind [`Action`](crate::keybind::Action) in
-/// tear mode. Shared by the physical-keypress path (Key arm above)
-/// and the kanshou-injected path (`simulate_chord` → `InjectedActions`
-/// drain) so an injected action exercises EXACTLY the dispatch a
-/// real chord hits — no parallel implementation to drift.
-///
-/// Returns `true` when the action has a tear-mode handler (caller
-/// consumes the event); `false` when it doesn't yet (key path falls
-/// through to PTY forwarding, injected path drops with a debug log).
-/// The key-repeat gate is deliberately NOT in here — storms are an
-/// input-path concern; injected actions are deliberate.
-fn apply_tear_action<C>(
-    action: crate::keybind::Action,
-    renderer: &mut TerminalRenderer,
-    control: &Arc<C>,
-    pane_id: PaneId,
-    default_font_size: f32,
-    terminal: &SharedTerminal,
-    selection: &std::sync::Mutex<crate::selection::Selection>,
-    clipboard: &std::sync::Mutex<hasami::Clipboard>,
-    search: &std::sync::Mutex<crate::search::SearchState>,
-) -> bool
-where
-    C: tear_types::MultiplexerControl + Send + Sync,
-{
-    use crate::font_size::{BoundedFontSize, FontSizeSteps};
-    use crate::keybind::Action;
-    match action {
-        // Font scaling: the grid push is left to the per-tick
-        // PTY-grid reconciler — cell metrics re-measure on the NEXT
-        // rendered frame, so any grid computed here would use stale
-        // metrics (the old code also fed LOGICAL config dims into the
-        // physical-pixel grid math, shrinking the pushed grid by the
-        // scale factor).
-        Action::FontIncrease => {
-            let new_size = BoundedFontSize::new(renderer.font_size())
-                .inc_step()
-                .get();
-            renderer.set_font_size(new_size);
-            true
-        }
-        Action::FontDecrease => {
-            let new_size = BoundedFontSize::new(renderer.font_size())
-                .dec_step()
-                .get();
-            renderer.set_font_size(new_size);
-            true
-        }
-        Action::FontReset => {
-            let reset_size = BoundedFontSize::new(default_font_size).get();
-            renderer.set_font_size(reset_size);
-            true
-        }
-        Action::Copy => {
-            let selected_text = {
-                let sel = selection.lock().expect("selection mutex poisoned");
-                let term = terminal.read();
-                let rows: Vec<_> = term.visible_rows().map(|r| r.to_vec()).collect();
-                let cols = term.cols();
-                drop(term);
-                sel.extract_text(&rows, cols)
-            };
-            if let Some(text) = selected_text
-                && let Ok(cb) = clipboard.lock()
-            {
-                let _ = cb.copy_text(&text);
-            }
-            true
-        }
-        Action::Paste => {
-            let pasted_text = clipboard.lock().ok().and_then(|cb| cb.paste_text().ok());
-            if let Some(pasted) = pasted_text
-                && !pasted.is_empty()
-            {
-                let bracketed = terminal.read().bracketed_paste();
-                // PasteGuard: strip bytes that would break out of (or
-                // fake) bracketed-paste framing — without this, a
-                // clipboard containing ESC[201~ executes the rest of
-                // the paste as keystrokes (classic paste injection).
-                let safe = crate::clipboard_store::sanitize_paste(&pasted, bracketed);
-                if !safe.is_empty() {
-                    if bracketed {
-                        let _ = control.send_keys(pane_id, b"\x1b[200~");
-                    }
-                    let _ = control.send_keys(pane_id, &safe);
-                    if bracketed {
-                        let _ = control.send_keys(pane_id, b"\x1b[201~");
-                    }
-                }
-            }
-            true
-        }
-        // Search operates entirely on mado-side state (the mirror
-        // Terminal + the shared SearchState the renderer highlights
-        // from) — no tear involvement. Close/Next/Prev are handled
-        // ONLY while the overlay is open: the fleet atlas binds
-        // search_close to bare Escape, so consuming it on a closed
-        // overlay would eat Esc before PTY forwarding and kill
-        // vim/helix/fzf in the default mode (review finding
-        // 2026-06-11). With the overlay closed they return false and
-        // the key falls through to the PTY.
-        Action::SearchOpen => {
-            search.lock().expect("search mutex poisoned").open();
-            true
-        }
-        Action::SearchClose | Action::SearchNext | Action::SearchPrev => {
-            let mut st = search.lock().expect("search mutex poisoned");
-            if !st.active {
-                return false;
-            }
-            match action {
-                Action::SearchClose => st.close(),
-                Action::SearchNext => st.next(),
-                _ => st.prev(),
-            }
-            true
-        }
-        // Scroll / dir-picker / fullscreen need mado-side state the
-        // tear path doesn't hold yet — the M1 InputEngine
-        // unification (docs/REMEDIATION-PLAN.md) is where they land.
-        // Until then they have no tear-mode handler.
-        _ => false,
-    }
-}
 
 
 /// M3c.1 — embedded-tear default-launch path.
@@ -1376,258 +806,3 @@ fn run_against_pane(
     )
 }
 
-#[cfg(test)]
-mod tests {
-    //! `apply_tear_action` seam tests — headless: a real
-    //! `TerminalRenderer` is built but no GPU pipeline is touched
-    //! (same harness shape as `render::render_invariants`), and the
-    //! `MultiplexerControl` is a minimal recording mock.
-
-    use std::sync::Mutex;
-
-    use super::*;
-    use crate::config::CursorStyle;
-    use crate::keybind::Action;
-    use crate::search::SearchState;
-    use crate::selection::Selection;
-    use tear_types::{
-        ControlError, ControlResult, Direction, InputPolicy, SessionId, TearPane,
-        TearSession, TearWindow, WindowId,
-    };
-
-    /// Minimal `MultiplexerControl` mock: records every `send_keys`
-    /// call; every other operation is rejected. If a handler under
-    /// test synthesizes PTY bytes, the recording proves it.
-    struct RecordingControl {
-        sent: Mutex<Vec<(PaneId, Vec<u8>)>>,
-    }
-
-    impl RecordingControl {
-        fn new() -> Self {
-            Self { sent: Mutex::new(Vec::new()) }
-        }
-    }
-
-    impl MultiplexerControl for RecordingControl {
-        fn list_sessions(&self) -> ControlResult<Vec<TearSession>> {
-            Ok(Vec::new())
-        }
-        fn get_session(&self, id: SessionId) -> ControlResult<TearSession> {
-            Err(ControlError::NoSuchSession(id))
-        }
-        fn get_window(&self, id: WindowId) -> ControlResult<(SessionId, TearWindow)> {
-            Err(ControlError::NoSuchWindow(id))
-        }
-        fn get_pane(&self, id: PaneId) -> ControlResult<TearPane> {
-            Err(ControlError::NoSuchPane(id))
-        }
-        fn new_session_with_source_and_size(
-            &self,
-            _name: &str,
-            _shell: &str,
-            _source: SessionSource,
-            _size_cells: (u16, u16),
-        ) -> ControlResult<SessionId> {
-            Err(ControlError::Rejected("mock".into()))
-        }
-        fn rename_session(&self, _id: SessionId, _new_name: &str) -> ControlResult<()> {
-            Err(ControlError::Rejected("mock".into()))
-        }
-        fn kill_session(&self, _id: SessionId) -> ControlResult<()> {
-            Err(ControlError::Rejected("mock".into()))
-        }
-        fn new_window(
-            &self,
-            _session: SessionId,
-            _name: &str,
-            _shell: &str,
-        ) -> ControlResult<WindowId> {
-            Err(ControlError::Rejected("mock".into()))
-        }
-        fn kill_window(&self, _id: WindowId) -> ControlResult<()> {
-            Err(ControlError::Rejected("mock".into()))
-        }
-        fn select_window(&self, _id: WindowId) -> ControlResult<()> {
-            Err(ControlError::Rejected("mock".into()))
-        }
-        fn split_pane(
-            &self,
-            _origin: PaneId,
-            _direction: Direction,
-            _shell: &str,
-        ) -> ControlResult<PaneId> {
-            Err(ControlError::Rejected("mock".into()))
-        }
-        fn kill_pane(&self, _id: PaneId) -> ControlResult<()> {
-            Err(ControlError::Rejected("mock".into()))
-        }
-        fn select_pane(&self, _id: PaneId) -> ControlResult<()> {
-            Err(ControlError::Rejected("mock".into()))
-        }
-        fn resize_pane(
-            &self,
-            _id: PaneId,
-            _direction: Direction,
-            _delta_cells: i16,
-        ) -> ControlResult<()> {
-            Err(ControlError::Rejected("mock".into()))
-        }
-        fn send_keys(&self, id: PaneId, bytes: &[u8]) -> ControlResult<()> {
-            self.sent
-                .lock()
-                .expect("recording mutex poisoned")
-                .push((id, bytes.to_vec()));
-            Ok(())
-        }
-        fn pane_subscriber_count(&self, _id: PaneId) -> ControlResult<u32> {
-            Ok(0)
-        }
-        fn set_input_policy(&self, _id: PaneId, _policy: InputPolicy) -> ControlResult<()> {
-            Err(ControlError::Rejected("mock".into()))
-        }
-    }
-
-    /// Headless `apply_tear_action` harness: real renderer (no GPU
-    /// device — pipelines stay `None`; the search actions never need
-    /// one), real shared state, recording control.
-    struct Harness {
-        renderer: TerminalRenderer,
-        control: Arc<RecordingControl>,
-        pane: PaneId,
-        terminal: SharedTerminal,
-        selection: Mutex<Selection>,
-        clipboard: Mutex<hasami::Clipboard>,
-        search: Mutex<SearchState>,
-    }
-
-    impl Harness {
-        fn new() -> Self {
-            let terminal: SharedTerminal =
-                Arc::new(RwLock::new(Terminal::new(80, 24)));
-            let renderer = TerminalRenderer::new(
-                terminal.clone(),
-                14.0,
-                "monospace".into(),
-                "monospace".into(),
-                "monospace".into(),
-                0.0,
-                CursorStyle::Block,
-                false,
-                500,
-                wgpu::Color { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
-                TermColor::WHITE,
-            );
-            Self {
-                renderer,
-                control: Arc::new(RecordingControl::new()),
-                pane: PaneId::from_seed("apply-tear-action-test"),
-                terminal,
-                selection: Mutex::new(Selection::new()),
-                clipboard: Mutex::new(
-                    hasami::Clipboard::new().expect("clipboard init"),
-                ),
-                search: Mutex::new(SearchState::new()),
-            }
-        }
-
-        fn apply(&mut self, action: Action) -> bool {
-            apply_tear_action(
-                action,
-                &mut self.renderer,
-                &self.control,
-                self.pane,
-                14.0,
-                &self.terminal,
-                &self.selection,
-                &self.clipboard,
-                &self.search,
-            )
-        }
-    }
-
-    /// **Invariant: Search Close/Next/Prev on an INACTIVE overlay are
-    /// NOT handled** (review finding 2026-06-11 — the just-fixed
-    /// Esc-eating regression). The fleet atlas binds `search_close`
-    /// to bare Escape; if `apply_tear_action` consumed it while the
-    /// overlay was closed, Esc would never reach the PTY and
-    /// vim/helix/fzf would die in the default mode. The contract:
-    /// with `SearchState.active == false`, each of the three actions
-    /// must (a) return `false` so the caller falls through to PTY
-    /// forwarding, (b) leave the search state inactive, and (c) send
-    /// NOTHING to the multiplexer itself (the caller forwards the
-    /// original key bytes; the handler must not synthesize any).
-    /// Failures aggregate matrix-style — one run reports every
-    /// divergent action.
-    #[test]
-    fn inactive_search_actions_fall_through_to_pty_forwarding() {
-        let mut failures: Vec<String> = Vec::new();
-        for action in [Action::SearchClose, Action::SearchNext, Action::SearchPrev] {
-            let mut h = Harness::new();
-            assert!(
-                !h.search.lock().unwrap().active,
-                "precondition: fresh SearchState must be inactive"
-            );
-            let handled = h.apply(action);
-            if handled {
-                failures.push(format!(
-                    "{action:?}: handled an INACTIVE search overlay — eats the \
-                     key (bare Esc) before PTY forwarding"
-                ));
-            }
-            if h.search.lock().unwrap().active {
-                failures.push(format!(
-                    "{action:?}: flipped an inactive SearchState to active"
-                ));
-            }
-            let sent = h.control.sent.lock().unwrap();
-            if !sent.is_empty() {
-                failures.push(format!(
-                    "{action:?}: synthesized {} send_keys call(s) to the \
-                     multiplexer on the fall-through path",
-                    sent.len()
-                ));
-            }
-        }
-        assert!(
-            failures.is_empty(),
-            "{} fall-through violations:\n  - {}",
-            failures.len(),
-            failures.join("\n  - ")
-        );
-    }
-
-    /// Control row for the invariant above: with the overlay OPEN,
-    /// the same three actions ARE handled (return `true`, consume the
-    /// key) and `SearchClose` actually closes the overlay — proving
-    /// the fall-through test exercises the active/inactive seam, not
-    /// a dead handler.
-    #[test]
-    fn active_search_actions_are_consumed_by_the_overlay() {
-        let mut failures: Vec<String> = Vec::new();
-        for action in [Action::SearchNext, Action::SearchPrev, Action::SearchClose] {
-            let mut h = Harness::new();
-            assert!(h.apply(Action::SearchOpen), "SearchOpen must be handled");
-            assert!(h.search.lock().unwrap().active, "SearchOpen must arm the overlay");
-            let handled = h.apply(action);
-            if !handled {
-                failures.push(format!(
-                    "{action:?}: not handled while the overlay is ACTIVE"
-                ));
-            }
-            let active_after = h.search.lock().unwrap().active;
-            let want_active_after = !matches!(action, Action::SearchClose);
-            if active_after != want_active_after {
-                failures.push(format!(
-                    "{action:?}: overlay active={active_after} after dispatch, \
-                     want {want_active_after}"
-                ));
-            }
-        }
-        assert!(
-            failures.is_empty(),
-            "{} active-overlay violations:\n  - {}",
-            failures.len(),
-            failures.join("\n  - ")
-        );
-    }
-}

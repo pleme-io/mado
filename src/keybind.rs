@@ -555,10 +555,10 @@ fn kitty_key_seq(number: u32, modifiers: u32, suffix: u8) -> Vec<u8> {
         out.push(suffix);
         return out;
     }
-    crate::mouse_report::push_decimal(&mut out, number as usize);
+    crate::ux::mouse_report::push_decimal(&mut out, number as usize);
     if modifiers > 1 {
         out.push(b';');
-        crate::mouse_report::push_decimal(&mut out, modifiers as usize);
+        crate::ux::mouse_report::push_decimal(&mut out, modifiers as usize);
     }
     out.push(suffix);
     out
@@ -570,10 +570,10 @@ fn kitty_key_seq(number: u32, modifiers: u32, suffix: u8) -> Vec<u8> {
 fn kitty_tilde_seq(number: u32, modifiers: u32) -> Vec<u8> {
     let mut out = Vec::with_capacity(16);
     out.extend_from_slice(b"\x1b[");
-    crate::mouse_report::push_decimal(&mut out, number as usize);
+    crate::ux::mouse_report::push_decimal(&mut out, number as usize);
     if modifiers > 1 {
         out.push(b';');
-        crate::mouse_report::push_decimal(&mut out, modifiers as usize);
+        crate::ux::mouse_report::push_decimal(&mut out, modifiers as usize);
     }
     out.push(b'~');
     out

@@ -35,17 +35,12 @@ use tear_types::engate_wrap::PaneSnapshotWrap;
 
 use crate::terminal::Terminal;
 
-/// Typed VT-response writeback callback. Invoked with the bytes
-/// mado's VT engine generated in response to a DSR / DA / OSC
-/// query embedded in the producer's stream. The caller wires this
-/// to the tear pane's `send_keys` channel so the bytes flow back
-/// into the shell's PTY as the answer it's blocking on.
-///
-/// Without this, queries like `reedline`'s `\x1b[6n` (DSR-6,
-/// cursor-position request) time out — the shell errors out with
-/// "The cursor position could not be read within a normal
-/// duration" (real incident, frostmourne under mado, 2026-05-21).
-pub type ResponseWriter = Arc<dyn Fn(&[u8]) + Send + Sync>;
+/// Typed VT-response writeback callback — promoted to
+/// `ux::sinks::ResponseWriter` at M1 (the `PtySink` trait is the
+/// generalized shape); re-exported here for back-compat. The full
+/// contract (incl. the 2026-05-21 frostmourne CPR-timeout incident
+/// it exists for) is documented at the definition.
+pub use crate::ux::ResponseWriter;
 
 /// Typed probe counters for the VT query↔answer loop — the
 /// 2026-06-10 freeze-on-Enter incident probes made permanent

@@ -86,16 +86,16 @@ blending, kitty-keyboard mode stack (parse/report side).
 Ranked by impact/effort within each tier. Effort: S = wiring/port of
 existing code, M = new bounded subsystem, L = structural (M2-grid-class).
 
-### P0 — bifurcation ports (exists in local-PTY path; pure port into the embedded default)
+### P0 — bifurcation ports (CLASS CLOSED by M1, 2026-06-11)
 
-The default runtime is `TearMode::Auto` → embedded tear; anything local-only
-is invisible to the actual default user. All seams: working impl in
-`src/main.rs`, missing arm in `src/gui_tear_attach.rs`.
+M1's `ux::InputEngine` made the bifurcation class structurally
+impossible: both loops drive one engine, pinned by
+`tests/ux_unification.rs`. Rows kept for history.
 
 | # | Item | Impact | Effort | Seam |
 |---|---|---|---|---|
 | 1 | ~~**Search in embedded path**~~ SHIPPED 2026-06-11 | cmd-F dead in the default mode — top daily-use gap | S | shared `search.rs` engine + `set_search` renderer hook; Search* arms in `apply_tear_action`; overlay input routing in the tear Key arm |
-| 2 | **Prompt jump + scroll/fullscreen actions in embedded path** | keyboard scrollback nav dead in default mode (only wheel works) | S | `gui_tear_attach.rs` (apply_tear_action arms only Font*/Copy/Paste/Search*); mirror `main.rs:1192-1218` (jump), `main.rs:1063-1075` (scroll/fullscreen) |
+| 2 | ~~**Prompt jump + scroll/fullscreen actions in embedded path**~~ SHIPPED 2026-06-11 (M1) | keyboard scrollback nav dead in default mode | S | closed structurally: `ux::InputEngine::apply_action` carries EVERY action in both modes — the bifurcation class itself is gone (`tests/ux_unification.rs`) |
 | 3 | ~~**URL click in embedded path**~~ SHIPPED 2026-06-11 | cmd-click open dead in default mode | S | tear Button arm now captures `modifiers`; `url::detect_urls` + `url_at` + `open::that` on single-click release, same gate as `main.rs:1457-1463` |
 | 4 | ~~**IME commit in embedded path**~~ SHIPPED 2026-06-11 | non-ASCII input broken in default mode | S | `AppEvent::Ime(Commit)` arm in gui_tear_attach.rs → `send_keys`. Preedit rendering is separate (P3) |
 

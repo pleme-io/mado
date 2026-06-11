@@ -35,7 +35,6 @@ mod single_pane;
 mod tear_discovery;
 mod caps;
 mod mcp;
-mod mouse_report;
 mod osc_1337;
 mod platform;
 mod pointer_shape;
@@ -53,24 +52,21 @@ mod term_spec;
 mod terminal;
 mod theme;
 mod url;
+mod ux;
 mod vigy_host;
 // mod window removed at Phase 4 — single-pane mado uses single_pane.
 
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
-use std::time::Instant;
+use std::sync::Arc;
 
 use clap::Parser;
 use hasami::{Clipboard, ClipboardProvider};
 use madori::event::{AppEvent, KeyEvent, MouseEvent};
 use madori::EventResponse;
 
-use crate::font_size::FontSizeSteps;
-use crate::keybind::{Action, KeybindManager};
 // SplitDir removed at Phase 4 — single-pane mado.
 use crate::render::{SharedTerminal, TerminalRenderer};
-use crate::selection::CellPos;
-use crate::terminal::{Color, MouseMode};
+use crate::terminal::Color;
 use crate::theme::Theme;
 // WindowState removed at Phase 4 — single-pane mado uses single_pane::SinglePane.
 
@@ -699,10 +695,11 @@ fn main() -> anyhow::Result<()> {
     // knobs (intensity, wind, accumulation, layer_count, enabled).
     renderer.set_snow_config(config.effects.snow.clone());
 
-    // Set selection/search on renderer (Phase 4 — single pane).
-    renderer.set_selection(Arc::clone(&pane.selection));
-    renderer.set_search(Arc::clone(&pane.search));
-    renderer.set_dir_picker(Arc::clone(&pane.dir_picker));
+    // Selection/search/dir-picker renderer hooks are wired by
+    // InputEngine::attach_to_renderer below — the engine is the only
+    // path that can hold those Arcs, so the renderer cannot end up
+    // with half the wiring (the historical embedded silent-highlight
+    // bug class).
 
     // Log available themes on startup (debug)
     let theme_names: Vec<&str> = Theme::available().iter().map(|t| t.name).collect();
@@ -732,54 +729,71 @@ fn main() -> anyhow::Result<()> {
     }
 
     let pane_for_events = Arc::clone(&pane);
-    let clipboard = Arc::new(Mutex::new(
+    let clipboard: Arc<dyn ClipboardProvider> = Arc::new(
         Clipboard::new().expect("failed to initialize clipboard"),
-    ));
-    let mut keybinds = KeybindManager::new();
-    for entry in &config.keybinds.custom {
-        if let Some(action) = crate::keybind::parse_action(&entry.action) {
-            match keybinds.bind_str(&entry.trigger, action) {
-                Ok(()) => tracing::debug!(trigger = %entry.trigger, action = %entry.action, "custom keybind loaded"),
-                Err(e) => tracing::warn!(trigger = %entry.trigger, error = %e, "failed to parse custom keybind trigger"),
-            }
-        } else {
-            tracing::warn!(action = %entry.action, "unknown keybind action");
-        }
-    }
+    );
+    // Curated default baseline + operator `keybinds.custom` overrides —
+    // the same assembly the kanshou `simulate_chord` resolver uses
+    // (keybind::manager_from_config), so chord→Action resolution can't
+    // drift between surfaces or render modes. (Pre-M1 this path loaded
+    // ONLY the custom binds — doc/code drift the M1 convergence fixed.)
+    let keybinds = crate::keybind::manager_from_config(&config);
     tracing::debug!(
         bindings = keybinds.bindings().len(),
         "keybindings loaded"
     );
-    let confirm_close = config.behavior.confirm_close;
-    let copy_on_select = config.behavior.copy_on_select;
-    let mouse_scroll_multiplier = config.behavior.mouse_scroll_multiplier;
-    let mouse_hide_while_typing = config.behavior.mouse_hide_while_typing;
+    let behavior = crate::ux::UxBehavior::from(&config);
+    let confirm_close = behavior.confirm_close;
     let pending_close = Arc::new(AtomicBool::new(false));
-    let mouse_visible = Arc::new(AtomicBool::new(true));
     // Track last known title to detect changes
     let mut last_title: Option<String> = None;
-    // Track window dimensions for split resize
-    let mut last_width = config.window.width;
-    let mut last_height = config.window.height;
-    // Double/triple click tracking
     let default_font_size = effective_font_size;
-    let mut last_click_time = Instant::now();
-    let mut click_count: u8 = 0;
-    let mut last_click_pos = CellPos { row: 0, col: 0 };
-    // Whether the left button is currently held — drives the SGR
-    // motion code (drag = 32 vs hover = 35) and ButtonEvent(1002)'s
-    // motion-only-while-pressed contract.
-    let mut left_button_down = false;
     // macOS window-chrome styling latch — owns the style extracted from
     // the shikumi config plus its applied state, so the `'static`
     // event-loop closure carries one small value. Ticked on every
     // redraw until a window actually exists. Every axis is operator-
     // configurable: `window.macos.*` + `appearance.background`.
     let mut native_styling = crate::platform::NativeStylingLatch::from_config(&config);
-    // PTY-grid ⇄ display reconciler signature: (surface w, surface h,
-    // cell w bits, cell h bits) last pushed to the panes. See the
-    // RedrawRequested arm.
-    let mut grid_sync_sig: Option<(u32, u32, u32, u32)> = None;
+
+    // ── M1 unified input/UX engine ───────────────────────────────
+    // Every UX capability (selection, copy/paste, search + dir-picker
+    // overlays, mouse forwarding, kitty CSI-u, focus, IME, font zoom,
+    // the PTY-grid⇄display reconciler) lives in ux::InputEngine; this
+    // event loop is a thin adapter (tests/ux_unification.rs pins that
+    // structurally). The local-PTY divergences are injected here:
+    // PTY writes → input_tx, grid pushes → resize_tx (PTY winsize),
+    // DECCKM → mirror-Terminal read.
+    let pty_sink: Box<dyn crate::ux::PtySink> = {
+        let pane_for_pty = Arc::clone(&pane);
+        Box::new(move |bytes: &[u8]| pane_for_pty.send_input(bytes.to_vec()))
+    };
+    let resize_sink: Box<dyn crate::ux::ResizeSink> = {
+        let pane_for_resize = Arc::clone(&pane);
+        Box::new(move |cols: u16, rows: u16| pane_for_resize.resize(cols, rows))
+    };
+    let cursor_keys_mode: Box<dyn Fn() -> bool + Send + Sync> = {
+        let term = Arc::clone(&pane.terminal);
+        Box::new(move || term.read().cursor_keys_mode())
+    };
+    let mut engine = crate::ux::InputEngine::attach_to_renderer(
+        &mut renderer,
+        crate::ux::InputEngineParams {
+            terminal: Arc::clone(&pane.terminal),
+            pty: pty_sink,
+            resize: resize_sink,
+            shared: crate::ux::SharedUxState {
+                selection: Arc::clone(&pane.selection),
+                search: Arc::clone(&pane.search),
+                dir_picker: Arc::clone(&pane.dir_picker),
+            },
+            clipboard: Arc::clone(&clipboard),
+            keybinds,
+            behavior,
+            cursor_keys_mode,
+            default_font_size,
+            padding,
+        },
+    );
 
     let app_config = madori::AppConfig {
         title: "mado".into(),
@@ -794,552 +808,27 @@ fn main() -> anyhow::Result<()> {
         .config(app_config)
         .on_event(move |event, renderer| -> EventResponse {
             // Check if PTY has exited — request window close
-            {
-                let ws = &*pane_for_events;
-                if ws.any_exited() {
-                    return exit_response(confirm_close, &pending_close);
-                }
+            if pane_for_events.any_exited() {
+                return exit_response(confirm_close, &pending_close);
             }
 
+            // M1 adapter: each arm translates AppEvent fields into one
+            // InputEngine call and maps the typed EventOutcome back to
+            // madori's EventResponse. Loop-specific concerns that stay
+            // here: child-exit close (above), NativeStylingLatch ticks,
+            // snow pulses, and the title/bell/OSC52 side-effect polling
+            // (until the M4 TerminalSideEffects drain).
             match event {
-                AppEvent::Key(KeyEvent {
-                    pressed: true,
-                    text,
-                    key,
-                    modifiers,
-                    ..
-                }) => {
+                AppEvent::Key(key_event @ KeyEvent { pressed: true, .. }) => {
                     // Snow overlay: every keystroke pulses the
                     // typing-shimmer; pulse decays per frame at ~0.5s
                     // half-life so rapid typing builds up brightness.
                     renderer.snow_pulse_typing();
-                    let hide_cursor =
-                        mouse_hide_while_typing && mouse_visible.swap(false, Ordering::SeqCst);
-                    // Map winit modifiers to awase modifiers
-                    let mut awase_mods = awase::Modifiers::NONE;
-                    if modifiers.ctrl {
-                        awase_mods = awase_mods | awase::Modifiers::CTRL;
-                    }
-                    if modifiers.alt {
-                        awase_mods = awase_mods | awase::Modifiers::ALT;
-                    }
-                    if modifiers.shift {
-                        awase_mods = awase_mods | awase::Modifiers::SHIFT;
-                    }
-                    if modifiers.meta {
-                        awase_mods = awase_mods | awase::Modifiers::CMD;
-                    }
-
-                    // Keep track of raw modifiers for non-keybind usage
-                    let mods = modifiers;
-
-                    // Determine awase key from the event
-                    let awase_key = winit_to_awase_key(key, text);
-
-                    // Check for keybind action first
-                    let action = awase_key
-                        .map(|k| awase::Hotkey::new(awase_mods, k))
-                        .and_then(|hk| keybinds.lookup(&hk));
-
-                    // Handle search mode input
-                    {
-                        let ws = &*pane_for_events;
-                        if let Some(pane) = ws.focused_pane() {
-                            let search_active = pane.search.lock().unwrap().active;
-                            if search_active {
-                                match action {
-                                    Some(Action::SearchClose) => {
-                                        pane.search.lock().unwrap().close();
-                                        return with_cursor_visibility(
-                                            EventResponse::consumed(),
-                                            hide_cursor.then_some(false),
-                                        );
-                                    }
-                                    Some(Action::SearchNext) => {
-                                        pane.search.lock().unwrap().next();
-                                        return with_cursor_visibility(
-                                            EventResponse::consumed(),
-                                            hide_cursor.then_some(false),
-                                        );
-                                    }
-                                    Some(Action::SearchPrev) => {
-                                        pane.search.lock().unwrap().prev();
-                                        return with_cursor_visibility(
-                                            EventResponse::consumed(),
-                                            hide_cursor.then_some(false),
-                                        );
-                                    }
-                                    _ => {}
-                                }
-                                // In search mode, typing updates the query (no modifiers)
-                                if !mods.ctrl && !mods.meta && !mods.alt {
-                                    if let Some(text) = text {
-                                        if !text.is_empty() {
-                                            let term = pane.terminal.read();
-                                            let rows: Vec<_> =
-                                                term.visible_rows().map(|r| r.to_vec()).collect();
-                                            let cols = term.cols();
-                                            drop(term);
-                                            pane.search
-                                                .lock()
-                                                .unwrap()
-                                                .append_query(text, &rows, cols);
-                                            return with_cursor_visibility(
-                                                EventResponse::consumed(),
-                                                hide_cursor.then_some(false),
-                                            );
-                                        }
-                                    }
-                                    // Handle backspace in search
-                                    if matches!(key, madori::event::KeyCode::Backspace) {
-                                        let term = pane.terminal.read();
-                                        let rows: Vec<_> =
-                                            term.visible_rows().map(|r| r.to_vec()).collect();
-                                        let cols = term.cols();
-                                        drop(term);
-                                        pane.search
-                                            .lock()
-                                            .unwrap()
-                                            .backspace_query(&rows, cols);
-                                        return with_cursor_visibility(
-                                            EventResponse::consumed(),
-                                            hide_cursor.then_some(false),
-                                        );
-                                    }
-                                }
-                                return with_cursor_visibility(
-                                    EventResponse::consumed(),
-                                    hide_cursor.then_some(false),
-                                );
-                            }
-                        }
-                    }
-
-                    // Handle dir-picker mode input (reader-only frecency overlay 轍).
-                    // Mirrors the search-mode block above; keys are fully consumed
-                    // while open. mado only READS wadachi + injects `cd` on select.
-                    {
-                        let ws = &*pane_for_events;
-                        if let Some(pane) = ws.focused_pane() {
-                            let dp_open = pane.dir_picker.lock().unwrap().open;
-                            if dp_open {
-                                if matches!(key, madori::event::KeyCode::Escape) {
-                                    pane.dir_picker.lock().unwrap().close();
-                                    return with_cursor_visibility(
-                                        EventResponse::consumed(),
-                                        hide_cursor.then_some(false),
-                                    );
-                                }
-                                if matches!(key, madori::event::KeyCode::Enter) {
-                                    let path = pane.dir_picker.lock().unwrap().selected_path().cloned();
-                                    if let Some(p) = path {
-                                        let cmd = format!(
-                                            "cd {}\n",
-                                            crate::dir_picker::shell_quote_path(&p.to_string_lossy())
-                                        );
-                                        pane.send_input(cmd.into_bytes());
-                                    }
-                                    pane.dir_picker.lock().unwrap().close();
-                                    return with_cursor_visibility(
-                                        EventResponse::consumed(),
-                                        hide_cursor.then_some(false),
-                                    );
-                                }
-                                if matches!(key, madori::event::KeyCode::Up) {
-                                    pane.dir_picker.lock().unwrap().move_up();
-                                    return with_cursor_visibility(
-                                        EventResponse::consumed(),
-                                        hide_cursor.then_some(false),
-                                    );
-                                }
-                                if matches!(key, madori::event::KeyCode::Down) {
-                                    pane.dir_picker.lock().unwrap().move_down();
-                                    return with_cursor_visibility(
-                                        EventResponse::consumed(),
-                                        hide_cursor.then_some(false),
-                                    );
-                                }
-                                if !mods.ctrl && !mods.meta && !mods.alt {
-                                    if matches!(key, madori::event::KeyCode::Backspace) {
-                                        pane.dir_picker.lock().unwrap().backspace();
-                                        return with_cursor_visibility(
-                                            EventResponse::consumed(),
-                                            hide_cursor.then_some(false),
-                                        );
-                                    }
-                                    if let Some(text) = text {
-                                        if !text.is_empty() {
-                                            pane.dir_picker.lock().unwrap().push_str(text);
-                                            return with_cursor_visibility(
-                                                EventResponse::consumed(),
-                                                hide_cursor.then_some(false),
-                                            );
-                                        }
-                                    }
-                                }
-                                // Consume everything else while the overlay is open.
-                                return with_cursor_visibility(
-                                    EventResponse::consumed(),
-                                    hide_cursor.then_some(false),
-                                );
-                            }
-                        }
-                    }
-
-                    // Dispatch keybind action
-                    if let Some(action) = action {
-                        match action {
-                            Action::Copy => {
-                                let selected_text = {
-                                    let ws = &*pane_for_events;
-                                    ws.focused_pane().and_then(|pane| {
-                                        let sel = pane.selection.lock().unwrap();
-                                        let term = pane.terminal.read();
-                                        let rows: Vec<_> =
-                                            term.visible_rows().map(|r| r.to_vec()).collect();
-                                        let cols = term.cols();
-                                        drop(term);
-                                        sel.extract_text(&rows, cols)
-                                    })
-                                };
-                                if let Some(text) = selected_text {
-                                    if let Ok(cb) = clipboard.lock() {
-                                        let _ = cb.copy_text(&text);
-                                    }
-                                }
-                                return with_cursor_visibility(
-                                    EventResponse::consumed(),
-                                    hide_cursor.then_some(false),
-                                );
-                            }
-                            Action::Paste => {
-                                let pasted_text =
-                                    clipboard.lock().ok().and_then(|cb| cb.paste_text().ok());
-                                if let Some(pasted) = pasted_text {
-                                    if !pasted.is_empty() {
-                                        let ws = &*pane_for_events;
-                                        if let Some(pane) = ws.focused_pane() {
-                                            let term = pane.terminal.read();
-                                            let bracketed = term.bracketed_paste();
-                                            drop(term);
-                                            // PasteGuard — shared with
-                                            // the tear path; see
-                                            // clipboard_store::sanitize_paste.
-                                            let safe = crate::clipboard_store::sanitize_paste(
-                                                &pasted, bracketed,
-                                            );
-                                            if !safe.is_empty() {
-                                                if bracketed {
-                                                    let _ = pane
-                                                        .input_tx
-                                                        .send(b"\x1b[200~".to_vec());
-                                                }
-                                                let _ = pane.input_tx.send(safe);
-                                                if bracketed {
-                                                    let _ = pane
-                                                        .input_tx
-                                                        .send(b"\x1b[201~".to_vec());
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                return with_cursor_visibility(
-                                    EventResponse::consumed(),
-                                    hide_cursor.then_some(false),
-                                );
-                            }
-                            Action::SearchOpen => {
-                                let ws = &*pane_for_events;
-                                if let Some(pane) = ws.focused_pane() {
-                                    pane.search.lock().unwrap().open();
-                                }
-                                return with_cursor_visibility(
-                                    EventResponse::consumed(),
-                                    hide_cursor.then_some(false),
-                                );
-                            }
-                            Action::DirPickerOpen => {
-                                let ws = &*pane_for_events;
-                                if let Some(pane) = ws.focused_pane() {
-                                    pane.dir_picker.lock().unwrap().open();
-                                }
-                                return with_cursor_visibility(
-                                    EventResponse::consumed(),
-                                    hide_cursor.then_some(false),
-                                );
-                            }
-                            Action::SearchClose | Action::SearchNext | Action::SearchPrev => {
-                                // Handled above when the overlay is open.
-                                // With it CLOSED these must NOT consume:
-                                // the fleet atlas binds search_close to
-                                // bare Escape, and eating it here kills
-                                // Esc for vim/helix/fzf (companion of
-                                // the tear-path fix, review 2026-06-11).
-                                // Fall through to PTY forwarding below.
-                            }
-                            Action::ScrollPageUp => {
-                                let ws = &*pane_for_events;
-                                if let Some(pane) = ws.focused_pane() {
-                                    let mut term = pane.terminal.write();
-                                    let page = term.rows();
-                                    term.scroll_up(page);
-                                }
-                                return with_cursor_visibility(
-                                    EventResponse::consumed(),
-                                    hide_cursor.then_some(false),
-                                );
-                            }
-                            Action::ScrollPageDown => {
-                                let ws = &*pane_for_events;
-                                if let Some(pane) = ws.focused_pane() {
-                                    let mut term = pane.terminal.write();
-                                    let page = term.rows();
-                                    term.scroll_down(page);
-                                }
-                                return with_cursor_visibility(
-                                    EventResponse::consumed(),
-                                    hide_cursor.then_some(false),
-                                );
-                            }
-                            // Action::SplitHorizontal / SplitVertical /
-                            // ClosePane / FocusNext / FocusPrev removed
-                            // at Phase 4 — tear owns multiplexing.
-                            // Font scaling — BoundedFontSize saturates
-                            // at FONT_MIN/FONT_MAX (the raw `+ 1.0`
-                            // this replaces was the 2026-05-21
-                            // runaway-font class, still live on this
-                            // path). The pane-grid push is left to the
-                            // per-redraw reconciler: cell metrics
-                            // re-measure on the NEXT rendered frame,
-                            // so any grid computed here would use
-                            // stale metrics.
-                            Action::FontIncrease => {
-                                let new_size =
-                                    crate::font_size::BoundedFontSize::new(renderer.font_size())
-                                        .inc_step()
-                                        .get();
-                                renderer.set_font_size(new_size);
-                                return with_cursor_visibility(
-                                    EventResponse::consumed(),
-                                    hide_cursor.then_some(false),
-                                );
-                            }
-                            Action::FontDecrease => {
-                                let new_size =
-                                    crate::font_size::BoundedFontSize::new(renderer.font_size())
-                                        .dec_step()
-                                        .get();
-                                renderer.set_font_size(new_size);
-                                return with_cursor_visibility(
-                                    EventResponse::consumed(),
-                                    hide_cursor.then_some(false),
-                                );
-                            }
-                            Action::FontReset => {
-                                let reset_size =
-                                    crate::font_size::BoundedFontSize::new(default_font_size)
-                                        .get();
-                                renderer.set_font_size(reset_size);
-                                return with_cursor_visibility(
-                                    EventResponse::consumed(),
-                                    hide_cursor.then_some(false),
-                                );
-                            }
-                            Action::ScrollToTop => {
-                                let ws = &*pane_for_events;
-                                if let Some(pane) = ws.focused_pane() {
-                                    pane.terminal.write().scroll_to_top();
-                                }
-                                return EventResponse::consumed();
-                            }
-                            Action::ScrollToBottom => {
-                                let ws = &*pane_for_events;
-                                if let Some(pane) = ws.focused_pane() {
-                                    pane.terminal.write().scroll_to_bottom();
-                                }
-                                return with_cursor_visibility(
-                                    EventResponse::consumed(),
-                                    hide_cursor.then_some(false),
-                                );
-                            }
-                            Action::ResetTerminal => {
-                                let ws = &*pane_for_events;
-                                if let Some(pane) = ws.focused_pane() {
-                                    pane.terminal.write().reset();
-                                }
-                                return with_cursor_visibility(
-                                    EventResponse::consumed(),
-                                    hide_cursor.then_some(false),
-                                );
-                            }
-                            // Action::NewTab / CloseTab / NextTab /
-                            // PrevTab removed at Phase 4 — tear's job.
-                            Action::ToggleFullscreen => {
-                                return with_cursor_visibility(
-                                    EventResponse {
-                                        consumed: true,
-                                        toggle_fullscreen: true,
-                                        ..Default::default()
-                                    },
-                                    hide_cursor.then_some(false),
-                                );
-                            }
-                            Action::ScrollUp | Action::ScrollDown => {
-                                // These are handled by scroll wheel events
-                            }
-                            Action::PasteFromSelection => {
-                                let pasted = clipboard.lock().ok().and_then(|cb| cb.paste_text().ok());
-                                if let Some(text) = pasted {
-                                    let ws = &*pane_for_events;
-                                    ws.send_input(text.into_bytes());
-                                }
-                            }
-                            Action::JumpToPrompt | Action::JumpToPromptPrev => {
-                                // Scroll to the previous OSC 133 A mark (ghostty's
-                                // canonical Cmd-Up binding).
-                                let ws = &*pane_for_events;
-                                if let Some(pane) = ws.focused_pane() {
-                                    let mut term = pane.terminal.write();
-                                    if let Some(target) = term.scroll_offset_to_prev_prompt() {
-                                        let delta = target.saturating_sub(term.scroll_offset());
-                                        if delta > 0 {
-                                            term.scroll_up(delta);
-                                        } else {
-                                            let back = term.scroll_offset().saturating_sub(target);
-                                            term.scroll_down(back);
-                                        }
-                                        tracing::trace!(target, "jumped to prev prompt");
-                                    } else {
-                                        tracing::debug!("no prompt marks above viewport");
-                                    }
-                                }
-                            }
-                            Action::JumpToPromptNext => {
-                                // Scroll to the next OSC 133 A mark forward from
-                                // the current view top (ghostty's Cmd-Down).
-                                let ws = &*pane_for_events;
-                                if let Some(pane) = ws.focused_pane() {
-                                    let mut term = pane.terminal.write();
-                                    if let Some(target) = term.scroll_offset_to_next_prompt() {
-                                        let cur = term.scroll_offset();
-                                        if target < cur {
-                                            term.scroll_down(cur - target);
-                                        } else if target > cur {
-                                            term.scroll_up(target - cur);
-                                        }
-                                        tracing::trace!(target, "jumped to next prompt");
-                                    } else {
-                                        tracing::debug!("no prompt marks below viewport");
-                                    }
-                                }
-                            }
-                            Action::ClearScreen => {
-                                let ws = &*pane_for_events;
-                                ws.send_input(b"\x0c".to_vec()); // Ctrl+L
-                            }
-                            Action::SelectAll => {
-                                let ws = &*pane_for_events;
-                                if let Some(pane) = ws.focused_pane() {
-                                    let term = pane.terminal.read();
-                                    let cols = term.cols();
-                                    let num_rows = term.rows();
-                                    drop(term);
-                                    let mut sel = pane.selection.lock().unwrap();
-                                    sel.start(CellPos { row: 0, col: 0 });
-                                    sel.update(CellPos { row: num_rows.saturating_sub(1), col: cols.saturating_sub(1) });
-                                    sel.finish();
-                                }
-                            }
-                            Action::CopyUrlToClipboard => {
-                                let ws = &*pane_for_events;
-                                if let Some(pane) = ws.focused_pane() {
-                                    let term = pane.terminal.read();
-                                    let cols = term.cols();
-                                    let cursor_row = term.cursor().row;
-                                    let row_cells: Vec<_> = (0..cols).map(|c| term.cell(cursor_row, c).clone()).collect();
-                                    drop(term);
-                                    let urls = crate::url::detect_urls_in_row(&row_cells, cols, cursor_row);
-                                    if let Some(url) = urls.first() {
-                                        if let Ok(cb) = clipboard.lock() {
-                                            let _ = cb.copy_text(&url.url);
-                                        }
-                                    }
-                                }
-                            }
-                            Action::ToggleMouseReporting => {
-                                tracing::info!("mouse reporting toggled");
-                            }
-                        }
-                    }
-
-                    // Clear selection on any key press
-                    {
-                        let ws = &*pane_for_events;
-                        if let Some(pane) = ws.focused_pane() {
-                            pane.selection.lock().unwrap().clear();
-                        }
-                    }
-
-                    // Kitty keyboard protocol: if active, encode keys using the protocol
-                    {
-                        let ws = &*pane_for_events;
-                        if let Some(pane) = ws.focused_pane() {
-                            let kitty_flags =
-                                pane.terminal.read().kitty_keyboard_flags();
-                            if kitty_flags > 0 {
-                                if let Some(encoded) = crate::keybind::kitty_encode_key(
-                                    key, text, modifiers, kitty_flags,
-                                ) {
-                                    let _ = pane.input_tx.send(encoded);
-                                    return with_cursor_visibility(
-                                        EventResponse::consumed(),
-                                        hide_cursor.then_some(false),
-                                    );
-                                }
-                            }
-                        }
-                    }
-
-                    // Translate the key + text + modifiers to PTY bytes
-                    // through the shared helper. Single source of truth
-                    // across the legacy single-pane path here and the
-                    // embedded-tear path in `gui_tear_attach.rs`. See
-                    // `keybind::madori_key_to_pty_bytes` — and the
-                    // `embedded_tear_flow_ctrl_r_reaches_pty` regression
-                    // test that pins the 2026-05-26 Ctrl-R bug shut.
-                    let ws = &*pane_for_events;
-                    let app_mode = ws
-                        .focused_pane()
-                        .map(|p| p.terminal.read().cursor_keys_mode())
-                        .unwrap_or(false);
-                    if let Some(bytes) = crate::keybind::madori_key_to_pty_bytes(
-                        key, text, *modifiers, app_mode,
-                    ) {
-                        ws.send_input(bytes);
-                        return with_cursor_visibility(
-                            EventResponse::consumed(),
-                            hide_cursor.then_some(false),
-                        );
-                    }
-                    // Helper returned None — bare Cmd shortcut (consume
-                    // so the bare letter doesn't leak to the PTY) or a
-                    // truly unmapped key (ignored so the OS can handle
-                    // media keys / F13+ / etc.).
-                    let resp = if modifiers.meta {
-                        EventResponse::consumed()
-                    } else {
-                        EventResponse::ignored()
-                    };
-                    with_cursor_visibility(resp, hide_cursor.then_some(false))
+                    engine.on_key(key_event, renderer).into()
                 }
                 // IME commit — forward composed text to PTY
                 AppEvent::Ime(madori::ImeEvent::Commit(text)) => {
-                    if !text.is_empty() {
-                        let ws = &*pane_for_events;
-                        ws.send_input(text.as_bytes().to_vec());
-                    }
-                    EventResponse::consumed()
+                    engine.on_ime_commit(text).into()
                 }
                 // Mouse button events — selection or forward to PTY
                 AppEvent::Mouse(MouseEvent::Button {
@@ -1348,291 +837,25 @@ fn main() -> anyhow::Result<()> {
                     x,
                     y,
                     modifiers,
-                }) => {
-                    let cw = renderer.cell_width();
-                    let ch = renderer.cell_height();
-                    // Mouse coords are PHYSICAL pixels; padding is a
-                    // logical config value — scale before subtracting
-                    // or clicks land up to half a cell off on HiDPI.
-                    let pad_phys = padding * renderer.scale_factor();
-                    let col = ((*x as f32 - pad_phys) / cw).max(0.0) as usize;
-                    let row = ((*y as f32 - pad_phys) / ch).max(0.0) as usize;
-
-                    let ws = &*pane_for_events;
-                    let Some(pane) = ws.focused_pane() else {
-                        return EventResponse::consumed();
-                    };
-
-                    let term = pane.terminal.read();
-                    let mouse_mode = term.mouse_mode();
-                    let sgr = term.sgr_mouse();
-                    let term_cols = term.cols();
-                    let term_rows = term.rows();
-                    drop(term);
-
-                    let col = col.min(term_cols.saturating_sub(1));
-                    let row = row.min(term_rows.saturating_sub(1));
-
-                    if *button == madori::event::MouseButton::Left {
-                        left_button_down = *pressed;
-                    }
-
-                    // Forward mouse events to the PTY via the typed
-                    // MouseReport emitter (shared with the tear path).
-                    if mouse_mode != MouseMode::Off
-                        && *button == madori::event::MouseButton::Left
-                    {
-                        let report = crate::mouse_report::MouseReport {
-                            kind: if *pressed {
-                                crate::mouse_report::MouseReportKind::Press
-                            } else {
-                                crate::mouse_report::MouseReportKind::Release
-                            },
-                            button: crate::mouse_report::MouseReportButton::Left,
-                            col: col + 1,
-                            row: row + 1,
-                        };
-                        let _ = pane.input_tx.send(report.encode(sgr));
-                        return EventResponse::consumed();
-                    }
-
-                    // Text selection via left mouse button
-                    if *button == madori::event::MouseButton::Left {
-                        if *pressed {
-                            let now = Instant::now();
-                            let same_pos = last_click_pos.row == row && last_click_pos.col == col;
-                            let quick = now.duration_since(last_click_time).as_millis() < 400;
-
-                            if same_pos && quick {
-                                click_count = (click_count + 1).min(3);
-                            } else {
-                                click_count = 1;
-                            }
-                            last_click_time = now;
-                            last_click_pos = CellPos { row, col };
-
-                            let mut sel = pane.selection.lock().unwrap();
-                            match click_count {
-                                2 => {
-                                    // Double-click: select word
-                                    let term = pane.terminal.read();
-                                    let rows: Vec<_> =
-                                        term.visible_rows().map(|r| r.to_vec()).collect();
-                                    let cols_count = term.cols();
-                                    drop(term);
-                                    sel.select_word(CellPos { row, col }, &rows, cols_count);
-                                }
-                                3 => {
-                                    // Triple-click: select entire line
-                                    let term = pane.terminal.read();
-                                    let cols_count = term.cols();
-                                    drop(term);
-                                    sel.select_line(row, cols_count);
-                                }
-                                _ => {
-                                    sel.start(CellPos { row, col });
-                                }
-                            }
-                        } else {
-                            let mut sel = pane.selection.lock().unwrap();
-                            if click_count == 1 {
-                                sel.finish();
-                            }
-                            // Muscle-memory contract: the highlight goes
-                            // straight to the clipboard on release for
-                            // EVERY selection shape — drag, double-click
-                            // word, triple-click line (word/line used to
-                            // be excluded by the click_count gate).
-                            if copy_on_select {
-                                let term = pane.terminal.read();
-                                let rows: Vec<_> =
-                                    term.visible_rows().map(|r| r.to_vec()).collect();
-                                let cols = term.cols();
-                                drop(term);
-                                if let Some(text) = sel.extract_text(&rows, cols) {
-                                    if let Ok(cb) = clipboard.lock() {
-                                        let _ = cb.copy_text(&text);
-                                    }
-                                }
-                            }
-                            if click_count == 1 {
-                                // Cmd+click (macOS) / Ctrl+click (Linux) to open URLs
-                                if modifiers.meta || modifiers.ctrl {
-                                    drop(sel);
-                                    let term = pane.terminal.read();
-                                    let row_cells: Vec<Vec<crate::terminal::Cell>> =
-                                        term.visible_rows().map(|r| r.to_vec()).collect();
-                                    let cols = term.cols();
-                                    drop(term);
-                                    let detected =
-                                        crate::url::detect_urls(&row_cells, cols);
-                                    if let Some(url) =
-                                        crate::url::url_at(&detected, row, col)
-                                    {
-                                        // Phase-4 note: `ws` is a `&SinglePane` now
-                                        // (not a MutexGuard). `drop(&ws)` was a no-op
-                                        // and clippy flagged it; the old code dropped
-                                        // a real WindowState lock here.
-                                        if let Err(e) = open::that(&url.url) {
-                                            tracing::warn!(
-                                                error = %e,
-                                                url = %url.url,
-                                                "failed to open URL"
-                                            );
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    EventResponse::consumed()
-                }
+                }) => engine
+                    .on_mouse_button(*button, *pressed, *x, *y, *modifiers, renderer)
+                    .into(),
                 // Mouse move — update selection drag or forward to PTY
                 AppEvent::Mouse(MouseEvent::Moved { x, y }) => {
-                    let was_hidden = !mouse_visible.swap(true, Ordering::SeqCst);
-                    let show_cursor = mouse_hide_while_typing && was_hidden;
                     // Snow overlay: track cursor for the deflection ring
                     // on the near-layer flakes.
                     renderer.snow_set_cursor(*x as f32, *y as f32);
-                    let cw = renderer.cell_width();
-                    let ch = renderer.cell_height();
-                    // Physical-pixel padding — see the Button arm.
-                    let pad_phys = padding * renderer.scale_factor();
-                    let col = ((*x as f32 - pad_phys) / cw).max(0.0) as usize;
-                    let row = ((*y as f32 - pad_phys) / ch).max(0.0) as usize;
-
-                    let ws = &*pane_for_events;
-                    let Some(pane) = ws.focused_pane() else {
-                        return EventResponse::consumed();
-                    };
-
-                    let term = pane.terminal.read();
-                    let mouse_mode = term.mouse_mode();
-                    let sgr = term.sgr_mouse();
-                    let term_cols = term.cols();
-                    let term_rows = term.rows();
-                    drop(term);
-
-                    let col = col.min(term_cols.saturating_sub(1));
-                    let row = row.min(term_rows.saturating_sub(1));
-
-                    // Forward motion with the spec-correct code: 1002
-                    // (ButtonEvent) only while a button is held; 1003
-                    // (AnyEvent) always, hover motion carrying the
-                    // no-button code (35), never a fabricated
-                    // left-drag (32).
-                    if matches!(mouse_mode, MouseMode::ButtonEvent | MouseMode::AnyEvent) {
-                        let forward =
-                            left_button_down || mouse_mode == MouseMode::AnyEvent;
-                        if forward && sgr {
-                            let report = crate::mouse_report::MouseReport {
-                                kind: crate::mouse_report::MouseReportKind::Motion,
-                                button: if left_button_down {
-                                    crate::mouse_report::MouseReportButton::Left
-                                } else {
-                                    crate::mouse_report::MouseReportButton::None
-                                },
-                                col: col + 1,
-                                row: row + 1,
-                            };
-                            let _ = pane.input_tx.send(report.encode(true));
-                        }
-                        return if show_cursor {
-                            EventResponse {
-                                consumed: true,
-                                set_cursor_visible: Some(true),
-                                ..Default::default()
-                            }
-                        } else {
-                            EventResponse::consumed()
-                        };
-                    }
-
-                    // Update text selection if dragging
-                    let mut sel = pane.selection.lock().unwrap();
-                    if sel.is_active() {
-                        sel.update(CellPos { row, col });
-                    }
-                    if show_cursor {
-                        EventResponse {
-                            consumed: true,
-                            set_cursor_visible: Some(true),
-                            ..Default::default()
-                        }
-                    } else {
-                        EventResponse::consumed()
-                    }
+                    engine.on_mouse_moved(*x, *y, renderer).into()
                 }
                 AppEvent::Mouse(MouseEvent::Scroll { dy, .. }) => {
-                    let ws = &*pane_for_events;
-                    let Some(pane) = ws.focused_pane() else {
-                        return EventResponse::consumed();
-                    };
-
-                    let mut term = pane.terminal.write();
-                    let mouse_mode = term.mouse_mode();
-                    let sgr = term.sgr_mouse();
-
-                    // If mouse tracking is active, forward scroll as button events
-                    if mouse_mode != MouseMode::Off {
-                        drop(term);
-                        let report = crate::mouse_report::MouseReport {
-                            kind: crate::mouse_report::MouseReportKind::Press,
-                            button: if *dy > 0.0 {
-                                crate::mouse_report::MouseReportButton::WheelUp
-                            } else {
-                                crate::mouse_report::MouseReportButton::WheelDown
-                            },
-                            // Wheel coords not yet plumbed — 1;1
-                            // preserved (P1 item, docs/COMPETITIVE.md).
-                            col: 1,
-                            row: 1,
-                        };
-                        let _ = pane.input_tx.send(report.encode(sgr));
-                        return EventResponse::consumed();
-                    }
-
-                    let lines = (*dy as isize).unsigned_abs().max(1)
-                        * (mouse_scroll_multiplier as usize).max(1);
-                    if *dy > 0.0 {
-                        term.scroll_up(lines);
-                    } else {
-                        term.scroll_down(lines);
-                    }
-                    EventResponse::consumed()
+                    engine.on_mouse_scroll(*dy, renderer).into()
                 }
-                // Focus events → send to PTY if focus reporting is enabled
-                AppEvent::Focused(focused) => {
-                    let ws = &*pane_for_events;
-                    if let Some(pane) = ws.focused_pane() {
-                        let term = pane.terminal.read();
-                        let reporting = term.focus_reporting();
-                        drop(term);
-                        if reporting {
-                            if *focused {
-                                let _ = pane.input_tx.send(b"\x1b[I".to_vec());
-                            } else {
-                                let _ = pane.input_tx.send(b"\x1b[O".to_vec());
-                            }
-                        }
-                    }
-                    EventResponse::consumed()
-                }
+                // Focus events → engine emits ESC[I/ESC[O when focus
+                // reporting (mode 1004) is enabled.
+                AppEvent::Focused(focused) => engine.on_focus(*focused).into(),
                 AppEvent::CloseRequested => exit_response(confirm_close, &pending_close),
                 AppEvent::Resized { width, height } => {
-                    last_width = *width;
-                    last_height = *height;
-                    let cw = renderer.cell_width();
-                    let ch = renderer.cell_height();
-                    let ws = &*pane_for_events;
-                    ws.resize_panes(*width as f32, *height as f32, padding, cw, ch);
-                    // Record the signature so the reconciler doesn't
-                    // re-fire the same dims one frame later (a
-                    // duplicate Terminal::resize used to reset the
-                    // app's scroll region; Terminal::resize is also
-                    // same-dims-no-op now as the deeper guard).
-                    grid_sync_sig = Some((*width, *height, cw.to_bits(), ch.to_bits()));
-                    EventResponse::consumed()
+                    engine.on_resize(*width, *height, renderer).into()
                 }
                 // Check for title/bell/clipboard changes on every redraw
                 AppEvent::RedrawRequested => {
@@ -1640,26 +863,12 @@ fn main() -> anyhow::Result<()> {
                     // window exists — the first redraws can tick before
                     // AppKit registers the window.
                     native_styling.tick();
-                    // ── PTY-grid ⇄ display reconciler ────────────────
-                    // Same contract as the tear path: the pre-window
-                    // estimate can't know measured font metrics or the
-                    // Flush-titlebar content inset, and macOS sends no
-                    // initial Resized — converge the pane grid on
-                    // display truth whenever surface dims or cell
-                    // metrics change (covers startup AND the one-frame
-                    // metric lag after font zoom).
-                    if let Some((w, h)) = renderer.last_surface_size() {
-                        let cw = renderer.cell_width();
-                        let ch = renderer.cell_height();
-                        let sig = (w, h, cw.to_bits(), ch.to_bits());
-                        if grid_sync_sig != Some(sig) {
-                            grid_sync_sig = Some(sig);
-                            last_width = w;
-                            last_height = h;
-                            let ws = &*pane_for_events;
-                            ws.resize_panes(w as f32, h as f32, padding, cw, ch);
-                        }
-                    }
+                    // PTY-grid ⇄ display reconciler — engine-owned
+                    // latch over the rendered-surface signature (same
+                    // contract as the tear path).
+                    engine.on_redraw_tick(renderer);
+                    // Side-effect polling stays loop-side until the M4
+                    // typed TerminalSideEffects drain replaces it.
                     let ws = &*pane_for_events;
                     if let Some(pane) = ws.focused_pane() {
                         let mut term = pane.terminal.write();
@@ -1667,15 +876,10 @@ fn main() -> anyhow::Result<()> {
                         let bell = term.take_bell();
                         let osc52_clip = term.take_clipboard();
                         drop(term);
-                        // Phase-4 note: `ws` is `&SinglePane`; `drop(&ws)`
-                        // is a no-op clippy flagged. `term` was a real
-                        // RwLockWriteGuard — dropping it above is real.
 
                         // OSC 52 clipboard sync — copy terminal clipboard to system
                         if let Some(clip_text) = osc52_clip {
-                            if let Ok(cb) = clipboard.lock() {
-                                let _ = cb.copy_text(&clip_text);
-                            }
+                            let _ = clipboard.copy_text(&clip_text);
                         }
 
                         // Bell flash
@@ -1704,116 +908,8 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-/// Map madori key event to awase Key.
-fn winit_to_awase_key(key: &madori::event::KeyCode, text: &Option<String>) -> Option<awase::Key> {
-    match key {
-        madori::event::KeyCode::Enter => Some(awase::Key::Return),
-        madori::event::KeyCode::Escape => Some(awase::Key::Escape),
-        madori::event::KeyCode::Tab => Some(awase::Key::Tab),
-        madori::event::KeyCode::Backspace => Some(awase::Key::Backspace),
-        madori::event::KeyCode::Delete => Some(awase::Key::Delete),
-        madori::event::KeyCode::Home => Some(awase::Key::Home),
-        madori::event::KeyCode::End => Some(awase::Key::End),
-        madori::event::KeyCode::PageUp => Some(awase::Key::PageUp),
-        madori::event::KeyCode::PageDown => Some(awase::Key::PageDown),
-        madori::event::KeyCode::Up => Some(awase::Key::Up),
-        madori::event::KeyCode::Down => Some(awase::Key::Down),
-        madori::event::KeyCode::Left => Some(awase::Key::Left),
-        madori::event::KeyCode::Right => Some(awase::Key::Right),
-        madori::event::KeyCode::F(n) => match n {
-            1 => Some(awase::Key::F1),
-            2 => Some(awase::Key::F2),
-            3 => Some(awase::Key::F3),
-            4 => Some(awase::Key::F4),
-            5 => Some(awase::Key::F5),
-            6 => Some(awase::Key::F6),
-            7 => Some(awase::Key::F7),
-            8 => Some(awase::Key::F8),
-            9 => Some(awase::Key::F9),
-            10 => Some(awase::Key::F10),
-            11 => Some(awase::Key::F11),
-            12 => Some(awase::Key::F12),
-            _ => None,
-        },
-        madori::event::KeyCode::Char(ch) => char_to_awase_key(*ch),
-        madori::event::KeyCode::Space => Some(awase::Key::Space),
-        _ => {
-            // Try to extract from text
-            if let Some(t) = text {
-                if let Some(ch) = t.chars().next() {
-                    if t.len() == ch.len_utf8() {
-                        return char_to_awase_key(ch);
-                    }
-                }
-            }
-            None
-        }
-    }
-}
-
-/// Map a character to an awase key.
-fn char_to_awase_key(ch: char) -> Option<awase::Key> {
-    match ch.to_ascii_lowercase() {
-        'a' => Some(awase::Key::A),
-        'b' => Some(awase::Key::B),
-        'c' => Some(awase::Key::C),
-        'd' => Some(awase::Key::D),
-        'e' => Some(awase::Key::E),
-        'f' => Some(awase::Key::F),
-        'g' => Some(awase::Key::G),
-        'h' => Some(awase::Key::H),
-        'i' => Some(awase::Key::I),
-        'j' => Some(awase::Key::J),
-        'k' => Some(awase::Key::K),
-        'l' => Some(awase::Key::L),
-        'm' => Some(awase::Key::M),
-        'n' => Some(awase::Key::N),
-        'o' => Some(awase::Key::O),
-        'p' => Some(awase::Key::P),
-        'q' => Some(awase::Key::Q),
-        'r' => Some(awase::Key::R),
-        's' => Some(awase::Key::S),
-        't' => Some(awase::Key::T),
-        'u' => Some(awase::Key::U),
-        'v' => Some(awase::Key::V),
-        'w' => Some(awase::Key::W),
-        'x' => Some(awase::Key::X),
-        'y' => Some(awase::Key::Y),
-        'z' => Some(awase::Key::Z),
-        '0' => Some(awase::Key::Num0),
-        '1' => Some(awase::Key::Num1),
-        '2' => Some(awase::Key::Num2),
-        '3' => Some(awase::Key::Num3),
-        '4' => Some(awase::Key::Num4),
-        '5' => Some(awase::Key::Num5),
-        '6' => Some(awase::Key::Num6),
-        '7' => Some(awase::Key::Num7),
-        '8' => Some(awase::Key::Num8),
-        '9' => Some(awase::Key::Num9),
-        ' ' => Some(awase::Key::Space),
-        '/' => Some(awase::Key::Slash),
-        '+' | '=' => Some(awase::Key::Equal),
-        '-' => Some(awase::Key::Minus),
-        ',' => Some(awase::Key::Comma),
-        '.' => Some(awase::Key::Period),
-        _ => None,
-    }
-}
-
 fn default_shell() -> String {
     std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_string())
-}
-
-/// Add cursor visibility to response when mouse_hide_while_typing changed it.
-fn with_cursor_visibility(resp: EventResponse, visible: Option<bool>) -> EventResponse {
-    if let Some(v) = visible {
-        EventResponse {
-            set_cursor_visible: Some(v),
-            ..resp
-        }
-    } else {
-        resp
-    }
 }
 
 /// Build EventResponse for exit request, applying confirm_close logic when enabled.
@@ -1978,23 +1074,33 @@ mod tests {
     }
 
     // ---- with_cursor_visibility ----
+    //
+    // The helper moved to `ux::EventOutcome::with_cursor_visibility`
+    // at M1; same asserted behavior, new seam — including the map
+    // onto madori's EventResponse the adapter performs.
 
     #[test]
     fn test_with_cursor_visibility_true() {
-        let resp = with_cursor_visibility(EventResponse::consumed(), Some(true));
+        let resp: EventResponse = crate::ux::EventOutcome::consumed()
+            .with_cursor_visibility(Some(true))
+            .into();
         assert_eq!(resp.set_cursor_visible, Some(true));
         assert!(resp.consumed);
     }
 
     #[test]
     fn test_with_cursor_visibility_false() {
-        let resp = with_cursor_visibility(EventResponse::consumed(), Some(false));
+        let resp: EventResponse = crate::ux::EventOutcome::consumed()
+            .with_cursor_visibility(Some(false))
+            .into();
         assert_eq!(resp.set_cursor_visible, Some(false));
     }
 
     #[test]
     fn test_with_cursor_visibility_none() {
-        let resp = with_cursor_visibility(EventResponse::consumed(), None);
+        let resp: EventResponse = crate::ux::EventOutcome::consumed()
+            .with_cursor_visibility(None)
+            .into();
         assert!(resp.set_cursor_visible.is_none());
     }
 

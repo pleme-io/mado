@@ -80,6 +80,11 @@ impl SinglePane {
     /// Compat: WindowState took pixel dims + cell metrics and
     /// resized every pane. Single-pane mado computes cells once
     /// from the same inputs + forwards to `resize`.
+    ///
+    /// Superseded in the event loop by `ux::InputEngine`'s grid
+    /// reconciler (M1) — retained for the WindowState-compat unit
+    /// tests below until tear absorbs SinglePane (Phase 5+).
+    #[allow(dead_code)]
     pub fn resize_panes(
         &self,
         width: f32,

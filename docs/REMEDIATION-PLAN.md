@@ -50,17 +50,16 @@ The destination is a single mado where (1) ONE render-mode-agnostic input/UX eng
 - cargo test --test config_coverage green; adding a MadoConfig field WITHOUT a CONSUMED_FIELDS entry makes it RED (verified by deliberate failing-then-fixed commit); shikumi::coverage unit test asserts both missing-consumer AND stale-entry detection
 - PasteGuard unit test: paste of payload\x1b[201~rm -rf /\n has the embedded ESC[201~ neutralized; newline-paste with bracketed-paste OFF is gated behind confirm per paste_confirm_on_newline (consumer wired in M1)
 
-> **Interim status (2026-06-11, pre-M1).** Operator-driven port landed
-> selection / copy-on-select / Cmd+C/Cmd+V (PasteGuard-sanitized) /
-> full mouse forwarding / a PTY-grid⇄display reconciler into
-> `gui_tear_attach.rs` as a SECOND copy of the main.rs UX logic — the
-> exact duplication M1 exists to dissolve. Marked interim debt by
-> design: M1 absorbs both copies into `mado::ux::InputEngine`. Two
-> Stream-D/E pieces were extracted shared already (no re-fork needed):
-> `src/mouse_report.rs` (typed MouseReport encoder, both paths) and
-> `clipboard_store::sanitize_paste` (PasteGuard, both paths). The M1
-> baseline grep-invariant ("no UX logic in either event loop") is
-> therefore PRE-VIOLATED on purpose until M1 lands.
+> **M1 SHIPPED (2026-06-11).** `mado::ux::InputEngine` is live: both
+> event loops are thin adapters over ONE engine (PtySink/ResizeSink
+> sinks, EventOutcome total-mapped to madori::EventResponse,
+> FontZoomTarget + BoundedFontSize in both modes, MouseReport with
+> modifier bits + true wheel coords in ux::mouse_report,
+> TerminalSideEffects payload typed — drain impl wires in M4). The
+> both-call-sites-drive-the-engine invariant is pinned by
+> `tests/ux_unification.rs`; capability parity (copy/paste/search/
+> url/mouse/kitty/plain-key) is pinned headless in ux::engine tests
+> with recording sinks under BOTH sink configurations.
 
 ### M1 — Unified Input/UX Engine — the seam (Stream A, the prerequisite for everything)  *(effort: XL; streams: A — Unified Input/UX Path (full), D — MouseReport+MouseProto encoder authored in the shared module (consumed by both paths), E — TerminalSideEffects drain payload defined (hosted by A's module), G — co-design contract surface only (PtySink/Terminal handle the ctl CLI + triggers will drive))*
 

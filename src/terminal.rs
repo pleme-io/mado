@@ -1377,6 +1377,14 @@ impl Terminal {
     }
 
     #[must_use]
+    /// True while the alternate screen (DECSET 47/1047/1049) is
+    /// active — i.e. a full-screen TUI owns the viewport. Scrollback
+    /// navigation is meaningless there; bare PageUp/PageDown must
+    /// reach the application as ESC[5~/[6~ instead.
+    pub fn is_alternate_screen(&self) -> bool {
+        self.use_alternate
+    }
+
     pub fn bracketed_paste(&self) -> bool {
         self.bracketed_paste
     }
