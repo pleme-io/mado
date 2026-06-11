@@ -50,6 +50,18 @@ The destination is a single mado where (1) ONE render-mode-agnostic input/UX eng
 - cargo test --test config_coverage green; adding a MadoConfig field WITHOUT a CONSUMED_FIELDS entry makes it RED (verified by deliberate failing-then-fixed commit); shikumi::coverage unit test asserts both missing-consumer AND stale-entry detection
 - PasteGuard unit test: paste of payload\x1b[201~rm -rf /\n has the embedded ESC[201~ neutralized; newline-paste with bracketed-paste OFF is gated behind confirm per paste_confirm_on_newline (consumer wired in M1)
 
+> **Interim status (2026-06-11, pre-M1).** Operator-driven port landed
+> selection / copy-on-select / Cmd+C/Cmd+V (PasteGuard-sanitized) /
+> full mouse forwarding / a PTY-grid⇄display reconciler into
+> `gui_tear_attach.rs` as a SECOND copy of the main.rs UX logic — the
+> exact duplication M1 exists to dissolve. Marked interim debt by
+> design: M1 absorbs both copies into `mado::ux::InputEngine`. Two
+> Stream-D/E pieces were extracted shared already (no re-fork needed):
+> `src/mouse_report.rs` (typed MouseReport encoder, both paths) and
+> `clipboard_store::sanitize_paste` (PasteGuard, both paths). The M1
+> baseline grep-invariant ("no UX logic in either event loop") is
+> therefore PRE-VIOLATED on purpose until M1 lands.
+
 ### M1 — Unified Input/UX Engine — the seam (Stream A, the prerequisite for everything)  *(effort: XL; streams: A — Unified Input/UX Path (full), D — MouseReport+MouseProto encoder authored in the shared module (consumed by both paths), E — TerminalSideEffects drain payload defined (hosted by A's module), G — co-design contract surface only (PtySink/Terminal handle the ctl CLI + triggers will drive))*
 
 **Goal.** Collapse the local-PTY and embedded-tear input/UX forks into ONE mado::ux::InputEngine that both paths drive over identical inputs (shared Arc<RwLock<Terminal>>, PtySink, shared selection/search Arcs). After M1, neither main.rs nor gui_tear_attach.rs contains UX logic; the embedded default terminal gains copy/paste/select/search/url/mouse on the same code the headless scenario tests already prove. This is the seam every downstream P0/P1 gap plugs into ONCE.

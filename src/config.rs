@@ -1596,7 +1596,10 @@ fn default_scrollback() -> usize {
     usize::MAX
 }
 fn default_copy_on_select() -> bool {
-    false
+    // Muscle-memory contract (operator directive 2026-06-11): a
+    // highlight goes straight to the clipboard — no extra chord.
+    // The bare tier still opts out (everything-off contract).
+    true
 }
 fn default_mouse_hide() -> bool {
     true
@@ -2250,7 +2253,8 @@ window:
         // Operator-facing default: "never lose anything"; host
         // RAM is the only ceiling. VecDeque grows on demand.
         assert_eq!(config.behavior.scrollback_lines, usize::MAX);
-        assert!(!config.behavior.copy_on_select);
+        // Muscle-memory default: highlight → clipboard, no chord.
+        assert!(config.behavior.copy_on_select);
         assert!(!config.behavior.confirm_close);
         assert!(config.behavior.mouse_hide_while_typing);
         assert_eq!(config.behavior.mouse_scroll_multiplier, 2);
@@ -2422,7 +2426,8 @@ window:
     fn test_behavior_config_defaults() {
         let b = BehaviorConfig::default();
         assert_eq!(b.scrollback_lines, usize::MAX);
-        assert!(!b.copy_on_select);
+        // Muscle-memory default: highlight → clipboard, no chord.
+        assert!(b.copy_on_select);
         assert!(!b.confirm_close);
         assert!(b.mouse_hide_while_typing);
         assert_eq!(b.mouse_scroll_multiplier, 2);

@@ -1286,6 +1286,13 @@ impl Terminal {
         if cols == 0 || rows == 0 {
             return;
         }
+        // Same-dims resize is a no-op — without this guard a redundant
+        // resize (e.g. an event-loop reconciler re-confirming the grid)
+        // silently resets DECSTBM scroll regions, tab stops, and
+        // wrap_pending out from under a running TUI.
+        if cols == self.cols && rows == self.rows {
+            return;
+        }
 
         self.primary.resize(cols, rows);
         self.alternate.resize(cols, rows);
@@ -3568,6 +3575,38 @@ fn parse_palette_index(payload: &[u8]) -> Option<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Same-dims resize is a no-op (invariant, 2026-06-11): the
+    /// event-loop grid reconcilers may re-confirm the current grid;
+    /// that must NEVER reset DECSTBM scroll regions / tab stops /
+    /// wrap_pending out from under a running TUI.
+    #[test]
+    fn same_dims_resize_preserves_scroll_region_and_tabs() {
+        let mut term = Terminal::new(80, 24);
+        // App sets a scroll region (DECSTBM rows 5..10) and a custom
+        // tab stop at column 3.
+        term.feed(b"\x1b[5;10r");
+        term.feed(b"\x1b[1;4H\x1bH"); // CUP col 4 + HTS
+        let (top, bottom) = (term.scroll_top, term.scroll_bottom);
+        assert_eq!((top, bottom), (4, 9), "precondition: region set");
+        assert!(term.tab_stops[3], "precondition: tab stop set");
+
+        // Same-dims resize: everything must survive.
+        term.resize(80, 24);
+        assert_eq!(
+            (term.scroll_top, term.scroll_bottom),
+            (top, bottom),
+            "same-dims resize must not reset the scroll region"
+        );
+        assert!(
+            term.tab_stops[3],
+            "same-dims resize must not reset tab stops"
+        );
+
+        // A REAL resize still resets (existing contract).
+        term.resize(100, 30);
+        assert_eq!((term.scroll_top, term.scroll_bottom), (0, 29));
+    }
 
     /// CPR-liveness invariant (class-killer, 2026-06-10): for EVERY prefix of
     /// a real captured frostmourne stream (one full prompt → Enter → re-prompt

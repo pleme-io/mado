@@ -245,9 +245,76 @@ impl ClipboardStore {
     }
 }
 
+/// PasteGuard — strip bytes that would let pasted content break out of
+/// (or fake) bracketed-paste framing: the classic paste-injection
+/// vector where a malicious clipboard ends the bracket early and the
+/// rest executes as keystrokes.
+///
+/// * `bracketed`: remove every occurrence of the terminator
+///   `ESC[201~` — the only sequence with framing power inside a
+///   bracketed paste; everything else arrives as inert text.
+/// * unbracketed: remove ESC outright — without framing, ANY escape
+///   byte executes in the application as if typed.
+///
+/// Both paste sites (local-PTY `main.rs` and tear-attach
+/// `gui_tear_attach.rs`) route through this one function.
+#[must_use]
+pub fn sanitize_paste(text: &str, bracketed: bool) -> Vec<u8> {
+    if bracketed {
+        const END: &[u8] = b"\x1b[201~";
+        let mut out = text.as_bytes().to_vec();
+        while let Some(pos) = out.windows(END.len()).position(|w| w == END) {
+            out.drain(pos..pos + END.len());
+        }
+        out
+    } else {
+        text.bytes().filter(|b| *b != 0x1b).collect()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ---- PasteGuard ----
+
+    #[test]
+    fn sanitize_paste_passes_plain_text_through() {
+        assert_eq!(sanitize_paste("hello world\n", true), b"hello world\n");
+        assert_eq!(sanitize_paste("hello world\n", false), b"hello world\n");
+    }
+
+    #[test]
+    fn sanitize_paste_strips_bracket_terminator_when_bracketed() {
+        // The injection: paste ends the bracket early, then `rm -rf`+CR
+        // would execute as typed keystrokes.
+        let evil = "innocent\x1b[201~rm -rf /\r";
+        let safe = sanitize_paste(evil, true);
+        assert_eq!(safe, b"innocentrm -rf /\r");
+        assert!(!safe.windows(6).any(|w| w == b"\x1b[201~"));
+    }
+
+    #[test]
+    fn sanitize_paste_strips_interleaved_terminators() {
+        // Terminator split so removal of one occurrence must not
+        // reassemble another: ESC[201 + ESC[201~ + ~ — after removing
+        // the inner full terminator the outer halves join up and must
+        // ALSO be removed (the while-loop re-scan).
+        let evil = "\x1b[201\x1b[201~~payload";
+        let safe = sanitize_paste(evil, true);
+        assert!(
+            !safe.windows(6).any(|w| w == b"\x1b[201~"),
+            "reassembled terminator survived: {safe:?}"
+        );
+    }
+
+    #[test]
+    fn sanitize_paste_strips_esc_when_unbracketed() {
+        let evil = "ok\x1b[31mred\x1b]0;title\x07";
+        let safe = sanitize_paste(evil, false);
+        assert!(!safe.contains(&0x1b), "ESC survived unbracketed paste");
+        assert_eq!(safe, b"ok[31mred]0;title\x07");
+    }
 
     #[test]
     fn hash_is_stable_across_calls() {

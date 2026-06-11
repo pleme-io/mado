@@ -13,12 +13,16 @@
 //! - Resize forwarding: window resize → cell-dim math →
 //!   `client.pane_resize_absolute(pane, cols, rows)`.
 //!
-//! Deliberate non-goals for the MVP:
+//! Deliberate non-goals for the MVP (updated 2026-06-11):
 //! - No special-key translation (arrows / function / chord keys);
 //!   only `KeyEvent.text` (UTF-8 char input) is forwarded. Phase
 //!   3.1.1 will port mado's existing key-table.
-//! - No clipboard / selection / search (lifted into the shared input
-//!   path at M1 — see docs/REMEDIATION-PLAN.md).
+//! - ~~No clipboard / selection~~ LIFTED 2026-06-11: click/word/line
+//!   selection, copy-on-select, Cmd+C/Cmd+V (PasteGuard-sanitized),
+//!   and full mouse forwarding via the shared typed
+//!   `mouse_report::MouseReport` emitter now run in this path.
+//! - No search yet (M1 InputEngine unification —
+//!   docs/REMEDIATION-PLAN.md).
 //! - No multi-pane (that's tear's job — this mode renders one
 //!   tear pane in one mado window).
 
@@ -26,6 +30,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use anyhow::{Context, Result};
+use hasami::ClipboardProvider;
 use parking_lot::RwLock;
 use tear_types::{MultiplexerControl, PaneId, SessionSource};
 
@@ -372,6 +377,12 @@ where
         let init_rows: u16 =
             (((logical_h - 2.0 * pad) / cell_h_logical).floor() as u16).max(1);
         if init_cols as usize != cols || init_rows as usize != rows {
+            // Both halves move together — a mirror left at snapshot
+            // size answers CPR/XTWINOPS for a grid the PTY no longer
+            // has (the reedline fatal-CPR class).
+            terminal
+                .write()
+                .resize(init_cols as usize, init_rows as usize);
             if let Err(e) = control.pane_resize_absolute(pane_id, init_cols, init_rows) {
                 tracing::warn!(error = %e, init_cols, init_rows, "initial pane_resize_absolute failed");
             }
@@ -419,10 +430,10 @@ where
     // here we're in the third tier. Operator overrides via
     // mado.yaml are loaded into the typed keybinds config but the
     // tear-mode event loop only dispatches the action-firing
-    // subset relevant in single-pane tear mode (font zoom +
-    // fullscreen + future). Other actions like Copy/Paste need
-    // mado-side state we don't have here yet — they fall through
-    // to PTY forwarding (terminal apps handle them).
+    // subset relevant in single-pane tear mode (font zoom, Copy,
+    // Paste — see apply_tear_action). Remaining actions (search,
+    // scroll, fullscreen) fall through to PTY forwarding until the
+    // M1 InputEngine unification.
     let keybinds = crate::keybind::KeybindManager::with_mado_defaults();
     // Per-action debouncer for OS key-repeat storms. Default 80ms
     // window — OS key-repeat is ~30-50ms, this drops storm-ticks
@@ -451,6 +462,34 @@ where
     // `apply_native_styling` at all and kept the stock opaque titlebar
     // (grey band + visible ❄ title, operator report 2026-06-11).
     let mut native_styling = crate::platform::NativeStylingLatch::from_config(&config);
+    // ── Selection + clipboard (muscle-memory copy) ────────────────
+    // The tear-attach MVP shipped without selection; lifted 2026-06-11
+    // so the operator's DAILY path has the same highlight→copy muscle
+    // memory as the local-PTY loop: click-drag / double-click word /
+    // triple-click line, release → clipboard (copy_on_select), Cmd+C /
+    // Cmd+V via apply_tear_action.
+    let selection = Arc::new(std::sync::Mutex::new(crate::selection::Selection::new()));
+    renderer.set_selection(Arc::clone(&selection));
+    let selection_for_events = Arc::clone(&selection);
+    let clipboard = Arc::new(std::sync::Mutex::new(
+        hasami::Clipboard::new().expect("failed to initialize clipboard"),
+    ));
+    let copy_on_select = config.behavior.copy_on_select;
+    let mut click_count: u8 = 0;
+    let mut last_click_time = std::time::Instant::now();
+    let mut last_click_pos = crate::selection::CellPos { row: 0, col: 0 };
+    // Whether the left button is currently held — drives the SGR
+    // motion code (drag = 32 vs hover = 35) and 1002 ButtonEvent's
+    // motion-only-while-pressed contract.
+    let mut left_button_down = false;
+    let terminal_for_mouse = Arc::clone(&terminal);
+    // ── PTY-grid ⇄ display reconciler state ──────────────────────
+    // Signature of the RENDERED surface (dims + measured cell-metric
+    // bits) the grid was last derived from. Latching on render truth
+    // (never on what-was-pushed) is load-bearing: events dispatch
+    // before render, so event-derived bookkeeping is one frame ahead
+    // of measured_grid() and ping-pongs tear between old/new grids.
+    let mut grid_sync_sig: Option<(u32, u32, u32, u32)> = None;
     madori::App::builder(renderer)
         .config(app_config)
         .on_event(move |event, renderer| -> EventResponse {
@@ -459,6 +498,32 @@ where
             // ticks can arrive before AppKit registers the window, and
             // a fire-once call would leave the stock titlebar up.
             native_styling.tick();
+            // ── PTY-grid ⇄ display reconciler ────────────────────
+            // Latches on the RENDERED surface signature (dims +
+            // measured cell metrics). Covers (a) the pre-window
+            // estimate being wrong — heuristic cell metrics, and a
+            // Flush titlebar insets the content view while macOS
+            // sends no initial Resized to correct it (the 2026-06-11
+            // "TUI overlaps stale CLI rows" report) — (b) window
+            // resizes (one frame after the surface renders at the new
+            // size), and (c) font-zoom metric changes. Resizes BOTH
+            // halves: mado's mirror VT grid (wrap math, CPR/XTWINOPS
+            // answers, mouse clamps) and tear's PaneGrid+PTY — the
+            // mirror half was missing entirely in tear mode.
+            if let Some((w, h)) = renderer.last_surface_size() {
+                let cw = renderer.cell_width();
+                let ch = renderer.cell_height();
+                let sig = (w, h, cw.to_bits(), ch.to_bits());
+                if grid_sync_sig != Some(sig) {
+                    grid_sync_sig = Some(sig);
+                    let (cols, rows) = renderer.cells_for_window_phys(w, h);
+                    terminal_for_mouse
+                        .write()
+                        .resize(cols as usize, rows as usize);
+                    let _ =
+                        control_for_events.pane_resize_absolute(pane_id, cols, rows);
+                }
+            }
             // ── Elegant child-exit close ──────────────────────
             // engate signalled the producer channel closed (shell
             // exited / PTY EOF). Request a clean window-loop exit
@@ -492,9 +557,10 @@ where
                         renderer,
                         &control_for_events,
                         pane_id,
-                        config.window.width,
-                        config.window.height,
                         default_font_size_for_reset,
+                        &terminal_for_mouse,
+                        &selection_for_events,
+                        &clipboard,
                     );
                     if !handled {
                         tracing::debug!(
@@ -506,13 +572,184 @@ where
             }
 
             match event {
-                AppEvent::Resized { width, height } => {
-                    let (cols, rows) = renderer.cells_for_window_phys(*width, *height);
-                    let _ = control_for_events.pane_resize_absolute(pane_id, cols, rows);
+                AppEvent::Resized { .. } => {
+                    // No push here: the reconciler (top of closure)
+                    // converges on RENDERED truth one frame later.
+                    // Pushing event dims raced the renderer's
+                    // one-frame lag and ping-ponged tear between old
+                    // and new grids (review finding 2026-06-11).
                     EventResponse::ignored()
+                }
+                AppEvent::Mouse(madori::MouseEvent::Button {
+                    button,
+                    pressed,
+                    x,
+                    y,
+                    ..
+                }) => {
+                    let cw = renderer.cell_width();
+                    let ch = renderer.cell_height();
+                    // Mouse coords are PHYSICAL pixels; padding is a
+                    // logical config value — scale before subtracting
+                    // or clicks land up to half a cell off on HiDPI.
+                    let pad_phys = padding * renderer.scale_factor();
+                    let col = ((*x as f32 - pad_phys) / cw).max(0.0) as usize;
+                    let row = ((*y as f32 - pad_phys) / ch).max(0.0) as usize;
+                    let (mouse_mode, sgr, term_cols, term_rows) = {
+                        let term = terminal_for_mouse.read();
+                        (term.mouse_mode(), term.sgr_mouse(), term.cols(), term.rows())
+                    };
+                    let col = col.min(term_cols.saturating_sub(1));
+                    let row = row.min(term_rows.saturating_sub(1));
+
+                    if *button == madori::event::MouseButton::Left {
+                        left_button_down = *pressed;
+                    }
+
+                    // TUI mouse tracking active → forward the click to
+                    // the PTY via the typed MouseReport emitter (shared
+                    // with the local-PTY path — the two loops cannot
+                    // drift). Before this arm existed, Button events
+                    // fell into the catch-all and TUI clicks were
+                    // silently dropped in tear mode.
+                    if mouse_mode != crate::terminal::MouseMode::Off
+                        && *button == madori::event::MouseButton::Left
+                    {
+                        let report = crate::mouse_report::MouseReport {
+                            kind: if *pressed {
+                                crate::mouse_report::MouseReportKind::Press
+                            } else {
+                                crate::mouse_report::MouseReportKind::Release
+                            },
+                            button: crate::mouse_report::MouseReportButton::Left,
+                            col: col + 1,
+                            row: row + 1,
+                        };
+                        let _ =
+                            control_for_events.send_keys(pane_id, &report.encode(sgr));
+                        return EventResponse::consumed();
+                    }
+
+                    // Text selection via left mouse button — click /
+                    // double-click word / triple-click line; on release
+                    // the highlight goes straight to the clipboard when
+                    // copy_on_select is on (the muscle-memory contract).
+                    if *button == madori::event::MouseButton::Left {
+                        if *pressed {
+                            let now = std::time::Instant::now();
+                            let same_pos =
+                                last_click_pos.row == row && last_click_pos.col == col;
+                            let quick =
+                                now.duration_since(last_click_time).as_millis() < 400;
+                            if same_pos && quick {
+                                click_count = (click_count + 1).min(3);
+                            } else {
+                                click_count = 1;
+                            }
+                            last_click_time = now;
+                            last_click_pos = crate::selection::CellPos { row, col };
+
+                            if let Ok(mut sel) = selection_for_events.lock() {
+                                match click_count {
+                                    2 => {
+                                        let (rows_vec, cols_count) = {
+                                            let term = terminal_for_mouse.read();
+                                            (
+                                                term.visible_rows()
+                                                    .map(|r| r.to_vec())
+                                                    .collect::<Vec<_>>(),
+                                                term.cols(),
+                                            )
+                                        };
+                                        sel.select_word(
+                                            crate::selection::CellPos { row, col },
+                                            &rows_vec,
+                                            cols_count,
+                                        );
+                                    }
+                                    3 => {
+                                        let cols_count = terminal_for_mouse.read().cols();
+                                        sel.select_line(row, cols_count);
+                                    }
+                                    _ => sel.start(crate::selection::CellPos { row, col }),
+                                }
+                            }
+                        } else if let Ok(mut sel) = selection_for_events.lock() {
+                            if click_count == 1 {
+                                sel.finish();
+                            }
+                            if copy_on_select {
+                                let (rows_vec, cols_count) = {
+                                    let term = terminal_for_mouse.read();
+                                    (
+                                        term.visible_rows()
+                                            .map(|r| r.to_vec())
+                                            .collect::<Vec<_>>(),
+                                        term.cols(),
+                                    )
+                                };
+                                if let Some(text) = sel.extract_text(&rows_vec, cols_count)
+                                    && let Ok(cb) = clipboard.lock()
+                                {
+                                    let _ = cb.copy_text(&text);
+                                }
+                            }
+                        }
+                    }
+                    EventResponse::consumed()
                 }
                 AppEvent::Mouse(madori::MouseEvent::Moved { x, y }) => {
                     renderer.snow_set_cursor(*x as f32, *y as f32);
+                    let cw = renderer.cell_width();
+                    let ch = renderer.cell_height();
+                    // Mouse coords are PHYSICAL pixels; padding is a
+                    // logical config value — scale before subtracting
+                    // or clicks land up to half a cell off on HiDPI.
+                    let pad_phys = padding * renderer.scale_factor();
+                    let col = ((*x as f32 - pad_phys) / cw).max(0.0) as usize;
+                    let row = ((*y as f32 - pad_phys) / ch).max(0.0) as usize;
+                    let (mouse_mode, sgr, term_cols, term_rows) = {
+                        let term = terminal_for_mouse.read();
+                        (term.mouse_mode(), term.sgr_mouse(), term.cols(), term.rows())
+                    };
+                    let col = col.min(term_cols.saturating_sub(1));
+                    let row = row.min(term_rows.saturating_sub(1));
+
+                    // Forward motion when the app tracks it, with the
+                    // spec-correct code: 1002 (ButtonEvent) only while
+                    // a button is held; 1003 (AnyEvent) always, hover
+                    // motion carrying the no-button code (35) rather
+                    // than a fabricated left-drag (32).
+                    if matches!(
+                        mouse_mode,
+                        crate::terminal::MouseMode::ButtonEvent
+                            | crate::terminal::MouseMode::AnyEvent
+                    ) {
+                        let forward = left_button_down
+                            || mouse_mode == crate::terminal::MouseMode::AnyEvent;
+                        if forward && sgr {
+                            let report = crate::mouse_report::MouseReport {
+                                kind: crate::mouse_report::MouseReportKind::Motion,
+                                button: if left_button_down {
+                                    crate::mouse_report::MouseReportButton::Left
+                                } else {
+                                    crate::mouse_report::MouseReportButton::None
+                                },
+                                col: col + 1,
+                                row: row + 1,
+                            };
+                            let _ = control_for_events
+                                .send_keys(pane_id, &report.encode(true));
+                        }
+                        return EventResponse::consumed();
+                    }
+
+                    // Drag-update the selection.
+                    if let Ok(mut sel) = selection_for_events.lock()
+                        && sel.is_active()
+                    {
+                        sel.update(crate::selection::CellPos { row, col });
+                    }
                     EventResponse::ignored()
                 }
                 AppEvent::Mouse(madori::MouseEvent::Scroll { dy, .. }) => {
@@ -529,16 +766,21 @@ where
                         (term.mouse_mode(), term.sgr_mouse())
                     };
                     if mouse_mode != crate::terminal::MouseMode::Off {
-                        let mut seq: Vec<u8> = Vec::with_capacity(10);
-                        if sgr {
-                            seq.extend_from_slice(b"\x1b[<");
-                            seq.extend_from_slice(if *dy > 0.0 { b"64" } else { b"65" });
-                            seq.extend_from_slice(b";1;1M");
-                        } else {
-                            let cb = (if *dy > 0.0 { 64u8 } else { 65u8 }) + 32;
-                            seq.extend_from_slice(&[0x1b, b'[', b'M', cb, 33, 33]);
-                        }
-                        let _ = control_for_events.send_keys(pane_id, &seq);
+                        let report = crate::mouse_report::MouseReport {
+                            kind: crate::mouse_report::MouseReportKind::Press,
+                            button: if *dy > 0.0 {
+                                crate::mouse_report::MouseReportButton::WheelUp
+                            } else {
+                                crate::mouse_report::MouseReportButton::WheelDown
+                            },
+                            // Wheel coords not yet plumbed from the
+                            // Scroll event — 1;1 preserved (P1 item in
+                            // docs/COMPETITIVE.md queue).
+                            col: 1,
+                            row: 1,
+                        };
+                        let _ =
+                            control_for_events.send_keys(pane_id, &report.encode(sgr));
                     } else {
                         let mult =
                             (config.behavior.mouse_scroll_multiplier as usize).max(1);
@@ -583,17 +825,18 @@ where
                             renderer,
                             &control_for_events,
                             pane_id,
-                            config.window.width,
-                            config.window.height,
                             default_font_size_for_reset,
+                            &terminal_for_mouse,
+                            &selection_for_events,
+                            &clipboard,
                         ) {
                             return EventResponse::consumed();
                         }
-                        // Other actions (Copy, Paste, search,
+                        // Remaining unhandled actions (search,
                         // scroll, fullscreen, etc.) fall through
-                        // to PTY forwarding for now; terminal
-                        // apps + mado-side state wiring lands in
-                        // a follow-up.
+                        // to PTY forwarding for now; the M1
+                        // InputEngine unification is where they
+                        // land.
                     }
                     // No bound mado action — translate to PTY bytes via
                     // the shared helper. This is the same call shape the
@@ -677,9 +920,10 @@ fn apply_tear_action<C>(
     renderer: &mut TerminalRenderer,
     control: &Arc<C>,
     pane_id: PaneId,
-    window_width: u32,
-    window_height: u32,
     default_font_size: f32,
+    terminal: &SharedTerminal,
+    selection: &std::sync::Mutex<crate::selection::Selection>,
+    clipboard: &std::sync::Mutex<hasami::Clipboard>,
 ) -> bool
 where
     C: tear_types::MultiplexerControl + Send + Sync,
@@ -687,15 +931,17 @@ where
     use crate::font_size::{BoundedFontSize, FontSizeSteps};
     use crate::keybind::Action;
     match action {
+        // Font scaling: the grid push is left to the per-tick
+        // PTY-grid reconciler — cell metrics re-measure on the NEXT
+        // rendered frame, so any grid computed here would use stale
+        // metrics (the old code also fed LOGICAL config dims into the
+        // physical-pixel grid math, shrinking the pushed grid by the
+        // scale factor).
         Action::FontIncrease => {
             let new_size = BoundedFontSize::new(renderer.font_size())
                 .inc_step()
                 .get();
             renderer.set_font_size(new_size);
-            // Push the new grid dims to tear so the shell sees the
-            // right cols/rows after the cell-size change.
-            let (cols, rows) = renderer.cells_for_window_phys(window_width, window_height);
-            let _ = control.pane_resize_absolute(pane_id, cols, rows);
             true
         }
         Action::FontDecrease => {
@@ -703,24 +949,60 @@ where
                 .dec_step()
                 .get();
             renderer.set_font_size(new_size);
-            let (cols, rows) = renderer.cells_for_window_phys(window_width, window_height);
-            let _ = control.pane_resize_absolute(pane_id, cols, rows);
             true
         }
         Action::FontReset => {
             let reset_size = BoundedFontSize::new(default_font_size).get();
             renderer.set_font_size(reset_size);
-            let (cols, rows) = renderer.cells_for_window_phys(window_width, window_height);
-            let _ = control.pane_resize_absolute(pane_id, cols, rows);
             true
         }
-        // Copy / Paste / search / scroll / dir-picker / fullscreen
-        // need mado-side state the tear path doesn't hold yet — the
-        // M1 InputEngine unification (docs/REMEDIATION-PLAN.md) is
-        // where they land. Until then they have no tear-mode handler.
+        Action::Copy => {
+            let selected_text = {
+                let sel = selection.lock().expect("selection mutex poisoned");
+                let term = terminal.read();
+                let rows: Vec<_> = term.visible_rows().map(|r| r.to_vec()).collect();
+                let cols = term.cols();
+                drop(term);
+                sel.extract_text(&rows, cols)
+            };
+            if let Some(text) = selected_text
+                && let Ok(cb) = clipboard.lock()
+            {
+                let _ = cb.copy_text(&text);
+            }
+            true
+        }
+        Action::Paste => {
+            let pasted_text = clipboard.lock().ok().and_then(|cb| cb.paste_text().ok());
+            if let Some(pasted) = pasted_text
+                && !pasted.is_empty()
+            {
+                let bracketed = terminal.read().bracketed_paste();
+                // PasteGuard: strip bytes that would break out of (or
+                // fake) bracketed-paste framing — without this, a
+                // clipboard containing ESC[201~ executes the rest of
+                // the paste as keystrokes (classic paste injection).
+                let safe = crate::clipboard_store::sanitize_paste(&pasted, bracketed);
+                if !safe.is_empty() {
+                    if bracketed {
+                        let _ = control.send_keys(pane_id, b"\x1b[200~");
+                    }
+                    let _ = control.send_keys(pane_id, &safe);
+                    if bracketed {
+                        let _ = control.send_keys(pane_id, b"\x1b[201~");
+                    }
+                }
+            }
+            true
+        }
+        // Search / scroll / dir-picker / fullscreen need mado-side
+        // state the tear path doesn't hold yet — the M1 InputEngine
+        // unification (docs/REMEDIATION-PLAN.md) is where they land.
+        // Until then they have no tear-mode handler.
         _ => false,
     }
 }
+
 
 /// M3c.1 — embedded-tear default-launch path.
 ///

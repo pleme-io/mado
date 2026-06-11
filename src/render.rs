@@ -978,6 +978,11 @@ pub struct TerminalRenderer {
     /// `1/scale_factor`-sized chunk of the window. Refreshed each
     /// frame from `RenderContext::scale_factor`.
     scale_factor: f32,
+    /// Physical surface dims of the last rendered frame (0 until the
+    /// first frame). Together with `metrics_measured`, this is the
+    /// renderer's display truth — see [`Self::measured_grid`].
+    last_surface_w: u32,
+    last_surface_h: u32,
     /// P7 shape cache: bounded LRU keyed by (text-bytes, attrs,
     /// physical font-size). The Arc<Buffer> lets cache hits share
     /// the same shaped Buffer with the per-frame text_areas Vec
@@ -1082,6 +1087,10 @@ impl TerminalRenderer {
             // 1.0 = no scaling; overwritten on the first render frame
             // by `set_scale_factor(ctx.scale_factor)`.
             scale_factor: 1.0,
+            // 0 until the first frame renders — `measured_grid`
+            // reports None until then.
+            last_surface_w: 0,
+            last_surface_h: 0,
             shape_cache: RefCell::new(LruCache::new(
                 NonZeroUsize::new(SHAPE_CACHE_CAP)
                     .expect("SHAPE_CACHE_CAP is a non-zero compile-time constant"),
@@ -1200,6 +1209,37 @@ impl TerminalRenderer {
         let cols = ((inner_w / cw).floor() as u16).max(1);
         let rows = ((inner_h / ch).floor() as u16).max(1);
         (cols, rows)
+    }
+
+    /// The grid the CURRENT surface actually supports —
+    /// [`Self::cells_for_window_phys`] over the dims of the last
+    /// rendered frame, using MEASURED cell metrics. `None` until the
+    /// first frame has rendered (or right after a font/scale change,
+    /// until the next frame re-measures).
+    ///
+    /// This is the renderer's display truth, and the only safe source
+    /// for the PTY grid size: the pre-window estimate can't know real
+    /// font metrics or the content-view size (a Flush titlebar insets
+    /// it), and macOS delivers no initial `Resized` event to correct
+    /// it — the event loops run a reconcile latch against this value
+    /// instead. (Operator-visible failure when unsynced: a TUI lays
+    /// out for more rows than the viewport shows, leaving stale CLI
+    /// lines on screen — 2026-06-11 report.)
+    pub fn measured_grid(&self) -> Option<(u16, u16)> {
+        if !self.metrics_measured || self.last_surface_w == 0 || self.last_surface_h == 0 {
+            return None;
+        }
+        Some(self.cells_for_window_phys(self.last_surface_w, self.last_surface_h))
+    }
+
+    /// Physical dims of the last rendered frame; `None` before the
+    /// first frame. Pair of [`Self::measured_grid`] for callers that
+    /// need raw pixel dims (the local-PTY pane-resize path).
+    pub fn last_surface_size(&self) -> Option<(u32, u32)> {
+        if self.last_surface_w == 0 || self.last_surface_h == 0 {
+            return None;
+        }
+        Some((self.last_surface_w, self.last_surface_h))
     }
 
     /// Physical-pixel font size. Mirrors `padding_px` — logical
@@ -2667,6 +2707,12 @@ impl RenderCallback for TerminalRenderer {
         // Measure actual font metrics on first render (or after a
         // scale-factor change).
         self.measure_cell_metrics(ctx.text);
+
+        // Record the surface dims this frame renders at — after this
+        // point `measured_grid()` reports display truth and the event
+        // loops' grid-sync latch can reconcile the PTY size.
+        self.last_surface_w = ctx.width;
+        self.last_surface_h = ctx.height;
 
         // Multi-pane dispatch removed at Phase 4 — single-pane mado.
 
@@ -4385,6 +4431,49 @@ mod render_gpu_invariants {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ---- measured_grid / PTY-grid reconcile invariants ----
+
+    fn gpu_free_renderer() -> TerminalRenderer {
+        let term: SharedTerminal = std::sync::Arc::new(parking_lot::RwLock::new(
+            crate::terminal::Terminal::new(80, 24),
+        ));
+        TerminalRenderer::new(
+            term,
+            14.0,
+            "JetBrains Mono".into(),
+            "Iosevka".into(),
+            String::new(),
+            8.0,
+            crate::config::CursorStyle::Block,
+            false,
+            500,
+            wgpu::Color::BLACK,
+            crate::terminal::Color::new(0xec, 0xef, 0xf4),
+        )
+    }
+
+    #[test]
+    fn measured_grid_is_none_before_first_frame() {
+        // The PTY-grid reconciler must NOT push anything until a frame
+        // has rendered: before that, cell metrics are heuristic and the
+        // surface dims unknown — pushing would re-introduce the
+        // estimate-vs-display divergence (TUI-overlap incident
+        // 2026-06-11).
+        let r = gpu_free_renderer();
+        assert_eq!(r.measured_grid(), None);
+        assert_eq!(r.last_surface_size(), None);
+    }
+
+    #[test]
+    fn cells_for_window_phys_never_returns_zero() {
+        // A zero-cell grid would wedge the PTY (and tear) — even a
+        // degenerate 0×0 surface must clamp to 1×1.
+        let r = gpu_free_renderer();
+        assert_eq!(r.cells_for_window_phys(0, 0), (1, 1));
+        let (c, h) = r.cells_for_window_phys(1, 1);
+        assert!(c >= 1 && h >= 1);
+    }
 
     // ---- color_to_f32 ----
 

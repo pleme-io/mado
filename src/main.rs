@@ -35,6 +35,7 @@ mod single_pane;
 mod tear_discovery;
 mod caps;
 mod mcp;
+mod mouse_report;
 mod osc_1337;
 mod platform;
 mod pointer_shape;
@@ -64,6 +65,7 @@ use hasami::{Clipboard, ClipboardProvider};
 use madori::event::{AppEvent, KeyEvent, MouseEvent};
 use madori::EventResponse;
 
+use crate::font_size::FontSizeSteps;
 use crate::keybind::{Action, KeybindManager};
 // SplitDir removed at Phase 4 — single-pane mado.
 use crate::render::{SharedTerminal, TerminalRenderer};
@@ -764,12 +766,20 @@ fn main() -> anyhow::Result<()> {
     let mut last_click_time = Instant::now();
     let mut click_count: u8 = 0;
     let mut last_click_pos = CellPos { row: 0, col: 0 };
+    // Whether the left button is currently held — drives the SGR
+    // motion code (drag = 32 vs hover = 35) and ButtonEvent(1002)'s
+    // motion-only-while-pressed contract.
+    let mut left_button_down = false;
     // macOS window-chrome styling latch — owns the style extracted from
     // the shikumi config plus its applied state, so the `'static`
     // event-loop closure carries one small value. Ticked on every
     // redraw until a window actually exists. Every axis is operator-
     // configurable: `window.macos.*` + `appearance.background`.
     let mut native_styling = crate::platform::NativeStylingLatch::from_config(&config);
+    // PTY-grid ⇄ display reconciler signature: (surface w, surface h,
+    // cell w bits, cell h bits) last pushed to the panes. See the
+    // RedrawRequested arm.
+    let mut grid_sync_sig: Option<(u32, u32, u32, u32)> = None;
 
     let app_config = madori::AppConfig {
         title: "mado".into(),
@@ -1012,14 +1022,24 @@ fn main() -> anyhow::Result<()> {
                                             let term = pane.terminal.read();
                                             let bracketed = term.bracketed_paste();
                                             drop(term);
-                                            if bracketed {
-                                                let _ =
-                                                    pane.input_tx.send(b"\x1b[200~".to_vec());
-                                            }
-                                            let _ = pane.input_tx.send(pasted.into_bytes());
-                                            if bracketed {
-                                                let _ =
-                                                    pane.input_tx.send(b"\x1b[201~".to_vec());
+                                            // PasteGuard — shared with
+                                            // the tear path; see
+                                            // clipboard_store::sanitize_paste.
+                                            let safe = crate::clipboard_store::sanitize_paste(
+                                                &pasted, bracketed,
+                                            );
+                                            if !safe.is_empty() {
+                                                if bracketed {
+                                                    let _ = pane
+                                                        .input_tx
+                                                        .send(b"\x1b[200~".to_vec());
+                                                }
+                                                let _ = pane.input_tx.send(safe);
+                                                if bracketed {
+                                                    let _ = pane
+                                                        .input_tx
+                                                        .send(b"\x1b[201~".to_vec());
+                                                }
                                             }
                                         }
                                     }
@@ -1083,54 +1103,42 @@ fn main() -> anyhow::Result<()> {
                             // Action::SplitHorizontal / SplitVertical /
                             // ClosePane / FocusNext / FocusPrev removed
                             // at Phase 4 — tear owns multiplexing.
+                            // Font scaling — BoundedFontSize saturates
+                            // at FONT_MIN/FONT_MAX (the raw `+ 1.0`
+                            // this replaces was the 2026-05-21
+                            // runaway-font class, still live on this
+                            // path). The pane-grid push is left to the
+                            // per-redraw reconciler: cell metrics
+                            // re-measure on the NEXT rendered frame,
+                            // so any grid computed here would use
+                            // stale metrics.
                             Action::FontIncrease => {
-                                let new_size = renderer.font_size() + 1.0;
+                                let new_size =
+                                    crate::font_size::BoundedFontSize::new(renderer.font_size())
+                                        .inc_step()
+                                        .get();
                                 renderer.set_font_size(new_size);
-                                let cw = renderer.cell_width();
-                                let ch = renderer.cell_height();
-                                let ws = &*pane_for_events;
-                                ws.resize_panes(
-                                    last_width as f32,
-                                    last_height as f32,
-                                    padding,
-                                    cw,
-                                    ch,
-                                );
                                 return with_cursor_visibility(
                                     EventResponse::consumed(),
                                     hide_cursor.then_some(false),
                                 );
                             }
                             Action::FontDecrease => {
-                                let new_size = renderer.font_size() - 1.0;
+                                let new_size =
+                                    crate::font_size::BoundedFontSize::new(renderer.font_size())
+                                        .dec_step()
+                                        .get();
                                 renderer.set_font_size(new_size);
-                                let cw = renderer.cell_width();
-                                let ch = renderer.cell_height();
-                                let ws = &*pane_for_events;
-                                ws.resize_panes(
-                                    last_width as f32,
-                                    last_height as f32,
-                                    padding,
-                                    cw,
-                                    ch,
-                                );
                                 return with_cursor_visibility(
                                     EventResponse::consumed(),
                                     hide_cursor.then_some(false),
                                 );
                             }
                             Action::FontReset => {
-                                renderer.set_font_size(default_font_size);
-                                let cw = renderer.cell_width();
-                                let ch = renderer.cell_height();
-                                let ws = &*pane_for_events;
-                                ws.resize_panes(
-                                    last_width as f32,
-                                    last_height as f32,
-                                    padding,
-                                    cw,
-                                    ch,
-                                );
+                                let reset_size =
+                                    crate::font_size::BoundedFontSize::new(default_font_size)
+                                        .get();
+                                renderer.set_font_size(reset_size);
                                 return with_cursor_visibility(
                                     EventResponse::consumed(),
                                     hide_cursor.then_some(false),
@@ -1341,8 +1349,12 @@ fn main() -> anyhow::Result<()> {
                 }) => {
                     let cw = renderer.cell_width();
                     let ch = renderer.cell_height();
-                    let col = ((*x as f32 - padding) / cw).max(0.0) as usize;
-                    let row = ((*y as f32 - padding) / ch).max(0.0) as usize;
+                    // Mouse coords are PHYSICAL pixels; padding is a
+                    // logical config value — scale before subtracting
+                    // or clicks land up to half a cell off on HiDPI.
+                    let pad_phys = padding * renderer.scale_factor();
+                    let col = ((*x as f32 - pad_phys) / cw).max(0.0) as usize;
+                    let row = ((*y as f32 - pad_phys) / ch).max(0.0) as usize;
 
                     let ws = &*pane_for_events;
                     let Some(pane) = ws.focused_pane() else {
@@ -1359,23 +1371,26 @@ fn main() -> anyhow::Result<()> {
                     let col = col.min(term_cols.saturating_sub(1));
                     let row = row.min(term_rows.saturating_sub(1));
 
-                    // Forward mouse events to PTY if mouse tracking is active
+                    if *button == madori::event::MouseButton::Left {
+                        left_button_down = *pressed;
+                    }
+
+                    // Forward mouse events to the PTY via the typed
+                    // MouseReport emitter (shared with the tear path).
                     if mouse_mode != MouseMode::Off
                         && *button == madori::event::MouseButton::Left
                     {
-                        let cx = (col + 1).min(223) as u8;
-                        let cy = (row + 1).min(223) as u8;
-                        if sgr {
-                            let action = if *pressed { 'M' } else { 'm' };
-                            let seq = format!("\x1b[<0;{};{}{action}", col + 1, row + 1);
-                            let _ = pane.input_tx.send(seq.into_bytes());
-                        } else if *pressed {
-                            let _ =
-                                pane.input_tx.send(vec![0x1b, b'[', b'M', 32, cx + 32, cy + 32]);
-                        } else {
-                            let _ =
-                                pane.input_tx.send(vec![0x1b, b'[', b'M', 35, cx + 32, cy + 32]);
-                        }
+                        let report = crate::mouse_report::MouseReport {
+                            kind: if *pressed {
+                                crate::mouse_report::MouseReportKind::Press
+                            } else {
+                                crate::mouse_report::MouseReportKind::Release
+                            },
+                            button: crate::mouse_report::MouseReportButton::Left,
+                            col: col + 1,
+                            row: row + 1,
+                        };
+                        let _ = pane.input_tx.send(report.encode(sgr));
                         return EventResponse::consumed();
                     }
 
@@ -1420,18 +1435,25 @@ fn main() -> anyhow::Result<()> {
                             let mut sel = pane.selection.lock().unwrap();
                             if click_count == 1 {
                                 sel.finish();
-                                if copy_on_select {
-                                    let term = pane.terminal.read();
-                                    let rows: Vec<_> =
-                                        term.visible_rows().map(|r| r.to_vec()).collect();
-                                    let cols = term.cols();
-                                    drop(term);
-                                    if let Some(text) = sel.extract_text(&rows, cols) {
-                                        if let Ok(cb) = clipboard.lock() {
-                                            let _ = cb.copy_text(&text);
-                                        }
+                            }
+                            // Muscle-memory contract: the highlight goes
+                            // straight to the clipboard on release for
+                            // EVERY selection shape — drag, double-click
+                            // word, triple-click line (word/line used to
+                            // be excluded by the click_count gate).
+                            if copy_on_select {
+                                let term = pane.terminal.read();
+                                let rows: Vec<_> =
+                                    term.visible_rows().map(|r| r.to_vec()).collect();
+                                let cols = term.cols();
+                                drop(term);
+                                if let Some(text) = sel.extract_text(&rows, cols) {
+                                    if let Ok(cb) = clipboard.lock() {
+                                        let _ = cb.copy_text(&text);
                                     }
                                 }
+                            }
+                            if click_count == 1 {
                                 // Cmd+click (macOS) / Ctrl+click (Linux) to open URLs
                                 if modifiers.meta || modifiers.ctrl {
                                     drop(sel);
@@ -1472,8 +1494,10 @@ fn main() -> anyhow::Result<()> {
                     renderer.snow_set_cursor(*x as f32, *y as f32);
                     let cw = renderer.cell_width();
                     let ch = renderer.cell_height();
-                    let col = ((*x as f32 - padding) / cw).max(0.0) as usize;
-                    let row = ((*y as f32 - padding) / ch).max(0.0) as usize;
+                    // Physical-pixel padding — see the Button arm.
+                    let pad_phys = padding * renderer.scale_factor();
+                    let col = ((*x as f32 - pad_phys) / cw).max(0.0) as usize;
+                    let row = ((*y as f32 - pad_phys) / ch).max(0.0) as usize;
 
                     let ws = &*pane_for_events;
                     let Some(pane) = ws.focused_pane() else {
@@ -1490,11 +1514,26 @@ fn main() -> anyhow::Result<()> {
                     let col = col.min(term_cols.saturating_sub(1));
                     let row = row.min(term_rows.saturating_sub(1));
 
-                    // Forward mouse motion to PTY if button-event or any-event mode
+                    // Forward motion with the spec-correct code: 1002
+                    // (ButtonEvent) only while a button is held; 1003
+                    // (AnyEvent) always, hover motion carrying the
+                    // no-button code (35), never a fabricated
+                    // left-drag (32).
                     if matches!(mouse_mode, MouseMode::ButtonEvent | MouseMode::AnyEvent) {
-                        if sgr {
-                            let seq = format!("\x1b[<32;{};{}M", col + 1, row + 1);
-                            let _ = pane.input_tx.send(seq.into_bytes());
+                        let forward =
+                            left_button_down || mouse_mode == MouseMode::AnyEvent;
+                        if forward && sgr {
+                            let report = crate::mouse_report::MouseReport {
+                                kind: crate::mouse_report::MouseReportKind::Motion,
+                                button: if left_button_down {
+                                    crate::mouse_report::MouseReportButton::Left
+                                } else {
+                                    crate::mouse_report::MouseReportButton::None
+                                },
+                                col: col + 1,
+                                row: row + 1,
+                            };
+                            let _ = pane.input_tx.send(report.encode(true));
                         }
                         return if show_cursor {
                             EventResponse {
@@ -1535,14 +1574,19 @@ fn main() -> anyhow::Result<()> {
                     // If mouse tracking is active, forward scroll as button events
                     if mouse_mode != MouseMode::Off {
                         drop(term);
-                        let button = if *dy > 0.0 { 64 } else { 65 };
-                        if sgr {
-                            let seq = format!("\x1b[<{button};1;1M");
-                            let _ = pane.input_tx.send(seq.into_bytes());
-                        } else {
-                            let _ =
-                                pane.input_tx.send(vec![0x1b, b'[', b'M', button + 32, 33, 33]);
-                        }
+                        let report = crate::mouse_report::MouseReport {
+                            kind: crate::mouse_report::MouseReportKind::Press,
+                            button: if *dy > 0.0 {
+                                crate::mouse_report::MouseReportButton::WheelUp
+                            } else {
+                                crate::mouse_report::MouseReportButton::WheelDown
+                            },
+                            // Wheel coords not yet plumbed — 1;1
+                            // preserved (P1 item, docs/COMPETITIVE.md).
+                            col: 1,
+                            row: 1,
+                        };
+                        let _ = pane.input_tx.send(report.encode(sgr));
                         return EventResponse::consumed();
                     }
 
@@ -1580,6 +1624,12 @@ fn main() -> anyhow::Result<()> {
                     let ch = renderer.cell_height();
                     let ws = &*pane_for_events;
                     ws.resize_panes(*width as f32, *height as f32, padding, cw, ch);
+                    // Record the signature so the reconciler doesn't
+                    // re-fire the same dims one frame later (a
+                    // duplicate Terminal::resize used to reset the
+                    // app's scroll region; Terminal::resize is also
+                    // same-dims-no-op now as the deeper guard).
+                    grid_sync_sig = Some((*width, *height, cw.to_bits(), ch.to_bits()));
                     EventResponse::consumed()
                 }
                 // Check for title/bell/clipboard changes on every redraw
@@ -1588,6 +1638,26 @@ fn main() -> anyhow::Result<()> {
                     // window exists — the first redraws can tick before
                     // AppKit registers the window.
                     native_styling.tick();
+                    // ── PTY-grid ⇄ display reconciler ────────────────
+                    // Same contract as the tear path: the pre-window
+                    // estimate can't know measured font metrics or the
+                    // Flush-titlebar content inset, and macOS sends no
+                    // initial Resized — converge the pane grid on
+                    // display truth whenever surface dims or cell
+                    // metrics change (covers startup AND the one-frame
+                    // metric lag after font zoom).
+                    if let Some((w, h)) = renderer.last_surface_size() {
+                        let cw = renderer.cell_width();
+                        let ch = renderer.cell_height();
+                        let sig = (w, h, cw.to_bits(), ch.to_bits());
+                        if grid_sync_sig != Some(sig) {
+                            grid_sync_sig = Some(sig);
+                            last_width = w;
+                            last_height = h;
+                            let ws = &*pane_for_events;
+                            ws.resize_panes(w as f32, h as f32, padding, cw, ch);
+                        }
+                    }
                     let ws = &*pane_for_events;
                     if let Some(pane) = ws.focused_pane() {
                         let mut term = pane.terminal.write();

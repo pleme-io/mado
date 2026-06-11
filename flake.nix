@@ -72,8 +72,15 @@
         };
 
         behavior = {
+          # Deliberately tighter than the Rust prescribed default
+          # (usize::MAX): the fleet-rendered YAML bounds scrollback
+          # RAM; operators override per-host.
           scrollback_lines = { type = "int";  default = 10000; description = "Number of scrollback lines retained."; };
-          copy_on_select   = { type = "bool"; default = false; description = "Copy selection to clipboard automatically."; };
+          # copy_on_select mirrors the Rust-side
+          # default_copy_on_select() = true — the muscle-memory
+          # contract (operator directive 2026-06-11): a highlight
+          # goes straight to the clipboard, no extra chord.
+          copy_on_select   = { type = "bool"; default = true; description = "Copy selection to clipboard automatically."; };
         };
 
         appearance = {
