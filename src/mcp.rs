@@ -3134,6 +3134,583 @@ mod tests {
         let v: serde_json::Value = serde_json::from_str(&s).unwrap();
         assert_eq!(v["error"], "custom-display");
     }
+
+    // ── whole-surface uniformity matrix ────────────────────────────
+    //
+    // COMPETITIVE.md §4 "MCP surface uniformity" (pinned 2026-06-11):
+    // uniformity was asserted for only 2 stub tools, so a divergent
+    // newly-added tool shipped silently. The two tests below close
+    // that: registry-level invariants over EVERY registered tool,
+    // plus a full invocation matrix whose coverage assertion fails
+    // the build when a tool is added without a matrix row.
+
+    /// **Registry matrix: every registered tool is named, described,
+    /// and schema'd** — for ALL tools, not a hand-picked subset.
+    ///
+    /// The authored-count gate compares the number of tool
+    /// attributes in this file's source against the router's route
+    /// count: a duplicate tool name (which the router's map would
+    /// silently overwrite) or an authored-but-unregistered tool
+    /// breaks the equality. The needle is assembled at runtime so
+    /// this test's own source never matches it.
+    #[test]
+    fn mcp_registry_every_tool_is_named_described_and_schemad() {
+        let router = MadoMcp::tool_router();
+        let tools = router.list_all();
+        let mut failures: Vec<String> = Vec::new();
+
+        let needle: String = ["#[", "tool("].concat();
+        let authored = include_str!("mcp.rs").matches(needle.as_str()).count();
+        if tools.len() != authored {
+            failures.push(format!(
+                "router registers {} tools but source authors {} tool \
+                 attributes — duplicate name overwriting a route, or an \
+                 unregistered tool",
+                tools.len(),
+                authored
+            ));
+        }
+
+        for tool in &tools {
+            let name = tool.name.as_ref();
+            if name.is_empty() {
+                failures.push("a registered tool has an empty name".into());
+            }
+            if !name
+                .chars()
+                .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
+            {
+                failures.push(format!(
+                    "{name}: tool names are snake_case ascii — got {name:?}"
+                ));
+            }
+            match tool.description.as_deref() {
+                None => failures.push(format!("{name}: missing description")),
+                Some(d) if d.trim().is_empty() => {
+                    failures.push(format!("{name}: empty description"));
+                }
+                Some(_) => {}
+            }
+            let schema = tool.input_schema.as_ref();
+            if schema.is_empty() {
+                failures.push(format!("{name}: empty input schema"));
+            }
+            match schema.get("type").and_then(serde_json::Value::as_str) {
+                Some("object") => {}
+                other => failures.push(format!(
+                    "{name}: input schema type must be \"object\", got {other:?}"
+                )),
+            }
+        }
+
+        assert!(
+            failures.is_empty(),
+            "{} registry violations:\n  - {}",
+            failures.len(),
+            failures.join("\n  - ")
+        );
+    }
+
+    /// **Invocation matrix: every registered tool answers with the
+    /// uniform wire shape.** Each tool is invoked headless with
+    /// benign inputs (unknown ids, malformed payloads, read-only
+    /// queries; the tear_* rows run against the hermetic
+    /// [`TearMcpHarness`] daemon) and must return a JSON OBJECT in
+    /// which `ok` — when present — is a boolean, and at least one of
+    /// the row's declared status-marker keys is present.
+    ///
+    /// The coverage assertion is the forcing function: a newly added
+    /// tool with no matrix row fails this test by name. Add an
+    /// invocation row with benign inputs (never inputs that could
+    /// mutate live operator state — see `simulate_chord`'s unbound-
+    /// chord precedent above).
+    #[tokio::test(flavor = "current_thread")]
+    async fn mcp_whole_surface_uniform_response_shape_matrix() {
+        // Hermetic tear daemon + MADO_CONFIG guard for the tear_* rows.
+        let h = TearMcpHarness::new();
+        let server = &h.server;
+
+        // (tool, raw response, status-marker keys — ≥1 must appear;
+        // empty slice = object-shape only, marker is environment-
+        // dependent and pinned by a dedicated test instead).
+        let mut rows: Vec<(&'static str, String, &'static [&'static str])> =
+            Vec::new();
+
+        // ── standard tools ──────────────────────────────────────
+        rows.push(("status", server.status().await, &["status"]));
+        rows.push(("frame_perf", server.frame_perf().await, &["ok"]));
+        rows.push(("version", server.version().await, &["name"]));
+        rows.push((
+            "config_get",
+            server.config_get(Parameters(ConfigGetInput { key: None })).await,
+            // Live-GUI forwarding returns the raw config object; the
+            // no-GUI stub shape is pinned by
+            // `every_stubbed_tool_follows_uniform_shape`.
+            &[],
+        ));
+        rows.push((
+            "config_set",
+            server
+                .config_set(Parameters(ConfigSetInput {
+                    key: "font_size".into(),
+                    value: "14".into(),
+                }))
+                .await,
+            &["tool"],
+        ));
+        rows.push((
+            "simulate_chord",
+            // Malformed chord — rejected process-locally, never
+            // forwarded to a live GUI.
+            server
+                .simulate_chord(Parameters(SimulateChordInput {
+                    chord: "uniformity!!matrix!!".into(),
+                }))
+                .await,
+            &["ok"],
+        ));
+
+        // ── headless session tools (process-local registry) ─────
+        const NO_SESSION: &str = "uniformity-matrix-no-such-session";
+        rows.push((
+            "list_sessions",
+            server.list_sessions().await,
+            &["sessions", "error"],
+        ));
+        rows.push((
+            "send_keys",
+            server
+                .send_keys(Parameters(SendKeysInput {
+                    session_id: NO_SESSION.into(),
+                    keys: "x".into(),
+                }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "recent_dirs_list",
+            server
+                .recent_dirs_list(Parameters(RecentDirsListInput {
+                    needle: None,
+                    limit: Some(1),
+                }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "jump_to_recent_dir",
+            server
+                .jump_to_recent_dir(Parameters(JumpToRecentDirInput {
+                    session_id: NO_SESSION.into(),
+                    needle: "nope".into(),
+                }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "get_output",
+            server
+                .get_output(Parameters(GetOutputInput {
+                    session_id: NO_SESSION.into(),
+                    lines: Some(1),
+                }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "snapshot_grid",
+            server
+                .snapshot_grid(Parameters(SnapshotGridInput {
+                    session_id: NO_SESSION.into(),
+                    include_cells: Some(false),
+                    cells_filter: None,
+                    pretty: None,
+                }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "resize_session",
+            server
+                .resize_session(Parameters(ResizeSessionInput {
+                    session_id: NO_SESSION.into(),
+                    cols: 20,
+                    rows: 5,
+                }))
+                .await,
+            &["ok"],
+        ));
+        // Spawn a real (instantly-exiting) headless session, then
+        // close it — covers both tools with live-path responses.
+        let spawn_raw = server
+            .spawn_term(Parameters(TermSpec {
+                shell: "/usr/bin/true".into(),
+                args: Vec::new(),
+                cwd: String::new(),
+                env: std::collections::HashMap::new(),
+                title: "uniformity-matrix".into(),
+                placement: String::new(),
+                attach: String::new(),
+                effects: Vec::new(),
+                cols: 20,
+                rows: 5,
+            }))
+            .await;
+        let spawned_id = serde_json::from_str::<serde_json::Value>(&spawn_raw)
+            .ok()
+            .and_then(|v| v["session_id"].as_str().map(str::to_string))
+            .unwrap_or_else(|| NO_SESSION.into());
+        rows.push(("spawn_term", spawn_raw, &["ok"]));
+        rows.push((
+            "close_session",
+            server
+                .close_session(Parameters(SessionIdInput {
+                    session_id: spawned_id,
+                }))
+                .await,
+            &["ok"],
+        ));
+
+        // ── clipboard / marks / attention (process-local state) ─
+        rows.push((
+            "clipboard_get",
+            server
+                .clipboard_get(Parameters(ClipboardGetInput {
+                    hash: "malformed".into(),
+                }))
+                .await,
+            &["found"],
+        ));
+        rows.push((
+            "clipboard_put",
+            server
+                .clipboard_put(Parameters(ClipboardPutInput {
+                    content: "uniformity-matrix".into(),
+                    kind: None,
+                }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "clipboard_list",
+            server
+                .clipboard_list(Parameters(ClipboardListInput {
+                    limit: Some(1),
+                    include_content: None,
+                }))
+                .await,
+            &["count"],
+        ));
+        rows.push(("clipboard_clear", server.clipboard_clear().await, &["ok"]));
+        rows.push((
+            "prompt_marks_list",
+            server
+                .prompt_marks_list(Parameters(PromptMarksListInput {
+                    limit: Some(1),
+                    include_all_kinds: None,
+                }))
+                .await,
+            &["count"],
+        ));
+        rows.push((
+            "prompt_marks_clear",
+            server.prompt_marks_clear().await,
+            &["ok"],
+        ));
+        rows.push((
+            "user_marks_list",
+            server
+                .user_marks_list(Parameters(UserMarksListInput { limit: Some(1) }))
+                .await,
+            &["count"],
+        ));
+        rows.push(("user_marks_clear", server.user_marks_clear().await, &["ok"]));
+        rows.push((
+            "attention_get",
+            server.attention_get().await,
+            &["attention_requested"],
+        ));
+        rows.push((
+            "attention_set",
+            server
+                .attention_set(Parameters(AttentionSetInput { requested: false }))
+                .await,
+            &["ok"],
+        ));
+
+        // ── tear bridge (hermetic harness daemon) ───────────────
+        // 16-hex, parseable, never allocated by the fresh daemon.
+        const NO_PANE: &str = "00000000000000aa";
+        rows.push(("tear_status", server.tear_status().await, &["reachable"]));
+        rows.push(("tear_get_config", server.tear_get_config().await, &["ok"]));
+        rows.push((
+            "tear_set_config_yaml",
+            server
+                .tear_set_config_yaml(Parameters(TearSetConfigYamlInput {
+                    yaml: "::: not valid yaml :::".into(),
+                }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "tear_reload_config",
+            server.tear_reload_config().await,
+            &["ok"],
+        ));
+        rows.push((
+            "tear_list_sessions",
+            server.tear_list_sessions().await,
+            &["ok"],
+        ));
+        let tear_new_raw = server
+            .tear_new_session(Parameters(TearNewSessionInput {
+                name: Some("uniformity-matrix".into()),
+                shell: Some("/bin/sh".into()),
+            }))
+            .await;
+        let tear_sid = serde_json::from_str::<serde_json::Value>(&tear_new_raw)
+            .ok()
+            .and_then(|v| v["session_id"].as_str().map(str::to_string))
+            .unwrap_or_else(|| NO_PANE.into());
+        rows.push(("tear_new_session", tear_new_raw, &["ok"]));
+        rows.push((
+            "tear_kill_session",
+            server
+                .tear_kill_session(Parameters(TearSessionIdInput {
+                    session_id: tear_sid,
+                }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "tear_pane_snapshot",
+            server
+                .tear_pane_snapshot(Parameters(TearPaneIdInput {
+                    pane_id: NO_PANE.into(),
+                }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "tear_set_input_policy",
+            server
+                .tear_set_input_policy(Parameters(TearSetInputPolicyInput {
+                    pane_id: NO_PANE.into(),
+                    policy: "locked".into(),
+                }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "tear_pane_subscriber_count",
+            server
+                .tear_pane_subscriber_count(Parameters(TearPaneIdInput {
+                    pane_id: NO_PANE.into(),
+                }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "tear_pane_record_start",
+            server
+                .tear_pane_record_start(Parameters(TearPaneIdInput {
+                    pane_id: NO_PANE.into(),
+                }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "tear_pane_record_stop",
+            server
+                .tear_pane_record_stop(Parameters(TearPaneIdInput {
+                    pane_id: NO_PANE.into(),
+                }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "tear_pane_record_export",
+            server
+                .tear_pane_record_export(Parameters(TearPaneIdInput {
+                    pane_id: NO_PANE.into(),
+                }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "tear_pane_record_status",
+            server
+                .tear_pane_record_status(Parameters(TearPaneIdInput {
+                    pane_id: NO_PANE.into(),
+                }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "tear_pane_blocks_list",
+            server
+                .tear_pane_blocks_list(Parameters(TearPaneBlocksListInput {
+                    pane_id: NO_PANE.into(),
+                    since: None,
+                    limit: Some(1),
+                }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "tear_pane_block_at",
+            server
+                .tear_pane_block_at(Parameters(TearPaneBlockAtInput {
+                    pane_id: NO_PANE.into(),
+                    index: 0,
+                }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "tear_pane_blocks_status",
+            server
+                .tear_pane_blocks_status(Parameters(TearPaneIdInput {
+                    pane_id: NO_PANE.into(),
+                }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "tear_send_keys",
+            server
+                .tear_send_keys(Parameters(TearSendKeysInput {
+                    pane_id: NO_PANE.into(),
+                    keys: "x".into(),
+                }))
+                .await,
+            &["ok"],
+        ));
+
+        // ── vigy (host never initialised in the test binary —
+        //    main() owns init; benign inputs regardless) ──────────
+        rows.push((
+            "vigy_register",
+            server
+                .vigy_register(Parameters(VigyRegisterInput {
+                    name: "uniformity-matrix".into(),
+                    program: "(vigy-noop)".into(),
+                    tick_interval_ms: Some(60_000),
+                    enabled: Some(false),
+                    labels: None,
+                }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "vigy_list",
+            server
+                .vigy_list(Parameters(VigyListInput {
+                    label_selector: None,
+                    limit: Some(1),
+                }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "vigy_inspect",
+            server
+                .vigy_inspect(Parameters(VigyIdInput {
+                    id: "no-such-vigy".into(),
+                }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "vigy_tick",
+            server
+                .vigy_tick(Parameters(VigyIdInput {
+                    id: "no-such-vigy".into(),
+                }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "vigy_delete",
+            server
+                .vigy_delete(Parameters(VigyIdInput {
+                    id: "no-such-vigy".into(),
+                }))
+                .await,
+            &["ok"],
+        ));
+
+        // ── coverage gate + per-row shape contract ──────────────
+        let registered: std::collections::BTreeSet<String> = MadoMcp::tool_router()
+            .list_all()
+            .iter()
+            .map(|t| t.name.to_string())
+            .collect();
+        let covered: std::collections::BTreeSet<String> =
+            rows.iter().map(|(name, _, _)| (*name).to_string()).collect();
+
+        let mut failures: Vec<String> = Vec::new();
+        for name in registered.difference(&covered) {
+            failures.push(format!(
+                "{name}: registered tool has NO matrix row — add a benign \
+                 headless invocation above"
+            ));
+        }
+        for name in covered.difference(&registered) {
+            failures.push(format!(
+                "{name}: matrix row names no registered tool — renamed or \
+                 removed?"
+            ));
+        }
+        if rows.len() != covered.len() {
+            failures.push(format!(
+                "matrix has {} rows but {} distinct tools — duplicate row",
+                rows.len(),
+                covered.len()
+            ));
+        }
+
+        for (name, raw, markers) in &rows {
+            let parsed: serde_json::Value = match serde_json::from_str(raw) {
+                Ok(v) => v,
+                Err(e) => {
+                    failures.push(format!("{name}: non-JSON response: {e} in {raw:?}"));
+                    continue;
+                }
+            };
+            let Some(obj) = parsed.as_object() else {
+                failures.push(format!(
+                    "{name}: response is not a JSON object: {raw:?}"
+                ));
+                continue;
+            };
+            if obj.is_empty() {
+                failures.push(format!("{name}: empty response object"));
+            }
+            if let Some(ok) = obj.get("ok")
+                && !ok.is_boolean()
+            {
+                failures.push(format!(
+                    "{name}: `ok` must be a boolean, got {ok:?}"
+                ));
+            }
+            if !markers.is_empty()
+                && !markers.iter().any(|m| obj.contains_key(*m))
+            {
+                failures.push(format!(
+                    "{name}: none of the status markers {markers:?} present \
+                     in {raw:?}"
+                ));
+            }
+        }
+
+        assert!(
+            failures.is_empty(),
+            "{} uniformity violations:\n  - {}",
+            failures.len(),
+            failures.join("\n  - ")
+        );
+    }
 }
 
 pub async fn run() -> Result<(), Box<dyn std::error::Error>> {

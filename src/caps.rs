@@ -140,6 +140,95 @@ impl TerminalCaps {
     }
 }
 
+/// How one advertised capability's honesty is verified against real
+/// engine behaviour. Every [`TerminalCaps`] field MUST have exactly
+/// one row in [`CAP_PROBES`] — the forcing tests below fail the
+/// build when a cap is added without declaring how it is probed
+/// (COMPETITIVE.md §4 "TERM/caps honesty matrix", pinned 2026-06-11).
+#[allow(dead_code)] // Consumed by the honesty tests; the M5 terminfo projection is the production consumer.
+#[derive(Debug, Clone, Copy)]
+pub enum CapProbe {
+    /// The cap has an in-band query path: feed `feed` to a fresh
+    /// terminal and the response MUST contain `expect`
+    /// (DECRQM / DA / kitty-query / OSC reply).
+    Query {
+        feed: &'static [u8],
+        expect: &'static [u8],
+    },
+    /// No query path exists — the cap is pinned by the named unit
+    /// test in `terminal.rs` (the forcing test asserts the test
+    /// function still exists in source, so a rename breaks the gate).
+    RenderVerified { test: &'static str },
+    /// Advertised `false` until the implementing milestone lands —
+    /// the forcing test asserts the cap is NOT advertised.
+    GatedOff { flag: &'static str },
+}
+
+/// One probe row per advertised capability, in [`TerminalCaps::as_pairs`]
+/// order. `CAP_PROBES.len() == as_pairs().len()` + name-set equality is
+/// the gate that makes "ship a new cap unprobed" a build failure.
+#[allow(dead_code)] // Consumed by the honesty tests today (see CapProbe).
+pub const CAP_PROBES: &[(&str, CapProbe)] = &[
+    ("colors_256", CapProbe::RenderVerified { test: "sgr_256color" }),
+    ("truecolor", CapProbe::RenderVerified { test: "sgr_truecolor" }),
+    (
+        "styled_underline",
+        CapProbe::GatedOff { flag: "STYLED_UNDERLINE_IMPLEMENTED" },
+    ),
+    (
+        "sgr_mouse",
+        CapProbe::Query {
+            feed: b"\x1b[?1006h\x1b[?1006$p",
+            expect: b"\x1b[?1006;1$y",
+        },
+    ),
+    (
+        "bracketed_paste",
+        CapProbe::Query {
+            feed: b"\x1b[?2004h\x1b[?2004$p",
+            expect: b"\x1b[?2004;1$y",
+        },
+    ),
+    (
+        "focus_events",
+        CapProbe::Query {
+            feed: b"\x1b[?1004h\x1b[?1004$p",
+            expect: b"\x1b[?1004;1$y",
+        },
+    ),
+    (
+        "synchronized_output",
+        CapProbe::Query {
+            feed: b"\x1b[?2026h\x1b[?2026$p",
+            expect: b"\x1b[?2026;1$y",
+        },
+    ),
+    (
+        "kitty_keyboard",
+        CapProbe::Query {
+            feed: b"\x1b[?u",
+            expect: b"\x1b[?0u",
+        },
+    ),
+    (
+        "kitty_graphics",
+        CapProbe::RenderVerified { test: "kitty_graphics_direct_rgba" },
+    ),
+    ("hyperlinks", CapProbe::RenderVerified { test: "osc_8_hyperlink" }),
+    (
+        "osc52_clipboard",
+        CapProbe::Query {
+            feed: b"\x1b]52;c;?\x1b\\",
+            expect: b"\x1b]52;c;",
+        },
+    ),
+    ("osc7_cwd", CapProbe::RenderVerified { test: "osc_7_cwd" }),
+    (
+        "shell_integration",
+        CapProbe::RenderVerified { test: "osc_133_prompt_marker" },
+    ),
+];
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -208,5 +297,122 @@ mod tests {
                 );
             }
         }
+    }
+
+    /// **Forcing gate: every advertised cap has exactly one probe
+    /// row** (pinned 2026-06-11, COMPETITIVE.md §4 "TERM/caps honesty
+    /// matrix"). A newly-advertised capability with no [`CAP_PROBES`]
+    /// row fails this build — `advertised_caps_have_known_status`
+    /// alone special-cased only styled_underline, so a new cap could
+    /// previously ship silently unprobed.
+    #[test]
+    fn cap_probes_table_covers_every_advertised_cap() {
+        let pairs = TerminalCaps::prescribed().as_pairs();
+        let mut failures: Vec<String> = Vec::new();
+
+        if CAP_PROBES.len() != pairs.len() {
+            failures.push(format!(
+                "CAP_PROBES has {} rows but TerminalCaps advertises {} fields",
+                CAP_PROBES.len(),
+                pairs.len()
+            ));
+        }
+        for (name, _) in pairs {
+            if !CAP_PROBES.iter().any(|(probe_name, _)| *probe_name == name) {
+                failures.push(format!("cap {name:?} has no CAP_PROBES row"));
+            }
+        }
+        for (probe_name, _) in CAP_PROBES {
+            if !pairs.iter().any(|(name, _)| name == probe_name) {
+                failures.push(format!(
+                    "CAP_PROBES row {probe_name:?} names no TerminalCaps field"
+                ));
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "{} probe-coverage gaps:\n  - {}",
+            failures.len(),
+            failures.join("\n  - ")
+        );
+    }
+
+    /// **Every probe row holds against the real engine.** Query rows
+    /// feed their bytes to a fresh terminal and must see the expected
+    /// reply; GatedOff rows must NOT be advertised; RenderVerified
+    /// rows must be advertised AND their named pinning test must
+    /// still exist in `terminal.rs` source (a rename breaks the
+    /// reference, keeping the table honest). Failures aggregate so
+    /// one run reports every broken probe, not just the first.
+    #[test]
+    fn cap_probe_rows_hold_against_the_engine() {
+        let pairs = TerminalCaps::prescribed().as_pairs();
+        let advertised = |name: &str| {
+            pairs
+                .iter()
+                .find(|(n, _)| *n == name)
+                .map(|(_, on)| *on)
+                .unwrap_or(false)
+        };
+        let terminal_src = include_str!("terminal.rs");
+        let mut failures: Vec<String> = Vec::new();
+
+        for (name, probe) in CAP_PROBES {
+            match probe {
+                CapProbe::Query { feed, expect } => {
+                    if !advertised(name) {
+                        failures.push(format!(
+                            "{name}: Query probe on an unadvertised cap — \
+                             use GatedOff until it ships"
+                        ));
+                        continue;
+                    }
+                    let mut term = Terminal::with_scrollback(80, 24, 100);
+                    term.feed(feed);
+                    let response = term.take_response().unwrap_or_default();
+                    let found = response
+                        .windows(expect.len().max(1))
+                        .any(|w| w == *expect);
+                    if !found {
+                        failures.push(format!(
+                            "{name}: query {:?} answered {:?}, expected it to \
+                             contain {:?}",
+                            String::from_utf8_lossy(feed),
+                            String::from_utf8_lossy(&response),
+                            String::from_utf8_lossy(expect)
+                        ));
+                    }
+                }
+                CapProbe::RenderVerified { test } => {
+                    if !advertised(name) {
+                        failures.push(format!(
+                            "{name}: RenderVerified probe on an unadvertised cap"
+                        ));
+                    }
+                    let needle = format!("fn {test}(");
+                    if !terminal_src.contains(&needle) {
+                        failures.push(format!(
+                            "{name}: pinning test `{test}` not found in \
+                             terminal.rs — renamed or removed?"
+                        ));
+                    }
+                }
+                CapProbe::GatedOff { flag } => {
+                    if advertised(name) {
+                        failures.push(format!(
+                            "{name}: advertised but its probe row says GatedOff \
+                             ({flag}) — add a real Query/RenderVerified probe in \
+                             the same change that flips the flag"
+                        ));
+                    }
+                }
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "{} probe rows failed:\n  - {}",
+            failures.len(),
+            failures.join("\n  - ")
+        );
     }
 }

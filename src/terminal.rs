@@ -2468,6 +2468,36 @@ impl Terminal {
         let row = self.cursor.row;
         let col = self.cursor.col;
         if col < self.cols && row < self.rows {
+            // Wide-char overwrite orphaning (pinned 2026-06-11,
+            // COMPETITIVE.md §4): overwriting ONE half of a width-2
+            // glyph must clear the partner cell. Without this, the
+            // stale half survives — either a width-0 continuation
+            // with no lead (renderer skips it → ghost column) or a
+            // width-2 lead whose continuation now holds an unrelated
+            // glyph (renderer draws half a CJK glyph under the new
+            // char). Only the overwrite path orphans; IRM shifts
+            // cells instead of overwriting them.
+            if !self.insert_mode {
+                // Left edge: the target cell is a continuation → its
+                // lead (directly left) would orphan. Clear it.
+                if col > 0
+                    && self.grid().cell(row, col).width == 0
+                    && self.grid().cell(row, col - 1).width == 2
+                {
+                    *self.grid_mut().cell_mut(row, col - 1) = Cell::default();
+                }
+                // Right edge: the last cell this write covers is a
+                // wide lead → its continuation (directly right)
+                // would orphan. Clear it.
+                let last = col + char_width - 1;
+                if last < self.cols
+                    && self.grid().cell(row, last).width == 2
+                    && last + 1 < self.cols
+                {
+                    *self.grid_mut().cell_mut(row, last + 1) = Cell::default();
+                }
+            }
+
             // Insert mode (IRM): shift existing cells to the right
             if self.insert_mode {
                 let grid = self.grid_mut();
@@ -3910,6 +3940,46 @@ mod tests {
         assert!(term.primary.scrollback_len() >= 1);
     }
 
+    /// **Invariant: the scrollback ring never exceeds its cap**
+    /// (pinned 2026-06-11, COMPETITIVE.md §4 "pinned-but-holed").
+    /// The eviction loop in `Grid::scroll_region_up` admits in-code
+    /// it was never tested — this feeds 10× the cap and asserts the
+    /// bound holds after EVERY scroll, plus that eviction drops the
+    /// OLDEST rows (front of the ring), not the newest.
+    #[test]
+    fn scrollback_ring_never_exceeds_cap() {
+        let cap = 16;
+        let mut term = Terminal::with_scrollback(20, 4, cap);
+        let mut failures: Vec<String> = Vec::new();
+        for i in 0..(cap * 10) {
+            term.feed(format!("line{i}\r\n").as_bytes());
+            let len = term.primary.scrollback_len();
+            if len > cap {
+                failures.push(format!("after line{i}: scrollback {len} > cap {cap}"));
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "{} cap violations:\n  - {}",
+            failures.len(),
+            failures.join("\n  - ")
+        );
+        // Ring is saturated exactly at the cap (we fed far more than
+        // cap + visible lines), and the survivor at the front is a
+        // LATE line — line0 was evicted first.
+        assert_eq!(term.primary.scrollback_len(), cap);
+        let front: String = term.primary.rows[0]
+            .iter()
+            .map(|c| c.ch)
+            .collect::<String>()
+            .trim_end()
+            .to_string();
+        assert!(
+            front.starts_with("line") && front != "line0",
+            "front of ring should be a late line (oldest evicted), got {front:?}"
+        );
+    }
+
     #[test]
     fn scroll_viewport() {
         let mut term = Terminal::new(10, 3);
@@ -4119,6 +4189,71 @@ mod tests {
         assert_eq!(term.cell(1, 0).ch, '中');
         assert_eq!(term.cell(1, 0).width, 2);
         assert_eq!(term.cursor().row, 1);
+    }
+
+    /// **Invariant: overwriting a wide char's LEAD cell clears the
+    /// continuation cell** (pinned 2026-06-11, COMPETITIVE.md §4
+    /// "wide-char overwrite orphaning"). Without the clear, the
+    /// width-0 continuation survives with no lead — the renderer
+    /// skips width-0 cells, so the stale half renders as a ghost
+    /// column that selection/extract_text still walks.
+    #[test]
+    fn overwriting_wide_char_lead_clears_continuation_cell() {
+        let mut term = Terminal::new(10, 3);
+        term.feed("漢".as_bytes());
+        // Sanity: lead at (0,0), continuation at (0,1).
+        assert_eq!(term.cell(0, 0).width, 2);
+        assert_eq!(term.cell(0, 1).width, 0);
+        // CUP back onto the lead cell, overwrite with a narrow char.
+        term.feed(b"\x1b[1;1HX");
+        assert_eq!(term.cell(0, 0).ch, 'X');
+        assert_eq!(term.cell(0, 0).width, 1);
+        // The partner continuation cell must be cleared, not left
+        // as a leadless width-0 orphan.
+        assert_eq!(term.cell(0, 1).width, 1, "continuation cell orphaned");
+        assert_eq!(term.cell(0, 1).ch, ' ', "continuation cell orphaned");
+    }
+
+    /// **Invariant: overwriting a wide char's CONTINUATION cell
+    /// clears the lead cell** (pinned 2026-06-11, COMPETITIVE.md §4).
+    /// Without the clear, the width-2 lead survives and the renderer
+    /// draws half a CJK glyph underneath the newly written char.
+    #[test]
+    fn overwriting_wide_char_continuation_clears_lead_cell() {
+        let mut term = Terminal::new(10, 3);
+        term.feed("漢".as_bytes());
+        assert_eq!(term.cell(0, 0).width, 2);
+        assert_eq!(term.cell(0, 1).width, 0);
+        // CUP onto the continuation cell, overwrite with a narrow char.
+        term.feed(b"\x1b[1;2HX");
+        assert_eq!(term.cell(0, 1).ch, 'X');
+        assert_eq!(term.cell(0, 1).width, 1);
+        // The lead half must be cleared too.
+        assert_eq!(term.cell(0, 0).width, 1, "lead cell orphaned");
+        assert_eq!(term.cell(0, 0).ch, ' ', "lead cell orphaned");
+    }
+
+    /// **Invariant: a wide write whose continuation lands on another
+    /// wide char's LEAD clears that glyph's continuation** — the
+    /// second-order orphan case: `漢漢` then overwrite at col 1 with
+    /// a new wide char covers cols 1–2; col 2 was the second 漢's
+    /// lead, so its continuation at col 3 must clear.
+    #[test]
+    fn wide_overwrite_covering_second_lead_clears_its_continuation() {
+        let mut term = Terminal::new(10, 3);
+        term.feed("漢漢".as_bytes()); // leads at cols 0 and 2
+        assert_eq!(term.cell(0, 2).width, 2);
+        assert_eq!(term.cell(0, 3).width, 0);
+        // CUP to col 2 (the continuation of the first 漢), write 中:
+        // covers cols 1–2, orphaning BOTH the first lead (col 0) and
+        // the second glyph's continuation (col 3).
+        term.feed("\x1b[1;2H中".as_bytes());
+        assert_eq!(term.cell(0, 1).ch, '中');
+        assert_eq!(term.cell(0, 1).width, 2);
+        assert_eq!(term.cell(0, 0).width, 1, "first lead orphaned");
+        assert_eq!(term.cell(0, 0).ch, ' ', "first lead orphaned");
+        assert_eq!(term.cell(0, 3).width, 1, "second continuation orphaned");
+        assert_eq!(term.cell(0, 3).ch, ' ', "second continuation orphaned");
     }
 
     #[test]
@@ -6123,6 +6258,44 @@ mod proptests {
             prop_assert_eq!(cur.row, 0);
             prop_assert_eq!(cur.col, s.len(),
                 "want col={}, got col={}, str={:?}", s.len(), cur.col, s);
+        }
+
+        /// **Invariant: selection extraction is control-byte free.**
+        ///
+        /// COMPETITIVE.md §4 "Selection sanitization" (was untested).
+        /// Sibling of the 2026-06-11 skim-CPR incident class: control
+        /// bytes leaking into a selection pipe corrupted the consumer
+        /// downstream (that fix landed in frost/skim-tab; this pins
+        /// mado's own surface). Under ARBITRARY byte feeds — including
+        /// raw ESC, C0 controls, and broken UTF-8 — a select-all
+        /// `Selection::extract_text` over the visible grid must never
+        /// emit ESC (0x1b) or any C0 control byte other than the `\n`
+        /// row separator extract_text itself inserts. The VT engine
+        /// must execute/discard controls, never store them in cells.
+        #[test]
+        fn selection_extract_text_never_leaks_control_bytes(
+            input in proptest::collection::vec(any::<u8>(), 0..2048),
+        ) {
+            use crate::selection::{CellPos, Selection};
+            let mut term = Terminal::new(80, 24);
+            term.feed(&input);
+            let rows: Vec<Vec<Cell>> =
+                term.visible_rows().map(<[Cell]>::to_vec).collect();
+            let cols = term.cols();
+            let mut sel = Selection::new();
+            sel.start(CellPos { row: 0, col: 0 });
+            sel.update(CellPos { row: rows.len() - 1, col: cols - 1 });
+            sel.finish();
+            if let Some(text) = sel.extract_text(&rows, cols) {
+                for (i, b) in text.bytes().enumerate() {
+                    prop_assert!(
+                        b == b'\n' || b >= 0x20,
+                        "control byte 0x{b:02x} at offset {i} leaked into \
+                         extracted selection (ESC/C0 other than \\n are \
+                         forbidden): {text:?}"
+                    );
+                }
+            }
         }
 
         /// **Invariant: wide-char cells consume exactly 2 columns.**

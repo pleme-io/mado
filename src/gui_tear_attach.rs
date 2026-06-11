@@ -1375,3 +1375,259 @@ fn run_against_pane(
         injected,
     )
 }
+
+#[cfg(test)]
+mod tests {
+    //! `apply_tear_action` seam tests — headless: a real
+    //! `TerminalRenderer` is built but no GPU pipeline is touched
+    //! (same harness shape as `render::render_invariants`), and the
+    //! `MultiplexerControl` is a minimal recording mock.
+
+    use std::sync::Mutex;
+
+    use super::*;
+    use crate::config::CursorStyle;
+    use crate::keybind::Action;
+    use crate::search::SearchState;
+    use crate::selection::Selection;
+    use tear_types::{
+        ControlError, ControlResult, Direction, InputPolicy, SessionId, TearPane,
+        TearSession, TearWindow, WindowId,
+    };
+
+    /// Minimal `MultiplexerControl` mock: records every `send_keys`
+    /// call; every other operation is rejected. If a handler under
+    /// test synthesizes PTY bytes, the recording proves it.
+    struct RecordingControl {
+        sent: Mutex<Vec<(PaneId, Vec<u8>)>>,
+    }
+
+    impl RecordingControl {
+        fn new() -> Self {
+            Self { sent: Mutex::new(Vec::new()) }
+        }
+    }
+
+    impl MultiplexerControl for RecordingControl {
+        fn list_sessions(&self) -> ControlResult<Vec<TearSession>> {
+            Ok(Vec::new())
+        }
+        fn get_session(&self, id: SessionId) -> ControlResult<TearSession> {
+            Err(ControlError::NoSuchSession(id))
+        }
+        fn get_window(&self, id: WindowId) -> ControlResult<(SessionId, TearWindow)> {
+            Err(ControlError::NoSuchWindow(id))
+        }
+        fn get_pane(&self, id: PaneId) -> ControlResult<TearPane> {
+            Err(ControlError::NoSuchPane(id))
+        }
+        fn new_session_with_source_and_size(
+            &self,
+            _name: &str,
+            _shell: &str,
+            _source: SessionSource,
+            _size_cells: (u16, u16),
+        ) -> ControlResult<SessionId> {
+            Err(ControlError::Rejected("mock".into()))
+        }
+        fn rename_session(&self, _id: SessionId, _new_name: &str) -> ControlResult<()> {
+            Err(ControlError::Rejected("mock".into()))
+        }
+        fn kill_session(&self, _id: SessionId) -> ControlResult<()> {
+            Err(ControlError::Rejected("mock".into()))
+        }
+        fn new_window(
+            &self,
+            _session: SessionId,
+            _name: &str,
+            _shell: &str,
+        ) -> ControlResult<WindowId> {
+            Err(ControlError::Rejected("mock".into()))
+        }
+        fn kill_window(&self, _id: WindowId) -> ControlResult<()> {
+            Err(ControlError::Rejected("mock".into()))
+        }
+        fn select_window(&self, _id: WindowId) -> ControlResult<()> {
+            Err(ControlError::Rejected("mock".into()))
+        }
+        fn split_pane(
+            &self,
+            _origin: PaneId,
+            _direction: Direction,
+            _shell: &str,
+        ) -> ControlResult<PaneId> {
+            Err(ControlError::Rejected("mock".into()))
+        }
+        fn kill_pane(&self, _id: PaneId) -> ControlResult<()> {
+            Err(ControlError::Rejected("mock".into()))
+        }
+        fn select_pane(&self, _id: PaneId) -> ControlResult<()> {
+            Err(ControlError::Rejected("mock".into()))
+        }
+        fn resize_pane(
+            &self,
+            _id: PaneId,
+            _direction: Direction,
+            _delta_cells: i16,
+        ) -> ControlResult<()> {
+            Err(ControlError::Rejected("mock".into()))
+        }
+        fn send_keys(&self, id: PaneId, bytes: &[u8]) -> ControlResult<()> {
+            self.sent
+                .lock()
+                .expect("recording mutex poisoned")
+                .push((id, bytes.to_vec()));
+            Ok(())
+        }
+        fn pane_subscriber_count(&self, _id: PaneId) -> ControlResult<u32> {
+            Ok(0)
+        }
+        fn set_input_policy(&self, _id: PaneId, _policy: InputPolicy) -> ControlResult<()> {
+            Err(ControlError::Rejected("mock".into()))
+        }
+    }
+
+    /// Headless `apply_tear_action` harness: real renderer (no GPU
+    /// device — pipelines stay `None`; the search actions never need
+    /// one), real shared state, recording control.
+    struct Harness {
+        renderer: TerminalRenderer,
+        control: Arc<RecordingControl>,
+        pane: PaneId,
+        terminal: SharedTerminal,
+        selection: Mutex<Selection>,
+        clipboard: Mutex<hasami::Clipboard>,
+        search: Mutex<SearchState>,
+    }
+
+    impl Harness {
+        fn new() -> Self {
+            let terminal: SharedTerminal =
+                Arc::new(RwLock::new(Terminal::new(80, 24)));
+            let renderer = TerminalRenderer::new(
+                terminal.clone(),
+                14.0,
+                "monospace".into(),
+                "monospace".into(),
+                "monospace".into(),
+                0.0,
+                CursorStyle::Block,
+                false,
+                500,
+                wgpu::Color { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+                TermColor::WHITE,
+            );
+            Self {
+                renderer,
+                control: Arc::new(RecordingControl::new()),
+                pane: PaneId::from_seed("apply-tear-action-test"),
+                terminal,
+                selection: Mutex::new(Selection::new()),
+                clipboard: Mutex::new(
+                    hasami::Clipboard::new().expect("clipboard init"),
+                ),
+                search: Mutex::new(SearchState::new()),
+            }
+        }
+
+        fn apply(&mut self, action: Action) -> bool {
+            apply_tear_action(
+                action,
+                &mut self.renderer,
+                &self.control,
+                self.pane,
+                14.0,
+                &self.terminal,
+                &self.selection,
+                &self.clipboard,
+                &self.search,
+            )
+        }
+    }
+
+    /// **Invariant: Search Close/Next/Prev on an INACTIVE overlay are
+    /// NOT handled** (review finding 2026-06-11 — the just-fixed
+    /// Esc-eating regression). The fleet atlas binds `search_close`
+    /// to bare Escape; if `apply_tear_action` consumed it while the
+    /// overlay was closed, Esc would never reach the PTY and
+    /// vim/helix/fzf would die in the default mode. The contract:
+    /// with `SearchState.active == false`, each of the three actions
+    /// must (a) return `false` so the caller falls through to PTY
+    /// forwarding, (b) leave the search state inactive, and (c) send
+    /// NOTHING to the multiplexer itself (the caller forwards the
+    /// original key bytes; the handler must not synthesize any).
+    /// Failures aggregate matrix-style — one run reports every
+    /// divergent action.
+    #[test]
+    fn inactive_search_actions_fall_through_to_pty_forwarding() {
+        let mut failures: Vec<String> = Vec::new();
+        for action in [Action::SearchClose, Action::SearchNext, Action::SearchPrev] {
+            let mut h = Harness::new();
+            assert!(
+                !h.search.lock().unwrap().active,
+                "precondition: fresh SearchState must be inactive"
+            );
+            let handled = h.apply(action);
+            if handled {
+                failures.push(format!(
+                    "{action:?}: handled an INACTIVE search overlay — eats the \
+                     key (bare Esc) before PTY forwarding"
+                ));
+            }
+            if h.search.lock().unwrap().active {
+                failures.push(format!(
+                    "{action:?}: flipped an inactive SearchState to active"
+                ));
+            }
+            let sent = h.control.sent.lock().unwrap();
+            if !sent.is_empty() {
+                failures.push(format!(
+                    "{action:?}: synthesized {} send_keys call(s) to the \
+                     multiplexer on the fall-through path",
+                    sent.len()
+                ));
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "{} fall-through violations:\n  - {}",
+            failures.len(),
+            failures.join("\n  - ")
+        );
+    }
+
+    /// Control row for the invariant above: with the overlay OPEN,
+    /// the same three actions ARE handled (return `true`, consume the
+    /// key) and `SearchClose` actually closes the overlay — proving
+    /// the fall-through test exercises the active/inactive seam, not
+    /// a dead handler.
+    #[test]
+    fn active_search_actions_are_consumed_by_the_overlay() {
+        let mut failures: Vec<String> = Vec::new();
+        for action in [Action::SearchNext, Action::SearchPrev, Action::SearchClose] {
+            let mut h = Harness::new();
+            assert!(h.apply(Action::SearchOpen), "SearchOpen must be handled");
+            assert!(h.search.lock().unwrap().active, "SearchOpen must arm the overlay");
+            let handled = h.apply(action);
+            if !handled {
+                failures.push(format!(
+                    "{action:?}: not handled while the overlay is ACTIVE"
+                ));
+            }
+            let active_after = h.search.lock().unwrap().active;
+            let want_active_after = !matches!(action, Action::SearchClose);
+            if active_after != want_active_after {
+                failures.push(format!(
+                    "{action:?}: overlay active={active_after} after dispatch, \
+                     want {want_active_after}"
+                ));
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "{} active-overlay violations:\n  - {}",
+            failures.len(),
+            failures.join("\n  - ")
+        );
+    }
+}
