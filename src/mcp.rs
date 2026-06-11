@@ -1977,12 +1977,12 @@ mod tests {
         // different fg. Expect: 2 runs total, both with the right
         // start col + accumulated text.
         let row: Vec<CellSnapshot> = vec![
-            CellSnapshot { ch: 'a', width: 1, fg: [1, 2, 3], bg: [0, 0, 0], attrs: 0 },
-            CellSnapshot { ch: 'b', width: 1, fg: [1, 2, 3], bg: [0, 0, 0], attrs: 0 },
-            CellSnapshot { ch: 'c', width: 1, fg: [1, 2, 3], bg: [0, 0, 0], attrs: 0 },
-            CellSnapshot { ch: ' ', width: 1, fg: [255, 255, 255], bg: [0, 0, 0], attrs: 0 },
-            CellSnapshot { ch: 'x', width: 1, fg: [9, 9, 9], bg: [0, 0, 0], attrs: 0 },
-            CellSnapshot { ch: 'y', width: 1, fg: [9, 9, 9], bg: [0, 0, 0], attrs: 0 },
+            CellSnapshot::legacy('a', 1, [1, 2, 3], [0, 0, 0], 0),
+            CellSnapshot::legacy('b', 1, [1, 2, 3], [0, 0, 0], 0),
+            CellSnapshot::legacy('c', 1, [1, 2, 3], [0, 0, 0], 0),
+            CellSnapshot::legacy(' ', 1, [255, 255, 255], [0, 0, 0], 0),
+            CellSnapshot::legacy('x', 1, [9, 9, 9], [0, 0, 0], 0),
+            CellSnapshot::legacy('y', 1, [9, 9, 9], [0, 0, 0], 0),
         ];
         let snap = GridSnapshot {
             cols: 6,

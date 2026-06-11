@@ -40,7 +40,10 @@ use crate::config::{ColorblindMode, CursorStyle};
 // PaneRect / WindowState removed at Phase 4 — single-pane mado.
 use crate::search::SearchState;
 use crate::selection::Selection;
-use crate::terminal::{bold_bright_color, default_ansi_palette, Cell, CellAttrs, Color, Cursor, ImagePlacement, Terminal};
+use crate::terminal::{
+    bold_bright_color, default_ansi_palette, AttrFlags, Cell, Color, Cursor, ImagePlacement,
+    StyleTable, Terminal, UnderlineStyle,
+};
 use crate::url::{self, DetectedUrl};
 
 /// Shared terminal state between the render thread and PTY I/O thread.
@@ -835,6 +838,11 @@ impl PostProcessPipeline {
 
 struct Snapshot {
     rows: Vec<Vec<Cell>>,
+    /// M2 — the style table the cloned rows' `style_id`s resolve
+    /// through. Cloned per frame alongside the rows (it's a small
+    /// `Vec<Style>` + index map — same cost class as everything else
+    /// captured here), so the render path stays lock-free.
+    styles: StyleTable,
     cursor: Cursor,
     cols: usize,
     num_rows: usize,
@@ -1588,6 +1596,7 @@ impl TerminalRenderer {
         let scroll_offset = term.scroll_offset();
         let scrollback_total = term.scrollback_total();
         let rows: Vec<Vec<Cell>> = term.visible_rows().map(|r| r.to_vec()).collect();
+        let styles = term.styles().clone();
         let image_placements = term.image_placements().to_vec();
         let block_separator_rows = term.block_separator_viewport_rows();
         drop(term);
@@ -1613,6 +1622,7 @@ impl TerminalRenderer {
         (
             Snapshot {
                 rows,
+                styles,
                 cursor,
                 cols,
                 num_rows,
@@ -1706,10 +1716,12 @@ impl TerminalRenderer {
                     continue;
                 }
 
-                let inverse = cell.attrs.contains(CellAttrs::INVERSE);
-                let dim = cell.attrs.contains(CellAttrs::DIM);
-                let bg = if inverse { cell.fg } else { cell.bg };
-                let base_fg = if inverse { cell.bg } else { cell.fg };
+                let style = cell.style(&snap.styles);
+                let attrs = style.attrs;
+                let inverse = attrs.flags.contains(AttrFlags::INVERSE);
+                let dim = attrs.flags.contains(AttrFlags::DIM);
+                let bg = if inverse { style.fg } else { style.bg };
+                let base_fg = if inverse { style.bg } else { style.fg };
                 let fg = if dim {
                     Color::new(base_fg.r / 2, base_fg.g / 2, base_fg.b / 2)
                 } else {
@@ -1744,7 +1756,10 @@ impl TerminalRenderer {
                 }
 
                 // ── Underline span ──────────────────────────────────
-                if cell.attrs.contains(CellAttrs::UNDERLINE) {
+                // M2 stores the typed UnderlineStyle; until the M3
+                // engawa decoration geometry lands, every non-None
+                // style renders as this single underline rect.
+                if attrs.underline != UnderlineStyle::None {
                     let color = color_to_f32(&fg);
                     match &mut underline_run {
                         Some((_, cells, c)) if *c == color => {
@@ -1770,7 +1785,7 @@ impl TerminalRenderer {
                 }
 
                 // ── Strikethrough span ──────────────────────────────
-                if cell.attrs.contains(CellAttrs::STRIKETHROUGH) {
+                if attrs.flags.contains(AttrFlags::STRIKETHROUGH) {
                     let color = color_to_f32(&fg);
                     match &mut strike_run {
                         Some((_, cells, c)) if *c == color => {
@@ -2226,21 +2241,23 @@ impl TerminalRenderer {
                 }
                 has_content = true;
 
-                let inverse = cell.attrs.contains(CellAttrs::INVERSE);
-                let bold = cell.attrs.contains(CellAttrs::BOLD);
-                let dim = cell.attrs.contains(CellAttrs::DIM);
-                let italic = cell.attrs.contains(CellAttrs::ITALIC);
-                let hidden = cell.attrs.contains(CellAttrs::HIDDEN);
+                let style = cell.style(&snap.styles);
+                let cell_attrs = style.attrs;
+                let inverse = cell_attrs.flags.contains(AttrFlags::INVERSE);
+                let bold = cell_attrs.flags.contains(AttrFlags::BOLD);
+                let dim = cell_attrs.flags.contains(AttrFlags::DIM);
+                let italic = cell_attrs.flags.contains(AttrFlags::ITALIC);
+                let hidden = cell_attrs.flags.contains(AttrFlags::HIDDEN);
 
                 let effective_fg = if hidden {
-                    if inverse { cell.fg } else { cell.bg }
+                    if inverse { style.fg } else { style.bg }
                 } else {
                     let mut fg = if inverse {
-                        cell.bg
+                        style.bg
                     } else if bold && self.bold_is_bright {
-                        bold_bright_color(&cell.fg, &self.ansi_colors)
+                        bold_bright_color(&style.fg, &self.ansi_colors)
                     } else {
-                        cell.fg
+                        style.fg
                     };
                     if dim {
                         fg = Color::new(fg.r / 2, fg.g / 2, fg.b / 2);

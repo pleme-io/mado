@@ -38,7 +38,7 @@ use tokio::task::JoinHandle;
 
 use crate::pty::Pty;
 use crate::term_spec::TermSpec;
-use crate::terminal::{Cell, Terminal};
+use crate::terminal::{Cell, Terminal, UnderlineStyle};
 
 /// Default shell when neither the spec nor `$SHELL` is set. `/bin/sh`
 /// is the POSIX guarantee — present on every system mado runs on.
@@ -126,12 +126,13 @@ impl Session {
         let cols = term.cols();
         let rows = term.rows();
         let cursor = *term.cursor();
+        let styles = term.styles();
         let cells: Vec<Vec<CellSnapshot>> = term
             .visible_rows()
             .map(|row| {
                 row.iter()
                     .take(cols)
-                    .map(CellSnapshot::from_cell)
+                    .map(|c| CellSnapshot::from_cell(c, styles))
                     .collect()
             })
             .collect();
@@ -164,20 +165,54 @@ pub struct CellSnapshot {
     pub fg: [u8; 3],
     /// Background colour `[r, g, b]` after palette resolution.
     pub bg: [u8; 3],
-    /// CellAttrs bitfield as u8 — bold/italic/underline/inverse/dim/
-    /// strikethrough/hidden/blink, in the same bit positions the
-    /// renderer reads from.
+    /// Legacy attrs bitfield as u8 — bold/italic/underline/inverse/
+    /// dim/strikethrough/hidden/blink, in the historical `CellAttrs`
+    /// bit positions (now produced via `Attrs::to_legacy_bits`).
+    /// Kept for wire back-compat; any non-"none" underline style sets
+    /// the single legacy underline bit.
     pub attrs: u8,
+    /// M2 — typed underline style name: `none` / `single` / `double` /
+    /// `curly` / `dotted` / `dashed` (SGR 4:N wire).
+    pub underline: String,
+    /// M2 — typed underline colour (SGR 58/59): `None` when the
+    /// underline follows the cell fg (default), otherwise
+    /// `indexed(N)` or `#rrggbb`.
+    pub underline_color: Option<String>,
 }
 
 impl CellSnapshot {
-    fn from_cell(c: &Cell) -> Self {
+    /// Legacy-shaped constructor — a cell carrying only the u8 attrs
+    /// bitfield, with no typed underline refinement (`underline:
+    /// "none"`, `underline_color: None`). Used by tests and by any
+    /// caller synthesizing snapshots that predate the M2 wide attrs.
+    #[must_use]
+    #[allow(dead_code)] // Test-fixture surface across modules (mcp/scenario/session tests).
+    pub fn legacy(ch: char, width: u8, fg: [u8; 3], bg: [u8; 3], attrs: u8) -> Self {
+        Self {
+            ch,
+            width,
+            fg,
+            bg,
+            attrs,
+            underline: UnderlineStyle::None.to_string(),
+            underline_color: None,
+        }
+    }
+
+    fn from_cell(c: &Cell, styles: &crate::terminal::StyleTable) -> Self {
+        let style = c.style(styles);
+        let attrs = style.attrs;
         Self {
             ch: c.ch,
             width: c.width,
-            fg: [c.fg.r, c.fg.g, c.fg.b],
-            bg: [c.bg.r, c.bg.g, c.bg.b],
-            attrs: c.attrs.bits(),
+            fg: [style.fg.r, style.fg.g, style.fg.b],
+            bg: [style.bg.r, style.bg.g, style.bg.b],
+            attrs: attrs.to_legacy_bits(),
+            underline: attrs.underline.to_string(),
+            underline_color: match attrs.underline_color {
+                crate::terminal::UnderlineColor::Default => None,
+                other => Some(other.to_string()),
+            },
         }
     }
 }
@@ -650,16 +685,16 @@ mod tests {
             cursor_visible: true,
             cells: vec![
                 vec![
-                    CellSnapshot { ch: 'a', width: 1, fg: [255, 255, 255], bg: [0, 0, 0], attrs: 0 },
-                    CellSnapshot { ch: 'b', width: 1, fg: [255, 255, 255], bg: [0, 0, 0], attrs: 0 },
-                    CellSnapshot { ch: ' ', width: 1, fg: [255, 255, 255], bg: [0, 0, 0], attrs: 0 },
-                    CellSnapshot { ch: ' ', width: 1, fg: [255, 255, 255], bg: [0, 0, 0], attrs: 0 },
+                    CellSnapshot::legacy('a', 1, [255, 255, 255], [0, 0, 0], 0),
+                    CellSnapshot::legacy('b', 1, [255, 255, 255], [0, 0, 0], 0),
+                    CellSnapshot::legacy(' ', 1, [255, 255, 255], [0, 0, 0], 0),
+                    CellSnapshot::legacy(' ', 1, [255, 255, 255], [0, 0, 0], 0),
                 ],
                 vec![
-                    CellSnapshot { ch: 'c', width: 1, fg: [255, 255, 255], bg: [0, 0, 0], attrs: 0 },
-                    CellSnapshot { ch: ' ', width: 1, fg: [255, 255, 255], bg: [0, 0, 0], attrs: 0 },
-                    CellSnapshot { ch: ' ', width: 1, fg: [255, 255, 255], bg: [0, 0, 0], attrs: 0 },
-                    CellSnapshot { ch: ' ', width: 1, fg: [255, 255, 255], bg: [0, 0, 0], attrs: 0 },
+                    CellSnapshot::legacy('c', 1, [255, 255, 255], [0, 0, 0], 0),
+                    CellSnapshot::legacy(' ', 1, [255, 255, 255], [0, 0, 0], 0),
+                    CellSnapshot::legacy(' ', 1, [255, 255, 255], [0, 0, 0], 0),
+                    CellSnapshot::legacy(' ', 1, [255, 255, 255], [0, 0, 0], 0),
                 ],
             ],
         };
@@ -680,20 +715,20 @@ mod tests {
             cursor_visible: true,
             cells: vec![
                 vec![
-                    CellSnapshot { ch: 'h', width: 1, fg: [0; 3], bg: [0; 3], attrs: 0 },
-                    CellSnapshot { ch: 'i', width: 1, fg: [0; 3], bg: [0; 3], attrs: 0 },
-                    CellSnapshot { ch: ' ', width: 1, fg: [0; 3], bg: [0; 3], attrs: 0 },
-                    CellSnapshot { ch: ' ', width: 1, fg: [0; 3], bg: [0; 3], attrs: 0 },
-                    CellSnapshot { ch: ' ', width: 1, fg: [0; 3], bg: [0; 3], attrs: 0 },
-                    CellSnapshot { ch: ' ', width: 1, fg: [0; 3], bg: [0; 3], attrs: 0 },
+                    CellSnapshot::legacy('h', 1, [0; 3], [0; 3], 0),
+                    CellSnapshot::legacy('i', 1, [0; 3], [0; 3], 0),
+                    CellSnapshot::legacy(' ', 1, [0; 3], [0; 3], 0),
+                    CellSnapshot::legacy(' ', 1, [0; 3], [0; 3], 0),
+                    CellSnapshot::legacy(' ', 1, [0; 3], [0; 3], 0),
+                    CellSnapshot::legacy(' ', 1, [0; 3], [0; 3], 0),
                 ],
                 vec![
-                    CellSnapshot { ch: 'b', width: 1, fg: [0; 3], bg: [0; 3], attrs: 0 },
-                    CellSnapshot { ch: 'y', width: 1, fg: [0; 3], bg: [0; 3], attrs: 0 },
-                    CellSnapshot { ch: 'e', width: 1, fg: [0; 3], bg: [0; 3], attrs: 0 },
-                    CellSnapshot { ch: ' ', width: 1, fg: [0; 3], bg: [0; 3], attrs: 0 },
-                    CellSnapshot { ch: ' ', width: 1, fg: [0; 3], bg: [0; 3], attrs: 0 },
-                    CellSnapshot { ch: ' ', width: 1, fg: [0; 3], bg: [0; 3], attrs: 0 },
+                    CellSnapshot::legacy('b', 1, [0; 3], [0; 3], 0),
+                    CellSnapshot::legacy('y', 1, [0; 3], [0; 3], 0),
+                    CellSnapshot::legacy('e', 1, [0; 3], [0; 3], 0),
+                    CellSnapshot::legacy(' ', 1, [0; 3], [0; 3], 0),
+                    CellSnapshot::legacy(' ', 1, [0; 3], [0; 3], 0),
+                    CellSnapshot::legacy(' ', 1, [0; 3], [0; 3], 0),
                 ],
             ],
         };

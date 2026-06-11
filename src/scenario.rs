@@ -575,17 +575,27 @@ fn snapshot_from_terminal(term: &crate::terminal::Terminal) -> GridSnapshot {
     let cols = term.cols();
     let rows = term.rows();
     let cursor = *term.cursor();
+    let styles = term.styles();
     let cells: Vec<Vec<CellSnapshot>> = term
         .visible_rows()
         .map(|row| {
             row.iter()
                 .take(cols)
-                .map(|c| CellSnapshot {
-                    ch: c.ch,
-                    width: c.width,
-                    fg: [c.fg.r, c.fg.g, c.fg.b],
-                    bg: [c.bg.r, c.bg.g, c.bg.b],
-                    attrs: c.attrs.bits(),
+                .map(|c| {
+                    let style = c.style(styles);
+                    let attrs = style.attrs;
+                    CellSnapshot {
+                        ch: c.ch,
+                        width: c.width,
+                        fg: [style.fg.r, style.fg.g, style.fg.b],
+                        bg: [style.bg.r, style.bg.g, style.bg.b],
+                        attrs: attrs.to_legacy_bits(),
+                        underline: attrs.underline.to_string(),
+                        underline_color: match attrs.underline_color {
+                            crate::terminal::UnderlineColor::Default => None,
+                            other => Some(other.to_string()),
+                        },
+                    }
                 })
                 .collect()
         })
@@ -1006,10 +1016,10 @@ typo_field: 42
         let snap = GridSnapshot {
             cols: 4, rows: 1, cursor_row: 0, cursor_col: 0, cursor_visible: true,
             cells: vec![vec![
-                crate::session::CellSnapshot { ch: 'a', width: 1, fg: [255;3], bg: [0;3], attrs: 0 },
-                crate::session::CellSnapshot { ch: 'b', width: 1, fg: [255;3], bg: [0;3], attrs: 0 },
-                crate::session::CellSnapshot { ch: 'c', width: 1, fg: [255;3], bg: [0;3], attrs: 0 },
-                crate::session::CellSnapshot { ch: 'd', width: 1, fg: [255;3], bg: [0;3], attrs: 0 },
+                crate::session::CellSnapshot::legacy('a', 1, [255;3], [0;3], 0),
+                crate::session::CellSnapshot::legacy('b', 1, [255;3], [0;3], 0),
+                crate::session::CellSnapshot::legacy('c', 1, [255;3], [0;3], 0),
+                crate::session::CellSnapshot::legacy('d', 1, [255;3], [0;3], 0),
             ]],
         };
         let exp = Expect {
@@ -1020,5 +1030,30 @@ typo_field: 42
         let s = format!("{err:#}");
         assert!(s.contains("missing"), "diff text missing: {s}");
         assert!(s.contains("xyz"), "diff text missing: {s}");
+    }
+
+    /// M2 — the snapshot surface resolves the shrunk Cell through the
+    /// StyleTable and carries BOTH the legacy attrs u8 (back-compat,
+    /// underline style collapses to the single legacy bit) AND the
+    /// typed underline style/colour fields.
+    #[test]
+    fn snapshot_carries_typed_underline_and_legacy_bits() {
+        let mut term = crate::terminal::Terminal::new(20, 2);
+        term.feed(b"\x1b[1;4:3;58:5:9;38;2;10;20;30mU\x1b[0mV");
+        let snap = snapshot_from_terminal(&term);
+
+        let u = &snap.cells[0][0];
+        assert_eq!(u.ch, 'U');
+        assert_eq!(u.fg, [10, 20, 30]);
+        assert_eq!(u.underline, "curly");
+        assert_eq!(u.underline_color.as_deref(), Some("indexed(9)"));
+        // Legacy bits: bold (1<<0) + underline (1<<2).
+        assert_eq!(u.attrs, 0b0000_0101);
+
+        let v = &snap.cells[0][1];
+        assert_eq!(v.ch, 'V');
+        assert_eq!(v.underline, "none");
+        assert_eq!(v.underline_color, None);
+        assert_eq!(v.attrs, 0);
     }
 }

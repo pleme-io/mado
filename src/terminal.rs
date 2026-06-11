@@ -19,9 +19,16 @@ use crate::config::CursorStyle;
 // Cell attributes (bitflags-style)
 // ---------------------------------------------------------------------------
 
+/// FROZEN legacy u8 attribute bit layout — the MCP `CellSnapshot.attrs`
+/// / scenario `attrs:` wire surface. Since M2 the live attribute storage
+/// is the wide typed [`Attrs`] (inside the interned [`Style`]); this
+/// type exists ONLY to name the historical bit positions that
+/// [`Attrs::to_legacy_bits`] projects onto. Never grow it — new
+/// attribute axes go on [`Attrs`] and surface as typed snapshot fields.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub struct CellAttrs(u8);
 
+#[allow(dead_code)] // The constants anchor the wire layout; tests use the rest.
 impl CellAttrs {
     pub const NONE: Self = Self(0);
     pub const BOLD: Self = Self(1 << 0);
@@ -38,6 +45,44 @@ impl CellAttrs {
         (self.0 & other.0) == other.0
     }
 
+    /// Raw bitfield. The bit positions match the BOLD/ITALIC/
+    /// UNDERLINE/BLINK/INVERSE/STRIKETHROUGH/DIM/HIDDEN constants
+    /// above, in that order.
+    #[must_use]
+    pub const fn bits(self) -> u8 {
+        self.0
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Wide typed attributes (M2 — live INSIDE the interned Style, so widening
+// costs 0 bytes per Cell; the legacy CellAttrs u8 above remains ONLY as the
+// MCP/scenario wire bit-layout, produced via Attrs::to_legacy_bits)
+// ---------------------------------------------------------------------------
+
+/// Boolean attribute flags — u16 bitset. The non-underline half of the
+/// old `CellAttrs` plus OVERLINE (SGR 53), which the u8 had no room for.
+/// Underline is NOT a flag here: its style is the typed
+/// [`UnderlineStyle`] on [`Attrs`] (SGR 4 / 4:N / 21 sub-param wire).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
+pub struct AttrFlags(u16);
+
+impl AttrFlags {
+    pub const NONE: Self = Self(0);
+    pub const BOLD: Self = Self(1 << 0);
+    pub const ITALIC: Self = Self(1 << 1);
+    pub const INVERSE: Self = Self(1 << 2);
+    pub const DIM: Self = Self(1 << 3);
+    pub const HIDDEN: Self = Self(1 << 4);
+    pub const STRIKETHROUGH: Self = Self(1 << 5);
+    pub const OVERLINE: Self = Self(1 << 6);
+    pub const BLINK: Self = Self(1 << 7);
+
+    #[must_use]
+    pub const fn contains(self, other: Self) -> bool {
+        (self.0 & other.0) == other.0
+    }
+
     pub fn insert(&mut self, other: Self) {
         self.0 |= other.0;
     }
@@ -47,17 +92,126 @@ impl CellAttrs {
     }
 
     #[must_use]
-    #[allow(dead_code)]
+    #[allow(dead_code)] // Test/consumer surface — parity with the old CellAttrs API.
     pub const fn is_empty(self) -> bool {
         self.0 == 0
     }
+}
 
-    /// Raw bitfield — exposed for MCP snapshot serialization. The
-    /// bit positions match the BOLD/ITALIC/UNDERLINE/BLINK/INVERSE/
-    /// STRIKETHROUGH/DIM/HIDDEN constants above, in that order.
+/// Typed underline style — SGR `4` (Single), `4:0..4:5` sub-param wire,
+/// `24` / `4:0` reset. Storage lands in M2; the render GEOMETRY for the
+/// non-Single variants is M3 (engawa decoration emitter) — until then
+/// every non-None style renders as the existing single underline rect
+/// via the legacy bit in [`Attrs::to_legacy_bits`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
+pub enum UnderlineStyle {
+    #[default]
+    None,
+    Single,
+    Double,
+    Curly,
+    Dotted,
+    Dashed,
+}
+
+impl UnderlineStyle {
+    /// Lowercase wire name for the MCP `CellSnapshot.underline` field.
     #[must_use]
-    pub const fn bits(self) -> u8 {
-        self.0
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::Single => "single",
+            Self::Double => "double",
+            Self::Curly => "curly",
+            Self::Dotted => "dotted",
+            Self::Dashed => "dashed",
+        }
+    }
+}
+
+impl fmt::Display for UnderlineStyle {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+/// Typed underline colour — SGR `58` (set, indexed or RGB) / `59`
+/// (reset to Default = follow the cell's fg).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
+pub enum UnderlineColor {
+    /// No explicit underline colour — render with the cell fg.
+    #[default]
+    Default,
+    /// `58:5:N` / `58;5;N` — palette index.
+    Indexed(u8),
+    /// `58:2::r:g:b` / `58;2;r;g;b` — direct RGB.
+    Rgb(Color),
+}
+
+impl fmt::Display for UnderlineColor {
+    /// Wire rendering for the MCP `CellSnapshot.underline_color` field:
+    /// `indexed(N)` / `#rrggbb`. `Default` is never serialized (the
+    /// snapshot carries `None` instead) but renders as `default` for
+    /// completeness.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Default => f.write_str("default"),
+            Self::Indexed(n) => write!(f, "indexed({n})"),
+            Self::Rgb(c) => write!(f, "#{:02x}{:02x}{:02x}", c.r, c.g, c.b),
+        }
+    }
+}
+
+/// Wide typed cell attributes — flags + typed underline style + typed
+/// underline colour. Lives INSIDE the interned [`Style`] (per-Cell cost
+/// is the existing `style_id: u16`, not per-cell bytes).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
+pub struct Attrs {
+    pub flags: AttrFlags,
+    pub underline: UnderlineStyle,
+    pub underline_color: UnderlineColor,
+}
+
+impl Attrs {
+    pub const NONE: Self = Self {
+        flags: AttrFlags::NONE,
+        underline: UnderlineStyle::None,
+        underline_color: UnderlineColor::Default,
+    };
+
+    /// Project the wide attrs down to the legacy [`CellAttrs`] u8 bit
+    /// layout (the MCP `CellSnapshot.attrs` / scenario `attrs:` wire
+    /// surface). Any non-None underline style maps to the single
+    /// legacy UNDERLINE bit; OVERLINE and the underline colour have no
+    /// u8 representation and are carried by the new snapshot fields.
+    #[must_use]
+    pub const fn to_legacy_bits(self) -> u8 {
+        let mut bits = 0u8;
+        if self.flags.contains(AttrFlags::BOLD) {
+            bits |= CellAttrs::BOLD.0;
+        }
+        if self.flags.contains(AttrFlags::ITALIC) {
+            bits |= CellAttrs::ITALIC.0;
+        }
+        if !matches!(self.underline, UnderlineStyle::None) {
+            bits |= CellAttrs::UNDERLINE.0;
+        }
+        if self.flags.contains(AttrFlags::BLINK) {
+            bits |= CellAttrs::BLINK.0;
+        }
+        if self.flags.contains(AttrFlags::INVERSE) {
+            bits |= CellAttrs::INVERSE.0;
+        }
+        if self.flags.contains(AttrFlags::STRIKETHROUGH) {
+            bits |= CellAttrs::STRIKETHROUGH.0;
+        }
+        if self.flags.contains(AttrFlags::DIM) {
+            bits |= CellAttrs::DIM.0;
+        }
+        if self.flags.contains(AttrFlags::HIDDEN) {
+            bits |= CellAttrs::HIDDEN.0;
+        }
+        bits
     }
 }
 
@@ -148,6 +302,34 @@ pub fn default_ansi_palette() -> [Color; 16] {
     palette
 }
 
+/// Build the full default 256-entry xterm palette: 16 base ANSI
+/// colours + the 6×6×6 colour cube (16..=231) + the 24-step grayscale
+/// ramp (232..=255). Generated programmatically — the cube/ramp
+/// formulas are the standard xterm ones (the same maths the old
+/// `ansi_256_color` computed on the fly before OSC 4 made indices
+/// 16..=255 mutable in M2).
+#[must_use]
+pub fn default_palette_256() -> [Color; 256] {
+    let mut palette = [Color::BLACK; 256];
+    palette[..8].copy_from_slice(&ANSI_COLORS);
+    palette[8..16].copy_from_slice(&ANSI_BRIGHT_COLORS);
+    for idx in 16u16..=231 {
+        let i = idx - 16;
+        let r_idx = i / 36;
+        let g_idx = (i % 36) / 6;
+        let b_idx = i % 6;
+        let to_byte = |v: u16| -> u8 {
+            if v == 0 { 0 } else { (55 + 40 * v) as u8 }
+        };
+        palette[idx as usize] = Color::new(to_byte(r_idx), to_byte(g_idx), to_byte(b_idx));
+    }
+    for idx in 232u16..=255 {
+        let v = (8 + 10 * (idx - 232)) as u8;
+        palette[idx as usize] = Color::new(v, v, v);
+    }
+    palette
+}
+
 /// If the given color matches a normal ANSI color (0-7) in the palette, return the bright variant.
 /// Used by the renderer for bold-as-bright behavior.
 #[must_use]
@@ -160,31 +342,24 @@ pub fn bold_bright_color(color: &Color, palette: &[Color; 16]) -> Color {
     *color
 }
 
-fn ansi_256_color(idx: u16, palette: &[Color; 16]) -> Color {
-    match idx {
-        0..=15 => palette[idx as usize],
-        16..=231 => {
-            let idx = idx - 16;
-            let r_idx = idx / 36;
-            let g_idx = (idx % 36) / 6;
-            let b_idx = idx % 6;
-            let to_byte = |i: u16| -> u8 {
-                if i == 0 { 0 } else { (55 + 40 * i) as u8 }
-            };
-            Color::new(to_byte(r_idx), to_byte(g_idx), to_byte(b_idx))
-        }
-        232..=255 => {
-            let v = (8 + 10 * (idx - 232)) as u8;
-            Color::new(v, v, v)
-        }
-        _ => Color::WHITE,
-    }
+/// Resolve a 256-colour index against the live palette. Since M2 the
+/// terminal's palette carries all 256 entries (OSC 4 can override any
+/// of them), so this is a bounds-checked index — the cube/grayscale
+/// formulas live in [`default_palette_256`].
+fn ansi_256_color(idx: u16, palette: &[Color; 256]) -> Color {
+    palette.get(idx as usize).copied().unwrap_or(Color::WHITE)
 }
 
 // ---------------------------------------------------------------------------
 // Cell
 // ---------------------------------------------------------------------------
 
+/// The shrunk M2 cell — 24 bytes (down from 40 pre-shrink). All
+/// styling resolves through the owner's [`StyleTable`] via `style_id`
+/// (P32 interning made the shrink prerequisite-complete); the
+/// hyperlink resolves through the owner's [`LinkTable`] via `link_id`.
+/// Both tables are owned by [`Terminal`] (next to each other) and
+/// exposed via [`Terminal::styles`] / [`Terminal::links`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Cell {
     pub ch: char,
@@ -192,30 +367,16 @@ pub struct Cell {
     pub extra: Option<Box<Vec<char>>>,
     /// Display width: 1 = normal, 2 = wide (CJK), 0 = continuation of wide char.
     pub width: u8,
-    pub fg: Color,
-    pub bg: Color,
-    pub attrs: CellAttrs,
-    /// P32 — interned style ID. Populated on every cell write by
-    /// `put_char` from Terminal's `style_table` so that adjacent
-    /// cells with identical (fg, bg, attrs) share a u16 tag. The
-    /// renderer's shape cache key uses this u16 instead of three
-    /// raw bytes — smaller key, faster equality. Existing inline
-    /// fg/bg/attrs are kept too so all read sites continue to work
-    /// unchanged; the eventual Cell-shrink (drop inline fields, keep
-    /// only style_id) is a follow-up that the table interning here
-    /// is the prerequisite for.
+    /// Interned style ID into the owning Terminal's [`StyleTable`].
+    /// Adjacent cells with identical (fg, bg, attrs) share a u16 tag.
     ///
-    /// `0` is reserved for the default style (Color::WHITE on
-    /// Color::BLACK, no attrs) so a fresh Cell::default never has to
-    /// touch the table.
+    /// `0` ([`DEFAULT_STYLE_ID`]) is reserved for the default style
+    /// (Color::WHITE on Color::BLACK, no attrs) so a fresh
+    /// Cell::default never has to touch the table.
     pub style_id: u16,
-    /// Hyperlink URL (from OSC 8). None for most cells. `Arc<str>`
-    /// rather than `Box<String>` so that adjacent cells inside the same
-    /// hyperlink share one allocation — printing N characters under an
-    /// OSC-8 hyperlink used to allocate N strings + N boxes (~2N
-    /// per-byte allocations on hyperlink-heavy `ls` output); after this
-    /// change it's one Arc::clone per cell (ref-count bump).
-    pub hyperlink: Option<std::sync::Arc<str>>,
+    /// Interned hyperlink ID into the owning Terminal's [`LinkTable`]
+    /// (from OSC 8). `0` ([`NO_LINK_ID`]) = no hyperlink.
+    pub link_id: u16,
 }
 
 impl Cell {
@@ -236,6 +397,42 @@ impl Cell {
             }
         }
     }
+
+    /// Resolved style triple — one table lookup. Hot paths (render
+    /// snapshot walk) use this once per cell; the per-field accessors
+    /// below are the convenience surface for single-field reads.
+    #[must_use]
+    pub fn style(&self, styles: &StyleTable) -> Style {
+        styles.lookup(self.style_id)
+    }
+
+    /// Foreground colour, resolved through the owning [`StyleTable`].
+    #[must_use]
+    #[allow(dead_code)] // Per-field accessor surface — tests + future consumers.
+    pub fn fg(&self, styles: &StyleTable) -> Color {
+        self.style(styles).fg
+    }
+
+    /// Background colour, resolved through the owning [`StyleTable`].
+    #[must_use]
+    #[allow(dead_code)] // Per-field accessor surface — tests + future consumers.
+    pub fn bg(&self, styles: &StyleTable) -> Color {
+        self.style(styles).bg
+    }
+
+    /// Wide typed attributes, resolved through the owning [`StyleTable`].
+    #[must_use]
+    #[allow(dead_code)] // Per-field accessor surface — tests + future consumers.
+    pub fn attrs(&self, styles: &StyleTable) -> Attrs {
+        self.style(styles).attrs
+    }
+
+    /// Hyperlink URI, resolved through the owning [`LinkTable`].
+    #[must_use]
+    #[allow(dead_code)] // Read surface for the upcoming link-hover/click path.
+    pub fn hyperlink<'a>(&self, links: &'a LinkTable) -> Option<&'a str> {
+        links.lookup(self.link_id)
+    }
 }
 
 impl Default for Cell {
@@ -244,14 +441,11 @@ impl Default for Cell {
             ch: ' ',
             extra: None,
             width: 1,
-            fg: Color::WHITE,
-            bg: Color::BLACK,
-            attrs: CellAttrs::NONE,
             // style_id 0 == DEFAULT_STYLE_ID (reserved for the canonical
             // WHITE-on-BLACK no-attrs style). Cell::default never has to
             // touch the StyleTable.
             style_id: DEFAULT_STYLE_ID,
-            hyperlink: None,
+            link_id: NO_LINK_ID,
         }
     }
 }
@@ -261,16 +455,17 @@ impl Default for Cell {
 /// constructor pre-populates this entry so it's always valid.
 pub const DEFAULT_STYLE_ID: u16 = 0;
 
-/// Style (fg, bg, attrs) interned as a single value. P32. The
-/// styling axes that define how a Cell renders. Cell stores both
-/// the inline triple (transition compatibility) and an interned
-/// u16 ID into [`StyleTable`] (lookup-friendly). Future Cell shrink
-/// will drop the inline fields.
+/// Style (fg, bg, attrs) interned as a single value. P32 + M2. The
+/// styling axes that define how a Cell renders. After the M2 Cell
+/// shrink, the interned `style_id: u16` on [`Cell`] is the ONLY
+/// styling storage — every read resolves through [`StyleTable`].
+/// `attrs` is the wide typed [`Attrs`] (flags + underline style +
+/// underline colour), so widening attributes costs 0 per-Cell bytes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Style {
     pub fg: Color,
     pub bg: Color,
-    pub attrs: CellAttrs,
+    pub attrs: Attrs,
 }
 
 /// Interning table mapping `Style` ↔ `u16` ID. Each Terminal owns
@@ -279,10 +474,26 @@ pub struct Style {
 /// bounded at `u16::MAX - 1` styles (more than enough for any
 /// realistic terminal session — typical sessions have &lt;50 unique
 /// styles).
+///
+/// **Overflow policy (M2 — the table is load-bearing post-shrink).**
+/// The shrink removed the inline fg/bg/attrs from Cell, so silent
+/// saturation to `DEFAULT_STYLE_ID` would now ALIAS new styles to
+/// white-on-black. Instead:
+///   1. [`StyleTable::try_intern`] returns `None` on a full table —
+///      the Terminal reacts by garbage-collecting ([`StyleTable::gc`])
+///      against the set of style ids still referenced by live cells
+///      (both grids + scrollback), remapping every cell, and retrying.
+///   2. If the table is STILL full after gc (pathological: more live
+///      styles than `u16::MAX - 1`), [`StyleTable::intern`] falls back
+///      to the most recently interned id — a *near* style from the
+///      same output burst, never the DEFAULT — and `tracing::warn`s
+///      once per table lifetime.
 #[derive(Debug, Clone)]
 pub struct StyleTable {
     styles: Vec<Style>,
     by_style: std::collections::HashMap<Style, u16>,
+    /// Warn-once latch for the saturation fallback (policy step 2).
+    saturation_warned: bool,
 }
 
 impl Default for StyleTable {
@@ -299,33 +510,100 @@ impl StyleTable {
         let default = Style {
             fg: Color::WHITE,
             bg: Color::BLACK,
-            attrs: CellAttrs::NONE,
+            attrs: Attrs::NONE,
         };
         let mut by_style = std::collections::HashMap::new();
         by_style.insert(default, DEFAULT_STYLE_ID);
         Self {
             styles: vec![default],
             by_style,
+            saturation_warned: false,
         }
     }
 
+    /// True when no further distinct style can be allocated.
+    #[must_use]
+    #[allow(dead_code)] // Overflow-policy API surface; exercised by tests.
+    pub fn is_full(&self) -> bool {
+        self.styles.len() >= u16::MAX as usize
+    }
+
     /// Intern a style: return the existing ID or allocate a new one.
-    /// Capacity bounded at `u16::MAX - 1`; beyond that the default
-    /// is returned (silent saturation rather than panic — the table
-    /// is renderer-hint, not load-bearing for correctness because
-    /// Cell still carries the inline fg/bg/attrs triple).
-    pub fn intern(&mut self, style: Style) -> u16 {
+    /// Returns `None` when the table is full AND the style is not
+    /// already present — the caller's signal to gc + retry.
+    pub fn try_intern(&mut self, style: Style) -> Option<u16> {
         if let Some(&id) = self.by_style.get(&style) {
-            return id;
+            return Some(id);
         }
         let id = self.styles.len();
         if id >= u16::MAX as usize {
-            return DEFAULT_STYLE_ID;
+            return None;
         }
         let id = id as u16;
         self.styles.push(style);
         self.by_style.insert(style, id);
-        id
+        Some(id)
+    }
+
+    /// Intern with the saturation fallback (overflow-policy step 2):
+    /// on a full table the LAST interned id is returned — a nearby
+    /// style from the same output burst — never `DEFAULT_STYLE_ID`,
+    /// and a `tracing::warn` fires once per table lifetime.
+    pub fn intern(&mut self, style: Style) -> u16 {
+        if let Some(id) = self.try_intern(style) {
+            return id;
+        }
+        if !self.saturation_warned {
+            self.saturation_warned = true;
+            tracing::warn!(
+                capacity = u16::MAX as usize - 1,
+                "StyleTable saturated after gc — aliasing to the most \
+                 recently interned style (NOT the default)"
+            );
+        }
+        (self.styles.len() - 1) as u16
+    }
+
+    /// Rebuild the table keeping only `live` ids (plus the default
+    /// entry). Returns the old-id → new-id remap the owner applies to
+    /// every live cell's `style_id`. Ids absent from the remap were
+    /// not in `live` and must no longer be referenced.
+    pub fn gc(
+        &mut self,
+        live: &std::collections::HashSet<u16>,
+    ) -> std::collections::HashMap<u16, u16> {
+        let old_styles = std::mem::take(&mut self.styles);
+        self.by_style.clear();
+        self.saturation_warned = false;
+
+        // Re-seed the default entry at id 0.
+        let default = old_styles[DEFAULT_STYLE_ID as usize];
+        self.styles.push(default);
+        self.by_style.insert(default, DEFAULT_STYLE_ID);
+
+        let mut remap = std::collections::HashMap::with_capacity(live.len() + 1);
+        remap.insert(DEFAULT_STYLE_ID, DEFAULT_STYLE_ID);
+
+        // Deterministic rebuild order (sorted old ids) so two gc runs
+        // over the same live set produce identical tables.
+        let mut ids: Vec<u16> = live.iter().copied().collect();
+        ids.sort_unstable();
+        for old_id in ids {
+            if old_id == DEFAULT_STYLE_ID {
+                continue;
+            }
+            let Some(style) = old_styles.get(old_id as usize).copied() else {
+                continue;
+            };
+            // Re-intern (dedups styles that collapsed to the same
+            // value). The rebuilt table holds ≤ live.len() entries,
+            // so try_intern cannot fail here unless live itself
+            // exceeds capacity — in which case intern's fallback
+            // policy applies.
+            let new_id = self.intern(style);
+            remap.insert(old_id, new_id);
+        }
+        remap
     }
 
     /// Resolve an ID back to its Style. Returns the default style if
@@ -344,6 +622,73 @@ impl StyleTable {
     #[must_use]
     pub fn len(&self) -> usize {
         self.styles.len()
+    }
+}
+
+/// Interning table mapping hyperlink URIs (OSC 8) ↔ `u16` link ids.
+/// `0` is reserved for "no link" so a fresh [`Cell`] never touches
+/// the table; real ids start at 1.
+///
+/// Carries forward the Arc-sharing rationale from the pre-M2 per-Cell
+/// `Option<Arc<str>>`: printing N characters under one OSC-8 hyperlink
+/// used to allocate N strings + N boxes (~2N per-byte allocations on
+/// hyperlink-heavy `ls` output). Interning goes one further — the URI
+/// is stored ONCE and every cell carries a 2-byte id.
+#[derive(Debug, Clone, Default)]
+pub struct LinkTable {
+    /// id N (≥ 1) lives at index N-1.
+    links: Vec<std::sync::Arc<str>>,
+    by_uri: std::collections::HashMap<std::sync::Arc<str>, u16>,
+}
+
+/// Reserved link id meaning "no hyperlink".
+pub const NO_LINK_ID: u16 = 0;
+
+impl LinkTable {
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Intern a URI: return the existing id or allocate a new one.
+    /// Saturation (> u16::MAX - 1 distinct URIs in one session)
+    /// degrades to NO_LINK_ID — the cell renders unlinked rather
+    /// than mislinked.
+    pub fn intern(&mut self, uri: &str) -> u16 {
+        if let Some(&id) = self.by_uri.get(uri) {
+            return id;
+        }
+        let next = self.links.len() + 1;
+        if next > u16::MAX as usize {
+            return NO_LINK_ID;
+        }
+        let arc: std::sync::Arc<str> = std::sync::Arc::from(uri);
+        self.links.push(std::sync::Arc::clone(&arc));
+        self.by_uri.insert(arc, next as u16);
+        next as u16
+    }
+
+    /// Resolve a link id back to its URI. `NO_LINK_ID` (and any
+    /// out-of-range id, defensively) resolves to `None`.
+    #[must_use]
+    pub fn lookup(&self, id: u16) -> Option<&str> {
+        if id == NO_LINK_ID {
+            return None;
+        }
+        self.links.get(id as usize - 1).map(|arc| &**arc)
+    }
+
+    /// Number of distinct interned URIs.
+    #[must_use]
+    #[allow(dead_code)] // Introspection surface; exercised by tests.
+    pub fn len(&self) -> usize {
+        self.links.len()
+    }
+
+    #[must_use]
+    #[allow(dead_code)] // Introspection surface; exercised by tests.
+    pub fn is_empty(&self) -> bool {
+        self.links.is_empty()
     }
 }
 
@@ -371,7 +716,7 @@ struct SavedCursor {
     col: usize,
     fg: Color,
     bg: Color,
-    attrs: CellAttrs,
+    attrs: Attrs,
     origin_mode: bool,
 }
 
@@ -790,14 +1135,15 @@ pub struct Terminal {
     // Pen state
     pen_fg: Color,
     pen_bg: Color,
-    pen_attrs: CellAttrs,
+    pen_attrs: Attrs,
 
     // Default colors (set by theme; used for SGR 0/39/49 resets)
     default_fg: Color,
     default_bg: Color,
 
-    // Active 16-color ANSI palette (can be overridden by theme)
-    ansi_colors: [Color; 16],
+    // Active 256-entry ANSI palette (M2): 0..16 settable by theme,
+    // any entry settable by OSC 4 / resettable by OSC 104.
+    ansi_colors: [Color; 256],
 
     // Scroll region (0-based, inclusive)
     scroll_top: usize,
@@ -843,12 +1189,16 @@ pub struct Terminal {
     synchronized_output: bool,
 
 
-    /// P32 — style ID interning table. Maps (fg, bg, attrs) triples
-    /// to a u16 tag stored on every Cell. The renderer's shape cache
-    /// can key on style_id u16 instead of three raw bytes; ID equality
-    /// implies styling equality (cheaper than triple-byte comparison
-    /// in the hash + on lookup).
+    /// P32 + M2 — style ID interning table. Maps (fg, bg, attrs)
+    /// triples to a u16 tag stored on every Cell. Post-shrink this is
+    /// the ONLY styling storage: every Cell read resolves through it
+    /// (see [`Cell::fg`] / [`Cell::bg`] / [`Cell::attrs`]). ID
+    /// equality implies styling equality.
     pub(crate) style_table: StyleTable,
+
+    /// M2 — hyperlink URI interning table (OSC 8), sibling of
+    /// `style_table`. Cells carry `link_id: u16`; `0` = no link.
+    pub(crate) link_table: LinkTable,
 
     /// Single-slot cache for the most recent (style, style_id) pair
     /// looked up via `style_table.intern`. Streaming output (e.g.
@@ -881,13 +1231,13 @@ pub struct Terminal {
     pub cursor_style: CursorStyle,
     pub cursor_blink: bool,
 
-    // Active hyperlink URI (from OSC 8, applied to subsequent cells).
-    // Arc<str> so that the per-character paint path can clone the Arc
-    // (ref-count bump) instead of allocating a fresh String + Box per
-    // cell. One OSC-8 hyperlink over N characters used to allocate
-    // ~2N strings; with Arc it's one allocation for the URI plus N
-    // ref-count bumps.
-    active_hyperlink: Option<std::sync::Arc<str>>,
+    // Active hyperlink link-id (from OSC 8, applied to subsequent
+    // cells). Interned into `link_table` once per OSC 8 — the
+    // per-character paint path copies a u16, no allocation, no
+    // ref-count traffic. (Pre-M2 this was an Option<Arc<str>> cloned
+    // per cell; interning subsumes that Arc-sharing optimization.)
+    // NO_LINK_ID = no active hyperlink.
+    active_link_id: u16,
 
     // OSC 52 clipboard content (set by terminal, read by main for clipboard sync)
     clipboard_content: Option<String>,
@@ -1014,10 +1364,10 @@ impl Terminal {
             rows,
             pen_fg: Color::WHITE,
             pen_bg: Color::BLACK,
-            pen_attrs: CellAttrs::NONE,
+            pen_attrs: Attrs::NONE,
             default_fg: Color::WHITE,
             default_bg: Color::BLACK,
-            ansi_colors: default_ansi_palette(),
+            ansi_colors: default_palette_256(),
             scroll_top: 0,
             scroll_bottom: rows.saturating_sub(1),
             auto_wrap: true,
@@ -1038,6 +1388,7 @@ impl Terminal {
             response_bytes: Vec::new(),
             synchronized_output: false,
             style_table: StyleTable::new(),
+            link_table: LinkTable::new(),
             cached_style: None,
             cached_style_id: DEFAULT_STYLE_ID,
             focus_reporting: false,
@@ -1047,7 +1398,7 @@ impl Terminal {
             bell_pending: false,
             cursor_style: CursorStyle::Block,
             cursor_blink: true,
-            active_hyperlink: None,
+            active_link_id: NO_LINK_ID,
             clipboard_content: None,
             pending_notifications: Vec::new(),
             clipboard_store: crate::clipboard_store::ClipboardStore::new(128),
@@ -1075,21 +1426,88 @@ impl Terminal {
     }
 
     /// Apply a color theme: set default fg/bg and the 16-color ANSI palette.
-    /// Resets the current pen colors to the new defaults.
+    /// Resets the current pen colors to the new defaults. The extended
+    /// 16..=255 cube/grayscale entries are untouched (themes own the
+    /// base 16; OSC 4 owns per-index overrides).
     pub fn apply_theme(&mut self, fg: Color, bg: Color, ansi: [Color; 16]) {
         self.default_fg = fg;
         self.default_bg = bg;
         self.pen_fg = fg;
         self.pen_bg = bg;
-        self.ansi_colors = ansi;
+        self.ansi_colors[..16].copy_from_slice(&ansi);
         self.dirty();
     }
 
-    /// The active 16-color ANSI palette (may be overridden by a theme).
+    /// The active 256-entry ANSI palette (base 16 may be overridden by
+    /// a theme; any entry by OSC 4).
     #[must_use]
     #[allow(dead_code)]
-    pub fn ansi_palette(&self) -> &[Color; 16] {
+    pub fn ansi_palette(&self) -> &[Color; 256] {
         &self.ansi_colors
+    }
+
+    /// The style interning table every [`Cell::style_id`] resolves
+    /// through. Read sites pass this to [`Cell::fg`] / [`Cell::bg`] /
+    /// [`Cell::attrs`].
+    #[must_use]
+    pub fn styles(&self) -> &StyleTable {
+        &self.style_table
+    }
+
+    /// The hyperlink interning table every [`Cell::link_id`] resolves
+    /// through (see [`Cell::hyperlink`]).
+    #[must_use]
+    #[allow(dead_code)] // Read surface for the upcoming link-hover/click path.
+    pub fn links(&self) -> &LinkTable {
+        &self.link_table
+    }
+
+    /// Intern a style with the M2 overflow policy: when the table
+    /// saturates, garbage-collect it against the style ids still
+    /// referenced by live cells (both grids incl. scrollback), remap
+    /// every cell, and retry. Only if the LIVE set itself exceeds
+    /// capacity does [`StyleTable::intern`]'s warn-once last-id
+    /// fallback engage — never an alias to the default style.
+    fn intern_style(&mut self, style: Style) -> u16 {
+        if let Some(id) = self.style_table.try_intern(style) {
+            return id;
+        }
+        self.gc_style_table();
+        self.style_table.intern(style)
+    }
+
+    /// Rebuild the style table from the ids referenced by live cells
+    /// and remap every cell's `style_id` accordingly. The single-slot
+    /// pen cache is invalidated (its id may have been remapped).
+    fn gc_style_table(&mut self) {
+        let mut live: std::collections::HashSet<u16> =
+            std::collections::HashSet::new();
+        for grid in [&self.primary, &self.alternate] {
+            for row in &grid.rows {
+                for cell in row {
+                    live.insert(cell.style_id);
+                }
+            }
+        }
+        let remap = self.style_table.gc(&live);
+        for grid in [&mut self.primary, &mut self.alternate] {
+            for row in &mut grid.rows {
+                for cell in row.iter_mut() {
+                    if let Some(&new_id) = remap.get(&cell.style_id) {
+                        cell.style_id = new_id;
+                    } else {
+                        // Defensive — a live id is always in the remap.
+                        cell.style_id = DEFAULT_STYLE_ID;
+                    }
+                }
+            }
+        }
+        self.cached_style = None;
+        self.cached_style_id = DEFAULT_STYLE_ID;
+        tracing::debug!(
+            live_styles = self.style_table.len(),
+            "style table gc — rebuilt from live grid references"
+        );
     }
 
     // ── Public API ──────────────────────────────────────────────────
@@ -1561,22 +1979,21 @@ impl Terminal {
     /// OSC 104 — Reset indexed ANSI palette entries.
     ///
     /// Format: `ESC ] 104 ; <idx1> ; <idx2> … ST`
-    /// No indices = reset all 16 ANSI entries.
-    /// Listed indices in `0..16` reset to the compiled default palette;
-    /// entries outside that range are ignored (we don't yet model the
-    /// extended 16..=255 color cube as overridable).
+    /// No indices = reset ALL 256 entries (M2 grew the palette from
+    /// 16 to the full xterm 256). Listed indices in `0..256` reset to
+    /// the compiled default palette; out-of-range entries are ignored.
     fn handle_osc_104_palette_reset(&mut self, params: &[&[u8]]) {
         if params.len() == 1 {
-            self.ansi_colors = default_ansi_palette();
+            self.ansi_colors = default_palette_256();
             self.dirty();
             return;
         }
         for p in &params[1..] {
             if let Ok(idx_str) = std::str::from_utf8(p)
                 && let Ok(idx) = idx_str.parse::<usize>()
-                && idx < 16
+                && idx < 256
             {
-                self.ansi_colors[idx] = default_ansi_palette()[idx];
+                self.ansi_colors[idx] = default_palette_256()[idx];
                 self.dirty();
             }
         }
@@ -1632,14 +2049,14 @@ impl Terminal {
     /// hyperlinking until the next non-empty OSC 8.
     fn handle_osc_8_hyperlink(&mut self, params: &[&[u8]]) {
         if params.len() < 3 {
-            self.active_hyperlink = None;
+            self.active_link_id = NO_LINK_ID;
             return;
         }
         let uri = String::from_utf8_lossy(params[2]);
-        self.active_hyperlink = if uri.is_empty() {
-            None
+        self.active_link_id = if uri.is_empty() {
+            NO_LINK_ID
         } else {
-            Some(std::sync::Arc::from(uri.as_ref()))
+            self.link_table.intern(uri.as_ref())
         };
     }
 
@@ -1685,8 +2102,8 @@ impl Terminal {
     /// Query form: `ESC ] 4 ; <idx> ; ? ST` — answers with the
     /// current RGB. Set form: `ESC ] 4 ; <idx> ; <color> ST` where
     /// `color` is either `#rrggbb` or `rgb:RR/GG/BB` / the xterm
-    /// double-width variant. Indices outside 0..16 are silently
-    /// ignored (we don't yet model the 16..=255 cube as mutable).
+    /// double-width variant. The full 0..256 range is mutable since
+    /// M2; indices ≥ 256 are silently ignored.
     fn handle_osc_4_palette(&mut self, params: &[&[u8]]) {
         if params.len() < 3 {
             return;
@@ -1694,17 +2111,12 @@ impl Terminal {
         let Some(idx) = parse_palette_index(params[1]) else {
             return;
         };
-        if idx >= 16 {
+        if idx >= 256 {
             return;
         }
         if params[2] == b"?" {
-            let response = format!(
-                "\x1b]4;{idx};rgb:{r:02x}{r:02x}/{g:02x}{g:02x}/{b:02x}{b:02x}\x1b\\",
-                r = self.ansi_colors[idx].r,
-                g = self.ansi_colors[idx].g,
-                b = self.ansi_colors[idx].b,
-            );
-            self.response_bytes.extend_from_slice(response.as_bytes());
+            let resp = osc4_rgb_query_response(idx, self.ansi_colors[idx]);
+            self.response_bytes.extend_from_slice(resp.as_bytes());
             return;
         }
         if let Some(c) = parse_osc_color(params[2]) {
@@ -2019,7 +2431,7 @@ impl Terminal {
         self.bracketed_paste = false;
         self.pen_fg = self.default_fg;
         self.pen_bg = self.default_bg;
-        self.pen_attrs = CellAttrs::NONE;
+        self.pen_attrs = Attrs::NONE;
         self.scroll_top = 0;
         self.scroll_bottom = self.rows.saturating_sub(1);
         self.saved_cursor = None;
@@ -2046,12 +2458,11 @@ impl Terminal {
             for col in 0..grid.cols {
                 let cell = grid.cell_mut(row, col);
                 cell.ch = 'E';
-                cell.fg = Color::WHITE;
-                cell.bg = Color::BLACK;
-                cell.attrs = CellAttrs::NONE;
                 cell.width = 1;
                 cell.extra = None;
-                cell.hyperlink = None;
+                // Default style (WHITE on BLACK, no attrs) + no link.
+                cell.style_id = DEFAULT_STYLE_ID;
+                cell.link_id = NO_LINK_ID;
             }
         }
         self.dirty();
@@ -2562,11 +2973,10 @@ impl Terminal {
             let fg = self.pen_fg;
             let bg = self.pen_bg;
             let attrs = self.pen_attrs;
-            // P32 — intern the current pen state into the style
+            // P32 + M2 — intern the current pen state into the style
             // table. Adjacent cells with identical pen state share
-            // a u16 ID (the table dedups). cell.style_id lets the
-            // renderer's shape cache key on a u16 instead of the
-            // raw (fg, bg, attrs) triple.
+            // a u16 ID (the table dedups). Post-shrink, style_id is
+            // the cell's ONLY styling storage.
             //
             // Fast path: streaming output overwhelmingly writes runs
             // of cells with the same pen — check the single-slot
@@ -2578,34 +2988,27 @@ impl Terminal {
             let style_id = if self.cached_style == Some(style) {
                 self.cached_style_id
             } else {
-                let id = self.style_table.intern(style);
+                let id = self.intern_style(style);
                 self.cached_style = Some(style);
                 self.cached_style_id = id;
                 id
             };
-            let hyperlink = self.active_hyperlink.clone();
+            let link_id = self.active_link_id;
             let cell = self.grid_mut().cell_mut(row, col);
             cell.ch = ch;
-            cell.fg = fg;
-            cell.bg = bg;
-            cell.attrs = attrs;
             cell.style_id = style_id;
+            cell.link_id = link_id;
             cell.extra = None;
             cell.width = char_width as u8;
-            cell.hyperlink = hyperlink;
 
             // Wide chars occupy 2 cells — mark next cell as continuation
             if char_width == 2 && col + 1 < self.cols {
-                let hyperlink = self.active_hyperlink.clone();
                 let cont = self.grid_mut().cell_mut(row, col + 1);
                 cont.ch = ' ';
                 cont.width = 0;
-                cont.fg = fg;
-                cont.bg = bg;
-                cont.attrs = attrs;
                 cont.style_id = style_id;
+                cont.link_id = link_id;
                 cont.extra = None;
-                cont.hyperlink = hyperlink;
             }
         }
 
@@ -2754,42 +3157,74 @@ impl Terminal {
         let mut iter = params.iter();
 
         loop {
-            let param = match iter.next() {
-                Some(slice) => slice[0],
+            // vte groups colon sub-params with their parameter: `4:3`
+            // arrives as ONE slice `[4, 3]`, `58:2::255:0:0` as
+            // `[58, 2, 0, 255, 0, 0]`. Semicolon-separated params come
+            // as separate single-element slices.
+            let slice = match iter.next() {
+                Some(slice) => slice,
                 None => break,
             };
+            let param = slice[0];
 
             match param {
                 0 => {
                     self.pen_fg = self.default_fg;
                     self.pen_bg = self.default_bg;
-                    self.pen_attrs = CellAttrs::NONE;
+                    self.pen_attrs = Attrs::NONE;
                 }
-                1 => self.pen_attrs.insert(CellAttrs::BOLD),
-                2 => self.pen_attrs.insert(CellAttrs::DIM),
-                3 => self.pen_attrs.insert(CellAttrs::ITALIC),
-                4 => self.pen_attrs.insert(CellAttrs::UNDERLINE),
-                5 => self.pen_attrs.insert(CellAttrs::BLINK),
-                7 => self.pen_attrs.insert(CellAttrs::INVERSE),
-                8 => self.pen_attrs.insert(CellAttrs::HIDDEN),
-                9 => self.pen_attrs.insert(CellAttrs::STRIKETHROUGH),
+                1 => self.pen_attrs.flags.insert(AttrFlags::BOLD),
+                2 => self.pen_attrs.flags.insert(AttrFlags::DIM),
+                3 => self.pen_attrs.flags.insert(AttrFlags::ITALIC),
+                4 => {
+                    // SGR 4 / 4:N — underline style sub-param wire
+                    // (kitty/xterm extension): 4:0 none, 4:1 single,
+                    // 4:2 double, 4:3 curly, 4:4 dotted, 4:5 dashed.
+                    // Plain `4` (no sub-param) = single. Unknown
+                    // sub-params degrade to Single (an underline WAS
+                    // requested; the style refinement is best-effort).
+                    self.pen_attrs.underline = match slice.get(1).copied() {
+                        None => UnderlineStyle::Single,
+                        Some(0) => UnderlineStyle::None,
+                        Some(1) => UnderlineStyle::Single,
+                        Some(2) => UnderlineStyle::Double,
+                        Some(3) => UnderlineStyle::Curly,
+                        Some(4) => UnderlineStyle::Dotted,
+                        Some(5) => UnderlineStyle::Dashed,
+                        Some(_) => UnderlineStyle::Single,
+                    };
+                }
+                5 => self.pen_attrs.flags.insert(AttrFlags::BLINK),
+                7 => self.pen_attrs.flags.insert(AttrFlags::INVERSE),
+                8 => self.pen_attrs.flags.insert(AttrFlags::HIDDEN),
+                9 => self.pen_attrs.flags.insert(AttrFlags::STRIKETHROUGH),
                 22 => {
                     // SGR 22 resets both bold and dim
-                    self.pen_attrs.remove(CellAttrs::BOLD);
-                    self.pen_attrs.remove(CellAttrs::DIM);
+                    self.pen_attrs.flags.remove(AttrFlags::BOLD);
+                    self.pen_attrs.flags.remove(AttrFlags::DIM);
                 }
-                23 => self.pen_attrs.remove(CellAttrs::ITALIC),
-                24 => self.pen_attrs.remove(CellAttrs::UNDERLINE),
-                25 => self.pen_attrs.remove(CellAttrs::BLINK),
-                27 => self.pen_attrs.remove(CellAttrs::INVERSE),
-                28 => self.pen_attrs.remove(CellAttrs::HIDDEN),
-                29 => self.pen_attrs.remove(CellAttrs::STRIKETHROUGH),
+                23 => self.pen_attrs.flags.remove(AttrFlags::ITALIC),
+                24 => self.pen_attrs.underline = UnderlineStyle::None,
+                25 => self.pen_attrs.flags.remove(AttrFlags::BLINK),
+                27 => self.pen_attrs.flags.remove(AttrFlags::INVERSE),
+                28 => self.pen_attrs.flags.remove(AttrFlags::HIDDEN),
+                29 => self.pen_attrs.flags.remove(AttrFlags::STRIKETHROUGH),
                 30..=37 => self.pen_fg = self.ansi_colors[(param - 30) as usize],
                 38 => self.parse_extended_color(&mut iter, true),
                 39 => self.pen_fg = self.default_fg,
                 40..=47 => self.pen_bg = self.ansi_colors[(param - 40) as usize],
                 48 => self.parse_extended_color(&mut iter, false),
                 49 => self.pen_bg = self.default_bg,
+                53 => self.pen_attrs.flags.insert(AttrFlags::OVERLINE),
+                55 => self.pen_attrs.flags.remove(AttrFlags::OVERLINE),
+                58 => {
+                    // SGR 58 — underline colour (mirrors 38/48's
+                    // colour grammar). Malformed payloads degrade to
+                    // UnderlineColor::Default, never corrupt the pen.
+                    self.pen_attrs.underline_color =
+                        parse_underline_color(slice, &mut iter);
+                }
+                59 => self.pen_attrs.underline_color = UnderlineColor::Default,
                 90..=97 => self.pen_fg = self.ansi_colors[(param - 90 + 8) as usize],
                 100..=107 => self.pen_bg = self.ansi_colors[(param - 100 + 8) as usize],
                 _ => tracing::trace!(param, "unhandled SGR parameter"),
@@ -2814,6 +3249,68 @@ impl Terminal {
                 if is_fg { self.pen_fg = color; } else { self.pen_bg = color; }
             }
             _ => {}
+        }
+    }
+}
+
+/// Parse the SGR 58 underline-colour payload — the sibling of
+/// `parse_extended_color` for the `58` arm. Handles BOTH wire forms:
+///
+///   - **Colon sub-params** (`58:5:N`, `58:2::r:g:b`, `58:2:r:g:b`):
+///     vte delivers everything in ONE slice — `[58, 5, N]` /
+///     `[58, 2, 0, r, g, b]` (an empty colorspace sub-param parses as
+///     0) / `[58, 2, r, g, b]`.
+///   - **Semicolon params** (`58;5;N`, `58;2;r;g;b`): the mode and
+///     channels arrive as the FOLLOWING params — consumed from `iter`,
+///     mirroring `parse_extended_color`.
+///
+/// Malformed payloads degrade to [`UnderlineColor::Default`] (the
+/// `map_or`-style defensiveness of `parse_extended_color`): the pen
+/// keeps rendering, just without the colour refinement.
+fn parse_underline_color(
+    slice: &[u16],
+    iter: &mut vte::ParamsIter<'_>,
+) -> UnderlineColor {
+    if slice.len() >= 2 {
+        // Colon sub-param form — everything is in `slice`.
+        match slice[1] {
+            5 => slice
+                .get(2)
+                .map_or(UnderlineColor::Default, |&n| UnderlineColor::Indexed(n as u8)),
+            2 => {
+                let rgb = &slice[2..];
+                match rgb.len() {
+                    // `58:2::r:g:b` — leading colorspace-id sub-param
+                    // (empty → 0). Skip it.
+                    4.. => UnderlineColor::Rgb(Color::new(
+                        rgb[1] as u8,
+                        rgb[2] as u8,
+                        rgb[3] as u8,
+                    )),
+                    // `58:2:r:g:b` — no colorspace id.
+                    3 => UnderlineColor::Rgb(Color::new(
+                        rgb[0] as u8,
+                        rgb[1] as u8,
+                        rgb[2] as u8,
+                    )),
+                    _ => UnderlineColor::Default,
+                }
+            }
+            _ => UnderlineColor::Default,
+        }
+    } else {
+        // Semicolon form — mode + channels are the following params.
+        match iter.next().map(|s| s[0]) {
+            Some(5) => iter
+                .next()
+                .map_or(UnderlineColor::Default, |s| UnderlineColor::Indexed(s[0] as u8)),
+            Some(2) => {
+                let r = iter.next().map_or(0, |s| s[0] as u8);
+                let g = iter.next().map_or(0, |s| s[0] as u8);
+                let b = iter.next().map_or(0, |s| s[0] as u8);
+                UnderlineColor::Rgb(Color::new(r, g, b))
+            }
+            _ => UnderlineColor::Default,
         }
     }
 }
@@ -3378,7 +3875,7 @@ impl vte::Perform for Terminal {
                 if params.iter().next().is_none() {
                     self.pen_fg = Color::WHITE;
                     self.pen_bg = Color::BLACK;
-                    self.pen_attrs = CellAttrs::NONE;
+                    self.pen_attrs = Attrs::NONE;
                 } else {
                     self.handle_sgr(params);
                 }
@@ -3598,6 +4095,17 @@ fn base64_decode(input: &[u8]) -> Option<String> {
 fn osc_rgb_query_response(osc_id: u16, c: Color) -> String {
     format!(
         "\x1b]{osc_id};rgb:{r:02x}{r:02x}/{g:02x}{g:02x}/{b:02x}{b:02x}\x1b\\",
+        r = c.r, g = c.g, b = c.b
+    )
+}
+
+/// Build the OSC 4 palette-query response — same `rgb:` doubling as
+/// [`osc_rgb_query_response`] but with the palette index echoed
+/// between the OSC id and the colour, per xterm:
+/// `ESC ] 4 ; <idx> ; rgb:RRRR/GGGG/BBBB ESC \`.
+fn osc4_rgb_query_response(idx: usize, c: Color) -> String {
+    format!(
+        "\x1b]4;{idx};rgb:{r:02x}{r:02x}/{g:02x}{g:02x}/{b:02x}{b:02x}\x1b\\",
         r = c.r, g = c.g, b = c.b
     )
 }
@@ -3975,8 +4483,8 @@ mod tests {
         term.feed(b"\x1b[1;31mX");
         let cell = term.cell(0, 0);
         assert_eq!(cell.ch, 'X');
-        assert!(cell.attrs.contains(CellAttrs::BOLD));
-        assert_eq!(cell.fg, ANSI_COLORS[1]);
+        assert!(cell.attrs(term.styles()).flags.contains(AttrFlags::BOLD));
+        assert_eq!(cell.fg(term.styles()), ANSI_COLORS[1]);
     }
 
     #[test]
@@ -3984,10 +4492,10 @@ mod tests {
         let mut term = Terminal::new(80, 24);
         term.feed(b"\x1b[1;31mA\x1b[0mB");
         let a = term.cell(0, 0);
-        assert!(a.attrs.contains(CellAttrs::BOLD));
+        assert!(a.attrs(term.styles()).flags.contains(AttrFlags::BOLD));
         let b = term.cell(0, 1);
-        assert!(b.attrs.is_empty());
-        assert_eq!(b.fg, Color::WHITE);
+        assert_eq!(b.attrs(term.styles()), Attrs::NONE);
+        assert_eq!(b.fg(term.styles()), Color::WHITE);
     }
 
     #[test]
@@ -3995,11 +4503,11 @@ mod tests {
         let mut term = Terminal::new(80, 24);
         term.feed(b"\x1b[2mX");
         let cell = term.cell(0, 0);
-        assert!(cell.attrs.contains(CellAttrs::DIM));
+        assert!(cell.attrs(term.styles()).flags.contains(AttrFlags::DIM));
         // SGR 22 resets both bold and dim
         term.feed(b"\x1b[22mY");
         let cell = term.cell(0, 1);
-        assert!(!cell.attrs.contains(CellAttrs::DIM));
+        assert!(!cell.attrs(term.styles()).flags.contains(AttrFlags::DIM));
     }
 
     #[test]
@@ -4007,25 +4515,28 @@ mod tests {
         let mut term = Terminal::new(80, 24);
         term.feed(b"\x1b[8mX");
         let cell = term.cell(0, 0);
-        assert!(cell.attrs.contains(CellAttrs::HIDDEN));
+        assert!(cell.attrs(term.styles()).flags.contains(AttrFlags::HIDDEN));
         // SGR 28 resets hidden
         term.feed(b"\x1b[28mY");
         let cell = term.cell(0, 1);
-        assert!(!cell.attrs.contains(CellAttrs::HIDDEN));
+        assert!(!cell.attrs(term.styles()).flags.contains(AttrFlags::HIDDEN));
     }
 
     #[test]
     fn sgr_truecolor() {
         let mut term = Terminal::new(80, 24);
         term.feed(b"\x1b[38;2;100;150;200mX");
-        assert_eq!(term.cell(0, 0).fg, Color::new(100, 150, 200));
+        assert_eq!(term.cell(0, 0).fg(term.styles()), Color::new(100, 150, 200));
     }
 
     #[test]
     fn sgr_256color() {
         let mut term = Terminal::new(80, 24);
         term.feed(b"\x1b[38;5;196mX");
-        assert_eq!(term.cell(0, 0).fg, ansi_256_color(196, &default_ansi_palette()));
+        assert_eq!(
+            term.cell(0, 0).fg(term.styles()),
+            ansi_256_color(196, &default_palette_256())
+        );
     }
 
     /// Regression (mado embedded-tear SGR corruption): a heavily-styled
@@ -4168,17 +4679,17 @@ mod tests {
     }
 
     #[test]
-    fn cell_attrs_bitflag_operations() {
-        let mut attrs = CellAttrs::NONE;
-        assert!(attrs.is_empty());
-        attrs.insert(CellAttrs::BOLD);
-        attrs.insert(CellAttrs::ITALIC);
-        assert!(attrs.contains(CellAttrs::BOLD));
-        assert!(attrs.contains(CellAttrs::ITALIC));
-        assert!(!attrs.contains(CellAttrs::UNDERLINE));
-        attrs.remove(CellAttrs::BOLD);
-        assert!(!attrs.contains(CellAttrs::BOLD));
-        assert!(attrs.contains(CellAttrs::ITALIC));
+    fn attr_flags_bitflag_operations() {
+        let mut flags = AttrFlags::NONE;
+        assert!(flags.is_empty());
+        flags.insert(AttrFlags::BOLD);
+        flags.insert(AttrFlags::ITALIC);
+        assert!(flags.contains(AttrFlags::BOLD));
+        assert!(flags.contains(AttrFlags::ITALIC));
+        assert!(!flags.contains(AttrFlags::OVERLINE));
+        flags.remove(AttrFlags::BOLD);
+        assert!(!flags.contains(AttrFlags::BOLD));
+        assert!(flags.contains(AttrFlags::ITALIC));
     }
 
     #[test]
@@ -4673,15 +5184,15 @@ mod tests {
 
         // Cells within the hyperlink should have the URL
         assert_eq!(
-            term.cell(0, 0).hyperlink.as_deref(),
+            term.cell(0, 0).hyperlink(term.links()),
             Some("https://example.com")
         );
         assert_eq!(
-            term.cell(0, 3).hyperlink.as_deref(),
+            term.cell(0, 3).hyperlink(term.links()),
             Some("https://example.com")
         );
         // Cell after the hyperlink should not
-        assert!(term.cell(0, 5).hyperlink.is_none());
+        assert!(term.cell(0, 5).hyperlink(term.links()).is_none());
     }
 
     #[test]
@@ -5131,7 +5642,7 @@ mod tests {
 
     #[test]
     fn test_ansi_256_greyscale() {
-        let p = default_ansi_palette();
+        let p = default_palette_256();
         let c232 = ansi_256_color(232, &p);
         assert_eq!(c232, Color::new(8, 8, 8));
 
@@ -5146,7 +5657,7 @@ mod tests {
 
     #[test]
     fn test_ansi_256_rgb_cube() {
-        let p = default_ansi_palette();
+        let p = default_palette_256();
         assert_eq!(ansi_256_color(16, &p), Color::new(0, 0, 0));
         assert_eq!(ansi_256_color(196, &p), Color::new(255, 0, 0));
         assert_eq!(ansi_256_color(21, &p), Color::new(0, 0, 255));
@@ -5154,7 +5665,7 @@ mod tests {
 
     #[test]
     fn test_ansi_256_standard() {
-        let p = default_ansi_palette();
+        let p = default_palette_256();
         for idx in 0..8u16 {
             assert_eq!(ansi_256_color(idx, &p), ANSI_COLORS[idx as usize]);
         }
@@ -5162,7 +5673,7 @@ mod tests {
 
     #[test]
     fn test_ansi_256_bright() {
-        let p = default_ansi_palette();
+        let p = default_palette_256();
         for idx in 8..16u16 {
             assert_eq!(ansi_256_color(idx, &p), ANSI_BRIGHT_COLORS[(idx - 8) as usize]);
         }
@@ -5170,9 +5681,19 @@ mod tests {
 
     #[test]
     fn test_ansi_256_out_of_range() {
-        let p = default_ansi_palette();
+        let p = default_palette_256();
         assert_eq!(ansi_256_color(256, &p), Color::WHITE);
         assert_eq!(ansi_256_color(999, &p), Color::WHITE);
+    }
+
+    /// The first 16 entries of the 256 palette mirror the 16-color
+    /// default palette; the cube + grayscale follow the xterm formulas
+    /// (spot-checked above).
+    #[test]
+    fn test_default_palette_256_base_matches_16() {
+        let p256 = default_palette_256();
+        let p16 = default_ansi_palette();
+        assert_eq!(&p256[..16], &p16[..]);
     }
 
     #[test]
@@ -5202,13 +5723,17 @@ mod tests {
     #[test]
     fn test_cell_default() {
         let cell = Cell::default();
+        let styles = StyleTable::new();
+        let links = LinkTable::new();
         assert_eq!(cell.ch, ' ');
         assert!(cell.extra.is_none());
         assert_eq!(cell.width, 1);
-        assert_eq!(cell.fg, Color::WHITE);
-        assert_eq!(cell.bg, Color::BLACK);
-        assert_eq!(cell.attrs, CellAttrs::NONE);
-        assert!(cell.hyperlink.is_none());
+        assert_eq!(cell.style_id, DEFAULT_STYLE_ID);
+        assert_eq!(cell.link_id, NO_LINK_ID);
+        assert_eq!(cell.fg(&styles), Color::WHITE);
+        assert_eq!(cell.bg(&styles), Color::BLACK);
+        assert_eq!(cell.attrs(&styles), Attrs::NONE);
+        assert!(cell.hyperlink(&links).is_none());
     }
 
     #[test]
@@ -6199,14 +6724,26 @@ mod tests {
     }
 
     #[test]
-    fn test_osc_4_set_ignored_for_out_of_range_index() {
-        // Indices 16..=255 aren't modeled as mutable yet; OSC 4 set
-        // on those should be a silent no-op (not a panic, not a
-        // partial overwrite of the 0..16 range).
+    fn test_osc_4_set_extended_index() {
+        // M2 — the full 0..256 range is mutable; OSC 4 on a cube
+        // index overrides just that entry.
         let mut term = Terminal::new(80, 24);
         let before = term.ansi_palette()[0];
         term.feed(b"\x1b]4;200;#112233\x1b\\");
+        assert_eq!(term.ansi_palette()[200], Color::new(0x11, 0x22, 0x33));
+        // Neighbouring entries untouched.
         assert_eq!(term.ansi_palette()[0], before);
+        assert_eq!(term.ansi_palette()[201], default_palette_256()[201]);
+    }
+
+    #[test]
+    fn test_osc_4_set_ignored_for_out_of_range_index() {
+        // Indices ≥ 256 are out of range; OSC 4 set on those is a
+        // silent no-op (not a panic, not a partial overwrite).
+        let mut term = Terminal::new(80, 24);
+        let before = *term.ansi_palette();
+        term.feed(b"\x1b]4;300;#112233\x1b\\");
+        assert_eq!(term.ansi_palette(), &before);
     }
 
     #[test]
@@ -6226,11 +6763,419 @@ mod tests {
         ansi[0] = Color::new(0x11, 0x22, 0x33);
         ansi[15] = Color::new(0x99, 0x88, 0x77);
         term.apply_theme(term.pen_fg, term.default_bg, ansi);
+        // M2 — extended entries reset too.
+        term.feed(b"\x1b]4;200;#445566\x1b\\");
 
         term.feed(b"\x1b]104\x07");
         let restored = term.ansi_palette();
-        let defaults = default_ansi_palette();
+        let defaults = default_palette_256();
         assert_eq!(restored, &defaults);
+    }
+
+    // ── M2 — wide interned Attrs / Cell shrink / SGR wire / palette ──
+
+    /// Matrix: every SGR attribute flag round-trips through the
+    /// StyleTable intern → cell.style_id → lookup path (post-shrink,
+    /// the table IS the only storage, so this is the load-bearing
+    /// round trip). Aggregated failures — one run reports every
+    /// broken arm.
+    #[test]
+    fn every_sgr_attr_round_trips_through_intern_lookup() {
+        fn with_flag(flag: AttrFlags) -> Attrs {
+            let mut a = Attrs::NONE;
+            a.flags.insert(flag);
+            a
+        }
+        fn with_underline(style: UnderlineStyle) -> Attrs {
+            Attrs { underline: style, ..Attrs::NONE }
+        }
+        let cases: &[(&[u8], Attrs, &str)] = &[
+            (b"\x1b[1m", with_flag(AttrFlags::BOLD), "1 bold"),
+            (b"\x1b[2m", with_flag(AttrFlags::DIM), "2 dim"),
+            (b"\x1b[3m", with_flag(AttrFlags::ITALIC), "3 italic"),
+            (b"\x1b[4m", with_underline(UnderlineStyle::Single), "4 underline"),
+            (b"\x1b[5m", with_flag(AttrFlags::BLINK), "5 blink"),
+            (b"\x1b[7m", with_flag(AttrFlags::INVERSE), "7 inverse"),
+            (b"\x1b[8m", with_flag(AttrFlags::HIDDEN), "8 hidden"),
+            (b"\x1b[9m", with_flag(AttrFlags::STRIKETHROUGH), "9 strike"),
+            (b"\x1b[53m", with_flag(AttrFlags::OVERLINE), "53 overline"),
+            (
+                b"\x1b[58:5:9m",
+                Attrs { underline_color: UnderlineColor::Indexed(9), ..Attrs::NONE },
+                "58:5:9 underline color",
+            ),
+        ];
+        let mut failures = Vec::new();
+        for (esc, want, name) in cases {
+            let mut term = Terminal::new(20, 4);
+            term.feed(esc);
+            term.feed(b"X");
+            let got = term.cell(0, 0).attrs(term.styles());
+            if got != *want {
+                failures.push(format!("{name}: got {got:?}, want {want:?}"));
+            }
+            // Round trip the same Attrs through a fresh table directly.
+            let mut table = StyleTable::new();
+            let style = Style { fg: Color::WHITE, bg: Color::BLACK, attrs: *want };
+            let id = table.intern(style);
+            if table.lookup(id) != style {
+                failures.push(format!("{name}: intern/lookup mangled {style:?}"));
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "{} SGR arms failed:\n  - {}",
+            failures.len(),
+            failures.join("\n  - ")
+        );
+    }
+
+    /// `Attrs::to_legacy_bits` matches the frozen `CellAttrs` u8 bit
+    /// layout for every overlapping attribute (the MCP CellSnapshot
+    /// back-compat surface).
+    #[test]
+    fn to_legacy_bits_matches_cellattrs_layout() {
+        let flag_cases: &[(AttrFlags, CellAttrs, &str)] = &[
+            (AttrFlags::BOLD, CellAttrs::BOLD, "bold"),
+            (AttrFlags::ITALIC, CellAttrs::ITALIC, "italic"),
+            (AttrFlags::BLINK, CellAttrs::BLINK, "blink"),
+            (AttrFlags::INVERSE, CellAttrs::INVERSE, "inverse"),
+            (AttrFlags::STRIKETHROUGH, CellAttrs::STRIKETHROUGH, "strike"),
+            (AttrFlags::DIM, CellAttrs::DIM, "dim"),
+            (AttrFlags::HIDDEN, CellAttrs::HIDDEN, "hidden"),
+        ];
+        let mut failures = Vec::new();
+        for (flag, legacy, name) in flag_cases {
+            let mut a = Attrs::NONE;
+            a.flags.insert(*flag);
+            if a.to_legacy_bits() != legacy.bits() {
+                failures.push(format!(
+                    "{name}: got {:08b}, want {:08b}",
+                    a.to_legacy_bits(),
+                    legacy.bits()
+                ));
+            }
+        }
+        // Every non-None underline style sets the single legacy
+        // UNDERLINE bit; None sets nothing.
+        for style in [
+            UnderlineStyle::Single,
+            UnderlineStyle::Double,
+            UnderlineStyle::Curly,
+            UnderlineStyle::Dotted,
+            UnderlineStyle::Dashed,
+        ] {
+            let a = Attrs { underline: style, ..Attrs::NONE };
+            if a.to_legacy_bits() != CellAttrs::UNDERLINE.bits() {
+                failures.push(format!("underline {style}: missing legacy bit"));
+            }
+        }
+        if Attrs::NONE.to_legacy_bits() != 0 {
+            failures.push("Attrs::NONE: nonzero legacy bits".to_string());
+        }
+        // OVERLINE and underline_color have no u8 representation.
+        let mut a = Attrs::NONE;
+        a.flags.insert(AttrFlags::OVERLINE);
+        a.underline_color = UnderlineColor::Indexed(3);
+        if a.to_legacy_bits() != 0 {
+            failures.push("overline/underline_color leaked into legacy bits".to_string());
+        }
+        assert!(
+            failures.is_empty(),
+            "{} legacy-bit mappings failed:\n  - {}",
+            failures.len(),
+            failures.join("\n  - ")
+        );
+    }
+
+    /// SGR 4:N sub-param wire — all six styles + plain 4 + 24/4:0
+    /// resets (M2 acceptance matrix).
+    #[test]
+    fn sgr_underline_style_subparams() {
+        let cases: &[(&[u8], UnderlineStyle)] = &[
+            (b"\x1b[4m", UnderlineStyle::Single),
+            (b"\x1b[4:0m", UnderlineStyle::None),
+            (b"\x1b[4:1m", UnderlineStyle::Single),
+            (b"\x1b[4:2m", UnderlineStyle::Double),
+            (b"\x1b[4:3m", UnderlineStyle::Curly),
+            (b"\x1b[4:4m", UnderlineStyle::Dotted),
+            (b"\x1b[4:5m", UnderlineStyle::Dashed),
+        ];
+        let mut failures = Vec::new();
+        for (esc, want) in cases {
+            let mut term = Terminal::new(20, 4);
+            term.feed(esc);
+            term.feed(b"A");
+            let got = term.cell(0, 0).attrs(term.styles()).underline;
+            if got != *want {
+                failures.push(format!(
+                    "{:?}: got {got}, want {want}",
+                    String::from_utf8_lossy(esc)
+                ));
+            }
+        }
+        // SGR 24 resets any active underline style.
+        let mut term = Terminal::new(20, 4);
+        term.feed(b"\x1b[4:3mA\x1b[24mB");
+        let a = term.cell(0, 0).attrs(term.styles()).underline;
+        let b = term.cell(0, 1).attrs(term.styles()).underline;
+        if a != UnderlineStyle::Curly {
+            failures.push(format!("pre-24 cell: got {a}, want curly"));
+        }
+        if b != UnderlineStyle::None {
+            failures.push(format!("post-24 cell: got {b}, want none"));
+        }
+        assert!(
+            failures.is_empty(),
+            "{} underline-style arms failed:\n  - {}",
+            failures.len(),
+            failures.join("\n  - ")
+        );
+    }
+
+    /// SGR 58/59 underline-colour wire — colon + semicolon forms,
+    /// reset, malformed degradation (M2 acceptance matrix).
+    #[test]
+    fn sgr_underline_color_wire() {
+        let cases: &[(&[u8], UnderlineColor, &str)] = &[
+            (
+                b"\x1b[58:2::255:0:0m",
+                UnderlineColor::Rgb(Color::new(255, 0, 0)),
+                "58:2::r:g:b colon+colorspace",
+            ),
+            (
+                b"\x1b[58:2:10:20:30m",
+                UnderlineColor::Rgb(Color::new(10, 20, 30)),
+                "58:2:r:g:b colon",
+            ),
+            (b"\x1b[58:5:9m", UnderlineColor::Indexed(9), "58:5:N colon"),
+            (b"\x1b[58;5;9m", UnderlineColor::Indexed(9), "58;5;N semicolon"),
+            (
+                b"\x1b[58;2;10;20;30m",
+                UnderlineColor::Rgb(Color::new(10, 20, 30)),
+                "58;2;r;g;b semicolon",
+            ),
+            // Malformed: unknown colour mode degrades to Default.
+            (b"\x1b[58:9:9m", UnderlineColor::Default, "58:9:9 malformed mode"),
+            // Malformed: truncated RGB degrades to Default.
+            (b"\x1b[58:2:10m", UnderlineColor::Default, "58:2:r truncated"),
+        ];
+        let mut failures = Vec::new();
+        for (esc, want, name) in cases {
+            let mut term = Terminal::new(20, 4);
+            term.feed(esc);
+            term.feed(b"A");
+            let style = term.cell(0, 0).style(term.styles());
+            if style.attrs.underline_color != *want {
+                failures.push(format!(
+                    "{name}: got {:?}, want {want:?}",
+                    style.attrs.underline_color
+                ));
+            }
+            // The underline colour is its own axis — fg must be
+            // untouched (the spec's "distinct from fg" acceptance).
+            if style.fg != Color::WHITE {
+                failures.push(format!("{name}: fg corrupted to {:?}", style.fg));
+            }
+        }
+        // SGR 59 resets a previously set underline colour.
+        let mut term = Terminal::new(20, 4);
+        term.feed(b"\x1b[58:5:9mA\x1b[59mB");
+        let b = term.cell(0, 1).attrs(term.styles()).underline_color;
+        if b != UnderlineColor::Default {
+            failures.push(format!("post-59 cell: got {b:?}, want Default"));
+        }
+        assert!(
+            failures.is_empty(),
+            "{} underline-colour arms failed:\n  - {}",
+            failures.len(),
+            failures.join("\n  - ")
+        );
+    }
+
+    /// M2 memory guard: the shrunk Cell is strictly smaller than the
+    /// pre-refactor layout. Pre-M2: ch(4) + Option<Box<Vec<char>>>(8)
+    /// + width(1) + fg(3) + bg(3) + CellAttrs(1) + style_id(2) +
+    /// Option<Arc<str>>(16) = 38 → 40 with padding. Post-shrink the
+    /// budget is 24 (ptr + char + 2×u16 + u8, padded).
+    #[test]
+    fn cell_size_shrunk_below_pre_m2_layout() {
+        assert!(
+            std::mem::size_of::<Cell>() <= 24,
+            "Cell grew to {} bytes (budget 24, pre-M2 was 40)",
+            std::mem::size_of::<Cell>()
+        );
+    }
+
+    /// M2 memory guard: interning absorbs the wider Attrs — an
+    /// `ls --color`-like stream (the captured byte stream from
+    /// tests/scenarios/ls-color.scenario.yaml) interns a handful of
+    /// styles, not one per cell.
+    #[test]
+    fn style_table_stays_small_on_ls_color_stream() {
+        let mut term = Terminal::new(80, 20);
+        term.feed(b"total 4302228\r\n\x1b[0;38;2;76;86;106m\x1b[0;38;2;76;86;106mdrwxrwxrwt 471 root   wheel      15072 May 12 19:36 \x1b[m\x1b[1;38;2;143;188;187m.\x1b[0;38;2;76;86;106m\r\n\x1b[0;38;2;76;86;106mdrwxr-xr-x   6 root   wheel        192 Apr  1  1976 \x1b[m\x1b[1;38;2;143;188;187m..\x1b[0;38;2;76;86;106m\r\n\x1b[0;38;2;76;86;106m-rw-r--r--   1 drzzln wheel         15 May  9 00:12 \x1b[m\x1b[0;38;2;180;142;173magent.html\x1b[0;38;2;76;86;106m\r\n\x1b[0;38;2;76;86;106m-rw-r--r--   1 drzzln wheel       8263 May 12 15:59 \x1b[m\x1b[0;38;2;180;142;173makeyless-repos.json\x1b[0;38;2;76;86;106m\r\n");
+        assert!(
+            term.styles().len() < 50,
+            "ls --color interned {} styles (budget < 50)",
+            term.styles().len()
+        );
+    }
+
+    /// StyleTable::gc rebuilds from the live set with NO aliasing to
+    /// the default style: every live id remaps to an id that resolves
+    /// to the identical Style.
+    #[test]
+    fn style_table_gc_remaps_live_ids_without_default_aliasing() {
+        fn color_style(i: u32) -> Style {
+            Style {
+                fg: Color::new((i >> 16) as u8, (i >> 8) as u8, i as u8),
+                bg: Color::BLACK,
+                attrs: Attrs::NONE,
+            }
+        }
+        let mut table = StyleTable::new();
+        let ids: Vec<u16> = (1..=1000u32).map(|i| table.intern(color_style(i))).collect();
+        assert_eq!(table.len(), 1001);
+
+        // Keep every 100th id live.
+        let live: std::collections::HashSet<u16> =
+            ids.iter().step_by(100).copied().collect();
+        let before: Vec<(u16, Style)> =
+            live.iter().map(|&id| (id, table.lookup(id))).collect();
+
+        let remap = table.gc(&live);
+
+        let mut failures = Vec::new();
+        for (old_id, style) in before {
+            let Some(&new_id) = remap.get(&old_id) else {
+                failures.push(format!("live id {old_id} missing from remap"));
+                continue;
+            };
+            if table.lookup(new_id) != style {
+                failures.push(format!(
+                    "id {old_id}→{new_id}: style mangled to {:?}",
+                    table.lookup(new_id)
+                ));
+            }
+            if new_id == DEFAULT_STYLE_ID {
+                failures.push(format!("id {old_id} aliased to DEFAULT_STYLE_ID"));
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "{} gc remaps failed:\n  - {}",
+            failures.len(),
+            failures.join("\n  - ")
+        );
+        // Table shrank to live set + default.
+        assert_eq!(table.len(), live.len() + 1);
+        // Default stays pinned at id 0.
+        assert_eq!(
+            table.lookup(DEFAULT_STYLE_ID),
+            Style { fg: Color::WHITE, bg: Color::BLACK, attrs: Attrs::NONE }
+        );
+    }
+
+    /// Saturation fallback (overflow-policy step 2): a full table
+    /// returns the LAST interned id for a novel style — never
+    /// DEFAULT_STYLE_ID.
+    #[test]
+    fn style_table_saturation_falls_back_to_last_id_not_default() {
+        fn color_style(i: u32) -> Style {
+            Style {
+                fg: Color::new((i >> 16) as u8, (i >> 8) as u8, i as u8),
+                bg: Color::BLACK,
+                attrs: Attrs::NONE,
+            }
+        }
+        let mut table = StyleTable::new();
+        // Fill to capacity: 1 default + 65534 = 65535 = u16::MAX.
+        for i in 1..u32::from(u16::MAX) {
+            table.try_intern(color_style(i));
+        }
+        assert!(table.is_full());
+
+        // A novel style cannot be allocated…
+        let novel = Style {
+            fg: Color::new(1, 2, 3),
+            bg: Color::new(4, 5, 6),
+            attrs: Attrs::NONE,
+        };
+        assert_eq!(table.try_intern(novel), None);
+        // …and the fallback aliases to the LAST interned id.
+        let id = table.intern(novel);
+        assert_ne!(id, DEFAULT_STYLE_ID);
+        assert_eq!(id as usize, table.len() - 1);
+        // Existing styles still intern to their exact ids when full.
+        assert_eq!(table.try_intern(color_style(1)), Some(1));
+    }
+
+    /// Terminal-level gc: after compaction, every cell still resolves
+    /// to its original colours (the remap walk covers both grids).
+    #[test]
+    fn terminal_gc_preserves_cell_styles() {
+        let mut term = Terminal::new(40, 5);
+        term.feed(b"\x1b[38;2;10;20;30mAB\x1b[38;2;40;50;60mCD");
+        // Inflate the table with styles no cell references.
+        for i in 0..500u32 {
+            let _ = term.style_table.intern(Style {
+                fg: Color::new((i >> 16) as u8, (i >> 8) as u8, i as u8),
+                bg: Color::new(9, 9, 9),
+                attrs: Attrs::NONE,
+            });
+        }
+        let len_before = term.style_table.len();
+        term.gc_style_table();
+        assert!(term.style_table.len() < len_before);
+        assert_eq!(term.cell(0, 0).fg(term.styles()), Color::new(10, 20, 30));
+        assert_eq!(term.cell(0, 1).fg(term.styles()), Color::new(10, 20, 30));
+        assert_eq!(term.cell(0, 2).fg(term.styles()), Color::new(40, 50, 60));
+        assert_eq!(term.cell(0, 3).fg(term.styles()), Color::new(40, 50, 60));
+        // Untouched cells still resolve to the default style.
+        assert_eq!(term.cell(1, 0).fg(term.styles()), Color::WHITE);
+    }
+
+    /// LinkTable interning: one URI = one id across N cells; a second
+    /// URI gets its own id; ending the hyperlink (OSC 8 with empty
+    /// URI) leaves subsequent cells unlinked.
+    #[test]
+    fn link_table_interns_uris_per_session() {
+        let mut term = Terminal::new(40, 4);
+        term.feed(b"\x1b]8;;https://a.example\x1b\\aa\x1b]8;;\x1b\\");
+        term.feed(b"\x1b]8;;https://b.example\x1b\\b\x1b]8;;\x1b\\");
+        term.feed(b"\x1b]8;;https://a.example\x1b\\c\x1b]8;;\x1b\\");
+        let id_a0 = term.cell(0, 0).link_id;
+        let id_a1 = term.cell(0, 1).link_id;
+        let id_b = term.cell(0, 2).link_id;
+        let id_a2 = term.cell(0, 3).link_id;
+        assert_eq!(id_a0, id_a1, "same run shares one id");
+        assert_eq!(id_a0, id_a2, "same URI re-opened reuses the id");
+        assert_ne!(id_a0, id_b, "distinct URIs get distinct ids");
+        assert_eq!(term.links().len(), 2, "two URIs interned once each");
+        assert_eq!(
+            term.cell(0, 0).hyperlink(term.links()),
+            Some("https://a.example")
+        );
+        assert_eq!(
+            term.cell(0, 2).hyperlink(term.links()),
+            Some("https://b.example")
+        );
+    }
+
+    /// OSC 4 query on an extended index returns the value a prior
+    /// OSC 4 set wrote (the >=16 early-return is gone — M2
+    /// acceptance).
+    #[test]
+    fn osc_4_query_returns_set_extended_index() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b]4;200;#112233\x1b\\");
+        term.feed(b"\x1b]4;200;?\x1b\\");
+        let response = term.take_response().expect("OSC 4 query answered");
+        assert_eq!(
+            std::str::from_utf8(&response).unwrap(),
+            "\x1b]4;200;rgb:1111/2222/3333\x1b\\"
+        );
     }
 }
 

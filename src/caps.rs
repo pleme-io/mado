@@ -21,9 +21,11 @@
 /// (undercurl/dotted/dashed/double) and SGR `58`/`59` (underline colour);
 /// terminfo `Smulx`/`Setulc`.
 ///
-/// The `CellAttrs` widening that *stores* the underline style lands in M2
-/// and the render geometry in M3 (see `docs/REMEDIATION-PLAN.md`). Until
-/// both exist this is `false`, and [`TerminalCaps::advertised_term`] must
+/// The attrs widening that *stores* the underline style LANDED in M2
+/// (typed `Attrs{flags, underline, underline_color}` inside the interned
+/// `Style`; SGR 4:N / 58 / 59 wire acquisition included). The render
+/// GEOMETRY is still M3 (see `docs/REMEDIATION-PLAN.md`) — until it
+/// exists this stays `false`, and [`TerminalCaps::advertised_term`] must
 /// not advertise a `Smulx`-claiming terminfo. Flip this to `true` in the
 /// same change that lands the render path — never before.
 pub const STYLED_UNDERLINE_IMPLEMENTED: bool = false;
