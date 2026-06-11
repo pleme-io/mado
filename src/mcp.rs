@@ -2618,17 +2618,16 @@ mod tests {
             .suffix(".yaml")
             .tempfile()
             .expect("tempfile");
-        let yaml = format!(
-            "font_family: \"JetBrainsMono Nerd Font Mono\"\n\
-             font_size: 14\n\
-             theme: nord\n\
-             tear:\n  \
-               mode: auto\n  \
-               socket: {sock}\n  \
-               auto_spawn: false\n  \
-               spawn_wait_ms: 100\n",
-            sock = socket.display()
-        );
+        // Typed config → serializer-rendered YAML (TYPED EMISSION:
+        // YAML is never format!()-composed, even in tests). Defaults
+        // cover fonts/theme; only the tear socket-override pathway
+        // under test is set explicitly.
+        let mut cfg = crate::config::MadoConfig::default();
+        cfg.tear.mode = crate::config::TearMode::Auto;
+        cfg.tear.socket = Some(socket.to_path_buf());
+        cfg.tear.auto_spawn = false;
+        cfg.tear.spawn_wait_ms = 100;
+        let yaml = serde_yaml_ng::to_string(&cfg).expect("config serializes");
         tmp.write_all(yaml.as_bytes()).expect("write");
         tmp
     }

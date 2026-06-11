@@ -29,12 +29,22 @@ impl MacOsWindowStyle {
     /// `gui_tear_attach.rs`) call this so the chrome contract stays
     /// one shape.
     pub fn from_config(config: &crate::config::MadoConfig) -> Self {
+        // The band tint resolves the same way the renderer's clear
+        // color does: the named theme's background wins,
+        // `appearance.background` is the fallback. Under a Flush band
+        // the NSWindow backing is the only paint behind the titlebar,
+        // so any divergence from the grid's clear color reads as an
+        // off-colour strip.
+        let fallback = ishou_tokens::Srgb::from_hex(&config.appearance.background)
+            .unwrap_or(ishou_tokens::Srgb::new(0x2e, 0x34, 0x40));
+        let background = crate::theme::Theme::by_name(&config.theme)
+            .map(|t| ishou_tokens::Srgb::new(t.background.r, t.background.g, t.background.b))
+            .unwrap_or(fallback);
         Self {
             native_tabs: config.window.macos.native_tabs,
             titlebar: config.window.macos.titlebar,
             appearance: config.window.macos.appearance,
-            background: ishou_tokens::Srgb::from_hex(&config.appearance.background)
-                .unwrap_or(ishou_tokens::Srgb::new(0x2e, 0x34, 0x40)),
+            background,
         }
     }
 }
@@ -256,13 +266,24 @@ mod macos {
     fn style_window(window: &NSWindow, style: &super::MacOsWindowStyle) {
         // ── Titlebar integration (window.macos.titlebar) ─────────────
         match style.titlebar {
-            TitlebarStyle::Flush => {
-                // FullSizeContentView + transparent titlebar + hidden
-                // title + no hairline separator + drag-from-anywhere:
-                // the cell grid runs flush to the window's top edge and
-                // the traffic lights float over it (ghostty's look).
+            TitlebarStyle::Flush | TitlebarStyle::Overlay => {
+                // Shared themed chrome: transparent titlebar + hidden
+                // title + no hairline separator + drag-from-anywhere,
+                // over a window backing tinted to the terminal
+                // background — the band reads as part of the canvas.
+                //
+                // The two styles differ in ONE bit: Overlay inserts
+                // FullSizeContentView so the cell grid extends under
+                // the floating traffic lights (max canvas, top row
+                // overlapped); Flush removes it so the grid starts
+                // below the button strip and text is never covered
+                // (ghostty's transparent look).
                 let mut mask = window.styleMask();
-                mask.insert(NSWindowStyleMask::FullSizeContentView);
+                if style.titlebar == TitlebarStyle::Overlay {
+                    mask.insert(NSWindowStyleMask::FullSizeContentView);
+                } else {
+                    mask.remove(NSWindowStyleMask::FullSizeContentView);
+                }
                 window.setStyleMask(mask);
                 window.setTitlebarAppearsTransparent(true);
                 window.setTitleVisibility(NSWindowTitleVisibility::Hidden);

@@ -534,9 +534,10 @@ pub struct WindowConfig {
     /// close/minimize buttons). Default is **platform-aware**:
     ///
     /// * macOS: `true` — preserves the traffic-light buttons.
-    ///   Combined with `platform::apply_native_styling()`'s
-    ///   `FullSizeContentView` + transparent titlebar, the chrome
-    ///   integrates into the content area for a "minimal but
+    ///   Combined with `platform::apply_native_styling()`'s themed
+    ///   transparent titlebar band ([`TitlebarStyle::Flush`];
+    ///   `FullSizeContentView` only with `titlebar: overlay`), the
+    ///   chrome reads as part of the canvas for a "minimal but
     ///   functional" look. Operators who want a truly chromeless
     ///   look (no traffic lights) override to `false`.
     /// * Linux / Windows: `false` — server/wm decorations are
@@ -611,13 +612,19 @@ impl Default for MacosWindowConfig {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum TitlebarStyle {
-    /// `FullSizeContentView` + transparent titlebar + hidden title + no
-    /// hairline separator: the cell grid runs flush to the window's top
-    /// edge and the traffic-light buttons float over it (ghostty's
-    /// look). The window backing is tinted to the configured terminal
-    /// background so the band matches the content. The default.
+    /// Keep the titled band but theme it into the canvas: transparent
+    /// titlebar + hidden title + no hairline separator over a window
+    /// backing tinted to the configured terminal background. The band
+    /// reads as part of the terminal, the traffic-light buttons sit in
+    /// their own strip, and the cell grid starts BELOW them — text is
+    /// never overlapped (ghostty's `transparent` look). The default.
     #[default]
     Flush,
+    /// `FullSizeContentView`: the cell grid runs flush to the window's
+    /// top edge and the traffic-light buttons float OVER the first
+    /// row of text. Maximum canvas; the top row sits under the
+    /// buttons. Same transparent-titlebar + background tint as Flush.
+    Overlay,
     /// Leave the stock macOS titlebar untouched — opaque band, hairline
     /// separator, visible title. For operators who want a conventional
     /// Mac window frame.
@@ -1554,10 +1561,11 @@ fn default_padding() -> u32 {
 
 fn default_decorations() -> bool {
     // Platform-aware: true on macOS so traffic-light buttons
-    // stay (and platform::apply_native_styling can integrate
-    // chrome via FullSizeContentView + transparent titlebar);
-    // false on Linux/Windows for pure borderless. See
-    // WindowConfig::decorations doc for the operator contract.
+    // stay (and platform::apply_native_styling themes the titlebar
+    // band into the canvas — FullSizeContentView only with
+    // `titlebar: overlay`); false on Linux/Windows for pure
+    // borderless. See WindowConfig::decorations doc for the
+    // operator contract.
     cfg!(target_os = "macos")
 }
 fn default_bg() -> String {
@@ -2147,6 +2155,28 @@ window:
         assert!(cfg.window.macos.native_tabs);
         assert_eq!(cfg.window.macos.titlebar, TitlebarStyle::Native);
         assert_eq!(cfg.window.macos.appearance, WindowAppearance::Light);
+    }
+
+    #[test]
+    fn titlebar_style_tokens_and_config_round_trip_via_serde() {
+        for (token, style) in [
+            ("flush", TitlebarStyle::Flush),
+            ("overlay", TitlebarStyle::Overlay),
+            ("native", TitlebarStyle::Native),
+        ] {
+            // The operator-facing YAML token is pinned by serializing
+            // the typed value itself — never format!()-composed YAML.
+            let rendered = serde_yaml_ng::to_string(&style).expect("style serializes");
+            assert_eq!(rendered.trim(), token, "operator token for {style:?}");
+
+            // The nested `window.macos.titlebar` path round-trips
+            // through the full typed config.
+            let mut cfg = MadoConfig::default();
+            cfg.window.macos.titlebar = style;
+            let doc = serde_yaml_ng::to_string(&cfg).expect("config serializes");
+            let back: MadoConfig = serde_yaml_ng::from_str(&doc).expect("config parses");
+            assert_eq!(back.window.macos.titlebar, style, "token {token:?}");
+        }
     }
 
     #[test]

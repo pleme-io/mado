@@ -269,7 +269,6 @@ mod tests {
     #[test]
     fn impose_flow_overrides_daemon_config_via_discovery_then_set_config() {
         use crate::config::MadoTearImpose;
-        use tear_types::MultiplexerControl;
 
         let socket = {
             let mut p = std::env::temp_dir();
