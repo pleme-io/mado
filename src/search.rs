@@ -94,6 +94,24 @@ impl SearchState {
         }
     }
 
+    /// Append typed text to the live query and re-run the search.
+    /// Shared by both event loops' search-overlay input routing
+    /// (`main.rs` local-PTY, `gui_tear_attach.rs` embedded-tear) so
+    /// the query-edit semantics cannot drift.
+    pub fn append_query(&mut self, text: &str, rows: &[Vec<Cell>], cols: usize) {
+        let mut query = self.query.clone();
+        query.push_str(text);
+        self.set_query(&query, rows, cols);
+    }
+
+    /// Remove the last query character (Backspace) and re-run the
+    /// search. Counterpart of [`Self::append_query`].
+    pub fn backspace_query(&mut self, rows: &[Vec<Cell>], cols: usize) {
+        let mut query = self.query.clone();
+        query.pop();
+        self.set_query(&query, rows, cols);
+    }
+
     /// Navigate to the next match.
     pub fn next(&mut self) {
         if !self.matches.is_empty() {
@@ -296,6 +314,39 @@ mod tests {
         let rows = vec![make_row("hello")];
         let mut state = SearchState::new();
         state.set_query("", &rows, 5);
+        assert_eq!(state.match_count(), 0);
+    }
+
+    #[test]
+    fn append_query_builds_incrementally() {
+        let rows = vec![make_row("hello world")];
+        let mut state = SearchState::new();
+        state.open();
+        state.append_query("he", &rows, 11);
+        assert_eq!(state.query, "he");
+        assert_eq!(state.match_count(), 1);
+        state.append_query("llo", &rows, 11);
+        assert_eq!(state.query, "hello");
+        assert_eq!(state.match_count(), 1);
+        assert_eq!(state.matches[0].col_start, 0);
+        assert_eq!(state.matches[0].col_end, 4);
+    }
+
+    #[test]
+    fn backspace_query_pops_and_researches() {
+        let rows = vec![make_row("ab abc")];
+        let mut state = SearchState::new();
+        state.open();
+        state.append_query("abc", &rows, 6);
+        assert_eq!(state.match_count(), 1);
+        state.backspace_query(&rows, 6);
+        assert_eq!(state.query, "ab");
+        assert_eq!(state.match_count(), 2);
+        // Backspacing past empty stays empty (no matches, no panic).
+        state.backspace_query(&rows, 6);
+        state.backspace_query(&rows, 6);
+        state.backspace_query(&rows, 6);
+        assert!(state.query.is_empty());
         assert_eq!(state.match_count(), 0);
     }
 

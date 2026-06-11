@@ -446,6 +446,139 @@ pub fn madori_key_to_pty_bytes(
     }
 }
 
+/// Encode a key event for the Kitty keyboard protocol (CSI-u).
+/// Returns the escape sequence bytes if the protocol is active,
+/// `None` otherwise (caller falls back to the legacy translation).
+///
+/// **Single source of truth** for both event loops — the legacy
+/// single-pane path (`main.rs`) and the embedded-tear path
+/// (`gui_tear_attach.rs`). Callers gate on the destination
+/// terminal's kitty mode stack (`Terminal::kitty_keyboard_flags`);
+/// in tear mode that is mado's mirror Terminal, which tracks the
+/// stack from the engate byte stream.
+#[must_use]
+pub fn kitty_encode_key(
+    key: &madori::event::KeyCode,
+    text: &Option<String>,
+    modifiers: &madori::event::Modifiers,
+    flags: u32,
+) -> Option<Vec<u8>> {
+    if flags == 0 {
+        return None;
+    }
+
+    // Build modifier value: 1 + bitmask
+    let mut mod_bits: u32 = 0;
+    if modifiers.shift {
+        mod_bits |= 1;
+    }
+    if modifiers.alt {
+        mod_bits |= 2;
+    }
+    if modifiers.ctrl {
+        mod_bits |= 4;
+    }
+    if modifiers.meta {
+        mod_bits |= 8; // super
+    }
+    let mod_val = 1 + mod_bits;
+
+    // Map key to unicode codepoint or special key number
+    match key {
+        madori::event::KeyCode::Enter => Some(kitty_key_seq(13, mod_val, b'u')),
+        madori::event::KeyCode::Tab => Some(kitty_key_seq(9, mod_val, b'u')),
+        madori::event::KeyCode::Backspace => Some(kitty_key_seq(127, mod_val, b'u')),
+        madori::event::KeyCode::Escape => Some(kitty_key_seq(27, mod_val, b'u')),
+        madori::event::KeyCode::Space => Some(kitty_key_seq(b' ' as u32, mod_val, b'u')),
+        madori::event::KeyCode::Delete => Some(kitty_tilde_seq(3, mod_val)),
+        madori::event::KeyCode::Up => Some(kitty_key_seq(1, mod_val, b'A')),
+        madori::event::KeyCode::Down => Some(kitty_key_seq(1, mod_val, b'B')),
+        madori::event::KeyCode::Right => Some(kitty_key_seq(1, mod_val, b'C')),
+        madori::event::KeyCode::Left => Some(kitty_key_seq(1, mod_val, b'D')),
+        madori::event::KeyCode::Home => Some(kitty_key_seq(1, mod_val, b'H')),
+        madori::event::KeyCode::End => Some(kitty_key_seq(1, mod_val, b'F')),
+        madori::event::KeyCode::PageUp => Some(kitty_tilde_seq(5, mod_val)),
+        madori::event::KeyCode::PageDown => Some(kitty_tilde_seq(6, mod_val)),
+        madori::event::KeyCode::F(n) => {
+            let (num, suffix) = match n {
+                1 => (1, b'P'),
+                2 => (1, b'Q'),
+                3 => (1, b'R'),
+                4 => (1, b'S'),
+                5 => (15, b'~'),
+                6 => (17, b'~'),
+                7 => (18, b'~'),
+                8 => (19, b'~'),
+                9 => (20, b'~'),
+                10 => (21, b'~'),
+                11 => (23, b'~'),
+                12 => (24, b'~'),
+                _ => return None,
+            };
+            if suffix == b'~' {
+                Some(kitty_tilde_seq(num, mod_val))
+            } else {
+                Some(kitty_key_seq(num, mod_val, suffix))
+            }
+        }
+        madori::event::KeyCode::Char(ch) => {
+            // Level 1 (disambiguate): only encode with modifiers beyond shift
+            if mod_bits <= 1 {
+                // No modifiers or just shift — send as normal UTF-8
+                return None;
+            }
+            let cp = *ch as u32;
+            Some(kitty_key_seq(cp, mod_val, b'u'))
+        }
+        _ => {
+            // Try text content
+            if let Some(t) = text {
+                if let Some(ch) = t.chars().next() {
+                    if t.len() == ch.len_utf8() && mod_bits > 1 {
+                        return Some(kitty_key_seq(ch as u32, mod_val, b'u'));
+                    }
+                }
+            }
+            None
+        }
+    }
+}
+
+/// Build `CSI number ; modifiers X` for the Kitty protocol. Digits go
+/// through the shared byte-wise emitter (★★ TYPED EMISSION — no
+/// `format!()` of escape bytes).
+fn kitty_key_seq(number: u32, modifiers: u32, suffix: u8) -> Vec<u8> {
+    let mut out = Vec::with_capacity(16);
+    out.extend_from_slice(b"\x1b[");
+    if modifiers <= 1 && suffix != b'u' {
+        // Arrow/Home/End without modifiers — standard CSI X
+        out.push(suffix);
+        return out;
+    }
+    crate::mouse_report::push_decimal(&mut out, number as usize);
+    if modifiers > 1 {
+        out.push(b';');
+        crate::mouse_report::push_decimal(&mut out, modifiers as usize);
+    }
+    out.push(suffix);
+    out
+}
+
+/// Build `CSI number ; modifiers ~` for the Kitty protocol (tilde
+/// keys). Unlike [`kitty_key_seq`], the key number is always emitted —
+/// `ESC [ 5 ~` is the unmodified form, never a bare `ESC [ ~`.
+fn kitty_tilde_seq(number: u32, modifiers: u32) -> Vec<u8> {
+    let mut out = Vec::with_capacity(16);
+    out.extend_from_slice(b"\x1b[");
+    crate::mouse_report::push_decimal(&mut out, number as usize);
+    if modifiers > 1 {
+        out.push(b';');
+        crate::mouse_report::push_decimal(&mut out, modifiers as usize);
+    }
+    out.push(b'~');
+    out
+}
+
 /// Parse an action name from config into an [`Action`]. Thin wrapper
 /// over the derived [`Action::from_str_kind`] — the canonical names +
 /// aliases live on the per-variant `#[kind(...)]` attrs. The
@@ -916,6 +1049,247 @@ mod tests {
             &key, &Some("b".to_string()), mods(false, true, false, false), false,
         );
         assert_eq!(bytes.as_deref(), Some(&[0x1b, b'b'][..]));
+    }
+
+    // ── kitty_encode_key coverage ────────────────────────────────
+    //
+    // The CSI-u encoder moved here from main.rs so the embedded-tear
+    // path can share it. The test_kitty_* tests below moved with it
+    // verbatim (suffix params are now u8); the kitty_* tests add the
+    // coverage the move surfaced (super bit, modified arrows/F-keys,
+    // shift-only fallback, combined modifier sums).
+
+    #[test]
+    fn test_kitty_key_seq_no_modifiers_u() {
+        let seq = kitty_key_seq(97, 1, b'u');
+        assert_eq!(seq, b"\x1b[97u");
+    }
+
+    #[test]
+    fn test_kitty_key_seq_with_modifiers_u() {
+        let seq = kitty_key_seq(97, 5, b'u');
+        assert_eq!(seq, b"\x1b[97;5u");
+    }
+
+    #[test]
+    fn test_kitty_key_seq_arrow_no_modifiers() {
+        let seq = kitty_key_seq(1, 1, b'A');
+        assert_eq!(seq, b"\x1b[A");
+    }
+
+    #[test]
+    fn test_kitty_key_seq_arrow_with_modifiers() {
+        let seq = kitty_key_seq(1, 5, b'A');
+        assert_eq!(seq, b"\x1b[1;5A");
+    }
+
+    #[test]
+    fn test_kitty_tilde_seq_no_modifiers() {
+        let seq = kitty_tilde_seq(3, 1);
+        assert_eq!(seq, b"\x1b[3~");
+    }
+
+    #[test]
+    fn test_kitty_tilde_seq_with_modifiers() {
+        let seq = kitty_tilde_seq(3, 5);
+        assert_eq!(seq, b"\x1b[3;5~");
+    }
+
+    #[test]
+    fn test_kitty_encode_no_flags_returns_none() {
+        let m = madori::event::Modifiers::default();
+        assert!(kitty_encode_key(&madori::event::KeyCode::Char('a'), &None, &m, 0).is_none());
+    }
+
+    #[test]
+    fn test_kitty_encode_char_with_ctrl() {
+        let m = mods(true, false, false, false);
+        let result = kitty_encode_key(&madori::event::KeyCode::Char('a'), &None, &m, 1);
+        assert_eq!(result.as_deref(), Some(&b"\x1b[97;5u"[..]));
+    }
+
+    #[test]
+    fn test_kitty_encode_enter() {
+        let m = madori::event::Modifiers::default();
+        let result = kitty_encode_key(&madori::event::KeyCode::Enter, &None, &m, 1);
+        assert_eq!(result.as_deref(), Some(&b"\x1b[13u"[..]));
+    }
+
+    #[test]
+    fn test_kitty_encode_char_no_modifiers_returns_none() {
+        let m = madori::event::Modifiers::default();
+        let result = kitty_encode_key(&madori::event::KeyCode::Char('x'), &None, &m, 1);
+        assert!(result.is_none(), "plain char with no modifiers falls through to normal input");
+    }
+
+    #[test]
+    fn test_kitty_encode_f1() {
+        let m = madori::event::Modifiers::default();
+        let result = kitty_encode_key(&madori::event::KeyCode::F(1), &None, &m, 1);
+        assert_eq!(result.as_deref(), Some(&b"\x1b[P"[..]));
+    }
+
+    #[test]
+    fn test_kitty_encode_arrow_up_with_shift() {
+        let m = mods(false, false, true, false);
+        let result = kitty_encode_key(&madori::event::KeyCode::Up, &None, &m, 1);
+        assert_eq!(result.as_deref(), Some(&b"\x1b[1;2A"[..]));
+    }
+
+    #[test]
+    fn test_kitty_encode_tab() {
+        let m = madori::event::Modifiers::default();
+        let result = kitty_encode_key(&madori::event::KeyCode::Tab, &None, &m, 1);
+        assert_eq!(result.as_deref(), Some(&b"\x1b[9u"[..]));
+    }
+
+    #[test]
+    fn test_kitty_encode_backspace() {
+        let m = madori::event::Modifiers::default();
+        let result = kitty_encode_key(&madori::event::KeyCode::Backspace, &None, &m, 1);
+        assert_eq!(result.as_deref(), Some(&b"\x1b[127u"[..]));
+    }
+
+    #[test]
+    fn test_kitty_encode_escape() {
+        let m = madori::event::Modifiers::default();
+        let result = kitty_encode_key(&madori::event::KeyCode::Escape, &None, &m, 1);
+        assert_eq!(result.as_deref(), Some(&b"\x1b[27u"[..]));
+    }
+
+    #[test]
+    fn test_kitty_encode_arrow_down() {
+        let m = madori::event::Modifiers::default();
+        let result = kitty_encode_key(&madori::event::KeyCode::Down, &None, &m, 1);
+        assert_eq!(result.as_deref(), Some(&b"\x1b[B"[..]));
+    }
+
+    #[test]
+    fn test_kitty_encode_arrow_left() {
+        let m = madori::event::Modifiers::default();
+        let result = kitty_encode_key(&madori::event::KeyCode::Left, &None, &m, 1);
+        assert_eq!(result.as_deref(), Some(&b"\x1b[D"[..]));
+    }
+
+    #[test]
+    fn test_kitty_encode_arrow_right() {
+        let m = madori::event::Modifiers::default();
+        let result = kitty_encode_key(&madori::event::KeyCode::Right, &None, &m, 1);
+        assert_eq!(result.as_deref(), Some(&b"\x1b[C"[..]));
+    }
+
+    #[test]
+    fn test_kitty_encode_home() {
+        let m = madori::event::Modifiers::default();
+        let result = kitty_encode_key(&madori::event::KeyCode::Home, &None, &m, 1);
+        assert_eq!(result.as_deref(), Some(&b"\x1b[H"[..]));
+    }
+
+    #[test]
+    fn test_kitty_encode_end() {
+        let m = madori::event::Modifiers::default();
+        let result = kitty_encode_key(&madori::event::KeyCode::End, &None, &m, 1);
+        assert_eq!(result.as_deref(), Some(&b"\x1b[F"[..]));
+    }
+
+    #[test]
+    fn test_kitty_encode_delete() {
+        let m = madori::event::Modifiers::default();
+        let result = kitty_encode_key(&madori::event::KeyCode::Delete, &None, &m, 1);
+        assert_eq!(result.as_deref(), Some(&b"\x1b[3~"[..]));
+    }
+
+    #[test]
+    fn test_kitty_encode_page_up() {
+        let m = madori::event::Modifiers::default();
+        let result = kitty_encode_key(&madori::event::KeyCode::PageUp, &None, &m, 1);
+        assert_eq!(result.as_deref(), Some(&b"\x1b[5~"[..]));
+    }
+
+    #[test]
+    fn test_kitty_encode_page_down() {
+        let m = madori::event::Modifiers::default();
+        let result = kitty_encode_key(&madori::event::KeyCode::PageDown, &None, &m, 1);
+        assert_eq!(result.as_deref(), Some(&b"\x1b[6~"[..]));
+    }
+
+    #[test]
+    fn test_kitty_encode_char_with_alt() {
+        let m = mods(false, true, false, false);
+        let result = kitty_encode_key(&madori::event::KeyCode::Char('a'), &None, &m, 1);
+        assert_eq!(result.as_deref(), Some(&b"\x1b[97;3u"[..]));
+    }
+
+    #[test]
+    fn test_kitty_encode_char_ctrl_shift() {
+        let m = mods(true, false, true, false);
+        let result = kitty_encode_key(&madori::event::KeyCode::Char('a'), &None, &m, 1);
+        assert_eq!(result.as_deref(), Some(&b"\x1b[97;6u"[..]));
+    }
+
+    #[test]
+    fn kitty_shift_only_char_falls_back_to_utf8() {
+        // Level-1 disambiguate: shift alone is not "beyond shift" —
+        // the char still goes as plain UTF-8.
+        let key = madori::event::KeyCode::Char('a');
+        let m = mods(false, false, true, false);
+        assert_eq!(kitty_encode_key(&key, &None, &m, 1), None);
+    }
+
+    #[test]
+    fn kitty_super_char_is_csi_u() {
+        // meta (super) = bit 8 → modifier value 9.
+        let key = madori::event::KeyCode::Char('a');
+        let m = mods(false, false, false, true);
+        let bytes = kitty_encode_key(&key, &None, &m, 1);
+        assert_eq!(bytes.as_deref(), Some(&b"\x1b[97;9u"[..]));
+    }
+
+    #[test]
+    fn kitty_modified_enter_is_csi_u() {
+        let m = mods(true, false, false, false);
+        let bytes = kitty_encode_key(&madori::event::KeyCode::Enter, &None, &m, 1);
+        assert_eq!(bytes.as_deref(), Some(&b"\x1b[13;5u"[..]));
+    }
+
+    #[test]
+    fn kitty_arrow_up_plain_and_ctrl() {
+        let up = madori::event::KeyCode::Up;
+        let plain = kitty_encode_key(&up, &None, &mods(false, false, false, false), 1);
+        assert_eq!(plain.as_deref(), Some(&b"\x1b[A"[..]));
+        let ctrl = kitty_encode_key(&up, &None, &mods(true, false, false, false), 1);
+        assert_eq!(ctrl.as_deref(), Some(&b"\x1b[1;5A"[..]));
+    }
+
+    #[test]
+    fn kitty_alt_tilde_key_carries_modifier() {
+        let m = mods(false, true, false, false);
+        let bytes = kitty_encode_key(&madori::event::KeyCode::PageUp, &None, &m, 1);
+        assert_eq!(bytes.as_deref(), Some(&b"\x1b[5;3~"[..]));
+    }
+
+    #[test]
+    fn kitty_modified_function_keys() {
+        let m = mods(true, false, false, false);
+        let f1 = kitty_encode_key(&madori::event::KeyCode::F(1), &None, &m, 1);
+        assert_eq!(f1.as_deref(), Some(&b"\x1b[1;5P"[..]));
+        let f5 = kitty_encode_key(&madori::event::KeyCode::F(5), &None, &m, 1);
+        assert_eq!(f5.as_deref(), Some(&b"\x1b[15;5~"[..]));
+    }
+
+    #[test]
+    fn kitty_combined_modifiers_sum_bits() {
+        // ctrl(4) + shift(1) + alt(2) → 1 + 7 = 8.
+        let key = madori::event::KeyCode::Char('x');
+        let bytes = kitty_encode_key(&key, &None, &mods(true, true, true, false), 1);
+        assert_eq!(bytes.as_deref(), Some(&b"\x1b[120;8u"[..]));
+    }
+
+    #[test]
+    fn kitty_space_is_csi_u() {
+        let m = madori::event::Modifiers::default();
+        let bytes = kitty_encode_key(&madori::event::KeyCode::Space, &None, &m, 1);
+        assert_eq!(bytes.as_deref(), Some(&b"\x1b[32u"[..]));
     }
 
     #[test]

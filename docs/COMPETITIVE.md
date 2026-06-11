@@ -41,7 +41,7 @@ cells marked ⁱ are best-effort inference where the corpus was silent.
 |---|---|---|---|---|---|---|
 | Styled/colored underlines (SGR 4:1–4:5, 58/59) | ✗ (`terminal.rs:24-57` saturated u8) | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Text reflow on resize | ✗ (`terminal.rs:488-515` truncate/pad) | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Kitty keyboard CSI-u encoding in DEFAULT path | partial (`gui_tear_attach.rs:824-829` plain bytes) | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Kitty keyboard CSI-u encoding in DEFAULT path | ✓ (shared `keybind::kitty_encode_key`, gated on the mirror's mode stack) | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Mode 2027 grapheme clustering | ✗ (`terminal.rs:2603-2659` no arm) | ✓ | partial | ✗ | ✓ | ✗ |
 | Mode 2048 in-band resize | ✗ (no arm) | ✓ | ✓ | ✗ | ✗ | ✓ |
 | Mode 2031 theme-change notify | ✗ (no arm) | ✓ | ✗ | ✗ | ✗ | ✗ |
@@ -52,12 +52,12 @@ cells marked ⁱ are best-effort inference where the corpus was silent.
 | XTGETTCAP reply | ✗ (`terminal.rs:2848-2861` $q/Sixel only) | ✓ | ✓ | ✗ | ✓ | ✗ |
 | Complete mouse encoding (buttons+modifiers+real wheel coords) | partial (`main.rs:1368,1549-1555` button-0 hardcode, fake ;1;1) | ✓ | ✓ | ✓ | ✓ | ✓ |
 | SGR-Pixels mouse (1016) + 9/1005/1015 | ✗ (no arms) | ✓ | ✓ⁱ | ✗ | ✓ | ✗ |
-| Focus events (1004) emitted in DEFAULT path | partial (local only `main.rs:1574-1580`) | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Focus events (1004) emitted in DEFAULT path | ✓ (`gui_tear_attach.rs` Focused arm, mirrors `main.rs:1574-1580`) | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Sixel decode/render | partial (capture-only `terminal.rs:581-595`) | ✗ | ✗ | ✗ | ✓ | ✓ |
 | iTerm2 OSC 1337 File= images | ✗ (`osc_1337.rs:39-76` Unknown) | partial | ✗ | ✗ | ✓ | ✓ |
 | Kitty graphics completeness (z-index honored, compression, animation, placeholders) | partial (z parsed not drawn `terminal.rs:578`) | ✓ | ✓ | ✗ | partial | ✓ |
-| In-scrollback search in DEFAULT mode | partial (`gui_tear_attach.rs:788-793` falls through) | ✓ | ✓ | ✓ | ✓ | ✓ |
-| IME commit/preedit in DEFAULT path | partial (no Ime arm in gui_tear_attach.rs) | ✓ | ✓ | ✓ | ✓ | ✓ |
+| In-scrollback search in DEFAULT mode | ✓ (shared `search.rs` engine + `set_search` renderer hook) | ✓ | ✓ | ✓ | ✓ | ✓ |
+| IME commit/preedit in DEFAULT path | partial (commit ✓; preedit rendering pending, P3) | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Config hot-reload applied | ✗ (`main.rs:489-491` callback only logs) | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Paste-injection safety guard | ✗ (zero PasteGuard matches) | ✓ⁱ | ✓ | partialⁱ | ✗ⁱ | ✓ⁱ |
 | Live theme switch / OS dark-light follow | ✗ (boot-only `main.rs:705-710`) | ✓ | ✓ | ✗ | ✓ | ✓ |
@@ -94,17 +94,17 @@ is invisible to the actual default user. All seams: working impl in
 
 | # | Item | Impact | Effort | Seam |
 |---|---|---|---|---|
-| 1 | **Search in embedded path** | cmd-F dead in the default mode — top daily-use gap | S | `gui_tear_attach.rs:788-793` (SearchOpen falls through); engine ready `search.rs:36-160`; mirror `main.rs:880-897,1036-1043` |
-| 2 | **Prompt jump + scroll/fullscreen actions in embedded path** | keyboard scrollback nav dead in default mode (only wheel works) | S | `gui_tear_attach.rs:895-930` (apply_tear_action arms only Font*/Copy/Paste); mirror `main.rs:1192-1218` (jump), `main.rs:1063-1075` (scroll/fullscreen) |
-| 3 | **URL click in embedded path** | cmd-click open dead in default mode | S | no url ref in gui_tear_attach.rs; detection ready `url.rs:19-55`; mirror `main.rs:1248,1457-1463`; hook the mouse arm `gui_tear_attach.rs:580-707` |
-| 4 | **IME commit in embedded path** | non-ASCII input broken in default mode | S | no `AppEvent::Ime` arm in gui_tear_attach.rs; mirror `main.rs:1331`. Preedit rendering is separate (P3) |
+| 1 | ~~**Search in embedded path**~~ SHIPPED 2026-06-11 | cmd-F dead in the default mode — top daily-use gap | S | shared `search.rs` engine + `set_search` renderer hook; Search* arms in `apply_tear_action`; overlay input routing in the tear Key arm |
+| 2 | **Prompt jump + scroll/fullscreen actions in embedded path** | keyboard scrollback nav dead in default mode (only wheel works) | S | `gui_tear_attach.rs` (apply_tear_action arms only Font*/Copy/Paste/Search*); mirror `main.rs:1192-1218` (jump), `main.rs:1063-1075` (scroll/fullscreen) |
+| 3 | ~~**URL click in embedded path**~~ SHIPPED 2026-06-11 | cmd-click open dead in default mode | S | tear Button arm now captures `modifiers`; `url::detect_urls` + `url_at` + `open::that` on single-click release, same gate as `main.rs:1457-1463` |
+| 4 | ~~**IME commit in embedded path**~~ SHIPPED 2026-06-11 | non-ASCII input broken in default mode | S | `AppEvent::Ime(Commit)` arm in gui_tear_attach.rs → `send_keys`. Preedit rendering is separate (P3) |
 
 ### P1 — protocol table-stakes (the 2026 reviewer checklist)
 
 | # | Item | Impact | Effort | Seam |
 |---|---|---|---|---|
-| 1 | **Kitty CSI-u encoding in embedded path** | default mode silently downgrades every kitty-keyboard app (nvim/helix/fish) despite advertising the mode stack | S | `gui_tear_attach.rs:824-829` uses plain `madori_key_to_pty_bytes`; encoder exists `kitty_encode_key` wired at `main.rs:1278-1295,1668` — swap in the shared encoder gated on the mode stack (`terminal.rs:2966-3013`) |
-| 2 | **Focus events (1004) in embedded path** | TUIs (nvim autoread, tmux-style dim) miss focus in default mode; mode already parsed+reported `terminal.rs:2622,3051` | S | add focus-in/out emission to gui_tear_attach.rs; mirror `main.rs:1574-1580` |
+| 1 | ~~**Kitty CSI-u encoding in embedded path**~~ SHIPPED 2026-06-11 | default mode silently downgrades every kitty-keyboard app (nvim/helix/fish) despite advertising the mode stack | S | encoder promoted to `keybind::kitty_encode_key` (byte-wise emission, shared with main.rs); tear Key arm gates on the mirror Terminal's mode stack |
+| 2 | ~~**Focus events (1004) in embedded path**~~ SHIPPED 2026-06-11 | TUIs (nvim autoread, tmux-style dim) miss focus in default mode; mode already parsed+reported `terminal.rs:2622,3051` | S | `AppEvent::Focused` arm in gui_tear_attach.rs gated on `focus_reporting()`; mirrors `main.rs:1574-1580` |
 | 3 | **Mouse encoding completeness** (all buttons, modifier bits, real wheel coords, X10 coords) | right/middle-click + shift/ctrl-click broken in every TUI; wheel reports fake `;1;1` | M | encoder: `main.rs:1368,1549-1555` (SGR hardcodes button 0/no mods; X10 hardcodes 33,33), `gui_tear_attach.rs:580-707,730-738` (wheel coords) |
 | 4 | **Mouse modes 9/1005/1015/1016** (1016 SGR-Pixels is the standards row) | pixel-accurate hit testing for graphics-protocol apps; legacy-app compat | S–M | add arms at `terminal.rs:2603-2659` + encoder variants; 1016 needs pixel coords already available at the mouse arm |
 | 5 | **Mode 2048 in-band resize** | fixes resize-over-ssh/multiplexer races; small surface | S | DECSET arm `terminal.rs:2603-2659` + DECRQM row `terminal.rs:3024-3056`; emit `CSI 48;rows;cols;h;w t` from the resize paths (`terminal.rs:488-515` Grid::resize callers; tear reconciler `gui_tear_attach.rs:472-499`) |

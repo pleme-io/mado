@@ -97,7 +97,9 @@ impl MouseReport {
 }
 
 /// Append `n` as ASCII decimal digits — typed byte-wise emission.
-fn push_decimal(buf: &mut Vec<u8>, n: usize) {
+/// Shared with `keybind::kitty_encode_key` (CSI-u sequences) so no
+/// escape-byte emitter in the crate ever reaches for `format!()`.
+pub(crate) fn push_decimal(buf: &mut Vec<u8>, n: usize) {
     let mut digits = [0u8; 20];
     let mut i = digits.len();
     let mut n = n;

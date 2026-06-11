@@ -875,15 +875,15 @@ fn main() -> anyhow::Result<()> {
                                 if !mods.ctrl && !mods.meta && !mods.alt {
                                     if let Some(text) = text {
                                         if !text.is_empty() {
-                                            let mut s = pane.search.lock().unwrap();
-                                            let mut query = s.query.clone();
-                                            query.push_str(text);
                                             let term = pane.terminal.read();
                                             let rows: Vec<_> =
                                                 term.visible_rows().map(|r| r.to_vec()).collect();
                                             let cols = term.cols();
                                             drop(term);
-                                            s.set_query(&query, &rows, cols);
+                                            pane.search
+                                                .lock()
+                                                .unwrap()
+                                                .append_query(text, &rows, cols);
                                             return with_cursor_visibility(
                                                 EventResponse::consumed(),
                                                 hide_cursor.then_some(false),
@@ -892,15 +892,15 @@ fn main() -> anyhow::Result<()> {
                                     }
                                     // Handle backspace in search
                                     if matches!(key, madori::event::KeyCode::Backspace) {
-                                        let mut s = pane.search.lock().unwrap();
-                                        let mut query = s.query.clone();
-                                        query.pop();
                                         let term = pane.terminal.read();
                                         let rows: Vec<_> =
                                             term.visible_rows().map(|r| r.to_vec()).collect();
                                         let cols = term.cols();
                                         drop(term);
-                                        s.set_query(&query, &rows, cols);
+                                        pane.search
+                                            .lock()
+                                            .unwrap()
+                                            .backspace_query(&rows, cols);
                                         return with_cursor_visibility(
                                             EventResponse::consumed(),
                                             hide_cursor.then_some(false),
@@ -1070,11 +1070,13 @@ fn main() -> anyhow::Result<()> {
                                 );
                             }
                             Action::SearchClose | Action::SearchNext | Action::SearchPrev => {
-                                // Already handled above when search is active
-                                return with_cursor_visibility(
-                                    EventResponse::consumed(),
-                                    hide_cursor.then_some(false),
-                                );
+                                // Handled above when the overlay is open.
+                                // With it CLOSED these must NOT consume:
+                                // the fleet atlas binds search_close to
+                                // bare Escape, and eating it here kills
+                                // Esc for vim/helix/fzf (companion of
+                                // the tear-path fix, review 2026-06-11).
+                                // Fall through to PTY forwarding below.
                             }
                             Action::ScrollPageUp => {
                                 let ws = &*pane_for_events;
@@ -1286,9 +1288,9 @@ fn main() -> anyhow::Result<()> {
                             let kitty_flags =
                                 pane.terminal.read().kitty_keyboard_flags();
                             if kitty_flags > 0 {
-                                if let Some(encoded) =
-                                    kitty_encode_key(key, text, modifiers, kitty_flags)
-                                {
+                                if let Some(encoded) = crate::keybind::kitty_encode_key(
+                                    key, text, modifiers, kitty_flags,
+                                ) {
                                     let _ = pane.input_tx.send(encoded);
                                     return with_cursor_visibility(
                                         EventResponse::consumed(),
@@ -1702,119 +1704,6 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-/// Encode a key event for the Kitty keyboard protocol.
-/// Returns the escape sequence bytes if the protocol is active, None otherwise.
-fn kitty_encode_key(
-    key: &madori::event::KeyCode,
-    text: &Option<String>,
-    modifiers: &madori::event::Modifiers,
-    flags: u32,
-) -> Option<Vec<u8>> {
-    if flags == 0 {
-        return None;
-    }
-
-    // Build modifier value: 1 + bitmask
-    let mut mod_bits: u32 = 0;
-    if modifiers.shift {
-        mod_bits |= 1;
-    }
-    if modifiers.alt {
-        mod_bits |= 2;
-    }
-    if modifiers.ctrl {
-        mod_bits |= 4;
-    }
-    if modifiers.meta {
-        mod_bits |= 8; // super
-    }
-    let mod_val = 1 + mod_bits;
-
-    // Map key to unicode codepoint or special key number
-    match key {
-        madori::event::KeyCode::Enter => Some(kitty_key_seq(13, mod_val, 'u')),
-        madori::event::KeyCode::Tab => Some(kitty_key_seq(9, mod_val, 'u')),
-        madori::event::KeyCode::Backspace => Some(kitty_key_seq(127, mod_val, 'u')),
-        madori::event::KeyCode::Escape => Some(kitty_key_seq(27, mod_val, 'u')),
-        madori::event::KeyCode::Space => Some(kitty_key_seq(b' ' as u32, mod_val, 'u')),
-        madori::event::KeyCode::Delete => Some(kitty_tilde_seq(3, mod_val)),
-        madori::event::KeyCode::Up => Some(kitty_key_seq(1, mod_val, 'A')),
-        madori::event::KeyCode::Down => Some(kitty_key_seq(1, mod_val, 'B')),
-        madori::event::KeyCode::Right => Some(kitty_key_seq(1, mod_val, 'C')),
-        madori::event::KeyCode::Left => Some(kitty_key_seq(1, mod_val, 'D')),
-        madori::event::KeyCode::Home => Some(kitty_key_seq(1, mod_val, 'H')),
-        madori::event::KeyCode::End => Some(kitty_key_seq(1, mod_val, 'F')),
-        madori::event::KeyCode::PageUp => Some(kitty_tilde_seq(5, mod_val)),
-        madori::event::KeyCode::PageDown => Some(kitty_tilde_seq(6, mod_val)),
-        madori::event::KeyCode::F(n) => {
-            let (num, suffix) = match n {
-                1 => (1, 'P'),
-                2 => (1, 'Q'),
-                3 => (1, 'R'),
-                4 => (1, 'S'),
-                5 => (15, '~'),
-                6 => (17, '~'),
-                7 => (18, '~'),
-                8 => (19, '~'),
-                9 => (20, '~'),
-                10 => (21, '~'),
-                11 => (23, '~'),
-                12 => (24, '~'),
-                _ => return None,
-            };
-            if suffix == '~' {
-                Some(kitty_tilde_seq(num, mod_val))
-            } else {
-                Some(kitty_key_seq(num, mod_val, suffix))
-            }
-        }
-        madori::event::KeyCode::Char(ch) => {
-            // Level 1 (disambiguate): only encode with modifiers beyond shift
-            if mod_bits <= 1 {
-                // No modifiers or just shift — send as normal UTF-8
-                return None;
-            }
-            let cp = *ch as u32;
-            Some(kitty_key_seq(cp, mod_val, 'u'))
-        }
-        _ => {
-            // Try text content
-            if let Some(t) = text {
-                if let Some(ch) = t.chars().next() {
-                    if t.len() == ch.len_utf8() && mod_bits > 1 {
-                        return Some(kitty_key_seq(ch as u32, mod_val, 'u'));
-                    }
-                }
-            }
-            None
-        }
-    }
-}
-
-/// Build CSI number ; modifiers X sequence for Kitty protocol.
-fn kitty_key_seq(number: u32, modifiers: u32, suffix: char) -> Vec<u8> {
-    if modifiers <= 1 && suffix == 'u' {
-        // No modifiers — CSI number u
-        format!("\x1b[{number}{suffix}").into_bytes()
-    } else if suffix == 'u' {
-        format!("\x1b[{number};{modifiers}{suffix}").into_bytes()
-    } else if modifiers <= 1 {
-        // Arrow/Home/End without modifiers — standard CSI X
-        format!("\x1b[{suffix}").into_bytes()
-    } else {
-        format!("\x1b[{number};{modifiers}{suffix}").into_bytes()
-    }
-}
-
-/// Build CSI number ; modifiers ~ sequence for Kitty protocol (tilde keys).
-fn kitty_tilde_seq(number: u32, modifiers: u32) -> Vec<u8> {
-    if modifiers <= 1 {
-        format!("\x1b[{number}~").into_bytes()
-    } else {
-        format!("\x1b[{number};{modifiers}~").into_bytes()
-    }
-}
-
 /// Map madori key event to awase Key.
 fn winit_to_awase_key(key: &madori::event::KeyCode, text: &Option<String>) -> Option<awase::Key> {
     match key {
@@ -2125,209 +2014,10 @@ mod tests {
         assert_eq!(result, [0.0, 0.0, 0.0, 0.5]);
     }
 
-    // ---- kitty_key_seq ----
-
-    #[test]
-    fn test_kitty_key_seq_no_modifiers_u() {
-        let seq = kitty_key_seq(97, 1, 'u');
-        assert_eq!(seq, b"\x1b[97u");
-    }
-
-    #[test]
-    fn test_kitty_key_seq_with_modifiers_u() {
-        let seq = kitty_key_seq(97, 5, 'u');
-        assert_eq!(seq, b"\x1b[97;5u");
-    }
-
-    #[test]
-    fn test_kitty_key_seq_arrow_no_modifiers() {
-        let seq = kitty_key_seq(1, 1, 'A');
-        assert_eq!(seq, b"\x1b[A");
-    }
-
-    #[test]
-    fn test_kitty_key_seq_arrow_with_modifiers() {
-        let seq = kitty_key_seq(1, 5, 'A');
-        assert_eq!(seq, b"\x1b[1;5A");
-    }
-
-    // ---- kitty_tilde_seq ----
-
-    #[test]
-    fn test_kitty_tilde_seq_no_modifiers() {
-        let seq = kitty_tilde_seq(3, 1);
-        assert_eq!(seq, b"\x1b[3~");
-    }
-
-    #[test]
-    fn test_kitty_tilde_seq_with_modifiers() {
-        let seq = kitty_tilde_seq(3, 5);
-        assert_eq!(seq, b"\x1b[3;5~");
-    }
-
-    // ---- kitty_encode_key ----
-
-    #[test]
-    fn test_kitty_encode_no_flags_returns_none() {
-        let mods = madori::event::Modifiers::default();
-        assert!(kitty_encode_key(&madori::event::KeyCode::Char('a'), &None, &mods, 0).is_none());
-    }
-
-    #[test]
-    fn test_kitty_encode_char_with_ctrl() {
-        let mods = madori::event::Modifiers {
-            ctrl: true,
-            ..Default::default()
-        };
-        let result = kitty_encode_key(&madori::event::KeyCode::Char('a'), &None, &mods, 1);
-        assert!(result.is_some());
-        assert_eq!(result.unwrap(), b"\x1b[97;5u");
-    }
-
-    #[test]
-    fn test_kitty_encode_enter() {
-        let mods = madori::event::Modifiers::default();
-        let result = kitty_encode_key(&madori::event::KeyCode::Enter, &None, &mods, 1);
-        assert!(result.is_some());
-        assert_eq!(result.unwrap(), b"\x1b[13u");
-    }
-
-    #[test]
-    fn test_kitty_encode_char_no_modifiers_returns_none() {
-        let mods = madori::event::Modifiers::default();
-        let result = kitty_encode_key(&madori::event::KeyCode::Char('x'), &None, &mods, 1);
-        assert!(result.is_none(), "plain char with no modifiers falls through to normal input");
-    }
-
-    #[test]
-    fn test_kitty_encode_f1() {
-        let mods = madori::event::Modifiers::default();
-        let result = kitty_encode_key(&madori::event::KeyCode::F(1), &None, &mods, 1);
-        assert!(result.is_some());
-        assert_eq!(result.unwrap(), b"\x1b[P");
-    }
-
-    #[test]
-    fn test_kitty_encode_arrow_up_with_shift() {
-        let mods = madori::event::Modifiers {
-            shift: true,
-            ..Default::default()
-        };
-        let result = kitty_encode_key(&madori::event::KeyCode::Up, &None, &mods, 1);
-        assert!(result.is_some());
-        assert_eq!(result.unwrap(), b"\x1b[1;2A");
-    }
-
-    #[test]
-    fn test_kitty_encode_tab() {
-        let mods = madori::event::Modifiers::default();
-        let result = kitty_encode_key(&madori::event::KeyCode::Tab, &None, &mods, 1);
-        assert!(result.is_some());
-        assert_eq!(result.unwrap(), b"\x1b[9u");
-    }
-
-    #[test]
-    fn test_kitty_encode_backspace() {
-        let mods = madori::event::Modifiers::default();
-        let result = kitty_encode_key(&madori::event::KeyCode::Backspace, &None, &mods, 1);
-        assert!(result.is_some());
-        assert_eq!(result.unwrap(), b"\x1b[127u");
-    }
-
-    #[test]
-    fn test_kitty_encode_escape() {
-        let mods = madori::event::Modifiers::default();
-        let result = kitty_encode_key(&madori::event::KeyCode::Escape, &None, &mods, 1);
-        assert!(result.is_some());
-        assert_eq!(result.unwrap(), b"\x1b[27u");
-    }
-
-    #[test]
-    fn test_kitty_encode_arrow_down() {
-        let mods = madori::event::Modifiers::default();
-        let result = kitty_encode_key(&madori::event::KeyCode::Down, &None, &mods, 1);
-        assert!(result.is_some());
-        assert_eq!(result.unwrap(), b"\x1b[B");
-    }
-
-    #[test]
-    fn test_kitty_encode_arrow_left() {
-        let mods = madori::event::Modifiers::default();
-        let result = kitty_encode_key(&madori::event::KeyCode::Left, &None, &mods, 1);
-        assert!(result.is_some());
-        assert_eq!(result.unwrap(), b"\x1b[D");
-    }
-
-    #[test]
-    fn test_kitty_encode_arrow_right() {
-        let mods = madori::event::Modifiers::default();
-        let result = kitty_encode_key(&madori::event::KeyCode::Right, &None, &mods, 1);
-        assert!(result.is_some());
-        assert_eq!(result.unwrap(), b"\x1b[C");
-    }
-
-    #[test]
-    fn test_kitty_encode_home() {
-        let mods = madori::event::Modifiers::default();
-        let result = kitty_encode_key(&madori::event::KeyCode::Home, &None, &mods, 1);
-        assert!(result.is_some());
-        assert_eq!(result.unwrap(), b"\x1b[H");
-    }
-
-    #[test]
-    fn test_kitty_encode_end() {
-        let mods = madori::event::Modifiers::default();
-        let result = kitty_encode_key(&madori::event::KeyCode::End, &None, &mods, 1);
-        assert!(result.is_some());
-        assert_eq!(result.unwrap(), b"\x1b[F");
-    }
-
-    #[test]
-    fn test_kitty_encode_delete() {
-        let mods = madori::event::Modifiers::default();
-        let result = kitty_encode_key(&madori::event::KeyCode::Delete, &None, &mods, 1);
-        assert!(result.is_some());
-        assert_eq!(result.unwrap(), b"\x1b[3~");
-    }
-
-    #[test]
-    fn test_kitty_encode_page_up() {
-        let mods = madori::event::Modifiers::default();
-        let result = kitty_encode_key(&madori::event::KeyCode::PageUp, &None, &mods, 1);
-        assert!(result.is_some());
-        assert_eq!(result.unwrap(), b"\x1b[5~");
-    }
-
-    #[test]
-    fn test_kitty_encode_page_down() {
-        let mods = madori::event::Modifiers::default();
-        let result = kitty_encode_key(&madori::event::KeyCode::PageDown, &None, &mods, 1);
-        assert!(result.is_some());
-        assert_eq!(result.unwrap(), b"\x1b[6~");
-    }
-
-    #[test]
-    fn test_kitty_encode_char_with_alt() {
-        let mods = madori::event::Modifiers {
-            alt: true,
-            ..Default::default()
-        };
-        let result = kitty_encode_key(&madori::event::KeyCode::Char('a'), &None, &mods, 1);
-        assert!(result.is_some());
-        assert_eq!(result.unwrap(), b"\x1b[97;3u");
-    }
-
-    #[test]
-    fn test_kitty_encode_char_ctrl_shift() {
-        let mods = madori::event::Modifiers {
-            ctrl: true,
-            shift: true,
-            ..Default::default()
-        };
-        let result = kitty_encode_key(&madori::event::KeyCode::Char('a'), &None, &mods, 1);
-        assert!(result.is_some());
-        assert_eq!(result.unwrap(), b"\x1b[97;6u");
-    }
+    // The kitty_encode_key / kitty_key_seq / kitty_tilde_seq tests
+    // moved to `keybind::tests` with the functions themselves when
+    // the encoder was promoted to the shared module (so the
+    // embedded-tear path can consume it too).
 
     #[test]
     fn test_default_shell_contains_path() {

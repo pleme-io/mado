@@ -21,8 +21,10 @@
 //!   selection, copy-on-select, Cmd+C/Cmd+V (PasteGuard-sanitized),
 //!   and full mouse forwarding via the shared typed
 //!   `mouse_report::MouseReport` emitter now run in this path.
-//! - No search yet (M1 InputEngine unification —
-//!   docs/REMEDIATION-PLAN.md).
+//! - ~~No search~~ LIFTED 2026-06-11: Cmd+F scrollback search,
+//!   kitty CSI-u key encoding, focus events (mode 1004), IME
+//!   commit, and Cmd+click URL open all ported from the local-PTY
+//!   path (docs/COMPETITIVE.md P0/P1 bifurcation ports).
 //! - No multi-pane (that's tear's job — this mode renders one
 //!   tear pane in one mado window).
 
@@ -431,9 +433,9 @@ where
     // mado.yaml are loaded into the typed keybinds config but the
     // tear-mode event loop only dispatches the action-firing
     // subset relevant in single-pane tear mode (font zoom, Copy,
-    // Paste — see apply_tear_action). Remaining actions (search,
-    // scroll, fullscreen) fall through to PTY forwarding until the
-    // M1 InputEngine unification.
+    // Paste, Search* — see apply_tear_action). Remaining actions
+    // (scroll, fullscreen, prompt jump) fall through to PTY
+    // forwarding until the M1 InputEngine unification.
     let keybinds = crate::keybind::KeybindManager::with_mado_defaults();
     // Per-action debouncer for OS key-repeat storms. Default 80ms
     // window — OS key-repeat is ~30-50ms, this drops storm-ticks
@@ -471,6 +473,14 @@ where
     let selection = Arc::new(std::sync::Mutex::new(crate::selection::Selection::new()));
     renderer.set_selection(Arc::clone(&selection));
     let selection_for_events = Arc::clone(&selection);
+    // ── In-scrollback search (Cmd+F) ──────────────────────────────
+    // Same engine as the local-PTY path (search.rs). Matching +
+    // navigation run on mado's mirror Terminal — engate keeps it fed,
+    // so no tear-side state is needed. The renderer shares the state
+    // for match-highlight rects (same set_search hook main.rs uses).
+    let search = Arc::new(std::sync::Mutex::new(crate::search::SearchState::new()));
+    renderer.set_search(Arc::clone(&search));
+    let search_for_events = Arc::clone(&search);
     let clipboard = Arc::new(std::sync::Mutex::new(
         hasami::Clipboard::new().expect("failed to initialize clipboard"),
     ));
@@ -561,6 +571,7 @@ where
                         &terminal_for_mouse,
                         &selection_for_events,
                         &clipboard,
+                        &search_for_events,
                     );
                     if !handled {
                         tracing::debug!(
@@ -585,7 +596,7 @@ where
                     pressed,
                     x,
                     y,
-                    ..
+                    modifiers,
                 }) => {
                     let cw = renderer.cell_width();
                     let ch = renderer.cell_height();
@@ -674,11 +685,34 @@ where
                                     _ => sel.start(crate::selection::CellPos { row, col }),
                                 }
                             }
-                        } else if let Ok(mut sel) = selection_for_events.lock() {
-                            if click_count == 1 {
-                                sel.finish();
+                        } else {
+                            if let Ok(mut sel) = selection_for_events.lock() {
+                                if click_count == 1 {
+                                    sel.finish();
+                                }
+                                if copy_on_select {
+                                    let (rows_vec, cols_count) = {
+                                        let term = terminal_for_mouse.read();
+                                        (
+                                            term.visible_rows()
+                                                .map(|r| r.to_vec())
+                                                .collect::<Vec<_>>(),
+                                            term.cols(),
+                                        )
+                                    };
+                                    if let Some(text) =
+                                        sel.extract_text(&rows_vec, cols_count)
+                                        && let Ok(cb) = clipboard.lock()
+                                    {
+                                        let _ = cb.copy_text(&text);
+                                    }
+                                }
                             }
-                            if copy_on_select {
+                            // Cmd+click (macOS) / Ctrl+click (Linux) to
+                            // open URLs — single-click release only,
+                            // never word/line selection (mirrors the
+                            // local-PTY path's click_count gate).
+                            if click_count == 1 && (modifiers.meta || modifiers.ctrl) {
                                 let (rows_vec, cols_count) = {
                                     let term = terminal_for_mouse.read();
                                     (
@@ -688,10 +722,18 @@ where
                                         term.cols(),
                                     )
                                 };
-                                if let Some(text) = sel.extract_text(&rows_vec, cols_count)
-                                    && let Ok(cb) = clipboard.lock()
+                                let detected =
+                                    crate::url::detect_urls(&rows_vec, cols_count);
+                                if let Some(url) =
+                                    crate::url::url_at(&detected, row, col)
                                 {
-                                    let _ = cb.copy_text(&text);
+                                    if let Err(e) = open::that(&url.url) {
+                                        tracing::warn!(
+                                            error = %e,
+                                            url = %url.url,
+                                            "failed to open URL"
+                                        );
+                                    }
                                 }
                             }
                         }
@@ -796,10 +838,88 @@ where
                 }
                 AppEvent::Key(key_event @ KeyEvent { pressed: true, .. }) => {
                     renderer.snow_pulse_typing();
-                    // First: consult the prescribed keybinding map.
+                    let action = keybinds.lookup_madori(key_event);
+                    // ── Search-overlay input routing ──────────────
+                    // While the overlay is open every keystroke
+                    // belongs to it (mirrors main.rs): Close/Next/
+                    // Prev chords act on the overlay, unmodified
+                    // text edits the query, everything else is
+                    // consumed so it can't leak to the PTY.
+                    {
+                        use crate::keybind::Action;
+                        let search_active = search_for_events
+                            .lock()
+                            .expect("search mutex poisoned")
+                            .active;
+                        if search_active {
+                            match action {
+                                Some(
+                                    overlay_action @ (Action::SearchClose
+                                    | Action::SearchNext
+                                    | Action::SearchPrev),
+                                ) => {
+                                    apply_tear_action(
+                                        overlay_action,
+                                        renderer,
+                                        &control_for_events,
+                                        pane_id,
+                                        default_font_size_for_reset,
+                                        &terminal_for_mouse,
+                                        &selection_for_events,
+                                        &clipboard,
+                                        &search_for_events,
+                                    );
+                                    return EventResponse::consumed();
+                                }
+                                _ => {}
+                            }
+                            let mods = key_event.modifiers;
+                            if !mods.ctrl && !mods.meta && !mods.alt {
+                                if let Some(text) = &key_event.text
+                                    && !text.is_empty()
+                                {
+                                    let (rows, cols) = {
+                                        let term = terminal_for_mouse.read();
+                                        (
+                                            term.visible_rows()
+                                                .map(|r| r.to_vec())
+                                                .collect::<Vec<_>>(),
+                                            term.cols(),
+                                        )
+                                    };
+                                    search_for_events
+                                        .lock()
+                                        .expect("search mutex poisoned")
+                                        .append_query(text, &rows, cols);
+                                    return EventResponse::consumed();
+                                }
+                                if matches!(
+                                    key_event.key,
+                                    madori::event::KeyCode::Backspace
+                                ) {
+                                    let (rows, cols) = {
+                                        let term = terminal_for_mouse.read();
+                                        (
+                                            term.visible_rows()
+                                                .map(|r| r.to_vec())
+                                                .collect::<Vec<_>>(),
+                                            term.cols(),
+                                        )
+                                    };
+                                    search_for_events
+                                        .lock()
+                                        .expect("search mutex poisoned")
+                                        .backspace_query(&rows, cols);
+                                    return EventResponse::consumed();
+                                }
+                            }
+                            return EventResponse::consumed();
+                        }
+                    }
+                    // Consult the prescribed keybinding map.
                     // Cmd-= / Cmd-- / Cmd-0 → font zoom in/out/reset
                     // BEFORE the text falls through to the PTY.
-                    if let Some(action) = keybinds.lookup_madori(key_event) {
+                    if let Some(action) = action {
                         use crate::keybind::Action;
                         // Font scaling: rate-limit + bound by type.
                         // The gate drops OS key-repeat storms; the
@@ -829,14 +949,34 @@ where
                             &terminal_for_mouse,
                             &selection_for_events,
                             &clipboard,
+                            &search_for_events,
                         ) {
                             return EventResponse::consumed();
                         }
-                        // Remaining unhandled actions (search,
-                        // scroll, fullscreen, etc.) fall through
+                        // Remaining unhandled actions (scroll,
+                        // fullscreen, prompt jump) fall through
                         // to PTY forwarding for now; the M1
                         // InputEngine unification is where they
                         // land.
+                    }
+                    // Kitty keyboard protocol — when the app pushed a
+                    // mode onto the kitty stack (nvim/helix/fish),
+                    // encode CSI-u via the shared encoder instead of
+                    // the legacy bytes. The mirror Terminal tracks
+                    // the stack from the engate byte stream, so the
+                    // gating is identical to the local-PTY path.
+                    let kitty_flags =
+                        terminal_for_mouse.read().kitty_keyboard_flags();
+                    if kitty_flags > 0
+                        && let Some(encoded) = crate::keybind::kitty_encode_key(
+                            &key_event.key,
+                            &key_event.text,
+                            &key_event.modifiers,
+                            kitty_flags,
+                        )
+                    {
+                        let _ = control_for_events.send_keys(pane_id, &encoded);
+                        return EventResponse::consumed();
                     }
                     // No bound mado action — translate to PTY bytes via
                     // the shared helper. This is the same call shape the
@@ -885,6 +1025,29 @@ where
                         EventResponse::ignored()
                     }
                 }
+                // IME commit — forward composed text (CJK, dead-key
+                // accents, emoji picker) to the PTY. Without this arm
+                // non-ASCII input was silently dropped in the default
+                // mode; mirrors the local-PTY path.
+                AppEvent::Ime(madori::ImeEvent::Commit(text)) => {
+                    if !text.is_empty() {
+                        let _ = control_for_events.send_keys(pane_id, text.as_bytes());
+                    }
+                    EventResponse::consumed()
+                }
+                // Focus events (mode 1004) — emit ESC[I / ESC[O when
+                // the app enabled focus reporting (nvim autoread,
+                // tmux-style dim). The mirror Terminal tracks the
+                // DECSET from the engate byte stream, so the gating
+                // is identical to the local-PTY path.
+                AppEvent::Focused(focused) => {
+                    if terminal_for_mouse.read().focus_reporting() {
+                        let report: &[u8] =
+                            if *focused { b"\x1b[I" } else { b"\x1b[O" };
+                        let _ = control_for_events.send_keys(pane_id, report);
+                    }
+                    EventResponse::consumed()
+                }
                 AppEvent::CloseRequested => {
                     if let Ok(mut slot) = session_reap.lock() {
                         if let Some(sid) = slot.take() {
@@ -924,6 +1087,7 @@ fn apply_tear_action<C>(
     terminal: &SharedTerminal,
     selection: &std::sync::Mutex<crate::selection::Selection>,
     clipboard: &std::sync::Mutex<hasami::Clipboard>,
+    search: &std::sync::Mutex<crate::search::SearchState>,
 ) -> bool
 where
     C: tear_types::MultiplexerControl + Send + Sync,
@@ -995,8 +1159,33 @@ where
             }
             true
         }
-        // Search / scroll / dir-picker / fullscreen need mado-side
-        // state the tear path doesn't hold yet — the M1 InputEngine
+        // Search operates entirely on mado-side state (the mirror
+        // Terminal + the shared SearchState the renderer highlights
+        // from) — no tear involvement. Close/Next/Prev are handled
+        // ONLY while the overlay is open: the fleet atlas binds
+        // search_close to bare Escape, so consuming it on a closed
+        // overlay would eat Esc before PTY forwarding and kill
+        // vim/helix/fzf in the default mode (review finding
+        // 2026-06-11). With the overlay closed they return false and
+        // the key falls through to the PTY.
+        Action::SearchOpen => {
+            search.lock().expect("search mutex poisoned").open();
+            true
+        }
+        Action::SearchClose | Action::SearchNext | Action::SearchPrev => {
+            let mut st = search.lock().expect("search mutex poisoned");
+            if !st.active {
+                return false;
+            }
+            match action {
+                Action::SearchClose => st.close(),
+                Action::SearchNext => st.next(),
+                _ => st.prev(),
+            }
+            true
+        }
+        // Scroll / dir-picker / fullscreen need mado-side state the
+        // tear path doesn't hold yet — the M1 InputEngine
         // unification (docs/REMEDIATION-PLAN.md) is where they land.
         // Until then they have no tear-mode handler.
         _ => false,
