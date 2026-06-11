@@ -268,7 +268,28 @@ pub fn sanitize_paste(text: &str, bracketed: bool) -> Vec<u8> {
         }
         out
     } else {
-        text.bytes().filter(|b| *b != 0x1b).collect()
+        // Non-bracketed: the receiving app reads the paste as typed
+        // keystrokes, and Enter is CR (0x0D) — normalize CRLF and
+        // bare LF to CR like xterm/kitty/ghostty, or CRLF-sourced
+        // text executes each line plus a spurious empty accept-line
+        // and LF-only text misfires in raw-mode REPLs. ESC stripped
+        // for the injection floor.
+        let mut out = Vec::with_capacity(text.len());
+        let bytes = text.as_bytes();
+        let mut i = 0;
+        while i < bytes.len() {
+            match bytes[i] {
+                0x1b => {}
+                b'\r' if i + 1 < bytes.len() && bytes[i + 1] == b'\n' => {
+                    out.push(b'\r');
+                    i += 1;
+                }
+                b'\n' => out.push(b'\r'),
+                b => out.push(b),
+            }
+            i += 1;
+        }
+        out
     }
 }
 
@@ -280,8 +301,17 @@ mod tests {
 
     #[test]
     fn sanitize_paste_passes_plain_text_through() {
+        // Bracketed: byte-faithful (the app unwraps the frame itself).
         assert_eq!(sanitize_paste("hello world\n", true), b"hello world\n");
-        assert_eq!(sanitize_paste("hello world\n", false), b"hello world\n");
+        // Non-bracketed: line ends are keystrokes — Enter is CR.
+        assert_eq!(sanitize_paste("hello world\n", false), b"hello world\r");
+    }
+
+    #[test]
+    fn sanitize_paste_normalizes_line_ends_when_unbracketed() {
+        assert_eq!(sanitize_paste("a\r\nb\nc\r", false), b"a\rb\rc\r");
+        // Bracketed leaves them alone.
+        assert_eq!(sanitize_paste("a\r\nb\n", true), b"a\r\nb\n");
     }
 
     #[test]

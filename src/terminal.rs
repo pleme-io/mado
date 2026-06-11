@@ -2420,6 +2420,20 @@ impl Terminal {
         let bottom = self.scroll_bottom;
         let use_alt = self.use_alternate;
         let evicted = self.grid_mut().scroll_region_up(top, bottom);
+        // Content-pinning: a full-screen scroll on the primary grid
+        // pushed one line into scrollback, shifting all content one
+        // row away from the live bottom. When the operator is
+        // scrolled up, grow the offset in lockstep so the SAME
+        // content stays in view — streaming output never drags the
+        // reader (kitty/ghostty behavior; operator report
+        // 2026-06-11). At offset 0 the view tail-follows as before.
+        // Partial-region scrolls don't touch scrollback; the
+        // alternate screen has none.
+        let pushed_to_scrollback = !use_alt && top == 0 && bottom == self.rows - 1;
+        if pushed_to_scrollback && self.scroll_offset > 0 {
+            let max = self.grid().scrollback_len();
+            self.scroll_offset = (self.scroll_offset + 1).min(max);
+        }
         // Only primary-grid evictions invalidate prompt / user
         // marks — alternate has zero scrollback and doesn't record.
         if !use_alt && evicted > 0 {
@@ -2437,13 +2451,11 @@ impl Terminal {
     }
 
     fn newline(&mut self) {
-        // Scroll-to-bottom on output: a line feed is new output, so
-        // re-pin the live viewport (matching print()'s reset). Without
-        // this, once the view is scrolled up, pressing Enter advances the
-        // grid but the frozen viewport never follows the cursor down —
-        // the reported "screen won't go down with me" bug. Benefits both
-        // render modes (the VT core is the single source of truth).
-        self.scroll_offset = 0;
+        // No scroll_offset reset here: a line feed is OUTPUT, and
+        // output never moves the view (see print()). The "pressing
+        // Enter doesn't follow the prompt down" expectation is the
+        // INPUT layer's job — the engine snaps to bottom when the
+        // operator's keystroke bytes go to the PTY.
         if self.cursor.row >= self.scroll_bottom {
             self.scroll_grid_up();
         } else {
@@ -2812,8 +2824,13 @@ impl TerminalOps for Terminal {
 
 impl vte::Perform for Terminal {
     fn print(&mut self, ch: char) {
-        // Reset scroll offset when new content arrives
-        self.scroll_offset = 0;
+        // Output must NEVER move the operator's view — the old
+        // scroll_offset reset here yanked the viewport to the bottom
+        // on EVERY printed character (a status-bar clock tick was
+        // enough), making scrollback unreadable under any streaming
+        // output (operator report 2026-06-11). The viewport is pinned
+        // to CONTENT by scroll_grid_up; snap-to-bottom belongs to the
+        // operator's own input (ux::InputEngine::write_key_input).
 
         // Apply character set translation (DEC Special Graphics)
         let ch = self.translate_charset(ch);
@@ -3614,6 +3631,91 @@ fn parse_palette_index(payload: &[u8]) -> Option<usize> {
 mod tests {
     use super::*;
 
+    /// **Invariant: output never moves the operator's view**
+    /// (2026-06-11 — "scrolling up while a TUI writes steals focus
+    /// and sends me down"). While scrolled up, streaming output must
+    /// keep the SAME content in the viewport: the offset grows in
+    /// lockstep with lines entering scrollback. Only the operator's
+    /// own input snaps to the live tail (engine layer).
+    #[test]
+    fn output_while_scrolled_keeps_view_pinned_to_content() {
+        let mut term = Terminal::with_scrollback(20, 4, 100);
+        for i in 0..20 {
+            term.feed(b"line");
+            term.feed(i.to_string().as_bytes());
+            term.feed(b"\r\n");
+        }
+        term.scroll_up(8);
+        let before: Vec<String> = term
+            .visible_rows()
+            .map(|r| r.iter().map(|c| c.ch).collect::<String>())
+            .collect();
+
+        // A TUI / streaming program writes more output.
+        for i in 20..30 {
+            term.feed(b"line");
+            term.feed(i.to_string().as_bytes());
+            term.feed(b"\r\n");
+        }
+
+        let after: Vec<String> = term
+            .visible_rows()
+            .map(|r| r.iter().map(|c| c.ch).collect::<String>())
+            .collect();
+        assert_eq!(
+            before, after,
+            "view must stay pinned to the content being read while output streams"
+        );
+        assert!(term.scroll_offset() > 8, "offset grows with scrollback");
+    }
+
+    /// At the bottom (offset 0) the view tail-follows output — the
+    /// pinning above must not freeze the live view.
+    #[test]
+    fn output_at_bottom_tail_follows() {
+        let mut term = Terminal::with_scrollback(20, 4, 100);
+        for i in 0..30 {
+            term.feed(b"line");
+            term.feed(i.to_string().as_bytes());
+            term.feed(b"\r\n");
+        }
+        assert_eq!(term.scroll_offset(), 0);
+        let bottom: Vec<String> = term
+            .visible_rows()
+            .map(|r| r.iter().map(|c| c.ch).collect::<String>())
+            .collect();
+        assert!(
+            bottom.iter().any(|r| r.starts_with("line29")),
+            "live view follows the newest output: {bottom:?}"
+        );
+    }
+
+    /// Alternate-screen output never disturbs the primary-screen
+    /// scroll offset — a TUI redraw while the operator had scrolled
+    /// the primary screen must not move their saved position.
+    #[test]
+    fn alt_screen_output_does_not_disturb_primary_scroll_offset() {
+        let mut term = Terminal::with_scrollback(20, 4, 100);
+        for i in 0..20 {
+            term.feed(b"line");
+            term.feed(i.to_string().as_bytes());
+            term.feed(b"\r\n");
+        }
+        term.scroll_up(5);
+        let pinned = term.scroll_offset();
+        // Enter alt screen (1049), stream a full-screen redraw, leave.
+        term.feed(b"\x1b[?1049h");
+        for _ in 0..10 {
+            term.feed(b"tui frame\r\n");
+        }
+        term.feed(b"\x1b[?1049l");
+        assert_eq!(
+            term.scroll_offset(),
+            pinned,
+            "alt-screen TUI output must not move the primary viewport"
+        );
+    }
+
     /// Same-dims resize is a no-op (invariant, 2026-06-11): the
     /// event-loop grid reconcilers may re-confirm the current grid;
     /// that must NEVER reset DECSTBM scroll regions / tab stops /
@@ -3922,21 +4024,28 @@ mod tests {
         );
     }
 
-    /// Regression (mado embedded "screen won't follow output"): a line
-    /// feed is new output, so it must re-pin a scrolled-up viewport to
-    /// the live bottom. Before the fix, only printable chars reset
-    /// scroll_offset; bare newlines (repeated Enter) advanced the grid
-    /// without following the cursor down.
+    /// Superseded contract (2026-06-11): newline output used to
+    /// re-pin the viewport to the bottom — that "fix" was the root of
+    /// the "output steals my scroll position" report (ANY streaming
+    /// output yanked the reader down). The corrected model: output
+    /// pins the view to CONTENT (`output_while_scrolled_keeps_view_
+    /// pinned_to_content`); the operator's own keystrokes snap to the
+    /// live tail at the INPUT layer (`ux::engine` write_key_input),
+    /// which also covers the original "Enter doesn't follow" report.
     #[test]
-    fn output_newline_pins_view_to_bottom() {
+    fn output_newline_grows_offset_keeping_content_pinned() {
         let mut term = Terminal::with_scrollback(80, 4, 100);
         for _ in 0..20 {
             term.feed(b"line\r\n");
         }
         term.scroll_up(5);
-        assert!(term.scroll_offset() > 0, "precondition: scrolled into history");
-        term.feed(b"\n"); // new output → must scroll-to-bottom
-        assert_eq!(term.scroll_offset(), 0, "newline output must re-pin to bottom");
+        assert_eq!(term.scroll_offset(), 5, "precondition: scrolled into history");
+        term.feed(b"\n"); // output → view stays pinned to content
+        assert_eq!(
+            term.scroll_offset(),
+            6,
+            "output grows the offset so the read content stays in view"
+        );
     }
 
     #[test]

@@ -1764,6 +1764,18 @@ mod tests {
     use super::*;
 
     fn new_server() -> MadoMcp {
+        // Hermeticity: kanshou discovery must NEVER find the
+        // operator's LIVE mado — with the real socket dir, every
+        // forward()-backed tool answers from the running GUI and the
+        // suite's assertions flip with whatever the operator has open
+        // (the mcp_config_get flake class, 2026-06-11). Point
+        // discovery at a per-process empty dir so the deterministic
+        // fallback/stub path always runs. set_var is process-global —
+        // fine here because every test goes through new_server() and
+        // the value is identical for all of them.
+        let dir = std::env::temp_dir().join(format!("mado-mcp-test-kanshou-{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+        unsafe { std::env::set_var("KANSHOU_SOCKET_DIR", &dir) };
         MadoMcp::new()
     }
 

@@ -24,6 +24,13 @@ pub struct UxBehavior {
     pub mouse_hide_while_typing: bool,
     /// Wheel-scroll line multiplier for the mado-side scrollback view.
     pub mouse_scroll_multiplier: u32,
+    /// Whether a mouse-tracking app may capture SHIFT-modified mouse
+    /// events. `false` (default) reserves shift as the operator's
+    /// bypass — shift+click selects, shift+wheel scrolls scrollback
+    /// (the xterm/kitty/ghostty contract). `true` forwards
+    /// shift-modified events to the app (iTerm2's
+    /// "apps may capture shift" knob).
+    pub mouse_shift_capture: bool,
 }
 
 impl From<&MadoConfig> for UxBehavior {
@@ -33,6 +40,11 @@ impl From<&MadoConfig> for UxBehavior {
             confirm_close: config.behavior.confirm_close,
             mouse_hide_while_typing: config.behavior.mouse_hide_while_typing,
             mouse_scroll_multiplier: config.behavior.mouse_scroll_multiplier,
+            mouse_shift_capture: matches!(
+                config.behavior.mouse_shift_capture,
+                crate::config::MouseShiftCapture::True
+                    | crate::config::MouseShiftCapture::Always
+            ),
         }
     }
 }
@@ -53,5 +65,10 @@ mod tests {
         assert!(b.confirm_close);
         assert!(b.mouse_hide_while_typing);
         assert_eq!(b.mouse_scroll_multiplier, 3);
+        // Default capture is False — shift stays the operator's
+        // bypass unless the config opts the app in.
+        assert!(!b.mouse_shift_capture);
+        config.behavior.mouse_shift_capture = crate::config::MouseShiftCapture::Always;
+        assert!(UxBehavior::from(&config).mouse_shift_capture);
     }
 }

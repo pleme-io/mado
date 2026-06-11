@@ -110,7 +110,7 @@ pub struct InputEngine {
     dir_picker: Arc<Mutex<DirPickerState>>,
     clipboard: Arc<dyn ClipboardProvider>,
     keybinds: KeybindManager,
-    behavior: UxBehavior,
+    pub(crate) behavior: UxBehavior,
     cursor_keys_mode: Box<dyn Fn() -> bool + Send + Sync>,
     default_font_size: f32,
     padding: f32,
@@ -131,6 +131,13 @@ pub struct InputEngine {
     /// motion code (drag = 32 vs hover = 35) and ButtonEvent(1002)'s
     /// motion-only-while-pressed contract.
     left_button_down: bool,
+    /// A shift+click bypassed mouse tracking and started a
+    /// terminal-side selection — motion events update the selection
+    /// instead of forwarding while this drag is live.
+    shift_drag_bypass: bool,
+    /// Last modifier state seen on any key/button event — wheel
+    /// events don't carry modifiers on the current madori pin.
+    last_mods: Modifiers,
     /// Last pointer position in physical pixels — the wheel arm has
     /// no coordinates of its own (madori Scroll carries only deltas),
     /// so wheel reports use the tracked position (closes the
@@ -178,6 +185,8 @@ impl InputEngine {
             click_count: 0,
             last_click_pos: CellPos { row: 0, col: 0 },
             left_button_down: false,
+            shift_drag_bypass: false,
+            last_mods: Modifiers::default(),
             last_mouse_pos: (0.0, 0.0),
             grid_sync_sig: None,
         }
@@ -210,6 +219,7 @@ impl InputEngine {
 
         let action = self.keybinds.lookup_madori(event);
         let mods = event.modifiers;
+        self.last_mods = mods;
         let key = &event.key;
         let text = &event.text;
 
@@ -272,7 +282,7 @@ impl InputEngine {
                             "cd {}\n",
                             crate::dir_picker::shell_quote_path(&p.to_string_lossy())
                         );
-                        self.pty.write(cmd.as_bytes());
+                        self.write_key_input(cmd.as_bytes());
                     }
                     self.dir_picker.lock().unwrap().close();
                     return EventOutcome::consumed().with_cursor_visibility(vis);
@@ -323,8 +333,11 @@ impl InputEngine {
             }
         }
 
-        // Clear selection on any key press.
-        self.selection.lock().unwrap().clear();
+        // Selection-clear moved into write_key_input: clearing on ANY
+        // key event killed the selection on the bare Cmd/Shift press
+        // winit synthesizes for every modifier — Cmd+C of a mouse
+        // selection was structurally dead (hunt finding 2026-06-11).
+        // Only keys that actually SEND BYTES clear (and snap) now.
 
         // Kitty keyboard protocol: if active, encode keys using the
         // protocol. The mirror Terminal tracks the mode stack from
@@ -335,7 +348,7 @@ impl InputEngine {
                 if let Some(encoded) =
                     crate::keybind::kitty_encode_key(key, text, &mods, kitty_flags)
                 {
-                    self.pty.write(&encoded);
+                    self.write_key_input(&encoded);
                     return EventOutcome::consumed().with_cursor_visibility(vis);
                 }
             }
@@ -355,7 +368,7 @@ impl InputEngine {
         // still receives valid cursor keys).
         let app_mode = (self.cursor_keys_mode)();
         if let Some(bytes) = crate::keybind::madori_key_to_pty_bytes(key, text, mods, app_mode) {
-            self.pty.write(&bytes);
+            self.write_key_input(&bytes);
             return EventOutcome::consumed().with_cursor_visibility(vis);
         }
         // Helper returned None — bare Cmd shortcut (consume so the
@@ -504,6 +517,11 @@ impl InputEngine {
                 ActionOutcome::FallThrough
             }
             Action::JumpToPrompt | Action::JumpToPromptPrev => {
+                // Consumed: pre-M1 the fall-through was harmless
+                // (meta-only chords translate to None), but under the
+                // kitty protocol the chord encoded as a meta-arrow,
+                // leaked to the app, AND write_key_input's snap undid
+                // the jump (hunt finding 2026-06-11).
                 // Scroll to the previous OSC 133 A mark (ghostty's
                 // canonical Cmd-Up binding).
                 let mut term = self.terminal.write();
@@ -519,7 +537,7 @@ impl InputEngine {
                 } else {
                     tracing::debug!("no prompt marks above viewport");
                 }
-                ActionOutcome::FallThrough
+                ActionOutcome::Consumed(EventOutcome::consumed())
             }
             Action::JumpToPromptNext => {
                 // Scroll to the next OSC 133 A mark forward from the
@@ -536,17 +554,19 @@ impl InputEngine {
                 } else {
                     tracing::debug!("no prompt marks below viewport");
                 }
-                ActionOutcome::FallThrough
+                ActionOutcome::Consumed(EventOutcome::consumed())
             }
             Action::ClearScreen => {
-                self.pty.write(b"\x0c"); // Ctrl+L
+                // Operator input — snaps to the live tail so the
+                // redraw is visible even when scrolled into history.
+                self.write_key_input(b"\x0c"); // Ctrl+L
                 ActionOutcome::FallThrough
             }
             Action::SelectAll => {
-                // Lifted verbatim — including the pre-M1 quirk that
-                // the subsequent selection-clear-on-keypress undoes
-                // this immediately (flagged for M2; behavior
-                // preservation beats elegance).
+                // Consumed: the chord IS the action. The pre-M1
+                // FallThrough + clear-on-keypress combination made a
+                // bound select_all a guaranteed silent no-op (hunt
+                // finding 2026-06-11).
                 let (cols, num_rows) = {
                     let term = self.terminal.read();
                     (term.cols(), term.rows())
@@ -558,7 +578,7 @@ impl InputEngine {
                     col: cols.saturating_sub(1),
                 });
                 sel.finish();
-                ActionOutcome::FallThrough
+                ActionOutcome::Consumed(EventOutcome::consumed())
             }
             Action::CopyUrlToClipboard => {
                 let (row_cells, cols, cursor_row) = {
@@ -594,6 +614,28 @@ impl InputEngine {
         }
     }
 
+    /// Deliver OPERATOR INPUT bytes to the PTY: snap the viewport to
+    /// the bottom first (you type, you're back at the prompt — the
+    /// kitty/ghostty contract), then write. Output never moves the
+    /// view (terminal.rs pins it to content); this is the ONE place
+    /// the view returns to the live tail. Mouse reports and VT query
+    /// answers deliberately do NOT route through here — they are not
+    /// the operator asking to look at the prompt.
+    fn write_key_input(&mut self, bytes: &[u8]) {
+        // Typing replaces the selection (the bytes will change the
+        // grid under it) and — on the PRIMARY screen — snaps the view
+        // to the live tail. In a full-screen TUI the offset belongs
+        // to the saved primary viewport; zeroing it there would
+        // discard the operator's reading position for no reason
+        // ('q' out of a pager used to land them at the prompt bottom
+        // instead of where they were).
+        self.selection.lock().unwrap().clear();
+        if !self.terminal.read().is_alternate_screen() {
+            self.terminal.write().scroll_to_bottom();
+        }
+        self.pty.write(bytes);
+    }
+
     /// The ONE guarded paste write: PasteGuard sanitization +
     /// bracketed framing. Every path that delivers clipboard bytes
     /// to the PTY routes through here.
@@ -606,6 +648,9 @@ impl InputEngine {
         if safe.is_empty() {
             return;
         }
+        // Paste is operator input — snap to the live tail like a
+        // keystroke would.
+        self.terminal.write().scroll_to_bottom();
         if bracketed {
             self.pty.write(b"\x1b[200~");
         }
@@ -659,17 +704,37 @@ impl InputEngine {
         metrics: &dyn FontZoomTarget,
     ) -> EventOutcome {
         self.last_mouse_pos = (x, y);
+        self.last_mods = modifiers;
         let (col, row, mouse_mode, sgr) = self.mouse_cell(x, y, metrics);
 
         if button == MouseButton::Left {
             self.left_button_down = pressed;
+            if pressed {
+                self.shift_drag_bypass = modifiers.shift
+                    && !self.behavior.mouse_shift_capture
+                    && mouse_mode != MouseMode::Off;
+            }
+        }
+        let bypass_release =
+            button == MouseButton::Left && !pressed && self.shift_drag_bypass;
+        if bypass_release {
+            // The release belongs to the bypassed drag: finish the
+            // selection below (tracking-off path), then end the
+            // bypass.
+            self.shift_drag_bypass = false;
         }
 
         // Forward mouse events to the PTY via the typed MouseReport
         // emitter when tracking is active. Pre-M1 both loops forwarded
         // Left only; the unified engine forwards left/middle/right
         // with real modifier bits (Shift 4 / Meta 8 / Ctrl 16).
-        if mouse_mode != MouseMode::Off {
+        //
+        // Shift is the operator's escape hatch (xterm/kitty/ghostty
+        // convention): shift+click bypasses tracking and selects
+        // text terminal-side — without it, selection is impossible
+        // inside vim/tmux/htop (hunt finding 2026-06-11).
+        let shift_bypass = modifiers.shift && !self.behavior.mouse_shift_capture;
+        if mouse_mode != MouseMode::Off && !shift_bypass && !bypass_release {
             let report = MouseReport {
                 kind: if pressed {
                     MouseReportKind::Press
@@ -686,6 +751,20 @@ impl InputEngine {
                 mods: MouseMods::from(modifiers),
             };
             self.pty.write(&report.encode(sgr));
+            return EventOutcome::consumed();
+        }
+
+        // Middle-click pastes (kitty wires it to paste-from-selection
+        // on every platform; macOS has no primary selection so the
+        // clipboard is the source). Same PasteGuard path as the
+        // keyboard action.
+        if button == MouseButton::Middle {
+            if pressed {
+                let pasted = self.clipboard.paste_text().ok();
+                if let Some(text) = pasted {
+                    self.write_paste(&text);
+                }
+            }
             return EventOutcome::consumed();
         }
 
@@ -777,7 +856,9 @@ impl InputEngine {
         // (ButtonEvent) only while a button is held; 1003 (AnyEvent)
         // always, hover motion carrying the no-button code (35),
         // never a fabricated left-drag (32).
-        if matches!(mouse_mode, MouseMode::ButtonEvent | MouseMode::AnyEvent) {
+        if matches!(mouse_mode, MouseMode::ButtonEvent | MouseMode::AnyEvent)
+            && !self.shift_drag_bypass
+        {
             let forward = self.left_button_down || mouse_mode == MouseMode::AnyEvent;
             if forward && sgr {
                 let report = MouseReport {
@@ -815,7 +896,17 @@ impl InputEngine {
         let mouse_mode = term.mouse_mode();
         let sgr = term.sgr_mouse();
 
-        if mouse_mode != MouseMode::Off {
+        // Shift+wheel bypasses tracking and scrolls mado's scrollback
+        // (xterm/kitty/ghostty convention) — without it, scrollback
+        // is unreachable inside tmux/vim/htop. Wheel events carry no
+        // modifiers on the current madori pin; `last_mods` is fed by
+        // every key/button event, and pressing Shift itself emits a
+        // key event, so the cache is current by the time the wheel
+        // turns. (madori@972f296 adds Scroll.modifiers — switch when
+        // the shikumi pin unifies.)
+        if mouse_mode != MouseMode::Off
+            && !(self.last_mods.shift && !self.behavior.mouse_shift_capture)
+        {
             let term_cols = term.cols();
             let term_rows = term.rows();
             drop(term);
@@ -841,6 +932,29 @@ impl InputEngine {
 
         let lines = (dy as isize).unsigned_abs().max(1)
             * (self.behavior.mouse_scroll_multiplier as usize).max(1);
+
+        // Alternate-scroll (xterm mode 1007 semantics, default-on like
+        // kitty/ghostty): a full-screen TUI without mouse tracking has
+        // no scrollback to scroll — the wheel maps to arrow keys so
+        // less/vim/man scroll their CONTENT instead of the viewport
+        // no-op'ing. DECCKM picks the encoding the app negotiated.
+        if term.is_alternate_screen() {
+            drop(term);
+            let app_mode = (self.cursor_keys_mode)();
+            let seq: &[u8] = match (dy > 0.0, app_mode) {
+                (true, true) => b"\x1bOA",
+                (true, false) => b"\x1b[A",
+                (false, true) => b"\x1bOB",
+                (false, false) => b"\x1b[B",
+            };
+            let mut out = Vec::with_capacity(seq.len() * lines);
+            for _ in 0..lines {
+                out.extend_from_slice(seq);
+            }
+            self.pty.write(&out);
+            return EventOutcome::consumed();
+        }
+
         if dy > 0.0 {
             term.scroll_up(lines);
         } else {
@@ -855,7 +969,7 @@ impl InputEngine {
     /// emoji picker) to the PTY.
     pub fn on_ime_commit(&mut self, text: &str) -> EventOutcome {
         if !text.is_empty() {
-            self.pty.write(text.as_bytes());
+            self.write_key_input(text.as_bytes());
         }
         EventOutcome::consumed()
     }
@@ -1139,6 +1253,7 @@ mod tests {
                         confirm_close: false,
                         mouse_hide_while_typing: false,
                         mouse_scroll_multiplier: 1,
+                        mouse_shift_capture: false,
                     },
                     cursor_keys_mode,
                     default_font_size: 14.0,
@@ -1155,6 +1270,10 @@ mod tests {
                 control,
                 pane,
             }
+        }
+
+        fn clear_sent(&self) {
+            self.sent.lock().unwrap().clear();
         }
 
         fn feed(&self, bytes: &[u8]) {
@@ -1215,6 +1334,208 @@ mod tests {
         let out = h.key(KeyCode::Char('a'), Some("a"), no_mods());
         assert!(out.consumed);
         assert_eq!(h.sent_bytes(), vec![b"a".to_vec()]);
+    }
+
+    /// **Invariant: the operator's own keystroke snaps the view to
+    /// the live tail** (2026-06-11) — the input-layer half of the
+    /// scrollback-anchor contract. Output pins the view to content
+    /// (terminal.rs tests); typing is the ONE thing that brings the
+    /// viewport back to the prompt.
+    #[test]
+    fn typing_while_scrolled_snaps_view_to_bottom() {
+        let mut h = Harness::new(SinkKind::Closure);
+        for _ in 0..30 {
+            h.feed(b"line\r\n");
+        }
+        h.terminal.write().scroll_up(5);
+        assert_eq!(h.terminal.read().scroll_offset(), 5);
+        h.key(KeyCode::Char('a'), Some("a"), no_mods());
+        assert_eq!(
+            h.terminal.read().scroll_offset(),
+            0,
+            "a keystroke that sends bytes must snap to the live tail"
+        );
+        assert_eq!(h.sent_bytes(), vec![b"a".to_vec()]);
+    }
+
+    /// **Bare modifier presses must NOT clear the selection** —
+    /// winit synthesizes a key event for every Cmd/Shift press, and
+    /// clearing there made Cmd+C of a mouse selection structurally
+    /// dead (hunt finding 2026-06-11): the Cmd press wiped the
+    /// selection before the C arrived.
+    #[test]
+    fn bare_modifier_press_preserves_selection_so_cmd_c_works() {
+        let mut h = Harness::new(SinkKind::Closure);
+        h.feed(b"hello world");
+        // Mouse-select "hello" via drag.
+        h.button(MouseButton::Left, true, 0, 0, no_mods());
+        let (x1, y1) = h.cell_px(4, 0);
+        h.engine.on_mouse_moved(x1, y1, &h.renderer);
+        h.button(MouseButton::Left, false, 4, 0, no_mods());
+        assert!(h.engine.selection.lock().unwrap().is_active());
+
+        // The bare Cmd press (synthesized key event, no text).
+        let mut cmd_only = no_mods();
+        cmd_only.meta = true;
+        h.key(KeyCode::Unknown, None, cmd_only);
+        assert!(
+            h.engine.selection.lock().unwrap().is_active(),
+            "bare modifier press must not clear the selection"
+        );
+
+        // Copy still extracts it (via the action seam — the chord's
+        // dispatch path).
+        let out = h.engine.apply_action(Action::Copy, &mut h.renderer);
+        assert!(matches!(out, ActionOutcome::Consumed(_)));
+        assert_eq!(h.clipboard.paste_text().unwrap(), "hello");
+    }
+
+    /// Typing real input still clears the selection (it's about to
+    /// change the grid under it).
+    #[test]
+    fn typing_clears_selection() {
+        let mut h = Harness::new(SinkKind::Closure);
+        h.feed(b"hello world");
+        h.button(MouseButton::Left, true, 0, 0, no_mods());
+        h.button(MouseButton::Left, false, 0, 0, no_mods());
+        h.key(KeyCode::Char('x'), Some("x"), no_mods());
+        assert!(
+            !h.engine.selection.lock().unwrap().is_active(),
+            "byte-sending keystrokes clear the selection"
+        );
+    }
+
+    /// **Shift bypasses mouse tracking** (xterm/kitty/ghostty
+    /// contract): shift+click selects terminal-side and forwards
+    /// NOTHING; shift+wheel scrolls mado's scrollback.
+    #[test]
+    fn shift_click_and_wheel_bypass_mouse_tracking() {
+        let mut h = Harness::new(SinkKind::Closure);
+        for _ in 0..30 {
+            h.feed(b"line\r\n");
+        }
+        h.feed(b"\x1b[?1000h\x1b[?1006h"); // app enables tracking
+        let mut shift = no_mods();
+        shift.shift = true;
+
+        // shift+click: no report forwarded, selection starts.
+        h.button(MouseButton::Left, true, 2, 2, shift);
+        assert!(
+            h.sent_bytes().is_empty(),
+            "shift+click must not forward a mouse report"
+        );
+        h.button(MouseButton::Left, false, 2, 2, shift);
+
+        // shift held (cached from the button event) + wheel: scrolls
+        // scrollback instead of forwarding.
+        h.clear_sent();
+        let mut shift_key = no_mods();
+        shift_key.shift = true;
+        h.key(KeyCode::Unknown, None, shift_key); // bare Shift press updates the cache
+        h.engine.on_mouse_scroll(1.0, &h.renderer);
+        assert!(
+            h.sent_bytes().is_empty(),
+            "shift+wheel must not forward a mouse report"
+        );
+        assert!(
+            h.terminal.read().scroll_offset() > 0,
+            "shift+wheel scrolls mado's scrollback"
+        );
+    }
+
+    /// With `mouse_shift_capture` on, shift-modified clicks forward
+    /// to the app WITH the shift bit (4) — the operator opted the
+    /// bypass off.
+    #[test]
+    fn shift_capture_true_forwards_shift_clicks() {
+        let mut h = Harness::new(SinkKind::Closure);
+        h.engine.behavior.mouse_shift_capture = true;
+        h.feed(b"\x1b[?1000h\x1b[?1006h");
+        let mut shift = no_mods();
+        shift.shift = true;
+        h.button(MouseButton::Left, true, 0, 0, shift);
+        assert_eq!(
+            h.sent_bytes(),
+            vec![b"\x1b[<4;1;1M".to_vec()],
+            "captured shift click forwards with bit 4"
+        );
+    }
+
+    /// Middle-click pastes via the guarded path (PasteGuard +
+    /// bracketed framing).
+    #[test]
+    fn middle_click_pastes_guarded() {
+        let mut h = Harness::new(SinkKind::Closure);
+        h.clipboard.copy_text("from-selection").unwrap();
+        h.button(MouseButton::Middle, true, 1, 1, no_mods());
+        let sent = h.sent_bytes().concat();
+        assert_eq!(sent, b"from-selection");
+    }
+
+    /// Keystrokes inside an alt-screen TUI must NOT zero the saved
+    /// primary-screen scroll position — 'q' out of a pager returns
+    /// the operator to where they were reading.
+    #[test]
+    fn alt_screen_keystroke_preserves_primary_scroll_offset() {
+        let mut h = Harness::new(SinkKind::Closure);
+        for _ in 0..30 {
+            h.feed(b"line\r\n");
+        }
+        h.terminal.write().scroll_up(5);
+        h.feed(b"\x1b[?1049h"); // pager opens
+        h.key(KeyCode::Char('q'), Some("q"), no_mods());
+        h.feed(b"\x1b[?1049l"); // pager exits
+        assert_eq!(
+            h.terminal.read().scroll_offset(),
+            5,
+            "typing in the alt screen must not discard the primary reading position"
+        );
+    }
+
+    /// Mouse reports are NOT operator look-at-the-prompt intent —
+    /// wheel forwarding in mouse-tracking mode must not move a
+    /// scrolled primary viewport. (Guards the write_key_input /
+    /// pty.write split.)
+    #[test]
+    fn mouse_report_does_not_snap_view_to_bottom() {
+        let mut h = Harness::new(SinkKind::Closure);
+        for _ in 0..30 {
+            h.feed(b"line\r\n");
+        }
+        h.terminal.write().scroll_up(7);
+        // Enable mouse tracking so the wheel forwards reports.
+        h.feed(b"\x1b[?1000h\x1b[?1006h");
+        h.engine.on_mouse_scroll(1.0, &h.renderer);
+        assert_eq!(
+            h.terminal.read().scroll_offset(),
+            7,
+            "forwarded mouse reports must not move the operator's view"
+        );
+    }
+
+    /// **Alternate-scroll** (xterm 1007 semantics, default-on like
+    /// kitty/ghostty): wheel in a full-screen TUI without mouse
+    /// tracking maps to arrow keys — DECCKM picks CSI vs SS3 — so
+    /// less/man scroll content instead of a no-op.
+    #[test]
+    fn wheel_in_alt_screen_sends_arrow_keys() {
+        let mut h = Harness::new(SinkKind::Closure);
+        h.feed(b"\x1b[?1049h"); // alt screen, no mouse tracking
+        h.engine.on_mouse_scroll(1.0, &h.renderer);
+        let sent = h.sent_bytes().concat();
+        assert!(
+            !sent.is_empty() && sent.chunks(3).all(|c| c == b"\x1b[A"),
+            "wheel-up in alt screen must emit CSI A repeats: {sent:?}"
+        );
+        // Application cursor-keys mode flips the encoding to SS3.
+        h.feed(b"\x1b[?1h");
+        h.clear_sent();
+        h.engine.on_mouse_scroll(-1.0, &h.renderer);
+        let sent = h.sent_bytes().concat();
+        assert!(
+            !sent.is_empty() && sent.chunks(3).all(|c| c == b"\x1bOB"),
+            "wheel-down under DECCKM must emit SS3 B repeats: {sent:?}"
+        );
     }
 
     #[test]
@@ -1328,19 +1649,23 @@ mod tests {
         let mut h = Harness::new(SinkKind::Closure);
         // Normal tracking (1000) + SGR (1006).
         h.feed(b"\x1b[?1000h\x1b[?1006h");
+        // Ctrl-only (bit 16): shift-modified clicks are the operator
+        // bypass by default (mouse_shift_capture=false) and never
+        // reach the app — shift-bit coverage lives in
+        // `shift_capture_true_forwards_shift_clicks`.
         let mods = Modifiers {
             ctrl: true,
             alt: false,
-            shift: true,
+            shift: false,
             meta: false,
         };
-        // The spec row: middle+shift+ctrl at 0-based cell (40,12) →
-        // button 1 + 4 + 16 = 21, coords 41;13. Left → 20, Right → 22.
+        // middle+ctrl at 0-based cell (40,12) → button 1 + 16 = 17,
+        // coords 41;13. Left → 16, Right → 18.
         let mut failures: Vec<String> = Vec::new();
         for (button, press, release) in [
-            (MouseButton::Left, &b"\x1b[<20;41;13M"[..], &b"\x1b[<20;41;13m"[..]),
-            (MouseButton::Middle, &b"\x1b[<21;41;13M"[..], &b"\x1b[<21;41;13m"[..]),
-            (MouseButton::Right, &b"\x1b[<22;41;13M"[..], &b"\x1b[<22;41;13m"[..]),
+            (MouseButton::Left, &b"\x1b[<16;41;13M"[..], &b"\x1b[<16;41;13m"[..]),
+            (MouseButton::Middle, &b"\x1b[<17;41;13M"[..], &b"\x1b[<17;41;13m"[..]),
+            (MouseButton::Right, &b"\x1b[<18;41;13M"[..], &b"\x1b[<18;41;13m"[..]),
         ] {
             h.drain_sent();
             h.button(button, true, 40, 12, mods);
