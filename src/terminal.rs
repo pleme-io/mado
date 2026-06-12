@@ -401,29 +401,32 @@ impl Cell {
     /// Resolved style triple — one table lookup. Hot paths (render
     /// snapshot walk) use this once per cell; the per-field accessors
     /// below are the convenience surface for single-field reads.
+    /// Polymorphic over [`StyleLookup`] so read paths work against
+    /// the live [`StyleTable`] AND the renderer's per-frame
+    /// [`StyleSnapshot`] without conversion.
     #[must_use]
-    pub fn style(&self, styles: &StyleTable) -> Style {
+    pub fn style(&self, styles: &impl StyleLookup) -> Style {
         styles.lookup(self.style_id)
     }
 
     /// Foreground colour, resolved through the owning [`StyleTable`].
     #[must_use]
     #[allow(dead_code)] // Per-field accessor surface — tests + future consumers.
-    pub fn fg(&self, styles: &StyleTable) -> Color {
+    pub fn fg(&self, styles: &impl StyleLookup) -> Color {
         self.style(styles).fg
     }
 
     /// Background colour, resolved through the owning [`StyleTable`].
     #[must_use]
     #[allow(dead_code)] // Per-field accessor surface — tests + future consumers.
-    pub fn bg(&self, styles: &StyleTable) -> Color {
+    pub fn bg(&self, styles: &impl StyleLookup) -> Color {
         self.style(styles).bg
     }
 
     /// Wide typed attributes, resolved through the owning [`StyleTable`].
     #[must_use]
     #[allow(dead_code)] // Per-field accessor surface — tests + future consumers.
-    pub fn attrs(&self, styles: &StyleTable) -> Attrs {
+    pub fn attrs(&self, styles: &impl StyleLookup) -> Attrs {
         self.style(styles).attrs
     }
 
@@ -623,6 +626,54 @@ impl StyleTable {
     pub fn len(&self) -> usize {
         self.styles.len()
     }
+
+    /// Lightweight read-only capture for the per-frame render path:
+    /// JUST the id → [`Style`] vector. The `by_style` intern index
+    /// (the expensive half of a full clone — per-entry heap layout,
+    /// SwissTable control bytes, load-factor slack) is producer-side
+    /// state the snapshot consumer never reads, and a style-heavy
+    /// stream can park the table near its 65,535-entry cap until the
+    /// NEXT saturation gc — so a full clone per frame ratchets up
+    /// and never comes back down.
+    #[must_use]
+    pub fn snapshot(&self) -> StyleSnapshot {
+        StyleSnapshot {
+            styles: self.styles.clone(),
+        }
+    }
+}
+
+/// Read-only resolution surface shared by the live [`StyleTable`]
+/// and the per-frame [`StyleSnapshot`] — [`Cell::style`] /
+/// [`Cell::fg`] / [`Cell::bg`] / [`Cell::attrs`] accept either.
+pub trait StyleLookup {
+    /// Resolve an interned id back to its [`Style`] (default style
+    /// for out-of-bounds ids, defensively).
+    fn lookup(&self, id: u16) -> Style;
+}
+
+impl StyleLookup for StyleTable {
+    fn lookup(&self, id: u16) -> Style {
+        StyleTable::lookup(self, id)
+    }
+}
+
+/// Per-frame immutable capture of a [`StyleTable`]'s id → [`Style`]
+/// mapping — see [`StyleTable::snapshot`]. This is what the render
+/// [`Snapshot`](crate::render) stores: lock-free reads at exactly
+/// the clone cost the frame needs.
+#[derive(Debug, Clone)]
+pub struct StyleSnapshot {
+    styles: Vec<Style>,
+}
+
+impl StyleLookup for StyleSnapshot {
+    fn lookup(&self, id: u16) -> Style {
+        self.styles
+            .get(id as usize)
+            .copied()
+            .unwrap_or_default()
+    }
 }
 
 /// Interning table mapping hyperlink URIs (OSC 8) ↔ `u16` link ids.
@@ -651,21 +702,72 @@ impl LinkTable {
     }
 
     /// Intern a URI: return the existing id or allocate a new one.
-    /// Saturation (> u16::MAX - 1 distinct URIs in one session)
-    /// degrades to NO_LINK_ID — the cell renders unlinked rather
-    /// than mislinked.
-    pub fn intern(&mut self, uri: &str) -> u16 {
+    /// Returns `None` when the table is full AND the URI is not
+    /// already present — the owner's signal to gc + retry (mirror of
+    /// [`StyleTable::try_intern`]).
+    pub fn try_intern(&mut self, uri: &str) -> Option<u16> {
         if let Some(&id) = self.by_uri.get(uri) {
-            return id;
+            return Some(id);
         }
         let next = self.links.len() + 1;
         if next > u16::MAX as usize {
-            return NO_LINK_ID;
+            return None;
         }
         let arc: std::sync::Arc<str> = std::sync::Arc::from(uri);
         self.links.push(std::sync::Arc::clone(&arc));
         self.by_uri.insert(arc, next as u16);
-        next as u16
+        Some(next as u16)
+    }
+
+    /// Intern a URI with the saturation degradation: a full table
+    /// (> u16::MAX - 1 distinct URIs alive) yields NO_LINK_ID — the
+    /// cell renders unlinked rather than mislinked. The Terminal's
+    /// [`Terminal::intern_link`] gc-then-retry wrapper runs FIRST, so
+    /// this terminal fallback only engages when the live set itself
+    /// exceeds capacity.
+    pub fn intern(&mut self, uri: &str) -> u16 {
+        self.try_intern(uri).unwrap_or(NO_LINK_ID)
+    }
+
+    /// Rebuild the table keeping only `live` ids. Returns the
+    /// old-id → new-id remap the owner applies to every live cell's
+    /// `link_id` (mirror of [`StyleTable::gc`] — without it, one
+    /// `ls --hyperlink` over a 65K-file tree permanently disabled
+    /// new hyperlinks for the session). NO_LINK_ID maps to itself;
+    /// ids absent from the remap must no longer be referenced.
+    pub fn gc(
+        &mut self,
+        live: &std::collections::HashSet<u16>,
+    ) -> std::collections::HashMap<u16, u16> {
+        let old_links = std::mem::take(&mut self.links);
+        self.by_uri.clear();
+
+        let mut remap = std::collections::HashMap::with_capacity(live.len() + 1);
+        remap.insert(NO_LINK_ID, NO_LINK_ID);
+
+        // Deterministic rebuild order (sorted old ids) so two gc runs
+        // over the same live set produce identical tables.
+        let mut ids: Vec<u16> = live
+            .iter()
+            .copied()
+            .filter(|&id| id != NO_LINK_ID)
+            .collect();
+        ids.sort_unstable();
+        for old_id in ids {
+            let Some(arc) = old_links.get(old_id as usize - 1) else {
+                continue;
+            };
+            let next = self.links.len() + 1;
+            if next > u16::MAX as usize {
+                // Live set itself exceeds capacity — the remaining
+                // ids degrade to NO_LINK_ID via the remap miss path.
+                break;
+            }
+            self.links.push(std::sync::Arc::clone(arc));
+            self.by_uri.insert(std::sync::Arc::clone(arc), next as u16);
+            remap.insert(old_id, next as u16);
+        }
+        remap
     }
 
     /// Resolve a link id back to its URI. `NO_LINK_ID` (and any
@@ -772,12 +874,37 @@ impl Line {
 /// sits on plus the physical-row offset INTO that line (0 = the
 /// line's first physical row). Invariant under rewrap — reflow
 /// changes how many physical rows a logical line occupies, but the
-/// `(id, offset)` pair re-resolves through
-/// [`Grid::physical_row_of`] after the new layout lands.
+/// anchor re-resolves through [`Grid::physical_row_of`] after the
+/// new layout lands.
+///
+/// `run_index` disambiguates marker-broken lines: an erase that
+/// reaches the right edge breaks the soft-wrap marker
+/// ([`Grid::erase_cells`]) while both halves keep the shared
+/// logical id — the rewrap then treats them as two separate
+/// ADJACENT runs. Without the run index, an anchor on the second
+/// half would resolve onto the (erased) first half after a reflow.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct MarkAnchor {
     pub(crate) logical_id: LogicalLineId,
+    /// Which marker-contiguous run of `logical_id` the row sits in
+    /// (0 = the id's first run; see [`Grid::line_runs`]).
+    pub(crate) run_index: usize,
     pub(crate) row_offset: usize,
+}
+
+/// Cell-precise sibling of [`MarkAnchor`] — anchors a `(row, col)`
+/// position (the cursor, the DECSC saved cursor) through a rewrap by
+/// its CELL offset into the logical line. Cell precision beats
+/// row-only: when the column count changes, `row_offset * old_cols +
+/// col` re-derives both the new physical row AND the new column from
+/// the new width ([`Grid::resolve_cell_anchor`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct CellAnchor {
+    logical_id: LogicalLineId,
+    /// Same run disambiguation as [`MarkAnchor::run_index`].
+    run_index: usize,
+    /// `row_offset_in_line * cols + col` at capture time.
+    cell_offset: usize,
 }
 
 // ---------------------------------------------------------------------------
@@ -875,56 +1002,107 @@ impl Grid {
         &mut self.visible_row_mut(row)[col]
     }
 
-    /// Absolute index of the FIRST physical row of the logical line
-    /// `abs_row` belongs to (walk back over wrapped predecessors with
-    /// the same id).
-    fn line_start(&self, abs_row: usize) -> usize {
-        let mut r = abs_row;
-        while r > 0
-            && self.rows[r - 1].wrapped
-            && self.rows[r - 1].logical_id == self.rows[r].logical_id
-        {
-            r -= 1;
+    /// The marker-contiguous physical runs of logical line `id`, in
+    /// order: each `(first, last)` is one maximal group of rows
+    /// sharing `id` whose non-final rows carry `wrapped == true`.
+    /// Multiple runs of one id exist when an erase broke the
+    /// soft-wrap marker mid-line ([`Self::erase_cells`]) — the
+    /// rewrap keeps them as separate ADJACENT row groups, so anchor
+    /// resolution must walk the same run boundaries. This is the ONE
+    /// run-walk shared by [`Self::anchor_at`] /
+    /// [`Self::physical_row_of`] / [`Self::resolve_cell_anchor`] —
+    /// capture and resolution cannot disagree about run boundaries
+    /// (id match AND marker-contiguity) because there is only one
+    /// definition of them.
+    fn line_runs(&self, id: LogicalLineId) -> Vec<(usize, usize)> {
+        let mut runs: Vec<(usize, usize)> = Vec::new();
+        let mut start: Option<usize> = None;
+        for (i, line) in self.rows.iter().enumerate() {
+            if line.logical_id == id {
+                if start.is_none() {
+                    start = Some(i);
+                }
+                if !line.wrapped {
+                    runs.push((start.take().expect("run start set above"), i));
+                }
+            } else {
+                if let Some(s) = start.take() {
+                    // Dangling wrap marker at the span end (scroll-
+                    // region surgery) — close the run at its last row.
+                    runs.push((s, i - 1));
+                }
+                if !runs.is_empty() {
+                    // Same-id spans occupy contiguous physical rows;
+                    // once past the span there is nothing left to find.
+                    break;
+                }
+            }
         }
-        r
+        if let Some(s) = start {
+            // Dangling wrap marker at the buffer end.
+            runs.push((s, self.rows.len() - 1));
+        }
+        runs
     }
 
     /// Logical anchor of the physical row `abs_row` — `(logical id,
-    /// offset of abs_row within its logical line)`. `None` when the
-    /// row is out of bounds.
+    /// run index, offset of abs_row within its run)`. `None` when
+    /// the row is out of bounds.
     fn anchor_at(&self, abs_row: usize) -> Option<MarkAnchor> {
         if abs_row >= self.rows.len() {
             return None;
         }
-        let start = self.line_start(abs_row);
+        let id = self.rows[abs_row].logical_id;
+        let runs = self.line_runs(id);
+        let run_index = runs
+            .iter()
+            .position(|&(f, l)| f <= abs_row && abs_row <= l)
+            .unwrap_or(0);
+        let start = runs.get(run_index).map_or(abs_row, |&(f, _)| f);
         Some(MarkAnchor {
-            logical_id: self.rows[abs_row].logical_id,
+            logical_id: id,
+            run_index,
             row_offset: abs_row - start,
         })
     }
 
-    /// Resolve a [`MarkAnchor`]'s `(logical_id, row_offset)` back to
-    /// an absolute physical row. O(rows) scan — rows are bounded by
-    /// visible + scrollback cap. An offset past the line's surviving
-    /// rows clamps to the line's LAST physical row (the line head may
-    /// have been evicted). Returns `None` when no physical row with
-    /// that logical id remains — the caller garbage-collects the mark.
-    fn physical_row_of(&self, logical_id: LogicalLineId, row_offset: usize) -> Option<usize> {
-        let mut first: Option<usize> = None;
-        let mut last = 0usize;
-        for (i, line) in self.rows.iter().enumerate() {
-            if line.logical_id == logical_id {
-                if first.is_none() {
-                    first = Some(i);
-                }
-                last = i;
-            } else if first.is_some() {
-                // Logical lines occupy contiguous physical runs.
-                break;
-            }
+    /// Cell-precise anchor of `(abs_row, col)` — see [`CellAnchor`].
+    fn cell_anchor_at(&self, abs_row: usize, col: usize) -> Option<CellAnchor> {
+        let a = self.anchor_at(abs_row)?;
+        Some(CellAnchor {
+            logical_id: a.logical_id,
+            run_index: a.run_index,
+            cell_offset: a.row_offset * self.cols + col.min(self.cols),
+        })
+    }
+
+    /// Resolve a [`MarkAnchor`] back to an absolute physical row.
+    /// O(rows) scan — rows are bounded by visible + scrollback cap.
+    /// A run index past the surviving runs clamps to the id's LAST
+    /// run; an offset past the run's surviving rows clamps to the
+    /// run's LAST physical row (the line head may have been
+    /// evicted). Returns `None` when no physical row with that
+    /// logical id remains — the caller garbage-collects the mark.
+    fn physical_row_of(&self, anchor: MarkAnchor) -> Option<usize> {
+        let runs = self.line_runs(anchor.logical_id);
+        let &(first, last) = runs.get(anchor.run_index).or_else(|| runs.last())?;
+        Some((first + anchor.row_offset).min(last))
+    }
+
+    /// Resolve a [`CellAnchor`] back to an absolute `(row, col)`
+    /// under the CURRENT column width — the cell offset re-derives
+    /// both coordinates, which is what carries the cursor through a
+    /// rewrap. Clamps like [`Self::physical_row_of`]; an offset past
+    /// the run's surviving cells parks at the run's last cell.
+    fn resolve_cell_anchor(&self, anchor: CellAnchor) -> Option<(usize, usize)> {
+        let runs = self.line_runs(anchor.logical_id);
+        let &(first, last) = runs.get(anchor.run_index).or_else(|| runs.last())?;
+        let row = first + anchor.cell_offset / self.cols.max(1);
+        if row <= last {
+            Some((row, anchor.cell_offset % self.cols.max(1)))
+        } else {
+            Some((last, self.cols.saturating_sub(1)))
         }
-        let first = first?;
-        Some((first + row_offset).min(last))
     }
 
     /// Scroll the region [top..=bottom] up by one line.
@@ -1074,10 +1252,21 @@ impl Grid {
     ///      row keeps the run's [`LogicalLineId`].
     ///   3. SETTLE — pad blank rows (fresh ids) at the back until the
     ///      visible area is full; trim trailing blank rows beyond the
-    ///      visible area (so blank tails don't masquerade as
-    ///      scrollback); evict from the FRONT if the scrollback cap
+    ///      visible area ONLY while the pre-rewrap viewport-top line
+    ///      stays at the viewport top (so blank tails the reflow
+    ///      displaced don't masquerade as scrollback, while the trim
+    ///      can never pull scrollback content into the viewport —
+    ///      the post-`clear` blanks below the cursor are legitimate
+    ///      screen rows); evict from the FRONT if the scrollback cap
     ///      is exceeded.
     fn rewrap_to_cols(&mut self, new_cols: usize) {
+        // SETTLE anchor: the live viewport-top row's logical anchor,
+        // captured BEFORE the reflow. The trim below stops once this
+        // line is back at the viewport top — trimming further would
+        // backfill the viewport from scrollback (clear-then-resize
+        // corruption, review finding 2026-06-12).
+        let settle_anchor = self.anchor_at(self.scrollback_len());
+
         let old_rows = std::mem::take(&mut self.rows);
         let mut new_rows: VecDeque<Line> = VecDeque::with_capacity(old_rows.len());
 
@@ -1089,22 +1278,39 @@ impl Grid {
             let mut cur = first;
             loop {
                 if cur.wrapped {
-                    // Non-final row of the run: full payload is content.
-                    run.extend(cur.cells);
+                    // Non-final row of the run: the payload is content,
+                    // EXCEPT a single trailing default cell left by the
+                    // wide-char early wrap (put_char wraps a width-2
+                    // glyph that doesn't fit, never writing the last
+                    // column). Detect by the continuation row leading
+                    // with a width-2 cell; drop AT MOST ONE spacer so
+                    // it can't become interior content in the reflow.
                     match iter.next() {
                         // Continuations share the logical id by
                         // construction; an id mismatch means scroll-
                         // region surgery left a dangling wrap marker —
                         // end the run, the next row starts its own.
-                        Some(next) if next.logical_id == logical_id => cur = next,
+                        Some(next) if next.logical_id == logical_id => {
+                            let mut cells = cur.cells;
+                            if next.cells.first().is_some_and(|c| c.width == 2)
+                                && cells.last().is_some_and(|c| *c == Cell::default())
+                            {
+                                cells.pop();
+                            }
+                            run.extend(cells);
+                            cur = next;
+                        }
                         Some(next) => {
+                            run.extend(cur.cells);
                             pending = Some(next);
                             break;
                         }
                         // Dangling wrap marker at the buffer end —
-                        // treat the (already-consumed) cells as the
-                        // whole run.
-                        None => break,
+                        // treat the cells as the whole run.
+                        None => {
+                            run.extend(cur.cells);
+                            break;
+                        }
                     }
                 } else {
                     // Final row: trailing default cells are padding.
@@ -1128,7 +1334,17 @@ impl Grid {
             let id = self.fresh_id();
             self.rows.push_back(Line::blank(new_cols, id));
         }
-        while self.rows.len() > self.visible_rows
+        // Trim floor: keep the pre-rewrap viewport-top line AT the
+        // viewport top. rows.len() may not drop below anchor_row +
+        // visible_rows, so the trim only drops blank rows the reflow
+        // pushed PAST the viewport (content grew into them) — it can
+        // never promote scrollback into view. When the anchor can't
+        // resolve (its line was evicted), fall back to the plain
+        // visible floor.
+        let trim_floor = settle_anchor
+            .and_then(|a| self.physical_row_of(a))
+            .map_or(self.visible_rows, |row| row + self.visible_rows);
+        while self.rows.len() > self.visible_rows.max(trim_floor)
             && self.rows.back().is_some_and(Line::is_blank_unwrapped)
         {
             self.rows.pop_back();
@@ -1497,6 +1713,15 @@ pub struct Terminal {
     // Damage tracking
     seqno: u64,
 
+    /// Grid-geometry generation — bumped by every effective
+    /// [`Self::resize`] (rewrap or truncate; both renumber absolute
+    /// rows). Consumers caching absolute grid rows (the search
+    /// engine's match list, future placement caches) compare this and
+    /// re-derive on change. Monotonic per Terminal value; a RIS
+    /// rebuild restarts it at 0, which still reads as "changed" to
+    /// any consumer holding a non-zero generation.
+    grid_generation: u64,
+
     // Tab stops
     tab_stops: Vec<bool>,
 
@@ -1703,6 +1928,7 @@ impl Terminal {
             sgr_mouse: false,
             scroll_offset: 0,
             seqno: 0,
+            grid_generation: 0,
             tab_stops,
             response_bytes: Vec::new(),
             synchronized_output: false,
@@ -1826,6 +2052,63 @@ impl Terminal {
         tracing::debug!(
             live_styles = self.style_table.len(),
             "style table gc — rebuilt from live grid references"
+        );
+    }
+
+    /// Intern a hyperlink URI with the gc-then-retry overflow policy
+    /// (mirror of [`Self::intern_style`]): on a saturated table,
+    /// garbage-collect against the link ids still referenced by live
+    /// cells (both grids incl. scrollback), remap every cell, and
+    /// retry. Only if the LIVE set itself exceeds capacity does the
+    /// NO_LINK_ID degradation engage — unlinked, never mislinked.
+    fn intern_link(&mut self, uri: &str) -> u16 {
+        if let Some(id) = self.link_table.try_intern(uri) {
+            return id;
+        }
+        self.gc_link_table();
+        self.link_table.intern(uri)
+    }
+
+    /// Rebuild the link table from the ids referenced by live cells
+    /// (plus the active pen link) and remap every cell's `link_id`
+    /// accordingly.
+    fn gc_link_table(&mut self) {
+        let mut live: std::collections::HashSet<u16> =
+            std::collections::HashSet::new();
+        for grid in [&self.primary, &self.alternate] {
+            for row in &grid.rows {
+                for cell in &row.cells {
+                    if cell.link_id != NO_LINK_ID {
+                        live.insert(cell.link_id);
+                    }
+                }
+            }
+        }
+        if self.active_link_id != NO_LINK_ID {
+            live.insert(self.active_link_id);
+        }
+        let remap = self.link_table.gc(&live);
+        for grid in [&mut self.primary, &mut self.alternate] {
+            for row in &mut grid.rows {
+                for cell in row.cells.iter_mut() {
+                    if cell.link_id != NO_LINK_ID {
+                        cell.link_id = remap
+                            .get(&cell.link_id)
+                            .copied()
+                            .unwrap_or(NO_LINK_ID);
+                    }
+                }
+            }
+        }
+        if self.active_link_id != NO_LINK_ID {
+            self.active_link_id = remap
+                .get(&self.active_link_id)
+                .copied()
+                .unwrap_or(NO_LINK_ID);
+        }
+        tracing::debug!(
+            live_links = self.link_table.len(),
+            "link table gc — rebuilt from live grid references"
         );
     }
 
@@ -2043,12 +2326,49 @@ impl Terminal {
         // from the CURRENT physical layout first (the cached grid_row
         // is exact truth right now; stored anchors may have gone
         // stale across partial-line evictions), then re-resolved
-        // against the new layout after.
+        // against the new layout after. The cursor, the DECSC saved
+        // cursor, Kitty image placements, and a scrolled-up viewport
+        // ride the SAME bridge — every grid-row-referencing state
+        // crosses the rewrap as (LogicalLineId, run, offset), never
+        // as a raw row number.
         let rewrap = self.reflow_on_resize && cols != self.cols;
+        let mut cursor_anchor: Option<CellAnchor> = None;
+        let mut saved_cursor_anchor: Option<CellAnchor> = None;
+        let mut placement_anchors: Option<Vec<Option<MarkAnchor>>> = None;
+        let mut view_anchor: Option<MarkAnchor> = None;
         if rewrap {
             let grid = &self.primary;
             self.prompt_marks.refresh_anchors(|row| grid.anchor_at(row));
             self.user_marks.refresh_anchors(|row| grid.anchor_at(row));
+            // Cursor + placements live in PRIMARY visible coordinates;
+            // when the alt screen is active they belong to the alt
+            // grid (which truncates, keeping its row numbering) and
+            // keep the numeric clamp below.
+            if !self.use_alternate {
+                cursor_anchor = grid
+                    .cell_anchor_at(grid.scrollback_len() + self.cursor.row, self.cursor.col);
+                placement_anchors = Some(
+                    self.image_placements
+                        .iter()
+                        .map(|p| grid.anchor_at(grid.scrollback_len() + p.row))
+                        .collect(),
+                );
+            }
+            // The primary DECSC saved cursor always re-anchors (it is
+            // primary-screen state even while the alt screen shows);
+            // the alt's saved cursor never does — the alt grid
+            // truncates.
+            saved_cursor_anchor = self.saved_cursor.as_ref().and_then(|s| {
+                grid.cell_anchor_at(grid.scrollback_len() + s.row, s.col)
+            });
+            // Content-pin a scrolled-up viewport: anchor the viewport
+            // TOP row so the operator keeps reading the same content
+            // after the reflow renumbers every physical row (same
+            // contract as scroll_grid_up's streaming-output pinning).
+            if self.scroll_offset > 0 {
+                view_anchor =
+                    grid.anchor_at(grid.scrollback_len().saturating_sub(self.scroll_offset));
+            }
         }
 
         self.primary.resize(cols, rows, self.reflow_on_resize);
@@ -2056,10 +2376,47 @@ impl Terminal {
 
         if rewrap {
             let grid = &self.primary;
-            self.prompt_marks
-                .reanchor(|a| grid.physical_row_of(a.logical_id, a.row_offset));
-            self.user_marks
-                .reanchor(|a| grid.physical_row_of(a.logical_id, a.row_offset));
+            self.prompt_marks.reanchor(|a| grid.physical_row_of(a));
+            self.user_marks.reanchor(|a| grid.physical_row_of(a));
+            let sb = grid.scrollback_len();
+            if let Some((abs_row, col)) =
+                cursor_anchor.and_then(|a| grid.resolve_cell_anchor(a))
+            {
+                self.cursor.row = abs_row.saturating_sub(sb);
+                self.cursor.col = col;
+            }
+            if let Some((abs_row, col)) =
+                saved_cursor_anchor.and_then(|a| grid.resolve_cell_anchor(a))
+            {
+                if let Some(s) = self.saved_cursor.as_mut() {
+                    s.row = abs_row.saturating_sub(sb);
+                    s.col = col.min(cols.saturating_sub(1));
+                }
+            }
+            if let Some(anchors) = placement_anchors {
+                let mut anchors = anchors.into_iter();
+                self.image_placements.retain_mut(|p| {
+                    match anchors
+                        .next()
+                        .flatten()
+                        .and_then(|a| grid.physical_row_of(a))
+                    {
+                        // Placement rows are visible-relative (the
+                        // creation site stores cursor.row; the render
+                        // path draws at row * cell_height) — drop
+                        // placements whose line vanished or slid out
+                        // of the visible area.
+                        Some(abs_row) if abs_row >= sb && abs_row - sb < rows => {
+                            p.row = abs_row - sb;
+                            true
+                        }
+                        _ => false,
+                    }
+                });
+            }
+            if let Some(row) = view_anchor.and_then(|a| grid.physical_row_of(a)) {
+                self.scroll_offset = sb.saturating_sub(row);
+            }
         }
 
         self.cols = cols;
@@ -2073,13 +2430,22 @@ impl Terminal {
             self.tab_stops[i] = true;
         }
 
-        // Clamp cursor
+        // Clamp cursor (bounds the re-anchored values too)
         self.cursor.row = self.cursor.row.min(rows.saturating_sub(1));
         self.cursor.col = self.cursor.col.min(cols.saturating_sub(1));
         self.wrap_pending = false;
         // Rewrap can change the scrollback row count out from under a
         // scrolled-up viewport — clamp so the offset stays addressable.
-        self.scroll_offset = self.scroll_offset.min(self.grid().scrollback_len());
+        // ALWAYS against the PRIMARY grid: the offset is primary-
+        // viewport state, and the alt grid's scrollback_len() is a
+        // constant 0 — clamping against it while the alt screen is
+        // active would zero a pinned reading position (review finding
+        // 2026-06-12).
+        self.scroll_offset = self.scroll_offset.min(self.primary.scrollback_len());
+        // Geometry changed — absolute-row consumers (search matches,
+        // anything caching grid rows) must re-derive. See
+        // `grid_generation`.
+        self.grid_generation = self.grid_generation.wrapping_add(1);
         self.dirty();
 
         tracing::debug!(cols, rows, rewrap, "terminal resized");
@@ -2116,6 +2482,14 @@ impl Terminal {
     #[must_use]
     pub fn seqno(&self) -> u64 {
         self.seqno
+    }
+
+    /// Grid-geometry generation — see the field doc. The UX engine's
+    /// per-tick reconciler re-runs the active search when this
+    /// changes (absolute match rows are stale after any resize).
+    #[must_use]
+    pub fn grid_generation(&self) -> u64 {
+        self.grid_generation
     }
 
     /// Whether the application has set DEC mode 2026 (synchronized
@@ -2407,7 +2781,8 @@ impl Terminal {
         self.active_link_id = if uri.is_empty() {
             NO_LINK_ID
         } else {
-            self.link_table.intern(uri.as_ref())
+            let uri = uri.into_owned();
+            self.intern_link(&uri)
         };
     }
 
@@ -2761,7 +3136,14 @@ impl Terminal {
         let max_scrollback = self.primary.max_scrollback;
         let default_fg = self.default_fg;
         let default_bg = self.default_bg;
-        let ansi_colors = self.ansi_colors;
+        // RIS palette policy: only the theme-owned base 16 survive —
+        // indices 16..=255 return to the computed cube/grayscale
+        // defaults, so an app's OSC 4 overrides of the extended
+        // palette cannot outlive `reset` (xterm/kitty restore the
+        // configured palette on RIS; an operator's `reset` after a
+        // crashed app must actually restore colors).
+        let mut ansi_colors = default_palette_256();
+        ansi_colors[..16].copy_from_slice(&self.ansi_colors[..16]);
         // Operator config, not VT state — survives RIS like the
         // scrollback cap does (M2: behavior.reflow_on_resize).
         let reflow_on_resize = self.reflow_on_resize;
@@ -3289,6 +3671,27 @@ impl Terminal {
         grid.rows[cur_abs].logical_id = id;
     }
 
+    /// DECAWM autowrap row advance — `newline()` plus the soft-wrap
+    /// stamp, gated on the cursor actually reaching a fresh next row.
+    /// The stamp's contract is "mark the row the text wrapped FROM
+    /// onto the row it wraps TO": that holds when the cursor advanced
+    /// one row, and when a scroll at the region bottom made room (the
+    /// wrapped-from row now sits directly above the cursor). When the
+    /// cursor sits BELOW an active DECSTBM region, `newline()` scrolls
+    /// the region WITHOUT moving the cursor — stamping there would
+    /// mark an unrelated row above the cursor wrapped and overwrite
+    /// the cursor row's logical id (review finding 2026-06-12).
+    fn wrap_to_next_row(&mut self) {
+        let row_before = self.cursor.row;
+        self.newline();
+        let advanced = self.cursor.row == row_before + 1;
+        let scrolled_at_bottom =
+            self.cursor.row == row_before && row_before == self.scroll_bottom;
+        if advanced || scrolled_at_bottom {
+            self.stamp_soft_wrap();
+        }
+    }
+
     fn put_char(&mut self, ch: char) {
         let char_width = UnicodeWidthChar::width(ch).unwrap_or(1);
 
@@ -3296,16 +3699,14 @@ impl Terminal {
         if self.wrap_pending {
             self.wrap_pending = false;
             self.cursor.col = 0;
-            self.newline();
-            self.stamp_soft_wrap();
+            self.wrap_to_next_row();
         }
 
         // Wide chars need 2 columns — wrap early if they won't fit
         if char_width == 2 && self.cursor.col + 1 >= self.cols {
             if self.auto_wrap {
                 self.cursor.col = 0;
-                self.newline();
-                self.stamp_soft_wrap();
+                self.wrap_to_next_row();
             } else {
                 self.dirty();
                 return;
@@ -3584,6 +3985,9 @@ impl Terminal {
                 7 => self.pen_attrs.flags.insert(AttrFlags::INVERSE),
                 8 => self.pen_attrs.flags.insert(AttrFlags::HIDDEN),
                 9 => self.pen_attrs.flags.insert(AttrFlags::STRIKETHROUGH),
+                // SGR 21 — double underline (ECMA-48; kitty wire).
+                // Sibling of the 4:2 sub-param form above.
+                21 => self.pen_attrs.underline = UnderlineStyle::Double,
                 22 => {
                     // SGR 22 resets both bold and dim
                     self.pen_attrs.flags.remove(AttrFlags::BOLD);
@@ -3850,6 +4254,17 @@ impl vte::Perform for Terminal {
         match self.dcs_handler {
             Some(DcsHandler::Decrqss(ref query)) => {
                 let response = match query.as_slice() {
+                    // DECRQSS `m` (SGR report): hardcoded `0m` while
+                    // caps::STYLED_UNDERLINE_IMPLEMENTED is false —
+                    // the standard styled-underline probe is "send
+                    // SGR 4:3, DECRQSS m, look for 4:3 in the reply",
+                    // and answering `0m` correctly reads as
+                    // unsupported. M3 OBLIGATION: the change that
+                    // flips STYLED_UNDERLINE_IMPLEMENTED must replace
+                    // this arm with a pen-derived report (pen_fg /
+                    // pen_bg / pen_attrs incl. 4:N underline style,
+                    // 58 underline colour, 53 overline) in the same
+                    // commit, or the cap advertises a lie.
                     b"m" => b"\x1bP1$r0m\x1b\\".to_vec(),
                     b"r" => {
                         let top = self.scroll_top + 1;
@@ -7835,6 +8250,423 @@ mod tests {
             term.user_marks().iter().map(|m| m.grid_row).collect();
         assert_eq!(marks, vec![3], "user mark shifted by the reflow delta");
         assert!(visible_text(&term)[marks[0]].starts_with("marked line"));
+    }
+
+    /// Cursor re-anchoring (M2 review wave): the cursor rides the
+    /// same logical-line bridge the marks do — cell-precise, so a
+    /// cursor sitting just after the END of a wrapped 100-char line
+    /// lands just after the same char at every width.
+    #[test]
+    fn cursor_reanchors_to_cell_position_across_rewrap() {
+        let mut term = Terminal::with_scrollback(80, 24, 100);
+        term.feed(b"first\r\n"); // row 0
+        let text = hundred_chars();
+        term.feed(text.as_bytes()); // rows 1-2 at 80 cols
+        assert_eq!((term.cursor().row, term.cursor().col), (2, 20));
+
+        term.resize(40, 24); // the line now spans rows 1..=3
+        assert_eq!(
+            (term.cursor().row, term.cursor().col),
+            (3, 20),
+            "cursor sits just after the line's last char at 40 cols"
+        );
+
+        term.resize(80, 24);
+        assert_eq!(
+            (term.cursor().row, term.cursor().col),
+            (2, 20),
+            "round trip restores the cursor position"
+        );
+    }
+
+    /// The DECSC saved cursor (primary) crosses a rewrap through the
+    /// same cell-precise bridge, so DECRC after a column resize
+    /// restores onto the same content.
+    #[test]
+    fn saved_cursor_reanchors_across_rewrap() {
+        let mut term = Terminal::with_scrollback(80, 24, 100);
+        let text = hundred_chars();
+        term.feed(text.as_bytes()); // rows 0-1; cursor (1, 20)
+        term.feed(b"\x1b7"); // DECSC at (1, 20)
+        term.feed(b"\r\nnext line");
+
+        term.resize(40, 24); // the line now spans rows 0..=2
+        term.feed(b"\x1b8"); // DECRC
+        assert_eq!(
+            (term.cursor().row, term.cursor().col),
+            (2, 20),
+            "DECRC restores just after the line's last char"
+        );
+    }
+
+    /// SETTLE trim bound (M2 review wave): the canonical post-`clear`
+    /// state — prompt at the viewport top, blank rows below, real
+    /// scrollback behind — must survive a column resize untouched.
+    /// The pre-fix trim popped every trailing blank while rows
+    /// exceeded the visible count, sliding scrollback into the
+    /// viewport and dropping the prompt to the bottom.
+    #[test]
+    fn rewrap_settle_keeps_cleared_viewport_anchored() {
+        let mut term = Terminal::with_scrollback(80, 24, 100);
+        for i in 0..30 {
+            term.feed(format!("line{i}\r\n").as_bytes());
+        }
+        // kitty-style `clear`: erase display + home (scrollback kept).
+        term.feed(b"\x1b[2J\x1b[H");
+        term.feed(b"prompt$");
+        let sb_before = term.primary.scrollback_len();
+        assert!(sb_before > 0, "scrollback survives the clear");
+        assert_eq!(visible_text(&term)[0], "prompt$");
+
+        term.resize(120, 24); // column-only resize → rewrap
+        assert_eq!(
+            visible_text(&term)[0],
+            "prompt$",
+            "prompt stays at the viewport top"
+        );
+        assert_eq!(
+            term.primary.scrollback_len(),
+            sb_before,
+            "no scrollback backfill into the cleared viewport"
+        );
+
+        term.resize(40, 24); // narrow too
+        assert_eq!(visible_text(&term)[0], "prompt$");
+        assert_eq!(term.primary.scrollback_len(), sb_before);
+    }
+
+    /// The SETTLE trim still drops blank tails the reflow itself
+    /// displaced: content growing past the visible area pushes its
+    /// head out of view, NOT the blanks' fault — the blank rows
+    /// below shrink to make room (no scrollback masquerade).
+    #[test]
+    fn rewrap_settle_still_trims_blanks_displaced_by_content_growth() {
+        let mut term = Terminal::with_scrollback(80, 24, 100);
+        let text = hundred_chars();
+        term.feed(text.as_bytes()); // 2 content rows + 22 blanks
+        assert_eq!(term.primary.scrollback_len(), 0);
+
+        term.resize(40, 24); // content grows to 3 rows
+        assert_eq!(
+            term.primary.scrollback_len(),
+            0,
+            "blank tail shrank instead of masquerading as scrollback"
+        );
+        let rows = visible_text(&term);
+        assert_eq!(rows[0], text[..40]);
+        assert_eq!(rows[2], text[80..]);
+    }
+
+    /// Alt-screen resize must not zero the PRIMARY grid's pinned
+    /// scroll offset (the alt grid's scrollback_len() is a constant
+    /// 0 — clamping against the ACTIVE grid wiped a reading
+    /// position). Extends the
+    /// alt_screen_output_does_not_disturb_primary_scroll_offset
+    /// family with the resize edge.
+    #[test]
+    fn alt_screen_resize_preserves_primary_scroll_offset() {
+        let mut term = Terminal::with_scrollback(80, 24, 100);
+        for i in 0..40 {
+            term.feed(format!("line{i}\r\n").as_bytes());
+        }
+        term.scroll_up(5);
+        assert_eq!(term.scroll_offset(), 5);
+
+        term.feed(b"\x1b[?1049h"); // enter alt (vim/less)
+        term.resize(100, 24); // window resized while the TUI runs
+        term.feed(b"\x1b[?1049l"); // exit alt
+
+        assert_eq!(
+            term.scroll_offset(),
+            5,
+            "primary reading position survives an alt-screen resize"
+        );
+    }
+
+    /// scroll_offset content-pinning (M2 review wave): a scrolled-up
+    /// viewport keeps showing the SAME content after a rewrap
+    /// renumbers physical rows — the same contract streaming output
+    /// honours via scroll_grid_up's lockstep offset growth. The
+    /// wrapped line sits BELOW the viewport top, so its row-count
+    /// change shifts the bottom-relative numeric offset — exactly
+    /// the case a plain clamp gets wrong.
+    #[test]
+    fn scrolled_viewport_content_pinned_across_rewrap() {
+        let mut term = Terminal::with_scrollback(80, 24, 1000);
+        for i in 0..20 {
+            term.feed(format!("line{i}\r\n").as_bytes());
+        }
+        let text = hundred_chars();
+        term.feed(text.as_bytes()); // 2 physical rows at 80 cols
+        term.feed(b"\r\n");
+        for i in 20..40 {
+            term.feed(format!("line{i}\r\n").as_bytes());
+        }
+        // Scroll up so the viewport top is a short line ABOVE the
+        // wrapped region.
+        term.scroll_up(12);
+        let top_before = visible_text(&term)[0].clone();
+        assert!(
+            top_before.starts_with("line"),
+            "viewport top is a known content row: {top_before:?}"
+        );
+
+        term.resize(40, 24); // wrapped line below grows by one row
+        assert_eq!(
+            visible_text(&term)[0],
+            top_before,
+            "viewport top shows the same logical content after rewrap"
+        );
+
+        term.resize(80, 24);
+        assert_eq!(visible_text(&term)[0], top_before);
+    }
+
+    /// stamp_soft_wrap gating (M2 review wave): an autowrap with the
+    /// cursor BELOW an active DECSTBM region scrolls the region
+    /// without moving the cursor — the wrap stamp must NOT fire (it
+    /// would mark the unrelated row above wrapped and overwrite the
+    /// cursor row's logical id).
+    #[test]
+    fn autowrap_below_scroll_region_does_not_stamp_wrap_marker() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[1;10r"); // DECSTBM rows 1-10 (0-indexed 0..=9)
+        term.feed(b"\x1b[19;1H"); // CUP to row 19 (0-indexed 18) — below the region
+        let id_above_before = term.primary.rows[17].logical_id;
+        let id_cursor_before = term.primary.rows[18].logical_id;
+        assert_ne!(id_above_before, id_cursor_before);
+
+        let text: String = hundred_chars().chars().take(90).collect();
+        term.feed(text.as_bytes()); // autowraps once at col 80
+
+        assert!(
+            term.primary.rows.iter().all(|l| !l.wrapped),
+            "no row gains a wrap marker from a region-scroll wrap"
+        );
+        assert_eq!(
+            term.primary.rows[17].logical_id, id_above_before,
+            "the row above the cursor keeps its own logical id"
+        );
+        assert_ne!(
+            term.primary.rows[17].logical_id,
+            term.primary.rows[18].logical_id,
+            "the cursor row does not get joined to the row above"
+        );
+    }
+
+    /// Autowrap at the bottom of a full-screen region still stamps
+    /// (the wrapped-from row sits directly above the cursor after
+    /// the scroll) — the gate must not break the normal wrap path.
+    #[test]
+    fn autowrap_at_screen_bottom_still_stamps_wrap_marker() {
+        let mut term = Terminal::with_scrollback(10, 3, 100);
+        term.feed(b"\x1b[3;1H"); // bottom row
+        term.feed(b"aaaaaaaaaabb"); // 12 chars: wraps, scrolls once
+        // The wrapped-from row is now directly above the cursor.
+        let sb = term.primary.scrollback_len();
+        assert_eq!(sb, 1);
+        assert!(
+            term.primary.rows[sb + 1].wrapped,
+            "wrapped-from row carries the marker after the scroll"
+        );
+        assert_eq!(
+            term.primary.rows[sb + 1].logical_id,
+            term.primary.rows[sb + 2].logical_id,
+            "continuation row joined the logical line"
+        );
+    }
+
+    /// Wide-char early wrap leaves a never-written spacer cell in
+    /// the wrapped row's last column; the rewrap must not splice it
+    /// into the logical line as interior content (phantom blank
+    /// between char 79 and the CJK char).
+    #[test]
+    fn wide_char_early_wrap_spacer_is_not_interior_content_after_rewrap() {
+        let mut term = Terminal::with_scrollback(80, 24, 100);
+        let prefix: String = (0..79u32)
+            .map(|i| char::from_digit(i % 10, 10).unwrap())
+            .collect();
+        term.feed(prefix.as_bytes());
+        term.feed("你".as_bytes()); // width 2 at col 79 → early wrap
+        assert!(term.primary.rows[0].wrapped, "early wrap stamped the marker");
+
+        term.resize(100, 24); // whole line fits on one row now
+        assert_eq!(
+            visible_text(&term)[0],
+            format!("{prefix}你"),
+            "no phantom space between char 79 and the wide char"
+        );
+    }
+
+    /// Marker-broken lines (M2 review wave): an erase to the right
+    /// edge breaks the soft-wrap marker while both halves keep the
+    /// shared logical id. A mark on the SECOND half must re-anchor
+    /// onto the second run after a rewrap — not the erased first
+    /// half (`physical_row_of` walks the same marker-contiguous runs
+    /// `anchor_at` does).
+    #[test]
+    fn mark_on_second_half_of_marker_broken_line_stays_on_its_run() {
+        let mut term = Terminal::with_scrollback(80, 24, 100);
+        let text = hundred_chars();
+        term.feed(text.as_bytes()); // rows 0-1, one logical line
+        // Erase row 0 from col 5 to the EOL — breaks the marker.
+        term.feed(b"\x1b[1;6H\x1b[K");
+        assert!(!term.primary.rows[0].wrapped, "erase to EOL breaks the marker");
+        assert_eq!(
+            term.primary.rows[0].logical_id,
+            term.primary.rows[1].logical_id,
+            "both halves keep the shared id"
+        );
+        // Mark the SECOND half (row 1).
+        term.feed(b"\x1b[2;1H\x1b]1337;SetMark\x07");
+        let marks: Vec<usize> =
+            term.user_marks().iter().map(|m| m.grid_row).collect();
+        assert_eq!(marks, vec![1]);
+
+        term.resize(40, 24);
+        let marks: Vec<usize> =
+            term.user_marks().iter().map(|m| m.grid_row).collect();
+        assert_eq!(
+            visible_text(&term)[marks[0]],
+            text[80..].to_string(),
+            "mark resolved onto the second run's content, not the erased half"
+        );
+    }
+
+    /// Kitty image placements ride the rewrap bridge: a placement on
+    /// a row below a wrapped line follows its logical line when the
+    /// line's physical row count changes.
+    #[test]
+    fn image_placement_reanchors_across_rewrap() {
+        let mut term = Terminal::with_scrollback(80, 24, 100);
+        let text = hundred_chars();
+        term.feed(text.as_bytes()); // rows 0-1
+        term.feed(b"\r\n"); // cursor → row 2
+        let rgba = [255, 0, 0, 255]; // 1×1 red pixel
+        let b64 = base64_encode(&rgba);
+        let apc = format!("\x1b_Ga=T,f=32,s=1,v=1,i=7;{b64}\x1b\\");
+        term.feed(apc.as_bytes());
+        assert_eq!(term.image_placements()[0].row, 2);
+
+        term.resize(40, 24); // the line above grows to 3 rows
+        assert_eq!(
+            term.image_placements()[0].row,
+            3,
+            "placement follows its logical line down"
+        );
+
+        term.resize(80, 24);
+        assert_eq!(term.image_placements()[0].row, 2, "round trip restores");
+    }
+
+    /// LinkTable gc parity (M2 review wave): saturating the table
+    /// with dead URIs must not disable hyperlinks for the session —
+    /// the gc-then-retry path rebuilds from live cells, remaps their
+    /// ids, and re-interns the new URI.
+    #[test]
+    fn link_table_gc_remaps_live_cells_on_saturation() {
+        let mut term = Terminal::new(80, 24);
+        // Paint one linked cell (id 1) that must survive the gc.
+        term.feed(b"\x1b]8;;https://keep.example\x1b\\K\x1b]8;;\x1b\\");
+        // Saturate with URIs nothing references.
+        for i in 1..(u16::MAX as usize) {
+            term.link_table.intern(&format!("file:///dead/{i}"));
+        }
+        assert!(
+            term.link_table.try_intern("https://fresh.example").is_none(),
+            "table saturated"
+        );
+        // A fresh OSC 8 link forces the gc-then-retry path.
+        term.feed(b"\x1b]8;;https://fresh.example\x1b\\F\x1b]8;;\x1b\\");
+        assert_eq!(
+            term.cell(0, 0).hyperlink(term.links()),
+            Some("https://keep.example"),
+            "live cell remapped, not orphaned"
+        );
+        assert_eq!(
+            term.cell(0, 1).hyperlink(term.links()),
+            Some("https://fresh.example"),
+            "fresh URI interned after gc"
+        );
+        assert_eq!(term.links().len(), 2, "every dead URI was collected");
+    }
+
+    /// SGR 21 — double underline (ECMA-48 / kitty wire), the
+    /// semicolon-form sibling of the 4:2 sub-param.
+    #[test]
+    fn sgr_21_sets_double_underline() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[21mD");
+        assert_eq!(
+            term.cell(0, 0).attrs(term.styles()).underline,
+            UnderlineStyle::Double
+        );
+        term.feed(b"\x1b[24mn"); // SGR 24 clears underline
+        assert_eq!(
+            term.cell(0, 1).attrs(term.styles()).underline,
+            UnderlineStyle::None
+        );
+    }
+
+    /// RIS palette policy (M2 review wave): `reset` restores the
+    /// extended 16..=255 cube/grayscale entries to the computed
+    /// defaults — an app's OSC 4 overrides must not outlive ESC c —
+    /// while the theme-owned base 16 slots survive as-is.
+    #[test]
+    fn ris_restores_extended_palette_preserving_base_16() {
+        let mut term = Terminal::new(80, 24);
+        // App overrides a cube entry + a base entry via OSC 4.
+        term.feed(b"\x1b]4;200;#112233\x1b\\");
+        term.feed(b"\x1b]4;1;#445566\x1b\\");
+        assert_eq!(term.ansi_palette()[200], Color::new(0x11, 0x22, 0x33));
+
+        term.feed(b"\x1bc"); // RIS
+        assert_eq!(
+            term.ansi_palette()[200],
+            default_palette_256()[200],
+            "cube entry restored to the computed default"
+        );
+        assert_eq!(
+            term.ansi_palette()[1],
+            Color::new(0x44, 0x55, 0x66),
+            "base-16 slot carries across RIS as-is"
+        );
+    }
+
+    /// StyleSnapshot is a drop-in read surface for the render path:
+    /// lookups agree with the owning table, including the defensive
+    /// out-of-bounds fallback.
+    #[test]
+    fn style_snapshot_lookup_matches_table() {
+        let mut table = StyleTable::new();
+        let style = Style {
+            fg: Color::new(1, 2, 3),
+            bg: Color::new(4, 5, 6),
+            attrs: Attrs::NONE,
+        };
+        let id = table.intern(style);
+        let snap = table.snapshot();
+        assert_eq!(StyleLookup::lookup(&snap, id), table.lookup(id));
+        assert_eq!(
+            StyleLookup::lookup(&snap, DEFAULT_STYLE_ID),
+            table.lookup(DEFAULT_STYLE_ID)
+        );
+        assert_eq!(StyleLookup::lookup(&snap, 9999), table.lookup(9999));
+    }
+
+    /// Every effective resize bumps the grid generation (the search
+    /// re-anchoring seam); a same-dims resize is a no-op and must
+    /// not.
+    #[test]
+    fn grid_generation_bumps_on_effective_resize_only() {
+        let mut term = Terminal::new(80, 24);
+        let g0 = term.grid_generation();
+        term.resize(80, 24); // same dims — no-op
+        assert_eq!(term.grid_generation(), g0);
+        term.resize(100, 24);
+        assert_eq!(term.grid_generation(), g0 + 1);
+        term.resize(100, 30);
+        assert_eq!(term.grid_generation(), g0 + 2);
     }
 }
 

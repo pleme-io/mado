@@ -42,7 +42,7 @@ use crate::search::SearchState;
 use crate::selection::Selection;
 use crate::terminal::{
     bold_bright_color, default_ansi_palette, AttrFlags, Cell, Color, Cursor, ImagePlacement,
-    StyleTable, Terminal, UnderlineStyle,
+    StyleSnapshot, Terminal, UnderlineStyle,
 };
 use crate::url::{self, DetectedUrl};
 
@@ -838,11 +838,15 @@ impl PostProcessPipeline {
 
 struct Snapshot {
     rows: Vec<Vec<Cell>>,
-    /// M2 — the style table the cloned rows' `style_id`s resolve
-    /// through. Cloned per frame alongside the rows (it's a small
-    /// `Vec<Style>` + index map — same cost class as everything else
-    /// captured here), so the render path stays lock-free.
-    styles: StyleTable,
+    /// M2 — the style mapping the cloned rows' `style_id`s resolve
+    /// through. A [`StyleSnapshot`] (just the `Vec<Style>`), NOT a
+    /// full `StyleTable` clone: the table's `by_style` intern index
+    /// is producer-side state the render path never reads, and a
+    /// style-heavy stream can park the table near its u16 cap until
+    /// the next saturation gc — cloning it per frame ratcheted the
+    /// frame cost up without ever coming back down (review finding
+    /// 2026-06-12). The render path stays lock-free.
+    styles: StyleSnapshot,
     cursor: Cursor,
     cols: usize,
     num_rows: usize,
@@ -1596,7 +1600,7 @@ impl TerminalRenderer {
         let scroll_offset = term.scroll_offset();
         let scrollback_total = term.scrollback_total();
         let rows: Vec<Vec<Cell>> = term.visible_rows().map(|r| r.to_vec()).collect();
-        let styles = term.styles().clone();
+        let styles = term.styles().snapshot();
         let image_placements = term.image_placements().to_vec();
         let block_separator_rows = term.block_separator_viewport_rows();
         drop(term);

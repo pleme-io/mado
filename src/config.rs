@@ -1981,6 +1981,8 @@ mod tests {
         assert!(!bare.behavior.link_url);
         assert!(!bare.behavior.mouse_reporting);
         assert_eq!(bare.behavior.mouse_shift_capture, MouseShiftCapture::False);
+        // bare = legacy truncate-on-resize; rewrap is an opinion.
+        assert!(!bare.behavior.reflow_on_resize);
 
         // ── Theme / Profiles ───────────────────────────────────
         assert_eq!(bare.theme, "");
@@ -2271,6 +2273,9 @@ window:
         assert!(config.behavior.link_url);
         assert!(config.behavior.mouse_reporting);
         assert_eq!(config.behavior.mouse_shift_capture, MouseShiftCapture::False);
+        // The kitty/ghostty default: column resizes REWRAP the
+        // primary grid (M2).
+        assert!(config.behavior.reflow_on_resize);
         assert!(config.shell_integration.enabled);
         assert_eq!(config.shell_integration.features, ["cursor", "sudo", "title"]);
         assert!(config.performance.vsync);

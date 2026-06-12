@@ -150,6 +150,12 @@ pub struct InputEngine {
     /// frame ahead of measured metrics and ping-pongs the pane
     /// between old/new grids.
     grid_sync_sig: Option<(u32, u32, u32, u32)>,
+    /// Last-seen [`Terminal::grid_generation`] — the search
+    /// re-anchoring seam. A resize (rewrap or truncate) renumbers
+    /// absolute grid rows, so the active search's match list goes
+    /// stale; the per-tick reconciler re-runs the query when the
+    /// generation moves (M2 review finding 2026-06-12).
+    search_grid_gen: Option<u64>,
 }
 
 impl InputEngine {
@@ -189,6 +195,7 @@ impl InputEngine {
             last_mods: Modifiers::default(),
             last_mouse_pos: (0.0, 0.0),
             grid_sync_sig: None,
+            search_grid_gen: None,
         }
     }
 
@@ -1087,6 +1094,37 @@ impl InputEngine {
                 self.push_grid(renderer, w, h);
             }
         }
+        // AFTER any grid push: re-anchor the active search if the
+        // grid geometry moved this tick (the push above bumps the
+        // generation synchronously, so the matches converge within
+        // the same tick).
+        self.reconcile_search();
+    }
+
+    /// Search ⇄ grid-geometry reconciler: matches carry ABSOLUTE
+    /// grid rows, and a resize (rewrap renumbers rows wholesale;
+    /// truncate shifts them too) leaves them pointing at different
+    /// content. Re-run the live query against fresh rows whenever
+    /// [`Terminal::grid_generation`] moves while the overlay is
+    /// open. Query edits already recompute on their own; this seam
+    /// covers geometry changes BETWEEN edits.
+    fn reconcile_search(&mut self) {
+        let generation = self.terminal.read().grid_generation();
+        if self.search_grid_gen == Some(generation) {
+            return;
+        }
+        self.search_grid_gen = Some(generation);
+        let needs_rerun = {
+            let st = self.search.lock().unwrap();
+            st.active && !st.query.is_empty()
+        };
+        if !needs_rerun {
+            return;
+        }
+        let (rows, cols, first_abs) = self.search_rows();
+        let mut st = self.search.lock().unwrap();
+        let query = st.query.clone();
+        st.set_query(&query, &rows, cols, first_abs);
     }
 
     /// Resize both halves from physical surface dims: the mirror
@@ -1490,6 +1528,53 @@ mod tests {
             .map(|m| m.row)
             .collect();
         assert_eq!(before, after, "absolute rows must not shift with the viewport");
+    }
+
+    /// Search matches re-anchor across a grid resize (M2 review
+    /// wave): the per-tick reconciler re-runs the live query when
+    /// [`Terminal::grid_generation`] moves, so absolute match rows
+    /// track the rewrapped layout instead of pointing at whatever
+    /// content the renumbered rows now hold.
+    #[test]
+    fn search_matches_reanchor_after_grid_resize() {
+        let mut h = Harness::new(SinkKind::Closure);
+        // A 100-char wrapped line ABOVE the needle shifts the
+        // needle's absolute row when the column count changes.
+        let long: String = (0..100u32)
+            .map(|i| char::from_digit(i % 10, 10).unwrap())
+            .collect();
+        h.feed(long.as_bytes());
+        h.feed(b"\r\nneedle\r\n");
+        h.engine.apply_action(Action::SearchOpen, &mut h.renderer);
+        for ch in ["n", "e", "e", "d", "l", "e"] {
+            h.key(KeyCode::Char(ch.chars().next().unwrap()), Some(ch), no_mods());
+        }
+        let rows = |h: &Harness| -> Vec<usize> {
+            h.engine
+                .search
+                .lock()
+                .unwrap()
+                .matches
+                .iter()
+                .map(|m| m.row)
+                .collect()
+        };
+        assert_eq!(rows(&h), vec![2], "needle on absolute row 2 at 80 cols");
+
+        // Narrow: the wrapped line grows to 3 rows; the reconciler
+        // tick re-runs the query against the fresh layout.
+        h.terminal.write().resize(40, 24);
+        h.engine.on_redraw_tick(&h.renderer);
+        assert_eq!(
+            rows(&h),
+            vec![3],
+            "matches re-anchored to the rewrapped layout"
+        );
+
+        // Widen back: another tick converges again.
+        h.terminal.write().resize(80, 24);
+        h.engine.on_redraw_tick(&h.renderer);
+        assert_eq!(rows(&h), vec![2], "round trip restores match rows");
     }
 
     /// **Bare modifier presses must NOT clear the selection** —

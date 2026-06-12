@@ -1541,6 +1541,13 @@ struct SparseCellEntry {
     bg: [u8; 3],
     attrs: u8,
     width: u8,
+    /// M2 typed underline style name (`none` / `single` / `double` /
+    /// `curly` / `dotted` / `dashed`) — same wire shape as
+    /// `CellSnapshot.underline`.
+    underline: String,
+    /// M2 typed underline colour — `None` when the underline follows
+    /// the cell fg; same wire shape as `CellSnapshot.underline_color`.
+    underline_color: Option<String>,
 }
 
 /// Run-length-encoded contiguous cells with identical styling, used
@@ -1558,6 +1565,13 @@ struct CellRun {
     fg: [u8; 3],
     bg: [u8; 3],
     attrs: u8,
+    /// M2 typed underline style — part of the run-merge equality so
+    /// adjacent cells differing only in underline style (curly vs
+    /// single) don't collapse into one run.
+    underline: String,
+    /// M2 typed underline colour — likewise part of the run-merge
+    /// equality.
+    underline_color: Option<String>,
 }
 
 /// Filter cells in a [`GridSnapshot`] for MCP serialisation.
@@ -1605,15 +1619,17 @@ fn filtered_cells(snap: &crate::session::GridSnapshot, mode: &str) -> serde_json
     if mode == "runs" {
         // Walk each row, batching width-1 same-style cells into one
         // CellRun. Default cells terminate any open run. Wide cells
-        // flush + emit solo.
+        // flush + emit solo. The merge equality covers EVERY styling
+        // axis the run carries — fg, bg, legacy attrs, AND the M2
+        // typed underline style/colour — so cells differing only in
+        // underline refinement don't collapse into one run.
         let mut runs: Vec<CellRun> = Vec::new();
         for (r, row) in snap.cells.iter().enumerate() {
-            // Open run: (start_col, accumulated text, fg, bg, attrs).
-            let mut cur: Option<(usize, String, [u8; 3], [u8; 3], u8)> = None;
-            let flush = |cur: &mut Option<(usize, String, [u8; 3], [u8; 3], u8)>,
-                         runs: &mut Vec<CellRun>| {
-                if let Some((col, text, fg, bg, attrs)) = cur.take() {
-                    runs.push(CellRun { row: r, col, text, fg, bg, attrs });
+            // Open run, accumulated as a partially-built CellRun.
+            let mut cur: Option<CellRun> = None;
+            let flush = |cur: &mut Option<CellRun>, runs: &mut Vec<CellRun>| {
+                if let Some(run) = cur.take() {
+                    runs.push(run);
                 }
             };
             for (c, cell) in row.iter().enumerate() {
@@ -1634,25 +1650,34 @@ fn filtered_cells(snap: &crate::session::GridSnapshot, mode: &str) -> serde_json
                             fg: cell.fg,
                             bg: cell.bg,
                             attrs: cell.attrs,
+                            underline: cell.underline.clone(),
+                            underline_color: cell.underline_color.clone(),
                         });
                     }
                     continue;
                 }
                 match &mut cur {
-                    Some((_, text, fg, bg, attrs))
-                        if *fg == cell.fg && *bg == cell.bg && *attrs == cell.attrs =>
+                    Some(run)
+                        if run.fg == cell.fg
+                            && run.bg == cell.bg
+                            && run.attrs == cell.attrs
+                            && run.underline == cell.underline
+                            && run.underline_color == cell.underline_color =>
                     {
-                        text.push(cell.ch);
+                        run.text.push(cell.ch);
                     }
                     _ => {
                         flush(&mut cur, &mut runs);
-                        cur = Some((
-                            c,
-                            cell.ch.to_string(),
-                            cell.fg,
-                            cell.bg,
-                            cell.attrs,
-                        ));
+                        cur = Some(CellRun {
+                            row: r,
+                            col: c,
+                            text: cell.ch.to_string(),
+                            fg: cell.fg,
+                            bg: cell.bg,
+                            attrs: cell.attrs,
+                            underline: cell.underline.clone(),
+                            underline_color: cell.underline_color.clone(),
+                        });
                     }
                 }
             }
@@ -1682,6 +1707,8 @@ fn filtered_cells(snap: &crate::session::GridSnapshot, mode: &str) -> serde_json
                 bg: cell.bg,
                 attrs: cell.attrs,
                 width: cell.width,
+                underline: cell.underline.clone(),
+                underline_color: cell.underline_color.clone(),
             });
         }
     }
@@ -2003,6 +2030,47 @@ mod tests {
         assert_eq!(arr[1]["col"], 4);
         assert_eq!(arr[1]["text"], "xy");
         assert_eq!(arr[1]["fg"], serde_json::json!([9, 9, 9]));
+    }
+
+    #[test]
+    fn filtered_cells_runs_split_on_underline_axes() {
+        use crate::session::{CellSnapshot, GridSnapshot};
+        // Adjacent cells identical on every legacy axis (fg/bg/attrs)
+        // but differing in the M2 typed underline style or colour
+        // must NOT merge into one run — the run-merge equality covers
+        // the new axes (M2 review wave).
+        let mk = |ch: char, underline: &str, color: Option<&str>| CellSnapshot {
+            ch,
+            width: 1,
+            fg: [1, 2, 3],
+            bg: [0, 0, 0],
+            attrs: 4, // legacy underline bit — identical everywhere
+            underline: underline.to_string(),
+            underline_color: color.map(str::to_string),
+        };
+        let row = vec![
+            mk('a', "single", None),
+            mk('b', "single", None),
+            mk('c', "curly", None),
+            mk('d', "curly", Some("indexed(196)")),
+        ];
+        let snap = GridSnapshot {
+            cols: 4,
+            rows: 1,
+            cursor_row: 0,
+            cursor_col: 0,
+            cursor_visible: false,
+            cells: vec![row],
+        };
+        let runs = filtered_cells(&snap, "runs");
+        let arr = runs.as_array().expect("runs returns array");
+        assert_eq!(arr.len(), 3, "underline style + colour split the runs");
+        assert_eq!(arr[0]["text"], "ab");
+        assert_eq!(arr[0]["underline"], "single");
+        assert_eq!(arr[1]["text"], "c");
+        assert_eq!(arr[1]["underline"], "curly");
+        assert_eq!(arr[2]["text"], "d");
+        assert_eq!(arr[2]["underline_color"], "indexed(196)");
     }
 
     #[test]
