@@ -680,254 +680,6 @@ impl ImagePipeline {
 }
 
 // ---------------------------------------------------------------------------
-// Post-processing shader pipeline (custom WGSL + accessibility modes)
-// ---------------------------------------------------------------------------
-
-/// Built-in accessibility shader: colorblind simulation.
-/// Uses Machado 2009 color vision deficiency simulation matrices.
-const COLORBLIND_SHADER: &str = r"
-@group(0) @binding(0) var input_tex: texture_2d<f32>;
-@group(0) @binding(1) var input_samp: sampler;
-@group(0) @binding(2) var<uniform> params: PostParams;
-
-struct PostParams {
-    resolution: vec2<f32>,
-    time: f32,
-    mode: u32,  // 0=none, 1=protanopia, 2=deuteranopia, 3=tritanopia
-};
-
-struct VsOut {
-    @builtin(position) position: vec4<f32>,
-    @location(0) uv: vec2<f32>,
-};
-
-@vertex
-fn vs_main(@builtin(vertex_index) vi: u32) -> VsOut {
-    let corners = array<vec2<f32>, 6>(
-        vec2(0.0, 0.0), vec2(1.0, 0.0), vec2(0.0, 1.0),
-        vec2(1.0, 0.0), vec2(1.0, 1.0), vec2(0.0, 1.0),
-    );
-    let c = corners[vi];
-    var out: VsOut;
-    out.position = vec4(c.x * 2.0 - 1.0, 1.0 - c.y * 2.0, 0.0, 1.0);
-    out.uv = c;
-    return out;
-}
-
-@fragment
-fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
-    let color = textureSample(input_tex, input_samp, in.uv);
-
-    if params.mode == 0u { return color; }
-
-    let r = color.r; let g = color.g; let b = color.b;
-    var out_r: f32; var out_g: f32; var out_b: f32;
-
-    // Machado et al. 2009 simulation matrices (severity = 1.0)
-    if params.mode == 1u {
-        // Protanopia (red-blind)
-        out_r = 0.152286 * r + 1.052583 * g - 0.204868 * b;
-        out_g = 0.114503 * r + 0.786281 * g + 0.099216 * b;
-        out_b = -0.003882 * r - 0.048116 * g + 1.051998 * b;
-    } else if params.mode == 2u {
-        // Deuteranopia (green-blind)
-        out_r = 0.367322 * r + 0.860646 * g - 0.227968 * b;
-        out_g = 0.280085 * r + 0.672501 * g + 0.047413 * b;
-        out_b = -0.011820 * r + 0.042940 * g + 0.968881 * b;
-    } else {
-        // Tritanopia (blue-blind)
-        out_r = 1.255528 * r - 0.076749 * g - 0.178779 * b;
-        out_g = -0.078411 * r + 0.930809 * g + 0.147602 * b;
-        out_b = 0.004733 * r + 0.691367 * g + 0.303900 * b;
-    }
-
-    return vec4(clamp(out_r, 0.0, 1.0), clamp(out_g, 0.0, 1.0), clamp(out_b, 0.0, 1.0), color.a);
-}
-";
-
-#[repr(C)]
-#[derive(Copy, Clone, Debug, Pod, Zeroable)]
-struct PostParams {
-    resolution: [f32; 2],
-    time: f32,
-    mode: u32,
-}
-
-// M3-C1 NOTE: no longer on the live render path — the catalog
-// colorblind effect dispatches through the engawa graph route. Kept
-// THIS commit solely as the parity-golden reference (the gpu_tests
-// golden renders the same frame through both paths and pins
-// byte-identical hashes); the next commit deletes it. dead_code
-// allowed because its only consumer is feature-gated.
-#[allow(dead_code)]
-struct PostProcessPipeline {
-    pipeline: wgpu::RenderPipeline,
-    bind_group_layout: wgpu::BindGroupLayout,
-    params_buffer: wgpu::Buffer,
-    sampler: wgpu::Sampler,
-    offscreen_texture: Option<wgpu::Texture>,
-    offscreen_view: Option<wgpu::TextureView>,
-    bind_group: Option<wgpu::BindGroup>,
-    last_width: u32,
-    last_height: u32,
-}
-
-#[allow(dead_code)] // See struct note — parity-golden harness only.
-impl PostProcessPipeline {
-    fn new(device: &wgpu::Device, format: wgpu::TextureFormat) -> Self {
-        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("postprocess_shader"),
-            source: wgpu::ShaderSource::Wgsl(COLORBLIND_SHADER.into()),
-        });
-
-        let bind_group_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("postprocess_bgl"),
-                entries: &[
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Texture {
-                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                            multisampled: false,
-                        },
-                        count: None,
-                    },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                        count: None,
-                    },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 2,
-                        visibility: wgpu::ShaderStages::FRAGMENT | wgpu::ShaderStages::VERTEX,
-                        ty: wgpu::BindingType::Buffer {
-                            ty: wgpu::BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size: None,
-                        },
-                        count: None,
-                    },
-                ],
-            });
-
-        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("postprocess_pl"),
-            bind_group_layouts: &[&bind_group_layout],
-            push_constant_ranges: &[],
-        });
-
-        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("postprocess_pipeline"),
-            layout: Some(&pipeline_layout),
-            vertex: wgpu::VertexState {
-                module: &shader,
-                entry_point: Some("vs_main"),
-                compilation_options: wgpu::PipelineCompilationOptions::default(),
-                buffers: &[],
-            },
-            primitive: wgpu::PrimitiveState {
-                topology: wgpu::PrimitiveTopology::TriangleList,
-                ..Default::default()
-            },
-            depth_stencil: None,
-            multisample: wgpu::MultisampleState::default(),
-            fragment: Some(wgpu::FragmentState {
-                module: &shader,
-                entry_point: Some("fs_main"),
-                compilation_options: wgpu::PipelineCompilationOptions::default(),
-                targets: &[Some(wgpu::ColorTargetState {
-                    format,
-                    blend: None,
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
-            }),
-            multiview: None,
-            cache: None,
-        });
-
-        let params_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("postprocess_params"),
-            size: std::mem::size_of::<PostParams>() as u64,
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-
-        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            label: Some("postprocess_sampler"),
-            mag_filter: wgpu::FilterMode::Linear,
-            min_filter: wgpu::FilterMode::Linear,
-            ..Default::default()
-        });
-
-        Self {
-            pipeline,
-            bind_group_layout,
-            params_buffer,
-            sampler,
-            offscreen_texture: None,
-            offscreen_view: None,
-            bind_group: None,
-            last_width: 0,
-            last_height: 0,
-        }
-    }
-
-    /// Ensure offscreen texture matches current window size.
-    fn ensure_offscreen(&mut self, device: &wgpu::Device, width: u32, height: u32, format: wgpu::TextureFormat) {
-        if self.last_width == width && self.last_height == height && self.offscreen_texture.is_some()
-        {
-            return;
-        }
-
-        let texture = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("postprocess_offscreen"),
-            size: wgpu::Extent3d {
-                width: width.max(1),
-                height: height.max(1),
-                depth_or_array_layers: 1,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format,
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT
-                | wgpu::TextureUsages::TEXTURE_BINDING,
-            view_formats: &[],
-        });
-
-        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("postprocess_bg"),
-            layout: &self.bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&self.sampler),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: self.params_buffer.as_entire_binding(),
-                },
-            ],
-        });
-
-        self.offscreen_texture = Some(texture);
-        self.offscreen_view = Some(view);
-        self.bind_group = Some(bind_group);
-        self.last_width = width;
-        self.last_height = height;
-    }
-}
-
-// ---------------------------------------------------------------------------
 // Render snapshot — cloned terminal state for lock-free rendering
 // ---------------------------------------------------------------------------
 
@@ -1176,14 +928,77 @@ pub struct TerminalRenderer {
     /// `SYNC_OUTPUT_MAX_DEFER`, we force a render and reset the
     /// timestamp.
     sync_output_deferred_since: Option<Instant>,
-    /// Snow overlay — the default mado effect. Constructed lazily
-    /// in `init()` once the wgpu device is available. `None` when
-    /// `effects.snow.enabled = false` or before init.
-    snow_overlay: Option<crate::render_snow::SnowOverlay>,
-    /// Snow overlay config — captured at construction so init()
-    /// can build the overlay with the right knobs. Mirrors
-    /// `MadoConfig.effects.snow` exactly.
-    snow_config: crate::config::MadoSnowConfig,
+    /// Post-effect config — mirrors `MadoConfig.effects`. The
+    /// enabled-effect set (and therefore the graph cache key) is
+    /// derived from this each frame.
+    effects_config: crate::config::MadoEffectsConfig,
+    /// Host-side snow animation state (the catalog WGSL is
+    /// stateless; time/pulse/pile live here, integrated from the
+    /// render clock — never wall time).
+    snow_state: SnowState,
+    /// Host-side glow-on-bell state — BEL saturates the clock,
+    /// per-frame decay drains it.
+    glow_state: GlowState,
+}
+
+/// Host-side snow animation state (M3 Stream D). Everything
+/// time-like integrates from the render clock (`ctx.elapsed` /
+/// `ctx.dt`) — NOT wall time — so headless renders at
+/// elapsed=0/dt=0 are byte-deterministic (the L2 ladder relies on
+/// it; the legacy `Instant::now()` overlay could never join it).
+struct SnowState {
+    params: engawa_wgpu::catalog::snow::SnowParams,
+}
+
+impl SnowState {
+    fn new() -> Self {
+        Self { params: engawa_wgpu::catalog::snow::SnowParams::default() }
+    }
+
+    /// Re-seed the operator knobs (intensity / wind / layers /
+    /// temperature / accumulation baseline) from config.
+    fn apply_config(&mut self, cfg: &crate::config::MadoSnowConfig) {
+        self.params.set_intensity(cfg.intensity);
+        self.params.set_wind(cfg.wind);
+        self.params.set_accumulation(cfg.accumulation);
+        self.params.set_layer_count(cfg.layer_count);
+        self.params.set_temperature(cfg.temperature);
+    }
+
+    /// Per-frame integration — ported verbatim from the deleted
+    /// `SnowOverlay::render` host loop, re-clocked from the render
+    /// context. Temperature drives the pile sign: cold fills at
+    /// `pile_rate`, warm melts at `melt_rate`, 0.5 holds.
+    fn tick(&mut self, elapsed: f32, dt: f32, cfg: &crate::config::MadoSnowConfig) {
+        self.params.set_time(elapsed);
+        // ~0.5 s half-life on the typing pulse, frame-rate-independent.
+        let decay = 0.92_f32.powf(dt * 60.0);
+        self.params.set_typing_pulse(self.params.frame[3] * decay);
+        let temp = cfg.temperature.clamp(0.0, 1.0);
+        let pile_delta = if temp < 0.5 {
+            cfg.pile_rate * (1.0 - temp * 2.0) * dt
+        } else {
+            -cfg.melt_rate * ((temp - 0.5) * 2.0) * dt
+        };
+        let new_acc = (self.params.params[0] + pile_delta).clamp(0.0, 1.0);
+        self.params.set_accumulation(new_acc);
+    }
+}
+
+/// Host-side glow-on-bell clock — `ring()` on BEL, exponential
+/// decay per frame (same dt-normalised shape as the snow pulse).
+struct GlowState {
+    params: engawa_wgpu::catalog::glow_on_bell::GlowOnBellParams,
+}
+
+impl GlowState {
+    fn new() -> Self {
+        Self { params: engawa_wgpu::catalog::glow_on_bell::GlowOnBellParams::default() }
+    }
+
+    fn tick(&mut self, dt: f32) {
+        self.params.decay(0.92_f32.powf(dt * 60.0));
+    }
 }
 
 /// Maximum time the BSU/ESU defer is allowed to skip frames. Kitty
@@ -1262,43 +1077,39 @@ impl TerminalRenderer {
             last_cursor_on: false,
             box_draw_templates: RefCell::new(HashMap::new()),
             sync_output_deferred_since: None,
-            snow_overlay: None,
-            snow_config: crate::config::MadoSnowConfig::default(),
+            effects_config: crate::config::MadoEffectsConfig::default(),
+            snow_state: SnowState::new(),
+            glow_state: GlowState::new(),
         }
     }
 
-    /// Override the snow overlay config. Must be called BEFORE
-    /// the first render (i.e. before `init` runs) for the snow
-    /// pass to pick it up; otherwise it builds with defaults.
-    pub fn set_snow_config(&mut self, cfg: crate::config::MadoSnowConfig) {
-        self.snow_config = cfg.clone();
-        if let Some(snow) = self.snow_overlay.as_mut() {
-            snow.update_config(cfg);
-        }
+    /// Override the post-effect config. Effect toggles take effect
+    /// on the next frame (the graph cache key is derived per frame);
+    /// snow knobs re-seed the host animation state.
+    pub fn set_effects_config(&mut self, cfg: crate::config::MadoEffectsConfig) {
+        self.snow_state.apply_config(&cfg.snow);
+        self.glow_state.params.radius_px = cfg.glow_on_bell.radius_px;
+        self.effects_config = cfg;
+        // Forces a repaint — same invalidation contract as the
+        // derive-generated setters.
+        self.last_seqno = 0;
     }
 
-    /// Push the current mouse position into the snow overlay so
+    /// Push the current mouse position into the snow state so
     /// the cursor-deflection ring tracks the pointer.
     pub fn snow_set_cursor(&mut self, x: f32, y: f32) {
-        if let Some(snow) = self.snow_overlay.as_mut() {
-            snow.set_cursor(x, y);
-        }
+        self.snow_state.params.set_cursor([x, y]);
     }
 
-    /// Mark the cursor as off-window — the snow overlay turns
-    /// off cursor deflection.
+    /// Mark the cursor as off-window — turns off cursor deflection.
     pub fn snow_cursor_left(&mut self) {
-        if let Some(snow) = self.snow_overlay.as_mut() {
-            snow.cursor_left();
-        }
+        self.snow_state.params.set_cursor([-1.0, -1.0]);
     }
 
-    /// Bump the typing-pulse on the snow overlay. Called from
-    /// the keyboard handler.
+    /// Bump the typing-pulse on the snow state. Called from the
+    /// keyboard handler.
     pub fn snow_pulse_typing(&mut self) {
-        if let Some(snow) = self.snow_overlay.as_mut() {
-            snow.pulse_typing();
-        }
+        self.snow_state.params.pulse_typing(1.0);
     }
 
     /// Update the HiDPI scale factor. If the value actually changed,
@@ -1636,6 +1447,10 @@ impl TerminalRenderer {
     pub fn trigger_bell(&mut self) {
         if !self.reduce_motion {
             self.bell_flash_frames = 4;
+            // BEL also saturates the glow-on-bell clock; whether the
+            // glow renders is the effect set's call (config-enabled +
+            // not reduce_motion — already inside this gate).
+            self.glow_state.params.ring();
         }
     }
 
@@ -3127,10 +2942,31 @@ impl TerminalRenderer {
     /// The enabled catalog-effect set for this frame, derived from
     /// config — the ONLY source the graph cache key reads. Disabled
     /// effects are absent (zero nodes), not parameterized off.
+    /// `reduce_motion` gates the ANIMATED effects (glow_on_bell,
+    /// snow) to zero nodes regardless of their `enabled` knobs.
     fn enabled_effect_set(&self) -> crate::render_graph::EffectSet {
+        use engawa_wgpu::catalog::CatalogEffect;
         let mut set = crate::render_graph::EffectSet::EMPTY;
         if self.colorblind_mode != ColorblindMode::None {
-            set.insert(engawa_wgpu::catalog::CatalogEffect::Colorblind);
+            set.insert(CatalogEffect::Colorblind);
+        }
+        let e = &self.effects_config;
+        if e.crt.enabled {
+            set.insert(CatalogEffect::Crt);
+        }
+        if e.scanlines.enabled {
+            set.insert(CatalogEffect::Scanlines);
+        }
+        if e.bloom.enabled {
+            set.insert(CatalogEffect::Bloom);
+        }
+        if !self.reduce_motion {
+            if e.glow_on_bell.enabled {
+                set.insert(CatalogEffect::GlowOnBell);
+            }
+            if e.snow.enabled {
+                set.insert(CatalogEffect::Snow);
+            }
         }
         set
     }
@@ -3149,9 +2985,9 @@ impl TerminalRenderer {
 
     /// Per-frame params for every enabled effect — written into the
     /// corresponding uniform buffers by the dispatcher before any
-    /// pass encodes. TOTAL match: an effect the set cannot yet
-    /// produce still gets correct resolution-seeded defaults, so
-    /// enabling it later is a config change, not a render change.
+    /// pass encodes. TOTAL match over the catalog: static knobs come
+    /// from `effects_config`, animated state from the host
+    /// `snow_state` / `glow_state` (already ticked this frame).
     fn frame_uniforms_for(
         &self,
         effects: crate::render_graph::EffectSet,
@@ -3160,6 +2996,7 @@ impl TerminalRenderer {
     ) -> engawa_wgpu::FrameUniforms {
         use engawa_wgpu::catalog::{self, CatalogEffect};
         let res = [width as f32, height as f32];
+        let cfg = &self.effects_config;
         let mut frame = engawa_wgpu::FrameUniforms::new();
         for effect in effects.iter_render_order() {
             match effect {
@@ -3169,26 +3006,37 @@ impl TerminalRenderer {
                         self.catalog_colorblind_mode(),
                     ),
                 ),
-                CatalogEffect::Crt => frame.set(
-                    catalog::crt::PARAMS_RESOURCE,
-                    &catalog::crt::CrtParams::new(res),
-                ),
-                CatalogEffect::Scanlines => frame.set(
-                    catalog::scanlines::PARAMS_RESOURCE,
-                    &catalog::scanlines::ScanlinesParams::new(res),
-                ),
-                CatalogEffect::Bloom => frame.set(
-                    catalog::bloom::PARAMS_RESOURCE,
-                    &catalog::bloom::BloomParams::new(res),
-                ),
-                CatalogEffect::GlowOnBell => frame.set(
-                    catalog::glow_on_bell::PARAMS_RESOURCE,
-                    &catalog::glow_on_bell::GlowOnBellParams::new(res),
-                ),
-                CatalogEffect::Snow => frame.set(
-                    catalog::snow::PARAMS_RESOURCE,
-                    &catalog::snow::SnowParams::default().with_resolution(res),
-                ),
+                CatalogEffect::Crt => {
+                    let mut p = catalog::crt::CrtParams::new(res);
+                    p.curvature = cfg.crt.curvature;
+                    p.vignette = cfg.crt.vignette;
+                    p.aberration = cfg.crt.aberration;
+                    frame.set(catalog::crt::PARAMS_RESOURCE, &p);
+                }
+                CatalogEffect::Scanlines => {
+                    let mut p = catalog::scanlines::ScanlinesParams::new(res);
+                    p.period_px = cfg.scanlines.period_px;
+                    p.intensity = cfg.scanlines.intensity;
+                    frame.set(catalog::scanlines::PARAMS_RESOURCE, &p);
+                }
+                CatalogEffect::Bloom => {
+                    let mut p = catalog::bloom::BloomParams::new(res);
+                    p.threshold = cfg.bloom.threshold;
+                    p.intensity = cfg.bloom.intensity;
+                    p.radius_px = cfg.bloom.radius_px;
+                    frame.set(catalog::bloom::PARAMS_RESOURCE, &p);
+                }
+                CatalogEffect::GlowOnBell => {
+                    let mut p = self.glow_state.params;
+                    p.resolution = res;
+                    p.radius_px = cfg.glow_on_bell.radius_px;
+                    frame.set(catalog::glow_on_bell::PARAMS_RESOURCE, &p);
+                }
+                CatalogEffect::Snow => {
+                    let mut p = self.snow_state.params;
+                    p.set_resolution(res);
+                    frame.set(catalog::snow::PARAMS_RESOURCE, &p);
+                }
             }
         }
         frame
@@ -3302,13 +3150,6 @@ impl RenderCallback for TerminalRenderer {
             min_filter: wgpu::FilterMode::Linear,
             ..Default::default()
         }));
-        if self.snow_config.enabled {
-            self.snow_overlay = Some(crate::render_snow::SnowOverlay::new(
-                &gpu.device,
-                format,
-                self.snow_config.clone(),
-            ));
-        }
         crate::perf::log_phase("renderer_init_done");
     }
 
@@ -3513,6 +3354,19 @@ impl RenderCallback for TerminalRenderer {
         // Empty set = zero graph nodes, scene renders direct to the
         // surface, no lease, no dispatch.
         let enabled_effects = self.enabled_effect_set();
+        // Animated-effect host state integrates from the render
+        // clock (elapsed/dt) — at elapsed=0/dt=0 (the headless
+        // ladders) every tick is the identity, keeping the route
+        // byte-deterministic.
+        self.snow_state.tick(ctx.elapsed, ctx.dt, &self.effects_config.snow);
+        self.glow_state.tick(ctx.dt);
+        // Glow centers on the cursor cell (the bell's visual home).
+        if snap.cursor.visible && snap.cursor.row < snap.num_rows && snap.cursor.col < snap.cols {
+            self.glow_state.params.center_px = [
+                self.padding_px() + (snap.cursor.col as f32 + 0.5) * self.cell_width,
+                self.padding_px() + (snap.cursor.row as f32 + 0.5) * self.cell_height,
+            ];
+        }
         let format = wgpu::TextureFormat::Bgra8UnormSrgb;
         let scene_lease = if enabled_effects.is_empty() {
             None
@@ -3687,21 +3541,15 @@ impl RenderCallback for TerminalRenderer {
             }
         }
 
-        // Pass 5: Snow overlay (legacy direct-wgpu path; the catalog
-        // migration absorbs it next commit). Renders AFTER the effect
-        // chain so it composes onto the final color-space pixels.
-        // The overlay uses LoadOp::Load + alpha blending so terminal
-        // contents show through where there are no flakes.
+        // Pass 5: chrome overlays. Snow now lives INSIDE the effect
+        // chain (catalog priority 500) — only the reader-only chrome
+        // (dir picker, search status) draws after the chain.
         let mut overlay_encoder = ctx
             .gpu
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
                 label: Some("mado_overlays"),
             });
-        if let Some(ref mut snow) = self.snow_overlay {
-            snow.set_resolution(ctx.width as f32, ctx.height as f32);
-            snow.render(&ctx.gpu.device, &ctx.gpu.queue, &mut overlay_encoder, ctx.surface_view);
-        }
 
         // Pass 6: directory-frecency overlay (轍 wadachi), reader-only. Renders
         // AFTER snow so it floats on top, onto ctx.surface_view (post-chain), the
@@ -4728,6 +4576,74 @@ mod render_invariants {
         );
     }
 
+    /// MATRIX — every catalog effect's config knob maps to exactly
+    /// its EffectSet bit (len-pinned against CatalogEffect::ALL), and
+    /// reduce_motion gates the ANIMATED effects (glow_on_bell, snow)
+    /// to zero nodes while leaving the static ones alone.
+    #[test]
+    fn effects_config_maps_to_effect_set_and_reduce_motion_gates_animation() {
+        use engawa_wgpu::catalog::CatalogEffect;
+
+        let enable = |r: &mut TerminalRenderer, effect: CatalogEffect| {
+            let mut e = crate::config::MadoEffectsConfig::default();
+            match effect {
+                CatalogEffect::Colorblind => {
+                    r.set_colorblind_mode(ColorblindMode::Protanopia);
+                }
+                CatalogEffect::Crt => e.crt.enabled = true,
+                CatalogEffect::Scanlines => e.scanlines.enabled = true,
+                CatalogEffect::Bloom => e.bloom.enabled = true,
+                CatalogEffect::GlowOnBell => e.glow_on_bell.enabled = true,
+                CatalogEffect::Snow => e.snow.enabled = true,
+            }
+            r.set_effects_config(e);
+        };
+        const ANIMATED: [CatalogEffect; 2] =
+            [CatalogEffect::GlowOnBell, CatalogEffect::Snow];
+
+        let mut failures: Vec<String> = Vec::new();
+        let mut rows = 0usize;
+        for effect in CatalogEffect::ALL.iter().copied() {
+            rows += 1;
+            let (mut r, _t) = harness(10, 2);
+            assert!(r.enabled_effect_set().is_empty(), "default config must be all-off");
+            enable(&mut r, effect);
+            let set = r.enabled_effect_set();
+            if !set.contains(effect) {
+                failures.push(format!("{effect:?}: knob did not enable its bit"));
+            }
+            for other in CatalogEffect::ALL.iter().copied() {
+                if other != effect && set.contains(other) {
+                    failures.push(format!("{effect:?}: knob also enabled {other:?}"));
+                }
+            }
+            r.set_reduce_motion(true);
+            let gated = r.enabled_effect_set();
+            let is_animated = ANIMATED.contains(&effect);
+            if is_animated && gated.contains(effect) {
+                failures.push(format!(
+                    "{effect:?}: reduce_motion must gate the animated effect to zero nodes"
+                ));
+            }
+            if !is_animated && !gated.contains(effect) {
+                failures.push(format!(
+                    "{effect:?}: reduce_motion must NOT gate a static effect"
+                ));
+            }
+        }
+        assert_eq!(
+            rows,
+            CatalogEffect::ALL.len(),
+            "matrix must cover every catalog effect"
+        );
+        assert!(
+            failures.is_empty(),
+            "{} effect-set rows failed:\n  - {}",
+            failures.len(),
+            failures.join("\n  - ")
+        );
+    }
+
     proptest::proptest! {
         /// Whatever byte sequence comes in, the rect set must:
         /// 1. Contain at most one cursor rect (Block style).
@@ -5085,110 +5001,86 @@ mod render_gpu_invariants {
         );
     }
 
-    /// PARITY GOLDEN (M3-C1) — the license to delete the legacy
-    /// PostProcessPipeline. One fixed frame rendered through BOTH
-    /// colorblind paths must hash byte-identical:
-    ///
-    ///   legacy:  scene → post.offscreen → COLORBLIND_SHADER blit
-    ///   catalog: scene → pool lease → engawa colorblind graph
-    ///            (the LIVE production route — `render()` with
-    ///            colorblind_mode set dispatches it end-to-end)
-    ///
-    /// The catalog WGSL is a verbatim Machado port, the sampler is
-    /// linear in both paths, and both blits are 1:1 fullscreen — any
-    /// divergence is a real regression, not tolerance noise.
+    /// CATALOG GOLDEN (M3-C1, post-deletion) — the parity golden in
+    /// the previous commit proved legacy == catalog byte-identical;
+    /// with the legacy PostProcessPipeline deleted, the catalog
+    /// route's own truth is pinned instead: the colorblind chain
+    /// must actually TRANSFORM the frame (effect reachable
+    /// end-to-end) and stay magenta-free.
     #[test]
-    fn colorblind_catalog_route_matches_legacy_postprocess() {
-        use garasu::headless::frame_hash;
+    fn catalog_colorblind_route_transforms_the_frame() {
+        use garasu::headless::{assert_no_magenta_pixels, frame_hash};
 
         let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
-        let format = wgpu::TextureFormat::Bgra8UnormSrgb;
         let (w, h) = (128u32, 64u32);
+        let target =
+            HeadlessTarget::new(&gpu, w, h, wgpu::TextureFormat::Bgra8UnormSrgb);
         let (mut r, t, mut text) = build_gpu_renderer(&gpu, 40, 8);
         t.write()
-            .feed(b"parity \x1b[31mred\x1b[0m \x1b[42mgreen-bg\x1b[0m \x1b[4munder\x1b[0m");
+            .feed(b"golden \x1b[31mred\x1b[0m \x1b[42mgreen-bg\x1b[0m \x1b[4munder\x1b[0m");
 
-        // Legacy path. Colorblind stays OFF on the renderer so the
-        // scene passes land directly on the "surface" we hand it —
-        // the legacy pipeline's own offscreen texture.
-        let mut post = PostProcessPipeline::new(&gpu.device, format);
-        post.ensure_offscreen(&gpu.device, w, h, format);
-        {
-            let view = post.offscreen_view.as_ref().expect("offscreen ensured");
-            let mut ctx = RenderContext {
-                gpu: &gpu,
-                text: &mut text,
-                surface_view: view,
-                width: w,
-                height: h,
-                scale_factor: 1.0,
-                elapsed: 0.0,
-                dt: 0.0,
-            };
-            r.render(&mut ctx);
-        }
-        let legacy_target = HeadlessTarget::new(&gpu, w, h, format);
-        let params = PostParams {
-            resolution: [w as f32, h as f32],
-            time: 0.0,
-            mode: 1, // protanopia
-        };
-        gpu.queue
-            .write_buffer(&post.params_buffer, 0, bytemuck::bytes_of(&params));
-        let mut encoder = gpu
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("legacy_parity_blit"),
-            });
-        {
-            let bind_group = post.bind_group.as_ref().expect("bind group ensured");
-            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("legacy_parity_pass"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: legacy_target.view(),
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                        store: wgpu::StoreOp::Store,
-                    },
-                })],
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-            });
-            pass.set_pipeline(&post.pipeline);
-            pass.set_bind_group(0, bind_group, &[]);
-            pass.draw(0..6, 0..1);
-        }
-        gpu.queue.submit(std::iter::once(encoder.finish()));
-        let _ = gpu.device.poll(wgpu::PollType::Wait);
-        let legacy_pixels = legacy_target.read_pixels_rgba8(&gpu);
-
-        // Catalog path — the LIVE route: same renderer, colorblind
-        // set, surface = a fresh headless target. render() leases the
-        // scene texture and dispatches the engawa graph.
+        let plain = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
         r.set_colorblind_mode(ColorblindMode::Protanopia);
-        let catalog_target = HeadlessTarget::new(&gpu, w, h, format);
-        let mut ctx = RenderContext {
-            gpu: &gpu,
-            text: &mut text,
-            surface_view: catalog_target.view(),
-            width: w,
-            height: h,
-            scale_factor: 1.0,
-            elapsed: 0.0,
-            dt: 0.0,
-        };
-        r.render(&mut ctx);
-        let _ = gpu.device.poll(wgpu::PollType::Wait);
-        let catalog_pixels = catalog_target.read_pixels_rgba8(&gpu);
+        let graded = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
 
+        assert_ne!(
+            frame_hash(&plain),
+            frame_hash(&graded),
+            "protanopia chain must change the rendered pixels"
+        );
+        assert!(
+            assert_no_magenta_pixels(&graded, w, h).is_ok(),
+            "colorblind-graded frame surfaced magenta — chain leaked uninit memory"
+        );
+    }
+
+    /// Full-chain golden: every catalog effect mado can enable at
+    /// once (colorblind + crt + scanlines + bloom + glow_on_bell +
+    /// snow) dispatched in ONE graph — 4 identical frames produce
+    /// one unique hash, zero magenta, and exactly one compile. This
+    /// exercises the multi-effect chain wiring, the bloom aux
+    /// leases, and the pool's lease/release cycle on a real adapter.
+    #[test]
+    fn full_effect_chain_is_deterministic_and_magenta_free() {
+        use garasu::headless::{assert_no_magenta_pixels, frame_hash};
+        use std::collections::HashSet;
+
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let (w, h) = (96u32, 48u32);
+        let target =
+            HeadlessTarget::new(&gpu, w, h, wgpu::TextureFormat::Bgra8UnormSrgb);
+        let (mut r, t, mut text) = build_gpu_renderer(&gpu, 30, 6);
+        let mut effects = crate::config::MadoEffectsConfig::default();
+        effects.snow.enabled = true;
+        effects.crt.enabled = true;
+        effects.scanlines.enabled = true;
+        effects.bloom.enabled = true;
+        effects.glow_on_bell.enabled = true;
+        r.set_effects_config(effects);
+        r.set_colorblind_mode(ColorblindMode::Tritanopia);
+        t.write().feed(b"full-chain \x07");
+
+        let mut hashes = HashSet::new();
+        let mut last = Vec::new();
+        for _ in 0..4 {
+            let pixels = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+            hashes.insert(frame_hash(&pixels).to_hex().to_string());
+            last = pixels;
+        }
         assert_eq!(
-            frame_hash(&legacy_pixels),
-            frame_hash(&catalog_pixels),
-            "legacy and catalog colorblind frames diverged — the catalog \
-             route is NOT a drop-in replacement; do not delete the legacy \
-             pipeline until this golden is green"
+            hashes.len(),
+            1,
+            "full effect chain produced {} distinct hashes across 4 identical frames",
+            hashes.len()
+        );
+        assert!(
+            assert_no_magenta_pixels(&last, w, h).is_ok(),
+            "full-chain frame surfaced magenta"
+        );
+        assert_eq!(
+            r.frame_graph.compile_count(),
+            1,
+            "one effect set + one resolution must compile exactly once"
         );
     }
 

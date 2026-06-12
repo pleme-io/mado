@@ -44,7 +44,6 @@ mod pty;
 mod perf;
 mod render;
 mod render_graph;
-mod render_snow;
 mod scenario;
 mod search;
 mod selection;
@@ -689,14 +688,23 @@ fn main() -> anyhow::Result<()> {
         Color::new(fg_srgb.r, fg_srgb.g, fg_srgb.b),
     );
 
-    // Apply accessibility and appearance settings from config
-    renderer.set_colorblind_mode(config.accessibility.colorblind);
+    // Apply accessibility and appearance settings from config.
+    // effects.colorblind.mode is the canonical knob; the legacy
+    // accessibility.colorblind keeps working as a deprecation alias
+    // (it wins only when the effects-section mode is None).
+    let colorblind_mode = if config.effects.colorblind.mode != crate::config::ColorblindMode::None
+    {
+        config.effects.colorblind.mode
+    } else {
+        config.accessibility.colorblind
+    };
+    renderer.set_colorblind_mode(colorblind_mode);
     renderer.set_bold_is_bright(config.appearance.bold_is_bright);
     renderer.set_reduce_motion(config.accessibility.reduce_motion);
-    // Snow overlay — the default mado effect. Pre-init so the
-    // overlay constructor in `init()` picks up the operator's
-    // knobs (intensity, wind, accumulation, layer_count, enabled).
-    renderer.set_snow_config(config.effects.snow.clone());
+    // Post-effect config (snow knobs, crt/scanlines/bloom/glow
+    // toggles) — the renderer derives its engawa effect chain from
+    // this every frame.
+    renderer.set_effects_config(config.effects.clone());
 
     // Selection/search/dir-picker renderer hooks are wired by
     // InputEngine::attach_to_renderer below — the engine is the only

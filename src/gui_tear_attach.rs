@@ -302,7 +302,7 @@ where
         bg_color,
         TermColor::new(fg_srgb.r, fg_srgb.g, fg_srgb.b),
     );
-    renderer.set_snow_config(config.effects.snow.clone());
+    renderer.set_effects_config(config.effects.clone());
 
     // engate typed Attach lifecycle — same shape both backends.
     // The TerminalSink writeback path closes the DSR/DA/OSC query

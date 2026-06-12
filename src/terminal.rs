@@ -4215,6 +4215,64 @@ fn parse_underline_color(
     }
 }
 
+/// DECRQSS `m` (SGR) report payload — the pen state rendered as SGR
+/// parameters, trailing final byte `m` included. The `Display` impl
+/// IS the typed wire emitter (TYPED EMISSION: the format strings are
+/// the serialization contract, not free-form composition).
+///
+/// fg/bg report as direct-RGB (`38:2::r:g:b`) because the pen
+/// resolves indexed colours to RGB at SGR-parse time — the report is
+/// the pen's truth, not a reconstruction of the original wire.
+/// `None` = the default colour, which emits no parameter (matching
+/// xterm: the leading `0` already implies defaults).
+struct SgrReport {
+    fg: Option<Color>,
+    bg: Option<Color>,
+    attrs: Attrs,
+}
+
+impl fmt::Display for SgrReport {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("0")?;
+        const FLAG_PARAMS: [(AttrFlags, &str); 8] = [
+            (AttrFlags::BOLD, "1"),
+            (AttrFlags::DIM, "2"),
+            (AttrFlags::ITALIC, "3"),
+            (AttrFlags::BLINK, "5"),
+            (AttrFlags::INVERSE, "7"),
+            (AttrFlags::HIDDEN, "8"),
+            (AttrFlags::STRIKETHROUGH, "9"),
+            (AttrFlags::OVERLINE, "53"),
+        ];
+        for (flag, code) in FLAG_PARAMS {
+            if self.attrs.flags.contains(flag) {
+                write!(f, ";{code}")?;
+            }
+        }
+        // 4:N sub-param wire — the styled-underline probe's target.
+        match self.attrs.underline {
+            UnderlineStyle::None => {}
+            UnderlineStyle::Single => f.write_str(";4")?,
+            UnderlineStyle::Double => f.write_str(";4:2")?,
+            UnderlineStyle::Curly => f.write_str(";4:3")?,
+            UnderlineStyle::Dotted => f.write_str(";4:4")?,
+            UnderlineStyle::Dashed => f.write_str(";4:5")?,
+        }
+        match self.attrs.underline_color {
+            UnderlineColor::Default => {}
+            UnderlineColor::Indexed(n) => write!(f, ";58:5:{n}")?,
+            UnderlineColor::Rgb(c) => write!(f, ";58:2::{}:{}:{}", c.r, c.g, c.b)?,
+        }
+        if let Some(c) = self.fg {
+            write!(f, ";38:2::{}:{}:{}", c.r, c.g, c.b)?;
+        }
+        if let Some(c) = self.bg {
+            write!(f, ";48:2::{}:{}:{}", c.r, c.g, c.b)?;
+        }
+        f.write_str("m")
+    }
+}
+
 // ---------------------------------------------------------------------------
 // TerminalOps impl for Terminal
 // ---------------------------------------------------------------------------
@@ -4364,18 +4422,27 @@ impl vte::Perform for Terminal {
         match self.dcs_handler {
             Some(DcsHandler::Decrqss(ref query)) => {
                 let response = match query.as_slice() {
-                    // DECRQSS `m` (SGR report): hardcoded `0m` while
-                    // caps::STYLED_UNDERLINE_IMPLEMENTED is false —
-                    // the standard styled-underline probe is "send
-                    // SGR 4:3, DECRQSS m, look for 4:3 in the reply",
-                    // and answering `0m` correctly reads as
-                    // unsupported. M3 OBLIGATION: the change that
-                    // flips STYLED_UNDERLINE_IMPLEMENTED must replace
-                    // this arm with a pen-derived report (pen_fg /
-                    // pen_bg / pen_attrs incl. 4:N underline style,
-                    // 58 underline colour, 53 overline) in the same
-                    // commit, or the cap advertises a lie.
-                    b"m" => b"\x1bP1$r0m\x1b\\".to_vec(),
+                    // DECRQSS `m` (SGR report) — PEN-DERIVED (M3).
+                    // The standard styled-underline probe is "send
+                    // SGR 4:3, DECRQSS m, look for 4:3 in the reply";
+                    // this report renders the live pen (flags, 4:N
+                    // underline style, 58 underline colour, 53
+                    // overline, non-default fg/bg) through the typed
+                    // SgrReport Display surface, so the
+                    // STYLED_UNDERLINE_IMPLEMENTED cap is backed by
+                    // real engine behaviour.
+                    b"m" => {
+                        let report = SgrReport {
+                            fg: (self.pen_fg != self.default_fg).then_some(self.pen_fg),
+                            bg: (self.pen_bg != self.default_bg).then_some(self.pen_bg),
+                            attrs: self.pen_attrs,
+                        };
+                        let mut out = Vec::with_capacity(48);
+                        out.extend_from_slice(b"\x1bP1$r");
+                        out.extend_from_slice(report.to_string().as_bytes());
+                        out.extend_from_slice(b"\x1b\\");
+                        out
+                    }
                     b"r" => {
                         let top = self.scroll_top + 1;
                         let bottom = self.scroll_bottom + 1;
@@ -7840,6 +7907,75 @@ mod tests {
         assert!(
             failures.is_empty(),
             "{} underline-style arms failed:\n  - {}",
+            failures.len(),
+            failures.join("\n  - ")
+        );
+    }
+
+    fn decrqss_m_reply(setup: &[u8]) -> String {
+        let mut term = Terminal::new(20, 4);
+        term.feed(setup);
+        term.feed(b"\x1bP$qm\x1b\\");
+        String::from_utf8_lossy(&term.take_response().unwrap_or_default()).into_owned()
+    }
+
+    /// DECRQSS `m` is PEN-DERIVED (M3): a default pen reports `0m`,
+    /// and every pen axis (flags, 4:N underline, 58 colour, 53
+    /// overline, non-default fg) echoes back. The curly row is the
+    /// kitty/neovim undercurl support probe — the in-band proof
+    /// behind caps::STYLED_UNDERLINE_IMPLEMENTED. Matrix-style:
+    /// failures aggregate, one assert.
+    #[test]
+    fn decrqss_sgr_report_is_pen_derived() {
+        struct Row {
+            setup: &'static [u8],
+            expect: &'static [&'static str],
+            name: &'static str,
+        }
+        let rows: &[Row] = &[
+            Row { setup: b"", expect: &["\x1bP1$r0m\x1b\\"], name: "default pen" },
+            Row { setup: b"\x1b[1;3m", expect: &[";1", ";3"], name: "bold+italic" },
+            Row { setup: b"\x1b[4:3m", expect: &["4:3"], name: "undercurl probe" },
+            Row { setup: b"\x1b[4:5m", expect: &["4:5"], name: "dashed" },
+            Row { setup: b"\x1b[4m", expect: &[";4m", ";4"], name: "single underline" },
+            Row {
+                setup: b"\x1b[58:2::240:100:30m\x1b[4m",
+                expect: &["58:2::240:100:30"],
+                name: "underline colour rgb",
+            },
+            Row { setup: b"\x1b[58:5:9m", expect: &["58:5:9"], name: "underline colour indexed" },
+            Row { setup: b"\x1b[53m", expect: &[";53"], name: "overline" },
+            // Semicolon form — the pen resolves it to RGB; the report
+            // re-emits the colon sub-param shape (the pen's truth).
+            Row { setup: b"\x1b[38;2;10;20;30m", expect: &["38:2::10:20:30"], name: "rgb fg" },
+            Row {
+                setup: b"\x1b[4:3m\x1b[0m",
+                expect: &["\x1bP1$r0m\x1b\\"],
+                name: "reset returns to 0m",
+            },
+        ];
+        let mut failures = Vec::new();
+        for row in rows {
+            let reply = decrqss_m_reply(row.setup);
+            if !reply.starts_with("\x1bP1$r0") || !reply.ends_with("m\x1b\\") {
+                failures.push(format!(
+                    "{}: reply {:?} not framed as DCS 1 $ r 0…m ST",
+                    row.name, reply
+                ));
+                continue;
+            }
+            for needle in row.expect {
+                if !reply.contains(needle) {
+                    failures.push(format!(
+                        "{}: reply {:?} missing {:?}",
+                        row.name, reply, needle
+                    ));
+                }
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "{} DECRQSS rows failed:\n  - {}",
             failures.len(),
             failures.join("\n  - ")
         );

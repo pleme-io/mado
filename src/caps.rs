@@ -21,14 +21,16 @@
 /// (undercurl/dotted/dashed/double) and SGR `58`/`59` (underline colour);
 /// terminfo `Smulx`/`Setulc`.
 ///
-/// The attrs widening that *stores* the underline style LANDED in M2
-/// (typed `Attrs{flags, underline, underline_color}` inside the interned
-/// `Style`; SGR 4:N / 58 / 59 wire acquisition included). The render
-/// GEOMETRY is still M3 (see `docs/REMEDIATION-PLAN.md`) — until it
-/// exists this stays `false`, and [`TerminalCaps::advertised_term`] must
-/// not advertise a `Smulx`-claiming terminfo. Flip this to `true` in the
-/// same change that lands the render path — never before.
-pub const STYLED_UNDERLINE_IMPLEMENTED: bool = false;
+/// TRUE since M3: storage landed in M2 (typed `Attrs{flags, underline,
+/// underline_color}` inside the interned `Style`; SGR 4:N / 58 / 59
+/// wire acquisition), and the render GEOMETRY shipped with the engawa
+/// decoration emitters — Single/Double/Curly/Dotted/Dashed each
+/// produce distinct pixels (the `underline_style_matrix_emits_engawa_
+/// geometry` test in render.rs pins all six), with SGR 58 colour
+/// honoured. The in-band proof is the pen-derived DECRQSS `m` report:
+/// feed SGR 4:3, query, and `4:3` comes back (the CAP_PROBES row
+/// below exercises exactly that against a real engine).
+pub const STYLED_UNDERLINE_IMPLEMENTED: bool = true;
 
 /// Typed capability record. One field per advertise-able VT capability,
 /// each mirroring what the VT engine in `terminal.rs` actually implements.
@@ -175,7 +177,13 @@ pub const CAP_PROBES: &[(&str, CapProbe)] = &[
     ("truecolor", CapProbe::RenderVerified { test: "sgr_truecolor" }),
     (
         "styled_underline",
-        CapProbe::GatedOff { flag: "STYLED_UNDERLINE_IMPLEMENTED" },
+        // The kitty/neovim undercurl probe, run for real: set SGR
+        // 4:3 (curly) + 58:5:1 (indexed colour), DECRQSS the SGR
+        // state, and the pen-derived report must echo the style.
+        CapProbe::Query {
+            feed: b"\x1b[4:3;58:5:1m\x1bP$qm\x1b\\",
+            expect: b"4:3",
+        },
     ),
     (
         "sgr_mouse",
@@ -289,13 +297,17 @@ mod tests {
     #[test]
     fn advertised_caps_have_known_status() {
         let caps = TerminalCaps::prescribed();
-        // The set of caps that are genuinely implemented today. styled_underline
-        // is deliberately absent until M3; if it is advertised, this fails.
+        // M3 landed the render geometry + the pen-derived DECRQSS
+        // report — styled_underline is now advertised, and the
+        // CAP_PROBES Query row (exercised against the real engine in
+        // cap_probe_rows_hold_against_the_engine) is what keeps the
+        // advertisement honest.
         for (name, on) in caps.as_pairs() {
             if name == "styled_underline" {
                 assert!(
-                    !on,
-                    "styled_underline must not be advertised before the render path lands (M3)"
+                    on,
+                    "styled_underline render path + DECRQSS report landed at M3 — \
+                     the cap must advertise"
                 );
             }
         }

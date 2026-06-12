@@ -102,16 +102,154 @@ pub struct MadoVigyConfig {
     pub enabled: bool,
 }
 
-/// Mado's overlay-effect configuration. Each field is one effect's
-/// knobs. Effects are rendered in declaration order after the text
-/// pass via `LoadOp::Load` alpha blending.
+/// Mado's post-effect configuration — one section per engawa
+/// catalog effect (M3 Stream D). The render side derives its
+/// enabled-effect set from THIS struct each frame; a disabled
+/// effect contributes zero graph nodes. Effects compose in catalog
+/// priority order (bloom → glow → snow → scanlines → crt →
+/// colorblind), not declaration order.
+///
+/// `accessibility.reduce_motion` gates the animated effects
+/// (`glow_on_bell`, `snow`) to zero nodes regardless of their
+/// `enabled` knobs.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct MadoEffectsConfig {
     #[serde(default)]
     pub snow: MadoSnowConfig,
+    #[serde(default)]
+    pub colorblind: MadoColorblindConfig,
+    #[serde(default)]
+    pub crt: MadoCrtConfig,
+    #[serde(default)]
+    pub scanlines: MadoScanlinesConfig,
+    #[serde(default)]
+    pub bloom: MadoBloomConfig,
+    #[serde(default)]
+    pub glow_on_bell: MadoGlowOnBellConfig,
 }
 
-/// Snow overlay knobs. Mirrors `engawa_snow::SnowParams` but only
+/// Colorblind-simulation effect knobs. `mode != None` IS the enable
+/// (no separate boolean to drift out of sync). The legacy
+/// `accessibility.colorblind` knob keeps working as a deprecation
+/// alias: when this mode is `None`, the accessibility value wins —
+/// resolved once at startup in main.rs.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct MadoColorblindConfig {
+    #[serde(default)]
+    pub mode: ColorblindMode,
+}
+
+/// CRT-look effect knobs — defaults mirror the engawa catalog's
+/// `CrtParams::default()` (the tuned reference values).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MadoCrtConfig {
+    #[serde(default)]
+    pub enabled: bool,
+    /// Barrel distortion strength (0 = flat; 0.05..0.15 typical).
+    #[serde(default = "default_crt_curvature")]
+    pub curvature: f32,
+    /// Edge-darkening strength 0..=1.
+    #[serde(default = "default_crt_vignette")]
+    pub vignette: f32,
+    /// Chromatic-aberration shift in pixels at the screen edge.
+    #[serde(default = "default_crt_aberration")]
+    pub aberration: f32,
+}
+
+fn default_crt_curvature() -> f32 { 0.08 }
+fn default_crt_vignette() -> f32 { 0.25 }
+fn default_crt_aberration() -> f32 { 0.6 }
+
+impl Default for MadoCrtConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            curvature: default_crt_curvature(),
+            vignette: default_crt_vignette(),
+            aberration: default_crt_aberration(),
+        }
+    }
+}
+
+/// Scanlines effect knobs — defaults mirror the catalog's
+/// `ScanlinesParams::default()`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MadoScanlinesConfig {
+    #[serde(default)]
+    pub enabled: bool,
+    /// Scanline period in physical pixels (shader floor: 1.0).
+    #[serde(default = "default_scanlines_period_px")]
+    pub period_px: f32,
+    /// Darkening strength 0..=1 (0 = exact pass-through).
+    #[serde(default = "default_scanlines_intensity")]
+    pub intensity: f32,
+}
+
+fn default_scanlines_period_px() -> f32 { 3.0 }
+fn default_scanlines_intensity() -> f32 { 0.25 }
+
+impl Default for MadoScanlinesConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            period_px: default_scanlines_period_px(),
+            intensity: default_scanlines_intensity(),
+        }
+    }
+}
+
+/// Bloom effect knobs — defaults mirror the catalog's
+/// `BloomParams::default()`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MadoBloomConfig {
+    #[serde(default)]
+    pub enabled: bool,
+    /// Luminance cutoff 0..=1 — below goes black.
+    #[serde(default = "default_bloom_threshold")]
+    pub threshold: f32,
+    /// Additive gain of the blurred bright buffer.
+    #[serde(default = "default_bloom_intensity")]
+    pub intensity: f32,
+    /// Blur tap spread in physical pixels.
+    #[serde(default = "default_bloom_radius_px")]
+    pub radius_px: f32,
+}
+
+fn default_bloom_threshold() -> f32 { 0.75 }
+fn default_bloom_intensity() -> f32 { 0.6 }
+fn default_bloom_radius_px() -> f32 { 2.5 }
+
+impl Default for MadoBloomConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            threshold: default_bloom_threshold(),
+            intensity: default_bloom_intensity(),
+            radius_px: default_bloom_radius_px(),
+        }
+    }
+}
+
+/// Glow-on-bell effect knobs — the BEL-driven cursor glow.
+/// Gated to zero nodes by `accessibility.reduce_motion`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MadoGlowOnBellConfig {
+    #[serde(default)]
+    pub enabled: bool,
+    /// Gaussian sigma in physical pixels.
+    #[serde(default = "default_glow_radius_px")]
+    pub radius_px: f32,
+}
+
+fn default_glow_radius_px() -> f32 { 240.0 }
+
+impl Default for MadoGlowOnBellConfig {
+    fn default() -> Self {
+        Self { enabled: false, radius_px: default_glow_radius_px() }
+    }
+}
+
+/// Snow overlay knobs. Mirrors the engawa catalog `SnowParams` but only
 /// the operator-facing dials; runtime state (time, cursor,
 /// typing_pulse, accumulation drift) is mado-managed.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -2051,9 +2189,15 @@ mod tests {
         assert!(bare.tear.impose.is_none());
 
         // ── Effects ────────────────────────────────────────────
-        // Snow is currently default-off; bare reuses Default for
-        // the typed effects struct.
+        // Every catalog effect is default-off (the clean fleet
+        // look); the static knobs carry the catalog reference
+        // values so enabling is a one-line config change.
         assert!(!bare.effects.snow.enabled);
+        assert_eq!(bare.effects.colorblind.mode, ColorblindMode::None);
+        assert!(!bare.effects.crt.enabled);
+        assert!(!bare.effects.scanlines.enabled);
+        assert!(!bare.effects.bloom.enabled);
+        assert!(!bare.effects.glow_on_bell.enabled);
     }
 
     #[test]
@@ -2133,6 +2277,53 @@ mod tests {
         // blackmatter + stylix + nord-dark fleet aesthetic.
         let d = MadoConfig::default();
         assert!(!d.effects.snow.enabled);
+    }
+
+    /// Every effects knob round-trips through YAML and the static
+    /// params mirror the engawa catalog's reference defaults — the
+    /// config IS a projection of the catalog's Params surface, so a
+    /// drifted default would silently change what `enabled = true`
+    /// buys. Matrix-style: failures aggregate, one assert.
+    #[test]
+    fn effects_config_defaults_mirror_the_catalog() {
+        let e = MadoEffectsConfig::default();
+        let rows: &[(&str, f32, f32)] = &[
+            ("crt.curvature", e.crt.curvature, 0.08),
+            ("crt.vignette", e.crt.vignette, 0.25),
+            ("crt.aberration", e.crt.aberration, 0.6),
+            ("scanlines.period_px", e.scanlines.period_px, 3.0),
+            ("scanlines.intensity", e.scanlines.intensity, 0.25),
+            ("bloom.threshold", e.bloom.threshold, 0.75),
+            ("bloom.intensity", e.bloom.intensity, 0.6),
+            ("bloom.radius_px", e.bloom.radius_px, 2.5),
+            ("glow_on_bell.radius_px", e.glow_on_bell.radius_px, 240.0),
+        ];
+        let mut failures = Vec::new();
+        for (name, got, want) in rows {
+            if (got - want).abs() > f32::EPSILON {
+                failures.push(format!("{name}: got {got}, want {want}"));
+            }
+        }
+        // Round-trip: a YAML config naming only the toggles keeps
+        // every other knob at the defaults (serde(default) per field).
+        let yaml = "crt:\n  enabled: true\nsnow:\n  enabled: true\n";
+        match serde_yaml_ng::from_str::<MadoEffectsConfig>(yaml) {
+            Ok(parsed) => {
+                if !parsed.crt.enabled || !parsed.snow.enabled {
+                    failures.push("partial YAML did not enable crt+snow".into());
+                }
+                if (parsed.crt.curvature - 0.08).abs() > f32::EPSILON {
+                    failures.push("partial YAML lost crt.curvature default".into());
+                }
+            }
+            Err(err) => failures.push(format!("partial YAML failed to parse: {err}")),
+        }
+        assert!(
+            failures.is_empty(),
+            "{} effects-config rows failed:\n  - {}",
+            failures.len(),
+            failures.join("\n  - ")
+        );
     }
 
     #[test]

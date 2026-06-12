@@ -374,14 +374,14 @@ fn spawn_child(
     //
     // TERM is a PROJECTION of mado's real capability set
     // (`caps::TerminalCaps`), never a hand-picked string — so mado can
-    // never advertise a capability it does not implement. Until styled
-    // underlines render (M3) this resolves to `xterm-256color`, which does
-    // NOT claim `Smulx`, so editors won't emit undercurl that mado would
-    // silently drop; truecolor is signalled out-of-band via COLORTERM
-    // below (apps honour it regardless of TERM). When the styled-underline
-    // render path lands, `advertised_term()` upgrades to the richer entry.
-    // SSH sessions fall back to `xterm-256color` via blackmatter-shell's
-    // .zshenv for remote hosts lacking the advertised terminfo entry.
+    // never advertise a capability it does not implement. Since the M3
+    // styled-underline render path + pen-derived DECRQSS report landed,
+    // this resolves to `xterm-ghostty`, whose terminfo claims
+    // `Smulx`/`Setulc` — both now real (undercurl geometry via the
+    // engawa emitters; SGR 58 colour honoured). Truecolor is still
+    // signalled out-of-band via COLORTERM below. SSH sessions fall back
+    // to `xterm-256color` via blackmatter-shell's .zshenv for remote
+    // hosts lacking the advertised terminfo entry.
     cmd.env(
         "TERM",
         crate::caps::TerminalCaps::prescribed().advertised_term(),

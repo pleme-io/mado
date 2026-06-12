@@ -1129,26 +1129,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "engawa-lisp"
-version = "0.1.0"
-source = "git+https://github.com/pleme-io/engawa-lisp#2b110df649a2a128165261307490c1f77c0cfa9e"
-dependencies = [
- "engawa",
- "thiserror 2.0.18",
-]
-
-[[package]]
-name = "engawa-snow"
-version = "0.1.0"
-source = "git+https://github.com/pleme-io/engawa-snow#ff9c5512b19e082f1005b51514ddb97532f9fae7"
-dependencies = [
- "bytemuck",
- "engawa",
- "engawa-lisp",
- "thiserror 2.0.18",
-]
-
-[[package]]
 name = "engawa-wgpu"
 version = "0.1.2"
 source = "git+https://github.com/pleme-io/engawa-wgpu#db87d21808712955a598a2a0273f2880754771e2"
@@ -2390,7 +2370,6 @@ dependencies = [
  "engate-attach",
  "engate-types",
  "engawa",
- "engawa-snow",
  "engawa-wgpu",
  "garasu",
  "glyphon",

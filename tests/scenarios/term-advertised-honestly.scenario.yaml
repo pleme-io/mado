@@ -1,23 +1,18 @@
 name: term-advertised-honestly
 description: |
-  Capability-honest TERM (caps.rs, commit 7024fb3): mado advertises
-  `TERM=xterm-256color` until the styled-underline render
-  path lands, because `xterm-ghostty`'s terminfo claims `Smulx`
-  (undercurl) that mado would silently drop — editors probing terminfo
-  must never be promised more than the VT engine implements. Truecolor
-  is signalled out-of-band via `COLORTERM=truecolor` regardless of TERM.
+  Capability-honest TERM (caps.rs): TERM is a PROJECTION of
+  `TerminalCaps`, never a hand-picked string. The M3 revert condition
+  written into this scenario at commit 7024fb3 has now FIRED:
+  `caps::STYLED_UNDERLINE_IMPLEMENTED` is true (M2 attrs widening +
+  M3 engawa decoration render geometry + pen-derived DECRQSS SGR
+  report), so `TerminalCaps::advertised_term()` returns
+  `xterm-ghostty` — whose terminfo claims `Smulx`/`Setulc`, both now
+  real. The caps.rs honesty tests pin the same contract from the unit
+  side (including the in-band SGR 4:3 → DECRQSS m → "4:3" probe);
+  this scenario pins it end-to-end through the real PTY spawn env.
 
-  M3 revert condition: when `caps::STYLED_UNDERLINE_IMPLEMENTED` flips
-  true (CellAttrs widening M2 + render geometry M3 — see
-  docs/REMEDIATION-PLAN.md), `TerminalCaps::advertised_term()` returns
-  `xterm-ghostty` again and THIS scenario must flip its assertions back
-  in the same change. The caps.rs honesty tests pin the same contract
-  from the unit side; this scenario pins it end-to-end through the real
-  PTY spawn env.
-
-  Operator directive 2026-05-12 (ghostty compatibility) still stands as
-  the destination — the capability-honest downgrade (commit 7024fb3) is
-  the interim, not a contract change. SSH-into-mado sessions
+  Operator directive 2026-05-12 (ghostty compatibility) is hereby the
+  live posture, not the destination. SSH-into-mado sessions
   independently downgrade via the blackmatter-shell `.zshenv` SSH hook
   (keyed off $SSH_CONNECTION, unset in headless scenario runs).
 cols: 80
@@ -30,10 +25,10 @@ steps:
     text: "TERM_IS_"
     timeout_ms: 500
 # L3 frame_hash golden intentionally absent: the grid text changed with
-# the TERM downgrade, invalidating the old baseline. Re-record via
+# the TERM upgrade, invalidating the old baseline. Re-record via
 # MADO_GOLDEN_UPDATE=1 cargo test --test scenarios --features gpu_tests.
 expect:
   text_contains:
-    - "TERM_IS_xterm-256color"
-  text_not_contains:
     - "TERM_IS_xterm-ghostty"
+  text_not_contains:
+    - "TERM_IS_xterm-256color"

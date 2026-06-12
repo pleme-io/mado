@@ -228,13 +228,13 @@ serde_yaml_ng = "0.10"
 
 pollster = { version = "0.4", optional = true }
 
-# engawa stack — typed render-graph IR (engawa), wgpu Dispatcher
-# (engawa-wgpu), and the flagship snow overlay effect
-# (engawa-snow). Mado renders snow as a fullscreen-effect overlay
-# on top of the text pass; see render_snow.rs for the wiring.
+# engawa stack — typed render-graph IR (engawa, also the owner of
+# the underline/decoration vocabulary) + the wgpu dispatcher and
+# typed effect catalog (engawa-wgpu). Every post effect — snow
+# included — dispatches through ONE engawa graph per frame; the
+# engawa-snow overlay crate was absorbed by the catalog (M3).
 engawa = { git = "https://github.com/pleme-io/engawa" }
 engawa-wgpu = { git = "https://github.com/pleme-io/engawa-wgpu" }
-engawa-snow = { git = "https://github.com/pleme-io/engawa-snow" }
 
 # macOS platform integration (safe Rust wrappers for Cocoa APIs)
 [target.'cfg(target_os = "macos")'.dependencies]

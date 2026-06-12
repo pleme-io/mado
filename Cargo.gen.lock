@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "2ea05b5d32aecc7c5ac4c6fc5b6befea024bfa2d656883ebc4604b70a4fc2a90",
+  "cargo_lock_sha256": "b0ecaede295d1eface0a0794f9285e9977b2a9b72753cdd185c14b7252bbd783",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -2445,82 +2445,6 @@
         ],
         "build_dependencies": [],
         "features": []
-      },
-      "engawa-lisp-0.1.0-2b110df649a2a128165261307490c1f77c0cfa9e": {
-        "runtime_dependencies": [
-          {
-            "name": "engawa",
-            "package_key": "engawa-0.1.2-bff2776580d961ac7a95337516c48329b4c79f28",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "thiserror",
-            "package_key": "thiserror-2.0.18",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          }
-        ],
-        "build_dependencies": [],
-        "features": []
-      },
-      "engawa-snow-0.1.0-ff9c5512b19e082f1005b51514ddb97532f9fae7": {
-        "runtime_dependencies": [
-          {
-            "name": "bytemuck",
-            "package_key": "bytemuck-1.25.0",
-            "kind": "normal",
-            "features": [
-              "derive"
-            ],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "engawa",
-            "package_key": "engawa-0.1.2-bff2776580d961ac7a95337516c48329b4c79f28",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "engawa_lisp",
-            "package_key": "engawa-lisp-0.1.0-2b110df649a2a128165261307490c1f77c0cfa9e",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "thiserror",
-            "package_key": "thiserror-2.0.18",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          }
-        ],
-        "build_dependencies": [],
-        "features": [
-          "default"
-        ]
       },
       "engawa-wgpu-0.1.2-db87d21808712955a598a2a0273f2880754771e2": {
         "runtime_dependencies": [
@@ -18387,16 +18311,6 @@
                 "tree": "target"
               },
               {
-                "name": "engawa_snow",
-                "package_key": "engawa-snow-0.1.0-ff9c5512b19e082f1005b51514ddb97532f9fae7",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              },
-              {
                 "name": "engawa_wgpu",
                 "package_key": "engawa-wgpu-0.1.2-db87d21808712955a598a2a0273f2880754771e2",
                 "kind": "normal",
@@ -22508,16 +22422,6 @@
                 "tree": "target"
               },
               {
-                "name": "engawa_snow",
-                "package_key": "engawa-snow-0.1.0-ff9c5512b19e082f1005b51514ddb97532f9fae7",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              },
-              {
                 "name": "engawa_wgpu",
                 "package_key": "engawa-wgpu-0.1.2-db87d21808712955a598a2a0273f2880754771e2",
                 "kind": "normal",
@@ -26532,16 +26436,6 @@
                 "tree": "target"
               },
               {
-                "name": "engawa_snow",
-                "package_key": "engawa-snow-0.1.0-ff9c5512b19e082f1005b51514ddb97532f9fae7",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              },
-              {
                 "name": "engawa_wgpu",
                 "package_key": "engawa-wgpu-0.1.2-db87d21808712955a598a2a0273f2880754771e2",
                 "kind": "normal",
@@ -30035,16 +29929,6 @@
               {
                 "name": "engawa",
                 "package_key": "engawa-0.1.2-bff2776580d961ac7a95337516c48329b4c79f28",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              },
-              {
-                "name": "engawa_snow",
-                "package_key": "engawa-snow-0.1.0-ff9c5512b19e082f1005b51514ddb97532f9fae7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33572,16 +33456,6 @@
               {
                 "name": "engawa",
                 "package_key": "engawa-0.1.2-bff2776580d961ac7a95337516c48329b4c79f28",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              },
-              {
-                "name": "engawa_snow",
-                "package_key": "engawa-snow-0.1.0-ff9c5512b19e082f1005b51514ddb97532f9fae7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37137,16 +37011,6 @@
                 "tree": "target"
               },
               {
-                "name": "engawa_snow",
-                "package_key": "engawa-snow-0.1.0-ff9c5512b19e082f1005b51514ddb97532f9fae7",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              },
-              {
                 "name": "engawa_wgpu",
                 "package_key": "engawa-wgpu-0.1.2-db87d21808712955a598a2a0273f2880754771e2",
                 "kind": "normal",
@@ -40256,12 +40120,6 @@
     "engawa-0.1.2-bff2776580d961ac7a95337516c48329b4c79f28": {
       "edition": "2024"
     },
-    "engawa-lisp-0.1.0-2b110df649a2a128165261307490c1f77c0cfa9e": {
-      "edition": "2024"
-    },
-    "engawa-snow-0.1.0-ff9c5512b19e082f1005b51514ddb97532f9fae7": {
-      "edition": "2024"
-    },
     "engawa-wgpu-0.1.2-db87d21808712955a598a2a0273f2880754771e2": {
       "edition": "2024"
     },
@@ -41833,8 +41691,6 @@
     "engate-attach-0.1.0-f7c0ea7baed05c0d3ffe3627a7a0a9e77db05e7f": "sha256-qcEVu83e+9ujl0ODV2Otau+NDpNP6VlNslhtQ0wuQlY=",
     "engate-types-0.1.0-f7c0ea7baed05c0d3ffe3627a7a0a9e77db05e7f": "sha256-qcEVu83e+9ujl0ODV2Otau+NDpNP6VlNslhtQ0wuQlY=",
     "engawa-0.1.2-bff2776580d961ac7a95337516c48329b4c79f28": "sha256-o1F82/LLZI/QYz8rmiYuapfG565f/VBeEncwRUnSWxQ=",
-    "engawa-lisp-0.1.0-2b110df649a2a128165261307490c1f77c0cfa9e": "sha256-g7D0c/0LEj72Ee75jLqd8HXEnLS3tQsqXoyLg0znh1s=",
-    "engawa-snow-0.1.0-ff9c5512b19e082f1005b51514ddb97532f9fae7": "sha256-0oHaiXkZXWUJrPa9nT40XiNRnDk8w98+3BUV7GVNuBA=",
     "engawa-wgpu-0.1.2-db87d21808712955a598a2a0273f2880754771e2": "sha256-38dsUaSW+382O5M+WYsttAARhPJ60u4E1W8ZGMom0RE=",
     "garasu-0.1.0-5f9d4fec35ffff36d957cce64e9055e9fd9f3a5c": "sha256-s4k7WpAUFvNroW34oXBtpJa/OTQ8pa2TrOms9JU51vw=",
     "hasami-0.1.0-25846db58bbd493ded04243a41bc08eaf2bf007b": "sha256-lRyEzSomM+igLhBPtop9K5RK0mTDzLfhRZJLoChZlPc=",
