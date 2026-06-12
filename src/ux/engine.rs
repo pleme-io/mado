@@ -24,7 +24,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 use hasami::ClipboardProvider;
-use madori::event::{KeyCode, KeyEvent, Modifiers, MouseButton};
+use madori::event::{KeyEvent, Modifiers, MouseButton};
 
 use crate::dir_picker::DirPickerState;
 use crate::font_size::{BoundedFontSize, FontSizeSteps};
@@ -33,6 +33,10 @@ use crate::render::{SharedTerminal, TerminalRenderer};
 use crate::search::SearchState;
 use crate::selection::{CellPos, Selection};
 use crate::terminal::{Cell, MouseMode, SelectionAnchor};
+use crate::ux::modes::{
+    self, DragMode, Overlay, OverlayEffect, OverlayEvent, OverlayKey, OverlayRouting, OverlayStep,
+    Pointer, PointerEffect, PointerEvent, PressPlan, PressRoute, SearchNav,
+};
 use crate::ux::mouse_report::{MouseMods, MouseReport, MouseReportButton, MouseReportKind};
 use crate::ux::{EventOutcome, FontZoomTarget, PtySink, ResizeSink, UxBehavior};
 
@@ -99,33 +103,6 @@ pub enum ActionOutcome {
     FallThrough,
 }
 
-/// Selection-drag granularity: what unit the live drag snaps to.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum DragMode {
-    /// Plain drag — endpoints are the exact cells.
-    Char,
-    /// Double-click drag — BOTH ends snap to word boundaries; the
-    /// origin word stays fully selected (kitty/ghostty contract).
-    Word,
-    /// Triple-click drag — both ends snap to full physical rows.
-    Line,
-}
-
-/// The selection-drag FSM state — ONE typed value, no scattered
-/// bools (per the determinism+FSM directive; the upcoming engine-
-/// modal-state FSM lift consumes this enum as-is). `origin` is the
-/// content-anchored span captured at press time: char drags carry
-/// the press cell twice; word/line drags carry the snapped origin
-/// unit, which every motion-time union keeps fully selected.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum SelectionDrag {
-    Idle,
-    Drag {
-        mode: DragMode,
-        origin: (SelectionAnchor, SelectionAnchor),
-    },
-}
-
 /// The unified input/UX engine. Owns every piece of interaction
 /// state the pre-M1 loops kept as closure-captured locals.
 pub struct InputEngine {
@@ -154,19 +131,22 @@ pub struct InputEngine {
     last_click_time: Instant,
     click_count: u8,
     last_click_pos: CellPos,
-    /// Whether the left button is currently held — drives the SGR
-    /// motion code (drag = 32 vs hover = 35) and ButtonEvent(1002)'s
-    /// motion-only-while-pressed contract.
-    left_button_down: bool,
-    /// A shift+click bypassed mouse tracking and started a
-    /// terminal-side selection — motion events update the selection
-    /// instead of forwarding while this drag is live.
-    shift_drag_bypass: bool,
-    /// The live selection-drag FSM (`Idle` ↔ `Drag { mode, origin }`).
-    /// Pressed → drag, released / typed-over / evicted → idle.
-    /// Motion only mutates the selection through this state — there
-    /// is no is-a-drag-happening boolean to desync from it.
-    drag: SelectionDrag,
+    /// The pointer modal machine (`ux::modes::Pointer`) — drag
+    /// lifecycle + shift-capture bypass in ONE typed state. Replaced
+    /// the three pre-FSM sibling cells `left_button_down: bool` +
+    /// `shift_drag_bypass: bool` + `drag: SelectionDrag` (FSM lift
+    /// 2026-06-12): the button-held fact is now DERIVED from the
+    /// state (`Pointer::left_button_down`), so button/drag desync is
+    /// unrepresentable, and a forwarded press structurally cannot
+    /// carry the bypass.
+    pointer: Pointer,
+    /// The overlay modal machine — which overlay owns the keyboard.
+    /// Authoritative for ROUTING; the renderer-shared
+    /// `SearchState.active` / `DirPickerState.open` cells are write-
+    /// only mirrors maintained by [`Self::apply_overlay_step`]
+    /// (tier-honest: the mirror pair is only-mitigated — see
+    /// docs/UNREPRESENTABILITY-VERIFICATION.md).
+    overlay: Overlay,
     /// Last modifier state seen on any key/button event — wheel
     /// events don't carry modifiers on the current madori pin.
     last_mods: Modifiers,
@@ -222,9 +202,8 @@ impl InputEngine {
             last_click_time: Instant::now(),
             click_count: 0,
             last_click_pos: CellPos { row: 0, col: 0 },
-            left_button_down: false,
-            shift_drag_bypass: false,
-            drag: SelectionDrag::Idle,
+            pointer: Pointer::Up,
+            overlay: Overlay::None,
             last_mods: Modifiers::default(),
             last_mouse_pos: (0.0, 0.0),
             grid_sync_sig: None,
@@ -309,101 +288,21 @@ impl InputEngine {
         let key = &event.key;
         let text = &event.text;
 
-        // ── Search-overlay input routing ──────────────────────────
-        // While the overlay is open every keystroke belongs to it:
-        // Close/Next/Prev chords act on the overlay, unmodified text
-        // edits the query, everything else is consumed so it can't
-        // leak to the PTY.
+        // ── Overlay input routing (typed FSM — ux/modes.rs) ───────
+        // While an overlay owns the keyboard every keystroke belongs
+        // to it: search-nav chords act on the search bar, raw nav
+        // keys drive the dir picker, plain text edits the query,
+        // everything else is consumed so it can't leak to the PTY.
+        // With no overlay open the machine's `Overlay::None` arm is
+        // a structural fall-through — no Search-nav consuming arm
+        // exists there, so the Esc-eating LAW (review finding
+        // 2026-06-11) holds by construction, not by guard.
         {
-            let search_active = self.search.lock().unwrap().active;
-            if search_active {
-                match action {
-                    Some(Action::SearchClose) => {
-                        self.search.lock().unwrap().close();
-                        return EventOutcome::consumed().with_cursor_visibility(vis);
-                    }
-                    Some(Action::SearchNext) => {
-                        self.search.lock().unwrap().next();
-                        self.scroll_to_active_match();
-                        return EventOutcome::consumed().with_cursor_visibility(vis);
-                    }
-                    Some(Action::SearchPrev) => {
-                        self.search.lock().unwrap().prev();
-                        self.scroll_to_active_match();
-                        return EventOutcome::consumed().with_cursor_visibility(vis);
-                    }
-                    _ => {}
-                }
-                // In search mode, typing updates the query (no modifiers).
-                if !mods.ctrl && !mods.meta && !mods.alt {
-                    if let Some(text) = text {
-                        if !text.is_empty() {
-                            let (rows, cols, first_abs) = self.search_rows();
-                            self.search
-                                .lock()
-                                .unwrap()
-                                .append_query(text, &rows, cols, first_abs);
-                            self.scroll_to_active_match();
-                            return EventOutcome::consumed().with_cursor_visibility(vis);
-                        }
-                    }
-                    if matches!(key, KeyCode::Backspace) {
-                        let (rows, cols, first_abs) = self.search_rows();
-                        self.search
-                            .lock()
-                            .unwrap()
-                            .backspace_query(&rows, cols, first_abs);
-                        self.scroll_to_active_match();
-                        return EventOutcome::consumed().with_cursor_visibility(vis);
-                    }
-                }
-                return EventOutcome::consumed().with_cursor_visibility(vis);
-            }
-        }
-
-        // ── Dir-picker mode input (reader-only frecency overlay 轍) ─
-        // Mirrors the search-mode block above; keys are fully consumed
-        // while open. mado only READS wadachi + injects `cd` on select.
-        {
-            let dp_open = self.dir_picker.lock().unwrap().open;
-            if dp_open {
-                if matches!(key, KeyCode::Escape) {
-                    self.dir_picker.lock().unwrap().close();
-                    return EventOutcome::consumed().with_cursor_visibility(vis);
-                }
-                if matches!(key, KeyCode::Enter) {
-                    let path = self.dir_picker.lock().unwrap().selected_path().cloned();
-                    if let Some(p) = path {
-                        let cmd = format!(
-                            "cd {}\n",
-                            crate::dir_picker::shell_quote_path(&p.to_string_lossy())
-                        );
-                        self.write_key_input(cmd.as_bytes());
-                    }
-                    self.dir_picker.lock().unwrap().close();
-                    return EventOutcome::consumed().with_cursor_visibility(vis);
-                }
-                if matches!(key, KeyCode::Up) {
-                    self.dir_picker.lock().unwrap().move_up();
-                    return EventOutcome::consumed().with_cursor_visibility(vis);
-                }
-                if matches!(key, KeyCode::Down) {
-                    self.dir_picker.lock().unwrap().move_down();
-                    return EventOutcome::consumed().with_cursor_visibility(vis);
-                }
-                if !mods.ctrl && !mods.meta && !mods.alt {
-                    if matches!(key, KeyCode::Backspace) {
-                        self.dir_picker.lock().unwrap().backspace();
-                        return EventOutcome::consumed().with_cursor_visibility(vis);
-                    }
-                    if let Some(text) = text {
-                        if !text.is_empty() {
-                            self.dir_picker.lock().unwrap().push_str(text);
-                            return EventOutcome::consumed().with_cursor_visibility(vis);
-                        }
-                    }
-                }
-                // Consume everything else while the overlay is open.
+            let lowered = OverlayKey::lower(action, *key, text.as_deref(), mods);
+            if matches!(
+                self.dispatch_overlay(OverlayEvent::Key(lowered)),
+                OverlayRouting::Consumed
+            ) {
                 return EventOutcome::consumed().with_cursor_visibility(vis);
             }
         }
@@ -498,35 +397,30 @@ impl InputEngine {
                 ActionOutcome::Consumed(EventOutcome::consumed())
             }
             Action::SearchOpen => {
-                self.search.lock().unwrap().open();
+                self.dispatch_overlay(OverlayEvent::OpenSearch);
                 ActionOutcome::Consumed(EventOutcome::consumed())
             }
             Action::DirPickerOpen => {
-                self.dir_picker.lock().unwrap().open();
+                self.dispatch_overlay(OverlayEvent::OpenDirPicker);
                 ActionOutcome::Consumed(EventOutcome::consumed())
             }
-            // Close/Next/Prev are handled ONLY while the overlay is
-            // open: the fleet atlas binds search_close to bare Escape,
-            // and consuming it on a closed overlay would eat Esc
-            // before PTY forwarding and kill vim/helix/fzf (review
-            // finding 2026-06-11). With the overlay closed they fall
-            // through and the key reaches the PTY.
+            // Close/Next/Prev are handled ONLY while the search
+            // overlay is open: the fleet atlas binds search_close to
+            // bare Escape, and consuming it on a closed overlay would
+            // eat Esc before PTY forwarding and kill vim/helix/fzf
+            // (review finding 2026-06-11). The LAW is structural in
+            // the overlay machine — `Overlay::None` has NO nav arm,
+            // so the chord falls through and the key reaches the PTY.
             Action::SearchClose | Action::SearchNext | Action::SearchPrev => {
-                let mut st = self.search.lock().unwrap();
-                if !st.active {
-                    return ActionOutcome::FallThrough;
+                let nav = match action {
+                    Action::SearchClose => SearchNav::Close,
+                    Action::SearchNext => SearchNav::Next,
+                    _ => SearchNav::Prev,
+                };
+                match self.dispatch_overlay(OverlayEvent::Key(OverlayKey::nav_only(nav))) {
+                    OverlayRouting::Consumed => ActionOutcome::Consumed(EventOutcome::consumed()),
+                    OverlayRouting::FallThrough => ActionOutcome::FallThrough,
                 }
-                let close = matches!(action, Action::SearchClose);
-                match action {
-                    Action::SearchClose => st.close(),
-                    Action::SearchNext => st.next(),
-                    _ => st.prev(),
-                }
-                drop(st);
-                if !close {
-                    self.scroll_to_active_match();
-                }
-                ActionOutcome::Consumed(EventOutcome::consumed())
             }
             // Bare PageUp/PageDown are bound to these actions in the
             // default map. On the ALTERNATE screen a full-screen TUI
@@ -697,6 +591,79 @@ impl InputEngine {
         }
     }
 
+    // ── Overlay machine seam ─────────────────────────────────────
+
+    /// Dispatch one event to the overlay machine, latch the new
+    /// state, execute the typed effects, and hand back the routing.
+    /// EVERY overlay interaction (keystroke routing in `on_key`,
+    /// chord/injected actions in `apply_action`) funnels through
+    /// here — there is no second path that mutates overlay state.
+    fn dispatch_overlay(&mut self, event: OverlayEvent) -> OverlayRouting {
+        let step = self.overlay.on_event(event);
+        let routing = step.routing;
+        self.apply_overlay_step(step);
+        routing
+    }
+
+    /// Execute one overlay-machine step. The machine is pure; this
+    /// is the I/O edge: the renderer-shared mirror cells
+    /// (`SearchState` / `DirPickerState` — read by the render passes,
+    /// written ONLY here), the scroll-to-match seam, and the `cd`
+    /// injection through the operator-input path.
+    fn apply_overlay_step(&mut self, step: OverlayStep) {
+        self.overlay = step.state;
+        for effect in step.effects {
+            match effect {
+                OverlayEffect::SearchOpen => self.search.lock().unwrap().open(),
+                OverlayEffect::SearchClose => self.search.lock().unwrap().close(),
+                OverlayEffect::SearchNext => {
+                    self.search.lock().unwrap().next();
+                    self.scroll_to_active_match();
+                }
+                OverlayEffect::SearchPrev => {
+                    self.search.lock().unwrap().prev();
+                    self.scroll_to_active_match();
+                }
+                OverlayEffect::SearchAppend(text) => {
+                    let (rows, cols, first_abs) = self.search_rows();
+                    self.search
+                        .lock()
+                        .unwrap()
+                        .append_query(&text, &rows, cols, first_abs);
+                    self.scroll_to_active_match();
+                }
+                OverlayEffect::SearchBackspace => {
+                    let (rows, cols, first_abs) = self.search_rows();
+                    self.search
+                        .lock()
+                        .unwrap()
+                        .backspace_query(&rows, cols, first_abs);
+                    self.scroll_to_active_match();
+                }
+                OverlayEffect::DirPickerOpen => self.dir_picker.lock().unwrap().open(),
+                OverlayEffect::DirPickerClose => self.dir_picker.lock().unwrap().close(),
+                OverlayEffect::DirPickerAccept => {
+                    let path = self.dir_picker.lock().unwrap().selected_path().cloned();
+                    if let Some(p) = path {
+                        // `cd '<path>'\n` composed from typed pieces
+                        // (shell_quote_path owns the quoting rule).
+                        let mut cmd = String::from("cd ");
+                        cmd.push_str(&crate::dir_picker::shell_quote_path(&p.to_string_lossy()));
+                        cmd.push('\n');
+                        self.write_key_input(cmd.as_bytes());
+                    }
+                    self.dir_picker.lock().unwrap().close();
+                }
+                OverlayEffect::DirPickerMoveUp => self.dir_picker.lock().unwrap().move_up(),
+                OverlayEffect::DirPickerMoveDown => self.dir_picker.lock().unwrap().move_down(),
+                OverlayEffect::DirPickerBackspace => self.dir_picker.lock().unwrap().backspace(),
+                OverlayEffect::DirPickerPush(text) => {
+                    self.dir_picker.lock().unwrap().push_str(&text);
+                }
+            }
+        }
+    }
+
     /// Paste the system clipboard into the PTY through the M0
     /// PasteGuard (`clipboard_store::sanitize_paste`): strips bytes
     /// that would break out of (or fake) bracketed-paste framing —
@@ -725,8 +692,11 @@ impl InputEngine {
         // ('q' out of a pager used to land them at the prompt bottom
         // instead of where they were).
         // Typing also cancels any live drag — motion after the clear
-        // must not resurrect the dead selection.
-        self.drag = SelectionDrag::Idle;
+        // must not resurrect the dead selection. (Machine contract:
+        // `TypedInput` is effect-free; the matrix test pins it.)
+        let step = self.pointer.on_event(PointerEvent::TypedInput);
+        debug_assert!(step.effects.is_empty(), "TypedInput is effect-free by contract");
+        self.pointer = step.state;
         self.selection.lock().unwrap().clear();
         if !self.terminal.read().is_alternate_screen() {
             self.terminal.write().scroll_to_bottom();
@@ -792,6 +762,16 @@ impl InputEngine {
     /// tracks the mouse (ALL buttons + modifier bits — M1 closes the
     /// pre-M1 left-only gap), else selection (click / double-click
     /// word / triple-click line, copy-on-select, Cmd+click URL open).
+    ///
+    /// Left-button routing is decided by the pointer machine
+    /// (`ux::modes::Pointer`): `route_left_press` is the ONE place
+    /// the forward-vs-terminal-side split lives, and the shift
+    /// bypass rides INSIDE the machine state — release/motion arms
+    /// consume it as a transition guard, not as a flag read here.
+    /// Shift is the operator's escape hatch (xterm/kitty/ghostty
+    /// convention): shift+click bypasses tracking and selects text
+    /// terminal-side — without it, selection is impossible inside
+    /// vim/tmux/htop (hunt finding 2026-06-11).
     pub fn on_mouse_button(
         &mut self,
         button: MouseButton,
@@ -804,35 +784,37 @@ impl InputEngine {
         self.last_mouse_pos = (x, y);
         self.last_mods = modifiers;
         let (col, row, mouse_mode, sgr) = self.mouse_cell(x, y, metrics);
+        let tracking_on = mouse_mode != MouseMode::Off;
+        let shift_local = modifiers.shift && !self.behavior.mouse_shift_capture;
 
         if button == MouseButton::Left {
-            self.left_button_down = pressed;
-            if pressed {
-                self.shift_drag_bypass = modifiers.shift
-                    && !self.behavior.mouse_shift_capture
-                    && mouse_mode != MouseMode::Off;
+            let event = if pressed {
+                PointerEvent::LeftPress(match modes::route_left_press(tracking_on, shift_local) {
+                    modes::PressRouting::Forward => PressRoute::Forward,
+                    modes::PressRouting::Select { bypass } => PressRoute::Select {
+                        bypass,
+                        plan: self.classify_selection_press(row, col, modifiers),
+                    },
+                })
+            } else {
+                PointerEvent::LeftRelease {
+                    tracking_on,
+                    shift_local,
+                }
+            };
+            let step = self.pointer.on_event(event);
+            self.pointer = step.state;
+            for effect in step.effects {
+                self.run_pointer_effect(effect, col, row, modifiers, sgr);
             }
-        }
-        let bypass_release =
-            button == MouseButton::Left && !pressed && self.shift_drag_bypass;
-        if bypass_release {
-            // The release belongs to the bypassed drag: finish the
-            // selection below (tracking-off path), then end the
-            // bypass.
-            self.shift_drag_bypass = false;
+            return EventOutcome::consumed();
         }
 
-        // Forward mouse events to the PTY via the typed MouseReport
-        // emitter when tracking is active. Pre-M1 both loops forwarded
-        // Left only; the unified engine forwards left/middle/right
-        // with real modifier bits (Shift 4 / Meta 8 / Ctrl 16).
-        //
-        // Shift is the operator's escape hatch (xterm/kitty/ghostty
-        // convention): shift+click bypasses tracking and selects
-        // text terminal-side — without it, selection is impossible
-        // inside vim/tmux/htop (hunt finding 2026-06-11).
-        let shift_bypass = modifiers.shift && !self.behavior.mouse_shift_capture;
-        if mouse_mode != MouseMode::Off && !shift_bypass && !bypass_release {
+        // Middle/right forwarding when tracking is active (same
+        // guard the machine's press routing applies to Left). The
+        // unified engine forwards all three buttons with real
+        // modifier bits (Shift 4 / Meta 8 / Ctrl 16).
+        if tracking_on && !shift_local {
             let report = MouseReport {
                 kind: if pressed {
                     MouseReportKind::Press
@@ -856,94 +838,126 @@ impl InputEngine {
         // on every platform; macOS has no primary selection so the
         // clipboard is the source). Same PasteGuard path as the
         // keyboard action.
-        if button == MouseButton::Middle {
-            if pressed {
-                let pasted = self.clipboard.paste_text().ok();
-                if let Some(text) = pasted {
-                    self.write_paste(&text);
-                }
+        if button == MouseButton::Middle && pressed {
+            let pasted = self.clipboard.paste_text().ok();
+            if let Some(text) = pasted {
+                self.write_paste(&text);
             }
-            return EventOutcome::consumed();
+        }
+        EventOutcome::consumed()
+    }
+
+    /// The impure half of a terminal-side left press: multi-click
+    /// cadence + content-anchor capture, resolved into a typed
+    /// [`PressPlan`] the pointer machine consumes. Runs ONLY when
+    /// the press routed terminal-side — a forwarded press must not
+    /// advance the click cadence (pre-FSM contract: the forward
+    /// block returned before the cadence update).
+    fn classify_selection_press(
+        &mut self,
+        row: usize,
+        col: usize,
+        modifiers: Modifiers,
+    ) -> PressPlan {
+        // Shift+click EXTENDS an existing selection to the click
+        // point (xterm/kitty/ghostty convention) and keeps dragging
+        // from the surviving start anchor. An extension is not a
+        // multi-click: the cadence state stays untouched. No
+        // existing selection → nothing to extend — fall through to
+        // the plain click path below.
+        if modifiers.shift {
+            let existing = self.selection.lock().unwrap().anchors();
+            if let Some((start, _)) = existing {
+                if let Some(click) = self.terminal.read().selection_anchor_at(row, col) {
+                    return PressPlan::Extend { start, click };
+                }
+                return PressPlan::Unanchored;
+            }
         }
 
-        // Text selection via left mouse button. Anchors are captured
-        // at gesture time (here) and resolved at use time (render /
-        // extract) — the selection survives streaming output and
-        // rewrap because it names content, not viewport rows.
-        if button == MouseButton::Left {
-            if pressed {
-                // Shift+click EXTENDS an existing selection to the
-                // click point (xterm/kitty/ghostty convention) and
-                // keeps dragging from the surviving start anchor.
-                // No existing selection → nothing to extend — fall
-                // through to the plain click path below.
-                let existing = self.selection.lock().unwrap().anchors();
-                if let (true, Some((start, _))) = (modifiers.shift, existing) {
-                    if let Some(click) =
-                        self.terminal.read().selection_anchor_at(row, col)
-                    {
-                        self.selection.lock().unwrap().set_span(start, click);
-                        self.drag = SelectionDrag::Drag {
-                            mode: DragMode::Char,
-                            origin: (start, start),
-                        };
-                    }
-                    // An extension is not a multi-click: leave the
-                    // cadence state (click_count / last_click_*)
-                    // untouched.
-                    return EventOutcome::consumed();
-                }
+        let now = Instant::now();
+        let same_pos = self.last_click_pos.row == row && self.last_click_pos.col == col;
+        let quick = now.duration_since(self.last_click_time).as_millis() < 400;
+        if same_pos && quick {
+            self.click_count = (self.click_count + 1).min(3);
+        } else {
+            self.click_count = 1;
+        }
+        self.last_click_time = now;
+        self.last_click_pos = CellPos { row, col };
 
-                let now = Instant::now();
-                let same_pos =
-                    self.last_click_pos.row == row && self.last_click_pos.col == col;
-                let quick = now.duration_since(self.last_click_time).as_millis() < 400;
+        match self.click_count {
+            // Double-click: select word; the snapped word is the drag
+            // origin every word-drag union keeps fully selected.
+            2 => self
+                .word_span_at(row, col)
+                .map_or(PressPlan::Unanchored, |span| PressPlan::Word { span }),
+            // Triple-click: select entire (physical) line.
+            3 => self
+                .line_span_at(row)
+                .map_or(PressPlan::Unanchored, |span| PressPlan::Line { span }),
+            _ => self
+                .terminal
+                .read()
+                .selection_anchor_at(row, col)
+                .map_or(PressPlan::Unanchored, |anchor| PressPlan::Char { anchor }),
+        }
+    }
 
-                if same_pos && quick {
-                    self.click_count = (self.click_count + 1).min(3);
-                } else {
-                    self.click_count = 1;
-                }
-                self.last_click_time = now;
-                self.last_click_pos = CellPos { row, col };
-
-                match self.click_count {
-                    2 => {
-                        // Double-click: select word; the snapped word
-                        // is the drag origin every word-drag union
-                        // keeps fully selected.
-                        if let Some(span) = self.word_span_at(row, col) {
-                            self.selection.lock().unwrap().set_span(span.0, span.1);
-                            self.drag = SelectionDrag::Drag {
-                                mode: DragMode::Word,
-                                origin: span,
-                            };
-                        }
-                    }
-                    3 => {
-                        // Triple-click: select entire (physical) line.
-                        if let Some(span) = self.line_span_at(row) {
-                            self.selection.lock().unwrap().set_span(span.0, span.1);
-                            self.drag = SelectionDrag::Drag {
-                                mode: DragMode::Line,
-                                origin: span,
-                            };
-                        }
-                    }
-                    _ => {
-                        if let Some(a) = self.terminal.read().selection_anchor_at(row, col)
-                        {
-                            self.selection.lock().unwrap().start(a);
-                            self.drag = SelectionDrag::Drag {
-                                mode: DragMode::Char,
-                                origin: (a, a),
-                            };
-                        }
-                    }
-                }
-            } else {
-                // Release ends the drag FSM unconditionally.
-                self.drag = SelectionDrag::Idle;
+    /// Execute one typed pointer effect at the event's cell coords.
+    /// Pure decisions live in the machine (`ux::modes`); this is the
+    /// I/O edge: PTY reports through the [`PtySink`], selection
+    /// mutation, the release ritual (finish / copy-on-select / URL
+    /// open).
+    fn run_pointer_effect(
+        &mut self,
+        effect: PointerEffect,
+        col: usize,
+        row: usize,
+        modifiers: Modifiers,
+        sgr: bool,
+    ) {
+        match effect {
+            PointerEffect::ForwardPress | PointerEffect::ForwardRelease => {
+                let report = MouseReport {
+                    kind: if matches!(effect, PointerEffect::ForwardPress) {
+                        MouseReportKind::Press
+                    } else {
+                        MouseReportKind::Release
+                    },
+                    button: MouseReportButton::Left,
+                    col: col + 1,
+                    row: row + 1,
+                    mods: MouseMods::from(modifiers),
+                };
+                self.pty.write(&report.encode(sgr));
+            }
+            // The machine emits ForwardMotion only under SGR (the
+            // pre-FSM motion path never encoded non-SGR motion).
+            PointerEffect::ForwardMotion { button_down } => {
+                let report = MouseReport {
+                    kind: MouseReportKind::Motion,
+                    button: if button_down {
+                        MouseReportButton::Left
+                    } else {
+                        MouseReportButton::None
+                    },
+                    col: col + 1,
+                    row: row + 1,
+                    mods: MouseMods::NONE,
+                };
+                self.pty.write(&report.encode(true));
+            }
+            PointerEffect::StartSelection(anchor) => {
+                self.selection.lock().unwrap().start(anchor);
+            }
+            PointerEffect::SetSpan(a, b) => {
+                self.selection.lock().unwrap().set_span(a, b);
+            }
+            PointerEffect::UpdateDrag { mode, origin } => {
+                self.update_drag(mode, origin, row, col);
+            }
+            PointerEffect::SelectionRelease => {
                 if self.click_count == 1 {
                     self.selection.lock().unwrap().finish();
                 }
@@ -980,7 +994,6 @@ impl InputEngine {
                 }
             }
         }
-        EventOutcome::consumed()
     }
 
     // ── Selection helpers (anchor capture + drag FSM) ────────────
@@ -1098,36 +1111,23 @@ impl InputEngine {
 
         let (col, row, mouse_mode, sgr) = self.mouse_cell(x, y, metrics);
 
-        // Forward motion with the spec-correct code: 1002
-        // (ButtonEvent) only while a button is held; 1003 (AnyEvent)
-        // always, hover motion carrying the no-button code (35),
-        // never a fabricated left-drag (32).
-        if matches!(mouse_mode, MouseMode::ButtonEvent | MouseMode::AnyEvent)
-            && !self.shift_drag_bypass
-        {
-            let forward = self.left_button_down || mouse_mode == MouseMode::AnyEvent;
-            if forward && sgr {
-                let report = MouseReport {
-                    kind: MouseReportKind::Motion,
-                    button: if self.left_button_down {
-                        MouseReportButton::Left
-                    } else {
-                        MouseReportButton::None
-                    },
-                    col: col + 1,
-                    row: row + 1,
-                    mods: MouseMods::NONE,
-                };
-                self.pty.write(&report.encode(true));
-            }
-            return EventOutcome::consumed().with_cursor_visibility(vis);
-        }
-
-        // Update text selection if a drag is live — gated by the
-        // drag FSM, not by selection liveness (a committed shift-
-        // extended span is `Selected` yet still dragging).
-        if let SelectionDrag::Drag { mode, origin } = self.drag {
-            self.update_drag(mode, origin, row, col);
+        // Motion routing is structural in the pointer machine:
+        // forwarding with the spec-correct code — 1002 (ButtonEvent)
+        // only while a button is held; 1003 (AnyEvent) always, hover
+        // motion carrying the no-button code (35), never a
+        // fabricated left-drag (32) — from tracked, un-bypassed
+        // states; one drag tick ONLY from `Selecting` (gated by the
+        // machine, not by selection liveness — a committed shift-
+        // extended span is `Selected` yet still dragging). The
+        // button bit derives from the state, so it cannot desync
+        // from the drag lifecycle.
+        let step = self.pointer.on_event(PointerEvent::Motion {
+            mode: mouse_mode,
+            sgr,
+        });
+        self.pointer = step.state;
+        for effect in step.effects {
+            self.run_pointer_effect(effect, col, row, self.last_mods, sgr);
         }
         EventOutcome::consumed().with_cursor_visibility(vis)
     }
@@ -1297,7 +1297,11 @@ impl InputEngine {
         };
         if self.terminal.read().resolve_selection_span(a, b).is_none() {
             self.selection.lock().unwrap().clear();
-            self.drag = SelectionDrag::Idle;
+            // Machine contract: `SelectionDangled` is effect-free;
+            // the matrix test pins it.
+            let step = self.pointer.on_event(PointerEvent::SelectionDangled);
+            debug_assert!(step.effects.is_empty(), "SelectionDangled is effect-free by contract");
+            self.pointer = step.state;
         }
     }
 
@@ -1358,6 +1362,7 @@ mod tests {
     use std::sync::Mutex as StdMutex;
 
     use hasami::MockClipboard;
+    use madori::event::KeyCode;
     use parking_lot::RwLock;
     use tear_types::{
         ControlError, ControlResult, Direction, InputPolicy, MultiplexerControl, PaneId,
@@ -2209,6 +2214,50 @@ mod tests {
         assert!(
             h.sent_bytes().is_empty(),
             "overlay input must never leak to the PTY"
+        );
+    }
+
+    /// The overlay machine is authoritative for routing; the
+    /// renderer-shared `SearchState.active` / `DirPickerState.open`
+    /// cells are write-only mirrors maintained by
+    /// `apply_overlay_step`. This pins the mirror in sync across
+    /// open / switch / close (tier-honest: the mirror pair is
+    /// only-mitigated — one writer + this test, not a type).
+    #[test]
+    fn overlay_machine_state_mirrors_shared_cells() {
+        let mut h = Harness::new(SinkKind::Closure);
+        let mut failures: Vec<String> = Vec::new();
+        let mut check = |h: &Harness, want: Overlay, when: &str| {
+            let search_active = h.engine.search.lock().unwrap().active;
+            let dp_open = h.engine.dir_picker.lock().unwrap().open;
+            let want_cells = match want {
+                Overlay::None => (false, false),
+                Overlay::Search => (true, false),
+                Overlay::DirPicker => (false, true),
+            };
+            if h.engine.overlay != want || (search_active, dp_open) != want_cells {
+                failures.push(format!(
+                    "{when}: machine={:?} (want {want:?}), mirror=(search {search_active}, \
+                     picker {dp_open}) want {want_cells:?}",
+                    h.engine.overlay
+                ));
+            }
+        };
+        check(&h, Overlay::None, "fresh engine");
+        h.engine.apply_action(Action::SearchOpen, &mut h.renderer);
+        check(&h, Overlay::Search, "after SearchOpen");
+        // Injected switch: the single-enum machine closes the search
+        // bar when the picker opens over it (decision 2026-06-12).
+        h.engine.apply_action(Action::DirPickerOpen, &mut h.renderer);
+        check(&h, Overlay::DirPicker, "after DirPickerOpen over Search");
+        // Raw Esc closes the picker (raw-key class, not the atlas).
+        h.key(KeyCode::Escape, None, no_mods());
+        check(&h, Overlay::None, "after Esc closed the picker");
+        assert!(
+            failures.is_empty(),
+            "{} mirror desyncs:\n  - {}",
+            failures.len(),
+            failures.join("\n  - ")
         );
     }
 

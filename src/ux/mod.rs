@@ -19,6 +19,7 @@
 pub mod behavior;
 pub mod engine;
 pub mod font_zoom;
+pub mod modes;
 pub mod mouse_report;
 pub mod outcome;
 pub mod side_effects;

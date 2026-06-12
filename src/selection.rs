@@ -67,9 +67,9 @@ impl Selection {
     }
 
     /// Move the gesture's end anchor. Acts in BOTH live states —
-    /// drag gating belongs to the engine's `SelectionDrag` FSM, not
-    /// to this holder (a shift-extended selection is `Selected` yet
-    /// still draggable).
+    /// drag gating belongs to the engine's pointer machine
+    /// (`ux::modes::Pointer`), not to this holder (a shift-extended
+    /// selection is `Selected` yet still draggable).
     pub fn update(&mut self, pos: SelectionAnchor) {
         match self.state {
             State::Selecting { start, .. } => {
