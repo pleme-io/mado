@@ -86,8 +86,9 @@ pub fn run(pane_id: PaneId, socket_path: PathBuf) -> Result<()> {
     impose_if_any(&client, &tear_cfg);
     // CLI `mado tear-attach <pane>` is attaching to a session
     // somebody else created — don't kill it on our close. No
-    // kanshou server runs on this path, so no injection queue.
-    run_against_pane(client, pane_id, None, socket_path, config, None)
+    // kanshou server runs on this path, so no injection queue and
+    // no config watcher (config was a one-shot load above).
+    run_against_pane(client, pane_id, None, socket_path, config, None, None)
 }
 
 /// Default-launch path: try to attach to (or auto-spawn) the tear
@@ -101,6 +102,7 @@ pub fn try_run_default(
     config: MadoConfig,
     shell: String,
     kanshou_state: std::sync::Arc<crate::kanshou_state::MadoAppState>,
+    reload_cell: Option<crate::config::ConfigReloadCell>,
 ) -> TearDefaultOutcome {
     if matches!(config.tear.mode, TearMode::Never) {
         return TearDefaultOutcome::Unavailable;
@@ -113,7 +115,7 @@ pub fn try_run_default(
     // need the daemon; embedded is for the default
     // single-window case the operator opens 99% of the time.
     if matches!(config.tear.runtime, TearRuntime::Embedded) {
-        return try_run_default_embedded(config, shell, kanshou_state);
+        return try_run_default_embedded(config, shell, kanshou_state, reload_cell);
     }
     // Daemon path keeps a handle on the kanshou-published injection
     // queue so `simulate_chord` works in both tear runtimes.
@@ -223,7 +225,15 @@ pub fn try_run_default(
     // `mado tear-attach <existing-pane>` CLI path does NOT pass
     // session_id (it's attaching to someone else's session,
     // shouldn't reap it on close).
-    match run_against_pane(client, pane_id, Some(session_id), socket_path, config, Some(injected)) {
+    match run_against_pane(
+        client,
+        pane_id,
+        Some(session_id),
+        socket_path,
+        config,
+        Some(injected),
+        reload_cell,
+    ) {
         Ok(()) => TearDefaultOutcome::Ran,
         Err(e) => TearDefaultOutcome::Error(e),
     }
@@ -257,6 +267,7 @@ fn run_against_pane_unified<P, C>(
     owned_session_id: Option<tear_types::SessionId>,
     title_kind: &str,
     injected: Option<crate::action_injection::InjectedActions>,
+    reload_cell: Option<crate::config::ConfigReloadCell>,
 ) -> Result<()>
 where
     P: engate_attach::Producer<
@@ -302,7 +313,16 @@ where
         bg_color,
         TermColor::new(fg_srgb.r, fg_srgb.g, fg_srgb.b),
     );
-    renderer.set_effects_config(config.effects.clone());
+    // Effects + accessibility through the SAME application point
+    // main.rs uses (M3 review 2026-06-12) — this path previously
+    // called only set_effects_config, so effects.colorblind.mode,
+    // the accessibility.colorblind alias, reduce_motion's animated-
+    // effect gating, and bold_is_bright were all dead in tear-attach
+    // windows while working in local-PTY ones.
+    renderer.apply_effects_and_accessibility(&config);
+    if let Some(cell) = reload_cell {
+        renderer.set_config_reload_cell(cell);
+    }
 
     // engate typed Attach lifecycle — same shape both backends.
     // The TerminalSink writeback path closes the DSR/DA/OSC query
@@ -686,6 +706,7 @@ fn try_run_default_embedded(
     config: MadoConfig,
     shell: String,
     kanshou_state: std::sync::Arc<crate::kanshou_state::MadoAppState>,
+    reload_cell: Option<crate::config::ConfigReloadCell>,
 ) -> TearDefaultOutcome {
     use std::sync::Arc;
     use tear_core::InProcess;
@@ -747,7 +768,13 @@ fn try_run_default_embedded(
     );
     crate::perf::log_phase("tear_session_created");
 
-    match run_against_embedded_pane(inproc, pane_id, config, Some(kanshou_state.injected.clone())) {
+    match run_against_embedded_pane(
+        inproc,
+        pane_id,
+        config,
+        Some(kanshou_state.injected.clone()),
+        reload_cell,
+    ) {
         Ok(()) => TearDefaultOutcome::Ran,
         Err(e) => TearDefaultOutcome::Error(e),
     }
@@ -762,6 +789,7 @@ fn run_against_embedded_pane(
     pane_id: PaneId,
     config: MadoConfig,
     injected: Option<crate::action_injection::InjectedActions>,
+    reload_cell: Option<crate::config::ConfigReloadCell>,
 ) -> Result<()> {
     let snapshot = inproc
         .pane_snapshot(pane_id)
@@ -778,6 +806,7 @@ fn run_against_embedded_pane(
         None, // embedded session dies with mado; no reap needed
         "tear[embedded]",
         injected,
+        reload_cell,
     )
 }
 
@@ -833,6 +862,7 @@ fn run_against_pane(
     _socket_path: PathBuf,
     config: MadoConfig,
     injected: Option<crate::action_injection::InjectedActions>,
+    reload_cell: Option<crate::config::ConfigReloadCell>,
 ) -> Result<()> {
     let snapshot = client
         .pane_snapshot(pane_id)
@@ -849,6 +879,7 @@ fn run_against_pane(
         owned_session_id,
         "tear",
         injected,
+        reload_cell,
     )
 }
 

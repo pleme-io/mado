@@ -57,6 +57,7 @@ use madori::event::{KeyCode, Modifiers};
 /// state makes the dead arrangement unwritable; opening one overlay
 /// over the other SWITCHES, decision noted 2026-06-12).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(test, derive(pleme_allvariants_derive::AllVariants))]
 pub(crate) enum Overlay {
     /// No overlay — every keystroke falls through to the keybind /
     /// kitty / PTY pipeline.
@@ -207,23 +208,25 @@ fn overlay_step(state: Overlay, routing: OverlayRouting, effects: Vec<OverlayEff
 }
 
 impl Overlay {
-    /// Total registry size — paired with [`Self::ordinal`] so the
-    /// test registries stay mechanically complete. Test-gated: the
-    /// forcing function still binds in CI because `cargo test` /
-    /// `clippy --all-targets` compile the test cfg.
+    /// Total registry size — DERIVED from the AllVariants-emitted
+    /// `ALL`, never a hand const (M3 review 2026-06-12: a hand const
+    /// let a new variant land with a fresh `ordinal` arm but no
+    /// const bump, leaving the registry tests green while the matrix
+    /// never exercised the state). Test-gated: the forcing function
+    /// still binds in CI because `cargo test` / `clippy
+    /// --all-targets` compile the test cfg.
     #[cfg(test)]
-    pub(crate) const STATE_VARIANTS: usize = 3;
+    pub(crate) const STATE_VARIANTS: usize = Self::ALL.len();
 
-    /// FORCING FUNCTION: total match, no wildcard — a new overlay
-    /// state cannot compile until its ordinal AND every `on_event`
-    /// arm are decided.
+    /// Position in the derive-emitted `ALL` — a new variant grows
+    /// `ALL` mechanically, so registry coverage cannot be satisfied
+    /// by a fudged hand ordinal.
     #[cfg(test)]
     pub(crate) fn ordinal(self) -> usize {
-        match self {
-            Overlay::None => 0,
-            Overlay::Search => 1,
-            Overlay::DirPicker => 2,
-        }
+        Self::ALL
+            .iter()
+            .position(|s| *s == self)
+            .expect("every Overlay variant is in the derive-emitted ALL")
     }
 
     /// The pure, total transition: `(state, event) -> (state,
@@ -589,24 +592,52 @@ fn release_routing(tracking_on: bool, shift_local: bool) -> PointerEffect {
     }
 }
 
+/// Payload-free discriminant mirror of [`Pointer`] — `ALL` is
+/// derive-emitted, so the state-variant count is mechanical (M3
+/// review 2026-06-12: the former hand const `STATE_VARIANTS = 4`
+/// let a new state land with a fudged ordinal and zero matrix
+/// coverage). [`Pointer::kind`] is the total-match projection; a
+/// new `Pointer` variant refuses to compile there until a mirror
+/// variant exists, which grows `ALL` and fails the len-pinned
+/// registry tests until the instance lists grow too.
+#[cfg(test)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, pleme_allvariants_derive::AllVariants)]
+pub(crate) enum PointerKind {
+    Up,
+    ForwardedPress,
+    Selecting,
+    HeldUnanchored,
+}
+
 impl Pointer {
-    /// Total registry size — paired with [`Self::ordinal`].
-    /// Test-gated: the forcing function still binds in CI because
-    /// `cargo test` / `clippy --all-targets` compile the test cfg.
+    /// Total registry size — DERIVED from the mirror enum's
+    /// `AllVariants` `ALL`, never a hand const. Test-gated: the
+    /// forcing function still binds in CI because `cargo test` /
+    /// `clippy --all-targets` compile the test cfg.
     #[cfg(test)]
-    pub(crate) const STATE_VARIANTS: usize = 4;
+    pub(crate) const STATE_VARIANTS: usize = PointerKind::ALL.len();
 
     /// FORCING FUNCTION: total match, no wildcard — a new pointer
-    /// state cannot compile until its ordinal AND every `on_event`
-    /// arm are decided.
+    /// state cannot compile until its mirror kind AND every
+    /// `on_event` arm are decided.
+    #[cfg(test)]
+    pub(crate) fn kind(self) -> PointerKind {
+        match self {
+            Pointer::Up => PointerKind::Up,
+            Pointer::ForwardedPress => PointerKind::ForwardedPress,
+            Pointer::Selecting { .. } => PointerKind::Selecting,
+            Pointer::HeldUnanchored { .. } => PointerKind::HeldUnanchored,
+        }
+    }
+
+    /// Position of the state's kind in the derive-emitted `ALL`.
     #[cfg(test)]
     pub(crate) fn ordinal(self) -> usize {
-        match self {
-            Pointer::Up => 0,
-            Pointer::ForwardedPress => 1,
-            Pointer::Selecting { .. } => 2,
-            Pointer::HeldUnanchored { .. } => 3,
-        }
+        let kind = self.kind();
+        PointerKind::ALL
+            .iter()
+            .position(|k| *k == kind)
+            .expect("every PointerKind variant is in the derive-emitted ALL")
     }
 
     /// Whether the left button is physically held — DERIVED from the
@@ -783,40 +814,83 @@ impl Pointer {
     }
 }
 
+/// Payload-free event-class mirror of [`PointerEvent`] — see
+/// [`PointerKind`] for the mechanical-registry rationale.
+#[cfg(test)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, pleme_allvariants_derive::AllVariants)]
+pub(crate) enum PointerEventClass {
+    LeftPress,
+    LeftRelease,
+    Motion,
+    TypedInput,
+    SelectionDangled,
+}
+
 impl PointerEvent {
-    /// Event-class registry size — paired with
-    /// [`Self::class_ordinal`].
+    /// Event-class registry size — DERIVED from the mirror enum's
+    /// `AllVariants` `ALL`, never a hand const.
     #[cfg(test)]
-    pub(crate) const CLASS_VARIANTS: usize = 5;
+    pub(crate) const CLASS_VARIANTS: usize = PointerEventClass::ALL.len();
 
     /// FORCING FUNCTION: total match, no wildcard — a new event
-    /// class cannot compile until the test registry covers it.
+    /// class cannot compile until its mirror variant exists, which
+    /// grows the registry mechanically.
+    #[cfg(test)]
+    pub(crate) fn class(&self) -> PointerEventClass {
+        match self {
+            PointerEvent::LeftPress(_) => PointerEventClass::LeftPress,
+            PointerEvent::LeftRelease { .. } => PointerEventClass::LeftRelease,
+            PointerEvent::Motion { .. } => PointerEventClass::Motion,
+            PointerEvent::TypedInput => PointerEventClass::TypedInput,
+            PointerEvent::SelectionDangled => PointerEventClass::SelectionDangled,
+        }
+    }
+
+    /// Position of the event's class in the derive-emitted `ALL`.
     #[cfg(test)]
     pub(crate) fn class_ordinal(&self) -> usize {
-        match self {
-            PointerEvent::LeftPress(_) => 0,
-            PointerEvent::LeftRelease { .. } => 1,
-            PointerEvent::Motion { .. } => 2,
-            PointerEvent::TypedInput => 3,
-            PointerEvent::SelectionDangled => 4,
-        }
+        let class = self.class();
+        PointerEventClass::ALL
+            .iter()
+            .position(|c| *c == class)
+            .expect("every PointerEventClass variant is in the derive-emitted ALL")
     }
 }
 
+/// Payload-free event-class mirror of [`OverlayEvent`] — see
+/// [`PointerKind`] for the mechanical-registry rationale.
+#[cfg(test)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, pleme_allvariants_derive::AllVariants)]
+pub(crate) enum OverlayEventClass {
+    OpenSearch,
+    OpenDirPicker,
+    Key,
+}
+
 impl OverlayEvent {
-    /// Event-class registry size — paired with
-    /// [`Self::class_ordinal`].
+    /// Event-class registry size — DERIVED from the mirror enum's
+    /// `AllVariants` `ALL`, never a hand const.
     #[cfg(test)]
-    pub(crate) const CLASS_VARIANTS: usize = 3;
+    pub(crate) const CLASS_VARIANTS: usize = OverlayEventClass::ALL.len();
 
     /// FORCING FUNCTION: total match, no wildcard.
     #[cfg(test)]
-    pub(crate) fn class_ordinal(&self) -> usize {
+    pub(crate) fn class(&self) -> OverlayEventClass {
         match self {
-            OverlayEvent::OpenSearch => 0,
-            OverlayEvent::OpenDirPicker => 1,
-            OverlayEvent::Key(_) => 2,
+            OverlayEvent::OpenSearch => OverlayEventClass::OpenSearch,
+            OverlayEvent::OpenDirPicker => OverlayEventClass::OpenDirPicker,
+            OverlayEvent::Key(_) => OverlayEventClass::Key,
         }
+    }
+
+    /// Position of the event's class in the derive-emitted `ALL`.
+    #[cfg(test)]
+    pub(crate) fn class_ordinal(&self) -> usize {
+        let class = self.class();
+        OverlayEventClass::ALL
+            .iter()
+            .position(|c| *c == class)
+            .expect("every OverlayEventClass variant is in the derive-emitted ALL")
     }
 }
 
@@ -945,7 +1019,9 @@ mod tests {
     }
 
     fn all_overlay_states() -> Vec<Overlay> {
-        vec![Overlay::None, Overlay::Search, Overlay::DirPicker]
+        // Overlay is payload-free, so the registry IS the
+        // derive-emitted ALL — no hand list to drift.
+        Overlay::ALL.to_vec()
     }
 
     fn key(nav: Option<SearchNav>, class: OverlayKeyClass, text: Option<&str>, plain: bool) -> OverlayKey {

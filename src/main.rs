@@ -35,6 +35,7 @@ mod l1_engate_loop;
 mod single_pane;
 mod tear_discovery;
 mod caps;
+mod terminfo;
 mod mcp;
 mod osc_1337;
 mod platform;
@@ -485,8 +486,17 @@ fn main() -> anyhow::Result<()> {
     crate::perf::set_launch_start(launch_start);
     crate::perf::log_phase("tracing_init");
 
-    let (config, _config_store) = config::load_and_watch(&cli.config, |new_config| {
-        tracing::debug!("config reloaded: {:?}", new_config);
+    // Hot-reload hand-off (M3 review 2026-06-12): the watch callback
+    // used to log-and-discard, so every effects/accessibility edit
+    // was silently boot-time-only while the watcher advertised
+    // liveness. The callback now parks the freshest config in this
+    // cell; the renderer (either entry point) drains it at frame
+    // start and re-applies via apply_effects_and_accessibility.
+    let config_reload_cell: config::ConfigReloadCell = Arc::new(std::sync::Mutex::new(None));
+    let watcher_cell = Arc::clone(&config_reload_cell);
+    let (config, _config_store) = config::load_and_watch(&cli.config, move |new_config| {
+        tracing::info!("config reloaded — effects/accessibility re-apply next frame");
+        *watcher_cell.lock().unwrap() = Some(new_config.clone());
     })?;
     crate::perf::log_phase("config_loaded");
 
@@ -612,7 +622,12 @@ fn main() -> anyhow::Result<()> {
     // Hard errors (e.g. tear.mode = "always" + daemon dead +
     // spawn failed) bubble out via the `Error` arm.
     crate::perf::log_phase("pre_tear_attach");
-    match gui_tear_attach::try_run_default(config.clone(), shell.clone(), std::sync::Arc::clone(&kanshou_state)) {
+    match gui_tear_attach::try_run_default(
+        config.clone(),
+        shell.clone(),
+        std::sync::Arc::clone(&kanshou_state),
+        Some(Arc::clone(&config_reload_cell)),
+    ) {
         gui_tear_attach::TearDefaultOutcome::Ran => return Ok(()),
         gui_tear_attach::TearDefaultOutcome::Error(e) => return Err(e),
         gui_tear_attach::TearDefaultOutcome::Unavailable => {
@@ -688,23 +703,14 @@ fn main() -> anyhow::Result<()> {
         Color::new(fg_srgb.r, fg_srgb.g, fg_srgb.b),
     );
 
-    // Apply accessibility and appearance settings from config.
-    // effects.colorblind.mode is the canonical knob; the legacy
-    // accessibility.colorblind keeps working as a deprecation alias
-    // (it wins only when the effects-section mode is None).
-    let colorblind_mode = if config.effects.colorblind.mode != crate::config::ColorblindMode::None
-    {
-        config.effects.colorblind.mode
-    } else {
-        config.accessibility.colorblind
-    };
-    renderer.set_colorblind_mode(colorblind_mode);
-    renderer.set_bold_is_bright(config.appearance.bold_is_bright);
-    renderer.set_reduce_motion(config.accessibility.reduce_motion);
-    // Post-effect config (snow knobs, crt/scanlines/bloom/glow
-    // toggles) — the renderer derives its engawa effect chain from
-    // this every frame.
-    renderer.set_effects_config(config.effects.clone());
+    // Effects + accessibility — colorblind (incl. the legacy
+    // accessibility.colorblind alias via MadoConfig::resolved_effects),
+    // reduce_motion gating, bold_is_bright, and the snow/crt/
+    // scanlines/bloom/glow knobs — through the ONE application point
+    // shared with gui_tear_attach and the hot-reload drain, so the
+    // two entry points cannot diverge (M3 review 2026-06-12).
+    renderer.apply_effects_and_accessibility(&config);
+    renderer.set_config_reload_cell(Arc::clone(&config_reload_cell));
 
     // Selection/search/dir-picker renderer hooks are wired by
     // InputEngine::attach_to_renderer below — the engine is the only

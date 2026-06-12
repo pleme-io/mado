@@ -11,7 +11,9 @@ use crate::config::MadoConfig;
 /// Behavior knobs the input/UX engine consumes. Built once at
 /// adapter setup via `From<&MadoConfig>`; both render modes derive
 /// it from the same config so the knobs cannot diverge per mode.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// (`Copy` dropped when `word_chars: String` landed — M3 review
+/// 2026-06-12; clone at the adapter seam instead.)
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UxBehavior {
     /// Selection release copies straight to the clipboard
     /// (the muscle-memory contract).
@@ -31,6 +33,13 @@ pub struct UxBehavior {
     /// shift-modified events to the app (iTerm2's
     /// "apps may capture shift" knob).
     pub mouse_shift_capture: bool,
+    /// Double-click word-snap BOUNDARY set (non-empty replaces the
+    /// not-alphanumeric-or-underscore default rule; listed chars
+    /// split words), threaded from `config.selection.word_chars`.
+    /// The M3 review (2026-06-12) found the sole production call
+    /// site hard-coding `""`, leaving the operator knob dead — this
+    /// field is the thread.
+    pub word_chars: String,
 }
 
 impl From<&MadoConfig> for UxBehavior {
@@ -45,6 +54,7 @@ impl From<&MadoConfig> for UxBehavior {
                 crate::config::MouseShiftCapture::True
                     | crate::config::MouseShiftCapture::Always
             ),
+            word_chars: config.selection.word_chars.clone(),
         }
     }
 }
@@ -70,5 +80,17 @@ mod tests {
         assert!(!b.mouse_shift_capture);
         config.behavior.mouse_shift_capture = crate::config::MouseShiftCapture::Always;
         assert!(UxBehavior::from(&config).mouse_shift_capture);
+    }
+
+    #[test]
+    fn word_chars_thread_from_selection_section() {
+        let mut config = MadoConfig::default();
+        config.selection.word_chars = ":@-".into();
+        assert_eq!(UxBehavior::from(&config).word_chars, ":@-");
+        // The prescribed default is non-empty (pinned in config.rs)
+        // and must survive the projection — a hard-coded "" at any
+        // consumer is the dead-knob regression this guards.
+        let d = UxBehavior::from(&MadoConfig::default());
+        assert_eq!(d.word_chars, MadoConfig::default().selection.word_chars);
     }
 }

@@ -798,6 +798,15 @@ enum RectKindForRle {
 /// single-underline pixels are unchanged.
 const UNDERLINE_OFFSET_FROM_BOTTOM: f32 = 2.0;
 const DECORATION_THICKNESS: f32 = 1.0;
+
+/// THE surface/scene texture format — one constant, consumed by
+/// pipeline construction (`init`), the per-frame SCENE/chain leases,
+/// and the headless test targets. The dispatcher's pipeline cache
+/// compiles against the construction-time format while pooled
+/// textures use the render-time one; two hand-copies of the literal
+/// desyncing meant a wgpu validation error on every catalog pass
+/// (M3 review 2026-06-12).
+const SURFACE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;
 /// Approximate baseline fraction of the cell height. cosmic-text's
 /// line height is 1.4 × font size and mado does not measure ascent;
 /// the baseline only feeds the curly band's amplitude
@@ -856,8 +865,12 @@ pub struct TerminalRenderer {
     effect_params: HashMap<&'static str, wgpu::Buffer>,
     frame_graph: crate::render_graph::FrameGraphCache,
     gpu_images: HashMap<u32, GpuImage>,
-    #[invalidating_setter]
-    colorblind_mode: ColorblindMode,
+    // colorblind_mode field DELETED (M3 review 2026-06-12): it was a
+    // second mutable cell mirroring effects_config.colorblind.mode —
+    // main.rs wrote it, the tear-attach entry point didn't, so
+    // effects.colorblind.mode (and the accessibility alias) were
+    // silently dead in tear windows. The effect set + frame uniforms
+    // now read effects_config directly; one source, no mirror.
     #[invalidating_setter]
     bold_is_bright: bool,
     last_seqno: u64,
@@ -939,6 +952,14 @@ pub struct TerminalRenderer {
     /// Host-side glow-on-bell state — BEL saturates the clock,
     /// per-frame decay drains it.
     glow_state: GlowState,
+    /// Hot-reload seam (M3 review 2026-06-12): the shikumi watch
+    /// callback parks the freshest reloaded config here; `render()`
+    /// drains it at frame start and re-applies the effects +
+    /// accessibility surface via the single application point
+    /// [`Self::apply_effects_and_accessibility`]. Without this the
+    /// watcher advertised liveness (reload log fired) while every
+    /// `effects.*` edit was silently boot-time-only.
+    pending_config_reload: Arc<Mutex<Option<crate::config::MadoConfig>>>,
 }
 
 /// Host-side snow animation state (M3 Stream D). Everything
@@ -971,7 +992,10 @@ impl SnowState {
     /// `pile_rate`, warm melts at `melt_rate`, 0.5 holds.
     fn tick(&mut self, elapsed: f32, dt: f32, cfg: &crate::config::MadoSnowConfig) {
         self.params.set_time(elapsed);
-        // ~0.5 s half-life on the typing pulse, frame-rate-independent.
+        // ~0.14 s half-life on the typing pulse (0.92^n = 0.5 at
+        // n ≈ 8.3 frames @ 60 Hz), frame-rate-independent. Verbatim
+        // SnowOverlay port — the prior "~0.5 s" comment was wrong by
+        // 3.6x; the CONSTANT is the shipped behavior, keep it.
         let decay = 0.92_f32.powf(dt * 60.0);
         self.params.set_typing_pulse(self.params.frame[3] * decay);
         let temp = cfg.temperature.clamp(0.0, 1.0);
@@ -1048,7 +1072,6 @@ impl TerminalRenderer {
             effect_params: HashMap::new(),
             frame_graph: crate::render_graph::FrameGraphCache::new(),
             gpu_images: HashMap::new(),
-            colorblind_mode: ColorblindMode::None,
             bold_is_bright: false,
             last_seqno: 0,
             cursor_style,
@@ -1080,6 +1103,40 @@ impl TerminalRenderer {
             effects_config: crate::config::MadoEffectsConfig::default(),
             snow_state: SnowState::new(),
             glow_state: GlowState::new(),
+            pending_config_reload: Arc::new(Mutex::new(None)),
+        }
+    }
+
+    /// SINGLE application point for the config-derived effects +
+    /// accessibility surface (M3 review 2026-06-12). Both production
+    /// entry points (main.rs local-PTY and `gui_tear_attach`) call
+    /// THIS, and the hot-reload drain re-invokes it — the tear path
+    /// previously called only `set_effects_config`, leaving
+    /// `effects.colorblind.mode` (+ the `accessibility.colorblind`
+    /// alias) dead and `reduce_motion` un-gated for the animated
+    /// effects in tear windows.
+    pub fn apply_effects_and_accessibility(&mut self, config: &crate::config::MadoConfig) {
+        self.set_bold_is_bright(config.appearance.bold_is_bright);
+        self.set_reduce_motion(config.accessibility.reduce_motion);
+        self.set_effects_config(config.resolved_effects());
+    }
+
+    /// Connect the shared cell the config watcher writes reloaded
+    /// configs into; drained at frame start by
+    /// [`Self::drain_config_reload`]. Both entry points call this
+    /// with the one cell `main()` handed the shikumi watcher.
+    pub fn set_config_reload_cell(&mut self, cell: crate::config::ConfigReloadCell) {
+        self.pending_config_reload = cell;
+    }
+
+    /// Apply the freshest hot-reloaded config, if any. Called once
+    /// per frame; `set_effects_config`'s seqno reset forces the
+    /// repaint, and the `FrameGraphCache` keying on `EffectSet` makes a
+    /// live toggle one recompile, not a per-frame cost.
+    fn drain_config_reload(&mut self) {
+        let pending = self.pending_config_reload.lock().unwrap().take();
+        if let Some(config) = pending {
+            self.apply_effects_and_accessibility(&config);
         }
     }
 
@@ -1478,10 +1535,12 @@ impl TerminalRenderer {
         self.box_draw_templates.borrow_mut().clear();
     }
 
-    // set_colorblind_mode, set_bold_is_bright, set_ansi_colors now
-    // generated by #[derive(InvalidatingSetter)] on TerminalRenderer
-    // (fields marked #[invalidating_setter] above). Bodies were
-    // identical to the auto-generated form: assign + reset seqno.
+    // set_bold_is_bright, set_ansi_colors now generated by
+    // #[derive(InvalidatingSetter)] on TerminalRenderer (fields
+    // marked #[invalidating_setter] above). Bodies were identical
+    // to the auto-generated form: assign + reset seqno. Colorblind
+    // has NO setter: the mode lives only in effects_config
+    // (set_effects_config is the single ingress).
 
     /// Override the background clear color and default text color.
     pub fn set_bg_fg(&mut self, bg: wgpu::Color, fg: Color) {
@@ -2947,7 +3006,7 @@ impl TerminalRenderer {
     fn enabled_effect_set(&self) -> crate::render_graph::EffectSet {
         use engawa_wgpu::catalog::CatalogEffect;
         let mut set = crate::render_graph::EffectSet::EMPTY;
-        if self.colorblind_mode != ColorblindMode::None {
+        if self.effects_config.colorblind.mode != ColorblindMode::None {
             set.insert(CatalogEffect::Colorblind);
         }
         let e = &self.effects_config;
@@ -2975,7 +3034,7 @@ impl TerminalRenderer {
     /// mode (the wire word the WGSL switches on).
     fn catalog_colorblind_mode(&self) -> engawa_wgpu::catalog::colorblind::ColorblindMode {
         use engawa_wgpu::catalog::colorblind::ColorblindMode as CatalogMode;
-        match self.colorblind_mode {
+        match self.effects_config.colorblind.mode {
             ColorblindMode::None => CatalogMode::None,
             ColorblindMode::Protanopia => CatalogMode::Protanopia,
             ColorblindMode::Deuteranopia => CatalogMode::Deuteranopia,
@@ -3132,7 +3191,7 @@ impl TerminalRenderer {
 impl RenderCallback for TerminalRenderer {
     fn init(&mut self, gpu: &garasu::GpuContext) {
         crate::perf::log_phase("renderer_init_start");
-        let format = wgpu::TextureFormat::Bgra8UnormSrgb;
+        let format = SURFACE_FORMAT;
         self.rect_pipeline = Some(RectPipeline::new(&gpu.device, format));
         self.image_pipeline = Some(ImagePipeline::new(&gpu.device, format));
         self.dispatcher = Some(engawa_wgpu::WgpuDispatcher::new(
@@ -3161,6 +3220,10 @@ impl RenderCallback for TerminalRenderer {
         // level is disabled (default), so this is free in normal runs.
         let frame_start = Instant::now();
 
+        // Hot-reload drain — apply the freshest watched-config edit
+        // before the effect set / graph key derivation reads it.
+        self.drain_config_reload();
+
         // Pull the live HiDPI scale factor in first. If it changed, the
         // setter clears `metrics_measured` so `measure_cell_metrics`
         // below re-measures glyph widths in the new pixel density.
@@ -3171,6 +3234,23 @@ impl RenderCallback for TerminalRenderer {
         // Measure actual font metrics on first render (or after a
         // scale-factor change).
         self.measure_cell_metrics(ctx.text);
+
+        // Pool eviction on resolution change (M3 review 2026-06-12):
+        // pooled offscreen textures are keyed by exact size, and a
+        // macOS live-resize delivers a distinct drawable size nearly
+        // every frame — without eviction, every visited size strands
+        // a full set of full-window textures in the free list for the
+        // renderer's lifetime (~24 MB × up to 9 textures per size at
+        // Retina with the 6-effect chain). retain() drops every
+        // bucket that is not this frame's exact size, covering DPI
+        // and format churn too; in-flight leases are unaffected
+        // (held out of the pool until release).
+        if self.last_surface_w != ctx.width || self.last_surface_h != ctx.height {
+            // TextureKey::offscreen clamps zero dims to 1 — mirror it
+            // so the predicate matches the keys leases actually use.
+            let (w, h) = (ctx.width.max(1), ctx.height.max(1));
+            self.texture_pool.retain(|k| k.width == w && k.height == h);
+        }
 
         // Record the surface dims this frame renders at — after this
         // point `measured_grid()` reports display truth and the event
@@ -3367,7 +3447,7 @@ impl RenderCallback for TerminalRenderer {
                 self.padding_px() + (snap.cursor.row as f32 + 0.5) * self.cell_height,
             ];
         }
-        let format = wgpu::TextureFormat::Bgra8UnormSrgb;
+        let format = SURFACE_FORMAT;
         let scene_lease = if enabled_effects.is_empty() {
             None
         } else {
@@ -4371,7 +4451,7 @@ mod render_invariants {
             UnderlineStyle::ALL.len(),
             "matrix must carry one row per UnderlineStyle::ALL entry"
         );
-        for style in UnderlineStyle::ALL {
+        for style in UnderlineStyle::ALL.iter().copied() {
             assert_eq!(
                 matrix.iter().filter(|row| row.style == style).count(),
                 1,
@@ -4383,6 +4463,23 @@ mod render_invariants {
         for row in matrix {
             let (r, rects) = underline_rects_for(row.sgr);
             let metrics = r.underline_metrics();
+            // CONTAINMENT LAW (M3 review 2026-06-12): no emitted
+            // decoration descends below the Single stroke's bottom
+            // edge — the engawa-side bottom-anchoring fix; before it,
+            // Double's lower stroke landed entirely in the NEXT row's
+            // pixel band and the next row's bg run overdrew it
+            // (Double rendered as Single exactly where visible).
+            let envelope = metrics.underline_y + metrics.thickness + 0.01;
+            for rt in &rects {
+                let bottom = rt.pos[1] + rt.size[1];
+                if bottom > envelope {
+                    failures.push(format!(
+                        "{:?}: rect bottom {bottom} exceeds the Single-stroke \
+                         envelope {envelope} — out-of-cell decoration",
+                        row.style
+                    ));
+                }
+            }
             match row.style {
                 UnderlineStyle::None => {
                     if !rects.is_empty() {
@@ -4586,9 +4683,14 @@ mod render_invariants {
 
         let enable = |r: &mut TerminalRenderer, effect: CatalogEffect| {
             let mut e = crate::config::MadoEffectsConfig::default();
+            // Every arm — colorblind included — goes through the
+            // CONFIG field, because that is the production ingress
+            // (the former set_colorblind_mode special-case masked
+            // the dead effects.colorblind.mode path the M3 review
+            // found in tear-attach windows).
             match effect {
                 CatalogEffect::Colorblind => {
-                    r.set_colorblind_mode(ColorblindMode::Protanopia);
+                    e.colorblind.mode = ColorblindMode::Protanopia;
                 }
                 CatalogEffect::Crt => e.crt.enabled = true,
                 CatalogEffect::Scanlines => e.scanlines.enabled = true,
@@ -4641,6 +4743,84 @@ mod render_invariants {
             "{} effect-set rows failed:\n  - {}",
             failures.len(),
             failures.join("\n  - ")
+        );
+    }
+
+    /// Entry-point parity pin     /// application point both main.rs and `gui_tear_attach` call must
+    /// resolve the legacy `accessibility.colorblind` alias AND gate
+    /// the animated effects via `reduce_motion` — both were dead in
+    /// tear-attach windows when that path called only
+    /// `set_effects_config` (which never touched the deleted
+    /// renderer-side colorblind mirror field).
+    #[test]
+    fn apply_effects_and_accessibility_resolves_alias_and_gates_motion() {
+        use engawa_wgpu::catalog::CatalogEffect;
+        let (mut r, _t) = harness(10, 2);
+        let mut config = crate::config::MadoConfig::default();
+        config.accessibility.colorblind = ColorblindMode::Deuteranopia;
+        config.accessibility.reduce_motion = true;
+        config.effects.snow.enabled = true;
+        r.apply_effects_and_accessibility(&config);
+        let set = r.enabled_effect_set();
+        assert!(
+            set.contains(CatalogEffect::Colorblind),
+            "legacy accessibility.colorblind alias must enable the effect"
+        );
+        assert_eq!(
+            r.catalog_colorblind_mode(),
+            engawa_wgpu::catalog::colorblind::ColorblindMode::Deuteranopia,
+            "alias mode must reach the catalog wire word"
+        );
+        assert!(
+            !set.contains(CatalogEffect::Snow),
+            "reduce_motion must gate the animated effect to zero nodes"
+        );
+
+        // The canonical knob beats the alias when both are set.
+        config.effects.colorblind.mode = ColorblindMode::Protanopia;
+        r.apply_effects_and_accessibility(&config);
+        assert_eq!(
+            r.catalog_colorblind_mode(),
+            engawa_wgpu::catalog::colorblind::ColorblindMode::Protanopia,
+            "effects.colorblind.mode wins over the deprecation alias"
+        );
+    }
+
+    /// Hot-reload drain (M3 review 2026-06-12): a watched-config
+    /// edit parked in the reload cell is consumed at frame start and
+    /// re-applied through the single application point — before this
+    /// seam existed, the watcher logged "config reloaded" while
+    /// every effects edit was silently boot-time-only.
+    #[test]
+    fn config_reload_drain_applies_parked_effects_edit() {
+        use engawa_wgpu::catalog::CatalogEffect;
+        let (mut r, _t) = harness(10, 2);
+        assert!(r.enabled_effect_set().is_empty());
+
+        let cell: crate::config::ConfigReloadCell =
+            Arc::new(Mutex::new(None));
+        r.set_config_reload_cell(Arc::clone(&cell));
+        let mut config = crate::config::MadoConfig::default();
+        config.effects.crt.enabled = true;
+        config.effects.colorblind.mode = ColorblindMode::Protanopia;
+        *cell.lock().unwrap() = Some(config);
+
+        r.drain_config_reload();
+        let set = r.enabled_effect_set();
+        assert!(set.contains(CatalogEffect::Crt), "reloaded crt toggle must apply");
+        assert!(
+            set.contains(CatalogEffect::Colorblind),
+            "reloaded colorblind mode must apply"
+        );
+        assert!(
+            cell.lock().unwrap().is_none(),
+            "drain must consume the parked config"
+        );
+        // Empty cell drains are a no-op, not a reset.
+        r.drain_config_reload();
+        assert!(
+            r.enabled_effect_set().contains(CatalogEffect::Crt),
+            "empty drain must not clear applied effects"
         );
     }
 
@@ -4820,7 +5000,7 @@ mod render_gpu_invariants {
         let text = TextRenderer::new(
             &gpu.device,
             &gpu.queue,
-            wgpu::TextureFormat::Bgra8UnormSrgb,
+            SURFACE_FORMAT,
         );
         (renderer, term, text)
     }
@@ -4859,7 +5039,7 @@ mod render_gpu_invariants {
         // format).
         let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
         let target =
-            HeadlessTarget::new(&gpu, 128, 64, wgpu::TextureFormat::Bgra8UnormSrgb);
+            HeadlessTarget::new(&gpu, 128, 64, SURFACE_FORMAT);
         let (mut r, _t, mut text) = build_gpu_renderer(&gpu, 40, 8);
         let pixels = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
         // The read-back format is BGRA but the magenta heuristic
@@ -4880,7 +5060,7 @@ mod render_gpu_invariants {
         // CPU snapshot.
         let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
         let target =
-            HeadlessTarget::new(&gpu, 128, 64, wgpu::TextureFormat::Bgra8UnormSrgb);
+            HeadlessTarget::new(&gpu, 128, 64, SURFACE_FORMAT);
         let (mut r, t, mut text) = build_gpu_renderer(&gpu, 40, 8);
         t.write().feed(b"some text first\nthen more text\n\x1b[2J\x1b[H");
         let pixels = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
@@ -4899,7 +5079,7 @@ mod render_gpu_invariants {
         // state) and this fails.
         let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
         let target =
-            HeadlessTarget::new(&gpu, 64, 32, wgpu::TextureFormat::Bgra8UnormSrgb);
+            HeadlessTarget::new(&gpu, 64, 32, SURFACE_FORMAT);
         let (mut r, _t, mut text) = build_gpu_renderer(&gpu, 20, 4);
         let pixels = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
         let any_nonzero = pixels.chunks_exact(4).any(|p| p[0] > 0 || p[1] > 0 || p[2] > 0);
@@ -4919,7 +5099,7 @@ mod render_gpu_invariants {
         use garasu::headless::frame_hash;
         let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
         let target =
-            HeadlessTarget::new(&gpu, 64, 32, wgpu::TextureFormat::Bgra8UnormSrgb);
+            HeadlessTarget::new(&gpu, 64, 32, SURFACE_FORMAT);
         let (mut r, t, mut text) = build_gpu_renderer(&gpu, 20, 4);
         t.write().feed(b"deterministic");
 
@@ -4954,7 +5134,7 @@ mod render_gpu_invariants {
             &gpu,
             surface_w,
             surface_h,
-            wgpu::TextureFormat::Bgra8UnormSrgb,
+            SURFACE_FORMAT,
         );
 
         let pixels = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
@@ -4984,7 +5164,7 @@ mod render_gpu_invariants {
 
         let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
         let target =
-            HeadlessTarget::new(&gpu, 96, 48, wgpu::TextureFormat::Bgra8UnormSrgb);
+            HeadlessTarget::new(&gpu, 96, 48, SURFACE_FORMAT);
         let (mut r, t, mut text) = build_gpu_renderer(&gpu, 30, 6);
         t.write().feed(b"stress-32");
 
@@ -5014,13 +5194,15 @@ mod render_gpu_invariants {
         let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
         let (w, h) = (128u32, 64u32);
         let target =
-            HeadlessTarget::new(&gpu, w, h, wgpu::TextureFormat::Bgra8UnormSrgb);
+            HeadlessTarget::new(&gpu, w, h, SURFACE_FORMAT);
         let (mut r, t, mut text) = build_gpu_renderer(&gpu, 40, 8);
         t.write()
             .feed(b"golden \x1b[31mred\x1b[0m \x1b[42mgreen-bg\x1b[0m \x1b[4munder\x1b[0m");
 
         let plain = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
-        r.set_colorblind_mode(ColorblindMode::Protanopia);
+        let mut effects = crate::config::MadoEffectsConfig::default();
+        effects.colorblind.mode = ColorblindMode::Protanopia;
+        r.set_effects_config(effects);
         let graded = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
 
         assert_ne!(
@@ -5048,7 +5230,7 @@ mod render_gpu_invariants {
         let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
         let (w, h) = (96u32, 48u32);
         let target =
-            HeadlessTarget::new(&gpu, w, h, wgpu::TextureFormat::Bgra8UnormSrgb);
+            HeadlessTarget::new(&gpu, w, h, SURFACE_FORMAT);
         let (mut r, t, mut text) = build_gpu_renderer(&gpu, 30, 6);
         let mut effects = crate::config::MadoEffectsConfig::default();
         effects.snow.enabled = true;
@@ -5056,8 +5238,8 @@ mod render_gpu_invariants {
         effects.scanlines.enabled = true;
         effects.bloom.enabled = true;
         effects.glow_on_bell.enabled = true;
+        effects.colorblind.mode = ColorblindMode::Tritanopia;
         r.set_effects_config(effects);
-        r.set_colorblind_mode(ColorblindMode::Tritanopia);
         t.write().feed(b"full-chain \x07");
 
         let mut hashes = HashSet::new();
@@ -5096,9 +5278,11 @@ mod render_gpu_invariants {
 
         let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
         let target =
-            HeadlessTarget::new(&gpu, 96, 48, wgpu::TextureFormat::Bgra8UnormSrgb);
+            HeadlessTarget::new(&gpu, 96, 48, SURFACE_FORMAT);
         let (mut r, t, mut text) = build_gpu_renderer(&gpu, 30, 6);
-        r.set_colorblind_mode(ColorblindMode::Deuteranopia);
+        let mut effects = crate::config::MadoEffectsConfig::default();
+        effects.colorblind.mode = ColorblindMode::Deuteranopia;
+        r.set_effects_config(effects);
         t.write().feed(b"catalog-stress");
 
         let mut hashes = HashSet::new();
@@ -5117,6 +5301,45 @@ mod render_gpu_invariants {
             1,
             "steady-state frames must reuse the cached CompiledGraph"
         );
+    }
+
+    /// Live-resize pool discipline (M3 review 2026-06-12): pooled
+    /// SCENE/chain textures are keyed by exact size, so rendering at
+    /// a new size must evict the stale-size buckets — without the
+    /// eviction, a macOS live-resize drag (a distinct drawable size
+    /// nearly every frame) strands a full set of full-window BGRA
+    /// textures per visited size for the renderer's lifetime
+    /// (~24 MB × up to 9 textures per size at Retina with the
+    /// 6-effect chain). The legacy `PostProcessPipeline` dropped its
+    /// offscreen on every size change; the pool route must not
+    /// regress that.
+    #[test]
+    fn resize_with_effects_enabled_evicts_stale_pool_buckets() {
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let (mut r, _t, mut text) = build_gpu_renderer(&gpu, 20, 4);
+        let mut effects = crate::config::MadoEffectsConfig::default();
+        effects.colorblind.mode = ColorblindMode::Protanopia;
+        r.set_effects_config(effects);
+
+        let target_a = HeadlessTarget::new(&gpu, 96, 48, SURFACE_FORMAT);
+        let _ = render_one_frame_headless(&gpu, &mut r, &mut text, &target_a);
+        assert_eq!(
+            r.texture_pool.free_count(),
+            1,
+            "colorblind-only chain pools exactly the SCENE texture"
+        );
+
+        let target_b = HeadlessTarget::new(&gpu, 64, 32, SURFACE_FORMAT);
+        let _ = render_one_frame_headless(&gpu, &mut r, &mut text, &target_b);
+        assert_eq!(
+            r.texture_pool.free_count(),
+            1,
+            "size-A bucket must be evicted on resize — stale sizes may never accumulate"
+        );
+
+        // Steady state at the new size keeps reusing one texture.
+        let _ = render_one_frame_headless(&gpu, &mut r, &mut text, &target_b);
+        assert_eq!(r.texture_pool.free_count(), 1);
     }
 
     /// Regression test for mado@044a206 (damage-gate skip → shadow
@@ -5147,7 +5370,7 @@ mod render_gpu_invariants {
             3,
             128,
             64,
-            wgpu::TextureFormat::Bgra8UnormSrgb,
+            SURFACE_FORMAT,
         );
         let (mut r, t, _) = build_gpu_renderer(&gpu, 40, 8);
         t.write().feed(b"shadow-regression");
@@ -5203,7 +5426,7 @@ mod render_gpu_invariants {
             3,
             96,
             48,
-            wgpu::TextureFormat::Bgra8UnormSrgb,
+            SURFACE_FORMAT,
         );
         let (mut r, t, _) = build_gpu_renderer(&gpu, 30, 6);
         t.write().feed(b"swapchain-stress");
@@ -5251,7 +5474,7 @@ mod render_gpu_invariants {
             &gpu,
             96,
             32,
-            wgpu::TextureFormat::Bgra8UnormSrgb,
+            SURFACE_FORMAT,
         );
         let (mut r, t, mut text) = build_gpu_renderer(&gpu, 30, 4);
 
@@ -5319,7 +5542,7 @@ mod render_gpu_invariants {
 
         let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
         let target =
-            HeadlessTarget::new(&gpu, 256, 96, wgpu::TextureFormat::Bgra8UnormSrgb);
+            HeadlessTarget::new(&gpu, 256, 96, SURFACE_FORMAT);
         let (mut r, t, mut text) = build_gpu_renderer(&gpu, 40, 6);
         // Canonical scene: a short prompt-like sequence with
         // mixed printable ASCII, a newline, more text. Picked to
@@ -5358,6 +5581,54 @@ mod render_gpu_invariants {
         }
     }
 
+    /// L3 golden #2 — the GRADED route (M3 review 2026-06-12). The
+    /// post-deletion colorblind check was inequality-only
+    /// (graded != plain + magenta-free), which a blend or
+    /// gamma-space regression in the catalog route passes: apply the
+    /// Machado matrix in sRGB space instead of linear and every
+    /// graded pixel changes while plain != graded stays true. A
+    /// recorded hash of the protanopia-graded canonical scene pins
+    /// the route's exact value behavior — same recording protocol
+    /// as the golden above.
+    #[test]
+    fn canonical_scene_protanopia_grade_matches_recorded_frame_hash() {
+        use garasu::headless::frame_hash;
+
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let target = HeadlessTarget::new(&gpu, 256, 96, SURFACE_FORMAT);
+        let (mut r, t, mut text) = build_gpu_renderer(&gpu, 40, 6);
+        let mut effects = crate::config::MadoEffectsConfig::default();
+        effects.colorblind.mode = ColorblindMode::Protanopia;
+        r.set_effects_config(effects);
+        // Same canonical scene as the ungraded golden, plus color so
+        // the grade has chroma to transform.
+        t.write()
+            .feed(b"$ echo hello\n\x1b[31mred\x1b[0m \x1b[32mgreen\x1b[0m \x1b[44mblue-bg\x1b[0m\n$ ");
+
+        let pixels = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        let hex = frame_hash(&pixels).to_hex().to_string();
+
+        const GOLDEN: &str =
+            "64c2c1c1c04d4c1b42a780f31f1925bf3b127471db27ace42606c7258be271ee";
+        if hex != GOLDEN {
+            // Recording protocol: with the PENDING sentinel in
+            // GOLDEN, the assert message carries the fresh hash to
+            // paste in; otherwise this is a real regression.
+            assert_ne!(
+                GOLDEN, "PENDING_RECORD_VIA_FAILURE_MESSAGE",
+                "L3 graded golden: recorded hash is `{hex}`. Paste it \
+                 into the GOLDEN constant in \
+                 `canonical_scene_protanopia_grade_matches_recorded_frame_hash`."
+            );
+            panic!(
+                "L3 graded golden mismatch: got `{hex}`, expected `{GOLDEN}`. \
+                 If the graded route legitimately changed, update GOLDEN. \
+                 Otherwise the catalog colorblind chain regressed \
+                 (blend state, gamma space, or matrix drift)."
+            );
+        }
+    }
+
     #[test]
     fn render_one_frame_via_garasu_harness_round_trips() {
         // Validate the garasu::HeadlessHarness convenience layer
@@ -5367,7 +5638,7 @@ mod render_gpu_invariants {
         use madori::RenderContext;
         let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
         let mut harness =
-            HeadlessHarness::new(&gpu, 128, 64, wgpu::TextureFormat::Bgra8UnormSrgb);
+            HeadlessHarness::new(&gpu, 128, 64, SURFACE_FORMAT);
         let (mut r, _t, _drop_text) = build_gpu_renderer(&gpu, 40, 8);
 
         let pixels = harness.render_one_frame(&gpu, |text, view, w, h| {

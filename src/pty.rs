@@ -382,10 +382,34 @@ fn spawn_child(
     // signalled out-of-band via COLORTERM below. SSH sessions fall back
     // to `xterm-256color` via blackmatter-shell's .zshenv for remote
     // hosts lacking the advertised terminfo entry.
-    cmd.env(
-        "TERM",
-        crate::caps::TerminalCaps::prescribed().advertised_term(),
-    );
+    //
+    // AVAILABILITY honesty (M3 review 2026-06-12): xterm-ghostty is
+    // not in any system ncurses database — it only resolved on hosts
+    // where Ghostty's TERMINFO leaked into the environment. mado now
+    // VENDORS the compiled entry (src/terminfo.rs) and exports
+    // TERMINFO at the materialized cache dir; if materialization
+    // fails (read-only HOME, exotic sandbox) the advertisement
+    // downgrades to xterm-256color rather than naming an entry apps
+    // cannot resolve ("missing or unsuitable terminal").
+    let advertised = crate::caps::TerminalCaps::prescribed().advertised_term();
+    let term = if advertised == "xterm-ghostty" {
+        match crate::terminfo::ensure_terminfo_dir() {
+            Ok(dir) => {
+                cmd.env("TERMINFO", &dir);
+                advertised
+            }
+            Err(e) => {
+                tracing::warn!(
+                    error = %e,
+                    "terminfo materialization failed — downgrading TERM to xterm-256color"
+                );
+                "xterm-256color"
+            }
+        }
+    } else {
+        advertised
+    };
+    cmd.env("TERM", term);
     cmd.env("COLORTERM", "truecolor");
     cmd.env("TERM_PROGRAM", "mado");
     cmd.env("TERM_PROGRAM_VERSION", env!("CARGO_PKG_VERSION"));

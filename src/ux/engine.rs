@@ -141,11 +141,13 @@ pub struct InputEngine {
     /// carry the bypass.
     pointer: Pointer,
     /// The overlay modal machine — which overlay owns the keyboard.
-    /// Authoritative for ROUTING; the renderer-shared
-    /// `SearchState.active` / `DirPickerState.open` cells are write-
-    /// only mirrors maintained by [`Self::apply_overlay_step`]
-    /// (tier-honest: the mirror pair is only-mitigated — see
-    /// docs/UNREPRESENTABILITY-VERIFICATION.md).
+    /// Authoritative for ROUTING and for every engine-side mode
+    /// decision (`reconcile_search` gates on it, M3 review
+    /// 2026-06-12); the renderer-shared `SearchState.active` /
+    /// `DirPickerState.open` cells are write-only RENDER mirrors
+    /// maintained by [`Self::apply_overlay_step`] — no engine logic
+    /// may read them (tier-honest: the mirror pair is only-mitigated
+    /// — see docs/UNREPRESENTABILITY-VERIFICATION.md).
     overlay: Overlay,
     /// Last modifier state seen on any key/button event — wheel
     /// events don't carry modifiers on the current madori pin.
@@ -1028,7 +1030,9 @@ impl InputEngine {
             CellPos { row, col },
             &rows,
             cols_count,
-            "",
+            // The operator knob, not "" — a hard-coded empty set left
+            // config.selection.word_chars dead (M3 review 2026-06-12).
+            &self.behavior.word_chars,
         );
         self.capture_span(CellPos { row, col: c0 }, CellPos { row, col: c1 })
     }
@@ -1318,10 +1322,17 @@ impl InputEngine {
             return;
         }
         self.search_grid_gen = Some(generation);
-        let needs_rerun = {
-            let st = self.search.lock().unwrap();
-            st.active && !st.query.is_empty()
-        };
+        // Mode gate reads the MACHINE, not the write-only render
+        // mirror `SearchState.active` (M3 review 2026-06-12): an
+        // engine decision consuming the mirror made the only-
+        // mitigated mirror axis load-bearing, widening any future
+        // mirror desync from render glitch to search-reconciler
+        // misbehavior. The query emptiness check is data, not mode —
+        // the cell stays the right source for it.
+        if self.overlay != Overlay::Search {
+            return;
+        }
+        let needs_rerun = !self.search.lock().unwrap().query.is_empty();
         if !needs_rerun {
             return;
         }
@@ -1558,6 +1569,7 @@ mod tests {
                         mouse_hide_while_typing: false,
                         mouse_scroll_multiplier: 1,
                         mouse_shift_capture: false,
+                        word_chars: String::new(),
                     },
                     cursor_keys_mode,
                     default_font_size: 14.0,
@@ -2004,6 +2016,41 @@ mod tests {
         // No mouse tracking armed — selection traffic never reaches
         // the PTY.
         assert!(h.sent_bytes().is_empty());
+    }
+
+    /// Config round-trip for `selection.word_chars` (M3 review
+    /// 2026-06-12): a custom boundary set must change double-click
+    /// bounds through the PRODUCTION call path (engine `word_span_at` →
+    /// `selection::word_bounds_in_row`). The rule-level matrix in
+    /// selection.rs already proves the snap rule honors the set; this
+    /// pins the wiring that used to hard-code `""`.
+    #[test]
+    fn double_click_word_snap_honors_configured_word_chars() {
+        // Default rule (empty set): ':' is a boundary, the click
+        // grabs only "path".
+        let mut h = Harness::new(SinkKind::Closure);
+        h.feed(b"path:to:file next");
+        h.button(MouseButton::Left, true, 2, 0, no_mods());
+        h.button(MouseButton::Left, false, 2, 0, no_mods());
+        h.button(MouseButton::Left, true, 2, 0, no_mods());
+        h.button(MouseButton::Left, false, 2, 0, no_mods());
+        assert_eq!(h.clipboard.paste_text().unwrap(), "path");
+
+        // Configured boundary set " " (space only): ':' becomes
+        // word-interior, the same double-click grabs the whole
+        // colon-joined token — proof the knob reaches the snap rule.
+        let mut h = Harness::new(SinkKind::Closure);
+        h.engine.behavior.word_chars = " ".into();
+        h.feed(b"path:to:file next");
+        h.button(MouseButton::Left, true, 2, 0, no_mods());
+        h.button(MouseButton::Left, false, 2, 0, no_mods());
+        h.button(MouseButton::Left, true, 2, 0, no_mods());
+        h.button(MouseButton::Left, false, 2, 0, no_mods());
+        assert_eq!(
+            h.clipboard.paste_text().unwrap(),
+            "path:to:file",
+            "configured boundary set must keep ':' word-interior on double-click"
+        );
     }
 
     // ── Extend gestures (competitive queue 2026-06-12) ───────────

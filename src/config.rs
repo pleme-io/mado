@@ -132,7 +132,9 @@ pub struct MadoEffectsConfig {
 /// (no separate boolean to drift out of sync). The legacy
 /// `accessibility.colorblind` knob keeps working as a deprecation
 /// alias: when this mode is `None`, the accessibility value wins —
-/// resolved once at startup in main.rs.
+/// resolved in [`MadoConfig::resolved_effects`], the single point
+/// every renderer ingress (both entry points + hot-reload) flows
+/// through.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct MadoColorblindConfig {
     #[serde(default)]
@@ -613,6 +615,10 @@ pub struct SelectionConfig {
     pub foreground: Option<String>,
     #[serde(default)]
     pub background: Option<String>,
+    /// Double-click word-snap BOUNDARY set. Non-empty REPLACES the
+    /// default rule (any non-alphanumeric/underscore is a boundary):
+    /// listed characters split words, every other character is
+    /// word-interior. Empty = the default rule.
     #[serde(default = "default_selection_word_chars")]
     pub word_chars: String,
     #[serde(default = "default_true")]
@@ -1266,6 +1272,23 @@ impl MadoConfig {
         }
         config
     }
+
+    /// The effects section with the legacy `accessibility.colorblind`
+    /// deprecation alias RESOLVED into `effects.colorblind.mode`
+    /// (the effects-section mode wins; the alias applies only when
+    /// it is `None`). The single resolution point — every renderer
+    /// ingress consumes THIS, never the raw `effects` field, so no
+    /// entry point can skip the alias (M3 review 2026-06-12: the
+    /// tear-attach path did exactly that and both knobs were dead
+    /// there).
+    #[must_use]
+    pub fn resolved_effects(&self) -> MadoEffectsConfig {
+        let mut effects = self.effects.clone();
+        if effects.colorblind.mode == ColorblindMode::None {
+            effects.colorblind.mode = self.accessibility.colorblind;
+        }
+        effects
+    }
 }
 
 // ── Defaults + tiered constructors ──────────────────────────────
@@ -1786,7 +1809,15 @@ fn default_minimum_contrast() -> f32 {
     1.0
 }
 fn default_selection_word_chars() -> String {
-    "\t'\"│`|:;,()[]{}<>$".into()
+    // BOUNDARY set (non-empty REPLACES the not-alphanumeric rule in
+    // selection::word_bounds_in_row): listed characters split words,
+    // everything else is word-interior — so `/.-_@` staying unlisted
+    // is what makes double-click grab whole paths/URLs (the kitty
+    // contract). The leading space is load-bearing: the M3 review
+    // (2026-06-12) wired the previously-dead knob into the engine,
+    // and without ' ' here the prescribed default would select
+    // straight across spaces.
+    " \t'\"│`|:;,()[]{}<>$".into()
 }
 
 /// Load configuration using shikumi discovery chain.
@@ -1809,6 +1840,11 @@ pub fn load(override_path: &Option<PathBuf>) -> anyhow::Result<MadoConfig> {
     let store = shikumi::ConfigStore::<MadoConfig>::load(&path, "MADO_")?;
     Ok(MadoConfig::clone(&store.get()))
 }
+
+/// Hand-off cell between the shikumi watch callback (writer) and the
+/// renderer's frame-start drain (reader). One per process; both
+/// entry points connect their renderer to the same cell.
+pub type ConfigReloadCell = std::sync::Arc<std::sync::Mutex<Option<MadoConfig>>>;
 
 /// Load configuration with hot-reload watching.
 /// Returns the initial config and a store that automatically reloads on file change.
@@ -2286,17 +2322,30 @@ mod tests {
     /// buys. Matrix-style: failures aggregate, one assert.
     #[test]
     fn effects_config_defaults_mirror_the_catalog() {
+        // Expected values come from the TYPED SOURCE — the engawa
+        // catalog Params defaults — never re-typed literals. The
+        // prior hand-duplicated table stayed green if the catalog
+        // retuned a default upstream (mado's config default AND the
+        // test literal both kept the stale value), which is exactly
+        // the rot the test name promises to prevent (M3 review
+        // 2026-06-12). Now a catalog default change fails this build
+        // mechanically until the config default_* fns follow.
+        let crt = engawa_wgpu::catalog::crt::CrtParams::default();
+        let scan = engawa_wgpu::catalog::scanlines::ScanlinesParams::default();
+        let bloom = engawa_wgpu::catalog::bloom::BloomParams::default();
+        let glow = engawa_wgpu::catalog::glow_on_bell::GlowOnBellParams::default();
+
         let e = MadoEffectsConfig::default();
         let rows: &[(&str, f32, f32)] = &[
-            ("crt.curvature", e.crt.curvature, 0.08),
-            ("crt.vignette", e.crt.vignette, 0.25),
-            ("crt.aberration", e.crt.aberration, 0.6),
-            ("scanlines.period_px", e.scanlines.period_px, 3.0),
-            ("scanlines.intensity", e.scanlines.intensity, 0.25),
-            ("bloom.threshold", e.bloom.threshold, 0.75),
-            ("bloom.intensity", e.bloom.intensity, 0.6),
-            ("bloom.radius_px", e.bloom.radius_px, 2.5),
-            ("glow_on_bell.radius_px", e.glow_on_bell.radius_px, 240.0),
+            ("crt.curvature", e.crt.curvature, crt.curvature),
+            ("crt.vignette", e.crt.vignette, crt.vignette),
+            ("crt.aberration", e.crt.aberration, crt.aberration),
+            ("scanlines.period_px", e.scanlines.period_px, scan.period_px),
+            ("scanlines.intensity", e.scanlines.intensity, scan.intensity),
+            ("bloom.threshold", e.bloom.threshold, bloom.threshold),
+            ("bloom.intensity", e.bloom.intensity, bloom.intensity),
+            ("bloom.radius_px", e.bloom.radius_px, bloom.radius_px),
+            ("glow_on_bell.radius_px", e.glow_on_bell.radius_px, glow.radius_px),
         ];
         let mut failures = Vec::new();
         for (name, got, want) in rows {
@@ -2312,7 +2361,7 @@ mod tests {
                 if !parsed.crt.enabled || !parsed.snow.enabled {
                     failures.push("partial YAML did not enable crt+snow".into());
                 }
-                if (parsed.crt.curvature - 0.08).abs() > f32::EPSILON {
+                if (parsed.crt.curvature - crt.curvature).abs() > f32::EPSILON {
                     failures.push("partial YAML lost crt.curvature default".into());
                 }
             }

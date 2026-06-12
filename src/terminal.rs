@@ -96,6 +96,25 @@ impl AttrFlags {
     pub const fn is_empty(self) -> bool {
         self.0 == 0
     }
+
+    /// Mechanical `(flag, SGR set-code)` registry — co-located with
+    /// the bit consts so ONE list owns flag identity + wire code.
+    /// `SgrReport` (DECRQSS `m`) iterates THIS, and the round-trip
+    /// test exercises every row, so a new flag lands with its wire
+    /// code + DECRQSS coverage in the same change (M3 review
+    /// 2026-06-12: the former `FLAG_PARAMS` local was a hand dual of
+    /// the const set — a ninth flag would have been silently omitted
+    /// from DECRQSS replies).
+    pub const ALL: [(Self, &'static str); 8] = [
+        (Self::BOLD, "1"),
+        (Self::DIM, "2"),
+        (Self::ITALIC, "3"),
+        (Self::BLINK, "5"),
+        (Self::INVERSE, "7"),
+        (Self::HIDDEN, "8"),
+        (Self::STRIKETHROUGH, "9"),
+        (Self::OVERLINE, "53"),
+    ];
 }
 
 // M3-C2 — engawa owns the ONE definition of the underline vocabulary.
@@ -885,6 +904,18 @@ pub struct SelectionAnchor {
     anchor: CellAnchor,
 }
 
+/// Memo slot for [`Terminal::resolve_selection_span`] — the resolved
+/// span is valid exactly while `seqno` (bumped on every terminal
+/// mutation) and the anchor pair are unchanged. See the
+/// `selection_span_memo` field doc for the hot-path rationale.
+#[derive(Debug, Clone, Copy)]
+struct SelectionSpanMemo {
+    seqno: u64,
+    a: SelectionAnchor,
+    b: SelectionAnchor,
+    resolved: Option<((usize, usize), (usize, usize))>,
+}
+
 // ---------------------------------------------------------------------------
 // Grid — VecDeque-based terminal grid with O(1) scroll
 // ---------------------------------------------------------------------------
@@ -1002,6 +1033,16 @@ impl Grid {
     fn line_runs(&self, id: LogicalLineId) -> Vec<(usize, usize)> {
         let mut runs: Vec<(usize, usize)> = Vec::new();
         let mut start: Option<usize> = None;
+        // FULL scan, no early break (M3 review 2026-06-12): same-id
+        // runs are NOT always physically adjacent — scroll_region_up's
+        // partial-region path removes the region-top row and inserts a
+        // fresh blank at the region bottom, which can land BETWEEN the
+        // rows of a soft-wrapped logical line straddling the region
+        // edge. The former "once past the span, break" rule dropped
+        // the orphaned tail run, so anchors captured there resolved to
+        // the FIRST run's last cell (wrong highlight + wrong copy)
+        // instead of their own row. Hot-path cost is bounded by the
+        // seqno-keyed span memo in `resolve_selection_span`.
         for (i, line) in self.rows.iter().enumerate() {
             if line.logical_id == id {
                 if start.is_none() {
@@ -1010,17 +1051,10 @@ impl Grid {
                 if !line.wrapped {
                     runs.push((start.take().expect("run start set above"), i));
                 }
-            } else {
-                if let Some(s) = start.take() {
-                    // Dangling wrap marker at the span end (scroll-
-                    // region surgery) — close the run at its last row.
-                    runs.push((s, i - 1));
-                }
-                if !runs.is_empty() {
-                    // Same-id spans occupy contiguous physical rows;
-                    // once past the span there is nothing left to find.
-                    break;
-                }
+            } else if let Some(s) = start.take() {
+                // Dangling wrap marker at the span end (scroll-
+                // region surgery) — close the run at its last row.
+                runs.push((s, i - 1));
             }
         }
         if let Some(s) = start {
@@ -1716,6 +1750,21 @@ pub struct Terminal {
     /// resize/rewrap (that is their whole point) but never a rebuild.
     grid_epoch: u64,
 
+    /// One-slot seqno-keyed memo for [`Self::resolve_selection_span`]
+    /// (M3 review 2026-06-12). Resolution walks the row deque
+    /// (`Grid::line_runs` is O(rows)) and the render path resolves
+    /// the live span on EVERY vsync plus every engine redraw tick —
+    /// with a committed selection over a large scrollback that was
+    /// multiple near-full deque scans per frame. `seqno` bumps on
+    /// every terminal mutation ([`Self::dirty`]), so a hit can never
+    /// serve a resolution the grid has moved under; idle frames with
+    /// a standing selection cost O(1), and a streaming frame
+    /// resolves once, shared by the renderer snapshot AND the
+    /// engine's `reconcile_selection` (both call the memoized span).
+    /// Interior mutability (Mutex, uncontended single-slot) because
+    /// resolution happens under the shared read lock.
+    selection_span_memo: std::sync::Mutex<Option<SelectionSpanMemo>>,
+
     // Tab stops
     tab_stops: Vec<bool>,
 
@@ -1924,6 +1973,7 @@ impl Terminal {
             seqno: 0,
             grid_generation: 0,
             grid_epoch: 0,
+            selection_span_memo: std::sync::Mutex::new(None),
             tab_stops,
             response_bytes: Vec::new(),
             synchronized_output: false,
@@ -2626,9 +2676,29 @@ impl Terminal {
         a: SelectionAnchor,
         b: SelectionAnchor,
     ) -> Option<((usize, usize), (usize, usize))> {
-        let pa = self.resolve_selection_anchor(a)?;
-        let pb = self.resolve_selection_anchor(b)?;
-        Some(if pb < pa { (pb, pa) } else { (pa, pb) })
+        // Seqno-keyed memo — see the `selection_span_memo` field doc.
+        // The renderer snapshot resolves the live span every vsync
+        // and the engine reconciler every redraw tick; without the
+        // memo each resolve was an O(rows) deque scan per anchor.
+        if let Some(m) = *self.selection_span_memo.lock().unwrap()
+            && m.seqno == self.seqno
+            && m.a == a
+            && m.b == b
+        {
+            return m.resolved;
+        }
+        let resolved = (|| {
+            let pa = self.resolve_selection_anchor(a)?;
+            let pb = self.resolve_selection_anchor(b)?;
+            Some(if pb < pa { (pb, pa) } else { (pa, pb) })
+        })();
+        *self.selection_span_memo.lock().unwrap() = Some(SelectionSpanMemo {
+            seqno: self.seqno,
+            a,
+            b,
+            resolved,
+        });
+        resolved
     }
 
     /// Extract the text between two anchors, soft-wrap aware (the
@@ -4234,17 +4304,10 @@ struct SgrReport {
 impl fmt::Display for SgrReport {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("0")?;
-        const FLAG_PARAMS: [(AttrFlags, &str); 8] = [
-            (AttrFlags::BOLD, "1"),
-            (AttrFlags::DIM, "2"),
-            (AttrFlags::ITALIC, "3"),
-            (AttrFlags::BLINK, "5"),
-            (AttrFlags::INVERSE, "7"),
-            (AttrFlags::HIDDEN, "8"),
-            (AttrFlags::STRIKETHROUGH, "9"),
-            (AttrFlags::OVERLINE, "53"),
-        ];
-        for (flag, code) in FLAG_PARAMS {
+        // The ONE flag/code registry (AttrFlags::ALL) drives the
+        // reply — the former local FLAG_PARAMS dual is deleted (M3
+        // review 2026-06-12).
+        for (flag, code) in AttrFlags::ALL {
             if self.attrs.flags.contains(flag) {
                 write!(f, ";{code}")?;
             }
@@ -7981,6 +8044,34 @@ mod tests {
         );
     }
 
+    /// MECHANICAL registry round-trip (M3 review 2026-06-12): every
+    /// `(flag, code)` row in `AttrFlags::ALL` drives one SGR set +
+    /// DECRQSS `m` reply. The reply path iterates the SAME registry,
+    /// so a new flag added to ALL gets reporting + coverage in one
+    /// change, and a flag whose SGR parse or report is broken fails
+    /// here per-row — the former hand-duplicated `FLAG_PARAMS` local
+    /// would have silently omitted a ninth flag from DECRQSS.
+    #[test]
+    fn every_attr_flag_in_the_registry_round_trips_through_decrqss() {
+        let mut failures = Vec::new();
+        for (flag, code) in AttrFlags::ALL {
+            let setup = format!("\x1b[{code}m");
+            let reply = decrqss_m_reply(setup.as_bytes());
+            let needle = format!(";{code}");
+            if !reply.contains(&needle) {
+                failures.push(format!(
+                    "flag {flag:?} (SGR {code}): reply {reply:?} missing {needle:?}"
+                ));
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "{} registry flags failed the DECRQSS round-trip:\n  - {}",
+            failures.len(),
+            failures.join("\n  - ")
+        );
+    }
+
     /// SGR 58/59 underline-colour wire — colon + semicolon forms,
     /// reset, malformed degradation (M2 acceptance matrix).
     #[test]
@@ -9049,6 +9140,77 @@ mod tests {
             "evicted content must resolve to None"
         );
         assert_eq!(term.extract_selection_text(a, b), None);
+    }
+
+    /// Partial scroll-region surgery can split a soft-wrapped logical
+    /// line into NON-adjacent same-id runs: `scroll_region_up`'s
+    /// partial path removes the region-top row and inserts a fresh
+    /// blank at the region bottom — when the wrapped pair straddles
+    /// the region edge, the blank lands BETWEEN head and tail. The
+    /// pre-fix `line_runs` early-break dropped the orphaned tail run,
+    /// so an anchor captured there resolved to the head run's last
+    /// cell (wrong highlight + wrong copy) instead of its own cell
+    /// (M3 review 2026-06-12). Reachable with any DECSTBM app
+    /// scrolling a primary screen holding earlier soft-wrapped output.
+    #[test]
+    fn anchor_in_scroll_region_orphaned_wrap_tail_resolves_to_its_own_cell() {
+        let mut term = Terminal::with_scrollback(10, 6, 100);
+        // Soft-wrap a 20-char line across rows 3 and 4 (0-based).
+        term.feed(b"\x1b[4;1H");
+        term.feed(b"XXXXXXXXXXYYYYYYYYYY");
+        // DECSTBM region rows 1..=4 (1-based) — bottom bisects the
+        // wrapped pair (head in-region at row 3, tail outside at 4).
+        // LF at the region bottom scrolls the region: row 0 removed,
+        // fresh blank inserted at row 3, head shifts up to row 2.
+        term.feed(b"\x1b[1;4r");
+        term.feed(b"\x1b[4;1H\n");
+
+        // Viewport row 4 col 5 is the tail's 'Y' band — capture and
+        // resolve must round-trip to the SAME absolute cell.
+        let a = term.selection_anchor_at(4, 5).expect("tail anchor");
+        assert_eq!(
+            term.resolve_selection_anchor(a),
+            Some((4, 5)),
+            "anchor in the orphaned tail run must resolve to its own cell, \
+             not clamp to the head run"
+        );
+        // And the span over the tail extracts tail content, not head.
+        let b = term.selection_anchor_at(4, 9).expect("tail end anchor");
+        assert_eq!(
+            term.extract_selection_text(a, b).as_deref(),
+            Some("YYYYY"),
+            "copy from the orphaned tail must yield tail bytes"
+        );
+    }
+
+    /// The seqno-keyed span memo serves only fresh resolutions: a
+    /// memoized span from before a content shift must be recomputed,
+    /// never replayed (M3 review 2026-06-12 — the memo exists because
+    /// the render path resolves the live span every vsync, which was
+    /// O(scrollback) per anchor per frame).
+    #[test]
+    fn selection_span_memo_invalidates_on_any_write() {
+        let mut term = Terminal::with_scrollback(20, 4, 100);
+        term.feed(b"anchor me");
+        let a = term.selection_anchor_at(0, 0).expect("start");
+        let b = term.selection_anchor_at(0, 5).expect("end");
+        let first = term.resolve_selection_span(a, b).expect("resolves");
+        // Memo hit: identical state, identical answer.
+        assert_eq!(term.resolve_selection_span(a, b), Some(first));
+        // Content shift: four scrolled lines move the anchored row
+        // into scrollback — the resolved rows MUST move with it.
+        term.feed(b"\r\n1\r\n2\r\n3\r\n4");
+        let shifted = term.resolve_selection_span(a, b).expect("still resolvable");
+        assert_eq!(
+            (shifted.0 .0, shifted.1 .0),
+            (first.0 .0, first.1 .0),
+            "absolute rows are scrollback-origin-stable while content survives"
+        );
+        // Different anchors immediately after a memoized pair must
+        // not replay the previous pair's answer.
+        let c = term.selection_anchor_at(1, 0).expect("other row");
+        let other = term.resolve_selection_span(a, c).expect("resolves");
+        assert_ne!(other.1, first.1, "different end anchor, different span");
     }
 
     /// Soft-wrap-aware extraction matrix (the kitty/ghostty copy
