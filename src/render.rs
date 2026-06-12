@@ -42,7 +42,7 @@ use crate::search::SearchState;
 use crate::selection::{CellPos, Selection};
 use crate::terminal::{
     bold_bright_color, default_ansi_palette, AttrFlags, Cell, Color, Cursor, ImagePlacement,
-    StyleSnapshot, Terminal, UnderlineStyle,
+    StyleSnapshot, Terminal, UnderlineColor, UnderlineStyle,
 };
 use crate::url::{self, DetectedUrl};
 
@@ -69,12 +69,52 @@ pub type SharedTerminal = Arc<parking_lot::RwLock<Terminal>>;
 // Rect instance data for GPU
 // ---------------------------------------------------------------------------
 
+/// Fragment-path selector for [`RectInstance`] — M3-C2 decoration
+/// dispatch. Solid is the historical rect; Run/Curly carry the
+/// engawa decoration vocabulary (RLE period/duty band, analytic
+/// sine band) so dotted/dashed/curly underlines stay O(1) instances
+/// per run instead of per-dot quads (the geometry explosion the
+/// engawa vocabulary exists to prevent).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RectMode {
+    Solid,
+    /// `pattern = [period, duty, _, phase]` — paint where
+    /// `((x + phase) % period) < period * duty`.
+    Run,
+    /// `pattern = [period, amplitude, thickness, phase]` — paint
+    /// where the pixel is within thickness/2 of the sine centerline.
+    Curly,
+}
+
+impl RectMode {
+    /// Wire word for the instance buffer — the shader's `mode` switch.
+    const fn word(self) -> u32 {
+        match self {
+            Self::Solid => 0,
+            Self::Run => 1,
+            Self::Curly => 2,
+        }
+    }
+}
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
 struct RectInstance {
     pos: [f32; 2],
     size: [f32; 2],
     color: [f32; 4],
+    /// [`RectMode::word`]. Plain rects are `Solid`.
+    mode: u32,
+    /// Mode-dependent payload — see [`RectMode`]. Zero for Solid.
+    pattern: [f32; 4],
+}
+
+impl RectInstance {
+    /// The historical constructor shape — every non-decoration rect
+    /// in the codebase is a solid fill.
+    const fn solid(pos: [f32; 2], size: [f32; 2], color: [f32; 4]) -> Self {
+        Self { pos, size, color, mode: RectMode::Solid.word(), pattern: [0.0; 4] }
+    }
 }
 
 #[repr(C)]
@@ -94,11 +134,16 @@ struct RectInstance {
     @location(0) pos: vec2<f32>,
     @location(1) size: vec2<f32>,
     @location(2) color: vec4<f32>,
+    @location(3) mode: u32,
+    @location(4) pattern: vec4<f32>,
 };
 
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) color: vec4<f32>,
+    @location(1) local: vec2<f32>,
+    @location(2) @interpolate(flat) mode: u32,
+    @location(3) @interpolate(flat) pattern: vec4<f32>,
 };
 
 @group(0) @binding(0) var<uniform> screen: ScreenUniforms;
@@ -124,12 +169,44 @@ fn vs_main(
     var out: VertexOutput;
     out.position = vec4<f32>(ndc, 0.0, 1.0);
     out.color = instance.color;
+    out.local = corners[vi] * instance.size;
+    out.mode = instance.mode;
+    out.pattern = instance.pattern;
     return out;
 }
 
+// Decoration dispatch — mode mirrors the Rust RectMode enum:
+// 0 solid, 1 RLE run (engawa SegmentRun: period/duty over the band),
+// 2 curly (engawa CurlyBand: analytic sine evaluated per fragment —
+// the SDF-style path the engawa vocabulary mandates instead of
+// per-segment quad tessellation). Unpainted fragments return
+// transparent (alpha blending is on) so the band rect never shows.
 @fragment
 fn fs_main(frag: VertexOutput) -> @location(0) vec4<f32> {
-    return frag.color;
+    if frag.mode == 0u {
+        return frag.color;
+    }
+    if frag.mode == 1u {
+        let period = max(frag.pattern.x, 0.0001);
+        let duty = frag.pattern.y;
+        let phase = (frag.local.x + frag.pattern.w) % period;
+        if phase < period * duty {
+            return frag.color;
+        }
+        return vec4<f32>(0.0);
+    }
+    // mode 2 — curly band. Centerline sits at amplitude + thickness/2
+    // from the band top (band height = 2*amplitude + thickness).
+    let period = max(frag.pattern.x, 0.0001);
+    let amplitude = frag.pattern.y;
+    let thickness = frag.pattern.z;
+    let tau = 6.28318530717958647692;
+    let center = amplitude + thickness * 0.5
+        + amplitude * sin(tau * (frag.local.x + frag.pattern.w) / period);
+    if abs(frag.local.y - center) <= thickness * 0.5 {
+        return frag.color;
+    }
+    return vec4<f32>(0.0);
 }
 ";
 
@@ -191,6 +268,16 @@ impl RectPipeline {
                     format: wgpu::VertexFormat::Float32x4,
                     offset: 16,
                     shader_location: 2,
+                },
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Uint32,
+                    offset: 32,
+                    shader_location: 3,
+                },
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x4,
+                    offset: 36,
+                    shader_location: 4,
                 },
             ],
         };
@@ -666,6 +753,13 @@ struct PostParams {
     mode: u32,
 }
 
+// M3-C1 NOTE: no longer on the live render path — the catalog
+// colorblind effect dispatches through the engawa graph route. Kept
+// THIS commit solely as the parity-golden reference (the gpu_tests
+// golden renders the same frame through both paths and pins
+// byte-identical hashes); the next commit deletes it. dead_code
+// allowed because its only consumer is feature-gated.
+#[allow(dead_code)]
 struct PostProcessPipeline {
     pipeline: wgpu::RenderPipeline,
     bind_group_layout: wgpu::BindGroupLayout,
@@ -678,6 +772,7 @@ struct PostProcessPipeline {
     last_height: u32,
 }
 
+#[allow(dead_code)] // See struct note — parity-golden harness only.
 impl PostProcessPipeline {
     fn new(device: &wgpu::Device, format: wgpu::TextureFormat) -> Self {
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -847,6 +942,11 @@ struct Snapshot {
     /// frame cost up without ever coming back down (review finding
     /// 2026-06-12). The render path stays lock-free.
     styles: StyleSnapshot,
+    /// Live 256-entry ANSI palette (OSC 4 can override any slot) —
+    /// resolves `UnderlineColor::Indexed` at decoration-build time.
+    /// fg/bg resolve at SGR-parse time, but the underline-colour wire
+    /// keeps the index, so the render side needs the palette truth.
+    palette: [Color; 256],
     cursor: Cursor,
     cols: usize,
     num_rows: usize,
@@ -923,18 +1023,35 @@ struct ShapeKey {
 const SHAPE_CACHE_CAP: usize = 4096;
 
 /// Per-row run kind enum for P11 — tells `push_run` which y/height
-/// math to apply when flushing an open RLE span. The three kinds are
-/// the only per-row rect kinds whose pixel geometry can be described
-/// as "start_col × cell_width wide, on row_idx" — cell backgrounds
-/// fill the whole cell height, underlines sit two pixels above the
-/// bottom edge, strikethroughs sit at mid-cell. Box-drawing rects
-/// have per-glyph shapes and stay per-cell.
+/// math to apply when flushing an open RLE span. These are the
+/// solid-fill per-row rect kinds whose pixel geometry can be
+/// described as "start_col × cell_width wide, on row_idx" — cell
+/// backgrounds fill the whole cell height, strikethroughs sit at
+/// mid-cell, overlines (SGR 53) hug the cell top edge. Underlines
+/// left this enum at M3-C2: their geometry is style-dispatched
+/// through the engawa decoration emitters (`push_underline_run`),
+/// not a single solid rect. Box-drawing rects have per-glyph shapes
+/// and stay per-cell.
 #[derive(Clone, Copy)]
 enum RectKindForRle {
     Background,
-    Underline,
     Strikethrough,
+    Overline,
 }
+
+/// Decoration metrics constants — the single source the
+/// [`engawa::UnderlineMetrics`] projection derives from. The
+/// underline stroke keeps the historical placement (top of stroke
+/// two pixels above the cell bottom, one pixel thick) so the M2
+/// single-underline pixels are unchanged.
+const UNDERLINE_OFFSET_FROM_BOTTOM: f32 = 2.0;
+const DECORATION_THICKNESS: f32 = 1.0;
+/// Approximate baseline fraction of the cell height. cosmic-text's
+/// line height is 1.4 × font size and mado does not measure ascent;
+/// the baseline only feeds the curly band's amplitude
+/// (`underline_y - baseline`, floored at one thickness upstream),
+/// so an approximation degrades amplitude, never correctness.
+const BASELINE_FRACTION: f32 = 0.8;
 
 // ---------------------------------------------------------------------------
 // TerminalRenderer
@@ -973,7 +1090,19 @@ pub struct TerminalRenderer {
     ansi_colors: [Color; 16],
     rect_pipeline: Option<RectPipeline>,
     image_pipeline: Option<ImagePipeline>,
-    post_pipeline: Option<PostProcessPipeline>,
+    /// M3-C1 — the engawa graph route. The dispatcher owns the
+    /// per-Material pipeline cache (Arc-backed device/queue clones,
+    /// no lifetime borrow); the pool leases the SCENE + chain
+    /// offscreen textures; the cache holds the CompiledGraph keyed by
+    /// (effect set, resolution) so steady-state frames never compile.
+    dispatcher: Option<engawa_wgpu::WgpuDispatcher>,
+    texture_pool: engawa_wgpu::TexturePool,
+    catalog_sampler: Option<wgpu::Sampler>,
+    /// Per-effect params uniform buffers, keyed by the catalog's
+    /// `params_resource()` id. Created lazily at first enable, sized
+    /// by `params_size()`; written per frame via FrameUniforms.
+    effect_params: HashMap<&'static str, wgpu::Buffer>,
+    frame_graph: crate::render_graph::FrameGraphCache,
     gpu_images: HashMap<u32, GpuImage>,
     #[invalidating_setter]
     colorblind_mode: ColorblindMode,
@@ -1098,7 +1227,11 @@ impl TerminalRenderer {
             ansi_colors: default_ansi_palette(),
             rect_pipeline: None,
             image_pipeline: None,
-            post_pipeline: None,
+            dispatcher: None,
+            texture_pool: engawa_wgpu::TexturePool::new(),
+            catalog_sampler: None,
+            effect_params: HashMap::new(),
+            frame_graph: crate::render_graph::FrameGraphCache::new(),
             gpu_images: HashMap::new(),
             colorblind_mode: ColorblindMode::None,
             bold_is_bright: false,
@@ -1279,6 +1412,32 @@ impl TerminalRenderer {
     #[inline]
     fn font_size_px(&self) -> f32 {
         self.font_size * self.scale_factor
+    }
+
+    /// Cell-local decoration metrics — the typed input every engawa
+    /// decoration emitter consumes. Projected from the measured cell
+    /// metrics + the decoration constants, one place.
+    fn underline_metrics(&self) -> engawa::UnderlineMetrics {
+        engawa::UnderlineMetrics {
+            cell_width: self.cell_width,
+            underline_y: self.cell_height - UNDERLINE_OFFSET_FROM_BOTTOM,
+            thickness: DECORATION_THICKNESS,
+            baseline: self.cell_height * BASELINE_FRACTION,
+        }
+    }
+
+    /// SGR-5 blink phase — true = foreground visible. Shares the
+    /// cursor-blink clock (`cursor_blink_rate_ms`) so both blink
+    /// families flip together; `reduce_motion` pins it visible
+    /// (animation is exactly what that knob exists to suppress).
+    /// `elapsed == 0.0` is the visible phase, which keeps the L1/L2
+    /// determinism ladders (rendered at elapsed=0) byte-stable.
+    fn blink_phase_on(&self, elapsed: f32) -> bool {
+        if self.reduce_motion {
+            return true;
+        }
+        let period = self.cursor_blink_rate_ms as f32 / 1000.0 * 2.0;
+        (elapsed % period) < period / 2.0
     }
 
     // set_selection_bg, set_cursor_color, set_reduce_motion now
@@ -1613,6 +1772,7 @@ impl TerminalRenderer {
         let scrollback_total = term.scrollback_total();
         let rows: Vec<Vec<Cell>> = term.visible_rows().map(|r| r.to_vec()).collect();
         let styles = term.styles().snapshot();
+        let palette = *term.ansi_palette();
         let image_placements = term.image_placements().to_vec();
         let block_separator_rows = term.block_separator_viewport_rows();
         // Resolve the content-anchored selection against THIS frame's
@@ -1665,6 +1825,7 @@ impl TerminalRenderer {
             Snapshot {
                 rows,
                 styles,
+                palette,
                 cursor,
                 cols,
                 num_rows,
@@ -1698,22 +1859,27 @@ impl TerminalRenderer {
         let default_bg = Color::BLACK;
 
         // P11 — run-length batch every per-row "single-row, same-color
-        // wide span" rect kind: backgrounds, underlines, strikethroughs.
-        // Adjacent cells with identical (bg) or identical (underline +
-        // fg) collapse into ONE wide RectInstance. On a typical
-        // interactive grid this cuts the rect-pipeline upload from a
-        // potential cells × 4 kinds per row down to ~2–10 spans per row
-        // — and the rect_pipeline does an instanced draw call sized by
-        // instance count, so fewer instances = smaller upload + smaller
-        // vertex-shader cost. Box drawing stays per-cell (each glyph
-        // has its own shape; no run shape exists).
+        // wide span" rect kind: backgrounds, underlines, strikethroughs,
+        // overlines. Adjacent cells with identical (bg) or identical
+        // (decoration colour + style) collapse into ONE wide
+        // RectInstance. On a typical interactive grid this cuts the
+        // rect-pipeline upload from a potential cells × 4 kinds per row
+        // down to ~2–10 spans per row — and the rect_pipeline does an
+        // instanced draw call sized by instance count, so fewer
+        // instances = smaller upload + smaller vertex-shader cost. Box
+        // drawing stays per-cell (each glyph has its own shape; no run
+        // shape exists). Dotted/Dashed/Curly underlines stay O(1)
+        // instances per run too: the pattern is evaluated in the
+        // fragment shader (RectMode::Run / RectMode::Curly), never
+        // tessellated into per-dot quads.
         //
-        // Per-row state for the three RLE-able kinds. Each is `Option<
-        // (start_col, run_width_cells, color)>`; `None` = no run open.
-        // `run_width_cells` accumulates by cell.width so wide chars
-        // (CJK / emoji) contribute 2 cells to the span — the painted
-        // rect ends up `run_width_cells × cell_width` wide.
+        // Per-row state for the RLE-able kinds. Each is `Option<
+        // (start_col, run_width_cells, color[, style])>`; `None` = no
+        // run open. `run_width_cells` accumulates by cell.width so wide
+        // chars (CJK / emoji) contribute 2 cells to the span — the
+        // painted rect ends up `run_width_cells × cell_width` wide.
         type RowRun = Option<(usize, usize, [f32; 4])>;
+        type UnderlineRun = Option<(usize, usize, [f32; 4], UnderlineStyle)>;
         let push_run =
             |instances: &mut Vec<RectInstance>,
              run: &mut RowRun,
@@ -1727,28 +1893,90 @@ impl TerminalRenderer {
                             origin_y + row_idx as f32 * self.cell_height,
                             self.cell_height,
                         ),
-                        RectKindForRle::Underline => (
-                            origin_y + (row_idx as f32 + 1.0) * self.cell_height - 2.0,
-                            1.0,
-                        ),
                         RectKindForRle::Strikethrough => (
                             origin_y + row_idx as f32 * self.cell_height
                                 + self.cell_height * 0.5,
                             1.0,
                         ),
+                        RectKindForRle::Overline => {
+                            let r = engawa::overline_rect(self.underline_metrics());
+                            (
+                                origin_y + row_idx as f32 * self.cell_height + r.y,
+                                r.height,
+                            )
+                        }
                     };
-                    instances.push(RectInstance {
-                        pos: [x, y],
-                        size: [w, h],
-                        color,
-                    });
+                    instances.push(RectInstance::solid([x, y], [w, h], color));
                 }
             };
 
+        // M3-C2 — style-dispatched underline geometry through the
+        // engawa decoration emitters. The emitter runs on single-cell
+        // metrics; the run widens the band horizontally. Period /
+        // duty / amplitude stay cell-anchored, so Dashed (period =
+        // cell_width / 2) and Curly (period = cell_width) tile
+        // seamlessly across the widened band — exactly the "merge
+        // adjacent cells' bands into one run" the engawa module
+        // documents.
+        let metrics = self.underline_metrics();
+        let push_underline = |instances: &mut Vec<RectInstance>,
+                              run: &mut UnderlineRun,
+                              row_idx: usize| {
+            if let Some((start_col, cells, color, style)) = run.take() {
+                let x = origin_x + start_col as f32 * self.cell_width;
+                let y0 = origin_y + row_idx as f32 * self.cell_height;
+                let run_w = cells as f32 * self.cell_width;
+                match engawa::emit_underline_rects(style, metrics) {
+                    engawa::UnderlineGeometry::None => {}
+                    engawa::UnderlineGeometry::Single(r) => {
+                        instances.push(RectInstance::solid(
+                            [x + r.x, y0 + r.y],
+                            [run_w, r.height],
+                            color,
+                        ));
+                    }
+                    engawa::UnderlineGeometry::Double { upper, lower } => {
+                        for r in [upper, lower] {
+                            instances.push(RectInstance::solid(
+                                [x + r.x, y0 + r.y],
+                                [run_w, r.height],
+                                color,
+                            ));
+                        }
+                    }
+                    engawa::UnderlineGeometry::Run(seg) => {
+                        instances.push(RectInstance {
+                            pos: [x + seg.band.x, y0 + seg.band.y],
+                            size: [run_w, seg.band.height],
+                            color,
+                            mode: RectMode::Run.word(),
+                            pattern: [seg.period, seg.duty, 0.0, 0.0],
+                        });
+                    }
+                    engawa::UnderlineGeometry::Curly(band) => {
+                        instances.push(RectInstance {
+                            pos: [x + band.rect.x, y0 + band.rect.y],
+                            size: [run_w, band.rect.height],
+                            color,
+                            mode: RectMode::Curly.word(),
+                            pattern: [band.period, band.amplitude, band.thickness, 0.0],
+                        });
+                    }
+                }
+            }
+        };
+
+        // BLINK (SGR 5) animation phase — keyed on the cursor-blink
+        // clock so the two blink families breathe together. Off-phase
+        // hides the foreground (glyphs + fg-derived decorations),
+        // never the background. reduce_motion pins it visible.
+        let blink_on = self.blink_phase_on(elapsed);
+
         for (row_idx, row) in snap.rows.iter().enumerate() {
             let mut bg_run: RowRun = None;
-            let mut underline_run: RowRun = None;
+            let mut underline_run: UnderlineRun = None;
             let mut strike_run: RowRun = None;
+            let mut overline_run: RowRun = None;
 
             for (col_idx, cell) in row.iter().enumerate().take(snap.cols) {
                 // Continuation cells: don't break or extend the run on
@@ -1770,6 +1998,8 @@ impl TerminalRenderer {
                     base_fg
                 };
                 let width_cells = cell.width.max(1) as usize;
+                let blink_hidden =
+                    !blink_on && attrs.flags.contains(AttrFlags::BLINK);
 
                 // ── Background span ─────────────────────────────────
                 if bg != default_bg {
@@ -1798,36 +2028,36 @@ impl TerminalRenderer {
                 }
 
                 // ── Underline span ──────────────────────────────────
-                // M2 stores the typed UnderlineStyle; until the M3
-                // engawa decoration geometry lands, every non-None
-                // style renders as this single underline rect.
-                if attrs.underline != UnderlineStyle::None {
-                    let color = color_to_f32(&fg);
+                // Typed UnderlineStyle dispatch (M3-C2). Runs merge
+                // only when style AND colour agree; the colour honours
+                // SGR 58 (Indexed resolves against the live palette,
+                // Rgb is verbatim) and falls back to the cell fg ONLY
+                // for UnderlineColor::Default.
+                if attrs.underline != UnderlineStyle::None && !blink_hidden {
+                    let resolved = match attrs.underline_color {
+                        UnderlineColor::Default => fg,
+                        UnderlineColor::Indexed(n) => snap.palette[n as usize],
+                        UnderlineColor::Rgb(c) => Color::new(c.r, c.g, c.b),
+                    };
+                    let color = color_to_f32(&resolved);
                     match &mut underline_run {
-                        Some((_, cells, c)) if *c == color => {
+                        Some((_, cells, c, s))
+                            if *c == color && *s == attrs.underline =>
+                        {
                             *cells += width_cells;
                         }
                         _ => {
-                            push_run(
-                                &mut instances,
-                                &mut underline_run,
-                                row_idx,
-                                RectKindForRle::Underline,
-                            );
-                            underline_run = Some((col_idx, width_cells, color));
+                            push_underline(&mut instances, &mut underline_run, row_idx);
+                            underline_run =
+                                Some((col_idx, width_cells, color, attrs.underline));
                         }
                     }
                 } else {
-                    push_run(
-                        &mut instances,
-                        &mut underline_run,
-                        row_idx,
-                        RectKindForRle::Underline,
-                    );
+                    push_underline(&mut instances, &mut underline_run, row_idx);
                 }
 
                 // ── Strikethrough span ──────────────────────────────
-                if attrs.flags.contains(AttrFlags::STRIKETHROUGH) {
+                if attrs.flags.contains(AttrFlags::STRIKETHROUGH) && !blink_hidden {
                     let color = color_to_f32(&fg);
                     match &mut strike_run {
                         Some((_, cells, c)) if *c == color => {
@@ -1849,6 +2079,32 @@ impl TerminalRenderer {
                         &mut strike_run,
                         row_idx,
                         RectKindForRle::Strikethrough,
+                    );
+                }
+
+                // ── Overline span (SGR 53) ──────────────────────────
+                if attrs.flags.contains(AttrFlags::OVERLINE) && !blink_hidden {
+                    let color = color_to_f32(&fg);
+                    match &mut overline_run {
+                        Some((_, cells, c)) if *c == color => {
+                            *cells += width_cells;
+                        }
+                        _ => {
+                            push_run(
+                                &mut instances,
+                                &mut overline_run,
+                                row_idx,
+                                RectKindForRle::Overline,
+                            );
+                            overline_run = Some((col_idx, width_cells, color));
+                        }
+                    }
+                } else {
+                    push_run(
+                        &mut instances,
+                        &mut overline_run,
+                        row_idx,
+                        RectKindForRle::Overline,
                     );
                 }
 
@@ -1884,10 +2140,10 @@ impl TerminalRenderer {
                             .clone()
                     };
                     for (rx, ry, rw, rh) in template {
-                        instances.push(RectInstance {
+                        instances.push(RectInstance { 
                             pos: [bx + rx, by + ry],
                             size: [rw, rh],
-                            color,
+                            color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
                         });
                     }
                 }
@@ -1895,8 +2151,9 @@ impl TerminalRenderer {
 
             // Row end — flush every open run.
             push_run(&mut instances, &mut bg_run, row_idx, RectKindForRle::Background);
-            push_run(&mut instances, &mut underline_run, row_idx, RectKindForRle::Underline);
+            push_underline(&mut instances, &mut underline_run, row_idx);
             push_run(&mut instances, &mut strike_run, row_idx, RectKindForRle::Strikethrough);
+            push_run(&mut instances, &mut overline_run, row_idx, RectKindForRle::Overline);
         }
 
         // Selection highlight — one rect per visible row of the
@@ -1916,7 +2173,7 @@ impl TerminalRenderer {
                 if c0 > c1 {
                     continue;
                 }
-                instances.push(RectInstance {
+                instances.push(RectInstance { 
                     pos: [
                         origin_x + c0 as f32 * self.cell_width,
                         origin_y + row_idx as f32 * self.cell_height,
@@ -1925,7 +2182,7 @@ impl TerminalRenderer {
                         (c1 - c0 + 1) as f32 * self.cell_width,
                         self.cell_height,
                     ],
-                    color: self.selection_bg,
+                    color: self.selection_bg, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
                 });
             }
         }
@@ -1952,7 +2209,7 @@ impl TerminalRenderer {
                 } else {
                     overlay_rect_color(0xEB, 0xCB, 0x8B, 0.2)
                 };
-                instances.push(RectInstance {
+                instances.push(RectInstance { 
                     pos: [
                         origin_x + m.col_start as f32 * self.cell_width,
                         origin_y + vp_row as f32 * self.cell_height,
@@ -1961,14 +2218,14 @@ impl TerminalRenderer {
                         (m.col_end + 1 - m.col_start) as f32 * self.cell_width,
                         self.cell_height,
                     ],
-                    color,
+                    color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
                 });
             }
         }
 
         // URL underline decorations — RLE'd (one rect per URL).
         for detected_url in &snap.urls {
-            instances.push(RectInstance {
+            instances.push(RectInstance { 
                 pos: [
                     origin_x + detected_url.col_start as f32 * self.cell_width,
                     origin_y
@@ -1982,7 +2239,7 @@ impl TerminalRenderer {
                 ],
                 // Nord frost blue #88C0D0 underline, linearized for the
                 // rect pipeline (see `overlay_rect_color`).
-                color: overlay_rect_color(0x88, 0xC0, 0xD0, 0.6),
+                color: overlay_rect_color(0x88, 0xC0, 0xD0, 0.6), mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
         }
 
@@ -2026,15 +2283,15 @@ impl TerminalRenderer {
 
             if effective_style == CursorStyle::BlockHollow {
                 let thickness = 2.0_f32;
-                instances.push(RectInstance { pos: [cx, cy], size: [self.cell_width, thickness], color: self.cursor_color });
-                instances.push(RectInstance { pos: [cx, cy + self.cell_height - thickness], size: [self.cell_width, thickness], color: self.cursor_color });
-                instances.push(RectInstance { pos: [cx, cy], size: [thickness, self.cell_height], color: self.cursor_color });
-                instances.push(RectInstance { pos: [cx + self.cell_width - thickness, cy], size: [thickness, self.cell_height], color: self.cursor_color });
+                instances.push(RectInstance {  pos: [cx, cy], size: [self.cell_width, thickness], color: self.cursor_color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4] });
+                instances.push(RectInstance {  pos: [cx, cy + self.cell_height - thickness], size: [self.cell_width, thickness], color: self.cursor_color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4] });
+                instances.push(RectInstance {  pos: [cx, cy], size: [thickness, self.cell_height], color: self.cursor_color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4] });
+                instances.push(RectInstance {  pos: [cx + self.cell_width - thickness, cy], size: [thickness, self.cell_height], color: self.cursor_color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4] });
             } else {
-                instances.push(RectInstance {
+                instances.push(RectInstance { 
                     pos,
                     size,
-                    color: self.cursor_color,
+                    color: self.cursor_color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
                 });
             }
         }
@@ -2058,10 +2315,10 @@ impl TerminalRenderer {
             let thumb_x = origin_x + snap.cols as f32 * self.cell_width - thumb_w;
             // Nord frost #88C0D0 @ 35% α — typed linearizer like every
             // overlay rect.
-            instances.push(RectInstance {
+            instances.push(RectInstance { 
                 pos: [thumb_x, thumb_y],
                 size: [thumb_w, thumb_h],
-                color: overlay_rect_color(0x88, 0xC0, 0xD0, 0.35),
+                color: overlay_rect_color(0x88, 0xC0, 0xD0, 0.35), mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
         }
 
@@ -2078,13 +2335,13 @@ impl TerminalRenderer {
                 continue;
             }
             let y = origin_y + (*sep_row as f32) * self.cell_height;
-            instances.push(RectInstance {
+            instances.push(RectInstance { 
                 pos: [origin_x, y],
                 size: [snap.cols as f32 * self.cell_width, 1.0],
                 // Nord #5E81AC @ 30% α — through the typed linearizer like
                 // every other overlay rect (raw sRGB here renders washed-out
                 // on the sRGB-storage surface).
-                color: overlay_rect_color(0x5E, 0x81, 0xAC, 0.30),
+                color: overlay_rect_color(0x5E, 0x81, 0xAC, 0.30), mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
         }
 
@@ -2218,6 +2475,7 @@ impl TerminalRenderer {
         &self,
         snap: &Snapshot,
         text: &mut garasu::TextRenderer,
+        blink_on: bool,
     ) -> Vec<(usize, usize, Arc<Buffer>)> {
         // P23 — pre-size. Typical interactive grid produces ~3-8
         // runs per row after P6 batching. 8 × rows is a generous
@@ -2278,7 +2536,12 @@ impl TerminalRenderer {
                 let bold = cell_attrs.flags.contains(AttrFlags::BOLD);
                 let dim = cell_attrs.flags.contains(AttrFlags::DIM);
                 let italic = cell_attrs.flags.contains(AttrFlags::ITALIC);
-                let hidden = cell_attrs.flags.contains(AttrFlags::HIDDEN);
+                // BLINK off-phase renders exactly like HIDDEN (fg
+                // painted in bg so the cell keeps its advance) — the
+                // glyph re-appears next phase without reshaping
+                // (ShapeKey carries the effective fg).
+                let hidden = cell_attrs.flags.contains(AttrFlags::HIDDEN)
+                    || (!blink_on && cell_attrs.flags.contains(AttrFlags::BLINK));
 
                 let effective_fg = if hidden {
                     if inverse { style.fg } else { style.bg }
@@ -2443,234 +2706,234 @@ fn box_drawing_rects(
     match ch {
         // ─ horizontal line
         '\u{2500}' => {
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [x, cy - thick / 2.0],
                 size: [cw, thick],
-                color,
+                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
         }
         // │ vertical line
         '\u{2502}' => {
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [cx - thick / 2.0, y],
                 size: [thick, ch_h],
-                color,
+                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
         }
         // ┌ top-left corner
         '\u{250C}' => {
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [cx - thick / 2.0, cy - thick / 2.0],
                 size: [cw - (cx - x) + thick / 2.0, thick],
-                color,
+                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [cx - thick / 2.0, cy - thick / 2.0],
                 size: [thick, ch_h - (cy - y) + thick / 2.0],
-                color,
+                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
         }
         // ┐ top-right corner
         '\u{2510}' => {
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [x, cy - thick / 2.0],
                 size: [cx - x + thick / 2.0, thick],
-                color,
+                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [cx - thick / 2.0, cy - thick / 2.0],
                 size: [thick, ch_h - (cy - y) + thick / 2.0],
-                color,
+                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
         }
         // └ bottom-left corner
         '\u{2514}' => {
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [cx - thick / 2.0, cy - thick / 2.0],
                 size: [cw - (cx - x) + thick / 2.0, thick],
-                color,
+                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [cx - thick / 2.0, y],
                 size: [thick, cy - y + thick / 2.0],
-                color,
+                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
         }
         // ┘ bottom-right corner
         '\u{2518}' => {
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [x, cy - thick / 2.0],
                 size: [cx - x + thick / 2.0, thick],
-                color,
+                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [cx - thick / 2.0, y],
                 size: [thick, cy - y + thick / 2.0],
-                color,
+                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
         }
         // ├ left tee
         '\u{251C}' => {
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [cx - thick / 2.0, y],
                 size: [thick, ch_h],
-                color,
+                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [cx - thick / 2.0, cy - thick / 2.0],
                 size: [cw - (cx - x) + thick / 2.0, thick],
-                color,
+                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
         }
         // ┤ right tee
         '\u{2524}' => {
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [cx - thick / 2.0, y],
                 size: [thick, ch_h],
-                color,
+                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [x, cy - thick / 2.0],
                 size: [cx - x + thick / 2.0, thick],
-                color,
+                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
         }
         // ┬ top tee
         '\u{252C}' => {
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [x, cy - thick / 2.0],
                 size: [cw, thick],
-                color,
+                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [cx - thick / 2.0, cy - thick / 2.0],
                 size: [thick, ch_h - (cy - y) + thick / 2.0],
-                color,
+                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
         }
         // ┴ bottom tee
         '\u{2534}' => {
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [x, cy - thick / 2.0],
                 size: [cw, thick],
-                color,
+                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [cx - thick / 2.0, y],
                 size: [thick, cy - y + thick / 2.0],
-                color,
+                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
         }
         // ┼ cross
         '\u{253C}' => {
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [x, cy - thick / 2.0],
                 size: [cw, thick],
-                color,
+                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [cx - thick / 2.0, y],
                 size: [thick, ch_h],
-                color,
+                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
         }
         // ═ double horizontal
         '\u{2550}' => {
             let gap = thick;
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [x, cy - thick - gap / 2.0],
                 size: [cw, thick],
-                color,
+                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [x, cy + gap / 2.0],
                 size: [cw, thick],
-                color,
+                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
         }
         // ║ double vertical
         '\u{2551}' => {
             let gap = thick;
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [cx - thick - gap / 2.0, y],
                 size: [thick, ch_h],
-                color,
+                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [cx + gap / 2.0, y],
                 size: [thick, ch_h],
-                color,
+                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
         }
         // Block elements
         // ▀ upper half block
         '\u{2580}' => {
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [x, y],
                 size: [cw, ch_h / 2.0],
-                color,
+                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
         }
         // ▄ lower half block
         '\u{2584}' => {
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [x, y + ch_h / 2.0],
                 size: [cw, ch_h / 2.0],
-                color,
+                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
         }
         // █ full block
         '\u{2588}' => {
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [x, y],
                 size: [cw, ch_h],
-                color,
+                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
         }
         // ▌ left half block
         '\u{258C}' => {
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [x, y],
                 size: [cw / 2.0, ch_h],
-                color,
+                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
         }
         // ▐ right half block
         '\u{2590}' => {
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [x + cw / 2.0, y],
                 size: [cw / 2.0, ch_h],
-                color,
+                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
         }
         // ░ light shade
         '\u{2591}' => {
             let mut shade_color = color;
             shade_color[3] *= 0.25;
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [x, y],
                 size: [cw, ch_h],
-                color: shade_color,
+                color: shade_color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
         }
         // ▒ medium shade
         '\u{2592}' => {
             let mut shade_color = color;
             shade_color[3] *= 0.5;
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [x, y],
                 size: [cw, ch_h],
-                color: shade_color,
+                color: shade_color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
         }
         // ▓ dark shade
         '\u{2593}' => {
             let mut shade_color = color;
             shade_color[3] *= 0.75;
-            rects.push(RectInstance {
+            rects.push(RectInstance { 
                 pos: [x, y],
                 size: [cw, ch_h],
-                color: shade_color,
+                color: shade_color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
         }
         _ => {} // Unhandled box drawing — fall through to font glyph
@@ -2860,13 +3123,185 @@ impl TerminalRenderer {
     }
 }
 
+impl TerminalRenderer {
+    /// The enabled catalog-effect set for this frame, derived from
+    /// config — the ONLY source the graph cache key reads. Disabled
+    /// effects are absent (zero nodes), not parameterized off.
+    fn enabled_effect_set(&self) -> crate::render_graph::EffectSet {
+        let mut set = crate::render_graph::EffectSet::EMPTY;
+        if self.colorblind_mode != ColorblindMode::None {
+            set.insert(engawa_wgpu::catalog::CatalogEffect::Colorblind);
+        }
+        set
+    }
+
+    /// Total projection: mado's config knob → the catalog's typed
+    /// mode (the wire word the WGSL switches on).
+    fn catalog_colorblind_mode(&self) -> engawa_wgpu::catalog::colorblind::ColorblindMode {
+        use engawa_wgpu::catalog::colorblind::ColorblindMode as CatalogMode;
+        match self.colorblind_mode {
+            ColorblindMode::None => CatalogMode::None,
+            ColorblindMode::Protanopia => CatalogMode::Protanopia,
+            ColorblindMode::Deuteranopia => CatalogMode::Deuteranopia,
+            ColorblindMode::Tritanopia => CatalogMode::Tritanopia,
+        }
+    }
+
+    /// Per-frame params for every enabled effect — written into the
+    /// corresponding uniform buffers by the dispatcher before any
+    /// pass encodes. TOTAL match: an effect the set cannot yet
+    /// produce still gets correct resolution-seeded defaults, so
+    /// enabling it later is a config change, not a render change.
+    fn frame_uniforms_for(
+        &self,
+        effects: crate::render_graph::EffectSet,
+        width: u32,
+        height: u32,
+    ) -> engawa_wgpu::FrameUniforms {
+        use engawa_wgpu::catalog::{self, CatalogEffect};
+        let res = [width as f32, height as f32];
+        let mut frame = engawa_wgpu::FrameUniforms::new();
+        for effect in effects.iter_render_order() {
+            match effect {
+                CatalogEffect::Colorblind => frame.set(
+                    catalog::colorblind::PARAMS_RESOURCE,
+                    &catalog::colorblind::ColorblindParams::new(
+                        self.catalog_colorblind_mode(),
+                    ),
+                ),
+                CatalogEffect::Crt => frame.set(
+                    catalog::crt::PARAMS_RESOURCE,
+                    &catalog::crt::CrtParams::new(res),
+                ),
+                CatalogEffect::Scanlines => frame.set(
+                    catalog::scanlines::PARAMS_RESOURCE,
+                    &catalog::scanlines::ScanlinesParams::new(res),
+                ),
+                CatalogEffect::Bloom => frame.set(
+                    catalog::bloom::PARAMS_RESOURCE,
+                    &catalog::bloom::BloomParams::new(res),
+                ),
+                CatalogEffect::GlowOnBell => frame.set(
+                    catalog::glow_on_bell::PARAMS_RESOURCE,
+                    &catalog::glow_on_bell::GlowOnBellParams::new(res),
+                ),
+                CatalogEffect::Snow => frame.set(
+                    catalog::snow::PARAMS_RESOURCE,
+                    &catalog::snow::SnowParams::default().with_resolution(res),
+                ),
+            }
+        }
+        frame
+    }
+
+    /// Dispatch the enabled effect chain: lease the chain/aux
+    /// intermediates, bind SCENE (the rendered frame) + OUT (the
+    /// surface) + sampler + params, write per-frame uniforms, and
+    /// walk the cached CompiledGraph. Every lease (scene included)
+    /// lands in `leases_out` for post-submit release.
+    #[allow(clippy::too_many_arguments)]
+    fn dispatch_effect_chain(
+        &mut self,
+        device: &wgpu::Device,
+        surface_view: &wgpu::TextureView,
+        width: u32,
+        height: u32,
+        format: wgpu::TextureFormat,
+        effects: crate::render_graph::EffectSet,
+        scene: engawa_wgpu::TextureLease,
+        leases_out: &mut Vec<engawa_wgpu::TextureLease>,
+    ) -> Result<wgpu::CommandBuffer, engawa_wgpu::WgpuDispatcherError> {
+        use engawa_wgpu::catalog::{CATALOG_SAMPLER, OUT, SCENE};
+
+        let frame = self.frame_uniforms_for(effects, width, height);
+
+        // Lazily create the params uniform buffer for each enabled
+        // effect — one buffer per effect for the renderer's lifetime.
+        for effect in effects.iter_render_order() {
+            self.effect_params
+                .entry(effect.params_resource())
+                .or_insert_with(|| {
+                    device.create_buffer(&wgpu::BufferDescriptor {
+                        label: Some(effect.params_resource()),
+                        size: effect.params_size() as u64,
+                        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+                        mapped_at_creation: false,
+                    })
+                });
+        }
+
+        let mut bound = engawa_wgpu::BoundResources::new()
+            .with(SCENE, scene.bound_resource())
+            .with(
+                OUT,
+                engawa_wgpu::BoundResource::Texture { view: surface_view.clone(), format },
+            );
+        leases_out.push(scene);
+        let (Some(sampler), Some(dispatcher)) =
+            (self.catalog_sampler.as_ref(), self.dispatcher.as_mut())
+        else {
+            // init() wires both before the first frame; this arm is
+            // the total-function fallback (an empty command buffer),
+            // not a code path.
+            return Ok(device
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("mado_effects_noop"),
+                })
+                .finish());
+        };
+        bound.insert(CATALOG_SAMPLER, engawa_wgpu::BoundResource::Sampler(sampler.clone()));
+        for effect in effects.iter_render_order() {
+            if let Some(buf) = self.effect_params.get(effect.params_resource()) {
+                bound.insert(
+                    effect.params_resource(),
+                    engawa_wgpu::BoundResource::Uniform(buf.clone()),
+                );
+            }
+        }
+
+        let key = crate::render_graph::GraphKey { effects, width, height };
+        let Some(compiled) = self.frame_graph.ensure(key) else {
+            // Empty set never reaches here (callers gate on
+            // non-empty) — total-function fallback again.
+            return Ok(device
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("mado_effects_noop"),
+                })
+                .finish());
+        };
+        for id in &compiled.intermediates {
+            let lease = self
+                .texture_pool
+                .lease(device, engawa_wgpu::TextureKey::offscreen(width, height, format));
+            bound.insert(id.clone(), lease.bound_resource());
+            leases_out.push(lease);
+        }
+
+        dispatcher.dispatch_with(&compiled.graph, &compiled.bindings, bound, &frame)
+    }
+}
+
 impl RenderCallback for TerminalRenderer {
     fn init(&mut self, gpu: &garasu::GpuContext) {
         crate::perf::log_phase("renderer_init_start");
         let format = wgpu::TextureFormat::Bgra8UnormSrgb;
         self.rect_pipeline = Some(RectPipeline::new(&gpu.device, format));
         self.image_pipeline = Some(ImagePipeline::new(&gpu.device, format));
-        self.post_pipeline = Some(PostProcessPipeline::new(&gpu.device, format));
+        self.dispatcher = Some(engawa_wgpu::WgpuDispatcher::new(
+            &gpu.device,
+            &gpu.queue,
+            format,
+        ));
+        // Linear filtering — the same sampler the legacy post blit
+        // used, so the catalog route is pixel-identical (1:1 blits
+        // sample texel centers; the filter only matters under scale,
+        // but matching it keeps the parity golden byte-exact).
+        self.catalog_sampler = Some(gpu.device.create_sampler(&wgpu::SamplerDescriptor {
+            label: Some("mado_catalog_sampler"),
+            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Linear,
+            ..Default::default()
+        }));
         if self.snow_config.enabled {
             self.snow_overlay = Some(crate::render_snow::SnowOverlay::new(
                 &gpu.device,
@@ -3042,10 +3477,10 @@ impl RenderCallback for TerminalRenderer {
         // Bell flash: add full-screen semi-transparent overlay (before GPU upload)
         if self.bell_flash_frames > 0 {
             let alpha = self.bell_flash_frames as f32 / 4.0 * 0.15;
-            rect_instances.push(RectInstance {
+            rect_instances.push(RectInstance { 
                 pos: [0.0, 0.0],
                 size: [ctx.width as f32, ctx.height as f32],
-                color: [1.0, 1.0, 1.0, alpha],
+                color: [1.0, 1.0, 1.0, alpha], mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
             self.bell_flash_frames -= 1;
         }
@@ -3065,28 +3500,28 @@ impl RenderCallback for TerminalRenderer {
 
         // Build text buffers with per-cell colors
         let text_start = Instant::now();
-        let text_buffers = self.build_text_buffers(&snap, ctx.text);
+        let blink_on = self.blink_phase_on(ctx.elapsed);
+        let text_buffers = self.build_text_buffers(&snap, ctx.text, blink_on);
         let text_us = text_start.elapsed().as_micros() as u64;
         let text_count = text_buffers.len();
         let shape_cache_len = self.shape_cache.borrow().len();
 
-        // Determine post-processing mode
-        let colorblind_mode = match self.colorblind_mode {
-            ColorblindMode::None => 0u32,
-            ColorblindMode::Protanopia => 1,
-            ColorblindMode::Deuteranopia => 2,
-            ColorblindMode::Tritanopia => 3,
+        // M3-C1 — the engawa graph route. The enabled effect set is
+        // derived from config each frame; when non-empty, the scene
+        // passes render into a pool-leased SCENE texture and the
+        // catalog chain dispatches SCENE → … → OUT (the surface).
+        // Empty set = zero graph nodes, scene renders direct to the
+        // surface, no lease, no dispatch.
+        let enabled_effects = self.enabled_effect_set();
+        let format = wgpu::TextureFormat::Bgra8UnormSrgb;
+        let scene_lease = if enabled_effects.is_empty() {
+            None
+        } else {
+            Some(self.texture_pool.lease(
+                &ctx.gpu.device,
+                engawa_wgpu::TextureKey::offscreen(ctx.width, ctx.height, format),
+            ))
         };
-        let use_postprocess = colorblind_mode > 0;
-
-        // When post-processing is active, render scene to offscreen texture,
-        // then blit to surface through the shader. Otherwise render to surface directly.
-        if use_postprocess {
-            if let Some(ref mut post) = self.post_pipeline {
-                let format = wgpu::TextureFormat::Bgra8UnormSrgb;
-                post.ensure_offscreen(&ctx.gpu.device, ctx.width, ctx.height, format);
-            }
-        }
 
         // Sync Kitty GPU textures (mutable borrow) before we start render passes.
         self.sync_kitty_images(ctx);
@@ -3098,25 +3533,15 @@ impl RenderCallback for TerminalRenderer {
                 label: Some("mado_render"),
             });
 
-        // Helper macro to resolve the render target for each pass.
-        // When post-processing is active, all scene passes target the offscreen texture.
-        macro_rules! scene_view {
-            ($self:expr, $ctx:expr) => {
-                if use_postprocess {
-                    $self
-                        .post_pipeline
-                        .as_ref()
-                        .and_then(|p| p.offscreen_view.as_ref())
-                        .unwrap_or($ctx.surface_view)
-                } else {
-                    $ctx.surface_view
-                }
-            };
-        }
-
+        // The render target for every scene pass: the leased SCENE
+        // texture when the effect chain is live, the surface directly
+        // otherwise.
+        let scene_view: &wgpu::TextureView = scene_lease
+            .as_ref()
+            .map_or(ctx.surface_view, |lease| lease.view());
         // Pass 1: Clear background
         {
-            let view = scene_view!(self, ctx);
+            let view = scene_view;
             let _pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("mado_clear"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -3141,7 +3566,7 @@ impl RenderCallback for TerminalRenderer {
         // for the text pipeline.
         if !rect_instances.is_empty() {
             if let Some(ref pipeline) = self.rect_pipeline {
-                let view = scene_view!(self, ctx);
+                let view = scene_view;
                 let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                     label: Some("mado_rects"),
                     color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -3162,7 +3587,7 @@ impl RenderCallback for TerminalRenderer {
 
         // Pass 2.5: Kitty graphics images
         if !snap.image_placements.is_empty() {
-            let view = scene_view!(self, ctx);
+            let view = scene_view;
             self.draw_kitty_images(ctx, &mut encoder, view, &snap.image_placements, self.padding_px(), self.padding_px());
         }
 
@@ -3211,7 +3636,7 @@ impl RenderCallback for TerminalRenderer {
                 tracing::warn!("text prepare error: {e}");
             }
 
-            let view = scene_view!(self, ctx);
+            let view = scene_view;
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("mado_text"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -3231,52 +3656,55 @@ impl RenderCallback for TerminalRenderer {
             }
         }
 
-        // Pass 4: Post-processing blit (offscreen → surface through shader)
-        if use_postprocess {
-            if let Some(ref post) = self.post_pipeline {
-                let params = PostParams {
-                    resolution: [ctx.width as f32, ctx.height as f32],
-                    time: ctx.elapsed,
-                    mode: colorblind_mode,
-                };
-                ctx.gpu
-                    .queue
-                    .write_buffer(&post.params_buffer, 0, bytemuck::bytes_of(&params));
-
-                if let Some(ref bind_group) = post.bind_group {
-                    let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                        label: Some("mado_postprocess"),
-                        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                            view: ctx.surface_view,
-                            resolve_target: None,
-                            ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                                store: wgpu::StoreOp::Store,
-                            },
-                        })],
-                        depth_stencil_attachment: None,
-                        timestamp_writes: None,
-                        occlusion_query_set: None,
-                    });
-                    pass.set_pipeline(&post.pipeline);
-                    pass.set_bind_group(0, bind_group, &[]);
-                    pass.draw(0..6, 0..1);
+        // Pass 4: engawa catalog dispatch — SCENE → enabled effect
+        // chain → OUT (the surface). The CompiledGraph comes from the
+        // (effect set, resolution)-keyed cache; per-frame work is
+        // BoundResources + FrameUniforms + the dispatcher walk.
+        let mut command_buffers: Vec<wgpu::CommandBuffer> = Vec::with_capacity(3);
+        let mut frame_leases: Vec<engawa_wgpu::TextureLease> = Vec::new();
+        command_buffers.push(encoder.finish());
+        if let Some(scene) = scene_lease {
+            match self.dispatch_effect_chain(
+                &ctx.gpu.device,
+                ctx.surface_view,
+                ctx.width,
+                ctx.height,
+                format,
+                enabled_effects,
+                scene,
+                &mut frame_leases,
+            ) {
+                Ok(cmd) => command_buffers.push(cmd),
+                Err(e) => {
+                    // Unreachable for every constructible effect set —
+                    // the render_graph power-set tests bind every node
+                    // edge and the gpu goldens dispatch the live
+                    // chain. Surfacing (not panicking) keeps a broken
+                    // driver from killing the terminal; the frame
+                    // shows the previous surface contents.
+                    tracing::error!(error = %e, "engawa effect-chain dispatch failed");
                 }
             }
         }
 
-        // Pass 5: Snow overlay (default-on effect). Renders AFTER
-        // post-process so it composes onto the final color-space
-        // pixels — text + colorblind grade + snow all live together.
+        // Pass 5: Snow overlay (legacy direct-wgpu path; the catalog
+        // migration absorbs it next commit). Renders AFTER the effect
+        // chain so it composes onto the final color-space pixels.
         // The overlay uses LoadOp::Load + alpha blending so terminal
         // contents show through where there are no flakes.
+        let mut overlay_encoder = ctx
+            .gpu
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("mado_overlays"),
+            });
         if let Some(ref mut snow) = self.snow_overlay {
             snow.set_resolution(ctx.width as f32, ctx.height as f32);
-            snow.render(&ctx.gpu.device, &ctx.gpu.queue, &mut encoder, ctx.surface_view);
+            snow.render(&ctx.gpu.device, &ctx.gpu.queue, &mut overlay_encoder, ctx.surface_view);
         }
 
         // Pass 6: directory-frecency overlay (轍 wadachi), reader-only. Renders
-        // AFTER snow so it floats on top, onto ctx.surface_view (post-blit), the
+        // AFTER snow so it floats on top, onto ctx.surface_view (post-chain), the
         // same target snow uses. Gated on `.open` so idle frames are unchanged.
         // State is snapshotted (lock dropped) before any GPU work.
         {
@@ -3285,7 +3713,7 @@ impl RenderCallback for TerminalRenderer {
                 (dp.open, dp.query.clone(), dp.results.clone(), dp.selected)
             };
             if dp_open {
-                self.draw_dir_picker(&dp_query, &dp_results, dp_selected, ctx, &mut encoder);
+                self.draw_dir_picker(&dp_query, &dp_results, dp_selected, ctx, &mut overlay_encoder);
             }
         }
 
@@ -3297,11 +3725,18 @@ impl RenderCallback for TerminalRenderer {
                 (st.active, st.query.clone(), st.current, st.matches.len())
             };
             if s_active {
-                self.draw_search_status(&s_query, s_current, s_count, ctx, &mut encoder);
+                self.draw_search_status(&s_query, s_current, s_count, ctx, &mut overlay_encoder);
             }
         }
 
-        ctx.gpu.queue.submit(std::iter::once(encoder.finish()));
+        command_buffers.push(overlay_encoder.finish());
+        ctx.gpu.queue.submit(command_buffers);
+        // Leases return to the pool only after the submit that
+        // consumes them is queued — wgpu keeps the textures alive for
+        // the GPU; the pool just must not re-hand them mid-frame.
+        for lease in frame_leases {
+            self.texture_pool.release(lease);
+        }
 
         // One-shot: stamp the first-rendered-frame milestone so
         // operators can read total exec → pixel-on-screen latency.
@@ -4041,6 +4476,258 @@ mod render_invariants {
         );
     }
 
+    // ── M3-C2: styled-underline geometry through engawa emitters ──
+
+    /// Sentinel SGR-58 RGB underline colour — unique in the frame, so
+    /// decoration rects are identified by exact colour match.
+    const UL_SENTINEL: Color = Color { r: 201, g: 31, b: 47 };
+
+    fn underline_rects_for(style_param: &[u8]) -> (TerminalRenderer, Vec<RectInstance>) {
+        let (r, t) = harness(20, 3);
+        let mut feed = Vec::new();
+        feed.extend_from_slice(style_param);
+        feed.extend_from_slice(b"\x1b[58:2::201:31:47mx\x1b[0m");
+        t.write().feed(&feed);
+        let rects = compute_rects(&r)
+            .into_iter()
+            .filter(|rt| colors_approx_eq(rt.color, color_to_f32(&UL_SENTINEL)))
+            .collect();
+        (r, rects)
+    }
+
+    /// MATRIX — one row per [`UnderlineStyle::ALL`] entry, len-pinned
+    /// against the mechanical registry; failures aggregate before the
+    /// single assert. Geometry expectations project from the engawa
+    /// emitter contract (Single 1 solid / Double exactly 2 / Dotted+
+    /// Dashed one RLE Run differing in period AND duty / Curly one
+    /// sine band), so a divergence between this renderer and the
+    /// vocabulary is a red build, not a drift.
+    #[test]
+    fn underline_style_matrix_emits_engawa_geometry() {
+        use crate::terminal::UnderlineStyle;
+
+        struct Row {
+            style: UnderlineStyle,
+            sgr: &'static [u8],
+        }
+        let matrix: &[Row] = &[
+            Row { style: UnderlineStyle::None, sgr: b"\x1b[4:0m" },
+            Row { style: UnderlineStyle::Single, sgr: b"\x1b[4:1m" },
+            Row { style: UnderlineStyle::Double, sgr: b"\x1b[4:2m" },
+            Row { style: UnderlineStyle::Curly, sgr: b"\x1b[4:3m" },
+            Row { style: UnderlineStyle::Dotted, sgr: b"\x1b[4:4m" },
+            Row { style: UnderlineStyle::Dashed, sgr: b"\x1b[4:5m" },
+        ];
+        assert_eq!(
+            matrix.len(),
+            UnderlineStyle::ALL.len(),
+            "matrix must carry one row per UnderlineStyle::ALL entry"
+        );
+        for style in UnderlineStyle::ALL {
+            assert_eq!(
+                matrix.iter().filter(|row| row.style == style).count(),
+                1,
+                "registry entry {style:?} must appear exactly once in the matrix"
+            );
+        }
+
+        let mut failures: Vec<String> = Vec::new();
+        for row in matrix {
+            let (r, rects) = underline_rects_for(row.sgr);
+            let metrics = r.underline_metrics();
+            match row.style {
+                UnderlineStyle::None => {
+                    if !rects.is_empty() {
+                        failures.push(format!("None: expected 0 rects, got {}", rects.len()));
+                    }
+                }
+                UnderlineStyle::Single => {
+                    if rects.len() != 1 || rects[0].mode != RectMode::Solid.word() {
+                        failures.push(format!("Single: expected 1 solid rect, got {rects:?}"));
+                    } else if (rects[0].pos[1] - metrics.underline_y).abs() > 0.01 {
+                        failures.push(format!(
+                            "Single: y = {}, expected underline_y {}",
+                            rects[0].pos[1], metrics.underline_y
+                        ));
+                    }
+                }
+                UnderlineStyle::Double => {
+                    if rects.len() != 2
+                        || rects.iter().any(|rt| rt.mode != RectMode::Solid.word())
+                    {
+                        failures.push(format!("Double: expected 2 solid rects, got {rects:?}"));
+                    } else if (rects[0].pos[1] - rects[1].pos[1]).abs() < 0.01 {
+                        failures.push("Double: strokes must sit at distinct y".into());
+                    }
+                }
+                UnderlineStyle::Curly => {
+                    if rects.len() != 1 || rects[0].mode != RectMode::Curly.word() {
+                        failures.push(format!("Curly: expected 1 sine band, got {rects:?}"));
+                    } else if (rects[0].pattern[0] - metrics.cell_width).abs() > 0.01 {
+                        failures.push(format!(
+                            "Curly: period = {}, expected cell_width {}",
+                            rects[0].pattern[0], metrics.cell_width
+                        ));
+                    }
+                }
+                UnderlineStyle::Dotted => {
+                    if rects.len() != 1 || rects[0].mode != RectMode::Run.word() {
+                        failures.push(format!("Dotted: expected 1 RLE run, got {rects:?}"));
+                    } else {
+                        let expected_period =
+                            engawa::decoration::DOTTED_PERIOD_PER_THICKNESS * metrics.thickness;
+                        if (rects[0].pattern[0] - expected_period).abs() > 0.01
+                            || (rects[0].pattern[1] - engawa::decoration::DOTTED_DUTY).abs() > 0.01
+                        {
+                            failures.push(format!(
+                                "Dotted: (period, duty) = ({}, {}), expected ({expected_period}, {})",
+                                rects[0].pattern[0], rects[0].pattern[1], engawa::decoration::DOTTED_DUTY
+                            ));
+                        }
+                    }
+                }
+                UnderlineStyle::Dashed => {
+                    if rects.len() != 1 || rects[0].mode != RectMode::Run.word() {
+                        failures.push(format!("Dashed: expected 1 RLE run, got {rects:?}"));
+                    } else {
+                        let expected_period =
+                            metrics.cell_width / engawa::decoration::DASHED_PERIODS_PER_CELL;
+                        if (rects[0].pattern[0] - expected_period).abs() > 0.01
+                            || (rects[0].pattern[1] - engawa::decoration::DASHED_DUTY).abs() > 0.01
+                        {
+                            failures.push(format!(
+                                "Dashed: (period, duty) = ({}, {}), expected ({expected_period}, {})",
+                                rects[0].pattern[0], rects[0].pattern[1], engawa::decoration::DASHED_DUTY
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "{} underline-style rows failed:\n  - {}",
+            failures.len(),
+            failures.join("\n  - ")
+        );
+    }
+
+    /// Dotted vs Dashed must differ in BOTH period and duty — the two
+    /// styles share the Run geometry kind, so the constants are the
+    /// only thing distinguishing them on screen.
+    #[test]
+    fn dotted_and_dashed_runs_differ_in_period_and_duty() {
+        let (_, dotted) = underline_rects_for(b"\x1b[4:4m");
+        let (_, dashed) = underline_rects_for(b"\x1b[4:5m");
+        assert_eq!(dotted.len(), 1);
+        assert_eq!(dashed.len(), 1);
+        assert!(
+            (dotted[0].pattern[0] - dashed[0].pattern[0]).abs() > 0.01,
+            "dotted and dashed periods must differ"
+        );
+        assert!(
+            (dotted[0].pattern[1] - dashed[0].pattern[1]).abs() > 0.01,
+            "dotted and dashed duties must differ"
+        );
+    }
+
+    /// SGR 58 indexed colour resolves against the live palette; plain
+    /// SGR 4 (UnderlineColor::Default) falls back to the cell fg.
+    #[test]
+    fn underline_color_resolution_honors_sgr_58() {
+        // Indexed: palette slot 1 (ANSI red).
+        let (r, t) = harness(20, 3);
+        t.write().feed(b"\x1b[4m\x1b[58:5:1mx\x1b[0m");
+        let palette_1 = t.read().ansi_palette()[1];
+        let rects = compute_rects(&r);
+        assert!(
+            rects
+                .iter()
+                .any(|rt| colors_approx_eq(rt.color, color_to_f32(&palette_1))),
+            "indexed underline colour must resolve against the live palette"
+        );
+
+        // Default: the underline paints in the cell fg (white here).
+        let (r, t) = harness(20, 3);
+        t.write().feed(b"\x1b[4mx\x1b[0m");
+        let rects = compute_rects(&r);
+        let fg = color_to_f32(&Color::WHITE);
+        let underline_y = r.underline_metrics().underline_y;
+        assert!(
+            rects.iter().any(|rt| colors_approx_eq(rt.color, fg)
+                && (rt.pos[1] - underline_y).abs() < 0.01),
+            "Default underline colour must fall back to the cell fg"
+        );
+    }
+
+    /// SGR 53 (overline) paints a solid stroke flush with the cell's
+    /// top edge; SGR 55 removes it.
+    #[test]
+    fn overline_emits_top_edge_rect() {
+        let (r, t) = harness(20, 3);
+        t.write().feed(b"\x1b[53mx\x1b[0m");
+        let rects = compute_rects(&r);
+        let fg = color_to_f32(&Color::WHITE);
+        let overline = rects
+            .iter()
+            .find(|rt| colors_approx_eq(rt.color, fg) && rt.pos[1].abs() < 0.01)
+            .copied();
+        assert!(
+            overline.is_some(),
+            "SGR 53 must emit a top-edge rect: {rects:?}"
+        );
+        assert!(
+            (overline.map_or(0.0, |o| o.size[1]) - DECORATION_THICKNESS).abs() < 0.01,
+            "overline thickness must match the decoration constant"
+        );
+
+        let (r, t) = harness(20, 3);
+        t.write().feed(b"\x1b[53m\x1b[55mx\x1b[0m");
+        let rects = compute_rects(&r);
+        assert!(
+            !rects
+                .iter()
+                .any(|rt| colors_approx_eq(rt.color, fg) && rt.pos[1].abs() < 0.01),
+            "SGR 55 must remove the overline"
+        );
+    }
+
+    /// SGR 5 (BLINK) animates on the cursor-blink clock: the visible
+    /// phase paints fg decorations, the off phase hides them, and
+    /// reduce_motion pins them visible. elapsed=0 is the visible
+    /// phase by construction (the determinism ladders rely on it).
+    #[test]
+    fn blink_decorations_animate_on_the_blink_clock() {
+        let (r, t) = harness(20, 3);
+        t.write().feed(b"\x1b[5;4mx\x1b[0m");
+        let fg = color_to_f32(&Color::WHITE);
+        let underline_y = r.underline_metrics().underline_y;
+        let has_underline = |rects: &[RectInstance]| {
+            rects
+                .iter()
+                .any(|rt| colors_approx_eq(rt.color, fg) && (rt.pos[1] - underline_y).abs() < 0.01)
+        };
+
+        let (snap, _) = r.snapshot();
+        // Visible phase (elapsed = 0; period = 2 × 500 ms).
+        let on = r.build_rect_instances(&snap, 0.0, 0.0, 0.0);
+        assert!(has_underline(&on), "blink on-phase must paint the underline");
+        // Off phase (elapsed = 0.6 s — second half of the 1 s period).
+        let off = r.build_rect_instances(&snap, 0.6, 0.0, 0.0);
+        assert!(!has_underline(&off), "blink off-phase must hide the underline");
+
+        // reduce_motion pins the foreground visible at every phase.
+        let (mut r, t) = harness(20, 3);
+        r.set_reduce_motion(true);
+        t.write().feed(b"\x1b[5;4mx\x1b[0m");
+        let (snap, _) = r.snapshot();
+        let pinned = r.build_rect_instances(&snap, 0.6, 0.0, 0.0);
+        assert!(
+            has_underline(&pinned),
+            "reduce_motion must pin blinking decorations visible"
+        );
+    }
+
     proptest::proptest! {
         /// Whatever byte sequence comes in, the rect set must:
         /// 1. Contain at most one cursor rect (Block style).
@@ -4395,6 +5082,148 @@ mod render_gpu_invariants {
             1,
             "32 renders of the same state produced {} distinct hashes — non-deterministic pipeline",
             hashes.len()
+        );
+    }
+
+    /// PARITY GOLDEN (M3-C1) — the license to delete the legacy
+    /// PostProcessPipeline. One fixed frame rendered through BOTH
+    /// colorblind paths must hash byte-identical:
+    ///
+    ///   legacy:  scene → post.offscreen → COLORBLIND_SHADER blit
+    ///   catalog: scene → pool lease → engawa colorblind graph
+    ///            (the LIVE production route — `render()` with
+    ///            colorblind_mode set dispatches it end-to-end)
+    ///
+    /// The catalog WGSL is a verbatim Machado port, the sampler is
+    /// linear in both paths, and both blits are 1:1 fullscreen — any
+    /// divergence is a real regression, not tolerance noise.
+    #[test]
+    fn colorblind_catalog_route_matches_legacy_postprocess() {
+        use garasu::headless::frame_hash;
+
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let format = wgpu::TextureFormat::Bgra8UnormSrgb;
+        let (w, h) = (128u32, 64u32);
+        let (mut r, t, mut text) = build_gpu_renderer(&gpu, 40, 8);
+        t.write()
+            .feed(b"parity \x1b[31mred\x1b[0m \x1b[42mgreen-bg\x1b[0m \x1b[4munder\x1b[0m");
+
+        // Legacy path. Colorblind stays OFF on the renderer so the
+        // scene passes land directly on the "surface" we hand it —
+        // the legacy pipeline's own offscreen texture.
+        let mut post = PostProcessPipeline::new(&gpu.device, format);
+        post.ensure_offscreen(&gpu.device, w, h, format);
+        {
+            let view = post.offscreen_view.as_ref().expect("offscreen ensured");
+            let mut ctx = RenderContext {
+                gpu: &gpu,
+                text: &mut text,
+                surface_view: view,
+                width: w,
+                height: h,
+                scale_factor: 1.0,
+                elapsed: 0.0,
+                dt: 0.0,
+            };
+            r.render(&mut ctx);
+        }
+        let legacy_target = HeadlessTarget::new(&gpu, w, h, format);
+        let params = PostParams {
+            resolution: [w as f32, h as f32],
+            time: 0.0,
+            mode: 1, // protanopia
+        };
+        gpu.queue
+            .write_buffer(&post.params_buffer, 0, bytemuck::bytes_of(&params));
+        let mut encoder = gpu
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("legacy_parity_blit"),
+            });
+        {
+            let bind_group = post.bind_group.as_ref().expect("bind group ensured");
+            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("legacy_parity_pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: legacy_target.view(),
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
+            pass.set_pipeline(&post.pipeline);
+            pass.set_bind_group(0, bind_group, &[]);
+            pass.draw(0..6, 0..1);
+        }
+        gpu.queue.submit(std::iter::once(encoder.finish()));
+        let _ = gpu.device.poll(wgpu::PollType::Wait);
+        let legacy_pixels = legacy_target.read_pixels_rgba8(&gpu);
+
+        // Catalog path — the LIVE route: same renderer, colorblind
+        // set, surface = a fresh headless target. render() leases the
+        // scene texture and dispatches the engawa graph.
+        r.set_colorblind_mode(ColorblindMode::Protanopia);
+        let catalog_target = HeadlessTarget::new(&gpu, w, h, format);
+        let mut ctx = RenderContext {
+            gpu: &gpu,
+            text: &mut text,
+            surface_view: catalog_target.view(),
+            width: w,
+            height: h,
+            scale_factor: 1.0,
+            elapsed: 0.0,
+            dt: 0.0,
+        };
+        r.render(&mut ctx);
+        let _ = gpu.device.poll(wgpu::PollType::Wait);
+        let catalog_pixels = catalog_target.read_pixels_rgba8(&gpu);
+
+        assert_eq!(
+            frame_hash(&legacy_pixels),
+            frame_hash(&catalog_pixels),
+            "legacy and catalog colorblind frames diverged — the catalog \
+             route is NOT a drop-in replacement; do not delete the legacy \
+             pipeline until this golden is green"
+        );
+    }
+
+    /// Live-route determinism + steady-state compile proof: 8 frames
+    /// of identical state through the engawa colorblind chain produce
+    /// ONE unique hash AND exactly one graph compile (the pool's
+    /// lease/release cycle and the cached CompiledGraph are both
+    /// frame-stable).
+    #[test]
+    fn catalog_route_is_deterministic_and_compiles_once() {
+        use garasu::headless::frame_hash;
+        use std::collections::HashSet;
+
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let target =
+            HeadlessTarget::new(&gpu, 96, 48, wgpu::TextureFormat::Bgra8UnormSrgb);
+        let (mut r, t, mut text) = build_gpu_renderer(&gpu, 30, 6);
+        r.set_colorblind_mode(ColorblindMode::Deuteranopia);
+        t.write().feed(b"catalog-stress");
+
+        let mut hashes = HashSet::new();
+        for _ in 0..8 {
+            let pixels = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+            hashes.insert(frame_hash(&pixels).to_hex().to_string());
+        }
+        assert_eq!(
+            hashes.len(),
+            1,
+            "catalog route produced {} distinct hashes across 8 identical frames",
+            hashes.len()
+        );
+        assert_eq!(
+            r.frame_graph.compile_count(),
+            1,
+            "steady-state frames must reuse the cached CompiledGraph"
         );
     }
 

@@ -43,6 +43,7 @@ mod prompt_mark;
 mod pty;
 mod perf;
 mod render;
+mod render_graph;
 mod render_snow;
 mod scenario;
 mod search;

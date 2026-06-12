@@ -1121,8 +1121,8 @@ dependencies = [
 
 [[package]]
 name = "engawa"
-version = "0.1.0"
-source = "git+https://github.com/pleme-io/engawa#8adf8696b95f173ebf4a353ccbb7fe631b79f91b"
+version = "0.1.2"
+source = "git+https://github.com/pleme-io/engawa#bff2776580d961ac7a95337516c48329b4c79f28"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -1150,10 +1150,12 @@ dependencies = [
 
 [[package]]
 name = "engawa-wgpu"
-version = "0.1.0"
-source = "git+https://github.com/pleme-io/engawa-wgpu#c75f946478872954467c13469e4b799980e7e270"
+version = "0.1.2"
+source = "git+https://github.com/pleme-io/engawa-wgpu#db87d21808712955a598a2a0273f2880754771e2"
 dependencies = [
+ "bytemuck",
  "engawa",
+ "pleme-allvariants-derive",
  "thiserror 2.0.18",
  "wgpu",
 ]
@@ -3373,6 +3375,16 @@ name = "plain"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
+
+[[package]]
+name = "pleme-allvariants-derive"
+version = "0.1.0"
+source = "git+https://github.com/pleme-io/pleme-allvariants-derive#c66f20d1dc5727cfa0d1f83a02a28609a13387ec"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
+]
 
 [[package]]
 name = "pleme-invalidating-setter-derive"
@@ -6393,7 +6405,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]

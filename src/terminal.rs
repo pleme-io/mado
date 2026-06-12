@@ -98,69 +98,14 @@ impl AttrFlags {
     }
 }
 
-/// Typed underline style — SGR `4` (Single), `4:0..4:5` sub-param wire,
-/// `24` / `4:0` reset. Storage lands in M2; the render GEOMETRY for the
-/// non-Single variants is M3 (engawa decoration emitter) — until then
-/// every non-None style renders as the existing single underline rect
-/// via the legacy bit in [`Attrs::to_legacy_bits`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
-pub enum UnderlineStyle {
-    #[default]
-    None,
-    Single,
-    Double,
-    Curly,
-    Dotted,
-    Dashed,
-}
-
-impl UnderlineStyle {
-    /// Lowercase wire name for the MCP `CellSnapshot.underline` field.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::None => "none",
-            Self::Single => "single",
-            Self::Double => "double",
-            Self::Curly => "curly",
-            Self::Dotted => "dotted",
-            Self::Dashed => "dashed",
-        }
-    }
-}
-
-impl fmt::Display for UnderlineStyle {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_str())
-    }
-}
-
-/// Typed underline colour — SGR `58` (set, indexed or RGB) / `59`
-/// (reset to Default = follow the cell's fg).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
-pub enum UnderlineColor {
-    /// No explicit underline colour — render with the cell fg.
-    #[default]
-    Default,
-    /// `58:5:N` / `58;5;N` — palette index.
-    Indexed(u8),
-    /// `58:2::r:g:b` / `58;2;r;g;b` — direct RGB.
-    Rgb(Color),
-}
-
-impl fmt::Display for UnderlineColor {
-    /// Wire rendering for the MCP `CellSnapshot.underline_color` field:
-    /// `indexed(N)` / `#rrggbb`. `Default` is never serialized (the
-    /// snapshot carries `None` instead) but renders as `default` for
-    /// completeness.
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Default => f.write_str("default"),
-            Self::Indexed(n) => write!(f, "indexed({n})"),
-            Self::Rgb(c) => write!(f, "#{:02x}{:02x}{:02x}", c.r, c.g, c.b),
-        }
-    }
-}
+// M3-C2 — engawa owns the ONE definition of the underline vocabulary.
+// The mado-local enums these re-exports replaced were deleted (not
+// mirrored): variant set/order, derive set, `as_str` wire names, and
+// the `Display` impls were matched upstream byte-for-byte, so the MCP
+// `CellSnapshot.underline`/`underline_color` wire is unchanged.
+// `UnderlineColor::Rgb` carries [`engawa::Rgb`] (field-compatible with
+// [`Color`]); the SGR-58 parse sites construct `Rgb::new(..)`.
+pub use engawa::{Rgb, UnderlineColor, UnderlineStyle};
 
 /// Wide typed cell attributes — flags + typed underline style + typed
 /// underline colour. Lives INSIDE the interned [`Style`] (per-Cell cost
@@ -4237,13 +4182,13 @@ fn parse_underline_color(
                 match rgb.len() {
                     // `58:2::r:g:b` — leading colorspace-id sub-param
                     // (empty → 0). Skip it.
-                    4.. => UnderlineColor::Rgb(Color::new(
+                    4.. => UnderlineColor::Rgb(Rgb::new(
                         rgb[1] as u8,
                         rgb[2] as u8,
                         rgb[3] as u8,
                     )),
                     // `58:2:r:g:b` — no colorspace id.
-                    3 => UnderlineColor::Rgb(Color::new(
+                    3 => UnderlineColor::Rgb(Rgb::new(
                         rgb[0] as u8,
                         rgb[1] as u8,
                         rgb[2] as u8,
@@ -4263,7 +4208,7 @@ fn parse_underline_color(
                 let r = iter.next().map_or(0, |s| s[0] as u8);
                 let g = iter.next().map_or(0, |s| s[0] as u8);
                 let b = iter.next().map_or(0, |s| s[0] as u8);
-                UnderlineColor::Rgb(Color::new(r, g, b))
+                UnderlineColor::Rgb(Rgb::new(r, g, b))
             }
             _ => UnderlineColor::Default,
         }
@@ -7907,19 +7852,19 @@ mod tests {
         let cases: &[(&[u8], UnderlineColor, &str)] = &[
             (
                 b"\x1b[58:2::255:0:0m",
-                UnderlineColor::Rgb(Color::new(255, 0, 0)),
+                UnderlineColor::Rgb(Rgb::new(255, 0, 0)),
                 "58:2::r:g:b colon+colorspace",
             ),
             (
                 b"\x1b[58:2:10:20:30m",
-                UnderlineColor::Rgb(Color::new(10, 20, 30)),
+                UnderlineColor::Rgb(Rgb::new(10, 20, 30)),
                 "58:2:r:g:b colon",
             ),
             (b"\x1b[58:5:9m", UnderlineColor::Indexed(9), "58:5:N colon"),
             (b"\x1b[58;5;9m", UnderlineColor::Indexed(9), "58;5;N semicolon"),
             (
                 b"\x1b[58;2;10;20;30m",
-                UnderlineColor::Rgb(Color::new(10, 20, 30)),
+                UnderlineColor::Rgb(Rgb::new(10, 20, 30)),
                 "58;2;r;g;b semicolon",
             ),
             // Malformed: unknown colour mode degrades to Default.
