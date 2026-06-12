@@ -907,6 +907,39 @@ struct CellAnchor {
     cell_offset: usize,
 }
 
+/// Which screen buffer a [`SelectionAnchor`] was captured on.
+/// [`LogicalLineId`]s are stamped PER GRID (both counters start at
+/// 0), so a primary-screen id numerically aliases an unrelated
+/// alt-screen line — the tag rejects cross-screen resolution instead
+/// of silently highlighting the wrong buffer's content.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ScreenBuffer {
+    Primary,
+    Alternate,
+}
+
+/// Content-anchored selection endpoint — the public face of
+/// [`CellAnchor`] plus the screen tag and the grid epoch. Opaque
+/// outside this module by construction: the only producer is
+/// [`Terminal::selection_anchor_at`] and the only consumer is
+/// [`Terminal::resolve_selection_anchor`], so a selection endpoint
+/// fabricated from raw viewport coordinates has no expressible path.
+/// Anchors survive rewrap-on-resize (same mechanism as the cursor's
+/// [`CellAnchor`]) and streaming scrollback growth (ids never move);
+/// they resolve to `None` once the content is evicted or the grids
+/// were rebuilt — tier: parse-time-rejected at the resolution
+/// boundary, never stale coordinates.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SelectionAnchor {
+    /// [`Terminal::grid_epoch`] at capture time. RIS (`reset`)
+    /// replaces both grids and restarts the id counters at 0 — an
+    /// epoch mismatch rejects the anchor before an aliased id can
+    /// resolve onto unrelated post-reset content.
+    epoch: u64,
+    screen: ScreenBuffer,
+    anchor: CellAnchor,
+}
+
 // ---------------------------------------------------------------------------
 // Grid — VecDeque-based terminal grid with O(1) scroll
 // ---------------------------------------------------------------------------
@@ -977,6 +1010,13 @@ impl Grid {
     fn visible_row(&self, idx: usize) -> &[Cell] {
         let offset = self.scrollback_len();
         &self.rows[offset + idx].cells
+    }
+
+    /// Full [`Line`] (cells + wrap marker + logical id) at an
+    /// ABSOLUTE row index (scrollback origin 0) — the soft-wrap-aware
+    /// extraction walk reads the marker per row.
+    fn line(&self, abs_row: usize) -> Option<&Line> {
+        self.rows.get(abs_row)
     }
 
     /// Mutable access to a visible row's cell payload.
@@ -1722,6 +1762,15 @@ pub struct Terminal {
     /// any consumer holding a non-zero generation.
     grid_generation: u64,
 
+    /// Grid-identity epoch — bumped ONLY when the grids are rebuilt
+    /// from scratch (RIS via [`Self::reset`]), restarting the
+    /// [`LogicalLineId`] counters at 0. A [`SelectionAnchor`] carries
+    /// the epoch it was captured under; a mismatch rejects resolution
+    /// before an aliased id lands on unrelated post-reset content.
+    /// Distinct from `grid_generation` on purpose: anchors SURVIVE
+    /// resize/rewrap (that is their whole point) but never a rebuild.
+    grid_epoch: u64,
+
     // Tab stops
     tab_stops: Vec<bool>,
 
@@ -1929,6 +1978,7 @@ impl Terminal {
             scroll_offset: 0,
             seqno: 0,
             grid_generation: 0,
+            grid_epoch: 0,
             tab_stops,
             response_bytes: Vec::new(),
             synchronized_output: false,
@@ -2578,6 +2628,116 @@ impl Terminal {
         }
     }
 
+    /// The screen buffer anchors capture against right now.
+    fn active_screen(&self) -> ScreenBuffer {
+        if self.use_alternate {
+            ScreenBuffer::Alternate
+        } else {
+            ScreenBuffer::Primary
+        }
+    }
+
+    /// Capture a content anchor at a VIEWPORT cell (`row` 0 = top of
+    /// the view under the current scroll offset — the coordinate
+    /// space mouse gestures and the renderer share). `None` when the
+    /// row is out of bounds. Capture at gesture time, resolve at use
+    /// time ([`Self::resolve_selection_anchor`]): the anchor tracks
+    /// CONTENT through streaming scrollback growth and
+    /// rewrap-on-resize, where a `(row, col)` pair goes stale the
+    /// moment the grid moves under it.
+    #[must_use]
+    pub fn selection_anchor_at(&self, row: usize, col: usize) -> Option<SelectionAnchor> {
+        let grid = self.grid();
+        let top_abs = grid.scrollback_len().saturating_sub(self.scroll_offset);
+        let anchor = grid.cell_anchor_at(top_abs + row, col)?;
+        Some(SelectionAnchor {
+            epoch: self.grid_epoch,
+            screen: self.active_screen(),
+            anchor,
+        })
+    }
+
+    /// Resolve an anchor to an ABSOLUTE `(row, col)` (scrollback
+    /// origin 0) under the current grid. `None` = the content is
+    /// gone: the logical line was evicted from scrollback, the
+    /// anchor belongs to the inactive screen buffer, or the grids
+    /// were rebuilt (epoch mismatch). Callers treat `None` as "this
+    /// selection no longer exists" — never as coordinates.
+    #[must_use]
+    pub fn resolve_selection_anchor(&self, a: SelectionAnchor) -> Option<(usize, usize)> {
+        if a.epoch != self.grid_epoch || a.screen != self.active_screen() {
+            return None;
+        }
+        self.grid().resolve_cell_anchor(a.anchor)
+    }
+
+    /// Resolve both endpoints of a selection and normalize to
+    /// reading order (start ≤ end). `None` when EITHER endpoint's
+    /// content is gone — a half-resolvable selection is rejected
+    /// whole rather than clamped to garbage.
+    #[must_use]
+    pub fn resolve_selection_span(
+        &self,
+        a: SelectionAnchor,
+        b: SelectionAnchor,
+    ) -> Option<((usize, usize), (usize, usize))> {
+        let pa = self.resolve_selection_anchor(a)?;
+        let pb = self.resolve_selection_anchor(b)?;
+        Some(if pb < pa { (pb, pa) } else { (pa, pb) })
+    }
+
+    /// Extract the text between two anchors, soft-wrap aware (the
+    /// kitty/ghostty copy contract):
+    ///
+    /// * rows joined by the soft-wrap marker concatenate WITHOUT a
+    ///   newline — a wrapped 100-char command copies as one line;
+    /// * a hard line end trims that row's trailing blanks, then
+    ///   emits `\n`;
+    /// * wide-char continuation spacers (`width == 0`) are skipped,
+    ///   never emitted as spaces.
+    ///
+    /// `None` when the anchors no longer resolve or the selected
+    /// region holds only whitespace.
+    #[must_use]
+    pub fn extract_selection_text(
+        &self,
+        a: SelectionAnchor,
+        b: SelectionAnchor,
+    ) -> Option<String> {
+        let (start, end) = self.resolve_selection_span(a, b)?;
+        let grid = self.grid();
+        let mut out = String::new();
+        for row in start.0..=end.0 {
+            let Some(line) = grid.line(row) else { break };
+            let c0 = if row == start.0 { start.1 } else { 0 };
+            let c1 = if row == end.0 {
+                end.1.min(self.cols.saturating_sub(1))
+            } else {
+                self.cols.saturating_sub(1)
+            };
+            let seg_start = out.len();
+            for cell in line.cells.iter().take(c1 + 1).skip(c0) {
+                if cell.width == 0 {
+                    continue;
+                }
+                cell.write_to(&mut out);
+            }
+            if !line.wrapped {
+                // Trim THIS row's trailing blanks only — a wrapped
+                // row's trailing cells are mid-logical-line content
+                // and must survive the join.
+                let trimmed = out[seg_start..].trim_end().len();
+                out.truncate(seg_start + trimmed);
+                if row < end.0 {
+                    out.push('\n');
+                }
+            }
+        }
+        let trimmed_len = out.trim_end().len();
+        out.truncate(trimmed_len);
+        if out.is_empty() { None } else { Some(out) }
+    }
+
     pub fn scroll_up(&mut self, lines: usize) {
         let max = self.grid().scrollback_len();
         self.scroll_offset = (self.scroll_offset + lines).min(max);
@@ -3147,6 +3307,10 @@ impl Terminal {
         // Operator config, not VT state — survives RIS like the
         // scrollback cap does (M2: behavior.reflow_on_resize).
         let reflow_on_resize = self.reflow_on_resize;
+        // The rebuild restarts both grids' LogicalLineId counters at
+        // 0 — bump the epoch so pre-reset SelectionAnchors can never
+        // alias-resolve onto post-reset lines.
+        let grid_epoch = self.grid_epoch.wrapping_add(1);
         *self = Terminal::with_scrollback(cols, rows, max_scrollback);
         self.default_fg = default_fg;
         self.default_bg = default_bg;
@@ -3154,6 +3318,7 @@ impl Terminal {
         self.pen_bg = default_bg;
         self.ansi_colors = ansi_colors;
         self.reflow_on_resize = reflow_on_resize;
+        self.grid_epoch = grid_epoch;
     }
 
     /// Soft terminal reset (DECSTR — CSI ! p).
@@ -8668,6 +8833,274 @@ mod tests {
         term.resize(100, 30);
         assert_eq!(term.grid_generation(), g0 + 2);
     }
+
+    // ── content-anchored selection (M2 bridge consumers) ──────────
+
+    /// Streaming output must slide UNDER an anchored selection
+    /// without changing what it selects — matrix over "scrollback
+    /// still under the cap" and "eviction already started but the
+    /// selected content survives". (Pre-anchor, row-addressed
+    /// selections silently re-pointed at whatever content scrolled
+    /// into their rows.)
+    #[test]
+    fn streaming_under_selection_extracted_text_is_stable() {
+        use std::fmt::Write as _;
+        struct Variant {
+            name: &'static str,
+            cap: usize,
+            prelude_lines: usize,
+            follow_lines: usize,
+            expect_eviction: bool,
+        }
+        let variants = [
+            Variant {
+                name: "below eviction threshold",
+                cap: 100,
+                prelude_lines: 0,
+                follow_lines: 30,
+                expect_eviction: false,
+            },
+            Variant {
+                name: "past eviction threshold, selection survives",
+                cap: 50,
+                prelude_lines: 40,
+                follow_lines: 60,
+                expect_eviction: true,
+            },
+        ];
+        let mut failures: Vec<String> = Vec::new();
+        for v in &variants {
+            let mut term = Terminal::with_scrollback(80, 24, v.cap);
+            for _ in 0..v.prelude_lines {
+                term.feed(b"filler\r\n");
+            }
+            // Target stays under the cursor (no trailing newline) so
+            // its viewport row is exactly cursor.row at capture time.
+            term.feed(b"alpha bravo");
+            let row = term.cursor().row;
+            let a = term.selection_anchor_at(row, 0).expect("anchor start");
+            let b = term.selection_anchor_at(row, 10).expect("anchor end");
+            let before = term.extract_selection_text(a, b);
+            if before.as_deref() != Some("alpha bravo") {
+                let mut m = String::new();
+                let _ = write!(m, "{}: pre-stream extract = {before:?}", v.name);
+                failures.push(m);
+                continue;
+            }
+            for _ in 0..v.follow_lines {
+                term.feed(b"\r\nfiller");
+            }
+            if v.expect_eviction && term.scrollback_total() < v.cap {
+                let mut m = String::new();
+                let _ = write!(
+                    m,
+                    "{}: harness bug — wanted eviction, scrollback {} < cap {}",
+                    v.name,
+                    term.scrollback_total(),
+                    v.cap
+                );
+                failures.push(m);
+            }
+            let after = term.extract_selection_text(a, b);
+            if after != before {
+                let mut m = String::new();
+                let _ = write!(
+                    m,
+                    "{}: extract drifted under streaming: {before:?} → {after:?}",
+                    v.name
+                );
+                failures.push(m);
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "{} streaming variants failed:\n  - {}",
+            failures.len(),
+            failures.join("\n  - ")
+        );
+    }
+
+    /// A selection across a soft-wrapped line survives a rewrap
+    /// round trip (narrower then back) selecting the SAME content —
+    /// the anchors re-derive (row, col) from the cell offset at
+    /// whatever the current width is.
+    #[test]
+    fn selection_rewrap_round_trip_preserves_content() {
+        let mut term = Terminal::new(80, 24);
+        let long: String = (0..100u32)
+            .map(|i| char::from_digit(i % 10, 10).expect("digit"))
+            .collect();
+        term.feed(long.as_bytes());
+        // Span crossing the soft-wrap boundary: cells 70..=85.
+        let a = term.selection_anchor_at(0, 70).expect("anchor start");
+        let b = term.selection_anchor_at(1, 5).expect("anchor end");
+        let want = &long[70..=85];
+        assert_eq!(term.extract_selection_text(a, b).as_deref(), Some(want));
+        term.resize(40, 24);
+        assert_eq!(
+            term.extract_selection_text(a, b).as_deref(),
+            Some(want),
+            "narrow rewrap must keep the same selected content"
+        );
+        term.resize(80, 24);
+        assert_eq!(
+            term.extract_selection_text(a, b).as_deref(),
+            Some(want),
+            "round trip back must keep the same selected content"
+        );
+    }
+
+    /// Once the selected content is evicted from scrollback, the
+    /// anchors resolve to None — never to clamped garbage rows.
+    #[test]
+    fn eviction_resolves_selection_to_none() {
+        let mut term = Terminal::with_scrollback(80, 24, 5);
+        term.feed(b"doomed line");
+        let a = term.selection_anchor_at(0, 0).expect("anchor start");
+        let b = term.selection_anchor_at(0, 10).expect("anchor end");
+        assert!(term.resolve_selection_span(a, b).is_some());
+        for _ in 0..60 {
+            term.feed(b"\r\nfiller");
+        }
+        assert_eq!(
+            term.resolve_selection_span(a, b),
+            None,
+            "evicted content must resolve to None"
+        );
+        assert_eq!(term.extract_selection_text(a, b), None);
+    }
+
+    /// Soft-wrap-aware extraction matrix (the kitty/ghostty copy
+    /// contract): wrap junctions join without a newline, hard line
+    /// ends trim trailing blanks then emit one, wide-char
+    /// continuation spacers vanish.
+    #[test]
+    fn extract_selection_text_matrix() {
+        use std::fmt::Write as _;
+        struct Case {
+            name: &'static str,
+            feed: Vec<u8>,
+            start: (usize, usize),
+            end: (usize, usize),
+            want: &'static str,
+        }
+        let hundred: String = (0..100u32)
+            .map(|i| char::from_digit(i % 10, 10).expect("digit"))
+            .collect();
+        let hundred_static: &'static str = hundred.clone().leak();
+        let cases = [
+            Case {
+                name: "100-char wrapped line copies with NO interior newline",
+                feed: hundred.into_bytes(),
+                start: (0, 0),
+                end: (1, 19),
+                want: hundred_static,
+            },
+            Case {
+                name: "hard newline between logical lines survives",
+                feed: b"first\r\nsecond".to_vec(),
+                start: (0, 0),
+                end: (1, 5),
+                want: "first\nsecond",
+            },
+            Case {
+                name: "wide-char line round-trips, spacers skipped",
+                feed: "日本語".as_bytes().to_vec(),
+                start: (0, 0),
+                end: (0, 5),
+                want: "日本語",
+            },
+            Case {
+                name: "trailing blanks trimmed at the hard line end",
+                feed: b"hi  \r\nworld".to_vec(),
+                start: (0, 0),
+                end: (1, 4),
+                want: "hi\nworld",
+            },
+            Case {
+                name: "spaces at a soft-wrap junction are content, not trim fodder",
+                feed: {
+                    // 78 'a' + 2 spaces fill the row (soft wrap), then
+                    // 'bb' continues the logical line.
+                    let mut f = vec![b'a'; 78];
+                    f.extend_from_slice(b"  bb");
+                    f
+                },
+                start: (0, 70),
+                end: (1, 1),
+                want: "aaaaaaaa  bb",
+            },
+        ];
+        let mut failures: Vec<String> = Vec::new();
+        for c in &cases {
+            let mut term = Terminal::new(80, 24);
+            term.feed(&c.feed);
+            let span = term
+                .selection_anchor_at(c.start.0, c.start.1)
+                .zip(term.selection_anchor_at(c.end.0, c.end.1));
+            let Some((a, b)) = span else {
+                let mut m = String::new();
+                let _ = write!(m, "{}: span failed to anchor", c.name);
+                failures.push(m);
+                continue;
+            };
+            let got = term.extract_selection_text(a, b);
+            if got.as_deref() != Some(c.want) {
+                let mut m = String::new();
+                let _ = write!(m, "{}: want {:?}, got {got:?}", c.name, c.want);
+                failures.push(m);
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "{} extraction variants failed:\n  - {}",
+            failures.len(),
+            failures.join("\n  - ")
+        );
+    }
+
+    /// RIS rebuilds both grids and restarts the `LogicalLineId`
+    /// counters — the epoch tag must reject pre-reset anchors before
+    /// an aliased id resolves onto unrelated post-reset content.
+    #[test]
+    fn reset_rejects_pre_reset_anchors() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"hello");
+        let a = term.selection_anchor_at(0, 0).expect("anchor start");
+        let b = term.selection_anchor_at(0, 4).expect("anchor end");
+        assert!(term.resolve_selection_span(a, b).is_some());
+        term.reset();
+        term.feed(b"after-reset content");
+        assert_eq!(
+            term.resolve_selection_span(a, b),
+            None,
+            "pre-reset anchors must not alias post-reset lines"
+        );
+    }
+
+    /// Anchors are screen-tagged: a primary-screen selection goes
+    /// dormant (resolves None) while the alternate screen is active
+    /// — ids alias across the two grids, so cross-screen resolution
+    /// would highlight unrelated TUI content.
+    #[test]
+    fn alt_screen_suspends_primary_anchors() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"primary text");
+        let a = term.selection_anchor_at(0, 0).expect("anchor start");
+        let b = term.selection_anchor_at(0, 6).expect("anchor end");
+        assert!(term.resolve_selection_span(a, b).is_some());
+        term.feed(b"\x1b[?1049h"); // TUI opens
+        assert_eq!(
+            term.resolve_selection_span(a, b),
+            None,
+            "primary anchors must not resolve against the alt grid"
+        );
+        term.feed(b"\x1b[?1049l"); // TUI exits
+        assert!(
+            term.resolve_selection_span(a, b).is_some(),
+            "primary anchors resolve again once the primary screen returns"
+        );
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -8859,21 +9292,20 @@ mod proptests {
         fn selection_extract_text_never_leaks_control_bytes(
             input in proptest::collection::vec(any::<u8>(), 0..2048),
         ) {
-            use crate::selection::{CellPos, Selection};
             let mut term = Terminal::new(80, 24);
             term.feed(&input);
-            let rows: Vec<Vec<Cell>> =
-                term.visible_rows().map(<[Cell]>::to_vec).collect();
-            let cols = term.cols();
-            let mut sel = Selection::new();
-            sel.start(CellPos { row: 0, col: 0 });
-            sel.update(CellPos { row: rows.len() - 1, col: cols - 1 });
-            sel.finish();
-            if let Some(text) = sel.extract_text(&rows, cols) {
-                for (i, b) in text.bytes().enumerate() {
+            let a = term.selection_anchor_at(0, 0);
+            let b = term.selection_anchor_at(term.rows() - 1, term.cols() - 1);
+            prop_assert!(a.is_some() && b.is_some(),
+                "visible viewport corners must always anchor");
+            if let Some(text) = term.extract_selection_text(
+                a.expect("asserted above"),
+                b.expect("asserted above"),
+            ) {
+                for (i, byte) in text.bytes().enumerate() {
                     prop_assert!(
-                        b == b'\n' || b >= 0x20,
-                        "control byte 0x{b:02x} at offset {i} leaked into \
+                        byte == b'\n' || byte >= 0x20,
+                        "control byte 0x{byte:02x} at offset {i} leaked into \
                          extracted selection (ESC/C0 other than \\n are \
                          forbidden): {text:?}"
                     );

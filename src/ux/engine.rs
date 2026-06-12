@@ -32,7 +32,7 @@ use crate::keybind::{Action, KeybindManager};
 use crate::render::{SharedTerminal, TerminalRenderer};
 use crate::search::SearchState;
 use crate::selection::{CellPos, Selection};
-use crate::terminal::{Cell, MouseMode};
+use crate::terminal::{Cell, MouseMode, SelectionAnchor};
 use crate::ux::mouse_report::{MouseMods, MouseReport, MouseReportButton, MouseReportKind};
 use crate::ux::{EventOutcome, FontZoomTarget, PtySink, ResizeSink, UxBehavior};
 
@@ -99,6 +99,33 @@ pub enum ActionOutcome {
     FallThrough,
 }
 
+/// Selection-drag granularity: what unit the live drag snaps to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DragMode {
+    /// Plain drag — endpoints are the exact cells.
+    Char,
+    /// Double-click drag — BOTH ends snap to word boundaries; the
+    /// origin word stays fully selected (kitty/ghostty contract).
+    Word,
+    /// Triple-click drag — both ends snap to full physical rows.
+    Line,
+}
+
+/// The selection-drag FSM state — ONE typed value, no scattered
+/// bools (per the determinism+FSM directive; the upcoming engine-
+/// modal-state FSM lift consumes this enum as-is). `origin` is the
+/// content-anchored span captured at press time: char drags carry
+/// the press cell twice; word/line drags carry the snapped origin
+/// unit, which every motion-time union keeps fully selected.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SelectionDrag {
+    Idle,
+    Drag {
+        mode: DragMode,
+        origin: (SelectionAnchor, SelectionAnchor),
+    },
+}
+
 /// The unified input/UX engine. Owns every piece of interaction
 /// state the pre-M1 loops kept as closure-captured locals.
 pub struct InputEngine {
@@ -135,6 +162,11 @@ pub struct InputEngine {
     /// terminal-side selection — motion events update the selection
     /// instead of forwarding while this drag is live.
     shift_drag_bypass: bool,
+    /// The live selection-drag FSM (`Idle` ↔ `Drag { mode, origin }`).
+    /// Pressed → drag, released / typed-over / evicted → idle.
+    /// Motion only mutates the selection through this state — there
+    /// is no is-a-drag-happening boolean to desync from it.
+    drag: SelectionDrag,
     /// Last modifier state seen on any key/button event — wheel
     /// events don't carry modifiers on the current madori pin.
     last_mods: Modifiers,
@@ -192,6 +224,7 @@ impl InputEngine {
             last_click_pos: CellPos { row: 0, col: 0 },
             left_button_down: false,
             shift_drag_bypass: false,
+            drag: SelectionDrag::Idle,
             last_mods: Modifiers::default(),
             last_mouse_pos: (0.0, 0.0),
             grid_sync_sig: None,
@@ -455,12 +488,7 @@ impl InputEngine {
     pub fn apply_action(&mut self, action: Action, zoom: &mut dyn FontZoomTarget) -> ActionOutcome {
         match action {
             Action::Copy => {
-                let selected_text = {
-                    let sel = self.selection.lock().unwrap();
-                    let (rows, cols) = self.rows_snapshot();
-                    sel.extract_text(&rows, cols)
-                };
-                if let Some(text) = selected_text {
+                if let Some(text) = self.selected_text() {
                     let _ = self.clipboard.copy_text(&text);
                 }
                 ActionOutcome::Consumed(EventOutcome::consumed())
@@ -635,17 +663,16 @@ impl InputEngine {
                 // FallThrough + clear-on-keypress combination made a
                 // bound select_all a guaranteed silent no-op (hunt
                 // finding 2026-06-11).
-                let (cols, num_rows) = {
+                let span = {
                     let term = self.terminal.read();
-                    (term.cols(), term.rows())
+                    let last_row = term.rows().saturating_sub(1);
+                    let last_col = term.cols().saturating_sub(1);
+                    term.selection_anchor_at(0, 0)
+                        .zip(term.selection_anchor_at(last_row, last_col))
                 };
-                let mut sel = self.selection.lock().unwrap();
-                sel.start(CellPos { row: 0, col: 0 });
-                sel.update(CellPos {
-                    row: num_rows.saturating_sub(1),
-                    col: cols.saturating_sub(1),
-                });
-                sel.finish();
+                if let Some((a, b)) = span {
+                    self.selection.lock().unwrap().set_span(a, b);
+                }
                 ActionOutcome::Consumed(EventOutcome::consumed())
             }
             Action::CopyUrlToClipboard => {
@@ -697,6 +724,9 @@ impl InputEngine {
         // discard the operator's reading position for no reason
         // ('q' out of a pager used to land them at the prompt bottom
         // instead of where they were).
+        // Typing also cancels any live drag — motion after the clear
+        // must not resurrect the dead selection.
+        self.drag = SelectionDrag::Idle;
         self.selection.lock().unwrap().clear();
         if !self.terminal.read().is_alternate_screen() {
             self.terminal.write().scroll_to_bottom();
@@ -836,9 +866,34 @@ impl InputEngine {
             return EventOutcome::consumed();
         }
 
-        // Text selection via left mouse button.
+        // Text selection via left mouse button. Anchors are captured
+        // at gesture time (here) and resolved at use time (render /
+        // extract) — the selection survives streaming output and
+        // rewrap because it names content, not viewport rows.
         if button == MouseButton::Left {
             if pressed {
+                // Shift+click EXTENDS an existing selection to the
+                // click point (xterm/kitty/ghostty convention) and
+                // keeps dragging from the surviving start anchor.
+                // No existing selection → nothing to extend — fall
+                // through to the plain click path below.
+                let existing = self.selection.lock().unwrap().anchors();
+                if let (true, Some((start, _))) = (modifiers.shift, existing) {
+                    if let Some(click) =
+                        self.terminal.read().selection_anchor_at(row, col)
+                    {
+                        self.selection.lock().unwrap().set_span(start, click);
+                        self.drag = SelectionDrag::Drag {
+                            mode: DragMode::Char,
+                            origin: (start, start),
+                        };
+                    }
+                    // An extension is not a multi-click: leave the
+                    // cadence state (click_count / last_click_*)
+                    // untouched.
+                    return EventOutcome::consumed();
+                }
+
                 let now = Instant::now();
                 let same_pos =
                     self.last_click_pos.row == row && self.last_click_pos.col == col;
@@ -852,44 +907,64 @@ impl InputEngine {
                 self.last_click_time = now;
                 self.last_click_pos = CellPos { row, col };
 
-                let mut sel = self.selection.lock().unwrap();
                 match self.click_count {
                     2 => {
-                        // Double-click: select word.
-                        let (rows, cols_count) = self.rows_snapshot();
-                        sel.select_word(CellPos { row, col }, &rows, cols_count);
+                        // Double-click: select word; the snapped word
+                        // is the drag origin every word-drag union
+                        // keeps fully selected.
+                        if let Some(span) = self.word_span_at(row, col) {
+                            self.selection.lock().unwrap().set_span(span.0, span.1);
+                            self.drag = SelectionDrag::Drag {
+                                mode: DragMode::Word,
+                                origin: span,
+                            };
+                        }
                     }
                     3 => {
-                        // Triple-click: select entire line.
-                        let cols_count = self.terminal.read().cols();
-                        sel.select_line(row, cols_count);
+                        // Triple-click: select entire (physical) line.
+                        if let Some(span) = self.line_span_at(row) {
+                            self.selection.lock().unwrap().set_span(span.0, span.1);
+                            self.drag = SelectionDrag::Drag {
+                                mode: DragMode::Line,
+                                origin: span,
+                            };
+                        }
                     }
                     _ => {
-                        sel.start(CellPos { row, col });
+                        if let Some(a) = self.terminal.read().selection_anchor_at(row, col)
+                        {
+                            self.selection.lock().unwrap().start(a);
+                            self.drag = SelectionDrag::Drag {
+                                mode: DragMode::Char,
+                                origin: (a, a),
+                            };
+                        }
                     }
                 }
             } else {
-                let mut sel = self.selection.lock().unwrap();
+                // Release ends the drag FSM unconditionally.
+                self.drag = SelectionDrag::Idle;
                 if self.click_count == 1 {
-                    sel.finish();
+                    self.selection.lock().unwrap().finish();
                 }
                 // Muscle-memory contract: the highlight goes straight
                 // to the clipboard on release for EVERY selection
                 // shape — drag, double-click word, triple-click line
                 // (word/line used to be excluded by the click_count
                 // gate).
-                if self.behavior.copy_on_select {
-                    let (rows, cols) = self.rows_snapshot();
-                    if let Some(text) = sel.extract_text(&rows, cols) {
-                        let _ = self.clipboard.copy_text(&text);
-                    }
+                let release_copy = self
+                    .behavior
+                    .copy_on_select
+                    .then(|| self.selected_text())
+                    .flatten();
+                if let Some(text) = release_copy {
+                    let _ = self.clipboard.copy_text(&text);
                 }
                 if self.click_count == 1 {
                     // Cmd+click (macOS) / Ctrl+click (Linux) to open
                     // URLs — single-click release only, never
                     // word/line selection.
                     if modifiers.meta || modifiers.ctrl {
-                        drop(sel);
                         let (row_cells, cols) = self.rows_snapshot();
                         let detected = crate::url::detect_urls(&row_cells, cols);
                         if let Some(url) = crate::url::url_at(&detected, row, col) {
@@ -906,6 +981,109 @@ impl InputEngine {
             }
         }
         EventOutcome::consumed()
+    }
+
+    // ── Selection helpers (anchor capture + drag FSM) ────────────
+
+    /// Extract the active selection's text through the soft-wrap-
+    /// aware content walk. The ONE copy surface — `Action::Copy` and
+    /// `copy_on_select` both route here.
+    fn selected_text(&self) -> Option<String> {
+        let (a, b) = self.selection.lock().unwrap().anchors()?;
+        self.terminal.read().extract_selection_text(a, b)
+    }
+
+    /// Capture anchors for both endpoints of a viewport span.
+    fn capture_span(
+        &self,
+        start: CellPos,
+        end: CellPos,
+    ) -> Option<(SelectionAnchor, SelectionAnchor)> {
+        let term = self.terminal.read();
+        term.selection_anchor_at(start.row, start.col)
+            .zip(term.selection_anchor_at(end.row, end.col))
+    }
+
+    /// The anchored span of the word under a viewport cell.
+    fn word_span_at(
+        &self,
+        row: usize,
+        col: usize,
+    ) -> Option<(SelectionAnchor, SelectionAnchor)> {
+        let (rows, cols_count) = self.rows_snapshot();
+        let (c0, c1) = crate::selection::word_bounds_in_row(
+            CellPos { row, col },
+            &rows,
+            cols_count,
+            "",
+        );
+        self.capture_span(CellPos { row, col: c0 }, CellPos { row, col: c1 })
+    }
+
+    /// The anchored span of the full physical row under a viewport row.
+    fn line_span_at(&self, row: usize) -> Option<(SelectionAnchor, SelectionAnchor)> {
+        let cols_count = self.terminal.read().cols();
+        self.capture_span(
+            CellPos { row, col: 0 },
+            CellPos {
+                row,
+                col: cols_count.saturating_sub(1),
+            },
+        )
+    }
+
+    /// One motion tick of the live drag. Char drags move the end
+    /// anchor; word/line drags snap the pointer to its unit and
+    /// re-span to the UNION of the origin unit and the pointer unit
+    /// (both ends snapped — the kitty/ghostty extend contract).
+    fn update_drag(
+        &mut self,
+        mode: DragMode,
+        origin: (SelectionAnchor, SelectionAnchor),
+        row: usize,
+        col: usize,
+    ) {
+        match mode {
+            DragMode::Char => {
+                if let Some(end) = self.terminal.read().selection_anchor_at(row, col) {
+                    self.selection.lock().unwrap().update(end);
+                }
+            }
+            DragMode::Word => {
+                if let Some(pointer) = self.word_span_at(row, col) {
+                    self.extend_to_union(origin, pointer);
+                }
+            }
+            DragMode::Line => {
+                if let Some(pointer) = self.line_span_at(row) {
+                    self.extend_to_union(origin, pointer);
+                }
+            }
+        }
+    }
+
+    /// Re-span the selection to cover both the origin unit and the
+    /// pointer unit. Anchor order is unknowable without resolution,
+    /// so all four endpoints resolve against the current grid and
+    /// the extremes win; an unresolvable endpoint (content evicted
+    /// mid-drag) skips the tick — the reconciler decides whether the
+    /// selection as a whole is dead.
+    fn extend_to_union(
+        &mut self,
+        origin: (SelectionAnchor, SelectionAnchor),
+        pointer: (SelectionAnchor, SelectionAnchor),
+    ) {
+        let resolved = {
+            let term = self.terminal.read();
+            [origin.0, origin.1, pointer.0, pointer.1]
+                .into_iter()
+                .map(|a| term.resolve_selection_anchor(a).map(|pos| (pos, a)))
+                .collect::<Option<Vec<_>>>()
+        };
+        let Some(cands) = resolved else { return };
+        let start = cands.iter().min_by_key(|(pos, _)| *pos).expect("4 candidates").1;
+        let end = cands.iter().max_by_key(|(pos, _)| *pos).expect("4 candidates").1;
+        self.selection.lock().unwrap().set_span(start, end);
     }
 
     /// Pointer motion: PTY motion forwarding under 1002/1003, else
@@ -945,10 +1123,11 @@ impl InputEngine {
             return EventOutcome::consumed().with_cursor_visibility(vis);
         }
 
-        // Update text selection if dragging.
-        let mut sel = self.selection.lock().unwrap();
-        if sel.is_active() {
-            sel.update(CellPos { row, col });
+        // Update text selection if a drag is live — gated by the
+        // drag FSM, not by selection liveness (a committed shift-
+        // extended span is `Selected` yet still dragging).
+        if let SelectionDrag::Drag { mode, origin } = self.drag {
+            self.update_drag(mode, origin, row, col);
         }
         EventOutcome::consumed().with_cursor_visibility(vis)
     }
@@ -1099,6 +1278,27 @@ impl InputEngine {
         // generation synchronously, so the matches converge within
         // the same tick).
         self.reconcile_search();
+        self.reconcile_selection();
+    }
+
+    /// Selection ⇄ content reconciler: anchors whose content is gone
+    /// (logical line evicted from scrollback, RIS grid rebuild,
+    /// other screen buffer active) resolve to `None` on every read
+    /// path already; this seam collapses the STATE too, so
+    /// `is_active()` never advertises a selection that can neither
+    /// render nor extract. Resolve-at-use, clear-on-dangle — an
+    /// anchored-to-nothing selection is unrepresentable in effect
+    /// (tier: parse-time-rejected at resolution + reconciled state;
+    /// the dangling window between eviction and the next tick is
+    /// unreadable, not absent).
+    fn reconcile_selection(&mut self) {
+        let Some((a, b)) = self.selection.lock().unwrap().anchors() else {
+            return;
+        };
+        if self.terminal.read().resolve_selection_span(a, b).is_none() {
+            self.selection.lock().unwrap().clear();
+            self.drag = SelectionDrag::Idle;
+        }
     }
 
     /// Search ⇄ grid-geometry reconciler: matches carry ABSOLUTE
@@ -1799,6 +1999,157 @@ mod tests {
         // No mouse tracking armed — selection traffic never reaches
         // the PTY.
         assert!(h.sent_bytes().is_empty());
+    }
+
+    // ── Extend gestures (competitive queue 2026-06-12) ───────────
+
+    /// Shift+left-click extends the existing selection to the click
+    /// point (xterm/kitty/ghostty convention); release lands the
+    /// extended text on the clipboard via `copy_on_select`.
+    #[test]
+    fn shift_click_extends_existing_selection() {
+        let mut h = Harness::new(SinkKind::Closure);
+        h.feed(b"hello world wide");
+        // Drag-select "hello".
+        h.button(MouseButton::Left, true, 0, 0, no_mods());
+        h.moved(4, 0);
+        h.button(MouseButton::Left, false, 4, 0, no_mods());
+        assert_eq!(h.clipboard.paste_text().unwrap(), "hello");
+
+        // Shift+click at col 10 extends to "hello world".
+        let mut shift = no_mods();
+        shift.shift = true;
+        h.button(MouseButton::Left, true, 10, 0, shift);
+        h.button(MouseButton::Left, false, 10, 0, shift);
+        assert_eq!(
+            h.clipboard.paste_text().unwrap(),
+            "hello world",
+            "shift+click must extend the selection to the click point"
+        );
+        // Continuing to drag after the shift-click keeps extending.
+        h.button(MouseButton::Left, true, 10, 0, shift);
+        h.moved(15, 0);
+        h.button(MouseButton::Left, false, 15, 0, shift);
+        assert_eq!(
+            h.clipboard.paste_text().unwrap(),
+            "hello world wide",
+            "shift-drag after the extend click keeps extending"
+        );
+    }
+
+    /// Shift+click with NO existing selection creates none — it
+    /// falls through to the plain click path, and a motionless click
+    /// is not a selection.
+    #[test]
+    fn shift_click_without_selection_creates_none() {
+        let mut h = Harness::new(SinkKind::Closure);
+        h.feed(b"hello world");
+        let mut shift = no_mods();
+        shift.shift = true;
+        h.button(MouseButton::Left, true, 3, 0, shift);
+        h.button(MouseButton::Left, false, 3, 0, shift);
+        assert!(
+            !h.engine.selection.lock().unwrap().is_active(),
+            "shift+click with nothing to extend must not create a selection"
+        );
+    }
+
+    /// Double-click-drag extends by WORDS: both ends snap to word
+    /// boundaries and the origin word stays fully selected.
+    #[test]
+    fn double_click_drag_extends_by_words() {
+        let mut h = Harness::new(SinkKind::Closure);
+        h.feed(b"alpha bravo charlie");
+        // Double-click lands on "alpha"; button stays down.
+        h.button(MouseButton::Left, true, 2, 0, no_mods());
+        h.button(MouseButton::Left, false, 2, 0, no_mods());
+        h.button(MouseButton::Left, true, 2, 0, no_mods());
+        // Drag into the middle of "charlie" (col 14) — both ends
+        // word-snap: alpha's start, charlie's end.
+        h.moved(14, 0);
+        h.button(MouseButton::Left, false, 14, 0, no_mods());
+        assert_eq!(
+            h.clipboard.paste_text().unwrap(),
+            "alpha bravo charlie",
+            "word drag must snap BOTH ends to word boundaries"
+        );
+        // Reverse word-drag: double-click "charlie", drag back into
+        // "alpha" — origin word stays fully selected.
+        h.feed(b"\x1b[H"); // cursor home, content unchanged
+        h.button(MouseButton::Left, true, 14, 0, no_mods());
+        h.button(MouseButton::Left, false, 14, 0, no_mods());
+        h.button(MouseButton::Left, true, 14, 0, no_mods());
+        h.moved(2, 0);
+        h.button(MouseButton::Left, false, 2, 0, no_mods());
+        assert_eq!(
+            h.clipboard.paste_text().unwrap(),
+            "alpha bravo charlie",
+            "reverse word drag must keep the origin word fully selected"
+        );
+    }
+
+    /// Triple-click-drag extends by LINES: every motion re-spans to
+    /// full rows covering origin line through pointer line.
+    #[test]
+    fn triple_click_drag_extends_by_lines() {
+        let mut h = Harness::new(SinkKind::Closure);
+        h.feed(b"one\r\ntwo\r\nthree");
+        // Triple-click row 0; button stays down after press #3.
+        h.button(MouseButton::Left, true, 1, 0, no_mods());
+        h.button(MouseButton::Left, false, 1, 0, no_mods());
+        h.button(MouseButton::Left, true, 1, 0, no_mods());
+        h.button(MouseButton::Left, false, 1, 0, no_mods());
+        h.button(MouseButton::Left, true, 1, 0, no_mods());
+        // Drag down to row 2.
+        h.moved(1, 2);
+        h.button(MouseButton::Left, false, 1, 2, no_mods());
+        assert_eq!(
+            h.clipboard.paste_text().unwrap(),
+            "one\ntwo\nthree",
+            "line drag must span full rows from origin line to pointer line"
+        );
+    }
+
+    /// The per-tick reconciler collapses a dangling selection
+    /// (anchors that no longer resolve — RIS rebuild here, scrollback
+    /// eviction in the terminal-level tests) to `None`: `is_active()`
+    /// never advertises a highlight that cannot render or extract.
+    #[test]
+    fn reconciler_clears_dangling_selection() {
+        let mut h = Harness::new(SinkKind::Closure);
+        h.feed(b"hello world");
+        h.button(MouseButton::Left, true, 0, 0, no_mods());
+        h.moved(4, 0);
+        h.button(MouseButton::Left, false, 4, 0, no_mods());
+        assert!(h.engine.selection.lock().unwrap().is_active());
+        h.feed(b"\x1bc"); // RIS — grids rebuilt, anchors dangle
+        h.engine.on_redraw_tick(&h.renderer);
+        assert!(
+            !h.engine.selection.lock().unwrap().is_active(),
+            "dangling selection must collapse to None on the next tick"
+        );
+    }
+
+    /// Scrollback eviction through the engine: select, stream past
+    /// the cap, tick — the selection state collapses instead of
+    /// holding garbage.
+    #[test]
+    fn eviction_clears_selection_through_engine_tick() {
+        let mut h = Harness::new(SinkKind::Closure);
+        h.feed(b"doomed");
+        h.button(MouseButton::Left, true, 0, 0, no_mods());
+        h.moved(5, 0);
+        h.button(MouseButton::Left, false, 5, 0, no_mods());
+        assert!(h.engine.selection.lock().unwrap().is_active());
+        // Default cap is 10_000 — stream past it so "doomed" evicts.
+        for _ in 0..10_060 {
+            h.feed(b"\r\nf");
+        }
+        h.engine.on_redraw_tick(&h.renderer);
+        assert!(
+            !h.engine.selection.lock().unwrap().is_active(),
+            "evicted selection must collapse to None, not stale coordinates"
+        );
     }
 
     #[test]

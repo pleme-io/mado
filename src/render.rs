@@ -39,7 +39,7 @@ use madori::render::{RenderCallback, RenderContext};
 use crate::config::{ColorblindMode, CursorStyle};
 // PaneRect / WindowState removed at Phase 4 — single-pane mado.
 use crate::search::SearchState;
-use crate::selection::Selection;
+use crate::selection::{CellPos, Selection};
 use crate::terminal::{
     bold_bright_color, default_ansi_palette, AttrFlags, Cell, Color, Cursor, ImagePlacement,
     StyleSnapshot, Terminal, UnderlineStyle,
@@ -867,6 +867,12 @@ struct Snapshot {
     /// the visible viewport. The render layer draws a faint
     /// horizontal separator above each.
     block_separator_rows: Vec<usize>,
+    /// Selection span resolved AT SNAPSHOT TIME from the content
+    /// anchors (resolve-at-use; never cached across frames), already
+    /// normalized to reading order, mapped to viewport rows, and
+    /// clipped to the visible window. `None` = no selection, or its
+    /// content was evicted / lies entirely off-screen.
+    selection_span: Option<(CellPos, CellPos)>,
 }
 
 /// Comparable summary of the styling axes that decide whether two
@@ -1591,6 +1597,12 @@ impl TerminalRenderer {
     }
 
     fn snapshot(&self) -> (Snapshot, u64) {
+        // Selection anchors are copied out BEFORE the terminal lock:
+        // the engine's established order is selection-then-terminal
+        // (Action::Copy holds the selection mutex across its rows
+        // snapshot), so taking selection inside the terminal read
+        // lock here would be a lock-order inversion.
+        let sel_anchors = self.selection.lock().unwrap().anchors();
         let term = self.terminal.read();
         let seqno = term.seqno();
         let cursor = *term.cursor();
@@ -1603,6 +1615,32 @@ impl TerminalRenderer {
         let styles = term.styles().snapshot();
         let image_placements = term.image_placements().to_vec();
         let block_separator_rows = term.block_separator_viewport_rows();
+        // Resolve the content-anchored selection against THIS frame's
+        // grid and map it onto the viewport. A failed resolution
+        // (evicted content, RIS rebuild, other screen buffer) renders
+        // nothing — anchors never degrade to stale coordinates.
+        let viewport_top_abs = scrollback_total.saturating_sub(scroll_offset);
+        let selection_span = sel_anchors
+            .and_then(|(a, b)| term.resolve_selection_span(a, b))
+            .and_then(|(s, e)| {
+                if e.0 < viewport_top_abs || s.0 >= viewport_top_abs + num_rows {
+                    return None; // entirely off-screen
+                }
+                let start = if s.0 < viewport_top_abs {
+                    CellPos { row: 0, col: 0 }
+                } else {
+                    CellPos { row: s.0 - viewport_top_abs, col: s.1 }
+                };
+                let end = if e.0 >= viewport_top_abs + num_rows {
+                    CellPos {
+                        row: num_rows.saturating_sub(1),
+                        col: cols.saturating_sub(1),
+                    }
+                } else {
+                    CellPos { row: e.0 - viewport_top_abs, col: e.1 }
+                };
+                Some((start, end))
+            });
         drop(term);
 
         // P24 — URL detection is wasted on alt-screen TUIs: vim,
@@ -1638,6 +1676,7 @@ impl TerminalRenderer {
                 search_current,
                 image_placements,
                 block_separator_rows,
+                selection_span,
             },
             seqno,
         )
@@ -1649,7 +1688,6 @@ impl TerminalRenderer {
         elapsed: f32,
         origin_x: f32,
         origin_y: f32,
-        sel: &Selection,
     ) -> Vec<RectInstance> {
         // P23 — pre-size by expected rect-instance count. Typical
         // interactive grid produces 2–4 spans per row (background,
@@ -1861,45 +1899,34 @@ impl TerminalRenderer {
             push_run(&mut instances, &mut strike_run, row_idx, RectKindForRle::Strikethrough);
         }
 
-        // Selection highlight — RLE'd. Selection spans are almost
-        // always contiguous within a row (a triple-click line, a
-        // drag selection from col A to col B); per-cell rects were
-        // pure waste.
-        if sel.is_active() {
-            for row_idx in 0..snap.rows.len() {
-                let mut run_start: Option<usize> = None;
-                for col_idx in 0..snap.cols {
-                    if sel.contains(row_idx, col_idx) {
-                        if run_start.is_none() {
-                            run_start = Some(col_idx);
-                        }
-                    } else if let Some(start) = run_start.take() {
-                        instances.push(RectInstance {
-                            pos: [
-                                origin_x + start as f32 * self.cell_width,
-                                origin_y + row_idx as f32 * self.cell_height,
-                            ],
-                            size: [
-                                (col_idx - start) as f32 * self.cell_width,
-                                self.cell_height,
-                            ],
-                            color: self.selection_bg,
-                        });
-                    }
+        // Selection highlight — one rect per visible row of the
+        // pre-resolved span (snapshot() already normalized, mapped to
+        // viewport rows, and clipped): first row starts at the span's
+        // start col, last row ends at the span's end col, interior
+        // rows run full width.
+        if let Some((sel_start, sel_end)) = snap.selection_span {
+            let last_row = sel_end.row.min(snap.rows.len().saturating_sub(1));
+            for row_idx in sel_start.row..=last_row {
+                let c0 = if row_idx == sel_start.row { sel_start.col } else { 0 };
+                let c1 = if row_idx == sel_end.row {
+                    sel_end.col.min(snap.cols.saturating_sub(1))
+                } else {
+                    snap.cols.saturating_sub(1)
+                };
+                if c0 > c1 {
+                    continue;
                 }
-                if let Some(start) = run_start {
-                    instances.push(RectInstance {
-                        pos: [
-                            origin_x + start as f32 * self.cell_width,
-                            origin_y + row_idx as f32 * self.cell_height,
-                        ],
-                        size: [
-                            (snap.cols - start) as f32 * self.cell_width,
-                            self.cell_height,
-                        ],
-                        color: self.selection_bg,
-                    });
-                }
+                instances.push(RectInstance {
+                    pos: [
+                        origin_x + c0 as f32 * self.cell_width,
+                        origin_y + row_idx as f32 * self.cell_height,
+                    ],
+                    size: [
+                        (c1 - c0 + 1) as f32 * self.cell_width,
+                        self.cell_height,
+                    ],
+                    color: self.selection_bg,
+                });
             }
         }
 
@@ -3003,12 +3030,12 @@ impl RenderCallback for TerminalRenderer {
         // consistency wins.
         self.last_seqno = seqno;
 
-        // Build rect instances (cell backgrounds + cursor + decorations)
+        // Build rect instances (cell backgrounds + cursor + decorations).
+        // The selection was already resolved into snap.selection_span
+        // at snapshot time — no lock held here.
         let rects_start = Instant::now();
-        let sel = self.selection.lock().unwrap();
         let mut rect_instances =
-            self.build_rect_instances(&snap, ctx.elapsed, self.padding_px(), self.padding_px(), &sel);
-        drop(sel);
+            self.build_rect_instances(&snap, ctx.elapsed, self.padding_px(), self.padding_px());
         let rects_us = rects_start.elapsed().as_micros() as u64;
         let rects_count = rect_instances.len();
 
@@ -3359,11 +3386,12 @@ mod render_invariants {
 
     /// Snapshot + build the rect instances exactly as the live
     /// renderer would for one frame. `elapsed = 0.0` keeps any
-    /// time-driven blinking deterministic.
+    /// time-driven blinking deterministic. The renderer's own shared
+    /// selection is resolved inside `snapshot()` — tests mutate
+    /// `r.selection` and call this.
     fn compute_rects(r: &TerminalRenderer) -> Vec<RectInstance> {
         let (snap, _seqno) = r.snapshot();
-        let sel = Selection::new();
-        r.build_rect_instances(&snap, 0.0, r.padding_px(), r.padding_px(), &sel)
+        r.build_rect_instances(&snap, 0.0, r.padding_px(), r.padding_px())
     }
 
     /// Approximate-equal for f32 rect colors. Comparing the raw
@@ -3663,24 +3691,19 @@ mod render_invariants {
 
     // ── selection invariants ──────────────────────────────────────
 
-    /// Compute rect instances with an active selection.
-    fn compute_rects_with_selection(r: &TerminalRenderer, sel: &Selection) -> Vec<RectInstance> {
-        let (snap, _seqno) = r.snapshot();
-        r.build_rect_instances(&snap, 0.0, r.padding_px(), r.padding_px(), sel)
-    }
-
     #[test]
     fn active_selection_emits_selection_colored_rects() {
         // Make a selection from (0, 0) to (0, 5). We expect at
         // least one rect with the selection_bg color.
         let (r, t) = harness(20, 3);
         t.write().feed(b"hello world");
-        let mut sel = Selection::new();
-        sel.start(crate::selection::CellPos { row: 0, col: 0 });
-        sel.update(crate::selection::CellPos { row: 0, col: 5 });
-        sel.finish();
-        assert!(sel.is_active());
-        let rects = compute_rects_with_selection(&r, &sel);
+        {
+            let term = t.read();
+            let a = term.selection_anchor_at(0, 0).unwrap();
+            let b = term.selection_anchor_at(0, 5).unwrap();
+            r.selection.lock().unwrap().set_span(a, b);
+        }
+        let rects = compute_rects(&r);
         let sel_rects: Vec<_> = rects
             .iter()
             .filter(|rt| colors_approx_eq(rt.color, r.selection_bg))
@@ -3695,8 +3718,8 @@ mod render_invariants {
     fn cleared_selection_emits_no_selection_rects() {
         let (r, t) = harness(20, 3);
         t.write().feed(b"hello");
-        let sel = Selection::new(); // never .start()'d
-        let rects = compute_rects_with_selection(&r, &sel);
+        // r.selection never touched — stays State::None.
+        let rects = compute_rects(&r);
         let sel_rects: Vec<_> = rects
             .iter()
             .filter(|rt| colors_approx_eq(rt.color, r.selection_bg))
@@ -3704,6 +3727,48 @@ mod render_invariants {
         assert!(
             sel_rects.is_empty(),
             "no selection should emit no selection-colored rects: {sel_rects:?}"
+        );
+    }
+
+    /// Streaming output sliding content into scrollback must move
+    /// the HIGHLIGHT with the content: the selection is anchored to
+    /// what was selected, not to viewport rows. (Pre-anchor, the
+    /// highlight stayed glued to the same rows while the content
+    /// scrolled out from under it.)
+    #[test]
+    fn selection_highlight_tracks_content_under_streaming_output() {
+        let (r, t) = harness(20, 5);
+        t.write().feed(b"target");
+        {
+            let term = t.read();
+            let a = term.selection_anchor_at(0, 0).unwrap();
+            let b = term.selection_anchor_at(0, 5).unwrap();
+            r.selection.lock().unwrap().set_span(a, b);
+        }
+        // First selection rect's y position in px (row = y / cell_height).
+        let sel_rect_y = |rects: &[RectInstance]| -> Option<f32> {
+            rects
+                .iter()
+                .find(|rt| colors_approx_eq(rt.color, r.selection_bg))
+                .map(|rt| rt.pos[1])
+        };
+        assert!(
+            sel_rect_y(&compute_rects(&r)).is_some_and(|y| y.abs() < 0.01),
+            "selection paints on viewport row 0 at capture time"
+        );
+        // Fill the 5-row screen and push two lines into scrollback —
+        // "target" leaves the live viewport entirely.
+        t.write().feed(b"\r\n1\r\n2\r\n3\r\n4\r\n5\r\n6");
+        assert!(
+            sel_rect_y(&compute_rects(&r)).is_none(),
+            "selection scrolled out of the live view must not paint"
+        );
+        // Scroll back so "target" is the top row again — the
+        // highlight reappears ON the content.
+        t.write().scroll_up(2);
+        assert!(
+            sel_rect_y(&compute_rects(&r)).is_some_and(|y| y.abs() < 0.01),
+            "highlight must follow the content into the scrolled view"
         );
     }
 

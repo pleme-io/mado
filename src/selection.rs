@@ -1,65 +1,95 @@
-//! Text selection state machine.
+//! Text selection state machine — CONTENT-anchored (M2 bridge).
 //!
-//! Tracks mouse-based text selection (click-drag → cell range → highlight).
-//! Used by the renderer to highlight selected cells and by the input handler
-//! to extract selected text for clipboard operations.
+//! Selection endpoints are [`SelectionAnchor`]s (logical line id +
+//! run + cell offset), captured at gesture time via
+//! [`crate::terminal::Terminal::selection_anchor_at`] and resolved at
+//! use time (render highlight, copy extraction) via
+//! `resolve_selection_span` / `extract_selection_text`. Streaming
+//! output sliding rows into scrollback and rewrap-on-resize both
+//! leave the anchors pointing at the SAME content; viewport `(row,
+//! col)` pairs — the pre-anchor representation — went stale on every
+//! grid mutation under an active selection.
+//!
+//! Tier honesty: a dangling anchor (content evicted, RIS rebuild,
+//! screen-buffer switch) is parse-time-rejected — every read path
+//! goes through resolution, which returns `None` rather than stale
+//! coordinates — and the engine's per-tick reconciler collapses the
+//! state to `None`. It is not truly unrepresentable: the anchors can
+//! dangle between eviction and the next resolution; there is simply
+//! no read path that turns them into coordinates.
 
-use crate::terminal::Cell;
+use crate::terminal::{Cell, SelectionAnchor};
 
-/// Trait for querying selection state without requiring a concrete `Selection`.
-///
-/// Allows the renderer to accept any `SelectionQuery` impl (e.g. `Selection` or
-/// `MockSelection` for tests).
-#[allow(dead_code)]
-pub trait SelectionQuery {
-    fn is_active(&self) -> bool;
-    fn contains(&self, row: usize, col: usize) -> bool;
-    fn range(&self) -> Option<(CellPos, CellPos)>;
-}
-
-/// A cell position in the terminal grid.
+/// A cell position in the VIEWPORT (row 0 = top of the current
+/// view). The mouse-gesture coordinate space; anchors are captured
+/// from these at gesture time and never stored.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CellPos {
     pub row: usize,
     pub col: usize,
 }
 
-/// Selection state.
+/// Selection state. `Selecting` = a live char-drag whose release
+/// decides commit-vs-clear; `Selected` = a committed span (word/line
+/// snap, select-all, shift-extend, finished drag).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum State {
     None,
-    Selecting { start: CellPos, end: CellPos },
-    Selected { start: CellPos, end: CellPos },
+    Selecting {
+        start: SelectionAnchor,
+        end: SelectionAnchor,
+    },
+    Selected {
+        start: SelectionAnchor,
+        end: SelectionAnchor,
+    },
 }
 
-/// Text selection manager.
+/// Text selection manager. Holds anchors in CAPTURE order — reading
+/// order (start ≤ end) is only knowable after resolution, so
+/// normalization lives in `Terminal::resolve_selection_span`.
 pub struct Selection {
     state: State,
 }
 
 impl Selection {
+    #[must_use]
     pub fn new() -> Self {
-        Self {
-            state: State::None,
-        }
+        Self { state: State::None }
     }
 
-    /// Begin a new selection at the given cell position.
-    pub fn start(&mut self, pos: CellPos) {
+    /// Begin a char-drag gesture at the given anchor.
+    pub fn start(&mut self, pos: SelectionAnchor) {
         self.state = State::Selecting {
             start: pos,
             end: pos,
         };
     }
 
-    /// Update the selection endpoint as the mouse moves.
-    pub fn update(&mut self, pos: CellPos) {
-        if let State::Selecting { start, .. } = self.state {
-            self.state = State::Selecting { start, end: pos };
+    /// Move the gesture's end anchor. Acts in BOTH live states —
+    /// drag gating belongs to the engine's `SelectionDrag` FSM, not
+    /// to this holder (a shift-extended selection is `Selected` yet
+    /// still draggable).
+    pub fn update(&mut self, pos: SelectionAnchor) {
+        match self.state {
+            State::Selecting { start, .. } => {
+                self.state = State::Selecting { start, end: pos };
+            }
+            State::Selected { start, .. } => {
+                self.state = State::Selected { start, end: pos };
+            }
+            State::None => {}
         }
     }
 
-    /// Finalize the selection (mouse released).
+    /// Replace the selection with a committed span (word/line snap,
+    /// select-all, shift-click extend, word/line drag union).
+    pub fn set_span(&mut self, start: SelectionAnchor, end: SelectionAnchor) {
+        self.state = State::Selected { start, end };
+    }
+
+    /// Finalize a char-drag (mouse released): a zero-length gesture
+    /// was a click, not a selection — clear it.
     pub fn finish(&mut self) {
         if let State::Selecting { start, end } = self.state {
             if start == end {
@@ -76,161 +106,25 @@ impl Selection {
     }
 
     /// Whether a selection is currently active (selecting or selected).
+    /// Production reads flow through [`Self::anchors`] (resolution is
+    /// the only honest liveness check); this stays as the test /
+    /// external-consumer surface.
     #[must_use]
+    #[allow(dead_code)]
     pub fn is_active(&self) -> bool {
         !matches!(self.state, State::None)
     }
 
-    /// Get the normalized selection range (start always before end).
+    /// The endpoint anchors in CAPTURE order (un-normalized — feed
+    /// them to `Terminal::resolve_selection_span` /
+    /// `extract_selection_text`, which normalize after resolution).
     #[must_use]
-    pub fn range(&self) -> Option<(CellPos, CellPos)> {
-        let (start, end) = match self.state {
-            State::None => return None,
-            State::Selecting { start, end } | State::Selected { start, end } => (start, end),
-        };
-
-        if start.row < end.row || (start.row == end.row && start.col <= end.col) {
-            Some((start, end))
-        } else {
-            Some((end, start))
-        }
-    }
-
-    /// Check if a cell is within the current selection.
-    #[must_use]
-    pub fn contains(&self, row: usize, col: usize) -> bool {
-        let Some((start, end)) = self.range() else {
-            return false;
-        };
-        if row < start.row || row > end.row {
-            return false;
-        }
-        if start.row == end.row {
-            return col >= start.col && col <= end.col;
-        }
-        if row == start.row {
-            return col >= start.col;
-        }
-        if row == end.row {
-            return col <= end.col;
-        }
-        true
-    }
-
-    /// Select the word containing the given cell position.
-    ///
-    /// `boundary_chars` defines characters that act as word boundaries
-    /// (matching Ghostty's `selection-word-chars`). If empty, falls back to
-    /// the default: any character that is not alphanumeric or underscore.
-    pub fn select_word(&mut self, pos: CellPos, rows: &[Vec<Cell>], cols: usize) {
-        self.select_word_with_boundary(pos, rows, cols, "");
-    }
-
-    /// Select the word containing the given cell position with configurable boundaries.
-    pub fn select_word_with_boundary(
-        &mut self,
-        pos: CellPos,
-        rows: &[Vec<Cell>],
-        cols: usize,
-        boundary_chars: &str,
-    ) {
-        if pos.row >= rows.len() {
-            return;
-        }
-        let row = &rows[pos.row];
-        let col = pos.col.min(cols.saturating_sub(1));
-
-        let is_boundary = |c: char| -> bool {
-            if boundary_chars.is_empty() {
-                !c.is_alphanumeric() && c != '_'
-            } else {
-                boundary_chars.contains(c)
+    pub fn anchors(&self) -> Option<(SelectionAnchor, SelectionAnchor)> {
+        match self.state {
+            State::None => None,
+            State::Selecting { start, end } | State::Selected { start, end } => {
+                Some((start, end))
             }
-        };
-        let is_word = |c: char| !is_boundary(c);
-
-        let ch = if col < row.len() { row[col].ch } else { ' ' };
-        if !is_word(ch) {
-            self.state = State::Selected {
-                start: CellPos { row: pos.row, col },
-                end: CellPos { row: pos.row, col },
-            };
-            return;
-        }
-
-        let mut start = col;
-        while start > 0 && start - 1 < row.len() && is_word(row[start - 1].ch) {
-            start -= 1;
-        }
-
-        let mut end = col;
-        while end + 1 < cols && end + 1 < row.len() && is_word(row[end + 1].ch) {
-            end += 1;
-        }
-
-        self.state = State::Selected {
-            start: CellPos { row: pos.row, col: start },
-            end: CellPos { row: pos.row, col: end },
-        };
-    }
-
-    /// Select the entire line at the given row.
-    pub fn select_line(&mut self, row: usize, cols: usize) {
-        self.state = State::Selected {
-            start: CellPos { row, col: 0 },
-            end: CellPos {
-                row,
-                col: cols.saturating_sub(1),
-            },
-        };
-    }
-
-    /// Extract selected text from terminal rows.
-    ///
-    /// Returns the selected text as a string, with newlines between rows.
-    pub fn extract_text(&self, rows: &[Vec<Cell>], cols: usize) -> Option<String> {
-        let (start, end) = self.range()?;
-        let mut result = String::new();
-
-        for row_idx in start.row..=end.row {
-            if row_idx >= rows.len() {
-                break;
-            }
-            let row = &rows[row_idx];
-
-            let col_start = if row_idx == start.row {
-                start.col
-            } else {
-                0
-            };
-            let col_end = if row_idx == end.row {
-                end.col.min(cols.saturating_sub(1))
-            } else {
-                cols.saturating_sub(1)
-            };
-
-            for col in col_start..=col_end {
-                if col < row.len() {
-                    row[col].write_to(&mut result);
-                }
-            }
-
-            // Trim trailing spaces from each line
-            if row_idx < end.row {
-                let trimmed_len = result.trim_end().len();
-                result.truncate(trimmed_len);
-                result.push('\n');
-            }
-        }
-
-        // Trim trailing whitespace from the final line
-        let trimmed_len = result.trim_end().len();
-        result.truncate(trimmed_len);
-
-        if result.is_empty() {
-            None
-        } else {
-            Some(result)
         }
     }
 }
@@ -241,321 +135,251 @@ impl Default for Selection {
     }
 }
 
-impl SelectionQuery for Selection {
-    fn is_active(&self) -> bool {
-        Selection::is_active(self)
-    }
-    fn contains(&self, row: usize, col: usize) -> bool {
-        Selection::contains(self, row, col)
-    }
-    fn range(&self) -> Option<(CellPos, CellPos)> {
-        Selection::range(self)
-    }
-}
+/// Word bounds on a single viewport row: the inclusive `(start_col,
+/// end_col)` of the word containing `pos`, or `(col, col)` when the
+/// cell under `pos` is itself a boundary character.
+///
+/// `boundary_chars` defines characters that act as word boundaries
+/// (matching Ghostty's `selection-word-chars`). If empty, falls back
+/// to the default: any character that is not alphanumeric or
+/// underscore.
+///
+/// Pure snap rule over a rows snapshot — the engine captures anchors
+/// for the returned columns; this function never touches selection
+/// state.
+#[must_use]
+pub fn word_bounds_in_row(
+    pos: CellPos,
+    rows: &[Vec<Cell>],
+    cols: usize,
+    boundary_chars: &str,
+) -> (usize, usize) {
+    let col = pos.col.min(cols.saturating_sub(1));
+    let Some(row) = rows.get(pos.row) else {
+        return (col, col);
+    };
 
-#[cfg(test)]
-#[allow(dead_code)]
-pub struct MockSelection {
-    pub active: bool,
-    pub selected_range: Option<(CellPos, CellPos)>,
-}
-
-#[cfg(test)]
-impl SelectionQuery for MockSelection {
-    fn is_active(&self) -> bool {
-        self.active
-    }
-    fn contains(&self, row: usize, col: usize) -> bool {
-        if let Some((start, end)) = &self.selected_range {
-            row >= start.row && row <= end.row && col >= start.col && col <= end.col
+    let is_boundary = |c: char| -> bool {
+        if boundary_chars.is_empty() {
+            !c.is_alphanumeric() && c != '_'
         } else {
-            false
+            boundary_chars.contains(c)
         }
+    };
+    let is_word = |c: char| !is_boundary(c);
+
+    let ch = if col < row.len() { row[col].ch } else { ' ' };
+    if !is_word(ch) {
+        return (col, col);
     }
-    fn range(&self) -> Option<(CellPos, CellPos)> {
-        self.selected_range
+
+    let mut start = col;
+    while start > 0 && start - 1 < row.len() && is_word(row[start - 1].ch) {
+        start -= 1;
     }
+    let mut end = col;
+    while end + 1 < cols && end + 1 < row.len() && is_word(row[end + 1].ch) {
+        end += 1;
+    }
+    (start, end)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::terminal::Cell;
+    use crate::terminal::Terminal;
 
-    fn make_row(text: &str) -> Vec<Cell> {
-        text.chars()
-            .map(|ch| Cell {
-                ch,
-                ..Cell::default()
-            })
-            .collect()
+    fn term_with(text: &[u8]) -> Terminal {
+        let mut t = Terminal::new(40, 5);
+        t.feed(text);
+        t
+    }
+
+    fn anchor(t: &Terminal, row: usize, col: usize) -> SelectionAnchor {
+        t.selection_anchor_at(row, col)
+            .expect("viewport cell must anchor")
     }
 
     #[test]
     fn empty_selection() {
         let sel = Selection::new();
         assert!(!sel.is_active());
-        assert!(sel.range().is_none());
-        assert!(!sel.contains(0, 0));
+        assert!(sel.anchors().is_none());
     }
 
     #[test]
     fn single_cell_click_clears() {
+        let t = term_with(b"hello world");
         let mut sel = Selection::new();
-        sel.start(CellPos { row: 1, col: 3 });
+        sel.start(anchor(&t, 0, 3));
         sel.finish();
         assert!(!sel.is_active());
     }
 
     #[test]
-    fn select_range_on_one_row() {
+    fn drag_commits_on_finish() {
+        let t = term_with(b"hello world");
         let mut sel = Selection::new();
-        sel.start(CellPos { row: 0, col: 2 });
-        sel.update(CellPos { row: 0, col: 5 });
+        sel.start(anchor(&t, 0, 2));
+        sel.update(anchor(&t, 0, 5));
+        assert!(sel.is_active(), "live drag is active before finish");
         sel.finish();
-
         assert!(sel.is_active());
-        assert!(sel.contains(0, 2));
-        assert!(sel.contains(0, 3));
-        assert!(sel.contains(0, 5));
-        assert!(!sel.contains(0, 1));
-        assert!(!sel.contains(0, 6));
-        assert!(!sel.contains(1, 3));
+        let (a, b) = sel.anchors().expect("committed span");
+        assert_eq!(
+            t.resolve_selection_anchor(a).unwrap(),
+            (0, 2),
+            "start anchor resolves to the capture cell"
+        );
+        assert_eq!(t.resolve_selection_anchor(b).unwrap(), (0, 5));
     }
 
     #[test]
-    fn select_range_multi_row() {
+    fn reverse_drag_normalizes_at_resolution() {
+        let t = term_with(b"one\r\ntwo\r\nthree");
         let mut sel = Selection::new();
-        sel.start(CellPos { row: 1, col: 5 });
-        sel.update(CellPos { row: 3, col: 2 });
+        sel.start(anchor(&t, 2, 4));
+        sel.update(anchor(&t, 0, 1));
         sel.finish();
-
-        // Row 1: col 5 and beyond
-        assert!(!sel.contains(1, 4));
-        assert!(sel.contains(1, 5));
-        assert!(sel.contains(1, 10));
-
-        // Row 2: all cells
-        assert!(sel.contains(2, 0));
-        assert!(sel.contains(2, 50));
-
-        // Row 3: up to col 2
-        assert!(sel.contains(3, 0));
-        assert!(sel.contains(3, 2));
-        assert!(!sel.contains(3, 3));
-
-        // Outside rows
-        assert!(!sel.contains(0, 5));
-        assert!(!sel.contains(4, 0));
+        let (a, b) = sel.anchors().unwrap();
+        let (start, end) = t.resolve_selection_span(a, b).unwrap();
+        assert_eq!(start, (0, 1), "span resolves in reading order");
+        assert_eq!(end, (2, 4));
     }
 
     #[test]
-    fn reverse_selection_normalizes() {
+    fn set_span_is_committed_and_finish_is_a_noop_on_it() {
+        let t = term_with(b"hello world");
         let mut sel = Selection::new();
-        sel.start(CellPos { row: 3, col: 8 });
-        sel.update(CellPos { row: 1, col: 2 });
-        sel.finish();
-
-        let (start, end) = sel.range().unwrap();
-        assert_eq!(start, CellPos { row: 1, col: 2 });
-        assert_eq!(end, CellPos { row: 3, col: 8 });
-    }
-
-    #[test]
-    fn extract_text_single_row() {
-        let rows = vec![make_row("Hello World!")];
-        let mut sel = Selection::new();
-        sel.start(CellPos { row: 0, col: 6 });
-        sel.update(CellPos { row: 0, col: 10 });
-        sel.finish();
-
-        let text = sel.extract_text(&rows, 12).unwrap();
-        assert_eq!(text, "World");
-    }
-
-    #[test]
-    fn extract_text_multi_row() {
-        let rows = vec![
-            make_row("First line  "),
-            make_row("Second line "),
-            make_row("Third line  "),
-        ];
-        let mut sel = Selection::new();
-        sel.start(CellPos { row: 0, col: 6 });
-        sel.update(CellPos { row: 2, col: 4 });
-        sel.finish();
-
-        let text = sel.extract_text(&rows, 12).unwrap();
-        assert_eq!(text, "line\nSecond line\nThird");
-    }
-
-    #[test]
-    fn select_word() {
-        let rows = vec![make_row("hello world_test foo")];
-        let mut sel = Selection::new();
-        sel.select_word(CellPos { row: 0, col: 7 }, &rows, 20);
-
+        sel.set_span(anchor(&t, 0, 0), anchor(&t, 0, 4));
         assert!(sel.is_active());
-        let text = sel.extract_text(&rows, 20).unwrap();
-        assert_eq!(text, "world_test");
+        sel.finish();
+        assert!(sel.is_active(), "finish must not clear a committed span");
     }
 
     #[test]
-    fn select_word_on_space() {
-        let rows = vec![make_row("hello world")];
+    fn update_moves_end_while_selected() {
+        // The shift-extend contract: a committed span keeps
+        // following the pointer while the engine's drag FSM routes
+        // motion here.
+        let t = term_with(b"hello world wide");
         let mut sel = Selection::new();
-        sel.select_word(CellPos { row: 0, col: 5 }, &rows, 11);
-
-        // Clicking on a space selects that single cell, but extract_text
-        // trims whitespace so it returns None — that's correct.
-        assert!(sel.is_active());
-        assert!(sel.extract_text(&rows, 11).is_none());
-    }
-
-    #[test]
-    fn select_line() {
-        let rows = vec![
-            make_row("first line "),
-            make_row("second line"),
-            make_row("third line "),
-        ];
-        let mut sel = Selection::new();
-        sel.select_line(1, 11);
-
-        assert!(sel.is_active());
-        let text = sel.extract_text(&rows, 11).unwrap();
-        assert_eq!(text, "second line");
+        sel.set_span(anchor(&t, 0, 0), anchor(&t, 0, 4));
+        sel.update(anchor(&t, 0, 10));
+        let (_, b) = sel.anchors().unwrap();
+        assert_eq!(t.resolve_selection_anchor(b).unwrap(), (0, 10));
     }
 
     #[test]
     fn clear_selection() {
+        let t = term_with(b"hello");
         let mut sel = Selection::new();
-        sel.start(CellPos { row: 0, col: 0 });
-        sel.update(CellPos { row: 0, col: 5 });
+        sel.start(anchor(&t, 0, 0));
+        sel.update(anchor(&t, 0, 4));
         sel.finish();
         assert!(sel.is_active());
-
         sel.clear();
         assert!(!sel.is_active());
     }
 
+    /// Word-bounds snap matrix — every variant exercised, failures
+    /// aggregated before the assert.
     #[test]
-    fn selecting_state_is_active() {
-        let mut sel = Selection::new();
-        sel.start(CellPos { row: 0, col: 0 });
-        sel.update(CellPos { row: 0, col: 5 });
-        // During selection (before finish), is_active should be true
-        assert!(sel.is_active());
-        assert!(sel.range().is_some());
+    fn word_bounds_matrix() {
+        use std::fmt::Write as _;
+        fn make_row(text: &str) -> Vec<Cell> {
+            text.chars()
+                .map(|ch| Cell {
+                    ch,
+                    ..Cell::default()
+                })
+                .collect()
+        }
+        struct Row {
+            name: &'static str,
+            text: &'static str,
+            col: usize,
+            boundary: &'static str,
+            want: (usize, usize),
+        }
+        let rows = [
+            Row {
+                name: "mid-word with underscore",
+                text: "hello world_test foo",
+                col: 7,
+                boundary: "",
+                want: (6, 15),
+            },
+            Row {
+                name: "boundary char snaps to itself",
+                text: "hello world",
+                col: 5,
+                boundary: "",
+                want: (5, 5),
+            },
+            Row {
+                name: "word at row start",
+                text: "hello world",
+                col: 0,
+                boundary: "",
+                want: (0, 4),
+            },
+            Row {
+                name: "word at row end",
+                text: "hello world",
+                col: 10,
+                boundary: "",
+                want: (6, 10),
+            },
+            Row {
+                name: "default boundary splits on colon",
+                text: "hello:world test",
+                col: 0,
+                boundary: "",
+                want: (0, 4),
+            },
+            Row {
+                name: "custom boundary keeps colon in word",
+                text: "hello:world test",
+                col: 0,
+                boundary: " \t",
+                want: (0, 10),
+            },
+            Row {
+                name: "custom boundary splits on semicolon",
+                text: "foo;bar baz",
+                col: 0,
+                boundary: ";, \t",
+                want: (0, 2),
+            },
+        ];
+        let mut failures = Vec::new();
+        for r in &rows {
+            let grid = vec![make_row(r.text)];
+            let cols = r.text.len();
+            let got = word_bounds_in_row(
+                CellPos { row: 0, col: r.col },
+                &grid,
+                cols,
+                r.boundary,
+            );
+            if got != r.want {
+                let mut msg = String::new();
+                let _ = write!(msg, "{}: want {:?}, got {got:?}", r.name, r.want);
+                failures.push(msg);
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "{} word-bounds variants failed:\n  - {}",
+            failures.len(),
+            failures.join("\n  - ")
+        );
     }
 
     #[test]
-    fn contains_during_selecting() {
-        let mut sel = Selection::new();
-        sel.start(CellPos { row: 0, col: 2 });
-        sel.update(CellPos { row: 0, col: 8 });
-        // Even before finish, contains works
-        assert!(sel.contains(0, 2));
-        assert!(sel.contains(0, 5));
-        assert!(sel.contains(0, 8));
-        assert!(!sel.contains(0, 1));
-        assert!(!sel.contains(0, 9));
-    }
-
-    #[test]
-    fn extract_text_empty_row() {
-        let rows = vec![make_row("     ")];
-        let mut sel = Selection::new();
-        sel.start(CellPos { row: 0, col: 0 });
-        sel.update(CellPos { row: 0, col: 4 });
-        sel.finish();
-        // All spaces → trimmed → None
-        assert!(sel.extract_text(&rows, 5).is_none());
-    }
-
-    #[test]
-    fn select_word_at_boundary() {
-        let rows = vec![make_row("hello world")];
-        let mut sel = Selection::new();
-        // Select word at start of row
-        sel.select_word(CellPos { row: 0, col: 0 }, &rows, 11);
-        assert!(sel.is_active());
-        let text = sel.extract_text(&rows, 11).unwrap();
-        assert_eq!(text, "hello");
-
-        // Select word at end of row
-        sel.select_word(CellPos { row: 0, col: 10 }, &rows, 11);
-        assert!(sel.is_active());
-        let text = sel.extract_text(&rows, 11).unwrap();
-        assert_eq!(text, "world");
-    }
-
-    #[test]
-    fn test_selection_query_trait_active() {
-        let mut sel = Selection::new();
-        let query: &dyn SelectionQuery = &sel;
-        assert!(!query.is_active());
-
-        sel.start(CellPos { row: 0, col: 0 });
-        sel.update(CellPos { row: 0, col: 5 });
-        sel.finish();
-        let query: &dyn SelectionQuery = &sel;
-        assert!(query.is_active());
-    }
-
-    #[test]
-    fn test_selection_query_trait_contains() {
-        let mut sel = Selection::new();
-        sel.start(CellPos { row: 1, col: 2 });
-        sel.update(CellPos { row: 1, col: 8 });
-        sel.finish();
-
-        let query: &dyn SelectionQuery = &sel;
-        assert!(query.contains(1, 2));
-        assert!(query.contains(1, 5));
-        assert!(query.contains(1, 8));
-        assert!(!query.contains(1, 1));
-        assert!(!query.contains(1, 9));
-        assert!(!query.contains(0, 5));
-    }
-
-    #[test]
-    fn select_word_custom_boundary() {
-        let rows = vec![make_row("hello:world test")];
-        let mut sel = Selection::new();
-        // With default boundaries, ':' is a boundary
-        sel.select_word(CellPos { row: 0, col: 0 }, &rows, 16);
-        let text = sel.extract_text(&rows, 16).unwrap();
-        assert_eq!(text, "hello");
-
-        // With custom boundary that doesn't include ':', colon is part of word
-        sel.select_word_with_boundary(CellPos { row: 0, col: 0 }, &rows, 16, " \t");
-        let text = sel.extract_text(&rows, 16).unwrap();
-        assert_eq!(text, "hello:world");
-    }
-
-    #[test]
-    fn select_word_semicolon_boundary() {
-        let rows = vec![make_row("foo;bar baz")];
-        let mut sel = Selection::new();
-        // With boundary including ';', it splits
-        sel.select_word_with_boundary(CellPos { row: 0, col: 0 }, &rows, 11, ";, \t");
-        let text = sel.extract_text(&rows, 11).unwrap();
-        assert_eq!(text, "foo");
-    }
-
-    #[test]
-    fn test_selection_query_trait_range() {
-        let mut sel = Selection::new();
-        let query: &dyn SelectionQuery = &sel;
-        assert!(query.range().is_none());
-
-        sel.start(CellPos { row: 2, col: 10 });
-        sel.update(CellPos { row: 0, col: 3 });
-        sel.finish();
-        let query: &dyn SelectionQuery = &sel;
-        let (start, end) = query.range().unwrap();
-        assert_eq!(start, CellPos { row: 0, col: 3 });
-        assert_eq!(end, CellPos { row: 2, col: 10 });
+    fn word_bounds_out_of_range_row_snaps_to_cell() {
+        let got = word_bounds_in_row(CellPos { row: 5, col: 3 }, &[], 10, "");
+        assert_eq!(got, (3, 3));
     }
 }
