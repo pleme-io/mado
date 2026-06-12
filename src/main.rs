@@ -22,6 +22,7 @@ mod e2e;
 mod engate_consumer;
 mod font_size;
 mod glyph_class;
+mod grid_damage;
 mod gui_tear_attach;
 mod kanshou_state;
 mod keybind;
@@ -643,6 +644,7 @@ fn main() -> anyhow::Result<()> {
         cols,
         rows,
         scrollback,
+        config.behavior.reflow_on_resize,
         None,
         extra_env,
         working_directory,

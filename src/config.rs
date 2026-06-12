@@ -724,6 +724,13 @@ pub struct BehaviorConfig {
     pub mouse_reporting: bool,
     #[serde(default)]
     pub mouse_shift_capture: MouseShiftCapture,
+    /// M2 — rewrap the primary grid's logical lines when the window
+    /// is resized to a different column count (kitty/ghostty
+    /// behavior). `false` restores the legacy truncate/extend
+    /// semantics. The alternate screen always truncates regardless —
+    /// full-screen TUIs redraw themselves on SIGWINCH.
+    #[serde(default = "default_true")]
+    pub reflow_on_resize: bool,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
@@ -1250,6 +1257,7 @@ impl MadoConfig {
                 link_url: false,        // bare = no URL detection
                 mouse_reporting: false, // bare = no mouse events to apps
                 mouse_shift_capture: MouseShiftCapture::False,
+                reflow_on_resize: false, // bare = legacy truncate on resize
             },
             // ── Theme ────────────────────────────────────────────
             // Empty = no theme overlay; appearance.background +
@@ -1518,6 +1526,7 @@ impl Default for BehaviorConfig {
             link_url: true,
             mouse_reporting: true,
             mouse_shift_capture: MouseShiftCapture::default(),
+            reflow_on_resize: true,
         }
     }
 }

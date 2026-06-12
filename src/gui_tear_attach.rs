@@ -270,9 +270,13 @@ where
     let cols = snapshot_cols.max(1);
     let rows = snapshot_rows.max(1);
 
-    let terminal: SharedTerminal = Arc::new(RwLock::new(
-        Terminal::with_scrollback(cols, rows, 10_000),
-    ));
+    let terminal: SharedTerminal = Arc::new(RwLock::new({
+        let mut term = Terminal::with_scrollback(cols, rows, 10_000);
+        // M2 — behavior.reflow_on_resize: rewrap-on-resize knob,
+        // same wiring the local-PTY path gets via single_pane::spawn.
+        term.set_reflow_on_resize(config.behavior.reflow_on_resize);
+        term
+    }));
 
     let effective_font_size = config.font_size;
     let padding = config.window.padding as f32;

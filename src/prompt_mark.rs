@@ -8,10 +8,15 @@
 //! the same UX ghostty, kitty, iterm2, and wezterm ship.
 //!
 //! Every mark stores a **grid-internal row index** — the index into
-//! the terminal's `VecDeque<Vec<Cell>>`. When the grid evicts rows
+//! the terminal's `VecDeque<Line>`. When the grid evicts rows
 //! from the front (scrollback cap reached), callers invoke
 //! [`PromptHistory::shift_on_evict`] with the eviction count and
-//! marks whose rows would go negative are dropped.
+//! marks whose rows would go negative are dropped. When a rewrap
+//! resize renumbers physical rows (M2), `Terminal::resize` brackets
+//! the reflow with [`PromptHistory::refresh_anchors`] /
+//! [`PromptHistory::reanchor`] so each mark re-resolves through its
+//! `(LogicalLineId, intra-line offset)` anchor instead of a stale
+//! physical index.
 //!
 //! No other terminal emulator in the category exposes prompt-mark
 //! state as a typed, testable record — pleme-io's Rust-owned
@@ -103,6 +108,14 @@ pub struct PromptMark {
 pub struct PromptHistory {
     marks: VecDeque<PromptMark>,
     cap: usize,
+    /// M2 rewrap bridge — logical anchors parallel to `marks` by
+    /// index, captured by [`Self::refresh_anchors`] immediately
+    /// BEFORE a rewrap resize and consumed by [`Self::reanchor`]
+    /// immediately after. Transient by design: `grid_row` stays the
+    /// canonical representation (shift_on_evict, prompt-jump, and
+    /// MCP all keep reading it); anchors exist only across the one
+    /// resize call where physical rows renumber.
+    anchors: Vec<Option<crate::terminal::MarkAnchor>>,
 }
 
 impl PromptHistory {
@@ -112,6 +125,44 @@ impl PromptHistory {
         Self {
             marks: VecDeque::with_capacity(cap.min(1024)),
             cap: cap.max(1),
+            anchors: Vec::new(),
+        }
+    }
+
+    /// Capture each mark's logical anchor `(LogicalLineId, intra-line
+    /// row offset)` from the CURRENT physical layout — `anchor_at` is
+    /// `Grid::anchor_at` over the pre-rewrap grid. Called by
+    /// `Terminal::resize` right before the rewrap; the cached
+    /// `grid_row` is exact truth at that moment.
+    pub(crate) fn refresh_anchors(
+        &mut self,
+        anchor_at: impl Fn(usize) -> Option<crate::terminal::MarkAnchor>,
+    ) {
+        self.anchors = self.marks.iter().map(|m| anchor_at(m.grid_row)).collect();
+    }
+
+    /// Resolve every anchor captured by [`Self::refresh_anchors`]
+    /// against the POST-rewrap layout — `resolve` is
+    /// `Grid::physical_row_of`. Marks whose logical line no longer
+    /// has any physical row (fully evicted during the rewrap settle)
+    /// are garbage-collected — the logical-id peer of
+    /// [`Self::shift_on_evict`]'s drop-on-underflow.
+    pub(crate) fn reanchor(
+        &mut self,
+        resolve: impl Fn(crate::terminal::MarkAnchor) -> Option<usize>,
+    ) {
+        let anchors = std::mem::take(&mut self.anchors);
+        let old = std::mem::take(&mut self.marks);
+        for (i, mut mark) in old.into_iter().enumerate() {
+            match anchors.get(i).copied().flatten().and_then(&resolve) {
+                Some(row) => {
+                    mark.grid_row = row;
+                    self.marks.push_back(mark);
+                }
+                // No anchor (row was already out of bounds) or the
+                // logical line vanished — drop the mark.
+                None => {}
+            }
         }
     }
 

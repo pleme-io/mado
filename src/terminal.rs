@@ -721,31 +721,125 @@ struct SavedCursor {
 }
 
 // ---------------------------------------------------------------------------
+// Line + LogicalLineId — physical row with logical-line identity (M2 stage 2)
+// ---------------------------------------------------------------------------
+
+/// Monotonically-stamped identity of a LOGICAL line — the unit of
+/// text between hard newlines, however many physical rows it
+/// soft-wraps across. Stamped by the owning [`Grid`] (fresh id per
+/// hard line at `new()` / scroll-appended blank / inserted blank);
+/// the put_char soft-wrap path propagates the SAME id onto the
+/// continuation row. Rewrap-on-resize preserves ids, which is what
+/// makes prompt/user marks invariant under reflow (they re-anchor to
+/// `(LogicalLineId, intra-line row offset)` — see [`MarkAnchor`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct LogicalLineId(u64);
+
+/// One physical grid row. `cells` is the exact pre-M2 `Vec<Cell>` row
+/// payload — the external boundary (`visible_rows()` /
+/// `viewport_rows()` / `rows_from()`) keeps returning `&[Cell]` row
+/// slices so search/selection/render/MCP consumers see byte-identical
+/// shapes.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Line {
+    /// Cell payload — always exactly `Grid::cols` wide.
+    pub cells: Vec<Cell>,
+    /// Soft-wrap marker: this physical row CONTINUES the same logical
+    /// line on the NEXT row. A hard newline leaves it `false`.
+    pub wrapped: bool,
+    /// Identity of the logical line this physical row belongs to.
+    pub logical_id: LogicalLineId,
+}
+
+impl Line {
+    fn blank(cols: usize, logical_id: LogicalLineId) -> Self {
+        Self {
+            cells: vec![Cell::default(); cols],
+            wrapped: false,
+            logical_id,
+        }
+    }
+
+    /// True when every cell is the default cell AND the row does not
+    /// continue a logical line — the trim test the rewrap pass uses
+    /// for trailing blank rows.
+    fn is_blank_unwrapped(&self) -> bool {
+        !self.wrapped && self.cells.iter().all(|c| *c == Cell::default())
+    }
+}
+
+/// Logical anchor of a prompt/user mark: which logical line the mark
+/// sits on plus the physical-row offset INTO that line (0 = the
+/// line's first physical row). Invariant under rewrap — reflow
+/// changes how many physical rows a logical line occupies, but the
+/// `(id, offset)` pair re-resolves through
+/// [`Grid::physical_row_of`] after the new layout lands.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct MarkAnchor {
+    pub(crate) logical_id: LogicalLineId,
+    pub(crate) row_offset: usize,
+}
+
+// ---------------------------------------------------------------------------
 // Grid — VecDeque-based terminal grid with O(1) scroll
 // ---------------------------------------------------------------------------
 
+/// VecDeque-of-[`Line`] terminal grid: scrollback at the front,
+/// visible rows at the back. Scrollback eviction and every read path
+/// go through methods (`rows_from` / `visible_rows_iter` /
+/// `viewport_rows`), so the future `Arc<Line>` CoW swap for paged
+/// scrollback is a one-type change behind the same surface.
+///
+/// The M2 field design is co-shaped for the M7 threading protocol —
+/// per-row damage (`GridDamage`/`DirtyRegion`) and the bounded
+/// `ParseMailbox` between the PTY reader and the parser. See
+/// `docs/GRID-THREADING-CONTRACT.md` (Stream G contract) and the
+/// typed stubs in `crate::grid_damage`.
 struct Grid {
     /// All rows: scrollback at front, visible at back.
-    rows: VecDeque<Vec<Cell>>,
+    rows: VecDeque<Line>,
     cols: usize,
     visible_rows: usize,
     max_scrollback: usize,
+    /// Monotonic stamp source for [`LogicalLineId`]. Never reused —
+    /// u64 cannot realistically wrap within a session.
+    next_logical_id: u64,
 }
 
 impl Grid {
     fn new(cols: usize, visible_rows: usize, max_scrollback: usize) -> Self {
-        let mut rows = VecDeque::with_capacity(visible_rows + max_scrollback);
+        // Capacity is a hint only — clamp the scrollback term so an
+        // "unlimited" (usize::MAX) cap cannot overflow the addition
+        // or demand an absurd up-front allocation.
+        let mut rows =
+            VecDeque::with_capacity(visible_rows + max_scrollback.min(4096));
+        let mut next_logical_id = 0u64;
         for _ in 0..visible_rows {
-            rows.push_back(vec![Cell::default(); cols]);
+            let id = LogicalLineId(next_logical_id);
+            next_logical_id += 1;
+            rows.push_back(Line::blank(cols, id));
         }
-        Self { rows, cols, visible_rows, max_scrollback }
+        Self {
+            rows,
+            cols,
+            visible_rows,
+            max_scrollback,
+            next_logical_id,
+        }
+    }
+
+    /// Allocate a fresh logical-line identity.
+    fn fresh_id(&mut self) -> LogicalLineId {
+        let id = LogicalLineId(self.next_logical_id);
+        self.next_logical_id += 1;
+        id
     }
 
     /// Number of scrollback lines available.
     /// Iterator over ALL rows (scrollback + visible) starting at the
     /// absolute index `from` — the scrollback-search row source.
     fn rows_from(&self, from: usize) -> impl Iterator<Item = &[Cell]> {
-        self.rows.iter().skip(from).map(Vec::as_slice)
+        self.rows.iter().skip(from).map(|l| l.cells.as_slice())
     }
 
     fn scrollback_len(&self) -> usize {
@@ -755,11 +849,18 @@ impl Grid {
     /// Access a visible row (0 = top of visible area).
     fn visible_row(&self, idx: usize) -> &[Cell] {
         let offset = self.scrollback_len();
-        &self.rows[offset + idx]
+        &self.rows[offset + idx].cells
     }
 
-    /// Mutable access to a visible row.
+    /// Mutable access to a visible row's cell payload.
     fn visible_row_mut(&mut self, idx: usize) -> &mut Vec<Cell> {
+        let offset = self.scrollback_len();
+        &mut self.rows[offset + idx].cells
+    }
+
+    /// Mutable access to a visible row's full [`Line`] (cells + wrap
+    /// marker + logical id) — the soft-wrap stamping path uses this.
+    fn visible_line_mut(&mut self, idx: usize) -> &mut Line {
         let offset = self.scrollback_len();
         &mut self.rows[offset + idx]
     }
@@ -772,6 +873,58 @@ impl Grid {
     /// Mutable access to a cell.
     fn cell_mut(&mut self, row: usize, col: usize) -> &mut Cell {
         &mut self.visible_row_mut(row)[col]
+    }
+
+    /// Absolute index of the FIRST physical row of the logical line
+    /// `abs_row` belongs to (walk back over wrapped predecessors with
+    /// the same id).
+    fn line_start(&self, abs_row: usize) -> usize {
+        let mut r = abs_row;
+        while r > 0
+            && self.rows[r - 1].wrapped
+            && self.rows[r - 1].logical_id == self.rows[r].logical_id
+        {
+            r -= 1;
+        }
+        r
+    }
+
+    /// Logical anchor of the physical row `abs_row` — `(logical id,
+    /// offset of abs_row within its logical line)`. `None` when the
+    /// row is out of bounds.
+    fn anchor_at(&self, abs_row: usize) -> Option<MarkAnchor> {
+        if abs_row >= self.rows.len() {
+            return None;
+        }
+        let start = self.line_start(abs_row);
+        Some(MarkAnchor {
+            logical_id: self.rows[abs_row].logical_id,
+            row_offset: abs_row - start,
+        })
+    }
+
+    /// Resolve a [`MarkAnchor`]'s `(logical_id, row_offset)` back to
+    /// an absolute physical row. O(rows) scan — rows are bounded by
+    /// visible + scrollback cap. An offset past the line's surviving
+    /// rows clamps to the line's LAST physical row (the line head may
+    /// have been evicted). Returns `None` when no physical row with
+    /// that logical id remains — the caller garbage-collects the mark.
+    fn physical_row_of(&self, logical_id: LogicalLineId, row_offset: usize) -> Option<usize> {
+        let mut first: Option<usize> = None;
+        let mut last = 0usize;
+        for (i, line) in self.rows.iter().enumerate() {
+            if line.logical_id == logical_id {
+                if first.is_none() {
+                    first = Some(i);
+                }
+                last = i;
+            } else if first.is_some() {
+                // Logical lines occupy contiguous physical runs.
+                break;
+            }
+        }
+        let first = first?;
+        Some((first + row_offset).min(last))
     }
 
     /// Scroll the region [top..=bottom] up by one line.
@@ -788,7 +941,8 @@ impl Grid {
 
         if top == 0 && bottom == self.visible_rows - 1 {
             // Full-screen scroll: push top to scrollback, append blank
-            self.rows.push_back(vec![Cell::default(); self.cols]);
+            let id = self.fresh_id();
+            self.rows.push_back(Line::blank(self.cols, id));
             // Evict oldest scrollback if over limit
             while self.scrollback_len() > self.max_scrollback {
                 self.rows.pop_front();
@@ -800,7 +954,8 @@ impl Grid {
             self.rows.remove(remove_idx);
             let insert_idx = sb_offset + bottom;
             // After removal, indexes shifted down, so insert at the same logical position
-            self.rows.insert(insert_idx, vec![Cell::default(); self.cols]);
+            let id = self.fresh_id();
+            self.rows.insert(insert_idx, Line::blank(self.cols, id));
         }
         evicted
     }
@@ -813,44 +968,62 @@ impl Grid {
         if remove_idx < self.rows.len() {
             self.rows.remove(remove_idx);
         }
-        self.rows.insert(sb_offset + top, vec![Cell::default(); self.cols]);
+        let id = self.fresh_id();
+        self.rows.insert(sb_offset + top, Line::blank(self.cols, id));
     }
 
     /// Clear a range of cells in a visible row.
     fn erase_cells(&mut self, row: usize, start: usize, end: usize) {
         let end = end.min(self.cols);
-        let r = self.visible_row_mut(row);
+        let reaches_line_end = end == self.cols;
+        let line = self.visible_line_mut(row);
         for col in start..end {
-            r[col] = Cell::default();
+            line.cells[col] = Cell::default();
+        }
+        // An erase that reaches the right edge breaks the soft wrap:
+        // the row no longer has content flowing into the next row, so
+        // a later rewrap must not join them (M2 wrap hygiene).
+        if reaches_line_end {
+            line.wrapped = false;
         }
     }
 
     /// Clear the entire visible area.
     fn clear_visible(&mut self) {
         for i in 0..self.visible_rows {
-            let row = self.visible_row_mut(i);
-            for cell in row.iter_mut() {
+            let line = self.visible_line_mut(i);
+            for cell in line.cells.iter_mut() {
                 *cell = Cell::default();
             }
+            // Cleared rows carry no soft-wrap continuation.
+            line.wrapped = false;
         }
     }
 
     /// Resize the grid.
-    fn resize(&mut self, cols: usize, visible_rows: usize) {
-        // Resize column width for all rows
-        if cols != self.cols {
-            for row in &mut self.rows {
-                row.resize(cols, Cell::default());
-            }
-            self.cols = cols;
-        }
-
-        // Adjust visible rows
+    ///
+    /// `rewrap = false` (the ALT grid always; the primary grid when
+    /// `reflow_on_resize` is off): the pre-M2 truncate/extend
+    /// semantics — every row is cut or blank-padded to the new width.
+    /// Full-screen TUIs redraw themselves on SIGWINCH, so the alt
+    /// grid never reflows.
+    ///
+    /// `rewrap = true` (primary grid, reflow on): column changes
+    /// REWRAP — logical lines (scrollback + visible joined as one
+    /// continuous sequence) are unwrapped and reflowed to the new
+    /// width, preserving every cell and every [`LogicalLineId`].
+    /// Row-count changes keep the legacy semantics on both paths
+    /// (blank rows appended / popped at the bottom) so cursor and
+    /// scroll-region behavior match the pre-M2 contract.
+    fn resize(&mut self, cols: usize, visible_rows: usize, rewrap: bool) {
+        // Row-count change first (legacy semantics, both paths) so the
+        // rewrap pass below pads/trims against the NEW visible height.
         match visible_rows.cmp(&self.visible_rows) {
             std::cmp::Ordering::Greater => {
                 let extra = visible_rows - self.visible_rows;
                 for _ in 0..extra {
-                    self.rows.push_back(vec![Cell::default(); cols]);
+                    let id = self.fresh_id();
+                    self.rows.push_back(Line::blank(self.cols, id));
                 }
             }
             std::cmp::Ordering::Less => {
@@ -859,16 +1032,153 @@ impl Grid {
                 for _ in 0..remove {
                     self.rows.pop_back();
                 }
+                // A popped row may have been the continuation of a
+                // wrapped line — the new back row must not advertise
+                // a continuation that no longer exists.
+                if let Some(back) = self.rows.back_mut() {
+                    back.wrapped = false;
+                }
             }
             std::cmp::Ordering::Equal => {}
         }
         self.visible_rows = visible_rows;
+
+        if cols != self.cols {
+            if rewrap {
+                self.rewrap_to_cols(cols);
+            } else {
+                // Legacy truncate/extend.
+                for line in &mut self.rows {
+                    line.cells.resize(cols, Cell::default());
+                }
+                self.cols = cols;
+            }
+        }
+    }
+
+    /// REWRAP (M2 stage 2): re-flow every logical line to a new
+    /// column width. Scrollback and visible rows participate as one
+    /// continuous sequence, so logical lines spanning the
+    /// scrollback/visible boundary join correctly.
+    ///
+    /// Algorithm:
+    ///   1. UNWRAP — walk all rows front-to-back, joining each
+    ///      maximal `wrapped == true` run into one logical cell run.
+    ///      Wrapped (non-final) rows contribute ALL their cells; the
+    ///      final row of each run is trimmed of trailing default
+    ///      cells (they are padding, not content).
+    ///   2. REFLOW — split each run into physical rows of the new
+    ///      width. A width-2 lead and its width-0 continuation are
+    ///      kept adjacent (the pair never splits across rows). All
+    ///      produced rows but the last get `wrapped = true`; every
+    ///      row keeps the run's [`LogicalLineId`].
+    ///   3. SETTLE — pad blank rows (fresh ids) at the back until the
+    ///      visible area is full; trim trailing blank rows beyond the
+    ///      visible area (so blank tails don't masquerade as
+    ///      scrollback); evict from the FRONT if the scrollback cap
+    ///      is exceeded.
+    fn rewrap_to_cols(&mut self, new_cols: usize) {
+        let old_rows = std::mem::take(&mut self.rows);
+        let mut new_rows: VecDeque<Line> = VecDeque::with_capacity(old_rows.len());
+
+        let mut iter = old_rows.into_iter();
+        let mut pending: Option<Line> = iter.next();
+        while let Some(first) = pending.take() {
+            let logical_id = first.logical_id;
+            let mut run: Vec<Cell> = Vec::new();
+            let mut cur = first;
+            loop {
+                if cur.wrapped {
+                    // Non-final row of the run: full payload is content.
+                    run.extend(cur.cells);
+                    match iter.next() {
+                        // Continuations share the logical id by
+                        // construction; an id mismatch means scroll-
+                        // region surgery left a dangling wrap marker —
+                        // end the run, the next row starts its own.
+                        Some(next) if next.logical_id == logical_id => cur = next,
+                        Some(next) => {
+                            pending = Some(next);
+                            break;
+                        }
+                        // Dangling wrap marker at the buffer end —
+                        // treat the (already-consumed) cells as the
+                        // whole run.
+                        None => break,
+                    }
+                } else {
+                    // Final row: trailing default cells are padding.
+                    let mut cells = cur.cells;
+                    while cells.last().is_some_and(|c| *c == Cell::default()) {
+                        cells.pop();
+                    }
+                    run.extend(cells);
+                    pending = iter.next();
+                    break;
+                }
+            }
+            Self::push_reflowed_line(&mut new_rows, run, new_cols, logical_id);
+        }
+
+        self.rows = new_rows;
+        self.cols = new_cols;
+
+        // SETTLE: visible-area + scrollback-cap consistency.
+        while self.rows.len() < self.visible_rows {
+            let id = self.fresh_id();
+            self.rows.push_back(Line::blank(new_cols, id));
+        }
+        while self.rows.len() > self.visible_rows
+            && self.rows.back().is_some_and(Line::is_blank_unwrapped)
+        {
+            self.rows.pop_back();
+        }
+        while self.scrollback_len() > self.max_scrollback {
+            self.rows.pop_front();
+        }
+    }
+
+    /// Reflow one logical cell run to `cols`-wide physical rows and
+    /// append them to `out`. All rows but the last are marked
+    /// `wrapped`; every row carries `id`. An empty run still emits
+    /// one blank row (a logical line never vanishes in a reflow).
+    fn push_reflowed_line(
+        out: &mut VecDeque<Line>,
+        run: Vec<Cell>,
+        cols: usize,
+        id: LogicalLineId,
+    ) {
+        let mut rows_for_line: Vec<Vec<Cell>> = Vec::new();
+        let mut cur: Vec<Cell> = Vec::with_capacity(cols.min(512));
+        for cell in run {
+            // A width-2 lead needs room for itself + its width-0
+            // continuation — never split the pair across rows.
+            let needed = if cell.width == 2 { 2usize } else { 1 };
+            // The `cur.is_empty() && needed > cols` guard forces
+            // progress on the degenerate cols == 1 grid (a wide pair
+            // can never fit; place the lead alone rather than loop).
+            if cur.len() + needed > cols && !(cur.is_empty() && needed > cols) {
+                rows_for_line.push(std::mem::take(&mut cur));
+            }
+            cur.push(cell);
+        }
+        rows_for_line.push(cur);
+
+        let last = rows_for_line.len() - 1;
+        for (k, mut cells) in rows_for_line.into_iter().enumerate() {
+            cells.resize(cols, Cell::default());
+            out.push_back(Line {
+                cells,
+                wrapped: k != last,
+                logical_id: id,
+            });
+        }
     }
 
     /// Iterator over visible rows.
     fn visible_rows_iter(&self) -> impl Iterator<Item = &[Cell]> {
         let offset = self.scrollback_len();
-        self.rows.range(offset..).map(Vec::as_slice)
+        self.rows.range(offset..).map(|l| l.cells.as_slice())
     }
 
     /// Iterator over scrollback rows at a given viewport offset.
@@ -877,7 +1187,9 @@ impl Grid {
         let sb_len = self.scrollback_len();
         let offset = scroll_offset.min(sb_len);
         let start = sb_len - offset;
-        self.rows.range(start..start + self.visible_rows).map(Vec::as_slice)
+        self.rows
+            .range(start..start + self.visible_rows)
+            .map(|l| l.cells.as_slice())
     }
 }
 
@@ -1160,6 +1472,12 @@ pub struct Terminal {
     keypad_app_mode: bool,
     /// Tracks whether the cursor is past the last column (pending wrap).
     wrap_pending: bool,
+    /// M2 — rewrap-on-resize. When true (the kitty/ghostty default,
+    /// wired from `behavior.reflow_on_resize`), a column resize
+    /// REWRAPS the primary grid's logical lines instead of
+    /// truncating. The alternate grid always truncates (full-screen
+    /// TUIs redraw themselves).
+    reflow_on_resize: bool,
 
     // Character set designation (G0/G1).
     // false = ASCII (B), true = DEC Special Graphics (0).
@@ -1377,6 +1695,7 @@ impl Terminal {
             insert_mode: false,
             keypad_app_mode: false,
             wrap_pending: false,
+            reflow_on_resize: true,
             charset_g0_graphics: false,
             charset_g1_graphics: false,
             gl_is_g1: false,
@@ -1484,7 +1803,7 @@ impl Terminal {
             std::collections::HashSet::new();
         for grid in [&self.primary, &self.alternate] {
             for row in &grid.rows {
-                for cell in row {
+                for cell in &row.cells {
                     live.insert(cell.style_id);
                 }
             }
@@ -1492,7 +1811,7 @@ impl Terminal {
         let remap = self.style_table.gc(&live);
         for grid in [&mut self.primary, &mut self.alternate] {
             for row in &mut grid.rows {
-                for cell in row.iter_mut() {
+                for cell in row.cells.iter_mut() {
                     if let Some(&new_id) = remap.get(&cell.style_id) {
                         cell.style_id = new_id;
                     } else {
@@ -1718,8 +2037,30 @@ impl Terminal {
             return;
         }
 
-        self.primary.resize(cols, rows);
-        self.alternate.resize(cols, rows);
+        // M2 rewrap: the primary grid reflows on column changes when
+        // the knob is on; the ALT grid always truncates. Marks are
+        // re-anchored around the reflow — their anchors are refreshed
+        // from the CURRENT physical layout first (the cached grid_row
+        // is exact truth right now; stored anchors may have gone
+        // stale across partial-line evictions), then re-resolved
+        // against the new layout after.
+        let rewrap = self.reflow_on_resize && cols != self.cols;
+        if rewrap {
+            let grid = &self.primary;
+            self.prompt_marks.refresh_anchors(|row| grid.anchor_at(row));
+            self.user_marks.refresh_anchors(|row| grid.anchor_at(row));
+        }
+
+        self.primary.resize(cols, rows, self.reflow_on_resize);
+        self.alternate.resize(cols, rows, false);
+
+        if rewrap {
+            let grid = &self.primary;
+            self.prompt_marks
+                .reanchor(|a| grid.physical_row_of(a.logical_id, a.row_offset));
+            self.user_marks
+                .reanchor(|a| grid.physical_row_of(a.logical_id, a.row_offset));
+        }
 
         self.cols = cols;
         self.rows = rows;
@@ -1736,9 +2077,19 @@ impl Terminal {
         self.cursor.row = self.cursor.row.min(rows.saturating_sub(1));
         self.cursor.col = self.cursor.col.min(cols.saturating_sub(1));
         self.wrap_pending = false;
+        // Rewrap can change the scrollback row count out from under a
+        // scrolled-up viewport — clamp so the offset stays addressable.
+        self.scroll_offset = self.scroll_offset.min(self.grid().scrollback_len());
         self.dirty();
 
-        tracing::debug!(cols, rows, "terminal resized");
+        tracing::debug!(cols, rows, rewrap, "terminal resized");
+    }
+
+    /// Wire the `behavior.reflow_on_resize` config knob (M2 — kills
+    /// the dead knob). `true` = column resizes REWRAP the primary
+    /// grid's logical lines; `false` = legacy truncate on both grids.
+    pub fn set_reflow_on_resize(&mut self, on: bool) {
+        self.reflow_on_resize = on;
     }
 
     #[must_use]
@@ -2411,12 +2762,16 @@ impl Terminal {
         let default_fg = self.default_fg;
         let default_bg = self.default_bg;
         let ansi_colors = self.ansi_colors;
+        // Operator config, not VT state — survives RIS like the
+        // scrollback cap does (M2: behavior.reflow_on_resize).
+        let reflow_on_resize = self.reflow_on_resize;
         *self = Terminal::with_scrollback(cols, rows, max_scrollback);
         self.default_fg = default_fg;
         self.default_bg = default_bg;
         self.pen_fg = default_fg;
         self.pen_bg = default_bg;
         self.ansi_colors = ansi_colors;
+        self.reflow_on_resize = reflow_on_resize;
     }
 
     /// Soft terminal reset (DECSTR — CSI ! p).
@@ -2905,6 +3260,35 @@ impl Terminal {
         self.dirty();
     }
 
+    /// M2 soft-wrap stamping: the cursor just moved onto a
+    /// continuation row via DECAWM autowrap (put_char's two wrap
+    /// sites — pending-wrap consumption and the wide-char early
+    /// wrap). Mark the physical row ABOVE the cursor `wrapped =
+    /// true` and propagate its [`LogicalLineId`] onto the cursor's
+    /// row, so the two physical rows are ONE logical line for
+    /// rewrap-on-resize and mark re-anchoring. Hard newlines never
+    /// come through here, so they keep `wrapped = false` and the
+    /// continuation row's own fresh id — exactly the "fresh id per
+    /// hard line" contract on [`LogicalLineId`].
+    ///
+    /// Works in grid-absolute indices: when the wrap scrolled
+    /// (cursor was on the last row), the wrapped-from row now sits
+    /// in scrollback and `cursor.row` stayed put — `abs - 1` still
+    /// addresses it.
+    fn stamp_soft_wrap(&mut self) {
+        let row = self.cursor.row;
+        let grid = self.grid_mut();
+        let cur_abs = grid.scrollback_len() + row;
+        let Some(prev_abs) = cur_abs.checked_sub(1) else {
+            // rows == 1 with zero scrollback: the wrapped-from row
+            // was evicted outright — nothing left to stamp.
+            return;
+        };
+        let id = grid.rows[prev_abs].logical_id;
+        grid.rows[prev_abs].wrapped = true;
+        grid.rows[cur_abs].logical_id = id;
+    }
+
     fn put_char(&mut self, ch: char) {
         let char_width = UnicodeWidthChar::width(ch).unwrap_or(1);
 
@@ -2913,6 +3297,7 @@ impl Terminal {
             self.wrap_pending = false;
             self.cursor.col = 0;
             self.newline();
+            self.stamp_soft_wrap();
         }
 
         // Wide chars need 2 columns — wrap early if they won't fit
@@ -2920,6 +3305,7 @@ impl Terminal {
             if self.auto_wrap {
                 self.cursor.col = 0;
                 self.newline();
+                self.stamp_soft_wrap();
             } else {
                 self.dirty();
                 return;
@@ -4627,6 +5013,7 @@ mod tests {
         // LATE line — line0 was evicted first.
         assert_eq!(term.primary.scrollback_len(), cap);
         let front: String = term.primary.rows[0]
+            .cells
             .iter()
             .map(|c| c.ch)
             .collect::<String>()
@@ -7176,6 +7563,278 @@ mod tests {
             std::str::from_utf8(&response).unwrap(),
             "\x1b]4;200;rgb:1111/2222/3333\x1b\\"
         );
+    }
+
+    // ── M2 stage 2 — Line/LogicalLineId, wrap stamping, rewrap ─────
+
+    /// Trimmed text of every visible row.
+    fn visible_text(term: &Terminal) -> Vec<String> {
+        term.visible_rows()
+            .map(|r| {
+                r.iter()
+                    .map(|c| c.ch)
+                    .collect::<String>()
+                    .trim_end()
+                    .to_string()
+            })
+            .collect()
+    }
+
+    /// 100 distinguishable ASCII chars (digits cycling) — wraps once
+    /// at 80 cols, twice at 40.
+    fn hundred_chars() -> String {
+        (0..100u32)
+            .map(|i| char::from_digit(i % 10, 10).unwrap())
+            .collect()
+    }
+
+    /// Wrap stamping (M2 acceptance): feeding exactly cols + 10
+    /// chars soft-wraps once — the wrapped-from row is marked
+    /// `wrapped` and SHARES its [`LogicalLineId`] with the
+    /// continuation row; a hard `\r\n` afterwards starts a line with
+    /// a FRESH id.
+    #[test]
+    fn soft_wrap_stamps_wrap_flag_and_shares_logical_id() {
+        let mut term = Terminal::new(80, 24);
+        let text: String = hundred_chars().chars().take(90).collect();
+        term.feed(text.as_bytes());
+
+        let r0 = &term.primary.rows[0];
+        let r1 = &term.primary.rows[1];
+        assert!(r0.wrapped, "wrapped-from row carries the wrap marker");
+        assert_eq!(
+            r0.logical_id, r1.logical_id,
+            "continuation row joins the same logical line"
+        );
+        assert!(!r1.wrapped, "the line's final row does not continue");
+
+        // Hard newline → fresh logical id on the next line.
+        term.feed(b"\r\nnext");
+        let r1 = &term.primary.rows[1];
+        let r2 = &term.primary.rows[2];
+        assert!(!r1.wrapped, "\\r\\n is a hard break, not a soft wrap");
+        assert_ne!(
+            r1.logical_id, r2.logical_id,
+            "a hard newline starts a logical line with a fresh id"
+        );
+    }
+
+    /// Blank rows scrolled in at the bottom are their own logical
+    /// lines — fresh id each, never a continuation.
+    #[test]
+    fn scrolled_in_blank_rows_get_fresh_logical_ids() {
+        let mut term = Terminal::new(10, 3);
+        term.feed(b"a\r\nb\r\nc\r\nd"); // last \r\n scrolls once
+        let ids: Vec<LogicalLineId> =
+            term.primary.rows.iter().map(|l| l.logical_id).collect();
+        assert_eq!(term.primary.rows.len(), 4, "one row entered scrollback");
+        for (i, a) in ids.iter().enumerate() {
+            for (j, b) in ids.iter().enumerate().skip(i + 1) {
+                assert_ne!(a, b, "rows {i} and {j} must have distinct ids");
+            }
+        }
+        assert!(term.primary.rows.iter().all(|l| !l.wrapped));
+    }
+
+    /// Rewrap-on-resize round trip (M2 acceptance): a 100-char
+    /// logical line at 80 cols (2 physical rows) reflows to 3 rows
+    /// at 40 cols with every cell preserved, then reflows BACK to
+    /// the original layout losslessly.
+    #[test]
+    fn reflow_roundtrip_preserves_wrapped_logical_line() {
+        let mut term = Terminal::with_scrollback(80, 24, 100);
+        let text = hundred_chars();
+        term.feed(text.as_bytes());
+
+        let before = visible_text(&term);
+        assert_eq!(before[0], text[..80]);
+        assert_eq!(before[1], text[80..]);
+        let id = term.primary.rows[0].logical_id;
+
+        term.resize(40, 24);
+        let narrow = visible_text(&term);
+        assert_eq!(narrow[0], text[..40], "row 0 after narrow reflow");
+        assert_eq!(narrow[1], text[40..80], "row 1 after narrow reflow");
+        assert_eq!(narrow[2], text[80..], "row 2 after narrow reflow");
+        for (i, want_wrapped) in [(0, true), (1, true), (2, false)] {
+            assert_eq!(
+                term.primary.rows[i].wrapped, want_wrapped,
+                "row {i} wrap marker after narrow reflow"
+            );
+            assert_eq!(
+                term.primary.rows[i].logical_id, id,
+                "row {i} keeps the logical id through reflow"
+            );
+        }
+
+        term.resize(80, 24);
+        let after = visible_text(&term);
+        assert_eq!(after, before, "80→40→80 round trip is lossless");
+        assert!(term.primary.rows[0].wrapped);
+        assert!(!term.primary.rows[1].wrapped);
+        assert_eq!(term.primary.rows[0].logical_id, id);
+    }
+
+    /// Rewrap treats scrollback + visible rows as ONE continuous
+    /// sequence: a logical line whose head already scrolled out of
+    /// view re-joins correctly when widening makes it fit again.
+    #[test]
+    fn reflow_joins_scrollback_and_visible_rows_of_one_logical_line() {
+        let mut term = Terminal::with_scrollback(10, 3, 100);
+        // 22 chars at 10 cols → 3 physical rows of one logical line.
+        term.feed(b"aaaaaaaaaabbbbbbbbbbcc");
+        // Two hard lines push the line's head + middle into scrollback.
+        term.feed(b"\r\nx\r\ny");
+        assert_eq!(term.primary.scrollback_len(), 2);
+        assert!(term.primary.rows[0].wrapped, "head row is in scrollback");
+
+        term.resize(22, 3);
+        assert_eq!(
+            visible_text(&term),
+            vec!["aaaaaaaaaabbbbbbbbbbcc", "x", "y"],
+            "the whole logical line re-joined across the boundary"
+        );
+        assert_eq!(term.primary.scrollback_len(), 0);
+        assert!(!term.primary.rows[0].wrapped);
+    }
+
+    /// Truncation matrix (M2 acceptance): the ALT grid always
+    /// truncates on resize (full-screen TUIs redraw themselves), and
+    /// `reflow_on_resize = false` restores legacy truncation on the
+    /// primary grid. In both cases the middle of the logical line
+    /// (chars 40..80) is LOST — that is what distinguishes truncate
+    /// from rewrap.
+    #[test]
+    fn resize_truncation_matrix() {
+        struct MatrixRow {
+            name: &'static str,
+            alt_screen: bool,
+            reflow: bool,
+        }
+        const MATRIX: &[MatrixRow] = &[
+            MatrixRow {
+                name: "alt screen truncates even with reflow on",
+                alt_screen: true,
+                reflow: true,
+            },
+            MatrixRow {
+                name: "reflow_on_resize=false truncates the primary",
+                alt_screen: false,
+                reflow: false,
+            },
+        ];
+
+        let mut failures: Vec<String> = Vec::new();
+        for case in MATRIX {
+            let mut term = Terminal::with_scrollback(80, 24, 100);
+            term.set_reflow_on_resize(case.reflow);
+            if case.alt_screen {
+                term.feed(b"\x1b[?1049h");
+            }
+            let text = hundred_chars();
+            term.feed(text.as_bytes());
+            term.resize(40, 24);
+            let rows = visible_text(&term);
+            if rows[0] != text[..40] {
+                failures.push(format!(
+                    "{}: row 0 = {:?}, want first 40 chars",
+                    case.name, rows[0]
+                ));
+            }
+            if rows[1] != text[80..] {
+                failures.push(format!(
+                    "{}: row 1 = {:?}, want last 20 chars",
+                    case.name, rows[1]
+                ));
+            }
+            // Truncate keeps 40 (row 0) + 20 (row 1) = 60 chars; the
+            // middle 40 are gone. (A rewrap would keep all 100 — the
+            // digit cycle repeats every 10, so substring checks can't
+            // distinguish; the surviving CELL COUNT can.)
+            let kept: usize = rows.iter().map(String::len).sum();
+            if kept != 60 {
+                failures.push(format!(
+                    "{}: {kept} chars survived, want exactly 60 (middle 40 lost)",
+                    case.name
+                ));
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "{} truncation cases failed:\n  - {}",
+            failures.len(),
+            failures.join("\n  - ")
+        );
+    }
+
+    /// Mark re-anchoring (M2 acceptance): an OSC 133 A prompt mark
+    /// on a soft-wrapped logical line resolves to the SAME logical
+    /// line after a reflow that changes the physical row count —
+    /// and a mark BELOW the wrapped line shifts by the row delta.
+    #[test]
+    fn prompt_mark_on_wrapped_line_resolves_to_same_logical_line_after_reflow() {
+        let mut term = Terminal::with_scrollback(80, 24, 100);
+        term.feed(b"first\r\n"); // row 0
+        term.feed(b"\x1b]133;A\x1b\\"); // mark at row 1
+        let text = hundred_chars();
+        term.feed(text.as_bytes()); // wraps rows 1-2
+        term.feed(b"\r\n"); // cursor → row 3
+        term.feed(b"\x1b]133;A\x1b\\"); // mark at row 3
+        term.feed(b"second prompt");
+
+        let id_long = term.primary.rows[1].logical_id;
+        let marks: Vec<usize> =
+            term.prompt_marks().iter().map(|m| m.grid_row).collect();
+        assert_eq!(marks, vec![1, 3]);
+
+        term.resize(40, 24);
+        // The long line now occupies rows 1..=3, pushing the second
+        // prompt to row 4.
+        let marks: Vec<usize> =
+            term.prompt_marks().iter().map(|m| m.grid_row).collect();
+        assert_eq!(
+            marks,
+            vec![1, 4],
+            "marks re-anchor through (LogicalLineId, offset), not raw rows"
+        );
+        assert_eq!(
+            term.primary.rows[marks[0]].logical_id, id_long,
+            "first mark still heads the SAME logical line"
+        );
+        let rows = visible_text(&term);
+        assert_eq!(rows[marks[0]], text[..40]);
+        assert!(
+            rows[marks[1]].starts_with("second prompt"),
+            "second mark follows its line to its new physical row: {rows:?}"
+        );
+
+        // Widen back — both marks return to their original rows.
+        term.resize(80, 24);
+        let marks: Vec<usize> =
+            term.prompt_marks().iter().map(|m| m.grid_row).collect();
+        assert_eq!(marks, vec![1, 3], "round trip restores mark rows");
+    }
+
+    /// A user mark (OSC 1337 SetMark) re-anchors through the same
+    /// logical-line bridge as prompt marks.
+    #[test]
+    fn user_mark_reanchors_after_reflow() {
+        let mut term = Terminal::with_scrollback(80, 24, 100);
+        let text = hundred_chars();
+        term.feed(text.as_bytes()); // rows 0-1, one logical line
+        term.feed(b"\r\n");
+        term.feed(b"\x1b]1337;SetMark\x07"); // mark at row 2
+        term.feed(b"marked line");
+
+        let marks: Vec<usize> =
+            term.user_marks().iter().map(|m| m.grid_row).collect();
+        assert_eq!(marks, vec![2]);
+
+        term.resize(40, 24); // long line grows to 3 rows
+        let marks: Vec<usize> =
+            term.user_marks().iter().map(|m| m.grid_row).collect();
+        assert_eq!(marks, vec![3], "user mark shifted by the reflow delta");
+        assert!(visible_text(&term)[marks[0]].starts_with("marked line"));
     }
 }
 

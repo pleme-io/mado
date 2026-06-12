@@ -87,6 +87,12 @@ pub struct UserMark {
 pub struct UserMarkHistory {
     marks: std::collections::VecDeque<UserMark>,
     cap: usize,
+    /// M2 rewrap bridge — see
+    /// [`PromptHistory`](crate::prompt_mark::PromptHistory) for the
+    /// full contract; this mirrors it field-for-field. Transient:
+    /// captured by [`Self::refresh_anchors`] before a rewrap resize,
+    /// consumed by [`Self::reanchor`] after.
+    anchors: Vec<Option<crate::terminal::MarkAnchor>>,
 }
 
 impl UserMarkHistory {
@@ -96,6 +102,38 @@ impl UserMarkHistory {
         Self {
             marks: std::collections::VecDeque::with_capacity(cap.min(1024)),
             cap: cap.max(1),
+            anchors: Vec::new(),
+        }
+    }
+
+    /// Capture each mark's logical anchor from the CURRENT physical
+    /// layout. Same contract as
+    /// [`PromptHistory::refresh_anchors`](crate::prompt_mark::PromptHistory::refresh_anchors).
+    pub(crate) fn refresh_anchors(
+        &mut self,
+        anchor_at: impl Fn(usize) -> Option<crate::terminal::MarkAnchor>,
+    ) {
+        self.anchors = self.marks.iter().map(|m| anchor_at(m.grid_row)).collect();
+    }
+
+    /// Resolve captured anchors against the POST-rewrap layout,
+    /// garbage-collecting marks whose logical line vanished. Same
+    /// contract as
+    /// [`PromptHistory::reanchor`](crate::prompt_mark::PromptHistory::reanchor).
+    pub(crate) fn reanchor(
+        &mut self,
+        resolve: impl Fn(crate::terminal::MarkAnchor) -> Option<usize>,
+    ) {
+        let anchors = std::mem::take(&mut self.anchors);
+        let old = std::mem::take(&mut self.marks);
+        for (i, mut mark) in old.into_iter().enumerate() {
+            match anchors.get(i).copied().flatten().and_then(&resolve) {
+                Some(row) => {
+                    mark.grid_row = row;
+                    self.marks.push_back(mark);
+                }
+                None => {}
+            }
         }
     }
 

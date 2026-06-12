@@ -115,12 +115,14 @@ pub fn spawn(
     cols: usize,
     rows: usize,
     scrollback: usize,
+    reflow_on_resize: bool,
     theme_colors: Option<(Color, Color, [Color; 16])>,
     extra_env: HashMap<String, String>,
     working_directory: Option<std::path::PathBuf>,
     initial_command: Option<String>,
 ) -> SinglePane {
     let mut term = Terminal::with_scrollback(cols, rows, scrollback);
+    term.set_reflow_on_resize(reflow_on_resize);
     if let Some((fg, bg, ansi)) = theme_colors {
         term.apply_theme(fg, bg, ansi);
     }
