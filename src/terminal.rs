@@ -3190,8 +3190,15 @@ impl Terminal {
         if params.len() < 2 || params[1].is_empty() {
             return;
         }
-        if params[1] == b"4" && params.len() >= 3 {
-            self.handle_osc_9_4_progress(&params[2..]);
+        // Route the `9;4` progress namespace BEFORE any length check.
+        // A truncated `ESC]9;4 ST` (params `[b"9", b"4"]`, len 2) MUST
+        // NOT fall through to the notification lane as body "4" — the
+        // length-gated guard did exactly that (review 2026-06-12,
+        // determinism-unrep-0 / cross-path-parity-0). The progress
+        // handler trace-drops a missing/unknown state via its `other`
+        // arm, so a bare `9;4` becomes a clean no-op, never a banner.
+        if params[1] == b"4" {
+            self.handle_osc_9_4_progress(params.get(2..).unwrap_or(&[]));
             return;
         }
         let body = join_osc_params(&params[1..]);
@@ -3204,10 +3211,13 @@ impl Terminal {
         });
     }
 
-    /// `ConEmu` OSC 9;4 progress — `rest` is `[st]` or `[st, pr]`.
-    /// `st`: 0=remove, 1=set, 2=error, 3=indeterminate, 4=paused.
-    /// `pr`: integer percent, clamped to 100 at this parse boundary.
-    /// Unknown states trace + drop (never a silently-wrong value).
+    /// `ConEmu` OSC 9;4 progress — `rest` is `[]`, `[st]`, or
+    /// `[st, pr]`. `st`: 0=remove, 1=set, 2=error, 3=indeterminate,
+    /// 4=paused. `pr`: integer percent, clamped to 100 at this parse
+    /// boundary. An empty/unknown state (incl. the truncated `ESC]9;4`
+    /// form) traces + drops via the `other` arm — never a silently-
+    /// wrong value, and never the "4" notification leak the caller's
+    /// length-gated routing once produced (review 2026-06-12).
     fn handle_osc_9_4_progress(&mut self, rest: &[&[u8]]) {
         let pct = rest
             .get(1)
@@ -8474,12 +8484,22 @@ mod tests {
     /// field by construction — this pins the parse routing).
     #[test]
     fn conemu_progress_matrix_sets_lane_and_never_notifies() {
-        let matrix: [(&str, &[u8], ProgressState); 5] = [
-            ("remove", b"\x1b]9;4;0\x07", ProgressState::Remove),
-            ("set 50%", b"\x1b]9;4;1;50\x07", ProgressState::Set { pct: 50 }),
-            ("error with pct", b"\x1b]9;4;2;30\x07", ProgressState::Error { pct: Some(30) }),
-            ("indeterminate", b"\x1b]9;4;3\x07", ProgressState::Indeterminate),
-            ("paused bare", b"\x1b]9;4;4\x07", ProgressState::Paused { pct: None }),
+        // `expect` is the typed progress lane outcome — `None` means
+        // the parse trace-drops with no progress AND no notification
+        // (the truncated/empty-state rows). EVERY row asserts zero
+        // notifications: the `9;4` namespace can never leak a banner.
+        let matrix: [(&str, &[u8], Option<ProgressState>); 7] = [
+            ("remove", b"\x1b]9;4;0\x07", Some(ProgressState::Remove)),
+            ("set 50%", b"\x1b]9;4;1;50\x07", Some(ProgressState::Set { pct: 50 })),
+            ("error with pct", b"\x1b]9;4;2;30\x07", Some(ProgressState::Error { pct: Some(30) })),
+            ("indeterminate", b"\x1b]9;4;3\x07", Some(ProgressState::Indeterminate)),
+            ("paused bare", b"\x1b]9;4;4\x07", Some(ProgressState::Paused { pct: None })),
+            // Truncated `ESC]9;4 ST` — no state byte. Routes to the
+            // progress handler's `other` arm: trace-drop, NOT a "4"
+            // notification (review 2026-06-12, determinism-unrep-0).
+            ("bare 9;4 truncated", b"\x1b]9;4\x07", None),
+            // `ESC]9;4; ST` — empty state param. Same trace-drop arm.
+            ("empty state 9;4;", b"\x1b]9;4;\x07", None),
         ];
         let mut failures: Vec<String> = Vec::new();
         for (name, bytes, expect) in &matrix {
@@ -8489,9 +8509,8 @@ mod tests {
             if notifs != 0 {
                 failures.push(format!("{name}: progress leaked {notifs} notification(s)"));
             }
-            match term.take_progress() {
-                Some(got) if got == *expect => {}
-                other => failures.push(format!("{name}: expected {expect:?}, got {other:?}")),
+            if term.take_progress() != *expect {
+                failures.push(format!("{name}: expected progress {expect:?}"));
             }
         }
         assert!(
