@@ -173,6 +173,104 @@ impl TerminalCaps {
     }
 }
 
+/// The typed PTY environment projection — the COMPLETE set of
+/// `(key, value)` env pairs every spawn path stamps on a child shell,
+/// derived from [`TerminalCaps`] (so the advertised `TERM` can never
+/// drift from the implemented capability set) plus the terminfo
+/// materialization arm.
+///
+/// **Why this type exists** (operator report 2026-06-12: "vim is grey
+/// and the wrong font in the embedded-tear default path"). The
+/// local-PTY path (`pty.rs`) projected the full capability env (`TERM`,
+/// `TERMINFO`, `COLORTERM`, `TERM_PROGRAM`, `TERM_PROGRAM_VERSION`) so
+/// vim saw `xterm-ghostty` with truecolor, but the embedded-tear spawn
+/// path (`tear-core::inproc`) only stamped conservative fallbacks
+/// (`xterm-256color`, no `TERMINFO`) — so vim in the operator-default
+/// (embedded) window got no truecolor (grey) and the wrong terminfo.
+/// This projection is the ONE typed source both paths consume, so the
+/// env a child sees is identical regardless of spawn entry point —
+/// pinned by the spawn-env matrix test.
+///
+/// `COLUMNS`/`LINES` are NOT in this projection: they are size facts
+/// the PTY winsize already carries (and the embedded path's grid
+/// owns), not capability facts.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EnvProjection {
+    pairs: Vec<(String, String)>,
+}
+
+impl EnvProjection {
+    /// The honest env a child shell must see, derived from
+    /// [`TerminalCaps::prescribed`]. Performs the same `TERM` /
+    /// `TERMINFO` resolution the local-PTY path did, including the
+    /// xterm-256color downgrade arm when terminfo materialization
+    /// fails (read-only HOME / exotic sandbox) so the advertised entry
+    /// is always resolvable.
+    ///
+    /// `TERM_PROGRAM_VERSION` is the caller's package version (mado's
+    /// `CARGO_PKG_VERSION`) — passed in because `caps` cannot read the
+    /// consumer crate's version macro.
+    #[must_use]
+    pub fn prescribed(program_version: &str) -> Self {
+        let caps = TerminalCaps::prescribed();
+        let advertised = caps.advertised_term();
+        let mut pairs: Vec<(String, String)> = Vec::with_capacity(5);
+        // TERM + TERMINFO: when the advertised entry is xterm-ghostty
+        // (not in any system ncurses db), materialize the vendored
+        // compiled entry + export TERMINFO; on failure downgrade TERM
+        // to a universally-resolvable entry rather than naming one apps
+        // cannot find ("missing or unsuitable terminal").
+        let term = if advertised == "xterm-ghostty" {
+            match crate::terminfo::ensure_terminfo_dir() {
+                Ok(dir) => {
+                    pairs.push(("TERMINFO".to_owned(), dir.to_string_lossy().into_owned()));
+                    advertised.to_owned()
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        error = %e,
+                        "terminfo materialization failed — downgrading TERM to xterm-256color"
+                    );
+                    "xterm-256color".to_owned()
+                }
+            }
+        } else {
+            advertised.to_owned()
+        };
+        pairs.push(("TERM".to_owned(), term));
+        // Truecolor is signalled OUT-OF-BAND of TERM (apps honour
+        // COLORTERM regardless of the terminfo entry) — this is the
+        // half that was missing on the embedded path, so vim rendered
+        // 256-colour grey instead of mado's truecolor theme.
+        pairs.push(("COLORTERM".to_owned(), "truecolor".to_owned()));
+        pairs.push(("TERM_PROGRAM".to_owned(), "mado".to_owned()));
+        pairs.push((
+            "TERM_PROGRAM_VERSION".to_owned(),
+            program_version.to_owned(),
+        ));
+        Self { pairs }
+    }
+
+    /// The projected `(key, value)` pairs, applied AFTER a child's
+    /// inherited env so they OVERRIDE any conservative fallback the
+    /// spawn backend stamped (tear-core's `xterm-256color` default
+    /// loses to mado's `xterm-ghostty` here — the override is the fix).
+    #[must_use]
+    pub fn pairs(&self) -> &[(String, String)] {
+        &self.pairs
+    }
+
+    /// The resolved `TERM` value (the projection always carries
+    /// exactly one `TERM` pair).
+    #[must_use]
+    pub fn term(&self) -> &str {
+        self.pairs
+            .iter()
+            .find(|(k, _)| k == "TERM")
+            .map_or("xterm-256color", |(_, v)| v.as_str())
+    }
+}
+
 /// How one advertised capability's honesty is verified against real
 /// engine behaviour. Every [`TerminalCaps`] field MUST have exactly
 /// one row in [`CAP_PROBES`] — the forcing tests below fail the
@@ -283,6 +381,53 @@ pub const CAP_PROBES: &[(&str, CapProbe)] = &[
 mod tests {
     use super::*;
     use crate::terminal::Terminal;
+
+    /// The shared env projection carries EXACTLY the capability env
+    /// every spawn path must stamp (operator report 2026-06-12: vim
+    /// grey + wrong font in the embedded-tear window came from the
+    /// embedded path stamping only a conservative xterm-256color
+    /// fallback). The projection always carries `TERM` + `COLORTERM` +
+    /// `TERM_PROGRAM` + `TERM_PROGRAM_VERSION`; `TERMINFO` rides along
+    /// iff the advertised entry is `xterm-ghostty` AND materialization
+    /// succeeded.
+    #[test]
+    fn env_projection_carries_the_full_capability_env() {
+        let proj = EnvProjection::prescribed("9.9.9");
+        let has = |k: &str| proj.pairs().iter().any(|(pk, _)| pk == k);
+        let get = |k: &str| {
+            proj.pairs()
+                .iter()
+                .find(|(pk, _)| pk == k)
+                .map(|(_, v)| v.as_str())
+        };
+        assert!(has("TERM"), "every spawn must set TERM");
+        // COLORTERM is the out-of-band truecolor signal — the half the
+        // embedded path was missing (vim rendered 256-colour grey).
+        assert_eq!(
+            get("COLORTERM"),
+            Some("truecolor"),
+            "COLORTERM=truecolor must be projected so vim gets truecolor"
+        );
+        assert_eq!(get("TERM_PROGRAM"), Some("mado"));
+        assert_eq!(get("TERM_PROGRAM_VERSION"), Some("9.9.9"));
+        // TERM is the honest projection of the capability set.
+        assert_eq!(
+            proj.term(),
+            TerminalCaps::prescribed().advertised_term(),
+            "projected TERM must equal the capability-derived advertised TERM (or its \
+             downgrade)"
+        );
+        // When xterm-ghostty is advertised, TERMINFO must accompany it
+        // (so apps can resolve the entry) OR the TERM downgraded to a
+        // universally-resolvable entry — never xterm-ghostty WITHOUT
+        // TERMINFO.
+        if proj.term() == "xterm-ghostty" {
+            assert!(
+                has("TERMINFO"),
+                "xterm-ghostty advertised without TERMINFO — apps cannot resolve the entry"
+            );
+        }
+    }
 
     /// The advertised TERM must never claim a capability the engine does
     /// not implement. The historical bug: advertising `xterm-ghostty`

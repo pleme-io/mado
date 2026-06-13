@@ -319,6 +319,20 @@ where
     // effect gating, and bold_is_bright were all dead in tear-attach
     // windows while working in local-PTY ones.
     renderer.apply_effects_and_accessibility(&config);
+    // Theme parity (FIX 2, operator report 2026-06-12): the SAME
+    // shared theme-application point main.rs uses. This path previously
+    // applied NO theme — it never called `Terminal::apply_theme`, so
+    // the mirror ANSI palette + the OSC 11 background-query answer
+    // stayed at the default and vim/the operator's configured theme
+    // never reached an embedded-tear window. Routing through
+    // `crate::theme::apply_config_theme` makes the palette identical to
+    // the local-PTY path (pinned by the entry-point parity test).
+    crate::theme::apply_config_theme(
+        &mut renderer,
+        &terminal,
+        &config.theme,
+        config.appearance.opacity,
+    );
     // Watched-config delta driver (M4 stage 2) — same shared
     // ux::ConfigHotReload the local-PTY loop polls; None on the CLI
     // `mado tear-attach` path, which loads config one-shot and runs
@@ -759,6 +773,23 @@ fn try_run_default_embedded(
     kanshou_state.set_tear_inproc(inproc.clone());
     crate::perf::log_phase("tear_inproc_constructed");
 
+    // ── Spawn-env projection (FIX 2) ──────────────────────────────
+    // Stamp mado's typed capability env (TERM=xterm-ghostty + vendored
+    // TERMINFO + COLORTERM + TERM_PROGRAM) onto every child PTY tear
+    // spawns IN-PROCESS — applied AFTER tear's inherited +
+    // xterm-256color-fallback env so mado's richer set wins. Without
+    // this, vim in the operator-default (embedded) window got no
+    // truecolor (grey) + the wrong terminfo. This is the typed seam
+    // (`tear_types::SpawnEnv`) the local-PTY path's env projection now
+    // also routes through (`caps::EnvProjection`), so the child env is
+    // identical across spawn entry points.
+    let spawn_env = tear_types::SpawnEnv::from_overrides(
+        crate::caps::EnvProjection::prescribed(env!("CARGO_PKG_VERSION"))
+            .pairs()
+            .to_vec(),
+    );
+    inproc.set_spawn_env(spawn_env);
+
     let session_name = config
         .tear
         .session_name
@@ -783,9 +814,8 @@ fn try_run_default_embedded(
     // returns Some only when the operator pinned
     // environment.working_directory or turned the knob OFF ($HOME);
     // knob ON returns None and the launch-shell cwd flows through
-    // untouched. Replace this seam with a typed control-trait arg
-    // when tear grows one. (Daemon mode has no in-process seam: its
-    // children spawn in the DAEMON's cwd — same documented gap.)
+    // untouched. (FIX 3 replaces this set_current_dir hack with the
+    // typed SpawnEnv.cwd seam.)
     if let Some(dir) = config.boot_spawn_cwd() {
         if let Err(e) = std::env::set_current_dir(&dir) {
             tracing::warn!(

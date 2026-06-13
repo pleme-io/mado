@@ -738,28 +738,18 @@ fn main() -> anyhow::Result<()> {
     let theme_names: Vec<&str> = Theme::available().iter().map(|t| t.name).collect();
     tracing::debug!(themes = ?theme_names, "available themes");
 
-    // Apply theme colors to terminal and renderer
-    if let Some(theme) = Theme::by_name(&config.theme) {
-        tracing::debug!(theme = theme.name, "applying terminal color theme");
-        renderer.set_ansi_colors(theme.ansi);
-        renderer.set_selection_bg(theme.selection_bg);
-        renderer.set_cursor_color(color_to_f32_rgba(&theme.cursor, 0.85));
-        // Theme bg also flows through the typed Srgb → Linear path so
-        // theme-swap doesn't reintroduce the gamma confusion the
-        // architecture eliminated above.
-        let theme_bg: wgpu::Color = ishou_tokens::Srgb::new(
-            theme.background.r,
-            theme.background.g,
-            theme.background.b,
-        )
-        .to_linear()
-        .with_alpha(config.appearance.opacity)
-        .into();
-        renderer.set_bg_fg(theme_bg, theme.foreground);
-        pane.terminal
-            .write()
-            .apply_theme(theme.foreground, theme.background, theme.ansi);
-    }
+    // Apply theme colors to terminal and renderer through the ONE
+    // shared theme-application point (crate::theme::apply_config_theme)
+    // the tear-attach loop also calls — so the two render modes cannot
+    // diverge (operator report 2026-06-12: the tear path skipped theme
+    // application entirely, leaving its palette + OSC 11 answer at the
+    // default).
+    crate::theme::apply_config_theme(
+        &mut renderer,
+        &pane.terminal,
+        &config.theme,
+        config.appearance.opacity,
+    );
 
     let pane_for_events = Arc::clone(&pane);
     let clipboard: Arc<dyn ClipboardProvider> = Arc::new(

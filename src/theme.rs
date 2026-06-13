@@ -47,6 +47,57 @@ impl Theme {
     }
 }
 
+/// Apply the named config theme to BOTH the renderer (ANSI palette,
+/// selection bg, cursor colour, bg/fg) AND the mirror `Terminal`
+/// (`apply_theme`) — the ONE shared theme-application point both the
+/// local-PTY loop (`main.rs`) and the tear-attach loop
+/// (`gui_tear_attach.rs`) call, so the two render modes cannot diverge.
+///
+/// **Why this is shared** (operator report 2026-06-12: "wrong font +
+/// palette / vim grey in the embedded-tear window"): the tear-attach
+/// path previously skipped theme application entirely — it never
+/// called `Terminal::apply_theme`, so the mirror palette + OSC 11
+/// background-query answer stayed at the default, and the operator's
+/// configured theme never reached an embedded window. Routing both
+/// paths through this function makes the palette identical by
+/// construction (pinned by the entry-point parity test).
+///
+/// No-op when the theme name does not resolve (the renderer keeps the
+/// foreground/background it was built with). `opacity` is the
+/// appearance opacity applied to the theme background through the
+/// typed sRGB→linear path so a theme swap doesn't reintroduce gamma
+/// confusion.
+pub fn apply_config_theme(
+    renderer: &mut crate::render::TerminalRenderer,
+    terminal: &crate::render::SharedTerminal,
+    theme_name: &str,
+    opacity: f32,
+) {
+    let Some(theme) = Theme::by_name(theme_name) else {
+        return;
+    };
+    renderer.set_ansi_colors(theme.ansi);
+    renderer.set_selection_bg(theme.selection_bg);
+    // Cursor overlay colour at 0.85 alpha — same as the local-PTY path.
+    let cursor = ishou_tokens::Srgb::new(theme.cursor.r, theme.cursor.g, theme.cursor.b).to_linear();
+    renderer.set_cursor_color([cursor.r, cursor.g, cursor.b, 0.85]);
+    // Theme bg through the typed Srgb → Linear path (no gamma confusion).
+    let theme_bg: wgpu::Color = ishou_tokens::Srgb::new(
+        theme.background.r,
+        theme.background.g,
+        theme.background.b,
+    )
+    .to_linear()
+    .with_alpha(opacity)
+    .into();
+    renderer.set_bg_fg(theme_bg, theme.foreground);
+    // The mirror Terminal half — palette + OSC 11 background-query
+    // answer. This is the call the tear path was MISSING.
+    terminal
+        .write()
+        .apply_theme(theme.foreground, theme.background, theme.ansi);
+}
+
 /// Cursor slot per preset — most themes' cursor is the foreground
 /// (`Base05`); a few (`one-dark`) want the typed `base0d` blue.
 /// Catppuccin Mocha's official cursor is Rosewater (base0F here).

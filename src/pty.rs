@@ -370,49 +370,24 @@ fn spawn_child(
         cmd.current_dir(dir);
     }
 
-    // Set terminal type so programs know our capabilities.
-    //
-    // TERM is a PROJECTION of mado's real capability set
-    // (`caps::TerminalCaps`), never a hand-picked string — so mado can
-    // never advertise a capability it does not implement. Since the M3
-    // styled-underline render path + pen-derived DECRQSS report landed,
-    // this resolves to `xterm-ghostty`, whose terminfo claims
-    // `Smulx`/`Setulc` — both now real (undercurl geometry via the
-    // engawa emitters; SGR 58 colour honoured). Truecolor is still
-    // signalled out-of-band via COLORTERM below. SSH sessions fall back
-    // to `xterm-256color` via blackmatter-shell's .zshenv for remote
-    // hosts lacking the advertised terminfo entry.
-    //
-    // AVAILABILITY honesty (M3 review 2026-06-12): xterm-ghostty is
-    // not in any system ncurses database — it only resolved on hosts
-    // where Ghostty's TERMINFO leaked into the environment. mado now
-    // VENDORS the compiled entry (src/terminfo.rs) and exports
-    // TERMINFO at the materialized cache dir; if materialization
-    // fails (read-only HOME, exotic sandbox) the advertisement
-    // downgrades to xterm-256color rather than naming an entry apps
-    // cannot resolve ("missing or unsuitable terminal").
-    let advertised = crate::caps::TerminalCaps::prescribed().advertised_term();
-    let term = if advertised == "xterm-ghostty" {
-        match crate::terminfo::ensure_terminfo_dir() {
-            Ok(dir) => {
-                cmd.env("TERMINFO", &dir);
-                advertised
-            }
-            Err(e) => {
-                tracing::warn!(
-                    error = %e,
-                    "terminfo materialization failed — downgrading TERM to xterm-256color"
-                );
-                "xterm-256color"
-            }
-        }
-    } else {
-        advertised
-    };
-    cmd.env("TERM", term);
-    cmd.env("COLORTERM", "truecolor");
-    cmd.env("TERM_PROGRAM", "mado");
-    cmd.env("TERM_PROGRAM_VERSION", env!("CARGO_PKG_VERSION"));
+    // Set terminal type + capability env so programs know what mado
+    // implements. This is the SHARED typed projection
+    // (`caps::EnvProjection`) — the ONE source every spawn path
+    // (local-PTY here + both embedded/daemon tear branches in
+    // gui_tear_attach) consumes, so a child's TERM / TERMINFO /
+    // COLORTERM / TERM_PROGRAM(_VERSION) is identical regardless of
+    // entry point. The embedded-tear path previously stamped only a
+    // conservative xterm-256color fallback, so vim in the
+    // operator-default window got no truecolor (grey) + wrong terminfo
+    // (operator report 2026-06-12); routing every path through this
+    // projection closes that divergence. The projection carries the
+    // xterm-ghostty terminfo-materialization + xterm-256color downgrade
+    // arm; COLUMNS/LINES stay here (they are PTY-size facts, not
+    // capability facts).
+    let env_projection = crate::caps::EnvProjection::prescribed(env!("CARGO_PKG_VERSION"));
+    for (key, value) in env_projection.pairs() {
+        cmd.env(key, value);
+    }
     cmd.env("COLUMNS", cols.to_string());
     cmd.env("LINES", rows.to_string());
 

@@ -883,6 +883,18 @@ impl Line {
         }
     }
 
+    /// A blank row whose cells are `fill` — the BCE cell carrying the
+    /// current pen background. When `fill` is `Cell::default()` this is
+    /// identical to [`Self::blank`]; the scroll-in paths use it so a
+    /// coloured-bg region scrolls in coloured rows, not black gaps.
+    fn filled(cols: usize, logical_id: LogicalLineId, fill: &Cell) -> Self {
+        Self {
+            cells: vec![fill.clone(); cols],
+            wrapped: false,
+            logical_id,
+        }
+    }
+
     /// True when every cell is the default cell AND the row does not
     /// continue a logical line — the trim test the rewrap pass uses
     /// for trailing blank rows.
@@ -1189,14 +1201,19 @@ impl Grid {
     /// scrollback this call — callers (e.g., `Terminal::scroll_grid_up`)
     /// use this to shift prompt-mark indices and any other
     /// grid-row-referencing state.
-    fn scroll_region_up(&mut self, top: usize, bottom: usize) -> usize {
+    /// Scroll the region `[top..=bottom]` up by one line. The
+    /// scrolled-in blank row is filled with `fill` — the BCE cell
+    /// carrying the current pen background (so a `vim`/`tmux` region
+    /// with a coloured bg scrolls in coloured rows, not black gaps).
+    /// `fill` IS `Cell::default()` when no coloured bg is active.
+    fn scroll_region_up(&mut self, top: usize, bottom: usize, fill: &Cell) -> usize {
         let sb_offset = self.scrollback_len();
         let mut evicted = 0;
 
         if top == 0 && bottom == self.visible_rows - 1 {
             // Full-screen scroll: push top to scrollback, append blank
             let id = self.fresh_id();
-            self.rows.push_back(Line::blank(self.cols, id));
+            self.rows.push_back(Line::filled(self.cols, id, fill));
             // Evict oldest scrollback if over limit
             while self.scrollback_len() > self.max_scrollback {
                 self.rows.pop_front();
@@ -1209,30 +1226,35 @@ impl Grid {
             let insert_idx = sb_offset + bottom;
             // After removal, indexes shifted down, so insert at the same logical position
             let id = self.fresh_id();
-            self.rows.insert(insert_idx, Line::blank(self.cols, id));
+            self.rows.insert(insert_idx, Line::filled(self.cols, id, fill));
         }
         evicted
     }
 
-    /// Scroll the region [top..=bottom] down by one line.
-    /// Bottom row is discarded, blank line inserted at top.
-    fn scroll_region_down(&mut self, top: usize, bottom: usize) {
+    /// Scroll the region `[top..=bottom]` down by one line.
+    /// Bottom row is discarded, BCE-filled blank line inserted at top.
+    fn scroll_region_down(&mut self, top: usize, bottom: usize, fill: &Cell) {
         let sb_offset = self.scrollback_len();
         let remove_idx = sb_offset + bottom;
         if remove_idx < self.rows.len() {
             self.rows.remove(remove_idx);
         }
         let id = self.fresh_id();
-        self.rows.insert(sb_offset + top, Line::blank(self.cols, id));
+        self.rows.insert(sb_offset + top, Line::filled(self.cols, id, fill));
     }
 
-    /// Clear a range of cells in a visible row.
-    fn erase_cells(&mut self, row: usize, start: usize, end: usize) {
+    /// Clear a range of cells in a visible row, filling with `fill` —
+    /// the background-color-erase (BCE) cell the owning [`Terminal`]
+    /// builds from the current pen background (a space + the active
+    /// `pen_bg`, default fg/attrs). When the pen bg is the default,
+    /// `fill` IS `Cell::default()`, so the legacy behaviour is the
+    /// zero-pen special case.
+    fn erase_cells(&mut self, row: usize, start: usize, end: usize, fill: &Cell) {
         let end = end.min(self.cols);
         let reaches_line_end = end == self.cols;
         let line = self.visible_line_mut(row);
         for col in start..end {
-            line.cells[col] = Cell::default();
+            line.cells[col] = fill.clone();
         }
         // An erase that reaches the right edge breaks the soft wrap:
         // the row no longer has content flowing into the next row, so
@@ -1242,12 +1264,13 @@ impl Grid {
         }
     }
 
-    /// Clear the entire visible area.
-    fn clear_visible(&mut self) {
+    /// Clear the entire visible area, filling with `fill` (the BCE cell
+    /// — see [`Self::erase_cells`]).
+    fn clear_visible(&mut self, fill: &Cell) {
         for i in 0..self.visible_rows {
             let line = self.visible_line_mut(i);
             for cell in line.cells.iter_mut() {
-                *cell = Cell::default();
+                *cell = fill.clone();
             }
             // Cleared rows carry no soft-wrap continuation.
             line.wrapped = false;
@@ -4330,7 +4353,9 @@ impl Terminal {
         let top = self.scroll_top;
         let bottom = self.scroll_bottom;
         let use_alt = self.use_alternate;
-        let evicted = self.grid_mut().scroll_region_up(top, bottom);
+        // BCE: scrolled-in rows take the current pen background.
+        let fill = self.bce_fill_cell();
+        let evicted = self.grid_mut().scroll_region_up(top, bottom, &fill);
         // Content-pinning: a full-screen scroll on the primary grid
         // pushed one line into scrollback, shifting all content one
         // row away from the live bottom. When the operator is
@@ -4357,7 +4382,9 @@ impl Terminal {
     fn scroll_grid_down(&mut self) {
         let top = self.scroll_top;
         let bottom = self.scroll_bottom;
-        self.grid_mut().scroll_region_down(top, bottom);
+        // BCE: scrolled-in rows take the current pen background.
+        let fill = self.bce_fill_cell();
+        self.grid_mut().scroll_region_down(top, bottom, &fill);
         self.dirty();
     }
 
@@ -4545,8 +4572,40 @@ impl Terminal {
         self.dirty();
     }
 
+    /// The background-color-erase (BCE) fill cell: a blank space
+    /// carrying the CURRENT pen background, with default fg + no
+    /// attributes (per the BCE contract — an erased cell takes the
+    /// pen's background colour only, never its fg/bold/underline). When
+    /// the pen bg is the default, this returns exactly `Cell::default()`
+    /// (the interned `DEFAULT_STYLE_ID`), so the common no-coloured-bg
+    /// case is unchanged. This is why mado's advertised terminfo can
+    /// honestly claim `bce` (operator report 2026-06-12: vim / full-
+    /// screen apps that set a coloured bg then erase saw black gaps
+    /// because erase filled with the default bg, not the pen bg).
+    fn bce_fill_cell(&mut self) -> Cell {
+        if self.pen_bg == self.default_bg {
+            // No coloured background active — the default cell IS the
+            // BCE fill, no interning needed.
+            return Cell::default();
+        }
+        let style = Style {
+            fg: self.default_fg,
+            bg: self.pen_bg,
+            attrs: Attrs::default(),
+        };
+        let style_id = self.intern_style(style);
+        Cell {
+            ch: ' ',
+            extra: None,
+            width: 1,
+            style_id,
+            link_id: NO_LINK_ID,
+        }
+    }
+
     fn erase_cells(&mut self, row: usize, start: usize, end: usize) {
-        self.grid_mut().erase_cells(row, start, end);
+        let fill = self.bce_fill_cell();
+        self.grid_mut().erase_cells(row, start, end, &fill);
         self.dirty();
     }
 
@@ -4588,7 +4647,10 @@ impl Terminal {
         if !self.use_alternate {
             self.save_cursor();
             self.use_alternate = true;
-            self.alternate.clear_visible();
+            // BCE: the alt-screen clear takes the current pen
+            // background, same as any erase (xterm contract).
+            let fill = self.bce_fill_cell();
+            self.alternate.clear_visible(&fill);
             self.cursor = Cursor::default();
             self.scroll_top = 0;
             self.scroll_bottom = self.rows.saturating_sub(1);
@@ -5407,8 +5469,10 @@ impl vte::Perform for Terminal {
                 let n = first_param(1);
                 let cursor_row = self.cursor.row;
                 let bottom = self.scroll_bottom;
+                // BCE: inserted blank lines take the current pen bg.
+                let fill = self.bce_fill_cell();
                 for _ in 0..n.min(bottom - cursor_row + 1) {
-                    self.grid_mut().scroll_region_down(cursor_row, bottom);
+                    self.grid_mut().scroll_region_down(cursor_row, bottom, &fill);
                 }
                 self.dirty();
             }
@@ -5418,9 +5482,11 @@ impl vte::Perform for Terminal {
                 let cursor_row = self.cursor.row;
                 let bottom = self.scroll_bottom;
                 let use_alt = self.use_alternate;
+                // BCE: rows that scroll in from the bottom take the bg.
+                let fill = self.bce_fill_cell();
                 let mut evicted = 0;
                 for _ in 0..n.min(bottom - cursor_row + 1) {
-                    evicted += self.grid_mut().scroll_region_up(cursor_row, bottom);
+                    evicted += self.grid_mut().scroll_region_up(cursor_row, bottom, &fill);
                 }
                 if !use_alt && evicted > 0 {
                     self.prompt_marks.shift_on_evict(evicted);
@@ -8046,6 +8112,73 @@ mod tests {
         assert_eq!(term.cell(0, 3).ch, ' ');
         assert_eq!(term.cell(0, 4).ch, ' ');
         assert_eq!(term.cell(0, 5).ch, 'F');
+    }
+
+    /// **BCE — background-color-erase** (operator report 2026-06-12:
+    /// vim / full-screen apps that set a coloured bg then erase saw
+    /// black gaps because erase filled with the default bg, not the
+    /// active pen bg). With a non-default pen bg, EL/ED/ECH erase to a
+    /// space carrying THAT bg, default fg, no attrs — so the advertised
+    /// terminfo `bce` capability is honest.
+    #[test]
+    fn erase_with_colored_bg_fills_with_pen_bg_not_default() {
+        let mut term = Terminal::new(10, 1);
+        // SGR 41 = red background; the pen bg is now red.
+        term.feed(b"\x1b[41m");
+        let red = term.pen_bg;
+        assert_ne!(red, term.default_bg, "test premise: red bg differs from default");
+        term.feed(b"ABCDE");
+        // EL mode 0: erase from cursor to end of line.
+        term.feed(b"\x1b[1;3H\x1b[0K");
+        // Erased cells (cols 2..10) carry the red bg, not the default.
+        for col in 2..10 {
+            assert_eq!(term.cell(0, col).ch, ' ', "col {col} should be blank");
+            assert_eq!(
+                term.cell(0, col).bg(term.styles()),
+                red,
+                "BCE: erased cell {col} must carry the active pen bg (red), not the default"
+            );
+        }
+        // Cols 0..2 keep their content.
+        assert_eq!(term.cell(0, 0).ch, 'A');
+        assert_eq!(term.cell(0, 1).ch, 'B');
+    }
+
+    /// BCE with the DEFAULT pen bg is the legacy zero-pen case: the
+    /// erased cell is exactly `Cell::default()` (interned
+    /// `DEFAULT_STYLE_ID`), so the common no-coloured-bg path is
+    /// unchanged.
+    #[test]
+    fn erase_with_default_bg_is_the_default_cell() {
+        let mut term = Terminal::new(10, 1);
+        term.feed(b"ABCDE");
+        term.feed(b"\x1b[1;1H\x1b[2K"); // ED-class: erase the line.
+        for col in 0..10 {
+            assert_eq!(
+                *term.cell(0, col),
+                Cell::default(),
+                "no coloured bg → erase yields the default cell"
+            );
+        }
+    }
+
+    /// BCE on the scroll-in path (IL / scroll-region / scroll-up): a
+    /// region scrolling under a coloured pen bg brings in coloured
+    /// rows, not black gaps.
+    #[test]
+    fn scroll_in_fills_with_pen_bg() {
+        let mut term = Terminal::new(5, 3);
+        term.feed(b"\x1b[42m"); // green bg pen.
+        let green = term.pen_bg;
+        // IL at the top inserts one BCE-filled blank line.
+        term.feed(b"\x1b[1;1H\x1b[1L");
+        for col in 0..5 {
+            assert_eq!(
+                term.cell(0, col).bg(term.styles()),
+                green,
+                "an inserted (scrolled-in) line must carry the pen bg under BCE"
+            );
+        }
     }
 
     #[test]

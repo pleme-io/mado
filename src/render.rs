@@ -5702,6 +5702,98 @@ mod tests {
         )
     }
 
+    /// A gpu-free renderer that ALSO hands back its shared terminal,
+    /// so theme-parity tests can assert both halves
+    /// (`renderer.ansi_colors` + the mirror `Terminal` palette / OSC 11
+    /// answer) after the shared theme-application point runs.
+    fn gpu_free_renderer_with_terminal() -> (TerminalRenderer, SharedTerminal) {
+        let term: SharedTerminal = std::sync::Arc::new(parking_lot::RwLock::new(
+            crate::terminal::Terminal::new(80, 24),
+        ));
+        let renderer = TerminalRenderer::new(
+            std::sync::Arc::clone(&term),
+            14.0,
+            "JetBrains Mono".into(),
+            "Iosevka".into(),
+            String::new(),
+            8.0,
+            crate::config::CursorStyle::Block,
+            false,
+            500,
+            wgpu::Color::BLACK,
+            crate::terminal::Color::new(0xec, 0xef, 0xf4),
+        );
+        (renderer, term)
+    }
+
+    /// **Entry-point theme parity** (operator report 2026-06-12: wrong
+    /// font/palette + vim grey in the embedded-tear window). The
+    /// tear-attach path previously applied NO theme — it never called
+    /// `Terminal::apply_theme`, so its mirror ANSI palette + OSC 11
+    /// background-query answer stayed at the default. Both entry points
+    /// now route through `crate::theme::apply_config_theme`; this pins
+    /// that the SHARED helper sets BOTH the renderer's ANSI palette AND
+    /// the mirror Terminal's palette + OSC 11 answer, so a tear-attach
+    /// window's theme is identical to a local-PTY window's.
+    #[test]
+    fn shared_theme_application_sets_renderer_and_terminal_palette() {
+        let (mut renderer, term) = gpu_free_renderer_with_terminal();
+        // Pick a real built-in theme whose bg differs from the default.
+        let theme = crate::theme::Theme::available()
+            .iter()
+            .find(|t| {
+                let bg = t.background;
+                bg != crate::terminal::Color::BLACK
+            })
+            .expect("at least one built-in theme has a non-black background");
+        let theme_name = theme.name.to_owned();
+        let theme_ansi = theme.ansi;
+        let theme_bg = theme.background;
+
+        crate::theme::apply_config_theme(&mut renderer, &term, &theme_name, 1.0);
+
+        // Renderer half — the GPU palette the draw pass reads.
+        assert_eq!(
+            renderer.ansi_colors, theme_ansi,
+            "the renderer's ANSI palette must equal the theme's after apply_config_theme"
+        );
+        // Mirror Terminal half — the palette + OSC 11 answer the
+        // tear-attach path used to leave at the default.
+        {
+            let t = term.read();
+            assert_eq!(
+                t.ansi_palette()[..16],
+                theme_ansi[..],
+                "the mirror Terminal's first 16 ANSI slots must equal the theme palette"
+            );
+        }
+        // OSC 11 ?  must answer the THEME background, not the default —
+        // an app querying the bg (e.g. a light/dark detector) sees the
+        // operator's configured theme in a tear-attach window now.
+        let answer = {
+            let mut t = term.write();
+            t.feed(b"\x1b]11;?\x1b\\");
+            t.take_response().unwrap_or_default()
+        };
+        let answer_str = String::from_utf8_lossy(&answer);
+        assert!(
+            answer_str.starts_with("\x1b]11;rgb:"),
+            "OSC 11 ? must answer an rgb background, got {answer_str:?}"
+        );
+        // The answer encodes the theme bg's 8-bit channels as the high
+        // byte of each 16-bit rgb component (rr/rr gg/gg bb/bb).
+        let hex2 = |b: u8| format!("{b:02x}");
+        assert!(
+            answer_str.contains(&format!(
+                "rgb:{r}{r}/{g}{g}/{b}{b}",
+                r = hex2(theme_bg.r),
+                g = hex2(theme_bg.g),
+                b = hex2(theme_bg.b)
+            )),
+            "OSC 11 ? must answer the THEME bg ({theme_bg:?}), got {answer_str:?}"
+        );
+    }
+
     /// Phantom-cursor + unfocused-affordance invariants (2026-06-11):
     /// the snapshot carries scroll state so the draw pass can suppress
     /// the live-grid cursor over history rows, and `focused` defaults
