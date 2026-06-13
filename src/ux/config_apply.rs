@@ -137,23 +137,25 @@ struct Resolved {
 #[allow(clippy::cast_precision_loss)]
 fn resolve(config: &MadoConfig) -> Resolved {
     let theme = Theme::by_name(&config.theme);
-    let bg_srgb = match theme {
-        Some(t) => ishou_tokens::Srgb::new(t.background.r, t.background.g, t.background.b),
-        None => ishou_tokens::Srgb::from_hex(&config.appearance.background)
-            .unwrap_or(ishou_tokens::Srgb::new(0x2e, 0x34, 0x40)),
-    };
+    let bg_srgb = theme.map_or_else(
+        || {
+            ishou_tokens::Srgb::from_hex(&config.appearance.background)
+                .unwrap_or(ishou_tokens::Srgb::new(0x2e, 0x34, 0x40))
+        },
+        |t| ishou_tokens::Srgb::new(t.background.r, t.background.g, t.background.b),
+    );
     let bg: wgpu::Color = bg_srgb
         .to_linear()
         .with_alpha(config.appearance.opacity)
         .into();
-    let fg = match theme {
-        Some(t) => t.foreground,
-        None => {
+    let fg = theme.map_or_else(
+        || {
             let fg_srgb = ishou_tokens::Srgb::from_hex(&config.appearance.foreground)
                 .unwrap_or(ishou_tokens::Srgb::new(0xec, 0xef, 0xf4));
             Color::new(fg_srgb.r, fg_srgb.g, fg_srgb.b)
-        }
-    };
+        },
+        |t| t.foreground,
+    );
     Resolved {
         ansi: theme.map(|t| t.ansi),
         selection_bg: theme.map(|t| t.selection_bg),
@@ -201,20 +203,20 @@ pub fn diff(old: &MadoConfig, new: &MadoConfig) -> Vec<SetterCall> {
     let o = resolve(old);
     let n = resolve(new);
     let mut calls = Vec::new();
-    if let Some(ansi) = n.ansi {
-        if o.ansi != Some(ansi) {
-            calls.push(SetterCall::AnsiColors(ansi));
-        }
+    if let Some(ansi) = n.ansi
+        && o.ansi != Some(ansi)
+    {
+        calls.push(SetterCall::AnsiColors(ansi));
     }
-    if let Some(sel) = n.selection_bg {
-        if o.selection_bg.is_none_or(|prev| rgba_changed(prev, sel)) {
-            calls.push(SetterCall::SelectionBg(sel));
-        }
+    if let Some(sel) = n.selection_bg
+        && o.selection_bg.is_none_or(|prev| rgba_changed(prev, sel))
+    {
+        calls.push(SetterCall::SelectionBg(sel));
     }
-    if let Some(cur) = n.cursor_color {
-        if o.cursor_color.is_none_or(|prev| rgba_changed(prev, cur)) {
-            calls.push(SetterCall::CursorColor(cur));
-        }
+    if let Some(cur) = n.cursor_color
+        && o.cursor_color.is_none_or(|prev| rgba_changed(prev, cur))
+    {
+        calls.push(SetterCall::CursorColor(cur));
     }
     if wgpu_color_changed(o.bg, n.bg) || o.fg != n.fg {
         calls.push(SetterCall::BgFg { bg: n.bg, fg: n.fg });

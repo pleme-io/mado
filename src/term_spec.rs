@@ -127,10 +127,11 @@ impl TermSpec {
         inherit_enabled: bool,
         focused_cwd: Option<String>,
     ) -> Self {
-        if self.cwd.is_empty() && inherit_enabled {
-            if let Some(cwd) = focused_cwd {
-                self.cwd = cwd;
-            }
+        if self.cwd.is_empty()
+            && inherit_enabled
+            && let Some(cwd) = focused_cwd
+        {
+            self.cwd = cwd;
         }
         self
     }

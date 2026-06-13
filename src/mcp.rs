@@ -294,14 +294,10 @@ struct MadoMcp {
 
 #[tool_router]
 impl MadoMcp {
-    fn new() -> Self {
-        Self::with_state(SharedState::default())
-    }
-
     /// Construct with an externally-owned shared-state bundle —
-    /// the future IPC bridge + the test fixtures both route through
-    /// here. `new()` is the prod entrypoint and calls this with
-    /// `SharedState::default()`.
+    /// `run()` (the prod entrypoint, threading the boot config),
+    /// the future IPC bridge, and the test fixtures all route
+    /// through here.
     fn with_state(state: SharedState) -> Self {
         Self {
             tool_router: Self::tool_router(),
@@ -1828,7 +1824,7 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("mado-mcp-test-kanshou-{}", std::process::id()));
         let _ = std::fs::create_dir_all(&dir);
         unsafe { std::env::set_var("KANSHOU_SOCKET_DIR", &dir) };
-        MadoMcp::new()
+        MadoMcp::with_state(SharedState::default())
     }
 
     /// Build a server whose boot config has
