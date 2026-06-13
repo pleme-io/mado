@@ -125,27 +125,39 @@ fn tear_adapter_drain_never_short_circuits_the_event() {
     let squashed: String = src.split_whitespace().collect::<Vec<_>>().join(" ");
     let mut failures: Vec<String> = Vec::new();
 
-    // The deferred-fold must exist: the title rides onto the event's
-    // response, never replaces it.
-    if !squashed.contains("with_title(") {
-        failures.push(
-            "src/gui_tear_attach.rs no longer folds the drained title via with_title( — \
-             the drain may have regressed to an early-return-on-title that drops the event"
-                .into(),
-        );
-    }
-    // The exact regression shape: the drain's `apply_side_effects(...)`
-    // result returned directly as a title-only EventResponse. The fold
-    // assigns it to `drained_title` instead; a `return EventResponse {
-    // set_title: Some(title)` adjacent to the drain is the bug.
-    if squashed.contains("apply_side_effects( effects, renderer,")
-        && squashed.contains("return EventResponse { set_title: Some(title)")
-    {
-        failures.push(
-            "src/gui_tear_attach.rs returns a title-only EventResponse — the drain is \
-             dropping same-tick input events again (the copy-on-release regression)"
-                .into(),
-        );
+    // POSITIVE structural invariant (not a brittle exact-token-order
+    // negative): the drained title must be (1) captured into a binding
+    // — NOT returned in place, (2) the event computed into its own
+    // `response` binding, and (3) the closure's logic folded as
+    // `with_title(response, drained_title)`. With all three present the
+    // early-return-on-title regression (the drain short-circuiting the
+    // `match event` and eating the copy `LeftRelease`) is unwritable:
+    // the title has nowhere to short-circuit TO.
+    let required = [
+        (
+            "let drained_title = {",
+            "the side-effect drain must be captured into a `drained_title` binding, \
+             not returned in place (the early-return-on-title regression)",
+        ),
+        (
+            "drain_side_effects()",
+            "the drained title must come from the single `drain_side_effects()` chokepoint",
+        ),
+        (
+            "let response = match event {",
+            "the event's own response must be computed into a `response` binding FIRST \
+             (so no input event is dropped to deliver a title)",
+        ),
+        (
+            "with_title(response, drained_title)",
+            "the drained title must be FOLDED onto the event's own response via \
+             `with_title(response, drained_title)` as the closure tail, never short-circuited",
+        ),
+    ];
+    for (needle, why) in required {
+        if !squashed.contains(needle) {
+            failures.push(format!("src/gui_tear_attach.rs missing `{needle}` — {why}"));
+        }
     }
     assert!(
         failures.is_empty(),
