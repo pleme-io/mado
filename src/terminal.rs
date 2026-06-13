@@ -3170,6 +3170,30 @@ impl Terminal {
         };
     }
 
+    /// THE single notification-enqueue chokepoint. Every OSC 9 / 777 /
+    /// 99 path routes here so the queue has ONE bound site (review
+    /// 2026-06-12, critic-0). The queue is drained once per frame and
+    /// EACH entry spawns an OS notification process on dispatch
+    /// (`osascript` on macOS) — an unbounded queue under an OSC-flood
+    /// (`printf '\e]9;x\a'` in a tight loop) would spawn thousands of
+    /// processes + reaper threads in one drain, a fork-bomb-adjacent
+    /// DoS that freezes the host. The cap (drop-oldest, keep newest)
+    /// makes the queue length input-rate-independent, mirroring the
+    /// kitty APC_MAX / sixel DCS bounds.
+    fn push_notification(&mut self, notification: PendingNotification) {
+        const MAX_PENDING_NOTIFICATIONS: usize = 64;
+        if self.pending_notifications.len() >= MAX_PENDING_NOTIFICATIONS {
+            // Drop the oldest so a flood can't grow the queue, but the
+            // operator still sees the most recent N messages.
+            self.pending_notifications.remove(0);
+            tracing::warn!(
+                cap = MAX_PENDING_NOTIFICATIONS,
+                "notification queue at cap — dropped oldest pending notification"
+            );
+        }
+        self.pending_notifications.push(notification);
+    }
+
     /// OSC 9 — Desktop notification (iTerm2 / ghostty compat) plus
     /// the `ConEmu` `9;4` progress carve-out.
     ///
@@ -3202,7 +3226,7 @@ impl Terminal {
         }
         let body = join_osc_params(&params[1..]);
         tracing::debug!(%body, "OSC 9 notification");
-        self.pending_notifications.push(PendingNotification {
+        self.push_notification(PendingNotification {
             title: None,
             body,
             urgency: Urgency::Normal,
@@ -3251,7 +3275,7 @@ impl Terminal {
         let title = String::from_utf8_lossy(params[2]).into_owned();
         let body = join_osc_params(&params[3..]);
         tracing::debug!(%title, %body, "OSC 777 notification");
-        self.pending_notifications.push(PendingNotification {
+        self.push_notification(PendingNotification {
             title: Some(title),
             body,
             urgency: Urgency::Normal,
@@ -3327,15 +3351,32 @@ impl Terminal {
         if let Some(u) = urgency {
             pending.urgency = Some(pending.urgency.map_or(u, |cur| cur.max(u)));
         }
+        // Bound each accumulated chain field: a `d=0` chain that never
+        // sends `d=1` (`\e]99;d=0:p=body;<chunk>\e\\` forever) would
+        // grow `pending.body` without limit and hold it across every
+        // feed — unbounded memory for a notification that may never
+        // fire, and one the per-frame drain never sees (review
+        // 2026-06-12, critic-3). Once a field passes the cap, further
+        // fragments for it trace-drop; the chain still finalizes on a
+        // later `d=1` with whatever fit.
+        const MAX_OSC99_FIELD: usize = 16 * 1024;
+        let append_capped = |field: &mut Option<String>, frag: &str, which: &str| {
+            let cur = field.get_or_insert_with(String::new);
+            if cur.len() >= MAX_OSC99_FIELD {
+                tracing::warn!(cap = MAX_OSC99_FIELD, which, "OSC 99 chain field at cap — dropping fragment");
+            } else {
+                cur.push_str(frag);
+            }
+        };
         match payload_kind {
             b"title" => {
                 if !payload.is_empty() {
-                    pending.title.get_or_insert_with(String::new).push_str(&payload);
+                    append_capped(&mut pending.title, &payload, "title");
                 }
             }
             b"body" => {
                 if !payload.is_empty() {
-                    pending.body.get_or_insert_with(String::new).push_str(&payload);
+                    append_capped(&mut pending.body, &payload, "body");
                 }
             }
             other => {
@@ -3349,7 +3390,7 @@ impl Terminal {
                 return;
             }
             tracing::debug!(?notification, "OSC 99 notification");
-            self.pending_notifications.push(notification);
+            self.push_notification(notification);
         } else {
             self.pending_osc99 = Some(pending);
         }
@@ -8527,6 +8568,55 @@ mod tests {
         let mut term = Terminal::new(80, 24);
         term.feed(b"\x1b]99;i=1:p=close;\x07");
         assert_eq!(term.drain_notifications().count(), 0);
+    }
+
+    /// critic-0 (review 2026-06-12): an OSC 9 flood must NOT grow the
+    /// notification queue without bound. Each drained entry spawns an
+    /// OS notification process on dispatch, so an unbounded queue is a
+    /// fork-bomb-adjacent DoS. The `push_notification` chokepoint caps
+    /// the queue (drop-oldest, keep newest) regardless of input rate.
+    #[test]
+    fn notification_flood_is_bounded_at_the_queue() {
+        const CAP: usize = 64;
+        let mut term = Terminal::new(80, 24);
+        // Stream far more notifications than the cap WITHOUT draining.
+        for i in 0..(CAP * 10) {
+            // OSC 9 body carries the index so we can prove drop-oldest.
+            let esc = format!("\x1b]9;n{i}\x07");
+            term.feed(esc.as_bytes());
+        }
+        let got: Vec<PendingNotification> = term.drain_notifications().collect();
+        assert_eq!(got.len(), CAP, "queue must be bounded at the cap, not grow with input");
+        // Drop-oldest keeps the NEWEST entries: the last body must be
+        // the final index fed, the first the (total - cap)-th.
+        let total = CAP * 10;
+        assert_eq!(got.last().unwrap().body, format!("n{}", total - 1));
+        assert_eq!(got.first().unwrap().body, format!("n{}", total - CAP));
+    }
+
+    /// critic-3 (review 2026-06-12): an OSC 99 `d=0` chain that never
+    /// finalizes must NOT grow `pending.title`/`body` without bound.
+    /// Each field caps at MAX_OSC99_FIELD; further fragments trace-drop
+    /// but the chain still finalizes on a later `d=1` with what fit.
+    #[test]
+    fn osc_99_unbounded_chain_field_is_capped() {
+        const FIELD_CAP: usize = 16 * 1024;
+        let mut term = Terminal::new(80, 24);
+        // Each fragment adds 1 KiB to the body; stream well past the cap.
+        let chunk = "x".repeat(1024);
+        for _ in 0..64 {
+            let esc = format!("\x1b]99;i=1:d=0:p=body;{chunk}\x07");
+            term.feed(esc.as_bytes());
+        }
+        // Finalize — the body must be capped, not 64 KiB.
+        term.feed(b"\x1b]99;i=1:d=1:p=body;\x07");
+        let got: Vec<PendingNotification> = term.drain_notifications().collect();
+        assert_eq!(got.len(), 1, "the chain finalizes exactly once");
+        assert!(
+            got[0].body.len() <= FIELD_CAP + 1024,
+            "chain body must be bounded near the cap, got {} bytes",
+            got[0].body.len()
+        );
     }
 
     /// `ConEmu` OSC 9;4 matrix: every progress state lands in the typed
