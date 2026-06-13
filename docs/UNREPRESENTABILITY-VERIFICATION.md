@@ -49,6 +49,7 @@ rotted away.
 | Sixel DCS pre-decode buffer cap (`Terminal::put`/`unhook`, review 2026-06-12, critic-1) | A giant or never-`unhook`'d sixel DCS payload growing `sixel_buffer` without bound → OOM (the asymmetry the kitty APC_MAX path already closed) | `put()` drops the partial + poisons the sequence past `SIXEL_DCS_MAX` (8 MiB); every further byte no-ops; `unhook` rejects with a typed trace and places no image | `only-mitigated` — the cap is a runtime guard repeated at the push site (mirrors APC_MAX), not a type; the over-cap byte stream is constructible but cannot accumulate past the bound or reach the decoder | `sixel_dcs_oversized_payload_is_bounded_and_rejected` |
 | Notification queue cap (`Terminal::push_notification`, review 2026-06-12, critic-0) | An OSC 9 / 777 / 99 flood growing `pending_notifications` without bound → a per-frame drain spawning thousands of `osascript` processes + reaper threads (fork-bomb-adjacent DoS) | Every enqueue routes through one `push_notification` chokepoint that caps the queue at `MAX_PENDING_NOTIFICATIONS` (drop-oldest, keep newest); the queue length is input-rate-independent | `only-mitigated` — the cap is a runtime guard at the single push chokepoint, not a type; an unbounded burst is constructible upstream but cannot grow the queue past the bound | `notification_flood_is_bounded_at_the_queue` |
 | OSC 99 chain field cap (`Terminal::handle_osc_99_kitty`, review 2026-06-12, critic-3) | A `d=0` chain that never sends `d=1` growing `pending.title`/`body` without bound — held across every feed, never drained | Each accumulated field caps at `MAX_OSC99_FIELD` (16 KiB); over-cap fragments trace-drop while the chain still finalizes on a later `d=1` with what fit | `only-mitigated` — the cap is a runtime guard at the `push_str` site, not a type; the over-cap fragment stream is constructible but cannot grow the field past the bound | `osc_99_unbounded_chain_field_is_capped` |
+| Decoded-image map GC (`Terminal::gc_orphaned_images`, review 2026-06-12, critic-2) | A scrolled-off sixel (or kitty image) orphaning its decoded RGBA in `images` forever — the placement is pruned on rewrap but the texture is never freed, and an auto-assigned sixel id has no deletable handle | After the rewrap placement-prune, `gc_orphaned_images` frees `images` entries whose LAST placement was dropped this pass; scoped to dropped ids so a transmit-only kitty image survives | `only-mitigated` — the GC is a reconcile pass (a runtime walk) keyed off pruned placements, not a type that makes the orphan unrepresentable; pinned by a forcing-function test + a scope-guard test | `scrolled_off_sixel_texture_is_gc_d_when_placement_pruned` `transmitted_unplaced_image_survives_rewrap_gc` |
 
 ## Tier histogram
 
@@ -57,7 +58,7 @@ rotted away.
 | `truly-unrepresentable` (with a named mitigated axis) | 2 |
 | `parse-time-rejected` | 1 |
 | `partially` | 1 |
-| `only-mitigated` | 10 |
+| `only-mitigated` | 11 |
 
 The histogram is the honesty: most of mado's hardening is still
 mitigation with forcing-function tests. Each `only-mitigated` row is

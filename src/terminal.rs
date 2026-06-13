@@ -2572,6 +2572,10 @@ impl Terminal {
         self.primary.resize(cols, rows, self.reflow_on_resize);
         self.alternate.resize(cols, rows, false);
 
+        // Image ids whose placement was pruned this rewrap — collected
+        // while `grid` is borrowed, GC'd after that borrow ends (the
+        // GC needs `&mut self`; review 2026-06-12, critic-2).
+        let mut dropped_image_ids: Vec<u32> = Vec::new();
         if rewrap {
             let grid = &self.primary;
             self.prompt_marks.reanchor(|a| grid.physical_row_of(a));
@@ -2608,7 +2612,10 @@ impl Terminal {
                             p.row = abs_row - sb;
                             true
                         }
-                        _ => false,
+                        _ => {
+                            dropped_image_ids.push(p.image_id);
+                            false
+                        }
                     }
                 });
             }
@@ -2616,6 +2623,9 @@ impl Terminal {
                 self.scroll_offset = sb.saturating_sub(row);
             }
         }
+        // `grid` borrow ended with the `if rewrap` block — free any
+        // decoded texture whose last placement was just pruned.
+        self.gc_orphaned_images(&dropped_image_ids);
 
         self.cols = cols;
         self.rows = rows;
@@ -4070,6 +4080,25 @@ impl Terminal {
     /// transmission and sixel decode — funnel through here, so the GPU
     /// upload path (`sync_kitty_images`) has exactly one image source of
     /// truth. Solve-once: sixel is a second producer, not a parallel path.
+    /// Free decoded RGBA for images whose LAST placement was just
+    /// pruned. Without this, a scrolled-off sixel (or kitty image)
+    /// orphans its W×H×4 texture in `images` forever — the placement
+    /// is pruned on rewrap but the map entry is never removed, and an
+    /// auto-assigned sixel id has no deletable handle, so no `delete`
+    /// escape can ever target it (review 2026-06-12, critic-2).
+    ///
+    /// Scoped to ids whose placement was DROPPED this pass: a kitty
+    /// image transmitted-without-display (`t`, never `p`) is never in
+    /// any placement, so it never appears here and is never evicted —
+    /// the gap between transmit and a later place is preserved.
+    fn gc_orphaned_images(&mut self, dropped_image_ids: &[u32]) {
+        for id in dropped_image_ids {
+            if !self.image_placements.iter().any(|p| p.image_id == *id) {
+                self.images.remove(id);
+            }
+        }
+    }
+
     fn store_rgba_image(&mut self, id: u32, rgba: Vec<u8>, width: u32, height: u32) {
         self.images.insert(
             id,
@@ -8306,6 +8335,71 @@ mod tests {
         assert_eq!(p.image_id, img.id);
         assert_eq!((p.col, p.row), (0, 0), "placed at the cursor origin");
         assert_eq!(p.z_index, 0, "sixel placements default to the z=0 band");
+    }
+
+    /// critic-2 (review 2026-06-12): a sixel scrolled off the visible
+    /// area must FREE its decoded RGBA, not orphan it in `images`
+    /// forever. The placement is pruned on the rewrap path; the GC then
+    /// drops the now-unreferenced texture. A sixel's auto-assigned id
+    /// has no deletable handle, so without this GC the leak is
+    /// permanent.
+    #[test]
+    fn scrolled_off_sixel_texture_is_gc_d_when_placement_pruned() {
+        // Small geometry: 40 cols × 6 rows. Fill rows 0..5 with
+        // full-width lines, then place a sixel on the last visible row.
+        let mut term = Terminal::with_scrollback(40, 6, 200);
+        let full = "x".repeat(40);
+        for _ in 0..5 {
+            term.feed(full.as_bytes());
+            term.feed(b"\r\n");
+        }
+        // Cursor is now on the last visible row (5). Place the sixel.
+        term.feed(b"\x1bP0;0;0q#0;2;100;0;0#0~~\x1b\\");
+        assert_eq!(term.images().len(), 1, "decoded texture stored");
+        assert_eq!(term.image_placements().len(), 1, "placement landed");
+        let img_id = term.image_placements()[0].image_id;
+        // Halve columns → every full-width line above DOUBLES its row
+        // count via soft-wrap, pushing the sixel's logical line far
+        // below the 6-row visible window. The rewrap reanchor prunes
+        // the now-off-screen placement, and the GC must free its
+        // orphaned texture (an auto-id sixel has no deletable handle).
+        term.resize(20, 6);
+        assert!(
+            term.image_placements().iter().all(|p| p.image_id != img_id),
+            "the off-screen placement must be pruned by the rewrap"
+        );
+        assert!(
+            !term.images().contains_key(&img_id),
+            "the orphaned sixel texture must be freed, not leaked in `images`"
+        );
+    }
+
+    /// critic-2 GC scope guard: a kitty image TRANSMITTED but never
+    /// PLACED (`a=t`, no display) is in no placement, so the GC must
+    /// NOT evict it across a rewrap — the transmit→later-place gap is
+    /// preserved. (Without scoping the GC to dropped placements, this
+    /// image would be wrongly freed.)
+    #[test]
+    fn transmitted_unplaced_image_survives_rewrap_gc() {
+        let mut term = Terminal::with_scrollback(40, 6, 200);
+        // Transmit-only: a=t (NOT T), so the image is stored but no
+        // placement is created.
+        let rgba = [0u8, 0, 255, 255]; // 1×1 blue pixel
+        let b64 = base64_encode(&rgba);
+        let apc = format!("\x1b_Ga=t,f=32,s=1,v=1,i=42;{b64}\x1b\\");
+        term.feed(apc.as_bytes());
+        assert!(term.images().contains_key(&42), "transmit stores the image");
+        assert!(
+            term.image_placements().is_empty(),
+            "transmit-only creates no placement"
+        );
+        // A column rewrap runs the GC — the unplaced image must survive
+        // (it was never in `dropped_image_ids`).
+        term.resize(20, 6);
+        assert!(
+            term.images().contains_key(&42),
+            "a transmitted-but-unplaced image must survive the rewrap GC"
+        );
     }
 
     /// A malformed sixel payload is rejected with a typed trace — NEVER a
