@@ -100,6 +100,33 @@ impl PromptKind {
 pub struct PromptMark {
     pub grid_row: usize,
     pub kind: PromptKind,
+    /// Command exit status from `OSC 133 ; D ; <code>`. Carried by
+    /// the `D` mark itself AND back-filled onto the zone-opening `C`
+    /// mark (see [`PromptHistory::apply_exit_status`]) so zone
+    /// consumers read it without re-walking. `None` until the shell
+    /// reports a code (A/B/C marks; a `D` with no parameter).
+    pub exit_status: Option<i32>,
+    /// Wall-clock UNIX milliseconds at mark creation. The Terminal
+    /// does not own a clock — the stamp is threaded in through its
+    /// injectable clock seam (`Terminal::set_clock` in tests), so
+    /// mark timing is deterministic under test.
+    pub at_unix_ms: u128,
+}
+
+/// The span of one command's output: the `C` (command-output) mark
+/// that opens it through the next `A` (prompt-start) mark that closes
+/// it. Returned by [`PromptHistory::last_command_zone`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CommandZone {
+    /// Grid row of the `C` mark — first row of command output.
+    pub start: usize,
+    /// Grid row of the next `A` mark after the `C`, exclusive bound
+    /// of the zone. `None` while the command is still running (no
+    /// prompt has been drawn after it yet).
+    pub end: Option<usize>,
+    /// Exit status of the command, when the shell reported one via
+    /// `OSC 133 ; D ; <code>` (back-filled onto the `C` mark).
+    pub exit_status: Option<i32>,
 }
 
 /// Bounded FIFO of OSC 133 prompt markers. The cap defaults to the
@@ -168,17 +195,71 @@ impl PromptHistory {
 
     /// Record a new mark. If the most recent mark is already the
     /// same `(grid_row, kind)`, this is a no-op — many shells
-    /// re-emit OSC 133 A on prompt redraw and we don't want dupes.
-    pub fn record(&mut self, grid_row: usize, kind: PromptKind) {
+    /// re-emit OSC 133 A on prompt redraw and we don't want dupes
+    /// (the dedupe deliberately ignores `at_unix_ms`: a repaint at a
+    /// later instant is still the same prompt).
+    pub fn record(&mut self, grid_row: usize, kind: PromptKind, at_unix_ms: u128) {
         if let Some(last) = self.marks.back() {
             if last.grid_row == grid_row && last.kind == kind {
                 return;
             }
         }
-        self.marks.push_back(PromptMark { grid_row, kind });
+        self.marks.push_back(PromptMark {
+            grid_row,
+            kind,
+            exit_status: None,
+            at_unix_ms,
+        });
         while self.marks.len() > self.cap {
             self.marks.pop_front();
         }
+    }
+
+    /// Apply an `OSC 133 ; D ; <code>` exit status: stamp the most
+    /// recent `D` (command-end) mark AND back-fill the most recent
+    /// `C` (command-output) mark so zone reads
+    /// ([`Self::last_command_zone`]) see the status on the mark that
+    /// opens the zone. Only marks still carrying `None` are stamped —
+    /// a prior command's already-reported status is never overwritten
+    /// by a later stray `D`.
+    pub fn apply_exit_status(&mut self, code: i32) {
+        for kind in [PromptKind::CommandEnd, PromptKind::CommandOutput] {
+            if let Some(mark) = self
+                .marks
+                .iter_mut()
+                .rev()
+                .find(|m| m.kind == kind)
+                .filter(|m| m.exit_status.is_none())
+            {
+                mark.exit_status = Some(code);
+            }
+        }
+    }
+
+    /// The last command zone at or above `from_row`: the most recent
+    /// `C` (command-output) mark with `grid_row <= from_row`, spanning
+    /// to the first `A` (prompt-start) mark recorded after it. `None`
+    /// when no command output has started at or above that row.
+    #[must_use]
+    #[allow(dead_code)] // Zone surface for the M4 stage-2 MCP/ux consumers; exercised by unit tests now.
+    pub fn last_command_zone(&self, from_row: usize) -> Option<CommandZone> {
+        let (idx, c_mark) = self
+            .marks
+            .iter()
+            .enumerate()
+            .rev()
+            .find(|(_, m)| m.kind == PromptKind::CommandOutput && m.grid_row <= from_row)?;
+        let end = self
+            .marks
+            .iter()
+            .skip(idx + 1)
+            .find(|m| m.kind == PromptKind::Start)
+            .map(|m| m.grid_row);
+        Some(CommandZone {
+            start: c_mark.grid_row,
+            end,
+            exit_status: c_mark.exit_status,
+        })
     }
 
     /// Apply an eviction — called by the grid whenever rows roll
@@ -285,13 +366,13 @@ mod tests {
         // (e.g., resize). The history must not treat that as two
         // separate prompts.
         let mut h = PromptHistory::default();
-        h.record(5, PromptKind::Start);
-        h.record(5, PromptKind::Start);
-        h.record(5, PromptKind::Start);
+        h.record(5, PromptKind::Start, 0);
+        h.record(5, PromptKind::Start, 0);
+        h.record(5, PromptKind::Start, 0);
         assert_eq!(h.len(), 1);
 
         // Same row but different kind is kept — that's prompt → command.
-        h.record(5, PromptKind::CommandStart);
+        h.record(5, PromptKind::CommandStart, 0);
         assert_eq!(h.len(), 2);
     }
 
@@ -299,7 +380,7 @@ mod tests {
     fn record_enforces_capacity_by_evicting_front() {
         let mut h = PromptHistory::with_capacity(3);
         for row in 0..5 {
-            h.record(row, PromptKind::Start);
+            h.record(row, PromptKind::Start, 0);
         }
         assert_eq!(h.len(), 3);
         // Oldest two dropped — we keep 2, 3, 4.
@@ -310,11 +391,11 @@ mod tests {
     #[test]
     fn prev_prompt_walks_backwards_skipping_non_start_kinds() {
         let mut h = PromptHistory::default();
-        h.record(10, PromptKind::Start);
-        h.record(11, PromptKind::CommandStart);
-        h.record(20, PromptKind::Start);
-        h.record(21, PromptKind::CommandOutput);
-        h.record(30, PromptKind::Start);
+        h.record(10, PromptKind::Start, 0);
+        h.record(11, PromptKind::CommandStart, 0);
+        h.record(20, PromptKind::Start, 0);
+        h.record(21, PromptKind::CommandOutput, 0);
+        h.record(30, PromptKind::Start, 0);
 
         // From just after the last prompt, prev is the 30 mark's
         // predecessor — 20. Command start/output kinds are skipped.
@@ -328,10 +409,10 @@ mod tests {
     #[test]
     fn next_prompt_walks_forwards_skipping_non_start_kinds() {
         let mut h = PromptHistory::default();
-        h.record(10, PromptKind::Start);
-        h.record(11, PromptKind::CommandOutput);
-        h.record(20, PromptKind::Start);
-        h.record(30, PromptKind::Start);
+        h.record(10, PromptKind::Start, 0);
+        h.record(11, PromptKind::CommandOutput, 0);
+        h.record(20, PromptKind::Start, 0);
+        h.record(30, PromptKind::Start, 0);
 
         assert_eq!(h.next_prompt(0), Some(10));
         assert_eq!(h.next_prompt(10), Some(20));
@@ -344,9 +425,9 @@ mod tests {
     #[test]
     fn shift_on_evict_drops_underflow_and_decrements_survivors() {
         let mut h = PromptHistory::default();
-        h.record(2, PromptKind::Start);
-        h.record(5, PromptKind::Start);
-        h.record(10, PromptKind::Start);
+        h.record(2, PromptKind::Start, 0);
+        h.record(5, PromptKind::Start, 0);
+        h.record(10, PromptKind::Start, 0);
 
         // Evict 3 rows — the mark at row 2 disappears, the others
         // decrement by 3.
@@ -367,8 +448,8 @@ mod tests {
     #[test]
     fn clear_drops_every_mark() {
         let mut h = PromptHistory::default();
-        h.record(3, PromptKind::Start);
-        h.record(6, PromptKind::Start);
+        h.record(3, PromptKind::Start, 0);
+        h.record(6, PromptKind::Start, 0);
         assert_eq!(h.len(), 2);
         h.clear();
         assert!(h.is_empty());
@@ -380,10 +461,81 @@ mod tests {
     fn prev_next_return_none_when_no_start_marks() {
         // Only B/C/D kinds — no Start — so navigation yields nothing.
         let mut h = PromptHistory::default();
-        h.record(5, PromptKind::CommandStart);
-        h.record(6, PromptKind::CommandOutput);
-        h.record(7, PromptKind::CommandEnd);
+        h.record(5, PromptKind::CommandStart, 0);
+        h.record(6, PromptKind::CommandOutput, 0);
+        h.record(7, PromptKind::CommandEnd, 0);
         assert_eq!(h.prev_prompt(100), None);
         assert_eq!(h.next_prompt(0), None);
+    }
+
+    #[test]
+    fn record_dedupe_ignores_timestamp() {
+        // A prompt repaint at a later wall-clock instant is still the
+        // same prompt — dedupe keys on (grid_row, kind) only, and the
+        // FIRST stamp (the real prompt-draw moment) survives.
+        let mut h = PromptHistory::default();
+        h.record(5, PromptKind::Start, 1_000);
+        h.record(5, PromptKind::Start, 9_999);
+        assert_eq!(h.len(), 1);
+        assert_eq!(h.iter().next().unwrap().at_unix_ms, 1_000);
+    }
+
+    #[test]
+    fn apply_exit_status_stamps_d_and_backfills_c() {
+        let mut h = PromptHistory::default();
+        h.record(10, PromptKind::Start, 0);
+        h.record(11, PromptKind::CommandStart, 0);
+        h.record(12, PromptKind::CommandOutput, 0);
+        h.record(20, PromptKind::CommandEnd, 0);
+        h.apply_exit_status(1);
+        let by_kind = |k: PromptKind| h.iter().find(|m| m.kind == k).copied().unwrap();
+        assert_eq!(by_kind(PromptKind::CommandEnd).exit_status, Some(1));
+        assert_eq!(by_kind(PromptKind::CommandOutput).exit_status, Some(1));
+        // A/B marks never carry a status.
+        assert_eq!(by_kind(PromptKind::Start).exit_status, None);
+        assert_eq!(by_kind(PromptKind::CommandStart).exit_status, None);
+    }
+
+    #[test]
+    fn apply_exit_status_never_overwrites_a_reported_status() {
+        // Two completed commands; a stray late D-code must not rewrite
+        // the FIRST command's already-stamped marks.
+        let mut h = PromptHistory::default();
+        h.record(2, PromptKind::CommandOutput, 0);
+        h.record(5, PromptKind::CommandEnd, 0);
+        h.apply_exit_status(0);
+        h.record(8, PromptKind::CommandOutput, 0);
+        h.record(9, PromptKind::CommandEnd, 0);
+        h.apply_exit_status(127);
+        let statuses: Vec<_> = h.iter().map(|m| m.exit_status).collect();
+        assert_eq!(statuses, vec![Some(0), Some(0), Some(127), Some(127)]);
+    }
+
+    #[test]
+    fn last_command_zone_spans_c_to_next_a() {
+        let mut h = PromptHistory::default();
+        h.record(0, PromptKind::Start, 0);
+        h.record(1, PromptKind::CommandStart, 0);
+        h.record(2, PromptKind::CommandOutput, 0);
+        h.record(7, PromptKind::CommandEnd, 0);
+        h.apply_exit_status(1);
+        h.record(8, PromptKind::Start, 0);
+
+        // Completed zone: C at 2, closed by the A at 8.
+        let zone = h.last_command_zone(7).unwrap();
+        assert_eq!(zone.start, 2);
+        assert_eq!(zone.end, Some(8));
+        assert_eq!(zone.exit_status, Some(1));
+
+        // Still-running second command: open-ended zone, no status.
+        h.record(9, PromptKind::CommandStart, 0);
+        h.record(10, PromptKind::CommandOutput, 0);
+        let open = h.last_command_zone(50).unwrap();
+        assert_eq!(open.start, 10);
+        assert_eq!(open.end, None);
+        assert_eq!(open.exit_status, None);
+
+        // No C mark at or above the asked row.
+        assert_eq!(h.last_command_zone(1), None);
     }
 }

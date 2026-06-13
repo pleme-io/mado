@@ -2415,7 +2415,7 @@ mod tests {
         {
             let mut guard = history.lock().unwrap();
             for (row, kind) in marks {
-                guard.record(*row, *kind);
+                guard.record(*row, *kind, 0);
             }
         }
         let clipboard = Arc::new(Mutex::new(ClipboardStore::new(16)));

@@ -14,6 +14,63 @@ use std::fmt;
 use unicode_width::UnicodeWidthChar;
 
 use crate::config::CursorStyle;
+use crate::ux::side_effects::{PendingNotification, ProgressState, Urgency};
+
+/// Default for the Terminal's injectable clock seam — real UNIX wall
+/// clock in milliseconds. A pre-epoch system clock degrades to 0
+/// rather than panicking inside the feed path.
+fn wall_clock_unix_ms() -> u128 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_millis())
+}
+
+/// Re-join OSC payload params that vte split on `;` — the payload of
+/// OSC 9 / 777 / 99 is free text where `;` is data, not structure.
+/// Lossy UTF-8 per the established OSC text handling in this module.
+fn join_osc_params(params: &[&[u8]]) -> String {
+    let mut out = String::new();
+    for (i, p) in params.iter().enumerate() {
+        if i > 0 {
+            out.push(';');
+        }
+        out.push_str(&String::from_utf8_lossy(p));
+    }
+    out
+}
+
+/// In-flight kitty OSC 99 multi-part notification (`d=0` chain).
+/// Fragments accumulate per payload kind; `d=1` finalizes into one
+/// [`PendingNotification`].
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+struct Osc99Pending {
+    /// `i=<id>` — chain identity; fragments with a different id drop
+    /// the chain (traced, never silent).
+    id: Option<String>,
+    /// Accumulated `p=title` payload fragments.
+    title: Option<String>,
+    /// Accumulated `p=body` payload fragments.
+    body: Option<String>,
+    /// Urgency from the chain's metadata — `None` until a fragment
+    /// carries `u=` (an explicit `u=0` Low must be distinguishable
+    /// from the unset default); multiple fragments merge highest-wins.
+    urgency: Option<Urgency>,
+}
+
+impl Osc99Pending {
+    /// Finalize the chain into the typed queue entry. kitty's default
+    /// payload kind is `title`, so a chain may legitimately carry a
+    /// title and no body — body degrades to empty, mirroring OSC 9's
+    /// body-only inverse.
+    fn into_notification(self) -> PendingNotification {
+        PendingNotification {
+            title: self.title,
+            body: self.body.unwrap_or_default(),
+            urgency: self.urgency.unwrap_or_default(),
+            group: self.id,
+        }
+    }
+}
 
 // ---------------------------------------------------------------------------
 // Cell attributes (bitflags-style)
@@ -1828,11 +1885,30 @@ pub struct Terminal {
     // OSC 52 clipboard content (set by terminal, read by main for clipboard sync)
     clipboard_content: Option<String>,
 
-    // OSC 9 desktop notifications queued by the terminal — the main
-    // event loop drains + dispatches these (typically via
-    // `tsuuchi`). Each entry is one notification body; the format
-    // `\x1b]9;BODY\x07` from `notify.sh` pushes a single string.
-    pending_notifications: Vec<String>,
+    // Typed desktop notifications queued by the terminal (OSC 9 /
+    // OSC 777;notify / OSC 99) — the event loops drain + dispatch
+    // these via `tsuuchi`. ConEmu progress (OSC 9;4) is NOT in this
+    // queue: it lives in the `progress` lane below, so a progress
+    // update firing a notification is unrepresentable.
+    pending_notifications: Vec<PendingNotification>,
+
+    // ConEmu OSC 9;4 progress — latest-wins typed lane, drained
+    // separately from notifications. `None` = no update since the
+    // last drain.
+    progress: Option<ProgressState>,
+
+    // Kitty OSC 99 multi-part accumulator (metadata `d=0` chains
+    // title/body fragments across escapes; `d=1` finalizes). Single
+    // slot: kitty serializes chains per id, and a chain interrupted
+    // by a different id is dropped WITH a trace (never silently).
+    pending_osc99: Option<Osc99Pending>,
+
+    // Wall-clock seam — the Terminal owns no clock; mark timestamps
+    // (PromptMark::at_unix_ms) read through this injectable fn so
+    // tests pin deterministic stamps. Defaults to the real UNIX
+    // wall clock; survives RIS like `reflow_on_resize` does
+    // (environmental wiring, not VT state).
+    clock_unix_ms: fn() -> u128,
 
     // Content-addressed mirror of every OSC 52 payload this session
     // has seen. The system clipboard still takes the top-of-stack
@@ -1991,6 +2067,9 @@ impl Terminal {
             active_link_id: NO_LINK_ID,
             clipboard_content: None,
             pending_notifications: Vec::new(),
+            progress: None,
+            pending_osc99: None,
+            clock_unix_ms: wall_clock_unix_ms,
             clipboard_store: crate::clipboard_store::ClipboardStore::new(128),
             prompt_marks: crate::prompt_mark::PromptHistory::with_capacity(
                 max_scrollback.max(256),
@@ -2813,14 +2892,31 @@ impl Terminal {
         self.clipboard_content.take()
     }
 
-    /// Drain the OSC 9 notification queue. Each element is one
-    /// notification body the terminal saw; the main loop
-    /// dispatches them (tsuuchi on the fleet). Iterator-style
-    /// instead of `Vec<_>` so callers can fire-and-forget each
-    /// one without holding the whole batch in memory first.
-    #[allow(dead_code)] // Wired by main.rs once notifier glue lands.
-    pub fn drain_notifications(&mut self) -> std::vec::Drain<'_, String> {
+    /// Drain the typed notification queue (OSC 9 / 777 / 99). Each
+    /// element is one [`PendingNotification`] the terminal saw; the
+    /// event loops dispatch them (tsuuchi on the fleet).
+    /// Iterator-style instead of `Vec<_>` so callers can
+    /// fire-and-forget each one without holding the whole batch in
+    /// memory first.
+    #[allow(dead_code)] // Wired into drain_side_effects in M4 stage 2; tests exercise it now.
+    pub fn drain_notifications(&mut self) -> std::vec::Drain<'_, PendingNotification> {
         self.pending_notifications.drain(..)
+    }
+
+    /// Take the latest `ConEmu` OSC 9;4 progress update, if one arrived
+    /// since the last take. Latest-wins (not a queue): the consumer
+    /// renders current state, not history.
+    #[allow(dead_code)] // Wired into drain_side_effects in M4 stage 2; tests exercise it now.
+    pub fn take_progress(&mut self) -> Option<ProgressState> {
+        self.progress.take()
+    }
+
+    /// Inject a deterministic wall-clock for mark timestamps. The
+    /// production default is the real UNIX clock; tests pin a fixed
+    /// fn so `PromptMark::at_unix_ms` is assertable. Survives RIS.
+    #[cfg(test)]
+    pub fn set_clock(&mut self, clock: fn() -> u128) {
+        self.clock_unix_ms = clock;
     }
 
     // ── OSC dispatch helpers ────────────────────────────────────────────────
@@ -2961,19 +3057,179 @@ impl Terminal {
         };
     }
 
-    /// OSC 9 — Desktop notification (iTerm2 / ghostty compat).
+    /// OSC 9 — Desktop notification (iTerm2 / ghostty compat) plus
+    /// the `ConEmu` `9;4` progress carve-out.
     ///
-    /// Format: `ESC ] 9 ; <body> ST`  (ST = `ESC \` or BEL). Empty
-    /// body is a no-op (the spec lets `ESC ] 9 ; ST` mean a
-    /// "bell-like ping" — we prefer the explicit BEL for that so
-    /// the notification queue only carries real messages).
+    /// Notification format: `ESC ] 9 ; <body> ST` (ST = `ESC \` or
+    /// BEL). Empty body is a no-op (the spec lets `ESC ] 9 ; ST`
+    /// mean a "bell-like ping" — we prefer the explicit BEL for that
+    /// so the notification queue only carries real messages). vte
+    /// splits the payload on `;`, so the body is re-joined from every
+    /// remaining param — `ESC ] 9 ; a;b ST` notifies `a;b`.
+    ///
+    /// Progress format (`ConEmu`): `ESC ] 9 ; 4 ; st ; pr ST` — routed
+    /// to the typed [`ProgressState`] lane, NEVER the notification
+    /// queue (separate field; no constructor from one to the other).
+    /// Other `ConEmu` `9;N` verbs (sleep, message, guimacro, …) keep
+    /// the historical mado behavior: treated as a notification body.
     fn handle_osc_9_notification(&mut self, params: &[&[u8]]) {
         if params.len() < 2 || params[1].is_empty() {
             return;
         }
-        let body = String::from_utf8_lossy(params[1]).into_owned();
+        if params[1] == b"4" && params.len() >= 3 {
+            self.handle_osc_9_4_progress(&params[2..]);
+            return;
+        }
+        let body = join_osc_params(&params[1..]);
         tracing::debug!(%body, "OSC 9 notification");
-        self.pending_notifications.push(body);
+        self.pending_notifications.push(PendingNotification {
+            title: None,
+            body,
+            urgency: Urgency::Normal,
+            group: None,
+        });
+    }
+
+    /// `ConEmu` OSC 9;4 progress — `rest` is `[st]` or `[st, pr]`.
+    /// `st`: 0=remove, 1=set, 2=error, 3=indeterminate, 4=paused.
+    /// `pr`: integer percent, clamped to 100 at this parse boundary.
+    /// Unknown states trace + drop (never a silently-wrong value).
+    fn handle_osc_9_4_progress(&mut self, rest: &[&[u8]]) {
+        let pct = rest
+            .get(1)
+            .and_then(|p| std::str::from_utf8(p).ok())
+            .and_then(|s| s.parse::<u16>().ok())
+            .map(|v| u8::try_from(v.min(100)).unwrap_or(100));
+        let state = match rest.first().copied() {
+            Some(b"0") => ProgressState::Remove,
+            Some(b"1") => ProgressState::Set { pct: pct.unwrap_or(0) },
+            Some(b"2") => ProgressState::Error { pct },
+            Some(b"3") => ProgressState::Indeterminate,
+            Some(b"4") => ProgressState::Paused { pct },
+            other => {
+                tracing::trace!(?other, "OSC 9;4: unknown progress state, ignoring");
+                return;
+            }
+        };
+        tracing::trace!(?state, "OSC 9;4 progress");
+        self.progress = Some(state);
+    }
+
+    /// OSC 777 — urxvt extension dispatch; only the `notify` verb is
+    /// implemented: `ESC ] 777 ; notify ; <title> ; <body> ST`
+    /// (rxvt-unicode / foot / ghostty compat). Other 777 verbs are
+    /// trace-dropped. The body is re-joined from the remaining params
+    /// so a `;` inside the body survives vte's split.
+    fn handle_osc_777_notify(&mut self, params: &[&[u8]]) {
+        if params.len() < 3 || params[1] != b"notify" {
+            tracing::trace!(?params, "OSC 777: non-notify verb, ignoring");
+            return;
+        }
+        let title = String::from_utf8_lossy(params[2]).into_owned();
+        let body = join_osc_params(&params[3..]);
+        tracing::debug!(%title, %body, "OSC 777 notification");
+        self.pending_notifications.push(PendingNotification {
+            title: Some(title),
+            body,
+            urgency: Urgency::Normal,
+            group: None,
+        });
+    }
+
+    /// OSC 99 — kitty desktop notification protocol:
+    /// `ESC ] 99 ; <metadata> ; <payload> ST` where metadata is
+    /// colon-separated `k=v` pairs. Typed honestly: `i=` (id →
+    /// group/chain identity), `d=` (done flag, default 1 — `d=0`
+    /// chains fragments across escapes), `p=` (payload kind: `title`
+    /// default / `body`), `u=` (urgency 0/1/2), `e=1` (base64
+    /// payload). Every other key — and unknown payload kinds like
+    /// `close`/`icon`/actions — is trace-ignored, never guessed at.
+    fn handle_osc_99_kitty(&mut self, params: &[&[u8]]) {
+        let metadata = params.get(1).copied().unwrap_or(b"");
+        let mut id: Option<String> = None;
+        let mut done = true;
+        let mut payload_kind: &[u8] = b"title";
+        let mut urgency: Option<Urgency> = None;
+        let mut base64_payload = false;
+        for pair in metadata.split(|&b| b == b':').filter(|p| !p.is_empty()) {
+            let mut kv = pair.splitn(2, |&b| b == b'=');
+            let (Some(key), Some(value)) = (kv.next(), kv.next()) else {
+                tracing::trace!(pair = %String::from_utf8_lossy(pair), "OSC 99: bare metadata key, ignoring");
+                continue;
+            };
+            match key {
+                b"i" => id = Some(String::from_utf8_lossy(value).into_owned()),
+                b"d" => done = value != b"0",
+                b"p" => payload_kind = value,
+                b"u" => {
+                    urgency = match value {
+                        b"0" => Some(Urgency::Low),
+                        b"1" => Some(Urgency::Normal),
+                        b"2" => Some(Urgency::Critical),
+                        other => {
+                            tracing::trace!(u = %String::from_utf8_lossy(other), "OSC 99: unknown urgency, ignoring");
+                            None
+                        }
+                    };
+                }
+                b"e" => base64_payload = value == b"1",
+                other => {
+                    tracing::trace!(key = %String::from_utf8_lossy(other), "OSC 99: unimplemented metadata key, ignoring");
+                }
+            }
+        }
+        let raw_payload = join_osc_params(&params[2..]);
+        let payload = if base64_payload {
+            let Some(decoded) = base64_decode(raw_payload.as_bytes()) else {
+                tracing::trace!("OSC 99: invalid base64 payload, dropping escape");
+                return;
+            };
+            decoded
+        } else {
+            raw_payload
+        };
+
+        // Resume or open the chain slot. A fragment naming a
+        // different id than the in-flight chain drops the old chain
+        // WITH a trace — kitty serializes chains, so an interleave is
+        // a misbehaving client, not silent data to merge.
+        let mut pending = match self.pending_osc99.take() {
+            Some(p) if p.id == id => p,
+            Some(p) => {
+                tracing::trace!(dropped_id = ?p.id, new_id = ?id, "OSC 99: chain interrupted by new id, dropping old chain");
+                Osc99Pending { id, ..Osc99Pending::default() }
+            }
+            None => Osc99Pending { id, ..Osc99Pending::default() },
+        };
+        if let Some(u) = urgency {
+            pending.urgency = Some(pending.urgency.map_or(u, |cur| cur.max(u)));
+        }
+        match payload_kind {
+            b"title" => {
+                if !payload.is_empty() {
+                    pending.title.get_or_insert_with(String::new).push_str(&payload);
+                }
+            }
+            b"body" => {
+                if !payload.is_empty() {
+                    pending.body.get_or_insert_with(String::new).push_str(&payload);
+                }
+            }
+            other => {
+                tracing::trace!(p = %String::from_utf8_lossy(other), "OSC 99: unimplemented payload kind, ignoring fragment");
+            }
+        }
+        if done {
+            let notification = pending.into_notification();
+            if notification.title.is_none() && notification.body.is_empty() {
+                tracing::trace!("OSC 99: chain finalized empty, dropping");
+                return;
+            }
+            tracing::debug!(?notification, "OSC 99 notification");
+            self.pending_notifications.push(notification);
+        } else {
+            self.pending_osc99 = Some(pending);
+        }
     }
 
     /// OSC 110 — Reset foreground to the compiled default. Matches
@@ -3202,7 +3458,19 @@ impl Terminal {
             return;
         }
         let grid_row = self.primary.scrollback_len() + self.cursor.row;
-        self.prompt_marks.record(grid_row, kind);
+        self.prompt_marks.record(grid_row, kind, (self.clock_unix_ms)());
+        // `OSC 133 ; D ; <code>` — the optional third param is the
+        // command's exit status; stamp the D mark + back-fill the
+        // zone-opening C mark. Non-numeric codes trace + drop.
+        if kind == crate::prompt_mark::PromptKind::CommandEnd
+            && let Some(raw) = params.get(2).filter(|p| !p.is_empty())
+        {
+            if let Some(code) = std::str::from_utf8(raw).ok().and_then(|s| s.parse::<i32>().ok()) {
+                self.prompt_marks.apply_exit_status(code);
+            } else {
+                tracing::trace!(code = %String::from_utf8_lossy(raw), "OSC 133 D: non-numeric exit code, ignoring");
+            }
+        }
         tracing::trace!(
             row = self.cursor.row,
             grid_row,
@@ -3322,6 +3590,9 @@ impl Terminal {
         // Operator config, not VT state — survives RIS like the
         // scrollback cap does (M2: behavior.reflow_on_resize).
         let reflow_on_resize = self.reflow_on_resize;
+        // Environmental wiring, not VT state — an injected test clock
+        // must keep ticking across a RIS mid-scenario.
+        let clock_unix_ms = self.clock_unix_ms;
         // The rebuild restarts both grids' LogicalLineId counters at
         // 0 — bump the epoch so pre-reset SelectionAnchors can never
         // alias-resolve onto post-reset lines.
@@ -3333,6 +3604,7 @@ impl Terminal {
         self.pen_bg = default_bg;
         self.ansi_colors = ansi_colors;
         self.reflow_on_resize = reflow_on_resize;
+        self.clock_unix_ms = clock_unix_ms;
         self.grid_epoch = grid_epoch;
     }
 
@@ -4557,11 +4829,13 @@ impl vte::Perform for Terminal {
             b"12"      => self.handle_osc_12_cursor(params),
             b"22"      => self.handle_osc_22_pointer_shape(params),
             b"52"      => self.handle_osc_52_clipboard(params),
+            b"99"      => self.handle_osc_99_kitty(params),
             b"104"     => self.handle_osc_104_palette_reset(params),
             b"110"     => self.handle_osc_110_fg_reset(),
             b"111"     => self.handle_osc_111_bg_reset(),
             b"112"     => self.handle_osc_112_cursor_reset(),
             b"133"     => self.handle_osc_133_shell_integration(params),
+            b"777"     => self.handle_osc_777_notify(params),
             b"1337"    => self.handle_osc_1337_iterm2(params),
             _          => tracing::trace!(?params, "unhandled OSC sequence"),
         }
@@ -7674,8 +7948,16 @@ mod tests {
     fn test_osc_9_queues_notification() {
         let mut term = Terminal::new(80, 24);
         term.feed(b"\x1b]9;Build finished\x07");
-        let notifs: Vec<String> = term.drain_notifications().collect();
-        assert_eq!(notifs, vec!["Build finished".to_string()]);
+        let notifs: Vec<PendingNotification> = term.drain_notifications().collect();
+        assert_eq!(
+            notifs,
+            vec![PendingNotification {
+                title: None,
+                body: "Build finished".into(),
+                urgency: Urgency::Normal,
+                group: None,
+            }]
+        );
         // Drain consumed the queue — second call returns empty.
         assert_eq!(term.drain_notifications().count(), 0);
     }
@@ -7695,8 +7977,219 @@ mod tests {
         term.feed(b"\x1b]9;one\x07");
         term.feed(b"\x1b]9;two\x07");
         term.feed(b"\x1b]9;three\x07");
-        let notifs: Vec<String> = term.drain_notifications().collect();
-        assert_eq!(notifs, vec!["one".to_string(), "two".into(), "three".into()]);
+        let bodies: Vec<String> = term.drain_notifications().map(|n| n.body).collect();
+        assert_eq!(bodies, vec!["one".to_string(), "two".into(), "three".into()]);
+    }
+
+    /// Matrix over every notification-bearing OSC dialect: each
+    /// variant enqueues EXACTLY ONE typed entry with the dialect's
+    /// title/urgency/group shape. Failures aggregate so one run
+    /// reports every broken dialect.
+    #[test]
+    fn notification_osc_matrix_enqueues_one_typed_entry_each() {
+        struct Row {
+            name: &'static str,
+            bytes: &'static [u8],
+            expect: PendingNotification,
+        }
+        let matrix = [
+            Row {
+                name: "OSC 9 body-only",
+                bytes: b"\x1b]9;tests passed\x07",
+                expect: PendingNotification {
+                    title: None,
+                    body: "tests passed".into(),
+                    urgency: Urgency::Normal,
+                    group: None,
+                },
+            },
+            Row {
+                name: "OSC 9 body containing semicolons",
+                bytes: b"\x1b]9;a;b;c\x07",
+                expect: PendingNotification {
+                    title: None,
+                    body: "a;b;c".into(),
+                    urgency: Urgency::Normal,
+                    group: None,
+                },
+            },
+            Row {
+                name: "OSC 777;notify title+body",
+                bytes: b"\x1b]777;notify;Build;finished ok\x07",
+                expect: PendingNotification {
+                    title: Some("Build".into()),
+                    body: "finished ok".into(),
+                    urgency: Urgency::Normal,
+                    group: None,
+                },
+            },
+            Row {
+                name: "OSC 99 default payload kind is title",
+                bytes: b"\x1b]99;;Hello\x07",
+                expect: PendingNotification {
+                    title: Some("Hello".into()),
+                    body: String::new(),
+                    urgency: Urgency::Normal,
+                    group: None,
+                },
+            },
+            Row {
+                name: "OSC 99 low urgency + id group",
+                bytes: b"\x1b]99;i=ci:u=0:p=body;done\x07",
+                expect: PendingNotification {
+                    title: None,
+                    body: "done".into(),
+                    urgency: Urgency::Low,
+                    group: Some("ci".into()),
+                },
+            },
+            Row {
+                name: "OSC 99 critical urgency",
+                bytes: b"\x1b]99;u=2:p=title;Disk full\x07",
+                expect: PendingNotification {
+                    title: Some("Disk full".into()),
+                    body: String::new(),
+                    urgency: Urgency::Critical,
+                    group: None,
+                },
+            },
+        ];
+        let mut failures: Vec<String> = Vec::new();
+        for row in &matrix {
+            let mut term = Terminal::new(80, 24);
+            term.feed(row.bytes);
+            let got: Vec<PendingNotification> = term.drain_notifications().collect();
+            if got.len() != 1 {
+                failures.push(format!(
+                    "{}: expected exactly 1 notification, got {}",
+                    row.name,
+                    got.len()
+                ));
+                continue;
+            }
+            if got[0] != row.expect {
+                failures.push(format!(
+                    "{}: expected {:?}, got {:?}",
+                    row.name,
+                    row.expect,
+                    got[0]
+                ));
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "{} notification dialects failed:\n  - {}",
+            failures.len(),
+            failures.join("\n  - ")
+        );
+    }
+
+    #[test]
+    fn osc_99_multipart_chain_accumulates_then_finalizes() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b]99;i=1:d=0:p=title;Hel\x07");
+        term.feed(b"\x1b]99;i=1:d=0:p=title;lo\x07");
+        // Nothing enqueued while the chain is open.
+        assert_eq!(term.drain_notifications().count(), 0);
+        term.feed(b"\x1b]99;i=1:d=1:p=body;World\x07");
+        let got: Vec<PendingNotification> = term.drain_notifications().collect();
+        assert_eq!(
+            got,
+            vec![PendingNotification {
+                title: Some("Hello".into()),
+                body: "World".into(),
+                urgency: Urgency::Normal,
+                group: Some("1".into()),
+            }]
+        );
+    }
+
+    #[test]
+    fn osc_99_unimplemented_payload_kind_enqueues_nothing() {
+        // p=close manipulates displayed notifications — unimplemented,
+        // trace-ignored, and must NOT surface as a garbage entry.
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b]99;i=1:p=close;\x07");
+        assert_eq!(term.drain_notifications().count(), 0);
+    }
+
+    /// `ConEmu` OSC 9;4 matrix: every progress state lands in the typed
+    /// progress lane and NEVER enqueues a notification (separate
+    /// field by construction — this pins the parse routing).
+    #[test]
+    fn conemu_progress_matrix_sets_lane_and_never_notifies() {
+        let matrix: [(&str, &[u8], ProgressState); 5] = [
+            ("remove", b"\x1b]9;4;0\x07", ProgressState::Remove),
+            ("set 50%", b"\x1b]9;4;1;50\x07", ProgressState::Set { pct: 50 }),
+            ("error with pct", b"\x1b]9;4;2;30\x07", ProgressState::Error { pct: Some(30) }),
+            ("indeterminate", b"\x1b]9;4;3\x07", ProgressState::Indeterminate),
+            ("paused bare", b"\x1b]9;4;4\x07", ProgressState::Paused { pct: None }),
+        ];
+        let mut failures: Vec<String> = Vec::new();
+        for (name, bytes, expect) in &matrix {
+            let mut term = Terminal::new(80, 24);
+            term.feed(bytes);
+            let notifs = term.drain_notifications().count();
+            if notifs != 0 {
+                failures.push(format!("{name}: progress leaked {notifs} notification(s)"));
+            }
+            match term.take_progress() {
+                Some(got) if got == *expect => {}
+                other => failures.push(format!("{name}: expected {expect:?}, got {other:?}")),
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "{} progress states failed:\n  - {}",
+            failures.len(),
+            failures.join("\n  - ")
+        );
+    }
+
+    #[test]
+    fn conemu_progress_is_latest_wins_and_take_clears() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b]9;4;1;10\x07");
+        term.feed(b"\x1b]9;4;1;90\x07");
+        assert_eq!(term.take_progress(), Some(ProgressState::Set { pct: 90 }));
+        // Second take: no update since the last one.
+        assert_eq!(term.take_progress(), None);
+        // Out-of-range percent clamps at the parse boundary.
+        term.feed(b"\x1b]9;4;1;250\x07");
+        assert_eq!(term.take_progress(), Some(ProgressState::Set { pct: 100 }));
+    }
+
+    #[test]
+    fn osc_133_d_exit_status_round_trip_with_deterministic_clock() {
+        fn fixed_clock() -> u128 {
+            42_000
+        }
+        let mut term = Terminal::new(80, 24);
+        term.set_clock(fixed_clock);
+        term.feed(b"\x1b]133;A\x07");
+        term.feed(b"echo hi\r\n");
+        term.feed(b"\x1b]133;C\x07");
+        term.feed(b"hi\r\n");
+        term.feed(b"\x1b]133;D;1\x07");
+        let marks: Vec<crate::prompt_mark::PromptMark> =
+            term.prompt_marks().iter().copied().collect();
+        let by_kind = |k: crate::prompt_mark::PromptKind| {
+            marks.iter().find(|m| m.kind == k).copied().unwrap()
+        };
+        let c = by_kind(crate::prompt_mark::PromptKind::CommandOutput);
+        let d = by_kind(crate::prompt_mark::PromptKind::CommandEnd);
+        assert_eq!(c.exit_status, Some(1), "C mark back-filled with exit status");
+        assert_eq!(d.exit_status, Some(1), "D mark stamped with exit status");
+        for m in &marks {
+            assert_eq!(m.at_unix_ms, 42_000, "{:?} stamped via the clock seam", m.kind);
+        }
+        // The zone read composes the two: span + status in one value.
+        let zone = term
+            .prompt_marks()
+            .last_command_zone(usize::MAX)
+            .expect("zone exists");
+        assert_eq!(zone.start, c.grid_row);
+        assert_eq!(zone.exit_status, Some(1));
     }
 
     #[test]
