@@ -3184,6 +3184,18 @@ impl TerminalRenderer {
         let _ = self.ambience_governor.tick_frame(prev_frame_us);
     }
 
+    /// Re-budget the ambience governor to the resolved effective frame
+    /// rate (`config.performance.resolve_target_fps`). Called once after
+    /// construction (stop discarding the resolved fps) and again on a
+    /// hot-reload of the performance config — so a ProMotion 120 Hz panel
+    /// budgets aurora quality against the 8.3 ms frame it actually has,
+    /// and a battery-capped target shrinks the budget with it, instead of
+    /// the hardcoded 60 Hz floor. `fps == 0` keeps the 60 Hz floor.
+    pub(crate) fn set_ambience_budget_fps(&mut self, fps: u32) {
+        let budget = crate::ux::ambience_governor::budget_us_for_fps(fps);
+        self.ambience_governor.set_budget_us(budget);
+    }
+
     /// The aurora spectrum stops (green / cyan / violet) in LINEAR rgb,
     /// derived from the active theme palette — NO hardcoded effect
     /// colors (the design law). On Borealis these resolve to
@@ -3914,6 +3926,14 @@ impl RenderCallback for TerminalRenderer {
             crate::perf::log_phase("first_frame_rendered");
         }
 
+        // NOTE: this is CPU-side encode/submit wall time (measured
+        // THROUGH `queue.submit()`, which is async), NOT GPU frame time
+        // or the wall-clock inter-frame interval. The AmbienceGovernor
+        // budgets against THIS signal, so it is a CPU-frame safety net:
+        // it catches a slow render callback (the common case) but a
+        // purely GPU-bound aurora cost would need a GPU timestamp query
+        // to register. See `ux::ambience_governor` (honesty note) + the
+        // `only-mitigated` budget-axis grade in the unrep ledger.
         let frame_us = frame_start.elapsed().as_micros() as u64;
         LAST_FRAME_US.store(frame_us, Ordering::Relaxed);
         LAST_FRAME_RECTS.store(rects_count as u64, Ordering::Relaxed);

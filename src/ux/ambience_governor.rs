@@ -51,6 +51,21 @@
 //! compile error until every transition is decided. The mechanical
 //! exhaustiveness test below drives ALL states × ALL events from
 //! derive-emitted registries.
+//!
+//! # What the budget signal measures (honesty note)
+//!
+//! The frame time fed to [`AmbienceGovernor::tick_frame`] is
+//! `render.rs`'s `frame_start.elapsed()` at `LAST_FRAME_US` — **CPU-side
+//! encode/submit wall time**, measured through `queue.submit()`. The
+//! aurora fragment shader's cost is GPU-side and `submit` is
+//! asynchronous, so under a *purely* GPU-bound slowdown the CPU encode
+//! can stay under budget and the governor sees `TickCalm`. The governor
+//! is therefore a **CPU-frame safety net** today: it reliably steps
+//! aurora down when the render callback itself is slow (the common case
+//! that also drives the wall-clock frame interval), but a GPU
+//! timestamp-query budget would be needed to budget the aurora shader's
+//! GPU cost directly. The ledger grades the governor `only-mitigated` on
+//! the budget axis for exactly this reason.
 
 use engawa_wgpu::catalog::aurora::AuroraQuality;
 
@@ -68,9 +83,24 @@ pub(crate) const OVER_FRAC: f32 = 0.85;
 pub(crate) const CALM_FRAC: f32 = 0.60;
 
 /// The default frame budget in microseconds — one 60 Hz frame
-/// (16.67 ms). The governor reads this; a future vsync/target-fps wire
-/// can re-budget it, but the FSM logic is budget-relative either way.
+/// (16.67 ms). The pre-resolution FLOOR only: the governor is re-budgeted
+/// to the resolved effective fps (`set_budget_us` / `with_budget_us`) as
+/// soon as `config.performance.resolve_target_fps` is known, so on a
+/// 120 Hz ProMotion panel the budget is 8.3 ms and on battery it shrinks
+/// with `battery_fps_cap`. The FSM logic is budget-relative either way.
 pub(crate) const DEFAULT_BUDGET_US: u64 = 16_667;
+
+/// The frame budget (microseconds) for a target frame rate — one frame's
+/// wall-clock slice. `1_000_000 / fps`, with a `fps == 0` guard that
+/// keeps the 60 Hz floor (a zero target is "no real target", not "an
+/// infinite budget"). This is the ONE place fps → budget lives.
+#[must_use]
+pub(crate) fn budget_us_for_fps(fps: u32) -> u64 {
+    if fps == 0 {
+        return DEFAULT_BUDGET_US;
+    }
+    1_000_000 / u64::from(fps)
+}
 
 /// One governor input per frame — the measured-frame verdict against
 /// the budget. Classified by [`classify_frame`] so the FSM never sees
@@ -199,6 +229,32 @@ impl AmbienceGovernor {
             ceiling,
             budget_us: DEFAULT_BUDGET_US,
         }
+    }
+
+    /// `new(ceiling)` re-budgeted to a target frame rate (the resolved
+    /// `config.performance.resolve_target_fps`). A ProMotion 120 Hz panel
+    /// gets an 8.3 ms budget; battery (a lower `battery_fps_cap`) shrinks
+    /// it further. The classifier's fractions are budget-relative, so the
+    /// over/calm thresholds track the REAL frame the operator perceives.
+    #[must_use]
+    pub(crate) fn with_budget_us(ceiling: AuroraQuality, budget_us: u64) -> Self {
+        let mut g = Self::new(ceiling);
+        g.budget_us = budget_us;
+        g
+    }
+
+    /// Re-budget a live governor to a new effective fps (a hot-reload of
+    /// `performance.target_fps` / `fps_cap` / `battery_fps_cap`, or a
+    /// battery-state change). Streaks are untouched — only the budget the
+    /// next frames classify against moves.
+    pub(crate) fn set_budget_us(&mut self, budget_us: u64) {
+        self.budget_us = budget_us;
+    }
+
+    /// The frame budget (microseconds) the governor classifies against.
+    #[must_use]
+    pub(crate) fn budget_us(&self) -> u64 {
+        self.budget_us
     }
 
     /// The live quality word the renderer applies to the aurora curtain
@@ -535,5 +591,47 @@ mod tests {
         let g = AmbienceGovernor::default();
         assert_eq!(g.quality(), AuroraQuality::Medium, "starts at the catalog default tier");
         assert_eq!(g.ceiling, AuroraQuality::High, "default ceiling is High");
+    }
+
+    /// `budget_us_for_fps` is the one fps→budget map: 60→16_666,
+    /// 120→8_333, 30→33_333; a zero fps keeps the 60 Hz floor.
+    #[test]
+    fn budget_us_for_fps_maps_frame_rate_to_one_frame_slice() {
+        assert_eq!(budget_us_for_fps(60), 16_666);
+        assert_eq!(budget_us_for_fps(120), 8_333);
+        assert_eq!(budget_us_for_fps(30), 33_333);
+        assert_eq!(budget_us_for_fps(0), DEFAULT_BUDGET_US, "zero fps keeps the 60 Hz floor");
+    }
+
+    /// critic-1: on a 120 Hz panel the governor budgets against the 8.3 ms
+    /// frame — a 9 ms CPU frame that the OLD hardcoded-60 Hz budget called
+    /// "calm" (9_000 / 16_667 = 0.54 < 0.60) is now correctly OVER budget
+    /// (9_000 / 8_333 = 1.08 > 0.85). Re-budgeting via `with_budget_us` /
+    /// `set_budget_us` is what makes the ProMotion + battery dimension
+    /// real — the governor would otherwise climb aurora quality while the
+    /// 120 Hz frame is already blown.
+    #[test]
+    fn rebudget_to_120hz_flips_a_9ms_frame_from_calm_to_over() {
+        let frame_us = 9_000u64; // 9 ms render callback
+        // Under the legacy 60 Hz budget this frame was "calm".
+        assert_eq!(
+            classify_frame(frame_us, DEFAULT_BUDGET_US),
+            GovernorEvent::TickCalm,
+            "9 ms is calm against a 60 Hz budget"
+        );
+        // Re-budgeted to 120 Hz it is OVER budget.
+        let budget_120 = budget_us_for_fps(120);
+        assert_eq!(
+            classify_frame(frame_us, budget_120),
+            GovernorEvent::TickOverBudget,
+            "9 ms is over budget against a 120 Hz frame"
+        );
+        // And a governor built/re-budgeted to 120 Hz classifies it OVER.
+        let g = AmbienceGovernor::with_budget_us(AuroraQuality::High, budget_120);
+        assert_eq!(g.budget_us(), budget_120);
+        let mut g2 = AmbienceGovernor::default();
+        assert_eq!(g2.budget_us(), DEFAULT_BUDGET_US, "default is the 60 Hz floor");
+        g2.set_budget_us(budget_120);
+        assert_eq!(g2.budget_us(), budget_120, "set_budget_us re-budgets a live governor");
     }
 }

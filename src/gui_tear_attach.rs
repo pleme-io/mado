@@ -319,6 +319,14 @@ where
     // effect gating, and bold_is_bright were all dead in tear-attach
     // windows while working in local-PTY ones.
     renderer.apply_effects_and_accessibility(&config);
+    // Budget the ambience governor against the resolved effective frame
+    // rate — identical to the local-PTY path (main.rs), so the embedded
+    // and local render modes scale aurora quality against the SAME real
+    // frame budget instead of the hardcoded 60 Hz floor. No madori
+    // posture is available here yet (winit owns monitor enumeration), so
+    // it resolves against `None` like main.rs.
+    let effective_fps = config.performance.resolve_target_fps(None);
+    renderer.set_ambience_budget_fps(effective_fps);
     // Theme parity (FIX 2, operator report 2026-06-12): the SAME
     // shared theme-application point main.rs uses. This path previously
     // applied NO theme — it never called `Terminal::apply_theme`, so

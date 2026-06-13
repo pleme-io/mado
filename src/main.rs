@@ -618,8 +618,8 @@ fn main() -> anyhow::Result<()> {
     // typed posture event through madori so the live event loop owns
     // detection and feeds it back to the renderer.
     let runtime_posture: Option<garasu::adaptive::RuntimePosture> = None;
-    let _effective_fps = config.performance.resolve_target_fps(runtime_posture.as_ref());
-    tracing::debug!(target_fps = _effective_fps, "resolved target fps");
+    let effective_fps = config.performance.resolve_target_fps(runtime_posture.as_ref());
+    tracing::debug!(target_fps = effective_fps, "resolved target fps");
 
     let shell = cli
         .command
@@ -728,6 +728,13 @@ fn main() -> anyhow::Result<()> {
     // diverge (M3 review 2026-06-12). Hot-reload re-application
     // happens via the per-frame ConfigHotReload poll below.
     renderer.apply_effects_and_accessibility(&config);
+
+    // Budget the ambience governor against the resolved effective frame
+    // rate (no longer discarded) instead of the hardcoded 60 Hz floor —
+    // a ProMotion 120 Hz panel gets the 8.3 ms budget, a battery cap
+    // shrinks it. The local-PTY path's fps; the embedded-tear path
+    // budgets identically inside gui_tear_attach.
+    renderer.set_ambience_budget_fps(effective_fps);
 
     // Selection/search/dir-picker renderer hooks are wired by
     // InputEngine::attach_to_renderer below — the engine is the only

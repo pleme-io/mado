@@ -248,9 +248,16 @@ pub(crate) const PRESENT_AURORA_SHIMMER: f32 = 0.45;
 /// Bloom gain at Present.
 pub(crate) const PRESENT_BLOOM_INTENSITY: f32 = 0.20;
 
-/// Horizon line shared by every preset's aurora — the curtain is zero
-/// below it, keeping the aurora above the prompt-line area. High value
-/// (0.70) = only the top ~30 % of the frame is ever touched.
+/// Horizon line shared by every preset's aurora. In the engawa aurora
+/// shader `alt = 1.0 - uv.y/horizon`, so the curtain's ACTIVE region is
+/// the top `horizon` fraction of the frame (`uv.y < 0.70` here = the top
+/// 70 %); below the horizon the curtain is zero. The visible aurora is
+/// concentrated near the TOP edge anyway — the `smoothstep` border +
+/// `exp(-rel·DECAY)` falloff + the wandering ~0.08–0.30 border keep the
+/// bright band high — so the result sits above the prompt line. Mental
+/// model for a re-tune: LOWERING `horizon` SHRINKS the active region
+/// toward the top; RAISING it toward 1.0 EXPANDS the region DOWNWARD
+/// toward the prompt line.
 pub(crate) const AMBIENCE_HORIZON: f32 = 0.70;
 /// Bloom luminance cutoff shared by every preset — only near-white
 /// accents (above 0.88) bloom, so ordinary text never smears.

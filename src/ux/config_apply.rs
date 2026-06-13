@@ -79,6 +79,13 @@ pub enum SetterCall {
     /// alias resolution point — → `set_effects_config` (the single
     /// effects ingress; M3 contract preserved).
     Effects(MadoEffectsConfig),
+    /// Resolved effective frame rate (`performance.resolve_target_fps`)
+    /// → `set_ambience_budget_fps`. A hot-reload of `target_fps` /
+    /// `fps_cap` / `battery_fps_cap` re-budgets the ambience governor so
+    /// aurora quality scales against the real frame, not the 60 Hz floor.
+    /// (Hot-reload resolves against `None` posture, mirroring boot — the
+    /// live madori posture wire is the M1 follow-up.)
+    AmbienceBudgetFps(u32),
 }
 
 /// The executor seam: every setter the config diff can decide to
@@ -101,6 +108,7 @@ pub trait ConfigSetters {
     fn set_bold_is_bright(&mut self, v: bool);
     fn set_reduce_motion(&mut self, v: bool);
     fn set_effects_config(&mut self, v: MadoEffectsConfig);
+    fn set_ambience_budget_fps(&mut self, v: u32);
 }
 
 impl ConfigSetters for TerminalRenderer {
@@ -122,6 +130,7 @@ impl ConfigSetters for TerminalRenderer {
     fn set_bold_is_bright(&mut self, v: bool) { TerminalRenderer::set_bold_is_bright(self, v); }
     fn set_reduce_motion(&mut self, v: bool) { TerminalRenderer::set_reduce_motion(self, v); }
     fn set_effects_config(&mut self, v: MadoEffectsConfig) { TerminalRenderer::set_effects_config(self, v); }
+    fn set_ambience_budget_fps(&mut self, v: u32) { TerminalRenderer::set_ambience_budget_fps(self, v); }
 }
 
 /// The render-facing values a config resolves to — the same
@@ -156,6 +165,11 @@ struct Resolved {
     bold_is_bright: bool,
     reduce_motion: bool,
     effects: MadoEffectsConfig,
+    /// Resolved effective frame rate (`performance.resolve_target_fps`
+    /// against `None` posture — the same resolution the hot-reload path
+    /// can perform without a live madori posture). Drives the ambience
+    /// governor's frame budget.
+    ambience_budget_fps: u32,
 }
 
 // `u32 → f32` padding: operator padding is single-digit logical px;
@@ -204,6 +218,10 @@ fn resolve(config: &MadoConfig) -> Resolved {
         bold_is_bright: config.appearance.bold_is_bright,
         reduce_motion: config.accessibility.reduce_motion,
         effects: config.resolved_effects(),
+        // `None` posture — hot-reload cannot enumerate monitors; it
+        // resolves the explicit target / caps / fallback exactly like
+        // boot's `None`-posture call (the live posture wire is M1).
+        ambience_budget_fps: config.performance.resolve_target_fps(None),
     }
 }
 
@@ -296,6 +314,9 @@ pub fn diff(old: &MadoConfig, new: &MadoConfig) -> Vec<SetterCall> {
     if o.effects != n.effects {
         calls.push(SetterCall::Effects(n.effects));
     }
+    if o.ambience_budget_fps != n.ambience_budget_fps {
+        calls.push(SetterCall::AmbienceBudgetFps(n.ambience_budget_fps));
+    }
     calls
 }
 
@@ -320,6 +341,7 @@ pub fn execute<T: ConfigSetters>(target: &mut T, calls: Vec<SetterCall>) {
             SetterCall::BoldIsBright(v) => target.set_bold_is_bright(v),
             SetterCall::ReduceMotion(v) => target.set_reduce_motion(v),
             SetterCall::Effects(v) => target.set_effects_config(v),
+            SetterCall::AmbienceBudgetFps(v) => target.set_ambience_budget_fps(v),
         }
     }
 }
@@ -438,6 +460,7 @@ mod tests {
         fn set_bold_is_bright(&mut self, _: bool) { self.calls.push("set_bold_is_bright"); }
         fn set_reduce_motion(&mut self, _: bool) { self.calls.push("set_reduce_motion"); }
         fn set_effects_config(&mut self, _: MadoEffectsConfig) { self.calls.push("set_effects_config"); }
+        fn set_ambience_budget_fps(&mut self, _: u32) { self.calls.push("set_ambience_budget_fps"); }
     }
 
     fn call_kind(c: &SetterCall) -> &'static str {
@@ -457,6 +480,7 @@ mod tests {
             SetterCall::BoldIsBright(_) => "BoldIsBright",
             SetterCall::ReduceMotion(_) => "ReduceMotion",
             SetterCall::Effects(_) => "Effects",
+            SetterCall::AmbienceBudgetFps(_) => "AmbienceBudgetFps",
         }
     }
 
@@ -661,6 +685,28 @@ mod tests {
             kinds,
             vec!["CursorStyle", "CursorBlinkRateMs", "Padding", "BoldIsBright"]
         );
+    }
+
+    #[test]
+    fn target_fps_change_hot_reloads_the_ambience_budget() {
+        // critic-1: a hot-reload of the frame target re-budgets the
+        // ambience governor (so a 120 Hz / battery-capped change is
+        // honoured), instead of the governor staying pinned at 60 Hz.
+        let old = MadoConfig::default(); // target_fps None → FALLBACK 60
+        let mut new = old.clone();
+        new.performance.target_fps = Some(120);
+        let calls = diff(&old, &new);
+        let kinds: Vec<&str> = calls.iter().map(call_kind).collect();
+        assert_eq!(kinds, vec!["AmbienceBudgetFps"], "only the fps budget moves; got {calls:?}");
+        assert!(calls.contains(&SetterCall::AmbienceBudgetFps(120)));
+        // Through the executor: exactly one setter fires.
+        let mut applier = ConfigApplier::new(old);
+        let mut counter = CountingSetters::default();
+        assert_eq!(applier.apply_delta(&new, &mut counter), 1);
+        assert_eq!(counter.calls, vec!["set_ambience_budget_fps"]);
+        // Re-applying the same config is a zero-call no-op.
+        let mut counter2 = CountingSetters::default();
+        assert_eq!(applier.apply_delta(&new, &mut counter2), 0);
     }
 
     #[test]
