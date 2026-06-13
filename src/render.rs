@@ -982,6 +982,13 @@ pub struct TerminalRenderer {
     /// WGSL is stateless). Params are composed per-frame from the
     /// ambience layer + theme palette + governor quality.
     aurora_state: AuroraState,
+    /// The ambience perf governor (operator perf wave, 2026-06-13) — a
+    /// typed FSM scaling the composed layer's quality word to the frame
+    /// budget, rebuild-free. Ticked per frame from the measured
+    /// `frame_us` ONLY when the ambience composition is non-empty (the
+    /// `reduce_motion` bypass: an empty composition omits the aurora
+    /// node, so there is nothing to quality).
+    ambience_governor: crate::ux::ambience_governor::AmbienceGovernor,
     // The M3 `pending_config_reload` cell was DELETED at M4 stage 2:
     // hot-reload now runs through `ux::ConfigHotReload` in BOTH
     // event-loop adapters (dirty flag → typed SetterCall delta), so
@@ -1161,6 +1168,10 @@ impl TerminalRenderer {
             snow_state: SnowState::new(),
             glow_state: GlowState::new(),
             aurora_state: AuroraState::new(),
+            // Recommended default: High ceiling (the perf wave's spec),
+            // starting at the catalog default Medium. The governor only
+            // ever steps down from here under sustained load.
+            ambience_governor: crate::ux::ambience_governor::AmbienceGovernor::default(),
         }
     }
 
@@ -3123,11 +3134,27 @@ impl TerminalRenderer {
     }
 
     /// The ambience quality word applied to the aurora curtain this
-    /// frame. COMMIT 1 pins it at the catalog default (`Medium`); the
-    /// COMMIT 2 ambience governor replaces this with its FSM state so
-    /// quality scales to the frame budget (rebuild-free).
+    /// frame — the ambience governor's live FSM state. The governor
+    /// scales it to the frame budget (rebuild-free) via the per-frame
+    /// poll in [`Self::tick_ambience_governor`].
     fn ambience_quality(&self) -> engawa_wgpu::catalog::aurora::AuroraQuality {
-        engawa_wgpu::catalog::aurora::AuroraQuality::Medium
+        self.ambience_governor.quality()
+    }
+
+    /// Per-frame governor poll — classify the PREVIOUS frame's measured
+    /// time against the budget and advance the FSM. Called at frame
+    /// start ONLY when the ambience composition is non-empty (an empty
+    /// composition omits the aurora node — the `reduce_motion` bypass:
+    /// there is nothing to quality, so the governor is not ticked). The
+    /// single `SetAmbienceQuality` effect lands in `self.ambience_governor`
+    /// (its own state) and is read by `ambience_quality()` this frame —
+    /// the params sink. `prev_frame_us` is the last completed frame's
+    /// measured microseconds (`LAST_FRAME_US`).
+    fn tick_ambience_governor(&mut self, prev_frame_us: u64) {
+        if self.ambience.members.is_empty() {
+            return;
+        }
+        let _ = self.ambience_governor.tick_frame(prev_frame_us);
     }
 
     /// The aurora spectrum stops (green / cyan / violet) in LINEAR rgb,
@@ -3602,6 +3629,14 @@ impl RenderCallback for TerminalRenderer {
         self.snow_state.tick(ctx.elapsed, ctx.dt, &self.effects_config.snow);
         self.glow_state.tick(ctx.dt);
         self.aurora_state.tick(ctx.elapsed);
+        // Ambience perf governor (2026-06-13): classify the PREVIOUS
+        // frame's measured time against the budget and advance the
+        // quality FSM — BEFORE the per-frame uniforms read
+        // `ambience_quality()`. Gated on a non-empty composition (the
+        // reduce_motion bypass). At elapsed=0 the headless ladders never
+        // recorded a frame, so `LAST_FRAME_US` is 0 ⇒ TickCalm ⇒ no
+        // step on a single tick — the route stays deterministic.
+        self.tick_ambience_governor(LAST_FRAME_US.load(Ordering::Relaxed));
         // Glow centers on the cursor cell (the bell's visual home).
         if snap.cursor.visible && snap.cursor.row < snap.num_rows && snap.cursor.col < snap.cols {
             self.glow_state.params.center_px = [

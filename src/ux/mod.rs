@@ -16,6 +16,7 @@
 //! map [`EventOutcome`] back to `madori::EventResponse`. The
 //! structural invariant is pinned by `tests/ux_unification.rs`.
 
+pub mod ambience_governor;
 pub mod behavior;
 pub mod config_apply;
 pub mod engine;
