@@ -38,6 +38,18 @@ pub enum SetterCall {
     SelectionBg([f32; 4]),
     /// Theme cursor color (linearized RGBA) → `set_cursor_color`.
     CursorColor([f32; 4]),
+    /// AGENT-RESERVED accent (`Theme::agent_accent`, u8-RGB) →
+    /// `set_search_status_color`. Drives the search-status text AND
+    /// the aurora curtain's violet stop (`render::aurora_palette`
+    /// reads `search_status_color`), so a theme hot-reload must move
+    /// it or the agent accent / aurora violet stay on the prior theme.
+    SearchStatusColor(Color),
+    /// CURRENT search-match highlight fill (`Theme::search_current`,
+    /// u8-RGB) → `set_search_current_color`.
+    SearchCurrentColor(Color),
+    /// OTHER search-match highlight fill (`Theme::search_others`,
+    /// u8-RGB) → `set_search_other_color`.
+    SearchOtherColor(Color),
     /// Background clear color + default text color → `set_bg_fg`.
     BgFg {
         /// Linearized clear color (theme background or
@@ -77,6 +89,9 @@ pub trait ConfigSetters {
     fn set_ansi_colors(&mut self, v: [Color; 16]);
     fn set_selection_bg(&mut self, v: [f32; 4]);
     fn set_cursor_color(&mut self, v: [f32; 4]);
+    fn set_search_status_color(&mut self, v: Color);
+    fn set_search_current_color(&mut self, v: Color);
+    fn set_search_other_color(&mut self, v: Color);
     fn set_bg_fg(&mut self, bg: wgpu::Color, fg: Color);
     fn set_font_size(&mut self, v: f32);
     fn set_cursor_style(&mut self, v: CursorStyle);
@@ -95,6 +110,9 @@ impl ConfigSetters for TerminalRenderer {
     fn set_ansi_colors(&mut self, v: [Color; 16]) { TerminalRenderer::set_ansi_colors(self, v); }
     fn set_selection_bg(&mut self, v: [f32; 4]) { TerminalRenderer::set_selection_bg(self, v); }
     fn set_cursor_color(&mut self, v: [f32; 4]) { TerminalRenderer::set_cursor_color(self, v); }
+    fn set_search_status_color(&mut self, v: Color) { TerminalRenderer::set_search_status_color(self, v); }
+    fn set_search_current_color(&mut self, v: Color) { TerminalRenderer::set_search_current_color(self, v); }
+    fn set_search_other_color(&mut self, v: Color) { TerminalRenderer::set_search_other_color(self, v); }
     fn set_bg_fg(&mut self, bg: wgpu::Color, fg: Color) { TerminalRenderer::set_bg_fg(self, bg, fg); }
     fn set_font_size(&mut self, v: f32) { TerminalRenderer::set_font_size(self, v); }
     fn set_cursor_style(&mut self, v: CursorStyle) { TerminalRenderer::set_cursor_style(self, v); }
@@ -119,6 +137,15 @@ struct Resolved {
     ansi: Option<[Color; 16]>,
     selection_bg: Option<[f32; 4]>,
     cursor_color: Option<[f32; 4]>,
+    /// Theme agent accent (search-status text + aurora violet stop).
+    /// `None` mirrors the palette group: an unresolved theme leaves
+    /// the renderer's current accent in place, so the diff emits
+    /// nothing for it (exactly like boot never touches it).
+    search_status: Option<Color>,
+    /// Theme search-match fills (current / other). `None` semantics
+    /// match `search_status`.
+    search_current: Option<Color>,
+    search_others: Option<Color>,
     bg: wgpu::Color,
     fg: Color,
     font_size: f32,
@@ -161,6 +188,12 @@ fn resolve(config: &MadoConfig) -> Resolved {
         selection_bg: theme.map(|t| t.selection_bg),
         // 0.85 alpha — the boot-path constant (`main.rs` theme block).
         cursor_color: theme.map(|t| crate::color_to_f32_rgba(&t.cursor, 0.85)),
+        // Agent accent + search-match fills — the surfaces
+        // `apply_config_theme` sets at boot. Mapped through the theme
+        // so an unresolved name emits nothing (palette-group parity).
+        search_status: theme.map(|t| t.agent_accent),
+        search_current: theme.map(|t| t.search_current),
+        search_others: theme.map(|t| t.search_others),
         bg,
         fg,
         font_size: config.font_size * config.accessibility.font_scale,
@@ -218,6 +251,24 @@ pub fn diff(old: &MadoConfig, new: &MadoConfig) -> Vec<SetterCall> {
     {
         calls.push(SetterCall::CursorColor(cur));
     }
+    // Agent accent + search fills — ordered with the palette group
+    // (after cursor, before bg/fg), exactly like `apply_config_theme`
+    // applies them at boot, so a theme hot-reload moves them too.
+    if let Some(acc) = n.search_status
+        && o.search_status != Some(acc)
+    {
+        calls.push(SetterCall::SearchStatusColor(acc));
+    }
+    if let Some(scur) = n.search_current
+        && o.search_current != Some(scur)
+    {
+        calls.push(SetterCall::SearchCurrentColor(scur));
+    }
+    if let Some(soth) = n.search_others
+        && o.search_others != Some(soth)
+    {
+        calls.push(SetterCall::SearchOtherColor(soth));
+    }
     if wgpu_color_changed(o.bg, n.bg) || o.fg != n.fg {
         calls.push(SetterCall::BgFg { bg: n.bg, fg: n.fg });
     }
@@ -257,6 +308,9 @@ pub fn execute<T: ConfigSetters>(target: &mut T, calls: Vec<SetterCall>) {
             SetterCall::AnsiColors(v) => target.set_ansi_colors(v),
             SetterCall::SelectionBg(v) => target.set_selection_bg(v),
             SetterCall::CursorColor(v) => target.set_cursor_color(v),
+            SetterCall::SearchStatusColor(v) => target.set_search_status_color(v),
+            SetterCall::SearchCurrentColor(v) => target.set_search_current_color(v),
+            SetterCall::SearchOtherColor(v) => target.set_search_other_color(v),
             SetterCall::BgFg { bg, fg } => target.set_bg_fg(bg, fg),
             SetterCall::FontSize(v) => target.set_font_size(v),
             SetterCall::CursorStyle(v) => target.set_cursor_style(v),
@@ -372,6 +426,9 @@ mod tests {
         fn set_ansi_colors(&mut self, _: [Color; 16]) { self.calls.push("set_ansi_colors"); }
         fn set_selection_bg(&mut self, _: [f32; 4]) { self.calls.push("set_selection_bg"); }
         fn set_cursor_color(&mut self, _: [f32; 4]) { self.calls.push("set_cursor_color"); }
+        fn set_search_status_color(&mut self, _: Color) { self.calls.push("set_search_status_color"); }
+        fn set_search_current_color(&mut self, _: Color) { self.calls.push("set_search_current_color"); }
+        fn set_search_other_color(&mut self, _: Color) { self.calls.push("set_search_other_color"); }
         fn set_bg_fg(&mut self, _: wgpu::Color, _: Color) { self.calls.push("set_bg_fg"); }
         fn set_font_size(&mut self, _: f32) { self.calls.push("set_font_size"); }
         fn set_cursor_style(&mut self, _: CursorStyle) { self.calls.push("set_cursor_style"); }
@@ -388,6 +445,9 @@ mod tests {
             SetterCall::AnsiColors(_) => "AnsiColors",
             SetterCall::SelectionBg(_) => "SelectionBg",
             SetterCall::CursorColor(_) => "CursorColor",
+            SetterCall::SearchStatusColor(_) => "SearchStatusColor",
+            SetterCall::SearchCurrentColor(_) => "SearchCurrentColor",
+            SetterCall::SearchOtherColor(_) => "SearchOtherColor",
             SetterCall::BgFg { .. } => "BgFg",
             SetterCall::FontSize(_) => "FontSize",
             SetterCall::CursorStyle(_) => "CursorStyle",
@@ -452,25 +512,39 @@ mod tests {
 
         let calls = diff(&old, &new);
         let kinds: Vec<&str> = calls.iter().map(call_kind).collect();
+        // nord and dracula are BOTH irodzuki presets, so both fall back
+        // to the Nord aurora-yellow search fills — SearchCurrent/Other do
+        // NOT change between them. The agent accent (preset foreground)
+        // DOES differ, so SearchStatusColor fires. (The Borealis search
+        // fills are exercised by the dedicated nord→borealis test below.)
         assert_eq!(
             kinds,
-            vec!["AnsiColors", "SelectionBg", "CursorColor", "BgFg", "FontSize"],
-            "theme+font edit must emit exactly the theme color group + font size, in fixed order; got {calls:?}"
+            vec![
+                "AnsiColors",
+                "SelectionBg",
+                "CursorColor",
+                "SearchStatusColor",
+                "BgFg",
+                "FontSize"
+            ],
+            "theme+font edit must emit the theme color group (incl. agent accent) + font size, in fixed order; got {calls:?}"
         );
         let dracula = Theme::by_name("dracula").expect("dracula preset");
         assert!(calls.contains(&SetterCall::AnsiColors(dracula.ansi)));
+        assert!(calls.contains(&SetterCall::SearchStatusColor(dracula.agent_accent)));
         assert!(calls.contains(&SetterCall::FontSize(16.0)));
-        // And through the executor: exactly those five setters fire.
+        // And through the executor: exactly those six setters fire.
         let mut applier = ConfigApplier::new(old);
         let mut counter = CountingSetters::default();
         let n = applier.apply_delta(&new, &mut counter);
-        assert_eq!(n, 5);
+        assert_eq!(n, 6);
         assert_eq!(
             counter.calls,
             vec![
                 "set_ansi_colors",
                 "set_selection_bg",
                 "set_cursor_color",
+                "set_search_status_color",
                 "set_bg_fg",
                 "set_font_size"
             ]
@@ -528,12 +602,50 @@ mod tests {
         let mut new = old.clone();
         new.theme = "definitely-not-a-theme".into();
         let kinds: Vec<&str> = diff(&old, &new).iter().map(call_kind).collect();
-        for banned in ["AnsiColors", "SelectionBg", "CursorColor"] {
+        for banned in [
+            "AnsiColors",
+            "SelectionBg",
+            "CursorColor",
+            "SearchStatusColor",
+            "SearchCurrentColor",
+            "SearchOtherColor",
+        ] {
             assert!(
                 !kinds.contains(&banned),
                 "unknown theme must not emit {banned}, got {kinds:?}"
             );
         }
+    }
+
+    #[test]
+    fn theme_swap_to_borealis_hot_reloads_all_three_search_surfaces() {
+        // The correctness-1 regression: a theme hot-reload moved
+        // ANSI/selection/cursor/bg-fg but NOT the agent accent or the
+        // search-match fills — so swapping to Borealis left the
+        // search-status text + aurora violet + search highlights on the
+        // prior (legacy) theme. nord→borealis changes all three.
+        let mut old = MadoConfig::default();
+        old.theme = "nord".into();
+        let mut new = old.clone();
+        new.theme = "borealis-night".into();
+
+        let calls = diff(&old, &new);
+        let kinds: Vec<&str> = calls.iter().map(call_kind).collect();
+        for required in ["SearchStatusColor", "SearchCurrentColor", "SearchOtherColor"] {
+            assert!(
+                kinds.contains(&required),
+                "borealis hot-reload must emit {required}, got {kinds:?}"
+            );
+        }
+        let borealis = Theme::by_name("borealis-night").expect("borealis theme");
+        assert!(calls.contains(&SetterCall::SearchStatusColor(borealis.agent_accent)));
+        assert!(calls.contains(&SetterCall::SearchCurrentColor(borealis.search_current)));
+        assert!(calls.contains(&SetterCall::SearchOtherColor(borealis.search_others)));
+        // The three fire in palette order: after CursorColor, before BgFg.
+        let cur = kinds.iter().position(|k| *k == "CursorColor").expect("CursorColor");
+        let status = kinds.iter().position(|k| *k == "SearchStatusColor").expect("SearchStatusColor");
+        let bgfg = kinds.iter().position(|k| *k == "BgFg").expect("BgFg");
+        assert!(cur < status && status < bgfg, "search surfaces ordered in the palette group: {kinds:?}");
     }
 
     #[test]
