@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "b03c9f4cae5859bbe03c99e7946616f532859765e65453e517e09be7db258cfc",
+  "cargo_lock_sha256": "def028f0573a59b68b64b7d0dbcbb9f0411008b6ed947ab08a5f8792b41bc008",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -806,6 +806,11 @@
           "schema"
         ]
       },
+      "by_address-1.2.1": {
+        "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": []
+      },
       "bytecheck-0.6.12": {
         "runtime_dependencies": [
           {
@@ -1583,6 +1588,54 @@
           "std"
         ]
       },
+      "crossbeam-deque-0.8.6": {
+        "runtime_dependencies": [
+          {
+            "name": "crossbeam_epoch",
+            "package_key": "crossbeam-epoch-0.9.18",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "crossbeam_utils",
+            "package_key": "crossbeam-utils-0.8.21",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "default",
+          "std"
+        ]
+      },
+      "crossbeam-epoch-0.9.18": {
+        "runtime_dependencies": [
+          {
+            "name": "crossbeam_utils",
+            "package_key": "crossbeam-utils-0.8.21",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "alloc",
+          "std"
+        ]
+      },
       "crossbeam-queue-0.3.12": {
         "runtime_dependencies": [
           {
@@ -1607,6 +1660,7 @@
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": [
+          "default",
           "std"
         ]
       },
@@ -2654,6 +2708,11 @@
         ]
       },
       "fallible-streaming-iterator-0.1.9": {
+        "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": []
+      },
+      "fast-srgb8-1.0.0": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
@@ -4525,6 +4584,32 @@
           "baked"
         ]
       },
+      "icy_sixel-0.5.0": {
+        "runtime_dependencies": [
+          {
+            "name": "quantette",
+            "package_key": "quantette-0.5.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "thiserror",
+            "package_key": "thiserror-2.0.18",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
       "ident_case-1.0.1": {
         "runtime_dependencies": [],
         "build_dependencies": [],
@@ -6351,6 +6436,22 @@
         "build_dependencies": [],
         "features": []
       },
+      "ordered-float-5.3.0": {
+        "runtime_dependencies": [
+          {
+            "name": "num_traits",
+            "package_key": "num-traits-0.2.19",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
       "ouroboros-0.18.5": {
         "runtime_dependencies": [
           {
@@ -6437,6 +6538,109 @@
               "full"
             ],
             "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "palette-0.7.6": {
+        "runtime_dependencies": [
+          {
+            "name": "bytemuck",
+            "package_key": "bytemuck-1.25.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "fast_srgb8",
+            "package_key": "fast-srgb8-1.0.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "libm",
+            "package_key": "libm-0.2.16",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "palette_derive",
+            "package_key": "palette_derive-0.7.6",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "host"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "alloc",
+          "bytemuck",
+          "libm"
+        ]
+      },
+      "palette_derive-0.7.6": {
+        "runtime_dependencies": [
+          {
+            "name": "by_address",
+            "package_key": "by_address-1.2.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "proc_macro2",
+            "package_key": "proc-macro2-1.0.106",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "quote",
+            "package_key": "quote-1.0.45",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "syn",
+            "package_key": "syn-2.0.117",
+            "kind": "normal",
+            "features": [
+              "derive",
+              "parsing",
+              "printing",
+              "clone-impls",
+              "extra-traits",
+              "proc-macro"
+            ],
+            "uses_default_features": false,
             "optional": false,
             "target": null,
             "tree": "target"
@@ -7631,6 +7835,153 @@
         "build_dependencies": [],
         "features": []
       },
+      "quantette-0.5.1": {
+        "runtime_dependencies": [
+          {
+            "name": "bitvec",
+            "package_key": "bitvec-1.0.1",
+            "kind": "normal",
+            "features": [
+              "alloc"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "bytemuck",
+            "package_key": "bytemuck-1.25.0",
+            "kind": "normal",
+            "features": [
+              "derive",
+              "min_const_generics",
+              "extern_crate_alloc"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "image",
+            "package_key": "image-0.25.10",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "libm",
+            "package_key": "libm-0.2.16",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "num_traits",
+            "package_key": "num-traits-0.2.19",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "ordered_float",
+            "package_key": "ordered-float-5.3.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "palette",
+            "package_key": "palette-0.7.6",
+            "kind": "normal",
+            "features": [
+              "alloc",
+              "libm",
+              "bytemuck"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "rand",
+            "package_key": "rand-0.9.4",
+            "kind": "normal",
+            "features": [
+              "alloc"
+            ],
+            "uses_default_features": false,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "rand_xoshiro",
+            "package_key": "rand_xoshiro-0.7.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "rayon",
+            "package_key": "rayon-1.12.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "ref_cast",
+            "package_key": "ref-cast-1.0.25",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "wide",
+            "package_key": "wide-0.8.3",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "default",
+          "image",
+          "kmeans",
+          "rand",
+          "rand_xoshiro",
+          "rayon",
+          "std",
+          "threads"
+        ]
+      },
       "quick-error-1.2.3": {
         "runtime_dependencies": [],
         "build_dependencies": [],
@@ -7849,6 +8200,22 @@
         "build_dependencies": [],
         "features": []
       },
+      "rand_xoshiro-0.7.0": {
+        "runtime_dependencies": [
+          {
+            "name": "rand_core",
+            "package_key": "rand_core-0.9.5",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
       "rangemap-1.7.1": {
         "runtime_dependencies": [],
         "build_dependencies": [],
@@ -7861,6 +8228,58 @@
           "alloc",
           "std"
         ]
+      },
+      "rayon-1.12.0": {
+        "runtime_dependencies": [
+          {
+            "name": "either",
+            "package_key": "either-1.16.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "rayon_core",
+            "package_key": "rayon-core-1.13.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "rayon-core-1.13.0": {
+        "runtime_dependencies": [
+          {
+            "name": "crossbeam_deque",
+            "package_key": "crossbeam-deque-0.8.6",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "crossbeam_utils",
+            "package_key": "crossbeam-utils-0.8.21",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
       },
       "read-fonts-0.37.0": {
         "runtime_dependencies": [
@@ -9154,6 +9573,25 @@
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
+      },
+      "safe_arch-0.9.3": {
+        "runtime_dependencies": [
+          {
+            "name": "bytemuck",
+            "package_key": "bytemuck-1.25.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "bytemuck",
+          "default"
+        ]
       },
       "same-file-1.0.6": {
         "runtime_dependencies": [],
@@ -17016,6 +17454,36 @@
         "build_dependencies": [],
         "features": []
       },
+      "wide-0.8.3": {
+        "runtime_dependencies": [
+          {
+            "name": "bytemuck",
+            "package_key": "bytemuck-1.25.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "safe_arch",
+            "package_key": "safe_arch-0.9.3",
+            "kind": "normal",
+            "features": [
+              "bytemuck"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "std"
+        ]
+      },
       "winnow-0.7.15": {
         "runtime_dependencies": [
           {
@@ -18391,6 +18859,16 @@
               {
                 "name": "hasami",
                 "package_key": "hasami-0.1.0-25846db58bbd493ded04243a41bc08eaf2bf007b",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "icy_sixel",
+                "package_key": "icy_sixel-0.5.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -22520,6 +22998,16 @@
                 "tree": "target"
               },
               {
+                "name": "icy_sixel",
+                "package_key": "icy_sixel-0.5.0",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "image",
                 "package_key": "image-0.25.10",
                 "kind": "normal",
@@ -26544,6 +27032,16 @@
                 "tree": "target"
               },
               {
+                "name": "icy_sixel",
+                "package_key": "icy_sixel-0.5.0",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "image",
                 "package_key": "image-0.25.10",
                 "kind": "normal",
@@ -30047,6 +30545,16 @@
               {
                 "name": "hasami",
                 "package_key": "hasami-0.1.0-25846db58bbd493ded04243a41bc08eaf2bf007b",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "icy_sixel",
+                "package_key": "icy_sixel-0.5.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33584,6 +34092,16 @@
               {
                 "name": "hasami",
                 "package_key": "hasami-0.1.0-25846db58bbd493ded04243a41bc08eaf2bf007b",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "icy_sixel",
+                "package_key": "icy_sixel-0.5.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37149,6 +37667,16 @@
                 "tree": "target"
               },
               {
+                "name": "icy_sixel",
+                "package_key": "icy_sixel-0.5.0",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "image",
                 "package_key": "image-0.25.10",
                 "kind": "normal",
@@ -40003,6 +40531,9 @@
       "edition": "2018",
       "proc_macro": true
     },
+    "by_address-1.2.1": {
+      "edition": "2021"
+    },
     "bytecheck-0.6.12": {
       "edition": "2021",
       "build_script": "build.rs"
@@ -40112,6 +40643,12 @@
     "crc32fast-1.5.0": {
       "edition": "2021",
       "build_script": "build.rs"
+    },
+    "crossbeam-deque-0.8.6": {
+      "edition": "2021"
+    },
+    "crossbeam-epoch-0.9.18": {
+      "edition": "2021"
     },
     "crossbeam-queue-0.3.12": {
       "edition": "2021"
@@ -40251,6 +40788,9 @@
     },
     "fallible-streaming-iterator-0.1.9": {
       "edition": "2015"
+    },
+    "fast-srgb8-1.0.0": {
+      "edition": "2018"
     },
     "fastrand-2.4.1": {
       "edition": "2018"
@@ -40448,6 +40988,9 @@
       "build_script": "build.rs"
     },
     "icu_provider-2.2.0": {
+      "edition": "2021"
+    },
+    "icy_sixel-0.5.0": {
       "edition": "2021"
     },
     "ident_case-1.0.1": {
@@ -40740,10 +41283,21 @@
     "ordered-float-4.6.0": {
       "edition": "2021"
     },
+    "ordered-float-5.3.0": {
+      "edition": "2021"
+    },
     "ouroboros-0.18.5": {
       "edition": "2018"
     },
     "ouroboros_macro-0.18.5": {
+      "edition": "2018",
+      "proc_macro": true
+    },
+    "palette-0.7.6": {
+      "edition": "2018",
+      "build_script": "build/main.rs"
+    },
+    "palette_derive-0.7.6": {
       "edition": "2018",
       "proc_macro": true
     },
@@ -40877,6 +41431,9 @@
     "pxfm-0.1.29": {
       "edition": "2024"
     },
+    "quantette-0.5.1": {
+      "edition": "2024"
+    },
     "quick-error-1.2.3": {
       "edition": "2015"
     },
@@ -40912,11 +41469,22 @@
     "rand_xorshift-0.4.0": {
       "edition": "2021"
     },
+    "rand_xoshiro-0.7.0": {
+      "edition": "2021"
+    },
     "rangemap-1.7.1": {
       "edition": "2018"
     },
     "raw-window-handle-0.6.2": {
       "edition": "2021"
+    },
+    "rayon-1.12.0": {
+      "edition": "2021"
+    },
+    "rayon-core-1.13.0": {
+      "edition": "2021",
+      "build_script": "build.rs",
+      "links": "rayon-core"
     },
     "read-fonts-0.37.0": {
       "edition": "2021"
@@ -41016,6 +41584,9 @@
     },
     "ryu-1.0.23": {
       "edition": "2021"
+    },
+    "safe_arch-0.9.3": {
+      "edition": "2018"
     },
     "same-file-1.0.6": {
       "edition": "2018"
@@ -41587,6 +42158,9 @@
       ]
     },
     "whoami-1.6.1": {
+      "edition": "2018"
+    },
+    "wide-0.8.3": {
       "edition": "2018"
     },
     "winit-0.30.13": {

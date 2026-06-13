@@ -32,6 +32,18 @@
 /// below exercises exactly that against a real engine).
 pub const STYLED_UNDERLINE_IMPLEMENTED: bool = true;
 
+/// Sixel graphics — DCS `q … ST` decoded to RGBA and rendered through the
+/// shared Kitty texture-upload path; DA1 attribute `4`.
+///
+/// TRUE since M4 (M3-C3 slice 2): the sixel DCS payload is decoded via
+/// `icy_sixel` at `unhook` and fed `store_rgba_image` → an `ImagePlacement`
+/// at the cursor — the same path Kitty images render through. Before this
+/// the payload was stored raw and never drawn, so advertising sixel would
+/// have been the same lie `styled_underline` once was. The honesty probe is
+/// the DA1 reply: a sixel-capable DA1 carries `4` (`CSI ?62;4;22c`), so the
+/// [`CAP_PROBES`] Query row below feeds `CSI c` and requires `;4;` back.
+pub const SIXEL_GRAPHICS_IMPLEMENTED: bool = true;
+
 /// Typed capability record. One field per advertise-able VT capability,
 /// each mirroring what the VT engine in `terminal.rs` actually implements.
 ///
@@ -57,6 +69,7 @@ pub struct TerminalCaps {
     synchronized_output: bool,
     kitty_keyboard: bool,
     kitty_graphics: bool,
+    sixel_graphics: bool,
     hyperlinks: bool,
     osc52_clipboard: bool,
     osc7_cwd: bool,
@@ -64,10 +77,12 @@ pub struct TerminalCaps {
 }
 
 impl TerminalCaps {
-    /// Primary Device Attributes (DA1) reply — `CSI ? 62 ; 22 c`
-    /// (VT220-class with ANSI colour). The canonical bytes emitted by the
-    /// VT engine on `CSI c`; `terminal.rs` writes exactly this constant.
-    pub const PRIMARY_DA: &'static [u8] = b"\x1b[?62;22c";
+    /// Primary Device Attributes (DA1) reply — `CSI ? 62 ; 4 ; 22 c`
+    /// (VT220-class, sixel graphics, ANSI colour). Attribute `4` = sixel,
+    /// advertised since the M4 decode path landed (`SIXEL_GRAPHICS_IMPLEMENTED`).
+    /// The canonical bytes emitted by the VT engine on `CSI c`; `terminal.rs`
+    /// writes exactly this constant.
+    pub const PRIMARY_DA: &'static [u8] = b"\x1b[?62;4;22c";
 
     /// Secondary Device Attributes (DA2) reply — `CSI > 1 ; 0 ; 0 c`
     /// (VT220, firmware version 0). Emitted on `CSI > c`.
@@ -90,6 +105,7 @@ impl TerminalCaps {
             synchronized_output: true,
             kitty_keyboard: true,
             kitty_graphics: true,
+            sixel_graphics: SIXEL_GRAPHICS_IMPLEMENTED,
             hyperlinks: true,
             osc52_clipboard: true,
             osc7_cwd: true,
@@ -125,7 +141,7 @@ impl TerminalCaps {
     /// used by the honesty tests today, hence `allow(dead_code)`.)
     #[allow(dead_code)]
     #[must_use]
-    pub fn as_pairs(&self) -> [(&'static str, bool); 13] {
+    pub fn as_pairs(&self) -> [(&'static str, bool); 14] {
         [
             ("colors_256", self.colors_256),
             ("truecolor", self.truecolor),
@@ -136,6 +152,7 @@ impl TerminalCaps {
             ("synchronized_output", self.synchronized_output),
             ("kitty_keyboard", self.kitty_keyboard),
             ("kitty_graphics", self.kitty_graphics),
+            ("sixel_graphics", self.sixel_graphics),
             ("hyperlinks", self.hyperlinks),
             ("osc52_clipboard", self.osc52_clipboard),
             ("osc7_cwd", self.osc7_cwd),
@@ -223,6 +240,17 @@ pub const CAP_PROBES: &[(&str, CapProbe)] = &[
     (
         "kitty_graphics",
         CapProbe::RenderVerified { test: "kitty_graphics_direct_rgba" },
+    ),
+    (
+        // Sixel support is advertised in the DA1 reply (attribute `4`).
+        // Feed `CSI c`; a sixel-capable DA1 contains `;4;`. The decode
+        // path itself is render-verified by `sixel_payload_decodes_*`,
+        // but the in-band advertise honesty is the DA1 query.
+        "sixel_graphics",
+        CapProbe::Query {
+            feed: b"\x1b[c",
+            expect: b";4;",
+        },
     ),
     ("hyperlinks", CapProbe::RenderVerified { test: "osc_8_hyperlink" }),
     (

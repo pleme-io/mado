@@ -2015,9 +2015,14 @@ pub struct Terminal {
     next_image_id: u32,
     pending_kitty: Option<KittyPending>,
 
-    // Sixel image storage (placeholder for future icy_sixel rendering)
+    // Sixel raw-data audit record. The decode path (unhook → icy_sixel →
+    // store_rgba_image) is the live render route; this Vec keeps the raw
+    // payload bytes for inspection/tests, not for rendering.
     pub sixel_images: Vec<SixelImage>,
     sixel_buffer: Option<Vec<u8>>,
+    // DCS numeric params (P1 aspect, P2 background, P3 grid) captured at
+    // `hook` time so `unhook` can build icy_sixel's DcsSettings faithfully.
+    sixel_dcs_params: (Option<u16>, Option<u16>, Option<u16>),
 
     // APC sequence accumulator (ESC _ ... ST)
     apc_buf: Option<Vec<u8>>,
@@ -2155,6 +2160,7 @@ impl Terminal {
             pending_kitty: None,
             sixel_images: Vec::new(),
             sixel_buffer: None,
+            sixel_dcs_params: (None, None, None),
             apc_buf: None,
             pending_esc: PendingEsc::None,
             utf8_tail: Vec::new(),
@@ -3994,14 +4000,7 @@ impl Terminal {
         };
 
         if let Some((rgba_data, w, h)) = rgba {
-            let image = KittyImage {
-                id,
-                data: rgba_data,
-                width: w,
-                height: h,
-                seqno: self.seqno,
-            };
-            self.images.insert(id, image);
+            self.store_rgba_image(id, rgba_data, w, h);
 
             // Send OK response
             let resp = format!("\x1b_Gi={id};OK\x1b\\");
@@ -4014,6 +4013,88 @@ impl Terminal {
             self.dirty();
             tracing::debug!(id, w, h, "Kitty image stored");
         }
+    }
+
+    /// The single texture-upload entry point: store decoded RGBA pixels
+    /// as a `KittyImage` keyed by `id`. Both producers — Kitty graphics
+    /// transmission and sixel decode — funnel through here, so the GPU
+    /// upload path (`sync_kitty_images`) has exactly one image source of
+    /// truth. Solve-once: sixel is a second producer, not a parallel path.
+    fn store_rgba_image(&mut self, id: u32, rgba: Vec<u8>, width: u32, height: u32) {
+        self.images.insert(
+            id,
+            KittyImage {
+                id,
+                data: rgba,
+                width,
+                height,
+                seqno: self.seqno,
+            },
+        );
+    }
+
+    /// Decode a sixel DCS payload into RGBA and feed the shared texture
+    /// upload path (`store_rgba_image`) + place it at the cursor. A
+    /// malformed payload is rejected with a typed trace — NEVER a panic;
+    /// the typed error is the only failure surface (no `unwrap`, no
+    /// `todo!`). Per Kitty placement semantics, the image lands at the
+    /// cursor and rides the same `image_placements` re-anchoring the Kitty
+    /// path uses, so scrolling moves it identically.
+    fn decode_and_place_sixel(&mut self, payload: &[u8]) {
+        let (p1, p2, p3) = self.sixel_dcs_params;
+        let settings = icy_sixel::DcsSettings::new(p1, p2, p3);
+        let img = match icy_sixel::SixelImage::decode_from_dcs(payload, settings) {
+            Ok(img) => img,
+            Err(e) => {
+                tracing::warn!(error = %e, "sixel decode rejected (malformed payload)");
+                return;
+            }
+        };
+        // icy_sixel caps dimensions to SIXEL_{WIDTH,HEIGHT}_LIMIT, so the
+        // usize→u32 narrowing always fits; try_from makes that explicit and
+        // routes an impossible over-limit value to the same typed-reject
+        // path rather than silently truncating.
+        let (Ok(w), Ok(h)) = (u32::try_from(img.width), u32::try_from(img.height)) else {
+            tracing::warn!(
+                w = img.width,
+                h = img.height,
+                "sixel dimensions exceed u32 — rejected"
+            );
+            return;
+        };
+        if w == 0 || h == 0 || img.pixels.is_empty() {
+            tracing::warn!(w, h, "sixel decoded to empty image — not placed");
+            return;
+        }
+        let id = self.next_image_id;
+        self.next_image_id += 1;
+        self.seqno += 1;
+        self.store_rgba_image(id, img.pixels, w, h);
+        self.place_decoded_image_at_cursor(id);
+        self.dirty();
+        tracing::debug!(id, w, h, "sixel decoded + placed");
+    }
+
+    /// Push a default placement (cols/rows auto from image, z=0) for a
+    /// decoded image at the current cursor. The sixel path has no Kitty
+    /// `c=`/`r=`/`z=` params, so every geometry field defaults — the
+    /// render derives display size from the texture dimensions.
+    fn place_decoded_image_at_cursor(&mut self, image_id: u32) {
+        self.image_placements.push(ImagePlacement {
+            image_id,
+            placement_id: 0,
+            col: self.cursor.col,
+            row: self.cursor.row,
+            cols: 0,
+            rows: 0,
+            x_offset: 0,
+            y_offset: 0,
+            src_x: 0,
+            src_y: 0,
+            src_width: 0,
+            src_height: 0,
+            z_index: 0,
+        });
     }
 
     /// Place a previously transmitted image.
@@ -4845,10 +4926,14 @@ impl vte::Perform for Terminal {
         if intermediates == [b'$'] && action == 'q' {
             self.dcs_handler = Some(DcsHandler::Decrqss(Vec::new()));
         } else if intermediates.is_empty() && action == 'q' {
-            // Sixel: DCS q or DCS Ps ; Ps q
+            // Sixel: DCS P1 ; P2 ; P3 q  — P1 = pixel aspect ratio,
+            // P2 = background mode, P3 = grid size. Captured here so
+            // unhook can hand icy_sixel a faithful DcsSettings.
             self.dcs_handler = Some(DcsHandler::Sixel);
             self.sixel_buffer = Some(Vec::new());
-            let _ = params;
+            let mut it = params.iter();
+            let first = |o: Option<&[u16]>| o.and_then(|s| s.first().copied());
+            self.sixel_dcs_params = (first(it.next()), first(it.next()), first(it.next()));
         } else {
             tracing::trace!(?intermediates, action = %action, "unhandled DCS hook");
             let _ = params;
@@ -4904,16 +4989,13 @@ impl vte::Perform for Terminal {
             Some(DcsHandler::Sixel) => {
                 if let Some(data) = self.sixel_buffer.take() {
                     if !data.is_empty() {
+                        let (row, col) = (self.cursor.row, self.cursor.col);
                         self.sixel_images.push(SixelImage {
-                            data,
-                            row: self.cursor.row,
-                            col: self.cursor.col,
+                            data: data.clone(),
+                            row,
+                            col,
                         });
-                        self.seqno += 1;
-                        tracing::debug!(
-                            count = self.sixel_images.len(),
-                            "sixel image stored (pending decode)"
-                        );
+                        self.decode_and_place_sixel(&data);
                     }
                 }
             }
@@ -4921,6 +5003,7 @@ impl vte::Perform for Terminal {
         }
         self.dcs_handler = None;
     }
+
 
     fn osc_dispatch(&mut self, params: &[&[u8]], _bell_terminated: bool) {
         if params.is_empty() {
@@ -6368,7 +6451,12 @@ mod tests {
         let mut term = Terminal::new(80, 24);
         term.feed(b"\x1b[c");
         let response = term.take_response().unwrap();
-        assert_eq!(response, b"\x1b[?62;22c");
+        // Single source of truth: caps::TerminalCaps::PRIMARY_DA, now
+        // ?62;4;22c — the `4` advertises sixel since the decode path landed.
+        assert_eq!(
+            response.as_slice(),
+            crate::caps::TerminalCaps::PRIMARY_DA
+        );
     }
 
     /// XTWINOPS `CSI 18 t` — report text-area size in characters. The
@@ -7725,7 +7813,10 @@ mod tests {
         let mut term = Terminal::new(80, 24);
         term.feed(b"\x1b[c");
         let response = term.take_response().unwrap();
-        assert_eq!(response, b"\x1b[?62;22c");
+        assert_eq!(
+            response.as_slice(),
+            crate::caps::TerminalCaps::PRIMARY_DA
+        );
     }
 
     #[test]
@@ -8086,6 +8177,73 @@ mod tests {
     fn test_sixel_buffer_none_initially() {
         let term = Terminal::new(80, 24);
         assert!(term.sixel_buffer.is_none());
+    }
+
+    /// M3-C3 slice 2: a known small sixel payload decodes to its expected
+    /// pixel dimensions and lands exactly one placement, fed through the
+    /// SAME path Kitty images use (`store_rgba_image` → `images` +
+    /// `image_placements`). The payload is a 2-wide, full-6-row red column
+    /// (`#0;2;100;0;0` defines color 0 = red, `#0` selects it, `~~` paints
+    /// two full-height columns → 2×6 px).
+    #[test]
+    fn sixel_payload_decodes_to_expected_dims_and_one_placement() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1bP0;0;0q#0;2;100;0;0#0~~\x1b\\");
+
+        assert_eq!(term.images().len(), 1, "exactly one decoded image stored");
+        assert_eq!(
+            term.image_placements().len(),
+            1,
+            "exactly one placement landed"
+        );
+        let img = term.images().values().next().unwrap();
+        assert_eq!((img.width, img.height), (2, 6), "decoded to 2×6 px");
+        // RGBA: 2*6 pixels * 4 bytes.
+        assert_eq!(img.data.len(), 2 * 6 * 4);
+        // Placement references the stored image and sits at the cursor.
+        let p = &term.image_placements()[0];
+        assert_eq!(p.image_id, img.id);
+        assert_eq!((p.col, p.row), (0, 0), "placed at the cursor origin");
+        assert_eq!(p.z_index, 0, "sixel placements default to the z=0 band");
+    }
+
+    /// A malformed sixel payload is rejected with a typed trace — NEVER a
+    /// panic. The decode path returns early on `Err`, so no image and no
+    /// placement appear; the engine keeps running. (This pins the
+    /// UNREPRESENTABILITY-adjacent contract: the only failure surface is a
+    /// typed `Result::Err`, not a process abort.)
+    #[test]
+    fn sixel_malformed_payload_is_rejected_without_panic_or_placement() {
+        let mut term = Terminal::new(80, 24);
+        // An over-long RLE repeat count (`!999…`) is structurally malformed
+        // sixel — icy_sixel returns a typed `Err`, the decode path logs and
+        // bails. (Arbitrary high bytes are tolerated by the decoder as
+        // empty pixels, so the rejection case must be a structural fault.)
+        term.feed(b"\x1bP0;0;0q!999999999999999~\x1b\\");
+        // The raw-audit record may capture the bytes, but NOTHING gets
+        // decoded into the shared upload path.
+        assert!(
+            term.images().is_empty(),
+            "malformed payload decodes to no image"
+        );
+        assert!(
+            term.image_placements().is_empty(),
+            "malformed payload lands no placement"
+        );
+        // The terminal is still alive and processing — feed normal text.
+        term.feed(b"X");
+        assert_eq!(term.cell(0, 0).ch, 'X');
+    }
+
+    /// A sixel placement rides the same z-band split as Kitty images: with
+    /// default z=0 it lands in the ABOVE-text band.
+    #[test]
+    fn decoded_sixel_lands_in_above_text_band() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1bP0;0;0q#0;2;100;0;0#0~~\x1b\\");
+        let (below, above) = partition_placements_by_z(term.image_placements());
+        assert!(below.is_empty());
+        assert_eq!(above.len(), 1, "z=0 sixel placement is above text");
     }
 
     // ── base64 decode tests ──────────────────────────────────────────
