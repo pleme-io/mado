@@ -1514,7 +1514,15 @@ pub struct ImagePlacement {
     pub placement_id: u32,
     /// Column where this placement starts.
     pub col: usize,
-    /// Row where this placement starts (absolute grid row, not scrollback-relative).
+    /// Row where this placement starts, in **visible-viewport coordinates**
+    /// (row 0 = top visible row), NOT absolute scrollback coordinates.
+    /// M2 review LAW (2026-06-12): the rewrap bridge re-anchors placements
+    /// against the visible grid (`reflow_lines` walks `placement_anchors`
+    /// in primary-visible space), and `draw_kitty_images` adds
+    /// `row * cell_height` to the viewport origin — both consume this as a
+    /// visible-row index. The earlier "absolute grid row" doc was a lie:
+    /// no code path treats it as scrollback-absolute. Fixed the doc, not
+    /// the semantics, because the de-facto contract is correct and load-bearing.
     pub row: usize,
     /// Number of columns to display in (0 = auto from image).
     pub cols: usize,
@@ -1528,9 +1536,49 @@ pub struct ImagePlacement {
     pub src_y: u32,
     pub src_width: u32,
     pub src_height: u32,
-    /// Z-index for layering.
-    #[allow(dead_code)]
+    /// Z-index for layering. Render splits placements into two bands:
+    /// `z < 0` draws BELOW the text scene (after cell backgrounds,
+    /// before glyphs); `z >= 0` draws ABOVE it (after glyphs, before
+    /// the engawa effect chain composites). Within a band, ordering is
+    /// stable: ascending `z_index`, then transmission (insertion) order.
     pub z_index: i32,
+}
+
+impl ImagePlacement {
+    /// True when this placement layers ABOVE the text scene (`z >= 0`).
+    /// `z < 0` layers below — the Kitty graphics z-ordering contract.
+    #[must_use]
+    pub fn is_above_text(&self) -> bool {
+        self.z_index >= 0
+    }
+}
+
+/// Partition placements into the two render bands and return each band
+/// in stable draw order: ascending `z_index`, then transmission order.
+///
+/// This is the pure seam the render path consumes — `draw_kitty_images`
+/// is called once per returned band, so the instance-buffer fill order
+/// (and therefore the GPU draw order) is exactly the returned order.
+/// Asserting on this Vec ordering pins z-layering mechanically without a
+/// headless GPU device (pixel-asserting the composite is the brittle
+/// alternative the M3 goldens cover for the single-band case).
+#[must_use]
+pub fn partition_placements_by_z(
+    placements: &[ImagePlacement],
+) -> (Vec<ImagePlacement>, Vec<ImagePlacement>) {
+    let mut below: Vec<ImagePlacement> = Vec::new();
+    let mut above: Vec<ImagePlacement> = Vec::new();
+    for p in placements {
+        if p.is_above_text() {
+            above.push(p.clone());
+        } else {
+            below.push(p.clone());
+        }
+    }
+    // sort_by_key is stable, so equal-z placements keep transmission order.
+    below.sort_by_key(|p| p.z_index);
+    above.sort_by_key(|p| p.z_index);
+    (below, above)
 }
 
 /// Sixel image placeholder — raw data stored for future rendering via `icy_sixel`.
@@ -7007,6 +7055,92 @@ mod tests {
         term.feed(b"\x1b_Ga=q,i=99;\x1b\\");
         let response = term.take_response().unwrap();
         assert_eq!(std::str::from_utf8(&response).unwrap(), "\x1b_Gi=99;OK\x1b\\");
+    }
+
+    /// Construct a placement carrying just the fields the z-band split
+    /// reads. `id` doubles as the transmission-order marker so a test can
+    /// assert stable ordering within a band.
+    fn placement_with_z(id: u32, z: i32) -> ImagePlacement {
+        ImagePlacement {
+            image_id: id,
+            placement_id: 0,
+            col: 0,
+            row: 0,
+            cols: 0,
+            rows: 0,
+            x_offset: 0,
+            y_offset: 0,
+            src_x: 0,
+            src_y: 0,
+            src_width: 0,
+            src_height: 0,
+            z_index: z,
+        }
+    }
+
+    #[test]
+    fn z_band_split_below_above_and_stable_within_band() {
+        // M3-C3: two placements over the same cells, one z=-1 (below the
+        // text scene) and one z=2 (above). The render path draws each band
+        // separately — `below` between the bg-rect pass and the glyph pass,
+        // `above` after the glyph pass — so asserting the partition's two
+        // Vecs pins the draw-order seam mechanically (no headless GPU).
+        // Pixel-asserting the composited frame is the brittle alternative;
+        // the band partition IS the instance-buffer fill order, which IS the
+        // GPU draw order, so this is a load-bearing seam, not a proxy.
+        let placements = vec![
+            placement_with_z(10, 2),  // above
+            placement_with_z(11, -1), // below
+        ];
+        let (below, above) = partition_placements_by_z(&placements);
+        assert_eq!(below.len(), 1, "exactly one below-text placement");
+        assert_eq!(below[0].image_id, 11);
+        assert_eq!(above.len(), 1, "exactly one above-text placement");
+        assert_eq!(above[0].image_id, 10);
+    }
+
+    #[test]
+    fn z_band_split_orders_within_band_by_z_then_transmission() {
+        // z=0 is ABOVE (>= 0 boundary); equal-z keeps transmission order.
+        let placements = vec![
+            placement_with_z(1, 5),   // above, higher z
+            placement_with_z(2, 0),   // above, lower z
+            placement_with_z(3, -3),  // below, lower z
+            placement_with_z(4, -1),  // below, higher z
+            placement_with_z(5, 0),   // above, same z as id=2 — drawn AFTER it
+        ];
+        let (below, above) = partition_placements_by_z(&placements);
+
+        // below: ascending z (-3 then -1)
+        assert_eq!(
+            below.iter().map(|p| p.image_id).collect::<Vec<_>>(),
+            vec![3, 4],
+            "below band ordered by ascending z"
+        );
+        // above: ascending z (0,0 then 5); the two z=0 keep transmission order (2 before 5)
+        assert_eq!(
+            above.iter().map(|p| p.image_id).collect::<Vec<_>>(),
+            vec![2, 5, 1],
+            "above band ordered by ascending z, equal-z stable in transmission order"
+        );
+    }
+
+    #[test]
+    fn z_band_split_from_parsed_apc_z_param() {
+        // End-to-end: z= APC param parses into z_index and lands in the
+        // correct band. z=-1 below, z=2 above.
+        let mut term = Terminal::new(80, 24);
+        let rgba = [255, 0, 0, 255];
+        let b64 = base64_encode(&rgba);
+        let below = format!("\x1b_Ga=T,f=32,s=1,v=1,i=1,z=-1;{b64}\x1b\\");
+        let above = format!("\x1b_Ga=T,f=32,s=1,v=1,i=2,z=2;{b64}\x1b\\");
+        term.feed(below.as_bytes());
+        term.feed(above.as_bytes());
+        let (b, a) = partition_placements_by_z(term.image_placements());
+        assert_eq!(b.len(), 1);
+        assert_eq!(b[0].image_id, 1, "z=-1 placement below text");
+        assert_eq!(a.len(), 1);
+        assert_eq!(a[0].image_id, 2, "z=2 placement above text");
     }
 
     #[test]

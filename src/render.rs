@@ -2924,7 +2924,12 @@ impl TerminalRenderer {
             .queue
             .write_buffer(&image_pipeline.uniform_buffer, 0, bytemuck::bytes_of(&uniforms));
 
-        image_draws.sort_by_key(|(id, _)| *id);
+        // NO sort-by-id here. `placements` arrives in z-then-transmission
+        // order (partition_placements_by_z); re-sorting by texture id would
+        // scramble that within-band z-ordering. The batch loop below already
+        // re-binds the texture on every id change, so a z-interleaved order
+        // costs at most one extra bind per layer transition — correctness
+        // (z-order honored) over a micro-optimization (fewer binds).
 
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("mado_images"),
@@ -3511,10 +3516,19 @@ impl RenderCallback for TerminalRenderer {
             }
         }
 
-        // Pass 2.5: Kitty graphics images
-        if !snap.image_placements.is_empty() {
+        // Kitty image placements split into two z-bands (M3-C3):
+        // `below` (z<0) draws HERE — after cell backgrounds, before the
+        // text glyphs (Pass 2.5); `above` (z>=0) draws after Pass 3 but
+        // still onto `scene_view`, so the engawa effect chain (Pass 4)
+        // composites images and text together. Drawing `above` to the
+        // post-chain surface would (wrongly) skip every effect.
+        let (images_below, images_above) =
+            crate::terminal::partition_placements_by_z(&snap.image_placements);
+
+        // Pass 2.5: Kitty graphics images BELOW the text scene.
+        if !images_below.is_empty() {
             let view = scene_view;
-            self.draw_kitty_images(ctx, &mut encoder, view, &snap.image_placements, self.padding_px(), self.padding_px());
+            self.draw_kitty_images(ctx, &mut encoder, view, &images_below, self.padding_px(), self.padding_px());
         }
 
         // Pass 3: Text with per-cell colors
@@ -3580,6 +3594,14 @@ impl RenderCallback for TerminalRenderer {
             if let Err(e) = ctx.text.render(&mut pass) {
                 tracing::warn!("text render error: {e}");
             }
+        }
+
+        // Pass 3.5: Kitty graphics images ABOVE the text scene (z>=0).
+        // Onto `scene_view` (not the post-chain surface) so the effect
+        // chain at Pass 4 still sees these pixels.
+        if !images_above.is_empty() {
+            let view = scene_view;
+            self.draw_kitty_images(ctx, &mut encoder, view, &images_above, self.padding_px(), self.padding_px());
         }
 
         // Pass 4: engawa catalog dispatch — SCENE → enabled effect
