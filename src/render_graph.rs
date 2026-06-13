@@ -68,8 +68,9 @@ impl EffectSet {
     }
 
     /// Enabled effects in render order — ascending catalog priority
-    /// (bloom 300 → glow 400 → snow 500 → scanlines 600 → crt 650 →
-    /// colorblind 700). The chain wiring below consumes this order.
+    /// (bloom 300 → glow 400 → aurora 450 → snow 500 → scanlines 600 →
+    /// crt 650 → colorblind 700). The chain wiring below consumes this
+    /// order.
     pub fn iter_render_order(self) -> impl Iterator<Item = CatalogEffect> {
         let mut effects: Vec<CatalogEffect> = CatalogEffect::ALL
             .iter()
@@ -87,12 +88,13 @@ impl EffectSet {
 /// N-1 intermediates, so the table holds `ALL.len() - 1` ids — the
 /// forcing test pins the length, so a new catalog effect cannot land
 /// without growing this table in the same change.
-pub const CHAIN_IDS: [&str; 5] = [
+pub const CHAIN_IDS: [&str; 6] = [
     "mado:chain:0",
     "mado:chain:1",
     "mado:chain:2",
     "mado:chain:3",
     "mado:chain:4",
+    "mado:chain:5",
 ];
 
 /// Cache key — the only two inputs that change the compiled topology

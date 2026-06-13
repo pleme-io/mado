@@ -119,6 +119,21 @@ pub struct MadoVigyConfig {
 /// emits zero `set_effects_config` calls.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct MadoEffectsConfig {
+    /// THE default-on composed layer (operator design law, 2026-06-13):
+    /// ONE barely-perceptible ambience that combines the catalog
+    /// effects at threshold intensities sharing one clock + the
+    /// Borealis palette. `Whisper` by default; `Off` for the clean
+    /// look; `Present` to show it off. `reduce_motion` forces `Off`.
+    ///
+    /// The per-effect knobs below REMAIN for power users — an explicit
+    /// `effects.aurora.enabled` / `effects.bloom.enabled` / … turns
+    /// that effect on regardless of the preset, and explicit per-effect
+    /// params override the composed defaults. `resolved_effects` folds
+    /// the composition into the per-effect surface, override-aware.
+    #[serde(default)]
+    pub ambience: crate::ambience::AmbiencePreset,
+    #[serde(default)]
+    pub aurora: MadoAuroraConfig,
     #[serde(default)]
     pub snow: MadoSnowConfig,
     #[serde(default)]
@@ -131,6 +146,51 @@ pub struct MadoEffectsConfig {
     pub bloom: MadoBloomConfig,
     #[serde(default)]
     pub glow_on_bell: MadoGlowOnBellConfig,
+}
+
+/// Aurora (Borealis signature curtain) power-user override. The
+/// ambience preset composes aurora at its threshold intensities; a
+/// power user who sets `enabled = true` forces aurora on independent of
+/// the preset, and the explicit dials below override the composed
+/// values. Colors always flow from the resolved theme palette — no
+/// hardcoded effect colors (the design law).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MadoAuroraConfig {
+    /// Force aurora on regardless of the ambience preset. Default
+    /// `false` — the preset is the default-on path.
+    #[serde(default)]
+    pub enabled: bool,
+    /// Master opacity 0..1. Default mirrors the catalog's "sky
+    /// dressing" gain (the scene reads through).
+    #[serde(default = "default_aurora_intensity")]
+    pub intensity: f32,
+    /// Drift-speed multiplier over the slow base rate, 0..4.
+    #[serde(default = "default_aurora_drift")]
+    pub drift: f32,
+    /// Shimmer amount 0..1.
+    #[serde(default = "default_aurora_shimmer")]
+    pub shimmer: f32,
+    /// Horizon line (screen-space y, 0=top 1=bottom); the curtain is
+    /// zero below it.
+    #[serde(default = "default_aurora_horizon")]
+    pub horizon: f32,
+}
+
+pub(crate) fn default_aurora_intensity() -> f32 { 0.35 }
+pub(crate) fn default_aurora_drift() -> f32 { 1.0 }
+pub(crate) fn default_aurora_shimmer() -> f32 { 0.5 }
+pub(crate) fn default_aurora_horizon() -> f32 { 0.62 }
+
+impl Default for MadoAuroraConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            intensity: default_aurora_intensity(),
+            drift: default_aurora_drift(),
+            shimmer: default_aurora_shimmer(),
+            horizon: default_aurora_horizon(),
+        }
+    }
 }
 
 /// Colorblind-simulation effect knobs. `mode != None` IS the enable
@@ -1323,16 +1383,36 @@ impl MadoConfig {
     /// The effects section with the legacy `accessibility.colorblind`
     /// deprecation alias RESOLVED into `effects.colorblind.mode`
     /// (the effects-section mode wins; the alias applies only when
-    /// it is `None`). The single resolution point — every renderer
+    /// it is `None`), AND the ambience preset RESOLVED — `reduce_motion`
+    /// forces it to `Off`. The single resolution point — every renderer
     /// ingress consumes THIS, never the raw `effects` field, so no
     /// entry point can skip the alias (M3 review 2026-06-12: the
     /// tear-attach path did exactly that and both knobs were dead
     /// there).
+    ///
+    /// The composed ambience members (which effects, at which threshold
+    /// params) are NOT baked into the per-effect structs here — they
+    /// stay as the typed [`crate::ambience::AmbienceComposition`] the
+    /// renderer reads via [`Self::ambience_composition`], so the
+    /// composition is the ONE source the effect-set + uniforms derive
+    /// from (per `ambience` module docs). This function only resolves
+    /// the deprecation alias on the config it returns.
     #[must_use]
     pub fn resolved_effects(&self) -> MadoEffectsConfig {
         let mut effects = self.effects.clone();
         if effects.colorblind.mode == ColorblindMode::None {
             effects.colorblind.mode = self.accessibility.colorblind;
+        }
+        // reduce_motion is the accessibility floor for the whole
+        // composed layer — force the preset Off so the renderer's
+        // composition is empty (zero nodes), the same contract aurora /
+        // snow / glow honour by node-omission. The renderer re-derives
+        // the typed `AmbienceComposition` from this resolved preset in
+        // `set_effects_config` (the single ingress), so the composition
+        // is the ONE source both the effect set and the per-frame
+        // uniforms read.
+        if self.accessibility.reduce_motion {
+            effects.ambience = crate::ambience::AmbiencePreset::Off;
         }
         effects
     }

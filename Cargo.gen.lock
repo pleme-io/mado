@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "0c60126087af7ab788e8405238045d9a3042d36b38ef6a7b3a35a52f97a09be3",
+  "cargo_lock_sha256": "52f2ec2da25adb6a24e9bfcec752627a49cd428908682a088c2fc158af717e36",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -2510,7 +2510,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "engawa-wgpu-0.1.2-2ba29a1a47279e732572717e755d2eef0595fb75": {
+      "engawa-wgpu-0.1.5-16651e763e5a5eb715f13abc61f06d999c72a366": {
         "runtime_dependencies": [
           {
             "name": "bytemuck",
@@ -18828,7 +18828,7 @@
               },
               {
                 "name": "engawa_wgpu",
-                "package_key": "engawa-wgpu-0.1.2-2ba29a1a47279e732572717e755d2eef0595fb75",
+                "package_key": "engawa-wgpu-0.1.5-16651e763e5a5eb715f13abc61f06d999c72a366",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -22959,7 +22959,7 @@
               },
               {
                 "name": "engawa_wgpu",
-                "package_key": "engawa-wgpu-0.1.2-2ba29a1a47279e732572717e755d2eef0595fb75",
+                "package_key": "engawa-wgpu-0.1.5-16651e763e5a5eb715f13abc61f06d999c72a366",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26993,7 +26993,7 @@
               },
               {
                 "name": "engawa_wgpu",
-                "package_key": "engawa-wgpu-0.1.2-2ba29a1a47279e732572717e755d2eef0595fb75",
+                "package_key": "engawa-wgpu-0.1.5-16651e763e5a5eb715f13abc61f06d999c72a366",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30514,7 +30514,7 @@
               },
               {
                 "name": "engawa_wgpu",
-                "package_key": "engawa-wgpu-0.1.2-2ba29a1a47279e732572717e755d2eef0595fb75",
+                "package_key": "engawa-wgpu-0.1.5-16651e763e5a5eb715f13abc61f06d999c72a366",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34061,7 +34061,7 @@
               },
               {
                 "name": "engawa_wgpu",
-                "package_key": "engawa-wgpu-0.1.2-2ba29a1a47279e732572717e755d2eef0595fb75",
+                "package_key": "engawa-wgpu-0.1.5-16651e763e5a5eb715f13abc61f06d999c72a366",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37628,7 +37628,7 @@
               },
               {
                 "name": "engawa_wgpu",
-                "package_key": "engawa-wgpu-0.1.2-2ba29a1a47279e732572717e755d2eef0595fb75",
+                "package_key": "engawa-wgpu-0.1.5-16651e763e5a5eb715f13abc61f06d999c72a366",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40765,7 +40765,7 @@
     "engawa-0.1.3-772fbf0357d3bc3e90786ffb5e8a5a8b5ddb8f44": {
       "edition": "2024"
     },
-    "engawa-wgpu-0.1.2-2ba29a1a47279e732572717e755d2eef0595fb75": {
+    "engawa-wgpu-0.1.5-16651e763e5a5eb715f13abc61f06d999c72a366": {
       "edition": "2024"
     },
     "equivalent-1.0.2": {
@@ -42376,7 +42376,7 @@
     "engate-attach-0.1.0-f7c0ea7baed05c0d3ffe3627a7a0a9e77db05e7f": "sha256-qcEVu83e+9ujl0ODV2Otau+NDpNP6VlNslhtQ0wuQlY=",
     "engate-types-0.1.0-f7c0ea7baed05c0d3ffe3627a7a0a9e77db05e7f": "sha256-qcEVu83e+9ujl0ODV2Otau+NDpNP6VlNslhtQ0wuQlY=",
     "engawa-0.1.3-772fbf0357d3bc3e90786ffb5e8a5a8b5ddb8f44": "sha256-Z/9e7dBdWUbCQW63K36IPXkLFpUYLmrSVetj8/eb82k=",
-    "engawa-wgpu-0.1.2-2ba29a1a47279e732572717e755d2eef0595fb75": "sha256-yyD9xvXQxwSHHgLiKf+fah8uxeukeY1ZO6A7cC2+3mI=",
+    "engawa-wgpu-0.1.5-16651e763e5a5eb715f13abc61f06d999c72a366": "sha256-Aiw4sYLXI3Vt6hKv3S4V/v1FbbzezJtxrUXnua5BxHE=",
     "garasu-0.1.0-5f9d4fec35ffff36d957cce64e9055e9fd9f3a5c": "sha256-s4k7WpAUFvNroW34oXBtpJa/OTQ8pa2TrOms9JU51vw=",
     "hasami-0.1.0-25846db58bbd493ded04243a41bc08eaf2bf007b": "sha256-lRyEzSomM+igLhBPtop9K5RK0mTDzLfhRZJLoChZlPc=",
     "irodzuki-0.1.1-82e3910183a8b8ac930744e5b6aeab3e1d4adf7b": "sha256-WWaWfg3ovd/LMxqVeIVg1767PfO0jL9aOr0GekWwm+U=",

@@ -964,6 +964,13 @@ pub struct TerminalRenderer {
     /// enabled-effect set (and therefore the graph cache key) is
     /// derived from this each frame.
     effects_config: crate::config::MadoEffectsConfig,
+    /// The resolved ambience composition (operator design law,
+    /// 2026-06-13) — the ONE typed value both the effect set and the
+    /// composed per-frame params derive from. Re-resolved on every
+    /// `set_effects_config` (it is a pure function of the preset +
+    /// `reduce_motion`, so a config delta re-derives it). `reduce_motion`
+    /// resolves it to the empty composition (zero members ⇒ zero nodes).
+    ambience: crate::ambience::AmbienceComposition,
     /// Host-side snow animation state (the catalog WGSL is
     /// stateless; time/pulse/pile live here, integrated from the
     /// render clock — never wall time).
@@ -971,6 +978,10 @@ pub struct TerminalRenderer {
     /// Host-side glow-on-bell state — BEL saturates the clock,
     /// per-frame decay drains it.
     glow_state: GlowState,
+    /// Host-side aurora clock — drives the curtain drift (the catalog
+    /// WGSL is stateless). Params are composed per-frame from the
+    /// ambience layer + theme palette + governor quality.
+    aurora_state: AuroraState,
     // The M3 `pending_config_reload` cell was DELETED at M4 stage 2:
     // hot-reload now runs through `ux::ConfigHotReload` in BOTH
     // event-loop adapters (dirty flag → typed SetterCall delta), so
@@ -1037,6 +1048,32 @@ impl GlowState {
 
     fn tick(&mut self, dt: f32) {
         self.params.decay(0.92_f32.powf(dt * 60.0));
+    }
+}
+
+/// Host-side aurora clock (the catalog WGSL is stateless; the consumer
+/// supplies `time` via `set_time` each frame). The actual intensity /
+/// drift / shimmer / horizon / colors / quality are applied
+/// per-frame in `frame_uniforms_for` from the resolved ambience
+/// composition (or the power-user override) + the theme palette + the
+/// ambience governor — this state holds ONLY the running clock so the
+/// curtain drifts. Time integrates from the render clock (`ctx.elapsed`),
+/// never wall time, so headless renders stay byte-deterministic.
+struct AuroraState {
+    /// Seconds since launch, accumulated from the render clock.
+    time: f32,
+}
+
+impl AuroraState {
+    fn new() -> Self {
+        Self { time: 0.0 }
+    }
+
+    /// Pin the clock to the render-loop elapsed seconds. At elapsed=0
+    /// (the headless ladders) this is the identity, keeping the route
+    /// byte-deterministic.
+    fn tick(&mut self, elapsed: f32) {
+        self.time = elapsed;
     }
 }
 
@@ -1120,8 +1157,10 @@ impl TerminalRenderer {
             box_draw_templates: RefCell::new(HashMap::new()),
             sync_output_deferred_since: None,
             effects_config: crate::config::MadoEffectsConfig::default(),
+            ambience: crate::config::MadoEffectsConfig::default().ambience.compose(),
             snow_state: SnowState::new(),
             glow_state: GlowState::new(),
+            aurora_state: AuroraState::new(),
         }
     }
 
@@ -1150,6 +1189,12 @@ impl TerminalRenderer {
     pub fn set_effects_config(&mut self, cfg: crate::config::MadoEffectsConfig) {
         self.snow_state.apply_config(&cfg.snow);
         self.glow_state.params.radius_px = cfg.glow_on_bell.radius_px;
+        // Re-derive the composed ambience layer from the (already
+        // reduce-motion-resolved) preset. `Off` ⇒ empty composition ⇒
+        // zero ambience nodes. This is the ONE place the composition is
+        // recomputed; both the effect set and the per-frame uniforms
+        // read `self.ambience`, never re-running `compose()`.
+        self.ambience = cfg.ambience.compose();
         self.effects_config = cfg;
         // Forces a repaint — same invalidation contract as the
         // derive-generated setters.
@@ -3018,13 +3063,30 @@ impl TerminalRenderer {
     /// effects are absent (zero nodes), not parameterized off.
     /// `reduce_motion` gates the ANIMATED effects (glow_on_bell,
     /// snow) to zero nodes regardless of their `enabled` knobs.
+    ///
+    /// The composed AMBIENCE layer (operator design law, 2026-06-13) is
+    /// unioned in: every member of `self.ambience` turns its catalog
+    /// effect on. The composition is already `reduce_motion`-resolved
+    /// (Off ⇒ empty), so it adds nothing under reduce-motion — the
+    /// accessibility floor holds by construction. Per-effect power-user
+    /// `enabled` knobs are ADDITIVE on top (a user can force an effect
+    /// on even when the preset is `Off`).
     fn enabled_effect_set(&self) -> crate::render_graph::EffectSet {
         use engawa_wgpu::catalog::CatalogEffect;
         let mut set = crate::render_graph::EffectSet::EMPTY;
+
+        // The default-on composed layer: every ambience member's effect.
+        for member in &self.ambience.members {
+            set.insert(member.effect);
+        }
+
         if self.effects_config.colorblind.mode != ColorblindMode::None {
             set.insert(CatalogEffect::Colorblind);
         }
         let e = &self.effects_config;
+        // Aurora power-user override: force on regardless of the preset.
+        // reduce_motion still suppresses it (aurora is animated — the
+        // curtain drifts), so it lives under the same gate as glow/snow.
         if e.crt.enabled {
             set.insert(CatalogEffect::Crt);
         }
@@ -3035,6 +3097,9 @@ impl TerminalRenderer {
             set.insert(CatalogEffect::Bloom);
         }
         if !self.reduce_motion {
+            if e.aurora.enabled {
+                set.insert(CatalogEffect::Aurora);
+            }
             if e.glow_on_bell.enabled {
                 set.insert(CatalogEffect::GlowOnBell);
             }
@@ -3057,11 +3122,79 @@ impl TerminalRenderer {
         }
     }
 
+    /// The ambience quality word applied to the aurora curtain this
+    /// frame. COMMIT 1 pins it at the catalog default (`Medium`); the
+    /// COMMIT 2 ambience governor replaces this with its FSM state so
+    /// quality scales to the frame budget (rebuild-free).
+    fn ambience_quality(&self) -> engawa_wgpu::catalog::aurora::AuroraQuality {
+        engawa_wgpu::catalog::aurora::AuroraQuality::Medium
+    }
+
+    /// The aurora spectrum stops (green / cyan / violet) in LINEAR rgb,
+    /// derived from the active theme palette — NO hardcoded effect
+    /// colors (the design law). On Borealis these resolve to
+    /// `green_bright` / `ice_cyan` / `fable_violet`; on legacy themes
+    /// they fall back to that theme's bright-green / cyan / agent
+    /// accent, so the curtain always paints in the resolved palette.
+    ///
+    /// * green → ANSI 10 (bright green / `aurora_green`)
+    /// * cyan  → ANSI 6 (`ice_cyan`)
+    /// * violet → the agent accent (`search_status_color` = Borealis
+    ///   `fable_violet`; the theme foreground on legacy presets)
+    fn aurora_palette(&self) -> ([f32; 3], [f32; 3], [f32; 3]) {
+        let lin = |c: Color| {
+            let l = ishou_tokens::Srgb::new(c.r, c.g, c.b).to_linear();
+            [l.r, l.g, l.b]
+        };
+        let green = lin(self.ansi_colors[10]);
+        let cyan = lin(self.ansi_colors[6]);
+        let violet = lin(self.search_status_color);
+        (green, cyan, violet)
+    }
+
+    /// Build the aurora params for this frame: dials from the
+    /// power-user override when `aurora.enabled` (override beats
+    /// preset), else from the composed ambience member; colors always
+    /// from the theme palette; the clock from `aurora_state`; the
+    /// quality from the ambience governor word. The catalog `with_*`
+    /// builders clamp every dial, so an out-of-range tune saturates.
+    fn aurora_params_for(&self, res: [f32; 2]) -> engawa_wgpu::catalog::aurora::AuroraParams {
+        use engawa_wgpu::catalog::aurora::AuroraParams;
+        let cfg = &self.effects_config.aurora;
+        // Dials: override wins; else the composed member; else the
+        // catalog default (the member is present whenever aurora is in
+        // the set via the preset, so the unwrap-or is only the
+        // power-user-forced-on-with-Off-preset edge).
+        let (intensity, drift, shimmer, horizon) = if cfg.enabled {
+            (cfg.intensity, cfg.drift, cfg.shimmer, cfg.horizon)
+        } else if let Some(m) = self.ambience.aurora() {
+            (m.intensity, m.drift, m.shimmer, m.horizon)
+        } else {
+            (
+                crate::config::default_aurora_intensity(),
+                crate::config::default_aurora_drift(),
+                crate::config::default_aurora_shimmer(),
+                crate::config::default_aurora_horizon(),
+            )
+        };
+        let (green, cyan, violet) = self.aurora_palette();
+        AuroraParams::default()
+            .with_resolution(res)
+            .with_intensity(intensity)
+            .with_drift(drift)
+            .with_shimmer(shimmer)
+            .with_horizon(horizon)
+            .with_colors(green, cyan, violet)
+            .with_quality(self.ambience_quality())
+            .with_time(self.aurora_state.time)
+    }
+
     /// Per-frame params for every enabled effect — written into the
     /// corresponding uniform buffers by the dispatcher before any
     /// pass encodes. TOTAL match over the catalog: static knobs come
     /// from `effects_config`, animated state from the host
-    /// `snow_state` / `glow_state` (already ticked this frame).
+    /// `snow_state` / `glow_state` / `aurora_state` (already ticked
+    /// this frame), composed dials from the ambience layer.
     fn frame_uniforms_for(
         &self,
         effects: crate::render_graph::EffectSet,
@@ -3095,9 +3228,18 @@ impl TerminalRenderer {
                 }
                 CatalogEffect::Bloom => {
                     let mut p = catalog::bloom::BloomParams::new(res);
-                    p.threshold = cfg.bloom.threshold;
-                    p.intensity = cfg.bloom.intensity;
-                    p.radius_px = cfg.bloom.radius_px;
+                    // Power-user override (bloom.enabled) wins; else the
+                    // composed ambience member's subtle threshold + gain
+                    // (bright accents only, no text smear); else the
+                    // catalog default.
+                    if cfg.bloom.enabled {
+                        p.threshold = cfg.bloom.threshold;
+                        p.intensity = cfg.bloom.intensity;
+                        p.radius_px = cfg.bloom.radius_px;
+                    } else if let Some(m) = self.ambience.member(CatalogEffect::Bloom) {
+                        p.threshold = m.bloom_threshold;
+                        p.intensity = m.intensity;
+                    }
                     frame.set(catalog::bloom::PARAMS_RESOURCE, &p);
                 }
                 CatalogEffect::GlowOnBell => {
@@ -3105,6 +3247,9 @@ impl TerminalRenderer {
                     p.resolution = res;
                     p.radius_px = cfg.glow_on_bell.radius_px;
                     frame.set(catalog::glow_on_bell::PARAMS_RESOURCE, &p);
+                }
+                CatalogEffect::Aurora => {
+                    frame.set(catalog::aurora::PARAMS_RESOURCE, &self.aurora_params_for(res));
                 }
                 CatalogEffect::Snow => {
                     let mut p = self.snow_state.params;
@@ -3456,6 +3601,7 @@ impl RenderCallback for TerminalRenderer {
         // byte-deterministic.
         self.snow_state.tick(ctx.elapsed, ctx.dt, &self.effects_config.snow);
         self.glow_state.tick(ctx.dt);
+        self.aurora_state.tick(ctx.elapsed);
         // Glow centers on the cursor cell (the bell's visual home).
         if snap.cursor.visible && snap.cursor.row < snap.num_rows && snap.cursor.col < snap.cols {
             self.glow_state.params.center_px = [
@@ -4706,16 +4852,25 @@ mod render_invariants {
         );
     }
 
-    /// MATRIX — every catalog effect's config knob maps to exactly
-    /// its EffectSet bit (len-pinned against CatalogEffect::ALL), and
-    /// reduce_motion gates the ANIMATED effects (glow_on_bell, snow)
-    /// to zero nodes while leaving the static ones alone.
+    /// MATRIX — every catalog effect's POWER-USER config knob maps to
+    /// exactly its EffectSet bit (len-pinned against CatalogEffect::ALL),
+    /// and reduce_motion gates the ANIMATED effects (glow_on_bell, snow,
+    /// aurora) to zero nodes while leaving the static ones alone.
+    ///
+    /// The baseline preset is `Off` so this test exercises the per-effect
+    /// override path in isolation — the default-on AMBIENCE composition
+    /// (Whisper) is pinned separately by
+    /// `default_ambience_composes_aurora_bloom_glow_and_reduce_motion_kills_it`.
     #[test]
     fn effects_config_maps_to_effect_set_and_reduce_motion_gates_animation() {
         use engawa_wgpu::catalog::CatalogEffect;
 
         let enable = |r: &mut TerminalRenderer, effect: CatalogEffect| {
             let mut e = crate::config::MadoEffectsConfig::default();
+            // Baseline OFF so the only enabled bit is the one the
+            // power-user knob below sets — the composed ambience layer
+            // is tested separately.
+            e.ambience = crate::ambience::AmbiencePreset::Off;
             // Every arm — colorblind included — goes through the
             // CONFIG field, because that is the production ingress
             // (the former set_colorblind_mode special-case masked
@@ -4729,19 +4884,29 @@ mod render_invariants {
                 CatalogEffect::Scanlines => e.scanlines.enabled = true,
                 CatalogEffect::Bloom => e.bloom.enabled = true,
                 CatalogEffect::GlowOnBell => e.glow_on_bell.enabled = true,
+                CatalogEffect::Aurora => e.aurora.enabled = true,
                 CatalogEffect::Snow => e.snow.enabled = true,
             }
             r.set_effects_config(e);
         };
-        const ANIMATED: [CatalogEffect; 2] =
-            [CatalogEffect::GlowOnBell, CatalogEffect::Snow];
+        const ANIMATED: [CatalogEffect; 3] =
+            [CatalogEffect::GlowOnBell, CatalogEffect::Snow, CatalogEffect::Aurora];
 
         let mut failures: Vec<String> = Vec::new();
         let mut rows = 0usize;
         for effect in CatalogEffect::ALL.iter().copied() {
             rows += 1;
             let (mut r, _t) = harness(10, 2);
-            assert!(r.enabled_effect_set().is_empty(), "default config must be all-off");
+            // Baseline: ambience Off so the set starts empty (the
+            // renderer ships with Whisper by default — that path is
+            // tested separately). This isolates the per-effect knob.
+            let mut off = crate::config::MadoEffectsConfig::default();
+            off.ambience = crate::ambience::AmbiencePreset::Off;
+            r.set_effects_config(off);
+            assert!(
+                r.enabled_effect_set().is_empty(),
+                "ambience-Off config must be all-off"
+            );
             enable(&mut r, effect);
             let set = r.enabled_effect_set();
             if !set.contains(effect) {
@@ -4776,6 +4941,119 @@ mod render_invariants {
             "{} effect-set rows failed:\n  - {}",
             failures.len(),
             failures.join("\n  - ")
+        );
+    }
+
+    /// The composed AMBIENCE layer (operator design law, 2026-06-13) —
+    /// the renderer-level forcing function. The default config
+    /// (Whisper) composes EXACTLY {aurora, bloom, glow_on_bell} into the
+    /// effect set; `reduce_motion` resolves the preset to `Off` ⇒ zero
+    /// ambience nodes (the accessibility floor); a per-effect override
+    /// adds on top; and `Off` contributes zero nodes.
+    #[test]
+    fn default_ambience_composes_aurora_bloom_glow_and_reduce_motion_kills_it() {
+        use engawa_wgpu::catalog::CatalogEffect;
+        let mut failures: Vec<String> = Vec::new();
+
+        // ── Default (Whisper) composes the three members ─────────────
+        let (mut r, _t) = harness(10, 2);
+        let mut cfg = crate::config::MadoConfig::default();
+        r.apply_effects_and_accessibility(&cfg);
+        let set = r.enabled_effect_set();
+        for effect in [
+            CatalogEffect::Aurora,
+            CatalogEffect::Bloom,
+            CatalogEffect::GlowOnBell,
+        ] {
+            if !set.contains(effect) {
+                failures.push(format!("default Whisper ambience is missing {effect:?}"));
+            }
+        }
+        // …and ONLY those three (no static effects sneak in).
+        for effect in [
+            CatalogEffect::Colorblind,
+            CatalogEffect::Crt,
+            CatalogEffect::Scanlines,
+            CatalogEffect::Snow,
+        ] {
+            if set.contains(effect) {
+                failures.push(format!("default Whisper ambience wrongly enabled {effect:?}"));
+            }
+        }
+
+        // ── reduce_motion → Off → zero nodes ─────────────────────────
+        cfg.accessibility.reduce_motion = true;
+        r.apply_effects_and_accessibility(&cfg);
+        if !r.enabled_effect_set().is_empty() {
+            failures.push(format!(
+                "reduce_motion must kill the whole ambience layer (got {:?})",
+                r.enabled_effect_set()
+            ));
+        }
+
+        // ── explicit Off → zero nodes ────────────────────────────────
+        let mut off = crate::config::MadoConfig::default();
+        off.effects.ambience = crate::ambience::AmbiencePreset::Off;
+        r.apply_effects_and_accessibility(&off);
+        if !r.enabled_effect_set().is_empty() {
+            failures.push("AmbiencePreset::Off must contribute zero nodes".to_owned());
+        }
+
+        // ── per-effect override beats the preset ─────────────────────
+        // With ambience Off, a power-user crt.enabled still turns crt
+        // on — the override is ADDITIVE and survives an Off preset.
+        let mut overridden = crate::config::MadoConfig::default();
+        overridden.effects.ambience = crate::ambience::AmbiencePreset::Off;
+        overridden.effects.crt.enabled = true;
+        r.apply_effects_and_accessibility(&overridden);
+        let oset = r.enabled_effect_set();
+        if !oset.contains(CatalogEffect::Crt) {
+            failures.push("power-user crt override must win over Off preset".to_owned());
+        }
+        if oset.contains(CatalogEffect::Aurora) {
+            failures.push("Off preset must not compose aurora even with a crt override".to_owned());
+        }
+
+        assert!(
+            failures.is_empty(),
+            "{} ambience composition violations:\n  - {}",
+            failures.len(),
+            failures.join("\n  - ")
+        );
+    }
+
+    /// The composed ambience layer caches like any other effect set:
+    /// N frames at one (effect-set, resolution) key compile the
+    /// CompiledGraph exactly once (no per-frame recompile). This is the
+    /// renderer-side companion to render_graph's
+    /// `compile_count_moves_only_on_toggle_or_resize` — it proves the
+    /// COMPOSED set (aurora+bloom+glow) keys the cache stably, not just
+    /// the single-effect sets.
+    #[test]
+    fn composed_ambience_effect_set_keys_the_cache_stably() {
+        use crate::render_graph::{EffectSet, FrameGraphCache, GraphKey};
+        use engawa_wgpu::catalog::CatalogEffect;
+
+        // The Whisper composition's effect set, built the same way the
+        // renderer's enabled_effect_set unions it.
+        let comp = crate::ambience::AmbiencePreset::Whisper.compose();
+        let mut effects = EffectSet::EMPTY;
+        for m in &comp.members {
+            effects.insert(m.effect);
+        }
+        assert!(effects.contains(CatalogEffect::Aurora));
+        assert!(effects.contains(CatalogEffect::Bloom));
+        assert!(effects.contains(CatalogEffect::GlowOnBell));
+
+        let mut cache = FrameGraphCache::new();
+        let key = GraphKey { effects, width: 640, height: 480 };
+        for _ in 0..64 {
+            assert!(cache.ensure(key).is_some(), "composed set must compile");
+        }
+        assert_eq!(
+            cache.compile_count(),
+            1,
+            "the composed ambience set must compile exactly once across a steady frame run"
         );
     }
 
@@ -4830,6 +5108,12 @@ mod render_invariants {
     fn config_applier_delta_reaches_renderer_effects_surface() {
         use engawa_wgpu::catalog::CatalogEffect;
         let (mut r, _t) = harness(10, 2);
+        // Baseline OFF so the set starts empty — the renderer ships with
+        // the Whisper ambience by default (tested separately); this test
+        // isolates the config-applier delta path.
+        let mut off = crate::config::MadoEffectsConfig::default();
+        off.ambience = crate::ambience::AmbiencePreset::Off;
+        r.set_effects_config(off);
         assert!(r.enabled_effect_set().is_empty());
 
         let boot = crate::config::MadoConfig::default();
