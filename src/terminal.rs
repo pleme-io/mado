@@ -1581,15 +1581,6 @@ pub fn partition_placements_by_z(
     (below, above)
 }
 
-/// Sixel image placeholder — raw data stored for future rendering via `icy_sixel`.
-#[derive(Debug, Clone)]
-#[allow(dead_code)]
-pub struct SixelImage {
-    pub data: Vec<u8>,
-    pub row: usize,
-    pub col: usize,
-}
-
 /// DCS handler state.
 enum DcsHandler {
     /// DECRQSS — Request Setting State. Accumulates the setting identifier.
@@ -2015,11 +2006,19 @@ pub struct Terminal {
     next_image_id: u32,
     pending_kitty: Option<KittyPending>,
 
-    // Sixel raw-data audit record. The decode path (unhook → icy_sixel →
-    // store_rgba_image) is the live render route; this Vec keeps the raw
-    // payload bytes for inspection/tests, not for rendering.
-    pub sixel_images: Vec<SixelImage>,
+    // Sixel decode goes straight through the shared image path (unhook
+    // → icy_sixel → store_rgba_image → `images` + `image_placements`).
+    // No raw-payload audit Vec is retained — it was unbounded dead
+    // weight that cloned every DCS payload alongside the decoded
+    // texture (review 2026-06-12, correctness-1).
     sixel_buffer: Option<Vec<u8>>,
+    // Set once a sixel DCS payload passes SIXEL_DCS_MAX in `put()`:
+    // the partial buffer is dropped and every further byte no-ops
+    // until `unhook` rejects the whole sequence with a typed trace.
+    // Mirrors the kitty APC_MAX guard — an unterminated/giant sixel
+    // must not grow `sixel_buffer` without bound (review 2026-06-12,
+    // critic-1). Cleared at hook time for the next sequence.
+    sixel_buffer_overflow: bool,
     // DCS numeric params (P1 aspect, P2 background, P3 grid) captured at
     // `hook` time so `unhook` can build icy_sixel's DcsSettings faithfully.
     sixel_dcs_params: (Option<u16>, Option<u16>, Option<u16>),
@@ -2158,8 +2157,8 @@ impl Terminal {
             image_placements: Vec::new(),
             next_image_id: 1,
             pending_kitty: None,
-            sixel_images: Vec::new(),
             sixel_buffer: None,
+            sixel_buffer_overflow: false,
             sixel_dcs_params: (None, None, None),
             apc_buf: None,
             pending_esc: PendingEsc::None,
@@ -4941,6 +4940,7 @@ impl vte::Perform for Terminal {
             // unhook can hand icy_sixel a faithful DcsSettings.
             self.dcs_handler = Some(DcsHandler::Sixel);
             self.sixel_buffer = Some(Vec::new());
+            self.sixel_buffer_overflow = false;
             let mut it = params.iter();
             let first = |o: Option<&[u16]>| o.and_then(|s| s.first().copied());
             self.sixel_dcs_params = (first(it.next()), first(it.next()), first(it.next()));
@@ -4953,8 +4953,26 @@ impl vte::Perform for Terminal {
         match self.dcs_handler {
             Some(DcsHandler::Decrqss(ref mut buf)) => buf.push(byte),
             Some(DcsHandler::Sixel) => {
+                // Bound the pre-decode accumulation: a giant or never-
+                // `unhook`'d sixel DCS must not grow `sixel_buffer`
+                // without limit. 8 MiB is far beyond any legitimate
+                // decoded frame (icy_sixel caps decoded dims well below
+                // this), so passing it means a misbehaving stream —
+                // drop the partial, poison the sequence, and let
+                // `unhook` reject it (review 2026-06-12, critic-1;
+                // mirrors APC_MAX).
+                const SIXEL_DCS_MAX: usize = 8 * 1024 * 1024;
                 if let Some(ref mut buf) = self.sixel_buffer {
-                    buf.push(byte);
+                    if buf.len() >= SIXEL_DCS_MAX {
+                        tracing::warn!(
+                            len = buf.len(),
+                            "sixel DCS payload exceeded bound — dropping sequence"
+                        );
+                        self.sixel_buffer = None;
+                        self.sixel_buffer_overflow = true;
+                    } else {
+                        buf.push(byte);
+                    }
                 }
             }
             None => {}
@@ -4997,14 +5015,20 @@ impl vte::Perform for Terminal {
                 self.response_bytes.extend_from_slice(&response);
             }
             Some(DcsHandler::Sixel) => {
-                if let Some(data) = self.sixel_buffer.take() {
+                if std::mem::take(&mut self.sixel_buffer_overflow) {
+                    // The payload blew past SIXEL_DCS_MAX in `put()` —
+                    // the partial was already dropped. Reject the whole
+                    // sequence with one typed trace, never a partial
+                    // decode (review 2026-06-12, critic-1).
+                    tracing::warn!("sixel DCS rejected — payload exceeded bound");
+                    self.sixel_buffer = None;
+                } else if let Some(data) = self.sixel_buffer.take() {
                     if !data.is_empty() {
-                        let (row, col) = (self.cursor.row, self.cursor.col);
-                        self.sixel_images.push(SixelImage {
-                            data: data.clone(),
-                            row,
-                            col,
-                        });
+                        // The decode path (`images` + `image_placements`)
+                        // is the sole source of truth — no raw-payload
+                        // audit Vec is retained (review 2026-06-12,
+                        // correctness-1: it was dead weight that cloned
+                        // every payload alongside the decoded texture).
                         self.decode_and_place_sixel(&data);
                     }
                 }
@@ -8177,10 +8201,36 @@ mod tests {
 
     // ── Sixel infrastructure tests ───────────────────────────────────
 
+    /// critic-1 (review 2026-06-12): an oversized sixel DCS payload
+    /// must NOT grow `sixel_buffer` without bound. `put()` poisons the
+    /// sequence past SIXEL_DCS_MAX (8 MiB); the buffer is dropped and
+    /// `unhook` rejects with no image placed. The buffer never holds
+    /// more than the cap + 1.
     #[test]
-    fn test_sixel_images_empty_initially() {
-        let term = Terminal::new(80, 24);
-        assert!(term.sixel_images.is_empty());
+    fn sixel_dcs_oversized_payload_is_bounded_and_rejected() {
+        let mut term = Terminal::new(80, 24);
+        // Open a sixel DCS, then stream > 8 MiB of payload bytes
+        // without ever sending ST. `feed` chunks them through `put`.
+        term.feed(b"\x1bPq");
+        let chunk = vec![b'?'; 1024 * 1024]; // 1 MiB of harmless sixel band data
+        for _ in 0..9 {
+            term.feed(&chunk);
+        }
+        // The buffer was dropped on overflow — it never grew unbounded.
+        assert!(
+            term.sixel_buffer.is_none(),
+            "oversized sixel payload must drop the buffer, not retain it"
+        );
+        assert!(term.sixel_buffer_overflow, "overflow flag must be set");
+        // Terminating the sequence places no image (poisoned reject).
+        let before = term.image_placements().len();
+        term.feed(b"\x1b\\");
+        assert_eq!(
+            term.image_placements().len(),
+            before,
+            "a rejected oversized sixel must not place an image"
+        );
+        assert!(!term.sixel_buffer_overflow, "overflow flag clears at unhook");
     }
 
     #[test]
