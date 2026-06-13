@@ -567,20 +567,27 @@ where
             // drain markers ban per-loop polling; the 2026-06-11
             // silent-bell/dead-title/dead-OSC52 hunt class cannot
             // re-diverge between the loops).
-            {
+            //
+            // COPY-ON-RELEASE LAW (operator report 2026-06-12): the
+            // drain MUST NOT early-return — doing so DROPPED whatever
+            // input event rode this same tick. When frost's
+            // shell-integration title OSC landed on the mouse-release
+            // tick, the early `return EventResponse{ set_title }` ate
+            // the LeftRelease, the pointer FSM stayed Selecting, and no
+            // copy fired ("I have to click to copy"). The title is now
+            // a deferred side-channel: drain it, then ALWAYS run the
+            // `match event` below, and fold the title into the event's
+            // own response (the event wins on consumed/exit; the title
+            // rides along on an otherwise-untouched field).
+            let drained_title = {
                 let effects = terminal_for_side_effects.write().drain_side_effects();
-                if let Some(title) = crate::ux::apply_side_effects(
+                crate::ux::apply_side_effects(
                     effects,
                     renderer,
                     &*side_effect_clipboard,
                     &notifier,
-                ) {
-                    return EventResponse {
-                        set_title: Some(title),
-                        ..Default::default()
-                    };
-                }
-            }
+                )
+            };
             // ── Elegant child-exit close ──────────────────────
             // engate signalled the producer channel closed (shell
             // exited / PTY EOF). Request a clean window-loop exit
@@ -628,7 +635,13 @@ where
             // madori's EventResponse. Loop-specific concerns that stay
             // here: child-exit close + session reap (above), the
             // injection drain, NativeStylingLatch ticks, snow pulses.
-            match event {
+            //
+            // The event's own response is computed FIRST (so no input
+            // event is ever dropped to deliver a title), then the
+            // drained title is folded in via `with_title` — the event
+            // keeps its consumed/exit decision; the title only fills an
+            // otherwise-empty `set_title` slot.
+            let response = match event {
                 AppEvent::Resized { .. } => {
                     // No push here: the engine reconciler (top of
                     // closure) converges on RENDERED truth one frame
@@ -683,14 +696,37 @@ where
                     EventResponse::ignored()
                 }
                 _ => EventResponse::ignored(),
-            }
+            };
+            // Fold the deferred drained title into the event's own
+            // response. The event always ran (no drop); the title only
+            // fills an empty `set_title` slot — an exit/title set by
+            // the event itself wins.
+            with_title(response, drained_title)
         })
         .run()
         .map_err(|e| anyhow::anyhow!("madori::App run: {e}"))?;
     Ok(())
 }
 
-
+/// Fold a drained side-effect title into an event's own response
+/// WITHOUT ever dropping the event. The event keeps its
+/// consumed/exit/cursor decisions; the title only fills an
+/// otherwise-empty `set_title` slot (a title the event set itself —
+/// the confirm-close prompt, say — wins). This is the structural fix
+/// for the copy-on-release regression: the title is a side-channel
+/// merged onto the response, never a reason to short-circuit the
+/// `match event`.
+fn with_title(
+    mut response: madori::EventResponse,
+    drained_title: Option<String>,
+) -> madori::EventResponse {
+    if response.set_title.is_none()
+        && let Some(title) = drained_title
+    {
+        response.set_title = Some(title);
+    }
+    response
+}
 
 /// M3c.1 — embedded-tear default-launch path.
 ///
@@ -906,5 +942,83 @@ fn run_against_pane(
         injected,
         reload,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::with_title;
+    use madori::EventResponse;
+
+    /// THE copy-on-release adapter regression, pinned (operator report
+    /// 2026-06-12): when a side-effect title is drained ON THE SAME
+    /// tick as an input event, the event's own response MUST survive —
+    /// the title may never short-circuit the `match event` (the old
+    /// `return EventResponse{ set_title }` ate the `LeftRelease`, leaving
+    /// the FSM Selecting and no copy). Here the event is a consumed
+    /// mouse release (consumed, no title of its own); folding a drained
+    /// title MUST keep `consumed` true so the release is delivered to
+    /// the FSM, and carry the title along on the side.
+    #[test]
+    fn drained_title_never_drops_the_events_own_response() {
+        // A consumed input event (e.g. the LeftRelease that copies).
+        let release_response = EventResponse {
+            consumed: true,
+            ..Default::default()
+        };
+        let folded = with_title(release_response, Some("frost ❄ ~/code".into()));
+        assert!(
+            folded.consumed,
+            "the input event's consumed flag must survive a same-tick title drain — \
+             dropping it is the copy-on-release bug"
+        );
+        assert!(!folded.exit, "a title drain must not synthesize an exit");
+        assert_eq!(
+            folded.set_title.as_deref(),
+            Some("frost ❄ ~/code"),
+            "the drained title rides along on the otherwise-empty slot"
+        );
+    }
+
+    /// The title fills an EMPTY response (the common idle-redraw tick),
+    /// so the title path is not regressed by the fix.
+    #[test]
+    fn drained_title_fills_an_empty_response() {
+        let folded = with_title(EventResponse::ignored(), Some("title".into()));
+        assert_eq!(folded.set_title.as_deref(), Some("title"));
+        assert!(!folded.consumed);
+    }
+
+    /// An event that set its OWN title (the confirm-close prompt) wins
+    /// over a same-tick drained title — the event's intent is never
+    /// clobbered by a side-channel title.
+    #[test]
+    fn events_own_title_wins_over_a_drained_title() {
+        let prompt = EventResponse {
+            consumed: true,
+            set_title: Some("mado — press close again to exit".into()),
+            ..Default::default()
+        };
+        let folded = with_title(prompt, Some("background OSC title".into()));
+        assert_eq!(
+            folded.set_title.as_deref(),
+            Some("mado — press close again to exit"),
+            "the event's own title must not be clobbered by a drained title"
+        );
+    }
+
+    /// No drained title → the response passes through untouched (the
+    /// fold is a no-op when nothing was drained).
+    #[test]
+    fn no_drained_title_passes_response_through() {
+        let resp = EventResponse {
+            consumed: true,
+            exit: true,
+            ..Default::default()
+        };
+        let folded = with_title(resp.clone(), None);
+        assert_eq!(folded.consumed, resp.consumed);
+        assert_eq!(folded.exit, resp.exit);
+        assert_eq!(folded.set_title, None);
+    }
 }
 

@@ -110,6 +110,51 @@ fn neither_event_loop_contains_direct_ux_logic() {
     );
 }
 
+/// THE copy-on-release adapter law (operator report 2026-06-12): the
+/// tear adapter must NEVER deliver a side-effect title by
+/// short-circuiting the `match event` — that early `return
+/// EventResponse{ set_title }` ate the `LeftRelease` that copies. The
+/// drain's title is now a deferred side-channel folded onto the
+/// event's own response via `with_title(`. This forcing function bans
+/// the early-return shape (the drain must not be immediately followed
+/// by a title-only return) AND requires the fold to be present, so the
+/// regression cannot silently reappear.
+#[test]
+fn tear_adapter_drain_never_short_circuits_the_event() {
+    let src = strip_line_comments(TEAR_RS);
+    let squashed: String = src.split_whitespace().collect::<Vec<_>>().join(" ");
+    let mut failures: Vec<String> = Vec::new();
+
+    // The deferred-fold must exist: the title rides onto the event's
+    // response, never replaces it.
+    if !squashed.contains("with_title(") {
+        failures.push(
+            "src/gui_tear_attach.rs no longer folds the drained title via with_title( — \
+             the drain may have regressed to an early-return-on-title that drops the event"
+                .into(),
+        );
+    }
+    // The exact regression shape: the drain's `apply_side_effects(...)`
+    // result returned directly as a title-only EventResponse. The fold
+    // assigns it to `drained_title` instead; a `return EventResponse {
+    // set_title: Some(title)` adjacent to the drain is the bug.
+    if squashed.contains("apply_side_effects( effects, renderer,")
+        && squashed.contains("return EventResponse { set_title: Some(title)")
+    {
+        failures.push(
+            "src/gui_tear_attach.rs returns a title-only EventResponse — the drain is \
+             dropping same-tick input events again (the copy-on-release regression)"
+                .into(),
+        );
+    }
+    assert!(
+        failures.is_empty(),
+        "{} copy-on-release adapter violations:\n  - {}",
+        failures.len(),
+        failures.join("\n  - ")
+    );
+}
+
 #[test]
 fn both_call_sites_drive_the_engine() {
     let mut failures: Vec<String> = Vec::new();

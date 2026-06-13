@@ -799,10 +799,12 @@ impl InputEngine {
                     },
                 })
             } else {
-                PointerEvent::LeftRelease {
-                    tracking_on,
-                    shift_local,
-                }
+                // Release routing is STATE-DERIVED in the pointer FSM
+                // now (copy-on-release regression, 2026-06-12) — the
+                // event carries no tracking facts. A forwarded press
+                // releases to the app (ForwardedPress state); every
+                // drag-ending state commits the selection.
+                PointerEvent::LeftRelease
             };
             let step = self.pointer.on_event(event);
             self.pointer = step.state;
@@ -959,6 +961,18 @@ impl InputEngine {
             PointerEffect::UpdateDrag { mode, origin } => {
                 self.update_drag(mode, origin, row, col);
             }
+            PointerEffect::CompleteOrphanedDrag => {
+                // Copy-on-release RECOVERY (operator report 2026-06-12):
+                // a release the adapter dropped (e.g. an early-return-
+                // on-title drain) left this drag's highlight live. A new
+                // press is landing — commit the orphaned selection to
+                // the clipboard FIRST (same muscle-memory copy the
+                // release would have done), then let the press's own
+                // effects run. No `finish()` (the drag is abandoned by
+                // the incoming press), no URL-open (that's release-only
+                // single-click semantics).
+                self.copy_live_selection_if_enabled();
+            }
             PointerEffect::SelectionRelease => {
                 if self.click_count == 1 {
                     self.selection.lock().unwrap().finish();
@@ -968,14 +982,7 @@ impl InputEngine {
                 // shape — drag, double-click word, triple-click line
                 // (word/line used to be excluded by the click_count
                 // gate).
-                let release_copy = self
-                    .behavior
-                    .copy_on_select
-                    .then(|| self.selected_text())
-                    .flatten();
-                if let Some(text) = release_copy {
-                    let _ = self.clipboard.copy_text(&text);
-                }
+                self.copy_live_selection_if_enabled();
                 if self.click_count == 1 {
                     // Cmd+click (macOS) / Ctrl+click (Linux) to open
                     // URLs — single-click release only, never
@@ -1006,6 +1013,22 @@ impl InputEngine {
     fn selected_text(&self) -> Option<String> {
         let (a, b) = self.selection.lock().unwrap().anchors()?;
         self.terminal.read().extract_selection_text(a, b)
+    }
+
+    /// Commit the currently-live selection to the system clipboard
+    /// when `copy_on_select` is enabled. The shared muscle-memory copy
+    /// the `SelectionRelease` ritual and the `CompleteOrphanedDrag`
+    /// recovery both route through, so a release dropped upstream still
+    /// lands the highlight on the clipboard at the next press.
+    fn copy_live_selection_if_enabled(&self) {
+        let release_copy = self
+            .behavior
+            .copy_on_select
+            .then(|| self.selected_text())
+            .flatten();
+        if let Some(text) = release_copy {
+            let _ = self.clipboard.copy_text(&text);
+        }
     }
 
     /// Capture anchors for both endpoints of a viewport span.
@@ -2016,6 +2039,63 @@ mod tests {
         // No mouse tracking armed — selection traffic never reaches
         // the PTY.
         assert!(h.sent_bytes().is_empty());
+    }
+
+    /// **Copy-on-release totality** (operator report 2026-06-12): a
+    /// plain drag-select followed by a release ALWAYS lands the
+    /// highlight on the clipboard — the release routing is now
+    /// state-derived, so there is no event-time path that forwards a
+    /// drag's release to the app instead of copying. The pre-fix
+    /// `release_routing(tracking_on, shift_local)` branch could route a
+    /// drag's release to the app when tracking flipped on mid-drag.
+    #[test]
+    fn drag_release_always_copies_the_selection() {
+        let mut h = Harness::new(SinkKind::Closure);
+        h.feed(b"hello world");
+        h.button(MouseButton::Left, true, 0, 0, no_mods());
+        h.moved(4, 0);
+        // Mouse tracking arms MID-DRAG (a TUI enabling SGR mouse while
+        // the operator is dragging) — the pre-fix event-time release
+        // routing would have forwarded this release. State-derived
+        // routing copies regardless.
+        h.feed(b"\x1b[?1006h\x1b[?1000h");
+        h.button(MouseButton::Left, false, 4, 0, no_mods());
+        assert_eq!(
+            h.clipboard.paste_text().unwrap(),
+            "hello",
+            "a drag's release must commit the selection even if tracking armed mid-drag"
+        );
+    }
+
+    /// **Orphaned-drag recovery** (operator report 2026-06-12, the
+    /// copy-on-release regression's safety net): if a release is
+    /// DROPPED upstream (the early-return-on-title drain bug ate it),
+    /// the highlight stays live; the operator's NEXT press commits the
+    /// stranded selection before starting the new gesture. This is the
+    /// `Selecting × LeftPress → CompleteOrphanedDrag` arm, exercised
+    /// through the real engine: a press with no intervening release.
+    #[test]
+    fn next_press_recovers_an_orphaned_drag_highlight() {
+        let mut h = Harness::new(SinkKind::Closure);
+        h.feed(b"hello world");
+        // Drag-select "hello" — but NEVER send the release (simulating
+        // a release the adapter dropped on the title-OSC tick).
+        h.button(MouseButton::Left, true, 0, 0, no_mods());
+        h.moved(4, 0);
+        // Nothing copied yet — the release that would have copied was
+        // lost.
+        assert!(
+            h.clipboard.paste_text().unwrap_or_default().is_empty(),
+            "no copy should have happened without a release"
+        );
+        // The operator clicks elsewhere — the orphaned highlight lands
+        // on the clipboard at this press.
+        h.button(MouseButton::Left, true, 8, 0, no_mods());
+        assert_eq!(
+            h.clipboard.paste_text().unwrap(),
+            "hello",
+            "a dropped release's highlight must reach the clipboard at the next press"
+        );
     }
 
     /// Config round-trip for `selection.word_chars` (M3 review

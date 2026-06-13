@@ -479,9 +479,18 @@ pub(crate) enum PressPlan {
 pub(crate) enum PointerEvent {
     /// Left press, pre-routed + pre-classified by the engine.
     LeftPress(PressRoute),
-    /// Left release with the event-time tracking facts (the release
-    /// routing is event-time, not press-time — pre-FSM contract).
-    LeftRelease { tracking_on: bool, shift_local: bool },
+    /// Left release — PAYLOAD-FREE. The release routing is now
+    /// STATE-DERIVED, not event-time (copy-on-release regression,
+    /// operator report 2026-06-12): a forwarded press releases to the
+    /// app (`ForwardedPress` state), and EVERY drag-ending state
+    /// (`Selecting` / `HeldUnanchored`) — plus a stray release with no
+    /// live press (`Up`) — runs the selection-release ritual that
+    /// commits the highlight to the clipboard. The old event-time
+    /// `{tracking_on, shift_local}` payload let a release that arrived
+    /// while tracking flipped mid-drag forward to the app instead of
+    /// copying; making the payload absent makes that miss
+    /// unrepresentable (there is no event-time fact left to read).
+    LeftRelease,
     /// Pointer motion with the event-time terminal mouse mode.
     Motion { mode: MouseMode, sgr: bool },
     /// Operator input bytes are about to hit the PTY
@@ -523,6 +532,16 @@ pub(crate) enum PointerEffect {
     /// The terminal-side release ritual: finish single-click
     /// selections, copy-on-select, Cmd/Ctrl+click URL open.
     SelectionRelease,
+    /// Recover a release that the adapter dropped (the copy-on-release
+    /// regression, operator report 2026-06-12): if a prior release was
+    /// eaten — e.g. by an early-return-on-title drain — the highlight
+    /// is still live when the next press arrives. Emitted by
+    /// `Selecting × LeftPress` BEFORE the new press's own effects, so
+    /// the orphaned selection lands on the clipboard at the next press
+    /// even when its release was lost. Runs the same copy ritual as
+    /// `SelectionRelease` but does NOT consume the press (the new press
+    /// proceeds normally after it).
+    CompleteOrphanedDrag,
 }
 
 /// One pointer transition's output.
@@ -581,15 +600,18 @@ fn enter_press(route: PressRoute) -> PointerStep {
     }
 }
 
-/// The release routing shared by the bypass-free states: event-time
-/// tracking forwards, otherwise the terminal-side release ritual
-/// runs (pre-FSM the same expression gated the forward block).
-fn release_routing(tracking_on: bool, shift_local: bool) -> PointerEffect {
-    if tracking_on && !shift_local {
-        PointerEffect::ForwardRelease
-    } else {
-        PointerEffect::SelectionRelease
-    }
+/// A press that lands ON a live `Selecting` drag re-classifies the
+/// pointer (via [`enter_press`]) but FIRST commits the orphaned
+/// highlight: a release the adapter dropped (the copy-on-release
+/// regression) left the selection live, and the operator's next
+/// click would otherwise discard it. Prepending
+/// [`PointerEffect::CompleteOrphanedDrag`] copies the stranded
+/// selection before the new press's own effects run — so a lost
+/// release still lands the highlight on the clipboard.
+fn enter_press_completing_orphan(route: PressRoute) -> PointerStep {
+    let mut step = enter_press(route);
+    step.effects.insert(0, PointerEffect::CompleteOrphanedDrag);
+    step
 }
 
 /// Payload-free discriminant mirror of [`Pointer`] — `ALL` is
@@ -663,10 +685,15 @@ impl Pointer {
         match self {
             Pointer::Up => match event {
                 PointerEvent::LeftPress(route) => enter_press(route),
-                PointerEvent::LeftRelease {
-                    tracking_on,
-                    shift_local,
-                } => pointer_step(Pointer::Up, vec![release_routing(tracking_on, shift_local)]),
+                // Stray release with no live press (a release whose
+                // press was eaten upstream, or an OS focus-loss edge):
+                // run the selection-release ritual so a still-live
+                // highlight is committed — never forward to the app
+                // (no matching press was forwarded). This is the
+                // copy-on-release stray-recovery arm (2026-06-12).
+                PointerEvent::LeftRelease => {
+                    pointer_step(Pointer::Up, vec![PointerEffect::SelectionRelease])
+                }
                 PointerEvent::Motion { mode, sgr } => {
                     // Hover: ButtonEvent (1002) forwards only while
                     // pressed (button is up here, so it stays
@@ -691,10 +718,14 @@ impl Pointer {
 
             Pointer::ForwardedPress => match event {
                 PointerEvent::LeftPress(route) => enter_press(route),
-                PointerEvent::LeftRelease {
-                    tracking_on,
-                    shift_local,
-                } => pointer_step(Pointer::Up, vec![release_routing(tracking_on, shift_local)]),
+                // The press was forwarded to the app — its release must
+                // follow it (the ONLY state whose release forwards).
+                // STATE-DERIVED: the routing is the state, not an
+                // event-time tracking flag (which could flip mid-gesture
+                // and strand the release).
+                PointerEvent::LeftRelease => {
+                    pointer_step(Pointer::Up, vec![PointerEffect::ForwardRelease])
+                }
                 PointerEvent::Motion { mode, sgr } => {
                     let effects = match mode {
                         MouseMode::Off | MouseMode::Normal => vec![],
@@ -718,27 +749,22 @@ impl Pointer {
                 origin,
                 bypass,
             } => match event {
-                PointerEvent::LeftPress(route) => enter_press(route),
-                // Release ALWAYS ends the drag (decision 2026-06-12:
-                // pre-FSM a release forwarded to the app — reachable
-                // only when tracking was enabled mid-drag — skipped
-                // the drag-reset and left hover extending a released
-                // selection; judged a desync bug of the sibling
-                // bools, not a contract — no test pinned it).
-                PointerEvent::LeftRelease {
-                    tracking_on,
-                    shift_local,
-                } => {
-                    // The shift-bypass is a TRANSITION GUARD here,
-                    // not a flag read at the call site: the bypassed
-                    // drag's release belongs to the selection, never
-                    // to the app.
-                    let effect = if bypass {
-                        PointerEffect::SelectionRelease
-                    } else {
-                        release_routing(tracking_on, shift_local)
-                    };
-                    pointer_step(Pointer::Up, vec![effect])
+                // A press on a live drag commits the orphaned highlight
+                // FIRST (copy-on-release recovery, 2026-06-12: a
+                // dropped release left this selection live), then
+                // re-classifies the pointer for the new press.
+                PointerEvent::LeftPress(route) => enter_press_completing_orphan(route),
+                // Release ALWAYS commits the selection — STATE-DERIVED,
+                // no event-time routing (copy-on-release regression,
+                // operator report 2026-06-12). A live drag's release
+                // belongs to the selection, period: the prior
+                // `release_routing(tracking_on, shift_local)` branch
+                // could forward a drag's release to the app when
+                // tracking flipped on mid-drag, dropping the copy. The
+                // non-copy arm is now unrepresentable — `SelectionRelease`
+                // is the only reachable effect.
+                PointerEvent::LeftRelease => {
+                    pointer_step(Pointer::Up, vec![PointerEffect::SelectionRelease])
                 }
                 PointerEvent::Motion { mode, sgr } => {
                     // Tracked + un-bypassed motion belongs to the app
@@ -782,16 +808,13 @@ impl Pointer {
 
             Pointer::HeldUnanchored { bypass } => match event {
                 PointerEvent::LeftPress(route) => enter_press(route),
-                PointerEvent::LeftRelease {
-                    tracking_on,
-                    shift_local,
-                } => {
-                    let effect = if bypass {
-                        PointerEffect::SelectionRelease
-                    } else {
-                        release_routing(tracking_on, shift_local)
-                    };
-                    pointer_step(Pointer::Up, vec![effect])
+                // The button was held with no live drag (anchor capture
+                // failed, or typing killed the drag mid-hold). Its
+                // release runs the selection-release ritual — never
+                // forwards — so any residual highlight commits.
+                // STATE-DERIVED, same copy-on-release law as Selecting.
+                PointerEvent::LeftRelease => {
+                    pointer_step(Pointer::Up, vec![PointerEffect::SelectionRelease])
                 }
                 PointerEvent::Motion { mode, sgr } => {
                     let effects = match mode {
@@ -839,7 +862,7 @@ impl PointerEvent {
     pub(crate) fn class(&self) -> PointerEventClass {
         match self {
             PointerEvent::LeftPress(_) => PointerEventClass::LeftPress,
-            PointerEvent::LeftRelease { .. } => PointerEventClass::LeftRelease,
+            PointerEvent::LeftRelease => PointerEventClass::LeftRelease,
             PointerEvent::Motion { .. } => PointerEventClass::Motion,
             PointerEvent::TypedInput => PointerEventClass::TypedInput,
             PointerEvent::SelectionDangled => PointerEventClass::SelectionDangled,
@@ -973,22 +996,10 @@ mod tests {
                 bypass: true,
                 plan: PressPlan::Unanchored,
             }),
-            PointerEvent::LeftRelease {
-                tracking_on: false,
-                shift_local: false,
-            },
-            PointerEvent::LeftRelease {
-                tracking_on: true,
-                shift_local: false,
-            },
-            PointerEvent::LeftRelease {
-                tracking_on: true,
-                shift_local: true,
-            },
-            PointerEvent::LeftRelease {
-                tracking_on: false,
-                shift_local: true,
-            },
+            // LeftRelease is payload-free now — the release routing is
+            // state-derived (copy-on-release regression, 2026-06-12).
+            // One representative is the whole class.
+            PointerEvent::LeftRelease,
             PointerEvent::Motion {
                 mode: MouseMode::Off,
                 sgr: false,
@@ -1168,7 +1179,7 @@ mod tests {
                             ));
                         }
                     }
-                    PointerEvent::LeftRelease { .. } => {
+                    PointerEvent::LeftRelease => {
                         if step.state != Pointer::Up {
                             failures.push(format!(
                                 "{ctx}: release did not return the pointer to Up (got {:?})",
@@ -1182,15 +1193,23 @@ mod tests {
                                 "{ctx}: release must route to exactly one of forward/selection"
                             ));
                         }
-                        let bypassed = matches!(
-                            state,
-                            Pointer::Selecting { bypass: true, .. }
-                                | Pointer::HeldUnanchored { bypass: true }
-                        );
-                        if bypassed && forwards {
+                        // STATE-DERIVED release routing (copy-on-release
+                        // regression, 2026-06-12): a forwarded press
+                        // releases to the app; EVERY other state commits
+                        // the selection. The non-copy arm is
+                        // unrepresentable for any drag-ending or stray
+                        // state — there is no event-time fact left that
+                        // could route a drag's release to the app.
+                        let forwarding_state = matches!(state, Pointer::ForwardedPress);
+                        if forwarding_state && !forwards {
                             failures.push(format!(
-                                "{ctx}: bypassed release forwarded to the app — the shift \
-                                 escape hatch leaked (transition-guard violation)"
+                                "{ctx}: forwarded press did not forward its release"
+                            ));
+                        }
+                        if !forwarding_state && !selects {
+                            failures.push(format!(
+                                "{ctx}: non-forwarded state's release did not commit the \
+                                 selection — the copy-on-release law leaked"
                             ));
                         }
                     }
@@ -1215,6 +1234,32 @@ mod tests {
                             && !matches!(step.state, Pointer::ForwardedPress)
                         {
                             failures.push(format!("{ctx}: forwarded press not in ForwardedPress"));
+                        }
+                        // Copy-on-release recovery (2026-06-12): a press
+                        // landing on a live Selecting drag commits the
+                        // orphaned highlight FIRST (a dropped release
+                        // left it live), and ONLY that case does — every
+                        // other prior state has no live drag to strand.
+                        let completes_orphan = step
+                            .effects
+                            .contains(&PointerEffect::CompleteOrphanedDrag);
+                        let pressing_live_drag = matches!(state, Pointer::Selecting { .. });
+                        if completes_orphan != pressing_live_drag {
+                            failures.push(format!(
+                                "{ctx}: CompleteOrphanedDrag must be emitted iff pressing on a \
+                                 live Selecting drag (got {completes_orphan}, want {pressing_live_drag})"
+                            ));
+                        }
+                        // When it IS emitted it must be FIRST — the
+                        // orphan copies before the new press's own
+                        // selection effects mutate the selection.
+                        if completes_orphan
+                            && step.effects.first()
+                                != Some(&PointerEffect::CompleteOrphanedDrag)
+                        {
+                            failures.push(format!(
+                                "{ctx}: CompleteOrphanedDrag must precede the new press's effects"
+                            ));
                         }
                     }
                 }
