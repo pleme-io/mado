@@ -41,6 +41,16 @@ pub struct Theme {
     /// keep their prior look. `u8`-RGB for the renderer; the GPU path
     /// linearizes at paint time exactly like every other `Color` field.
     pub agent_accent: Color,
+    /// CURRENT search-match highlight fill (`Borealis first_light`
+    /// #EDC980 — the inverse-video search band). The search-match rect
+    /// pipeline paints THIS token (linearized at paint time), never a
+    /// hex. On non-Borealis presets it falls back to Nord aurora yellow
+    /// #EBCB8B (irodzuki schemes carry no search-band concept), so legacy
+    /// themes keep their prior look. `u8`-RGB for the renderer.
+    pub search_current: Color,
+    /// OTHER (non-current) search-match highlight fill (`Borealis
+    /// search_others` #4E443A). See [`Self::search_current`].
+    pub search_others: Color,
 }
 
 impl Theme {
@@ -104,6 +114,13 @@ pub fn apply_config_theme(
     // Routed through this ONE shared point so the local-PTY loop AND the
     // embedded-tear loop pick up the agent accent identically.
     renderer.set_search_status_color(theme.agent_accent);
+    // Search-match highlight fills — the CURRENT match (inverse-video
+    // first_light on Borealis) and the OTHER matches (search_others).
+    // Routed through this ONE shared point so the local-PTY loop AND the
+    // embedded-tear loop pick up the search palette identically; the
+    // render path linearizes both at paint time via `overlay_rect_color`.
+    renderer.set_search_current_color(theme.search_current);
+    renderer.set_search_other_color(theme.search_others);
     // Theme bg through the typed Srgb → Linear path (no gamma confusion).
     let theme_bg: wgpu::Color = ishou_tokens::Srgb::new(
         theme.background.r,
@@ -185,6 +202,11 @@ fn theme_from_scheme(scheme: ColorScheme) -> Theme {
         // irodzuki presets have no agent band — the agent accent falls
         // back to the preset foreground so legacy themes are unchanged.
         agent_accent: iro_to_color(scheme.base05),
+        // irodzuki presets carry no search-band surfaces — fall back to
+        // Nord aurora yellow #EBCB8B (the prior hardcoded fill) so legacy
+        // presets render exactly as before.
+        search_current: Color::new(0xEB, 0xCB, 0x8B),
+        search_others: Color::new(0xEB, 0xCB, 0x8B),
     }
 }
 
@@ -239,6 +261,20 @@ fn borealis_night_theme() -> Theme {
         },
         ansi,
         agent_accent: Color::new(agent_rgb.r, agent_rgb.g, agent_rgb.b),
+        // §5 — the search band: CURRENT match is first_light #EDC980
+        // (inverse video), OTHER matches are search_others #4E443A. Both
+        // flow straight from the BORN surfaces, so a future search-band
+        // retune in ishou propagates here on the next compile.
+        search_current: Color::new(
+            surfaces.search_current_background.r,
+            surfaces.search_current_background.g,
+            surfaces.search_current_background.b,
+        ),
+        search_others: Color::new(
+            surfaces.search_others_background.r,
+            surfaces.search_others_background.g,
+            surfaces.search_others_background.b,
+        ),
     }
 }
 
@@ -320,6 +356,44 @@ mod tests {
         let [r, g, bl, _a] = b.selection_bg;
         let back = ishou_tokens::Linear { r, g, b: bl }.to_srgb();
         assert_eq!(back.hex(), "#3F3955");
+    }
+
+    #[test]
+    fn borealis_search_matches_resolve_from_born_surfaces() {
+        // §5 — the search band flows from the BORN surfaces, never a
+        // hand-pinned hex: current = first_light #EDC980 (inverse
+        // video), other = search_others #4E443A. A future search-band
+        // retune in ishou propagates here on next compile.
+        let b = Theme::by_name("borealis-night").expect("borealis-night theme");
+        let surfaces = ishou_tokens::BorealisPalette::night().surfaces();
+        assert_eq!(
+            b.search_current,
+            Color::new(
+                surfaces.search_current_background.r,
+                surfaces.search_current_background.g,
+                surfaces.search_current_background.b,
+            ),
+        );
+        assert_eq!(
+            b.search_others,
+            Color::new(
+                surfaces.search_others_background.r,
+                surfaces.search_others_background.g,
+                surfaces.search_others_background.b,
+            ),
+        );
+        assert_eq!(b.search_current, Color::new(0xED, 0xC9, 0x80));
+        assert_eq!(b.search_others, Color::new(0x4E, 0x44, 0x3A));
+    }
+
+    #[test]
+    fn legacy_presets_keep_nord_aurora_search_fill() {
+        // irodzuki presets carry no search band — the fields fall back
+        // to Nord aurora yellow #EBCB8B so legacy themes render exactly
+        // as before the surface map landed.
+        let nord = Theme::by_name("nord").expect("nord preset");
+        assert_eq!(nord.search_current, Color::new(0xEB, 0xCB, 0x8B));
+        assert_eq!(nord.search_others, Color::new(0xEB, 0xCB, 0x8B));
     }
 
     #[test]

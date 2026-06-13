@@ -905,6 +905,21 @@ pub struct TerminalRenderer {
     /// to Nord frost so legacy themes keep their prior look.
     #[invalidating_setter]
     search_status_color: Color,
+    /// Search-match highlight fills (u8-RGB; the rect pipeline
+    /// linearizes at paint time via `overlay_rect_color`, exactly like
+    /// `search_status_color` linearizes in the text path). The CURRENT
+    /// match draws `search_current_color` at α0.5; every OTHER match
+    /// draws `search_other_color` at α0.2. Set by
+    /// `theme::apply_config_theme` from the active theme's
+    /// `search_current` / `search_others` (Borealis `first_light`
+    /// #EDC980 / #4E443A via `BorealisPalette::night().surfaces()`).
+    /// Defaults to Nord aurora yellow #EBCB8B so legacy presets keep
+    /// their prior look until a theme that carries the surfaces loads.
+    #[invalidating_setter]
+    search_current_color: Color,
+    /// See [`Self::search_current_color`] — the OTHER-match fill.
+    #[invalidating_setter]
+    search_other_color: Color,
     /// Reduce motion: disable cursor blink and bell flash.
     #[invalidating_setter]
     reduce_motion: bool,
@@ -1147,6 +1162,12 @@ impl TerminalRenderer {
             // colour. `theme::apply_config_theme` overwrites this with
             // the active theme's agent accent (Borealis fable_violet).
             search_status_color: Color::new(0x88, 0xC0, 0xD0),
+            // Nord aurora yellow #EBCB8B — the prior hardcoded
+            // search-match fill. `theme::apply_config_theme` overwrites
+            // both with the active theme's search surfaces (Borealis
+            // first_light #EDC980 / search_others #4E443A).
+            search_current_color: Color::new(0xEB, 0xCB, 0x8B),
+            search_other_color: Color::new(0xEB, 0xCB, 0x8B),
             reduce_motion: false,
             focused: true,
             // 1.0 = no scaling; overwritten on the first render frame
@@ -2142,12 +2163,18 @@ impl TerminalRenderer {
                     continue; // below the viewport
                 }
                 let is_current = i == snap.search_current;
-                // Nord aurora yellow #EBCB8B, linearized for the rect
-                // pipeline (current match brighter than other matches).
+                // Theme-derived search-match fills, linearized for the
+                // rect pipeline at paint time (current match brighter
+                // than other matches). Borealis paints first_light
+                // #EDC980 / search_others #4E443A; legacy presets keep
+                // Nord aurora yellow #EBCB8B (the field default) until a
+                // theme carrying the surfaces loads.
                 let color = if is_current {
-                    overlay_rect_color(0xEB, 0xCB, 0x8B, 0.5)
+                    let c = self.search_current_color;
+                    overlay_rect_color(c.r, c.g, c.b, 0.5)
                 } else {
-                    overlay_rect_color(0xEB, 0xCB, 0x8B, 0.2)
+                    let c = self.search_other_color;
+                    overlay_rect_color(c.r, c.g, c.b, 0.2)
                 };
                 instances.push(RectInstance { 
                     pos: [
@@ -4400,17 +4427,21 @@ mod render_invariants {
 
     // ── search-highlight invariants ───────────────────────────────
 
-    /// Search-match colors (Nord aurora yellow #EBCB8B at two alphas),
-    /// **linearized** to mirror `build_rect_instances` (the rect
-    /// pipeline writes verbatim to the sRGB surface, so it consumes
-    /// linear values via `overlay_rect_color`). Built through the same
-    /// typed path so this pin tracks the renderer's contract by
-    /// construction instead of carrying a frozen raw-sRGB triple.
-    fn search_current_color() -> [f32; 4] {
-        super::overlay_rect_color(0xEB, 0xCB, 0x8B, 0.5)
+    /// Search-match colors at the two alphas, **linearized** to mirror
+    /// `build_rect_instances` (the rect pipeline writes verbatim to the
+    /// sRGB surface, so it consumes linear values via
+    /// `overlay_rect_color`). Derived from the RENDERER'S OWN
+    /// `search_current_color` / `search_other_color` fields so the pin
+    /// tracks the active theme by construction — a default (un-themed)
+    /// renderer carries Nord aurora yellow #EBCB8B; a Borealis-themed one
+    /// carries first_light #EDC980 / search_others #4E443A.
+    fn search_current_color(r: &TerminalRenderer) -> [f32; 4] {
+        let c = r.search_current_color;
+        super::overlay_rect_color(c.r, c.g, c.b, 0.5)
     }
-    fn search_other_color() -> [f32; 4] {
-        super::overlay_rect_color(0xEB, 0xCB, 0x8B, 0.2)
+    fn search_other_color(r: &TerminalRenderer) -> [f32; 4] {
+        let c = r.search_other_color;
+        super::overlay_rect_color(c.r, c.g, c.b, 0.2)
     }
 
     #[test]
@@ -4431,11 +4462,11 @@ mod render_invariants {
         let rects = compute_rects(&r);
         let current_hits: Vec<_> = rects
             .iter()
-            .filter(|rt| colors_approx_eq(rt.color, search_current_color()))
+            .filter(|rt| colors_approx_eq(rt.color, search_current_color(&r)))
             .collect();
         let other_hits: Vec<_> = rects
             .iter()
-            .filter(|rt| colors_approx_eq(rt.color, search_other_color()))
+            .filter(|rt| colors_approx_eq(rt.color, search_other_color(&r)))
             .collect();
         assert_eq!(current_hits.len(), 1, "exactly one current match");
         assert_eq!(other_hits.len(), 2, "two non-current matches");
@@ -4463,13 +4494,59 @@ mod render_invariants {
         let any_search: Vec<_> = rects
             .iter()
             .filter(|rt| {
-                colors_approx_eq(rt.color, search_current_color())
-                    || colors_approx_eq(rt.color, search_other_color())
+                colors_approx_eq(rt.color, search_current_color(&r))
+                    || colors_approx_eq(rt.color, search_other_color(&r))
             })
             .collect();
         assert!(
             any_search.is_empty(),
             "closed search must emit no match rects: {any_search:?}"
+        );
+    }
+
+    /// theme-fidelity: with Borealis active the search-match rects paint
+    /// the Borealis search surfaces (first_light #EDC980 current /
+    /// search_others #4E443A other) — NOT the legacy Nord aurora yellow
+    /// #EBCB8B. This is the surface-map promise; before the fix the
+    /// render path hardcoded the Nord value and ignored the theme.
+    #[test]
+    fn borealis_search_matches_paint_the_borealis_surfaces_not_nord_yellow() {
+        let (mut r, t) = harness(40, 3);
+        crate::theme::apply_config_theme(&mut r, &t, "borealis-night", 1.0);
+        t.write().feed(b"hello world hello again hello");
+        {
+            let mut s = r.search.lock().unwrap();
+            s.active = true;
+            s.matches = vec![
+                crate::search::SearchMatch { row: 0, col_start: 0, col_end: 4 },
+                crate::search::SearchMatch { row: 0, col_start: 12, col_end: 16 },
+            ];
+            s.current = 0;
+        }
+        // The renderer now carries the Borealis surfaces.
+        assert_eq!(r.search_current_color, Color::new(0xED, 0xC9, 0x80));
+        assert_eq!(r.search_other_color, Color::new(0x4E, 0x44, 0x3A));
+        // And the painted rects match those, NOT Nord yellow #EBCB8B.
+        let nord_current = super::overlay_rect_color(0xEB, 0xCB, 0x8B, 0.5);
+        let nord_other = super::overlay_rect_color(0xEB, 0xCB, 0x8B, 0.2);
+        let rects = compute_rects(&r);
+        let current_hits = rects
+            .iter()
+            .filter(|rt| colors_approx_eq(rt.color, search_current_color(&r)))
+            .count();
+        let other_hits = rects
+            .iter()
+            .filter(|rt| colors_approx_eq(rt.color, search_other_color(&r)))
+            .count();
+        assert_eq!(current_hits, 1, "the Borealis current-match rect paints");
+        assert_eq!(other_hits, 1, "the Borealis other-match rect paints");
+        // Nord yellow must NOT appear (the hardcode is gone).
+        assert!(
+            !rects
+                .iter()
+                .any(|rt| colors_approx_eq(rt.color, nord_current)
+                    || colors_approx_eq(rt.color, nord_other)),
+            "no Nord aurora-yellow search rect under Borealis"
         );
     }
 
