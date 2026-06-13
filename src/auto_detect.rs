@@ -64,8 +64,11 @@ kanchi::defaxes! {
 
     /// Theme — dark/light system-appearance auto-select is a follow-up (the
     /// probe `kanchi::probe::appearance_dark()` is ready; the theme-name
-    /// mapping lands next). Falls back to the fleet-blessed Nord.
-    theme: &'static str = "nord" => kanchi::none;
+    /// mapping lands next). Falls back to the prescribed fleet theme,
+    /// `borealis-night` (= `ResolvedTheme::borealis_night().name`). The
+    /// convergence test below pins this string to the ishou fleet theme
+    /// so a fleet rebrand can't leave mado on a stale theme name.
+    theme: &'static str = "borealis-night" => kanchi::none;
 
     /// Highest-preference installed Nerd font — fontdb-enumeration probe is
     /// a follow-up. Falls back to JetBrainsMono Nerd Font Mono.
@@ -126,7 +129,19 @@ mod tests {
     }
     #[test]
     fn fallback_theme_pinned() {
-        assert_eq!(FALLBACK_THEME, "nord");
+        // Pinned to the prescribed fleet theme by NAME (not a stale
+        // literal) — a fleet rebrand in ishou propagates here on the
+        // next compile, and this test fails until FALLBACK_THEME is
+        // updated to match.
+        assert_eq!(FALLBACK_THEME, "borealis-night");
+        assert_eq!(
+            FALLBACK_THEME,
+            ishou_tokens::ResolvedTheme::borealis_night().name,
+        );
+        assert_eq!(
+            FALLBACK_THEME,
+            ishou_tokens::FleetTheme::prescribed_default().resolve().name,
+        );
     }
     #[test]
     fn fallback_font_family_pinned() {

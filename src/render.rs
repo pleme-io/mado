@@ -896,6 +896,15 @@ pub struct TerminalRenderer {
     /// Cursor color (RGBA).
     #[invalidating_setter]
     cursor_color: [f32; 4],
+    /// AGENT-RESERVED chrome accent (u8-RGB, same shape as `fg_color` —
+    /// the glyphon text path takes raw sRGB bytes via
+    /// `GlyphonColor::rgba`). Today this paints the search-status line —
+    /// the closest-shipping agent / MCP-activity surface. Set by
+    /// `theme::apply_config_theme` from the active theme's `agent_accent`
+    /// (Borealis `fable_violet` via the SEMANTIC `agent` role). Defaults
+    /// to Nord frost so legacy themes keep their prior look.
+    #[invalidating_setter]
+    search_status_color: Color,
     /// Reduce motion: disable cursor blink and bell flash.
     #[invalidating_setter]
     reduce_motion: bool,
@@ -1090,6 +1099,10 @@ impl TerminalRenderer {
             // triple — that would render washed-out on the sRGB surface.
             selection_bg: overlay_rect_color(0x88, 0xC0, 0xD0, 0.3),
             cursor_color: [0.925, 0.937, 0.957, 0.85], // Nord snow default
+            // Nord frost #88C0D0 — the prior hardcoded search-status
+            // colour. `theme::apply_config_theme` overwrites this with
+            // the active theme's agent accent (Borealis fable_violet).
+            search_status_color: Color::new(0x88, 0xC0, 0xD0),
             reduce_motion: false,
             focused: true,
             // 1.0 = no scaling; overwritten on the first render frame
@@ -1353,7 +1366,13 @@ impl TerminalRenderer {
             .create_rich_buffer(&[(status.as_str(), attrs)], fs, line_h);
         buf.shape_until_scroll(&mut ctx.text.font_system, false);
 
-        let frost = GlyphonColor::rgba(136, 192, 208, 255); // Nord frost
+        // AGENT-RESERVED accent: search-status is an agent / MCP-activity
+        // surface, so it paints with the theme's `agent_accent`
+        // (Borealis `fable_violet` via the SEMANTIC role — set by
+        // `theme::apply_config_theme`). Non-Borealis themes keep the
+        // Nord-frost default the field was seeded with.
+        let accent = self.search_status_color;
+        let agent = GlyphonColor::rgba(accent.r, accent.g, accent.b, 255);
         let text_areas = vec![glyphon::TextArea {
             buffer: &buf,
             left,
@@ -1365,7 +1384,7 @@ impl TerminalRenderer {
                 right: ctx.width as i32,
                 bottom: ctx.height as i32,
             },
-            default_color: frost,
+            default_color: agent,
             custom_glyphs: &[],
         }];
         if let Err(e) =

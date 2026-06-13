@@ -1584,6 +1584,155 @@ impl MadoConfig {
     }
 }
 
+/// Map a `FleetDefaults` cursor-style name onto mado's typed
+/// `CursorStyle`. The names are the fleet contract (`"block"` |
+/// `"block_hollow"` | `"bar"` | `"underline"`); an unknown string
+/// (impossible from `FleetDefaults::prescribed()`, which ships
+/// `"block"`) falls back to the most universal Block so the config
+/// still loads.
+fn cursor_style_from_fleet(name: &str) -> CursorStyle {
+    match name {
+        "block_hollow" => CursorStyle::BlockHollow,
+        "bar" => CursorStyle::Bar,
+        "underline" => CursorStyle::Underline,
+        _ => CursorStyle::Block,
+    }
+}
+
+/// **The flagship `FleetThemedConfig` production impl.** mado is the
+/// widest-coverage operator-facing app in the fleet, so its
+/// `from_fleet` is the reference the fleet audit asked for: a complete
+/// `MadoConfig` whose every visual + behavioral field that has a fleet
+/// analogue is DERIVED from `FleetDefaults` (and, for the colours, from
+/// the theme's BORN ishou tokens), never hand-pinned.
+///
+/// What derives from where:
+///
+/// | mado field                         | source                                   |
+/// |------------------------------------|------------------------------------------|
+/// | `theme`                            | `fd.theme.resolve().name`                |
+/// | `font_family` / `font_italic`     | `fd.font_family` / `fd.font_italic`      |
+/// | `font_size`                       | `fd.font_size`                           |
+/// | `window.padding`                  | `fd.padding`                             |
+/// | `window.decorations`              | `fd.decorations_macos`/`_linux` (per-OS) |
+/// | `behavior.scrollback_lines`       | `fd.scrollback_lines`                    |
+/// | `behavior.link_url`               | `fd.link_url_detect`                     |
+/// | `behavior.mouse_reporting`        | `fd.mouse_reporting`                     |
+/// | `behavior.mouse_hide_while_typing`| `fd.mouse_hide_while_typing`             |
+/// | `cursor.style`/`blink`/`rate`     | `fd.cursor_style`/`cursor_blink`/`…ms`   |
+/// | `appearance.background`/`foreground` | the resolved theme bg/fg (Borealis `night0` / `snow1`) |
+/// | `cursor.color`                    | the resolved theme cursor (Borealis `green_bright`) |
+/// | `performance.vsync`               | `fd.vsync`                               |
+/// | `accessibility.reduce_motion`/`font_scale` | `fd.reduce_motion`/`fd.font_scale` |
+///
+/// The ANSI palette, selection-glass, and search surfaces are resolved
+/// at render time from the registered theme via `Theme::by_name(&theme)`
+/// — setting `theme = "borealis-night"` is what makes them Borealis.
+///
+/// App-specific fields with no fleet analogue (shell, profiles, tear,
+/// shaders, effects, vigy, quick-terminal, …) inherit the prescribed
+/// per-section defaults through the `*Config::default()` base, so mado
+/// keeps its frostmourne shell, snow-off effects, etc.
+impl ishou_tokens::FleetThemedConfig for MadoConfig {
+    fn from_fleet(fd: &ishou_tokens::FleetDefaults) -> Self {
+        // The theme's BORN tokens — bg/fg/cursor flow straight from
+        // here so the config's own fallback fields can never hold a
+        // stale palette (the audit's complaint: prescribed_default
+        // hand-pinned Nord #2e3440).
+        let resolved = fd.theme.resolve();
+        let bg = if resolved.background.is_empty() {
+            default_bg()
+        } else {
+            resolved.background.clone()
+        };
+        let fg = if resolved.foreground.is_empty() {
+            default_fg()
+        } else {
+            resolved.foreground.clone()
+        };
+        // The bare tier's cursor is "use foreground"; the resolved theme
+        // ships an explicit cursor (Borealis green_bright). Empty = the
+        // bare floor's "follow foreground" semantics.
+        let cursor_color = resolved.cursor.clone();
+
+        // Per-OS decorations: macOS keeps traffic-lights, tiling-WM
+        // platforms go borderless — the fleet's own split.
+        let decorations = if cfg!(target_os = "macos") {
+            fd.decorations_macos
+        } else {
+            fd.decorations_linux
+        };
+
+        // Start from the prescribed per-section app defaults so every
+        // field with NO fleet analogue keeps mado's curated value, then
+        // override the fleet-derived fields below.
+        let mut c = Self {
+            font_family: fd.font_family.clone(),
+            font_italic: fd.font_italic.clone(),
+            font_symbols: default_font_symbols(),
+            font_size: fd.font_size,
+            font: FontConfig::default(),
+            window: WindowConfig {
+                padding: fd.padding,
+                decorations,
+                ..WindowConfig::default()
+            },
+            shell: ShellConfig::default(),
+            appearance: AppearanceConfig {
+                background: bg,
+                foreground: fg,
+                ..AppearanceConfig::default()
+            },
+            cursor: CursorConfig {
+                style: cursor_style_from_fleet(&fd.cursor_style),
+                blink: fd.cursor_blink,
+                blink_rate_ms: fd.cursor_blink_rate_ms,
+                color: cursor_color,
+                ..CursorConfig::default()
+            },
+            behavior: BehaviorConfig {
+                scrollback_lines: fd.scrollback_lines,
+                link_url: fd.link_url_detect,
+                mouse_reporting: fd.mouse_reporting,
+                mouse_hide_while_typing: fd.mouse_hide_while_typing,
+                ..BehaviorConfig::default()
+            },
+            theme: resolved.name.clone(),
+            profiles: HashMap::new(),
+            active_profile: None,
+            shaders: ShaderConfig::default(),
+            accessibility: AccessibilityConfig {
+                reduce_motion: fd.reduce_motion,
+                font_scale: fd.font_scale,
+                ..AccessibilityConfig::default()
+            },
+            shell_integration: ShellIntegrationConfig::default(),
+            performance: PerformanceConfig {
+                vsync: fd.vsync,
+                ..PerformanceConfig::default()
+            },
+            environment: EnvironmentConfig::default(),
+            selection: SelectionConfig::default(),
+            search: SearchColorsConfig::default(),
+            keybinds: KeybindConfig::default(),
+            quick_terminal: QuickTerminalConfig::default(),
+            tear: MadoTearConfig::default(),
+            effects: MadoEffectsConfig::default(),
+            vigy: MadoVigyConfig::default(),
+        };
+        // The fleet `scrollback_lines` (10k) is a RAM-cap *floor*; mado's
+        // own prescribed contract is "never lose anything" (usize::MAX).
+        // Honour the stronger contract when the fleet value is the
+        // documented 10k default — a smaller deliberate fleet value would
+        // still flow through. (The discovered tier is where RAM caps
+        // live; see `default_scrollback`.)
+        if fd.scrollback_lines == 10_000 {
+            c.behavior.scrollback_lines = default_scrollback();
+        }
+        c
+    }
+}
+
 /// Fleet-wide TieredConfig contract for MadoConfig. Operators run
 /// `mado config-show bare|discovered|default` to see each tier and
 /// diff via shell — the trait makes the operator surface identical
@@ -1595,6 +1744,13 @@ impl shikumi::TieredConfig for MadoConfig {
     fn discovered() -> Self {
         MadoConfig::bare_plus_discovered()
     }
+    /// **Tier 2 — prescribed.** No longer hand-pins constants: derives
+    /// from `FleetDefaults::prescribed()` via
+    /// `<Self as FleetThemedConfig>::from_fleet`, exactly the move the
+    /// fleet audit demands. `MadoConfig::default()` layers the same
+    /// fleet base with the runtime env-adaptive overlay (window dims,
+    /// DPR font size) — that overlay tier is what most operators run, so
+    /// `prescribed_default` is `default()`.
     fn prescribed_default() -> Self {
         MadoConfig::default()
     }
@@ -1609,33 +1765,14 @@ impl Default for MadoConfig {
     /// `mado config-show default` subcommand (M-148 followup)
     /// makes every value visible.
     fn default() -> Self {
-        let mut c = Self {
-            font_family: default_font_family(),
-            font_italic: default_font_italic(),
-            font_symbols: default_font_symbols(),
-            font_size: default_font_size(),
-            font: FontConfig::default(),
-            window: WindowConfig::default(),
-            shell: ShellConfig::default(),
-            appearance: AppearanceConfig::default(),
-            cursor: CursorConfig::default(),
-            behavior: BehaviorConfig::default(),
-            theme: default_theme(),
-            profiles: HashMap::new(),
-            active_profile: None,
-            shaders: ShaderConfig::default(),
-            accessibility: AccessibilityConfig::default(),
-            shell_integration: ShellIntegrationConfig::default(),
-            performance: PerformanceConfig::default(),
-            environment: EnvironmentConfig::default(),
-            selection: SelectionConfig::default(),
-            search: SearchColorsConfig::default(),
-            keybinds: KeybindConfig::default(),
-            quick_terminal: QuickTerminalConfig::default(),
-            tear: MadoTearConfig::default(),
-            effects: MadoEffectsConfig::default(),
-            vigy: MadoVigyConfig::default(),
-        };
+        // DERIVE from the fleet baseline (Borealis + JetBrainsMono + the
+        // prescribed cursor/behavior/window choices) via the flagship
+        // `FleetThemedConfig` impl — no hand-pinned constants here. A
+        // future fleet rebrand touches `FleetDefaults::prescribed()` /
+        // `FleetTheme::prescribed_default()` ONCE and mado converges on
+        // the next compile (pinned by the Guard test).
+        use ishou_tokens::FleetThemedConfig;
+        let mut c = MadoConfig::from_fleet(&ishou_tokens::FleetDefaults::prescribed());
         // Environment-adaptive overlay (prime-directive: best-fit defaults
         // out of the box). Where the runtime can probe THIS host, the
         // detected value replaces the static default just set above.
@@ -1785,11 +1922,22 @@ fn default_decorations() -> bool {
     // operator contract.
     cfg!(target_os = "macos")
 }
+/// The prescribed fleet theme, resolved to its BORN ishou tokens.
+/// `default_bg`/`default_fg`/`default_cursor_color` read from here so
+/// the appearance fallbacks carry the SAME palette as the registered
+/// `borealis-night` theme — no hand-pinned Nord hex, no drift. (The
+/// audit's complaint: `prescribed_default` hand-pinned `#2e3440`.)
+fn prescribed_resolved_theme() -> ishou_tokens::ResolvedTheme {
+    ishou_tokens::FleetTheme::prescribed_default().resolve()
+}
 fn default_bg() -> String {
-    "#2e3440".into()
+    // Borealis night0 (#1F222F) — derived from the BORN tokens, not
+    // the legacy Nord #2e3440.
+    prescribed_resolved_theme().background
 }
 fn default_fg() -> String {
-    "#eceff4".into()
+    // Borealis snow1 (#D4D9E3) — derived, not the legacy Nord #eceff4.
+    prescribed_resolved_theme().foreground
 }
 fn default_opacity() -> f32 {
     1.0
@@ -1801,7 +1949,16 @@ fn default_cursor_blink_rate() -> u32 {
     530
 }
 fn default_cursor_color() -> String {
-    "#eceff4".into()
+    // Borealis green_bright (#74E29F) — the §5 block cursor (inverse
+    // pair ≥7.0). Derived from the BORN tokens, not the legacy Nord
+    // snow #eceff4. Empty resolved cursor (the bare tier) falls back to
+    // "follow foreground" semantics by returning the foreground.
+    let resolved = prescribed_resolved_theme();
+    if resolved.cursor.is_empty() {
+        resolved.foreground
+    } else {
+        resolved.cursor
+    }
 }
 fn default_scrollback() -> usize {
     // Operator-facing contract: "never lose anything." Host RAM
@@ -1839,8 +1996,10 @@ fn default_vsync() -> bool {
 // chain has one canonical name for it.
 fn default_theme() -> String {
     // detect_theme probes macOS appearance (M1 stub: returns None);
-    // falls back to FALLBACK_THEME = "nord". Operators override via
-    // mado.yaml. Constant lives in auto_detect.rs.
+    // falls back to FALLBACK_THEME = "borealis-night" (the prescribed
+    // fleet theme). Operators override via mado.yaml. Constant lives in
+    // auto_detect.rs and is pinned to the fleet theme by the convergence
+    // guard so a fleet rebrand can't leave mado on a stale name.
     crate::auto_detect::detect_theme_or_fallback().to_string()
 }
 fn default_true() -> bool {
@@ -2354,6 +2513,62 @@ mod tests {
         assert!(unified.contains("theme"));
     }
 
+    /// **Flagship FleetThemedConfig convergence Guard.** mado is the
+    /// widest-coverage operator-facing app, so this is the reference
+    /// impl the fleet audit asked for: touching `FleetDefaults` (or
+    /// `FleetTheme::prescribed_default()`) now breaks mado AT TEST TIME.
+    /// Pins font_family / font_size / theme + the full ANSI-16 palette
+    /// against the BORN ishou tokens — the convergence guarantee made
+    /// real, not asserted in prose.
+    #[test]
+    fn mado_converges_with_fleet_borealis() {
+        use shikumi::TieredConfig;
+        let d = <MadoConfig as TieredConfig>::prescribed_default();
+
+        // ── Font + theme: the standard Guard chain ──
+        ishou_tokens::convergence::Guard::for_app("mado")
+            .expect_font_family(&d.font_family)
+            .expect_font_size(d.font_size)
+            .run();
+
+        // ── Theme: the config's String theme is the fleet theme's
+        // resolved name (the Guard's expect_theme takes the enum; mado
+        // stores the name, so we assert the resolved-name equality). ──
+        let fleet_theme = ishou_tokens::FleetDefaults::prescribed().theme;
+        assert_eq!(fleet_theme, ishou_tokens::FleetTheme::BorealisNight);
+        assert_eq!(d.theme, fleet_theme.resolve().name);
+        assert_eq!(d.theme, "borealis-night");
+
+        // ── ANSI palette: the registered Borealis theme's 16-colour
+        // table equals the fleet `ResolvedTheme::borealis_night().ansi_16`
+        // byte-for-byte. A fleet ANSI retune in ishou fails this build
+        // until mado's registered theme follows (it follows by
+        // construction — the theme is BUILT from the resolved tokens —
+        // so this is the mechanical proof of that construction). ──
+        let theme = crate::theme::Theme::by_name(&d.theme).expect("borealis theme registered");
+        let resolved = ishou_tokens::ResolvedTheme::borealis_night();
+        for i in 0..16 {
+            let want = ishou_tokens::Srgb::from_hex(&resolved.ansi_16[i])
+                .expect("resolved ANSI hex parses");
+            let got = theme.ansi[i];
+            assert_eq!(
+                (got.r, got.g, got.b),
+                (want.r, want.g, want.b),
+                "ANSI slot {i} drift: mado {got:?} != fleet {}",
+                resolved.ansi_16[i],
+            );
+        }
+
+        // ── Agent accent: the fable_violet SEMANTIC token, never a hex. ──
+        let fable_violet = ishou_tokens::BorealisPalette::night()
+            .get(ishou_tokens::SemanticRoles::borealis_night().agent)
+            .expect("fable_violet token");
+        assert_eq!(
+            (theme.agent_accent.r, theme.agent_accent.g, theme.agent_accent.b),
+            (fable_violet.r, fable_violet.g, fable_violet.b),
+        );
+    }
+
     #[test]
     fn prescribed_default_has_snow_off() {
         // Per the May 2026 prescribed default — snow stays OFF
@@ -2512,7 +2727,13 @@ window:
         assert_eq!(config.font_family, "JetBrainsMono Nerd Font Mono");
         assert_eq!(config.font_italic, "Iosevka");
         assert_eq!(config.font_size, 14.0);
-        assert_eq!(config.theme, "nord");
+        // Prescribed theme is now the fleet theme (Borealis), derived
+        // from FleetTheme::prescribed_default() — not the legacy "nord".
+        assert_eq!(config.theme, "borealis-night");
+        assert_eq!(
+            config.theme,
+            ishou_tokens::FleetTheme::prescribed_default().resolve().name,
+        );
         assert!(config.active_profile.is_none());
         // Window dims are auto-detected from the focused display
         // (macOS NSScreen); range-asserted because the exact value
@@ -2535,8 +2756,15 @@ window:
         assert!(config.window.inherit_working_directory);
         assert!(config.window.inherit_font_size);
         assert!(config.window.padding_balance);
-        assert_eq!(config.appearance.background, "#2e3440");
-        assert_eq!(config.appearance.foreground, "#eceff4");
+        // The prescribed config now DERIVES its appearance + cursor
+        // colours from the fleet theme (Borealis) via from_fleet — not
+        // the legacy Nord hexes. Asserted by reference to the resolved
+        // theme so a fleet rebrand propagates on the next compile.
+        let resolved = ishou_tokens::FleetTheme::prescribed_default().resolve();
+        assert_eq!(config.appearance.background, "#1F222F"); // night0
+        assert_eq!(config.appearance.foreground, "#D4D9E3"); // snow1
+        assert_eq!(config.appearance.background, resolved.background);
+        assert_eq!(config.appearance.foreground, resolved.foreground);
         assert_eq!(config.appearance.opacity, 1.0);
         assert!(!config.appearance.bold_is_bright);
         assert!((config.appearance.minimum_contrast - 1.0).abs() < 0.001);
@@ -2544,8 +2772,14 @@ window:
         assert!(config.appearance.unfocused_split_fill.is_none());
         assert_eq!(config.cursor.style, CursorStyle::Block);
         assert!(config.cursor.blink);
-        assert_eq!(config.cursor.blink_rate_ms, 530);
-        assert_eq!(config.cursor.color, "#eceff4");
+        // Blink rate now follows the fleet default (500ms) via from_fleet.
+        assert_eq!(config.cursor.blink_rate_ms, 500);
+        assert_eq!(
+            config.cursor.blink_rate_ms,
+            ishou_tokens::FleetDefaults::prescribed().cursor_blink_rate_ms,
+        );
+        assert_eq!(config.cursor.color, "#74E29F"); // green_bright
+        assert_eq!(config.cursor.color, resolved.cursor);
         assert!((config.cursor.opacity - 1.0).abs() < 0.001);
         assert!(config.cursor.text_color.is_none());
         assert!(!config.cursor.click_to_move);
@@ -2746,8 +2980,15 @@ window:
     #[test]
     fn test_appearance_config_defaults() {
         let a = AppearanceConfig::default();
-        assert_eq!(a.background, "#2e3440");
-        assert_eq!(a.foreground, "#eceff4");
+        // The appearance fallbacks now DERIVE from the prescribed fleet
+        // theme's BORN tokens (Borealis night0 / snow1), not a legacy
+        // Nord hex. Asserted against the resolved theme by reference so
+        // a fleet rebrand propagates here on the next compile.
+        let resolved = ishou_tokens::FleetTheme::prescribed_default().resolve();
+        assert_eq!(a.background, "#1F222F"); // Borealis night0
+        assert_eq!(a.foreground, "#D4D9E3"); // Borealis snow1
+        assert_eq!(a.background, resolved.background);
+        assert_eq!(a.foreground, resolved.foreground);
         assert_eq!(a.opacity, 1.0);
         assert!(!a.bold_is_bright);
     }
@@ -2758,7 +2999,11 @@ window:
         assert_eq!(c.style, CursorStyle::Block);
         assert!(c.blink);
         assert_eq!(c.blink_rate_ms, 530);
-        assert_eq!(c.color, "#eceff4");
+        // Cursor colour now derives from the prescribed theme's cursor
+        // (Borealis green_bright), not Nord snow.
+        let resolved = ishou_tokens::FleetTheme::prescribed_default().resolve();
+        assert_eq!(c.color, "#74E29F"); // Borealis green_bright
+        assert_eq!(c.color, resolved.cursor);
     }
 
     #[test]
@@ -2823,7 +3068,9 @@ window:
         let applied = config.with_profile("large");
         assert_eq!(applied.font_family, "Monaco");
         assert_eq!(applied.font_size, 18.0);
-        assert_eq!(applied.theme, "nord");
+        // The profile doesn't override theme, so the prescribed fleet
+        // theme (Borealis) carries through unchanged.
+        assert_eq!(applied.theme, "borealis-night");
     }
 
     #[test]

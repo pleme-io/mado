@@ -33,12 +33,29 @@ pub struct Theme {
     /// a raw-sRGB value can never reach the GPU through this field.
     pub selection_bg: [f32; 4],
     pub ansi: [Color; 16],
+    /// AGENT-RESERVED accent (`SemanticRoles.agent` → Borealis
+    /// `fable_violet`). The vigy / MCP-activity / attention chrome —
+    /// search-status text today — paints with THIS token, never a hex.
+    /// On non-Borealis presets this is the preset's foreground (no
+    /// agent-band concept exists in irodzuki schemes), so legacy themes
+    /// keep their prior look. `u8`-RGB for the renderer; the GPU path
+    /// linearizes at paint time exactly like every other `Color` field.
+    pub agent_accent: Color,
 }
 
 impl Theme {
     #[must_use]
     pub fn by_name(name: &str) -> Option<&'static Theme> {
-        all().iter().find(|t| t.name.eq_ignore_ascii_case(name))
+        // `"borealis"` is the operator-friendly short form of the
+        // prescribed `"borealis-night"` (the only Borealis variant that
+        // ships today). Normalize it here so both names resolve through
+        // the same registered theme — no duplicate entry, no drift.
+        let canonical = if name.eq_ignore_ascii_case("borealis") {
+            "borealis-night"
+        } else {
+            name
+        };
+        all().iter().find(|t| t.name.eq_ignore_ascii_case(canonical))
     }
 
     #[must_use]
@@ -81,6 +98,12 @@ pub fn apply_config_theme(
     // Cursor overlay colour at 0.85 alpha — same as the local-PTY path.
     let cursor = ishou_tokens::Srgb::new(theme.cursor.r, theme.cursor.g, theme.cursor.b).to_linear();
     renderer.set_cursor_color([cursor.r, cursor.g, cursor.b, 0.85]);
+    // AGENT-RESERVED chrome accent: the search-status line (and any
+    // future agent / MCP-activity surface) paints with the theme's
+    // `agent_accent` — Borealis `fable_violet` via the SEMANTIC role.
+    // Routed through this ONE shared point so the local-PTY loop AND the
+    // embedded-tear loop pick up the agent accent identically.
+    renderer.set_search_status_color(theme.agent_accent);
     // Theme bg through the typed Srgb → Linear path (no gamma confusion).
     let theme_bg: wgpu::Color = ishou_tokens::Srgb::new(
         theme.background.r,
@@ -159,16 +182,81 @@ fn theme_from_scheme(scheme: ColorScheme) -> Theme {
         cursor: iro_to_color(cursor),
         selection_bg: iro_to_linear_rgba(scheme.base02),
         ansi,
+        // irodzuki presets have no agent band — the agent accent falls
+        // back to the preset foreground so legacy themes are unchanged.
+        agent_accent: iro_to_color(scheme.base05),
+    }
+}
+
+/// Parse a `#RRGGBB` hex string into a u8-RGB `Color`. The Borealis
+/// `ResolvedTheme` carries hex strings (consumers parse with their own
+/// hex path); this is mado's. A malformed hex (impossible from the
+/// BORN tokens) falls back to black so the theme still loads.
+fn color_from_hex(hex: &str) -> Color {
+    ishou_tokens::Srgb::from_hex(hex)
+        .map_or(Color::BLACK, |s| Color::new(s.r, s.g, s.b))
+}
+
+/// **Borealis** (`borealis-night`) — the prescribed fleet theme. Built
+/// from the BORN ishou tokens (`ResolvedTheme::borealis_night()` +
+/// `BorealisPalette::night().surfaces()`), so this projection can never
+/// drift from the canonical palette: the ANSI-16 table, the night0
+/// background, the snow1 foreground, the `green_bright` cursor, and the
+/// byte-exact violet-glass selection all flow straight from spec §4/§5.
+///
+/// The agent accent comes through the SEMANTIC `agent` role
+/// (`SemanticRoles::borealis_night().agent` → `fable_violet`), never a
+/// hex — so a future agent-band retune in ishou propagates here on the
+/// next compile.
+fn borealis_night_theme() -> Theme {
+    let resolved = ishou_tokens::ResolvedTheme::borealis_night();
+    let surfaces = ishou_tokens::BorealisPalette::night().surfaces();
+    let roles = ishou_tokens::SemanticRoles::borealis_night();
+
+    // §4 — the one canonical ANSI-16 mapping fleet-wide.
+    let ansi: [Color; 16] = core::array::from_fn(|i| color_from_hex(&resolved.ansi_16[i]));
+
+    // The agent accent via the SEMANTIC role, resolved through the
+    // palette's own `get` (the role key is `"fable_violet"`).
+    let agent_rgb = ishou_tokens::BorealisPalette::night()
+        .get(roles.agent)
+        .unwrap_or(surfaces.foreground);
+
+    Theme {
+        name: "borealis-night",
+        background: Color::new(surfaces.background.r, surfaces.background.g, surfaces.background.b),
+        foreground: Color::new(surfaces.foreground.r, surfaces.foreground.g, surfaces.foreground.b),
+        // §5 — block cursor is `green_bright` (an inverse pair ≥7.0).
+        cursor: Color::new(surfaces.cursor.r, surfaces.cursor.g, surfaces.cursor.b),
+        // The byte-exact violet-glass blend product, linearized for the
+        // overlay rect pipeline (same discipline as the irodzuki path:
+        // the rect shader writes its colour verbatim to the sRGB-storage
+        // surface, so the value handed to it must already be linear).
+        selection_bg: {
+            let s = surfaces.selection_background;
+            let lin = ishou_tokens::Srgb::new(s.r, s.g, s.b).with_alpha(0xFF).to_linear();
+            [lin.r, lin.g, lin.b, lin.a]
+        },
+        ansi,
+        agent_accent: Color::new(agent_rgb.r, agent_rgb.g, agent_rgb.b),
     }
 }
 
 fn all() -> &'static [Theme] {
     static THEMES: OnceLock<Vec<Theme>> = OnceLock::new();
     THEMES.get_or_init(|| {
-        irodzuki::presets::all()
+        // Borealis is the prescribed fleet theme — registered alongside
+        // the irodzuki presets so `Theme::by_name("borealis-night")`
+        // resolves on the boot path AND the M4 ConfigApplier
+        // (`ux::config_apply::resolve` → `Theme::by_name`). The alias
+        // `"borealis"` is wired in `Theme::by_name` so the short form
+        // operators are likely to type also resolves.
+        let mut themes: Vec<Theme> = irodzuki::presets::all()
             .into_iter()
             .map(theme_from_scheme)
-            .collect()
+            .collect();
+        themes.push(borealis_night_theme());
+        themes
     })
 }
 
@@ -179,10 +267,59 @@ mod tests {
     #[test]
     fn every_preset_loads() {
         let themes = Theme::available();
-        assert_eq!(themes.len(), 8);
+        // 8 irodzuki presets + the registered Borealis fleet theme.
+        assert_eq!(themes.len(), 9);
         for t in themes {
             assert!(!t.name.is_empty(), "theme has empty name");
         }
+    }
+
+    #[test]
+    fn borealis_night_resolves_from_born_tokens() {
+        // Both the canonical name and the short alias resolve to the
+        // SAME registered theme (no duplicate, no drift).
+        let b = Theme::by_name("borealis-night").expect("borealis-night theme");
+        let alias = Theme::by_name("borealis").expect("borealis alias");
+        assert_eq!(b.name, "borealis-night");
+        assert_eq!(alias.name, "borealis-night");
+        // §5 — background night0 (#1F222F), foreground snow1 (#D4D9E3),
+        // cursor green_bright (#74E29F). These come straight from the
+        // ishou BORN tokens via `ResolvedTheme::borealis_night()`.
+        assert_eq!(b.background, Color::new(0x1F, 0x22, 0x2F));
+        assert_eq!(b.foreground, Color::new(0xD4, 0xD9, 0xE3));
+        assert_eq!(b.cursor, Color::new(0x74, 0xE2, 0x9F));
+        // §4 — ANSI 2 is the signature aurora_green (#67D191); ANSI 0 is
+        // night2 (surface), NEVER base00.
+        assert_eq!(b.ansi[2], Color::new(0x67, 0xD1, 0x91));
+        assert_eq!(b.ansi[0], Color::new(0x38, 0x3B, 0x4C));
+        assert_eq!(b.ansi[15], Color::new(0xF5, 0xF7, 0xFA)); // snow3 = base07
+    }
+
+    #[test]
+    fn borealis_agent_accent_is_the_fable_violet_semantic_token() {
+        // The agent accent flows through the SEMANTIC `agent` role
+        // (= `fable_violet` #B69AE9), not a hand-pinned hex — so a
+        // future agent-band retune in ishou propagates on next compile.
+        let b = Theme::by_name("borealis-night").expect("borealis-night theme");
+        let fable_violet = ishou_tokens::BorealisPalette::night()
+            .get(ishou_tokens::SemanticRoles::borealis_night().agent)
+            .expect("fable_violet token");
+        assert_eq!(
+            b.agent_accent,
+            Color::new(fable_violet.r, fable_violet.g, fable_violet.b),
+        );
+        assert_eq!(b.agent_accent, Color::new(0xB6, 0x9A, 0xE9));
+    }
+
+    #[test]
+    fn borealis_selection_is_the_byte_exact_violet_glass() {
+        // The selection overlay is the byte-exact violet-glass blend
+        // product (#3F3955), linearized for the rect pipeline. Round-
+        // tripping the linear value back to sRGB recovers the spec hex.
+        let b = Theme::by_name("borealis-night").expect("borealis-night theme");
+        let [r, g, bl, _a] = b.selection_bg;
+        let back = ishou_tokens::Linear { r, g, b: bl }.to_srgb();
+        assert_eq!(back.hex(), "#3F3955");
     }
 
     #[test]
