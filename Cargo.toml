@@ -93,6 +93,14 @@ garasu = "0.1"
 madori = { git = "https://github.com/pleme-io/madori" }
 shikumi = { version = "0.1", features = ["cli"] }
 hasami = { git = "https://github.com/pleme-io/hasami" }
+# Tsuuchi (通知) — the fleet notification primitive. The M4 unified
+# side-effect drain dispatches every terminal-queued notification
+# (OSC 9 / 777 / 99, BEL, OSC 1337 RequestAttention) through ONE
+# tsuuchi::NotificationDispatcher constructed at boot — macOS
+# osascript backend on Darwin (src/platform.rs), LogBackend
+# elsewhere/headless. ux::side_effects re-exports tsuuchi::Urgency so
+# the OSC parse layer and the dispatch layer share one urgency type.
+tsuuchi = { git = "https://github.com/pleme-io/tsuuchi" }
 # Tear multiplexer — typed types + UDS RPC client. mado uses these
 # for the `mado tear-attach` mode (subscribe to a remote pane's
 # byte stream + stream it to stdout for now; future Phase 3.1

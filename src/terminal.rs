@@ -1864,8 +1864,18 @@ pub struct Terminal {
     // Window title (from OSC 0/2)
     title: Option<String>,
 
+    // Title changed since the last drain_side_effects() — the drain
+    // emits the title ONLY on change so adapters never re-apply an
+    // unchanged title per frame (replaces the per-loop last_title
+    // diff the M4 drain deleted).
+    title_changed: bool,
+
     // Current working directory (from OSC 7)
     cwd: Option<String>,
+
+    // CWD changed since the last drain_side_effects() — same
+    // change-edge contract as `title_changed`.
+    cwd_changed: bool,
 
     // Bell state (BEL character received, cleared after read)
     bell_pending: bool,
@@ -1932,7 +1942,15 @@ pub struct Terminal {
 
     // OSC 1337 RequestAttention — flag the window manager should
     // bounce the dock / flash the titlebar until focus returns.
+    // LEVEL state: readable any time via attention_requested() (MCP
+    // attention_get) and writable via RequestAttention=0/1.
     attention_requested: bool,
+
+    // RequestAttention RISING EDGE since the last
+    // drain_side_effects() — the drain consumes this (dock bounce +
+    // Critical dispatch fire once per request, not once per frame
+    // while the level stays high).
+    attention_edge: bool,
 
     // Kitty keyboard protocol — progressive enhancement mode stack.
     // Each entry is the flags bitmask pushed by the application.
@@ -2060,7 +2078,9 @@ impl Terminal {
             focus_reporting: false,
             last_char: ' ',
             title: None,
+            title_changed: false,
             cwd: None,
+            cwd_changed: false,
             bell_pending: false,
             cursor_style: CursorStyle::Block,
             cursor_blink: true,
@@ -2079,6 +2099,7 @@ impl Terminal {
                 max_scrollback.max(256),
             ),
             attention_requested: false,
+            attention_edge: false,
             kitty_keyboard_stack: Vec::new(),
             images: HashMap::new(),
             image_placements: Vec::new(),
@@ -2869,8 +2890,11 @@ impl Terminal {
         self.focus_reporting
     }
 
-    /// Current window title (from OSC 0/2).
+    /// Current window title (from OSC 0/2) — the queryable LEVEL.
+    /// Frame consumers read title change-edges off
+    /// [`drain_side_effects`](Self::drain_side_effects) instead.
     #[must_use]
+    #[allow(dead_code)] // Typed read surface (XTWINOPS title-report + MCP exposure pending); tests exercise it.
     pub fn title(&self) -> Option<&str> {
         self.title.as_deref()
     }
@@ -2906,9 +2930,43 @@ impl Terminal {
     /// Take the latest `ConEmu` OSC 9;4 progress update, if one arrived
     /// since the last take. Latest-wins (not a queue): the consumer
     /// renders current state, not history.
-    #[allow(dead_code)] // Wired into drain_side_effects in M4 stage 2; tests exercise it now.
     pub fn take_progress(&mut self) -> Option<ProgressState> {
         self.progress.take()
+    }
+
+    /// THE M4 drain — one atomic, typed transfer of every side effect
+    /// the VT engine accumulated since the previous drain. Both event
+    /// loops call this once per frame and route the payload through
+    /// `ux::apply_side_effects` (the single shared consumer); per-loop
+    /// `take_bell` / `take_clipboard` / title-diff polling is banned
+    /// by `tests/ux_unification.rs`.
+    ///
+    /// Pure state transfer: the same pre-state always drains the same
+    /// value, and an immediately repeated drain yields
+    /// `TerminalSideEffects::default()` (pinned by
+    /// `drain_is_pure_state_transfer_and_second_drain_is_empty`).
+    /// Title/cwd carry change-edges (`Some` only when set since the
+    /// last drain); attention carries the `RequestAttention` rising
+    /// edge while the queryable level stays on
+    /// [`attention_requested`](Self::attention_requested).
+    pub fn drain_side_effects(&mut self) -> crate::ux::TerminalSideEffects {
+        crate::ux::TerminalSideEffects {
+            title: if std::mem::replace(&mut self.title_changed, false) {
+                self.title.clone()
+            } else {
+                None
+            },
+            bell: self.take_bell(),
+            clipboard: self.take_clipboard(),
+            notifications: std::mem::take(&mut self.pending_notifications),
+            progress: self.take_progress(),
+            cwd: if std::mem::replace(&mut self.cwd_changed, false) {
+                self.cwd.clone()
+            } else {
+                None
+            },
+            attention: std::mem::replace(&mut self.attention_edge, false),
+        }
     }
 
     /// Inject a deterministic wall-clock for mark timestamps. The
@@ -3007,6 +3065,7 @@ impl Terminal {
         let title = String::from_utf8_lossy(params[1]).into_owned();
         tracing::debug!(%title, "OSC set title");
         self.title = Some(title);
+        self.title_changed = true;
         self.dirty();
     }
 
@@ -3035,6 +3094,7 @@ impl Terminal {
         };
         tracing::debug!(%path, "OSC 7 set CWD");
         self.cwd = Some(path);
+        self.cwd_changed = true;
     }
 
     /// OSC 8 — Hyperlink delimiter.
@@ -3410,6 +3470,10 @@ impl Terminal {
             }
             crate::osc_1337::Osc1337Param::RequestAttention(flag) => {
                 self.attention_requested = flag;
+                // Rising edge feeds the drain exactly once per
+                // request; RequestAttention=0 clears the level but
+                // never un-fires an already-queued edge.
+                self.attention_edge |= flag;
                 tracing::trace!(flag, "OSC 1337 RequestAttention");
             }
             crate::osc_1337::Osc1337Param::Unknown(s) => {
@@ -8157,6 +8221,53 @@ mod tests {
         // Out-of-range percent clamps at the parse boundary.
         term.feed(b"\x1b]9;4;1;250\x07");
         assert_eq!(term.take_progress(), Some(ProgressState::Set { pct: 100 }));
+    }
+
+    /// M4 drain determinism: the drain is pure state transfer — two
+    /// terminals in the same pre-state drain the SAME typed value,
+    /// and an immediately repeated drain yields the default payload.
+    #[test]
+    fn drain_is_pure_state_transfer_and_second_drain_is_empty() {
+        let feed_all = |term: &mut Terminal| {
+            term.feed(b"\x1b]0;build shell\x07");
+            term.feed(b"\x07");
+            term.feed(b"\x1b]52;c;aGVsbG8=\x07"); // OSC 52 "hello"
+            term.feed(b"\x1b]9;done\x07");
+            term.feed(b"\x1b]9;4;1;50\x07");
+            term.feed(b"\x1b]7;file://host/tmp\x07");
+            term.feed(b"\x1b]1337;RequestAttention=1\x07");
+        };
+        let mut a = Terminal::new(80, 24);
+        let mut b = Terminal::new(80, 24);
+        feed_all(&mut a);
+        feed_all(&mut b);
+        let drained_a = a.drain_side_effects();
+        let drained_b = b.drain_side_effects();
+        assert_eq!(drained_a, drained_b, "same pre-state must drain the same value");
+        assert_eq!(drained_a.title.as_deref(), Some("build shell"));
+        assert!(drained_a.bell);
+        assert_eq!(drained_a.clipboard.as_deref(), Some("hello"));
+        assert_eq!(drained_a.notifications.len(), 1);
+        assert_eq!(drained_a.progress, Some(ProgressState::Set { pct: 50 }));
+        assert_eq!(drained_a.cwd.as_deref(), Some("/tmp"));
+        assert!(drained_a.attention);
+        // Second immediate drain: nothing accumulated since.
+        assert_eq!(a.drain_side_effects(), crate::ux::TerminalSideEffects::default());
+        // The attention LEVEL survives the drain (MCP attention_get
+        // reads it); only the edge was consumed.
+        assert!(a.attention_requested());
+    }
+
+    /// Title/cwd are change-edges: an un-changed title drains as None
+    /// on the next frame; a re-set title drains again.
+    #[test]
+    fn drain_title_is_a_change_edge_not_a_level() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b]0;one\x07");
+        assert_eq!(term.drain_side_effects().title.as_deref(), Some("one"));
+        assert_eq!(term.drain_side_effects().title, None);
+        term.feed(b"\x1b]0;two\x07");
+        assert_eq!(term.drain_side_effects().title.as_deref(), Some("two"));
     }
 
     #[test]

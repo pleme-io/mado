@@ -762,8 +762,9 @@ fn main() -> anyhow::Result<()> {
     let behavior = crate::ux::UxBehavior::from(&config);
     let confirm_close = behavior.confirm_close;
     let pending_close = Arc::new(AtomicBool::new(false));
-    // Track last known title to detect changes
-    let mut last_title: Option<String> = None;
+    // Boot-time notification dispatcher (M4 drain consumer): macOS
+    // osascript backend on Darwin, tsuuchi LogBackend elsewhere.
+    let notifier = crate::platform::notification_dispatcher();
     let default_font_size = effective_font_size;
     // macOS window-chrome styling latch — owns the style extracted from
     // the shikumi config plus its applied state, so the `'static`
@@ -833,8 +834,9 @@ fn main() -> anyhow::Result<()> {
             // InputEngine call and maps the typed EventOutcome back to
             // madori's EventResponse. Loop-specific concerns that stay
             // here: child-exit close (above), NativeStylingLatch ticks,
-            // snow pulses, and the title/bell/OSC52 side-effect polling
-            // (until the M4 TerminalSideEffects drain).
+            // snow pulses, and the per-frame M4 side-effect drain
+            // (one drain_side_effects call routed through the shared
+            // ux::apply_side_effects consumer).
             match event {
                 AppEvent::Key(key_event @ KeyEvent { pressed: true, .. }) => {
                     // Snow overlay: every keystroke pulses the
@@ -877,7 +879,7 @@ fn main() -> anyhow::Result<()> {
                 AppEvent::Resized { width, height } => {
                     engine.on_resize(*width, *height, renderer).into()
                 }
-                // Check for title/bell/clipboard changes on every redraw
+                // Drain terminal side effects once per frame (M4)
                 AppEvent::RedrawRequested => {
                     // Chrome styling retries inside the latch until a
                     // window exists — the first redraws can tick before
@@ -887,34 +889,22 @@ fn main() -> anyhow::Result<()> {
                     // latch over the rendered-surface signature (same
                     // contract as the tear path).
                     engine.on_redraw_tick(renderer);
-                    // Side-effect polling stays loop-side until the M4
-                    // typed TerminalSideEffects drain replaces it.
+                    // ONE typed drain + ONE shared consumer — the M4
+                    // seam. Title change-edges come back typed; the
+                    // adapter owns only the EventResponse translation.
                     let ws = &*pane_for_events;
                     if let Some(pane) = ws.focused_pane() {
-                        let mut term = pane.terminal.write();
-                        let current_title = term.title().map(String::from);
-                        let bell = term.take_bell();
-                        let osc52_clip = term.take_clipboard();
-                        drop(term);
-
-                        // OSC 52 clipboard sync — copy terminal clipboard to system
-                        if let Some(clip_text) = osc52_clip {
-                            let _ = clipboard.copy_text(&clip_text);
-                        }
-
-                        // Bell flash
-                        if bell {
-                            renderer.trigger_bell();
-                        }
-
-                        if current_title != last_title {
-                            last_title = current_title.clone();
-                            if let Some(title) = current_title {
-                                return EventResponse {
-                                    set_title: Some(title),
-                                    ..Default::default()
-                                };
-                            }
+                        let effects = pane.terminal.write().drain_side_effects();
+                        if let Some(title) = crate::ux::apply_side_effects(
+                            effects,
+                            renderer,
+                            &*clipboard,
+                            &notifier,
+                        ) {
+                            return EventResponse {
+                                set_title: Some(title),
+                                ..Default::default()
+                            };
                         }
                     }
                     EventResponse::ignored()

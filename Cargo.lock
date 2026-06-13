@@ -2414,6 +2414,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tracing",
+ "tsuuchi",
  "unicode-width",
  "vigy",
  "vte",
@@ -5576,6 +5577,16 @@ dependencies = [
  "tracing-core",
  "tracing-log",
  "tracing-serde",
+]
+
+[[package]]
+name = "tsuuchi"
+version = "0.1.0"
+source = "git+https://github.com/pleme-io/tsuuchi#3bde62762b04b09118413d710b7fbd635a577fe8"
+dependencies = [
+ "serde",
+ "thiserror 2.0.18",
+ "tracing",
 ]
 
 [[package]]

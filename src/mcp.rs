@@ -847,7 +847,7 @@ impl MadoMcp {
     // access to. No editor / terminal pair exposes this: ghostty +
     // kitty + iterm2 keep prompt-jump internal.
 
-    #[tool(description = "List OSC 133 prompt marks the session has seen, most-recent-first. Returns `{count, total, marks: [{grid_row, kind}]}`. Default filters to `Start` kind only — the jump-capable marker. Set `include_all_kinds: true` to also surface CommandStart / CommandOutput / CommandEnd marks for finer-grained replays.")]
+    #[tool(description = "List OSC 133 prompt marks the session has seen, most-recent-first. Returns `{count, total, marks: [{grid_row, kind, exit_status, at_unix_ms}]}` — `exit_status` is the OSC 133;D-reported command exit code (null until reported; back-filled onto the zone-opening CommandOutput mark), `at_unix_ms` the wall-clock stamp at mark creation. Default filters to `Start` kind only — the jump-capable marker. Set `include_all_kinds: true` to also surface CommandStart / CommandOutput / CommandEnd marks for finer-grained replays.")]
     async fn prompt_marks_list(
         &self,
         Parameters(input): Parameters<PromptMarksListInput>,
@@ -865,6 +865,10 @@ impl MadoMcp {
                 serde_json::json!({
                     "grid_row": m.grid_row,
                     "kind": format!("{:?}", m.kind),
+                    "exit_status": m.exit_status,
+                    // ms-since-epoch fits u64 for ~584M years;
+                    // serde_json numbers cap at u64.
+                    "at_unix_ms": u64::try_from(m.at_unix_ms).unwrap_or(u64::MAX),
                 })
             })
             .collect();
@@ -2516,6 +2520,53 @@ mod tests {
         let raw = server.prompt_marks_clear().await;
         let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
         assert_eq!(parsed["cleared"], 0);
+    }
+
+    /// M4 parity: the MCP rows surface the slice-1 `PromptMark`
+    /// metadata — `exit_status` (OSC 133;D back-fill) + `at_unix_ms`.
+    #[tokio::test]
+    async fn prompt_marks_list_surfaces_exit_status_and_timestamp() {
+        let history = Arc::new(Mutex::new(PromptHistory::default()));
+        {
+            let mut guard = history.lock().unwrap();
+            guard.record(2, PromptKind::CommandOutput, 41_000);
+            guard.record(7, PromptKind::CommandEnd, 42_000);
+            guard.apply_exit_status(3);
+        }
+        let server = MadoMcp::with_state(SharedState {
+            prompt_marks: history,
+            ..SharedState::default()
+        });
+        let raw = server
+            .prompt_marks_list(Parameters(PromptMarksListInput {
+                limit: None,
+                include_all_kinds: Some(true),
+            }))
+            .await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        let marks = parsed["marks"].as_array().unwrap();
+        // Most-recent-first: D mark, then C mark — both stamped.
+        assert_eq!(marks[0]["kind"], "CommandEnd");
+        assert_eq!(marks[0]["exit_status"], 3);
+        assert_eq!(marks[0]["at_unix_ms"], 42_000);
+        assert_eq!(marks[1]["kind"], "CommandOutput");
+        assert_eq!(marks[1]["exit_status"], 3);
+        assert_eq!(marks[1]["at_unix_ms"], 41_000);
+    }
+
+    #[tokio::test]
+    async fn prompt_marks_list_reports_null_exit_status_until_reported() {
+        let (server, _) = server_with_seeded_prompt_marks(&[(5, PromptKind::Start)]);
+        let raw = server
+            .prompt_marks_list(Parameters(PromptMarksListInput {
+                limit: None,
+                include_all_kinds: None,
+            }))
+            .await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        let marks = parsed["marks"].as_array().unwrap();
+        assert!(marks[0]["exit_status"].is_null());
+        assert_eq!(marks[0]["at_unix_ms"], 0);
     }
 
     #[tokio::test]

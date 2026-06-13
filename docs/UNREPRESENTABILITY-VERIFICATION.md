@@ -43,15 +43,17 @@ rotted away.
 | StyleTable / LinkTable interned ids + gc (`terminal.rs`) | A cell's style/link id pointing at a reaped or re-aliased table entry after gc | Interned ids with gc that remaps every live id in-place; saturation aliases to the last id, never silently to default | `only-mitigated` — ids are bare `u16`s; validity is maintained by the gc walk at runtime, pinned by tests | `style_table_gc_remaps_live_ids_without_default_aliasing` `terminal_gc_preserves_cell_styles` |
 | Tear reconciler rendered-truth latch (`InputEngine::on_redraw_tick`) | Grid pushes derived from event-time dims (one frame stale) ping-ponging the pane between old and new grids | `grid_sync_sig` latches on the RENDERED surface signature only; `on_resize` contains no push code at all | `only-mitigated` — the absent push in `on_resize` is convention pinned by a test; nothing in the types stops a future event-time push | `on_resize_defers_to_reconciler_and_push_grid_resizes_both_halves` |
 | BoundedFontSize (`font_size.rs`, `ishou_tokens::Refined`) | A rendered font size outside `[FONT_MIN, FONT_MAX]` (the 2026-05-21 runaway-font class) | Newtype whose every construction/mutation path clamps (`Refined<f32, FontSizeBounds>`); key-repeat storms gated upstream | `partially` (org grade for `Refined`) — every mado path clamps so the out-of-range stored value has no local construction path, but a clamp is a construction-time guard, not a rejection, and upstream `Refined::default()` skips it | `inc_step_saturates_at_max` `font_zoom_1000_increments_saturates_at_font_max_in_both_sink_configs` |
+| Notification/progress lane split (`ux::side_effects`, M4 stage 1, 2026-06-12) | A ConEmu OSC 9;4 progress update surfacing as a desktop notification (banner spam from a busy progress bar) | Separate typed lanes: progress is `Option<ProgressState>` — its own field on `Terminal` / `TerminalSideEffects` — while the notification queue is `Vec<PendingNotification>`; no constructor maps one type onto the other | `truly-unrepresentable` on the value axis (pushing a `ProgressState` into the notification queue is a type error; the conversion does not exist); `only-mitigated` on the routing axis — the `9;4` parse arm choosing the progress lane is handler discipline, pinned by the matrix, not a compile fact | `conemu_progress_matrix_sets_lane_and_never_notifies` `notification_osc_matrix_enqueues_one_typed_entry_each` |
+| Single-drain side-effect ownership (`Terminal::drain_side_effects` + `ux::apply_side_effects`, M4 stage 2, 2026-06-12) | Two per-loop side-effect polling copies drifting apart (the 2026-06-11 hunt class: silent bell, never-updating title, dead OSC 52 in exactly one render mode) | ONE typed producer (the drain — pure state transfer; change-edge title/cwd; rising-edge attention; second immediate drain yields the default payload) + ONE shared consumer both adapters call; per-loop `take_*` / title-diff calls are BANNED tokens in the structural scan | `only-mitigated` — the `take_*` methods remain callable and a third polling copy is constructible; single ownership is enforced by forcing-function tests (drain markers + the determinism pin), not by the type system | `neither_event_loop_contains_direct_ux_logic` `both_call_sites_drive_the_engine` `drain_is_pure_state_transfer_and_second_drain_is_empty` `drain_title_is_a_change_edge_not_a_level` |
 
 ## Tier histogram
 
 | Tier | Rows |
 |---|---|
-| `truly-unrepresentable` (with a named mitigated axis) | 1 |
+| `truly-unrepresentable` (with a named mitigated axis) | 2 |
 | `parse-time-rejected` | 1 |
 | `partially` | 1 |
-| `only-mitigated` | 5 |
+| `only-mitigated` | 6 |
 
 The histogram is the honesty: most of mado's hardening is still
 mitigation with forcing-function tests. Each `only-mitigated` row is

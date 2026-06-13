@@ -30,7 +30,6 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use anyhow::{Context, Result};
-use hasami::ClipboardProvider;
 use parking_lot::RwLock;
 use tear_types::{MultiplexerControl, PaneId, SessionSource};
 
@@ -499,13 +498,15 @@ where
         Box::new(move || control.pane_cursor_keys_mode(pane_id).unwrap_or(false))
     };
     // Adapter-side clipboard handle for OSC 52 sync (same precedent
-    // as main.rs; the M4 typed drain subsumes both). Shared with the
+    // as main.rs; the M4 drain consumer reads it). Shared with the
     // engine so terminal-driven copies and operator copies land in
     // one place.
     let side_effect_clipboard: Arc<hasami::Clipboard> = Arc::new(
         hasami::Clipboard::new().expect("failed to initialize clipboard"),
     );
-    let mut last_title: Option<String> = None;
+    // Boot-time notification dispatcher (M4 drain consumer): macOS
+    // osascript backend on Darwin, tsuuchi LogBackend elsewhere.
+    let notifier = crate::platform::notification_dispatcher();
     let terminal_for_side_effects = Arc::clone(&terminal);
     let mut engine = crate::ux::InputEngine::attach_to_renderer(
         &mut renderer,
@@ -550,32 +551,24 @@ where
             // answers, mouse clamps) and tear's PaneGrid+PTY — the
             // mirror half was missing entirely in tear mode.
             engine.on_redraw_tick(renderer);
-            // ── Terminal side effects (bell / title / OSC 52) ────
-            // Parity with main.rs's RedrawRequested polling — before
-            // this, the DEFAULT mode had a completely silent bell, a
-            // never-updating window title, and dead OSC 52 copies
-            // (hunt finding 2026-06-11). Loop-side until the M4 typed
-            // TerminalSideEffects drain replaces both copies.
+            // ── Terminal side effects (M4 drain) ─────────────────
+            // ONE typed drain + ONE shared consumer — parity with
+            // main.rs by construction now (tests/ux_unification.rs
+            // drain markers ban per-loop polling; the 2026-06-11
+            // silent-bell/dead-title/dead-OSC52 hunt class cannot
+            // re-diverge between the loops).
             {
-                let mut term = terminal_for_side_effects.write();
-                let current_title = term.title().map(String::from);
-                let bell = term.take_bell();
-                let osc52_clip = term.take_clipboard();
-                drop(term);
-                if let Some(clip_text) = osc52_clip {
-                    let _ = side_effect_clipboard.copy_text(&clip_text);
-                }
-                if bell {
-                    renderer.trigger_bell();
-                }
-                if current_title != last_title {
-                    last_title = current_title.clone();
-                    if let Some(title) = current_title {
-                        return EventResponse {
-                            set_title: Some(title),
-                            ..Default::default()
-                        };
-                    }
+                let effects = terminal_for_side_effects.write().drain_side_effects();
+                if let Some(title) = crate::ux::apply_side_effects(
+                    effects,
+                    renderer,
+                    &*side_effect_clipboard,
+                    &notifier,
+                ) {
+                    return EventResponse {
+                        set_title: Some(title),
+                        ..Default::default()
+                    };
                 }
             }
             // ── Elegant child-exit close ──────────────────────

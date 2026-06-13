@@ -116,6 +116,34 @@ pub fn set_badge(_text: Option<&str>) {
     macos::set_badge(_text);
 }
 
+/// Bounce the dock icon / flash the taskbar — the platform half of
+/// OSC 1337 `RequestAttention`. Critical request: the bounce repeats
+/// until the operator focuses the window (macOS semantics). Safe
+/// no-op off the main thread and on non-macOS platforms.
+pub fn request_dock_attention() {
+    #[cfg(target_os = "macos")]
+    macos::request_dock_attention();
+
+    #[cfg(not(target_os = "macos"))]
+    tracing::debug!("dock attention requested — no platform surface on this OS");
+}
+
+/// Construct the boot-time notification dispatcher for the GUI event
+/// loops: the osascript-backed macOS backend on Darwin, tsuuchi's
+/// `LogBackend` elsewhere (headless/test environments construct their
+/// own `LogBackend` dispatcher directly).
+#[must_use]
+pub fn notification_dispatcher() -> tsuuchi::NotificationDispatcher {
+    #[cfg(target_os = "macos")]
+    {
+        tsuuchi::NotificationDispatcher::new(Box::new(macos::OsaScriptBackend))
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        tsuuchi::NotificationDispatcher::new(Box::new(tsuuchi::LogBackend::new()))
+    }
+}
+
 /// Check if the system is in dark mode.
 #[must_use]
 pub fn is_dark_mode() -> bool {
@@ -200,8 +228,8 @@ mod macos {
     use objc2::MainThreadMarker;
     use objc2_app_kit::{
         NSAppearance, NSAppearanceCustomization, NSAppearanceNameAqua, NSAppearanceNameDarkAqua,
-        NSApplication, NSColor, NSTitlebarSeparatorStyle, NSWindow, NSWindowStyleMask,
-        NSWindowTabbingMode, NSWindowTitleVisibility,
+        NSApplication, NSColor, NSRequestUserAttentionType, NSTitlebarSeparatorStyle, NSWindow,
+        NSWindowStyleMask, NSWindowTabbingMode, NSWindowTitleVisibility,
     };
     use objc2_foundation::{NSString, NSUserDefaults};
 
@@ -347,6 +375,77 @@ mod macos {
             WindowAppearance::Auto => None,
         };
         window.setAppearance(forced.as_deref());
+    }
+
+    /// Bounce the dock until the app gains focus (OSC 1337
+    /// `RequestAttention`). `NSCriticalRequest` keeps bouncing until
+    /// the operator responds — matching the escape's "needs the
+    /// human" intent. Off the main thread this is a deferred no-op
+    /// (the drain consumer runs on the event-loop thread, which IS
+    /// the main thread; the guard covers tests).
+    pub fn request_dock_attention() {
+        let Some(mtm) = MainThreadMarker::new() else {
+            tracing::debug!("request_dock_attention off main thread — skipped");
+            return;
+        };
+        let app = NSApplication::sharedApplication(mtm);
+        let _token = app.requestUserAttention(NSRequestUserAttentionType::CriticalRequest);
+    }
+
+    /// tsuuchi [`NotificationBackend`](tsuuchi::NotificationBackend)
+    /// delivering through `osascript`'s `display notification` — the
+    /// path that works for an unbundled binary (the modern
+    /// `UNUserNotificationCenter` API aborts without a bundle
+    /// identifier, and `NSUserNotificationCenter` returns nil there).
+    ///
+    /// The `AppleScript` program is a CONSTANT `on run argv` script;
+    /// user-controlled strings (title/body) travel as argv items and
+    /// are never spliced into source — `AppleScript` injection has no
+    /// representation. Urgency and group have no `display
+    /// notification` surface; they are traced so the typed value is
+    /// still observable (honest partial mapping, never silently
+    /// dropped).
+    pub struct OsaScriptBackend;
+
+    /// Constant notification program — argv item 1 = title, item 2 =
+    /// body. No interpolation by construction.
+    const NOTIFY_SCRIPT: [&str; 3] = [
+        "on run argv",
+        "display notification (item 2 of argv) with title (item 1 of argv)",
+        "end run",
+    ];
+
+    impl tsuuchi::NotificationBackend for OsaScriptBackend {
+        fn send(
+            &self,
+            notification: &tsuuchi::Notification,
+        ) -> Result<(), tsuuchi::TsuuchiError> {
+            tracing::debug!(
+                title = %notification.title,
+                urgency = ?notification.urgency,
+                group = ?notification.group,
+                "dispatching macOS notification via osascript (urgency/group have no display-notification surface)"
+            );
+            let mut cmd = std::process::Command::new("/usr/bin/osascript");
+            for line in NOTIFY_SCRIPT {
+                cmd.arg("-e").arg(line);
+            }
+            let child = cmd
+                .arg(&notification.title)
+                .arg(&notification.body)
+                .stdin(std::process::Stdio::null())
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .spawn()
+                .map_err(|e| tsuuchi::TsuuchiError::Unavailable(e.to_string()))?;
+            // Detached reap: never block the render loop on the
+            // notification daemon; a reaper thread prevents zombies.
+            std::thread::spawn(move || {
+                let mut child = child;
+                let _ = child.wait();
+            });
+            Ok(())
+        }
     }
 
     /// Set dock badge text.

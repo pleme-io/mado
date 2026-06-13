@@ -29,6 +29,5 @@ pub use behavior::UxBehavior;
 pub use engine::{ActionOutcome, InputEngine, InputEngineParams, SharedUxState};
 pub use font_zoom::FontZoomTarget;
 pub use outcome::EventOutcome;
-#[allow(unused_imports)] // typed drain payload — Terminal::drain_side_effects() wires in M4
-pub use side_effects::TerminalSideEffects;
+pub use side_effects::{apply_side_effects, TerminalSideEffects};
 pub use sinks::{PtySink, ResizeSink, ResponseWriter};

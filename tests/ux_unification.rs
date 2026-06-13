@@ -45,6 +45,14 @@ const BANNED: &[(&str, &str)] = &[
     ("append_query(", "search-overlay query editing is engine-only"),
     ("backspace_query(", "search-overlay query editing is engine-only"),
     ("BoundedFontSize::new(", "font zoom flows through the engine's FontZoomTarget path"),
+    // M4 drain markers — per-loop side-effect polling is the seam the
+    // unified Terminal::drain_side_effects() closed; any take_* call
+    // in an adapter is a second drifting copy being reborn.
+    ("take_bell(", "bell polling flows through Terminal::drain_side_effects"),
+    ("take_clipboard(", "OSC 52 polling flows through Terminal::drain_side_effects"),
+    ("drain_notifications(", "notification polling flows through Terminal::drain_side_effects"),
+    ("take_progress(", "progress polling flows through Terminal::drain_side_effects"),
+    (".title()", "title diffing flows through Terminal::drain_side_effects change-edges"),
 ];
 
 /// Engine calls every adapter must make — the allow-listed seam. The
@@ -60,6 +68,9 @@ const REQUIRED_BOTH: &[&str] = &[
     ".on_ime_commit(",
     ".on_focus(",
     ".on_redraw_tick(",
+    // M4: ONE drain + ONE shared consumer per adapter frame.
+    ".drain_side_effects(",
+    "apply_side_effects(",
 ];
 
 #[test]
