@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "52f2ec2da25adb6a24e9bfcec752627a49cd428908682a088c2fc158af717e36",
+  "cargo_lock_sha256": "3752d5c38de690e0f4d19e5678e13c65d4f83089a1e186cb41bacb3ce18c8dbd",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -14061,7 +14061,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-client-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881": {
+      "tear-client-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1": {
         "runtime_dependencies": [
           {
             "name": "engate_attach",
@@ -14105,7 +14105,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+            "package_key": "tear-config-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14115,7 +14115,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+            "package_key": "tear-types-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14130,7 +14130,7 @@
           "engate"
         ]
       },
-      "tear-config-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881": {
+      "tear-config-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -14220,7 +14220,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+            "package_key": "tear-types-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14252,7 +14252,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-core-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881": {
+      "tear-core-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -14348,7 +14348,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+            "package_key": "tear-config-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14358,7 +14358,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+            "package_key": "tear-types-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14403,7 +14403,7 @@
           "engate"
         ]
       },
-      "tear-daemon-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881": {
+      "tear-daemon-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -14481,7 +14481,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+            "package_key": "tear-config-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14491,7 +14491,7 @@
           },
           {
             "name": "tear_core",
-            "package_key": "tear-core-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+            "package_key": "tear-core-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14501,7 +14501,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+            "package_key": "tear-types-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14539,7 +14539,7 @@
           "default"
         ]
       },
-      "tear-types-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881": {
+      "tear-types-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -19159,7 +19159,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+                "package_key": "tear-client-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -19169,7 +19169,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+                "package_key": "tear-config-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -19179,7 +19179,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+                "package_key": "tear-core-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -19189,7 +19189,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+                "package_key": "tear-types-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23290,7 +23290,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+                "package_key": "tear-client-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23300,7 +23300,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+                "package_key": "tear-config-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23310,7 +23310,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+                "package_key": "tear-core-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23320,7 +23320,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+                "package_key": "tear-types-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27294,7 +27294,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+                "package_key": "tear-client-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27304,7 +27304,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+                "package_key": "tear-config-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27314,7 +27314,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+                "package_key": "tear-core-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27324,7 +27324,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+                "package_key": "tear-types-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30815,7 +30815,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+                "package_key": "tear-client-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30825,7 +30825,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+                "package_key": "tear-config-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30835,7 +30835,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+                "package_key": "tear-core-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30845,7 +30845,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+                "package_key": "tear-types-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34362,7 +34362,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+                "package_key": "tear-client-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34372,7 +34372,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+                "package_key": "tear-config-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34382,7 +34382,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+                "package_key": "tear-core-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34392,7 +34392,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+                "package_key": "tear-types-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37929,7 +37929,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+                "package_key": "tear-client-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37939,7 +37939,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+                "package_key": "tear-config-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37949,7 +37949,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+                "package_key": "tear-core-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37959,7 +37959,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881",
+                "package_key": "tear-types-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -41841,19 +41841,19 @@
     "tatara-lisp-eval-0.2.2-3658c1d45ef48cc5efc3ed703a834830fc2f93b5": {
       "edition": "2021"
     },
-    "tear-client-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881": {
+    "tear-client-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1": {
       "edition": "2024"
     },
-    "tear-config-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881": {
+    "tear-config-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1": {
       "edition": "2024"
     },
-    "tear-core-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881": {
+    "tear-core-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1": {
       "edition": "2024"
     },
-    "tear-daemon-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881": {
+    "tear-daemon-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1": {
       "edition": "2024"
     },
-    "tear-types-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881": {
+    "tear-types-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1": {
       "edition": "2024"
     },
     "tempfile-3.27.0": {
@@ -42395,11 +42395,11 @@
     "tatara-lisp-0.2.2-3658c1d45ef48cc5efc3ed703a834830fc2f93b5": "sha256-zcdPXYrRiOIZH6cyt1+v4bpR2pD9hb9UIkzFr2pbG9o=",
     "tatara-lisp-derive-0.2.2-3658c1d45ef48cc5efc3ed703a834830fc2f93b5": "sha256-zcdPXYrRiOIZH6cyt1+v4bpR2pD9hb9UIkzFr2pbG9o=",
     "tatara-lisp-eval-0.2.2-3658c1d45ef48cc5efc3ed703a834830fc2f93b5": "sha256-zcdPXYrRiOIZH6cyt1+v4bpR2pD9hb9UIkzFr2pbG9o=",
-    "tear-client-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881": "sha256-dwO6mD9dkI9j7EHTgx0ypWlP2fURo8iJSmPtg3aK9sY=",
-    "tear-config-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881": "sha256-dwO6mD9dkI9j7EHTgx0ypWlP2fURo8iJSmPtg3aK9sY=",
-    "tear-core-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881": "sha256-dwO6mD9dkI9j7EHTgx0ypWlP2fURo8iJSmPtg3aK9sY=",
-    "tear-daemon-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881": "sha256-dwO6mD9dkI9j7EHTgx0ypWlP2fURo8iJSmPtg3aK9sY=",
-    "tear-types-0.1.0-b4730ef133e3eac3d553ff4fb1df5d8d22368881": "sha256-dwO6mD9dkI9j7EHTgx0ypWlP2fURo8iJSmPtg3aK9sY=",
+    "tear-client-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1": "sha256-ku7+6L+DcO0VPm/Yztcqin0Jl9mUrKXpqAyx8tNe+Ao=",
+    "tear-config-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1": "sha256-ku7+6L+DcO0VPm/Yztcqin0Jl9mUrKXpqAyx8tNe+Ao=",
+    "tear-core-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1": "sha256-ku7+6L+DcO0VPm/Yztcqin0Jl9mUrKXpqAyx8tNe+Ao=",
+    "tear-daemon-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1": "sha256-ku7+6L+DcO0VPm/Yztcqin0Jl9mUrKXpqAyx8tNe+Ao=",
+    "tear-types-0.1.0-e06f67f6ce59947af37c8f454cb1c49ae54ec1a1": "sha256-ku7+6L+DcO0VPm/Yztcqin0Jl9mUrKXpqAyx8tNe+Ao=",
     "tsuuchi-0.1.0-3bde62762b04b09118413d710b7fbd635a577fe8": "sha256-VQGXGuIRhd5fAvTJyPelZ/C5/A/JNWNVyIU59+u0MMM=",
     "vigy-0.1.1-f173e8ee45e08e08d09b09d123fc16a27ebd7957": "sha256-eSLi82aVdY8aYuICXHIwodcwOXZ9r5Wte862p5WzUrA=",
     "vigy-eval-0.1.1-f173e8ee45e08e08d09b09d123fc16a27ebd7957": "sha256-eSLi82aVdY8aYuICXHIwodcwOXZ9r5Wte862p5WzUrA=",
