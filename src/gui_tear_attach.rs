@@ -773,20 +773,26 @@ fn try_run_default_embedded(
     kanshou_state.set_tear_inproc(inproc.clone());
     crate::perf::log_phase("tear_inproc_constructed");
 
-    // ── Spawn-env projection (FIX 2) ──────────────────────────────
+    // ── Spawn-env projection (FIX 2 + FIX 3) ──────────────────────
     // Stamp mado's typed capability env (TERM=xterm-ghostty + vendored
-    // TERMINFO + COLORTERM + TERM_PROGRAM) onto every child PTY tear
-    // spawns IN-PROCESS — applied AFTER tear's inherited +
-    // xterm-256color-fallback env so mado's richer set wins. Without
-    // this, vim in the operator-default (embedded) window got no
-    // truecolor (grey) + the wrong terminfo. This is the typed seam
-    // (`tear_types::SpawnEnv`) the local-PTY path's env projection now
-    // also routes through (`caps::EnvProjection`), so the child env is
+    // TERMINFO + COLORTERM + TERM_PROGRAM) AND the boot cwd's PWD onto
+    // every child PTY tear spawns IN-PROCESS — applied AFTER tear's
+    // inherited + xterm-256color-fallback env so mado's richer set
+    // wins. Without this, vim in the operator-default (embedded) window
+    // got no truecolor (grey) + the wrong terminfo, and a child shell
+    // could inherit a stale parent PWD. This is the typed seam
+    // (`tear_types::SpawnEnv`) the local-PTY path's env projection also
+    // routes through (`caps::EnvProjection`), so the child env is
     // identical across spawn entry points.
     let spawn_env = tear_types::SpawnEnv::from_overrides(
         crate::caps::EnvProjection::prescribed(env!("CARGO_PKG_VERSION"))
             .pairs()
             .to_vec(),
+    )
+    .with_cwd(
+        config
+            .boot_spawn_cwd()
+            .map(|d| d.to_string_lossy().into_owned()),
     );
     inproc.set_spawn_env(spawn_env);
 
@@ -807,26 +813,17 @@ fn try_run_default_embedded(
         .max(1);
 
     // window.inherit_working_directory threading (M4 stage 2). LAW:
-    // tear's MultiplexerControl carries NO cwd argument (rev
-    // b4730ef) — the embedded child PTY is spawned IN THIS PROCESS
-    // (portable_pty CommandBuilder without .cwd()), so the process
-    // cwd at new_session time IS the cwd channel. boot_spawn_cwd
+    // the boot cwd now flows through the typed `SpawnEnv.cwd` seam set
+    // above — `PtyHandle::spawn` receives it as the child cwd and
+    // stamps a matching `PWD` (FIX 3 cwd handshake). `boot_spawn_cwd`
     // returns Some only when the operator pinned
     // environment.working_directory or turned the knob OFF ($HOME);
-    // knob ON returns None and the launch-shell cwd flows through
-    // untouched. (FIX 3 replaces this set_current_dir hack with the
-    // typed SpawnEnv.cwd seam.)
-    if let Some(dir) = config.boot_spawn_cwd() {
-        if let Err(e) = std::env::set_current_dir(&dir) {
-            tracing::warn!(
-                dir = %dir.display(),
-                error = %e,
-                "boot spawn cwd unusable — embedded session inherits the process cwd instead"
-            );
-        } else {
-            tracing::info!(dir = %dir.display(), "embedded session spawn cwd set");
-        }
-    }
+    // knob ON returns None and the child inherits the launch-shell cwd
+    // (and `PtyHandle::spawn` strips any stale inherited PWD). The
+    // former `std::env::set_current_dir` process-cwd hack is gone — the
+    // cwd is a typed per-spawn arg now, not a mutation of the whole
+    // process. (Daemon mode spawns children in the DAEMON's cwd — same
+    // documented gap; the SpawnEnv seam lives on InProcess only.)
     let session_id = match inproc.new_session_with_source_and_size(
         &session_name,
         &shell,

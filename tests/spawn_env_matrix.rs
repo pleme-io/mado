@@ -101,3 +101,36 @@ fn matrix_covers_every_consuming_spawn_entry_point() {
     );
 }
 
+/// FIX 3 cwd-handshake forcing function: the local-PTY path must stamp
+/// `PWD` to match the cwd (and strip a stale one when there is no
+/// cwd), and the embedded path threads its cwd through the typed
+/// `SpawnEnv` seam — so a child shell can never inherit a stale parent
+/// `PWD`. The end-to-end PWD assertions live in the tear-core +
+/// pty-spawn tests; this pins the wiring.
+#[test]
+fn spawn_paths_stamp_pwd_for_the_cwd_handshake() {
+    let mut failures: Vec<String> = Vec::new();
+    let pty = strip_line_comments(PTY_RS);
+    // Local-PTY: stamps PWD on a cwd, strips it otherwise.
+    if !pty.contains("cmd.env(\"PWD\"") {
+        failures.push("src/pty.rs no longer stamps PWD for a set cwd".into());
+    }
+    if !pty.contains("cmd.env_remove(\"PWD\")") {
+        failures.push("src/pty.rs no longer strips a stale inherited PWD".into());
+    }
+    // Embedded: the cwd rides the typed SpawnEnv seam.
+    let tear = strip_line_comments(TEAR_RS);
+    if !tear.contains(".with_cwd(") {
+        failures.push(
+            "src/gui_tear_attach.rs no longer threads the boot cwd through SpawnEnv::with_cwd"
+                .into(),
+        );
+    }
+    assert!(
+        failures.is_empty(),
+        "{} cwd-handshake wiring violations:\n  - {}",
+        failures.len(),
+        failures.join("\n  - ")
+    );
+}
+

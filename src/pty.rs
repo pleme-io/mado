@@ -365,9 +365,20 @@ fn spawn_child(
         cmd.env(key, value);
     }
 
-    // Working directory from config.
-    if let Some(dir) = working_directory {
-        cmd.current_dir(dir);
+    // Working directory from config, with PWD hygiene (cwd handshake,
+    // operator report 2026-06-12): a child shell trusts inherited
+    // `PWD` over `getcwd()`, so a stale parent `PWD` makes the prompt /
+    // frost cwd wrong even when the real cwd is correct. Stamp `PWD` to
+    // match the cwd when one is set; strip any inherited `PWD` when
+    // none is, so a stale parent `PWD` can never leak to the child.
+    match working_directory {
+        Some(dir) => {
+            cmd.current_dir(dir);
+            cmd.env("PWD", dir);
+        }
+        None => {
+            cmd.env_remove("PWD");
+        }
     }
 
     // Set terminal type + capability env so programs know what mado
