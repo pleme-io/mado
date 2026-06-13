@@ -32,6 +32,15 @@ pub struct MadoConfig {
     pub font_symbols: String,
     #[serde(default = "default_font_size")]
     pub font_size: f32,
+    /// Cell-height multiplier — the line rhythm. The rendered cell is
+    /// `font_size * line_height` (logical px); cosmic-text's line-box
+    /// metric is set to the same product so measured glyph rows match
+    /// the cell. Sourced from `FleetDefaults::line_height` (ghostty's
+    /// native 1.32 × its +25% cell = 1.65) via `from_fleet`. Replaces
+    /// the renderer's old hardcoded `* 1.4`, which ignored config and
+    /// produced a cramped rhythm vs ghostty's airier cell.
+    #[serde(default = "default_line_height")]
+    pub line_height: f32,
     #[serde(default)]
     pub font: FontConfig,
     #[serde(default)]
@@ -1469,6 +1478,10 @@ impl MadoConfig {
             // Not 0 (would break the renderer); not auto-detected
             // (that's `discovered`).
             font_size: 12.0,
+            // 1.0 = zero leading (the bare floor; matches
+            // `FleetDefaults::bare().line_height`). The prescribed tier
+            // pulls the ghostty rhythm (1.65) via `from_fleet`.
+            line_height: 1.0,
             font: FontConfig {
                 family_bold: None,
                 family_italic: None,
@@ -1709,6 +1722,7 @@ fn minimum_contrast_from_fleet(theme_name: &str) -> f32 {
 /// | `theme`                            | `fd.theme.resolve().name`                |
 /// | `font_family` / `font_italic`     | `fd.font_family` / `fd.font_italic`      |
 /// | `font_size`                       | `fd.font_size`                           |
+/// | `line_height`                     | `fd.line_height` (cell-height rhythm)    |
 /// | `window.padding`                  | `fd.padding`                             |
 /// | `window.decorations`              | `fd.decorations_macos`/`_linux` (per-OS) |
 /// | `behavior.scrollback_lines`       | `fd.scrollback_lines`                    |
@@ -1767,6 +1781,10 @@ impl ishou_tokens::FleetThemedConfig for MadoConfig {
             font_italic: fd.font_italic.clone(),
             font_symbols: default_font_symbols(),
             font_size: fd.font_size,
+            // The cell-height rhythm flows straight from the fleet
+            // (ghostty's native 1.32 × +25% = 1.65). The renderer reads
+            // this — no more hardcoded `* 1.4`.
+            line_height: fd.line_height,
             font: FontConfig::default(),
             window: WindowConfig {
                 padding: fd.padding,
@@ -1987,14 +2005,14 @@ fn default_font_family() -> String {
 }
 
 fn default_font_italic() -> String {
-    // Calligraphic italic per `ishou-tokens::MonoFonts::pleme()`.
-    // cosmic-text's `Attrs::style(Style::Italic)` walks the fontdb
-    // for an italic face; pinning the family here lets mado render
-    // italic cells in Iosevka (the fleet's calligraphic italic)
-    // independent of which family the primary regular face uses.
-    // blackmatter-mado's HM module installs `pkgs.iosevka` so the
-    // resolution succeeds at runtime.
-    "Iosevka".into()
+    // Italics now slant the SAME JetBrainsMono face (ghostty's model),
+    // not a foreign calligraphic typeface — see
+    // `ishou-tokens::FleetDefaults::prescribed().font_italic`, which
+    // equals `font_family`. cosmic-text's `Attrs::style(Style::Italic)`
+    // synthesizes the slant from that face. Sourced from the fleet so a
+    // future italic-family change propagates here on the next compile.
+    // Used only when a YAML config omits the field.
+    ishou_tokens::FleetDefaults::prescribed().font_italic
 }
 fn default_font_symbols() -> String {
     // Dedicated symbols/Nerd-icon family per ghostty's model. M1:
@@ -2004,6 +2022,14 @@ fn default_font_symbols() -> String {
 }
 fn default_font_size() -> f32 {
     crate::auto_detect::detect_font_size_or_fallback()
+}
+fn default_line_height() -> f32 {
+    // Cell-height rhythm — the fleet prescribed value (ghostty's native
+    // 1.32 × its +25% cell = 1.65), sourced from ishou so a fleet
+    // line-height retune propagates here on the next compile rather
+    // than being re-pinned. Used only when a YAML config omits the
+    // field; the prescribed/from_fleet path reads `fd.line_height`.
+    ishou_tokens::FleetDefaults::prescribed().line_height
 }
 fn default_width() -> u32 {
     crate::auto_detect::detect_window_dims_or_fallback().0
@@ -2409,6 +2435,8 @@ mod tests {
         assert_eq!(bare.font_italic, "");
         assert_eq!(bare.font_symbols, "");
         assert!((bare.font_size - 12.0).abs() < 0.001);
+        // Bare cell rhythm = zero leading (matches FleetDefaults::bare).
+        assert!((bare.line_height - 1.0).abs() < 0.001);
         assert!(bare.font.family_bold.is_none());
         assert!(bare.font.family_italic.is_none());
         assert!(bare.font.family_bold_italic.is_none());
@@ -2628,9 +2656,15 @@ mod tests {
         let d = <MadoConfig as TieredConfig>::prescribed_default();
 
         // ── Font + theme: the standard Guard chain ──
+        // Pins family / italic / size / line-height against the BORN
+        // FleetDefaults — the ghostty-aligned font (non-Mono family,
+        // synthesized-slant italics on the same face, size 13, 1.65
+        // cell rhythm) cannot drift from mado without failing here.
         ishou_tokens::convergence::Guard::for_app("mado")
             .expect_font_family(&d.font_family)
+            .expect_font_italic(&d.font_italic)
             .expect_font_size(d.font_size)
+            .expect_line_height(d.line_height)
             .run();
 
         // ── Theme: the config's String theme is the fleet theme's
@@ -2826,9 +2860,13 @@ window:
     #[test]
     fn test_default_config_values() {
         let config = MadoConfig::default();
-        assert_eq!(config.font_family, "JetBrainsMono Nerd Font Mono");
-        assert_eq!(config.font_italic, "Iosevka");
-        assert_eq!(config.font_size, 14.0);
+        // Ghostty-aligned fleet font (FleetDefaults::prescribed): the
+        // non-Mono Nerd family, same-family synthesized-slant italics,
+        // size 13, 1.65 cell rhythm.
+        assert_eq!(config.font_family, "JetBrainsMono Nerd Font");
+        assert_eq!(config.font_italic, "JetBrainsMono Nerd Font");
+        assert_eq!(config.font_size, 13.0);
+        assert!((config.line_height - 1.65).abs() < 0.001);
         // Prescribed theme is now the fleet theme (Borealis), derived
         // from FleetTheme::prescribed_default() — not the legacy "nord".
         assert_eq!(config.theme, "borealis-night");

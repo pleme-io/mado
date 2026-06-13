@@ -31,8 +31,9 @@ pub const FONT_MAX: f32 = 64.0;
 /// Default per-keystroke step for `inc_step` / `dec_step`.
 pub const FONT_STEP: f32 = 1.0;
 
-/// Default starting font size — matches `FleetDefaults::prescribed().font_size`.
-pub const FONT_DEFAULT: f32 = 14.0;
+/// Default starting font size — matches `FleetDefaults::prescribed().font_size`
+/// (13.0, ghostty parity).
+pub const FONT_DEFAULT: f32 = 13.0;
 
 /// Zero-sized marker for mado's font-size bounds. The `Bounds<f32>`
 /// impl makes the constants above visible to `Refined<f32, Self>`.
@@ -91,7 +92,7 @@ mod tests {
         // means widening cell_height limits.
         assert_eq!(FONT_MIN, 6.0);
         assert_eq!(FONT_MAX, 64.0);
-        assert_eq!(FONT_DEFAULT, 14.0);
+        assert_eq!(FONT_DEFAULT, 13.0);
         assert_eq!(FONT_STEP, 1.0);
     }
 
@@ -106,7 +107,7 @@ mod tests {
     fn default_matches_fleet_font_default() {
         // The default font size mado picks (BoundedFontSize::default())
         // MUST match ishou_tokens::FleetDefaults::prescribed().font_size.
-        // Both are 14.0 today; if either drifts, this test fires.
+        // Both are 13.0 today; if either drifts, this test fires.
         let bfs = BoundedFontSize::default();
         let fd = ishou_tokens::FleetDefaults::prescribed();
         assert!(

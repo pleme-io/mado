@@ -40,6 +40,7 @@ fn scrollback_for_ram(gib: u64) -> u32 {
 /// Consumed when the fontdb probe is wired into the `font_family` axis.
 #[allow(dead_code)]
 const FONT_FAMILY_LADDER: &[&str] = &[
+    "JetBrainsMono Nerd Font",
     "JetBrainsMono Nerd Font Mono",
     "Iosevka Nerd Font",
     "MesloLGS Nerd Font",
@@ -53,7 +54,7 @@ const FONT_FAMILY_LADDER: &[&str] = &[
 /// Preferred-fallback ladder for the symbol/icon family (ends at the primary
 /// Nerd font, which patches the same ranges). Consumed when wired.
 #[allow(dead_code)]
-const FONT_SYMBOLS_LADDER: &[&str] = &["Symbols Nerd Font Mono", "Symbols Nerd Font", "JetBrainsMono Nerd Font Mono"];
+const FONT_SYMBOLS_LADDER: &[&str] = &["Symbols Nerd Font Mono", "Symbols Nerd Font", "JetBrainsMono Nerd Font"];
 
 kanchi::defaxes! {
     /// Window dimensions — 60% of the focused display's visible area,
@@ -71,15 +72,20 @@ kanchi::defaxes! {
     theme: &'static str = "borealis-night" => kanchi::none;
 
     /// Highest-preference installed Nerd font — fontdb-enumeration probe is
-    /// a follow-up. Falls back to JetBrainsMono Nerd Font Mono.
-    font_family: &'static str = "JetBrainsMono Nerd Font Mono" => kanchi::none;
+    /// a follow-up. Falls back to the fleet primary `JetBrainsMono Nerd
+    /// Font` (the non-`Mono` variant — matches ghostty's inline-glyph look;
+    /// see `FleetDefaults::prescribed`). Pinned to the fleet value by the
+    /// convergence guard below.
+    font_family: &'static str = "JetBrainsMono Nerd Font" => kanchi::none;
 
     /// Symbol / Nerd-icon / powerline family — probe wiring is a follow-up.
     font_symbols: &'static str = "Symbols Nerd Font Mono" => kanchi::none;
 
-    /// DPR-aware font size — HiDPI Retina 14pt / low-DPI 16pt. (macOS
-    /// NSScreen backing scale.)
-    font_size: f32 = 14.0 => || probe::dpr_font_size(14.0, 16.0);
+    /// DPR-aware font size — falls back to the fleet 13pt (ghostty parity;
+    /// see `FleetDefaults::prescribed`). Retina 13pt / low-DPI 15pt.
+    /// (macOS NSScreen backing scale.) Pinned to the fleet value by the
+    /// convergence guard below.
+    font_size: f32 = 13.0 => || probe::dpr_font_size(13.0, 15.0);
 
     /// Window padding — flush against the edge by default (ghostty/alacritty).
     padding: u32 = 0 => kanchi::none;
@@ -145,11 +151,11 @@ mod tests {
     }
     #[test]
     fn fallback_font_family_pinned() {
-        assert_eq!(FALLBACK_FONT_FAMILY, "JetBrainsMono Nerd Font Mono");
+        assert_eq!(FALLBACK_FONT_FAMILY, "JetBrainsMono Nerd Font");
     }
     #[test]
     fn fallback_font_size_pinned() {
-        assert!((FALLBACK_FONT_SIZE - 14.0).abs() < 0.001);
+        assert!((FALLBACK_FONT_SIZE - 13.0).abs() < 0.001);
     }
     #[test]
     fn fallback_padding_pinned() {

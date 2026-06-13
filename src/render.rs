@@ -807,9 +807,9 @@ const DECORATION_THICKNESS: f32 = 1.0;
 /// desyncing meant a wgpu validation error on every catalog pass
 /// (M3 review 2026-06-12).
 const SURFACE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;
-/// Approximate baseline fraction of the cell height. cosmic-text's
-/// line height is 1.4 × font size and mado does not measure ascent;
-/// the baseline only feeds the curly band's amplitude
+/// Approximate baseline fraction of the cell height. The cell height
+/// is `font_size * line_height` (config-driven) and mado does not
+/// measure ascent; the baseline only feeds the curly band's amplitude
 /// (`underline_y - baseline`, floored at one thickness upstream),
 /// so an approximation degrades amplitude, never correctness.
 const BASELINE_FRACTION: f32 = 0.8;
@@ -828,6 +828,14 @@ pub struct TerminalRenderer {
     dir_picker: Arc<Mutex<crate::dir_picker::DirPickerState>>,
     // window field removed at Phase 4 — single-pane mado.
     font_size: f32,
+    /// Cell-height multiplier — the line rhythm. The cell height is
+    /// `font_size * line_height` (logical) and cosmic-text's line-box
+    /// metric is set to the same product, so a measured glyph row
+    /// matches the cell exactly. Sourced from `MadoConfig::line_height`
+    /// (← `FleetDefaults::line_height`, ghostty's native 1.32 × +25% =
+    /// 1.65). This is the SINGLE source of the multiplier the renderer
+    /// once hardcoded as `* 1.4` in three places.
+    line_height: f32,
     font_family: String,
     /// Italic-face family. cosmic-text resolves italics by walking
     /// the fontdb for `Style::Italic`; pinning the family explicitly
@@ -1109,6 +1117,7 @@ impl TerminalRenderer {
     pub fn new(
         terminal: SharedTerminal,
         font_size: f32,
+        line_height: f32,
         font_family: String,
         font_italic: String,
         font_symbols: String,
@@ -1120,7 +1129,7 @@ impl TerminalRenderer {
         fg_color: Color,
     ) -> Self {
         let cell_width = font_size * 0.6;
-        let cell_height = font_size * 1.4;
+        let cell_height = font_size * line_height;
 
         Self {
             terminal,
@@ -1129,6 +1138,7 @@ impl TerminalRenderer {
             dir_picker: Arc::new(Mutex::new(crate::dir_picker::DirPickerState::new())),
             // window: removed Phase 4
             font_size,
+            line_height,
             font_family,
             font_italic,
             font_symbols,
@@ -1425,7 +1435,7 @@ impl TerminalRenderer {
         encoder: &mut wgpu::CommandEncoder,
     ) {
         let fs = self.font_size_px();
-        let line_h = fs * 1.4;
+        let line_h = fs * self.line_height;
         let left = self.padding_px() + self.cell_width;
         let top = ctx.height as f32 - self.padding_px() - line_h * 1.2;
 
@@ -1499,7 +1509,7 @@ impl TerminalRenderer {
         encoder: &mut wgpu::CommandEncoder,
     ) {
         let fs = self.font_size_px();
-        let line_h = fs * 1.4;
+        let line_h = fs * self.line_height;
         let left = self.padding_px() + self.cell_width * 2.0;
         let top0 = self.padding_px() + self.cell_height;
         let max_rows = 12usize;
@@ -1610,7 +1620,7 @@ impl TerminalRenderer {
         let size = size.clamp(6.0, 72.0);
         self.font_size = size;
         self.cell_width = size * 0.6;
-        self.cell_height = size * 1.4;
+        self.cell_height = size * self.line_height;
         self.metrics_measured = false;
         self.last_seqno = 0;
         // P20 — same rationale as set_scale_factor: shape cache keys
@@ -1669,7 +1679,10 @@ impl TerminalRenderer {
         // natural advance, exactly.
         let fs = self.font_size_px();
         let attrs = Attrs::new().family(Family::Name(&self.font_family));
-        let mut buf = text.create_rich_buffer(&[("MM", attrs)], fs, fs * 1.4);
+        // Line-box metric = the configured cell rhythm, so the measured
+        // `run.line_height` below IS the cell the rest of the renderer
+        // sizes against — never a stale `* 1.4` that ignores config.
+        let mut buf = text.create_rich_buffer(&[("MM", attrs)], fs, fs * self.line_height);
         buf.shape_until_scroll(&mut text.font_system, false);
 
         let mut measured_advance: Option<f32> = None;
@@ -3994,6 +4007,7 @@ mod render_invariants {
         let renderer = TerminalRenderer::new(
             term.clone(),
             14.0,                  // font_size
+            1.4,                   // line_height (legacy test cell)
             "monospace".into(),    // font_family
             "monospace".into(),    // font_italic
             "monospace".into(),    // font_symbols
@@ -4256,6 +4270,7 @@ mod render_invariants {
         let renderer = TerminalRenderer::new(
             term.clone(),
             14.0,
+            1.4,
             "monospace".into(),
             "monospace".into(),
             "monospace".into(), // font_symbols
@@ -5438,6 +5453,7 @@ mod render_gpu_invariants {
         let mut renderer = TerminalRenderer::new(
             term.clone(),
             14.0,
+            1.4,
             "monospace".into(),
             "monospace".into(),
             "monospace".into(), // font_symbols
@@ -6125,6 +6141,7 @@ mod tests {
         TerminalRenderer::new(
             term,
             14.0,
+            1.4,
             "JetBrains Mono".into(),
             "Iosevka".into(),
             String::new(),
@@ -6148,6 +6165,7 @@ mod tests {
         let renderer = TerminalRenderer::new(
             std::sync::Arc::clone(&term),
             14.0,
+            1.4,
             "JetBrains Mono".into(),
             "Iosevka".into(),
             String::new(),
@@ -6651,6 +6669,7 @@ mod tests {
         let renderer = TerminalRenderer::new(
             term,
             14.0,
+            1.4,
             "JetBrains Mono".into(),
             "Iosevka".into(),
             "Symbols Nerd Font Mono".into(), // font_symbols
@@ -6764,6 +6783,7 @@ mod tests {
         let renderer = TerminalRenderer::new(
             term,
             14.0,
+            1.4,
             "JetBrains Mono".into(),
             "Iosevka".into(),
             "Symbols Nerd Font Mono".into(), // font_symbols

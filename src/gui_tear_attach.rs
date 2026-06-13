@@ -146,7 +146,7 @@ pub fn try_run_default(
     // at the right grid from t=0. Eliminates the brief 80×24
     // default + post-attach SIGWINCH re-layout.
     let cell_w_logical = config.font_size * 0.6;
-    let cell_h_logical = config.font_size * 1.4;
+    let cell_h_logical = config.font_size * config.line_height;
     let pad_logical = config.window.padding as f32;
     let init_cols = (((config.window.width as f32 - 2.0 * pad_logical) / cell_w_logical)
         .floor() as u16)
@@ -302,6 +302,7 @@ where
     let mut renderer = TerminalRenderer::new(
         Arc::clone(&terminal),
         effective_font_size,
+        config.line_height,
         config.font_family.clone(),
         config.font_italic.clone(),
         config.font_symbols.clone(),
@@ -419,7 +420,7 @@ where
         let logical_h = config.window.height as f32;
         let pad = padding;
         let cell_w_logical = effective_font_size * 0.6;
-        let cell_h_logical = effective_font_size * 1.4;
+        let cell_h_logical = effective_font_size * config.line_height;
         let init_cols: u16 =
             (((logical_w - 2.0 * pad) / cell_w_logical).floor() as u16).max(1);
         let init_rows: u16 =
@@ -811,7 +812,7 @@ fn try_run_default_embedded(
         .unwrap_or_else(default_session_name);
 
     let cell_w_logical = config.font_size * 0.6;
-    let cell_h_logical = config.font_size * 1.4;
+    let cell_h_logical = config.font_size * config.line_height;
     let pad_logical = config.window.padding as f32;
     let init_cols = (((config.window.width as f32 - 2.0 * pad_logical) / cell_w_logical)
         .floor() as u16)

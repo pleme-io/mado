@@ -659,7 +659,7 @@ fn main() -> anyhow::Result<()> {
     let effective_font_size = config.font_size * config.accessibility.font_scale;
     let padding = config.window.padding as f32;
     let cell_w = effective_font_size * 0.6;
-    let cell_h = effective_font_size * 1.4;
+    let cell_h = effective_font_size * config.line_height;
 
     let cols = ((config.window.width as f32 - 2.0 * padding) / cell_w) as usize;
     let rows = ((config.window.height as f32 - 2.0 * padding) / cell_h) as usize;
@@ -709,6 +709,7 @@ fn main() -> anyhow::Result<()> {
     let mut renderer = TerminalRenderer::new(
         initial_terminal,
         effective_font_size,
+        config.line_height,
         config.font_family.clone(),
         config.font_italic.clone(),
         config.font_symbols.clone(),

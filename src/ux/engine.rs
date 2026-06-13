@@ -1532,6 +1532,7 @@ mod tests {
             let mut renderer = TerminalRenderer::new(
                 Arc::clone(&terminal),
                 14.0,
+                1.4,
                 "monospace".into(),
                 "monospace".into(),
                 "monospace".into(),

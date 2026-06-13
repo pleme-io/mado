@@ -336,6 +336,10 @@ fn check_frame_hash_golden(
     let mut renderer = TerminalRenderer::new(
         term,
         14.0,
+        // Headless scenarios keep the legacy 1.4 cell so golden-frame
+        // geometry stays byte-stable; the fleet's 1.65 rhythm is a
+        // production look, not a determinism input.
+        1.4,
         "monospace".into(),
         "monospace".into(),
         "monospace".into(), // font_symbols
