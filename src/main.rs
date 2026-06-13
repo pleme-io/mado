@@ -486,18 +486,21 @@ fn main() -> anyhow::Result<()> {
     crate::perf::set_launch_start(launch_start);
     crate::perf::log_phase("tracing_init");
 
-    // Hot-reload hand-off (M3 review 2026-06-12): the watch callback
-    // used to log-and-discard, so every effects/accessibility edit
-    // was silently boot-time-only while the watcher advertised
-    // liveness. The callback now parks the freshest config in this
-    // cell; the renderer (either entry point) drains it at frame
-    // start and re-applies via apply_effects_and_accessibility.
-    let config_reload_cell: config::ConfigReloadCell = Arc::new(std::sync::Mutex::new(None));
-    let watcher_cell = Arc::clone(&config_reload_cell);
-    let (config, _config_store) = config::load_and_watch(&cli.config, move |new_config| {
-        tracing::info!("config reloaded — effects/accessibility re-apply next frame");
-        *watcher_cell.lock().unwrap() = Some(new_config.clone());
+    // Hot-reload hand-off (M4 stage 2): the watch callback is a
+    // dirty flag, nothing more — the shikumi store stays alive as
+    // the single config source. Each render loop polls the flag per
+    // frame through ux::ConfigHotReload, which diffs old→new into a
+    // typed SetterCall list and runs ONLY the changed renderer
+    // setters (theme / font / cursor / padding / effects). The M3
+    // park-a-config cell this replaces re-applied effects only.
+    let config_dirty = Arc::new(AtomicBool::new(false));
+    let watcher_dirty = Arc::clone(&config_dirty);
+    let (config, config_store) = config::load_and_watch(&cli.config, move |_new_config| {
+        tracing::info!("config reloaded — typed setter delta applies next frame");
+        watcher_dirty.store(true, Ordering::Release);
     })?;
+    let config_reload_source =
+        crate::ux::ConfigReloadSource::new(Arc::new(config_store), config_dirty);
     crate::perf::log_phase("config_loaded");
 
     // Embedded vigy reconciler runtime — gated by `vigy.enabled`
@@ -577,11 +580,9 @@ fn main() -> anyhow::Result<()> {
         .expect("spawn kanshou thread");
     crate::perf::log_phase("kanshou_started");
 
-    // Apply active profile if set
-    let config = match &config.active_profile {
-        Some(name) => config.with_profile(name),
-        None => config,
-    };
+    // Apply active profile if set — same resolution the hot-reload
+    // source performs on every reload (config.rs::with_active_profile).
+    let config = config.with_active_profile();
 
     tracing::debug!("mado starting with config: {:?}", config);
     tracing::info!(
@@ -626,7 +627,7 @@ fn main() -> anyhow::Result<()> {
         config.clone(),
         shell.clone(),
         std::sync::Arc::clone(&kanshou_state),
-        Some(Arc::clone(&config_reload_cell)),
+        Some(config_reload_source.clone()),
     ) {
         gui_tear_attach::TearDefaultOutcome::Ran => return Ok(()),
         gui_tear_attach::TearDefaultOutcome::Error(e) => return Err(e),
@@ -707,10 +708,10 @@ fn main() -> anyhow::Result<()> {
     // accessibility.colorblind alias via MadoConfig::resolved_effects),
     // reduce_motion gating, bold_is_bright, and the snow/crt/
     // scanlines/bloom/glow knobs — through the ONE application point
-    // shared with gui_tear_attach and the hot-reload drain, so the
-    // two entry points cannot diverge (M3 review 2026-06-12).
+    // shared with gui_tear_attach, so the two entry points cannot
+    // diverge (M3 review 2026-06-12). Hot-reload re-application
+    // happens via the per-frame ConfigHotReload poll below.
     renderer.apply_effects_and_accessibility(&config);
-    renderer.set_config_reload_cell(Arc::clone(&config_reload_cell));
 
     // Selection/search/dir-picker renderer hooks are wired by
     // InputEngine::attach_to_renderer below — the engine is the only
@@ -772,6 +773,12 @@ fn main() -> anyhow::Result<()> {
     // redraw until a window actually exists. Every axis is operator-
     // configurable: `window.macos.*` + `appearance.background`.
     let mut native_styling = crate::platform::NativeStylingLatch::from_config(&config);
+    // Watched-config delta driver (M4 stage 2) — seeded with the
+    // boot config so the first reload diffs against what this
+    // renderer was actually built from. Polled once per frame in
+    // the RedrawRequested arm.
+    let mut hot_reload =
+        crate::ux::ConfigHotReload::new(config_reload_source, config.clone());
 
     // ── M1 unified input/UX engine ───────────────────────────────
     // Every UX capability (selection, copy/paste, search + dir-picker
@@ -885,6 +892,11 @@ fn main() -> anyhow::Result<()> {
                     // window exists — the first redraws can tick before
                     // AppKit registers the window.
                     native_styling.tick();
+                    // Watched-config edits: poll the dirty flag and
+                    // apply the typed setter delta (M4 stage 2) —
+                    // BEFORE this frame's render reads the config-
+                    // derived state.
+                    hot_reload.poll_config_reload(renderer);
                     // PTY-grid ⇄ display reconciler — engine-owned
                     // latch over the rendered-surface signature (same
                     // contract as the tear path).

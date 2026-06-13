@@ -71,6 +71,10 @@ const REQUIRED_BOTH: &[&str] = &[
     // M4: ONE drain + ONE shared consumer per adapter frame.
     ".drain_side_effects(",
     "apply_side_effects(",
+    // M4 stage 2: ONE watched-config delta driver per adapter frame
+    // (ux::ConfigHotReload) — a loop that stops polling silently
+    // regresses to boot-time-only config.
+    ".poll_config_reload(",
 ];
 
 #[test]

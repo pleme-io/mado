@@ -112,7 +112,12 @@ pub struct MadoVigyConfig {
 /// `accessibility.reduce_motion` gates the animated effects
 /// (`glow_on_bell`, `snow`) to zero nodes regardless of their
 /// `enabled` knobs.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+///
+/// `PartialEq` (here + every per-effect struct below) is
+/// load-bearing for hot-reload: `ux::config_apply::diff` compares
+/// the resolved effects section value-wise so an unchanged section
+/// emits zero `set_effects_config` calls.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct MadoEffectsConfig {
     #[serde(default)]
     pub snow: MadoSnowConfig,
@@ -135,7 +140,7 @@ pub struct MadoEffectsConfig {
 /// resolved in [`MadoConfig::resolved_effects`], the single point
 /// every renderer ingress (both entry points + hot-reload) flows
 /// through.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct MadoColorblindConfig {
     #[serde(default)]
     pub mode: ColorblindMode,
@@ -143,7 +148,7 @@ pub struct MadoColorblindConfig {
 
 /// CRT-look effect knobs — defaults mirror the engawa catalog's
 /// `CrtParams::default()` (the tuned reference values).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MadoCrtConfig {
     #[serde(default)]
     pub enabled: bool,
@@ -175,7 +180,7 @@ impl Default for MadoCrtConfig {
 
 /// Scanlines effect knobs — defaults mirror the catalog's
 /// `ScanlinesParams::default()`.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MadoScanlinesConfig {
     #[serde(default)]
     pub enabled: bool,
@@ -202,7 +207,7 @@ impl Default for MadoScanlinesConfig {
 
 /// Bloom effect knobs — defaults mirror the catalog's
 /// `BloomParams::default()`.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MadoBloomConfig {
     #[serde(default)]
     pub enabled: bool,
@@ -234,7 +239,7 @@ impl Default for MadoBloomConfig {
 
 /// Glow-on-bell effect knobs — the BEL-driven cursor glow.
 /// Gated to zero nodes by `accessibility.reduce_motion`.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MadoGlowOnBellConfig {
     #[serde(default)]
     pub enabled: bool,
@@ -254,7 +259,7 @@ impl Default for MadoGlowOnBellConfig {
 /// Snow overlay knobs. Mirrors the engawa catalog `SnowParams` but only
 /// the operator-facing dials; runtime state (time, cursor,
 /// typing_pulse, accumulation drift) is mado-managed.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MadoSnowConfig {
     /// Master enable. Default `true` — snow is the flagship
     /// effect.
@@ -1224,6 +1229,19 @@ fn default_quick_terminal_animation_ms() -> u64 {
 }
 
 impl MadoConfig {
+    /// Resolve `active_profile`, if set — the ONE profile-application
+    /// point shared by boot (`main.rs`) and hot-reload
+    /// (`ux::config_apply::ConfigReloadSource::take_if_dirty`), so a
+    /// watched-config edit sees the same effective config the boot
+    /// path would have produced.
+    #[must_use]
+    pub fn with_active_profile(&self) -> Self {
+        match &self.active_profile {
+            Some(name) => self.with_profile(name),
+            None => self.clone(),
+        }
+    }
+
     /// Apply a named profile's overrides to this config.
     /// Returns a new config with the profile's values merged in.
     #[must_use]
@@ -1841,10 +1859,11 @@ pub fn load(override_path: &Option<PathBuf>) -> anyhow::Result<MadoConfig> {
     Ok(MadoConfig::clone(&store.get()))
 }
 
-/// Hand-off cell between the shikumi watch callback (writer) and the
-/// renderer's frame-start drain (reader). One per process; both
-/// entry points connect their renderer to the same cell.
-pub type ConfigReloadCell = std::sync::Arc<std::sync::Mutex<Option<MadoConfig>>>;
+// The M3 `ConfigReloadCell` (watch callback parks a full config,
+// renderer drains it) was DELETED at M4 stage 2: hot-reload now
+// flows watcher → dirty flag → per-frame
+// `ux::ConfigHotReload::poll_config_reload` → typed `SetterCall`
+// delta against the renderer. One mechanism, both entry points.
 
 /// Load configuration with hot-reload watching.
 /// Returns the initial config and a store that automatically reloads on file change.

@@ -17,6 +17,7 @@
 //! structural invariant is pinned by `tests/ux_unification.rs`.
 
 pub mod behavior;
+pub mod config_apply;
 pub mod engine;
 pub mod font_zoom;
 pub mod modes;
@@ -26,6 +27,7 @@ pub mod side_effects;
 pub mod sinks;
 
 pub use behavior::UxBehavior;
+pub use config_apply::{ConfigApplier, ConfigHotReload, ConfigReloadSource};
 pub use engine::{ActionOutcome, InputEngine, InputEngineParams, SharedUxState};
 pub use font_zoom::FontZoomTarget;
 pub use outcome::EventOutcome;

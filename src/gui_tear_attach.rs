@@ -101,7 +101,7 @@ pub fn try_run_default(
     config: MadoConfig,
     shell: String,
     kanshou_state: std::sync::Arc<crate::kanshou_state::MadoAppState>,
-    reload_cell: Option<crate::config::ConfigReloadCell>,
+    reload: Option<crate::ux::ConfigReloadSource>,
 ) -> TearDefaultOutcome {
     if matches!(config.tear.mode, TearMode::Never) {
         return TearDefaultOutcome::Unavailable;
@@ -114,7 +114,7 @@ pub fn try_run_default(
     // need the daemon; embedded is for the default
     // single-window case the operator opens 99% of the time.
     if matches!(config.tear.runtime, TearRuntime::Embedded) {
-        return try_run_default_embedded(config, shell, kanshou_state, reload_cell);
+        return try_run_default_embedded(config, shell, kanshou_state, reload);
     }
     // Daemon path keeps a handle on the kanshou-published injection
     // queue so `simulate_chord` works in both tear runtimes.
@@ -231,7 +231,7 @@ pub fn try_run_default(
         socket_path,
         config,
         Some(injected),
-        reload_cell,
+        reload,
     ) {
         Ok(()) => TearDefaultOutcome::Ran,
         Err(e) => TearDefaultOutcome::Error(e),
@@ -266,7 +266,7 @@ fn run_against_pane_unified<P, C>(
     owned_session_id: Option<tear_types::SessionId>,
     title_kind: &str,
     injected: Option<crate::action_injection::InjectedActions>,
-    reload_cell: Option<crate::config::ConfigReloadCell>,
+    reload: Option<crate::ux::ConfigReloadSource>,
 ) -> Result<()>
 where
     P: engate_attach::Producer<
@@ -319,9 +319,12 @@ where
     // effect gating, and bold_is_bright were all dead in tear-attach
     // windows while working in local-PTY ones.
     renderer.apply_effects_and_accessibility(&config);
-    if let Some(cell) = reload_cell {
-        renderer.set_config_reload_cell(cell);
-    }
+    // Watched-config delta driver (M4 stage 2) — same shared
+    // ux::ConfigHotReload the local-PTY loop polls; None on the CLI
+    // `mado tear-attach` path, which loads config one-shot and runs
+    // no watcher.
+    let mut hot_reload = reload
+        .map(|src| crate::ux::ConfigHotReload::new(src, config.clone()));
 
     // engate typed Attach lifecycle — same shape both backends.
     // The TerminalSink writeback path closes the DSR/DA/OSC query
@@ -551,6 +554,13 @@ where
             // answers, mouse clamps) and tear's PaneGrid+PTY — the
             // mirror half was missing entirely in tear mode.
             engine.on_redraw_tick(renderer);
+            // ── Watched-config delta (M4 stage 2) ────────────────
+            // Same per-frame poll the local-PTY adapter runs: dirty
+            // flag → typed SetterCall diff → only the changed
+            // renderer setters fire.
+            if let Some(hr) = hot_reload.as_mut() {
+                hr.poll_config_reload(renderer);
+            }
             // ── Terminal side effects (M4 drain) ─────────────────
             // ONE typed drain + ONE shared consumer — parity with
             // main.rs by construction now (tests/ux_unification.rs
@@ -699,7 +709,7 @@ fn try_run_default_embedded(
     config: MadoConfig,
     shell: String,
     kanshou_state: std::sync::Arc<crate::kanshou_state::MadoAppState>,
-    reload_cell: Option<crate::config::ConfigReloadCell>,
+    reload: Option<crate::ux::ConfigReloadSource>,
 ) -> TearDefaultOutcome {
     use std::sync::Arc;
     use tear_core::InProcess;
@@ -766,7 +776,7 @@ fn try_run_default_embedded(
         pane_id,
         config,
         Some(kanshou_state.injected.clone()),
-        reload_cell,
+        reload,
     ) {
         Ok(()) => TearDefaultOutcome::Ran,
         Err(e) => TearDefaultOutcome::Error(e),
@@ -782,7 +792,7 @@ fn run_against_embedded_pane(
     pane_id: PaneId,
     config: MadoConfig,
     injected: Option<crate::action_injection::InjectedActions>,
-    reload_cell: Option<crate::config::ConfigReloadCell>,
+    reload: Option<crate::ux::ConfigReloadSource>,
 ) -> Result<()> {
     let snapshot = inproc
         .pane_snapshot(pane_id)
@@ -799,7 +809,7 @@ fn run_against_embedded_pane(
         None, // embedded session dies with mado; no reap needed
         "tear[embedded]",
         injected,
-        reload_cell,
+        reload,
     )
 }
 
@@ -855,7 +865,7 @@ fn run_against_pane(
     _socket_path: PathBuf,
     config: MadoConfig,
     injected: Option<crate::action_injection::InjectedActions>,
-    reload_cell: Option<crate::config::ConfigReloadCell>,
+    reload: Option<crate::ux::ConfigReloadSource>,
 ) -> Result<()> {
     let snapshot = client
         .pane_snapshot(pane_id)
@@ -872,7 +882,7 @@ fn run_against_pane(
         owned_session_id,
         "tear",
         injected,
-        reload_cell,
+        reload,
     )
 }
 

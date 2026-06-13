@@ -844,6 +844,9 @@ pub struct TerminalRenderer {
     font_symbols: String,
     cell_width: f32,
     cell_height: f32,
+    // Logical padding — live-reloadable (M4 stage 2). Draw offsets
+    // read `padding_px()` per frame, so assign + repaint suffices.
+    #[invalidating_setter]
     padding: f32,
     bg_color: wgpu::Color,
     fg_color: Color,
@@ -874,8 +877,15 @@ pub struct TerminalRenderer {
     #[invalidating_setter]
     bold_is_bright: bool,
     last_seqno: u64,
+    // Cursor presentation + blink clock — live-reloadable via the
+    // derive-generated setters (M4 stage 2 config delta-apply);
+    // assign + repaint is the whole contract, same as the other
+    // #[invalidating_setter] fields.
+    #[invalidating_setter]
     cursor_style: CursorStyle,
+    #[invalidating_setter]
     cursor_blink: bool,
+    #[invalidating_setter]
     cursor_blink_rate_ms: u32,
     metrics_measured: bool,
     /// Bell visual flash — remaining frames to show.
@@ -952,14 +962,10 @@ pub struct TerminalRenderer {
     /// Host-side glow-on-bell state — BEL saturates the clock,
     /// per-frame decay drains it.
     glow_state: GlowState,
-    /// Hot-reload seam (M3 review 2026-06-12): the shikumi watch
-    /// callback parks the freshest reloaded config here; `render()`
-    /// drains it at frame start and re-applies the effects +
-    /// accessibility surface via the single application point
-    /// [`Self::apply_effects_and_accessibility`]. Without this the
-    /// watcher advertised liveness (reload log fired) while every
-    /// `effects.*` edit was silently boot-time-only.
-    pending_config_reload: Arc<Mutex<Option<crate::config::MadoConfig>>>,
+    // The M3 `pending_config_reload` cell was DELETED at M4 stage 2:
+    // hot-reload now runs through `ux::ConfigHotReload` in BOTH
+    // event-loop adapters (dirty flag → typed SetterCall delta), so
+    // the renderer holds no reload state of its own.
 }
 
 /// Host-side snow animation state (M3 Stream D). Everything
@@ -1103,7 +1109,6 @@ impl TerminalRenderer {
             effects_config: crate::config::MadoEffectsConfig::default(),
             snow_state: SnowState::new(),
             glow_state: GlowState::new(),
-            pending_config_reload: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -1121,24 +1126,10 @@ impl TerminalRenderer {
         self.set_effects_config(config.resolved_effects());
     }
 
-    /// Connect the shared cell the config watcher writes reloaded
-    /// configs into; drained at frame start by
-    /// [`Self::drain_config_reload`]. Both entry points call this
-    /// with the one cell `main()` handed the shikumi watcher.
-    pub fn set_config_reload_cell(&mut self, cell: crate::config::ConfigReloadCell) {
-        self.pending_config_reload = cell;
-    }
-
-    /// Apply the freshest hot-reloaded config, if any. Called once
-    /// per frame; `set_effects_config`'s seqno reset forces the
-    /// repaint, and the `FrameGraphCache` keying on `EffectSet` makes a
-    /// live toggle one recompile, not a per-frame cost.
-    fn drain_config_reload(&mut self) {
-        let pending = self.pending_config_reload.lock().unwrap().take();
-        if let Some(config) = pending {
-            self.apply_effects_and_accessibility(&config);
-        }
-    }
+    // set_config_reload_cell / drain_config_reload DELETED at M4
+    // stage 2 — the adapters poll `ux::ConfigHotReload` per frame
+    // and apply a typed SetterCall delta instead; the renderer no
+    // longer owns any reload plumbing.
 
     /// Override the post-effect config. Effect toggles take effect
     /// on the next frame (the graph cache key is derived per frame);
@@ -3220,9 +3211,10 @@ impl RenderCallback for TerminalRenderer {
         // level is disabled (default), so this is free in normal runs.
         let frame_start = Instant::now();
 
-        // Hot-reload drain — apply the freshest watched-config edit
-        // before the effect set / graph key derivation reads it.
-        self.drain_config_reload();
+        // Watched-config edits apply BEFORE render: both adapters
+        // poll `ux::ConfigHotReload::poll_config_reload` at frame
+        // start (the setter delta lands ahead of the effect-set /
+        // graph-key derivation this frame performs).
 
         // Pull the live HiDPI scale factor in first. If it changed, the
         // setter clears `metrics_measured` so `measure_cell_metrics`
@@ -4786,41 +4778,46 @@ mod render_invariants {
         );
     }
 
-    /// Hot-reload drain (M3 review 2026-06-12): a watched-config
-    /// edit parked in the reload cell is consumed at frame start and
-    /// re-applied through the single application point — before this
-    /// seam existed, the watcher logged "config reloaded" while
-    /// every effects edit was silently boot-time-only.
+    /// Hot-reload application (M4 stage 2, succeeding the M3 cell
+    /// drain): a watched-config edit reaches the renderer through
+    /// `ux::config_apply::ConfigApplier`'s typed setter delta — the
+    /// effects section still flows through `resolved_effects()` →
+    /// `set_effects_config` (the single resolution point + single
+    /// ingress the M3 review established), and the alias keeps
+    /// resolving on reload.
     #[test]
-    fn config_reload_drain_applies_parked_effects_edit() {
+    fn config_applier_delta_reaches_renderer_effects_surface() {
         use engawa_wgpu::catalog::CatalogEffect;
         let (mut r, _t) = harness(10, 2);
         assert!(r.enabled_effect_set().is_empty());
 
-        let cell: crate::config::ConfigReloadCell =
-            Arc::new(Mutex::new(None));
-        r.set_config_reload_cell(Arc::clone(&cell));
-        let mut config = crate::config::MadoConfig::default();
-        config.effects.crt.enabled = true;
-        config.effects.colorblind.mode = ColorblindMode::Protanopia;
-        *cell.lock().unwrap() = Some(config);
+        let boot = crate::config::MadoConfig::default();
+        let mut applier = crate::ux::ConfigApplier::new(boot.clone());
 
-        r.drain_config_reload();
+        let mut edited = boot.clone();
+        edited.effects.crt.enabled = true;
+        edited.accessibility.colorblind = ColorblindMode::Protanopia;
+        edited.effects.snow.enabled = true;
+        edited.accessibility.reduce_motion = true;
+        assert!(applier.apply_delta(&edited, &mut r) > 0);
+
         let set = r.enabled_effect_set();
         assert!(set.contains(CatalogEffect::Crt), "reloaded crt toggle must apply");
         assert!(
             set.contains(CatalogEffect::Colorblind),
-            "reloaded colorblind mode must apply"
+            "legacy accessibility.colorblind alias must resolve on reload"
         );
         assert!(
-            cell.lock().unwrap().is_none(),
-            "drain must consume the parked config"
+            !set.contains(CatalogEffect::Snow),
+            "reduce_motion (applied BEFORE the effect set) must gate snow"
         );
-        // Empty cell drains are a no-op, not a reset.
-        r.drain_config_reload();
+
+        // Re-applying the identical config is a zero-call no-op —
+        // nothing resets, nothing repaints.
+        assert_eq!(applier.apply_delta(&edited, &mut r), 0);
         assert!(
             r.enabled_effect_set().contains(CatalogEffect::Crt),
-            "empty drain must not clear applied effects"
+            "no-op delta must not clear applied effects"
         );
     }
 
