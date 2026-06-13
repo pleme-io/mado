@@ -2656,6 +2656,43 @@ window:
         assert_eq!(applied.theme, "dracula");
     }
 
+    /// mechanical-audit-0 (review 2026-06-12): a profile whose `window`
+    /// block flips `inherit_working_directory` must resolve through
+    /// `with_active_profile()` — the single resolution point the GUI,
+    /// hot-reload, AND `mado mcp` all share. `with_profile` replaces
+    /// `config.window` wholesale when the profile sets a window block,
+    /// so a config carrying the profile but NOT resolving it drops the
+    /// knob. This pins that the resolution honors it.
+    #[test]
+    fn active_profile_window_block_resolves_inherit_cwd() {
+        let mut profiles = HashMap::new();
+        profiles.insert(
+            "inherit".to_string(),
+            ProfileConfig {
+                window: Some(WindowConfig {
+                    inherit_working_directory: true,
+                    ..WindowConfig::default()
+                }),
+                ..ProfileConfig::default()
+            },
+        );
+        // Base config has the knob OFF; the active profile flips it ON.
+        let mut base = MadoConfig {
+            profiles,
+            active_profile: Some("inherit".into()),
+            ..MadoConfig::default()
+        };
+        base.window.inherit_working_directory = false;
+        // UNRESOLVED config still reads the base value (the bug).
+        assert!(!base.window.inherit_working_directory);
+        // RESOLVED through the shared point the MCP path now uses.
+        let resolved = base.with_active_profile();
+        assert!(
+            resolved.window.inherit_working_directory,
+            "active profile's window block must flip the knob via with_active_profile"
+        );
+    }
+
     #[test]
     fn test_with_profile_nonexistent_returns_clone() {
         let config = MadoConfig::default();

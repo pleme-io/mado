@@ -297,6 +297,19 @@ impl GridSnapshot {
     }
 }
 
+/// The monotonic spawn sequence parsed out of a session id's numeric
+/// suffix (`mado-session-<n>` → `n`). Both the "most-recent" ordering
+/// in [`SessionRegistry::list`] and the focused-session pick in
+/// [`SessionRegistry::focused_cwd`] order by this — one definition so
+/// the two can never diverge into a silent focus mismatch (review
+/// 2026-06-12, mechanical-audit-1). Unparseable ids sort as `0`.
+fn session_seq(id: &str) -> u64 {
+    id.rsplit('-')
+        .next()
+        .and_then(|n| n.parse::<u64>().ok())
+        .unwrap_or(0)
+}
+
 /// Typed registry of live headless sessions.
 ///
 /// One process owns one registry; the MCP tools read/write via a
@@ -457,12 +470,7 @@ impl SessionRegistry {
         let guard = self.inner.lock().expect("registry lock poisoned");
         guard
             .values()
-            .max_by_key(|s| {
-                s.id.rsplit('-')
-                    .next()
-                    .and_then(|n| n.parse::<u64>().ok())
-                    .unwrap_or(0)
-            })
+            .max_by_key(|s| session_seq(&s.id))
             .and_then(|s| s.terminal.read().cwd().map(str::to_owned))
     }
 
@@ -497,12 +505,9 @@ impl SessionRegistry {
                 }
             })
             .collect();
-        // Most-recent-first: parse the numeric suffix and sort descending.
-        summaries.sort_by(|a, b| {
-            let an = a.id.rsplit('-').next().and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
-            let bn = b.id.rsplit('-').next().and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
-            bn.cmp(&an)
-        });
+        // Most-recent-first: order by the shared spawn-sequence helper,
+        // descending — identical ordering to `focused_cwd`'s pick.
+        summaries.sort_by(|a, b| session_seq(&b.id).cmp(&session_seq(&a.id)));
         summaries
     }
 

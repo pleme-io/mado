@@ -355,7 +355,18 @@ fn main() -> anyhow::Result<()> {
             // future MCP-path knobs) honour `vigy.enabled`. The MCP
             // path doesn't use the watched ConfigStore — vigy + tools
             // bind at boot and never reload.
-            let mcp_config = config::load(&cli.config).unwrap_or_default();
+            //
+            // `.with_active_profile()` matches the GUI (main.rs ~585)
+            // and hot-reload resolution: a profile that flips
+            // `window.inherit_working_directory` (or `vigy.enabled`)
+            // must be honoured by `mado mcp` identically, not dropped
+            // (review 2026-06-12, mechanical-audit-0). `with_profile`
+            // replaces `config.window` wholesale when the profile sets
+            // a window block, so without this the new inherit-cwd knob
+            // is GUI-only.
+            let mcp_config = config::load(&cli.config)
+                .unwrap_or_default()
+                .with_active_profile();
             let rt = shidou::create_runtime()?;
             rt.block_on(async {
                 if mcp_config.vigy.enabled {

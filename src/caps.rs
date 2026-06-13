@@ -42,6 +42,18 @@ pub const STYLED_UNDERLINE_IMPLEMENTED: bool = true;
 /// have been the same lie `styled_underline` once was. The honesty probe is
 /// the DA1 reply: a sixel-capable DA1 carries `4` (`CSI ?62;4;22c`), so the
 /// [`CAP_PROBES`] Query row below feeds `CSI c` and requires `;4;` back.
+///
+/// SCOPE (honest, review 2026-06-12, correctness-0): the image RENDERS
+/// correctly, but the cursor STAYS PUT after a sixel — mado does not
+/// implement sixel-scrolling cursor advance. xterm/foot move the cursor
+/// down by `ceil(image_height_px / cell_height_px)` rows; doing that
+/// here requires the cell-height-in-pixels, which is renderer-owned and
+/// lazily measured — the VT engine (`terminal.rs`) deliberately holds
+/// CHARACTER dimensions only (see the `CSI 14/16 t` carve-out), so text
+/// emitted immediately after a sixel can overdraw the image's cell rows.
+/// Advertised capability = "the image decodes + draws", not "cursor
+/// re-flows below it". Threading cell-pixel metrics down is the deferred
+/// follow-up that closes this gap.
 pub const SIXEL_GRAPHICS_IMPLEMENTED: bool = true;
 
 /// Typed capability record. One field per advertise-able VT capability,

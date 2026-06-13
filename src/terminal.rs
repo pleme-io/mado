@@ -4158,6 +4158,13 @@ impl Terminal {
     /// decoded image at the current cursor. The sixel path has no Kitty
     /// `c=`/`r=`/`z=` params, so every geometry field defaults — the
     /// render derives display size from the texture dimensions.
+    ///
+    /// The cursor is NOT advanced past the image (no sixel-scrolling).
+    /// Converting image-height-px to rows needs cell-height-in-px, which
+    /// is renderer-owned and not threaded into this VT engine — so text
+    /// emitted right after a sixel can overdraw it. Scope documented at
+    /// `caps::SIXEL_GRAPHICS_IMPLEMENTED` (review 2026-06-12,
+    /// correctness-0).
     fn place_decoded_image_at_cursor(&mut self, image_id: u32) {
         self.image_placements.push(ImagePlacement {
             image_id,
