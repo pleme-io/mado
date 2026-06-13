@@ -365,7 +365,7 @@ fn main() -> anyhow::Result<()> {
                 } else {
                     tracing::debug!("vigy disabled in config (vigy.enabled = false)");
                 }
-                mcp::run().await
+                mcp::run(mcp_config).await
             })
             .map_err(|e| anyhow::anyhow!("MCP server error: {e}"))?;
             return Ok(());
@@ -637,7 +637,11 @@ fn main() -> anyhow::Result<()> {
     }
 
     let extra_env = config.environment.vars.clone();
-    let working_directory = config.environment.working_directory.clone();
+    // window.inherit_working_directory resolution (M4 stage 2):
+    // explicit environment.working_directory wins; knob on → None
+    // (the PTY child inherits mado's process cwd = launch-shell
+    // dir); knob off → $HOME. See MadoConfig::boot_spawn_cwd.
+    let working_directory = config.boot_spawn_cwd();
     let initial_command = config.environment.initial_command.clone();
 
     let effective_font_size = config.font_size * config.accessibility.font_scale;

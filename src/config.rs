@@ -1291,6 +1291,35 @@ impl MadoConfig {
         config
     }
 
+    /// Boot-time spawn directory — `window.inherit_working_directory`
+    /// resolved for the FIRST session (local-PTY `single_pane::spawn`
+    /// and the embedded-tear `new_session`), where the inheritance
+    /// source is mado's own process cwd (the shell mado was launched
+    /// from). Precedence, fixed:
+    ///
+    /// 1. `environment.working_directory` — an explicit operator
+    ///    pin always wins.
+    /// 2. Knob on → `None`: the child inherits mado's process cwd
+    ///    (launch-shell directory) — the inheriting behavior.
+    /// 3. Knob off → `$HOME`: the session starts at the neutral
+    ///    default instead of wherever mado happened to be launched.
+    ///    `$HOME` unset (degenerate env) falls back to `None`.
+    ///
+    /// Post-boot session spawns inherit from the FOCUSED terminal's
+    /// OSC-7 cwd instead — see `TermSpec::with_inherited_cwd` +
+    /// `SessionRegistry::focused_cwd`.
+    #[must_use]
+    pub fn boot_spawn_cwd(&self) -> Option<PathBuf> {
+        if let Some(wd) = &self.environment.working_directory {
+            return Some(wd.clone());
+        }
+        if self.window.inherit_working_directory {
+            None
+        } else {
+            std::env::var_os("HOME").map(PathBuf::from)
+        }
+    }
+
     /// The effects section with the legacy `accessibility.colorblind`
     /// deprecation alias RESOLVED into `effects.colorblind.mode`
     /// (the effects-section mode wins; the alias applies only when
@@ -3169,6 +3198,41 @@ active_profile: "dark"
         assert!(w.inherit_working_directory);
         assert!(w.inherit_font_size);
         assert!(w.padding_balance);
+    }
+
+    /// `window.inherit_working_directory` is LIVE (M4 stage 2) —
+    /// boot_spawn_cwd is the knob's boot-time consumer, and every
+    /// (knob, explicit-wd) combination resolves per the documented
+    /// precedence. This is the dead-knob invariant for this field:
+    /// the knob's tier values (bare=false, prescribed=true) are
+    /// asserted in the tier tests above; THIS pins that flipping it
+    /// changes behavior.
+    #[test]
+    fn inherit_working_directory_resolves_boot_spawn_cwd() {
+        let home = std::env::var_os("HOME").map(PathBuf::from);
+        let pin = PathBuf::from("/pinned/workdir");
+        let mut failures = Vec::new();
+        let rows: &[(bool, Option<PathBuf>, Option<PathBuf>, &str)] = &[
+            (true, None, None, "knob on → None (inherit mado's process cwd)"),
+            (false, None, home.clone(), "knob off → $HOME neutral default"),
+            (true, Some(pin.clone()), Some(pin.clone()), "explicit wd beats knob on"),
+            (false, Some(pin.clone()), Some(pin.clone()), "explicit wd beats knob off"),
+        ];
+        for (knob, wd, expected, why) in rows {
+            let mut config = MadoConfig::default();
+            config.window.inherit_working_directory = *knob;
+            config.environment.working_directory.clone_from(wd);
+            let got = config.boot_spawn_cwd();
+            if got != *expected {
+                failures.push(format!("{why}: got {got:?}, want {expected:?}"));
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "{} boot_spawn_cwd rows failed:\n  - {}",
+            failures.len(),
+            failures.join("\n  - ")
+        );
     }
 
     #[test]

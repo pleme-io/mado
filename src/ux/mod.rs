@@ -27,7 +27,10 @@ pub mod side_effects;
 pub mod sinks;
 
 pub use behavior::UxBehavior;
-pub use config_apply::{ConfigApplier, ConfigHotReload, ConfigReloadSource};
+// ConfigApplier itself is consumed via the full path
+// (`ux::config_apply::ConfigApplier`) — only the loop-facing pair is
+// re-exported (a binary crate warns on unused pub re-exports).
+pub use config_apply::{ConfigHotReload, ConfigReloadSource};
 pub use engine::{ActionOutcome, InputEngine, InputEngineParams, SharedUxState};
 pub use font_zoom::FontZoomTarget;
 pub use outcome::EventOutcome;

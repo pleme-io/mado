@@ -263,6 +263,12 @@ struct SharedState {
     user_marks: SharedUserMarks,
     attention: SharedAttention,
     sessions: SharedSessions,
+    /// The config this MCP server booted with — read by tools whose
+    /// behavior is operator-configurable (today:
+    /// `window.inherit_working_directory` in `spawn_term`). One-shot
+    /// like the rest of the MCP path; the GUI's watcher does not
+    /// reach into this process.
+    config: Arc<crate::config::MadoConfig>,
 }
 
 impl Default for SharedState {
@@ -273,6 +279,7 @@ impl Default for SharedState {
             user_marks: Arc::new(Mutex::new(UserMarkHistory::default())),
             attention: Arc::new(Mutex::new(false)),
             sessions: Arc::new(SessionRegistry::default()),
+            config: Arc::new(crate::config::MadoConfig::default()),
         }
     }
 }
@@ -739,8 +746,22 @@ impl MadoMcp {
     // spec. The JSON schema advertised to clients is `TermSpec` — every
     // field has a default so the minimal payload is `{}`. This mirrors
     // the escriba-lisp `defterm` form authored in the rc.
-    #[tool(description = "Spawn a headless terminal session from a typed TermSpec. Fields: shell (default $SHELL → /bin/sh), args, cwd (~/ expands), env, title (derives from shell/cwd if empty), placement (advisory — headless ignores; future window mode honors), attach (existing session id), effects (shader names — visual only), cols/rows (default 80/24). Returns `{ok, session_id, title, shell, cols, rows}`. The new session is live: the reader pump is already pulling bytes from the PTY into the terminal state machine.")]
+
+    /// `window.inherit_working_directory` (M4 stage 2): a spec with
+    /// no explicit `cwd` inherits the focused session's OSC-7 cwd
+    /// when the knob is on. Composes the two typed seams —
+    /// [`SessionRegistry::focused_cwd`] (who is focused, what did
+    /// its shell report) and [`TermSpec::with_inherited_cwd`] (the
+    /// pure precedence) — so the tool handler stays one line.
+    fn spec_with_inherited_cwd(&self, spec: TermSpec) -> TermSpec {
+        spec.with_inherited_cwd(
+            self.state.config.window.inherit_working_directory,
+            self.state.sessions.focused_cwd(),
+        )
+    }
+    #[tool(description = "Spawn a headless terminal session from a typed TermSpec. Fields: shell (default $SHELL → /bin/sh), args, cwd (~/ expands; when empty AND window.inherit_working_directory is on, inherits the focused session's OSC-7 cwd), env, title (derives from shell/cwd if empty), placement (advisory — headless ignores; future window mode honors), attach (existing session id), effects (shader names — visual only), cols/rows (default 80/24). Returns `{ok, session_id, title, shell, cols, rows}`. The new session is live: the reader pump is already pulling bytes from the PTY into the terminal state machine.")]
     async fn spawn_term(&self, Parameters(spec): Parameters<TermSpec>) -> String {
+        let spec = self.spec_with_inherited_cwd(spec);
         match self.state.sessions.spawn(&spec).await {
             Ok(id) => {
                 let (cols, rows) = spec.resolved_dimensions();
@@ -1808,6 +1829,182 @@ mod tests {
         let _ = std::fs::create_dir_all(&dir);
         unsafe { std::env::set_var("KANSHOU_SOCKET_DIR", &dir) };
         MadoMcp::new()
+    }
+
+    /// Build a server whose boot config has
+    /// `window.inherit_working_directory` set as given — the
+    /// `spawn_term` cwd-inheritance gate.
+    fn new_server_with_inherit_cwd(inherit: bool) -> MadoMcp {
+        let _ = new_server(); // hermetic KANSHOU_SOCKET_DIR
+        let mut config = crate::config::MadoConfig::default();
+        config.window.inherit_working_directory = inherit;
+        MadoMcp::with_state(SharedState {
+            config: Arc::new(config),
+            ..SharedState::default()
+        })
+    }
+
+    /// `window.inherit_working_directory` × focused-cwd matrix over
+    /// the exact resolution `spawn_term` applies
+    /// (`spec_with_inherited_cwd`). The focused session's cwd is set
+    /// by feeding OSC 7 into its terminal — the same bytes a shell
+    /// emits.
+    #[tokio::test]
+    async fn spawn_term_cwd_inheritance_matrix() {
+        let spec = || TermSpec {
+            shell: "/bin/sh".into(),
+            cols: 20,
+            rows: 4,
+            ..TermSpec::default()
+        };
+        let mut failures = Vec::new();
+
+        // Row 1: knob on + focused session with an OSC-7 cwd → the
+        // empty-cwd spec picks it up; an explicit cwd still wins.
+        {
+            let server = new_server_with_inherit_cwd(true);
+            let id = server.state.sessions.spawn(&spec()).await.unwrap();
+            server
+                .state
+                .sessions
+                .get(&id)
+                .unwrap()
+                .terminal_arc()
+                .write()
+                .feed(b"\x1b]7;file://host/tmp/focused\x07");
+            let resolved = server.spec_with_inherited_cwd(spec());
+            if resolved.cwd != "/tmp/focused" {
+                failures.push(format!(
+                    "knob on + cwd set: want /tmp/focused, got {:?}",
+                    resolved.cwd
+                ));
+            }
+            let explicit = server.spec_with_inherited_cwd(TermSpec {
+                cwd: "/explicit".into(),
+                ..spec()
+            });
+            if explicit.cwd != "/explicit" {
+                failures.push(format!(
+                    "explicit cwd must win over inheritance, got {:?}",
+                    explicit.cwd
+                ));
+            }
+        }
+        // Row 2: knob off → the focused cwd is ignored.
+        {
+            let server = new_server_with_inherit_cwd(false);
+            let id = server.state.sessions.spawn(&spec()).await.unwrap();
+            server
+                .state
+                .sessions
+                .get(&id)
+                .unwrap()
+                .terminal_arc()
+                .write()
+                .feed(b"\x1b]7;file://host/tmp/focused\x07");
+            let resolved = server.spec_with_inherited_cwd(spec());
+            if !resolved.cwd.is_empty() {
+                failures.push(format!(
+                    "knob off: cwd must stay empty, got {:?}",
+                    resolved.cwd
+                ));
+            }
+        }
+        // Row 3: knob on but no session ever reported a cwd → falls
+        // back cleanly (empty = spawn default).
+        {
+            let server = new_server_with_inherit_cwd(true);
+            let _id = server.state.sessions.spawn(&spec()).await.unwrap();
+            let resolved = server.spec_with_inherited_cwd(spec());
+            if !resolved.cwd.is_empty() {
+                failures.push(format!(
+                    "no cwd known: must fall back to empty, got {:?}",
+                    resolved.cwd
+                ));
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "{} cwd-inheritance rows failed:\n  - {}",
+            failures.len(),
+            failures.join("\n  - ")
+        );
+    }
+
+    /// End-to-end: with the knob on, a `spawn_term({})` lands in the
+    /// focused session's OSC-7 directory — proven by the child's own
+    /// `pwd`, not by inspecting the spec.
+    #[tokio::test]
+    async fn spawn_term_inherits_cwd_end_to_end() {
+        // A stable physical path: OSC 7 reports what `pwd` will
+        // print, so the dir must survive the macOS /tmp →
+        // /private/tmp symlink. canonicalize() gives the physical
+        // form the shell reports.
+        let dir = std::fs::canonicalize(std::env::temp_dir())
+            .expect("canonical temp dir");
+        let dir_str = dir.to_str().expect("utf8 temp dir").to_owned();
+
+        let server = new_server_with_inherit_cwd(true);
+        let first = server
+            .state
+            .sessions
+            .spawn(&TermSpec {
+                shell: "/bin/sh".into(),
+                cols: 60,
+                rows: 6,
+                ..TermSpec::default()
+            })
+            .await
+            .unwrap();
+        {
+            let osc7 = [
+                b"\x1b]7;file://host".as_slice(),
+                dir_str.as_bytes(),
+                b"\x07",
+            ]
+            .concat();
+            server
+                .state
+                .sessions
+                .get(&first)
+                .unwrap()
+                .terminal_arc()
+                .write()
+                .feed(&osc7);
+        }
+
+        let raw = server
+            .spawn_term(Parameters(TermSpec {
+                shell: "/bin/sh".into(),
+                // Wide grid so the long canonical temp path can't
+                // soft-wrap across rows and defeat the contains().
+                cols: 200,
+                rows: 6,
+                ..TermSpec::default()
+            }))
+            .await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed["ok"], true, "spawn failed: {raw}");
+        let id = parsed["session_id"].as_str().unwrap().to_string();
+        let s = server.state.sessions.get(&id).unwrap();
+        s.send_input(b"PS1=''; echo \"MADO_CWD=$(pwd)\"\n")
+            .await
+            .unwrap();
+        let needle = [String::from("MADO_CWD="), dir_str.clone()].concat();
+        let mut seen = String::new();
+        let mut found = false;
+        for _ in 0..80 {
+            tokio::time::sleep(std::time::Duration::from_millis(25)).await;
+            seen = s.snapshot_grid().to_text();
+            if seen.contains(&needle) {
+                found = true;
+                break;
+            }
+        }
+        assert!(
+            found,
+            "child did not start in the inherited cwd; wanted {needle:?} in:\n{seen}"
+        );
     }
 
     #[tokio::test]
@@ -3844,8 +4041,17 @@ mod tests {
     }
 }
 
-pub async fn run() -> Result<(), Box<dyn std::error::Error>> {
-    let server = MadoMcp::new().serve(stdio()).await?;
+/// Serve MCP over stdio. `config` is the one-shot boot config the
+/// caller (main.rs `mado mcp` arm) already loaded — config-dependent
+/// tools (`spawn_term` cwd inheritance) read it through
+/// `SharedState::config`.
+pub async fn run(config: crate::config::MadoConfig) -> Result<(), Box<dyn std::error::Error>> {
+    let server = MadoMcp::with_state(SharedState {
+        config: Arc::new(config),
+        ..SharedState::default()
+    })
+    .serve(stdio())
+    .await?;
     server.waiting().await?;
     Ok(())
 }

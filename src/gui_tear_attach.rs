@@ -739,6 +739,28 @@ fn try_run_default_embedded(
         .floor() as u16)
         .max(1);
 
+    // window.inherit_working_directory threading (M4 stage 2). LAW:
+    // tear's MultiplexerControl carries NO cwd argument (rev
+    // b4730ef) — the embedded child PTY is spawned IN THIS PROCESS
+    // (portable_pty CommandBuilder without .cwd()), so the process
+    // cwd at new_session time IS the cwd channel. boot_spawn_cwd
+    // returns Some only when the operator pinned
+    // environment.working_directory or turned the knob OFF ($HOME);
+    // knob ON returns None and the launch-shell cwd flows through
+    // untouched. Replace this seam with a typed control-trait arg
+    // when tear grows one. (Daemon mode has no in-process seam: its
+    // children spawn in the DAEMON's cwd — same documented gap.)
+    if let Some(dir) = config.boot_spawn_cwd() {
+        if let Err(e) = std::env::set_current_dir(&dir) {
+            tracing::warn!(
+                dir = %dir.display(),
+                error = %e,
+                "boot spawn cwd unusable — embedded session inherits the process cwd instead"
+            );
+        } else {
+            tracing::info!(dir = %dir.display(), "embedded session spawn cwd set");
+        }
+    }
     let session_id = match inproc.new_session_with_source_and_size(
         &session_name,
         &shell,

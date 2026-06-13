@@ -4792,7 +4792,7 @@ mod render_invariants {
         assert!(r.enabled_effect_set().is_empty());
 
         let boot = crate::config::MadoConfig::default();
-        let mut applier = crate::ux::ConfigApplier::new(boot.clone());
+        let mut applier = crate::ux::config_apply::ConfigApplier::new(boot.clone());
 
         let mut edited = boot.clone();
         edited.effects.crt.enabled = true;

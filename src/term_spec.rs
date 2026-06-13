@@ -111,6 +111,30 @@ pub enum Placement {
 }
 
 impl TermSpec {
+    /// `window.inherit_working_directory` resolution (M4 stage 2) —
+    /// the pure half of "a new session opens where the focused one
+    /// is". Precedence, fixed:
+    ///
+    /// 1. An explicit `cwd` on the spec always wins (the client
+    ///    asked for a place; inheritance never overrides intent).
+    /// 2. Knob off → unchanged (the knob IS the gate).
+    /// 3. Knob on + a focused cwd known (OSC 7) → inherit it.
+    /// 4. No focused cwd known → unchanged (falls back to the
+    ///    spawn default exactly as before — never an error).
+    #[must_use]
+    pub fn with_inherited_cwd(
+        mut self,
+        inherit_enabled: bool,
+        focused_cwd: Option<String>,
+    ) -> Self {
+        if self.cwd.is_empty() && inherit_enabled {
+            if let Some(cwd) = focused_cwd {
+                self.cwd = cwd;
+            }
+        }
+        self
+    }
+
     /// Resolve the string `:placement` into a typed [`Placement`].
     /// Empty / unknown / "tab" all map to [`Placement::Tab`] via
     /// the canonical table so minimal specs still work. Thin wrapper
@@ -244,6 +268,39 @@ mod tests {
             ..Default::default()
         };
         assert_eq!(s.display_title(), "ship-rust");
+    }
+
+    #[test]
+    fn inherited_cwd_matrix() {
+        // (spec cwd, knob, focused cwd) → resulting cwd. One matrix,
+        // every row reported (house aggregation style).
+        let rows: &[(&str, bool, Option<&str>, &str, &str)] = &[
+            ("", true, Some("/tmp/proj"), "/tmp/proj", "knob on + focused cwd → inherit"),
+            ("", false, Some("/tmp/proj"), "", "knob off → ignore the focused cwd"),
+            ("", true, None, "", "no focused cwd known → fall back unchanged"),
+            ("", false, None, "", "knob off + nothing known → unchanged"),
+            ("/explicit", true, Some("/tmp/proj"), "/explicit", "explicit spec cwd beats inheritance"),
+            ("/explicit", false, None, "/explicit", "explicit spec cwd survives knob off"),
+        ];
+        let mut failures = Vec::new();
+        for (spec_cwd, knob, focused, expected, why) in rows {
+            let spec = TermSpec {
+                cwd: (*spec_cwd).to_string(),
+                ..Default::default()
+            };
+            let got = spec
+                .with_inherited_cwd(*knob, focused.map(str::to_owned))
+                .cwd;
+            if got != *expected {
+                failures.push(format!("{why}: got {got:?}, want {expected:?}"));
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "{} inherited-cwd rows failed:\n  - {}",
+            failures.len(),
+            failures.join("\n  - ")
+        );
     }
 
     #[test]

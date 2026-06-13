@@ -442,6 +442,30 @@ impl SessionRegistry {
         Ok(id)
     }
 
+    /// The focused session's working directory, as reported by the
+    /// shell via OSC 7 ([`Terminal::cwd`]). "Focused" in the headless
+    /// registry is the most recently spawned live session — the same
+    /// most-recent-first ordering [`Self::list`] presents (a headless
+    /// registry has no window-system focus to consult). `None` when
+    /// no session is live or the focused one never emitted OSC 7 —
+    /// callers fall back to their spawn default.
+    ///
+    /// Consumer: `spawn_term`'s `window.inherit_working_directory`
+    /// resolution ([`TermSpec::with_inherited_cwd`]).
+    #[must_use]
+    pub fn focused_cwd(&self) -> Option<String> {
+        let guard = self.inner.lock().expect("registry lock poisoned");
+        guard
+            .values()
+            .max_by_key(|s| {
+                s.id.rsplit('-')
+                    .next()
+                    .and_then(|n| n.parse::<u64>().ok())
+                    .unwrap_or(0)
+            })
+            .and_then(|s| s.terminal.read().cwd().map(str::to_owned))
+    }
+
     /// Fetch a session by id. Returns `None` if no such session.
     #[must_use]
     pub fn get(&self, id: &str) -> Option<Arc<Session>> {
@@ -620,6 +644,58 @@ mod tests {
         let ids: Vec<&str> = list.iter().map(|s| s.id.as_str()).collect();
         assert!(ids[0].ends_with("-3"));
         assert!(ids[2].ends_with("-1"));
+    }
+
+    /// `focused_cwd` reads the OSC-7-reported cwd of the most
+    /// recently spawned live session (the registry's notion of
+    /// focus). The OSC 7 bytes are fed straight into the session's
+    /// Terminal — the same path a real shell's
+    /// `printf '\e]7;file://host/dir\a'` takes through the reader
+    /// pump, minus the PTY round-trip flakiness.
+    #[tokio::test]
+    async fn focused_cwd_tracks_most_recent_sessions_osc7() {
+        let registry = Arc::new(SessionRegistry::default());
+        assert!(
+            registry.focused_cwd().is_none(),
+            "empty registry has no focused cwd"
+        );
+        let spec = TermSpec {
+            shell: "/bin/sh".into(),
+            cols: 20,
+            rows: 4,
+            ..TermSpec::default()
+        };
+        let a = registry.spawn(&spec).await.unwrap();
+        assert!(
+            registry.focused_cwd().is_none(),
+            "no OSC 7 emitted yet → fall back cleanly"
+        );
+        registry
+            .get(&a)
+            .unwrap()
+            .terminal_arc()
+            .write()
+            .feed(b"\x1b]7;file://host/tmp/proj-a\x07");
+        assert_eq!(registry.focused_cwd().as_deref(), Some("/tmp/proj-a"));
+
+        // A newer session takes focus — even before it reports a
+        // cwd, the OLDER session's cwd must no longer leak through.
+        let b = registry.spawn(&spec).await.unwrap();
+        assert!(
+            registry.focused_cwd().is_none(),
+            "focus moved to the new cwd-less session"
+        );
+        registry
+            .get(&b)
+            .unwrap()
+            .terminal_arc()
+            .write()
+            .feed(b"\x1b]7;file://host/tmp/proj-b\x07");
+        assert_eq!(registry.focused_cwd().as_deref(), Some("/tmp/proj-b"));
+
+        // Closing the focused session falls back to the previous one.
+        registry.close(&b).unwrap();
+        assert_eq!(registry.focused_cwd().as_deref(), Some("/tmp/proj-a"));
     }
 
     #[tokio::test]
