@@ -5267,6 +5267,7 @@ dependencies = [
 [[package]]
 name = "tear-client"
 version = "0.1.0"
+source = "git+https://github.com/pleme-io/tear?rev=e06f67f6ce59947af37c8f454cb1c49ae54ec1a1#e06f67f6ce59947af37c8f454cb1c49ae54ec1a1"
 dependencies = [
  "engate-attach",
  "engate-types",
@@ -5279,6 +5280,7 @@ dependencies = [
 [[package]]
 name = "tear-config"
 version = "0.1.0"
+source = "git+https://github.com/pleme-io/tear?rev=e06f67f6ce59947af37c8f454cb1c49ae54ec1a1#e06f67f6ce59947af37c8f454cb1c49ae54ec1a1"
 dependencies = [
  "anyhow",
  "arc-swap",
@@ -5296,6 +5298,7 @@ dependencies = [
 [[package]]
 name = "tear-core"
 version = "0.1.0"
+source = "git+https://github.com/pleme-io/tear?rev=e06f67f6ce59947af37c8f454cb1c49ae54ec1a1#e06f67f6ce59947af37c8f454cb1c49ae54ec1a1"
 dependencies = [
  "anyhow",
  "blake3",
@@ -5316,7 +5319,7 @@ dependencies = [
 [[package]]
 name = "tear-daemon"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear#b4730ef133e3eac3d553ff4fb1df5d8d22368881"
+source = "git+https://github.com/pleme-io/tear?rev=e06f67f6ce59947af37c8f454cb1c49ae54ec1a1#e06f67f6ce59947af37c8f454cb1c49ae54ec1a1"
 dependencies = [
  "anyhow",
  "blake3",
@@ -5335,6 +5338,7 @@ dependencies = [
 [[package]]
 name = "tear-types"
 version = "0.1.0"
+source = "git+https://github.com/pleme-io/tear?rev=e06f67f6ce59947af37c8f454cb1c49ae54ec1a1#e06f67f6ce59947af37c8f454cb1c49ae54ec1a1"
 dependencies = [
  "anyhow",
  "blake3",

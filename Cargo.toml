@@ -106,10 +106,17 @@ tsuuchi = { git = "https://github.com/pleme-io/tsuuchi" }
 # byte stream + stream it to stdout for now; future Phase 3.1
 # renders it in the GPU window). Phase 3 MVP of the mado⇄tear
 # de-overlap roadmap — see theory/MADO-TEAR-M5.md.
-tear-types = { git = "https://github.com/pleme-io/tear", features = ["engate"] }
-tear-core = { git = "https://github.com/pleme-io/tear", features = ["engate"] }
-tear-client = { git = "https://github.com/pleme-io/tear", features = ["engate"] }
-tear-config = { git = "https://github.com/pleme-io/tear" }
+# Pinned to the SpawnEnv-seam rev (tear `fix/spawn-env-seam`,
+# e06f67f) — the typed `tear_types::SpawnEnv` seam mado's
+# gui_tear_attach uses (`from_overrides` / `with_cwd` /
+# `inproc.set_spawn_env`) for the env-projection + PWD cwd-handshake.
+# REQUIRED FOLLOW-UP BEFORE THIS LANDS: push tear's fix/spawn-env-seam
+# (or merge it to a stable rev) so this rev resolves on CI + for
+# downstream consumers; the Cargo.lock + Cargo.build-spec already pin it.
+tear-types = { git = "https://github.com/pleme-io/tear", rev = "e06f67f6ce59947af37c8f454cb1c49ae54ec1a1", features = ["engate"] }
+tear-core = { git = "https://github.com/pleme-io/tear", rev = "e06f67f6ce59947af37c8f454cb1c49ae54ec1a1", features = ["engate"] }
+tear-client = { git = "https://github.com/pleme-io/tear", rev = "e06f67f6ce59947af37c8f454cb1c49ae54ec1a1", features = ["engate"] }
+tear-config = { git = "https://github.com/pleme-io/tear", rev = "e06f67f6ce59947af37c8f454cb1c49ae54ec1a1" }
 
 # Vigy — always-on tatara-lisp reconciler runtime, embedded in-process.
 # Hosts small reconcilers ("vigies") that tick continuously to keep
@@ -267,8 +274,11 @@ pleme-allvariants-derive = { version = "0.1", git = "https://github.com/pleme-io
 #   - tests/mcp_cross_process.rs (mado bin spawned as `mado mcp`)
 #   - tear_discovery::tests::discovers_a_real_in_process_daemon
 # The binary itself only needs tear-types + tear-client.
-tear-core = { git = "https://github.com/pleme-io/tear" }
-tear-daemon = { git = "https://github.com/pleme-io/tear" }
+# Same SpawnEnv-seam rev as the runtime deps above — a single tear
+# git source so cargo unifies the crate identities (a divergent rev
+# would split tear-types into two crates and break the trait unify).
+tear-core = { git = "https://github.com/pleme-io/tear", rev = "e06f67f6ce59947af37c8f454cb1c49ae54ec1a1" }
+tear-daemon = { git = "https://github.com/pleme-io/tear", rev = "e06f67f6ce59947af37c8f454cb1c49ae54ec1a1" }
 # Cross-process MCP integration test (tests/mcp_cross_process.rs)
 # uses the rmcp client + child-process transport. Those features now
 # ship in the main dependency (the `mado e2e` subcommand is a typed
