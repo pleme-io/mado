@@ -1679,6 +1679,22 @@ fn cursor_style_from_fleet(name: &str) -> CursorStyle {
     }
 }
 
+/// The grid-cell minimum-contrast floor for a resolved fleet theme. On
+/// Borealis it is the spec §5 value sourced from the theme's OWN
+/// surfaces (`BorealisPalette::night().surfaces().minimum_contrast` =
+/// 3.0) — NOT a hand-pinned constant, so a future Borealis re-tune
+/// propagates here on the next compile. Other themes carry no fleet
+/// contrast token, so they keep the curated app default.
+fn minimum_contrast_from_fleet(theme_name: &str) -> f32 {
+    if theme_name.eq_ignore_ascii_case("borealis-night") {
+        ishou_tokens::BorealisPalette::night()
+            .surfaces()
+            .minimum_contrast
+    } else {
+        default_minimum_contrast()
+    }
+}
+
 /// **The flagship `FleetThemedConfig` production impl.** mado is the
 /// widest-coverage operator-facing app in the fleet, so its
 /// `from_fleet` is the reference the fleet audit asked for: a complete
@@ -1761,6 +1777,12 @@ impl ishou_tokens::FleetThemedConfig for MadoConfig {
             appearance: AppearanceConfig {
                 background: bg,
                 foreground: fg,
+                // The Borealis grid-cell contrast floor (§5
+                // `minimum_contrast = 3.0`) flows from the resolved
+                // theme's own surfaces — NOT a hand-pinned 3.0. On a
+                // non-Borealis theme it falls back to the curated app
+                // default (no fleet contrast token exists for those).
+                minimum_contrast: minimum_contrast_from_fleet(&resolved.name),
                 ..AppearanceConfig::default()
             },
             cursor: CursorConfig {
@@ -2847,7 +2869,12 @@ window:
         assert_eq!(config.appearance.foreground, resolved.foreground);
         assert_eq!(config.appearance.opacity, 1.0);
         assert!(!config.appearance.bold_is_bright);
-        assert!((config.appearance.minimum_contrast - 1.0).abs() < 0.001);
+        // The Borealis grid-cell contrast floor (§5 = 3.0), derived from
+        // the resolved theme's OWN surfaces (not a hand-pinned 3.0), so a
+        // Borealis re-tune propagates on the next compile.
+        let surfaces = ishou_tokens::BorealisPalette::night().surfaces();
+        assert!((config.appearance.minimum_contrast - surfaces.minimum_contrast).abs() < 0.001);
+        assert!((config.appearance.minimum_contrast - 3.0).abs() < 0.001);
         assert!(!config.appearance.background_blur);
         assert!(config.appearance.unfocused_split_fill.is_none());
         assert_eq!(config.cursor.style, CursorStyle::Block);
@@ -2914,6 +2941,28 @@ window:
         assert!(config.font.codepoint_map.is_empty());
         // Keybind config
         assert!(config.keybinds.custom.is_empty());
+    }
+
+    /// theme-fidelity-4: the prescribed `minimum_contrast` is the Borealis
+    /// §5 grid-cell floor (3.0), DERIVED from the theme's own surfaces —
+    /// NOT the curated 1.0 app default and NOT a hand-pinned 3.0. A
+    /// Borealis re-tune of the floor propagates here on the next compile.
+    #[test]
+    fn prescribed_minimum_contrast_is_the_borealis_floor() {
+        // `MadoConfig::default()` IS the prescribed config (it delegates
+        // to the `FleetThemedConfig::from_fleet` path); using it here
+        // avoids pulling the `TieredConfig` trait into test scope.
+        let config = MadoConfig::default();
+        let surfaces = ishou_tokens::BorealisPalette::night().surfaces();
+        assert!(
+            (config.appearance.minimum_contrast - surfaces.minimum_contrast).abs() < 0.001,
+            "prescribed minimum_contrast must equal the Borealis surfaces floor"
+        );
+        assert!((config.appearance.minimum_contrast - 3.0).abs() < 0.001);
+        // And it is NOT the curated app default (1.0) — the fleet floor
+        // genuinely raised it.
+        assert!((default_minimum_contrast() - 1.0).abs() < 0.001);
+        assert!(config.appearance.minimum_contrast > default_minimum_contrast());
     }
 
     #[test]
