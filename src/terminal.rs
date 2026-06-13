@@ -3187,9 +3187,9 @@ impl Terminal {
     /// (`osascript` on macOS) — an unbounded queue under an OSC-flood
     /// (`printf '\e]9;x\a'` in a tight loop) would spawn thousands of
     /// processes + reaper threads in one drain, a fork-bomb-adjacent
-    /// DoS that freezes the host. The cap (drop-oldest, keep newest)
+    /// `DoS` that freezes the host. The cap (drop-oldest, keep newest)
     /// makes the queue length input-rate-independent, mirroring the
-    /// kitty APC_MAX / sixel DCS bounds.
+    /// kitty `APC_MAX` / sixel DCS bounds.
     fn push_notification(&mut self, notification: PendingNotification) {
         const MAX_PENDING_NOTIFICATIONS: usize = 64;
         if self.pending_notifications.len() >= MAX_PENDING_NOTIFICATIONS {
@@ -3302,6 +3302,15 @@ impl Terminal {
     /// payload). Every other key — and unknown payload kinds like
     /// `close`/`icon`/actions — is trace-ignored, never guessed at.
     fn handle_osc_99_kitty(&mut self, params: &[&[u8]]) {
+        // Bound each accumulated chain field: a `d=0` chain that never
+        // sends `d=1` (`\e]99;d=0:p=body;<chunk>\e\\` forever) would
+        // grow `pending.body` without limit and hold it across every
+        // feed — unbounded memory for a notification that may never
+        // fire, and one the per-frame drain never sees (review
+        // 2026-06-12, critic-3). Once a field passes the cap, further
+        // fragments for it trace-drop; the chain still finalizes on a
+        // later `d=1` with whatever fit.
+        const MAX_OSC99_FIELD: usize = 16 * 1024;
         let metadata = params.get(1).copied().unwrap_or(b"");
         let mut id: Option<String> = None;
         let mut done = true;
@@ -3361,15 +3370,8 @@ impl Terminal {
         if let Some(u) = urgency {
             pending.urgency = Some(pending.urgency.map_or(u, |cur| cur.max(u)));
         }
-        // Bound each accumulated chain field: a `d=0` chain that never
-        // sends `d=1` (`\e]99;d=0:p=body;<chunk>\e\\` forever) would
-        // grow `pending.body` without limit and hold it across every
-        // feed — unbounded memory for a notification that may never
-        // fire, and one the per-frame drain never sees (review
-        // 2026-06-12, critic-3). Once a field passes the cap, further
-        // fragments for it trace-drop; the chain still finalizes on a
-        // later `d=1` with whatever fit.
-        const MAX_OSC99_FIELD: usize = 16 * 1024;
+        // `MAX_OSC99_FIELD` (declared at the top of this fn) bounds
+        // each field; over-cap fragments trace-drop.
         let append_capped = |field: &mut Option<String>, frag: &str, which: &str| {
             let cur = field.get_or_insert_with(String::new);
             if cur.len() >= MAX_OSC99_FIELD {
@@ -5027,18 +5029,17 @@ impl vte::Perform for Terminal {
         }
     }
     fn put(&mut self, byte: u8) {
+        // Bound the pre-decode sixel accumulation: a giant or never-
+        // `unhook`'d sixel DCS must not grow `sixel_buffer` without
+        // limit. 8 MiB is far beyond any legitimate decoded frame
+        // (icy_sixel caps decoded dims well below this), so passing it
+        // means a misbehaving stream — drop the partial, poison the
+        // sequence, and let `unhook` reject it (review 2026-06-12,
+        // critic-1; mirrors APC_MAX).
+        const SIXEL_DCS_MAX: usize = 8 * 1024 * 1024;
         match self.dcs_handler {
             Some(DcsHandler::Decrqss(ref mut buf)) => buf.push(byte),
             Some(DcsHandler::Sixel) => {
-                // Bound the pre-decode accumulation: a giant or never-
-                // `unhook`'d sixel DCS must not grow `sixel_buffer`
-                // without limit. 8 MiB is far beyond any legitimate
-                // decoded frame (icy_sixel caps decoded dims well below
-                // this), so passing it means a misbehaving stream —
-                // drop the partial, poison the sequence, and let
-                // `unhook` reject it (review 2026-06-12, critic-1;
-                // mirrors APC_MAX).
-                const SIXEL_DCS_MAX: usize = 8 * 1024 * 1024;
                 if let Some(ref mut buf) = self.sixel_buffer {
                     if buf.len() >= SIXEL_DCS_MAX {
                         tracing::warn!(
