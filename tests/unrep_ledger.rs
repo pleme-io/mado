@@ -109,3 +109,119 @@ fn every_ledger_pinning_test_exists_in_the_tree() {
         failures.join("\n  - ")
     );
 }
+
+/// The leading backticked tier word of every main-ledger data row,
+/// i.e. the honest grade in the 4th ("Tier (honest)") column. A row
+/// is a main-table row iff it has ≥5 cells (the tier/histogram tables
+/// have fewer) and is not the header / separator.
+fn ledger_tier_counts() -> std::collections::BTreeMap<String, usize> {
+    let mut counts: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
+    for line in LEDGER.lines() {
+        let line = line.trim();
+        if !line.starts_with('|') {
+            continue;
+        }
+        let cells: Vec<&str> = line.trim_matches('|').split('|').collect();
+        if cells.len() < 5 {
+            continue;
+        }
+        // 4th column (index 3) is "Tier (honest)". Header rows carry
+        // the literal "Tier (honest)" prose with no leading backtick.
+        let tier_cell = cells[3].trim();
+        let Some(stripped) = tier_cell.strip_prefix('`') else {
+            continue;
+        };
+        let Some(end) = stripped.find('`') else {
+            continue;
+        };
+        let word = &stripped[..end];
+        // Only the four real grades participate; any other backticked
+        // type-prose leading a cell would be a table-shape change we
+        // want to surface, not silently bucket.
+        if matches!(
+            word,
+            "truly-unrepresentable" | "parse-time-rejected" | "partially" | "only-mitigated"
+        ) {
+            *counts.entry(word.to_owned()).or_default() += 1;
+        }
+    }
+    counts
+}
+
+/// The `| `<tier>` | <n> |` rows of the "## Tier histogram" table,
+/// parsed back into (tier-word → claimed count). The tier cell may
+/// carry trailing prose after the backticked word (the
+/// `truly-unrepresentable` row does), so we key on the leading
+/// backticked token only.
+fn ledger_histogram_claims() -> std::collections::BTreeMap<String, usize> {
+    let mut claims: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
+    let mut in_histogram = false;
+    for line in LEDGER.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("## Tier histogram") {
+            in_histogram = true;
+            continue;
+        }
+        if in_histogram && trimmed.starts_with("## ") {
+            break;
+        }
+        if !in_histogram || !trimmed.starts_with('|') {
+            continue;
+        }
+        let cells: Vec<&str> = trimmed.trim_matches('|').split('|').collect();
+        if cells.len() != 2 {
+            continue;
+        }
+        let tier_cell = cells[0].trim();
+        let Some(stripped) = tier_cell.strip_prefix('`') else {
+            continue;
+        };
+        let Some(end) = stripped.find('`') else {
+            continue;
+        };
+        let word = &stripped[..end];
+        let Ok(n) = cells[1].trim().parse::<usize>() else {
+            continue;
+        };
+        claims.insert(word.to_owned(), n);
+    }
+    claims
+}
+
+/// The histogram is "the honesty"; a miscount silently erodes the
+/// audit. This forcing-function asserts every histogram cell equals
+/// the live count of main-table rows whose leading tier matches — so
+/// the arithmetic cannot drift from the table again (the 2026-06-13
+/// review's off-by-one would have failed here).
+#[test]
+fn ledger_histogram_matches_the_main_table_row_counts() {
+    let counts = ledger_tier_counts();
+    let claims = ledger_histogram_claims();
+
+    assert!(
+        !claims.is_empty(),
+        "histogram parse found no `| `tier` | n |` rows — table shape changed?"
+    );
+
+    let mut failures: Vec<String> = Vec::new();
+    for tier in [
+        "truly-unrepresentable",
+        "parse-time-rejected",
+        "partially",
+        "only-mitigated",
+    ] {
+        let actual = counts.get(tier).copied().unwrap_or(0);
+        let claimed = claims.get(tier).copied().unwrap_or(0);
+        if actual != claimed {
+            failures.push(format!(
+                "tier `{tier}`: histogram claims {claimed}, main table has {actual} rows"
+            ));
+        }
+    }
+    assert!(
+        failures.is_empty(),
+        "{} histogram cells disagree with the main table:\n  - {}",
+        failures.len(),
+        failures.join("\n  - ")
+    );
+}

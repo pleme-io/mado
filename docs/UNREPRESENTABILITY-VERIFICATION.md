@@ -64,7 +64,7 @@ rotted away.
 | `truly-unrepresentable` (with a named mitigated axis) | 5 |
 | `parse-time-rejected` | 1 |
 | `partially` | 1 |
-| `only-mitigated` | 15 |
+| `only-mitigated` | 14 |
 
 The histogram is the honesty: most of mado's hardening is still
 mitigation with forcing-function tests. Each `only-mitigated` row is
