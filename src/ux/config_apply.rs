@@ -648,9 +648,12 @@ mod tests {
         // search-match fills — so swapping to Borealis left the
         // search-status text + aurora violet + search highlights on the
         // prior (legacy) theme. nord→borealis changes all three.
-        let mut old = MadoConfig::default();
+        // (Default IS borealis-night; mutate CLONES to avoid the
+        // field-reassign-with-default lint.)
+        let base = MadoConfig::default();
+        let mut old = base.clone();
         old.theme = "nord".into();
-        let mut new = old.clone();
+        let mut new = base.clone();
         new.theme = "borealis-night".into();
 
         let calls = diff(&old, &new);

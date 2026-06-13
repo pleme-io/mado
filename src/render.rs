@@ -3187,8 +3187,8 @@ impl TerminalRenderer {
     /// Re-budget the ambience governor to the resolved effective frame
     /// rate (`config.performance.resolve_target_fps`). Called once after
     /// construction (stop discarding the resolved fps) and again on a
-    /// hot-reload of the performance config — so a ProMotion 120 Hz panel
-    /// budgets aurora quality against the 8.3 ms frame it actually has,
+    /// hot-reload of the performance config — so a 120 Hz high-refresh
+    /// panel budgets aurora quality against the 8.3 ms frame it actually has,
     /// and a battery-capped target shrinks the budget with it, instead of
     /// the hardcoded 60 Hz floor. `fps == 0` keeps the 60 Hz floor.
     pub(crate) fn set_ambience_budget_fps(&mut self, fps: u32) {
@@ -4454,7 +4454,7 @@ mod render_invariants {
     /// `search_current_color` / `search_other_color` fields so the pin
     /// tracks the active theme by construction — a default (un-themed)
     /// renderer carries Nord aurora yellow #EBCB8B; a Borealis-themed one
-    /// carries first_light #EDC980 / search_others #4E443A.
+    /// carries `first_light` #EDC980 / `search_others` #4E443A.
     fn search_current_color(r: &TerminalRenderer) -> [f32; 4] {
         let c = r.search_current_color;
         super::overlay_rect_color(c.r, c.g, c.b, 0.5)
@@ -4525,8 +4525,8 @@ mod render_invariants {
     }
 
     /// theme-fidelity: with Borealis active the search-match rects paint
-    /// the Borealis search surfaces (first_light #EDC980 current /
-    /// search_others #4E443A other) — NOT the legacy Nord aurora yellow
+    /// the Borealis search surfaces (`first_light` #EDC980 current /
+    /// `search_others` #4E443A other) — NOT the legacy Nord aurora yellow
     /// #EBCB8B. This is the surface-map promise; before the fix the
     /// render path hardcoded the Nord value and ignored the theme.
     #[test]
