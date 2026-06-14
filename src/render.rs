@@ -84,6 +84,15 @@ enum RectMode {
     /// `pattern = [period, amplitude, thickness, phase]` — paint
     /// where the pixel is within thickness/2 of the sine centerline.
     Curly,
+    /// Rounded-corner solid fill. `pattern = [width, height, radius, _]`
+    /// — the fragment runs a rounded-rect SDF over the rect's own
+    /// dimensions (passed through `pattern` because `size` is not a
+    /// fragment varying) and anti-aliases the corner alpha so freestanding
+    /// chrome (the scrollback thumb) reads with soft corners instead of
+    /// hard squares. The radius is clamped to `min(width,height)/2` in
+    /// the shader, so an over-large radius degrades to a pill, never an
+    /// inverted SDF.
+    RoundedSolid,
 }
 
 impl RectMode {
@@ -93,6 +102,7 @@ impl RectMode {
             Self::Solid => 0,
             Self::Run => 1,
             Self::Curly => 2,
+            Self::RoundedSolid => 3,
         }
     }
 }
@@ -114,6 +124,21 @@ impl RectInstance {
     /// in the codebase is a solid fill.
     const fn solid(pos: [f32; 2], size: [f32; 2], color: [f32; 4]) -> Self {
         Self { pos, size, color, mode: RectMode::Solid.word(), pattern: [0.0; 4] }
+    }
+
+    /// A rounded-corner solid fill. The fragment runs the rounded-box
+    /// SDF over the rect's own `size` (carried in `pattern` because
+    /// `size` is not a fragment varying) and anti-aliases the corner
+    /// alpha. Used for freestanding chrome (the scrollback thumb) where
+    /// soft corners read as polish; grid-aligned cell bands stay square.
+    fn rounded(pos: [f32; 2], size: [f32; 2], radius: f32, color: [f32; 4]) -> Self {
+        Self {
+            pos,
+            size,
+            color,
+            mode: RectMode::RoundedSolid.word(),
+            pattern: [size[0], size[1], radius, 0.0],
+        }
     }
 }
 
@@ -195,18 +220,37 @@ fn fs_main(frag: VertexOutput) -> @location(0) vec4<f32> {
         }
         return vec4<f32>(0.0);
     }
-    // mode 2 — curly band. Centerline sits at amplitude + thickness/2
-    // from the band top (band height = 2*amplitude + thickness).
-    let period = max(frag.pattern.x, 0.0001);
-    let amplitude = frag.pattern.y;
-    let thickness = frag.pattern.z;
-    let tau = 6.28318530717958647692;
-    let center = amplitude + thickness * 0.5
-        + amplitude * sin(tau * (frag.local.x + frag.pattern.w) / period);
-    if abs(frag.local.y - center) <= thickness * 0.5 {
-        return frag.color;
+    if frag.mode == 2u {
+        // mode 2 — curly band. Centerline sits at amplitude + thickness/2
+        // from the band top (band height = 2*amplitude + thickness).
+        let period = max(frag.pattern.x, 0.0001);
+        let amplitude = frag.pattern.y;
+        let thickness = frag.pattern.z;
+        let tau = 6.28318530717958647692;
+        let center = amplitude + thickness * 0.5
+            + amplitude * sin(tau * (frag.local.x + frag.pattern.w) / period);
+        if abs(frag.local.y - center) <= thickness * 0.5 {
+            return frag.color;
+        }
+        return vec4<f32>(0.0);
     }
-    return vec4<f32>(0.0);
+    // mode 3 — rounded-corner solid. pattern = [width, height, radius, _].
+    // Signed-distance to a rounded box centered on the rect; the corner
+    // alpha is the 1px-AA smoothstep over that distance, so the corners
+    // fade instead of stair-stepping. Edges (where the SDF is well
+    // inside) keep full alpha — only the four corner quadrants soften.
+    let half = vec2<f32>(frag.pattern.x, frag.pattern.y) * 0.5;
+    let r = clamp(frag.pattern.z, 0.0, min(half.x, half.y));
+    // Position relative to the rect center (frag.local spans 0..size).
+    let p = frag.local - half;
+    // Distance from the inner rounded-box edge: classic rounded-box SDF.
+    let q = abs(p) - (half - vec2<f32>(r, r));
+    let dist = length(max(q, vec2<f32>(0.0))) + min(max(q.x, q.y), 0.0) - r;
+    // 1px anti-aliased coverage: full inside, 0 outside, soft across the
+    // border. (dist <= -aa → inside; dist >= 0 → outside.)
+    let aa = 1.0;
+    let coverage = 1.0 - smoothstep(-aa, 0.0, dist);
+    return vec4<f32>(frag.color.rgb, frag.color.a * coverage);
 }
 ";
 
@@ -909,7 +953,7 @@ pub struct TerminalRenderer {
     /// `GlyphonColor::rgba`). Today this paints the search-status line —
     /// the closest-shipping agent / MCP-activity surface. Set by
     /// `theme::apply_config_theme` from the active theme's `agent_accent`
-    /// (Borealis `fable_violet` via the SEMANTIC `agent` role). Defaults
+    /// (Vellum `fable_violet` via the SEMANTIC `agent` role). Defaults
     /// to Nord frost so legacy themes keep their prior look.
     #[invalidating_setter]
     search_status_color: Color,
@@ -919,8 +963,8 @@ pub struct TerminalRenderer {
     /// match draws `search_current_color` at α0.5; every OTHER match
     /// draws `search_other_color` at α0.2. Set by
     /// `theme::apply_config_theme` from the active theme's
-    /// `search_current` / `search_others` (Borealis `first_light`
-    /// #EDC980 / #4E443A via `BorealisPalette::night().surfaces()`).
+    /// `search_current` / `search_others` (Vellum `first_light`
+    /// #D7C489 / #443E2A via `VellumPalette::vellum().surfaces()`).
     /// Defaults to Nord aurora yellow #EBCB8B so legacy presets keep
     /// their prior look until a theme that carries the surfaces loads.
     #[invalidating_setter]
@@ -1170,12 +1214,12 @@ impl TerminalRenderer {
             cursor_color: [0.925, 0.937, 0.957, 0.85], // Nord snow default
             // Nord frost #88C0D0 — the prior hardcoded search-status
             // colour. `theme::apply_config_theme` overwrites this with
-            // the active theme's agent accent (Borealis fable_violet).
+            // the active theme's agent accent (Vellum fable_violet).
             search_status_color: Color::new(0x88, 0xC0, 0xD0),
             // Nord aurora yellow #EBCB8B — the prior hardcoded
             // search-match fill. `theme::apply_config_theme` overwrites
-            // both with the active theme's search surfaces (Borealis
-            // first_light #EDC980 / search_others #4E443A).
+            // both with the active theme's search surfaces (Vellum
+            // first_light #D7C489 / search_others #443E2A).
             search_current_color: Color::new(0xEB, 0xCB, 0x8B),
             search_other_color: Color::new(0xEB, 0xCB, 0x8B),
             reduce_motion: false,
@@ -1455,8 +1499,8 @@ impl TerminalRenderer {
 
         // AGENT-RESERVED accent: search-status is an agent / MCP-activity
         // surface, so it paints with the theme's `agent_accent`
-        // (Borealis `fable_violet` via the SEMANTIC role — set by
-        // `theme::apply_config_theme`). Non-Borealis themes keep the
+        // (Vellum `fable_violet` via the SEMANTIC role — set by
+        // `theme::apply_config_theme`). Non-Vellum themes keep the
         // Nord-frost default the field was seeded with.
         let accent = self.search_status_color;
         let agent = GlyphonColor::rgba(accent.r, accent.g, accent.b, 255);
@@ -2178,8 +2222,8 @@ impl TerminalRenderer {
                 let is_current = i == snap.search_current;
                 // Theme-derived search-match fills, linearized for the
                 // rect pipeline at paint time (current match brighter
-                // than other matches). Borealis paints first_light
-                // #EDC980 / search_others #4E443A; legacy presets keep
+                // than other matches). Vellum paints first_light
+                // #D7C489 / search_others #443E2A; legacy presets keep
                 // Nord aurora yellow #EBCB8B (the field default) until a
                 // theme carrying the surfaces loads.
                 let color = if is_current {
@@ -2294,12 +2338,19 @@ impl TerminalRenderer {
             let thumb_w = 4.0_f32;
             let thumb_x = origin_x + snap.cols as f32 * self.cell_width - thumb_w;
             // Nord frost #88C0D0 @ 35% α — typed linearizer like every
-            // overlay rect.
-            instances.push(RectInstance { 
-                pos: [thumb_x, thumb_y],
-                size: [thumb_w, thumb_h],
-                color: overlay_rect_color(0x88, 0xC0, 0xD0, 0.35), mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
+            // overlay rect. ROUNDED corners (operator: "round edges
+            // instead of squaring them"): the thumb is freestanding
+            // chrome, so the ishou `radius.sm` token (4px, clamped to
+            // thumb_w/2 = 2px in the SDF → a soft pill) reads as polish.
+            // The radius flows from ishou — no hand-pinned corner size,
+            // so a fleet radius retune propagates on the next compile.
+            let thumb_radius = ishou_tokens::Radius::default().sm as f32;
+            instances.push(RectInstance::rounded(
+                [thumb_x, thumb_y],
+                [thumb_w, thumb_h],
+                thumb_radius,
+                overlay_rect_color(0x88, 0xC0, 0xD0, 0.35),
+            ));
         }
 
         // ── Pane-as-block separators ───────────────────────────
@@ -3211,14 +3262,14 @@ impl TerminalRenderer {
 
     /// The aurora spectrum stops (green / cyan / violet) in LINEAR rgb,
     /// derived from the active theme palette — NO hardcoded effect
-    /// colors (the design law). On Borealis these resolve to
+    /// colors (the design law). On Vellum these resolve to
     /// `green_bright` / `ice_cyan` / `fable_violet`; on legacy themes
     /// they fall back to that theme's bright-green / cyan / agent
     /// accent, so the curtain always paints in the resolved palette.
     ///
     /// * green → ANSI 10 (bright green / `aurora_green`)
     /// * cyan  → ANSI 6 (`ice_cyan`)
-    /// * violet → the agent accent (`search_status_color` = Borealis
+    /// * violet → the agent accent (`search_status_color` = Vellum
     ///   `fable_violet`; the theme foreground on legacy presets)
     fn aurora_palette(&self) -> ([f32; 3], [f32; 3], [f32; 3]) {
         let lin = |c: Color| {
@@ -4468,8 +4519,8 @@ mod render_invariants {
     /// `overlay_rect_color`). Derived from the RENDERER'S OWN
     /// `search_current_color` / `search_other_color` fields so the pin
     /// tracks the active theme by construction — a default (un-themed)
-    /// renderer carries Nord aurora yellow #EBCB8B; a Borealis-themed one
-    /// carries `first_light` #EDC980 / `search_others` #4E443A.
+    /// renderer carries Nord aurora yellow #EBCB8B; a Vellum-themed one
+    /// carries `first_light` #D7C489 / `search_others` #443E2A.
     fn search_current_color(r: &TerminalRenderer) -> [f32; 4] {
         let c = r.search_current_color;
         super::overlay_rect_color(c.r, c.g, c.b, 0.5)
@@ -4539,15 +4590,15 @@ mod render_invariants {
         );
     }
 
-    /// theme-fidelity: with Borealis active the search-match rects paint
-    /// the Borealis search surfaces (`first_light` #EDC980 current /
-    /// `search_others` #4E443A other) — NOT the legacy Nord aurora yellow
+    /// theme-fidelity: with Vellum active the search-match rects paint
+    /// the Vellum search surfaces (`first_light` #D7C489 current /
+    /// `search_others` #443E2A other) — NOT the legacy Nord aurora yellow
     /// #EBCB8B. This is the surface-map promise; before the fix the
     /// render path hardcoded the Nord value and ignored the theme.
     #[test]
-    fn borealis_search_matches_paint_the_borealis_surfaces_not_nord_yellow() {
+    fn vellum_search_matches_paint_the_vellum_surfaces_not_nord_yellow() {
         let (mut r, t) = harness(40, 3);
-        crate::theme::apply_config_theme(&mut r, &t, "borealis-night", 1.0);
+        crate::theme::apply_config_theme(&mut r, &t, "vellum", 1.0);
         t.write().feed(b"hello world hello again hello");
         {
             let mut s = r.search.lock().unwrap();
@@ -4558,9 +4609,9 @@ mod render_invariants {
             ];
             s.current = 0;
         }
-        // The renderer now carries the Borealis surfaces.
-        assert_eq!(r.search_current_color, Color::new(0xED, 0xC9, 0x80));
-        assert_eq!(r.search_other_color, Color::new(0x4E, 0x44, 0x3A));
+        // The renderer now carries the Vellum surfaces.
+        assert_eq!(r.search_current_color, Color::new(0xD7, 0xC4, 0x89));
+        assert_eq!(r.search_other_color, Color::new(0x44, 0x3E, 0x2A));
         // And the painted rects match those, NOT Nord yellow #EBCB8B.
         let nord_current = super::overlay_rect_color(0xEB, 0xCB, 0x8B, 0.5);
         let nord_other = super::overlay_rect_color(0xEB, 0xCB, 0x8B, 0.2);
@@ -4573,16 +4624,68 @@ mod render_invariants {
             .iter()
             .filter(|rt| colors_approx_eq(rt.color, search_other_color(&r)))
             .count();
-        assert_eq!(current_hits, 1, "the Borealis current-match rect paints");
-        assert_eq!(other_hits, 1, "the Borealis other-match rect paints");
+        assert_eq!(current_hits, 1, "the Vellum current-match rect paints");
+        assert_eq!(other_hits, 1, "the Vellum other-match rect paints");
         // Nord yellow must NOT appear (the hardcode is gone).
         assert!(
             !rects
                 .iter()
                 .any(|rt| colors_approx_eq(rt.color, nord_current)
                     || colors_approx_eq(rt.color, nord_other)),
-            "no Nord aurora-yellow search rect under Borealis"
+            "no Nord aurora-yellow search rect under Vellum"
         );
+    }
+
+    /// Rounded UI (operator: "round edges instead of squaring them").
+    /// The scrollback history thumb — the one freestanding chrome rect —
+    /// is emitted as a `RoundedSolid` rect carrying its own dims + the
+    /// ishou `radius.sm` corner in `pattern`, so the SDF fragment softens
+    /// its corners. The grid-aligned cell bands (selection / search rows)
+    /// stay `Solid` square by construction (rounding a text-row band
+    /// would look wrong); this test pins ONLY the thumb's rounding.
+    #[test]
+    fn scrollback_thumb_is_a_rounded_rect_carrying_the_ishou_radius() {
+        let (mut r, t) = harness(20, 4);
+        // Fill scrollback and scroll into history so the thumb emits.
+        {
+            let mut term = t.write();
+            for _ in 0..60 {
+                term.feed(b"line\r\n");
+            }
+            term.scroll_up(10);
+        }
+        let rects = compute_rects(&r);
+        // The thumb is the Nord-frost #88C0D0 @ 35% α rounded rect.
+        let thumb_color = super::overlay_rect_color(0x88, 0xC0, 0xD0, 0.35);
+        let thumbs: Vec<_> = rects
+            .iter()
+            .filter(|rt| colors_approx_eq(rt.color, thumb_color))
+            .collect();
+        assert_eq!(thumbs.len(), 1, "exactly one history thumb while scrolled");
+        let thumb = thumbs[0];
+        assert_eq!(
+            thumb.mode,
+            RectMode::RoundedSolid.word(),
+            "the freestanding thumb must be a rounded rect"
+        );
+        // pattern = [width, height, radius, _]; width matches the rect
+        // size, radius is the ishou radius.sm token (no hand-pinned size).
+        assert!((thumb.pattern[0] - thumb.size[0]).abs() < 0.001);
+        assert!((thumb.pattern[1] - thumb.size[1]).abs() < 0.001);
+        let want_radius = ishou_tokens::Radius::default().sm as f32;
+        assert!(
+            (thumb.pattern[2] - want_radius).abs() < 0.001,
+            "thumb corner radius must come from ishou radius.sm ({want_radius})"
+        );
+        // A non-scrolled frame emits NO thumb (and so no rounded rect).
+        let (mut r2, _t2) = harness(20, 4);
+        let plain = compute_rects(&r2);
+        assert!(
+            !plain.iter().any(|rt| rt.mode == RectMode::RoundedSolid.word()),
+            "a live (non-scrolled) frame must emit no rounded chrome"
+        );
+        let _ = &mut r;
+        let _ = &mut r2;
     }
 
     // ── determinism: resize doesn't leak state ────────────────────
@@ -5006,8 +5109,8 @@ mod render_invariants {
     ///
     /// The baseline preset is `Off` so this test exercises the per-effect
     /// override path in isolation — the default-on AMBIENCE composition
-    /// (Whisper) is pinned separately by
-    /// `default_ambience_composes_aurora_bloom_glow_and_reduce_motion_kills_it`.
+    /// (`Matte`, empty; `Whisper` for the louder tier) is pinned
+    /// separately by `default_matte_composes_zero_and_whisper_composes_the_three`.
     #[test]
     fn effects_config_maps_to_effect_set_and_reduce_motion_gates_animation() {
         use engawa_wgpu::catalog::CatalogEffect;
@@ -5045,7 +5148,7 @@ mod render_invariants {
             rows += 1;
             let (mut r, _t) = harness(10, 2);
             // Baseline: ambience Off so the set starts empty (the
-            // renderer ships with Whisper by default — that path is
+            // renderer ships with Matte by default — empty composition,
             // tested separately). This isolates the per-effect knob.
             let mut off = crate::config::MadoEffectsConfig::default();
             off.ambience = crate::ambience::AmbiencePreset::Off;
@@ -5091,21 +5194,34 @@ mod render_invariants {
         );
     }
 
-    /// The composed AMBIENCE layer (operator design law, 2026-06-13) —
-    /// the renderer-level forcing function. The default config
-    /// (Whisper) composes EXACTLY {aurora, bloom, glow_on_bell} into the
-    /// effect set; `reduce_motion` resolves the preset to `Off` ⇒ zero
-    /// ambience nodes (the accessibility floor); a per-effect override
-    /// adds on top; and `Off` contributes zero nodes.
+    /// The composed AMBIENCE layer (operator design law, 2026-06-13;
+    /// Vellum-era "more subtle" retune, 2026-06-14) — the renderer-level
+    /// forcing function. The default config (`Matte`) composes ZERO
+    /// ambience nodes (effects recede to almost nothing — no glow, no
+    /// halo, aurora off); a louder preset (`Whisper`) composes {aurora,
+    /// bloom, glow_on_bell}; `reduce_motion` resolves any preset to `Off`
+    /// ⇒ zero nodes (the accessibility floor); a per-effect override adds
+    /// on top.
     #[test]
-    fn default_ambience_composes_aurora_bloom_glow_and_reduce_motion_kills_it() {
+    fn default_matte_composes_zero_and_whisper_composes_the_three() {
         use engawa_wgpu::catalog::CatalogEffect;
         let mut failures: Vec<String> = Vec::new();
 
-        // ── Default (Whisper) composes the three members ─────────────
+        // ── Default (Matte) composes ZERO ambience nodes ─────────────
         let (mut r, _t) = harness(10, 2);
         let mut cfg = crate::config::MadoConfig::default();
         r.apply_effects_and_accessibility(&cfg);
+        if !r.enabled_effect_set().is_empty() {
+            failures.push(format!(
+                "default Matte ambience must contribute zero nodes (got {:?})",
+                r.enabled_effect_set()
+            ));
+        }
+
+        // ── Whisper (the louder tier) composes the three members ─────
+        let mut whisper = crate::config::MadoConfig::default();
+        whisper.effects.ambience = crate::ambience::AmbiencePreset::Whisper;
+        r.apply_effects_and_accessibility(&whisper);
         let set = r.enabled_effect_set();
         for effect in [
             CatalogEffect::Aurora,
@@ -5113,7 +5229,7 @@ mod render_invariants {
             CatalogEffect::GlowOnBell,
         ] {
             if !set.contains(effect) {
-                failures.push(format!("default Whisper ambience is missing {effect:?}"));
+                failures.push(format!("Whisper ambience is missing {effect:?}"));
             }
         }
         // …and ONLY those three (no static effects sneak in).
@@ -5124,11 +5240,12 @@ mod render_invariants {
             CatalogEffect::Snow,
         ] {
             if set.contains(effect) {
-                failures.push(format!("default Whisper ambience wrongly enabled {effect:?}"));
+                failures.push(format!("Whisper ambience wrongly enabled {effect:?}"));
             }
         }
 
         // ── reduce_motion → Off → zero nodes ─────────────────────────
+        cfg.effects.ambience = crate::ambience::AmbiencePreset::Whisper;
         cfg.accessibility.reduce_motion = true;
         r.apply_effects_and_accessibility(&cfg);
         if !r.enabled_effect_set().is_empty() {
@@ -5256,8 +5373,8 @@ mod render_invariants {
         use engawa_wgpu::catalog::CatalogEffect;
         let (mut r, _t) = harness(10, 2);
         // Baseline OFF so the set starts empty — the renderer ships with
-        // the Whisper ambience by default (tested separately); this test
-        // isolates the config-applier delta path.
+        // the Matte ambience by default (empty composition, tested
+        // separately); this test isolates the config-applier delta path.
         let mut off = crate::config::MadoEffectsConfig::default();
         off.ambience = crate::ambience::AmbiencePreset::Off;
         r.set_effects_config(off);

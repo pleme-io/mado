@@ -131,8 +131,10 @@ pub struct MadoEffectsConfig {
     /// THE default-on composed layer (operator design law, 2026-06-13):
     /// ONE barely-perceptible ambience that combines the catalog
     /// effects at threshold intensities sharing one clock + the
-    /// Borealis palette. `Whisper` by default; `Off` for the clean
-    /// look; `Present` to show it off. `reduce_motion` forces `Off`.
+    /// Vellum palette. `Matte` by default (effects recede to almost
+    /// nothing — no glow, no halo, aurora off); `Whisper`/`Present` for
+    /// the louder tiers; `Off` for the clean look. `reduce_motion`
+    /// forces `Off`.
     ///
     /// The per-effect knobs below REMAIN for power users — an explicit
     /// `effects.aurora.enabled` / `effects.bloom.enabled` / … turns
@@ -157,7 +159,7 @@ pub struct MadoEffectsConfig {
     pub glow_on_bell: MadoGlowOnBellConfig,
 }
 
-/// Aurora (Borealis signature curtain) power-user override. The
+/// Aurora (Vellum signature curtain) power-user override. The
 /// ambience preset composes aurora at its threshold intensities; a
 /// power user who sets `enabled = true` forces aurora on independent of
 /// the preset, and the explicit dials below override the composed
@@ -1693,14 +1695,14 @@ fn cursor_style_from_fleet(name: &str) -> CursorStyle {
 }
 
 /// The grid-cell minimum-contrast floor for a resolved fleet theme. On
-/// Borealis it is the spec §5 value sourced from the theme's OWN
-/// surfaces (`BorealisPalette::night().surfaces().minimum_contrast` =
-/// 3.0) — NOT a hand-pinned constant, so a future Borealis re-tune
-/// propagates here on the next compile. Other themes carry no fleet
-/// contrast token, so they keep the curated app default.
+/// Vellum it is the spec §5 value sourced from the theme's OWN surfaces
+/// (`VellumPalette::vellum().surfaces().minimum_contrast` = 3.0) — NOT a
+/// hand-pinned constant, so a future Vellum re-tune propagates here on
+/// the next compile. Other themes carry no fleet contrast token, so they
+/// keep the curated app default.
 fn minimum_contrast_from_fleet(theme_name: &str) -> f32 {
-    if theme_name.eq_ignore_ascii_case("borealis-night") {
-        ishou_tokens::BorealisPalette::night()
+    if theme_name.eq_ignore_ascii_case("vellum") {
+        ishou_tokens::VellumPalette::vellum()
             .surfaces()
             .minimum_contrast
     } else {
@@ -1730,14 +1732,14 @@ fn minimum_contrast_from_fleet(theme_name: &str) -> f32 {
 /// | `behavior.mouse_reporting`        | `fd.mouse_reporting`                     |
 /// | `behavior.mouse_hide_while_typing`| `fd.mouse_hide_while_typing`             |
 /// | `cursor.style`/`blink`/`rate`     | `fd.cursor_style`/`cursor_blink`/`…ms`   |
-/// | `appearance.background`/`foreground` | the resolved theme bg/fg (Borealis `night0` / `snow1`) |
-/// | `cursor.color`                    | the resolved theme cursor (Borealis `green_bright`) |
+/// | `appearance.background`/`foreground` | the resolved theme bg/fg (Vellum `night0` / `snow1`) |
+/// | `cursor.color`                    | the resolved theme cursor (Vellum `green_bright`) |
 /// | `performance.vsync`               | `fd.vsync`                               |
 /// | `accessibility.reduce_motion`/`font_scale` | `fd.reduce_motion`/`fd.font_scale` |
 ///
 /// The ANSI palette, selection-glass, and search surfaces are resolved
 /// at render time from the registered theme via `Theme::by_name(&theme)`
-/// — setting `theme = "borealis-night"` is what makes them Borealis.
+/// — setting `theme = "vellum"` is what makes them Vellum.
 ///
 /// App-specific fields with no fleet analogue (shell, profiles, tear,
 /// shaders, effects, vigy, quick-terminal, …) inherit the prescribed
@@ -1761,7 +1763,7 @@ impl ishou_tokens::FleetThemedConfig for MadoConfig {
             resolved.foreground.clone()
         };
         // The bare tier's cursor is "use foreground"; the resolved theme
-        // ships an explicit cursor (Borealis green_bright). Empty = the
+        // ships an explicit cursor (Vellum green_bright). Empty = the
         // bare floor's "follow foreground" semantics.
         let cursor_color = resolved.cursor.clone();
 
@@ -1795,10 +1797,10 @@ impl ishou_tokens::FleetThemedConfig for MadoConfig {
             appearance: AppearanceConfig {
                 background: bg,
                 foreground: fg,
-                // The Borealis grid-cell contrast floor (§5
+                // The Vellum grid-cell contrast floor (§5
                 // `minimum_contrast = 3.0`) flows from the resolved
                 // theme's own surfaces — NOT a hand-pinned 3.0. On a
-                // non-Borealis theme it falls back to the curated app
+                // non-Vellum theme it falls back to the curated app
                 // default (no fleet contrast token exists for those).
                 minimum_contrast: minimum_contrast_from_fleet(&resolved.name),
                 ..AppearanceConfig::default()
@@ -1885,7 +1887,7 @@ impl Default for MadoConfig {
     /// `mado config-show default` subcommand (M-148 followup)
     /// makes every value visible.
     fn default() -> Self {
-        // DERIVE from the fleet baseline (Borealis + JetBrainsMono + the
+        // DERIVE from the fleet baseline (Vellum + JetBrainsMono + the
         // prescribed cursor/behavior/window choices) via the flagship
         // `FleetThemedConfig` impl — no hand-pinned constants here. A
         // future fleet rebrand touches `FleetDefaults::prescribed()` /
@@ -2053,18 +2055,18 @@ fn default_decorations() -> bool {
 /// The prescribed fleet theme, resolved to its BORN ishou tokens.
 /// `default_bg`/`default_fg`/`default_cursor_color` read from here so
 /// the appearance fallbacks carry the SAME palette as the registered
-/// `borealis-night` theme — no hand-pinned Nord hex, no drift. (The
-/// audit's complaint: `prescribed_default` hand-pinned `#2e3440`.)
+/// `vellum` theme — no hand-pinned Nord hex, no drift. (The audit's
+/// complaint: `prescribed_default` hand-pinned `#2e3440`.)
 fn prescribed_resolved_theme() -> ishou_tokens::ResolvedTheme {
     ishou_tokens::FleetTheme::prescribed_default().resolve()
 }
 fn default_bg() -> String {
-    // Borealis night0 (#1F222F) — derived from the BORN tokens, not
+    // Vellum night0 (#16140E) — derived from the BORN tokens, not
     // the legacy Nord #2e3440.
     prescribed_resolved_theme().background
 }
 fn default_fg() -> String {
-    // Borealis snow1 (#D4D9E3) — derived, not the legacy Nord #eceff4.
+    // Vellum snow1 (#E2DBC8) — derived, not the legacy Nord #eceff4.
     prescribed_resolved_theme().foreground
 }
 fn default_opacity() -> f32 {
@@ -2077,7 +2079,7 @@ fn default_cursor_blink_rate() -> u32 {
     530
 }
 fn default_cursor_color() -> String {
-    // Borealis green_bright (#74E29F) — the §5 block cursor (inverse
+    // Vellum green_bright (#ADD7A3) — the §5 block cursor (inverse
     // pair ≥7.0). Derived from the BORN tokens, not the legacy Nord
     // snow #eceff4. Empty resolved cursor (the bare tier) falls back to
     // "follow foreground" semantics by returning the foreground.
@@ -2124,7 +2126,7 @@ fn default_vsync() -> bool {
 // chain has one canonical name for it.
 fn default_theme() -> String {
     // detect_theme probes macOS appearance (M1 stub: returns None);
-    // falls back to FALLBACK_THEME = "borealis-night" (the prescribed
+    // falls back to FALLBACK_THEME = "vellum" (the prescribed
     // fleet theme). Operators override via mado.yaml. Constant lives in
     // auto_detect.rs and is pinned to the fleet theme by the convergence
     // guard so a fleet rebrand can't leave mado on a stale name.
@@ -2651,7 +2653,7 @@ mod tests {
     /// against the BORN ishou tokens — the convergence guarantee made
     /// real, not asserted in prose.
     #[test]
-    fn mado_converges_with_fleet_borealis() {
+    fn mado_converges_with_fleet_vellum() {
         use shikumi::TieredConfig;
         let d = <MadoConfig as TieredConfig>::prescribed_default();
 
@@ -2671,18 +2673,18 @@ mod tests {
         // resolved name (the Guard's expect_theme takes the enum; mado
         // stores the name, so we assert the resolved-name equality). ──
         let fleet_theme = ishou_tokens::FleetDefaults::prescribed().theme;
-        assert_eq!(fleet_theme, ishou_tokens::FleetTheme::BorealisNight);
+        assert_eq!(fleet_theme, ishou_tokens::FleetTheme::Vellum);
         assert_eq!(d.theme, fleet_theme.resolve().name);
-        assert_eq!(d.theme, "borealis-night");
+        assert_eq!(d.theme, "vellum");
 
-        // ── ANSI palette: the registered Borealis theme's 16-colour
-        // table equals the fleet `ResolvedTheme::borealis_night().ansi_16`
+        // ── ANSI palette: the registered Vellum theme's 16-colour
+        // table equals the fleet `ResolvedTheme::vellum().ansi_16`
         // byte-for-byte. A fleet ANSI retune in ishou fails this build
         // until mado's registered theme follows (it follows by
         // construction — the theme is BUILT from the resolved tokens —
         // so this is the mechanical proof of that construction). ──
-        let theme = crate::theme::Theme::by_name(&d.theme).expect("borealis theme registered");
-        let resolved = ishou_tokens::ResolvedTheme::borealis_night();
+        let theme = crate::theme::Theme::by_name(&d.theme).expect("vellum theme registered");
+        let resolved = ishou_tokens::ResolvedTheme::vellum();
         for i in 0..16 {
             let want = ishou_tokens::Srgb::from_hex(&resolved.ansi_16[i])
                 .expect("resolved ANSI hex parses");
@@ -2696,8 +2698,8 @@ mod tests {
         }
 
         // ── Agent accent: the fable_violet SEMANTIC token, never a hex. ──
-        let fable_violet = ishou_tokens::BorealisPalette::night()
-            .get(ishou_tokens::SemanticRoles::borealis_night().agent)
+        let fable_violet = ishou_tokens::VellumPalette::vellum()
+            .get(ishou_tokens::SemanticRoles::vellum().agent)
             .expect("fable_violet token");
         assert_eq!(
             (theme.agent_accent.r, theme.agent_accent.g, theme.agent_accent.b),
@@ -2867,9 +2869,9 @@ window:
         assert_eq!(config.font_italic, "JetBrainsMono Nerd Font");
         assert_eq!(config.font_size, 13.0);
         assert!((config.line_height - 1.65).abs() < 0.001);
-        // Prescribed theme is now the fleet theme (Borealis), derived
+        // Prescribed theme is now the fleet theme (Vellum), derived
         // from FleetTheme::prescribed_default() — not the legacy "nord".
-        assert_eq!(config.theme, "borealis-night");
+        assert_eq!(config.theme, "vellum");
         assert_eq!(
             config.theme,
             ishou_tokens::FleetTheme::prescribed_default().resolve().name,
@@ -2897,20 +2899,20 @@ window:
         assert!(config.window.inherit_font_size);
         assert!(config.window.padding_balance);
         // The prescribed config now DERIVES its appearance + cursor
-        // colours from the fleet theme (Borealis) via from_fleet — not
+        // colours from the fleet theme (Vellum) via from_fleet — not
         // the legacy Nord hexes. Asserted by reference to the resolved
         // theme so a fleet rebrand propagates on the next compile.
         let resolved = ishou_tokens::FleetTheme::prescribed_default().resolve();
-        assert_eq!(config.appearance.background, "#1F222F"); // night0
-        assert_eq!(config.appearance.foreground, "#D4D9E3"); // snow1
+        assert_eq!(config.appearance.background, "#16140E"); // night0
+        assert_eq!(config.appearance.foreground, "#E2DBC8"); // snow1
         assert_eq!(config.appearance.background, resolved.background);
         assert_eq!(config.appearance.foreground, resolved.foreground);
         assert_eq!(config.appearance.opacity, 1.0);
         assert!(!config.appearance.bold_is_bright);
-        // The Borealis grid-cell contrast floor (§5 = 3.0), derived from
+        // The Vellum grid-cell contrast floor (§5 = 3.0), derived from
         // the resolved theme's OWN surfaces (not a hand-pinned 3.0), so a
-        // Borealis re-tune propagates on the next compile.
-        let surfaces = ishou_tokens::BorealisPalette::night().surfaces();
+        // Vellum re-tune propagates on the next compile.
+        let surfaces = ishou_tokens::VellumPalette::vellum().surfaces();
         assert!((config.appearance.minimum_contrast - surfaces.minimum_contrast).abs() < 0.001);
         assert!((config.appearance.minimum_contrast - 3.0).abs() < 0.001);
         assert!(!config.appearance.background_blur);
@@ -2923,7 +2925,7 @@ window:
             config.cursor.blink_rate_ms,
             ishou_tokens::FleetDefaults::prescribed().cursor_blink_rate_ms,
         );
-        assert_eq!(config.cursor.color, "#74E29F"); // green_bright
+        assert_eq!(config.cursor.color, "#ADD7A3"); // green_bright
         assert_eq!(config.cursor.color, resolved.cursor);
         assert!((config.cursor.opacity - 1.0).abs() < 0.001);
         assert!(config.cursor.text_color.is_none());
@@ -2981,20 +2983,20 @@ window:
         assert!(config.keybinds.custom.is_empty());
     }
 
-    /// theme-fidelity-4: the prescribed `minimum_contrast` is the Borealis
+    /// theme-fidelity-4: the prescribed `minimum_contrast` is the Vellum
     /// §5 grid-cell floor (3.0), DERIVED from the theme's own surfaces —
     /// NOT the curated 1.0 app default and NOT a hand-pinned 3.0. A
-    /// Borealis re-tune of the floor propagates here on the next compile.
+    /// Vellum re-tune of the floor propagates here on the next compile.
     #[test]
-    fn prescribed_minimum_contrast_is_the_borealis_floor() {
+    fn prescribed_minimum_contrast_is_the_vellum_floor() {
         // `MadoConfig::default()` IS the prescribed config (it delegates
         // to the `FleetThemedConfig::from_fleet` path); using it here
         // avoids pulling the `TieredConfig` trait into test scope.
         let config = MadoConfig::default();
-        let surfaces = ishou_tokens::BorealisPalette::night().surfaces();
+        let surfaces = ishou_tokens::VellumPalette::vellum().surfaces();
         assert!(
             (config.appearance.minimum_contrast - surfaces.minimum_contrast).abs() < 0.001,
-            "prescribed minimum_contrast must equal the Borealis surfaces floor"
+            "prescribed minimum_contrast must equal the Vellum surfaces floor"
         );
         assert!((config.appearance.minimum_contrast - 3.0).abs() < 0.001);
         // And it is NOT the curated app default (1.0) — the fleet floor
@@ -3148,12 +3150,12 @@ window:
     fn test_appearance_config_defaults() {
         let a = AppearanceConfig::default();
         // The appearance fallbacks now DERIVE from the prescribed fleet
-        // theme's BORN tokens (Borealis night0 / snow1), not a legacy
+        // theme's BORN tokens (Vellum night0 / snow1), not a legacy
         // Nord hex. Asserted against the resolved theme by reference so
         // a fleet rebrand propagates here on the next compile.
         let resolved = ishou_tokens::FleetTheme::prescribed_default().resolve();
-        assert_eq!(a.background, "#1F222F"); // Borealis night0
-        assert_eq!(a.foreground, "#D4D9E3"); // Borealis snow1
+        assert_eq!(a.background, "#16140E"); // Vellum night0
+        assert_eq!(a.foreground, "#E2DBC8"); // Vellum snow1
         assert_eq!(a.background, resolved.background);
         assert_eq!(a.foreground, resolved.foreground);
         assert_eq!(a.opacity, 1.0);
@@ -3167,9 +3169,9 @@ window:
         assert!(c.blink);
         assert_eq!(c.blink_rate_ms, 530);
         // Cursor colour now derives from the prescribed theme's cursor
-        // (Borealis green_bright), not Nord snow.
+        // (Vellum green_bright), not Nord snow.
         let resolved = ishou_tokens::FleetTheme::prescribed_default().resolve();
-        assert_eq!(c.color, "#74E29F"); // Borealis green_bright
+        assert_eq!(c.color, "#ADD7A3"); // Vellum green_bright
         assert_eq!(c.color, resolved.cursor);
     }
 
@@ -3236,8 +3238,8 @@ window:
         assert_eq!(applied.font_family, "Monaco");
         assert_eq!(applied.font_size, 18.0);
         // The profile doesn't override theme, so the prescribed fleet
-        // theme (Borealis) carries through unchanged.
-        assert_eq!(applied.theme, "borealis-night");
+        // theme (Vellum) carries through unchanged.
+        assert_eq!(applied.theme, "vellum");
     }
 
     #[test]

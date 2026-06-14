@@ -1660,11 +1660,11 @@
         "substrate": "substrate"
       },
       "locked": {
-        "lastModified": 1781361252,
-        "narHash": "sha256-fcRJAvLvZTMFJWlYEk4U7/WwB3ZM79qIeQn+4OVtuIs=",
+        "lastModified": 1781398396,
+        "narHash": "sha256-R7/3054dmx6WbaBHPwOak6GiNTYk4jnvB8MyiJiSOCk=",
         "owner": "pleme-io",
         "repo": "ishou",
-        "rev": "7de13b7b29adbf971f3974860357acfeecf20ae5",
+        "rev": "756bd35c5bcf2bf30b31c409feaf38a26e8a1e2a",
         "type": "github"
       },
       "original": {

@@ -539,8 +539,8 @@ mod tests {
         // nord and dracula are BOTH irodzuki presets, so both fall back
         // to the Nord aurora-yellow search fills — SearchCurrent/Other do
         // NOT change between them. The agent accent (preset foreground)
-        // DOES differ, so SearchStatusColor fires. (The Borealis search
-        // fills are exercised by the dedicated nord→borealis test below.)
+        // DOES differ, so SearchStatusColor fires. (The Vellum search
+        // fills are exercised by the dedicated nord→vellum test below.)
         assert_eq!(
             kinds,
             vec![
@@ -642,32 +642,32 @@ mod tests {
     }
 
     #[test]
-    fn theme_swap_to_borealis_hot_reloads_all_three_search_surfaces() {
+    fn theme_swap_to_vellum_hot_reloads_all_three_search_surfaces() {
         // The correctness-1 regression: a theme hot-reload moved
         // ANSI/selection/cursor/bg-fg but NOT the agent accent or the
-        // search-match fills — so swapping to Borealis left the
+        // search-match fills — so swapping to Vellum left the
         // search-status text + aurora violet + search highlights on the
-        // prior (legacy) theme. nord→borealis changes all three.
-        // (Default IS borealis-night; mutate CLONES to avoid the
+        // prior (legacy) theme. nord→vellum changes all three.
+        // (Default IS vellum; mutate CLONES to avoid the
         // field-reassign-with-default lint.)
         let base = MadoConfig::default();
         let mut old = base.clone();
         old.theme = "nord".into();
         let mut new = base.clone();
-        new.theme = "borealis-night".into();
+        new.theme = "vellum".into();
 
         let calls = diff(&old, &new);
         let kinds: Vec<&str> = calls.iter().map(call_kind).collect();
         for required in ["SearchStatusColor", "SearchCurrentColor", "SearchOtherColor"] {
             assert!(
                 kinds.contains(&required),
-                "borealis hot-reload must emit {required}, got {kinds:?}"
+                "vellum hot-reload must emit {required}, got {kinds:?}"
             );
         }
-        let borealis = Theme::by_name("borealis-night").expect("borealis theme");
-        assert!(calls.contains(&SetterCall::SearchStatusColor(borealis.agent_accent)));
-        assert!(calls.contains(&SetterCall::SearchCurrentColor(borealis.search_current)));
-        assert!(calls.contains(&SetterCall::SearchOtherColor(borealis.search_others)));
+        let vellum = Theme::by_name("vellum").expect("vellum theme");
+        assert!(calls.contains(&SetterCall::SearchStatusColor(vellum.agent_accent)));
+        assert!(calls.contains(&SetterCall::SearchCurrentColor(vellum.search_current)));
+        assert!(calls.contains(&SetterCall::SearchOtherColor(vellum.search_others)));
         // The three fire in palette order: after CursorColor, before BgFg.
         let cur = kinds.iter().position(|k| *k == "CursorColor").expect("CursorColor");
         let status = kinds.iter().position(|k| *k == "SearchStatusColor").expect("SearchStatusColor");

@@ -66,10 +66,10 @@ kanchi::defaxes! {
     /// Theme — dark/light system-appearance auto-select is a follow-up (the
     /// probe `kanchi::probe::appearance_dark()` is ready; the theme-name
     /// mapping lands next). Falls back to the prescribed fleet theme,
-    /// `borealis-night` (= `ResolvedTheme::borealis_night().name`). The
-    /// convergence test below pins this string to the ishou fleet theme
-    /// so a fleet rebrand can't leave mado on a stale theme name.
-    theme: &'static str = "borealis-night" => kanchi::none;
+    /// `vellum` (= `ResolvedTheme::vellum().name`). The convergence test
+    /// below pins this string to the ishou fleet theme so a fleet rebrand
+    /// can't leave mado on a stale theme name.
+    theme: &'static str = "vellum" => kanchi::none;
 
     /// Highest-preference installed Nerd font — fontdb-enumeration probe is
     /// a follow-up. Falls back to the fleet primary `JetBrainsMono Nerd
@@ -139,10 +139,10 @@ mod tests {
         // literal) — a fleet rebrand in ishou propagates here on the
         // next compile, and this test fails until FALLBACK_THEME is
         // updated to match.
-        assert_eq!(FALLBACK_THEME, "borealis-night");
+        assert_eq!(FALLBACK_THEME, "vellum");
         assert_eq!(
             FALLBACK_THEME,
-            ishou_tokens::ResolvedTheme::borealis_night().name,
+            ishou_tokens::ResolvedTheme::vellum().name,
         );
         assert_eq!(
             FALLBACK_THEME,

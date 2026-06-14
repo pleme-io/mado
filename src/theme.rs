@@ -33,35 +33,35 @@ pub struct Theme {
     /// a raw-sRGB value can never reach the GPU through this field.
     pub selection_bg: [f32; 4],
     pub ansi: [Color; 16],
-    /// AGENT-RESERVED accent (`SemanticRoles.agent` → Borealis
+    /// AGENT-RESERVED accent (`SemanticRoles.agent` → Vellum
     /// `fable_violet`). The vigy / MCP-activity / attention chrome —
     /// search-status text today — paints with THIS token, never a hex.
-    /// On non-Borealis presets this is the preset's foreground (no
+    /// On non-Vellum presets this is the preset's foreground (no
     /// agent-band concept exists in irodzuki schemes), so legacy themes
     /// keep their prior look. `u8`-RGB for the renderer; the GPU path
     /// linearizes at paint time exactly like every other `Color` field.
     pub agent_accent: Color,
-    /// CURRENT search-match highlight fill (`Borealis first_light`
-    /// #EDC980 — the inverse-video search band). The search-match rect
+    /// CURRENT search-match highlight fill (`Vellum first_light`
+    /// #D7C489 — the inverse-video search band). The search-match rect
     /// pipeline paints THIS token (linearized at paint time), never a
-    /// hex. On non-Borealis presets it falls back to Nord aurora yellow
+    /// hex. On non-Vellum presets it falls back to Nord aurora yellow
     /// #EBCB8B (irodzuki schemes carry no search-band concept), so legacy
     /// themes keep their prior look. `u8`-RGB for the renderer.
     pub search_current: Color,
-    /// OTHER (non-current) search-match highlight fill (`Borealis
-    /// search_others` #4E443A). See [`Self::search_current`].
+    /// OTHER (non-current) search-match highlight fill (`Vellum
+    /// search_others` #443E2A). See [`Self::search_current`].
     pub search_others: Color,
 }
 
 impl Theme {
     #[must_use]
     pub fn by_name(name: &str) -> Option<&'static Theme> {
-        // `"borealis"` is the operator-friendly short form of the
-        // prescribed `"borealis-night"` (the only Borealis variant that
-        // ships today). Normalize it here so both names resolve through
-        // the same registered theme — no duplicate entry, no drift.
-        let canonical = if name.eq_ignore_ascii_case("borealis") {
-            "borealis-night"
+        // `"nord-matte"` is the descriptive alias of the prescribed
+        // `"vellum"` (the warm aged-paper Nord-matte fleet theme).
+        // Normalize it here so both names resolve through the same
+        // registered theme — no duplicate entry, no drift.
+        let canonical = if name.eq_ignore_ascii_case("nord-matte") {
+            "vellum"
         } else {
             name
         };
@@ -110,12 +110,12 @@ pub fn apply_config_theme(
     renderer.set_cursor_color([cursor.r, cursor.g, cursor.b, 0.85]);
     // AGENT-RESERVED chrome accent: the search-status line (and any
     // future agent / MCP-activity surface) paints with the theme's
-    // `agent_accent` — Borealis `fable_violet` via the SEMANTIC role.
+    // `agent_accent` — Vellum `fable_violet` via the SEMANTIC role.
     // Routed through this ONE shared point so the local-PTY loop AND the
     // embedded-tear loop pick up the agent accent identically.
     renderer.set_search_status_color(theme.agent_accent);
     // Search-match highlight fills — the CURRENT match (inverse-video
-    // first_light on Borealis) and the OTHER matches (search_others).
+    // first_light on Vellum) and the OTHER matches (search_others).
     // Routed through this ONE shared point so the local-PTY loop AND the
     // embedded-tear loop pick up the search palette identically; the
     // render path linearizes both at paint time via `overlay_rect_color`.
@@ -210,7 +210,7 @@ fn theme_from_scheme(scheme: ColorScheme) -> Theme {
     }
 }
 
-/// Parse a `#RRGGBB` hex string into a u8-RGB `Color`. The Borealis
+/// Parse a `#RRGGBB` hex string into a u8-RGB `Color`. The Vellum
 /// `ResolvedTheme` carries hex strings (consumers parse with their own
 /// hex path); this is mado's. A malformed hex (impossible from the
 /// BORN tokens) falls back to black so the theme still loads.
@@ -219,33 +219,34 @@ fn color_from_hex(hex: &str) -> Color {
         .map_or(Color::BLACK, |s| Color::new(s.r, s.g, s.b))
 }
 
-/// **Borealis** (`borealis-night`) — the prescribed fleet theme. Built
-/// from the BORN ishou tokens (`ResolvedTheme::borealis_night()` +
-/// `BorealisPalette::night().surfaces()`), so this projection can never
-/// drift from the canonical palette: the ANSI-16 table, the night0
-/// background, the snow1 foreground, the `green_bright` cursor, and the
-/// byte-exact violet-glass selection all flow straight from spec §4/§5.
+/// **Vellum** (`vellum`) — the prescribed fleet theme, warm aged-paper
+/// Nord-matte. Built from the BORN ishou tokens
+/// (`ResolvedTheme::vellum()` + `VellumPalette::vellum().surfaces()`),
+/// so this projection can never drift from the canonical palette: the
+/// ANSI-16 table, the night0 background, the snow1 foreground, the
+/// `green_bright` cursor, and the byte-exact violet-glass selection all
+/// flow straight from spec §4/§5.
 ///
 /// The agent accent comes through the SEMANTIC `agent` role
-/// (`SemanticRoles::borealis_night().agent` → `fable_violet`), never a
-/// hex — so a future agent-band retune in ishou propagates here on the
-/// next compile.
-fn borealis_night_theme() -> Theme {
-    let resolved = ishou_tokens::ResolvedTheme::borealis_night();
-    let surfaces = ishou_tokens::BorealisPalette::night().surfaces();
-    let roles = ishou_tokens::SemanticRoles::borealis_night();
+/// (`SemanticRoles::vellum().agent` → `fable_violet`), never a hex — so
+/// a future agent-band retune in ishou propagates here on the next
+/// compile.
+fn vellum_theme() -> Theme {
+    let resolved = ishou_tokens::ResolvedTheme::vellum();
+    let surfaces = ishou_tokens::VellumPalette::vellum().surfaces();
+    let roles = ishou_tokens::SemanticRoles::vellum();
 
     // §4 — the one canonical ANSI-16 mapping fleet-wide.
     let ansi: [Color; 16] = core::array::from_fn(|i| color_from_hex(&resolved.ansi_16[i]));
 
     // The agent accent via the SEMANTIC role, resolved through the
     // palette's own `get` (the role key is `"fable_violet"`).
-    let agent_rgb = ishou_tokens::BorealisPalette::night()
+    let agent_rgb = ishou_tokens::VellumPalette::vellum()
         .get(roles.agent)
         .unwrap_or(surfaces.foreground);
 
     Theme {
-        name: "borealis-night",
+        name: "vellum",
         background: Color::new(surfaces.background.r, surfaces.background.g, surfaces.background.b),
         foreground: Color::new(surfaces.foreground.r, surfaces.foreground.g, surfaces.foreground.b),
         // §5 — block cursor is `green_bright` (an inverse pair ≥7.0).
@@ -261,8 +262,8 @@ fn borealis_night_theme() -> Theme {
         },
         ansi,
         agent_accent: Color::new(agent_rgb.r, agent_rgb.g, agent_rgb.b),
-        // §5 — the search band: CURRENT match is first_light #EDC980
-        // (inverse video), OTHER matches are search_others #4E443A. Both
+        // §5 — the search band: CURRENT match is first_light #D7C489
+        // (inverse video), OTHER matches are search_others #443E2A. Both
         // flow straight from the BORN surfaces, so a future search-band
         // retune in ishou propagates here on the next compile.
         search_current: Color::new(
@@ -281,17 +282,17 @@ fn borealis_night_theme() -> Theme {
 fn all() -> &'static [Theme] {
     static THEMES: OnceLock<Vec<Theme>> = OnceLock::new();
     THEMES.get_or_init(|| {
-        // Borealis is the prescribed fleet theme — registered alongside
-        // the irodzuki presets so `Theme::by_name("borealis-night")`
-        // resolves on the boot path AND the M4 ConfigApplier
+        // Vellum is the prescribed fleet theme — registered alongside
+        // the irodzuki presets so `Theme::by_name("vellum")` resolves on
+        // the boot path AND the M4 ConfigApplier
         // (`ux::config_apply::resolve` → `Theme::by_name`). The alias
-        // `"borealis"` is wired in `Theme::by_name` so the short form
-        // operators are likely to type also resolves.
+        // `"nord-matte"` is wired in `Theme::by_name` so the descriptive
+        // form also resolves.
         let mut themes: Vec<Theme> = irodzuki::presets::all()
             .into_iter()
             .map(theme_from_scheme)
             .collect();
-        themes.push(borealis_night_theme());
+        themes.push(vellum_theme());
         themes
     })
 }
@@ -303,7 +304,7 @@ mod tests {
     #[test]
     fn every_preset_loads() {
         let themes = Theme::available();
-        // 8 irodzuki presets + the registered Borealis fleet theme.
+        // 8 irodzuki presets + the registered Vellum fleet theme.
         assert_eq!(themes.len(), 9);
         for t in themes {
             assert!(!t.name.is_empty(), "theme has empty name");
@@ -311,61 +312,61 @@ mod tests {
     }
 
     #[test]
-    fn borealis_night_resolves_from_born_tokens() {
-        // Both the canonical name and the short alias resolve to the
-        // SAME registered theme (no duplicate, no drift).
-        let b = Theme::by_name("borealis-night").expect("borealis-night theme");
-        let alias = Theme::by_name("borealis").expect("borealis alias");
-        assert_eq!(b.name, "borealis-night");
-        assert_eq!(alias.name, "borealis-night");
-        // §5 — background night0 (#1F222F), foreground snow1 (#D4D9E3),
-        // cursor green_bright (#74E29F). These come straight from the
-        // ishou BORN tokens via `ResolvedTheme::borealis_night()`.
-        assert_eq!(b.background, Color::new(0x1F, 0x22, 0x2F));
-        assert_eq!(b.foreground, Color::new(0xD4, 0xD9, 0xE3));
-        assert_eq!(b.cursor, Color::new(0x74, 0xE2, 0x9F));
-        // §4 — ANSI 2 is the signature aurora_green (#67D191); ANSI 0 is
+    fn vellum_resolves_from_born_tokens() {
+        // Both the canonical name and the descriptive alias resolve to
+        // the SAME registered theme (no duplicate, no drift).
+        let b = Theme::by_name("vellum").expect("vellum theme");
+        let alias = Theme::by_name("nord-matte").expect("nord-matte alias");
+        assert_eq!(b.name, "vellum");
+        assert_eq!(alias.name, "vellum");
+        // §5 — background night0 (#16140E), foreground snow1 (#E2DBC8),
+        // cursor green_bright (#ADD7A3). These come straight from the
+        // ishou BORN tokens via `ResolvedTheme::vellum()`.
+        assert_eq!(b.background, Color::new(0x16, 0x14, 0x0E));
+        assert_eq!(b.foreground, Color::new(0xE2, 0xDB, 0xC8));
+        assert_eq!(b.cursor, Color::new(0xAD, 0xD7, 0xA3));
+        // §4 — ANSI 2 is the signature aurora_green (#A9BB8C); ANSI 0 is
         // night2 (surface), NEVER base00.
-        assert_eq!(b.ansi[2], Color::new(0x67, 0xD1, 0x91));
-        assert_eq!(b.ansi[0], Color::new(0x38, 0x3B, 0x4C));
-        assert_eq!(b.ansi[15], Color::new(0xF5, 0xF7, 0xFA)); // snow3 = base07
+        assert_eq!(b.ansi[2], Color::new(0xA9, 0xBB, 0x8C));
+        assert_eq!(b.ansi[0], Color::new(0x2B, 0x28, 0x20));
+        assert_eq!(b.ansi[15], Color::new(0xF4, 0xEF, 0xE2)); // snow3 = base07
     }
 
     #[test]
-    fn borealis_agent_accent_is_the_fable_violet_semantic_token() {
+    fn vellum_agent_accent_is_the_fable_violet_semantic_token() {
         // The agent accent flows through the SEMANTIC `agent` role
-        // (= `fable_violet` #B69AE9), not a hand-pinned hex — so a
+        // (= `fable_violet` #B29EC4), not a hand-pinned hex — so a
         // future agent-band retune in ishou propagates on next compile.
-        let b = Theme::by_name("borealis-night").expect("borealis-night theme");
-        let fable_violet = ishou_tokens::BorealisPalette::night()
-            .get(ishou_tokens::SemanticRoles::borealis_night().agent)
+        let b = Theme::by_name("vellum").expect("vellum theme");
+        let fable_violet = ishou_tokens::VellumPalette::vellum()
+            .get(ishou_tokens::SemanticRoles::vellum().agent)
             .expect("fable_violet token");
         assert_eq!(
             b.agent_accent,
             Color::new(fable_violet.r, fable_violet.g, fable_violet.b),
         );
-        assert_eq!(b.agent_accent, Color::new(0xB6, 0x9A, 0xE9));
+        assert_eq!(b.agent_accent, Color::new(0xB2, 0x9E, 0xC4));
     }
 
     #[test]
-    fn borealis_selection_is_the_byte_exact_violet_glass() {
+    fn vellum_selection_is_the_byte_exact_violet_glass() {
         // The selection overlay is the byte-exact violet-glass blend
-        // product (#3F3955), linearized for the rect pipeline. Round-
+        // product (#3A343E), linearized for the rect pipeline. Round-
         // tripping the linear value back to sRGB recovers the spec hex.
-        let b = Theme::by_name("borealis-night").expect("borealis-night theme");
+        let b = Theme::by_name("vellum").expect("vellum theme");
         let [r, g, bl, _a] = b.selection_bg;
         let back = ishou_tokens::Linear { r, g, b: bl }.to_srgb();
-        assert_eq!(back.hex(), "#3F3955");
+        assert_eq!(back.hex(), "#3A343E");
     }
 
     #[test]
-    fn borealis_search_matches_resolve_from_born_surfaces() {
+    fn vellum_search_matches_resolve_from_born_surfaces() {
         // §5 — the search band flows from the BORN surfaces, never a
-        // hand-pinned hex: current = first_light #EDC980 (inverse
-        // video), other = search_others #4E443A. A future search-band
+        // hand-pinned hex: current = first_light #D7C489 (inverse
+        // video), other = search_others #443E2A. A future search-band
         // retune in ishou propagates here on next compile.
-        let b = Theme::by_name("borealis-night").expect("borealis-night theme");
-        let surfaces = ishou_tokens::BorealisPalette::night().surfaces();
+        let b = Theme::by_name("vellum").expect("vellum theme");
+        let surfaces = ishou_tokens::VellumPalette::vellum().surfaces();
         assert_eq!(
             b.search_current,
             Color::new(
@@ -382,8 +383,8 @@ mod tests {
                 surfaces.search_others_background.b,
             ),
         );
-        assert_eq!(b.search_current, Color::new(0xED, 0xC9, 0x80));
-        assert_eq!(b.search_others, Color::new(0x4E, 0x44, 0x3A));
+        assert_eq!(b.search_current, Color::new(0xD7, 0xC4, 0x89));
+        assert_eq!(b.search_others, Color::new(0x44, 0x3E, 0x2A));
     }
 
     #[test]

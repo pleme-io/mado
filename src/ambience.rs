@@ -5,10 +5,17 @@
 //! > that is barely perceptible but does influence." — and the bright
 //! > line: "if you can point at it, it is too loud."
 //!
+//! With **Vellum** (the warm aged-paper Nord-matte fleet theme, 2026-06-14)
+//! the operator dialed the effects further back still: "more subtle on
+//! effects for sure." The prescribed default is now [`AmbiencePreset::Matte`]
+//! — effects recede to **almost nothing**: no glow, no bell halo, the
+//! aurora curtain off. The louder tiers (`Whisper`/`Present`) remain
+//! available; `Off` is the literal clean look. `Matte` is the new bar.
+//!
 //! The ambience layer is NOT a set of discrete effect toggles. It is a
 //! single typed [`AmbiencePreset`] that COMPOSES the engawa catalog
 //! effects at threshold-of-perception intensities, all sharing ONE
-//! motion clock + ONE noise seed + the resolved Borealis palette:
+//! motion clock + ONE noise seed + the resolved Vellum palette:
 //!
 //! * **aurora** — the Borealis signature curtain, ~2-4 % opacity,
 //!   concentrated above the prompt horizon, drawn from the theme's
@@ -52,9 +59,10 @@
 use engawa_wgpu::catalog::CatalogEffect;
 use serde::{Deserialize, Serialize};
 
-/// The composed ambience layer — three preset points on the
-/// barely-perceptible axis. `Whisper` is the default: the bar where
-/// the layer influences without being nameable.
+/// The composed ambience layer — four preset points on the
+/// barely-perceptible axis. `Matte` is THE default (Vellum era): effects
+/// recede to almost nothing. `Whisper`/`Present` are the louder tiers;
+/// `Off` is the literal clean look.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(test, derive(pleme_allvariants_derive::AllVariants))]
 #[serde(rename_all = "snake_case")]
@@ -62,8 +70,17 @@ pub enum AmbiencePreset {
     /// Zero rows, zero nodes — the clean look. Also where
     /// `reduce_motion` lands the layer.
     Off,
-    /// THE default: every member at the threshold of perception — a
-    /// consistent influence you cannot point at.
+    /// THE default (Vellum era, operator: "more subtle on effects for
+    /// sure"). Effects recede to almost nothing — no glow, no bell halo,
+    /// the aurora curtain off. Composes to ZERO rows ⇒ zero nodes today;
+    /// it stays a distinct, named preset point so the calmest tier has a
+    /// home of its own (and a future paper-grain texture lands HERE,
+    /// not on `Whisper`). The matte, aged-paper look the Vellum theme
+    /// wants.
+    Matte,
+    /// A consistent influence you cannot point at — every member at the
+    /// threshold of perception. Louder than `Matte`; available for
+    /// operators who want the Borealis-era ambient curtain back.
     Whisper,
     /// A touch more — for showing the layer off. Still tasteful; the
     /// aurora/bloom gains lift modestly, nothing smears.
@@ -72,7 +89,7 @@ pub enum AmbiencePreset {
 
 impl Default for AmbiencePreset {
     fn default() -> Self {
-        Self::Whisper
+        Self::Matte
     }
 }
 
@@ -172,10 +189,12 @@ impl AmbienceComposition {
 
 impl AmbiencePreset {
     /// COMPOSE the catalog effects for this preset at the tuned
-    /// threshold intensities. `Off` is the empty composition (zero
-    /// rows ⇒ zero nodes). The pinned numbers below ARE the
-    /// barely-perceptible bar — `Whisper` is the design default, the
-    /// `Present` deltas are a deliberate, small lift.
+    /// threshold intensities. `Off` and `Matte` are both empty
+    /// compositions (zero rows ⇒ zero nodes); `Matte` is the prescribed
+    /// default (the Vellum-era "more subtle on effects" bar). The pinned
+    /// numbers below ARE the barely-perceptible bar for the louder tiers
+    /// — `Whisper` is the threshold-of-perception tier, the `Present`
+    /// deltas are a deliberate, small lift.
     ///
     /// Pure: no I/O, no palette, no clock — the palette enters
     /// render-side (`AuroraParams::with_colors`), the clock enters
@@ -188,7 +207,24 @@ impl AmbiencePreset {
             // Off contributes ZERO rows — the empty composition is the
             // "no graph at all" path the renderer already honours.
             AmbiencePreset::Off => Vec::new(),
-            // Whisper — the bar. Aurora at ~2.5 % opacity (the curtain
+            // Matte — the Vellum-era default. Effects recede to almost
+            // nothing: NO bloom (no glow), NO glow_on_bell (no halo),
+            // aurora OFF (the curtain omitted). The result is the empty
+            // composition — zero rows ⇒ zero graph nodes — the calmest
+            // possible look, matching the warm aged-paper Vellum theme.
+            //
+            // Why empty rather than "aurora at 0.0 + a near-zero
+            // scanline": the `AmbienceMember` shape carries no scanline
+            // intensity field, and a `Scanlines` member would add a
+            // graph node rendered with the catalog's DEFAULT scanline
+            // params — which read as CRT, not paper grain. There is no
+            // film-grain catalog effect to compose. So the calmest,
+            // lowest-risk Matte is the absence of every member; a future
+            // paper-grain texture (a real catalog effect + an intensity
+            // dial on the member) lands on THIS arm without touching the
+            // louder tiers.
+            AmbiencePreset::Matte => Vec::new(),
+            // Whisper — the Borealis-era bar. Aurora at ~2.5 % opacity (the curtain
             // is sky dressing; the scene reads straight through), slow
             // drift, gentle shimmer, horizon high above the prompt
             // line. Bloom only on near-white accents (high threshold),
@@ -273,10 +309,32 @@ pub(crate) const BARELY_PERCEPTIBLE_AURORA_CEILING: f32 = 0.06;
 mod tests {
     use super::*;
 
-    /// Whisper is the default — the operator design law's chosen bar.
+    /// Matte is the default — the Vellum-era "more subtle on effects"
+    /// bar. Whisper/Present remain the louder tiers.
     #[test]
-    fn whisper_is_the_default_preset() {
-        assert_eq!(AmbiencePreset::default(), AmbiencePreset::Whisper);
+    fn matte_is_the_default_preset() {
+        assert_eq!(AmbiencePreset::default(), AmbiencePreset::Matte);
+    }
+
+    /// Matte composes ZERO members — effects recede to almost nothing:
+    /// no bloom (no glow), no glow_on_bell (no halo), no aurora curtain.
+    /// The empty composition maps to zero graph nodes (the same "no
+    /// graph at all" contract `Off` honours), and it trivially clears
+    /// the barely-perceptible ceiling (no member can exceed it).
+    #[test]
+    fn matte_composes_zero_members_no_glow_no_halo_no_aurora() {
+        use engawa_wgpu::catalog::CatalogEffect;
+        let comp = AmbiencePreset::Matte.compose();
+        assert!(comp.members.is_empty(), "Matte must compose zero members");
+        assert!(comp.aurora().is_none(), "Matte must not compose aurora");
+        assert!(
+            !comp.contains(CatalogEffect::Bloom),
+            "Matte must not compose bloom (no glow)"
+        );
+        assert!(
+            !comp.contains(CatalogEffect::GlowOnBell),
+            "Matte must not compose glow_on_bell (no halo)"
+        );
     }
 
     /// FORCING FUNCTION — Whisper composes EXACTLY the expected member
