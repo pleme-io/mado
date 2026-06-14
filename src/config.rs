@@ -157,6 +157,8 @@ pub struct MadoEffectsConfig {
     pub bloom: MadoBloomConfig,
     #[serde(default)]
     pub glow_on_bell: MadoGlowOnBellConfig,
+    #[serde(default)]
+    pub grain: MadoGrainConfig,
 }
 
 /// Aurora (Vellum signature curtain) power-user override. The
@@ -324,6 +326,30 @@ fn default_glow_radius_px() -> f32 { 240.0 }
 impl Default for MadoGlowOnBellConfig {
     fn default() -> Self {
         Self { enabled: false, radius_px: default_glow_radius_px() }
+    }
+}
+
+/// Paper-grain ("tooth") knobs — the luma-only film grain that gives
+/// the Vellum matte its faint fabric texture. The Matte ambience preset
+/// composes grain at the barely-perceptible default opacity; a power
+/// user who sets `enabled = true` forces it on regardless of the preset
+/// and overrides the composed opacity. Defaults mirror the catalog's
+/// `GrainParams::default()` (opacity 1.5 %).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MadoGrainConfig {
+    #[serde(default)]
+    pub enabled: bool,
+    /// Luma-jitter amplitude 0..=1 (0 = exact pass-through). Default
+    /// 1.5 % — barely perceptible.
+    #[serde(default = "default_grain_opacity")]
+    pub opacity: f32,
+}
+
+fn default_grain_opacity() -> f32 { 0.015 }
+
+impl Default for MadoGrainConfig {
+    fn default() -> Self {
+        Self { enabled: false, opacity: default_grain_opacity() }
     }
 }
 
@@ -2735,6 +2761,7 @@ mod tests {
         let scan = engawa_wgpu::catalog::scanlines::ScanlinesParams::default();
         let bloom = engawa_wgpu::catalog::bloom::BloomParams::default();
         let glow = engawa_wgpu::catalog::glow_on_bell::GlowOnBellParams::default();
+        let grain = engawa_wgpu::catalog::grain::GrainParams::default();
 
         let e = MadoEffectsConfig::default();
         let rows: &[(&str, f32, f32)] = &[
@@ -2747,6 +2774,7 @@ mod tests {
             ("bloom.intensity", e.bloom.intensity, bloom.intensity),
             ("bloom.radius_px", e.bloom.radius_px, bloom.radius_px),
             ("glow_on_bell.radius_px", e.glow_on_bell.radius_px, glow.radius_px),
+            ("grain.opacity", e.grain.opacity, grain.opacity),
         ];
         let mut failures = Vec::new();
         for (name, got, want) in rows {

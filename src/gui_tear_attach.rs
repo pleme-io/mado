@@ -154,6 +154,28 @@ pub fn try_run_default(
     let init_rows = (((config.window.height as f32 - 2.0 * pad_logical) / cell_h_logical)
         .floor() as u16)
         .max(1);
+
+    // Project the full capability env to the DAEMON before spawning the
+    // session — the daemon-runtime mirror of the embedded path's
+    // `inproc.set_spawn_env`. Without this a daemon-spawned shell sees no
+    // COLORTERM=truecolor and the wrong terminfo (vim renders grey). The
+    // override applies only to SUBSEQUENT spawns, so it must precede
+    // new_session. Same typed `caps::EnvProjection` → `SpawnEnv` seam, so
+    // the child env is identical across the embedded + daemon entry points.
+    let spawn_env = tear_types::SpawnEnv::from_overrides(
+        crate::caps::EnvProjection::prescribed(env!("CARGO_PKG_VERSION"))
+            .pairs()
+            .to_vec(),
+    )
+    .with_cwd(
+        config
+            .boot_spawn_cwd()
+            .map(|d| d.to_string_lossy().into_owned()),
+    );
+    if let Err(e) = client.set_spawn_env(&spawn_env) {
+        tracing::warn!(error = %e, "tear set_spawn_env failed; daemon child may lack truecolor env");
+    }
+
     let session_id = match client.new_session_with_source_and_size(
         &session_name,
         &shell,

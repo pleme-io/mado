@@ -24,7 +24,7 @@ steps:
     text: "git"
     timeout_ms: 500
 expect:
-  frame_hash: "96c05485dfa09a5e231a00a83b828d368eaed9dc9f0687b896c1115a175eb619"
+  frame_hash: "9766422484b16190cc9f9bf51d6349cf95ae6cd5c9803b4007277434ac577563"
   cells:
     # Every popup row terminates in a U+2588 at column 79 (0-indexed).
     - row: 0

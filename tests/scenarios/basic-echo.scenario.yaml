@@ -17,7 +17,7 @@ steps:
     text: "MADO_BASIC_ECHO"
     timeout_ms: 500
 expect:
-  frame_hash: "9a94c6911515877eddfb41c3b4dfa7dd42f4afa837ab87a5d766bd9cd2f50179"
+  frame_hash: "0cac6864e3ac41561e4a9d4f2d04e82d924eccd98680551c9970a21794b03a09"
   text_contains:
     - "MADO_BASIC_ECHO"
   cursor:

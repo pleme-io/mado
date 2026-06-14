@@ -20,7 +20,7 @@ steps:
     text: "日"
     timeout_ms: 500
 expect:
-  frame_hash: "bf150f7d3e752ce2aca5fe079561fc4ef3bd7a166948a888dc39fef780a4420a"
+  frame_hash: "c095d296506ec46487d37e08b8c14860dd430246acd093248b6a3bed1c1e80ca"
   cells:
     # 日 at col 0 width 2; continuation at col 1 width 0.
     - row: 0

@@ -3198,6 +3198,13 @@ impl TerminalRenderer {
         if e.bloom.enabled {
             set.insert(CatalogEffect::Bloom);
         }
+        // Grain is a static texture (not animated motion), so the
+        // power-user override is NOT motion-gated — it's the same band
+        // as crt/scanlines/bloom. The Matte composition injects grain
+        // via its member above; this forces it on regardless of preset.
+        if e.grain.enabled {
+            set.insert(CatalogEffect::Grain);
+        }
         if !self.reduce_motion {
             if e.aurora.enabled {
                 set.insert(CatalogEffect::Aurora);
@@ -3385,6 +3392,27 @@ impl TerminalRenderer {
                     let mut p = self.snow_state.params;
                     p.set_resolution(res);
                     frame.set(catalog::snow::PARAMS_RESOURCE, &p);
+                }
+                CatalogEffect::Grain => {
+                    // Opacity: power-user override wins; else the composed
+                    // ambience member's intensity (Matte injects grain at
+                    // the barely-perceptible default); else the catalog
+                    // default. Clock from the shared render-clock
+                    // (`aurora_state.time`) — the WGSL quantizes it to a
+                    // slow shimmer; at elapsed=0 it's the identity, keeping
+                    // the headless ladders byte-deterministic.
+                    let opacity = if cfg.grain.enabled {
+                        cfg.grain.opacity
+                    } else if let Some(m) = self.ambience.member(CatalogEffect::Grain) {
+                        m.intensity
+                    } else {
+                        catalog::grain::GrainParams::default().opacity
+                    };
+                    let p = catalog::grain::GrainParams::new(res)
+                        .with_opacity(opacity)
+                        .with_scale(1.0)
+                        .with_time(self.aurora_state.time);
+                    frame.set(catalog::grain::PARAMS_RESOURCE, &p);
                 }
             }
         }
@@ -5109,8 +5137,9 @@ mod render_invariants {
     ///
     /// The baseline preset is `Off` so this test exercises the per-effect
     /// override path in isolation — the default-on AMBIENCE composition
-    /// (`Matte`, empty; `Whisper` for the louder tier) is pinned
-    /// separately by `default_matte_composes_zero_and_whisper_composes_the_three`.
+    /// (`Matte`, paper-grain only; `Whisper` for the louder tier) is
+    /// pinned separately by
+    /// `default_matte_composes_grain_and_whisper_composes_the_three`.
     #[test]
     fn effects_config_maps_to_effect_set_and_reduce_motion_gates_animation() {
         use engawa_wgpu::catalog::CatalogEffect;
@@ -5136,6 +5165,7 @@ mod render_invariants {
                 CatalogEffect::GlowOnBell => e.glow_on_bell.enabled = true,
                 CatalogEffect::Aurora => e.aurora.enabled = true,
                 CatalogEffect::Snow => e.snow.enabled = true,
+                CatalogEffect::Grain => e.grain.enabled = true,
             }
             r.set_effects_config(e);
         };
@@ -5148,8 +5178,9 @@ mod render_invariants {
             rows += 1;
             let (mut r, _t) = harness(10, 2);
             // Baseline: ambience Off so the set starts empty (the
-            // renderer ships with Matte by default — empty composition,
-            // tested separately). This isolates the per-effect knob.
+            // renderer ships with Matte by default — paper-grain-only
+            // composition, tested separately). This isolates the
+            // per-effect knob.
             let mut off = crate::config::MadoEffectsConfig::default();
             off.ambience = crate::ambience::AmbiencePreset::Off;
             r.set_effects_config(off);
@@ -5195,27 +5226,35 @@ mod render_invariants {
     }
 
     /// The composed AMBIENCE layer (operator design law, 2026-06-13;
-    /// Vellum-era "more subtle" retune, 2026-06-14) — the renderer-level
-    /// forcing function. The default config (`Matte`) composes ZERO
-    /// ambience nodes (effects recede to almost nothing — no glow, no
-    /// halo, aurora off); a louder preset (`Whisper`) composes {aurora,
-    /// bloom, glow_on_bell}; `reduce_motion` resolves any preset to `Off`
-    /// ⇒ zero nodes (the accessibility floor); a per-effect override adds
+    /// Vellum-era "more subtle" retune, 2026-06-14; paper-grain tooth,
+    /// 2026-06-15) — the renderer-level forcing function. The default
+    /// config (`Matte`) composes EXACTLY the paper-grain tooth (one
+    /// node — no glow, no halo, aurora off, just the faint fabric
+    /// texture); a louder preset (`Whisper`) composes {aurora, bloom,
+    /// glow_on_bell}; `reduce_motion` resolves any preset to `Off` ⇒
+    /// zero nodes (the accessibility floor); a per-effect override adds
     /// on top.
     #[test]
-    fn default_matte_composes_zero_and_whisper_composes_the_three() {
+    fn default_matte_composes_grain_and_whisper_composes_the_three() {
         use engawa_wgpu::catalog::CatalogEffect;
         let mut failures: Vec<String> = Vec::new();
 
-        // ── Default (Matte) composes ZERO ambience nodes ─────────────
+        // ── Default (Matte) composes EXACTLY the grain tooth ─────────
         let (mut r, _t) = harness(10, 2);
         let mut cfg = crate::config::MadoConfig::default();
         r.apply_effects_and_accessibility(&cfg);
-        if !r.enabled_effect_set().is_empty() {
+        let matte_set = r.enabled_effect_set();
+        if !matte_set.contains(CatalogEffect::Grain) {
             failures.push(format!(
-                "default Matte ambience must contribute zero nodes (got {:?})",
-                r.enabled_effect_set()
+                "default Matte ambience must compose the paper-grain tooth (got {matte_set:?})"
             ));
+        }
+        for effect in CatalogEffect::ALL.iter().copied() {
+            if effect != CatalogEffect::Grain && matte_set.contains(effect) {
+                failures.push(format!(
+                    "default Matte ambience must ONLY compose grain, but also enabled {effect:?}"
+                ));
+            }
         }
 
         // ── Whisper (the louder tier) composes the three members ─────
@@ -5238,6 +5277,7 @@ mod render_invariants {
             CatalogEffect::Crt,
             CatalogEffect::Scanlines,
             CatalogEffect::Snow,
+            CatalogEffect::Grain,
         ] {
             if set.contains(effect) {
                 failures.push(format!("Whisper ambience wrongly enabled {effect:?}"));
@@ -5905,6 +5945,11 @@ mod render_gpu_invariants {
         let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
         let (mut r, _t, mut text) = build_gpu_renderer(&gpu, 20, 4);
         let mut effects = crate::config::MadoEffectsConfig::default();
+        // Isolate the colorblind-only chain: pin ambience Off so the
+        // default-on Matte grain tooth doesn't add a second effect (and
+        // its chain intermediate) to the pool — this test asserts the
+        // single-effect pool discipline.
+        effects.ambience = crate::ambience::AmbiencePreset::Off;
         effects.colorblind.mode = ColorblindMode::Protanopia;
         r.set_effects_config(effects);
 
@@ -6131,6 +6176,14 @@ mod render_gpu_invariants {
         let target =
             HeadlessTarget::new(&gpu, 256, 96, SURFACE_FORMAT);
         let (mut r, t, mut text) = build_gpu_renderer(&gpu, 40, 6);
+        // Isolate the clean scene: pin ambience Off so the default-on
+        // Matte paper-grain tooth doesn't contaminate this golden (the
+        // grain layer is exercised by its own composition + matrix
+        // tests; this golden pins the rect+text scene WITHOUT any
+        // post effect).
+        let mut effects = crate::config::MadoEffectsConfig::default();
+        effects.ambience = crate::ambience::AmbiencePreset::Off;
+        r.set_effects_config(effects);
         // Canonical scene: a short prompt-like sequence with
         // mixed printable ASCII, a newline, more text. Picked to
         // exercise the rect + text pipelines together without
@@ -6185,6 +6238,10 @@ mod render_gpu_invariants {
         let target = HeadlessTarget::new(&gpu, 256, 96, SURFACE_FORMAT);
         let (mut r, t, mut text) = build_gpu_renderer(&gpu, 40, 6);
         let mut effects = crate::config::MadoEffectsConfig::default();
+        // Isolate the colorblind grade: pin ambience Off so the
+        // default-on Matte grain tooth doesn't perturb the graded
+        // golden — this golden pins the colorblind chain ONLY.
+        effects.ambience = crate::ambience::AmbiencePreset::Off;
         effects.colorblind.mode = ColorblindMode::Protanopia;
         r.set_effects_config(effects);
         // Same canonical scene as the ungraded golden, plus color so

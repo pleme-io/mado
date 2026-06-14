@@ -155,6 +155,21 @@ impl AmbienceMember {
             bloom_threshold: 0.0,
         }
     }
+
+    /// The paper-grain member — `intensity` IS the luma-jitter opacity
+    /// (the catalog `GrainParams::with_opacity` clamps it). The render
+    /// side seeds the grain clock from the shared render clock; the
+    /// shader quantizes it to a slow shimmer.
+    const fn grain(opacity: f32) -> Self {
+        Self {
+            effect: CatalogEffect::Grain,
+            intensity: opacity,
+            drift: 0.0,
+            shimmer: 0.0,
+            horizon: 0.0,
+            bloom_threshold: 0.0,
+        }
+    }
 }
 
 /// The composed layer for one preset — the ONE typed value both the
@@ -189,12 +204,13 @@ impl AmbienceComposition {
 
 impl AmbiencePreset {
     /// COMPOSE the catalog effects for this preset at the tuned
-    /// threshold intensities. `Off` and `Matte` are both empty
-    /// compositions (zero rows ⇒ zero nodes); `Matte` is the prescribed
-    /// default (the Vellum-era "more subtle on effects" bar). The pinned
-    /// numbers below ARE the barely-perceptible bar for the louder tiers
-    /// — `Whisper` is the threshold-of-perception tier, the `Present`
-    /// deltas are a deliberate, small lift.
+    /// threshold intensities. `Off` is the empty composition (zero rows
+    /// ⇒ zero nodes); `Matte` (the prescribed Vellum-era default)
+    /// composes exactly ONE member — the paper-grain "tooth" at the
+    /// barely-perceptible default opacity. The pinned numbers below ARE
+    /// the barely-perceptible bar for the louder tiers — `Whisper` is the
+    /// threshold-of-perception tier, the `Present` deltas are a
+    /// deliberate, small lift.
     ///
     /// Pure: no I/O, no palette, no clock — the palette enters
     /// render-side (`AuroraParams::with_colors`), the clock enters
@@ -209,21 +225,14 @@ impl AmbiencePreset {
             AmbiencePreset::Off => Vec::new(),
             // Matte — the Vellum-era default. Effects recede to almost
             // nothing: NO bloom (no glow), NO glow_on_bell (no halo),
-            // aurora OFF (the curtain omitted). The result is the empty
-            // composition — zero rows ⇒ zero graph nodes — the calmest
-            // possible look, matching the warm aged-paper Vellum theme.
-            //
-            // Why empty rather than "aurora at 0.0 + a near-zero
-            // scanline": the `AmbienceMember` shape carries no scanline
-            // intensity field, and a `Scanlines` member would add a
-            // graph node rendered with the catalog's DEFAULT scanline
-            // params — which read as CRT, not paper grain. There is no
-            // film-grain catalog effect to compose. So the calmest,
-            // lowest-risk Matte is the absence of every member; a future
-            // paper-grain texture (a real catalog effect + an intensity
-            // dial on the member) lands on THIS arm without touching the
-            // louder tiers.
-            AmbiencePreset::Matte => Vec::new(),
+            // aurora OFF (the curtain omitted). The ONE member is the
+            // paper-grain "tooth" at the barely-perceptible default
+            // opacity — a faint luma-only fabric texture laid on top so
+            // the warm aged-paper Vellum matte reads as fabric, not flat.
+            // Grain is a static texture (no clock-driven motion the eye
+            // tracks), so this is the calmest member that still gives the
+            // matte its tooth; everything louder lives on Whisper/Present.
+            AmbiencePreset::Matte => vec![AmbienceMember::grain(MATTE_GRAIN_OPACITY)],
             // Whisper — the Borealis-era bar. Aurora at ~2.5 % opacity (the curtain
             // is sky dressing; the scene reads straight through), slow
             // drift, gentle shimmer, horizon high above the prompt
@@ -284,6 +293,13 @@ pub(crate) const PRESENT_AURORA_SHIMMER: f32 = 0.45;
 /// Bloom gain at Present.
 pub(crate) const PRESENT_BLOOM_INTENSITY: f32 = 0.20;
 
+/// Paper-grain opacity at Matte — the luma-only "tooth" laid on the
+/// Vellum matte. 1.5 %: a faint fabric texture you cannot point at (the
+/// design law's bright line), well under the grain ceiling below. This
+/// is the catalog `GrainParams::default().opacity`, pinned here so the
+/// composition and the catalog default cannot silently drift.
+pub(crate) const MATTE_GRAIN_OPACITY: f32 = 0.015;
+
 /// Horizon line shared by every preset's aurora. In the engawa aurora
 /// shader `alt = 1.0 - uv.y/horizon`, so the curtain's ACTIVE region is
 /// the top `horizon` fraction of the frame (`uv.y < 0.70` here = the top
@@ -305,6 +321,12 @@ pub(crate) const AMBIENCE_BLOOM_THRESHOLD: f32 = 0.88;
 #[cfg(test)]
 pub(crate) const BARELY_PERCEPTIBLE_AURORA_CEILING: f32 = 0.06;
 
+/// The barely-perceptible ceiling for the paper-grain "tooth". Above
+/// this the fabric texture is visible noise; the Matte forcing test
+/// pins the grain member's opacity under it.
+#[cfg(test)]
+pub(crate) const BARELY_PERCEPTIBLE_GRAIN_CEILING: f32 = 0.05;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -316,16 +338,19 @@ mod tests {
         assert_eq!(AmbiencePreset::default(), AmbiencePreset::Matte);
     }
 
-    /// Matte composes ZERO members — effects recede to almost nothing:
-    /// no bloom (no glow), no glow_on_bell (no halo), no aurora curtain.
-    /// The empty composition maps to zero graph nodes (the same "no
-    /// graph at all" contract `Off` honours), and it trivially clears
-    /// the barely-perceptible ceiling (no member can exceed it).
+    /// Matte composes EXACTLY the paper-grain member — no bloom (no
+    /// glow), no glow_on_bell (no halo), no aurora curtain; just the
+    /// faint luma-only "tooth". The grain member's opacity is pinned at
+    /// the barely-perceptible default and clears the grain ceiling.
     #[test]
-    fn matte_composes_zero_members_no_glow_no_halo_no_aurora() {
+    fn matte_composes_only_the_grain_member() {
         use engawa_wgpu::catalog::CatalogEffect;
         let comp = AmbiencePreset::Matte.compose();
-        assert!(comp.members.is_empty(), "Matte must compose zero members");
+        assert_eq!(comp.members.len(), 1, "Matte must compose exactly one member");
+        assert!(
+            comp.contains(CatalogEffect::Grain),
+            "Matte must compose the paper-grain tooth"
+        );
         assert!(comp.aurora().is_none(), "Matte must not compose aurora");
         assert!(
             !comp.contains(CatalogEffect::Bloom),
@@ -334,6 +359,18 @@ mod tests {
         assert!(
             !comp.contains(CatalogEffect::GlowOnBell),
             "Matte must not compose glow_on_bell (no halo)"
+        );
+
+        let grain = comp.member(CatalogEffect::Grain).expect("Matte has grain");
+        assert_eq!(
+            grain.intensity, MATTE_GRAIN_OPACITY,
+            "Matte grain opacity must be the pinned barely-perceptible default"
+        );
+        assert!(
+            grain.intensity <= BARELY_PERCEPTIBLE_GRAIN_CEILING,
+            "Matte grain opacity {} exceeds the barely-perceptible ceiling {}",
+            grain.intensity,
+            BARELY_PERCEPTIBLE_GRAIN_CEILING
         );
     }
 

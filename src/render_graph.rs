@@ -69,8 +69,8 @@ impl EffectSet {
 
     /// Enabled effects in render order — ascending catalog priority
     /// (bloom 300 → glow 400 → aurora 450 → snow 500 → scanlines 600 →
-    /// crt 650 → colorblind 700). The chain wiring below consumes this
-    /// order.
+    /// crt 650 → colorblind 700 → grain 750 last). The chain wiring
+    /// below consumes this order.
     pub fn iter_render_order(self) -> impl Iterator<Item = CatalogEffect> {
         let mut effects: Vec<CatalogEffect> = CatalogEffect::ALL
             .iter()
@@ -88,13 +88,14 @@ impl EffectSet {
 /// N-1 intermediates, so the table holds `ALL.len() - 1` ids — the
 /// forcing test pins the length, so a new catalog effect cannot land
 /// without growing this table in the same change.
-pub const CHAIN_IDS: [&str; 6] = [
+pub const CHAIN_IDS: [&str; 7] = [
     "mado:chain:0",
     "mado:chain:1",
     "mado:chain:2",
     "mado:chain:3",
     "mado:chain:4",
     "mado:chain:5",
+    "mado:chain:6",
 ];
 
 /// Cache key — the only two inputs that change the compiled topology
@@ -227,7 +228,11 @@ mod tests {
     use super::*;
 
     fn full_power_set() -> impl Iterator<Item = EffectSet> {
-        (0u8..(1 << CatalogEffect::ALL.len())).map(EffectSet)
+        // Range in u16 so the 8-effect case (2^8 = 256 subsets) doesn't
+        // overflow a u8 `1 << 8`; each subset value fits the u8 bitset
+        // (bits 0..=7), so the cast back is lossless.
+        let bound: u16 = 1u16 << CatalogEffect::ALL.len();
+        (0u16..bound).map(|v| EffectSet(v as u8))
     }
 
     fn key(effects: EffectSet) -> GraphKey {
