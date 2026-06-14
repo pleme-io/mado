@@ -2703,25 +2703,27 @@ mod tests {
         assert_eq!(d.theme, fleet_theme.resolve().name);
         assert_eq!(d.theme, "vellum");
 
-        // ── ANSI palette: the registered Vellum theme's 16-colour
-        // table equals the fleet `ResolvedTheme::vellum().ansi_16`
-        // byte-for-byte. A fleet ANSI retune in ishou fails this build
-        // until mado's registered theme follows (it follows by
-        // construction — the theme is BUILT from the resolved tokens —
-        // so this is the mechanical proof of that construction). ──
+        // ── ANSI palette: DECOUPLED from the BORN parchment ANSI
+        // (washed-out-colors fix, 2026-06-14). Vellum's CHROME stays
+        // BORN, but the ANSI-16 apps paint their CONTENT with is the
+        // vivid Nord set — otherwise vim/shell/autocomplete colors render
+        // as the dull grey-green muted parchment tones and diverge from
+        // ghostty. So the registered Vellum theme's ANSI must NOT equal
+        // the muted `ResolvedTheme::vellum().ansi_16`, and it must carry
+        // the vivid Nord aurora/frost values. ──
         let theme = crate::theme::Theme::by_name(&d.theme).expect("vellum theme registered");
         let resolved = ishou_tokens::ResolvedTheme::vellum();
-        for i in 0..16 {
-            let want = ishou_tokens::Srgb::from_hex(&resolved.ansi_16[i])
-                .expect("resolved ANSI hex parses");
-            let got = theme.ansi[i];
-            assert_eq!(
-                (got.r, got.g, got.b),
-                (want.r, want.g, want.b),
-                "ANSI slot {i} drift: mado {got:?} != fleet {}",
-                resolved.ansi_16[i],
-            );
-        }
+        let muted_green = ishou_tokens::Srgb::from_hex(&resolved.ansi_16[2])
+            .expect("resolved ANSI hex parses");
+        assert_ne!(
+            (theme.ansi[2].r, theme.ansi[2].g, theme.ansi[2].b),
+            (muted_green.r, muted_green.g, muted_green.b),
+            "Vellum content ANSI must be the vivid Nord set, not the muted BORN parchment ANSI",
+        );
+        // Vivid Nord anchors (aurora green / red, frost cyan).
+        assert_eq!((theme.ansi[1].r, theme.ansi[1].g, theme.ansi[1].b), (0xBF, 0x61, 0x6A));
+        assert_eq!((theme.ansi[2].r, theme.ansi[2].g, theme.ansi[2].b), (0xA3, 0xBE, 0x8C));
+        assert_eq!((theme.ansi[6].r, theme.ansi[6].g, theme.ansi[6].b), (0x88, 0xC0, 0xD0));
 
         // ── Agent accent: the fable_violet SEMANTIC token, never a hex. ──
         let fable_violet = ishou_tokens::VellumPalette::vellum()

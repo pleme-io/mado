@@ -210,34 +210,43 @@ fn theme_from_scheme(scheme: ColorScheme) -> Theme {
     }
 }
 
-/// Parse a `#RRGGBB` hex string into a u8-RGB `Color`. The Vellum
-/// `ResolvedTheme` carries hex strings (consumers parse with their own
-/// hex path); this is mado's. A malformed hex (impossible from the
-/// BORN tokens) falls back to black so the theme still loads.
-fn color_from_hex(hex: &str) -> Color {
-    ishou_tokens::Srgb::from_hex(hex)
-        .map_or(Color::BLACK, |s| Color::new(s.r, s.g, s.b))
-}
-
 /// **Vellum** (`vellum`) — the prescribed fleet theme, warm aged-paper
-/// Nord-matte. Built from the BORN ishou tokens
-/// (`ResolvedTheme::vellum()` + `VellumPalette::vellum().surfaces()`),
-/// so this projection can never drift from the canonical palette: the
-/// ANSI-16 table, the night0 background, the snow1 foreground, the
+/// Nord-matte. The CHROME is built from the BORN ishou tokens
+/// (`VellumPalette::vellum().surfaces()`), so it can never drift from the
+/// canonical palette: the night0 background, the snow1 foreground, the
 /// `green_bright` cursor, and the byte-exact violet-glass selection all
-/// flow straight from spec §4/§5.
+/// flow straight from spec §5.
+///
+/// The ANSI-16 CONTENT palette is sourced straight from the ishou
+/// keystone via `VellumPalette::vellum().content_ansi_16()` — the vivid
+/// Nord content table (parchment NEUTRALS in slots 0/7/8/15 = night2 /
+/// snow1 / shadow0 / snow3; vivid Nord aurora/frost CHROMATICS in 1–6,
+/// 9–14), DECOUPLED from the muted BORN parchment ANSI on purpose
+/// (washed-out-colors fix, 2026-06-14). Apps paint their content (vim
+/// syntax, shell, autocomplete) with these vivid colors at full contrast,
+/// while the parchment chrome stays Vellum. Sourcing it from the keystone
+/// (instead of a mado-local hex dup) means a content-palette retune in
+/// ishou propagates here on the next compile.
 ///
 /// The agent accent comes through the SEMANTIC `agent` role
 /// (`SemanticRoles::vellum().agent` → `fable_violet`), never a hex — so
 /// a future agent-band retune in ishou propagates here on the next
 /// compile.
 fn vellum_theme() -> Theme {
-    let resolved = ishou_tokens::ResolvedTheme::vellum();
     let surfaces = ishou_tokens::VellumPalette::vellum().surfaces();
     let roles = ishou_tokens::SemanticRoles::vellum();
 
-    // §4 — the one canonical ANSI-16 mapping fleet-wide.
-    let ansi: [Color; 16] = core::array::from_fn(|i| color_from_hex(&resolved.ansi_16[i]));
+    // Decoupled CONTENT palette: the vivid Nord content table sourced
+    // straight from the ishou keystone (`content_ansi_16()`), NOT the
+    // muted BORN parchment `ResolvedTheme::vellum().ansi_16`. The keystone
+    // table is parchment NEUTRALS (slots 0/7/8/15 = night2/snow1/shadow0/
+    // snow3) + vivid Nord aurora/frost CHROMATICS (1–6, 9–14) — vivid ink
+    // on a matte parchment ground. A future content-palette retune in
+    // ishou now propagates here on the next compile (no mado-local dup).
+    // The CHROME below (bg/fg/cursor/selection/search/agent) still derives
+    // from the BORN Vellum surfaces + semantic roles.
+    let content = ishou_tokens::VellumPalette::vellum().content_ansi_16();
+    let ansi: [Color; 16] = core::array::from_fn(|i| Color::new(content[i].r, content[i].g, content[i].b));
 
     // The agent accent via the SEMANTIC role, resolved through the
     // palette's own `get` (the role key is `"fable_violet"`).
@@ -312,24 +321,38 @@ mod tests {
     }
 
     #[test]
-    fn vellum_resolves_from_born_tokens() {
+    fn vellum_chrome_is_born_tokens_content_palette_is_vivid() {
         // Both the canonical name and the descriptive alias resolve to
         // the SAME registered theme (no duplicate, no drift).
         let b = Theme::by_name("vellum").expect("vellum theme");
         let alias = Theme::by_name("nord-matte").expect("nord-matte alias");
         assert_eq!(b.name, "vellum");
         assert_eq!(alias.name, "vellum");
-        // §5 — background night0 (#16140E), foreground snow1 (#E2DBC8),
-        // cursor green_bright (#ADD7A3). These come straight from the
-        // ishou BORN tokens via `ResolvedTheme::vellum()`.
+        // CHROME stays BORN (§5): background night0 (#16140E), foreground
+        // snow1 (#E2DBC8), cursor green_bright (#ADD7A3) — straight from
+        // the ishou BORN tokens via `ResolvedTheme::vellum()`.
         assert_eq!(b.background, Color::new(0x16, 0x14, 0x0E));
         assert_eq!(b.foreground, Color::new(0xE2, 0xDB, 0xC8));
         assert_eq!(b.cursor, Color::new(0xAD, 0xD7, 0xA3));
-        // §4 — ANSI 2 is the signature aurora_green (#A9BB8C); ANSI 0 is
-        // night2 (surface), NEVER base00.
-        assert_eq!(b.ansi[2], Color::new(0xA9, 0xBB, 0x8C));
-        assert_eq!(b.ansi[0], Color::new(0x2B, 0x28, 0x20));
-        assert_eq!(b.ansi[15], Color::new(0xF4, 0xEF, 0xE2)); // snow3 = base07
+        // CONTENT palette is decoupled + vivid, sourced from the ishou
+        // keystone `VellumPalette::vellum().content_ansi_16()` (NOT a
+        // mado-local hex dup, washed-out-colors fix). The table is vivid
+        // Nord CHROMATICS in 1–6/9–14 with parchment NEUTRALS in 0/7/8/15.
+        // The CHROMATICS: ANSI 2 (green) is vivid aurora_green #A3BE8C
+        // (was the muted #A9BB8C); 1 (red) is vivid #BF616A; 6 (cyan) is
+        // frost_1 #88C0D0; 9 (br-red) is Nord orange #D08770.
+        assert_eq!(b.ansi[1], Color::new(0xBF, 0x61, 0x6A));
+        assert_eq!(b.ansi[2], Color::new(0xA3, 0xBE, 0x8C));
+        assert_eq!(b.ansi[6], Color::new(0x88, 0xC0, 0xD0)); // cyan frost_1
+        assert_eq!(b.ansi[9], Color::new(0xD0, 0x87, 0x70)); // br-red Nord orange
+        // The NEUTRALS (slots 0/7/8/15) are the keystone parchment tones:
+        // night2 / snow1 / shadow0 / snow3 — coherent with the aged-paper
+        // ground, NOT the old Nord polar-night/snow-storm values.
+        assert_eq!(b.ansi[0], Color::new(0x2B, 0x28, 0x20)); // night2 parchment
+        assert_eq!(b.ansi[7], Color::new(0xE2, 0xDB, 0xC8)); // snow1 cream fg
+        assert_eq!(b.ansi[15], Color::new(0xF4, 0xEF, 0xE2)); // snow3 bright cream
+        // And green is NOT the muted parchment value any longer.
+        assert_ne!(b.ansi[2], Color::new(0xA9, 0xBB, 0x8C));
     }
 
     #[test]

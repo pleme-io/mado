@@ -5857,6 +5857,25 @@ fn parse_palette_index(payload: &[u8]) -> Option<usize> {
 mod tests {
     use super::*;
 
+    /// Regression guard for the "everything renders italic" report
+    /// (2026-06-14). mado must italicize ONLY real SGR-3 runs — a plain
+    /// shell line, and a colored-but-non-italic vim-syntax run, both
+    /// stay upright. (The screenshot's all-italic look is the nvim
+    /// colorscheme italicizing most highlight groups, not mado.)
+    #[test]
+    fn italic_attr_only_on_sgr3_runs() {
+        let mut term = Terminal::new(40, 4);
+        term.feed(b"\x1b[Hplain ls output\r\n");
+        term.feed(b"\x1b[3mitalic run\x1b[23m\r\n");
+        term.feed(b"\x1b[38;5;42mcolored-not-italic\x1b[0m");
+        let italic_at = |t: &Terminal, row: usize, col: usize| {
+            t.cell(row, col).style(t.styles()).attrs.flags.contains(AttrFlags::ITALIC)
+        };
+        assert!(!italic_at(&term, 0, 0), "plain run must NOT be italic");
+        assert!(italic_at(&term, 1, 0), "SGR-3 run must be italic");
+        assert!(!italic_at(&term, 2, 0), "colored-but-non-italic run must NOT be italic");
+    }
+
     /// **Invariant: output never moves the operator's view**
     /// (2026-06-11 — "scrolling up while a TUI writes steals focus
     /// and sends me down"). While scrolled up, streaming output must

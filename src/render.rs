@@ -5716,6 +5716,82 @@ mod render_gpu_invariants {
         );
     }
 
+    /// Gamma-correctness pin for BOTH render paths (2026-06-14, washed-out
+    /// colors investigation). On the `Bgra8UnormSrgb` target a pure-red
+    /// true-color background must read back as sRGB red (R=255, G≈0, B≈0),
+    /// and a pure-green true-color FOREGROUND glyph must read back as
+    /// sRGB green — proving the linear→sRGB store re-encode is correct on
+    /// the direct-to-surface (effects-OFF) path AND that the grain/SCENE
+    /// effect chain (effects-ON default Matte) is a color-identity
+    /// round-trip. This is the mechanical falsifier for any future
+    /// surface-format / gamma regression: if mado ever writes linear to a
+    /// non-sRGB target, R collapses far below 255 and G/B lift well above
+    /// 0. The readback order on a Bgra8 target is B,G,R,A.
+    #[test]
+    fn truecolor_roundtrip_is_gamma_correct_both_paths() {
+        use garasu::headless::pixel_at;
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let (cols, rows) = (8u32, 2u32);
+
+        let surface_dims = |r: &TerminalRenderer| {
+            (
+                (r.cell_width * cols as f32).ceil() as u32,
+                (r.cell_height * rows as f32).ceil() as u32,
+            )
+        };
+
+        // ---- effects-OFF direct path: pure-red truecolor background ----
+        let (mut r, t, mut text) = build_gpu_renderer(&gpu, cols as usize, rows as usize);
+        r.ambience.members.clear();
+        assert!(r.enabled_effect_set().is_empty(), "must run the direct path");
+        let (sw, sh) = surface_dims(&r);
+        let target = HeadlessTarget::new(&gpu, sw, sh, SURFACE_FORMAT);
+        t.write().feed(b"\x1b[H\x1b[48;2;255;0;0m        \x1b[0m");
+        let px = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        let x = (3.0 * r.cell_width + r.cell_width / 2.0) as u32;
+        let y = (r.cell_height / 2.0) as u32;
+        let red = pixel_at(&px, sw, x, y);
+        assert!(
+            red[2] >= 250 && red[1] <= 6 && red[0] <= 6,
+            "effects-OFF pure-red bg washed out: got BGRA {red:?} (want R≈255 G≈0 B≈0)"
+        );
+
+        // ---- glyphon foreground path: pure-green truecolor glyph ----
+        let (mut r2, t2, mut text2) = build_gpu_renderer(&gpu, cols as usize, rows as usize);
+        r2.ambience.members.clear();
+        t2.write().feed(b"\x1b[H\x1b[2J\x1b[38;2;0;255;0mWWWWWWWW\x1b[0m");
+        let target2 = HeadlessTarget::new(&gpu, sw, sh, SURFACE_FORMAT);
+        let px2 = render_one_frame_headless(&gpu, &mut r2, &mut text2, &target2);
+        let mut best = [0u8; 4];
+        for yy in 0..r2.cell_height as u32 {
+            for xx in 0..sw {
+                let p = pixel_at(&px2, sw, xx, yy);
+                if u16::from(p[1]) > u16::from(best[1]) {
+                    best = p;
+                }
+            }
+        }
+        assert!(
+            best[1] >= 250 && best[2] <= 6 && best[0] <= 6,
+            "pure-green glyph washed out: brightest BGRA {best:?} (want G≈255 R≈0 B≈0)"
+        );
+
+        // ---- effects-ON (default Matte = grain): color-identity ----
+        let (mut r3, t3, mut text3) = build_gpu_renderer(&gpu, cols as usize, rows as usize);
+        assert!(
+            !r3.enabled_effect_set().is_empty(),
+            "default Matte ambience must run the effect chain"
+        );
+        t3.write().feed(b"\x1b[H\x1b[48;2;255;0;0m        \x1b[0m");
+        let target3 = HeadlessTarget::new(&gpu, sw, sh, SURFACE_FORMAT);
+        let px3 = render_one_frame_headless(&gpu, &mut r3, &mut text3, &target3);
+        let red_on = pixel_at(&px3, sw, x, y);
+        assert!(
+            red_on[2] >= 250 && red_on[1] <= 6 && red_on[0] <= 6,
+            "effects-ON grain chain desaturated pure-red: got BGRA {red_on:?}"
+        );
+    }
+
     #[test]
     fn two_identical_renders_produce_identical_frame_hashes() {
         // Frame-hash determinism — the canonical L2 invariant that
