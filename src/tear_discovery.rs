@@ -172,6 +172,7 @@ mod tests {
             pane: None,
             impose: None,
             session_switching: false,
+            auto_attach: crate::config::AutoAttachMode::Off,
         }
     }
 
@@ -298,6 +299,7 @@ mod tests {
                 scrollback: None,
             }),
             session_switching: false,
+            auto_attach: crate::config::AutoAttachMode::Off,
         };
 
         // 1 — discover the daemon

@@ -15,6 +15,7 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 mod action_injection;
 mod ambience;
+mod auto_attach;
 mod auto_detect;
 mod clipboard_store;
 mod config;

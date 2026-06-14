@@ -360,6 +360,15 @@ fn run_against_pane_unified<P, C>(
     // pump is polled in the event loop so it can be torn down + rebuilt
     // against a new pane on demand.
     switch: Option<SwitchDriver<P>>,
+    // Auto-attach-on-cd driver. `None` (default, `tear.auto_attach =
+    // Off` OR `session_switching = false`) = no auto-attach; the
+    // displayed pane's cwd is never observed and nothing moves. `Some`
+    // = the praça automation: each tick reads the displayed terminal's
+    // OSC-7 cwd and, on a cross-project change, posts a switch (to an
+    // existing or freshly-spawned session) into the SAME switch channel
+    // the `switch` driver above drains. Only meaningful when `switch`
+    // is also `Some` (auto-attach requires session_switching).
+    mut auto_attach: Option<crate::auto_attach::AutoAttachDriver>,
 ) -> Result<()>
 where
     P: engate_attach::Producer<
@@ -721,6 +730,61 @@ where
     madori::App::builder(renderer)
         .config(app_config)
         .on_event(move |event, renderer| -> EventResponse {
+            // ── Auto-attach-on-cd (the headline praça automation) ──
+            // BEFORE servicing the switch channel: observe the displayed
+            // terminal's OSC-7 cwd. On an actual cross-project change the
+            // driver decides + (for AutoSwitch) POSTS a switch into the
+            // SAME channel the block below drains — so the resulting
+            // teardown/rebuild happens on this very tick. Gated on
+            // `auto_attach.is_some()` (⇔ tear.auto_attach != Off AND
+            // session_switching = true); the default path constructs no
+            // driver and branches on nothing. Reading the cwd is a cheap
+            // RwLock read + (when unchanged) one string compare — no
+            // praca/registry/fs work on the common no-change tick.
+            if let Some(driver) = auto_attach.as_mut() {
+                let displayed_cwd =
+                    terminal_for_switch.read().cwd().map(str::to_owned);
+                let now = crate::auto_attach::now_unix_seconds();
+                if let Some(outcome) =
+                    driver.on_displayed_cwd(displayed_cwd.as_deref(), now)
+                {
+                    match outcome {
+                        crate::auto_attach::AutoAttachOutcome::Stay => {}
+                        crate::auto_attach::AutoAttachOutcome::Switched {
+                            session,
+                            pane,
+                        } => tracing::info!(
+                            ?session,
+                            ?pane,
+                            "auto-attach: cd switched displayed pane to a bound session"
+                        ),
+                        crate::auto_attach::AutoAttachOutcome::Spawned {
+                            session,
+                            pane,
+                            ref root,
+                            ref name,
+                        } => tracing::info!(
+                            ?session,
+                            ?pane,
+                            root = %root.display(),
+                            name = %name,
+                            "auto-attach: cd spawned + switched to a fresh session"
+                        ),
+                        crate::auto_attach::AutoAttachOutcome::Suggested {
+                            ref hint,
+                        } => tracing::info!(
+                            hint = %hint,
+                            "auto-attach: cd suggests an attach (Suggest mode — pane unchanged)"
+                        ),
+                        crate::auto_attach::AutoAttachOutcome::Skipped {
+                            ref reason,
+                        } => tracing::warn!(
+                            ?reason,
+                            "auto-attach: cd decision skipped"
+                        ),
+                    }
+                }
+            }
             // ── Runtime session switch (tear.session_switching) ──
             // Poll the switch channel + pump the switchable attach.
             // The whole block is gated on `switch_requests.is_some()`
@@ -1058,7 +1122,7 @@ fn try_run_default_embedded(
             .boot_spawn_cwd()
             .map(|d| d.to_string_lossy().into_owned()),
     );
-    inproc.set_spawn_env(spawn_env);
+    inproc.set_spawn_env(spawn_env.clone());
 
     // Deterministic emoji name from the spawn cwd's project root
     // (praça naming slice) unless the operator pinned an explicit
@@ -1130,6 +1194,52 @@ fn try_run_default_embedded(
         .session_switching
         .then(|| kanshou_state.switch.clone());
 
+    // ── Auto-attach-on-cd (the headline praça automation) ─────────
+    // Construct the driver ONLY when `tear.auto_attach != Off` AND
+    // `tear.session_switching = true` — auto-attach drives the switch
+    // channel, so without switching there is no drainer to post into.
+    // When the operator enabled auto_attach but NOT session_switching,
+    // log a one-time warning and behave as Off (no driver, byte-
+    // identical to today). `None` everywhere else keeps the default
+    // path pristine.
+    let auto_attach: Option<crate::auto_attach::AutoAttachDriver> = if config
+        .tear
+        .auto_attach
+        .is_active()
+    {
+        if config.tear.session_switching {
+            let now = crate::auto_attach::now_unix_seconds();
+            let boot_root = praca::project::project_root(
+                config
+                    .boot_spawn_cwd()
+                    .as_deref()
+                    .unwrap_or_else(|| std::path::Path::new(".")),
+            );
+            Some(crate::auto_attach::AutoAttachDriver::new(
+                Arc::clone(&inproc),
+                kanshou_state.switch.clone(),
+                config.tear.auto_attach.policy(),
+                ishou_tokens::SessionNameStyle::Emoji,
+                session_id,
+                pane_id,
+                boot_root,
+                shell.clone(),
+                spawn_env,
+                now,
+            ))
+        } else {
+            tracing::warn!(
+                auto_attach = ?config.tear.auto_attach,
+                "tear.auto_attach is set but tear.session_switching = false; \
+                 auto-attach drives the switch channel and is INERT without it. \
+                 Set tear.session_switching = true to enable auto-attach-on-cd."
+            );
+            None
+        }
+    } else {
+        None
+    };
+
     match run_against_embedded_pane(
         inproc,
         pane_id,
@@ -1137,6 +1247,7 @@ fn try_run_default_embedded(
         Some(kanshou_state.injected.clone()),
         reload,
         switch_requests,
+        auto_attach,
     ) {
         Ok(()) => TearDefaultOutcome::Ran,
         Err(e) => TearDefaultOutcome::Error(e),
@@ -1154,6 +1265,7 @@ fn try_run_default_embedded(
 /// runtime (same window, fresh terminal). The producer factory closes
 /// over the SAME `Arc<InProcess>` so a rebuilt pump addresses any pane
 /// the control plane already knows.
+#[allow(clippy::too_many_arguments)]
 fn run_against_embedded_pane(
     inproc: std::sync::Arc<tear_core::InProcess>,
     pane_id: PaneId,
@@ -1161,6 +1273,7 @@ fn run_against_embedded_pane(
     injected: Option<crate::action_injection::InjectedActions>,
     reload: Option<crate::ux::ConfigReloadSource>,
     switch_requests: Option<SwitchRequests>,
+    auto_attach: Option<crate::auto_attach::AutoAttachDriver>,
 ) -> Result<()> {
     let snapshot = inproc
         .pane_snapshot(pane_id)
@@ -1192,6 +1305,7 @@ fn run_against_embedded_pane(
         injected,
         reload,
         switch,
+        auto_attach,
     )
 }
 
@@ -1296,6 +1410,9 @@ fn run_against_pane(
         reload,
         // Daemon-mode runtime switching is a later phase (it needs the
         // multi-attach + persistence story). Embedded only for now.
+        None,
+        // Auto-attach is embedded-only too (it drives the embedded
+        // switch channel + reads the GUI's own InProcess registry).
         None,
     )
 }

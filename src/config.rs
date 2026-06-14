@@ -512,6 +512,19 @@ pub struct MadoTearConfig {
     /// a later phase (persistence across restarts).
     #[serde(default)]
     pub session_switching: bool,
+    /// Auto-attach-on-cd — the headline praça automation. When the
+    /// *displayed* session's shell `cd`s into a DIFFERENT project, mado
+    /// auto-switches its pane to that project's session (spawning +
+    /// naming + binding it if none exists). **Defaults `Off`** — a `cd`
+    /// never moves the pane until the operator opts in.
+    ///
+    /// Auto-attach drives the runtime switch channel, so any active
+    /// mode (`AutoSwitch` / `Suggest`) additionally REQUIRES
+    /// `session_switching = true`. When `auto_attach != Off` but
+    /// `session_switching == false`, mado logs a one-time warning and
+    /// behaves as `Off`. See [`AutoAttachMode`].
+    #[serde(default)]
+    pub auto_attach: AutoAttachMode,
 }
 
 /// Per-field TearConfig overrides mado optionally pushes to the
@@ -630,6 +643,7 @@ impl Default for MadoTearConfig {
             pane: None,
             impose: None,
             session_switching: false,
+            auto_attach: AutoAttachMode::default(),
         }
     }
 }
@@ -683,6 +697,63 @@ pub enum TearRuntime {
     /// opts in via `mado.tear.runtime = "daemon"` (or the maestro
     /// mado-shared.yaml stack spec).
     Daemon,
+}
+
+/// How mado reacts when the *displayed* session's shell `cd`s into a
+/// **different** project than the one it's currently seated at — the
+/// headline praça automation. See [`MadoTearConfig::auto_attach`].
+///
+/// Maps one-to-one onto [`praca::AttachPolicy`]:
+///   * `Off` → `PickerOnly` (praca always decides `Stay`) — today's
+///     behaviour: a `cd` never moves the pane. **The default.**
+///   * `AutoSwitch` → `AutoSwitch` — a cross-project `cd` switches the
+///     displayed pane to that project's session (spawning + naming +
+///     binding it if none exists yet).
+///   * `Suggest` → `SuggestOnly` — praca computes the same decision but
+///     wraps it; mado surfaces it (status-line hint / log) and never
+///     moves the pane behind the operator's back.
+///
+/// Auto-attach drives the runtime switch channel, so it additionally
+/// REQUIRES `session_switching = true`. When `auto_attach != Off` but
+/// `session_switching == false`, mado logs a one-time warning and
+/// behaves as `Off` (the switch channel has no drainer to post into).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum AutoAttachMode {
+    /// No auto-attach. A displayed-pane `cd` never moves the pane —
+    /// byte-identical to the pre-praça behaviour. **The default.**
+    #[default]
+    Off,
+    /// A cross-project `cd` on the displayed pane auto-switches mado to
+    /// that project's session, spawning + naming + binding a fresh one
+    /// when the project has no session yet.
+    AutoSwitch,
+    /// Compute the same switch/spawn decision but only surface it (hint
+    /// / log); never move the pane automatically.
+    Suggest,
+}
+
+impl AutoAttachMode {
+    /// The [`praca::AttachPolicy`] this mode maps to. `Off` maps to
+    /// `PickerOnly` so praca's own decision is always `Stay` — the
+    /// automation is off at the engine level, not just gated at the
+    /// call site.
+    #[must_use]
+    pub fn policy(self) -> praca::AttachPolicy {
+        match self {
+            AutoAttachMode::Off => praca::AttachPolicy::PickerOnly,
+            AutoAttachMode::AutoSwitch => praca::AttachPolicy::AutoSwitch,
+            AutoAttachMode::Suggest => praca::AttachPolicy::SuggestOnly,
+        }
+    }
+
+    /// Whether this mode does anything at all. `Off` is the no-op
+    /// default; the event loop skips constructing the auto-attach
+    /// driver entirely when this is false.
+    #[must_use]
+    pub fn is_active(self) -> bool {
+        !matches!(self, AutoAttachMode::Off)
+    }
 }
 
 fn default_auto_spawn() -> bool {
@@ -1690,6 +1761,8 @@ impl MadoConfig {
                 // Runtime re-attach is opt-in everywhere; bare keeps
                 // the legacy one-shot binding.
                 session_switching: false,
+                // Auto-attach is opt-in too; bare = no cd-driven moves.
+                auto_attach: AutoAttachMode::Off,
             },
             // ── Effects ──────────────────────────────────────────
             // All effects disabled in bare. Snow params stay at
