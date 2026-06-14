@@ -4795,10 +4795,10 @@ impl Terminal {
                 28 => self.pen_attrs.flags.remove(AttrFlags::HIDDEN),
                 29 => self.pen_attrs.flags.remove(AttrFlags::STRIKETHROUGH),
                 30..=37 => self.pen_fg = self.ansi_colors[(param - 30) as usize],
-                38 => self.parse_extended_color(&mut iter, true),
+                38 => self.parse_extended_color(slice, &mut iter, true),
                 39 => self.pen_fg = self.default_fg,
                 40..=47 => self.pen_bg = self.ansi_colors[(param - 40) as usize],
-                48 => self.parse_extended_color(&mut iter, false),
+                48 => self.parse_extended_color(slice, &mut iter, false),
                 49 => self.pen_bg = self.default_bg,
                 53 => self.pen_attrs.flags.insert(AttrFlags::OVERLINE),
                 55 => self.pen_attrs.flags.remove(AttrFlags::OVERLINE),
@@ -4817,23 +4817,74 @@ impl Terminal {
         }
     }
 
-    fn parse_extended_color(&mut self, iter: &mut vte::ParamsIter<'_>, is_fg: bool) {
-        let Some(sub) = iter.next() else { return };
-        match sub[0] {
-            5 => {
-                if let Some(idx_slice) = iter.next() {
-                    let color = ansi_256_color(idx_slice[0], &self.ansi_colors);
-                    if is_fg { self.pen_fg = color; } else { self.pen_bg = color; }
+    /// Parse the SGR 38/48 extended-colour payload. Handles BOTH wire
+    /// forms (the colon form nvim/libvte emit was previously DROPPED —
+    /// the function only ever read from `iter`, so `38:2::r:g:b` set no
+    /// colour and editor truecolor collapsed to the default fg):
+    ///
+    ///   - **Colon sub-params** (`38:5:N`, `38:2::r:g:b`, `38:2:r:g:b`):
+    ///     vte delivers everything in ONE slice — `[38, 5, N]` /
+    ///     `[38, 2, 0, r, g, b]` (an empty colorspace sub-param parses
+    ///     as 0) / `[38, 2, r, g, b]`. Mirrors `parse_underline_color`.
+    ///   - **Semicolon params** (`38;5;N`, `38;2;r;g;b`): the mode and
+    ///     channels arrive as the FOLLOWING params, consumed from `iter`.
+    ///
+    /// Malformed payloads leave the pen colour unchanged.
+    fn parse_extended_color(
+        &mut self,
+        slice: &[u16],
+        iter: &mut vte::ParamsIter<'_>,
+        is_fg: bool,
+    ) {
+        let set = |term: &mut Self, color: Color| {
+            if is_fg {
+                term.pen_fg = color;
+            } else {
+                term.pen_bg = color;
+            }
+        };
+
+        if slice.len() >= 2 {
+            // Colon sub-param form — everything is in `slice`.
+            match slice[1] {
+                5 => {
+                    if let Some(&idx) = slice.get(2) {
+                        set(self, ansi_256_color(idx, &self.ansi_colors));
+                    }
                 }
+                2 => {
+                    let rgb = &slice[2..];
+                    let color = match rgb.len() {
+                        // `38:2::r:g:b` — leading colorspace-id sub-param
+                        // (empty → 0). Skip it.
+                        4.. => Some(Color::new(rgb[1] as u8, rgb[2] as u8, rgb[3] as u8)),
+                        // `38:2:r:g:b` — no colorspace id.
+                        3 => Some(Color::new(rgb[0] as u8, rgb[1] as u8, rgb[2] as u8)),
+                        _ => None,
+                    };
+                    if let Some(color) = color {
+                        set(self, color);
+                    }
+                }
+                _ => {}
             }
-            2 => {
-                let r = iter.next().map_or(0, |s| s[0] as u8);
-                let g = iter.next().map_or(0, |s| s[0] as u8);
-                let b = iter.next().map_or(0, |s| s[0] as u8);
-                let color = Color::new(r, g, b);
-                if is_fg { self.pen_fg = color; } else { self.pen_bg = color; }
+        } else {
+            // Semicolon form — mode + channels are the following params.
+            let Some(sub) = iter.next() else { return };
+            match sub[0] {
+                5 => {
+                    if let Some(idx_slice) = iter.next() {
+                        set(self, ansi_256_color(idx_slice[0], &self.ansi_colors));
+                    }
+                }
+                2 => {
+                    let r = iter.next().map_or(0, |s| s[0] as u8);
+                    let g = iter.next().map_or(0, |s| s[0] as u8);
+                    let b = iter.next().map_or(0, |s| s[0] as u8);
+                    set(self, Color::new(r, g, b));
+                }
+                _ => {}
             }
-            _ => {}
         }
     }
 }
@@ -6234,6 +6285,64 @@ mod tests {
         let mut term = Terminal::new(80, 24);
         term.feed(b"\x1b[38;2;100;150;200mX");
         assert_eq!(term.cell(0, 0).fg(term.styles()), Color::new(100, 150, 200));
+    }
+
+    /// Regression (operator 2026-06-14: nvim renders DIM/all-white in
+    /// mado vs ghostty). `parse_extended_color` previously read ONLY
+    /// from `iter`, so the COLON sub-param truecolor form
+    /// (`38:2::r:g:b`) — which neovim/libVTE emit — found no following
+    /// param and set NO colour, collapsing every gui truecolor to the
+    /// default fg (dim/monochrome). Both wire forms must round-trip to
+    /// the exact RGB. The colon form is the Nord green `#A3BE8C`
+    /// (163,190,140) from the snacks.nvim "BLACK MATTER" logo gradient.
+    #[test]
+    fn sgr_truecolor_colon_form_is_honored() {
+        // Semicolon form (`38;2;r;g;b`) — the long-supported path.
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[38;2;163;190;140mX");
+        assert_eq!(
+            term.cell(0, 0).fg(term.styles()),
+            Color::new(163, 190, 140),
+            "semicolon truecolor fg must be exact RGB"
+        );
+
+        // Colon ISO form WITH the empty colorspace sub-param
+        // (`38:2::r:g:b`) — the one nvim/libVTE emit and mado used to
+        // drop entirely.
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[38:2::163:190:140mX");
+        assert_eq!(
+            term.cell(0, 0).fg(term.styles()),
+            Color::new(163, 190, 140),
+            "colon truecolor fg (38:2::r:g:b) must be exact RGB, not collapsed to default"
+        );
+
+        // Colon form WITHOUT the colorspace id (`38:2:r:g:b`).
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[38:2:163:190:140mX");
+        assert_eq!(
+            term.cell(0, 0).fg(term.styles()),
+            Color::new(163, 190, 140),
+            "colon truecolor fg without colorspace id must be exact RGB"
+        );
+
+        // Colon background form (`48:2::r:g:b`) must set the bg exactly.
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[48:2::46:52:64mX");
+        assert_eq!(
+            term.cell(0, 0).bg(term.styles()),
+            Color::new(46, 52, 64),
+            "colon truecolor bg must be exact RGB"
+        );
+
+        // Colon 256-indexed form (`38:5:N`) must resolve the palette.
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[38:5:196mX");
+        assert_eq!(
+            term.cell(0, 0).fg(term.styles()),
+            ansi_256_color(196, &default_palette_256()),
+            "colon 256-indexed fg must resolve the palette"
+        );
     }
 
     #[test]

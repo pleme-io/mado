@@ -1104,7 +1104,7 @@ checksum = "d0881ea181b1df73ff77ffaaf9c7544ecc11e82fba9b5f27b262a3c73a332555"
 [[package]]
 name = "egaku"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/egaku#b66aab8fb4bd689000d498619177cce5ecbe46c3"
+source = "git+https://github.com/pleme-io/egaku#74b2c4fb0b265cef201ed1775735961eb4efb002"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -2040,8 +2040,8 @@ dependencies = [
 
 [[package]]
 name = "irodzuki"
-version = "0.1.1"
-source = "git+https://github.com/pleme-io/irodzuki#82e3910183a8b8ac930744e5b6aeab3e1d4adf7b"
+version = "0.1.5"
+source = "git+https://github.com/pleme-io/irodzuki#e913289edcc5c8b53c81dd3a972ba5c97779cfe2"
 dependencies = [
  "bytemuck",
  "egaku",
