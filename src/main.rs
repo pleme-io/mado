@@ -50,6 +50,7 @@ mod scenario;
 mod search;
 mod selection;
 mod session;
+mod session_switch;
 // mod tab removed at Phase 4 — single-pane mado.
 mod term_spec;
 mod terminal;

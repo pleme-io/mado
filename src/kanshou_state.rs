@@ -46,6 +46,11 @@ pub struct MadoAppState {
     /// `simulate_chord` leaf pushes; `run_against_pane_unified`
     /// drains. See [`crate::action_injection::InjectedActions`].
     pub injected: crate::action_injection::InjectedActions,
+    /// Typed session-switch channel feeding the switchable attach. The
+    /// `switch_session` leaf posts; `run_against_pane_unified` polls
+    /// (only when `tear.session_switching = true`). See
+    /// [`crate::session_switch::SwitchRequests`].
+    pub switch: crate::session_switch::SwitchRequests,
 }
 
 impl MadoAppState {
@@ -61,6 +66,7 @@ impl MadoAppState {
             tear_inproc: OnceLock::new(),
             keybinds,
             injected: crate::action_injection::InjectedActions::default(),
+            switch: crate::session_switch::SwitchRequests::default(),
         }
     }
 
@@ -192,12 +198,80 @@ impl Introspect for MadoAppState {
                     })),
                 }
             }
+            // Method-call leaf — args: [pane_id: String (16-char hex)].
+            // Posts a runtime re-attach request to the switchable
+            // event loop: the displayed pane re-binds to the requested
+            // live in-process tear pane (same window + renderer, fresh
+            // terminal). The MCP `switch_session` tool forwards here;
+            // doing the resolution GUI-side means the answer reflects
+            // the live window's session graph + switch state.
+            "switch_session" => {
+                if q.args.len() != 1 {
+                    return Err(QueryError::BadArity {
+                        expected: 1,
+                        actual: q.args.len(),
+                    });
+                }
+                let Some(pane_str) = q.args[0].as_str() else {
+                    return Err(QueryError::TypeMismatch {
+                        path: "switch_session".to_string(),
+                        expected: "string".to_string(),
+                        actual: format!("{:?}", q.args[0]),
+                    });
+                };
+                let pane = match pane_str.parse::<tear_types::PaneId>() {
+                    Ok(p) => p,
+                    Err(e) => {
+                        return Err(QueryError::internal(format!(
+                            "invalid pane id {pane_str:?}: {e}"
+                        )));
+                    }
+                };
+                // Honest-surface gate: refuse when no switchable loop
+                // has registered as the drainer. The legacy one-shot
+                // loop never attaches this sink, so `switched: true`
+                // with nothing polling would be a silent lie. This is
+                // the runtime mirror of `tear.session_switching = false`.
+                if !self.switch.sink_attached() {
+                    return Ok(serde_json::json!({
+                        "switched": false,
+                        "error": "switching-disabled",
+                        "pane_id": pane_str,
+                        "note": "this mado is not running the switchable event loop (tear.session_switching = false, or local-PTY fallback)",
+                    }));
+                }
+                // Validate the target pane exists in the live tear
+                // registry — posting a non-existent pane would land the
+                // event loop on an empty subscribe + replay. The
+                // switchable loop is embedded-only, so the live graph
+                // is `tear_inproc`.
+                let known = self
+                    .tear_inproc
+                    .get()
+                    .map(|inproc| {
+                        inproc.with_registry(|r| r.sessions.values().any(|s| s.panes.contains_key(&pane)))
+                    })
+                    .unwrap_or(false);
+                if !known {
+                    return Ok(serde_json::json!({
+                        "switched": false,
+                        "error": "no-such-pane",
+                        "pane_id": pane_str,
+                        "note": "no live in-process tear pane with this id; create one with tear_new_session first",
+                    }));
+                }
+                self.switch.post(pane);
+                Ok(serde_json::json!({
+                    "switched": true,
+                    "pane_id": pane_str,
+                }))
+            }
             other => Err(QueryError::unknown_field(other.to_string())),
         }
     }
 
     fn schema(&self) -> &'static [&'static str] {
-        &["frame_perf", "sessions", "config", "process", "simulate_chord"]
+        &["frame_perf", "sessions", "config", "process", "simulate_chord", "switch_session"]
     }
 }
 
@@ -300,5 +374,106 @@ mod tests {
     #[test]
     fn schema_advertises_simulate_chord() {
         assert!(state().schema().contains(&"simulate_chord"));
+    }
+
+    // ── switch_session leaf ───────────────────────────────────────
+
+    fn switch_query(pane_id: &str) -> Query {
+        Query::call(["switch_session"], [serde_json::json!(pane_id)])
+    }
+
+    /// A live in-process session + the id of its first pane, plumbed
+    /// into `tear_inproc` so the leaf's pane-existence check passes.
+    fn state_with_live_pane() -> (MadoAppState, String) {
+        use tear_types::{MultiplexerControl, SessionSource};
+        let s = state();
+        let inproc = Arc::new(tear_core::InProcess::new());
+        let sid = inproc
+            .new_session_with_source_and_size(
+                "switch-leaf-test",
+                "/bin/sh",
+                SessionSource::Named("switch-leaf-test".into()),
+                (80, 24),
+            )
+            .expect("spawn session");
+        let pane = inproc
+            .with_registry(|r| {
+                r.sessions
+                    .get(&sid)
+                    .and_then(|sess| sess.panes.keys().next().copied())
+            })
+            .expect("session has a pane");
+        s.set_tear_inproc(inproc);
+        (s, pane.to_string())
+    }
+
+    #[test]
+    fn switch_session_without_sink_reports_switching_disabled() {
+        // The legacy one-shot loop never attaches the switch sink —
+        // the leaf must refuse rather than post into the void. This is
+        // the runtime mirror of tear.session_switching = false.
+        let (s, pane) = state_with_live_pane();
+        let v = s.query(&switch_query(&pane)).expect("query ok");
+        assert_eq!(v["switched"], false);
+        assert_eq!(v["error"], "switching-disabled");
+        // Nothing posted.
+        assert!(s.switch.take().is_none());
+    }
+
+    #[test]
+    fn switch_session_posts_request_for_a_live_pane_when_enabled() {
+        let (s, pane) = state_with_live_pane();
+        s.switch.attach_sink();
+        let v = s.query(&switch_query(&pane)).expect("query ok");
+        assert_eq!(v["switched"], true);
+        assert_eq!(v["pane_id"], pane);
+        // The request landed in the channel for the event loop.
+        let posted = s.switch.take().expect("a switch must be pending");
+        assert_eq!(posted.to_string(), pane);
+    }
+
+    #[test]
+    fn switch_session_unknown_pane_reports_no_such_pane() {
+        // A well-formed but non-existent pane id: refuse rather than
+        // land the loop on an empty subscribe.
+        let (s, _live) = state_with_live_pane();
+        s.switch.attach_sink();
+        let ghost = tear_types::PaneId::from_seed("never-created").to_string();
+        let v = s.query(&switch_query(&ghost)).expect("query ok");
+        assert_eq!(v["switched"], false);
+        assert_eq!(v["error"], "no-such-pane");
+        assert!(s.switch.take().is_none());
+    }
+
+    #[test]
+    fn switch_session_malformed_pane_is_typed_error() {
+        let s = state();
+        s.switch.attach_sink();
+        let err = s
+            .query(&switch_query("not-hex-zzz"))
+            .expect_err("malformed pane id must not post");
+        assert!(matches!(err, QueryError::Internal { .. }), "got {err:?}");
+        assert!(s.switch.take().is_none());
+    }
+
+    #[test]
+    fn switch_session_bad_arity_and_type_are_typed_errors() {
+        let s = state();
+        let err = s
+            .query(&Query::call(["switch_session"], []))
+            .expect_err("zero args must be BadArity");
+        assert!(
+            matches!(err, QueryError::BadArity { expected: 1, actual: 0 }),
+            "got {err:?}"
+        );
+        let err = s
+            .query(&Query::call(["switch_session"], [serde_json::json!(42)]))
+            .expect_err("non-string arg must be TypeMismatch");
+        assert!(matches!(err, QueryError::TypeMismatch { .. }), "got {err:?}");
+    }
+
+    #[test]
+    fn schema_advertises_switch_session() {
+        assert!(state().schema().contains(&"switch_session"));
     }
 }

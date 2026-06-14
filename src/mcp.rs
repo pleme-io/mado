@@ -154,6 +154,12 @@ struct SimulateChordInput {
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct SwitchSessionInput {
+    #[schemars(description = "16-char lowercase-hex tear pane id to re-attach the displayed pane to. Must be a live in-process tear pane (create one with tear_new_session, list with tear_list_sessions). Only effective when the GUI ran with tear.session_switching = true.")]
+    pane_id: String,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
 struct ClipboardGetInput {
     #[schemars(description = "32-char lowercase BLAKE3-128 hex hash (matches the token escriba's `defsnippet :hash \"…\"` uses).")]
     hash: String,
@@ -510,6 +516,85 @@ impl MadoMcp {
                 "ok": false,
                 "live_gui_pid": pid,
                 "chord": chord,
+                "kanshou_error": error.to_string(),
+            })
+            .to_string(),
+        }
+    }
+
+    #[tool(description = "Re-attach the LIVE GUI mado's single displayed pane to a DIFFERENT live in-process tear session, at runtime, WITHOUT tabs or splits — same window, same renderer, fresh terminal. Forwards `pane_id` via kanshou to the GUI process, where (when it ran with tear.session_switching = true) the switchable event loop tears down the current engate attach and rebuilds it against the requested pane, clearing the grid and replaying the new pane's content. Returns `{ok, switched_to}` on success; `{ok: false, error: 'switching-disabled'}` when the GUI did NOT enable tear.session_switching (the default — behavior is then byte-identical to a one-shot binding); `{ok: false, error: 'no-such-pane'}` when no live in-process pane has that id; `{ok: false, error: 'not-forwardable'}` when no GUI mado is reachable. Create + list switch targets with tear_new_session / tear_list_sessions.")]
+    async fn switch_session(&self, Parameters(input): Parameters<SwitchSessionInput>) -> String {
+        // Validate the pane-id grammar process-locally FIRST so a
+        // malformed id is the same typed error whether or not a GUI is
+        // running.
+        if input.pane_id.parse::<tear_types::PaneId>().is_err() {
+            return serde_json::json!({
+                "ok": false,
+                "error": "invalid-pane-id",
+                "pane_id": input.pane_id,
+                "note": "pane_id must be 16-char lowercase hex (see tear_list_sessions)",
+            })
+            .to_string();
+        }
+        let pane_id = input.pane_id.clone();
+        let pane_id_for_fallback = input.pane_id.clone();
+        let outcome = kanshou::mcp::forward_status(
+            "mado",
+            &kanshou::Query::call(
+                ["switch_session"],
+                [serde_json::Value::String(input.pane_id)],
+            ),
+            move || {
+                // No live GUI reachable — the switch is a GUI-side
+                // operation (it re-attaches a live event loop's pump),
+                // so there is nothing to do headlessly. Report the
+                // typed not-forwardable shape rather than pretend.
+                Ok(serde_json::json!({
+                    "switched": false,
+                    "error": "not-forwardable",
+                    "pane_id": pane_id_for_fallback,
+                    "note": "no live GUI mado discoverable via kanshou; session switching only acts on a running switchable event loop",
+                }))
+            },
+        )
+        .await;
+        match outcome {
+            // Live GUI answered — merge its typed result under a
+            // provenance header. `ok` mirrors `switched` so MCP clients
+            // branch on one field; `switched_to` echoes the target on
+            // success.
+            kanshou::mcp::ForwardOutcome::Live { pid, value } => {
+                let switched = value
+                    .get("switched")
+                    .and_then(serde_json::Value::as_bool)
+                    .unwrap_or(false);
+                let mut obj = serde_json::Map::with_capacity(8);
+                obj.insert("ok".into(), serde_json::Value::Bool(switched));
+                obj.insert("live_gui_pid".into(), serde_json::json!(pid));
+                if switched {
+                    obj.insert(
+                        "switched_to".into(),
+                        serde_json::Value::String(pane_id.clone()),
+                    );
+                }
+                if let serde_json::Value::Object(fields) = value {
+                    obj.extend(fields);
+                }
+                serde_json::Value::Object(obj).to_string()
+            }
+            kanshou::mcp::ForwardOutcome::Fallback { value } => {
+                let mut obj = serde_json::Map::with_capacity(8);
+                obj.insert("ok".into(), serde_json::Value::Bool(false));
+                obj.insert("live_gui_pid".into(), serde_json::Value::Null);
+                if let serde_json::Value::Object(fields) = value {
+                    obj.extend(fields);
+                }
+                serde_json::Value::Object(obj).to_string()
+            }
+            kanshou::mcp::ForwardOutcome::LiveError { pid, error } => serde_json::json!({
+                "ok": false,
+                "live_gui_pid": pid,
+                "pane_id": pane_id,
                 "kanshou_error": error.to_string(),
             })
             .to_string(),
@@ -3589,6 +3674,17 @@ mod tests {
             server
                 .simulate_chord(Parameters(SimulateChordInput {
                     chord: "uniformity!!matrix!!".into(),
+                }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "switch_session",
+            // Malformed pane id — rejected process-locally, never
+            // forwarded to a live GUI.
+            server
+                .switch_session(Parameters(SwitchSessionInput {
+                    pane_id: "uniformity-matrix-not-hex".into(),
                 }))
                 .await,
             &["ok"],

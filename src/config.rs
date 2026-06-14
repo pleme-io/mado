@@ -497,6 +497,21 @@ pub struct MadoTearConfig {
     /// or manual `ReloadConfig` reverts to the file.
     #[serde(default)]
     pub impose: Option<MadoTearImpose>,
+    /// Runtime single-pane re-attach. **Defaults OFF.** When `false`
+    /// (the default) mado binds its one GUI pane to ONE tear pane for
+    /// the window's lifetime — the byte-identical legacy one-shot
+    /// path. When `true`, mado polls a switch channel and can
+    /// re-attach the displayed pane to a DIFFERENT live in-process
+    /// tear session at runtime — same window, same renderer, fresh
+    /// terminal — without tabs or splits. The `switch_session` MCP
+    /// tool (forwarded via kanshou) posts switch requests; with the
+    /// flag off the tool is a typed no-op (`switching-disabled`).
+    ///
+    /// Embedded runtime only for now: the switch targets a pane in
+    /// the GUI's own `tear_core::InProcess`. Daemon-mode switching is
+    /// a later phase (persistence across restarts).
+    #[serde(default)]
+    pub session_switching: bool,
 }
 
 /// Per-field TearConfig overrides mado optionally pushes to the
@@ -614,6 +629,7 @@ impl Default for MadoTearConfig {
             session_name: None,
             pane: None,
             impose: None,
+            session_switching: false,
         }
     }
 }
@@ -1671,6 +1687,9 @@ impl MadoConfig {
                 session_name: None,
                 pane: None,
                 impose: None,
+                // Runtime re-attach is opt-in everywhere; bare keeps
+                // the legacy one-shot binding.
+                session_switching: false,
             },
             // ── Effects ──────────────────────────────────────────
             // All effects disabled in bare. Snow params stay at

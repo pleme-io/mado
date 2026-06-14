@@ -171,6 +171,7 @@ mod tests {
             session_name: None,
             pane: None,
             impose: None,
+            session_switching: false,
         }
     }
 
@@ -296,6 +297,7 @@ mod tests {
                 status_visible: Some(false),
                 scrollback: None,
             }),
+            session_switching: false,
         };
 
         // 1 — discover the daemon

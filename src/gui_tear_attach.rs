@@ -35,8 +35,67 @@ use tear_types::{MultiplexerControl, PaneId, SessionSource};
 
 use crate::config::{MadoConfig, MadoTearConfig, TearMode, TearRuntime};
 use crate::render::{SharedTerminal, TerminalRenderer};
+use crate::session_switch::SwitchRequests;
 use crate::tear_discovery::{discover, DiscoveryOutcome};
 use crate::terminal::{Color as TermColor, Terminal};
+
+/// The pane the per-pane closures (input/resize/response/cursor-keys)
+/// currently target.
+///
+/// `Fixed` is the legacy one-shot binding: the pane is a `Copy`
+/// `PaneId`, so `get()` is a register load — byte-identical to
+/// capturing `pane_id: PaneId` directly (the default `session_switching
+/// = false` path). `Shared` is the switchable binding: the pane lives
+/// behind an `Arc<RwLock<PaneId>>` so a runtime switch re-points every
+/// closure at once by writing one cell, with no closure rebuild.
+///
+/// One closure body, two behaviors, zero duplication — the off-path
+/// pays nothing the legacy code didn't.
+#[derive(Clone)]
+enum CurrentPane {
+    Fixed(PaneId),
+    Shared(Arc<RwLock<PaneId>>),
+}
+
+impl CurrentPane {
+    /// The pane every per-pane closure should target right now.
+    #[inline]
+    fn get(&self) -> PaneId {
+        match self {
+            CurrentPane::Fixed(id) => *id,
+            CurrentPane::Shared(cell) => *cell.read(),
+        }
+    }
+
+    /// Re-point the shared cell at a new pane (switchable path only).
+    /// A no-op on `Fixed` — that variant is never switched.
+    fn set(&self, id: PaneId) {
+        if let CurrentPane::Shared(cell) = self {
+            *cell.write() = id;
+        }
+    }
+}
+
+/// The runtime machinery a switchable attach needs, assembled once
+/// when `tear.session_switching = true`. `None` everywhere else, so
+/// the legacy path constructs + branches on nothing new.
+///
+/// Generic over the engate Producer `P` so a switch can rebuild the
+/// producer→terminal pump against a fresh pane: `build_producer` is
+/// the same constructor the initial attach used (`PaneProducer::new`
+/// closed over the control plane), parameterized by pane id.
+struct SwitchDriver<P> {
+    /// The shared switch-request channel the kanshou `switch_session`
+    /// leaf posts to. Polled once per event-loop tick.
+    requests: SwitchRequests,
+    /// The shared current-pane cell the closures read. A switch writes
+    /// the new pane here so input/resize/response/cursor-keys re-target
+    /// without rebuilding the closures.
+    current: Arc<RwLock<PaneId>>,
+    /// Rebuilds the engate Producer for a given pane (the same
+    /// `PaneProducer::new(control, pane)` shape the first attach used).
+    build_producer: Box<dyn Fn(PaneId) -> P + Send>,
+}
 
 /// Result of attempting to start mado in default tear-attached mode.
 pub enum TearDefaultOutcome {
@@ -278,6 +337,11 @@ pub fn try_run_default(
 /// duplication-is-a-bug satisfied. Embedded mode also picks up
 /// features the daemon path had (mouse-cursor snow deflection, snow
 /// pulse on keypress) for free.
+///
+/// `switch`: `Some` iff `tear.session_switching = true` — the runtime
+/// re-attach machinery (request channel + current-pane cell + producer
+/// factory). `None` is the byte-identical legacy one-shot path.
+#[allow(clippy::too_many_arguments)]
 fn run_against_pane_unified<P, C>(
     producer: P,
     control: Arc<C>,
@@ -289,6 +353,13 @@ fn run_against_pane_unified<P, C>(
     title_kind: &str,
     injected: Option<crate::action_injection::InjectedActions>,
     reload: Option<crate::ux::ConfigReloadSource>,
+    // Runtime re-attach machinery. `None` (default,
+    // `tear.session_switching = false`) = the legacy one-shot path:
+    // the engate pump runs on its own thread, the closures target one
+    // fixed pane, no switch poll. `Some` = the switchable path: the
+    // pump is polled in the event loop so it can be torn down + rebuilt
+    // against a new pane on demand.
+    switch: Option<SwitchDriver<P>>,
 ) -> Result<()>
 where
     P: engate_attach::Producer<
@@ -301,6 +372,16 @@ where
 
     let cols = snapshot_cols.max(1);
     let rows = snapshot_rows.max(1);
+
+    // The pane the per-pane closures target. `Fixed` on the legacy
+    // path (one binding for the window's lifetime, a Copy read);
+    // `Shared` on the switchable path (a switch re-points all closures
+    // by writing one cell). `switch.is_some()` ⇔
+    // `tear.session_switching = true`.
+    let current_pane: CurrentPane = match &switch {
+        Some(sw) => CurrentPane::Shared(Arc::clone(&sw.current)),
+        None => CurrentPane::Fixed(pane_id),
+    };
 
     let terminal: SharedTerminal = Arc::new(RwLock::new({
         let mut term = Terminal::with_scrollback(cols, rows, 10_000);
@@ -379,10 +460,14 @@ where
     // the tear pane's PTY. Without this, reedline-based shells
     // (frost) time out with "cursor position could not be read".
     let control_for_response_writer = Arc::clone(&control);
+    let current_pane_for_response = current_pane.clone();
     let response_writer: crate::engate_consumer::ResponseWriter = Arc::new(
         move |bytes: &[u8]| {
             // A dropped VT-query answer kills reedline-based shells (fatal
-            // CPR timeout) — never swallow this error silently.
+            // CPR timeout) — never swallow this error silently. After a
+            // runtime switch this re-targets the new pane automatically
+            // (Fixed → register load on the legacy path).
+            let pane_id = current_pane_for_response.get();
             if let Err(e) = control_for_response_writer.send_keys(pane_id, bytes) {
                 tracing::warn!(
                     pane = ?pane_id,
@@ -393,21 +478,32 @@ where
             }
         },
     );
-    let consumer = crate::engate_consumer::TerminalSink::new(
-        Arc::clone(&terminal),
-        response_writer,
-    );
-    let attach_builder = engate_attach::Attach::builder()
-        .producer(producer)
-        .consumer(consumer)
-        .build();
-    let (attach_subscribed, history) = attach_builder
-        .subscribe()
-        .with_context(|| format!("engate.subscribe({pane_id})"))?;
-    let attach_synced = attach_subscribed
-        .replay(history)
-        .with_context(|| format!("engate.replay({pane_id})"))?;
-    let attach_live = attach_synced.start_live();
+    // The engate Live-attach builder, factored so the switchable path
+    // can rebuild it against a fresh pane. `response_writer` is an
+    // `Arc` (clone-cheap) so each rebuilt consumer shares the same
+    // re-targeting writeback. The terminal Arc is shared too — a
+    // rebuilt attach feeds the SAME renderer-visible terminal (after a
+    // `reset()` clears the prior pane's grid).
+    let terminal_for_attach = Arc::clone(&terminal);
+    let build_attach_live = move |producer: P,
+                                  response_writer: crate::engate_consumer::ResponseWriter|
+          -> Result<engate_attach::Attach<engate_types::Live, P, crate::engate_consumer::TerminalSink>> {
+        let consumer = crate::engate_consumer::TerminalSink::new(
+            Arc::clone(&terminal_for_attach),
+            response_writer,
+        );
+        let attach_builder = engate_attach::Attach::builder()
+            .producer(producer)
+            .consumer(consumer)
+            .build();
+        let (attach_subscribed, history) = attach_builder
+            .subscribe()
+            .context("engate.subscribe")?;
+        let attach_synced = attach_subscribed.replay(history).context("engate.replay")?;
+        Ok(attach_synced.start_live())
+    };
+
+    let attach_live = build_attach_live(producer, Arc::clone(&response_writer))?;
     crate::perf::log_phase("pane_subscribed");
 
     // Shell-exit detection: when the engate Producer's bytes channel
@@ -418,20 +514,38 @@ where
     // 2026-05-21, window stayed blank until force-quit).
     use std::sync::atomic::{AtomicBool, Ordering};
     let child_exited = Arc::new(AtomicBool::new(false));
-    let child_exited_engate = Arc::clone(&child_exited);
-    let title_kind_owned: String = title_kind.to_owned();
-    let _attach_thread = std::thread::Builder::new()
-        .name(format!("mado-engate-live-{title_kind}"))
-        .spawn(move || {
-            let _consumer = attach_live.run();
-            tracing::info!(
-                kind = %title_kind_owned,
-                pane = ?pane_id,
-                "engate channel closed — child PTY EOF, signalling window exit"
-            );
-            child_exited_engate.store(true, Ordering::Release);
-        })
-        .ok();
+
+    // ── Attach drive mode ─────────────────────────────────────────
+    //   * legacy (switch.is_none()): the engate pump runs on its own
+    //     thread with the blocking `run()` — byte-identical to today.
+    //   * switchable (switch.is_some()): the pump lives in a cell the
+    //     event loop polls via `poll_one()`, so a switch can drop it +
+    //     rebuild it against a new pane WITHOUT killing the old pane's
+    //     subscriber (dropping the cell unsubscribes; it does not EOF
+    //     the PTY).
+    let mut live_cell: Option<
+        engate_attach::Attach<engate_types::Live, P, crate::engate_consumer::TerminalSink>,
+    > = None;
+    if switch.is_none() {
+        let child_exited_engate = Arc::clone(&child_exited);
+        let title_kind_owned: String = title_kind.to_owned();
+        let _attach_thread = std::thread::Builder::new()
+            .name(format!("mado-engate-live-{title_kind}"))
+            .spawn(move || {
+                let _consumer = attach_live.run();
+                tracing::info!(
+                    kind = %title_kind_owned,
+                    pane = ?pane_id,
+                    "engate channel closed — child PTY EOF, signalling window exit"
+                );
+                child_exited_engate.store(true, Ordering::Release);
+            })
+            .ok();
+    } else {
+        // Switchable path: keep the attach in the cell; the event loop
+        // pumps it with `poll_one()` every tick.
+        live_cell = Some(attach_live);
+    }
 
     // Initial size-sync: push pane_resize_absolute BEFORE the event
     // loop so tear's default 80×24 doesn't briefly hold while the
@@ -522,14 +636,16 @@ where
     // DECCKM → pane_cursor_keys_mode.
     let pty_sink: Box<dyn crate::ux::PtySink> = {
         let control = Arc::clone(&control);
+        let current = current_pane.clone();
         Box::new(move |bytes: &[u8]| {
-            let _ = control.send_keys(pane_id, bytes);
+            let _ = control.send_keys(current.get(), bytes);
         })
     };
     let resize_sink: Box<dyn crate::ux::ResizeSink> = {
         let control = Arc::clone(&control);
+        let current = current_pane.clone();
         Box::new(move |cols: u16, rows: u16| {
-            let _ = control.pane_resize_absolute(pane_id, cols, rows);
+            let _ = control.pane_resize_absolute(current.get(), cols, rows);
         })
     };
     // DECCKM (cursor-keys application mode) is queried per keystroke
@@ -543,7 +659,8 @@ where
     // receives valid cursor keys.
     let cursor_keys_mode: Box<dyn Fn() -> bool + Send + Sync> = {
         let control = Arc::clone(&control);
-        Box::new(move || control.pane_cursor_keys_mode(pane_id).unwrap_or(false))
+        let current = current_pane.clone();
+        Box::new(move || control.pane_cursor_keys_mode(current.get()).unwrap_or(false))
     };
     // Adapter-side clipboard handle for OSC 52 sync (same precedent
     // as main.rs; the M4 drain consumer reads it). Shared with the
@@ -577,9 +694,125 @@ where
         },
     );
 
+    // ── Switchable-attach loop state ──────────────────────────────
+    // Destructure the switch driver into the pieces the event loop
+    // owns: the request channel (polled per tick), the current-pane
+    // cell (re-pointed on switch), the producer factory (rebuilds the
+    // pump for the new pane), the live attach cell (`live_cell`,
+    // pumped via poll_one + replaced on switch), and the shared
+    // terminal (reset on switch to clear the prior pane's grid).
+    // `None` on the legacy path — the closure branches on nothing.
+    let switch_requests = switch.as_ref().map(|sw| sw.requests.clone());
+    let (current_pane_for_switch, build_producer) = match switch {
+        Some(sw) => (Some(CurrentPane::Shared(sw.current)), Some(sw.build_producer)),
+        None => (None, None),
+    };
+    // Register THIS loop as the switch drainer iff switching is on, so
+    // the kanshou `switch_session` leaf answers `switching-disabled`
+    // anywhere else (mirrors the InjectedActions::attach_sink gate).
+    if let Some(req) = switch_requests.as_ref() {
+        req.attach_sink();
+    }
+    let control_for_switch = Arc::clone(&control);
+    let response_writer_for_switch = Arc::clone(&response_writer);
+    let terminal_for_switch = Arc::clone(&terminal);
+    let mut live_cell = live_cell;
+
     madori::App::builder(renderer)
         .config(app_config)
         .on_event(move |event, renderer| -> EventResponse {
+            // ── Runtime session switch (tear.session_switching) ──
+            // Poll the switch channel + pump the switchable attach.
+            // The whole block is gated on `switch_requests.is_some()`
+            // — the legacy one-shot loop never enters it (the engate
+            // pump runs on its own thread there). Order matters:
+            // service a pending switch FIRST (so the rest of this tick
+            // already reads the new pane), then drain the new pane's
+            // bytes via poll_one.
+            if let Some(reqs) = switch_requests.as_ref() {
+                if let Some(target) = reqs.take() {
+                    let from = current_pane_for_switch
+                        .as_ref()
+                        .map(CurrentPane::get)
+                        .unwrap_or(target);
+                    if target != from {
+                        // 1. Drop the old attach — unsubscribes the old
+                        //    pane's byte channel WITHOUT EOF-ing its PTY
+                        //    (the pane stays alive for a later switch
+                        //    back). Done by replacing the cell below.
+                        // 2. Clear the renderer-visible terminal so the
+                        //    old pane's grid doesn't bleed under the new
+                        //    pane's replay (same reset() the RIS path +
+                        //    config hot-reload use).
+                        terminal_for_switch.write().reset();
+                        // 3. Re-point every per-pane closure at the new
+                        //    pane (one cell write).
+                        if let Some(cp) = current_pane_for_switch.as_ref() {
+                            cp.set(target);
+                        }
+                        // 4. Build a fresh engate pump for the new pane
+                        //    + replay its current grid into the cleared
+                        //    terminal, then keep pumping it.
+                        match build_producer.as_ref() {
+                            Some(factory) => {
+                                let producer = factory(target);
+                                match build_attach_live(
+                                    producer,
+                                    Arc::clone(&response_writer_for_switch),
+                                ) {
+                                    Ok(new_live) => {
+                                        live_cell = Some(new_live);
+                                        // Size-sync the new pane to the
+                                        // window's current grid so it
+                                        // doesn't briefly hold tear's
+                                        // 80×24 default (the reconciler
+                                        // below also converges, but this
+                                        // makes the first frame correct).
+                                        let (c, r) = {
+                                            let t = terminal_for_switch.read();
+                                            (t.cols() as u16, t.rows() as u16)
+                                        };
+                                        let _ = control_for_switch
+                                            .pane_resize_absolute(target, c.max(1), r.max(1));
+                                        tracing::info!(
+                                            from = ?from,
+                                            to = ?target,
+                                            "session switch: re-attached displayed pane"
+                                        );
+                                    }
+                                    Err(e) => {
+                                        tracing::warn!(
+                                            error = %e,
+                                            to = ?target,
+                                            "session switch: rebuild attach failed; staying on prior pane state"
+                                        );
+                                        // Leave live_cell as-is (now
+                                        // None after the move attempt);
+                                        // closures already re-pointed —
+                                        // input still reaches the target
+                                        // pane, just no live render pump.
+                                    }
+                                }
+                            }
+                            None => {
+                                tracing::warn!(
+                                    "session switch requested but no producer factory; ignoring"
+                                );
+                            }
+                        }
+                    }
+                }
+                // Pump the switchable attach: drain whatever the current
+                // pane produced since the last tick. Bounded so a noisy
+                // pane can't starve the event loop (matches the
+                // embedded_engate_smoke bounded-poll shape).
+                if let Some(live) = live_cell.as_mut() {
+                    let mut drained = 0u32;
+                    while drained < 4096 && live.poll_one() {
+                        drained += 1;
+                    }
+                }
+            }
             // ── macOS chrome (flush titlebar etc.) ───────────────
             // The latch retries until a window exists: the first event
             // ticks can arrive before AppKit registers the window, and
@@ -888,12 +1121,22 @@ fn try_run_default_embedded(
     );
     crate::perf::log_phase("tear_session_created");
 
+    // Runtime re-attach is embedded-only (the switch target is a pane
+    // in the GUI's own InProcess). Wire the shared switch channel iff
+    // `tear.session_switching = true`; `None` keeps the byte-identical
+    // legacy one-shot path.
+    let switch_requests = config
+        .tear
+        .session_switching
+        .then(|| kanshou_state.switch.clone());
+
     match run_against_embedded_pane(
         inproc,
         pane_id,
         config,
         Some(kanshou_state.injected.clone()),
         reload,
+        switch_requests,
     ) {
         Ok(()) => TearDefaultOutcome::Ran,
         Err(e) => TearDefaultOutcome::Error(e),
@@ -904,18 +1147,39 @@ fn try_run_default_embedded(
 /// `run_against_pane_unified`. Constructs the `tear_core` engate
 /// Producer + uses `Arc<InProcess>` as the control plane; the
 /// unified function handles the rest.
+///
+/// `switch_requests`: `Some` iff `tear.session_switching = true`. When
+/// present, builds the [`SwitchDriver`] so the unified loop can
+/// re-attach the displayed pane to a different in-process pane at
+/// runtime (same window, fresh terminal). The producer factory closes
+/// over the SAME `Arc<InProcess>` so a rebuilt pump addresses any pane
+/// the control plane already knows.
 fn run_against_embedded_pane(
     inproc: std::sync::Arc<tear_core::InProcess>,
     pane_id: PaneId,
     config: MadoConfig,
     injected: Option<crate::action_injection::InjectedActions>,
     reload: Option<crate::ux::ConfigReloadSource>,
+    switch_requests: Option<SwitchRequests>,
 ) -> Result<()> {
     let snapshot = inproc
         .pane_snapshot(pane_id)
         .with_context(|| format!("inproc.pane_snapshot({pane_id})"))?;
     let producer =
         tear_core::engate_producer::PaneProducer::new(Arc::clone(&inproc), pane_id);
+    let switch = switch_requests.map(|requests| {
+        let inproc_for_factory = Arc::clone(&inproc);
+        SwitchDriver {
+            requests,
+            current: Arc::new(RwLock::new(pane_id)),
+            build_producer: Box::new(move |pane| {
+                tear_core::engate_producer::PaneProducer::new(
+                    Arc::clone(&inproc_for_factory),
+                    pane,
+                )
+            }),
+        }
+    });
     run_against_pane_unified(
         producer,
         inproc,
@@ -927,6 +1191,7 @@ fn run_against_embedded_pane(
         "tear[embedded]",
         injected,
         reload,
+        switch,
     )
 }
 
@@ -1029,6 +1294,9 @@ fn run_against_pane(
         "tear",
         injected,
         reload,
+        // Daemon-mode runtime switching is a later phase (it needs the
+        // multi-attach + persistence story). Embedded only for now.
+        None,
     )
 }
 
