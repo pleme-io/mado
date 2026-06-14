@@ -93,6 +93,19 @@ enum RectMode {
     /// the shader, so an over-large radius degrades to a pill, never an
     /// inverted SDF.
     RoundedSolid,
+    /// Synthesized powerline separator, rasterized to fill the FULL cell
+    /// at any `line_height` (ghostty parity — a font glyph would be
+    /// baseline-positioned in a 1.25-tall cell and notch the bottom).
+    /// `pattern = [kind, _, _, _]` selects the shape, evaluated per
+    /// fragment over the rect's own `local` (which spans the whole cell):
+    ///   kind 0 → E0B0 right-pointing filled triangle (apex right)
+    ///   kind 1 → E0B2 left-pointing filled triangle  (apex left)
+    ///   kind 2 → E0B4 right filled half-disk          (flat left edge)
+    ///   kind 3 → E0B6 left filled half-disk           (flat right edge)
+    /// The triangles are exact half-plane tests; the half-disks are an
+    /// analytic disk SDF anti-aliased at the curved edge. All four tile
+    /// edge-to-edge with the next cell's background with zero gap.
+    Powerline,
 }
 
 impl RectMode {
@@ -103,7 +116,87 @@ impl RectMode {
             Self::Run => 1,
             Self::Curly => 2,
             Self::RoundedSolid => 3,
+            Self::Powerline => 4,
         }
+    }
+}
+
+/// The four filled powerline separators mado synthesizes into the cell
+/// rect (ghostty parity). These are the glyphs lualine "pills" use — the
+/// solid angle separators and the solid rounded caps. The hollow/line
+/// variants (E0B1/E0B3/E0B5/E0B7) are intentionally NOT synthesized: they
+/// keep the normal baseline-positioned font path (a 1px stroke notch at
+/// the cell bottom is invisible vs a solid-fill notch).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PowerlineSep {
+    /// U+E0B0  right-pointing filled triangle.
+    RightTriangle,
+    /// U+E0B2  left-pointing filled triangle.
+    LeftTriangle,
+    /// U+E0B4  right filled half-disk (rounded cap).
+    RightHalfDisk,
+    /// U+E0B6  left filled half-disk (rounded cap).
+    LeftHalfDisk,
+}
+
+impl PowerlineSep {
+    /// Classify a codepoint, returning the synthesized separator iff it
+    /// is one of the four filled powerline caps mado fills into the cell.
+    /// All other codepoints (including the hollow E0B1/E0B3/E0B5/E0B7
+    /// line variants and the rest of the powerline-extra block) return
+    /// `None` and keep the normal font-glyph path.
+    const fn from_char(ch: char) -> Option<Self> {
+        match ch {
+            '\u{E0B0}' => Some(Self::RightTriangle),
+            '\u{E0B2}' => Some(Self::LeftTriangle),
+            '\u{E0B4}' => Some(Self::RightHalfDisk),
+            '\u{E0B6}' => Some(Self::LeftHalfDisk),
+            _ => None,
+        }
+    }
+
+    /// The shader `kind` selector carried in `pattern.x`.
+    const fn kind(self) -> f32 {
+        match self {
+            Self::RightTriangle => 0.0,
+            Self::LeftTriangle => 1.0,
+            Self::RightHalfDisk => 2.0,
+            Self::LeftHalfDisk => 3.0,
+        }
+    }
+}
+
+/// True when `ch` is one of the four filled powerline separators mado
+/// synthesizes via the rect pipeline (so the renderer diverts it from
+/// the font-glyph path the way it diverts box-drawing).
+fn is_powerline_separator(ch: char) -> bool {
+    PowerlineSep::from_char(ch).is_some()
+}
+
+/// Build the single rect instance that fills a powerline separator into
+/// the cell at `(x, y)` with dimensions `cw × ch_h` and the cell's `fg`
+/// color. The rect spans the entire cell; the fragment shader masks it
+/// to the separator's shape via `RectMode::Powerline`. Because the rect
+/// is exactly `cell_width × cell_height`, the filled side reaches the
+/// cell bottom at ANY `line_height` — the notch at tall line-heights is
+/// unrepresentable.
+fn powerline_rect(
+    sep: PowerlineSep,
+    x: f32,
+    y: f32,
+    cw: f32,
+    ch_h: f32,
+    color: [f32; 4],
+) -> RectInstance {
+    RectInstance {
+        pos: [x, y],
+        size: [cw, ch_h],
+        color,
+        mode: RectMode::Powerline.word(),
+        // pattern = [kind, cell_width, cell_height, _] — the shader needs
+        // the cell dims to evaluate the shape over `frag.local` (which is
+        // not a normalized varying; it spans 0..size).
+        pattern: [sep.kind(), cw, ch_h, 0.0],
     }
 }
 
@@ -233,6 +326,58 @@ fn fs_main(frag: VertexOutput) -> @location(0) vec4<f32> {
             return frag.color;
         }
         return vec4<f32>(0.0);
+    }
+    if frag.mode == 4u {
+        // mode 4 — synthesized powerline separator filling the whole
+        // cell. frag.local spans 0..size (the full cell); pattern =
+        // [kind, cell_width, cell_height, _]. The filled side always
+        // reaches the cell bottom because the rect IS the cell — no
+        // baseline gap at any line_height.
+        let kind = frag.pattern.x;
+        let cw = max(frag.pattern.y, 0.0001);
+        let chh = max(frag.pattern.z, 0.0001);
+        // Normalized cell coords in [0,1]×[0,1].
+        let u = frag.local.x / cw;
+        let v = frag.local.y / chh;
+        // 1px anti-alias width in normalized x (curved edges only).
+        let aa = 1.0 / cw;
+        if kind < 0.5 {
+            // E0B0 — right-pointing filled triangle. Apex at (1, 0.5),
+            // base is the full-height left edge. Fill where the point is
+            // left of the two slanted edges: u <= 1 - |2v - 1|.
+            let edge = 1.0 - abs(2.0 * v - 1.0);
+            if u <= edge {
+                return frag.color;
+            }
+            return vec4<f32>(0.0);
+        }
+        if kind < 1.5 {
+            // E0B2 — left-pointing filled triangle. Apex at (0, 0.5),
+            // base is the full-height right edge. Mirror of E0B0.
+            let edge = 1.0 - abs(2.0 * v - 1.0);
+            if (1.0 - u) <= edge {
+                return frag.color;
+            }
+            return vec4<f32>(0.0);
+        }
+        if kind < 2.5 {
+            // E0B4 — right filled half-disk. Flat edge on the left
+            // (u=0), bulge to the right. Center at (0, 0.5); fill the
+            // disk of radius 1 (in the half-width metric). Distance from
+            // center using x measured rightward, y as half-height units.
+            let dx = u;
+            let dy = 2.0 * v - 1.0;
+            let dist = sqrt(dx * dx + dy * dy);
+            let coverage = 1.0 - smoothstep(1.0 - aa, 1.0 + aa, dist);
+            return vec4<f32>(frag.color.rgb, frag.color.a * coverage);
+        }
+        // E0B6 — left filled half-disk. Flat edge on the right (u=1),
+        // bulge to the left. Center at (1, 0.5). Mirror of E0B4.
+        let dx = 1.0 - u;
+        let dy = 2.0 * v - 1.0;
+        let dist = sqrt(dx * dx + dy * dy);
+        let coverage = 1.0 - smoothstep(1.0 - aa, 1.0 + aa, dist);
+        return vec4<f32>(frag.color.rgb, frag.color.a * coverage);
     }
     // mode 3 — rounded-corner solid. pattern = [width, height, radius, _].
     // Signed-distance to a rounded box centered on the rect; the corner
@@ -1874,6 +2019,15 @@ impl TerminalRenderer {
         // a safe upper estimate; +cells for selection / search /
         // URLs spans.
         let mut instances = Vec::with_capacity(snap.num_rows * 4 + snap.cols);
+        // Synthesized glyph-fill rects (box-drawing sub-rects + powerline
+        // separators) are collected here and appended AFTER every cell
+        // background run. The backgrounds are RLE'd and flushed at row
+        // end — so if these fills were pushed into `instances` during the
+        // cell loop they'd be painted UNDER the same row's bg span (the
+        // bg rect comes later in the Vec → drawn on top), erasing them.
+        // Deferring keeps them above their own cell bg, which is exactly
+        // what a powerline pill on a colored section needs.
+        let mut glyph_fill_instances: Vec<RectInstance> = Vec::new();
         let default_bg = Color::BLACK;
 
         // P11 — run-length batch every per-row "single-row, same-color
@@ -2158,12 +2312,34 @@ impl TerminalRenderer {
                             .clone()
                     };
                     for (rx, ry, rw, rh) in template {
-                        instances.push(RectInstance { 
+                        glyph_fill_instances.push(RectInstance {
                             pos: [bx + rx, by + ry],
                             size: [rw, rh],
                             color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
                         });
                     }
+                }
+
+                // Powerline separators (filled) through the rect
+                // pipeline — synthesized to fill the FULL cell so the
+                // rounded/angle cap reaches the cell bottom at any
+                // line_height (ghostty parity). A font glyph here would
+                // be baseline-positioned and notch the bottom of the
+                // 1.25-tall cell; the rect IS the cell so there is no
+                // gap. build_text_buffers diverts these chars from the
+                // glyph path (like box-drawing), so they're rendered
+                // here exactly once.
+                if let Some(sep) = PowerlineSep::from_char(cell.ch) {
+                    let px = origin_x + col_idx as f32 * self.cell_width;
+                    let py = origin_y + row_idx as f32 * self.cell_height;
+                    glyph_fill_instances.push(powerline_rect(
+                        sep,
+                        px,
+                        py,
+                        self.cell_width,
+                        self.cell_height,
+                        color_to_f32(&fg),
+                    ));
                 }
             }
 
@@ -2173,6 +2349,11 @@ impl TerminalRenderer {
             push_run(&mut instances, &mut strike_run, row_idx, RectKindForRle::Strikethrough);
             push_run(&mut instances, &mut overline_run, row_idx, RectKindForRle::Overline);
         }
+
+        // Synthesized glyph fills (box-drawing + powerline separators)
+        // paint ON TOP of every cell background, never under it. See the
+        // `glyph_fill_instances` declaration for why this is deferred.
+        instances.append(&mut glyph_fill_instances);
 
         // Selection highlight — one rect per visible row of the
         // pre-resolved span (snapshot() already normalized, mapped to
@@ -2548,7 +2729,14 @@ impl TerminalRenderer {
                 let col_here = col_idx;
                 col_idx += cell.width.max(1) as usize;
 
-                if is_box_drawing(cell.ch) {
+                // Box-drawing AND the filled powerline separators are
+                // rendered by the rect pipeline (synthesized to fill the
+                // whole cell — see build_rect_instances), never as font
+                // glyphs. Divert both so the glyph path doesn't also
+                // baseline-position them (which would notch the cell
+                // bottom at tall line-heights) and so they act as a run
+                // boundary.
+                if is_box_drawing(cell.ch) || is_powerline_separator(cell.ch) {
                     has_content = true;
                     flush_run(&mut run, &mut row_buffers, text);
                     continue;
@@ -5790,6 +5978,151 @@ mod render_gpu_invariants {
             red_on[2] >= 250 && red_on[1] <= 6 && red_on[0] <= 6,
             "effects-ON grain chain desaturated pure-red: got BGRA {red_on:?}"
         );
+    }
+
+    /// PROOF for the powerline-separator notch fix (2026-06-14, lualine
+    /// pill bug). With `line_height = 1.25` the cell is 25% taller than a
+    /// 1.0 cell; a powerline separator drawn as an ordinary baseline-
+    /// positioned font glyph leaves the bottom rows of the cell as bg
+    /// (the notch the operator saw against the next section). mado now
+    /// synthesizes the filled separators (E0B0/E0B2/E0B4/E0B6) into the
+    /// cell rect via `RectMode::Powerline`, so the filled side reaches
+    /// the cell bottom at ANY line_height.
+    ///
+    /// This test renders a single U+E0B4 (right filled half-disk) in
+    /// teal (#88C0D0) on a contrasting bg (#2E3440) at line_height=1.25
+    /// and asserts:
+    ///   1. the bottom-most row of the cell, sampled through the SOLID
+    ///      (left, flat-edge) side, is the teal fg — NOT the bg gap.
+    ///      Before the fix this row was bg (the notch); after, it's teal.
+    ///   2. the same holds at line_height=1.0 (already filled — pins
+    ///      both metrics).
+    ///   3. negative control: a normal glyph ('x') is NOT stretched to
+    ///      the cell bottom — its last row stays bg, proving the fill is
+    ///      scoped to powerline separators only.
+    ///
+    /// The readback order on a Bgra8 target is B,G,R,A.
+    #[test]
+    fn powerline_separators_fill_cell_bottom_at_tall_line_height() {
+        use garasu::headless::pixel_at;
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+
+        // teal #88C0D0 = (136, 192, 208); bg #2E3440 = (46, 52, 64).
+        const TEAL: (u8, u8, u8) = (0x88, 0xC0, 0xD0);
+        let is_teal = |p: [u8; 4]| {
+            // BGRA: p[0]=B, p[1]=G, p[2]=R. Allow a generous tolerance —
+            // the sRGB-store round-trip + AA at the curved edge can shift
+            // a few LSBs, but the SOLID side is a flat fill.
+            let near = |a: u8, b: u8| (i16::from(a) - i16::from(b)).abs() <= 24;
+            near(p[2], TEAL.0) && near(p[1], TEAL.1) && near(p[0], TEAL.2)
+        };
+
+        // Render one U+E0B4 in teal on the #2E3440 bg at the given
+        // line_height; return the readback + surface dims + cell metrics.
+        let render_sep = |line_height: f32, ch: &str| {
+            // bg color is set on the renderer (linear); the sep fg comes
+            // from an SGR truecolor span.
+            let term = Arc::new(parking_lot::RwLock::new(Terminal::new(3, 1)));
+            let mut r = TerminalRenderer::new(
+                term.clone(),
+                16.0,
+                line_height,
+                "monospace".into(),
+                "monospace".into(),
+                "monospace".into(),
+                0.0,
+                CursorStyle::Block,
+                false,
+                500,
+                // #2E3440 — must match the SGR bg below so the whole
+                // cell that ISN'T the glyph reads as this bg.
+                wgpu::Color { r: 0.180, g: 0.204, b: 0.251, a: 1.0 },
+                Color::WHITE,
+            );
+            r.init(&gpu);
+            // Drop ambience so we read the direct (un-grained) path —
+            // exact color match, no SCENE pass to reason about.
+            r.ambience.members.clear();
+            let mut text = TextRenderer::new(&gpu.device, &gpu.queue, SURFACE_FORMAT);
+            let sw = (r.cell_width * 3.0).ceil() as u32;
+            let sh = (r.cell_height * 1.0).ceil() as u32;
+            let target = HeadlessTarget::new(&gpu, sw, sh, SURFACE_FORMAT);
+            // Cursor home, clear, then teal-fg sep in cell 0. The block
+            // cursor would overpaint cell 0, so park it past the glyph.
+            let seq = format!(
+                "\x1b[H\x1b[2J\x1b[48;2;46;52;64m\x1b[38;2;136;192;208m{ch}\x1b[0m\x1b[1;3H"
+            );
+            t_feed(&term, seq.as_bytes());
+            let px = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+            (px, sw, r.cell_width, r.cell_height)
+        };
+
+        // The E0B4 right half-disk has its FLAT edge on the left (u≈0)
+        // and bulges right. The solid fill is thickest near the vertical
+        // center; sample a column just inside the left edge so we hit the
+        // flat (fully-solid) side at every row, including the bottom.
+        let solid_col_frac = 0.12_f32;
+
+        // ---- 1. line_height = 1.25 (the bug condition) ----
+        let (px, sw, cw, chh) = render_sep(1.25, "\u{E0B4}");
+        let x = (cw * solid_col_frac) as u32;
+        let bottom_y = (chh as u32).saturating_sub(1);
+        let bottom_px = pixel_at(&px, sw, x.min(sw - 1), bottom_y);
+        assert!(
+            is_teal(bottom_px),
+            "E0B4 at line_height=1.25: bottom cell row (y={bottom_y}) is {bottom_px:?}, \
+             expected teal fg — the powerline cap does NOT reach the cell bottom (notch)"
+        );
+        // sanity: the vertical-center of the same column is also teal.
+        let mid_px = pixel_at(&px, sw, x.min(sw - 1), (chh / 2.0) as u32);
+        assert!(
+            is_teal(mid_px),
+            "E0B4 at line_height=1.25: mid cell row is {mid_px:?}, expected teal fg"
+        );
+
+        // ---- 2. line_height = 1.0 (already-filled metric, pins both) ----
+        let (px1, sw1, cw1, chh1) = render_sep(1.0, "\u{E0B4}");
+        let x1 = (cw1 * solid_col_frac) as u32;
+        let bottom_y1 = (chh1 as u32).saturating_sub(1);
+        let bottom_px1 = pixel_at(&px1, sw1, x1.min(sw1 - 1), bottom_y1);
+        assert!(
+            is_teal(bottom_px1),
+            "E0B4 at line_height=1.0: bottom cell row is {bottom_px1:?}, expected teal fg"
+        );
+
+        // ---- 3. negative control — a normal glyph is NOT cell-filled ----
+        // 'x' is a short lowercase letter; its bottom row(s) must stay bg
+        // (it sits on the baseline, well above the cell bottom), proving
+        // the cell-fill is scoped to powerline separators only.
+        let (pxn, swn, cwn, chhn) = render_sep(1.25, "x");
+        // Scan the whole cell-0 column band for the bottom-most teal
+        // pixel; for a normal glyph it must be comfortably above the
+        // cell bottom (the descender region stays bg).
+        let mut lowest_teal: i32 = -1;
+        for yy in 0..(chhn as u32) {
+            for xx in 0..(cwn as u32).min(swn) {
+                if is_teal(pixel_at(&pxn, swn, xx, yy)) {
+                    lowest_teal = lowest_teal.max(yy as i32);
+                }
+            }
+        }
+        let cell_bottom = chhn as i32 - 1;
+        assert!(
+            lowest_teal >= 0,
+            "negative control: rendered 'x' produced no teal pixels at all"
+        );
+        assert!(
+            lowest_teal < cell_bottom,
+            "negative control: normal glyph 'x' painted teal at the cell bottom \
+             (lowest_teal={lowest_teal}, cell_bottom={cell_bottom}) — the cell-fill \
+             leaked onto ordinary text"
+        );
+    }
+
+    /// Feed bytes into a `SharedTerminal` regardless of whether the
+    /// helper signatures elsewhere take `&Arc<RwLock<Terminal>>`.
+    fn t_feed(term: &SharedTerminal, bytes: &[u8]) {
+        term.write().feed(bytes);
     }
 
     #[test]
