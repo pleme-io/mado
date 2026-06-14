@@ -26,7 +26,7 @@
 //! Deliberate non-goal: no multi-pane (that's tear's job — this
 //! mode renders one tear pane in one mado window).
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::{Context, Result};
@@ -132,13 +132,13 @@ pub fn try_run_default(
     // inherits prefix/shell/scrollback knobs the operator declared.
     impose_if_any(&client, &config.tear);
 
-    // Session name: explicit override OR auto-generated tag that
-    // distinguishes per-process while staying human-readable.
-    let session_name = config
-        .tear
-        .session_name
-        .clone()
-        .unwrap_or_else(default_session_name);
+    // Session name: explicit override OR the deterministic emoji name
+    // derived from the project root of the spawn cwd (praça naming
+    // slice). Same cwd the SpawnEnv handshake uses below, so the name
+    // matches the directory the shell actually starts in.
+    let session_name = config.tear.session_name.clone().unwrap_or_else(|| {
+        session_name_for_cwd(config.boot_spawn_cwd().as_deref())
+    });
 
     // Compute the desired pane size up front from the operator's
     // configured window dimensions + font cell metrics, then pass
@@ -827,11 +827,12 @@ fn try_run_default_embedded(
     );
     inproc.set_spawn_env(spawn_env);
 
-    let session_name = config
-        .tear
-        .session_name
-        .clone()
-        .unwrap_or_else(default_session_name);
+    // Deterministic emoji name from the spawn cwd's project root
+    // (praça naming slice) unless the operator pinned an explicit
+    // session_name. Same cwd as the SpawnEnv handshake above.
+    let session_name = config.tear.session_name.clone().unwrap_or_else(|| {
+        session_name_for_cwd(config.boot_spawn_cwd().as_deref())
+    });
 
     let cell_w_logical = config.font_size * 0.6;
     let cell_h_logical = config.font_size * config.line_height;
@@ -929,8 +930,37 @@ fn run_against_embedded_pane(
     )
 }
 
-/// Default session name: `mado-<unix-seconds>-<pid>`. Stable
-/// per-process; sortable by creation time in `tear list`.
+/// Deterministic, project-derived session name when a spawn cwd is
+/// known; otherwise the stable per-process fallback.
+///
+/// First praça integration slice (naming only — no auto-attach, no
+/// picker, no facade). When `cwd` is `Some`, the project root is found
+/// via [`praca::project::project_root`] (walks up to `.git` /
+/// `Cargo.toml` / `flake.nix` / … markers; falls back to the cwd
+/// itself), and the name is the emoji identity of that root via
+/// [`ishou_tokens::FleetSessionNames::from_project_path`] in
+/// [`ishou_tokens::SessionNameStyle::Emoji`] (e.g. `🌊 tide`). The
+/// seed is a stable hash of the project path, so the SAME project
+/// always yields the SAME name — across daemon restarts and process
+/// re-launches. When `cwd` is `None`, we keep the legacy
+/// `mado-<unix-seconds>-<pid>` per-process tag.
+fn session_name_for_cwd(cwd: Option<&Path>) -> String {
+    match cwd {
+        Some(cwd) => {
+            let root = praca::project::project_root(cwd);
+            ishou_tokens::FleetSessionNames::from_project_path(
+                &root,
+                ishou_tokens::SessionNameStyle::Emoji,
+            )
+            .to_string()
+        }
+        None => default_session_name(),
+    }
+}
+
+/// Legacy fallback session name: `mado-<unix-seconds>-<pid>`. Stable
+/// per-process; sortable by creation time in `tear list`. Used only
+/// when no spawn cwd is known (`session_name_for_cwd(None)`).
 fn default_session_name() -> String {
     let pid = std::process::id();
     let ts = std::time::SystemTime::now()
@@ -1004,8 +1034,59 @@ fn run_against_pane(
 
 #[cfg(test)]
 mod tests {
-    use super::with_title;
+    use super::{default_session_name, session_name_for_cwd, with_title};
     use madori::EventResponse;
+
+    /// praça naming slice: a cwd inside a git project yields the
+    /// deterministic emoji name of the PROJECT ROOT (not the cwd), and
+    /// that name is stable across repeated calls. Asserts byte-equality
+    /// against the direct `FleetSessionNames::from_project_path(root,
+    /// Emoji)` so the helper is a thin, correct adapter over the typed
+    /// surface — not its own naming scheme.
+    #[test]
+    fn session_name_for_cwd_is_deterministic_project_emoji() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let root = tmp.path();
+        // Mark the tempdir as a project root (git marker).
+        std::fs::create_dir(root.join(".git")).expect("mk .git");
+        // A nested cwd under the project root — the name must derive
+        // from the ROOT, so a subdir produces the same name.
+        let nested = root.join("src").join("deep");
+        std::fs::create_dir_all(&nested).expect("mk nested");
+
+        let project_root = praca::project::project_root(&nested);
+        assert_eq!(
+            project_root, root,
+            "project_root must walk up to the .git-marked root"
+        );
+
+        let expected = ishou_tokens::FleetSessionNames::from_project_path(
+            &project_root,
+            ishou_tokens::SessionNameStyle::Emoji,
+        )
+        .to_string();
+
+        let a = session_name_for_cwd(Some(nested.as_path()));
+        let b = session_name_for_cwd(Some(nested.as_path()));
+        assert_eq!(a, expected, "helper must emit the ishou emoji name of the project root");
+        assert_eq!(a, b, "same project → same name, always (stable seed)");
+        assert!(!a.is_empty(), "emoji name is non-empty");
+    }
+
+    /// No cwd → the legacy per-process fallback tag, not an emoji name.
+    #[test]
+    fn session_name_for_cwd_none_is_the_fallback() {
+        let name = session_name_for_cwd(None);
+        // mado-<unix-seconds>-<pid>: three dash-joined segments, the
+        // first literal `mado`, the trailing two numeric.
+        let parts: Vec<&str> = name.split('-').collect();
+        assert_eq!(parts.len(), 3, "fallback shape is mado-<ts>-<pid>, got {name:?}");
+        assert_eq!(parts[0], "mado");
+        assert!(parts[1].chars().all(|c| c.is_ascii_digit()), "ts numeric");
+        assert!(parts[2].chars().all(|c| c.is_ascii_digit()), "pid numeric");
+        // Sanity: the fallback is consistent with default_session_name's shape.
+        assert!(default_session_name().starts_with("mado-"));
+    }
 
     /// THE copy-on-release adapter regression, pinned (operator report
     /// 2026-06-12): when a side-effect title is drained ON THE SAME

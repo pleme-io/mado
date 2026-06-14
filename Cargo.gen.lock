@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "762f300b0713ad30d0bad94d0851e23641501b0b8929a409411c418635af1448",
+  "cargo_lock_sha256": "02425bd827c40d041d1c463eda0aca8439e8813092061409052db66fc75f79d6",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -3507,6 +3507,195 @@
           "default"
         ]
       },
+      "gen-macros-0.1.10-712c3466375ddb1d6876193f2afb0798d30efb70": {
+        "runtime_dependencies": [
+          {
+            "name": "proc_macro2",
+            "package_key": "proc-macro2-1.0.106",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "quote",
+            "package_key": "quote-1.0.45",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "syn",
+            "package_key": "syn-2.0.117",
+            "kind": "normal",
+            "features": [
+              "full",
+              "extra-traits"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "gen-platform-0.1.10-712c3466375ddb1d6876193f2afb0798d30efb70": {
+        "runtime_dependencies": [
+          {
+            "name": "gen_macros",
+            "package_key": "gen-macros-0.1.10-712c3466375ddb1d6876193f2afb0798d30efb70",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "host"
+          },
+          {
+            "name": "gen_types",
+            "package_key": "gen-types-0.1.10-712c3466375ddb1d6876193f2afb0798d30efb70",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "inventory",
+            "package_key": "inventory-0.3.24",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.228",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.150",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "thiserror",
+            "package_key": "thiserror-2.0.18",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "gen-types-0.1.10-712c3466375ddb1d6876193f2afb0798d30efb70": {
+        "runtime_dependencies": [
+          {
+            "name": "blake3",
+            "package_key": "blake3-1.8.5",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "chrono",
+            "package_key": "chrono-0.4.44",
+            "kind": "normal",
+            "features": [
+              "serde"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "indexmap",
+            "package_key": "indexmap-2.14.0",
+            "kind": "normal",
+            "features": [
+              "serde"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "inventory",
+            "package_key": "inventory-0.3.24",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.228",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.150",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "thiserror",
+            "package_key": "thiserror-2.0.18",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
       "generic-array-0.14.7": {
         "runtime_dependencies": [
           {
@@ -4840,6 +5029,11 @@
         "build_dependencies": [],
         "features": []
       },
+      "inventory-0.3.24": {
+        "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": []
+      },
       "irodori-0.1.1": {
         "runtime_dependencies": [
           {
@@ -4955,7 +5149,7 @@
           "default"
         ]
       },
-      "ishou-tokens-0.1.3-97aef7ee2aaea2cef56657cf58b0fdbaaffdf25e": {
+      "ishou-tokens-0.1.3-94daf8fc7ce898c4d8b069353efdb5802bf99d40": {
         "runtime_dependencies": [
           {
             "name": "irodori",
@@ -5541,7 +5735,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.0-5139dd2d37cae674912c169b4b20a03aecc08484",
+            "package_key": "shikumi-0.1.56-39d7ee6deedaf9580fa21f7454453dbc8b49ab0b",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7394,6 +7588,44 @@
           "simd",
           "std"
         ]
+      },
+      "praca-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb": {
+        "runtime_dependencies": [
+          {
+            "name": "ishou_tokens",
+            "package_key": "ishou-tokens-0.1.3-94daf8fc7ce898c4d8b069353efdb5802bf99d40",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.228",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tear_types",
+            "package_key": "tear-types-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
       },
       "proc-macro-crate-3.5.0": {
         "runtime_dependencies": [
@@ -11487,6 +11719,112 @@
             "tree": "host"
           },
           {
+            "name": "figment",
+            "package_key": "figment-0.10.19",
+            "kind": "normal",
+            "features": [
+              "env",
+              "yaml",
+              "toml"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "notify",
+            "package_key": "notify-8.2.0",
+            "kind": "normal",
+            "features": [
+              "macos_kqueue"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.228",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.150",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_yaml",
+            "package_key": "serde_yaml-0.9.34+deprecated",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "thiserror",
+            "package_key": "thiserror-2.0.18",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tracing",
+            "package_key": "tracing-0.1.44",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "default"
+        ]
+      },
+      "shikumi-0.1.56-39d7ee6deedaf9580fa21f7454453dbc8b49ab0b": {
+        "runtime_dependencies": [
+          {
+            "name": "arc_swap",
+            "package_key": "arc-swap-1.9.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "async_trait",
+            "package_key": "async-trait-0.1.89",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "host"
+          },
+          {
             "name": "clap",
             "package_key": "clap-4.6.1",
             "kind": "normal",
@@ -11513,15 +11851,43 @@
             "tree": "target"
           },
           {
+            "name": "gen_platform",
+            "package_key": "gen-platform-0.1.10-712c3466375ddb1d6876193f2afb0798d30efb70",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "gen_types",
+            "package_key": "gen-types-0.1.10-712c3466375ddb1d6876193f2afb0798d30efb70",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
             "name": "notify",
             "package_key": "notify-8.2.0",
             "kind": "normal",
-            "features": [
-              "macos_kqueue"
-            ],
+            "features": [],
             "uses_default_features": false,
             "optional": false,
             "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "notify",
+            "package_key": "notify-8.2.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": "cfg(target_os = \"macos\")",
             "tree": "target"
           },
           {
@@ -14061,7 +14427,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-client-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960": {
+      "tear-client-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb": {
         "runtime_dependencies": [
           {
             "name": "engate_attach",
@@ -14105,7 +14471,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+            "package_key": "tear-config-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14115,7 +14481,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+            "package_key": "tear-types-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14130,7 +14496,7 @@
           "engate"
         ]
       },
-      "tear-config-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960": {
+      "tear-config-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -14154,7 +14520,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.3-97aef7ee2aaea2cef56657cf58b0fdbaaffdf25e",
+            "package_key": "ishou-tokens-0.1.3-94daf8fc7ce898c4d8b069353efdb5802bf99d40",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14208,7 +14574,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.0-5139dd2d37cae674912c169b4b20a03aecc08484",
+            "package_key": "shikumi-0.1.56-39d7ee6deedaf9580fa21f7454453dbc8b49ab0b",
             "kind": "normal",
             "features": [
               "cli"
@@ -14220,7 +14586,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+            "package_key": "tear-types-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14252,7 +14618,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-core-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960": {
+      "tear-core-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -14348,7 +14714,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+            "package_key": "tear-config-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14358,7 +14724,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+            "package_key": "tear-types-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14403,7 +14769,7 @@
           "engate"
         ]
       },
-      "tear-daemon-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960": {
+      "tear-daemon-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -14481,7 +14847,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+            "package_key": "tear-config-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14491,7 +14857,7 @@
           },
           {
             "name": "tear_core",
-            "package_key": "tear-core-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+            "package_key": "tear-core-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14501,7 +14867,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+            "package_key": "tear-types-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14539,7 +14905,7 @@
           "default"
         ]
       },
-      "tear-types-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960": {
+      "tear-types-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -18900,7 +19266,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-97aef7ee2aaea2cef56657cf58b0fdbaaffdf25e",
+                "package_key": "ishou-tokens-0.1.3-94daf8fc7ce898c4d8b069353efdb5802bf99d40",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -19079,6 +19445,16 @@
                 "tree": "host"
               },
               {
+                "name": "praca",
+                "package_key": "praca-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "rmcp",
                 "package_key": "rmcp-0.15.0",
                 "kind": "normal",
@@ -19147,7 +19523,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.0-5139dd2d37cae674912c169b4b20a03aecc08484",
+                "package_key": "shikumi-0.1.56-39d7ee6deedaf9580fa21f7454453dbc8b49ab0b",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -19159,7 +19535,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+                "package_key": "tear-client-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -19169,7 +19545,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+                "package_key": "tear-config-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -19179,7 +19555,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+                "package_key": "tear-core-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -19189,7 +19565,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+                "package_key": "tear-types-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23031,7 +23407,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-97aef7ee2aaea2cef56657cf58b0fdbaaffdf25e",
+                "package_key": "ishou-tokens-0.1.3-94daf8fc7ce898c4d8b069353efdb5802bf99d40",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23210,6 +23586,16 @@
                 "tree": "host"
               },
               {
+                "name": "praca",
+                "package_key": "praca-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "rmcp",
                 "package_key": "rmcp-0.15.0",
                 "kind": "normal",
@@ -23278,7 +23664,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.0-5139dd2d37cae674912c169b4b20a03aecc08484",
+                "package_key": "shikumi-0.1.56-39d7ee6deedaf9580fa21f7454453dbc8b49ab0b",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -23290,7 +23676,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+                "package_key": "tear-client-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23300,7 +23686,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+                "package_key": "tear-config-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23310,7 +23696,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+                "package_key": "tear-core-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23320,7 +23706,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+                "package_key": "tear-types-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27065,7 +27451,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-97aef7ee2aaea2cef56657cf58b0fdbaaffdf25e",
+                "package_key": "ishou-tokens-0.1.3-94daf8fc7ce898c4d8b069353efdb5802bf99d40",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27214,6 +27600,16 @@
                 "tree": "host"
               },
               {
+                "name": "praca",
+                "package_key": "praca-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "rmcp",
                 "package_key": "rmcp-0.15.0",
                 "kind": "normal",
@@ -27282,7 +27678,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.0-5139dd2d37cae674912c169b4b20a03aecc08484",
+                "package_key": "shikumi-0.1.56-39d7ee6deedaf9580fa21f7454453dbc8b49ab0b",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -27294,7 +27690,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+                "package_key": "tear-client-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27304,7 +27700,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+                "package_key": "tear-config-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27314,7 +27710,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+                "package_key": "tear-core-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27324,7 +27720,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+                "package_key": "tear-types-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30586,7 +30982,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-97aef7ee2aaea2cef56657cf58b0fdbaaffdf25e",
+                "package_key": "ishou-tokens-0.1.3-94daf8fc7ce898c4d8b069353efdb5802bf99d40",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30735,6 +31131,16 @@
                 "tree": "host"
               },
               {
+                "name": "praca",
+                "package_key": "praca-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "rmcp",
                 "package_key": "rmcp-0.15.0",
                 "kind": "normal",
@@ -30803,7 +31209,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.0-5139dd2d37cae674912c169b4b20a03aecc08484",
+                "package_key": "shikumi-0.1.56-39d7ee6deedaf9580fa21f7454453dbc8b49ab0b",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -30815,7 +31221,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+                "package_key": "tear-client-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30825,7 +31231,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+                "package_key": "tear-config-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30835,7 +31241,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+                "package_key": "tear-core-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30845,7 +31251,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+                "package_key": "tear-types-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34133,7 +34539,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-97aef7ee2aaea2cef56657cf58b0fdbaaffdf25e",
+                "package_key": "ishou-tokens-0.1.3-94daf8fc7ce898c4d8b069353efdb5802bf99d40",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34282,6 +34688,16 @@
                 "tree": "host"
               },
               {
+                "name": "praca",
+                "package_key": "praca-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "rmcp",
                 "package_key": "rmcp-0.15.0",
                 "kind": "normal",
@@ -34350,7 +34766,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.0-5139dd2d37cae674912c169b4b20a03aecc08484",
+                "package_key": "shikumi-0.1.56-39d7ee6deedaf9580fa21f7454453dbc8b49ab0b",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -34362,7 +34778,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+                "package_key": "tear-client-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34372,7 +34788,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+                "package_key": "tear-config-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34382,7 +34798,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+                "package_key": "tear-core-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34392,7 +34808,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+                "package_key": "tear-types-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37700,7 +38116,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-97aef7ee2aaea2cef56657cf58b0fdbaaffdf25e",
+                "package_key": "ishou-tokens-0.1.3-94daf8fc7ce898c4d8b069353efdb5802bf99d40",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37849,6 +38265,16 @@
                 "tree": "host"
               },
               {
+                "name": "praca",
+                "package_key": "praca-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "rmcp",
                 "package_key": "rmcp-0.15.0",
                 "kind": "normal",
@@ -37917,7 +38343,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.0-5139dd2d37cae674912c169b4b20a03aecc08484",
+                "package_key": "shikumi-0.1.56-39d7ee6deedaf9580fa21f7454453dbc8b49ab0b",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -37929,7 +38355,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+                "package_key": "tear-client-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37939,7 +38365,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+                "package_key": "tear-config-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37949,7 +38375,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+                "package_key": "tear-core-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37959,7 +38385,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960",
+                "package_key": "tear-types-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40883,6 +41309,16 @@
     "garasu-0.1.0-5f9d4fec35ffff36d957cce64e9055e9fd9f3a5c": {
       "edition": "2024"
     },
+    "gen-macros-0.1.10-712c3466375ddb1d6876193f2afb0798d30efb70": {
+      "edition": "2024",
+      "proc_macro": true
+    },
+    "gen-platform-0.1.10-712c3466375ddb1d6876193f2afb0798d30efb70": {
+      "edition": "2024"
+    },
+    "gen-types-0.1.10-712c3466375ddb1d6876193f2afb0798d30efb70": {
+      "edition": "2024"
+    },
     "generic-array-0.14.7": {
       "edition": "2015",
       "build_script": "build.rs"
@@ -41015,6 +41451,9 @@
     "inlinable_string-0.1.15": {
       "edition": "2018"
     },
+    "inventory-0.3.24": {
+      "edition": "2021"
+    },
     "irodori-0.1.1": {
       "edition": "2024"
     },
@@ -41024,7 +41463,7 @@
     "is_terminal_polyfill-1.70.2": {
       "edition": "2021"
     },
-    "ishou-tokens-0.1.3-97aef7ee2aaea2cef56657cf58b0fdbaaffdf25e": {
+    "ishou-tokens-0.1.3-94daf8fc7ce898c4d8b069353efdb5802bf99d40": {
       "edition": "2024"
     },
     "itoa-1.0.18": {
@@ -41394,6 +41833,9 @@
     "ppv-lite86-0.2.21": {
       "edition": "2021"
     },
+    "praca-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb": {
+      "edition": "2024"
+    },
     "proc-macro-crate-3.5.0": {
       "edition": "2021"
     },
@@ -41718,6 +42160,9 @@
     "shikumi-0.1.0-5139dd2d37cae674912c169b4b20a03aecc08484": {
       "edition": "2024"
     },
+    "shikumi-0.1.56-39d7ee6deedaf9580fa21f7454453dbc8b49ab0b": {
+      "edition": "2024"
+    },
     "shlex-1.3.0": {
       "edition": "2015"
     },
@@ -41841,19 +42286,19 @@
     "tatara-lisp-eval-0.2.2-3658c1d45ef48cc5efc3ed703a834830fc2f93b5": {
       "edition": "2021"
     },
-    "tear-client-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960": {
+    "tear-client-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb": {
       "edition": "2024"
     },
-    "tear-config-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960": {
+    "tear-config-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb": {
       "edition": "2024"
     },
-    "tear-core-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960": {
+    "tear-core-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb": {
       "edition": "2024"
     },
-    "tear-daemon-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960": {
+    "tear-daemon-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb": {
       "edition": "2024"
     },
-    "tear-types-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960": {
+    "tear-types-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb": {
       "edition": "2024"
     },
     "tempfile-3.27.0": {
@@ -42378,9 +42823,12 @@
     "engawa-0.1.3-772fbf0357d3bc3e90786ffb5e8a5a8b5ddb8f44": "sha256-Z/9e7dBdWUbCQW63K36IPXkLFpUYLmrSVetj8/eb82k=",
     "engawa-wgpu-0.1.5-9e82d16da4746b79054c97904fcdabf72a35b194": "sha256-Hgd5Phj0buTdBX5u7izGs+lCqEyUC1c9K2sqUB8k14U=",
     "garasu-0.1.0-5f9d4fec35ffff36d957cce64e9055e9fd9f3a5c": "sha256-s4k7WpAUFvNroW34oXBtpJa/OTQ8pa2TrOms9JU51vw=",
+    "gen-macros-0.1.10-712c3466375ddb1d6876193f2afb0798d30efb70": "sha256-7BNW4JfFa8nTvkq9O7Thxt1P6fSgcmPU4sthBdBfMgM=",
+    "gen-platform-0.1.10-712c3466375ddb1d6876193f2afb0798d30efb70": "sha256-7BNW4JfFa8nTvkq9O7Thxt1P6fSgcmPU4sthBdBfMgM=",
+    "gen-types-0.1.10-712c3466375ddb1d6876193f2afb0798d30efb70": "sha256-7BNW4JfFa8nTvkq9O7Thxt1P6fSgcmPU4sthBdBfMgM=",
     "hasami-0.1.0-25846db58bbd493ded04243a41bc08eaf2bf007b": "sha256-lRyEzSomM+igLhBPtop9K5RK0mTDzLfhRZJLoChZlPc=",
     "irodzuki-0.1.5-e913289edcc5c8b53c81dd3a972ba5c97779cfe2": "sha256-g3w9lMr7L+1Bqc4PW3tH5TqwLkIqIkVvgq5dacqidno=",
-    "ishou-tokens-0.1.3-97aef7ee2aaea2cef56657cf58b0fdbaaffdf25e": "sha256-GYdJbN5n6vFFfhA7Tx5wXwepnIjEDdlmqtZrXLeARrU=",
+    "ishou-tokens-0.1.3-94daf8fc7ce898c4d8b069353efdb5802bf99d40": "sha256-1gx8rTsJ9LfrxuvbeHUkMgONrFziv2tK18n52LCRGLI=",
     "kaname-0.1.1-fd494ac8e42d54f439d73fa19d9298ba792197f5": "sha256-lALdpjmrWAEpG5GP0g5kWuvBCKEluOpSfZ/vFggPyRw=",
     "kanchi-0.1.0-84df3425cca15e602515ccdcf27f83c91f7b6454": "sha256-psrgOySMybR6v90F3KQ5MSW3xvprcATulTfb55UlpwI=",
     "kanshou-0.1.2-0d3026d494a7b13dcc9e7dffa2fd3227b97d0e66": "sha256-xgZ1FIqKrQcoMxQKA8zSIY9fIm5D+lWdc079ASMnFus=",
@@ -42390,16 +42838,18 @@
     "pleme-invalidating-setter-derive-0.1.0-25e7f5154e62584a5a5b505bf1429ad04776a61d": "sha256-Zdlsbju29A8VmLjAC1YBbqV+x6B/PEITKblo1lpgpKM=",
     "pleme-kindbyte-derive-0.1.0-9af2dd18199de9437a0d32e33009c240d2aa8f2f": "sha256-vdUWIF6TMXJ5WBsFTwfbpg6OvED8BWF73Mck/oQ+3u8=",
     "pleme-kindstr-derive-0.1.0-df74ba0424aa7542cee2e7d5ed595f9258bc4885": "sha256-CDO+WK0spGeXHxlLng7FkvANHkroLeyfgAu+akSMYLA=",
+    "praca-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb": "sha256-DZVbEcz32YPpjJO3T7Gw566D/6PbhJmDXXf6DLQftnk=",
     "shidou-0.1.1-fe4e6a37aeae2af28d23c7fcadc0114ada5ba9c6": "sha256-5UuvNGm002R+ofTNQnZrukCpeiZOoRm3/sN9tmHvioc=",
     "shikumi-0.1.0-5139dd2d37cae674912c169b4b20a03aecc08484": "sha256-pWSHhsRS1Ol+A3mZnflVsNWscNJgSjg5w/iuVBFFLR4=",
+    "shikumi-0.1.56-39d7ee6deedaf9580fa21f7454453dbc8b49ab0b": "sha256-caT2LA5bMLT8EOFppLyV5cMjCFizV8ke/mzOO2up3BA=",
     "tatara-lisp-0.2.2-3658c1d45ef48cc5efc3ed703a834830fc2f93b5": "sha256-zcdPXYrRiOIZH6cyt1+v4bpR2pD9hb9UIkzFr2pbG9o=",
     "tatara-lisp-derive-0.2.2-3658c1d45ef48cc5efc3ed703a834830fc2f93b5": "sha256-zcdPXYrRiOIZH6cyt1+v4bpR2pD9hb9UIkzFr2pbG9o=",
     "tatara-lisp-eval-0.2.2-3658c1d45ef48cc5efc3ed703a834830fc2f93b5": "sha256-zcdPXYrRiOIZH6cyt1+v4bpR2pD9hb9UIkzFr2pbG9o=",
-    "tear-client-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960": "sha256-x+O1p5Xb0y83SLrN/yusw8So8BFvLuVjzA7JxgpzXz4=",
-    "tear-config-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960": "sha256-x+O1p5Xb0y83SLrN/yusw8So8BFvLuVjzA7JxgpzXz4=",
-    "tear-core-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960": "sha256-x+O1p5Xb0y83SLrN/yusw8So8BFvLuVjzA7JxgpzXz4=",
-    "tear-daemon-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960": "sha256-x+O1p5Xb0y83SLrN/yusw8So8BFvLuVjzA7JxgpzXz4=",
-    "tear-types-0.1.0-bb6ad675f0409e47b4308b7bf7c3c141fa549960": "sha256-x+O1p5Xb0y83SLrN/yusw8So8BFvLuVjzA7JxgpzXz4=",
+    "tear-client-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb": "sha256-DZVbEcz32YPpjJO3T7Gw566D/6PbhJmDXXf6DLQftnk=",
+    "tear-config-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb": "sha256-DZVbEcz32YPpjJO3T7Gw566D/6PbhJmDXXf6DLQftnk=",
+    "tear-core-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb": "sha256-DZVbEcz32YPpjJO3T7Gw566D/6PbhJmDXXf6DLQftnk=",
+    "tear-daemon-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb": "sha256-DZVbEcz32YPpjJO3T7Gw566D/6PbhJmDXXf6DLQftnk=",
+    "tear-types-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb": "sha256-DZVbEcz32YPpjJO3T7Gw566D/6PbhJmDXXf6DLQftnk=",
     "tsuuchi-0.1.0-3bde62762b04b09118413d710b7fbd635a577fe8": "sha256-VQGXGuIRhd5fAvTJyPelZ/C5/A/JNWNVyIU59+u0MMM=",
     "vigy-0.1.1-f173e8ee45e08e08d09b09d123fc16a27ebd7957": "sha256-eSLi82aVdY8aYuICXHIwodcwOXZ9r5Wte862p5WzUrA=",
     "vigy-eval-0.1.1-f173e8ee45e08e08d09b09d123fc16a27ebd7957": "sha256-eSLi82aVdY8aYuICXHIwodcwOXZ9r5Wte862p5WzUrA=",
