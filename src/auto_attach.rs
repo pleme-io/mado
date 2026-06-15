@@ -42,7 +42,7 @@
 //! and stays. `tests/auto_attach_cd.rs` pins the property end-to-end.
 
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use tear_types::{MultiplexerControl, PaneId, SessionId, SessionSource};
 
@@ -116,8 +116,13 @@ pub enum AutoAttachSkip {
 /// the cross-process session-graph + persistence story).
 pub struct AutoAttachDriver {
     /// The praça decision engine — index + binding + policy + name
-    /// style. Mutated as panes are created + visits recorded.
-    praca: praca::Praca,
+    /// style. Mutated as panes are created + visits recorded. Held
+    /// behind an `Arc<Mutex<_>>` so the Ctrl-S session picker
+    /// ([`crate::session_picker`]) shares THE live index this driver
+    /// mutates — a spawned/visited session appears in the picker
+    /// immediately, never a forked copy. The driver is the sole writer;
+    /// the picker bridge is a reader (+ frecency tie-break).
+    praca: Arc<Mutex<praca::Praca>>,
     /// The live in-process tear control plane. The session source +
     /// spawn target for `SpawnNew`, and the registry the
     /// SessionId↔PaneId translation reads.
@@ -183,7 +188,9 @@ impl AutoAttachDriver {
         ));
         let mut binding = praca::ProjectBinding::new();
         binding.bind(boot_root, boot_session);
-        let praca = praca::Praca::with(index, binding, policy, name_style);
+        let praca = Arc::new(Mutex::new(praca::Praca::with(
+            index, binding, policy, name_style,
+        )));
         // The boot pane lives in the registry already; nothing to map
         // beyond recording the seat.
         let _ = boot_pane;
@@ -196,6 +203,25 @@ impl AutoAttachDriver {
             shell,
             spawn_env_base,
         }
+    }
+
+    /// The shared praça index this driver mutates — handed to the
+    /// Ctrl-S session picker's bridge so the picker reads the SAME live
+    /// session graph (spawned/visited sessions appear immediately). The
+    /// driver remains the sole writer; the bridge only reads + ranks.
+    #[must_use]
+    pub fn shared_praca(&self) -> Arc<Mutex<praca::Praca>> {
+        Arc::clone(&self.praca)
+    }
+
+    /// Lock the shared praça for the duration of one operation. A poison
+    /// (a panic mid-lock in another thread) is recovered into the inner
+    /// guard — the index is plain data, so a partially-updated index is
+    /// still a consistent value to read/write.
+    fn praca(&self) -> std::sync::MutexGuard<'_, praca::Praca> {
+        self.praca
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
     }
 
     /// The session mado is currently seated at — the no-thrash anchor.
@@ -248,7 +274,7 @@ impl AutoAttachDriver {
     /// is separate from the decision logic.
     fn act_on_cwd(&mut self, new_cwd: &Path, now: u64) -> AutoAttachOutcome {
         let decision =
-            self.praca
+            self.praca()
                 .on_cwd_change(Some(self.current_session), new_cwd, now);
         match decision {
             praca::AttachDecision::Stay => AutoAttachOutcome::Stay,
@@ -269,14 +295,17 @@ impl AutoAttachDriver {
             // Bound session vanished between index + decision. Drop the
             // stale index/binding entry so a retry spawns fresh, and
             // skip this tick.
-            self.praca.index.remove(session);
-            self.praca.binding.remove_session(session);
+            {
+                let mut praca = self.praca();
+                praca.index.remove(session);
+                praca.binding.remove_session(session);
+            }
             return AutoAttachOutcome::Skipped {
                 reason: AutoAttachSkip::BoundSessionGone(session),
             };
         };
         self.switch.post(pane);
-        self.praca.record_visit(session, now);
+        self.praca().record_visit(session, now);
         self.current_session = session;
         AutoAttachOutcome::Switched { session, pane }
     }
@@ -320,15 +349,19 @@ impl AutoAttachDriver {
 
         // Bind + index BEFORE posting so a `cd` back here later resolves
         // to SwitchTo, and so the seat advance keeps the index honest.
-        self.praca.binding.bind(root.clone(), session);
-        self.praca.index.upsert(praca::SessionRecord::for_project(
-            session,
-            root.clone(),
-            self.praca.name_style,
-            now,
-        ));
+        {
+            let mut praca = self.praca();
+            let name_style = praca.name_style;
+            praca.binding.bind(root.clone(), session);
+            praca.index.upsert(praca::SessionRecord::for_project(
+                session,
+                root.clone(),
+                name_style,
+                now,
+            ));
+            praca.record_visit(session, now);
+        }
         self.switch.post(pane);
-        self.praca.record_visit(session, now);
         self.current_session = session;
         AutoAttachOutcome::Spawned {
             session,
@@ -345,7 +378,7 @@ impl AutoAttachDriver {
         let hint = match inner {
             praca::AttachDecision::SwitchTo(session) => {
                 let word = self
-                    .praca
+                    .praca()
                     .index
                     .get(session)
                     .map(praca::SessionRecord::name_word)

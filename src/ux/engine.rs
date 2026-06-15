@@ -32,6 +32,7 @@ use crate::keybind::{Action, KeybindManager};
 use crate::render::{SharedTerminal, TerminalRenderer};
 use crate::search::SearchState;
 use crate::selection::{CellPos, Selection};
+use crate::session_picker::{SessionPickerBridge, SessionPickerState};
 use crate::terminal::{Cell, MouseMode, SelectionAnchor};
 use crate::ux::modes::{
     self, DragMode, Overlay, OverlayEffect, OverlayEvent, OverlayKey, OverlayRouting, OverlayStep,
@@ -47,6 +48,7 @@ pub struct SharedUxState {
     pub selection: Arc<Mutex<Selection>>,
     pub search: Arc<Mutex<SearchState>>,
     pub dir_picker: Arc<Mutex<DirPickerState>>,
+    pub session_picker: Arc<Mutex<SessionPickerState>>,
 }
 
 impl SharedUxState {
@@ -58,6 +60,7 @@ impl SharedUxState {
             selection: Arc::new(Mutex::new(Selection::new())),
             search: Arc::new(Mutex::new(SearchState::new())),
             dir_picker: Arc::new(Mutex::new(DirPickerState::new())),
+            session_picker: Arc::new(Mutex::new(SessionPickerState::new())),
         }
     }
 }
@@ -87,6 +90,12 @@ pub struct InputEngineParams {
     /// Logical window padding (scaled by the renderer's factor for
     /// pixel→cell math).
     pub padding: f32,
+    /// The Ctrl-S session picker bridge — praça index + live registry +
+    /// switch channel. `None` ⇒ session-switching disabled: Ctrl-S
+    /// opens an inert picker with a "switching disabled" hint, mirroring
+    /// the `switch_session` MCP tool. `Some` only on the embedded
+    /// switchable path (the same gating as auto-attach).
+    pub session_picker_bridge: Option<Box<dyn SessionPickerBridge>>,
 }
 
 /// Result of dispatching a keybind [`Action`].
@@ -112,6 +121,16 @@ pub struct InputEngine {
     selection: Arc<Mutex<Selection>>,
     search: Arc<Mutex<SearchState>>,
     dir_picker: Arc<Mutex<DirPickerState>>,
+    /// Renderer-shared Ctrl-S session picker state (praça browse +
+    /// switch). Written ONLY by `apply_overlay_step`, read by the
+    /// renderer's Pass-6 overlay — same mirror discipline as
+    /// `dir_picker`.
+    session_picker: Arc<Mutex<SessionPickerState>>,
+    /// The praça bridge backing the session picker: list + switch.
+    /// `None` ⇒ session-switching disabled (the picker is inert). The
+    /// engine never reaches praca / `InProcess` / the switch channel
+    /// directly — only through this seam.
+    session_picker_bridge: Option<Box<dyn SessionPickerBridge>>,
     clipboard: Arc<dyn ClipboardProvider>,
     keybinds: KeybindManager,
     pub(crate) behavior: UxBehavior,
@@ -198,6 +217,7 @@ impl InputEngine {
         renderer.set_selection(Arc::clone(&params.shared.selection));
         renderer.set_search(Arc::clone(&params.shared.search));
         renderer.set_dir_picker(Arc::clone(&params.shared.dir_picker));
+        renderer.set_session_picker(Arc::clone(&params.shared.session_picker));
         Self {
             terminal: params.terminal,
             pty: params.pty,
@@ -205,6 +225,8 @@ impl InputEngine {
             selection: params.shared.selection,
             search: params.shared.search,
             dir_picker: params.shared.dir_picker,
+            session_picker: params.shared.session_picker,
+            session_picker_bridge: params.session_picker_bridge,
             clipboard: params.clipboard,
             keybinds: params.keybinds,
             behavior: params.behavior,
@@ -432,6 +454,10 @@ impl InputEngine {
             }
             Action::DirPickerOpen => {
                 self.dispatch_overlay(OverlayEvent::OpenDirPicker);
+                ActionOutcome::Consumed(EventOutcome::consumed())
+            }
+            Action::SessionPickerOpen => {
+                self.dispatch_overlay(OverlayEvent::OpenSessionPicker);
                 ActionOutcome::Consumed(EventOutcome::consumed())
             }
             // Close/Next/Prev are handled ONLY while the search
@@ -690,8 +716,80 @@ impl InputEngine {
                 OverlayEffect::DirPickerPush(text) => {
                     self.dir_picker.lock().unwrap().push_str(&text);
                 }
+                OverlayEffect::SessionPickerOpen => self.session_picker_open(),
+                OverlayEffect::SessionPickerClose => {
+                    self.session_picker.lock().unwrap().close();
+                }
+                OverlayEffect::SessionPickerAccept => self.session_picker_accept(),
+                OverlayEffect::SessionPickerMoveUp => self.session_picker.lock().unwrap().move_up(),
+                OverlayEffect::SessionPickerMoveDown => {
+                    self.session_picker.lock().unwrap().move_down();
+                }
+                OverlayEffect::SessionPickerBackspace => self.session_picker_backspace(),
+                OverlayEffect::SessionPickerPush(text) => self.session_picker_push(&text),
             }
         }
+    }
+
+    /// Open the Ctrl-S session picker: seed the list from the praça
+    /// bridge (frecency-ranked, empty query). With no bridge
+    /// (session-switching disabled) open it in the typed `disabled`
+    /// state so the renderer shows a "switching disabled" hint and Enter
+    /// is inert — mirroring the `switch_session` MCP tool's
+    /// `switching-disabled` answer.
+    fn session_picker_open(&mut self) {
+        match self.session_picker_bridge.as_ref() {
+            Some(bridge) => {
+                let now = crate::auto_attach::now_unix_seconds();
+                let rows = bridge.list("", now);
+                self.session_picker.lock().unwrap().open(rows, false);
+            }
+            None => {
+                self.session_picker.lock().unwrap().open(Vec::new(), true);
+            }
+        }
+    }
+
+    /// Re-rank the session list after a query edit through the praça
+    /// bridge. No-op (beyond keeping the typed empty list) when
+    /// switching is disabled.
+    fn session_picker_recompute(&mut self) {
+        let Some(bridge) = self.session_picker_bridge.as_ref() else {
+            return;
+        };
+        let query = self.session_picker.lock().unwrap().query.clone();
+        let now = crate::auto_attach::now_unix_seconds();
+        let rows = bridge.list(&query, now);
+        self.session_picker.lock().unwrap().set_results(rows);
+    }
+
+    /// Append typed text to the session-picker needle + re-rank.
+    fn session_picker_push(&mut self, text: &str) {
+        self.session_picker.lock().unwrap().query.push_str(text);
+        self.session_picker_recompute();
+    }
+
+    /// Delete the last needle char + re-rank.
+    fn session_picker_backspace(&mut self) {
+        self.session_picker.lock().unwrap().query.pop();
+        self.session_picker_recompute();
+    }
+
+    /// Switch to the highlighted session (post its pane into the SAME
+    /// switch channel auto-attach + the `switch_session` MCP tool drive)
+    /// and close the picker. Inert + just-closes when switching is
+    /// disabled or no row is highlighted.
+    fn session_picker_accept(&mut self) {
+        let chosen = self.session_picker.lock().unwrap().selected_session();
+        if let (Some(session), Some(bridge)) = (chosen, self.session_picker_bridge.as_ref())
+            && !bridge.switch_to(session)
+        {
+            tracing::warn!(
+                ?session,
+                "session picker: chosen session had no live pane; nothing switched"
+            );
+        }
+        self.session_picker.lock().unwrap().close();
     }
 
     /// Paste the system clipboard into the PTY through the M0
@@ -1710,6 +1808,16 @@ mod tests {
 
     impl Harness {
         fn new(kind: SinkKind) -> Self {
+            Self::new_with_bridge(kind, None)
+        }
+
+        /// Build a harness with an optional session-picker bridge —
+        /// the seam the Ctrl-S picker tests inject a recording bridge
+        /// into.
+        fn new_with_bridge(
+            kind: SinkKind,
+            bridge: Option<Box<dyn crate::session_picker::SessionPickerBridge>>,
+        ) -> Self {
             let terminal: SharedTerminal =
                 Arc::new(RwLock::new(Terminal::new(80, 24)));
             let mut renderer = TerminalRenderer::new(
@@ -1789,6 +1897,7 @@ mod tests {
                     cursor_keys_mode,
                     default_font_size: 14.0,
                     padding: 0.0,
+                    session_picker_bridge: bridge,
                 },
             );
             Self {
@@ -2586,15 +2695,18 @@ mod tests {
         let mut check = |h: &Harness, want: Overlay, when: &str| {
             let search_active = h.engine.search.lock().unwrap().active;
             let dp_open = h.engine.dir_picker.lock().unwrap().open;
+            let sp_open = h.engine.session_picker.lock().unwrap().open;
+            // (search_active, dir_picker_open, session_picker_open).
             let want_cells = match want {
-                Overlay::None => (false, false),
-                Overlay::Search => (true, false),
-                Overlay::DirPicker => (false, true),
+                Overlay::None => (false, false, false),
+                Overlay::Search => (true, false, false),
+                Overlay::DirPicker => (false, true, false),
+                Overlay::SessionPicker => (false, false, true),
             };
-            if h.engine.overlay != want || (search_active, dp_open) != want_cells {
+            if h.engine.overlay != want || (search_active, dp_open, sp_open) != want_cells {
                 failures.push(format!(
                     "{when}: machine={:?} (want {want:?}), mirror=(search {search_active}, \
-                     picker {dp_open}) want {want_cells:?}",
+                     dir {dp_open}, session {sp_open}) want {want_cells:?}",
                     h.engine.overlay
                 ));
             }
@@ -2606,6 +2718,10 @@ mod tests {
         // bar when the picker opens over it (decision 2026-06-12).
         h.engine.apply_action(Action::DirPickerOpen, &mut h.renderer);
         check(&h, Overlay::DirPicker, "after DirPickerOpen over Search");
+        // Session picker switches over the dir picker (same single-enum
+        // switch semantics — dir picker closes, session picker opens).
+        h.engine.apply_action(Action::SessionPickerOpen, &mut h.renderer);
+        check(&h, Overlay::SessionPicker, "after SessionPickerOpen over DirPicker");
         // Raw Esc closes the picker (raw-key class, not the atlas).
         h.key(KeyCode::Escape, None, no_mods());
         check(&h, Overlay::None, "after Esc closed the picker");
@@ -2615,6 +2731,208 @@ mod tests {
             failures.len(),
             failures.join("\n  - ")
         );
+    }
+
+    // ── Ctrl-S session picker (praça browse + switch) ────────────
+
+    use crate::session_picker::{SessionPickerBridge, SessionPickerRow};
+
+    /// A recording session-picker bridge: returns a fixed frecency-
+    /// ranked roster (filtered by a simple substring on `label` so the
+    /// engine's filter wiring is exercised) and records every
+    /// `switch_to` so a test can assert the SAME-channel post happened.
+    struct RecordingBridge {
+        roster: Vec<SessionPickerRow>,
+        switched: Arc<StdMutex<Vec<SessionId>>>,
+    }
+
+    impl RecordingBridge {
+        fn new(roster: Vec<(SessionId, &str)>) -> (Self, Arc<StdMutex<Vec<SessionId>>>) {
+            let switched = Arc::new(StdMutex::new(Vec::new()));
+            let roster = roster
+                .into_iter()
+                .map(|(id, label)| SessionPickerRow {
+                    id,
+                    label: label.to_owned(),
+                })
+                .collect();
+            (
+                Self {
+                    roster,
+                    switched: Arc::clone(&switched),
+                },
+                switched,
+            )
+        }
+    }
+
+    impl SessionPickerBridge for RecordingBridge {
+        fn list(&self, query: &str, _now: u64) -> Vec<SessionPickerRow> {
+            // Empty query → full frecency-ordered roster (the bridge
+            // owns the ranking; mirror praca's empty-query semantics).
+            // Non-empty → substring filter on the label (the engine just
+            // forwards the typed query; the real bridge fuzzy-matches).
+            if query.trim().is_empty() {
+                self.roster.clone()
+            } else {
+                self.roster
+                    .iter()
+                    .filter(|r| r.label.contains(query))
+                    .cloned()
+                    .collect()
+            }
+        }
+
+        fn switch_to(&self, session: SessionId) -> bool {
+            self.switched.lock().unwrap().push(session);
+            true
+        }
+    }
+
+    fn sid(s: &str) -> SessionId {
+        SessionId::from_seed(s)
+    }
+
+    /// Ctrl-S opens the picker, the bridge's frecency-ordered roster is
+    /// listed verbatim (first row highlighted), typing filters the list
+    /// through the bridge, Enter switches to the highlighted session
+    /// (posting it through the bridge → the SAME switch channel), and
+    /// the overlay closes.
+    #[test]
+    fn session_picker_lists_filters_and_enter_switches() {
+        let (bridge, switched) = RecordingBridge::new(vec![
+            (sid("tide"), "\u{1f30a} tide  mado"),
+            (sid("frost"), "\u{2744} frost  nix"),
+            (sid("flow"), "\u{1f343} flow  tear"),
+        ]);
+        let mut h = Harness::new_with_bridge(SinkKind::Closure, Some(Box::new(bridge)));
+
+        // Ctrl-S opens the picker (the default chord → SessionPickerOpen
+        // → OverlayEffect::SessionPickerOpen → bridge.list("")).
+        h.engine
+            .apply_action(Action::SessionPickerOpen, &mut h.renderer);
+        {
+            let sp = h.engine.session_picker.lock().unwrap();
+            assert!(sp.open, "Ctrl-S opens the picker");
+            assert!(!sp.disabled, "a bridge means switching is enabled");
+            // Frecency order is the bridge's roster order, verbatim.
+            assert_eq!(sp.results.len(), 3);
+            assert_eq!(sp.results[0].id, sid("tide"), "first roster row first");
+            assert_eq!(sp.results[2].id, sid("flow"));
+            assert_eq!(sp.selected, 0, "top row highlighted on open");
+        }
+
+        // Type "nix" — the filter narrows to the frost row through the
+        // bridge (label substring), and the highlight resets to the top.
+        for ch in ['n', 'i', 'x'] {
+            h.key(KeyCode::Char(ch), Some(&ch.to_string()), no_mods());
+        }
+        {
+            let sp = h.engine.session_picker.lock().unwrap();
+            assert_eq!(sp.query, "nix");
+            assert_eq!(sp.results.len(), 1, "fuzzy filter narrowed to one");
+            assert_eq!(sp.results[0].id, sid("frost"));
+            assert_eq!(sp.selected, 0);
+        }
+
+        // Enter switches to the highlighted (only) session — the bridge
+        // records the SAME-channel post — and the overlay closes.
+        h.key(KeyCode::Enter, None, no_mods());
+        assert_eq!(
+            switched.lock().unwrap().as_slice(),
+            &[sid("frost")],
+            "Enter posted the highlighted session through the bridge"
+        );
+        assert!(
+            !h.engine.session_picker.lock().unwrap().open,
+            "Enter closes the picker"
+        );
+        assert_eq!(
+            h.engine.overlay,
+            Overlay::None,
+            "the FSM returns to None after accept"
+        );
+    }
+
+    /// Arrow / Ctrl-N navigation moves the highlight; Enter switches to
+    /// the NEW highlighted session.
+    #[test]
+    fn session_picker_navigates_then_switches_the_selected() {
+        let (bridge, switched) = RecordingBridge::new(vec![
+            (sid("a"), "alpha"),
+            (sid("b"), "bravo"),
+            (sid("c"), "charlie"),
+        ]);
+        let mut h = Harness::new_with_bridge(SinkKind::Closure, Some(Box::new(bridge)));
+        h.engine
+            .apply_action(Action::SessionPickerOpen, &mut h.renderer);
+
+        // Down arrow → row 1; Ctrl-N → row 2.
+        h.key(KeyCode::Down, None, no_mods());
+        h.key(
+            KeyCode::Char('n'),
+            Some("n"),
+            Modifiers {
+                ctrl: true,
+                alt: false,
+                shift: false,
+                meta: false,
+            },
+        );
+        assert_eq!(h.engine.session_picker.lock().unwrap().selected, 2);
+
+        h.key(KeyCode::Enter, None, no_mods());
+        assert_eq!(
+            switched.lock().unwrap().as_slice(),
+            &[sid("c")],
+            "Enter switched to the navigated-to session"
+        );
+    }
+
+    /// Esc cancels: no switch is posted + the overlay closes.
+    #[test]
+    fn session_picker_esc_cancels_without_switching() {
+        let (bridge, switched) = RecordingBridge::new(vec![(sid("a"), "alpha")]);
+        let mut h = Harness::new_with_bridge(SinkKind::Closure, Some(Box::new(bridge)));
+        h.engine
+            .apply_action(Action::SessionPickerOpen, &mut h.renderer);
+        assert!(h.engine.session_picker.lock().unwrap().open);
+
+        h.key(KeyCode::Escape, None, no_mods());
+        assert!(
+            !h.engine.session_picker.lock().unwrap().open,
+            "Esc closes the picker"
+        );
+        assert!(
+            switched.lock().unwrap().is_empty(),
+            "Esc must not post any switch"
+        );
+        assert_eq!(h.engine.overlay, Overlay::None);
+    }
+
+    /// Session-switching disabled (no bridge): Ctrl-S opens an inert
+    /// picker flagged `disabled` (the "switching disabled" hint), and
+    /// Enter posts nothing — mirroring the `switch_session` MCP tool's
+    /// `switching-disabled` answer.
+    #[test]
+    fn session_picker_inert_when_switching_disabled() {
+        // The default harness has NO bridge.
+        let mut h = Harness::new(SinkKind::Closure);
+        h.engine
+            .apply_action(Action::SessionPickerOpen, &mut h.renderer);
+        {
+            let sp = h.engine.session_picker.lock().unwrap();
+            assert!(sp.open, "Ctrl-S still opens the overlay");
+            assert!(sp.disabled, "no bridge ⇒ disabled hint");
+            assert!(sp.results.is_empty());
+        }
+        // Enter is inert (no panic, no switch) and closes the overlay.
+        h.key(KeyCode::Enter, None, no_mods());
+        assert!(
+            !h.engine.session_picker.lock().unwrap().open,
+            "Enter closes the inert picker"
+        );
+        assert_eq!(h.engine.overlay, Overlay::None);
     }
 
     // ── Capability parity: mouse ─────────────────────────────────

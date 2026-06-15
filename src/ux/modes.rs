@@ -66,6 +66,11 @@ pub(crate) enum Overlay {
     Search,
     /// Directory-frecency picker (轍 wadachi) owns the keyboard.
     DirPicker,
+    /// Ctrl-S praça session picker owns the keyboard — fuzzy-browse +
+    /// switch to a frecency-ranked session. Navigates by RAW key class
+    /// (like [`Overlay::DirPicker`]); on Enter the highlighted
+    /// session's pane is posted to the switch channel.
+    SessionPicker,
 }
 
 /// Search-nav chords resolved from the keybind atlas (`search_close`
@@ -89,6 +94,10 @@ pub(crate) enum OverlayKeyClass {
     Up,
     Down,
     Backspace,
+    /// Ctrl-N — emacs/readline "next" navigation (picker move down).
+    CtrlN,
+    /// Ctrl-P — emacs/readline "prev" navigation (picker move up).
+    CtrlP,
     Other,
 }
 
@@ -123,7 +132,17 @@ impl OverlayKey {
             Some(Action::SearchPrev) => Some(SearchNav::Prev),
             _ => None,
         };
+        // Ctrl-N / Ctrl-P resolve to picker-nav classes (emacs/readline
+        // "next"/"prev") — checked BEFORE the raw KeyCode match so the
+        // ctrl-held `Char('n')`/`Char('p')` becomes a nav class the
+        // picker arms navigate by, rather than falling to `Other` (where
+        // `plain` is false and they'd be inert consumes). Only the
+        // ctrl-only combo qualifies; an unmodified `n`/`p` stays `Other`
+        // (a query keystroke).
+        let ctrl_only = mods.ctrl && !mods.meta && !mods.alt;
         let class = match key {
+            KeyCode::Char('n' | 'N') if ctrl_only => OverlayKeyClass::CtrlN,
+            KeyCode::Char('p' | 'P') if ctrl_only => OverlayKeyClass::CtrlP,
             KeyCode::Escape => OverlayKeyClass::Escape,
             KeyCode::Enter => OverlayKeyClass::Enter,
             KeyCode::Up => OverlayKeyClass::Up,
@@ -158,6 +177,8 @@ pub(crate) enum OverlayEvent {
     OpenSearch,
     /// `Action::DirPickerOpen` dispatched.
     OpenDirPicker,
+    /// `Action::SessionPickerOpen` dispatched (Ctrl-S).
+    OpenSessionPicker,
     /// A keystroke routed while the machine decides ownership.
     Key(OverlayKey),
 }
@@ -181,6 +202,16 @@ pub(crate) enum OverlayEffect {
     DirPickerMoveDown,
     DirPickerBackspace,
     DirPickerPush(String),
+    SessionPickerOpen,
+    SessionPickerClose,
+    /// Switch to the highlighted session (post its pane to the switch
+    /// channel via the bridge) and close. Inert when switching is
+    /// disabled (no bridge) — the close still runs.
+    SessionPickerAccept,
+    SessionPickerMoveUp,
+    SessionPickerMoveDown,
+    SessionPickerBackspace,
+    SessionPickerPush(String),
 }
 
 /// Whether the keystroke was consumed by the overlay or continues
@@ -257,6 +288,11 @@ impl Overlay {
                     Consumed,
                     vec![OverlayEffect::DirPickerOpen],
                 ),
+                OverlayEvent::OpenSessionPicker => overlay_step(
+                    Overlay::SessionPicker,
+                    Consumed,
+                    vec![OverlayEffect::SessionPickerOpen],
+                ),
                 OverlayEvent::Key(_) => overlay_step(Overlay::None, FallThrough, vec![]),
             },
 
@@ -276,6 +312,11 @@ impl Overlay {
                     Overlay::DirPicker,
                     Consumed,
                     vec![OverlayEffect::SearchClose, OverlayEffect::DirPickerOpen],
+                ),
+                OverlayEvent::OpenSessionPicker => overlay_step(
+                    Overlay::SessionPicker,
+                    Consumed,
+                    vec![OverlayEffect::SearchClose, OverlayEffect::SessionPickerOpen],
                 ),
                 OverlayEvent::Key(k) => match k.nav {
                     Some(SearchNav::Close) => {
@@ -329,6 +370,11 @@ impl Overlay {
                     Consumed,
                     vec![OverlayEffect::DirPickerOpen],
                 ),
+                OverlayEvent::OpenSessionPicker => overlay_step(
+                    Overlay::SessionPicker,
+                    Consumed,
+                    vec![OverlayEffect::DirPickerClose, OverlayEffect::SessionPickerOpen],
+                ),
                 OverlayEvent::Key(k) => match k.key {
                     OverlayKeyClass::Escape => {
                         overlay_step(Overlay::None, Consumed, vec![OverlayEffect::DirPickerClose])
@@ -336,12 +382,12 @@ impl Overlay {
                     OverlayKeyClass::Enter => {
                         overlay_step(Overlay::None, Consumed, vec![OverlayEffect::DirPickerAccept])
                     }
-                    OverlayKeyClass::Up => overlay_step(
+                    OverlayKeyClass::Up | OverlayKeyClass::CtrlP => overlay_step(
                         Overlay::DirPicker,
                         Consumed,
                         vec![OverlayEffect::DirPickerMoveUp],
                     ),
-                    OverlayKeyClass::Down => overlay_step(
+                    OverlayKeyClass::Down | OverlayKeyClass::CtrlN => overlay_step(
                         Overlay::DirPicker,
                         Consumed,
                         vec![OverlayEffect::DirPickerMoveDown],
@@ -366,6 +412,76 @@ impl Overlay {
                             );
                         }
                         overlay_step(Overlay::DirPicker, Consumed, vec![])
+                    }
+                },
+            },
+
+            // ── Session picker owns the keyboard ─────────────────
+            // The praça Ctrl-S picker — fuzzy-browse + switch. Like the
+            // dir picker it navigates by RAW key class (Esc closes
+            // regardless of atlas mapping; k.nav is unread), plus
+            // Ctrl-N / Ctrl-P as emacs-style next/prev. Enter switches
+            // to the highlighted session (the SessionPickerAccept effect
+            // posts its pane to the switch channel via the bridge).
+            Overlay::SessionPicker => match event {
+                // Switch semantics — same decision note as the
+                // Search ⇄ DirPicker arms above.
+                OverlayEvent::OpenSearch => overlay_step(
+                    Overlay::Search,
+                    Consumed,
+                    vec![OverlayEffect::SessionPickerClose, OverlayEffect::SearchOpen],
+                ),
+                OverlayEvent::OpenDirPicker => overlay_step(
+                    Overlay::DirPicker,
+                    Consumed,
+                    vec![OverlayEffect::SessionPickerClose, OverlayEffect::DirPickerOpen],
+                ),
+                OverlayEvent::OpenSessionPicker => overlay_step(
+                    Overlay::SessionPicker,
+                    Consumed,
+                    vec![OverlayEffect::SessionPickerOpen],
+                ),
+                OverlayEvent::Key(k) => match k.key {
+                    OverlayKeyClass::Escape => overlay_step(
+                        Overlay::None,
+                        Consumed,
+                        vec![OverlayEffect::SessionPickerClose],
+                    ),
+                    OverlayKeyClass::Enter => overlay_step(
+                        Overlay::None,
+                        Consumed,
+                        vec![OverlayEffect::SessionPickerAccept],
+                    ),
+                    OverlayKeyClass::Up | OverlayKeyClass::CtrlP => overlay_step(
+                        Overlay::SessionPicker,
+                        Consumed,
+                        vec![OverlayEffect::SessionPickerMoveUp],
+                    ),
+                    OverlayKeyClass::Down | OverlayKeyClass::CtrlN => overlay_step(
+                        Overlay::SessionPicker,
+                        Consumed,
+                        vec![OverlayEffect::SessionPickerMoveDown],
+                    ),
+                    OverlayKeyClass::Backspace => {
+                        if k.plain {
+                            overlay_step(
+                                Overlay::SessionPicker,
+                                Consumed,
+                                vec![OverlayEffect::SessionPickerBackspace],
+                            )
+                        } else {
+                            overlay_step(Overlay::SessionPicker, Consumed, vec![])
+                        }
+                    }
+                    OverlayKeyClass::Other => {
+                        if k.plain && let Some(t) = k.text {
+                            return overlay_step(
+                                Overlay::SessionPicker,
+                                Consumed,
+                                vec![OverlayEffect::SessionPickerPush(t)],
+                            );
+                        }
+                        overlay_step(Overlay::SessionPicker, Consumed, vec![])
                     }
                 },
             },
@@ -887,6 +1003,7 @@ impl PointerEvent {
 pub(crate) enum OverlayEventClass {
     OpenSearch,
     OpenDirPicker,
+    OpenSessionPicker,
     Key,
 }
 
@@ -902,6 +1019,7 @@ impl OverlayEvent {
         match self {
             OverlayEvent::OpenSearch => OverlayEventClass::OpenSearch,
             OverlayEvent::OpenDirPicker => OverlayEventClass::OpenDirPicker,
+            OverlayEvent::OpenSessionPicker => OverlayEventClass::OpenSessionPicker,
             OverlayEvent::Key(_) => OverlayEventClass::Key,
         }
     }
@@ -1048,6 +1166,7 @@ mod tests {
         vec![
             OverlayEvent::OpenSearch,
             OverlayEvent::OpenDirPicker,
+            OverlayEvent::OpenSessionPicker,
             OverlayEvent::Key(key(Some(SearchNav::Close), OverlayKeyClass::Escape, None, true)),
             OverlayEvent::Key(key(Some(SearchNav::Next), OverlayKeyClass::Other, None, false)),
             OverlayEvent::Key(key(Some(SearchNav::Prev), OverlayKeyClass::Other, None, false)),
@@ -1055,6 +1174,8 @@ mod tests {
             OverlayEvent::Key(key(None, OverlayKeyClass::Enter, None, true)),
             OverlayEvent::Key(key(None, OverlayKeyClass::Up, None, true)),
             OverlayEvent::Key(key(None, OverlayKeyClass::Down, None, true)),
+            OverlayEvent::Key(key(None, OverlayKeyClass::CtrlN, None, false)),
+            OverlayEvent::Key(key(None, OverlayKeyClass::CtrlP, None, false)),
             OverlayEvent::Key(key(None, OverlayKeyClass::Backspace, None, true)),
             OverlayEvent::Key(key(None, OverlayKeyClass::Backspace, None, false)),
             OverlayEvent::Key(key(None, OverlayKeyClass::Other, Some("a"), true)),
@@ -1309,6 +1430,21 @@ mod tests {
                 if picker_mutates && state != Overlay::DirPicker {
                     failures.push(format!("{ctx}: picker mutation outside Overlay::DirPicker"));
                 }
+                let session_picker_mutates = step.effects.iter().any(|e| {
+                    matches!(
+                        e,
+                        OverlayEffect::SessionPickerMoveUp
+                            | OverlayEffect::SessionPickerMoveDown
+                            | OverlayEffect::SessionPickerBackspace
+                            | OverlayEffect::SessionPickerPush(_)
+                            | OverlayEffect::SessionPickerAccept
+                    )
+                });
+                if session_picker_mutates && state != Overlay::SessionPicker {
+                    failures.push(format!(
+                        "{ctx}: session-picker mutation outside Overlay::SessionPicker"
+                    ));
+                }
 
                 match &event {
                     OverlayEvent::OpenSearch => {
@@ -1319,6 +1455,13 @@ mod tests {
                     OverlayEvent::OpenDirPicker => {
                         if step.state != Overlay::DirPicker {
                             failures.push(format!("{ctx}: OpenDirPicker must land in DirPicker"));
+                        }
+                    }
+                    OverlayEvent::OpenSessionPicker => {
+                        if step.state != Overlay::SessionPicker {
+                            failures.push(format!(
+                                "{ctx}: OpenSessionPicker must land in SessionPicker"
+                            ));
                         }
                     }
                     OverlayEvent::Key(_) => match state {
@@ -1337,7 +1480,7 @@ mod tests {
                             }
                         }
                         // An open overlay owns the keyboard totally.
-                        Overlay::Search | Overlay::DirPicker => {
+                        Overlay::Search | Overlay::DirPicker | Overlay::SessionPicker => {
                             if step.routing != OverlayRouting::Consumed {
                                 failures.push(format!("{ctx}: open overlay leaked a key"));
                             }

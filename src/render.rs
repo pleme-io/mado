@@ -1015,6 +1015,10 @@ pub struct TerminalRenderer {
     /// Reader-only directory-frecency overlay state (轍). Shared from the pane
     /// via `set_dir_picker`; drawn (when `.open`) as a Pass-6 overlay.
     dir_picker: Arc<Mutex<crate::dir_picker::DirPickerState>>,
+    /// Reader-only Ctrl-S praça session-picker overlay state. Shared from
+    /// the engine via `set_session_picker`; drawn (when `.open`) as a
+    /// Pass-6 overlay, same model as `dir_picker`.
+    session_picker: Arc<Mutex<crate::session_picker::SessionPickerState>>,
     // window field removed at Phase 4 — single-pane mado.
     font_size: f32,
     /// Cell-height multiplier — the line rhythm. The cell height is
@@ -1325,6 +1329,9 @@ impl TerminalRenderer {
             selection: Arc::new(Mutex::new(Selection::new())),
             search: Arc::new(Mutex::new(SearchState::new())),
             dir_picker: Arc::new(Mutex::new(crate::dir_picker::DirPickerState::new())),
+            session_picker: Arc::new(Mutex::new(
+                crate::session_picker::SessionPickerState::new(),
+            )),
             // window: removed Phase 4
             font_size,
             line_height,
@@ -1602,6 +1609,16 @@ impl TerminalRenderer {
 
     /// Set the shared dir-picker state (called from main to share with the
     /// event handler — the same Arc both the input handler and renderer read).
+    /// Share the Ctrl-S session-picker overlay state with the input
+    /// engine (the engine writes it via the overlay FSM; the renderer
+    /// reads it in Pass 6). Same wiring as `set_dir_picker`.
+    pub fn set_session_picker(
+        &mut self,
+        session_picker: Arc<Mutex<crate::session_picker::SessionPickerState>>,
+    ) {
+        self.session_picker = session_picker;
+    }
+
     pub fn set_dir_picker(&mut self, dir_picker: Arc<Mutex<crate::dir_picker::DirPickerState>>) {
         self.dir_picker = dir_picker;
     }
@@ -1776,6 +1793,103 @@ impl TerminalRenderer {
         });
         if let Err(e) = ctx.text.render(&mut pass) {
             tracing::warn!("dir_picker text render: {e}");
+        }
+    }
+
+    /// Draw the Ctrl-S praça session-picker overlay — a text-only floating
+    /// list: a fuzzy-filter query line plus the frecency-ranked session
+    /// rows (`🌊 tide  mado`), the highlighted row in Nord green. Same
+    /// pure-text Pass-6 model as [`Self::draw_dir_picker`] (no new
+    /// pipeline). When switching is disabled the body is a single
+    /// `(session switching disabled …)` hint line.
+    fn draw_session_picker(
+        &self,
+        query: &str,
+        results: &[crate::session_picker::SessionPickerRow],
+        selected: usize,
+        disabled: bool,
+        ctx: &mut RenderContext<'_>,
+        encoder: &mut wgpu::CommandEncoder,
+    ) {
+        let fs = self.font_size_px();
+        let line_h = fs * self.line_height;
+        let left = self.padding_px() + self.cell_width * 2.0;
+        let top0 = self.padding_px() + self.cell_height;
+        let max_rows = 12usize;
+
+        let mut lines: Vec<String> = Vec::with_capacity(max_rows + 1);
+        lines.push(format!("\u{25b6} session  {query}\u{2588}"));
+        if disabled {
+            lines.push("  (session switching disabled — set tear.session_switching = true)".to_owned());
+        } else if results.is_empty() {
+            lines.push("  (no matching sessions)".to_owned());
+        } else {
+            for (i, row) in results.iter().take(max_rows).enumerate() {
+                let marker = if i == selected { "\u{203a} " } else { "  " };
+                lines.push(format!("{marker}{}", row.label));
+            }
+        }
+
+        let mut buffers: Vec<glyphon::Buffer> = Vec::with_capacity(lines.len());
+        for line in &lines {
+            let attrs = Attrs::new().family(Family::Name(&self.font_family));
+            let mut buf = ctx.text.create_rich_buffer(&[(line.as_str(), attrs)], fs, line_h);
+            buf.shape_until_scroll(&mut ctx.text.font_system, false);
+            buffers.push(buf);
+        }
+
+        let frost = GlyphonColor::rgba(136, 192, 208, 255); // Nord frost — query
+        let green = GlyphonColor::rgba(163, 190, 140, 255); // Nord green — selected
+        let fg = GlyphonColor::rgba(self.fg_color.r, self.fg_color.g, self.fg_color.b, 255);
+
+        let mut text_areas = Vec::with_capacity(buffers.len());
+        for (idx, buf) in buffers.iter().enumerate() {
+            let color = if idx == 0 {
+                frost
+            } else if !disabled && !results.is_empty() && idx - 1 == selected {
+                green
+            } else {
+                fg
+            };
+            text_areas.push(glyphon::TextArea {
+                buffer: buf,
+                left,
+                top: top0 + (idx as f32) * line_h,
+                scale: 1.0,
+                bounds: glyphon::TextBounds {
+                    left: 0,
+                    top: 0,
+                    right: ctx.width as i32,
+                    bottom: ctx.height as i32,
+                },
+                default_color: color,
+                custom_glyphs: &[],
+            });
+        }
+
+        if let Err(e) =
+            ctx.text
+                .prepare(&ctx.gpu.device, &ctx.gpu.queue, ctx.width, ctx.height, text_areas)
+        {
+            tracing::warn!("session_picker text prepare: {e}");
+            return;
+        }
+        let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("mado_session_picker"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: ctx.surface_view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Load,
+                    store: wgpu::StoreOp::Store,
+                },
+            })],
+            depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
+        });
+        if let Err(e) = ctx.text.render(&mut pass) {
+            tracing::warn!("session_picker text render: {e}");
         }
     }
 
@@ -4175,6 +4289,32 @@ impl RenderCallback for TerminalRenderer {
             };
             if dp_open {
                 self.draw_dir_picker(&dp_query, &dp_results, dp_selected, ctx, &mut overlay_encoder);
+            }
+        }
+
+        // Session picker (Ctrl-S praça browse) — same Pass-6 model:
+        // state snapshotted (lock dropped) before GPU work, gated on
+        // `.open` so idle frames are byte-identical.
+        {
+            let (sp_open, sp_query, sp_results, sp_selected, sp_disabled) = {
+                let sp = self.session_picker.lock().unwrap();
+                (
+                    sp.open,
+                    sp.query.clone(),
+                    sp.results.clone(),
+                    sp.selected,
+                    sp.disabled,
+                )
+            };
+            if sp_open {
+                self.draw_session_picker(
+                    &sp_query,
+                    &sp_results,
+                    sp_selected,
+                    sp_disabled,
+                    ctx,
+                    &mut overlay_encoder,
+                );
             }
         }
 

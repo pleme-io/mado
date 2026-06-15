@@ -51,6 +51,7 @@ mod scenario;
 mod search;
 mod selection;
 mod session;
+mod session_picker;
 mod session_switch;
 // mod tab removed at Phase 4 — single-pane mado.
 mod term_spec;
@@ -826,6 +827,13 @@ fn main() -> anyhow::Result<()> {
                 selection: Arc::clone(&pane.selection),
                 search: Arc::clone(&pane.search),
                 dir_picker: Arc::clone(&pane.dir_picker),
+                // The local-PTY path has no tear session graph, so the
+                // session picker has nothing to browse — a fresh inert
+                // state. The Ctrl-S binding still opens it, showing the
+                // "switching disabled" hint (bridge is `None` below).
+                session_picker: std::sync::Arc::new(std::sync::Mutex::new(
+                    crate::session_picker::SessionPickerState::new(),
+                )),
             },
             clipboard: Arc::clone(&clipboard),
             keybinds,
@@ -833,6 +841,9 @@ fn main() -> anyhow::Result<()> {
             cursor_keys_mode,
             default_font_size,
             padding,
+            // Local-PTY mode: no tear sessions, no switch channel — the
+            // picker is inert.
+            session_picker_bridge: None,
         },
     );
 

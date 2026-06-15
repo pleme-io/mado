@@ -58,6 +58,8 @@ pub enum Action {
     SearchPrev,
     #[kind(name = "dir_picker_open", alias = "dir_picker", alias = "recent_dirs")]
     DirPickerOpen,
+    #[kind(name = "session_picker_open", alias = "session_picker", alias = "session_switcher")]
+    SessionPickerOpen,
     #[kind(name = "font_increase", alias = "increase_font_size")]
     FontIncrease,
     #[kind(name = "font_decrease", alias = "decrease_font_size")]
@@ -637,6 +639,7 @@ fn default_bindings() -> Vec<Keybinding> {
     // hand-wired until the atlas earns a third consumer for each.
     let cmd = Modifiers::CMD;
     let cmd_shift = Modifiers::CMD | Modifiers::SHIFT;
+    let ctrl = Modifiers::CTRL;
     let none = Modifiers::NONE;
 
     vec![
@@ -667,6 +670,12 @@ fn default_bindings() -> Vec<Keybinding> {
         // Directory frecency overlay (轍 wadachi) — Cmd+G ("go to dir").
         // mado-specific (no atlas intent yet); reader-only picker.
         Keybinding { hotkey: hk(cmd, Key::G), action: Action::DirPickerOpen },
+        // Praça session picker — Ctrl-S ("switch session"): fuzzy-browse
+        // + switch the frecency-ranked sessions praça tracks. The rare
+        // fallback to auto-attach-on-cd (PRACA.md M0). mado-specific
+        // (no atlas intent yet). Drives the SAME switch channel as
+        // auto-attach + the `switch_session` MCP tool.
+        Keybinding { hotkey: hk(ctrl, Key::S), action: Action::SessionPickerOpen },
         // Terminal — mado-specific (no atlas reset intent).
         Keybinding { hotkey: hk(cmd_shift, Key::R), action: Action::ResetTerminal },
     ]
@@ -843,8 +852,8 @@ mod tests {
         // Default bindings after Phase 4 (multiplexing actions
         // removed): clipboard (2) + search (4) + font (3) +
         // scroll (4) + prompt jump (2) + terminal (1) + fullscreen
-        // (1) + dir-picker (1) = 18.
-        assert_eq!(mgr.bindings().len(), 18);
+        // (1) + dir-picker (1) + session-picker (1) = 19.
+        assert_eq!(mgr.bindings().len(), 19);
     }
 
     #[test]
@@ -857,6 +866,7 @@ mod tests {
             Action::JumpToPromptPrev, Action::JumpToPromptNext,
             Action::SearchOpen, Action::SearchClose,
             Action::SearchNext, Action::SearchPrev, Action::DirPickerOpen,
+            Action::SessionPickerOpen,
             Action::FontIncrease,
             Action::FontDecrease, Action::FontReset,
             Action::ResetTerminal,
@@ -914,7 +924,14 @@ mod tests {
     #[test]
     fn test_total_default_bindings_count() {
         let mgr = KeybindManager::with_mado_defaults();
-        assert_eq!(mgr.bindings().len(), 18);
+        assert_eq!(mgr.bindings().len(), 19);
+    }
+
+    #[test]
+    fn session_picker_bound_to_ctrl_s() {
+        let mgr = KeybindManager::with_mado_defaults();
+        let hk = awase::Hotkey::new(awase::Modifiers::CTRL, awase::Key::S);
+        assert_eq!(mgr.lookup(&hk), Some(Action::SessionPickerOpen));
     }
 
     #[test]
@@ -964,6 +981,7 @@ mod tests {
             Action::JumpToPromptPrev, Action::JumpToPromptNext,
             Action::SearchOpen, Action::SearchClose,
             Action::SearchNext, Action::SearchPrev, Action::DirPickerOpen,
+            Action::SessionPickerOpen,
             Action::FontIncrease,
             Action::FontDecrease, Action::FontReset,
             Action::ResetTerminal,

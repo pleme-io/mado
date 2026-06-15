@@ -369,6 +369,11 @@ fn run_against_pane_unified<P, C>(
     // the `switch` driver above drains. Only meaningful when `switch`
     // is also `Some` (auto-attach requires session_switching).
     mut auto_attach: Option<crate::auto_attach::AutoAttachDriver>,
+    // Ctrl-S session picker bridge — praça browse + switch. `Some`
+    // (embedded + session_switching) drives the same switch channel as
+    // auto-attach; `None` keeps Ctrl-S an inert "switching disabled"
+    // hint (mirrors the `switch_session` MCP tool).
+    session_picker_bridge: Option<Box<dyn crate::session_picker::SessionPickerBridge>>,
 ) -> Result<()>
 where
     P: engate_attach::Producer<
@@ -700,6 +705,7 @@ where
             cursor_keys_mode,
             default_font_size: default_font_size_for_reset,
             padding,
+            session_picker_bridge,
         },
     );
 
@@ -1240,6 +1246,56 @@ fn try_run_default_embedded(
         None
     };
 
+    // ── Ctrl-S session picker bridge (praça browse + switch) ──────
+    // Built whenever session-switching is on (the picker drives the
+    // switch channel). It shares the auto-attach driver's LIVE praça
+    // index when auto-attach is active, so a spawned/visited session
+    // appears in the picker immediately; with auto-attach off
+    // (session-switching on), a fresh praça seeded with the boot
+    // session gives the picker at least the current seat to browse.
+    // `None` keeps the picker inert (Ctrl-S shows the "switching
+    // disabled" hint) on the byte-identical legacy path.
+    let session_picker_bridge: Option<Box<dyn crate::session_picker::SessionPickerBridge>> =
+        switch_requests.as_ref().map(|switch| {
+            let shared_praca = match auto_attach.as_ref() {
+                Some(driver) => driver.shared_praca(),
+                None => {
+                    // No auto-attach driver to share with — seed a fresh
+                    // index with the boot session so the picker has the
+                    // current seat (the picker is read-only here; nothing
+                    // mutates this index, so the lone boot row is enough
+                    // to demonstrate browse + switch-to-self).
+                    let now = crate::auto_attach::now_unix_seconds();
+                    let boot_root = praca::project::project_root(
+                        config
+                            .boot_spawn_cwd()
+                            .as_deref()
+                            .unwrap_or_else(|| std::path::Path::new(".")),
+                    );
+                    let mut index = praca::SessionIndex::new();
+                    index.upsert(praca::SessionRecord::for_project(
+                        session_id,
+                        boot_root.clone(),
+                        ishou_tokens::SessionNameStyle::Emoji,
+                        now,
+                    ));
+                    let mut binding = praca::ProjectBinding::new();
+                    binding.bind(boot_root, session_id);
+                    std::sync::Arc::new(std::sync::Mutex::new(praca::Praca::with(
+                        index,
+                        binding,
+                        config.tear.auto_attach.policy(),
+                        ishou_tokens::SessionNameStyle::Emoji,
+                    )))
+                }
+            };
+            Box::new(crate::session_picker::PracaPickerBridge::new(
+                shared_praca,
+                Arc::clone(&inproc),
+                switch.clone(),
+            )) as Box<dyn crate::session_picker::SessionPickerBridge>
+        });
+
     match run_against_embedded_pane(
         inproc,
         pane_id,
@@ -1248,6 +1304,7 @@ fn try_run_default_embedded(
         reload,
         switch_requests,
         auto_attach,
+        session_picker_bridge,
     ) {
         Ok(()) => TearDefaultOutcome::Ran,
         Err(e) => TearDefaultOutcome::Error(e),
@@ -1274,6 +1331,7 @@ fn run_against_embedded_pane(
     reload: Option<crate::ux::ConfigReloadSource>,
     switch_requests: Option<SwitchRequests>,
     auto_attach: Option<crate::auto_attach::AutoAttachDriver>,
+    session_picker_bridge: Option<Box<dyn crate::session_picker::SessionPickerBridge>>,
 ) -> Result<()> {
     let snapshot = inproc
         .pane_snapshot(pane_id)
@@ -1306,6 +1364,7 @@ fn run_against_embedded_pane(
         reload,
         switch,
         auto_attach,
+        session_picker_bridge,
     )
 }
 
@@ -1413,6 +1472,10 @@ fn run_against_pane(
         None,
         // Auto-attach is embedded-only too (it drives the embedded
         // switch channel + reads the GUI's own InProcess registry).
+        None,
+        // The session picker is embedded-only as well (its bridge reads
+        // the GUI's own InProcess registry + posts to the embedded
+        // switch channel). Daemon mode keeps Ctrl-S an inert hint.
         None,
     )
 }
