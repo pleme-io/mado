@@ -1080,7 +1080,7 @@ pub struct BehaviorConfig {
     pub scroll_friction: f32,
     /// Velocity cap in lines/sec. Bounds how fast even a frantic
     /// repeated flick can scroll, so momentum can't launch to the
-    /// scrollback top in a single frame. ~120 lines/sec ≈ two screens
+    /// scrollback top in a single frame. ~200 lines/sec ≈ three+ screens
     /// per second at peak — fast, but always trackable by the eye.
     #[serde(default = "default_scroll_max_velocity")]
     pub scroll_max_velocity: f32,
@@ -2273,9 +2273,11 @@ fn default_scroll_friction() -> f32 {
 }
 fn default_scroll_max_velocity() -> f32 {
     // Lines/sec ceiling so a frantic repeated flick can't launch to the
-    // scrollback top in one frame. ~120 lines/sec ≈ two 60-row screens
-    // per second at peak — fast yet always eye-trackable.
-    120.0
+    // scrollback top in one frame. ~200 lines/sec ≈ three+ 60-row
+    // screens per second at peak — gives the same-direction streak
+    // acceleration real headroom to feel fast, yet still eye-trackable
+    // (the friction glide always eases it back down).
+    200.0
 }
 fn default_shell_integration_enabled() -> bool {
     true

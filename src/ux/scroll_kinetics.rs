@@ -37,6 +37,21 @@
 /// invisible and leaves a crisp halt.
 const STOP_EPSILON: f32 = 0.5;
 
+/// How much each consecutive same-direction flick compounds the next
+/// impulse. Flicking *again* in the same direction while the glide is
+/// still alive is the operator "swinging harder" — the streak scales
+/// the raw impulse so a burst accelerates faster than plain linear
+/// accumulation. Streak 0 → 1.0×, streak 1 → 1.6×, streak 2 → 2.2× …
+/// until [`ACCEL_MAX`]. A direction reversal or a flick from rest
+/// (the glide already died) resets the streak to a single 1.0× swing.
+const ACCEL_STEP: f32 = 0.6;
+
+/// Ceiling on the per-flick streak multiplier. `max_velocity` is the
+/// absolute speed cap; this separately bounds how much a single flick
+/// in a frantic burst can be scaled, so acceleration stays smooth and
+/// predictable rather than snapping straight to the velocity ceiling.
+const ACCEL_MAX: f32 = 3.0;
+
 /// The momentum-scroll kinetic state. One value, owned by the engine,
 /// advanced once per frame by [`Self::tick`].
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -54,6 +69,13 @@ pub struct ScrollKinetics {
     /// drive I should cancel when the pointer re-enters the viewport?"
     /// without confusing it with a decaying wheel glide.
     sustained: bool,
+    /// Count of consecutive same-direction wheel flicks landed while
+    /// the glide was still alive. Each one compounds the next impulse
+    /// by [`ACCEL_STEP`] (capped at [`ACCEL_MAX`]) so a rapid burst of
+    /// flicks accelerates. Resets to `0` on a direction reversal, a
+    /// flick from rest, or a clean stop — because in each of those the
+    /// previous motion has ended, so the next flick is a fresh swing.
+    streak: u32,
 }
 
 impl Default for ScrollKinetics {
@@ -70,19 +92,40 @@ impl ScrollKinetics {
             velocity: 0.0,
             residual: 0.0,
             sustained: false,
+            streak: 0,
         }
     }
 
     /// Inject a wheel impulse. `lines` is the signed flick magnitude in
-    /// lines/sec to add (sign = direction); same-direction impulses
-    /// ACCUMULATE so a fast repeated flick builds a longer glide.
-    /// `|velocity|` is clamped to `max_velocity` so a frantic flick
-    /// can't launch straight to the scrollback top. Any impulse cancels
-    /// the sustained flag — a wheel flick is a fresh decaying glide.
+    /// lines/sec to add (sign = direction). Same-direction impulses
+    /// ACCUMULATE so a fast repeated flick builds a longer glide — and,
+    /// beyond plain accumulation, they ACCELERATE: a flick landed while
+    /// the glide is still alive (non-zero velocity) in the same
+    /// direction grows a [`Self::streak`] that compounds each successive
+    /// impulse by [`ACCEL_STEP`] up to [`ACCEL_MAX`]. Swinging the wheel
+    /// harder/faster in one direction therefore ramps up speed, while a
+    /// pause (the glide decays to rest) or a reversal resets the ramp to
+    /// a single 1.0× swing. `|velocity|` is still clamped to
+    /// `max_velocity` so even a frantic burst can't launch straight to
+    /// the scrollback top. Any impulse cancels the sustained flag — a
+    /// wheel flick is a fresh decaying glide.
     pub fn add_impulse(&mut self, lines: f32, max_velocity: f32) {
         let max = max_velocity.max(0.0);
+
+        // A flick in the SAME direction while still gliding is a
+        // repeated swing — grow the streak so the burst accelerates.
+        // The live velocity is the timer: if friction has already
+        // bled it to rest (the operator paused), `velocity == 0.0` and
+        // the streak resets, so the next flick starts a fresh ramp. A
+        // reversal also resets. This needs no wall-clock — decay IS the
+        // window.
+        let same_dir =
+            lines != 0.0 && self.velocity != 0.0 && lines.signum() == self.velocity.signum();
+        self.streak = if same_dir { self.streak.saturating_add(1) } else { 0 };
+
+        let accel = (1.0 + self.streak as f32 * ACCEL_STEP).min(ACCEL_MAX);
         self.sustained = false;
-        self.velocity = (self.velocity + lines).clamp(-max, max);
+        self.velocity = (self.velocity + lines * accel).clamp(-max, max);
     }
 
     /// Drive a held, non-decaying velocity (selection auto-scroll past
@@ -93,6 +136,9 @@ impl ScrollKinetics {
     pub fn set_sustained(&mut self, velocity: f32) {
         self.velocity = velocity;
         self.sustained = true;
+        // A sustained selection drive is a different motion than a
+        // wheel burst — don't let a stale wheel streak leak into it.
+        self.streak = 0;
     }
 
     /// Whether the current drive is a sustained (selection
@@ -147,6 +193,9 @@ impl ScrollKinetics {
         if !self.sustained && self.velocity.abs() < STOP_EPSILON {
             self.velocity = 0.0;
             self.residual = 0.0;
+            // The glide has died — the next flick is a fresh swing, so
+            // the acceleration ramp resets to 1.0×.
+            self.streak = 0;
         }
 
         delta
@@ -166,6 +215,7 @@ impl ScrollKinetics {
         self.velocity = 0.0;
         self.residual = 0.0;
         self.sustained = false;
+        self.streak = 0;
     }
 
     /// Test-only read of the raw velocity (lines/sec). Production code
@@ -276,18 +326,92 @@ mod tests {
     }
 
     /// `add_impulse` clamps to `max_velocity`; same-direction impulses
-    /// accumulate but still saturate at the cap.
+    /// accumulate AND accelerate (the streak ramp), still saturating at
+    /// the cap.
     #[test]
     fn impulse_accumulates_and_clamps() {
         let mut k = ScrollKinetics::at_rest();
-        k.add_impulse(300.0, 1000.0);
-        k.add_impulse(300.0, 1000.0);
-        assert_eq!(k.velocity, 600.0, "same-direction impulses add");
-        k.add_impulse(900.0, 1000.0);
-        assert_eq!(k.velocity, 1000.0, "accumulation saturates at the cap");
+        // First flick from rest: streak 0 → 1.0× → exactly the impulse.
+        k.add_impulse(300.0, 5000.0);
+        assert_eq!(k.velocity, 300.0, "first flick is a plain 1.0× swing");
+        // Second same-direction flick mid-glide: streak 1 → 1.6× → the
+        // added impulse is accelerated, so the sum overshoots plain
+        // linear accumulation (which would be 600).
+        k.add_impulse(300.0, 5000.0);
+        assert!(
+            k.velocity > 600.0,
+            "a repeated same-direction flick accelerates past linear (got {})",
+            k.velocity
+        );
+        // A frantic burst still saturates at the velocity cap.
+        k.add_impulse(5000.0, 1000.0);
+        assert_eq!(k.velocity, 1000.0, "acceleration still saturates at the cap");
         // Opposite direction is also clamped.
-        k.add_impulse(-5000.0, 1000.0);
+        k.add_impulse(-9000.0, 1000.0);
         assert_eq!(k.velocity, -1000.0);
+    }
+
+    /// The acceleration ramp is monotonic: each successive
+    /// same-direction flick adds MORE velocity than the previous one,
+    /// up to the streak cap — "swing harder, go faster."
+    #[test]
+    fn repeated_same_direction_flicks_accelerate() {
+        let mut k = ScrollKinetics::at_rest();
+        // Huge cap so the ramp is visible before saturation.
+        let cap = 1.0e9;
+        let mut prev_v = 0.0_f32;
+        let mut prev_gain = 0.0_f32;
+        for i in 0..4 {
+            k.add_impulse(100.0, cap);
+            let gain = k.velocity() - prev_v;
+            if i > 0 {
+                assert!(
+                    gain > prev_gain,
+                    "flick {i}: gain {gain} must exceed previous gain {prev_gain}"
+                );
+            }
+            prev_gain = gain;
+            prev_v = k.velocity();
+        }
+    }
+
+    /// Letting the glide decay to rest resets the ramp: the next flick
+    /// is a fresh 1.0× swing, not a continuation of the prior streak.
+    #[test]
+    fn pause_resets_the_acceleration_ramp() {
+        let mut k = ScrollKinetics::at_rest();
+        k.add_impulse(100.0, 5000.0);
+        k.add_impulse(100.0, 5000.0); // build a streak
+        // Coast to a full stop (friction zeroes velocity + streak).
+        for _ in 0..600 {
+            k.tick(DT, FRICTION);
+            if !k.is_active() {
+                break;
+            }
+        }
+        assert!(!k.is_active(), "glide must come to rest");
+        // A fresh flick from rest is a plain 1.0× swing again.
+        k.add_impulse(100.0, 5000.0);
+        assert_eq!(k.velocity(), 100.0, "post-pause flick rebases to 1.0×");
+    }
+
+    /// Reversing direction resets the ramp — you can't carry an up-burst
+    /// streak into a down-flick.
+    #[test]
+    fn reversal_resets_the_acceleration_ramp() {
+        let mut k = ScrollKinetics::at_rest();
+        k.add_impulse(100.0, 5000.0);
+        k.add_impulse(100.0, 5000.0); // up-streak built
+        // Now flick DOWN while still gliding up — opposite sign resets
+        // the streak, so this is a plain 1.0× down-swing added to the
+        // residual up-velocity.
+        let before = k.velocity();
+        k.add_impulse(-100.0, 5000.0);
+        assert_eq!(
+            k.velocity(),
+            before - 100.0,
+            "a reversal applies a plain 1.0× swing, no carried streak"
+        );
     }
 
     /// Caller zeroing velocity at a wall (via `stop`) leaves a clean

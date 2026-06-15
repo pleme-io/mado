@@ -260,10 +260,11 @@ impl InputEngine {
 
     /// Wheel-impulse gain: lines/sec of velocity injected per scrolled
     /// line. One wheel notch (`mouse_scroll_multiplier` lines) becomes
-    /// a short glide; a fast repeated flick accumulates toward
-    /// `scroll_max_velocity`. Tuned so a single notch feels like a
-    /// brief weighted nudge, not a launch.
-    const IMPULSE_GAIN: f32 = 22.0;
+    /// a short glide; a fast repeated flick accumulates AND accelerates
+    /// (the `ScrollKinetics` streak ramp) toward `scroll_max_velocity`.
+    /// Tuned so a single notch is a brisk weighted nudge — quick off the
+    /// line, never a launch.
+    const IMPULSE_GAIN: f32 = 30.0;
 
     /// Selection auto-scroll velocity per overshoot line (lines/sec),
     /// and the overshoot cap. Drag one line past the edge ⇒ a gentle
