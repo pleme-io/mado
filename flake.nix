@@ -41,6 +41,20 @@
       hmNamespace = "blackmatter.components";
       withShikumiConfig = true;
 
+      # Desktop GUI-app install (substrate mkModuleTrio appBundle).
+      # A consumer who sets `blackmatter.components.mado.installApp = true`
+      # gets a real Mado.app in ~/Applications (macOS — Spotlight /
+      # Launchpad / Dock) or a Mado .desktop entry + icon under
+      # ~/.local/share (Linux — application menu). The .app is built by
+      # substrate's mkDarwinAppBundle (SVG → .icns); we do NOT duplicate
+      # any bundle/icon logic here.
+      appBundle = {
+        appName  = "Mado";
+        bundleId = "io.pleme.mado";
+        iconSvg  = ./assets/mado-icon.svg;
+        desktopCategories = "System;TerminalEmulator;";
+      };
+
       shikumiTypedGroups = {
         window = {
           width   = { type = "int"; default = 1280; description = "Window width in pixels."; };

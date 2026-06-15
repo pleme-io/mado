@@ -1,8 +1,17 @@
 name: release-binaries
 
-# Three-line consumer shim. On every `vX.Y.Z` tag push (created by
-# auto-release.yml), build mado for linux/macOS × x86_64/aarch64 and
-# attach the binaries + .sha256 sidecars to the GitHub Release.
+# Consumer shim. On every `vX.Y.Z` tag push (created by auto-release.yml),
+# build mado for linux/macOS × x86_64/aarch64 and attach to the Release:
+#   - bare binaries + .sha256 sidecars (some users want just the binary)
+#   - macOS  Mado-<version>-macos-<arch>.dmg  (drag Mado.app → Applications)
+#            + Mado-<version>-macos-<arch>.zip (the bare .app)
+#   - linux  Mado-<version>-linux-<arch>.tar.gz (binary + .desktop + icon
+#            + install.sh → ~/.local/{bin,share})
+#
+# app-bundle: the macOS .app/.icns/Info.plist + linux .desktop are built
+# from the SAME assets/mado-icon.svg the Nix `mkDarwinAppBundle` builder
+# uses (channel 2) — one icon source of truth for both install channels.
+# See mado's README "Install" section + the reusable workflow header.
 #
 # system-deps: mado is a GPU terminal (winit/wgpu via engawa-wgpu +
 # garasu). The ubuntu legs need windowing system libs to link; they are
@@ -24,4 +33,9 @@ jobs:
     with:
       binary-name: mado
       system-deps: "libxkbcommon-dev libwayland-dev libwayland-cursor0 pkg-config"
+      app-bundle: true
+      app-name: Mado
+      bundle-id: io.pleme.mado
+      icon-svg: assets/mado-icon.svg
+      desktop-categories: "System;TerminalEmulator;"
     secrets: inherit
