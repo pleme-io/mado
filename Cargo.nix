@@ -3302,8 +3302,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/engate";
-          rev = "83906960d039fd20123e9b2988d8b4fcb9547d35";
-          sha256 = "171lqi85dw8s5hkba2ggq9czclczrm152iwqrbjd231wjlwiqjy6";
+          rev = "0693872767877a551c1da254b6db9629f9afd470";
+          sha256 = "066lipfjy8q6ximkhr9bf5q6kd5zvxcz1fkfq0z64j7hv1jrx6p3";
         };
         libName = "engate_attach";
         authors = [
@@ -3347,8 +3347,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/engate";
-          rev = "83906960d039fd20123e9b2988d8b4fcb9547d35";
-          sha256 = "171lqi85dw8s5hkba2ggq9czclczrm152iwqrbjd231wjlwiqjy6";
+          rev = "0693872767877a551c1da254b6db9629f9afd470";
+          sha256 = "066lipfjy8q6ximkhr9bf5q6kd5zvxcz1fkfq0z64j7hv1jrx6p3";
         };
         libName = "engate_types";
         authors = [
@@ -4864,15 +4864,15 @@ rec {
           "wasm_js" = [ "dep:wasm-bindgen" "dep:js-sys" ];
         };
       };
-      "git+https://github.com/pleme-io/shikumi#0.1.60" = rec {
+      "git+https://github.com/pleme-io/shikumi#0.1.66" = rec {
         crateName = "shikumi";
-        version = "0.1.60";
+        version = "0.1.66";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
-          rev = "7e196d97cc9cbc29d0131e1545f21d5c5694fa94";
-          sha256 = "06r8sys8kv0j3hz4mqap6rmgx1s2484abmgsmhd0zhzkfasakhv4";
+          rev = "c7ae2f6c644957bb0ea9e9fc79eb496f7c052285";
+          sha256 = "0pghwar543zpmcvar4vkn310zrd2f1qaa10q2hg0zaa073arfw51";
         };
         dependencies = [
           {
@@ -4951,15 +4951,15 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" ];
       };
-      "git+https://github.com/pleme-io/shikumi?branch=main#0.1.60" = rec {
+      "git+https://github.com/pleme-io/shikumi?branch=main#0.1.66" = rec {
         crateName = "shikumi";
-        version = "0.1.60";
+        version = "0.1.66";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
-          rev = "7e196d97cc9cbc29d0131e1545f21d5c5694fa94";
-          sha256 = "06r8sys8kv0j3hz4mqap6rmgx1s2484abmgsmhd0zhzkfasakhv4";
+          rev = "c7ae2f6c644957bb0ea9e9fc79eb496f7c052285";
+          sha256 = "0pghwar543zpmcvar4vkn310zrd2f1qaa10q2hg0zaa073arfw51";
         };
         dependencies = [
           {
@@ -6486,8 +6486,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/ishou";
-          rev = "b244b6fb3e3d22856f90ceb84ee51a7e4421f87d";
-          sha256 = "1yzrp8gc0far0nv4xgk7jzz7xksa20lcfgdasvyd2v6nphfp6brz";
+          rev = "113f7763da4ec0cf1932b67fb46be8597f154696";
+          sha256 = "13f3xbz7rwqar7nvrkzwk8lw5c9za7hdzajqbmmgwayk9hzlmwnb";
         };
         libName = "ishou_tokens";
         dependencies = [
@@ -7389,7 +7389,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.3";
+        version = "0.1.4";
         edition = "2024";
         crateBin = [
           {
@@ -7457,7 +7457,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "git+https://github.com/pleme-io/shikumi?branch=main#0.1.60";
+            packageId = "git+https://github.com/pleme-io/shikumi?branch=main#0.1.66";
             features = [ "cli" ];
           }
           {
@@ -7703,7 +7703,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "git+https://github.com/pleme-io/shikumi?branch=main#0.1.60";
+            packageId = "git+https://github.com/pleme-io/shikumi?branch=main#0.1.66";
           }
           {
             name = "pollster";
@@ -16939,7 +16939,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "git+https://github.com/pleme-io/shikumi#0.1.60";
+            packageId = "git+https://github.com/pleme-io/shikumi#0.1.66";
           }
           {
             name = "serde";
@@ -18971,7 +18971,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "git+https://github.com/pleme-io/shikumi?branch=main#0.1.60";
+            packageId = "git+https://github.com/pleme-io/shikumi?branch=main#0.1.66";
             features = [ "cli" ];
           }
           {

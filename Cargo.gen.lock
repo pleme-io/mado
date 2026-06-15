@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "81b7e3e34cdc50405a225c92a94aa0ef681793ca7c0ebeaa665075f730748987",
+  "cargo_lock_sha256": "4738adcaf7a76de24e7c8a5d68aca59cd988347e827171cf02b352ed7af53fd2",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -450,7 +450,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "awase-0.1.0-afa79c28177c5dbbe7ad185fd63d6a136f12cd73": {
+      "awase-0.1.1-25880f6a1dddb6d8d589207e8afc2a5a73969ee0": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -2282,7 +2282,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "egaku-0.1.0-74b2c4fb0b265cef201ed1775735961eb4efb002": {
+      "egaku-0.1.1-1513c95be90f239c8b18079c83963185f2c512fd": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -2363,7 +2363,7 @@
           "std"
         ]
       },
-      "engate-attach-0.1.0-0693872767877a551c1da254b6db9629f9afd470": {
+      "engate-attach-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": {
         "runtime_dependencies": [
           {
             "name": "drop_bomb",
@@ -2377,7 +2377,7 @@
           },
           {
             "name": "engate_types",
-            "package_key": "engate-types-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
+            "package_key": "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -2433,7 +2433,7 @@
           "default"
         ]
       },
-      "engate-types-0.1.0-0693872767877a551c1da254b6db9629f9afd470": {
+      "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -2461,7 +2461,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "engawa-0.1.3-772fbf0357d3bc3e90786ffb5e8a5a8b5ddb8f44": {
+      "engawa-0.1.3-14dea6c8b8a8befc677c3377bc5a74a5a9c253fa": {
         "runtime_dependencies": [
           {
             "name": "pleme_allvariants_derive",
@@ -2515,7 +2515,7 @@
           },
           {
             "name": "engawa",
-            "package_key": "engawa-0.1.3-772fbf0357d3bc3e90786ffb5e8a5a8b5ddb8f44",
+            "package_key": "engawa-0.1.3-14dea6c8b8a8befc677c3377bc5a74a5a9c253fa",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3366,7 +3366,7 @@
           "std"
         ]
       },
-      "garasu-0.1.0-bfda319bf2009bfab8c482e328d0274aae9727f5": {
+      "garasu-0.1.1-a7709af29cebfd6ac17e50e432a1403f6901fc15": {
         "runtime_dependencies": [
           {
             "name": "bincode",
@@ -4150,7 +4150,7 @@
           "std"
         ]
       },
-      "hasami-0.1.0-21147fe7ce68fe37fcbe9f33159e57c8b84a8c16": {
+      "hasami-0.1.1-6c37410cf5e1eef0f9852b57a55287c3c2bdd790": {
         "runtime_dependencies": [
           {
             "name": "arboard",
@@ -5051,7 +5051,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "irodzuki-0.1.6-9c674aca176b39a4d9ddee1b1aedb46a06c81b4d": {
+      "irodzuki-0.1.7-28a0f5ed6d038d3bf1ec43eb9ae0b482ad85e506": {
         "runtime_dependencies": [
           {
             "name": "bytemuck",
@@ -5067,7 +5067,7 @@
           },
           {
             "name": "egaku",
-            "package_key": "egaku-0.1.0-74b2c4fb0b265cef201ed1775735961eb4efb002",
+            "package_key": "egaku-0.1.1-1513c95be90f239c8b18079c83963185f2c512fd",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5138,7 +5138,7 @@
           "default"
         ]
       },
-      "ishou-tokens-0.1.3-113f7763da4ec0cf1932b67fb46be8597f154696": {
+      "ishou-tokens-0.1.3-0197aeba1e9a7e17ff516272689dbca6a3ccc967": {
         "runtime_dependencies": [
           {
             "name": "irodori",
@@ -5682,7 +5682,7 @@
         "runtime_dependencies": [
           {
             "name": "egaku",
-            "package_key": "egaku-0.1.0-74b2c4fb0b265cef201ed1775735961eb4efb002",
+            "package_key": "egaku-0.1.1-1513c95be90f239c8b18079c83963185f2c512fd",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5692,7 +5692,7 @@
           },
           {
             "name": "garasu",
-            "package_key": "garasu-0.1.0-bfda319bf2009bfab8c482e328d0274aae9727f5",
+            "package_key": "garasu-0.1.1-a7709af29cebfd6ac17e50e432a1403f6901fc15",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5724,7 +5724,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.66-c7ae2f6c644957bb0ea9e9fc79eb496f7c052285",
+            "package_key": "shikumi-0.1.69-43d62999fe6e3d043afdf18320531abfb76d01a5",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7602,7 +7602,7 @@
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.3-113f7763da4ec0cf1932b67fb46be8597f154696",
+            "package_key": "ishou-tokens-0.1.3-0197aeba1e9a7e17ff516272689dbca6a3ccc967",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11623,7 +11623,7 @@
           "std"
         ]
       },
-      "shidou-0.1.8-4d28b98c8dacb6cd8e5d9cf2f60c9b63c0bde8c8": {
+      "shidou-0.1.8-b0929681f6f4323177b86e350c82ec3f9f61869f": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -11661,7 +11661,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.66-c7ae2f6c644957bb0ea9e9fc79eb496f7c052285",
+            "package_key": "shikumi-0.1.69-43d62999fe6e3d043afdf18320531abfb76d01a5",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11705,7 +11705,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.66-c7ae2f6c644957bb0ea9e9fc79eb496f7c052285": {
+      "shikumi-0.1.69-43d62999fe6e3d043afdf18320531abfb76d01a5": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -14206,7 +14206,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-0.2.4-92836e3723f0ff09c3cdd317cfe33005b4ecb582": {
+      "tatara-lisp-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -14242,7 +14242,7 @@
           },
           {
             "name": "tatara_lisp_derive",
-            "package_key": "tatara-lisp-derive-0.2.4-92836e3723f0ff09c3cdd317cfe33005b4ecb582",
+            "package_key": "tatara-lisp-derive-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14266,7 +14266,7 @@
           "default"
         ]
       },
-      "tatara-lisp-derive-0.2.4-92836e3723f0ff09c3cdd317cfe33005b4ecb582": {
+      "tatara-lisp-derive-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -14304,11 +14304,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-eval-0.2.4-92836e3723f0ff09c3cdd317cfe33005b4ecb582": {
+      "tatara-lisp-eval-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6": {
         "runtime_dependencies": [
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.2.4-92836e3723f0ff09c3cdd317cfe33005b4ecb582",
+            "package_key": "tatara-lisp-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14334,7 +14334,7 @@
         "runtime_dependencies": [
           {
             "name": "engate_attach",
-            "package_key": "engate-attach-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
+            "package_key": "engate-attach-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14344,7 +14344,7 @@
           },
           {
             "name": "engate_types",
-            "package_key": "engate-types-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
+            "package_key": "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14423,7 +14423,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.3-113f7763da4ec0cf1932b67fb46be8597f154696",
+            "package_key": "ishou-tokens-0.1.3-0197aeba1e9a7e17ff516272689dbca6a3ccc967",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14477,7 +14477,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.66-c7ae2f6c644957bb0ea9e9fc79eb496f7c052285",
+            "package_key": "shikumi-0.1.69-43d62999fe6e3d043afdf18320531abfb76d01a5",
             "kind": "normal",
             "features": [
               "cli"
@@ -14545,7 +14545,7 @@
           },
           {
             "name": "engate_attach",
-            "package_key": "engate-attach-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
+            "package_key": "engate-attach-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14555,7 +14555,7 @@
           },
           {
             "name": "engate_types",
-            "package_key": "engate-types-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
+            "package_key": "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14842,7 +14842,7 @@
           },
           {
             "name": "engate_types",
-            "package_key": "engate-types-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
+            "package_key": "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16157,7 +16157,7 @@
           "tracing-serde"
         ]
       },
-      "tsuuchi-0.1.0-3bde62762b04b09118413d710b7fbd635a577fe8": {
+      "tsuuchi-0.1.1-0057a23d6187f59c1ed718731f41faf10dd15a56": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -16625,11 +16625,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01": {
+      "vigy-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": {
         "runtime_dependencies": [
           {
             "name": "vigy_eval",
-            "package_key": "vigy-eval-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01",
+            "package_key": "vigy-eval-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16639,7 +16639,7 @@
           },
           {
             "name": "vigy_mcp",
-            "package_key": "vigy-mcp-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01",
+            "package_key": "vigy-mcp-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16649,7 +16649,7 @@
           },
           {
             "name": "vigy_runtime",
-            "package_key": "vigy-runtime-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01",
+            "package_key": "vigy-runtime-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16659,7 +16659,7 @@
           },
           {
             "name": "vigy_store",
-            "package_key": "vigy-store-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01",
+            "package_key": "vigy-store-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16669,7 +16669,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01",
+            "package_key": "vigy-types-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16683,7 +16683,7 @@
           "mcp"
         ]
       },
-      "vigy-eval-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01": {
+      "vigy-eval-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -16729,7 +16729,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.2.4-92836e3723f0ff09c3cdd317cfe33005b4ecb582",
+            "package_key": "tatara-lisp-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16739,7 +16739,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.2.4-92836e3723f0ff09c3cdd317cfe33005b4ecb582",
+            "package_key": "tatara-lisp-eval-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16803,7 +16803,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01",
+            "package_key": "vigy-types-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16815,7 +16815,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-mcp-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01": {
+      "vigy-mcp-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -16880,7 +16880,7 @@
           },
           {
             "name": "vigy_runtime",
-            "package_key": "vigy-runtime-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01",
+            "package_key": "vigy-runtime-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16890,7 +16890,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01",
+            "package_key": "vigy-types-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16902,7 +16902,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-runtime-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01": {
+      "vigy-runtime-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -17000,7 +17000,7 @@
           },
           {
             "name": "vigy_eval",
-            "package_key": "vigy-eval-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01",
+            "package_key": "vigy-eval-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17010,7 +17010,7 @@
           },
           {
             "name": "vigy_store",
-            "package_key": "vigy-store-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01",
+            "package_key": "vigy-store-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17020,7 +17020,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01",
+            "package_key": "vigy-types-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17032,7 +17032,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-store-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01": {
+      "vigy-store-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -17175,7 +17175,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01",
+            "package_key": "vigy-types-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17187,7 +17187,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-types-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01": {
+      "vigy-types-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -18980,7 +18980,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.3": {
+          "mado-0.1.4": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -18994,7 +18994,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.0-afa79c28177c5dbbe7ad185fd63d6a136f12cd73",
+                "package_key": "awase-0.1.1-25880f6a1dddb6d8d589207e8afc2a5a73969ee0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -19071,7 +19071,7 @@
               },
               {
                 "name": "engate_attach",
-                "package_key": "engate-attach-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
+                "package_key": "engate-attach-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -19081,7 +19081,7 @@
               },
               {
                 "name": "engate_types",
-                "package_key": "engate-types-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
+                "package_key": "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -19091,7 +19091,7 @@
               },
               {
                 "name": "engawa",
-                "package_key": "engawa-0.1.3-772fbf0357d3bc3e90786ffb5e8a5a8b5ddb8f44",
+                "package_key": "engawa-0.1.3-14dea6c8b8a8befc677c3377bc5a74a5a9c253fa",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -19111,7 +19111,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.0-bfda319bf2009bfab8c482e328d0274aae9727f5",
+                "package_key": "garasu-0.1.1-a7709af29cebfd6ac17e50e432a1403f6901fc15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -19131,7 +19131,7 @@
               },
               {
                 "name": "hasami",
-                "package_key": "hasami-0.1.0-21147fe7ce68fe37fcbe9f33159e57c8b84a8c16",
+                "package_key": "hasami-0.1.1-6c37410cf5e1eef0f9852b57a55287c3c2bdd790",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -19163,7 +19163,7 @@
               },
               {
                 "name": "irodzuki",
-                "package_key": "irodzuki-0.1.6-9c674aca176b39a4d9ddee1b1aedb46a06c81b4d",
+                "package_key": "irodzuki-0.1.7-28a0f5ed6d038d3bf1ec43eb9ae0b482ad85e506",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -19173,7 +19173,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-113f7763da4ec0cf1932b67fb46be8597f154696",
+                "package_key": "ishou-tokens-0.1.3-0197aeba1e9a7e17ff516272689dbca6a3ccc967",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -19420,7 +19420,7 @@
               },
               {
                 "name": "shidou",
-                "package_key": "shidou-0.1.8-4d28b98c8dacb6cd8e5d9cf2f60c9b63c0bde8c8",
+                "package_key": "shidou-0.1.8-b0929681f6f4323177b86e350c82ec3f9f61869f",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -19430,7 +19430,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.66-c7ae2f6c644957bb0ea9e9fc79eb496f7c052285",
+                "package_key": "shikumi-0.1.69-43d62999fe6e3d043afdf18320531abfb76d01a5",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -19519,7 +19519,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.0-3bde62762b04b09118413d710b7fbd635a577fe8",
+                "package_key": "tsuuchi-0.1.1-0057a23d6187f59c1ed718731f41faf10dd15a56",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -19539,7 +19539,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01",
+                "package_key": "vigy-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -23149,7 +23149,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.3": {
+          "mado-0.1.4": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -23163,7 +23163,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.0-afa79c28177c5dbbe7ad185fd63d6a136f12cd73",
+                "package_key": "awase-0.1.1-25880f6a1dddb6d8d589207e8afc2a5a73969ee0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23240,7 +23240,7 @@
               },
               {
                 "name": "engate_attach",
-                "package_key": "engate-attach-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
+                "package_key": "engate-attach-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23250,7 +23250,7 @@
               },
               {
                 "name": "engate_types",
-                "package_key": "engate-types-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
+                "package_key": "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23260,7 +23260,7 @@
               },
               {
                 "name": "engawa",
-                "package_key": "engawa-0.1.3-772fbf0357d3bc3e90786ffb5e8a5a8b5ddb8f44",
+                "package_key": "engawa-0.1.3-14dea6c8b8a8befc677c3377bc5a74a5a9c253fa",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23280,7 +23280,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.0-bfda319bf2009bfab8c482e328d0274aae9727f5",
+                "package_key": "garasu-0.1.1-a7709af29cebfd6ac17e50e432a1403f6901fc15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23300,7 +23300,7 @@
               },
               {
                 "name": "hasami",
-                "package_key": "hasami-0.1.0-21147fe7ce68fe37fcbe9f33159e57c8b84a8c16",
+                "package_key": "hasami-0.1.1-6c37410cf5e1eef0f9852b57a55287c3c2bdd790",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23332,7 +23332,7 @@
               },
               {
                 "name": "irodzuki",
-                "package_key": "irodzuki-0.1.6-9c674aca176b39a4d9ddee1b1aedb46a06c81b4d",
+                "package_key": "irodzuki-0.1.7-28a0f5ed6d038d3bf1ec43eb9ae0b482ad85e506",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23342,7 +23342,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-113f7763da4ec0cf1932b67fb46be8597f154696",
+                "package_key": "ishou-tokens-0.1.3-0197aeba1e9a7e17ff516272689dbca6a3ccc967",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23589,7 +23589,7 @@
               },
               {
                 "name": "shidou",
-                "package_key": "shidou-0.1.8-4d28b98c8dacb6cd8e5d9cf2f60c9b63c0bde8c8",
+                "package_key": "shidou-0.1.8-b0929681f6f4323177b86e350c82ec3f9f61869f",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23599,7 +23599,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.66-c7ae2f6c644957bb0ea9e9fc79eb496f7c052285",
+                "package_key": "shikumi-0.1.69-43d62999fe6e3d043afdf18320531abfb76d01a5",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -23688,7 +23688,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.0-3bde62762b04b09118413d710b7fbd635a577fe8",
+                "package_key": "tsuuchi-0.1.1-0057a23d6187f59c1ed718731f41faf10dd15a56",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23708,7 +23708,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01",
+                "package_key": "vigy-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -27205,7 +27205,7 @@
               "xdp"
             ]
           },
-          "mado-0.1.3": {
+          "mado-0.1.4": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -27219,7 +27219,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.0-afa79c28177c5dbbe7ad185fd63d6a136f12cd73",
+                "package_key": "awase-0.1.1-25880f6a1dddb6d8d589207e8afc2a5a73969ee0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27296,7 +27296,7 @@
               },
               {
                 "name": "engate_attach",
-                "package_key": "engate-attach-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
+                "package_key": "engate-attach-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27306,7 +27306,7 @@
               },
               {
                 "name": "engate_types",
-                "package_key": "engate-types-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
+                "package_key": "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27316,7 +27316,7 @@
               },
               {
                 "name": "engawa",
-                "package_key": "engawa-0.1.3-772fbf0357d3bc3e90786ffb5e8a5a8b5ddb8f44",
+                "package_key": "engawa-0.1.3-14dea6c8b8a8befc677c3377bc5a74a5a9c253fa",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27336,7 +27336,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.0-bfda319bf2009bfab8c482e328d0274aae9727f5",
+                "package_key": "garasu-0.1.1-a7709af29cebfd6ac17e50e432a1403f6901fc15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27356,7 +27356,7 @@
               },
               {
                 "name": "hasami",
-                "package_key": "hasami-0.1.0-21147fe7ce68fe37fcbe9f33159e57c8b84a8c16",
+                "package_key": "hasami-0.1.1-6c37410cf5e1eef0f9852b57a55287c3c2bdd790",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27388,7 +27388,7 @@
               },
               {
                 "name": "irodzuki",
-                "package_key": "irodzuki-0.1.6-9c674aca176b39a4d9ddee1b1aedb46a06c81b4d",
+                "package_key": "irodzuki-0.1.7-28a0f5ed6d038d3bf1ec43eb9ae0b482ad85e506",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27398,7 +27398,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-113f7763da4ec0cf1932b67fb46be8597f154696",
+                "package_key": "ishou-tokens-0.1.3-0197aeba1e9a7e17ff516272689dbca6a3ccc967",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27615,7 +27615,7 @@
               },
               {
                 "name": "shidou",
-                "package_key": "shidou-0.1.8-4d28b98c8dacb6cd8e5d9cf2f60c9b63c0bde8c8",
+                "package_key": "shidou-0.1.8-b0929681f6f4323177b86e350c82ec3f9f61869f",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27625,7 +27625,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.66-c7ae2f6c644957bb0ea9e9fc79eb496f7c052285",
+                "package_key": "shikumi-0.1.69-43d62999fe6e3d043afdf18320531abfb76d01a5",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -27714,7 +27714,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.0-3bde62762b04b09118413d710b7fbd635a577fe8",
+                "package_key": "tsuuchi-0.1.1-0057a23d6187f59c1ed718731f41faf10dd15a56",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27734,7 +27734,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01",
+                "package_key": "vigy-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -30738,7 +30738,7 @@
               "xdp"
             ]
           },
-          "mado-0.1.3": {
+          "mado-0.1.4": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -30752,7 +30752,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.0-afa79c28177c5dbbe7ad185fd63d6a136f12cd73",
+                "package_key": "awase-0.1.1-25880f6a1dddb6d8d589207e8afc2a5a73969ee0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30829,7 +30829,7 @@
               },
               {
                 "name": "engate_attach",
-                "package_key": "engate-attach-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
+                "package_key": "engate-attach-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30839,7 +30839,7 @@
               },
               {
                 "name": "engate_types",
-                "package_key": "engate-types-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
+                "package_key": "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30849,7 +30849,7 @@
               },
               {
                 "name": "engawa",
-                "package_key": "engawa-0.1.3-772fbf0357d3bc3e90786ffb5e8a5a8b5ddb8f44",
+                "package_key": "engawa-0.1.3-14dea6c8b8a8befc677c3377bc5a74a5a9c253fa",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30869,7 +30869,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.0-bfda319bf2009bfab8c482e328d0274aae9727f5",
+                "package_key": "garasu-0.1.1-a7709af29cebfd6ac17e50e432a1403f6901fc15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30889,7 +30889,7 @@
               },
               {
                 "name": "hasami",
-                "package_key": "hasami-0.1.0-21147fe7ce68fe37fcbe9f33159e57c8b84a8c16",
+                "package_key": "hasami-0.1.1-6c37410cf5e1eef0f9852b57a55287c3c2bdd790",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30921,7 +30921,7 @@
               },
               {
                 "name": "irodzuki",
-                "package_key": "irodzuki-0.1.6-9c674aca176b39a4d9ddee1b1aedb46a06c81b4d",
+                "package_key": "irodzuki-0.1.7-28a0f5ed6d038d3bf1ec43eb9ae0b482ad85e506",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30931,7 +30931,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-113f7763da4ec0cf1932b67fb46be8597f154696",
+                "package_key": "ishou-tokens-0.1.3-0197aeba1e9a7e17ff516272689dbca6a3ccc967",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31148,7 +31148,7 @@
               },
               {
                 "name": "shidou",
-                "package_key": "shidou-0.1.8-4d28b98c8dacb6cd8e5d9cf2f60c9b63c0bde8c8",
+                "package_key": "shidou-0.1.8-b0929681f6f4323177b86e350c82ec3f9f61869f",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31158,7 +31158,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.66-c7ae2f6c644957bb0ea9e9fc79eb496f7c052285",
+                "package_key": "shikumi-0.1.69-43d62999fe6e3d043afdf18320531abfb76d01a5",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -31247,7 +31247,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.0-3bde62762b04b09118413d710b7fbd635a577fe8",
+                "package_key": "tsuuchi-0.1.1-0057a23d6187f59c1ed718731f41faf10dd15a56",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31267,7 +31267,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01",
+                "package_key": "vigy-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -34297,7 +34297,7 @@
               "xdp"
             ]
           },
-          "mado-0.1.3": {
+          "mado-0.1.4": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -34311,7 +34311,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.0-afa79c28177c5dbbe7ad185fd63d6a136f12cd73",
+                "package_key": "awase-0.1.1-25880f6a1dddb6d8d589207e8afc2a5a73969ee0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34388,7 +34388,7 @@
               },
               {
                 "name": "engate_attach",
-                "package_key": "engate-attach-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
+                "package_key": "engate-attach-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34398,7 +34398,7 @@
               },
               {
                 "name": "engate_types",
-                "package_key": "engate-types-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
+                "package_key": "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34408,7 +34408,7 @@
               },
               {
                 "name": "engawa",
-                "package_key": "engawa-0.1.3-772fbf0357d3bc3e90786ffb5e8a5a8b5ddb8f44",
+                "package_key": "engawa-0.1.3-14dea6c8b8a8befc677c3377bc5a74a5a9c253fa",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34428,7 +34428,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.0-bfda319bf2009bfab8c482e328d0274aae9727f5",
+                "package_key": "garasu-0.1.1-a7709af29cebfd6ac17e50e432a1403f6901fc15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34448,7 +34448,7 @@
               },
               {
                 "name": "hasami",
-                "package_key": "hasami-0.1.0-21147fe7ce68fe37fcbe9f33159e57c8b84a8c16",
+                "package_key": "hasami-0.1.1-6c37410cf5e1eef0f9852b57a55287c3c2bdd790",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34480,7 +34480,7 @@
               },
               {
                 "name": "irodzuki",
-                "package_key": "irodzuki-0.1.6-9c674aca176b39a4d9ddee1b1aedb46a06c81b4d",
+                "package_key": "irodzuki-0.1.7-28a0f5ed6d038d3bf1ec43eb9ae0b482ad85e506",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34490,7 +34490,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-113f7763da4ec0cf1932b67fb46be8597f154696",
+                "package_key": "ishou-tokens-0.1.3-0197aeba1e9a7e17ff516272689dbca6a3ccc967",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34707,7 +34707,7 @@
               },
               {
                 "name": "shidou",
-                "package_key": "shidou-0.1.8-4d28b98c8dacb6cd8e5d9cf2f60c9b63c0bde8c8",
+                "package_key": "shidou-0.1.8-b0929681f6f4323177b86e350c82ec3f9f61869f",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34717,7 +34717,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.66-c7ae2f6c644957bb0ea9e9fc79eb496f7c052285",
+                "package_key": "shikumi-0.1.69-43d62999fe6e3d043afdf18320531abfb76d01a5",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -34806,7 +34806,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.0-3bde62762b04b09118413d710b7fbd635a577fe8",
+                "package_key": "tsuuchi-0.1.1-0057a23d6187f59c1ed718731f41faf10dd15a56",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34826,7 +34826,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01",
+                "package_key": "vigy-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -37876,7 +37876,7 @@
               "xdp"
             ]
           },
-          "mado-0.1.3": {
+          "mado-0.1.4": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -37890,7 +37890,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.0-afa79c28177c5dbbe7ad185fd63d6a136f12cd73",
+                "package_key": "awase-0.1.1-25880f6a1dddb6d8d589207e8afc2a5a73969ee0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37967,7 +37967,7 @@
               },
               {
                 "name": "engate_attach",
-                "package_key": "engate-attach-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
+                "package_key": "engate-attach-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37977,7 +37977,7 @@
               },
               {
                 "name": "engate_types",
-                "package_key": "engate-types-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
+                "package_key": "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37987,7 +37987,7 @@
               },
               {
                 "name": "engawa",
-                "package_key": "engawa-0.1.3-772fbf0357d3bc3e90786ffb5e8a5a8b5ddb8f44",
+                "package_key": "engawa-0.1.3-14dea6c8b8a8befc677c3377bc5a74a5a9c253fa",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38007,7 +38007,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.0-bfda319bf2009bfab8c482e328d0274aae9727f5",
+                "package_key": "garasu-0.1.1-a7709af29cebfd6ac17e50e432a1403f6901fc15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38027,7 +38027,7 @@
               },
               {
                 "name": "hasami",
-                "package_key": "hasami-0.1.0-21147fe7ce68fe37fcbe9f33159e57c8b84a8c16",
+                "package_key": "hasami-0.1.1-6c37410cf5e1eef0f9852b57a55287c3c2bdd790",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38059,7 +38059,7 @@
               },
               {
                 "name": "irodzuki",
-                "package_key": "irodzuki-0.1.6-9c674aca176b39a4d9ddee1b1aedb46a06c81b4d",
+                "package_key": "irodzuki-0.1.7-28a0f5ed6d038d3bf1ec43eb9ae0b482ad85e506",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38069,7 +38069,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-113f7763da4ec0cf1932b67fb46be8597f154696",
+                "package_key": "ishou-tokens-0.1.3-0197aeba1e9a7e17ff516272689dbca6a3ccc967",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38286,7 +38286,7 @@
               },
               {
                 "name": "shidou",
-                "package_key": "shidou-0.1.8-4d28b98c8dacb6cd8e5d9cf2f60c9b63c0bde8c8",
+                "package_key": "shidou-0.1.8-b0929681f6f4323177b86e350c82ec3f9f61869f",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38296,7 +38296,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.66-c7ae2f6c644957bb0ea9e9fc79eb496f7c052285",
+                "package_key": "shikumi-0.1.69-43d62999fe6e3d043afdf18320531abfb76d01a5",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -38385,7 +38385,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.0-3bde62762b04b09118413d710b7fbd635a577fe8",
+                "package_key": "tsuuchi-0.1.1-0057a23d6187f59c1ed718731f41faf10dd15a56",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38405,7 +38405,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01",
+                "package_key": "vigy-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -40860,7 +40860,7 @@
     "autocfg-1.5.1": {
       "edition": "2015"
     },
-    "awase-0.1.0-afa79c28177c5dbbe7ad185fd63d6a136f12cd73": {
+    "awase-0.1.1-25880f6a1dddb6d8d589207e8afc2a5a73969ee0": {
       "edition": "2024"
     },
     "base64-0.22.1": {
@@ -41122,19 +41122,19 @@
     "dyn-clone-1.0.20": {
       "edition": "2018"
     },
-    "egaku-0.1.0-74b2c4fb0b265cef201ed1775735961eb4efb002": {
+    "egaku-0.1.1-1513c95be90f239c8b18079c83963185f2c512fd": {
       "edition": "2024"
     },
     "either-1.16.0": {
       "edition": "2021"
     },
-    "engate-attach-0.1.0-0693872767877a551c1da254b6db9629f9afd470": {
+    "engate-attach-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": {
       "edition": "2024"
     },
-    "engate-types-0.1.0-0693872767877a551c1da254b6db9629f9afd470": {
+    "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": {
       "edition": "2024"
     },
-    "engawa-0.1.3-772fbf0357d3bc3e90786ffb5e8a5a8b5ddb8f44": {
+    "engawa-0.1.3-14dea6c8b8a8befc677c3377bc5a74a5a9c253fa": {
       "edition": "2024"
     },
     "engawa-wgpu-0.1.5-9e82d16da4746b79054c97904fcdabf72a35b194": {
@@ -41245,7 +41245,7 @@
     "futures-util-0.3.32": {
       "edition": "2018"
     },
-    "garasu-0.1.0-bfda319bf2009bfab8c482e328d0274aae9727f5": {
+    "garasu-0.1.1-a7709af29cebfd6ac17e50e432a1403f6901fc15": {
       "edition": "2024"
     },
     "gen-macros-0.1.10-712c3466375ddb1d6876193f2afb0798d30efb70": {
@@ -41300,7 +41300,7 @@
     "half-2.7.1": {
       "edition": "2021"
     },
-    "hasami-0.1.0-21147fe7ce68fe37fcbe9f33159e57c8b84a8c16": {
+    "hasami-0.1.1-6c37410cf5e1eef0f9852b57a55287c3c2bdd790": {
       "edition": "2024"
     },
     "hashbrown-0.12.3": {
@@ -41405,7 +41405,7 @@
     "irodori-0.1.1": {
       "edition": "2024"
     },
-    "irodzuki-0.1.6-9c674aca176b39a4d9ddee1b1aedb46a06c81b4d": {
+    "irodzuki-0.1.7-28a0f5ed6d038d3bf1ec43eb9ae0b482ad85e506": {
       "edition": "2024"
     },
     "is-docker-0.2.0": {
@@ -41417,7 +41417,7 @@
     "is_terminal_polyfill-1.70.2": {
       "edition": "2021"
     },
-    "ishou-tokens-0.1.3-113f7763da4ec0cf1932b67fb46be8597f154696": {
+    "ishou-tokens-0.1.3-0197aeba1e9a7e17ff516272689dbca6a3ccc967": {
       "edition": "2024"
     },
     "itoa-1.0.18": {
@@ -41494,7 +41494,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.3": {
+    "mado-0.1.4": {
       "edition": "2024",
       "binaries": [
         {
@@ -42055,10 +42055,10 @@
     "shell-words-1.1.1": {
       "edition": "2015"
     },
-    "shidou-0.1.8-4d28b98c8dacb6cd8e5d9cf2f60c9b63c0bde8c8": {
+    "shidou-0.1.8-b0929681f6f4323177b86e350c82ec3f9f61869f": {
       "edition": "2024"
     },
-    "shikumi-0.1.66-c7ae2f6c644957bb0ea9e9fc79eb496f7c052285": {
+    "shikumi-0.1.69-43d62999fe6e3d043afdf18320531abfb76d01a5": {
       "edition": "2024"
     },
     "shlex-2.0.1": {
@@ -42181,14 +42181,14 @@
     "tap-1.0.1": {
       "edition": "2015"
     },
-    "tatara-lisp-0.2.4-92836e3723f0ff09c3cdd317cfe33005b4ecb582": {
+    "tatara-lisp-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6": {
       "edition": "2021"
     },
-    "tatara-lisp-derive-0.2.4-92836e3723f0ff09c3cdd317cfe33005b4ecb582": {
+    "tatara-lisp-derive-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-lisp-eval-0.2.4-92836e3723f0ff09c3cdd317cfe33005b4ecb582": {
+    "tatara-lisp-eval-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6": {
       "edition": "2021"
     },
     "tear-client-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb": {
@@ -42312,7 +42312,7 @@
     "tracing-subscriber-0.3.23": {
       "edition": "2018"
     },
-    "tsuuchi-0.1.0-3bde62762b04b09118413d710b7fbd635a577fe8": {
+    "tsuuchi-0.1.1-0057a23d6187f59c1ed718731f41faf10dd15a56": {
       "edition": "2024"
     },
     "ttf-parser-0.20.0": {
@@ -42415,22 +42415,22 @@
     "version_check-0.9.5": {
       "edition": "2015"
     },
-    "vigy-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01": {
+    "vigy-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": {
       "edition": "2021"
     },
-    "vigy-eval-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01": {
+    "vigy-eval-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": {
       "edition": "2021"
     },
-    "vigy-mcp-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01": {
+    "vigy-mcp-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": {
       "edition": "2021"
     },
-    "vigy-runtime-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01": {
+    "vigy-runtime-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": {
       "edition": "2021"
     },
-    "vigy-store-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01": {
+    "vigy-store-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": {
       "edition": "2021"
     },
-    "vigy-types-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01": {
+    "vigy-types-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": {
       "edition": "2021"
     },
     "vte-0.15.0": {
@@ -42771,19 +42771,19 @@
     }
   },
   "git_nar_sha256": {
-    "awase-0.1.0-afa79c28177c5dbbe7ad185fd63d6a136f12cd73": "sha256-xdRG+nNbOTbYbPmT7DmRL87/lkccIYhDI4FPOQif+Uc=",
-    "egaku-0.1.0-74b2c4fb0b265cef201ed1775735961eb4efb002": "sha256-4/7GXnjD2IRp/LCoG/uWBBQOEarcchU5gSIkTgv7AvE=",
-    "engate-attach-0.1.0-0693872767877a551c1da254b6db9629f9afd470": "sha256-45qeZdjwSGI+wG668Fnfv7RpcHErZThr7AYjL92N1Bg=",
-    "engate-types-0.1.0-0693872767877a551c1da254b6db9629f9afd470": "sha256-45qeZdjwSGI+wG668Fnfv7RpcHErZThr7AYjL92N1Bg=",
-    "engawa-0.1.3-772fbf0357d3bc3e90786ffb5e8a5a8b5ddb8f44": "sha256-Z/9e7dBdWUbCQW63K36IPXkLFpUYLmrSVetj8/eb82k=",
+    "awase-0.1.1-25880f6a1dddb6d8d589207e8afc2a5a73969ee0": "sha256-UvuzaneHM+C0wq3+uZ+sf6GEv5JDB1e/sJ2SuA7kJuQ=",
+    "egaku-0.1.1-1513c95be90f239c8b18079c83963185f2c512fd": "sha256-jD80EFXFOaKUl19LF42qqi/5k9qIgjJ10hXzfX592vM=",
+    "engate-attach-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": "sha256-7dqrUg3KMEKH5ac5RuK7EJRogt4H3xtv6nDrM0jpccM=",
+    "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": "sha256-7dqrUg3KMEKH5ac5RuK7EJRogt4H3xtv6nDrM0jpccM=",
+    "engawa-0.1.3-14dea6c8b8a8befc677c3377bc5a74a5a9c253fa": "sha256-pXaaVwv9kkMbxJDTKpmP1SgPwae+xAFh8ixacZQT3d0=",
     "engawa-wgpu-0.1.5-9e82d16da4746b79054c97904fcdabf72a35b194": "sha256-Hgd5Phj0buTdBX5u7izGs+lCqEyUC1c9K2sqUB8k14U=",
-    "garasu-0.1.0-bfda319bf2009bfab8c482e328d0274aae9727f5": "sha256-34gu1b8MsAl3BAG+e9fWLZIjVcBf+Cmd4IMMnfnq4xc=",
+    "garasu-0.1.1-a7709af29cebfd6ac17e50e432a1403f6901fc15": "sha256-SUoy4k4xw9+vXm3n+PKdialIhbCPKPj6l99w7kU1VSA=",
     "gen-macros-0.1.10-712c3466375ddb1d6876193f2afb0798d30efb70": "sha256-7BNW4JfFa8nTvkq9O7Thxt1P6fSgcmPU4sthBdBfMgM=",
     "gen-platform-0.1.10-712c3466375ddb1d6876193f2afb0798d30efb70": "sha256-7BNW4JfFa8nTvkq9O7Thxt1P6fSgcmPU4sthBdBfMgM=",
     "gen-types-0.1.10-712c3466375ddb1d6876193f2afb0798d30efb70": "sha256-7BNW4JfFa8nTvkq9O7Thxt1P6fSgcmPU4sthBdBfMgM=",
-    "hasami-0.1.0-21147fe7ce68fe37fcbe9f33159e57c8b84a8c16": "sha256-1rHktXLpMclWU56PWcPjpuutBMNdhHoQXlxRtp3WjZ8=",
-    "irodzuki-0.1.6-9c674aca176b39a4d9ddee1b1aedb46a06c81b4d": "sha256-a1OWNcsv2d6muYbL9khE1BSG/PunV+3a+71TE0MCNKs=",
-    "ishou-tokens-0.1.3-113f7763da4ec0cf1932b67fb46be8597f154696": "sha256-y/JKP0zTK/5qXViq3+BRP7HCKZr8z7ztyQrzfP7qw40=",
+    "hasami-0.1.1-6c37410cf5e1eef0f9852b57a55287c3c2bdd790": "sha256-7aexbDhaGg2oupQb1f82ZWIEcYBAwK7O/avB0PMKbK8=",
+    "irodzuki-0.1.7-28a0f5ed6d038d3bf1ec43eb9ae0b482ad85e506": "sha256-FLNMG+F1ZVpmjwpHq/eMys0MYjnWHr63B7vmZQWyo9w=",
+    "ishou-tokens-0.1.3-0197aeba1e9a7e17ff516272689dbca6a3ccc967": "sha256-kETqdHgzg9jFmR0SMhRT6mP1EYbHI6cqKLPbyj/rDuk=",
     "kaname-0.1.1-0570e7ec566b60444307fe5873f80f5beda8fe6c": "sha256-ue2v9p/Eq+z3hmCaL63toSyjpDY6s3H1gGBUFBOX3ek=",
     "kanchi-0.1.0-bb057535a56dcfbc0627e8e9e74498e63e9d3ff2": "sha256-GMMX6pwMRyxHqie5Rr5XyjhnGGiYahv7t8z6LwTHLJk=",
     "kanshou-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
@@ -42794,23 +42794,23 @@
     "pleme-kindbyte-derive-0.1.0-f0922edec7e5d4ab6606c3e9057c94aa69c3d62f": "sha256-y8TLCtWL46lZXpA3/s5VTbGfS4rsaxI2E4JxlA66Lgo=",
     "pleme-kindstr-derive-0.1.0-d287f915e9bb8837a443f6238ee900e81318ce89": "sha256-5XDr9kPiT0doWBOOk9yXjxdTCpRgaqWWJCpsc1f+tdw=",
     "praca-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb": "sha256-DZVbEcz32YPpjJO3T7Gw566D/6PbhJmDXXf6DLQftnk=",
-    "shidou-0.1.8-4d28b98c8dacb6cd8e5d9cf2f60c9b63c0bde8c8": "sha256-TPmQZqOkopa2MrTZKSCQ4i2qVZb0MkP4TjbvT65EydA=",
-    "shikumi-0.1.66-c7ae2f6c644957bb0ea9e9fc79eb496f7c052285": "sha256-oXCX1ThAqQ8eFBgEpXBwouUPwrBzk6w2q/cPUrLi8F0=",
-    "tatara-lisp-0.2.4-92836e3723f0ff09c3cdd317cfe33005b4ecb582": "sha256-jVEj0yG+OXNH7vg9cC2bK7f3eehlyTgAWpBBQvmjryo=",
-    "tatara-lisp-derive-0.2.4-92836e3723f0ff09c3cdd317cfe33005b4ecb582": "sha256-jVEj0yG+OXNH7vg9cC2bK7f3eehlyTgAWpBBQvmjryo=",
-    "tatara-lisp-eval-0.2.4-92836e3723f0ff09c3cdd317cfe33005b4ecb582": "sha256-jVEj0yG+OXNH7vg9cC2bK7f3eehlyTgAWpBBQvmjryo=",
+    "shidou-0.1.8-b0929681f6f4323177b86e350c82ec3f9f61869f": "sha256-LteP9mCB8rSjBdbb9r/uh5URZ5XTPDDoNxSKy5mMD8A=",
+    "shikumi-0.1.69-43d62999fe6e3d043afdf18320531abfb76d01a5": "sha256-9VEMUodDgQzFtoIJpctU35m/jsNl6F5Jx3gO4X5zIEc=",
+    "tatara-lisp-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6": "sha256-sknlm2aQVNND1NFuQ/iZw27NS7rOTUsBxKTpgMTby2g=",
+    "tatara-lisp-derive-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6": "sha256-sknlm2aQVNND1NFuQ/iZw27NS7rOTUsBxKTpgMTby2g=",
+    "tatara-lisp-eval-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6": "sha256-sknlm2aQVNND1NFuQ/iZw27NS7rOTUsBxKTpgMTby2g=",
     "tear-client-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb": "sha256-DZVbEcz32YPpjJO3T7Gw566D/6PbhJmDXXf6DLQftnk=",
     "tear-config-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb": "sha256-DZVbEcz32YPpjJO3T7Gw566D/6PbhJmDXXf6DLQftnk=",
     "tear-core-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb": "sha256-DZVbEcz32YPpjJO3T7Gw566D/6PbhJmDXXf6DLQftnk=",
     "tear-daemon-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb": "sha256-DZVbEcz32YPpjJO3T7Gw566D/6PbhJmDXXf6DLQftnk=",
     "tear-types-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb": "sha256-DZVbEcz32YPpjJO3T7Gw566D/6PbhJmDXXf6DLQftnk=",
-    "tsuuchi-0.1.0-3bde62762b04b09118413d710b7fbd635a577fe8": "sha256-VQGXGuIRhd5fAvTJyPelZ/C5/A/JNWNVyIU59+u0MMM=",
-    "vigy-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01": "sha256-HDgAq/slghpwD31XlsofQvQzB+bItsIPSDpspPJVOns=",
-    "vigy-eval-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01": "sha256-HDgAq/slghpwD31XlsofQvQzB+bItsIPSDpspPJVOns=",
-    "vigy-mcp-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01": "sha256-HDgAq/slghpwD31XlsofQvQzB+bItsIPSDpspPJVOns=",
-    "vigy-runtime-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01": "sha256-HDgAq/slghpwD31XlsofQvQzB+bItsIPSDpspPJVOns=",
-    "vigy-store-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01": "sha256-HDgAq/slghpwD31XlsofQvQzB+bItsIPSDpspPJVOns=",
-    "vigy-types-0.1.2-160396f2d9375efa8ec465cdb23adcd7fb321d01": "sha256-HDgAq/slghpwD31XlsofQvQzB+bItsIPSDpspPJVOns="
+    "tsuuchi-0.1.1-0057a23d6187f59c1ed718731f41faf10dd15a56": "sha256-5GRgKZAL52VvNcIdXUjgxEw5fAkbq4JyJehvLiwpSnk=",
+    "vigy-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": "sha256-5/ZkxqorxVqbJdxV75GxgS8YcvOz4YOxFPMybHgAFsc=",
+    "vigy-eval-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": "sha256-5/ZkxqorxVqbJdxV75GxgS8YcvOz4YOxFPMybHgAFsc=",
+    "vigy-mcp-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": "sha256-5/ZkxqorxVqbJdxV75GxgS8YcvOz4YOxFPMybHgAFsc=",
+    "vigy-runtime-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": "sha256-5/ZkxqorxVqbJdxV75GxgS8YcvOz4YOxFPMybHgAFsc=",
+    "vigy-store-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": "sha256-5/ZkxqorxVqbJdxV75GxgS8YcvOz4YOxFPMybHgAFsc=",
+    "vigy-types-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": "sha256-5/ZkxqorxVqbJdxV75GxgS8YcvOz4YOxFPMybHgAFsc="
   },
   "flake_metadata": {}
 }
