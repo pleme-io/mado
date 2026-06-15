@@ -1103,7 +1103,7 @@ checksum = "d0881ea181b1df73ff77ffaaf9c7544ecc11e82fba9b5f27b262a3c73a332555"
 [[package]]
 name = "egaku"
 version = "0.1.1"
-source = "git+https://github.com/pleme-io/egaku#1513c95be90f239c8b18079c83963185f2c512fd"
+source = "git+https://github.com/pleme-io/egaku#7ed01267c87137e8649a05209dbd5851ae0a5b16"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -2452,7 +2452,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "anyhow",
  "awase",

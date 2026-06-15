@@ -867,13 +867,13 @@ rec {
       };
       "awase" = rec {
         crateName = "awase";
-        version = "0.1.0";
+        version = "0.1.1";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/awase";
-          rev = "afa79c28177c5dbbe7ad185fd63d6a136f12cd73";
-          sha256 = "0izrkw43jkw14d1qh88w8ybgzkigj4wyr4zrdkc3cfavfgx4dm65";
+          rev = "25880f6a1dddb6d8d589207e8afc2a5a73969ee0";
+          sha256 = "1r16wh7bi4lxn2zmf1s3jazq98bzmjgvkzmdqasf0cw7fxmb7ysj";
         };
         dependencies = [
           {
@@ -3241,13 +3241,13 @@ rec {
       };
       "egaku" = rec {
         crateName = "egaku";
-        version = "0.1.0";
+        version = "0.1.1";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/egaku";
-          rev = "74b2c4fb0b265cef201ed1775735961eb4efb002";
-          sha256 = "1w82zc5lw912h4wiawnwm88hw504jvxipa5hzilq9n63g1gcdzp3";
+          rev = "1513c95be90f239c8b18079c83963185f2c512fd";
+          sha256 = "1wysgmz7vwqms9sk50l8va9zjbxama6ifjszjyaa4ff5al838gwc";
         };
         dependencies = [
           {
@@ -3297,13 +3297,13 @@ rec {
       };
       "engate-attach" = rec {
         crateName = "engate-attach";
-        version = "0.1.0";
+        version = "0.1.1";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/engate";
-          rev = "0693872767877a551c1da254b6db9629f9afd470";
-          sha256 = "066lipfjy8q6ximkhr9bf5q6kd5zvxcz1fkfq0z64j7hv1jrx6p3";
+          rev = "a6215718a11a5c5c374623ba5338266bea1f382e";
+          sha256 = "1hvix5437svhx9pippq7vs16i50hpgi4cfd7wn3l4c6a1m9apnpd";
         };
         libName = "engate_attach";
         authors = [
@@ -3342,13 +3342,13 @@ rec {
       };
       "engate-types" = rec {
         crateName = "engate-types";
-        version = "0.1.0";
+        version = "0.1.1";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/engate";
-          rev = "0693872767877a551c1da254b6db9629f9afd470";
-          sha256 = "066lipfjy8q6ximkhr9bf5q6kd5zvxcz1fkfq0z64j7hv1jrx6p3";
+          rev = "a6215718a11a5c5c374623ba5338266bea1f382e";
+          sha256 = "1hvix5437svhx9pippq7vs16i50hpgi4cfd7wn3l4c6a1m9apnpd";
         };
         libName = "engate_types";
         authors = [
@@ -3374,8 +3374,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/engawa";
-          rev = "772fbf0357d3bc3e90786ffb5e8a5a8b5ddb8f44";
-          sha256 = "0sgkkgvz6qzbap96lbhqjlb0ny9xi1z2pdvf8714cnaxs3nmxzv7";
+          rev = "14dea6c8b8a8befc677c3377bc5a74a5a9c253fa";
+          sha256 = "1pfx2fa72nicy9hh3i5ylz0hya6miycjmlwhqhdl74px1dbrlxm5";
         };
         authors = [
           "pleme-io"
@@ -4426,13 +4426,13 @@ rec {
       };
       "garasu" = rec {
         crateName = "garasu";
-        version = "0.1.0";
+        version = "0.1.1";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/garasu";
-          rev = "bfda319bf2009bfab8c482e328d0274aae9727f5";
-          sha256 = "05z3xbwrs343w2fjky2zq1aj74idsvbppgh10ivhkc0cpzajx26z";
+          rev = "a7709af29cebfd6ac17e50e432a1403f6901fc15";
+          sha256 = "082m6m2yww6zjzxgha4gn22liac9kprgirvdbspxzhri9vi34jj9";
         };
         dependencies = [
           {
@@ -4864,15 +4864,15 @@ rec {
           "wasm_js" = [ "dep:wasm-bindgen" "dep:js-sys" ];
         };
       };
-      "git+https://github.com/pleme-io/shikumi#0.1.66" = rec {
+      "git+https://github.com/pleme-io/shikumi#0.1.69" = rec {
         crateName = "shikumi";
-        version = "0.1.66";
+        version = "0.1.69";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
-          rev = "c7ae2f6c644957bb0ea9e9fc79eb496f7c052285";
-          sha256 = "0pghwar543zpmcvar4vkn310zrd2f1qaa10q2hg0zaa073arfw51";
+          rev = "43d62999fe6e3d043afdf18320531abfb76d01a5";
+          sha256 = "0ir0fdzf23kqqx4mxs35qf7bz6fzak5sa2c2nv2hr0a3hx90qlgm";
         };
         dependencies = [
           {
@@ -4951,15 +4951,15 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" ];
       };
-      "git+https://github.com/pleme-io/shikumi?branch=main#0.1.66" = rec {
+      "git+https://github.com/pleme-io/shikumi?branch=main#0.1.69" = rec {
         crateName = "shikumi";
-        version = "0.1.66";
+        version = "0.1.69";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
-          rev = "c7ae2f6c644957bb0ea9e9fc79eb496f7c052285";
-          sha256 = "0pghwar543zpmcvar4vkn310zrd2f1qaa10q2hg0zaa073arfw51";
+          rev = "43d62999fe6e3d043afdf18320531abfb76d01a5";
+          sha256 = "0ir0fdzf23kqqx4mxs35qf7bz6fzak5sa2c2nv2hr0a3hx90qlgm";
         };
         dependencies = [
           {
@@ -5369,13 +5369,13 @@ rec {
       };
       "hasami" = rec {
         crateName = "hasami";
-        version = "0.1.0";
+        version = "0.1.1";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/hasami";
-          rev = "21147fe7ce68fe37fcbe9f33159e57c8b84a8c16";
-          sha256 = "17wdssfvclawbq87m12xqc2avsx6wg1mk3wyadbcjcg9fasy9cfn";
+          rev = "6c37410cf5e1eef0f9852b57a55287c3c2bdd790";
+          sha256 = "1bvc1brx1hdbzp7axh20h1qh8qk56vzxa6wlpal0s6js71nb39zd";
         };
         dependencies = [
           {
@@ -6390,13 +6390,13 @@ rec {
       };
       "irodzuki" = rec {
         crateName = "irodzuki";
-        version = "0.1.6";
+        version = "0.1.7";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/irodzuki";
-          rev = "9c674aca176b39a4d9ddee1b1aedb46a06c81b4d";
-          sha256 = "1arl091i6lxxzgdfsmx7zgy8c56l8i4gdjw6p6kdxn9grcsrclvb";
+          rev = "28a0f5ed6d038d3bf1ec43eb9ae0b482ad85e506";
+          sha256 = "1p53n82nbrmv0yvvw7nn75i0rkfaikvsniqaixk5lrbmw4dlrcql";
         };
         dependencies = [
           {
@@ -6486,8 +6486,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/ishou";
-          rev = "113f7763da4ec0cf1932b67fb46be8597f154696";
-          sha256 = "13f3xbz7rwqar7nvrkzwk8lw5c9za7hdzajqbmmgwayk9hzlmwnb";
+          rev = "0197aeba1e9a7e17ff516272689dbca6a3ccc967";
+          sha256 = "1s8fxczwmnxk50maf8y7hq8zaqzaaca344hxk72xi0rkg1sfli4h";
         };
         libName = "ishou_tokens";
         dependencies = [
@@ -7389,7 +7389,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.4";
+        version = "0.1.5";
         edition = "2024";
         crateBin = [
           {
@@ -7457,7 +7457,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "git+https://github.com/pleme-io/shikumi?branch=main#0.1.66";
+            packageId = "git+https://github.com/pleme-io/shikumi?branch=main#0.1.69";
             features = [ "cli" ];
           }
           {
@@ -7703,7 +7703,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "git+https://github.com/pleme-io/shikumi?branch=main#0.1.66";
+            packageId = "git+https://github.com/pleme-io/shikumi?branch=main#0.1.69";
           }
           {
             name = "pollster";
@@ -16924,8 +16924,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shidou";
-          rev = "4d28b98c8dacb6cd8e5d9cf2f60c9b63c0bde8c8";
-          sha256 = "1l698jp4zvrn9vw46cpljraslbg2j0h2kndl6av9d8m4ldk91yac";
+          rev = "b0929681f6f4323177b86e350c82ec3f9f61869f";
+          sha256 = "1h0gijcwp2hl6zl30g6kjmki35c7xszzdnyn0niv9wl1c3v8zmrf";
         };
         dependencies = [
           {
@@ -16939,7 +16939,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "git+https://github.com/pleme-io/shikumi#0.1.66";
+            packageId = "git+https://github.com/pleme-io/shikumi#0.1.69";
           }
           {
             name = "serde";
@@ -18807,8 +18807,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tatara-lisp";
-          rev = "92836e3723f0ff09c3cdd317cfe33005b4ecb582";
-          sha256 = "0amglgwl4hchb803ijb5x1wzgdrbkcnp0ggqxr3p6fdy479j6lcd";
+          rev = "e9a60a6f21b1c28025399ad18789311b2a69e9c6";
+          sha256 = "0s6bvg281sd4qh0lnkffp95wsvn3k7w46vnisi1x6m4hcsdyajdj";
         };
         libName = "tatara_lisp";
         authors = [
@@ -18848,8 +18848,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tatara-lisp";
-          rev = "92836e3723f0ff09c3cdd317cfe33005b4ecb582";
-          sha256 = "0amglgwl4hchb803ijb5x1wzgdrbkcnp0ggqxr3p6fdy479j6lcd";
+          rev = "e9a60a6f21b1c28025399ad18789311b2a69e9c6";
+          sha256 = "0s6bvg281sd4qh0lnkffp95wsvn3k7w46vnisi1x6m4hcsdyajdj";
         };
         procMacro = true;
         libName = "tatara_lisp_derive";
@@ -18880,8 +18880,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tatara-lisp";
-          rev = "92836e3723f0ff09c3cdd317cfe33005b4ecb582";
-          sha256 = "0amglgwl4hchb803ijb5x1wzgdrbkcnp0ggqxr3p6fdy479j6lcd";
+          rev = "e9a60a6f21b1c28025399ad18789311b2a69e9c6";
+          sha256 = "0s6bvg281sd4qh0lnkffp95wsvn3k7w46vnisi1x6m4hcsdyajdj";
         };
         libName = "tatara_lisp_eval";
         authors = [
@@ -18971,7 +18971,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "git+https://github.com/pleme-io/shikumi?branch=main#0.1.66";
+            packageId = "git+https://github.com/pleme-io/shikumi?branch=main#0.1.69";
             features = [ "cli" ];
           }
           {
@@ -20426,13 +20426,13 @@ rec {
       };
       "tsuuchi" = rec {
         crateName = "tsuuchi";
-        version = "0.1.0";
+        version = "0.1.1";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tsuuchi";
-          rev = "3bde62762b04b09118413d710b7fbd635a577fe8";
-          sha256 = "1hrhnkmzffc5r1an6df91zybkw37lpvwijgl09gxx18iw8d9f0am";
+          rev = "0057a23d6187f59c1ed718731f41faf10dd15a56";
+          sha256 = "0yaa54n2wvz84mr85aqv15y3jk64w145s7f26mpnbrqbj0ln0r74";
         };
         dependencies = [
           {
@@ -21052,13 +21052,13 @@ rec {
       };
       "vigy" = rec {
         crateName = "vigy";
-        version = "0.1.2";
+        version = "0.1.4";
         edition = "2021";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/vigy";
-          rev = "160396f2d9375efa8ec465cdb23adcd7fb321d01";
-          sha256 = "0yrsapra8v1s907w5dn8wq3k7x223z59cmvx1xq1m0i5zfmh0f0w";
+          rev = "c491b9edcc25eca9dfc08fc3d654103232971ee0";
+          sha256 = "1iqn01w6qcpk2jqq7qdkydr1hbw1n68yymfw4ndmmi9bmb369xp7";
         };
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -21097,13 +21097,13 @@ rec {
       };
       "vigy-eval" = rec {
         crateName = "vigy-eval";
-        version = "0.1.2";
+        version = "0.1.4";
         edition = "2021";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/vigy";
-          rev = "160396f2d9375efa8ec465cdb23adcd7fb321d01";
-          sha256 = "0yrsapra8v1s907w5dn8wq3k7x223z59cmvx1xq1m0i5zfmh0f0w";
+          rev = "c491b9edcc25eca9dfc08fc3d654103232971ee0";
+          sha256 = "1iqn01w6qcpk2jqq7qdkydr1hbw1n68yymfw4ndmmi9bmb369xp7";
         };
         libName = "vigy_eval";
         authors = [
@@ -21162,13 +21162,13 @@ rec {
       };
       "vigy-mcp" = rec {
         crateName = "vigy-mcp";
-        version = "0.1.2";
+        version = "0.1.4";
         edition = "2021";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/vigy";
-          rev = "160396f2d9375efa8ec465cdb23adcd7fb321d01";
-          sha256 = "0yrsapra8v1s907w5dn8wq3k7x223z59cmvx1xq1m0i5zfmh0f0w";
+          rev = "c491b9edcc25eca9dfc08fc3d654103232971ee0";
+          sha256 = "1iqn01w6qcpk2jqq7qdkydr1hbw1n68yymfw4ndmmi9bmb369xp7";
         };
         libName = "vigy_mcp";
         authors = [
@@ -21210,13 +21210,13 @@ rec {
       };
       "vigy-runtime" = rec {
         crateName = "vigy-runtime";
-        version = "0.1.2";
+        version = "0.1.4";
         edition = "2021";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/vigy";
-          rev = "160396f2d9375efa8ec465cdb23adcd7fb321d01";
-          sha256 = "0yrsapra8v1s907w5dn8wq3k7x223z59cmvx1xq1m0i5zfmh0f0w";
+          rev = "c491b9edcc25eca9dfc08fc3d654103232971ee0";
+          sha256 = "1iqn01w6qcpk2jqq7qdkydr1hbw1n68yymfw4ndmmi9bmb369xp7";
         };
         libName = "vigy_runtime";
         authors = [
@@ -21274,13 +21274,13 @@ rec {
       };
       "vigy-store" = rec {
         crateName = "vigy-store";
-        version = "0.1.2";
+        version = "0.1.4";
         edition = "2021";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/vigy";
-          rev = "160396f2d9375efa8ec465cdb23adcd7fb321d01";
-          sha256 = "0yrsapra8v1s907w5dn8wq3k7x223z59cmvx1xq1m0i5zfmh0f0w";
+          rev = "c491b9edcc25eca9dfc08fc3d654103232971ee0";
+          sha256 = "1iqn01w6qcpk2jqq7qdkydr1hbw1n68yymfw4ndmmi9bmb369xp7";
         };
         libName = "vigy_store";
         authors = [
@@ -21350,13 +21350,13 @@ rec {
       };
       "vigy-types" = rec {
         crateName = "vigy-types";
-        version = "0.1.2";
+        version = "0.1.4";
         edition = "2021";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/vigy";
-          rev = "160396f2d9375efa8ec465cdb23adcd7fb321d01";
-          sha256 = "0yrsapra8v1s907w5dn8wq3k7x223z59cmvx1xq1m0i5zfmh0f0w";
+          rev = "c491b9edcc25eca9dfc08fc3d654103232971ee0";
+          sha256 = "1iqn01w6qcpk2jqq7qdkydr1hbw1n68yymfw4ndmmi9bmb369xp7";
         };
         libName = "vigy_types";
         authors = [
