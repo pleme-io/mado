@@ -1,14 +1,5 @@
 name: auto-release
 
-# Three-line consumer shim. Every push to main runs the pleme-io
-# substrate binary-only auto-release pipeline (bump → commit → tag →
-# push). The tag push (made with BOT_PAT) triggers release-binaries.yml,
-# which builds the cross-platform binaries and attaches them to the
-# GitHub Release. mado depends on ~25 pleme-io crates via git deps, so
-# crates.io publish is impossible today — this is the binary leg only.
-# The reusable workflow lives at
-# pleme-io/substrate/.github/workflows/rust-binary-auto-release.yml.
-
 on:
   push:
     branches: [main]
@@ -21,7 +12,7 @@ on:
 
 jobs:
   release:
-    uses: pleme-io/substrate/.github/workflows/rust-binary-auto-release.yml@main
+    uses: pleme-io/substrate/.github/workflows/cargo-auto-release.yml@main
     with:
       bump-type: ${{ inputs.bump-type || 'patch' }}
     secrets: inherit
