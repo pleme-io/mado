@@ -1064,6 +1064,33 @@ pub struct BehaviorConfig {
     /// full-screen TUIs redraw themselves on SIGWINCH.
     #[serde(default = "default_true")]
     pub reflow_on_resize: bool,
+    /// Momentum scrolling: a wheel/two-finger flick injects velocity
+    /// that DECELERATES naturally to a stop, instead of a 1:1 instant
+    /// jump — a weighty, gravity-like feel. `false` restores the
+    /// direct line-for-line scroll (the behavior-preserving opt-out).
+    #[serde(default = "default_true")]
+    pub scroll_momentum: bool,
+    /// Exponential friction (per second) that bleeds off scroll
+    /// velocity. The glide's velocity halves every `ln2/friction ≈
+    /// 0.23s` at the tuned default — a flick visibly coasts for ~0.7s
+    /// then eases to a crisp stop: not an instant jump, not a
+    /// sluggish-forever crawl. Larger = stops sooner; smaller = glides
+    /// longer.
+    #[serde(default = "default_scroll_friction")]
+    pub scroll_friction: f32,
+    /// Velocity cap in lines/sec. Bounds how fast even a frantic
+    /// repeated flick can scroll, so momentum can't launch to the
+    /// scrollback top in a single frame. ~120 lines/sec ≈ two screens
+    /// per second at peak — fast, but always trackable by the eye.
+    #[serde(default = "default_scroll_max_velocity")]
+    pub scroll_max_velocity: f32,
+    /// Selection auto-scroll: while dragging a text selection, if the
+    /// pointer goes above the top edge or below the bottom edge the
+    /// viewport scrolls in that direction and the highlight extends to
+    /// the newly revealed lines (so a drag can select more than one
+    /// screen). `false` freezes selection at the viewport edges.
+    #[serde(default = "default_true")]
+    pub selection_autoscroll: bool,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
@@ -1674,6 +1701,10 @@ impl MadoConfig {
                 mouse_reporting: false, // bare = no mouse events to apps
                 mouse_shift_capture: MouseShiftCapture::False,
                 reflow_on_resize: false, // bare = legacy truncate on resize
+                scroll_momentum: false,  // bare = direct 1:1 scroll, no inertia
+                scroll_friction: default_scroll_friction(),
+                scroll_max_velocity: default_scroll_max_velocity(),
+                selection_autoscroll: false, // bare = selection frozen at edges
             },
             // ── Theme ────────────────────────────────────────────
             // Empty = no theme overlay; appearance.background +
@@ -2112,6 +2143,10 @@ impl Default for BehaviorConfig {
             mouse_reporting: true,
             mouse_shift_capture: MouseShiftCapture::default(),
             reflow_on_resize: true,
+            scroll_momentum: true,
+            scroll_friction: default_scroll_friction(),
+            scroll_max_velocity: default_scroll_max_velocity(),
+            selection_autoscroll: true,
         }
     }
 }
@@ -2228,6 +2263,19 @@ fn default_mouse_hide() -> bool {
 }
 fn default_mouse_scroll_mult() -> u32 {
     2
+}
+fn default_scroll_friction() -> f32 {
+    // Tuned for a weighty-but-responsive glide. With exponential decay
+    // the velocity halves every ln2/3 ≈ 0.23s; a flick coasts for
+    // ~0.7s (≈3 half-lives down to the stop epsilon) and then eases to
+    // a crisp halt — gravity-like, not an instant jump, not a crawl.
+    3.0
+}
+fn default_scroll_max_velocity() -> f32 {
+    // Lines/sec ceiling so a frantic repeated flick can't launch to the
+    // scrollback top in one frame. ~120 lines/sec ≈ two 60-row screens
+    // per second at peak — fast yet always eye-trackable.
+    120.0
 }
 fn default_shell_integration_enabled() -> bool {
     true

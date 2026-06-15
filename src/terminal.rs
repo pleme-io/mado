@@ -2941,11 +2941,24 @@ impl Terminal {
 
     pub fn scroll_up(&mut self, lines: usize) {
         let max = self.grid().scrollback_len();
-        self.scroll_offset = (self.scroll_offset + lines).min(max);
+        let next = (self.scroll_offset + lines).min(max);
+        if next != self.scroll_offset {
+            self.scroll_offset = next;
+            // A viewport-offset change is a frame change: bump seqno so
+            // the renderer's damage gate never treats a scroll as idle
+            // (momentum ticks the offset every frame — the would-skip
+            // counter must stay honest, and any future true-skip path
+            // must repaint the scrolled viewport).
+            self.dirty();
+        }
     }
 
     pub fn scroll_down(&mut self, lines: usize) {
-        self.scroll_offset = self.scroll_offset.saturating_sub(lines);
+        let next = self.scroll_offset.saturating_sub(lines);
+        if next != self.scroll_offset {
+            self.scroll_offset = next;
+            self.dirty();
+        }
     }
 
     /// Take any pending response bytes (for DSR, DA, etc.).

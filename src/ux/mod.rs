@@ -24,6 +24,7 @@ pub mod font_zoom;
 pub mod modes;
 pub mod mouse_report;
 pub mod outcome;
+pub mod scroll_kinetics;
 pub mod side_effects;
 pub mod sinks;
 
@@ -35,5 +36,6 @@ pub use config_apply::{ConfigHotReload, ConfigReloadSource};
 pub use engine::{ActionOutcome, InputEngine, InputEngineParams, SharedUxState};
 pub use font_zoom::FontZoomTarget;
 pub use outcome::EventOutcome;
+pub use scroll_kinetics::ScrollKinetics;
 pub use side_effects::{apply_side_effects, TerminalSideEffects};
 pub use sinks::{PtySink, ResizeSink, ResponseWriter};

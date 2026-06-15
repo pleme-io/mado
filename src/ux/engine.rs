@@ -38,7 +38,7 @@ use crate::ux::modes::{
     Pointer, PointerEffect, PointerEvent, PressPlan, PressRoute, SearchNav,
 };
 use crate::ux::mouse_report::{MouseMods, MouseReport, MouseReportButton, MouseReportKind};
-use crate::ux::{EventOutcome, FontZoomTarget, PtySink, ResizeSink, UxBehavior};
+use crate::ux::{EventOutcome, FontZoomTarget, PtySink, ResizeSink, ScrollKinetics, UxBehavior};
 
 /// The shared overlay/selection state the renderer highlights from
 /// and the engine mutates. One value, three Arcs — constructed
@@ -170,6 +170,18 @@ pub struct InputEngine {
     /// stale; the per-tick reconciler re-runs the query when the
     /// generation moves (M2 review finding 2026-06-12).
     search_grid_gen: Option<u64>,
+    /// Momentum-scroll kinetic state — a wheel flick injects velocity
+    /// here (`on_mouse_scroll`), selection auto-scroll drives a
+    /// sustained velocity here (`on_redraw_tick`), and the per-frame
+    /// tick integrates it into `scroll_up`/`scroll_down` line deltas.
+    /// A typed sub-state advanced by a pure function (the mado FSM
+    /// idiom), never a free bool-flag mode.
+    scroll_kinetics: ScrollKinetics,
+    /// Wall-clock of the previous `on_redraw_tick`, for the kinetics
+    /// `dt`. `None` until the first tick → first dt is treated as 0
+    /// (a no-op kinetics frame), which keeps the L1/L2 determinism
+    /// ladders byte-stable.
+    last_scroll_tick: Option<Instant>,
 }
 
 impl InputEngine {
@@ -210,6 +222,8 @@ impl InputEngine {
             last_mouse_pos: (0.0, 0.0),
             grid_sync_sig: None,
             search_grid_gen: None,
+            scroll_kinetics: ScrollKinetics::at_rest(),
+            last_scroll_tick: None,
         }
     }
 
@@ -221,6 +235,20 @@ impl InputEngine {
     /// unbounded-scrollback configs (~5k rows × 200 cols ≈ 1M cells,
     /// well under a frame at memchr speeds).
     const SEARCH_SCROLLBACK_CAP: usize = 5000;
+
+    /// Wheel-impulse gain: lines/sec of velocity injected per scrolled
+    /// line. One wheel notch (`mouse_scroll_multiplier` lines) becomes
+    /// a short glide; a fast repeated flick accumulates toward
+    /// `scroll_max_velocity`. Tuned so a single notch feels like a
+    /// brief weighted nudge, not a launch.
+    const IMPULSE_GAIN: f32 = 22.0;
+
+    /// Selection auto-scroll velocity per overshoot line (lines/sec),
+    /// and the overshoot cap. Drag one line past the edge ⇒ a gentle
+    /// crawl; drag far past ⇒ up to `AUTOSCROLL_MAX_LINES` overshoot
+    /// worth of speed, so the further you pull the faster it reveals.
+    const AUTOSCROLL_VELOCITY_PER_LINE: f32 = 18.0;
+    const AUTOSCROLL_MAX_OVERSHOOT: f32 = 6.0;
 
     /// Search row source: (rows, cols, absolute index of rows[0]).
     fn search_rows(&self) -> (Vec<Vec<Cell>>, usize, usize) {
@@ -1229,7 +1257,25 @@ impl InputEngine {
             return EventOutcome::consumed();
         }
 
-        if dy > 0.0 {
+        // Viewport scrollback. With momentum on, the wheel injects
+        // velocity into the typed `ScrollKinetics` sub-state — a flick
+        // builds up velocity (same-direction impulses accumulate) and
+        // `on_redraw_tick` integrates it into a weighty, decelerating
+        // glide. With momentum off, scroll line-for-line as before
+        // (the behavior-preserving opt-out). The mouse-tracking and
+        // alternate-screen early returns above are byte-identical
+        // either way — only this final branch changes.
+        if self.behavior.scroll_momentum {
+            drop(term);
+            // Impulse magnitude = the same line count a direct scroll
+            // would move, scaled into a lines/sec velocity. The gain
+            // turns one wheel notch into a brief glide; repeated
+            // notches accumulate (capped at scroll_max_velocity).
+            let impulse = lines as f32 * Self::IMPULSE_GAIN;
+            let signed = if dy > 0.0 { impulse } else { -impulse };
+            self.scroll_kinetics
+                .add_impulse(signed, self.behavior.scroll_max_velocity);
+        } else if dy > 0.0 {
             term.scroll_up(lines);
         } else {
             term.scroll_down(lines);
@@ -1306,6 +1352,143 @@ impl InputEngine {
         // the same tick).
         self.reconcile_search();
         self.reconcile_selection();
+        // Momentum + selection auto-scroll: advance the kinetic
+        // sub-state and apply the resulting viewport delta. Runs AFTER
+        // selection reconcile so a dangled drag is already cleared. The
+        // wall-clock → dt step lives here so the driver itself is pure
+        // in `dt` (deterministic + unit-testable).
+        let selecting = matches!(self.pointer, Pointer::Selecting { .. });
+        if !self.scroll_kinetics.is_active() && !selecting {
+            // Fast path: a still kinetics with no live drag means no
+            // momentum and no auto-scroll. Skip the wall-clock read and
+            // reset the marker so the FIRST frame after the next impulse
+            // sees a fresh (≈0) dt — keeping that first kinetics frame a
+            // no-op (the L1/L2 determinism contract).
+            self.last_scroll_tick = None;
+            return;
+        }
+        let now = Instant::now();
+        let dt = self
+            .last_scroll_tick
+            .map_or(0.0, |prev| now.duration_since(prev).as_secs_f32());
+        self.last_scroll_tick = Some(now);
+        self.tick_scroll_kinetics(dt, renderer);
+    }
+
+    /// Per-frame momentum + selection auto-scroll driver. Computes the
+    /// real frame `dt`, lets an active selection drag past a viewport
+    /// edge drive a sustained velocity, advances the kinetics, applies
+    /// the whole-line delta through `scroll_up`/`scroll_down` with wall
+    /// clamping, and re-extends the highlight to the revealed edge.
+    ///
+    /// `dt == 0.0` (the very first tick) is a strict no-op inside
+    /// `ScrollKinetics::tick`, keeping the L1/L2 determinism ladders
+    /// byte-stable when the engine is driven headless.
+    fn tick_scroll_kinetics(&mut self, dt: f32, metrics: &dyn FontZoomTarget) {
+        let selecting = matches!(self.pointer, Pointer::Selecting { .. });
+
+        // ── Selection auto-scroll: drive a sustained velocity from the
+        // overshoot, OR cancel the sustained drive when the pointer
+        // re-enters the viewport. Char/word/line drags all qualify —
+        // any live `Selecting` state.
+        if self.behavior.selection_autoscroll && selecting {
+            // RAW pointer row (NOT mouse_cell's clamped row — we need
+            // to SEE the past-edge overshoot). Pixel → row via the same
+            // physical-padding math the renderer draws with.
+            let ch = metrics.cell_height();
+            let pad_phys = self.padding * metrics.scale_factor();
+            let raw_row = (self.last_mouse_pos.1 as f32 - pad_phys) / ch;
+            let rows = self.terminal.read().rows() as f32;
+
+            if raw_row < 0.0 {
+                // Above the top edge → scroll UP into history.
+                let over = (-raw_row).min(Self::AUTOSCROLL_MAX_OVERSHOOT);
+                self.scroll_kinetics
+                    .set_sustained(over * Self::AUTOSCROLL_VELOCITY_PER_LINE);
+            } else if raw_row >= rows {
+                // Below the bottom edge → scroll DOWN toward the tail.
+                let over = (raw_row - (rows - 1.0)).min(Self::AUTOSCROLL_MAX_OVERSHOOT);
+                self.scroll_kinetics
+                    .set_sustained(-over * Self::AUTOSCROLL_VELOCITY_PER_LINE);
+            } else if self.scroll_kinetics.is_sustained() {
+                // Pointer back inside → end the auto-scroll drive.
+                self.scroll_kinetics.stop();
+            }
+        } else if self.scroll_kinetics.is_sustained() {
+            // Drag released (or autoscroll disabled) while sustained →
+            // stop; a sustained drive must not outlive its drag.
+            self.scroll_kinetics.stop();
+        }
+
+        // ── Advance the kinetics and apply the line delta.
+        let delta = self.scroll_kinetics.tick(dt, self.behavior.scroll_friction);
+        if delta != 0 {
+            let mut term = self.terminal.write();
+            // Wall clamp: at the scrollback top (offset == total) or the
+            // live bottom (offset == 0) zero the velocity so momentum
+            // doesn't grind against the bound for the rest of its decay.
+            let offset = term.scroll_offset();
+            let total = term.scrollback_total();
+            if delta > 0 {
+                if offset >= total {
+                    self.scroll_kinetics.stop();
+                } else {
+                    term.scroll_up(delta as usize);
+                    if term.scroll_offset() >= term.scrollback_total() {
+                        self.scroll_kinetics.stop();
+                    }
+                }
+            } else if offset == 0 {
+                self.scroll_kinetics.stop();
+            } else {
+                term.scroll_down(delta.unsigned_abs() as usize);
+                if term.scroll_offset() == 0 {
+                    self.scroll_kinetics.stop();
+                }
+            }
+            drop(term);
+
+            // ── Re-extend the selection to the revealed edge so the
+            // highlight grows with the scroll. Resolve the clamped edge
+            // cell (top row for an up-scroll, bottom row for a down-
+            // scroll) and route it through the SAME drag-update path a
+            // motion event would.
+            if self.behavior.selection_autoscroll {
+                if let Pointer::Selecting { mode, origin, .. } = self.pointer {
+                    let (rows, cols) = {
+                        let term = self.terminal.read();
+                        (term.rows(), term.cols())
+                    };
+                    if rows > 0 && cols > 0 {
+                        // Pointer is past an edge → clamp the column to
+                        // the raw pointer column, the row to the edge.
+                        let cw = metrics.cell_width();
+                        let pad_phys = self.padding * metrics.scale_factor();
+                        let raw_col = ((self.last_mouse_pos.0 as f32 - pad_phys) / cw).max(0.0);
+                        let col = (raw_col as usize).min(cols - 1);
+                        let edge_row = if delta > 0 { 0 } else { rows - 1 };
+                        self.update_drag(mode, origin, edge_row, col);
+                    }
+                }
+            }
+        }
+    }
+
+    /// Test-only deterministic frame driver: ticks the scroll kinetics
+    /// with an EXPLICIT `dt` (bypassing the wall clock) so momentum +
+    /// auto-scroll behavior is asserted frame-exactly. Production drives
+    /// `tick_scroll_kinetics` from the real per-frame `dt` in
+    /// `on_redraw_tick`.
+    #[cfg(test)]
+    fn tick_scroll_dt(&mut self, dt: f32, metrics: &dyn FontZoomTarget) {
+        self.tick_scroll_kinetics(dt, metrics);
+    }
+
+    /// Test-only read of the kinetic velocity (lines/sec). `+` up into
+    /// history, `-` down toward the tail.
+    #[cfg(test)]
+    fn scroll_velocity(&self) -> f32 {
+        self.scroll_kinetics.velocity()
     }
 
     /// Selection ⇄ content reconciler: anchors whose content is gone
@@ -1594,6 +1777,14 @@ mod tests {
                         mouse_scroll_multiplier: 1,
                         mouse_shift_capture: false,
                         word_chars: String::new(),
+                        // Momentum + auto-scroll default OFF in the
+                        // harness so the existing wheel/selection tests
+                        // exercise the direct path; momentum tests flip
+                        // these on explicitly via `harness.behavior`.
+                        scroll_momentum: false,
+                        scroll_friction: 3.0,
+                        scroll_max_velocity: 120.0,
+                        selection_autoscroll: false,
                     },
                     cursor_keys_mode,
                     default_font_size: 14.0,
@@ -1646,6 +1837,43 @@ mod tests {
         fn moved(&mut self, col: usize, row: usize) {
             let (x, y) = self.cell_px(col, row);
             self.engine.on_mouse_moved(x, y, &self.renderer);
+        }
+
+        /// Move the pointer to RAW physical pixels (may be off-grid /
+        /// negative) — drives the selection-autoscroll edge detection,
+        /// which reads `last_mouse_pos` directly, not the clamped cell.
+        fn moved_px(&mut self, x: f64, y: f64) {
+            self.engine.on_mouse_moved(x, y, &self.renderer);
+        }
+
+        /// One wheel notch (`dy > 0` = up into history).
+        fn scroll(&mut self, dy: f64) {
+            self.engine.on_mouse_scroll(dy, &self.renderer);
+        }
+
+        /// One per-frame redraw tick — advances the scroll kinetics.
+        fn tick(&mut self) {
+            self.engine.on_redraw_tick(&self.renderer);
+        }
+
+        /// Deterministic frame tick with an EXPLICIT `dt` (seconds) —
+        /// advances the scroll kinetics frame-exactly, bypassing the
+        /// wall clock so momentum/auto-scroll assertions are stable.
+        fn tick_dt(&mut self, dt: f32) {
+            self.engine.tick_scroll_dt(dt, &self.renderer);
+        }
+
+        fn scroll_offset(&self) -> usize {
+            self.terminal.read().scroll_offset()
+        }
+
+        fn velocity(&self) -> f32 {
+            self.engine.scroll_velocity()
+        }
+
+        /// Pixel y for the top of viewport row `row` (no clamp).
+        fn row_top_px(&self, row: f64) -> f64 {
+            row * self.renderer.cell_height() as f64
         }
 
         fn sent_bytes(&self) -> Vec<Vec<u8>> {
@@ -2647,6 +2875,203 @@ mod tests {
             "{} active-overlay violations:\n  - {}",
             failures.len(),
             failures.join("\n  - ")
+        );
+    }
+
+    // ── Momentum scrolling ───────────────────────────────────────
+
+    /// A wheel notch with momentum ON does NOT jump the viewport
+    /// instantly — it injects velocity into the kinetic sub-state,
+    /// which the per-frame tick then integrates into a decelerating
+    /// glide. The behavior-preserving opt-out (momentum OFF) keeps the
+    /// direct line-for-line scroll.
+    #[test]
+    fn wheel_injects_velocity_with_momentum_on() {
+        let mut h = Harness::new(SinkKind::Closure);
+        for _ in 0..200 {
+            h.feed(b"line\r\n");
+        }
+        h.engine.behavior.scroll_momentum = true;
+        assert_eq!(h.scroll_offset(), 0, "starts at the live tail");
+
+        // Wheel up: velocity injected, NO immediate offset change.
+        h.scroll(1.0);
+        assert!(h.velocity() > 0.0, "up-wheel injects positive velocity");
+        assert_eq!(
+            h.scroll_offset(),
+            0,
+            "momentum defers the scroll to the per-frame tick"
+        );
+
+        // Drive frames at 60Hz — the glide moves the viewport up into
+        // history, then decelerates to a clean stop.
+        let mut frames = 0;
+        while h.engine.scroll_velocity() != 0.0 && frames < 600 {
+            h.tick_dt(1.0 / 60.0);
+            frames += 1;
+        }
+        assert!(h.scroll_offset() > 0, "the glide scrolled into history");
+        assert_eq!(h.velocity(), 0.0, "the glide decelerated to a stop");
+
+        // Opt-out: momentum OFF scrolls line-for-line, immediately.
+        h.engine.behavior.scroll_momentum = false;
+        let before = h.scroll_offset();
+        h.scroll(1.0);
+        assert!(
+            h.scroll_offset() > before,
+            "momentum off scrolls immediately (behavior-preserving)"
+        );
+        assert_eq!(h.velocity(), 0.0, "no velocity injected when momentum is off");
+    }
+
+    /// `dt == 0.0` ticks move nothing even with velocity pending — the
+    /// determinism contract the L1/L2 render ladders rely on.
+    #[test]
+    fn momentum_tick_at_dt_zero_is_a_noop() {
+        let mut h = Harness::new(SinkKind::Closure);
+        for _ in 0..50 {
+            h.feed(b"line\r\n");
+        }
+        h.engine.behavior.scroll_momentum = true;
+        h.scroll(1.0);
+        let off = h.scroll_offset();
+        let vel = h.velocity();
+        h.tick_dt(0.0);
+        assert_eq!(h.scroll_offset(), off, "dt=0 moves no lines");
+        assert_eq!(h.velocity(), vel, "dt=0 doesn't decay velocity");
+    }
+
+    /// Momentum doesn't grind against the scrollback wall: scrolling
+    /// up into a small history caps at the top and zeroes velocity.
+    #[test]
+    fn momentum_clamps_at_scrollback_top() {
+        let mut h = Harness::new(SinkKind::Closure);
+        // Just a few rows of scrollback.
+        for _ in 0..5 {
+            h.feed(b"line\r\n");
+        }
+        h.engine.behavior.scroll_momentum = true;
+        // A big up-impulse that would overshoot the small history.
+        h.scroll(50.0);
+        let total = h.terminal.read().scrollback_total();
+        let mut frames = 0;
+        while h.engine.scroll_velocity() != 0.0 && frames < 600 {
+            h.tick_dt(1.0 / 60.0);
+            frames += 1;
+        }
+        assert_eq!(
+            h.scroll_offset(),
+            total,
+            "momentum stops exactly at the scrollback top"
+        );
+        assert_eq!(h.velocity(), 0.0, "velocity zeroed at the wall (no grind)");
+    }
+
+    // ── Selection auto-scroll ────────────────────────────────────
+
+    /// Dragging a selection above the top edge scrolls the viewport UP
+    /// into history and extends the highlight to the revealed lines —
+    /// so a drag can select more than one screen.
+    #[test]
+    fn selection_drag_past_top_edge_autoscrolls_and_extends() {
+        let mut h = Harness::new(SinkKind::Closure);
+        for _ in 0..200 {
+            h.feed(b"content line\r\n");
+        }
+        h.engine.behavior.selection_autoscroll = true;
+        // Scroll up a bit so there's room to reveal MORE history above.
+        h.terminal.write().scroll_up(20);
+        let start_offset = h.scroll_offset();
+
+        // Begin a selection drag mid-screen, then move the pointer ABOVE
+        // the top edge (negative y) without releasing.
+        h.button(MouseButton::Left, true, 5, 10, no_mods());
+        // Raw pointer 3 rows above the top edge.
+        h.moved_px(40.0, h.row_top_px(-3.0));
+        assert!(
+            matches!(h.engine.pointer, Pointer::Selecting { .. }),
+            "drag is live (Selecting)"
+        );
+
+        // Drive frames: the sustained auto-scroll velocity reveals more
+        // history (scroll_offset grows past the start).
+        for _ in 0..30 {
+            h.tick_dt(1.0 / 60.0);
+        }
+        assert!(
+            h.scroll_offset() > start_offset,
+            "dragging past the top edge scrolled UP into history \
+             ({} → {})",
+            start_offset,
+            h.scroll_offset()
+        );
+        // The highlight extended to the newly revealed top rows.
+        assert!(
+            h.engine.selection.lock().unwrap().is_active(),
+            "the selection extended to the revealed lines"
+        );
+
+        // Pointer back inside the viewport → auto-scroll stops.
+        h.moved_px(40.0, h.row_top_px(5.0));
+        h.tick_dt(1.0 / 60.0);
+        let settled = h.scroll_offset();
+        h.tick_dt(1.0 / 60.0);
+        assert_eq!(
+            h.scroll_offset(),
+            settled,
+            "auto-scroll halts when the pointer re-enters the viewport"
+        );
+    }
+
+    /// Dragging below the bottom edge scrolls the viewport DOWN toward
+    /// the live tail.
+    #[test]
+    fn selection_drag_past_bottom_edge_autoscrolls_down() {
+        let mut h = Harness::new(SinkKind::Closure);
+        for _ in 0..200 {
+            h.feed(b"content line\r\n");
+        }
+        h.engine.behavior.selection_autoscroll = true;
+        // Start well up in history so there's room to scroll DOWN.
+        h.terminal.write().scroll_up(50);
+        let start_offset = h.scroll_offset();
+        assert!(start_offset > 0);
+
+        let rows = h.terminal.read().rows();
+        h.button(MouseButton::Left, true, 5, 10, no_mods());
+        // Raw pointer 3 rows below the bottom edge.
+        h.moved_px(40.0, h.row_top_px(rows as f64 + 3.0));
+        for _ in 0..30 {
+            h.tick_dt(1.0 / 60.0);
+        }
+        assert!(
+            h.scroll_offset() < start_offset,
+            "dragging past the bottom edge scrolled DOWN toward the tail \
+             ({} → {})",
+            start_offset,
+            h.scroll_offset()
+        );
+    }
+
+    /// With selection_autoscroll OFF, a past-edge drag does NOT scroll.
+    #[test]
+    fn selection_autoscroll_opt_out() {
+        let mut h = Harness::new(SinkKind::Closure);
+        for _ in 0..200 {
+            h.feed(b"content line\r\n");
+        }
+        h.engine.behavior.selection_autoscroll = false;
+        h.terminal.write().scroll_up(20);
+        let start_offset = h.scroll_offset();
+        h.button(MouseButton::Left, true, 5, 10, no_mods());
+        h.moved_px(40.0, h.row_top_px(-3.0));
+        for _ in 0..30 {
+            h.tick_dt(1.0 / 60.0);
+        }
+        assert_eq!(
+            h.scroll_offset(),
+            start_offset,
+            "auto-scroll off: a past-edge drag leaves the viewport frozen"
         );
     }
 }

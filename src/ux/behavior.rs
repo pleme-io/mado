@@ -13,7 +13,9 @@ use crate::config::MadoConfig;
 /// it from the same config so the knobs cannot diverge per mode.
 /// (`Copy` dropped when `word_chars: String` landed — M3 review
 /// 2026-06-12; clone at the adapter seam instead.)
-#[derive(Debug, Clone, PartialEq, Eq)]
+// `Eq` dropped when the `f32` scroll-friction / max-velocity knobs
+// landed (momentum scrolling) — `f32` is `PartialEq` but not `Eq`.
+#[derive(Debug, Clone, PartialEq)]
 pub struct UxBehavior {
     /// Selection release copies straight to the clipboard
     /// (the muscle-memory contract).
@@ -40,6 +42,18 @@ pub struct UxBehavior {
     /// site hard-coding `""`, leaving the operator knob dead — this
     /// field is the thread.
     pub word_chars: String,
+    /// Momentum scrolling: a wheel flick injects velocity that eases
+    /// to a stop instead of jumping line-for-line. `false` keeps the
+    /// direct scroll (behavior-preserving opt-out).
+    pub scroll_momentum: bool,
+    /// Exponential friction (per second) bleeding off scroll velocity.
+    pub scroll_friction: f32,
+    /// Velocity cap (lines/sec) so a frantic flick can't launch to the
+    /// scrollback top in one frame.
+    pub scroll_max_velocity: f32,
+    /// Selection auto-scroll: dragging past a viewport edge scrolls the
+    /// viewport and extends the highlight to the revealed lines.
+    pub selection_autoscroll: bool,
 }
 
 impl From<&MadoConfig> for UxBehavior {
@@ -55,6 +69,10 @@ impl From<&MadoConfig> for UxBehavior {
                     | crate::config::MouseShiftCapture::Always
             ),
             word_chars: config.selection.word_chars.clone(),
+            scroll_momentum: config.behavior.scroll_momentum,
+            scroll_friction: config.behavior.scroll_friction,
+            scroll_max_velocity: config.behavior.scroll_max_velocity,
+            selection_autoscroll: config.behavior.selection_autoscroll,
         }
     }
 }
