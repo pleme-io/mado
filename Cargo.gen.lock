@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "8bbe2e25ab090ea1b2546ee40f54d6380ac1842e757103cae208970ac516ab9b",
+  "cargo_lock_sha256": "81b7e3e34cdc50405a225c92a94aa0ef681793ca7c0ebeaa665075f730748987",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -2363,7 +2363,7 @@
           "std"
         ]
       },
-      "engate-attach-0.1.0-83906960d039fd20123e9b2988d8b4fcb9547d35": {
+      "engate-attach-0.1.0-0693872767877a551c1da254b6db9629f9afd470": {
         "runtime_dependencies": [
           {
             "name": "drop_bomb",
@@ -2377,7 +2377,7 @@
           },
           {
             "name": "engate_types",
-            "package_key": "engate-types-0.1.0-83906960d039fd20123e9b2988d8b4fcb9547d35",
+            "package_key": "engate-types-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -2433,7 +2433,7 @@
           "default"
         ]
       },
-      "engate-types-0.1.0-83906960d039fd20123e9b2988d8b4fcb9547d35": {
+      "engate-types-0.1.0-0693872767877a551c1da254b6db9629f9afd470": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -5138,7 +5138,7 @@
           "default"
         ]
       },
-      "ishou-tokens-0.1.3-b244b6fb3e3d22856f90ceb84ee51a7e4421f87d": {
+      "ishou-tokens-0.1.3-113f7763da4ec0cf1932b67fb46be8597f154696": {
         "runtime_dependencies": [
           {
             "name": "irodori",
@@ -5724,7 +5724,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.60-7e196d97cc9cbc29d0131e1545f21d5c5694fa94",
+            "package_key": "shikumi-0.1.66-c7ae2f6c644957bb0ea9e9fc79eb496f7c052285",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7602,7 +7602,7 @@
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.3-b244b6fb3e3d22856f90ceb84ee51a7e4421f87d",
+            "package_key": "ishou-tokens-0.1.3-113f7763da4ec0cf1932b67fb46be8597f154696",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11661,7 +11661,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.60-7e196d97cc9cbc29d0131e1545f21d5c5694fa94",
+            "package_key": "shikumi-0.1.66-c7ae2f6c644957bb0ea9e9fc79eb496f7c052285",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11705,7 +11705,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.60-7e196d97cc9cbc29d0131e1545f21d5c5694fa94": {
+      "shikumi-0.1.66-c7ae2f6c644957bb0ea9e9fc79eb496f7c052285": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -14334,7 +14334,7 @@
         "runtime_dependencies": [
           {
             "name": "engate_attach",
-            "package_key": "engate-attach-0.1.0-83906960d039fd20123e9b2988d8b4fcb9547d35",
+            "package_key": "engate-attach-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14344,7 +14344,7 @@
           },
           {
             "name": "engate_types",
-            "package_key": "engate-types-0.1.0-83906960d039fd20123e9b2988d8b4fcb9547d35",
+            "package_key": "engate-types-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14423,7 +14423,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.3-b244b6fb3e3d22856f90ceb84ee51a7e4421f87d",
+            "package_key": "ishou-tokens-0.1.3-113f7763da4ec0cf1932b67fb46be8597f154696",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14477,7 +14477,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.60-7e196d97cc9cbc29d0131e1545f21d5c5694fa94",
+            "package_key": "shikumi-0.1.66-c7ae2f6c644957bb0ea9e9fc79eb496f7c052285",
             "kind": "normal",
             "features": [
               "cli"
@@ -14545,7 +14545,7 @@
           },
           {
             "name": "engate_attach",
-            "package_key": "engate-attach-0.1.0-83906960d039fd20123e9b2988d8b4fcb9547d35",
+            "package_key": "engate-attach-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14555,7 +14555,7 @@
           },
           {
             "name": "engate_types",
-            "package_key": "engate-types-0.1.0-83906960d039fd20123e9b2988d8b4fcb9547d35",
+            "package_key": "engate-types-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14842,7 +14842,7 @@
           },
           {
             "name": "engate_types",
-            "package_key": "engate-types-0.1.0-83906960d039fd20123e9b2988d8b4fcb9547d35",
+            "package_key": "engate-types-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18980,7 +18980,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.2": {
+          "mado-0.1.3": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -19071,7 +19071,7 @@
               },
               {
                 "name": "engate_attach",
-                "package_key": "engate-attach-0.1.0-83906960d039fd20123e9b2988d8b4fcb9547d35",
+                "package_key": "engate-attach-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -19081,7 +19081,7 @@
               },
               {
                 "name": "engate_types",
-                "package_key": "engate-types-0.1.0-83906960d039fd20123e9b2988d8b4fcb9547d35",
+                "package_key": "engate-types-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -19173,7 +19173,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-b244b6fb3e3d22856f90ceb84ee51a7e4421f87d",
+                "package_key": "ishou-tokens-0.1.3-113f7763da4ec0cf1932b67fb46be8597f154696",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -19430,7 +19430,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.60-7e196d97cc9cbc29d0131e1545f21d5c5694fa94",
+                "package_key": "shikumi-0.1.66-c7ae2f6c644957bb0ea9e9fc79eb496f7c052285",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -23149,7 +23149,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.2": {
+          "mado-0.1.3": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -23240,7 +23240,7 @@
               },
               {
                 "name": "engate_attach",
-                "package_key": "engate-attach-0.1.0-83906960d039fd20123e9b2988d8b4fcb9547d35",
+                "package_key": "engate-attach-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23250,7 +23250,7 @@
               },
               {
                 "name": "engate_types",
-                "package_key": "engate-types-0.1.0-83906960d039fd20123e9b2988d8b4fcb9547d35",
+                "package_key": "engate-types-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23342,7 +23342,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-b244b6fb3e3d22856f90ceb84ee51a7e4421f87d",
+                "package_key": "ishou-tokens-0.1.3-113f7763da4ec0cf1932b67fb46be8597f154696",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23599,7 +23599,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.60-7e196d97cc9cbc29d0131e1545f21d5c5694fa94",
+                "package_key": "shikumi-0.1.66-c7ae2f6c644957bb0ea9e9fc79eb496f7c052285",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -27205,7 +27205,7 @@
               "xdp"
             ]
           },
-          "mado-0.1.2": {
+          "mado-0.1.3": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -27296,7 +27296,7 @@
               },
               {
                 "name": "engate_attach",
-                "package_key": "engate-attach-0.1.0-83906960d039fd20123e9b2988d8b4fcb9547d35",
+                "package_key": "engate-attach-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27306,7 +27306,7 @@
               },
               {
                 "name": "engate_types",
-                "package_key": "engate-types-0.1.0-83906960d039fd20123e9b2988d8b4fcb9547d35",
+                "package_key": "engate-types-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27398,7 +27398,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-b244b6fb3e3d22856f90ceb84ee51a7e4421f87d",
+                "package_key": "ishou-tokens-0.1.3-113f7763da4ec0cf1932b67fb46be8597f154696",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27625,7 +27625,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.60-7e196d97cc9cbc29d0131e1545f21d5c5694fa94",
+                "package_key": "shikumi-0.1.66-c7ae2f6c644957bb0ea9e9fc79eb496f7c052285",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -30738,7 +30738,7 @@
               "xdp"
             ]
           },
-          "mado-0.1.2": {
+          "mado-0.1.3": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -30829,7 +30829,7 @@
               },
               {
                 "name": "engate_attach",
-                "package_key": "engate-attach-0.1.0-83906960d039fd20123e9b2988d8b4fcb9547d35",
+                "package_key": "engate-attach-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30839,7 +30839,7 @@
               },
               {
                 "name": "engate_types",
-                "package_key": "engate-types-0.1.0-83906960d039fd20123e9b2988d8b4fcb9547d35",
+                "package_key": "engate-types-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30931,7 +30931,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-b244b6fb3e3d22856f90ceb84ee51a7e4421f87d",
+                "package_key": "ishou-tokens-0.1.3-113f7763da4ec0cf1932b67fb46be8597f154696",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31158,7 +31158,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.60-7e196d97cc9cbc29d0131e1545f21d5c5694fa94",
+                "package_key": "shikumi-0.1.66-c7ae2f6c644957bb0ea9e9fc79eb496f7c052285",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -34297,7 +34297,7 @@
               "xdp"
             ]
           },
-          "mado-0.1.2": {
+          "mado-0.1.3": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -34388,7 +34388,7 @@
               },
               {
                 "name": "engate_attach",
-                "package_key": "engate-attach-0.1.0-83906960d039fd20123e9b2988d8b4fcb9547d35",
+                "package_key": "engate-attach-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34398,7 +34398,7 @@
               },
               {
                 "name": "engate_types",
-                "package_key": "engate-types-0.1.0-83906960d039fd20123e9b2988d8b4fcb9547d35",
+                "package_key": "engate-types-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34490,7 +34490,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-b244b6fb3e3d22856f90ceb84ee51a7e4421f87d",
+                "package_key": "ishou-tokens-0.1.3-113f7763da4ec0cf1932b67fb46be8597f154696",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34717,7 +34717,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.60-7e196d97cc9cbc29d0131e1545f21d5c5694fa94",
+                "package_key": "shikumi-0.1.66-c7ae2f6c644957bb0ea9e9fc79eb496f7c052285",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -37876,7 +37876,7 @@
               "xdp"
             ]
           },
-          "mado-0.1.2": {
+          "mado-0.1.3": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -37967,7 +37967,7 @@
               },
               {
                 "name": "engate_attach",
-                "package_key": "engate-attach-0.1.0-83906960d039fd20123e9b2988d8b4fcb9547d35",
+                "package_key": "engate-attach-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37977,7 +37977,7 @@
               },
               {
                 "name": "engate_types",
-                "package_key": "engate-types-0.1.0-83906960d039fd20123e9b2988d8b4fcb9547d35",
+                "package_key": "engate-types-0.1.0-0693872767877a551c1da254b6db9629f9afd470",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38069,7 +38069,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-b244b6fb3e3d22856f90ceb84ee51a7e4421f87d",
+                "package_key": "ishou-tokens-0.1.3-113f7763da4ec0cf1932b67fb46be8597f154696",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38296,7 +38296,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.60-7e196d97cc9cbc29d0131e1545f21d5c5694fa94",
+                "package_key": "shikumi-0.1.66-c7ae2f6c644957bb0ea9e9fc79eb496f7c052285",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -40782,6 +40782,12 @@
     }
   },
   "per_crate": {
+    "ab_glyph-0.2.32": {
+      "edition": "2021"
+    },
+    "ab_glyph_rasterizer-0.1.10": {
+      "edition": "2021"
+    },
     "adler2-2.0.1": {
       "edition": "2021"
     },
@@ -40830,6 +40836,9 @@
     "arrayvec-0.7.6": {
       "edition": "2018"
     },
+    "as-raw-xcb-connection-1.0.1": {
+      "edition": "2021"
+    },
     "ash-0.38.0+1.3.281": {
       "edition": "2021",
       "build_script": "build.rs"
@@ -40873,9 +40882,6 @@
     "bit-vec-0.8.0": {
       "edition": "2015"
     },
-    "bitflags-1.3.2": {
-      "edition": "2018"
-    },
     "bitflags-2.13.0": {
       "edition": "2021"
     },
@@ -40886,17 +40892,8 @@
       "edition": "2024",
       "build_script": "build.rs"
     },
-    "block-0.1.6": {
-      "edition": "2015"
-    },
     "block-buffer-0.10.4": {
       "edition": "2018"
-    },
-    "block2-0.5.1": {
-      "edition": "2021"
-    },
-    "block2-0.6.2": {
-      "edition": "2021"
     },
     "borsh-1.6.1": {
       "edition": "2018",
@@ -40937,6 +40934,12 @@
       "edition": "2021"
     },
     "bytes-1.11.1": {
+      "edition": "2021"
+    },
+    "calloop-0.13.0": {
+      "edition": "2018"
+    },
+    "calloop-wayland-source-0.3.0": {
       "edition": "2021"
     },
     "cc-1.2.64": {
@@ -40997,23 +41000,14 @@
     "constant_time_eq-0.4.2": {
       "edition": "2024"
     },
-    "core-foundation-0.9.4": {
-      "edition": "2018"
-    },
-    "core-foundation-sys-0.8.7": {
-      "edition": "2018"
-    },
-    "core-graphics-0.23.2": {
-      "edition": "2018"
-    },
-    "core-graphics-types-0.1.3": {
-      "edition": "2018"
-    },
     "cosmic-text-0.14.2": {
       "edition": "2021"
     },
     "cpufeatures-0.2.17": {
       "edition": "2018"
+    },
+    "cpufeatures-0.3.0": {
+      "edition": "2024"
     },
     "crc-3.4.0": {
       "edition": "2021"
@@ -41092,15 +41086,12 @@
     "dirs-sys-0.5.0": {
       "edition": "2015"
     },
-    "dispatch-0.2.0": {
-      "edition": "2018"
-    },
-    "dispatch2-0.3.1": {
-      "edition": "2021"
-    },
     "displaydoc-0.2.6": {
       "edition": "2021",
       "proc_macro": true
+    },
+    "dlib-0.5.3": {
+      "edition": "2021"
     },
     "document-features-0.2.12": {
       "edition": "2018",
@@ -41137,10 +41128,10 @@
     "either-1.16.0": {
       "edition": "2021"
     },
-    "engate-attach-0.1.0-83906960d039fd20123e9b2988d8b4fcb9547d35": {
+    "engate-attach-0.1.0-0693872767877a551c1da254b6db9629f9afd470": {
       "edition": "2024"
     },
-    "engate-types-0.1.0-83906960d039fd20123e9b2988d8b4fcb9547d35": {
+    "engate-types-0.1.0-0693872767877a551c1da254b6db9629f9afd470": {
       "edition": "2024"
     },
     "engawa-0.1.3-772fbf0357d3bc3e90786ffb5e8a5a8b5ddb8f44": {
@@ -41211,23 +41202,13 @@
     "font-types-0.11.3": {
       "edition": "2021"
     },
+    "fontconfig-parser-0.5.8": {
+      "edition": "2018"
+    },
     "fontdb-0.16.2": {
       "edition": "2018"
     },
-    "foreign-types-0.5.0": {
-      "edition": "2018"
-    },
-    "foreign-types-macros-0.2.3": {
-      "edition": "2018",
-      "proc_macro": true
-    },
-    "foreign-types-shared-0.3.1": {
-      "edition": "2018"
-    },
     "form_urlencoded-1.2.2": {
-      "edition": "2018"
-    },
-    "fsevent-sys-4.1.0": {
       "edition": "2018"
     },
     "funty-2.0.0": {
@@ -41280,6 +41261,9 @@
     "generic-array-0.14.7": {
       "edition": "2015",
       "build_script": "build.rs"
+    },
+    "gethostname-1.1.0": {
+      "edition": "2021"
     },
     "getrandom-0.2.17": {
       "edition": "2018"
@@ -41409,6 +41393,12 @@
     "inlinable_string-0.1.15": {
       "edition": "2018"
     },
+    "inotify-0.11.2": {
+      "edition": "2018"
+    },
+    "inotify-sys-0.1.5": {
+      "edition": "2015"
+    },
     "inventory-0.3.24": {
       "edition": "2021"
     },
@@ -41418,10 +41408,16 @@
     "irodzuki-0.1.6-9c674aca176b39a4d9ddee1b1aedb46a06c81b4d": {
       "edition": "2024"
     },
+    "is-docker-0.2.0": {
+      "edition": "2015"
+    },
+    "is-wsl-0.4.0": {
+      "edition": "2015"
+    },
     "is_terminal_polyfill-1.70.2": {
       "edition": "2021"
     },
-    "ishou-tokens-0.1.3-b244b6fb3e3d22856f90ceb84ee51a7e4421f87d": {
+    "ishou-tokens-0.1.3-113f7763da4ec0cf1932b67fb46be8597f154696": {
       "edition": "2024"
     },
     "itoa-1.0.18": {
@@ -41446,12 +41442,6 @@
     "khronos-egl-6.0.0": {
       "edition": "2021",
       "build_script": "build.rs"
-    },
-    "kqueue-1.2.0": {
-      "edition": "2021"
-    },
-    "kqueue-sys-1.1.2": {
-      "edition": "2021"
     },
     "lazy_static-1.5.0": {
       "edition": "2015"
@@ -41480,6 +41470,12 @@
     "linkify-0.10.0": {
       "edition": "2018"
     },
+    "linux-raw-sys-0.4.15": {
+      "edition": "2021"
+    },
+    "linux-raw-sys-0.12.1": {
+      "edition": "2021"
+    },
     "litemap-0.8.2": {
       "edition": "2021"
     },
@@ -41498,7 +41494,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.2": {
+    "mado-0.1.3": {
       "edition": "2024",
       "binaries": [
         {
@@ -41509,9 +41505,6 @@
     },
     "madori-0.1.3-234661aeecc945d323e2fe0b878598aaf39f9112": {
       "edition": "2024"
-    },
-    "malloc_buf-0.0.6": {
-      "edition": "2015"
     },
     "matchers-0.2.0": {
       "edition": "2018"
@@ -41532,9 +41525,6 @@
     "memoffset-0.9.1": {
       "edition": "2015",
       "build_script": "build.rs"
-    },
-    "metal-0.31.0": {
-      "edition": "2021"
     },
     "mimalloc-0.1.52": {
       "edition": "2018"
@@ -41593,75 +41583,6 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "objc-0.2.7": {
-      "edition": "2015"
-    },
-    "objc-sys-0.3.5": {
-      "edition": "2021",
-      "build_script": "build.rs",
-      "links": "objc_0_3"
-    },
-    "objc2-0.5.2": {
-      "edition": "2021"
-    },
-    "objc2-0.6.4": {
-      "edition": "2021",
-      "build_script": "build.rs"
-    },
-    "objc2-app-kit-0.2.2": {
-      "edition": "2021"
-    },
-    "objc2-app-kit-0.3.2": {
-      "edition": "2021"
-    },
-    "objc2-cloud-kit-0.3.2": {
-      "edition": "2021"
-    },
-    "objc2-core-data-0.2.2": {
-      "edition": "2021"
-    },
-    "objc2-core-data-0.3.2": {
-      "edition": "2021"
-    },
-    "objc2-core-foundation-0.3.2": {
-      "edition": "2021"
-    },
-    "objc2-core-graphics-0.3.2": {
-      "edition": "2021"
-    },
-    "objc2-core-image-0.2.2": {
-      "edition": "2021"
-    },
-    "objc2-core-image-0.3.2": {
-      "edition": "2021"
-    },
-    "objc2-core-text-0.3.2": {
-      "edition": "2021"
-    },
-    "objc2-core-video-0.3.2": {
-      "edition": "2021"
-    },
-    "objc2-encode-4.1.0": {
-      "edition": "2021"
-    },
-    "objc2-foundation-0.2.2": {
-      "edition": "2021"
-    },
-    "objc2-foundation-0.3.2": {
-      "edition": "2021"
-    },
-    "objc2-io-surface-0.3.2": {
-      "edition": "2021"
-    },
-    "objc2-metal-0.2.2": {
-      "edition": "2021"
-    },
-    "objc2-quartz-core-0.2.2": {
-      "edition": "2021"
-    },
-    "objc2-quartz-core-0.3.2": {
-      "edition": "2021"
-    },
     "once_cell-1.21.4": {
       "edition": "2021"
     },
@@ -41689,6 +41610,9 @@
     "ouroboros_macro-0.18.5": {
       "edition": "2018",
       "proc_macro": true
+    },
+    "owned_ttf_parser-0.25.1": {
+      "edition": "2021"
     },
     "palette-0.7.6": {
       "edition": "2018",
@@ -41776,6 +41700,9 @@
     "png-0.18.1": {
       "edition": "2021"
     },
+    "polling-3.11.0": {
+      "edition": "2021"
+    },
     "pollster-0.4.0": {
       "edition": "2018"
     },
@@ -41839,6 +41766,9 @@
     },
     "quick-error-2.0.1": {
       "edition": "2018"
+    },
+    "quick-xml-0.39.4": {
+      "edition": "2021"
     },
     "quote-1.0.45": {
       "edition": "2021",
@@ -41934,6 +41864,9 @@
       "edition": "2024",
       "proc_macro": true
     },
+    "roxmltree-0.20.0": {
+      "edition": "2021"
+    },
     "rsa-0.9.10": {
       "edition": "2021"
     },
@@ -41952,6 +41885,10 @@
     },
     "rustc_version-0.4.1": {
       "edition": "2018"
+    },
+    "rustix-0.38.44": {
+      "edition": "2021",
+      "build_script": "build.rs"
     },
     "rustix-1.1.4": {
       "edition": "2021",
@@ -42006,8 +41943,14 @@
       "edition": "2021",
       "proc_macro": true
     },
+    "scoped-tls-1.0.1": {
+      "edition": "2015"
+    },
     "scopeguard-1.2.0": {
       "edition": "2015"
+    },
+    "sctk-adwaita-0.10.1": {
+      "edition": "2021"
     },
     "sea-bae-0.2.1": {
       "edition": "2018",
@@ -42115,7 +42058,7 @@
     "shidou-0.1.8-4d28b98c8dacb6cd8e5d9cf2f60c9b63c0bde8c8": {
       "edition": "2024"
     },
-    "shikumi-0.1.60-7e196d97cc9cbc29d0131e1545f21d5c5694fa94": {
+    "shikumi-0.1.66-c7ae2f6c644957bb0ea9e9fc79eb496f7c052285": {
       "edition": "2024"
     },
     "shlex-2.0.1": {
@@ -42145,6 +42088,10 @@
     },
     "smallvec-1.15.2": {
       "edition": "2018"
+    },
+    "smithay-client-toolkit-0.19.2": {
+      "edition": "2021",
+      "build_script": "build.rs"
     },
     "smol_str-0.2.2": {
       "edition": "2018"
@@ -42192,6 +42139,9 @@
     },
     "static_assertions-1.1.0": {
       "edition": "2015"
+    },
+    "strict-num-0.1.1": {
+      "edition": "2018"
     },
     "stringprep-0.1.5": {
       "edition": "2015"
@@ -42294,6 +42244,12 @@
       "edition": "2024",
       "proc_macro": true
     },
+    "tiny-skia-0.11.4": {
+      "edition": "2018"
+    },
+    "tiny-skia-path-0.11.4": {
+      "edition": "2018"
+    },
     "tinystr-0.8.3": {
       "edition": "2021"
     },
@@ -42363,6 +42319,9 @@
       "edition": "2018"
     },
     "ttf-parser-0.21.1": {
+      "edition": "2018"
+    },
+    "ttf-parser-0.25.1": {
       "edition": "2018"
     },
     "typed-builder-0.21.2": {
@@ -42500,6 +42459,37 @@
     "walkdir-2.5.0": {
       "edition": "2018"
     },
+    "wayland-backend-0.3.15": {
+      "edition": "2021",
+      "build_script": "build.rs"
+    },
+    "wayland-client-0.31.14": {
+      "edition": "2021",
+      "build_script": "build.rs"
+    },
+    "wayland-csd-frame-0.3.0": {
+      "edition": "2021"
+    },
+    "wayland-cursor-0.31.14": {
+      "edition": "2021"
+    },
+    "wayland-protocols-0.32.12": {
+      "edition": "2021"
+    },
+    "wayland-protocols-plasma-0.3.12": {
+      "edition": "2021"
+    },
+    "wayland-protocols-wlr-0.3.12": {
+      "edition": "2021"
+    },
+    "wayland-scanner-0.31.10": {
+      "edition": "2021",
+      "proc_macro": true
+    },
+    "wayland-sys-0.31.11": {
+      "edition": "2021",
+      "build_script": "build.rs"
+    },
     "webpki-roots-0.26.11": {
       "edition": "2021"
     },
@@ -42535,7 +42525,7 @@
         }
       ]
     },
-    "wgpu-core-deps-apple-25.0.0": {
+    "wgpu-core-deps-windows-linux-android-25.0.0": {
       "edition": "2021"
     },
     "wgpu-hal-25.0.2": {
@@ -42577,6 +42567,25 @@
       "edition": "2021"
     },
     "wyz-0.5.1": {
+      "edition": "2018"
+    },
+    "x11-dl-2.21.0": {
+      "edition": "2021",
+      "build_script": "build.rs"
+    },
+    "x11rb-0.13.2": {
+      "edition": "2021"
+    },
+    "x11rb-protocol-0.13.2": {
+      "edition": "2021"
+    },
+    "xcursor-0.3.10": {
+      "edition": "2018"
+    },
+    "xkbcommon-dl-0.4.2": {
+      "edition": "2021"
+    },
+    "xkeysym-0.2.1": {
       "edition": "2018"
     },
     "yansi-1.0.1": {
@@ -42633,148 +42642,139 @@
     "zune-jpeg-0.5.15": {
       "edition": "2021"
     },
-    "cpufeatures-0.3.0": {
-      "edition": "2024"
-    },
-    "ab_glyph-0.2.32": {
-      "edition": "2021"
-    },
-    "ab_glyph_rasterizer-0.1.10": {
-      "edition": "2021"
-    },
-    "as-raw-xcb-connection-1.0.1": {
-      "edition": "2021"
-    },
-    "calloop-0.13.0": {
+    "bitflags-1.3.2": {
       "edition": "2018"
     },
-    "calloop-wayland-source-0.3.0": {
-      "edition": "2021"
-    },
-    "dlib-0.5.3": {
-      "edition": "2021"
-    },
-    "fontconfig-parser-0.5.8": {
-      "edition": "2018"
-    },
-    "gethostname-1.1.0": {
-      "edition": "2021"
-    },
-    "inotify-0.11.2": {
-      "edition": "2018"
-    },
-    "inotify-sys-0.1.5": {
+    "block-0.1.6": {
       "edition": "2015"
     },
-    "is-docker-0.2.0": {
-      "edition": "2015"
-    },
-    "is-wsl-0.4.0": {
-      "edition": "2015"
-    },
-    "linux-raw-sys-0.4.15": {
+    "block2-0.5.1": {
       "edition": "2021"
     },
-    "linux-raw-sys-0.12.1": {
+    "block2-0.6.2": {
       "edition": "2021"
     },
-    "owned_ttf_parser-0.25.1": {
-      "edition": "2021"
-    },
-    "polling-3.11.0": {
-      "edition": "2021"
-    },
-    "quick-xml-0.39.4": {
-      "edition": "2021"
-    },
-    "roxmltree-0.20.0": {
-      "edition": "2021"
-    },
-    "rustix-0.38.44": {
-      "edition": "2021",
-      "build_script": "build.rs"
-    },
-    "scoped-tls-1.0.1": {
-      "edition": "2015"
-    },
-    "sctk-adwaita-0.10.1": {
-      "edition": "2021"
-    },
-    "smithay-client-toolkit-0.19.2": {
-      "edition": "2021",
-      "build_script": "build.rs"
-    },
-    "strict-num-0.1.1": {
+    "core-foundation-0.9.4": {
       "edition": "2018"
     },
-    "tiny-skia-0.11.4": {
+    "core-foundation-sys-0.8.7": {
       "edition": "2018"
     },
-    "tiny-skia-path-0.11.4": {
+    "core-graphics-0.23.2": {
       "edition": "2018"
     },
-    "ttf-parser-0.25.1": {
+    "core-graphics-types-0.1.3": {
       "edition": "2018"
     },
-    "wayland-backend-0.3.15": {
-      "edition": "2021",
-      "build_script": "build.rs"
+    "dispatch-0.2.0": {
+      "edition": "2018"
     },
-    "wayland-client-0.31.14": {
-      "edition": "2021",
-      "build_script": "build.rs"
-    },
-    "wayland-csd-frame-0.3.0": {
+    "dispatch2-0.3.1": {
       "edition": "2021"
     },
-    "wayland-cursor-0.31.14": {
-      "edition": "2021"
+    "foreign-types-0.5.0": {
+      "edition": "2018"
     },
-    "wayland-protocols-0.32.12": {
-      "edition": "2021"
-    },
-    "wayland-protocols-plasma-0.3.12": {
-      "edition": "2021"
-    },
-    "wayland-protocols-wlr-0.3.12": {
-      "edition": "2021"
-    },
-    "wayland-scanner-0.31.10": {
-      "edition": "2021",
+    "foreign-types-macros-0.2.3": {
+      "edition": "2018",
       "proc_macro": true
     },
-    "wayland-sys-0.31.11": {
+    "foreign-types-shared-0.3.1": {
+      "edition": "2018"
+    },
+    "fsevent-sys-4.1.0": {
+      "edition": "2018"
+    },
+    "kqueue-1.2.0": {
+      "edition": "2021"
+    },
+    "kqueue-sys-1.1.2": {
+      "edition": "2021"
+    },
+    "malloc_buf-0.0.6": {
+      "edition": "2015"
+    },
+    "metal-0.31.0": {
+      "edition": "2021"
+    },
+    "objc-0.2.7": {
+      "edition": "2015"
+    },
+    "objc-sys-0.3.5": {
+      "edition": "2021",
+      "build_script": "build.rs",
+      "links": "objc_0_3"
+    },
+    "objc2-0.5.2": {
+      "edition": "2021"
+    },
+    "objc2-0.6.4": {
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "wgpu-core-deps-windows-linux-android-25.0.0": {
+    "objc2-app-kit-0.2.2": {
       "edition": "2021"
     },
-    "x11-dl-2.21.0": {
-      "edition": "2021",
-      "build_script": "build.rs"
-    },
-    "x11rb-0.13.2": {
+    "objc2-app-kit-0.3.2": {
       "edition": "2021"
     },
-    "x11rb-protocol-0.13.2": {
+    "objc2-cloud-kit-0.3.2": {
       "edition": "2021"
     },
-    "xcursor-0.3.10": {
-      "edition": "2018"
-    },
-    "xkbcommon-dl-0.4.2": {
+    "objc2-core-data-0.2.2": {
       "edition": "2021"
     },
-    "xkeysym-0.2.1": {
-      "edition": "2018"
+    "objc2-core-data-0.3.2": {
+      "edition": "2021"
+    },
+    "objc2-core-foundation-0.3.2": {
+      "edition": "2021"
+    },
+    "objc2-core-graphics-0.3.2": {
+      "edition": "2021"
+    },
+    "objc2-core-image-0.2.2": {
+      "edition": "2021"
+    },
+    "objc2-core-image-0.3.2": {
+      "edition": "2021"
+    },
+    "objc2-core-text-0.3.2": {
+      "edition": "2021"
+    },
+    "objc2-core-video-0.3.2": {
+      "edition": "2021"
+    },
+    "objc2-encode-4.1.0": {
+      "edition": "2021"
+    },
+    "objc2-foundation-0.2.2": {
+      "edition": "2021"
+    },
+    "objc2-foundation-0.3.2": {
+      "edition": "2021"
+    },
+    "objc2-io-surface-0.3.2": {
+      "edition": "2021"
+    },
+    "objc2-metal-0.2.2": {
+      "edition": "2021"
+    },
+    "objc2-quartz-core-0.2.2": {
+      "edition": "2021"
+    },
+    "objc2-quartz-core-0.3.2": {
+      "edition": "2021"
+    },
+    "wgpu-core-deps-apple-25.0.0": {
+      "edition": "2021"
     }
   },
   "git_nar_sha256": {
     "awase-0.1.0-afa79c28177c5dbbe7ad185fd63d6a136f12cd73": "sha256-xdRG+nNbOTbYbPmT7DmRL87/lkccIYhDI4FPOQif+Uc=",
     "egaku-0.1.0-74b2c4fb0b265cef201ed1775735961eb4efb002": "sha256-4/7GXnjD2IRp/LCoG/uWBBQOEarcchU5gSIkTgv7AvE=",
-    "engate-attach-0.1.0-83906960d039fd20123e9b2988d8b4fcb9547d35": "sha256-xkscOZU8DNHkyphHUULNn1H2WcLvCbUmLBrxVlDENJw=",
-    "engate-types-0.1.0-83906960d039fd20123e9b2988d8b4fcb9547d35": "sha256-xkscOZU8DNHkyphHUULNn1H2WcLvCbUmLBrxVlDENJw=",
+    "engate-attach-0.1.0-0693872767877a551c1da254b6db9629f9afd470": "sha256-45qeZdjwSGI+wG668Fnfv7RpcHErZThr7AYjL92N1Bg=",
+    "engate-types-0.1.0-0693872767877a551c1da254b6db9629f9afd470": "sha256-45qeZdjwSGI+wG668Fnfv7RpcHErZThr7AYjL92N1Bg=",
     "engawa-0.1.3-772fbf0357d3bc3e90786ffb5e8a5a8b5ddb8f44": "sha256-Z/9e7dBdWUbCQW63K36IPXkLFpUYLmrSVetj8/eb82k=",
     "engawa-wgpu-0.1.5-9e82d16da4746b79054c97904fcdabf72a35b194": "sha256-Hgd5Phj0buTdBX5u7izGs+lCqEyUC1c9K2sqUB8k14U=",
     "garasu-0.1.0-bfda319bf2009bfab8c482e328d0274aae9727f5": "sha256-34gu1b8MsAl3BAG+e9fWLZIjVcBf+Cmd4IMMnfnq4xc=",
@@ -42783,7 +42783,7 @@
     "gen-types-0.1.10-712c3466375ddb1d6876193f2afb0798d30efb70": "sha256-7BNW4JfFa8nTvkq9O7Thxt1P6fSgcmPU4sthBdBfMgM=",
     "hasami-0.1.0-21147fe7ce68fe37fcbe9f33159e57c8b84a8c16": "sha256-1rHktXLpMclWU56PWcPjpuutBMNdhHoQXlxRtp3WjZ8=",
     "irodzuki-0.1.6-9c674aca176b39a4d9ddee1b1aedb46a06c81b4d": "sha256-a1OWNcsv2d6muYbL9khE1BSG/PunV+3a+71TE0MCNKs=",
-    "ishou-tokens-0.1.3-b244b6fb3e3d22856f90ceb84ee51a7e4421f87d": "sha256-Py9zHbzWbNH81qo9xygQSs9+/pdnvk62BVk5wB66+fs=",
+    "ishou-tokens-0.1.3-113f7763da4ec0cf1932b67fb46be8597f154696": "sha256-y/JKP0zTK/5qXViq3+BRP7HCKZr8z7ztyQrzfP7qw40=",
     "kaname-0.1.1-0570e7ec566b60444307fe5873f80f5beda8fe6c": "sha256-ue2v9p/Eq+z3hmCaL63toSyjpDY6s3H1gGBUFBOX3ek=",
     "kanchi-0.1.0-bb057535a56dcfbc0627e8e9e74498e63e9d3ff2": "sha256-GMMX6pwMRyxHqie5Rr5XyjhnGGiYahv7t8z6LwTHLJk=",
     "kanshou-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
@@ -42795,7 +42795,7 @@
     "pleme-kindstr-derive-0.1.0-d287f915e9bb8837a443f6238ee900e81318ce89": "sha256-5XDr9kPiT0doWBOOk9yXjxdTCpRgaqWWJCpsc1f+tdw=",
     "praca-0.1.0-70a6f2ef8f388717641725d297fba68b2bebaafb": "sha256-DZVbEcz32YPpjJO3T7Gw566D/6PbhJmDXXf6DLQftnk=",
     "shidou-0.1.8-4d28b98c8dacb6cd8e5d9cf2f60c9b63c0bde8c8": "sha256-TPmQZqOkopa2MrTZKSCQ4i2qVZb0MkP4TjbvT65EydA=",
-    "shikumi-0.1.60-7e196d97cc9cbc29d0131e1545f21d5c5694fa94": "sha256-ZMOptHLzww8arPrVpQgiQof+ajZX4Uo+HBLsibTXKBs=",
+    "shikumi-0.1.66-c7ae2f6c644957bb0ea9e9fc79eb496f7c052285": "sha256-oXCX1ThAqQ8eFBgEpXBwouUPwrBzk6w2q/cPUrLi8F0=",
     "tatara-lisp-0.2.4-92836e3723f0ff09c3cdd317cfe33005b4ecb582": "sha256-jVEj0yG+OXNH7vg9cC2bK7f3eehlyTgAWpBBQvmjryo=",
     "tatara-lisp-derive-0.2.4-92836e3723f0ff09c3cdd317cfe33005b4ecb582": "sha256-jVEj0yG+OXNH7vg9cC2bK7f3eehlyTgAWpBBQvmjryo=",
     "tatara-lisp-eval-0.2.4-92836e3723f0ff09c3cdd317cfe33005b4ecb582": "sha256-jVEj0yG+OXNH7vg9cC2bK7f3eehlyTgAWpBBQvmjryo=",
