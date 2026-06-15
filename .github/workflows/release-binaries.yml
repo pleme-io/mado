@@ -1,0 +1,27 @@
+name: release-binaries
+
+# Three-line consumer shim. On every `vX.Y.Z` tag push (created by
+# auto-release.yml), build mado for linux/macOS × x86_64/aarch64 and
+# attach the binaries + .sha256 sidecars to the GitHub Release.
+#
+# system-deps: mado is a GPU terminal (winit/wgpu via engawa-wgpu +
+# garasu). The ubuntu legs need windowing system libs to link; they are
+# apt-get installed before the build. macOS uses the Metal SDK and
+# needs nothing. If the first real tag's CI fails on a missing -dev
+# package, add it to this list (likely candidates: libudev-dev,
+# libgbm-dev, libegl1-mesa-dev).
+#
+# The reusable workflow lives at
+# pleme-io/substrate/.github/workflows/rust-binary-release.yml.
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  binaries:
+    uses: pleme-io/substrate/.github/workflows/rust-binary-release.yml@main
+    with:
+      binary-name: mado
+      system-deps: "libxkbcommon-dev libwayland-dev libwayland-cursor0 pkg-config"
+    secrets: inherit
