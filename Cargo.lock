@@ -175,7 +175,7 @@ dependencies = [
  "objc2-foundation 0.3.2",
  "parking_lot",
  "percent-encoding",
- "windows-sys 0.60.2",
+ "windows-sys 0.59.0",
  "x11rb",
 ]
 
@@ -1020,7 +1020,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -1178,7 +1178,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2134,7 +2134,7 @@ checksum = "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695"
 [[package]]
 name = "ishou-tokens"
 version = "0.1.3"
-source = "git+https://github.com/pleme-io/ishou#0197aeba1e9a7e17ff516272689dbca6a3ccc967"
+source = "git+https://github.com/pleme-io/ishou#d972f9e7f31ada81b2c5ac5cc9cfe84539ec5d1f"
 dependencies = [
  "irodori",
  "serde",
@@ -2776,7 +2776,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -3631,7 +3631,7 @@ dependencies = [
 [[package]]
 name = "praca"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear?rev=70a6f2ef8f388717641725d297fba68b2bebaafb#70a6f2ef8f388717641725d297fba68b2bebaafb"
+source = "git+https://github.com/pleme-io/tear?rev=ff96fccc4dc44a0201e9611fae72da2b5036441e#ff96fccc4dc44a0201e9611fae72da2b5036441e"
 dependencies = [
  "ishou-tokens",
  "serde",
@@ -4248,7 +4248,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.12.1",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -5337,7 +5337,7 @@ dependencies = [
 [[package]]
 name = "tear-client"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear?rev=70a6f2ef8f388717641725d297fba68b2bebaafb#70a6f2ef8f388717641725d297fba68b2bebaafb"
+source = "git+https://github.com/pleme-io/tear?rev=ff96fccc4dc44a0201e9611fae72da2b5036441e#ff96fccc4dc44a0201e9611fae72da2b5036441e"
 dependencies = [
  "engate-attach",
  "engate-types",
@@ -5350,7 +5350,7 @@ dependencies = [
 [[package]]
 name = "tear-config"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear?rev=70a6f2ef8f388717641725d297fba68b2bebaafb#70a6f2ef8f388717641725d297fba68b2bebaafb"
+source = "git+https://github.com/pleme-io/tear?rev=ff96fccc4dc44a0201e9611fae72da2b5036441e#ff96fccc4dc44a0201e9611fae72da2b5036441e"
 dependencies = [
  "anyhow",
  "arc-swap",
@@ -5368,12 +5368,13 @@ dependencies = [
 [[package]]
 name = "tear-core"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear?rev=70a6f2ef8f388717641725d297fba68b2bebaafb#70a6f2ef8f388717641725d297fba68b2bebaafb"
+source = "git+https://github.com/pleme-io/tear?rev=ff96fccc4dc44a0201e9611fae72da2b5036441e#ff96fccc4dc44a0201e9611fae72da2b5036441e"
 dependencies = [
  "anyhow",
  "blake3",
  "engate-attach",
  "engate-types",
+ "ishou-tokens",
  "once_cell",
  "parking_lot",
  "portable-pty",
@@ -5389,12 +5390,13 @@ dependencies = [
 [[package]]
 name = "tear-daemon"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear?rev=70a6f2ef8f388717641725d297fba68b2bebaafb#70a6f2ef8f388717641725d297fba68b2bebaafb"
+source = "git+https://github.com/pleme-io/tear?rev=ff96fccc4dc44a0201e9611fae72da2b5036441e#ff96fccc4dc44a0201e9611fae72da2b5036441e"
 dependencies = [
  "anyhow",
  "blake3",
  "kanshou",
  "notify",
+ "praca",
  "serde",
  "serde_json",
  "serde_yaml_ng",
@@ -5408,12 +5410,13 @@ dependencies = [
 [[package]]
 name = "tear-types"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/tear?rev=70a6f2ef8f388717641725d297fba68b2bebaafb#70a6f2ef8f388717641725d297fba68b2bebaafb"
+source = "git+https://github.com/pleme-io/tear?rev=ff96fccc4dc44a0201e9611fae72da2b5036441e#ff96fccc4dc44a0201e9611fae72da2b5036441e"
 dependencies = [
  "anyhow",
  "blake3",
  "ciborium",
  "engate-types",
+ "ishou-tokens",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
@@ -5429,7 +5432,7 @@ dependencies = [
  "getrandom 0.4.2",
  "once_cell",
  "rustix 1.1.4",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -6609,7 +6612,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]

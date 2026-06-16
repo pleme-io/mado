@@ -238,10 +238,11 @@ impl SessionPickerBridge for PracaPickerBridge {
                     .file_name()
                     .map(|s| s.to_string_lossy().into_owned())
                     .unwrap_or_default();
-                // "🌊 tide  mado" — the emoji/glyph name + the project
-                // basename. Composed from typed pieces (no format! of a
-                // syntax surface — this is a plain display label).
-                let mut label = rec.name().to_string();
+                // "🌊 tide  mado" (or the operator's renamed label) + the
+                // project basename. `display_name()` returns the custom name
+                // when the session was renamed, else the themed emoji name.
+                // Composed from typed pieces (no format! of a syntax surface).
+                let mut label = rec.display_name();
                 if !basename.is_empty() {
                     label.push_str("  ");
                     label.push_str(&basename);
