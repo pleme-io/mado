@@ -2077,6 +2077,21 @@ impl Default for MadoConfig {
         c.window.width = win_w;
         c.window.height = win_h;
         c.font_size = crate::auto_detect::detect_font_size_or_fallback();
+        // ── Session integration with tear (prescribed/operator tier) ──
+        // Fleet default: mado is FULLY session-integrated with its embedded
+        // tear runtime (runtime = Embedded by default, the only mode that
+        // drives the switch channel today). Two knobs come on together:
+        //   * `session_switching` — runtime pane re-attach: the `switch_session`
+        //     MCP tool + the Ctrl-S picker move the displayed pane to a
+        //     different live tear session in the same window (no tabs/splits).
+        //   * `auto_attach = AutoSwitch` — the praça automation-first headline:
+        //     a cross-project `cd` auto-attaches the pane to that project's
+        //     session (spawning + naming + binding it if none exists).
+        // auto_attach REQUIRES session_switching, so they're set as a pair.
+        // The bare tier (`bare()`) keeps BOTH off (tear = Never), so the
+        // opt-out is `MADO_TIER=bare` or an explicit `tear.*` override.
+        c.tear.session_switching = true;
+        c.tear.auto_attach = AutoAttachMode::AutoSwitch;
         // Scrollback is deliberately NOT overlaid: detection can only
         // *downgrade* the prescribed "never lose anything" contract
         // (`default_scrollback()` = usize::MAX, commit 752cb01) to a
