@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "866e140ff00f90603860282405a2e38054c0b157443a18a700bb593fd00cef36",
+  "cargo_lock_sha256": "9818f8963ff5e7e35109431c51a09d427d75c4704c470e37d15e24edf054ed06",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -368,7 +368,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "full",
@@ -407,7 +407,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "clone-impls",
@@ -788,7 +788,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "full",
@@ -934,7 +934,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1282,7 +1282,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "full"
@@ -1800,7 +1800,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "full",
@@ -1859,7 +1859,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "full",
@@ -1901,7 +1901,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1937,7 +1937,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -2063,7 +2063,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -2221,7 +2221,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3225,7 +3225,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "full"
@@ -3520,7 +3520,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "full",
@@ -4999,7 +4999,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "full"
@@ -5396,7 +5396,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "full"
@@ -5724,7 +5724,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.69-43d62999fe6e3d043afdf18320531abfb76d01a5",
+            "package_key": "shikumi-0.1.73-6c91f40ce1d80ccde3066f3b7b324bf24dff1fee",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -6715,7 +6715,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "full"
@@ -6813,7 +6813,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "derive",
@@ -6990,7 +6990,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "full",
@@ -7163,7 +7163,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "full",
@@ -7202,7 +7202,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "full",
@@ -7346,7 +7346,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "full",
@@ -7385,7 +7385,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "full",
@@ -7714,7 +7714,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -7772,7 +7772,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8590,7 +8590,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9165,7 +9165,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "full"
@@ -10001,7 +10001,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "extra-traits"
@@ -10049,7 +10049,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -10110,7 +10110,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "full",
@@ -10562,7 +10562,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "parsing",
@@ -10969,7 +10969,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "parsing",
@@ -11102,7 +11102,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "derive",
@@ -11210,7 +11210,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "clone-impls",
@@ -11254,7 +11254,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "clone-impls",
@@ -11661,7 +11661,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.69-43d62999fe6e3d043afdf18320531abfb76d01a5",
+            "package_key": "shikumi-0.1.73-6c91f40ce1d80ccde3066f3b7b324bf24dff1fee",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11705,7 +11705,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.69-43d62999fe6e3d043afdf18320531abfb76d01a5": {
+      "shikumi-0.1.73-6c91f40ce1d80ccde3066f3b7b324bf24dff1fee": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -12620,7 +12620,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "parsing",
@@ -12792,7 +12792,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "full",
@@ -13992,7 +13992,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "parsing",
@@ -14102,7 +14102,7 @@
           "quote"
         ]
       },
-      "syn-2.0.117": {
+      "syn-2.0.118": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -14174,7 +14174,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "derive",
@@ -14290,7 +14290,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "full"
@@ -14477,7 +14477,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.69-43d62999fe6e3d043afdf18320531abfb76d01a5",
+            "package_key": "shikumi-0.1.73-6c91f40ce1d80ccde3066f3b7b324bf24dff1fee",
             "kind": "normal",
             "features": [
               "cli"
@@ -15036,7 +15036,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15072,7 +15072,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15486,7 +15486,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "full"
@@ -15926,7 +15926,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "full",
@@ -16287,7 +16287,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "full",
@@ -16581,7 +16581,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "full",
@@ -17914,7 +17914,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "fold"
@@ -18000,7 +18000,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "full"
@@ -18056,7 +18056,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "fold"
@@ -18192,7 +18192,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.117",
+            "package_key": "syn-2.0.118",
             "kind": "normal",
             "features": [
               "extra-traits"
@@ -18847,7 +18847,7 @@
               },
               {
                 "name": "syn",
-                "package_key": "syn-2.0.117",
+                "package_key": "syn-2.0.118",
                 "kind": "normal",
                 "features": [
                   "full"
@@ -19010,7 +19010,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.8": {
+          "mado-0.1.9": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -19460,7 +19460,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.69-43d62999fe6e3d043afdf18320531abfb76d01a5",
+                "package_key": "shikumi-0.1.73-6c91f40ce1d80ccde3066f3b7b324bf24dff1fee",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -23016,7 +23016,7 @@
               },
               {
                 "name": "syn",
-                "package_key": "syn-2.0.117",
+                "package_key": "syn-2.0.118",
                 "kind": "normal",
                 "features": [
                   "full"
@@ -23179,7 +23179,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.8": {
+          "mado-0.1.9": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -23629,7 +23629,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.69-43d62999fe6e3d043afdf18320531abfb76d01a5",
+                "package_key": "shikumi-0.1.73-6c91f40ce1d80ccde3066f3b7b324bf24dff1fee",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -27235,7 +27235,7 @@
               "xdp"
             ]
           },
-          "mado-0.1.8": {
+          "mado-0.1.9": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -27655,7 +27655,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.69-43d62999fe6e3d043afdf18320531abfb76d01a5",
+                "package_key": "shikumi-0.1.73-6c91f40ce1d80ccde3066f3b7b324bf24dff1fee",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -30768,7 +30768,7 @@
               "xdp"
             ]
           },
-          "mado-0.1.8": {
+          "mado-0.1.9": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31188,7 +31188,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.69-43d62999fe6e3d043afdf18320531abfb76d01a5",
+                "package_key": "shikumi-0.1.73-6c91f40ce1d80ccde3066f3b7b324bf24dff1fee",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -34327,7 +34327,7 @@
               "xdp"
             ]
           },
-          "mado-0.1.8": {
+          "mado-0.1.9": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -34747,7 +34747,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.69-43d62999fe6e3d043afdf18320531abfb76d01a5",
+                "package_key": "shikumi-0.1.73-6c91f40ce1d80ccde3066f3b7b324bf24dff1fee",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -37906,7 +37906,7 @@
               "xdp"
             ]
           },
-          "mado-0.1.8": {
+          "mado-0.1.9": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -38326,7 +38326,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.69-43d62999fe6e3d043afdf18320531abfb76d01a5",
+                "package_key": "shikumi-0.1.73-6c91f40ce1d80ccde3066f3b7b324bf24dff1fee",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -41524,7 +41524,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.8": {
+    "mado-0.1.9": {
       "edition": "2024",
       "binaries": [
         {
@@ -42088,7 +42088,7 @@
     "shidou-0.1.8-b0929681f6f4323177b86e350c82ec3f9f61869f": {
       "edition": "2024"
     },
-    "shikumi-0.1.69-43d62999fe6e3d043afdf18320531abfb76d01a5": {
+    "shikumi-0.1.73-6c91f40ce1d80ccde3066f3b7b324bf24dff1fee": {
       "edition": "2024"
     },
     "shlex-2.0.1": {
@@ -42199,7 +42199,7 @@
       "edition": "2018",
       "build_script": "build.rs"
     },
-    "syn-2.0.117": {
+    "syn-2.0.118": {
       "edition": "2021"
     },
     "synstructure-0.13.2": {
@@ -42825,7 +42825,7 @@
     "pleme-kindstr-derive-0.1.0-d287f915e9bb8837a443f6238ee900e81318ce89": "sha256-5XDr9kPiT0doWBOOk9yXjxdTCpRgaqWWJCpsc1f+tdw=",
     "praca-0.1.0-ff96fccc4dc44a0201e9611fae72da2b5036441e": "sha256-lYfunPvbQDAEdZTBYg6H5lDoJCXo97ZIJcy7uI/IXQE=",
     "shidou-0.1.8-b0929681f6f4323177b86e350c82ec3f9f61869f": "sha256-LteP9mCB8rSjBdbb9r/uh5URZ5XTPDDoNxSKy5mMD8A=",
-    "shikumi-0.1.69-43d62999fe6e3d043afdf18320531abfb76d01a5": "sha256-9VEMUodDgQzFtoIJpctU35m/jsNl6F5Jx3gO4X5zIEc=",
+    "shikumi-0.1.73-6c91f40ce1d80ccde3066f3b7b324bf24dff1fee": "sha256-Bl+VSqOxwZCQ7xZMsj/vpWdYsAfF4Paq+Yu6rXP0ASU=",
     "tatara-lisp-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6": "sha256-sknlm2aQVNND1NFuQ/iZw27NS7rOTUsBxKTpgMTby2g=",
     "tatara-lisp-derive-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6": "sha256-sknlm2aQVNND1NFuQ/iZw27NS7rOTUsBxKTpgMTby2g=",
     "tatara-lisp-eval-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6": "sha256-sknlm2aQVNND1NFuQ/iZw27NS7rOTUsBxKTpgMTby2g=",
