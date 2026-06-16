@@ -3241,13 +3241,13 @@ rec {
       };
       "egaku" = rec {
         crateName = "egaku";
-        version = "0.1.1";
+        version = "0.1.3";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/egaku";
-          rev = "7ed01267c87137e8649a05209dbd5851ae0a5b16";
-          sha256 = "0sb29a1kmdxgzrfhlq484fgska0qwqpxndqafyfrgbypfmfq262q";
+          rev = "81d168190061c452d115f58f186429b84f489be8";
+          sha256 = "11vb9da48bjj34w3kd2sqsh5qp43b9gbkmf8p41n7qw3qfdykm5h";
         };
         dependencies = [
           {
@@ -7389,7 +7389,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.6";
+        version = "0.1.7";
         edition = "2024";
         crateBin = [
           {
