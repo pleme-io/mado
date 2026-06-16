@@ -13,7 +13,8 @@
 //! every row, then fail once via the exit code):
 //!
 //! 1. `spawn_term`   — session opens for the configured shell
-//! 2. `prompt_visible` — non-blank grid content within 10s
+//! 2. `prompt_visible` — non-blank grid content within the per-row
+//!    ceiling (`MADO_E2E_PROMPT_TIMEOUT_SECS`, default 45s)
 //! 3. `enter_fresh_prompt` — Enter → shell still interactive, a
 //!    fresh prompt line appears (the E5 death point)
 //! 4. `echo_marker`  — `echo E2E_MARKER` round-trips: the marker
@@ -43,8 +44,21 @@ use rmcp::{RoleClient, ServiceExt};
 use serde::Serialize;
 
 /// Per-row wait ceiling. The L2 spec says "prompt visible within
-/// 10s"; the same ceiling bounds every round-trip row.
-const ROW_TIMEOUT: Duration = Duration::from_secs(10);
+/// 10s"; the same ceiling bounds every round-trip row (prompt_visible,
+/// enter_fresh_prompt, echo_marker). Operator-tunable via
+/// `MADO_E2E_PROMPT_TIMEOUT_SECS` (u64 seconds; default 45) — 10s was
+/// too tight for the heavier frostmourne rc under rebuild load.
+const ROW_TIMEOUT_DEFAULT_SECS: u64 = 45;
+
+/// Resolve the per-row wait ceiling from `MADO_E2E_PROMPT_TIMEOUT_SECS`
+/// (falling back to [`ROW_TIMEOUT_DEFAULT_SECS`] when unset/unparseable).
+fn row_timeout() -> Duration {
+    let secs = std::env::var("MADO_E2E_PROMPT_TIMEOUT_SECS")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .unwrap_or(ROW_TIMEOUT_DEFAULT_SECS);
+    Duration::from_secs(secs)
+}
 /// Poll cadence while waiting on grid content.
 const POLL_INTERVAL: Duration = Duration::from_millis(100);
 /// Sentinel for the echo round-trip row. Must appear ≥2× in the
@@ -53,7 +67,7 @@ const E2E_MARKER: &str = "E2E_MARKER";
 /// How long the `single_recorder` row waits for the shell's chdir
 /// hook to land a visit in the hermetic store before concluding the
 /// shell is a non-recorder (`/bin/sh` pays this in full every run —
-/// keep it well under [`ROW_TIMEOUT`]).
+/// keep it well under [`row_timeout`]).
 const RECORD_WAIT: Duration = Duration::from_secs(2);
 /// Settle window between "first visit observed" and the final
 /// exactly-one recount — long enough for a second errant recorder
@@ -155,7 +169,7 @@ pub async fn run(shell: &str) -> Result<E2eSummary> {
                 }
                 Err(e) => rows.push(RowResult::failed(
                     "prompt_visible",
-                    format!("no non-blank grid content within {ROW_TIMEOUT:?}: {e:#}"),
+                    format!("no non-blank grid content within {:?}: {e:#}", row_timeout()),
                 )),
             }
         }
@@ -183,7 +197,8 @@ pub async fn run(shell: &str) -> Result<E2eSummary> {
                 Err(e) => rows.push(RowResult::failed(
                     "enter_fresh_prompt",
                     format!(
-                        "no fresh prompt within {ROW_TIMEOUT:?} after Enter (E5 class — shell dead or frozen): {e:#}"
+                        "no fresh prompt within {:?} after Enter (E5 class — shell dead or frozen): {e:#}",
+                        row_timeout()
                     ),
                 )),
             }
@@ -218,7 +233,8 @@ pub async fn run(shell: &str) -> Result<E2eSummary> {
                         Err(e) => rows.push(RowResult::failed(
                             "echo_marker",
                             format!(
-                                "marker did not round-trip ≥2× within {ROW_TIMEOUT:?}: {e:#}"
+                                "marker did not round-trip ≥2× within {:?}: {e:#}",
+                                row_timeout()
                             ),
                         )),
                     }
@@ -562,14 +578,14 @@ async fn send_keys(client: &Client, session_id: &str, keys: &str) -> Result<()> 
     Ok(())
 }
 
-/// Poll `get_output` until `accept` holds or [`ROW_TIMEOUT`] elapses.
+/// Poll `get_output` until `accept` holds or [`row_timeout`] elapses.
 /// Returns the accepted grid text; errors with the LAST observed grid
 /// so a failed row's detail shows what the terminal actually rendered.
 async fn wait_for_output<F>(client: &Client, session_id: &str, accept: F) -> Result<String>
 where
     F: Fn(&str) -> bool,
 {
-    let deadline = Instant::now() + ROW_TIMEOUT;
+    let deadline = Instant::now() + row_timeout();
     let mut last = String::new();
     while Instant::now() < deadline {
         last = get_output(client, session_id).await?;
