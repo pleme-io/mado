@@ -525,6 +525,12 @@ pub struct MadoTearConfig {
     /// behaves as `Off`. See [`AutoAttachMode`].
     #[serde(default)]
     pub auto_attach: AutoAttachMode,
+    /// Where the Ctrl-S session picker overlay is anchored on screen.
+    /// **Defaults [`PickerAnchor::Bottom`]** — the picker rises from the
+    /// bottom edge (the Ctrl-R / Ctrl-T fuzzy-finder feel) instead of
+    /// dropping from the top.
+    #[serde(default)]
+    pub session_picker_anchor: PickerAnchor,
 }
 
 /// Per-field TearConfig overrides mado optionally pushes to the
@@ -644,8 +650,25 @@ impl Default for MadoTearConfig {
             impose: None,
             session_switching: false,
             auto_attach: AutoAttachMode::default(),
+            session_picker_anchor: PickerAnchor::default(),
         }
     }
+}
+
+/// Where a floating picker overlay (Ctrl-S session picker) is anchored
+/// on screen. The operator's stated preference: pickers should rise from
+/// the **bottom** (like the shell's Ctrl-R / Ctrl-T fuzzy finders), not
+/// drop from the top — so [`Bottom`](PickerAnchor::Bottom) is the default.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum PickerAnchor {
+    /// Pin the picker to the bottom of the window — it grows upward from
+    /// near the bottom edge. Default; matches the Ctrl-R/Ctrl-T feel.
+    #[default]
+    Bottom,
+    /// Pin the picker to the top of the window — the legacy drop-from-top
+    /// behavior, kept for operators who prefer it.
+    Top,
 }
 
 /// How mado interacts with the tear-daemon multiplexer. See
@@ -1794,6 +1817,7 @@ impl MadoConfig {
                 session_switching: false,
                 // Auto-attach is opt-in too; bare = no cd-driven moves.
                 auto_attach: AutoAttachMode::Off,
+                session_picker_anchor: PickerAnchor::default(),
             },
             // ── Effects ──────────────────────────────────────────
             // All effects disabled in bare. Snow params stay at

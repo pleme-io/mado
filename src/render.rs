@@ -1124,6 +1124,12 @@ pub struct TerminalRenderer {
     /// Reduce motion: disable cursor blink and bell flash.
     #[invalidating_setter]
     reduce_motion: bool,
+    /// Where the Ctrl-S session picker overlay anchors on screen.
+    /// `Bottom` (default) rises from the bottom edge like Ctrl-R/Ctrl-T;
+    /// `Top` is the legacy drop-from-top. Set from
+    /// `config.tear.session_picker_anchor` in
+    /// [`apply_effects_and_accessibility`](Self::apply_effects_and_accessibility).
+    session_picker_anchor: crate::config::PickerAnchor,
     /// Window focus — unfocused windows draw a hollow, steady cursor
     /// (the which-window-owns-the-keyboard affordance). Set by the
     /// adapters' Focused arms.
@@ -1375,6 +1381,7 @@ impl TerminalRenderer {
             search_current_color: Color::new(0xEB, 0xCB, 0x8B),
             search_other_color: Color::new(0xEB, 0xCB, 0x8B),
             reduce_motion: false,
+            session_picker_anchor: crate::config::PickerAnchor::default(),
             focused: true,
             // 1.0 = no scaling; overwritten on the first render frame
             // by `set_scale_factor(ctx.scale_factor)`.
@@ -1413,6 +1420,7 @@ impl TerminalRenderer {
     pub fn apply_effects_and_accessibility(&mut self, config: &crate::config::MadoConfig) {
         self.set_bold_is_bright(config.appearance.bold_is_bright);
         self.set_reduce_motion(config.accessibility.reduce_motion);
+        self.session_picker_anchor = config.tear.session_picker_anchor;
         self.set_effects_config(config.resolved_effects());
     }
 
@@ -1814,7 +1822,6 @@ impl TerminalRenderer {
         let fs = self.font_size_px();
         let line_h = fs * self.line_height;
         let left = self.padding_px() + self.cell_width * 2.0;
-        let top0 = self.padding_px() + self.cell_height;
         let max_rows = 12usize;
 
         let mut lines: Vec<String> = Vec::with_capacity(max_rows + 1);
@@ -1829,6 +1836,18 @@ impl TerminalRenderer {
                 lines.push(format!("{marker}{}", row.label));
             }
         }
+
+        // Anchor the picker block: Bottom (default) rises from the bottom
+        // edge like the shell's Ctrl-R / Ctrl-T fuzzy finders; Top is the
+        // legacy drop-from-top. Derived from the line count so the whole
+        // overlay sits flush against the chosen edge.
+        let block_h = lines.len() as f32 * line_h;
+        let top0 = match self.session_picker_anchor {
+            crate::config::PickerAnchor::Top => self.padding_px() + self.cell_height,
+            crate::config::PickerAnchor::Bottom => {
+                (ctx.height as f32 - block_h - self.padding_px()).max(self.padding_px())
+            }
+        };
 
         let mut buffers: Vec<glyphon::Buffer> = Vec::with_capacity(lines.len());
         for line in &lines {
