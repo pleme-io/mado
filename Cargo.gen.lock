@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "d20450bb7b2f1252d318025a530e5e401f7c582cc3161574c154b31e4e260d23",
+  "cargo_lock_sha256": "2e3d30620de74547b37352fe9931554a5e577e09641f492004f36caa6300f53a",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -2282,7 +2282,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "egaku-0.1.1-7ed01267c87137e8649a05209dbd5851ae0a5b16": {
+      "egaku-0.1.3-81d168190061c452d115f58f186429b84f489be8": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -5067,7 +5067,7 @@
           },
           {
             "name": "egaku",
-            "package_key": "egaku-0.1.1-7ed01267c87137e8649a05209dbd5851ae0a5b16",
+            "package_key": "egaku-0.1.3-81d168190061c452d115f58f186429b84f489be8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5682,7 +5682,7 @@
         "runtime_dependencies": [
           {
             "name": "egaku",
-            "package_key": "egaku-0.1.1-7ed01267c87137e8649a05209dbd5851ae0a5b16",
+            "package_key": "egaku-0.1.3-81d168190061c452d115f58f186429b84f489be8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18980,7 +18980,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.5": {
+          "mado-0.1.6": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -23149,7 +23149,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.5": {
+          "mado-0.1.6": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -27205,7 +27205,7 @@
               "xdp"
             ]
           },
-          "mado-0.1.5": {
+          "mado-0.1.6": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -30738,7 +30738,7 @@
               "xdp"
             ]
           },
-          "mado-0.1.5": {
+          "mado-0.1.6": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -34297,7 +34297,7 @@
               "xdp"
             ]
           },
-          "mado-0.1.5": {
+          "mado-0.1.6": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -37876,7 +37876,7 @@
               "xdp"
             ]
           },
-          "mado-0.1.5": {
+          "mado-0.1.6": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -41122,7 +41122,7 @@
     "dyn-clone-1.0.20": {
       "edition": "2018"
     },
-    "egaku-0.1.1-7ed01267c87137e8649a05209dbd5851ae0a5b16": {
+    "egaku-0.1.3-81d168190061c452d115f58f186429b84f489be8": {
       "edition": "2024"
     },
     "either-1.16.0": {
@@ -41494,7 +41494,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.5": {
+    "mado-0.1.6": {
       "edition": "2024",
       "binaries": [
         {
@@ -42772,7 +42772,7 @@
   },
   "git_nar_sha256": {
     "awase-0.1.1-25880f6a1dddb6d8d589207e8afc2a5a73969ee0": "sha256-UvuzaneHM+C0wq3+uZ+sf6GEv5JDB1e/sJ2SuA7kJuQ=",
-    "egaku-0.1.1-7ed01267c87137e8649a05209dbd5851ae0a5b16": "sha256-WBiBXXXXr5eddwo32y/mGKipnyOIYApd/q+3OoNKYmk=",
+    "egaku-0.1.3-81d168190061c452d115f58f186429b84f489be8": "sha256-sNTpm8OD42MDucjVuV5ag1xcoMZatDk4GVIuRFRLa4c=",
     "engate-attach-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": "sha256-7dqrUg3KMEKH5ac5RuK7EJRogt4H3xtv6nDrM0jpccM=",
     "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": "sha256-7dqrUg3KMEKH5ac5RuK7EJRogt4H3xtv6nDrM0jpccM=",
     "engawa-0.1.3-14dea6c8b8a8befc677c3377bc5a74a5a9c253fa": "sha256-pXaaVwv9kkMbxJDTKpmP1SgPwae+xAFh8ixacZQT3d0=",
