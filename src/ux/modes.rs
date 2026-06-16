@@ -279,28 +279,65 @@ impl Overlay {
             // consumed because the consuming arm does not exist in
             // this state. Bare Esc reaches vim/helix/fzf by
             // construction, not by guard.
+            // Opening an overlay from `None` ALSO closes the two sibling
+            // RENDER mirrors first. The FSM enum already makes "two
+            // overlays own the keyboard" unrepresentable, but the
+            // renderer reads three INDEPENDENT `.open` mirror cells
+            // (search / dir-picker / session-picker) that are only kept
+            // single-open by the close effects emitted on cross-overlay
+            // transitions. If a prior overlay's mirror was ever left set
+            // while the FSM returned to `None` (a mirror/FSM desync — the
+            // pair is only-mitigated per docs/UNREPRESENTABILITY-
+            // VERIFICATION.md), the next `Open*` would draw BOTH: e.g. a
+            // stale dir-picker pinned top-left while the session picker
+            // renders bottom-left. Closing the siblings on every open
+            // makes that double-draw unrepresentable from the open path,
+            // independent of how `None` was reached.
             Overlay::None => match event {
-                OverlayEvent::OpenSearch => {
-                    overlay_step(Overlay::Search, Consumed, vec![OverlayEffect::SearchOpen])
-                }
+                OverlayEvent::OpenSearch => overlay_step(
+                    Overlay::Search,
+                    Consumed,
+                    vec![
+                        OverlayEffect::DirPickerClose,
+                        OverlayEffect::SessionPickerClose,
+                        OverlayEffect::SearchOpen,
+                    ],
+                ),
                 OverlayEvent::OpenDirPicker => overlay_step(
                     Overlay::DirPicker,
                     Consumed,
-                    vec![OverlayEffect::DirPickerOpen],
+                    vec![
+                        OverlayEffect::SearchClose,
+                        OverlayEffect::SessionPickerClose,
+                        OverlayEffect::DirPickerOpen,
+                    ],
                 ),
                 OverlayEvent::OpenSessionPicker => overlay_step(
                     Overlay::SessionPicker,
                     Consumed,
-                    vec![OverlayEffect::SessionPickerOpen],
+                    vec![
+                        OverlayEffect::SearchClose,
+                        OverlayEffect::DirPickerClose,
+                        OverlayEffect::SessionPickerOpen,
+                    ],
                 ),
                 OverlayEvent::Key(_) => overlay_step(Overlay::None, FallThrough, vec![]),
             },
 
             // ── Search bar owns the keyboard ─────────────────────
             Overlay::Search => match event {
-                OverlayEvent::OpenSearch => {
-                    overlay_step(Overlay::Search, Consumed, vec![OverlayEffect::SearchOpen])
-                }
+                // Every open closes BOTH siblings first (idempotent on a
+                // closed mirror), so at most one render mirror is ever set
+                // — see the single-mirror LAW + `opening_an_overlay_*` test.
+                OverlayEvent::OpenSearch => overlay_step(
+                    Overlay::Search,
+                    Consumed,
+                    vec![
+                        OverlayEffect::DirPickerClose,
+                        OverlayEffect::SessionPickerClose,
+                        OverlayEffect::SearchOpen,
+                    ],
+                ),
                 // Switch semantics (decision 2026-06-12): pre-FSM an
                 // injected DirPickerOpen set both shared bools; the
                 // search bar kept the keyboard and the picker drew
@@ -311,12 +348,20 @@ impl Overlay {
                 OverlayEvent::OpenDirPicker => overlay_step(
                     Overlay::DirPicker,
                     Consumed,
-                    vec![OverlayEffect::SearchClose, OverlayEffect::DirPickerOpen],
+                    vec![
+                        OverlayEffect::SearchClose,
+                        OverlayEffect::SessionPickerClose,
+                        OverlayEffect::DirPickerOpen,
+                    ],
                 ),
                 OverlayEvent::OpenSessionPicker => overlay_step(
                     Overlay::SessionPicker,
                     Consumed,
-                    vec![OverlayEffect::SearchClose, OverlayEffect::SessionPickerOpen],
+                    vec![
+                        OverlayEffect::SearchClose,
+                        OverlayEffect::DirPickerClose,
+                        OverlayEffect::SessionPickerOpen,
+                    ],
                 ),
                 OverlayEvent::Key(k) => match k.nav {
                     Some(SearchNav::Close) => {
@@ -363,17 +408,29 @@ impl Overlay {
                 OverlayEvent::OpenSearch => overlay_step(
                     Overlay::Search,
                     Consumed,
-                    vec![OverlayEffect::DirPickerClose, OverlayEffect::SearchOpen],
+                    vec![
+                        OverlayEffect::DirPickerClose,
+                        OverlayEffect::SessionPickerClose,
+                        OverlayEffect::SearchOpen,
+                    ],
                 ),
                 OverlayEvent::OpenDirPicker => overlay_step(
                     Overlay::DirPicker,
                     Consumed,
-                    vec![OverlayEffect::DirPickerOpen],
+                    vec![
+                        OverlayEffect::SearchClose,
+                        OverlayEffect::SessionPickerClose,
+                        OverlayEffect::DirPickerOpen,
+                    ],
                 ),
                 OverlayEvent::OpenSessionPicker => overlay_step(
                     Overlay::SessionPicker,
                     Consumed,
-                    vec![OverlayEffect::DirPickerClose, OverlayEffect::SessionPickerOpen],
+                    vec![
+                        OverlayEffect::SearchClose,
+                        OverlayEffect::DirPickerClose,
+                        OverlayEffect::SessionPickerOpen,
+                    ],
                 ),
                 OverlayEvent::Key(k) => match k.key {
                     OverlayKeyClass::Escape => {
@@ -429,17 +486,29 @@ impl Overlay {
                 OverlayEvent::OpenSearch => overlay_step(
                     Overlay::Search,
                     Consumed,
-                    vec![OverlayEffect::SessionPickerClose, OverlayEffect::SearchOpen],
+                    vec![
+                        OverlayEffect::DirPickerClose,
+                        OverlayEffect::SessionPickerClose,
+                        OverlayEffect::SearchOpen,
+                    ],
                 ),
                 OverlayEvent::OpenDirPicker => overlay_step(
                     Overlay::DirPicker,
                     Consumed,
-                    vec![OverlayEffect::SessionPickerClose, OverlayEffect::DirPickerOpen],
+                    vec![
+                        OverlayEffect::SearchClose,
+                        OverlayEffect::SessionPickerClose,
+                        OverlayEffect::DirPickerOpen,
+                    ],
                 ),
                 OverlayEvent::OpenSessionPicker => overlay_step(
                     Overlay::SessionPicker,
                     Consumed,
-                    vec![OverlayEffect::SessionPickerOpen],
+                    vec![
+                        OverlayEffect::SearchClose,
+                        OverlayEffect::DirPickerClose,
+                        OverlayEffect::SessionPickerOpen,
+                    ],
                 ),
                 OverlayEvent::Key(k) => match k.key {
                     OverlayKeyClass::Escape => overlay_step(
@@ -1492,6 +1561,72 @@ mod tests {
         assert!(
             failures.is_empty(),
             "{} overlay matrix violations:\n  - {}",
+            failures.len(),
+            failures.join("\n  - ")
+        );
+    }
+
+    /// THE single-mirror LAW: opening ANY overlay from ANY state emits a
+    /// close effect for the two SIBLING overlays, so at most one render
+    /// mirror (`SearchState.active` / `DirPickerState.open` /
+    /// `SessionPickerState.open`) is ever left set. The renderer reads
+    /// those three INDEPENDENT mirror cells; without this, a stale mirror
+    /// (a mirror/FSM desync) would draw two overlays at once — e.g. a
+    /// dir-picker pinned top-left while the Ctrl-S session picker renders
+    /// bottom-left. Closing the siblings on every open makes that
+    /// double-draw unrepresentable from the open path, including from
+    /// `Overlay::None` (the case the matrix test above doesn't cover).
+    #[test]
+    fn opening_an_overlay_closes_both_sibling_mirrors() {
+        // (open event, the overlay it opens, the two sibling close
+        // effects that MUST appear before the open effect).
+        let cases = [
+            (
+                OverlayEvent::OpenSearch,
+                OverlayEffect::SearchOpen,
+                [OverlayEffect::DirPickerClose, OverlayEffect::SessionPickerClose],
+            ),
+            (
+                OverlayEvent::OpenDirPicker,
+                OverlayEffect::DirPickerOpen,
+                [OverlayEffect::SearchClose, OverlayEffect::SessionPickerClose],
+            ),
+            (
+                OverlayEvent::OpenSessionPicker,
+                OverlayEffect::SessionPickerOpen,
+                [OverlayEffect::SearchClose, OverlayEffect::DirPickerClose],
+            ),
+        ];
+        let mut failures: Vec<String> = Vec::new();
+        for state in all_overlay_states() {
+            for (event, open_fx, siblings) in &cases {
+                let step = state.on_event(event.clone());
+                let ctx = format!("{state:?} × {event:?}");
+                let open_pos = step.effects.iter().position(|e| e == open_fx);
+                let Some(open_pos) = open_pos else {
+                    failures.push(format!("{ctx}: missing the open effect {open_fx:?}"));
+                    continue;
+                };
+                for sib in siblings {
+                    // The sibling that equals the state we're leaving is
+                    // already covered by that state's own switch arm; but
+                    // requiring the close UNCONDITIONALLY (idempotent on a
+                    // closed mirror) is what kills the desync, so every
+                    // sibling close must be present and precede the open.
+                    match step.effects.iter().position(|e| e == sib) {
+                        None => failures
+                            .push(format!("{ctx}: missing sibling close {sib:?}")),
+                        Some(p) if p > open_pos => failures.push(format!(
+                            "{ctx}: sibling close {sib:?} runs AFTER the open"
+                        )),
+                        Some(_) => {}
+                    }
+                }
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "{} single-mirror violations:\n  - {}",
             failures.len(),
             failures.join("\n  - ")
         );
