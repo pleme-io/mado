@@ -21,7 +21,11 @@
   # `src = ./.` is required (not `self`) because substrate reads
   # Cargo.build-spec.json at eval time and `self` triggers an
   # outputs-attrset cycle.
-  outputs = { substrate, ishou, ... }: substrate.rust.tool {
+  outputs = { substrate, ishou, ... }:
+  let
+    # The canonical substrate Rust-tool surface (binary + HM/NixOS/Darwin
+    # module trio + the six operator verbs). Unchanged.
+    base = substrate.rust.tool {
     src = ./.;
     repo = "pleme-io/mado";
 
@@ -212,5 +216,47 @@
           home.packages = fontPackages;
         };
     };
-  };
+    };
+
+    # ── release-macos: build + sign + publish the Mado.app DMG. ───────────
+    # A maintainer cuts a local DMG (or pushes a GitHub Release) with
+    # `nix run .#release-macos`. The whole pipeline is the typed Rust
+    # `mado-release` binary (in the isolated `release/` workspace, which
+    # consumes the SHARED `mac-app-release` primitive); this flake app is
+    # the sanctioned 3-line glue that builds + execs it. NO bundle/icon
+    # logic lives here — it is all in `mac-app-release`.
+    #
+    # nixpkgs + flake-utils come from substrate's own inputs (the consumer
+    # never re-declares them — same closure-dedup rule as the rest of the
+    # flake). The release tool runs `cargo build --release --bin mado`
+    # itself (mado's GPU build needs the host SDK), so the shim only needs
+    # cargo/git/gh on PATH plus the Xcode CLT (codesign/hdiutil/iconutil).
+    nixpkgs = substrate.inputs.nixpkgs;
+    flake-utils = substrate.inputs.flake-utils;
+
+    releaseOutputs = flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = import nixpkgs { inherit system; };
+        releaseMacos = pkgs.writeShellScriptBin "release-macos" ''
+          set -euo pipefail
+          export PATH="${pkgs.lib.makeBinPath [ pkgs.git pkgs.gh pkgs.coreutils ]}:$PATH"
+          start="''${MADO_DIR:-$PWD}"
+          here="$(git -C "$start" rev-parse --show-toplevel 2>/dev/null || echo "$start")"
+          export MADO_DIR="$here"
+          # The release tooling lives in its own workspace under release/ so it
+          # never enters mado's substrate-built root crate.
+          cargo build --release --manifest-path "$here/release/Cargo.toml" --bin mado-release
+          exec "$here/release/target/release/mado-release" "$@"
+        '';
+      in {
+        packages.release-macos = releaseMacos;
+        apps.release-macos = {
+          type = "app";
+          program = "${releaseMacos}/bin/release-macos";
+        };
+      });
+  in
+    # Deep-merge the release outputs onto the substrate surface. recursiveUpdate
+    # merges per-system `apps`/`packages` without clobbering substrate's.
+    nixpkgs.lib.recursiveUpdate base releaseOutputs;
 }

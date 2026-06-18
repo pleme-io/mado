@@ -1,0 +1,31 @@
+# mac-app-release — the SHARED, app-agnostic macOS `.app`/DMG release core.
+#
+# THE extraction of the repeated pattern between gaveta-client's gaveta-release
+# and mado's mado-release: assemble + sign + DMG-package + tag a macOS app
+# bundle, typed end to end, no shell-string composition. Every unavoidable
+# Mac-native tool (codesign/hdiutil/ditto/iconutil) runs through a typed
+# `Command` wrapper. The publish backend is NOT here — each consumer supplies
+# its own (gaveta → armázem S3; mado → GitHub Releases).
+[package]
+name = "mac-app-release"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Shared, typed macOS .app/DMG release core (assemble + ad-hoc sign + DMG + autobump tags), no shell."
+
+[dependencies]
+thiserror.workspace = true
+plist.workspace = true
+serde.workspace = true
+# SVG → iconset PNG rasterization in pure Rust (same rasterizer as substrate's
+# Nix mkDarwinAppBundle). image carries the PNG encoder.
+image.workspace = true
+resvg.workspace = true
+# Sortable exact-tag timestamp.
+chrono.workspace = true
+# Structured logging (typed emission — replaces echo).
+tracing.workspace = true
+
+[dev-dependencies]
+tempfile = "3"

@@ -1,0 +1,29 @@
+# mado-release — the typed macOS release tool for Mado.app.
+#
+# A THIN consumer of the shared `mac-app-release` primitive. Owns only
+# mado-specific concerns: building the `mado` binary (cargo), the WINDOWED
+# AppSpec (Dock icon, NO LSUIElement — unlike gaveta's menu-bar app), and the
+# GitHub-Releases publish path (via the `gh` CLI). Driven by `nix run
+# .#release-macos` from the mado flake.
+[package]
+name = "mado-release"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Typed macOS release tool for Mado.app — cargo build + assemble + sign + DMG + GitHub Releases (no shell)."
+
+[[bin]]
+name = "mado-release"
+path = "src/main.rs"
+
+[dependencies]
+mac-app-release.workspace = true
+anyhow.workspace = true
+clap.workspace = true
+chrono.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+[dev-dependencies]
+tempfile = "3"

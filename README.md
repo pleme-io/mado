@@ -37,27 +37,34 @@ cargo test --lib
 
 ## Install
 
-Mado installs two ways: **prebuilt GitHub Release artifacts** (no Nix
-needed) or the **flake + home-manager module** (Nix consumers). Both
-channels build the macOS `.app` / Linux `.desktop` from the same icon
-(`assets/mado-icon.svg`).
+Three easy macOS paths (open source → frictionless), plus Linux + Nix.
+All channels build the macOS `.app` / Linux `.desktop` from the same
+icon (`assets/mado-icon.svg`).
 
-Releases live at <https://github.com/pleme-io/mado/releases>. Every tag
-attaches, per platform/arch:
+> **TL;DR (macOS):** grab the always-fresh DMG from
+> [**releases/latest**](https://github.com/pleme-io/mado/releases/latest)
+> and drag to Applications, **or** `brew install --cask`, **or**
+> `nix run github:pleme-io/mado`.
 
-- the bare binary `mado-<os>-<arch>` + a `.sha256` sidecar,
-- macOS: `Mado-<version>-macos-<arch>.dmg` (drag-install) and a
-  `Mado-<version>-macos-<arch>.zip` of the bare `Mado.app`,
-- Linux: `Mado-<version>-linux-<arch>.tar.gz` (binary + `.desktop` +
-  icon + `install.sh`).
+Releases come in two streams:
 
-Verify any download with its checksum, e.g.
-`shasum -a 256 -c mado-macos-aarch64.sha256`.
+- **Rolling latest** — every merge to `main` publishes a fresh, signed
+  macOS DMG. `releases/latest` always points at the newest build
+  (`macos-arm64-latest` → `Mado-latest-arm64.dmg`), and each build also
+  gets an immutable, sortable `macos-arm64-r<run>-<sha>` release so you
+  can always tell *exactly* what you're running.
+- **Versioned** — every `vX.Y.Z` tag cuts an official release with the
+  per-platform/arch artifacts: the bare binary `mado-<os>-<arch>` +
+  `.sha256`, macOS `Mado-<version>-macos-<arch>.dmg`/`.zip`, and Linux
+  `Mado-<version>-linux-<arch>.tar.gz` (binary + `.desktop` + icon +
+  `install.sh`). Verify with `shasum -a 256 -c mado-macos-aarch64.sha256`.
 
-### macOS (DMG)
+### macOS — 1. DMG (drag-install)
 
-1. Download `Mado-<version>-macos-<arch>.dmg` (use `aarch64` for Apple
-   Silicon, `x86_64` for Intel).
+1. Download the DMG: the rolling
+   [`Mado-latest-arm64.dmg`](https://github.com/pleme-io/mado/releases/latest)
+   (Apple Silicon), or a versioned `Mado-<version>-macos-<arch>.dmg`
+   (use `x86_64` for Intel).
 2. Open it and drag **Mado.app** onto the **Applications** alias.
 3. First launch — the app is **ad-hoc signed, not notarized**, so
    Gatekeeper blocks a plain double-click. Either **right-click →
@@ -69,6 +76,27 @@ Verify any download with its checksum, e.g.
 
    After that, Mado opens normally and shows up in Spotlight / Launchpad
    / the Dock.
+
+### macOS — 2. Homebrew cask (easiest)
+
+```bash
+# until a dedicated tap repo exists, install from the raw cask file:
+brew install --cask \
+  https://raw.githubusercontent.com/pleme-io/mado/main/Casks/mado.rb
+```
+
+The cask tracks the rolling latest DMG and clears the quarantine flag
+for you (no right-click→Open). `brew upgrade` pulls the newest merged
+build. Apple Silicon only for now. See [`Casks/mado.rb`](./Casks/mado.rb)
+for the tap-repo path once one is published
+(`brew install --cask pleme-io/tap/mado`).
+
+### macOS — 3. nix run (no install)
+
+```bash
+nix run github:pleme-io/mado          # run it once
+nix profile install github:pleme-io/mado   # add to your profile
+```
 
 ### Linux (tar.gz)
 
@@ -115,6 +143,26 @@ one switch:
 (SVG → `.icns`, typed `Info.plist`) and a typed `makeDesktopItem` on
 Linux — no hand-rolled bundle logic. `nixosModules.default` and
 `darwinModules.default` are also exported for system-level installs.
+
+### Cutting a macOS release (maintainers)
+
+The DMG/zip pipeline is a typed Rust tool, **no shell scripts**. On a
+Mac with the Xcode Command Line Tools:
+
+```bash
+nix run .#release-macos -- --dry-run        # resolve the plan only
+nix run .#release-macos                     # build + sign + local DMG
+nix run .#release-macos -- --publish        # + push a GitHub Release
+```
+
+The tool (`release/mado-release`) builds `mado`, assembles a windowed
+`Mado.app` (a real Dock icon — **not** a menu-bar app), generates the
+`.icns` from `assets/mado-icon.svg`, ad-hoc codesigns, and packages the
+DMG + zip. It is a thin consumer of the shared, app-agnostic
+`mac-app-release` library (`release/mac-app-release`) — the extracted
+core that gaveta-client's `gaveta-release` also targets. CI runs the
+same tool on every merge (the autobump rolling release) and on `v*`
+tags (the official cut). See [`release/mac-app-release/README.md`](./release/mac-app-release/README.md).
 
 ## Configuration
 

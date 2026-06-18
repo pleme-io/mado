@@ -1,0 +1,56 @@
+# mado release workspace — the typed macOS `.app`/DMG release tooling.
+#
+# Lives in a SEPARATE Cargo workspace under `release/` so it does NOT enter
+# mado's substrate-built root crate (substrate's `rust.tool` reads the root
+# `Cargo.build-spec.json`, which knows only the `mado` crate). The release tool
+# is a maintainer-time concern, not part of the shipped terminal binary, so it
+# is isolated here and built on demand via `nix run .#release-macos`.
+#
+# Members:
+#   - mac-app-release : THE SHARED PRIMITIVE. The reusable, app-agnostic core
+#                       of the gaveta-release tool — typed `Tool` Command
+#                       builder, typed `InfoPlist`, `.app` assembly, SVG→.icns
+#                       generation, ad-hoc codesign, DMG/zip packaging, and the
+#                       sortable-exact/latest tag computation. NO publish
+#                       backend (each consumer supplies its own) and NO bundle
+#                       layout assumptions beyond a typed `AppSpec`.
+#   - mado-release    : a THIN consumer. mado's single-binary `AppSpec`
+#                       (windowed app, Dock icon, NO LSUIElement) + a
+#                       GitHub-Releases publish path via the `gh` CLI.
+#
+# gaveta-client's `gaveta-release` is the OTHER intended consumer: once this
+# crate is published / path-referenced, gaveta-release collapses to its
+# bundle-layout (3-binary + daemon) + its armázem-S3 publish, dropping the
+# ~6 modules it shares with this primitive. See mac-app-release/README.md.
+[workspace]
+resolver = "2"
+members = [
+  "mac-app-release",
+  "mado-release",
+]
+
+[workspace.package]
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/pleme-io/mado"
+
+[workspace.dependencies]
+mac-app-release = { path = "mac-app-release" }
+
+anyhow = "1.0"
+thiserror = "1.0"
+clap = { version = "4", features = ["derive", "env"] }
+plist = "1"
+serde = { version = "1.0", features = ["derive"] }
+image = { version = "0.25", default-features = false, features = ["png"] }
+resvg = "0.44"
+chrono = { version = "0.4", features = ["clock"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Match mado's release shape (small, fast-enough; this is a build tool).
+[profile.release]
+opt-level = 2
+lto = "thin"
+codegen-units = 16
+strip = true

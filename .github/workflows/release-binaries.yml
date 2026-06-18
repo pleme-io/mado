@@ -1,34 +1,36 @@
 name: release-binaries
 
-# Consumer shim. On every `vX.Y.Z` tag push (created by auto-release.yml),
-# build mado for linux/macOS × x86_64/aarch64 and attach to the Release:
-#   - bare binaries + .sha256 sidecars (some users want just the binary)
-#   - macOS  Mado-<version>-macos-<arch>.dmg  (drag Mado.app → Applications)
-#            + Mado-<version>-macos-<arch>.zip (the bare .app)
-#   - linux  Mado-<version>-linux-<arch>.tar.gz (binary + .desktop + icon
-#            + install.sh → ~/.local/{bin,share})
+# Two release triggers, per the ★★ AUTO-RELEASE / AUTOBUMP rule:
 #
-# app-bundle: the macOS .app/.icns/Info.plist + linux .desktop are built
-# from the SAME assets/mado-icon.svg the Nix `mkDarwinAppBundle` builder
-# uses (channel 2) — one icon source of truth for both install channels.
-# See mado's README "Install" section + the reusable workflow header.
+#  1. SEMVER CUT-LINE (`v*` tag) — the official, versioned release. Builds mado
+#     for linux/macOS × x86_64/aarch64 via substrate's rust-binary-release.yml
+#     and attaches the per-platform artifacts (binaries + .sha256 + macOS
+#     .dmg/.zip + linux .tar.gz). UNCHANGED from before.
 #
-# system-deps: mado is a GPU terminal (winit/wgpu via engawa-wgpu +
-# garasu). The ubuntu legs need windowing system libs to link; they are
-# apt-get installed before the build. macOS uses the Metal SDK and
-# needs nothing. If the first real tag's CI fails on a missing -dev
-# package, add it to this list (likely candidates: libudev-dev,
-# libgbm-dev, libegl1-mesa-dev).
+#  2. AUTOBUMP (push to `main`) — a continuously-fresh macOS DMG so
+#     github.com/pleme-io/mado/releases/latest always has the newest build.
+#     The `autobump-macos` job below builds mado + drives the TYPED `mado-release`
+#     tool (which consumes the shared `mac-app-release` primitive) to:
+#       - assemble + ad-hoc-sign Mado.app, package the DMG + zip, and
+#       - publish a sortable EXACT release  `macos-<arch>-r<run>-<sha>`
+#         (immutable, traceable — the AUTOBUMP "exact tag" shape) AND
+#       - a moving `macos-<arch>-latest` PRERELEASE pointer that
+#         `releases/latest`-style consumers + the Homebrew cask track.
+#     mado is PUBLIC → free GitHub-hosted macOS runners; no self-hosted runner.
 #
-# The reusable workflow lives at
-# pleme-io/substrate/.github/workflows/rust-binary-release.yml.
+# One icon source of truth (assets/mado-icon.svg) feeds both the CI .app
+# (substrate path / the mado-release tool's resvg→iconutil) and the Nix
+# mkDarwinAppBundle module path. See mado's README "Install" section.
 
 on:
   push:
+    branches: [main]
     tags: ['v*']
 
 jobs:
+  # ── 1. Official semver release on a v* tag (substrate reusable) ──────────
   binaries:
+    if: startsWith(github.ref, 'refs/tags/v')
     uses: pleme-io/substrate/.github/workflows/rust-binary-release.yml@main
     with:
       binary-name: mado
@@ -39,3 +41,47 @@ jobs:
       icon-svg: assets/mado-icon.svg
       desktop-categories: "System;TerminalEmulator;"
     secrets: inherit
+
+  # ── 2. AUTOBUMP rolling macOS DMG on every merge to main ────────────────
+  # Builds the GPU mado binary, then drives the typed mado-release tool to
+  # assemble + sign + DMG + publish two GitHub Releases: the sortable exact
+  # one and the moving `…-latest` prerelease. Apple-silicon runner (arm64);
+  # GHA's macos-latest is aarch64. (An x86_64 leg can be added with a
+  # macos-13 runner + a cross/native build when an Intel DMG is wanted.)
+  autobump-macos:
+    if: github.ref == 'refs/heads/main'
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build mado (release)
+        run: cargo build --release --bin mado
+
+      # The autobump EXACT release (sortable + immutable): r<run>-<sha>.
+      - name: Publish sortable exact DMG release
+        run: |
+          cargo run --release --manifest-path release/Cargo.toml --bin mado-release -- \
+            --repo "$PWD" \
+            --gh-repo "${{ github.repository }}" \
+            --prebuilt-binary "$PWD/target/release/mado" \
+            --run-number "${{ github.run_number }}" \
+            --publish
+
+      # The moving `macos-<arch>-latest` PRERELEASE so releases/latest is fresh.
+      - name: Update moving latest prerelease
+        run: |
+          cargo run --release --manifest-path release/Cargo.toml --bin mado-release -- \
+            --repo "$PWD" \
+            --gh-repo "${{ github.repository }}" \
+            --prebuilt-binary "$PWD/target/release/mado" \
+            --tag "macos-arm64-latest" \
+            --latest-asset \
+            --prerelease \
+            --publish
