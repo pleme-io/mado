@@ -2862,7 +2862,7 @@
               "with-alloc"
             ],
             "uses_default_features": false,
-            "optional": true,
+            "optional": false,
             "target": "cfg(all(target_arch = \"wasm32\", not(target_os = \"emscripten\")))",
             "tree": "target"
           }
@@ -7288,7 +7288,9 @@
             "name": "notify",
             "package_key": "notify-8.2.0",
             "kind": "normal",
-            "features": [],
+            "features": [
+              "macos_fsevent"
+            ],
             "uses_default_features": false,
             "optional": false,
             "target": "cfg(target_os = \"macos\")",
@@ -8911,12 +8913,9 @@
             "package_key": "chrono-0.4.45",
             "kind": "normal",
             "features": [
-              "clock",
-              "oldtime",
-              "serde",
-              "std"
+              "serde"
             ],
-            "uses_default_features": false,
+            "uses_default_features": true,
             "optional": false,
             "target": "cfg(not(all(target_family = \"wasm\", target_os = \"unknown\")))",
             "tree": "target"
@@ -11694,7 +11693,9 @@
             "name": "notify",
             "package_key": "notify-8.2.0",
             "kind": "normal",
-            "features": [],
+            "features": [
+              "macos_kqueue"
+            ],
             "uses_default_features": false,
             "optional": false,
             "target": "cfg(target_os = \"macos\")",
@@ -15271,7 +15272,10 @@
             "name": "mio",
             "package_key": "mio-1.2.1",
             "kind": "normal",
-            "features": [],
+            "features": [
+              "os-ext",
+              "os-poll"
+            ],
             "uses_default_features": false,
             "optional": true,
             "target": "cfg(all(tokio_unstable, target_os = \"linux\"))",
@@ -17431,7 +17435,7 @@
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
-            "optional": true,
+            "optional": false,
             "target": "cfg(not(target_arch = \"wasm32\"))",
             "tree": "target"
           },
@@ -17441,7 +17445,7 @@
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
-            "optional": true,
+            "optional": false,
             "target": "cfg(target_os = \"emscripten\")",
             "tree": "target"
           },
@@ -17456,12 +17460,51 @@
             "tree": "target"
           },
           {
+            "name": "wgpu_core",
+            "package_key": "wgpu-core-25.0.2",
+            "kind": "normal",
+            "features": [
+              "raw-window-handle"
+            ],
+            "uses_default_features": true,
+            "optional": true,
+            "target": "cfg(all(target_arch = \"wasm32\", not(target_os = \"emscripten\")))",
+            "tree": "target"
+          },
+          {
+            "name": "wgpu_core",
+            "package_key": "wgpu-core-25.0.2",
+            "kind": "normal",
+            "features": [
+              "portable-atomic",
+              "raw-window-handle",
+              "renderdoc",
+              "wgsl"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": "cfg(not(target_arch = \"wasm32\"))",
+            "tree": "target"
+          },
+          {
+            "name": "wgpu_core",
+            "package_key": "wgpu-core-25.0.2",
+            "kind": "normal",
+            "features": [
+              "raw-window-handle"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": "cfg(target_os = \"emscripten\")",
+            "tree": "target"
+          },
+          {
             "name": "wgpu_hal",
             "package_key": "wgpu-hal-25.0.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
-            "optional": true,
+            "optional": false,
             "target": "cfg(not(target_arch = \"wasm32\"))",
             "tree": "target"
           },
@@ -17471,7 +17514,7 @@
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
-            "optional": true,
+            "optional": false,
             "target": "cfg(target_os = \"emscripten\")",
             "tree": "target"
           },
@@ -17770,7 +17813,7 @@
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
-            "optional": true,
+            "optional": false,
             "target": "cfg(any())",
             "tree": "host"
           }
@@ -18068,7 +18111,7 @@
                 "package_key": "image-0.25.10",
                 "kind": "normal",
                 "features": [
-                  "png"
+                  "tiff"
                 ],
                 "uses_default_features": false,
                 "optional": true,
@@ -18080,6 +18123,7 @@
                 "package_key": "image-0.25.10",
                 "kind": "normal",
                 "features": [
+                  "bmp",
                   "png"
                 ],
                 "uses_default_features": false,
@@ -19603,7 +19647,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
-                "optional": false,
+                "optional": true,
                 "target": "cfg(target_os = \"macos\")",
                 "tree": "target"
               },
@@ -19659,7 +19703,7 @@
                   "os-ext"
                 ],
                 "uses_default_features": true,
-                "optional": false,
+                "optional": true,
                 "target": "cfg(target_os = \"macos\")",
                 "tree": "target"
               },
@@ -21447,7 +21491,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
-                "optional": true,
+                "optional": false,
                 "target": "cfg(all(not(windows), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", any(target_arch = \"s390x\", target_arch = \"powerpc\")), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc\"), all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))",
                 "tree": "target"
               },
@@ -21457,7 +21501,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
-                "optional": true,
+                "optional": false,
                 "target": "cfg(windows)",
                 "tree": "target"
               },
@@ -21477,7 +21521,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
-                "optional": true,
+                "optional": false,
                 "target": "cfg(all(not(windows), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", any(target_arch = \"s390x\", target_arch = \"powerpc\")), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc\"), all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))",
                 "tree": "target"
               }
@@ -21877,7 +21921,8 @@
                 "package_key": "khronos-egl-6.0.0",
                 "kind": "normal",
                 "features": [
-                  "dynamic"
+                  "no-pkg-config",
+                  "static"
                 ],
                 "uses_default_features": true,
                 "optional": true,
@@ -22198,14 +22243,20 @@
                 "kind": "normal",
                 "features": [
                   "NSArray",
+                  "NSAttributedString",
+                  "NSData",
+                  "NSDictionary",
+                  "NSDistributedNotificationCenter",
                   "NSEnumerator",
-                  "NSGeometry",
+                  "NSKeyValueObserving",
+                  "NSNotification",
                   "NSObjCRuntime",
-                  "NSOperation",
+                  "NSPathUtilities",
                   "NSProcessInfo",
-                  "NSSet",
+                  "NSRunLoop",
                   "NSString",
                   "NSThread",
+                  "NSValue",
                   "block2",
                   "dispatch"
                 ],
@@ -22342,7 +22393,7 @@
                 "package_key": "image-0.25.10",
                 "kind": "normal",
                 "features": [
-                  "png"
+                  "tiff"
                 ],
                 "uses_default_features": false,
                 "optional": true,
@@ -22354,6 +22405,7 @@
                 "package_key": "image-0.25.10",
                 "kind": "normal",
                 "features": [
+                  "bmp",
                   "png"
                 ],
                 "uses_default_features": false,
@@ -23610,7 +23662,7 @@
                   "os-ext"
                 ],
                 "uses_default_features": true,
-                "optional": false,
+                "optional": true,
                 "target": "cfg(target_os = \"macos\")",
                 "tree": "target"
               },
@@ -23863,7 +23915,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
-                "optional": true,
+                "optional": false,
                 "target": "cfg(all(not(windows), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", target_arch = \"s390x\"), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))",
                 "tree": "target"
               },
@@ -23873,7 +23925,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
-                "optional": true,
+                "optional": false,
                 "target": "cfg(windows)",
                 "tree": "target"
               },
@@ -23893,7 +23945,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
-                "optional": true,
+                "optional": false,
                 "target": "cfg(all(not(windows), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", target_arch = \"s390x\"), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))",
                 "tree": "target"
               },
@@ -23916,6 +23968,8 @@
                 "package_key": "linux-raw-sys-0.4.15",
                 "kind": "normal",
                 "features": [
+                  "elf",
+                  "errno",
                   "general",
                   "ioctl",
                   "no_std"
@@ -23970,7 +24024,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
-                "optional": true,
+                "optional": false,
                 "target": "cfg(all(not(windows), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", any(target_arch = \"s390x\", target_arch = \"powerpc\")), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc\"), all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))",
                 "tree": "target"
               },
@@ -23980,7 +24034,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
-                "optional": true,
+                "optional": false,
                 "target": "cfg(windows)",
                 "tree": "target"
               },
@@ -24000,7 +24054,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
-                "optional": true,
+                "optional": false,
                 "target": "cfg(all(not(windows), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", any(target_arch = \"s390x\", target_arch = \"powerpc\")), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc\"), all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))",
                 "tree": "target"
               },
@@ -24023,6 +24077,9 @@
                 "package_key": "linux-raw-sys-0.12.1",
                 "kind": "normal",
                 "features": [
+                  "auxvec",
+                  "elf",
+                  "errno",
                   "general",
                   "ioctl",
                   "no_std"
@@ -25250,7 +25307,8 @@
                 "package_key": "khronos-egl-6.0.0",
                 "kind": "normal",
                 "features": [
-                  "dynamic"
+                  "no-pkg-config",
+                  "static"
                 ],
                 "uses_default_features": true,
                 "optional": true,
@@ -25971,7 +26029,7 @@
                 "package_key": "image-0.25.10",
                 "kind": "normal",
                 "features": [
-                  "png"
+                  "tiff"
                 ],
                 "uses_default_features": false,
                 "optional": true,
@@ -25983,6 +26041,7 @@
                 "package_key": "image-0.25.10",
                 "kind": "normal",
                 "features": [
+                  "bmp",
                   "png"
                 ],
                 "uses_default_features": false,
@@ -27239,7 +27298,7 @@
                   "os-ext"
                 ],
                 "uses_default_features": true,
-                "optional": false,
+                "optional": true,
                 "target": "cfg(target_os = \"macos\")",
                 "tree": "target"
               },
@@ -27492,7 +27551,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
-                "optional": true,
+                "optional": false,
                 "target": "cfg(all(not(windows), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", target_arch = \"s390x\"), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))",
                 "tree": "target"
               },
@@ -27502,7 +27561,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
-                "optional": true,
+                "optional": false,
                 "target": "cfg(windows)",
                 "tree": "target"
               },
@@ -27522,7 +27581,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
-                "optional": true,
+                "optional": false,
                 "target": "cfg(all(not(windows), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", target_arch = \"s390x\"), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))",
                 "tree": "target"
               },
@@ -27545,6 +27604,8 @@
                 "package_key": "linux-raw-sys-0.4.15",
                 "kind": "normal",
                 "features": [
+                  "elf",
+                  "errno",
                   "general",
                   "ioctl",
                   "no_std"
@@ -27599,7 +27660,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
-                "optional": true,
+                "optional": false,
                 "target": "cfg(all(not(windows), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", any(target_arch = \"s390x\", target_arch = \"powerpc\")), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc\"), all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))",
                 "tree": "target"
               },
@@ -27609,7 +27670,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
-                "optional": true,
+                "optional": false,
                 "target": "cfg(windows)",
                 "tree": "target"
               },
@@ -27629,7 +27690,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
-                "optional": true,
+                "optional": false,
                 "target": "cfg(all(not(windows), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", any(target_arch = \"s390x\", target_arch = \"powerpc\")), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc\"), all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))",
                 "tree": "target"
               },
@@ -27652,6 +27713,9 @@
                 "package_key": "linux-raw-sys-0.12.1",
                 "kind": "normal",
                 "features": [
+                  "auxvec",
+                  "elf",
+                  "errno",
                   "general",
                   "ioctl",
                   "no_std"
@@ -28879,7 +28943,8 @@
                 "package_key": "khronos-egl-6.0.0",
                 "kind": "normal",
                 "features": [
-                  "dynamic"
+                  "no-pkg-config",
+                  "static"
                 ],
                 "uses_default_features": true,
                 "optional": true,
@@ -29561,7 +29626,7 @@
                 "package_key": "image-0.25.10",
                 "kind": "normal",
                 "features": [
-                  "png"
+                  "tiff"
                 ],
                 "uses_default_features": false,
                 "optional": true,
@@ -29573,6 +29638,7 @@
                 "package_key": "image-0.25.10",
                 "kind": "normal",
                 "features": [
+                  "bmp",
                   "png"
                 ],
                 "uses_default_features": false,
@@ -31070,7 +31136,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
-                "optional": false,
+                "optional": true,
                 "target": "cfg(target_os = \"macos\")",
                 "tree": "target"
               },
@@ -31126,7 +31192,7 @@
                   "os-ext"
                 ],
                 "uses_default_features": true,
-                "optional": false,
+                "optional": true,
                 "target": "cfg(target_os = \"macos\")",
                 "tree": "target"
               },
@@ -32894,7 +32960,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
-                "optional": true,
+                "optional": false,
                 "target": "cfg(all(not(windows), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", any(target_arch = \"s390x\", target_arch = \"powerpc\")), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc\"), all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))",
                 "tree": "target"
               },
@@ -32904,7 +32970,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
-                "optional": true,
+                "optional": false,
                 "target": "cfg(windows)",
                 "tree": "target"
               },
@@ -32924,7 +32990,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
-                "optional": true,
+                "optional": false,
                 "target": "cfg(all(not(windows), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", any(target_arch = \"s390x\", target_arch = \"powerpc\")), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc\"), all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))",
                 "tree": "target"
               }
@@ -33324,7 +33390,8 @@
                 "package_key": "khronos-egl-6.0.0",
                 "kind": "normal",
                 "features": [
-                  "dynamic"
+                  "no-pkg-config",
+                  "static"
                 ],
                 "uses_default_features": true,
                 "optional": true,
@@ -33645,14 +33712,20 @@
                 "kind": "normal",
                 "features": [
                   "NSArray",
+                  "NSAttributedString",
+                  "NSData",
+                  "NSDictionary",
+                  "NSDistributedNotificationCenter",
                   "NSEnumerator",
-                  "NSGeometry",
+                  "NSKeyValueObserving",
+                  "NSNotification",
                   "NSObjCRuntime",
-                  "NSOperation",
+                  "NSPathUtilities",
                   "NSProcessInfo",
-                  "NSSet",
+                  "NSRunLoop",
                   "NSString",
                   "NSThread",
+                  "NSValue",
                   "block2",
                   "dispatch"
                 ],
@@ -33789,7 +33862,7 @@
                 "package_key": "image-0.25.10",
                 "kind": "normal",
                 "features": [
-                  "png"
+                  "tiff"
                 ],
                 "uses_default_features": false,
                 "optional": true,
@@ -33801,6 +33874,7 @@
                 "package_key": "image-0.25.10",
                 "kind": "normal",
                 "features": [
+                  "bmp",
                   "png"
                 ],
                 "uses_default_features": false,
@@ -35031,7 +35105,7 @@
                   "os-ext"
                 ],
                 "uses_default_features": true,
-                "optional": false,
+                "optional": true,
                 "target": "cfg(target_os = \"macos\")",
                 "tree": "target"
               },
@@ -35264,7 +35338,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
-                "optional": true,
+                "optional": false,
                 "target": "cfg(all(not(windows), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", target_arch = \"s390x\"), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))",
                 "tree": "target"
               },
@@ -35274,7 +35348,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
-                "optional": true,
+                "optional": false,
                 "target": "cfg(windows)",
                 "tree": "target"
               },
@@ -35294,7 +35368,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
-                "optional": true,
+                "optional": false,
                 "target": "cfg(all(not(windows), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", target_arch = \"s390x\"), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))",
                 "tree": "target"
               },
@@ -35317,6 +35391,8 @@
                 "package_key": "linux-raw-sys-0.4.15",
                 "kind": "normal",
                 "features": [
+                  "elf",
+                  "errno",
                   "general",
                   "ioctl",
                   "no_std"
@@ -35371,7 +35447,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
-                "optional": true,
+                "optional": false,
                 "target": "cfg(all(not(windows), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", any(target_arch = \"s390x\", target_arch = \"powerpc\")), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc\"), all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))",
                 "tree": "target"
               },
@@ -35381,7 +35457,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
-                "optional": true,
+                "optional": false,
                 "target": "cfg(windows)",
                 "tree": "target"
               },
@@ -35401,7 +35477,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
-                "optional": true,
+                "optional": false,
                 "target": "cfg(all(not(windows), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", any(target_arch = \"s390x\", target_arch = \"powerpc\")), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc\"), all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))",
                 "tree": "target"
               },
@@ -35424,6 +35500,9 @@
                 "package_key": "linux-raw-sys-0.12.1",
                 "kind": "normal",
                 "features": [
+                  "auxvec",
+                  "elf",
+                  "errno",
                   "general",
                   "ioctl",
                   "no_std"
@@ -36651,7 +36730,8 @@
                 "package_key": "khronos-egl-6.0.0",
                 "kind": "normal",
                 "features": [
-                  "dynamic"
+                  "no-pkg-config",
+                  "static"
                 ],
                 "uses_default_features": true,
                 "optional": true,
@@ -37372,7 +37452,7 @@
                 "package_key": "image-0.25.10",
                 "kind": "normal",
                 "features": [
-                  "png"
+                  "tiff"
                 ],
                 "uses_default_features": false,
                 "optional": true,
@@ -37384,6 +37464,7 @@
                 "package_key": "image-0.25.10",
                 "kind": "normal",
                 "features": [
+                  "bmp",
                   "png"
                 ],
                 "uses_default_features": false,
@@ -38614,7 +38695,7 @@
                   "os-ext"
                 ],
                 "uses_default_features": true,
-                "optional": false,
+                "optional": true,
                 "target": "cfg(target_os = \"macos\")",
                 "tree": "target"
               },
@@ -38847,7 +38928,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
-                "optional": true,
+                "optional": false,
                 "target": "cfg(all(not(windows), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", target_arch = \"s390x\"), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))",
                 "tree": "target"
               },
@@ -38857,7 +38938,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
-                "optional": true,
+                "optional": false,
                 "target": "cfg(windows)",
                 "tree": "target"
               },
@@ -38877,7 +38958,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
-                "optional": true,
+                "optional": false,
                 "target": "cfg(all(not(windows), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", target_arch = \"s390x\"), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))",
                 "tree": "target"
               },
@@ -38900,6 +38981,8 @@
                 "package_key": "linux-raw-sys-0.4.15",
                 "kind": "normal",
                 "features": [
+                  "elf",
+                  "errno",
                   "general",
                   "ioctl",
                   "no_std"
@@ -38954,7 +39037,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
-                "optional": true,
+                "optional": false,
                 "target": "cfg(all(not(windows), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", any(target_arch = \"s390x\", target_arch = \"powerpc\")), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc\"), all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))",
                 "tree": "target"
               },
@@ -38964,7 +39047,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
-                "optional": true,
+                "optional": false,
                 "target": "cfg(windows)",
                 "tree": "target"
               },
@@ -38984,7 +39067,7 @@
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
-                "optional": true,
+                "optional": false,
                 "target": "cfg(all(not(windows), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", any(target_arch = \"s390x\", target_arch = \"powerpc\")), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc\"), all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))",
                 "tree": "target"
               },
@@ -39007,6 +39090,9 @@
                 "package_key": "linux-raw-sys-0.12.1",
                 "kind": "normal",
                 "features": [
+                  "auxvec",
+                  "elf",
+                  "errno",
                   "general",
                   "ioctl",
                   "no_std"
@@ -40234,7 +40320,8 @@
                 "package_key": "khronos-egl-6.0.0",
                 "kind": "normal",
                 "features": [
-                  "dynamic"
+                  "no-pkg-config",
+                  "static"
                 ],
                 "uses_default_features": true,
                 "optional": true,
