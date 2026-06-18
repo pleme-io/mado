@@ -759,7 +759,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "full" "visit-mut" ];
           }
         ];
@@ -786,7 +786,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             usesDefaultFeatures = false;
             features = [ "clone-impls" "full" "parsing" "printing" "proc-macro" "visit-mut" ];
           }
@@ -1313,14 +1313,14 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "full" "fold" ];
           }
         ];
         devDependencies = [
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "full" "fold" "parsing" ];
           }
         ];
@@ -1461,7 +1461,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
           }
         ];
 
@@ -1901,7 +1901,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "full" ];
           }
         ];
@@ -2668,7 +2668,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "full" "extra-traits" ];
           }
         ];
@@ -2705,7 +2705,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "full" "extra-traits" ];
           }
         ];
@@ -2736,7 +2736,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
           }
         ];
 
@@ -2761,7 +2761,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
           }
         ];
 
@@ -2918,7 +2918,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
           }
           {
             name = "unicode-xid";
@@ -3126,7 +3126,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
           }
         ];
         features = {
@@ -4044,7 +4044,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "full" ];
           }
         ];
@@ -4309,7 +4309,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "full" ];
           }
         ];
@@ -4515,7 +4515,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "full" "extra-traits" ];
           }
         ];
@@ -4864,15 +4864,15 @@ rec {
           "wasm_js" = [ "dep:wasm-bindgen" "dep:js-sys" ];
         };
       };
-      "git+https://github.com/pleme-io/shikumi#0.1.69" = rec {
+      "git+https://github.com/pleme-io/shikumi#0.1.73" = rec {
         crateName = "shikumi";
-        version = "0.1.69";
+        version = "0.1.73";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
-          rev = "43d62999fe6e3d043afdf18320531abfb76d01a5";
-          sha256 = "0ir0fdzf23kqqx4mxs35qf7bz6fzak5sa2c2nv2hr0a3hx90qlgm";
+          rev = "6c91f40ce1d80ccde3066f3b7b324bf24dff1fee";
+          sha256 = "0981yirsvflbz6mgdq650yq5hrx5xwzv4k0nxy891hdild59apq6";
         };
         dependencies = [
           {
@@ -4951,15 +4951,15 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" ];
       };
-      "git+https://github.com/pleme-io/shikumi?branch=main#0.1.69" = rec {
+      "git+https://github.com/pleme-io/shikumi?branch=main#0.1.73" = rec {
         crateName = "shikumi";
-        version = "0.1.69";
+        version = "0.1.73";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
-          rev = "43d62999fe6e3d043afdf18320531abfb76d01a5";
-          sha256 = "0ir0fdzf23kqqx4mxs35qf7bz6fzak5sa2c2nv2hr0a3hx90qlgm";
+          rev = "6c91f40ce1d80ccde3066f3b7b324bf24dff1fee";
+          sha256 = "0981yirsvflbz6mgdq650yq5hrx5xwzv4k0nxy891hdild59apq6";
         };
         dependencies = [
           {
@@ -6286,7 +6286,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "full" ];
           }
         ];
@@ -6603,7 +6603,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "full" ];
           }
         ];
@@ -6670,7 +6670,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "full" ];
           }
         ];
@@ -6898,7 +6898,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "full" ];
           }
         ];
@@ -7389,7 +7389,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.9";
+        version = "0.1.10";
         edition = "2024";
         crateBin = [
           {
@@ -7457,7 +7457,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "git+https://github.com/pleme-io/shikumi?branch=main#0.1.69";
+            packageId = "git+https://github.com/pleme-io/shikumi?branch=main#0.1.73";
             features = [ "cli" ];
           }
           {
@@ -7703,7 +7703,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "git+https://github.com/pleme-io/shikumi?branch=main#0.1.69";
+            packageId = "git+https://github.com/pleme-io/shikumi?branch=main#0.1.73";
           }
           {
             name = "pollster";
@@ -8833,14 +8833,14 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "derive" "extra-traits" "parsing" ];
           }
         ];
         devDependencies = [
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "extra-traits" "parsing" ];
           }
         ];
@@ -11939,7 +11939,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "full" ];
           }
         ];
@@ -12044,7 +12044,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             usesDefaultFeatures = false;
             features = [ "derive" "parsing" "printing" "clone-impls" "extra-traits" "proc-macro" ];
           }
@@ -12221,7 +12221,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "full" "extra-traits" "visit-mut" ];
           }
         ];
@@ -12320,7 +12320,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             usesDefaultFeatures = false;
             features = [ "parsing" "printing" "clone-impls" "proc-macro" "full" "visit-mut" ];
           }
@@ -12447,7 +12447,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "full" "extra-traits" ];
           }
         ];
@@ -12476,7 +12476,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "full" "extra-traits" ];
           }
         ];
@@ -12561,7 +12561,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "full" "extra-traits" ];
           }
         ];
@@ -12590,7 +12590,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "full" "extra-traits" ];
           }
         ];
@@ -12904,7 +12904,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             usesDefaultFeatures = false;
             features = [ "full" ];
           }
@@ -12917,7 +12917,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             usesDefaultFeatures = false;
             features = [ "clone-impls" "extra-traits" "parsing" "printing" "visit-mut" ];
           }
@@ -12993,7 +12993,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             optional = true;
             usesDefaultFeatures = false;
           }
@@ -13001,7 +13001,7 @@ rec {
         devDependencies = [
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "full" ];
           }
         ];
@@ -13052,7 +13052,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
           }
           {
             name = "yansi";
@@ -13963,7 +13963,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
           }
         ];
 
@@ -14476,7 +14476,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "full" ];
           }
         ];
@@ -15488,7 +15488,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "extra-traits" ];
           }
         ];
@@ -15518,13 +15518,13 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
           }
         ];
         devDependencies = [
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "extra-traits" ];
           }
         ];
@@ -15626,7 +15626,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "full" "extra-traits" ];
           }
         ];
@@ -15966,7 +15966,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             usesDefaultFeatures = false;
             features = [ "parsing" "proc-macro" "derive" "printing" ];
           }
@@ -16305,7 +16305,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             usesDefaultFeatures = false;
             features = [ "parsing" "proc-macro" "derive" "printing" ];
           }
@@ -16422,7 +16422,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             usesDefaultFeatures = false;
             features = [ "derive" "parsing" "proc-macro" "printing" ];
           }
@@ -16554,7 +16554,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             usesDefaultFeatures = false;
             features = [ "clone-impls" "derive" "parsing" "printing" "proc-macro" ];
           }
@@ -16586,7 +16586,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             usesDefaultFeatures = false;
             features = [ "clone-impls" "derive" "parsing" "printing" ];
           }
@@ -16939,7 +16939,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "git+https://github.com/pleme-io/shikumi#0.1.69";
+            packageId = "git+https://github.com/pleme-io/shikumi#0.1.73";
           }
           {
             name = "serde";
@@ -17762,7 +17762,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             usesDefaultFeatures = false;
             features = [ "parsing" "proc-macro" ];
           }
@@ -17876,7 +17876,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             usesDefaultFeatures = false;
             features = [ "full" "derive" "parsing" "printing" "clone-impls" ];
           }
@@ -18602,7 +18602,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "parsing" "extra-traits" ];
           }
         ];
@@ -18701,11 +18701,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "clone-impls" "default" "derive" "full" "parsing" "printing" "proc-macro" "quote" ];
       };
-      "syn 2.0.117" = rec {
+      "syn 2.0.118" = rec {
         crateName = "syn";
-        version = "2.0.117";
+        version = "2.0.118";
         edition = "2021";
-        sha256 = "16cv7c0wbn8amxc54n4w15kxlx5ypdmla8s0gxr2l7bv7s0bhrg6";
+        sha256 = "08hlbc32lqd5d67p26ck7chg0rkclsw9as6f96vfn4s2j1zyb6hv";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
         ];
@@ -18755,7 +18755,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             usesDefaultFeatures = false;
             features = [ "derive" "parsing" "printing" "clone-impls" "visit" "extra-traits" ];
           }
@@ -18867,7 +18867,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "full" ];
           }
         ];
@@ -18971,7 +18971,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "git+https://github.com/pleme-io/shikumi?branch=main#0.1.69";
+            packageId = "git+https://github.com/pleme-io/shikumi?branch=main#0.1.73";
             features = [ "cli" ];
           }
           {
@@ -19348,7 +19348,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
           }
         ];
 
@@ -19374,7 +19374,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
           }
         ];
 
@@ -19839,7 +19839,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "full" ];
           }
         ];
@@ -20218,7 +20218,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             usesDefaultFeatures = false;
             features = [ "full" "parsing" "printing" "visit-mut" "clone-impls" "extra-traits" "proc-macro" ];
           }
@@ -20553,7 +20553,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "full" "extra-traits" ];
           }
         ];
@@ -20934,7 +20934,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "full" "extra-traits" ];
           }
           {
@@ -21714,7 +21714,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "visit" "visit-mut" "full" "extra-traits" ];
           }
           {
@@ -25162,7 +25162,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             usesDefaultFeatures = false;
             features = [ "parsing" "proc-macro" "printing" "full" "derive" ];
           }
@@ -25189,7 +25189,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             usesDefaultFeatures = false;
             features = [ "parsing" "proc-macro" "printing" "full" "clone-impls" ];
           }
@@ -25217,7 +25217,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             usesDefaultFeatures = false;
             features = [ "parsing" "proc-macro" "printing" "full" "derive" "clone-impls" ];
           }
@@ -25244,7 +25244,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             usesDefaultFeatures = false;
             features = [ "parsing" "proc-macro" "printing" "full" "clone-impls" ];
           }
@@ -27552,7 +27552,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "printing" ];
           }
           {
@@ -27603,7 +27603,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "printing" ];
           }
           {
@@ -28122,7 +28122,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "fold" ];
           }
           {
@@ -28204,14 +28204,14 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "full" ];
           }
         ];
         devDependencies = [
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "visit" ];
           }
         ];
@@ -28260,7 +28260,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "fold" ];
           }
           {
@@ -28394,7 +28394,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.117";
+            packageId = "syn 2.0.118";
             features = [ "extra-traits" ];
           }
         ];
