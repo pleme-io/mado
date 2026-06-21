@@ -61,8 +61,21 @@ fn row_timeout() -> Duration {
 }
 /// Poll cadence while waiting on grid content.
 const POLL_INTERVAL: Duration = Duration::from_millis(100);
+/// Grid dimensions for every session this driver spawns. A generous
+/// fixed width keeps the round-trip rows reading a clean single-line
+/// echo: frostmourne's prompt can run ~70 cols, and an 80-col default
+/// left a 15-char command (`echo E2E_MARKER`) no room — it soft-wrapped
+/// across the right edge and split the marker (`E2E_MARKE` ⏎ `R`),
+/// reading as a missing occurrence (the 2026-06-21 ryn gate false-
+/// negative). 200×50 decouples the wiring smoke test from display
+/// wrapping AND keeps the failure-detail grid excerpts legible. The
+/// matcher ([`marker_occurrences`]) is wrap-robust regardless — this is
+/// defence in depth, not the load-bearing fix.
+const E2E_COLS: u16 = 200;
+const E2E_ROWS: u16 = 50;
 /// Sentinel for the echo round-trip row. Must appear ≥2× in the
-/// grid: once as the echoed command line, once as command output.
+/// grid (counted wrap-robustly via [`marker_occurrences`]): once as
+/// the echoed command line, once as command output.
 const E2E_MARKER: &str = "E2E_MARKER";
 /// How long the `single_recorder` row waits for the shell's chdir
 /// hook to land a visit in the hermetic store before concluding the
@@ -219,7 +232,7 @@ pub async fn run(shell: &str) -> Result<E2eSummary> {
             match send_keys(&client, id, &keys).await {
                 Ok(()) => {
                     match wait_for_output(&client, id, |text| {
-                        text.matches(E2E_MARKER).count() >= 2
+                        marker_occurrences(text, E2E_MARKER) >= 2
                     })
                     .await
                     {
@@ -227,7 +240,7 @@ pub async fn run(shell: &str) -> Result<E2eSummary> {
                             "echo_marker",
                             format!(
                                 "{} occurrences of {E2E_MARKER} (echo + output)",
-                                text.matches(E2E_MARKER).count()
+                                marker_occurrences(&text, E2E_MARKER)
                             ),
                         )),
                         Err(e) => rows.push(RowResult::failed(
@@ -383,7 +396,7 @@ async fn drive_single_recorder(
     // chokepoint, i.e. before the marker output ever renders.
     let marker = format!("SR_DONE_{}", std::process::id());
     send_keys(client, session_id, &format!("echo {marker}\r")).await?;
-    wait_for_output(client, session_id, |t| t.matches(marker.as_str()).count() >= 2)
+    wait_for_output(client, session_id, |t| marker_occurrences(t, &marker) >= 2)
         .await
         .context("single_recorder: cd-confirm marker did not round-trip")?;
 
@@ -536,7 +549,11 @@ async fn spawn_term(
     shell: &str,
     env: Option<serde_json::Value>,
 ) -> Result<String> {
-    let mut args = serde_json::json!({ "shell": shell });
+    let mut args = serde_json::json!({
+        "shell": shell,
+        "cols": E2E_COLS,
+        "rows": E2E_ROWS,
+    });
     if let Some(env) = env {
         args["env"] = env;
     }
@@ -615,6 +632,23 @@ fn non_blank_lines(text: &str) -> usize {
     text.lines().filter(|l| !l.trim().is_empty()).count()
 }
 
+/// Count `marker` occurrences in a grid snapshot, robust to terminal
+/// soft-wrap. [`Session::to_text`] emits one physical grid row per line
+/// and right-trims each, so a marker the terminal wrapped across the
+/// right edge is split by a `\n` (`E2E_MARKE` ⏎ `R`) and a naive
+/// per-line `str::matches` under-counts it. A command round-trip is a
+/// LOGICAL event — the marker is echoed on the input line and again as
+/// output — so a wrap at the display layer must not read as a missing
+/// occurrence. Counting in the de-wrapped view (physical row breaks
+/// removed) rejoins a split marker; because the wrapped row is full by
+/// construction (no trailing space to trim) the two halves abut exactly.
+/// De-wrapping can only RECONNECT a marker the grid physically split —
+/// it never fabricates the second (output) occurrence the row requires,
+/// so a shell that echoes but never executes still counts 1 and fails.
+fn marker_occurrences(text: &str, marker: &str) -> usize {
+    text.replace('\n', "").matches(marker).count()
+}
+
 /// Last non-blank line, for row-detail evidence.
 fn last_non_blank_line(text: &str) -> String {
     text.lines()
@@ -661,6 +695,46 @@ mod tests {
         assert_eq!(non_blank_lines(""), 0);
         assert_eq!(non_blank_lines("\n\n   \n"), 0);
         assert_eq!(non_blank_lines("$ \n\nhello\n   \n"), 2);
+    }
+
+    #[test]
+    fn marker_occurrences_counts_across_soft_wrap() {
+        // The 2026-06-21 ryn gate false-negative, verbatim: a ~66-col
+        // frostmourne prompt in an 80-col session soft-wrapped the
+        // echoed `echo E2E_MARKER`, splitting the marker across a grid-
+        // row break (`E2E_MARKE` ⏎ `R`) while the command OUTPUT line
+        // kept it intact. A per-line count sees 1; the LOGICAL round-
+        // trip (input echo + output) is 2.
+        let grid = "~ mado-1782083362-41220 · ryn · github/pleme-io/nix main ❄ echo E2E_MARKE\n\
+                    R\n\
+                    E2E_MARKER\n\
+                    ~ mado-1782083362-41220 · ryn · github/pleme-io/nix main ❄";
+        assert_eq!(
+            grid.matches("E2E_MARKER").count(),
+            1,
+            "physical grid under-counts the wrapped echo"
+        );
+        assert_eq!(
+            marker_occurrences(grid, "E2E_MARKER"),
+            2,
+            "de-wrapped count restores the logical round-trip"
+        );
+    }
+
+    #[test]
+    fn marker_occurrences_never_fabricates_a_round_trip() {
+        // A shell that echoes the command but never executes it (wedged
+        // before output) leaves the marker exactly once — wrapped or
+        // not — so the row must still fail. De-wrapping reconnects a
+        // split occurrence; it never invents the second (output) one.
+        let typed_then_wedged = "prompt ❄ echo E2E_MARKE\nR";
+        assert_eq!(marker_occurrences(typed_then_wedged, "E2E_MARKER"), 1);
+        // A dead shell paints no marker at all.
+        let dead = "prompt ❄";
+        assert_eq!(marker_occurrences(dead, "E2E_MARKER"), 0);
+        // The clean (un-wrapped) case still counts both occurrences.
+        let clean = "prompt ❄ echo E2E_MARKER\nE2E_MARKER\nprompt ❄";
+        assert_eq!(marker_occurrences(clean, "E2E_MARKER"), 2);
     }
 
     #[test]
