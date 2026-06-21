@@ -170,8 +170,8 @@ fn compile_frame_graph(key: GraphKey) -> CompiledFrameGraph {
     let enabled: Vec<CatalogEffect> = key.effects.iter_render_order().collect();
 
     let mut g = RenderGraph::default()
-        .with_resource(SCENE, ResourceKind::Texture { width: None, height: None })
-        .with_resource(OUT, ResourceKind::Texture { width: None, height: None })
+        .with_resource(SCENE, ResourceKind::Texture { width: None, height: None, format: None, sample_count: None })
+        .with_resource(OUT, ResourceKind::Texture { width: None, height: None, format: None, sample_count: None })
         .with_resource(CATALOG_SAMPLER, ResourceKind::Sampler)
         .with_input(SCENE)
         .with_input(CATALOG_SAMPLER)
@@ -204,7 +204,7 @@ fn compile_frame_graph(key: GraphKey) -> CompiledFrameGraph {
             OUT.into()
         } else {
             let id = CHAIN_IDS[i];
-            g = g.with_resource(id, ResourceKind::Texture { width: None, height: None });
+            g = g.with_resource(id, ResourceKind::Texture { width: None, height: None, format: None, sample_count: None });
             bindings.insert(id, ResourceHandle::Texture(id.into()));
             intermediates.push(id.into());
             id.into()

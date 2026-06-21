@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "7a8f205e87a5d1e9f1f18590e82c4120f0c0126337015de4d96a26609bd25c4f",
+  "cargo_lock_sha256": "91b9283ca402060196f167965553a9f35d93ef9263e85063c5a2c265b13fdb04",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -2486,7 +2486,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "engawa-wgpu-0.1.5-9e82d16da4746b79054c97904fcdabf72a35b194": {
+      "engawa-wgpu-0.1.6-f13612587c63f8a504eeac0b84f4c26fbc1ab35f": {
         "runtime_dependencies": [
           {
             "name": "bytemuck",
@@ -19013,7 +19013,7 @@
               },
               {
                 "name": "engawa_wgpu",
-                "package_key": "engawa-wgpu-0.1.5-9e82d16da4746b79054c97904fcdabf72a35b194",
+                "package_key": "engawa-wgpu-0.1.6-f13612587c63f8a504eeac0b84f4c26fbc1ab35f",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -19835,26 +19835,6 @@
                 "tree": "target"
               },
               {
-                "name": "objc2_core_data",
-                "package_key": "objc2-core-data-0.2.2",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": false,
-                "optional": true,
-                "target": "cfg(target_vendor = \"apple\")",
-                "tree": "target"
-              },
-              {
-                "name": "objc2_core_image",
-                "package_key": "objc2-core-image-0.2.2",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": false,
-                "optional": true,
-                "target": "cfg(target_vendor = \"apple\")",
-                "tree": "target"
-              },
-              {
                 "name": "objc2_foundation",
                 "package_key": "objc2-foundation-0.2.2",
                 "kind": "normal",
@@ -19862,16 +19842,6 @@
                 "uses_default_features": false,
                 "optional": false,
                 "target": null,
-                "tree": "target"
-              },
-              {
-                "name": "objc2_quartz_core",
-                "package_key": "objc2-quartz-core-0.2.2",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": false,
-                "optional": true,
-                "target": "cfg(target_vendor = \"apple\")",
                 "tree": "target"
               }
             ],
@@ -20636,18 +20606,6 @@
                 "optional": false,
                 "target": null,
                 "tree": "target"
-              },
-              {
-                "name": "objc2_io_surface",
-                "package_key": "objc2-io-surface-0.3.2",
-                "kind": "normal",
-                "features": [
-                  "IOSurfaceRef"
-                ],
-                "uses_default_features": false,
-                "optional": true,
-                "target": "cfg(not(target_os = \"watchos\"))",
-                "tree": "target"
               }
             ],
             "build_dependencies": [],
@@ -20815,18 +20773,6 @@
                 "uses_default_features": false,
                 "optional": false,
                 "target": null,
-                "tree": "target"
-              },
-              {
-                "name": "objc2_io_surface",
-                "package_key": "objc2-io-surface-0.3.2",
-                "kind": "normal",
-                "features": [
-                  "IOSurfaceRef"
-                ],
-                "uses_default_features": false,
-                "optional": true,
-                "target": "cfg(not(target_os = \"watchos\"))",
                 "tree": "target"
               }
             ],
@@ -23136,7 +23082,7 @@
               },
               {
                 "name": "engawa_wgpu",
-                "package_key": "engawa-wgpu-0.1.5-9e82d16da4746b79054c97904fcdabf72a35b194",
+                "package_key": "engawa-wgpu-0.1.6-f13612587c63f8a504eeac0b84f4c26fbc1ab35f",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26772,7 +26718,7 @@
               },
               {
                 "name": "engawa_wgpu",
-                "package_key": "engawa-wgpu-0.1.5-9e82d16da4746b79054c97904fcdabf72a35b194",
+                "package_key": "engawa-wgpu-0.1.6-f13612587c63f8a504eeac0b84f4c26fbc1ab35f",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30502,7 +30448,7 @@
               },
               {
                 "name": "engawa_wgpu",
-                "package_key": "engawa-wgpu-0.1.5-9e82d16da4746b79054c97904fcdabf72a35b194",
+                "package_key": "engawa-wgpu-0.1.6-f13612587c63f8a504eeac0b84f4c26fbc1ab35f",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31324,26 +31270,6 @@
                 "tree": "target"
               },
               {
-                "name": "objc2_core_data",
-                "package_key": "objc2-core-data-0.2.2",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": false,
-                "optional": true,
-                "target": "cfg(target_vendor = \"apple\")",
-                "tree": "target"
-              },
-              {
-                "name": "objc2_core_image",
-                "package_key": "objc2-core-image-0.2.2",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": false,
-                "optional": true,
-                "target": "cfg(target_vendor = \"apple\")",
-                "tree": "target"
-              },
-              {
                 "name": "objc2_foundation",
                 "package_key": "objc2-foundation-0.2.2",
                 "kind": "normal",
@@ -31351,16 +31277,6 @@
                 "uses_default_features": false,
                 "optional": false,
                 "target": null,
-                "tree": "target"
-              },
-              {
-                "name": "objc2_quartz_core",
-                "package_key": "objc2-quartz-core-0.2.2",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": false,
-                "optional": true,
-                "target": "cfg(target_vendor = \"apple\")",
                 "tree": "target"
               }
             ],
@@ -32125,18 +32041,6 @@
                 "optional": false,
                 "target": null,
                 "tree": "target"
-              },
-              {
-                "name": "objc2_io_surface",
-                "package_key": "objc2-io-surface-0.3.2",
-                "kind": "normal",
-                "features": [
-                  "IOSurfaceRef"
-                ],
-                "uses_default_features": false,
-                "optional": true,
-                "target": "cfg(not(target_os = \"watchos\"))",
-                "tree": "target"
               }
             ],
             "build_dependencies": [],
@@ -32304,18 +32208,6 @@
                 "uses_default_features": false,
                 "optional": false,
                 "target": null,
-                "tree": "target"
-              },
-              {
-                "name": "objc2_io_surface",
-                "package_key": "objc2-io-surface-0.3.2",
-                "kind": "normal",
-                "features": [
-                  "IOSurfaceRef"
-                ],
-                "uses_default_features": false,
-                "optional": true,
-                "target": "cfg(not(target_os = \"watchos\"))",
                 "tree": "target"
               }
             ],
@@ -34579,7 +34471,7 @@
               },
               {
                 "name": "engawa_wgpu",
-                "package_key": "engawa-wgpu-0.1.5-9e82d16da4746b79054c97904fcdabf72a35b194",
+                "package_key": "engawa-wgpu-0.1.6-f13612587c63f8a504eeac0b84f4c26fbc1ab35f",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38169,7 +38061,7 @@
               },
               {
                 "name": "engawa_wgpu",
-                "package_key": "engawa-wgpu-0.1.5-9e82d16da4746b79054c97904fcdabf72a35b194",
+                "package_key": "engawa-wgpu-0.1.6-f13612587c63f8a504eeac0b84f4c26fbc1ab35f",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -41370,7 +41262,7 @@
     "engawa-0.1.3-bcccccecadc058907454c065056c1c54c0b2777d": {
       "edition": "2024"
     },
-    "engawa-wgpu-0.1.5-9e82d16da4746b79054c97904fcdabf72a35b194": {
+    "engawa-wgpu-0.1.6-f13612587c63f8a504eeac0b84f4c26fbc1ab35f": {
       "edition": "2024"
     },
     "equivalent-1.0.2": {
@@ -42979,7 +42871,7 @@
     "engate-attach-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": "sha256-7dqrUg3KMEKH5ac5RuK7EJRogt4H3xtv6nDrM0jpccM=",
     "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": "sha256-7dqrUg3KMEKH5ac5RuK7EJRogt4H3xtv6nDrM0jpccM=",
     "engawa-0.1.3-bcccccecadc058907454c065056c1c54c0b2777d": "sha256-TdfOVv76fbTMT365q1hKsJejnHyn1Zc3M84myF5Rj2w=",
-    "engawa-wgpu-0.1.5-9e82d16da4746b79054c97904fcdabf72a35b194": "sha256-Hgd5Phj0buTdBX5u7izGs+lCqEyUC1c9K2sqUB8k14U=",
+    "engawa-wgpu-0.1.6-f13612587c63f8a504eeac0b84f4c26fbc1ab35f": "sha256-1GZU7rE07hA6EQj3FFwtu3lzLYYMb1CYobUdPQsBPg8=",
     "garasu-0.1.1-a7709af29cebfd6ac17e50e432a1403f6901fc15": "sha256-SUoy4k4xw9+vXm3n+PKdialIhbCPKPj6l99w7kU1VSA=",
     "gen-macros-0.1.15-a4082f97f45c21a4e7d69adb252167bc59e71d56": "sha256-fk3v3VPkd8b+l+ohPrBRG5kcK/NLLG0siFZfl4TPnGE=",
     "gen-platform-0.1.15-a4082f97f45c21a4e7d69adb252167bc59e71d56": "sha256-fk3v3VPkd8b+l+ohPrBRG5kcK/NLLG0siFZfl4TPnGE=",
