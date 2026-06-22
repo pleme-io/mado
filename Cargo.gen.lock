@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "fae32eb0271fe37d53b3efb5d70b7b3c3aad7a7d64462c2bdca05583b9f5fada",
+  "cargo_lock_sha256": "7bc700b8bf953f2a9b44e08e1b51a27755bbb7abb853387e55302cba687fe6f5",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -10226,7 +10226,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.49",
+            "package_key": "time-0.3.50",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -10667,7 +10667,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.49",
+            "package_key": "time-0.3.50",
             "kind": "normal",
             "features": [
               "formatting",
@@ -10783,7 +10783,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.49",
+            "package_key": "time-0.3.50",
             "kind": "normal",
             "features": [
               "formatting",
@@ -12333,7 +12333,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.49",
+            "package_key": "time-0.3.50",
             "kind": "normal",
             "features": [
               "formatting",
@@ -13082,7 +13082,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.49",
+            "package_key": "time-0.3.50",
             "kind": "normal",
             "features": [
               "formatting",
@@ -13474,7 +13474,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.49",
+            "package_key": "time-0.3.50",
             "kind": "normal",
             "features": [
               "formatting",
@@ -13703,7 +13703,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.49",
+            "package_key": "time-0.3.50",
             "kind": "normal",
             "features": [
               "formatting",
@@ -15054,7 +15054,7 @@
           "lzw"
         ]
       },
-      "time-0.3.49": {
+      "time-0.3.50": {
         "runtime_dependencies": [
           {
             "name": "deranged",
@@ -16660,7 +16660,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.49",
+            "package_key": "time-0.3.50",
             "kind": "normal",
             "features": [
               "formatting",
@@ -16847,7 +16847,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.49",
+            "package_key": "time-0.3.50",
             "kind": "normal",
             "features": [
               "formatting",
@@ -17028,7 +17028,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.49",
+            "package_key": "time-0.3.50",
             "kind": "normal",
             "features": [
               "formatting",
@@ -17143,7 +17143,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.49",
+            "package_key": "time-0.3.50",
             "kind": "normal",
             "features": [
               "formatting",
@@ -18892,7 +18892,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.15": {
+          "mado-0.1.16": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -22961,7 +22961,7 @@
               "system"
             ]
           },
-          "mado-0.1.15": {
+          "mado-0.1.16": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26597,7 +26597,7 @@
               "system"
             ]
           },
-          "mado-0.1.15": {
+          "mado-0.1.16": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -30327,7 +30327,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.15": {
+          "mado-0.1.16": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -34350,7 +34350,7 @@
               "system"
             ]
           },
-          "mado-0.1.15": {
+          "mado-0.1.16": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -37940,7 +37940,7 @@
               "system"
             ]
           },
-          "mado-0.1.15": {
+          "mado-0.1.16": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -41638,7 +41638,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.15": {
+    "mado-0.1.16": {
       "edition": "2024",
       "binaries": [
         {
@@ -42453,7 +42453,7 @@
     "tiff-0.11.3": {
       "edition": "2021"
     },
-    "time-0.3.49": {
+    "time-0.3.50": {
       "edition": "2024"
     },
     "time-core-0.1.9": {
