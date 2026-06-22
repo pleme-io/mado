@@ -29,24 +29,37 @@ pub struct OverlayStyle {
     pub query: Color,
     /// A non-selected result row. Theme foreground.
     pub row: Color,
-    /// The highlighted result row. Theme success/selected accent.
+    /// The highlighted result row's TEXT. Theme success/selected accent.
     pub selected: Color,
     /// An empty-state / disabled hint line. Dimmed foreground.
     pub hint: Color,
+    /// The solid popup-panel fill behind a `Center`-anchored picker — the
+    /// opaque card so the popup isn't transparent text floating over the
+    /// terminal. A dark, theme-cohesive surface (Nord polar night by
+    /// default). Drawn at full opacity (linearized at paint time).
+    pub panel: Color,
+    /// The panel's accent border (a hairline edge around the card).
+    pub border: Color,
+    /// The highlight bar behind the selected row (the moving cursor of the
+    /// list — what makes juggling sessions feel sleek).
+    pub selected_bg: Color,
 }
 
 impl OverlayStyle {
-    /// The pre-theme Nord defaults — the exact literals the three `draw_*`
-    /// methods used, kept as the fallback the renderer is born with (and
-    /// what non-theme paths see). `from_theme` overrides these on every
-    /// `apply_config_theme`.
+    /// The pre-theme Nord defaults — the literals the old `draw_*` methods
+    /// used for text, plus the popup-card surfaces. The fallback the
+    /// renderer is born with; `theme::apply_config_theme` overrides per
+    /// theme.
     #[must_use]
     pub const fn nord_default() -> Self {
         Self {
-            query: Color::new(0x88, 0xC0, 0xD0),    // Nord frost
-            row: Color::new(0xD8, 0xDE, 0xE9),      // Nord snow
-            selected: Color::new(0xA3, 0xBE, 0x8C), // Nord green
-            hint: Color::new(0x4C, 0x56, 0x6A),     // Nord polar dim
+            query: Color::new(0x88, 0xC0, 0xD0),       // Nord frost
+            row: Color::new(0xD8, 0xDE, 0xE9),         // Nord snow
+            selected: Color::new(0xEC, 0xEF, 0xF4),    // Nord snow-bright
+            hint: Color::new(0x4C, 0x56, 0x6A),        // Nord polar dim
+            panel: Color::new(0x2E, 0x34, 0x40),       // Nord polar night (card)
+            border: Color::new(0x88, 0xC0, 0xD0),      // Nord frost (edge)
+            selected_bg: Color::new(0x43, 0x4C, 0x5E), // Nord polar 2 (highlight bar)
         }
     }
 }

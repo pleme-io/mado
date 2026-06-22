@@ -1019,6 +1019,13 @@ pub struct TerminalRenderer {
     /// the engine via `set_session_picker`; drawn (when `.open`) as a
     /// Pass-6 overlay, same model as `dir_picker`.
     session_picker: Arc<Mutex<crate::session_picker::SessionPickerState>>,
+    /// The SINGLE source of truth for which overlay Pass 6 draws — a 1:1
+    /// mirror of the engine's `Overlay` FSM, shared via `set_overlay_focus`
+    /// and written on every transition. Pass 6 matches on this one value
+    /// and draws exactly the overlay that owns the keyboard, so two
+    /// overlays can never paint at once (theory §VI). The picker `.open`
+    /// bools above are read only for their *content*, never as the gate.
+    overlay_focus: Arc<Mutex<crate::ux::modes::Overlay>>,
     // window field removed at Phase 4 — single-pane mado.
     font_size: f32,
     /// Cell-height multiplier — the line rhythm. The cell height is
@@ -1345,6 +1352,9 @@ impl TerminalRenderer {
             session_picker: Arc::new(Mutex::new(
                 crate::session_picker::SessionPickerState::new(),
             )),
+            // Born `None`; the engine rewires this to its shared cell via
+            // `set_overlay_focus` in `attach_to_renderer`.
+            overlay_focus: Arc::new(Mutex::new(crate::ux::modes::Overlay::None)),
             // window: removed Phase 4
             font_size,
             line_height,
@@ -1637,6 +1647,13 @@ impl TerminalRenderer {
         self.session_picker = session_picker;
     }
 
+    /// Share the engine's overlay-focus cell (the single source of truth
+    /// for which overlay Pass 6 draws). The engine writes it on every FSM
+    /// transition; the renderer matches on it.
+    pub fn set_overlay_focus(&mut self, overlay_focus: Arc<Mutex<crate::ux::modes::Overlay>>) {
+        self.overlay_focus = overlay_focus;
+    }
+
     pub fn set_dir_picker(&mut self, dir_picker: Arc<Mutex<crate::dir_picker::DirPickerState>>) {
         self.dir_picker = dir_picker;
     }
@@ -1782,6 +1799,78 @@ impl TerminalRenderer {
         };
 
         let style = self.overlay_style;
+
+        // Center anchor → a SOLID card behind the text (so the popup is an
+        // opaque, sleek panel, not transparent text over the terminal):
+        // an accent border, the dark panel fill, and a highlight bar behind
+        // the selected row. Drawn through the rect pipeline FIRST; the text
+        // pass below lands on top. Top/Bottom stay text-only (unchanged).
+        if matches!(spec.anchor, PickerAnchor::Center) {
+            let content_w = buffers
+                .iter()
+                .flat_map(glyphon::Buffer::layout_runs)
+                .fold(0.0_f32, |m, run| m.max(run.line_w));
+            let pad_x = self.cell_width * 2.0;
+            let pad_y = line_h * 0.5;
+            let px = (left - pad_x).max(0.0);
+            let py = (top0 - pad_y).max(0.0);
+            let pw = content_w + pad_x * 2.0;
+            let ph = block_h + pad_y * 2.0;
+            let radius = (line_h * 0.55).min(pw.min(ph) / 2.0);
+            let border_w = 1.5_f32;
+            let lin = |c: crate::terminal::Color, a: f32| -> [f32; 4] {
+                let l = ishou_tokens::Srgb::new(c.r, c.g, c.b).to_linear();
+                [l.r, l.g, l.b, a]
+            };
+            let mut rects: Vec<RectInstance> = Vec::with_capacity(3);
+            // Accent border: a slightly larger rounded rect peeking out
+            // behind the panel as a hairline edge.
+            rects.push(RectInstance::rounded(
+                [px - border_w, py - border_w],
+                [pw + border_w * 2.0, ph + border_w * 2.0],
+                radius + border_w,
+                lin(style.border, 1.0),
+            ));
+            // The opaque card.
+            rects.push(RectInstance::rounded(
+                [px, py],
+                [pw, ph],
+                radius,
+                lin(style.panel, 1.0),
+            ));
+            // Highlight bar behind the selected row.
+            if let Some(sel_idx) = spec.lines.iter().position(|l| l.role == LineRole::Selected) {
+                let bar_y = top0 + sel_idx as f32 * line_h;
+                rects.push(RectInstance::rounded(
+                    [px + pad_x * 0.5, bar_y],
+                    [pw - pad_x, line_h],
+                    radius * 0.5,
+                    lin(style.selected_bg, 1.0),
+                ));
+            }
+            if let Some(ref pipeline) = self.rect_pipeline {
+                pipeline.update_resolution(&ctx.gpu.queue, ctx.width, ctx.height);
+                ctx.gpu
+                    .queue
+                    .write_buffer(&pipeline.instance_buffer, 0, bytemuck::cast_slice(&rects));
+                let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("mado_overlay_panel"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: ctx.surface_view,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Load,
+                            store: wgpu::StoreOp::Store,
+                        },
+                    })],
+                    depth_stencil_attachment: None,
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                });
+                pipeline.draw(&mut pass, rects.len() as u32);
+            }
+        }
+
         let color_for = |role: LineRole| {
             let c = match role {
                 LineRole::Title => style.query,
@@ -4306,55 +4395,44 @@ impl RenderCallback for TerminalRenderer {
                 label: Some("mado_overlays"),
             });
 
-        // Pass 6: directory-frecency overlay (轍 wadachi), reader-only. Renders
-        // AFTER snow so it floats on top, onto ctx.surface_view (post-chain), the
-        // same target snow uses. Gated on `.open` so idle frames are unchanged.
-        // State is snapshotted (lock dropped) before any GPU work.
-        {
-            let (dp_open, dp_query, dp_results, dp_selected) = {
-                let dp = self.dir_picker.lock().unwrap();
-                (dp.open, dp.query.clone(), dp.results.clone(), dp.selected)
-            };
-            if dp_open {
-                self.draw_dir_picker(&dp_query, &dp_results, dp_selected, ctx, &mut overlay_encoder);
+        // Pass 6: modal overlays (session switcher / dir picker / search),
+        // reader-only. Renders AFTER snow so it floats on top, onto
+        // ctx.surface_view (post-chain). State is snapshotted (locks
+        // dropped) before any GPU work.
+        //
+        // SINGLE-OVERLAY INVARIANT, structurally. The renderer draws the
+        // ONE overlay the FSM says owns the keyboard, read from the typed
+        // `overlay_focus` cell (a 1:1 mirror of the engine's `Overlay`,
+        // written on the same line the state changes). Matching on one
+        // value makes "two overlays visible" unrepresentable at the render
+        // layer — not a priority heuristic over three independent `.open`
+        // mirror bools (the centred-session-WITH-top-left-dir bug, operator
+        // report 2026-06-21; theory §VI). The picker `.open` bools are read
+        // below only for CONTENT, never as the gate.
+        use crate::ux::modes::Overlay;
+        let focus = *self.overlay_focus.lock().unwrap();
+        match focus {
+            Overlay::None => {}
+            Overlay::SessionPicker => {
+                let (q, results, sel, disabled) = {
+                    let g = self.session_picker.lock().unwrap();
+                    (g.query.clone(), g.results.clone(), g.selected, g.disabled)
+                };
+                self.draw_session_picker(&q, &results, sel, disabled, ctx, &mut overlay_encoder);
             }
-        }
-
-        // Session picker (Ctrl-S praça browse) — same Pass-6 model:
-        // state snapshotted (lock dropped) before GPU work, gated on
-        // `.open` so idle frames are byte-identical.
-        {
-            let (sp_open, sp_query, sp_results, sp_selected, sp_disabled) = {
-                let sp = self.session_picker.lock().unwrap();
-                (
-                    sp.open,
-                    sp.query.clone(),
-                    sp.results.clone(),
-                    sp.selected,
-                    sp.disabled,
-                )
-            };
-            if sp_open {
-                self.draw_session_picker(
-                    &sp_query,
-                    &sp_results,
-                    sp_selected,
-                    sp_disabled,
-                    ctx,
-                    &mut overlay_encoder,
-                );
+            Overlay::DirPicker => {
+                let (q, results, sel) = {
+                    let g = self.dir_picker.lock().unwrap();
+                    (g.query.clone(), g.results.clone(), g.selected)
+                };
+                self.draw_dir_picker(&q, &results, sel, ctx, &mut overlay_encoder);
             }
-        }
-
-        // Search status line — same Pass-6 model: state snapshotted,
-        // gated on `.active` so idle frames are unchanged.
-        {
-            let (s_active, s_query, s_current, s_count) = {
-                let st = self.search.lock().unwrap();
-                (st.active, st.query.clone(), st.current, st.matches.len())
-            };
-            if s_active {
-                self.draw_search_status(&s_query, s_current, s_count, ctx, &mut overlay_encoder);
+            Overlay::Search => {
+                let (q, current, count) = {
+                    let g = self.search.lock().unwrap();
+                    (g.query.clone(), g.current, g.matches.len())
+                };
+                self.draw_search_status(&q, current, count, ctx, &mut overlay_encoder);
             }
         }
 

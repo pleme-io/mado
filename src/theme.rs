@@ -94,6 +94,19 @@ impl Theme {
 /// appearance opacity applied to the theme background through the
 /// typed sRGB→linear path so a theme swap doesn't reintroduce gamma
 /// confusion.
+/// Linear-ish per-channel lerp `a*(1-t) + b*t` over sRGB u8 channels —
+/// good enough for deriving the popup card's elevated surface + highlight
+/// tints from the theme (these are chrome fills, not colour-critical
+/// content; the GPU still linearizes them at paint time).
+#[must_use]
+fn blend(a: Color, b: Color, t: f32) -> Color {
+    let t = t.clamp(0.0, 1.0);
+    let mix = |x: u8, y: u8| -> u8 {
+        (f32::from(x) * (1.0 - t) + f32::from(y) * t).round() as u8
+    };
+    Color::new(mix(a.r, b.r), mix(a.g, b.g), mix(a.b, b.b))
+}
+
 pub fn apply_config_theme(
     renderer: &mut crate::render::TerminalRenderer,
     terminal: &crate::render::SharedTerminal,
@@ -121,16 +134,24 @@ pub fn apply_config_theme(
     // render path linearizes both at paint time via `overlay_rect_color`.
     renderer.set_search_current_color(theme.search_current);
     renderer.set_search_other_color(theme.search_others);
-    // Picker overlay chrome (Ctrl-S switcher + Ctrl-T dirs): resolve the
-    // query / row / selected / hint colours from the active theme so the
-    // pickers track the theme instead of the old hardcoded Nord literals.
-    // query = the agent accent; selected = the theme's bright green;
-    // row = foreground; hint = the theme's dim (bright-black).
+    // Picker overlay chrome (Ctrl-S switcher + Ctrl-T dirs): resolve every
+    // colour from the active theme so the pickers track the theme instead
+    // of hardcoded Nord literals. The Center popup gets a SOLID card:
+    //   panel       = the terminal bg lifted ~10% toward fg (an elevated,
+    //                 still-dark surface that reads as a floating card),
+    //   border      = the theme accent (a hairline edge),
+    //   selected_bg = the bg tinted ~32% toward the accent (the highlight
+    //                 bar that tracks the selection as you juggle sessions).
+    let panel = blend(theme.background, theme.foreground, 0.10);
+    let selected_bg = blend(theme.background, theme.agent_accent, 0.32);
     renderer.set_overlay_style(crate::picker::component::OverlayStyle {
         query: theme.agent_accent,
         row: theme.foreground,
-        selected: theme.ansi[10],
+        selected: theme.ansi[15],
         hint: theme.ansi[8],
+        panel,
+        border: theme.agent_accent,
+        selected_bg,
     });
     // Theme bg through the typed Srgb → Linear path (no gamma confusion).
     let theme_bg: wgpu::Color = ishou_tokens::Srgb::new(

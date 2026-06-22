@@ -181,12 +181,20 @@ pub struct InputEngine {
     /// The overlay modal machine — which overlay owns the keyboard.
     /// Authoritative for ROUTING and for every engine-side mode
     /// decision (`reconcile_search` gates on it, M3 review
-    /// 2026-06-12); the renderer-shared `SearchState.active` /
-    /// `DirPickerState.open` cells are write-only RENDER mirrors
-    /// maintained by [`Self::apply_overlay_step`] — no engine logic
-    /// may read them (tier-honest: the mirror pair is only-mitigated
-    /// — see docs/UNREPRESENTABILITY-VERIFICATION.md).
+    /// 2026-06-12).
     overlay: Overlay,
+    /// The renderer's SINGLE source of truth for which overlay to draw
+    /// — a faithful 1:1 mirror of [`Self::overlay`], written on the SAME
+    /// line the FSM state changes ([`Self::apply_overlay_step`]) and
+    /// read by the renderer's Pass 6. This replaces the per-overlay
+    /// `.open`/`.active` render bools as the *render gate*: the renderer
+    /// matches on this one enum and draws exactly the overlay the FSM
+    /// says owns the keyboard, so "two overlays visible at once" is
+    /// unrepresentable at the render layer — not a priority heuristic
+    /// (theory §VI, docs/THEORY.md §VIII row 1). The picker `.open`
+    /// bools remain for each picker's own data lifecycle, but no longer
+    /// decide what paints.
+    overlay_focus: Arc<Mutex<Overlay>>,
     /// Last modifier state seen on any key/button event — wheel
     /// events don't carry modifiers on the current madori pin.
     last_mods: Modifiers,
@@ -237,6 +245,11 @@ impl InputEngine {
         renderer.set_search(Arc::clone(&params.shared.search));
         renderer.set_dir_picker(Arc::clone(&params.shared.dir_picker));
         renderer.set_session_picker(Arc::clone(&params.shared.session_picker));
+        // The single render source of truth for overlay ownership — the
+        // engine writes it on every FSM transition, the renderer matches
+        // on it in Pass 6 (one overlay drawn, never two).
+        let overlay_focus = Arc::new(Mutex::new(Overlay::None));
+        renderer.set_overlay_focus(Arc::clone(&overlay_focus));
         // Build the scroll system from the typed scroll policy BEFORE the
         // behavior value moves into the struct.
         let scroll = ScrollSystem::new(params.behavior.scroll_config());
@@ -262,6 +275,7 @@ impl InputEngine {
             last_click_pos: CellPos { row: 0, col: 0 },
             pointer: Pointer::Up,
             overlay: Overlay::None,
+            overlay_focus,
             last_mods: Modifiers::default(),
             last_mouse_pos: (0.0, 0.0),
             grid_sync_sig: None,
@@ -680,6 +694,10 @@ impl InputEngine {
     /// injection through the operator-input path.
     fn apply_overlay_step(&mut self, step: OverlayStep) {
         self.overlay = step.state;
+        // Keep the renderer's single source of truth in lock-step with the
+        // FSM — written on the SAME line the state changes, so the render
+        // gate can never disagree with which overlay owns the keyboard.
+        *self.overlay_focus.lock().unwrap() = step.state;
         for effect in step.effects {
             match effect {
                 OverlayEffect::SearchOpen => self.search.lock().unwrap().open(),
