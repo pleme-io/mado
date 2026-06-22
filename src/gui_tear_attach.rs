@@ -342,6 +342,32 @@ pub fn try_run_default(
 /// re-attach machinery (request channel + current-pane cell + producer
 /// factory). `None` is the byte-identical legacy one-shot path.
 #[allow(clippy::too_many_arguments)]
+/// The session that owns `pane`. mado's session-switcher creates
+/// one-pane sessions, so reaping this session reaps the pane (removing
+/// it from the registry → gone from the Ctrl-S list). `None` if no
+/// session contains the pane (already reaped / unknown id).
+fn session_of_pane(
+    sessions: &[tear_types::TearSession],
+    pane: PaneId,
+) -> Option<tear_types::SessionId> {
+    sessions
+        .iter()
+        .find(|s| s.panes.contains_key(&pane))
+        .map(|s| s.id)
+}
+
+/// The first still-`Running` pane that isn't `exclude` — the auto-switch
+/// target when the displayed pane exits. `None` if every other pane is
+/// also dead (the caller then closes the window). Deterministic:
+/// `list_sessions` is ordered, and `panes` is a `BTreeMap`.
+fn next_live_pane(sessions: &[tear_types::TearSession], exclude: PaneId) -> Option<PaneId> {
+    sessions
+        .iter()
+        .flat_map(|s| s.panes.values())
+        .find(|p| p.id != exclude && matches!(p.state, tear_types::PaneState::Running))
+        .map(|p| p.id)
+}
+
 fn run_against_pane_unified<P, C>(
     producer: P,
     control: Arc<C>,
@@ -880,6 +906,52 @@ where
                     let mut drained = 0u32;
                     while drained < 4096 && live.poll_one() {
                         drained += 1;
+                    }
+                    // ── Reap-on-exit + auto-switch ───────────────────
+                    // tear marks an exited pane `Exited` but KEEPS it
+                    // (tmux remain-on-exit), so a shell that exits would
+                    // otherwise STICK on screen and linger in the Ctrl-S
+                    // list. Only checked on an IDLE tick (a dead pane
+                    // produces no bytes, so `drained == 0`) to avoid a
+                    // per-frame registry read. On the displayed pane's
+                    // exit: reap its session (→ gone from the picker) and
+                    // auto-switch to another live pane, or close the
+                    // window if none remain.
+                    if drained == 0
+                        && let (Some(cp), Some(reqs)) = (
+                            current_pane_for_switch.as_ref(),
+                            switch_requests.as_ref(),
+                        )
+                    {
+                        let cur = cp.get();
+                        let exited = matches!(
+                            control_for_switch.get_pane(cur).map(|p| p.state),
+                            Ok(tear_types::PaneState::Exited { .. })
+                        );
+                        if exited && let Ok(sessions) = control_for_switch.list_sessions() {
+                            let next = next_live_pane(&sessions, cur);
+                            if let Some(sid) = session_of_pane(&sessions, cur) {
+                                let _ = control_for_switch.kill_session(sid);
+                                tracing::info!(
+                                    pane = ?cur,
+                                    session = %sid,
+                                    "displayed pane exited — reaped its session"
+                                );
+                            }
+                            match next {
+                                Some(target) => {
+                                    tracing::info!(to = ?target, "auto-switching away from exited pane");
+                                    reqs.post(target);
+                                }
+                                None => {
+                                    return EventResponse {
+                                        consumed: true,
+                                        exit: true,
+                                        ..Default::default()
+                                    };
+                                }
+                            }
+                        }
                     }
                 }
             }
