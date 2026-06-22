@@ -3400,13 +3400,13 @@ rec {
       };
       "engawa-wgpu" = rec {
         crateName = "engawa-wgpu";
-        version = "0.1.6";
+        version = "0.1.7";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/engawa-wgpu";
-          rev = "f13612587c63f8a504eeac0b84f4c26fbc1ab35f";
-          sha256 = "03ry045ks7dml6c50vqchqnp6ydv5mf19xq824x11viln7p58rnl";
+          rev = "a1ea87aba7c5f67c2831b4b6b5c17ee5286e7840";
+          sha256 = "0bicjz4iwfzskgq6wjxj89d0dnf8i2r12051kg3hv6zp45wlh6w7";
         };
         libName = "engawa_wgpu";
         authors = [
@@ -7351,7 +7351,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.16";
+        version = "0.1.17";
         edition = "2024";
         crateBin = [
           {
@@ -19371,9 +19371,9 @@ rec {
       };
       "time" = rec {
         crateName = "time";
-        version = "0.3.49";
+        version = "0.3.51";
         edition = "2024";
-        sha256 = "0sc4dgw6g187gvz5qj9iqqk2ashqzvdwi664b2183gbvsk1566ki";
+        sha256 = "09zkhrk6m83l5szc6dx5zn5zsg97lp8mxr44qi04ncxpzs07vhc5";
         authors = [
           "Jacob Pratt <open-source@jhpratt.dev>"
           "Time contributors"
@@ -19454,9 +19454,9 @@ rec {
       };
       "time-macros" = rec {
         crateName = "time-macros";
-        version = "0.2.29";
+        version = "0.2.30";
         edition = "2024";
-        sha256 = "0zf1ycfikg93ijf00qnprk801khqnqqga1zp0adbp73sfaim5iki";
+        sha256 = "0d9r83vk9ik0gxfbw4yaig748ff2prffq21j2mp0j6dipmhimvyw";
         procMacro = true;
         libName = "time_macros";
         authors = [
