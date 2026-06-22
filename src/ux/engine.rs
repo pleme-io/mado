@@ -24,7 +24,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 use hasami::ClipboardProvider;
-use madori::event::{KeyEvent, Modifiers, MouseButton};
+use madori::event::{KeyEvent, Modifiers, MouseButton, ScrollDelta};
 
 use crate::dir_picker::DirPickerState;
 use crate::font_size::{BoundedFontSize, FontSizeSteps};
@@ -39,7 +39,25 @@ use crate::ux::modes::{
     Pointer, PointerEffect, PointerEvent, PressPlan, PressRoute, SearchNav,
 };
 use crate::ux::mouse_report::{MouseMods, MouseReport, MouseReportButton, MouseReportKind};
-use crate::ux::{EventOutcome, FontZoomTarget, PtySink, ResizeSink, ScrollKinetics, UxBehavior};
+use crate::ux::{
+    EventOutcome, FontZoomTarget, PtySink, ResizeSink, ScrollAction, ScrollContext, ScrollGesture,
+    ScrollSystem, UxBehavior,
+};
+
+/// Translate a windowing-layer [`ScrollDelta`] (madori, typed by source)
+/// into the scroll system's [`ScrollGesture`]. The ONE boundary where
+/// mado's scroll path touches the windowing type; everything downstream is
+/// the windowing-agnostic [`ScrollSystem`]. Vertical-only — mado has no
+/// horizontal scrollback (ghostty's X axis is dropped at this seam, as it
+/// was when the engine read a single `dy`).
+impl From<ScrollDelta> for ScrollGesture {
+    fn from(delta: ScrollDelta) -> Self {
+        match delta {
+            ScrollDelta::Lines { y, .. } => ScrollGesture::Wheel { ticks: y },
+            ScrollDelta::Pixels { y, .. } => ScrollGesture::Precise { pixels: y },
+        }
+    }
+}
 
 /// The shared overlay/selection state the renderer highlights from
 /// and the engine mutates. One value, three Arcs — constructed
@@ -189,13 +207,13 @@ pub struct InputEngine {
     /// stale; the per-tick reconciler re-runs the query when the
     /// generation moves (M2 review finding 2026-06-12).
     search_grid_gen: Option<u64>,
-    /// Momentum-scroll kinetic state — a wheel flick injects velocity
-    /// here (`on_mouse_scroll`), selection auto-scroll drives a
-    /// sustained velocity here (`on_redraw_tick`), and the per-frame
-    /// tick integrates it into `scroll_up`/`scroll_down` line deltas.
-    /// A typed sub-state advanced by a pure function (the mado FSM
-    /// idiom), never a free bool-flag mode.
-    scroll_kinetics: ScrollKinetics,
+    /// The scroll system (`ux::scroll`) — the ONE typed place that decides
+    /// what every scroll gesture does. Owns the momentum kinetics + the
+    /// precise pixel accumulator + the typed policy; `on_mouse_scroll` feeds
+    /// it gestures and `on_redraw_tick` ticks its momentum. A typed sub-state
+    /// advanced by pure functions (the mado FSM idiom), never free bool-flag
+    /// modes.
+    scroll: ScrollSystem,
     /// Wall-clock of the previous `on_redraw_tick`, for the kinetics
     /// `dt`. `None` until the first tick → first dt is treated as 0
     /// (a no-op kinetics frame), which keeps the L1/L2 determinism
@@ -218,6 +236,9 @@ impl InputEngine {
         renderer.set_search(Arc::clone(&params.shared.search));
         renderer.set_dir_picker(Arc::clone(&params.shared.dir_picker));
         renderer.set_session_picker(Arc::clone(&params.shared.session_picker));
+        // Build the scroll system from the typed scroll policy BEFORE the
+        // behavior value moves into the struct.
+        let scroll = ScrollSystem::new(params.behavior.scroll_config());
         Self {
             terminal: params.terminal,
             pty: params.pty,
@@ -244,7 +265,7 @@ impl InputEngine {
             last_mouse_pos: (0.0, 0.0),
             grid_sync_sig: None,
             search_grid_gen: None,
-            scroll_kinetics: ScrollKinetics::at_rest(),
+            scroll,
             last_scroll_tick: None,
         }
     }
@@ -258,20 +279,9 @@ impl InputEngine {
     /// well under a frame at memchr speeds).
     const SEARCH_SCROLLBACK_CAP: usize = 5000;
 
-    /// Wheel-impulse gain: lines/sec of velocity injected per scrolled
-    /// line. One wheel notch (`mouse_scroll_multiplier` lines) becomes
-    /// a short glide; a fast repeated flick accumulates AND accelerates
-    /// (the `ScrollKinetics` streak ramp) toward `scroll_max_velocity`.
-    /// Tuned so a single notch is a brisk weighted nudge — quick off the
-    /// line, never a launch.
-    const IMPULSE_GAIN: f32 = 30.0;
-
-    /// Selection auto-scroll velocity per overshoot line (lines/sec),
-    /// and the overshoot cap. Drag one line past the edge ⇒ a gentle
-    /// crawl; drag far past ⇒ up to `AUTOSCROLL_MAX_LINES` overshoot
-    /// worth of speed, so the further you pull the faster it reveals.
-    const AUTOSCROLL_VELOCITY_PER_LINE: f32 = 18.0;
-    const AUTOSCROLL_MAX_OVERSHOOT: f32 = 6.0;
+    // Scroll feel/tuning constants (wheel-impulse gain, auto-scroll velocity
+    // + overshoot cap) moved into the scroll system (`ux::scroll`) and the
+    // typed config knobs — the engine no longer owns scroll policy.
 
     /// Search row source: (rows, cols, absolute index of rows[0]).
     fn search_rows(&self) -> (Vec<Vec<Cell>>, usize, usize) {
@@ -1308,100 +1318,124 @@ impl InputEngine {
         EventOutcome::consumed().with_cursor_visibility(vis)
     }
 
-    /// Wheel / two-finger scroll: PTY wheel-button forwarding when
-    /// the app tracks the mouse — with TRUE cell coords from the
-    /// tracked pointer position (pre-M1 both loops sent a fake
-    /// `1;1`) — else the mado-side scrollback view scrolls.
-    pub fn on_mouse_scroll(&mut self, dy: f64, metrics: &dyn FontZoomTarget) -> EventOutcome {
-        // Write lock up front — mode check and scroll mutation stay
-        // atomic (lifted lock shape; drop before PTY forwarding).
-        let mut term = self.terminal.write();
-        let mouse_mode = term.mouse_mode();
-        let sgr = term.sgr_mouse();
-
-        // Shift+wheel bypasses tracking and scrolls mado's scrollback
-        // (xterm/kitty/ghostty convention) — without it, scrollback
-        // is unreachable inside tmux/vim/htop. Wheel events carry no
-        // modifiers on the current madori pin; `last_mods` is fed by
-        // every key/button event, and pressing Shift itself emits a
-        // key event, so the cache is current by the time the wheel
-        // turns. (madori@972f296 adds Scroll.modifiers — switch when
-        // the shikumi pin unifies.)
-        if mouse_mode != MouseMode::Off
-            && !(self.last_mods.shift && !self.behavior.mouse_shift_capture)
-        {
-            let term_cols = term.cols();
-            let term_rows = term.rows();
-            drop(term);
-            let cw = metrics.cell_width();
-            let ch = metrics.cell_height();
-            let pad_phys = self.padding * metrics.scale_factor();
-            let col = ((self.last_mouse_pos.0 as f32 - pad_phys) / cw).max(0.0) as usize;
-            let row = ((self.last_mouse_pos.1 as f32 - pad_phys) / ch).max(0.0) as usize;
-            let report = MouseReport {
-                kind: MouseReportKind::Press,
-                button: if dy > 0.0 {
-                    MouseReportButton::WheelUp
-                } else {
-                    MouseReportButton::WheelDown
-                },
-                col: col.min(term_cols.saturating_sub(1)) + 1,
-                row: row.min(term_rows.saturating_sub(1)) + 1,
-                mods: MouseMods::NONE,
-            };
-            self.pty.write(&report.encode(sgr));
-            return EventOutcome::consumed();
-        }
-
-        let lines = (dy as isize).unsigned_abs().max(1)
-            * (self.behavior.mouse_scroll_multiplier as usize).max(1);
-
-        // Alternate-scroll (xterm mode 1007 semantics, default-on like
-        // kitty/ghostty): a full-screen TUI without mouse tracking has
-        // no scrollback to scroll — the wheel maps to arrow keys so
-        // less/vim/man scroll their CONTENT instead of the viewport
-        // no-op'ing. DECCKM picks the encoding the app negotiated.
-        if term.is_alternate_screen() {
-            drop(term);
-            let app_mode = (self.cursor_keys_mode)();
-            let seq: &[u8] = match (dy > 0.0, app_mode) {
-                (true, true) => b"\x1bOA",
-                (true, false) => b"\x1b[A",
-                (false, true) => b"\x1bOB",
-                (false, false) => b"\x1b[B",
-            };
-            let mut out = Vec::with_capacity(seq.len() * lines);
-            for _ in 0..lines {
-                out.extend_from_slice(seq);
-            }
-            self.pty.write(&out);
-            return EventOutcome::consumed();
-        }
-
-        // Viewport scrollback. With momentum on, the wheel injects
-        // velocity into the typed `ScrollKinetics` sub-state — a flick
-        // builds up velocity (same-direction impulses accumulate) and
-        // `on_redraw_tick` integrates it into a weighty, decelerating
-        // glide. With momentum off, scroll line-for-line as before
-        // (the behavior-preserving opt-out). The mouse-tracking and
-        // alternate-screen early returns above are byte-identical
-        // either way — only this final branch changes.
-        if self.behavior.scroll_momentum {
-            drop(term);
-            // Impulse magnitude = the same line count a direct scroll
-            // would move, scaled into a lines/sec velocity. The gain
-            // turns one wheel notch into a brief glide; repeated
-            // notches accumulate (capped at scroll_max_velocity).
-            let impulse = lines as f32 * Self::IMPULSE_GAIN;
-            let signed = if dy > 0.0 { impulse } else { -impulse };
-            self.scroll_kinetics
-                .add_impulse(signed, self.behavior.scroll_max_velocity);
-        } else if dy > 0.0 {
-            term.scroll_up(lines);
-        } else {
-            term.scroll_down(lines);
-        }
+    /// Wheel / trackpad scroll. Snapshots the live terminal context, asks the
+    /// scroll system ([`ScrollSystem`]) what to do, and executes the typed
+    /// [`ScrollAction`]. The decision (wheel-vs-trackpad, momentum, the
+    /// precise pixel accumulator, forwarding, alt-scroll) lives entirely in
+    /// the system; this is the I/O edge — PTY writes and the viewport scroll.
+    pub fn on_mouse_scroll(
+        &mut self,
+        gesture: ScrollGesture,
+        metrics: &dyn FontZoomTarget,
+    ) -> EventOutcome {
+        // Re-feed the policy so `behavior` stays the single source of truth
+        // (cheap — `ScrollConfig` is `Copy`); in-flight kinetic/accumulator
+        // state is preserved.
+        self.scroll.set_config(self.behavior.scroll_config());
+        // Snapshot context under a short read lock, then decide + execute
+        // lock-free. `shift_bypass` reserves shift as the operator's
+        // scrollback escape from a mouse-tracking app (the
+        // xterm/kitty/ghostty convention); wheel events carry no modifiers on
+        // the current madori pin, so `last_mods` (fed by every key/button
+        // event, and Shift itself emits a key event) is the source.
+        let (mouse_tracking, alt_screen, sgr) = {
+            let term = self.terminal.read();
+            (
+                term.mouse_mode() != MouseMode::Off,
+                term.is_alternate_screen(),
+                term.sgr_mouse(),
+            )
+        };
+        let ctx = ScrollContext {
+            mouse_tracking,
+            shift_bypass: self.last_mods.shift && !self.behavior.mouse_shift_capture,
+            alt_screen,
+            cell_height: metrics.cell_height(),
+        };
+        let action = self.scroll.on_gesture(gesture, &ctx);
+        self.execute_scroll_action(action, sgr, metrics);
         EventOutcome::consumed()
+    }
+
+    /// Execute a [`ScrollAction`] the scroll system produced — the impure
+    /// half of the gesture path: viewport scroll under the terminal lock,
+    /// wheel-button reports / cursor-key alt-scroll to the PTY.
+    fn execute_scroll_action(
+        &mut self,
+        action: ScrollAction,
+        sgr: bool,
+        metrics: &dyn FontZoomTarget,
+    ) {
+        match action {
+            ScrollAction::None => {}
+            ScrollAction::Viewport { cells } => {
+                let n = cells.unsigned_abs() as usize;
+                let mut term = self.terminal.write();
+                if cells > 0 {
+                    term.scroll_up(n);
+                } else if cells < 0 {
+                    term.scroll_down(n);
+                }
+            }
+            ScrollAction::ForwardWheel { up, count } => {
+                // Forward to a mouse-tracking app with TRUE cell coords from
+                // the tracked pointer (wheel events carry none of their own).
+                let (col, row) = self.wheel_cell(metrics);
+                let report = MouseReport {
+                    kind: MouseReportKind::Press,
+                    button: if up {
+                        MouseReportButton::WheelUp
+                    } else {
+                        MouseReportButton::WheelDown
+                    },
+                    col: col + 1,
+                    row: row + 1,
+                    mods: MouseMods::NONE,
+                };
+                let bytes = report.encode(sgr);
+                for _ in 0..count {
+                    self.pty.write(&bytes);
+                }
+            }
+            ScrollAction::ForwardArrows { up, count } => {
+                // Alt-screen alt-scroll (xterm 1007): map to arrow keys so
+                // less/man/vim scroll their CONTENT. DECCKM picks the
+                // encoding the app negotiated.
+                let app_mode = (self.cursor_keys_mode)();
+                let seq: &[u8] = match (up, app_mode) {
+                    (true, true) => b"\x1bOA",
+                    (true, false) => b"\x1b[A",
+                    (false, true) => b"\x1bOB",
+                    (false, false) => b"\x1b[B",
+                };
+                let mut out = Vec::with_capacity(seq.len() * count);
+                for _ in 0..count {
+                    out.extend_from_slice(seq);
+                }
+                self.pty.write(&out);
+            }
+        }
+    }
+
+    /// Clamped (col, row) for the tracked pointer — the cell a forwarded
+    /// wheel report names. Wheel events carry no coordinates, so they use
+    /// `last_mouse_pos` (closing the pre-M1 fake-`1;1` gap). Cell metrics are
+    /// guarded with `.max(1.0)` so a scroll before the first measured frame
+    /// can't divide by zero.
+    fn wheel_cell(&self, metrics: &dyn FontZoomTarget) -> (usize, usize) {
+        let cw = metrics.cell_width().max(1.0);
+        let ch = metrics.cell_height().max(1.0);
+        let pad_phys = self.padding * metrics.scale_factor();
+        let col = ((self.last_mouse_pos.0 as f32 - pad_phys) / cw).max(0.0) as usize;
+        let row = ((self.last_mouse_pos.1 as f32 - pad_phys) / ch).max(0.0) as usize;
+        let (term_cols, term_rows) = {
+            let term = self.terminal.read();
+            (term.cols(), term.rows())
+        };
+        (
+            col.min(term_cols.saturating_sub(1)),
+            row.min(term_rows.saturating_sub(1)),
+        )
     }
 
     // ── IME / focus ──────────────────────────────────────────────
@@ -1479,7 +1513,7 @@ impl InputEngine {
         // wall-clock → dt step lives here so the driver itself is pure
         // in `dt` (deterministic + unit-testable).
         let selecting = matches!(self.pointer, Pointer::Selecting { .. });
-        if !self.scroll_kinetics.is_active() && !selecting {
+        if !self.scroll.is_active() && !selecting {
             // Fast path: a still kinetics with no live drag means no
             // momentum and no auto-scroll. Skip the wall-clock read and
             // reset the marker so the FIRST frame after the next impulse
@@ -1506,65 +1540,56 @@ impl InputEngine {
     /// `ScrollKinetics::tick`, keeping the L1/L2 determinism ladders
     /// byte-stable when the engine is driven headless.
     fn tick_scroll_kinetics(&mut self, dt: f32, metrics: &dyn FontZoomTarget) {
-        let selecting = matches!(self.pointer, Pointer::Selecting { .. });
+        // Keep the policy in sync with `behavior` (the source of truth) so an
+        // auto-scroll speed/overshoot edit — or a momentum-tuning change —
+        // takes effect; `ScrollConfig` is `Copy`, so this is trivial.
+        self.scroll.set_config(self.behavior.scroll_config());
 
-        // ── Selection auto-scroll: drive a sustained velocity from the
-        // overshoot, OR cancel the sustained drive when the pointer
-        // re-enters the viewport. Char/word/line drags all qualify —
-        // any live `Selecting` state.
+        // ── Selection auto-scroll: a live drag past a viewport edge drives a
+        // sustained velocity through the scroll system. The system owns the
+        // speed/overshoot policy (config knobs); the engine owns the
+        // pointer-state gate + the raw overshoot measurement.
+        let selecting = matches!(self.pointer, Pointer::Selecting { .. });
         if self.behavior.selection_autoscroll && selecting {
-            // RAW pointer row (NOT mouse_cell's clamped row — we need
-            // to SEE the past-edge overshoot). Pixel → row via the same
-            // physical-padding math the renderer draws with.
-            let ch = metrics.cell_height();
+            // RAW pointer row (NOT the clamped cell — we need to SEE the
+            // past-edge overshoot). Pixel → row via the same physical-padding
+            // math the renderer draws with; cell height guarded for the
+            // pre-first-frame case.
+            let ch = metrics.cell_height().max(1.0);
             let pad_phys = self.padding * metrics.scale_factor();
             let raw_row = (self.last_mouse_pos.1 as f32 - pad_phys) / ch;
             let rows = self.terminal.read().rows() as f32;
-
-            if raw_row < 0.0 {
-                // Above the top edge → scroll UP into history.
-                let over = (-raw_row).min(Self::AUTOSCROLL_MAX_OVERSHOOT);
-                self.scroll_kinetics
-                    .set_sustained(over * Self::AUTOSCROLL_VELOCITY_PER_LINE);
-            } else if raw_row >= rows {
-                // Below the bottom edge → scroll DOWN toward the tail.
-                let over = (raw_row - (rows - 1.0)).min(Self::AUTOSCROLL_MAX_OVERSHOOT);
-                self.scroll_kinetics
-                    .set_sustained(-over * Self::AUTOSCROLL_VELOCITY_PER_LINE);
-            } else if self.scroll_kinetics.is_sustained() {
-                // Pointer back inside → end the auto-scroll drive.
-                self.scroll_kinetics.stop();
-            }
-        } else if self.scroll_kinetics.is_sustained() {
-            // Drag released (or autoscroll disabled) while sustained →
-            // stop; a sustained drive must not outlive its drag.
-            self.scroll_kinetics.stop();
+            self.scroll.update_autoscroll(raw_row, rows);
+        } else {
+            // No live drag (or auto-scroll disabled) → a sustained drive must
+            // not outlive its drag.
+            self.scroll.end_autoscroll();
         }
 
-        // ── Advance the kinetics and apply the line delta.
-        let delta = self.scroll_kinetics.tick(dt, self.behavior.scroll_friction);
+        // ── Advance momentum and apply the whole-cell delta.
+        let delta = self.scroll.tick(dt);
         if delta != 0 {
             let mut term = self.terminal.write();
-            // Wall clamp: at the scrollback top (offset == total) or the
-            // live bottom (offset == 0) zero the velocity so momentum
-            // doesn't grind against the bound for the rest of its decay.
+            // Wall clamp: at the scrollback top (offset == total) or the live
+            // bottom (offset == 0) halt the drive so momentum doesn't grind
+            // against the bound for the rest of its decay.
             let offset = term.scroll_offset();
             let total = term.scrollback_total();
             if delta > 0 {
                 if offset >= total {
-                    self.scroll_kinetics.stop();
+                    self.scroll.stop();
                 } else {
-                    term.scroll_up(delta as usize);
+                    term.scroll_up(delta.unsigned_abs() as usize);
                     if term.scroll_offset() >= term.scrollback_total() {
-                        self.scroll_kinetics.stop();
+                        self.scroll.stop();
                     }
                 }
             } else if offset == 0 {
-                self.scroll_kinetics.stop();
+                self.scroll.stop();
             } else {
                 term.scroll_down(delta.unsigned_abs() as usize);
                 if term.scroll_offset() == 0 {
-                    self.scroll_kinetics.stop();
+                    self.scroll.stop();
                 }
             }
             drop(term);
@@ -1609,7 +1634,7 @@ impl InputEngine {
     /// history, `-` down toward the tail.
     #[cfg(test)]
     fn scroll_velocity(&self) -> f32 {
-        self.scroll_kinetics.velocity()
+        self.scroll.velocity()
     }
 
     /// Selection ⇄ content reconciler: anchors whose content is gone
@@ -1916,6 +1941,14 @@ mod tests {
                         scroll_friction: 3.0,
                         scroll_max_velocity: 120.0,
                         selection_autoscroll: false,
+                        // Precise path at a literal 1:1 gain so harness math is
+                        // "cell_height px ⇒ 1 cell"; autoscroll tuning present
+                        // but gated off by selection_autoscroll: false. Tests
+                        // that exercise these flip them via `harness.behavior`.
+                        precise_scroll_mode: crate::config::PreciseScrollMode::Pixels,
+                        precise_scroll_multiplier: 1.0,
+                        selection_autoscroll_speed: 18.0,
+                        selection_autoscroll_max_overshoot: 6.0,
                     },
                     cursor_keys_mode,
                     default_font_size: 14.0,
@@ -1978,9 +2011,18 @@ mod tests {
             self.engine.on_mouse_moved(x, y, &self.renderer);
         }
 
-        /// One wheel notch (`dy > 0` = up into history).
-        fn scroll(&mut self, dy: f64) {
-            self.engine.on_mouse_scroll(dy, &self.renderer);
+        /// One discrete wheel notch (`ticks > 0` = up into history).
+        fn scroll(&mut self, ticks: f64) {
+            self.engine
+                .on_mouse_scroll(ScrollGesture::Wheel { ticks }, &self.renderer);
+        }
+
+        /// One precise (trackpad) gesture of `pixels` physical px
+        /// (`> 0` = up into history).
+        #[allow(dead_code)]
+        fn scroll_precise(&mut self, pixels: f64) {
+            self.engine
+                .on_mouse_scroll(ScrollGesture::Precise { pixels }, &self.renderer);
         }
 
         /// One per-frame redraw tick — advances the scroll kinetics.
@@ -2252,7 +2294,7 @@ mod tests {
         let mut shift_key = no_mods();
         shift_key.shift = true;
         h.key(KeyCode::Unknown, None, shift_key); // bare Shift press updates the cache
-        h.engine.on_mouse_scroll(1.0, &h.renderer);
+        h.scroll(1.0);
         assert!(
             h.sent_bytes().is_empty(),
             "shift+wheel must not forward a mouse report"
@@ -2325,7 +2367,7 @@ mod tests {
         h.terminal.write().scroll_up(7);
         // Enable mouse tracking so the wheel forwards reports.
         h.feed(b"\x1b[?1000h\x1b[?1006h");
-        h.engine.on_mouse_scroll(1.0, &h.renderer);
+        h.scroll(1.0);
         assert_eq!(
             h.terminal.read().scroll_offset(),
             7,
@@ -2341,7 +2383,7 @@ mod tests {
     fn wheel_in_alt_screen_sends_arrow_keys() {
         let mut h = Harness::new(SinkKind::Closure);
         h.feed(b"\x1b[?1049h"); // alt screen, no mouse tracking
-        h.engine.on_mouse_scroll(1.0, &h.renderer);
+        h.scroll(1.0);
         let sent = h.sent_bytes().concat();
         assert!(
             !sent.is_empty() && sent.chunks(3).all(|c| c == b"\x1b[A"),
@@ -2350,7 +2392,7 @@ mod tests {
         // Application cursor-keys mode flips the encoding to SS3.
         h.feed(b"\x1b[?1h");
         h.clear_sent();
-        h.engine.on_mouse_scroll(-1.0, &h.renderer);
+        h.scroll(-1.0);
         let sent = h.sent_bytes().concat();
         assert!(
             !sent.is_empty() && sent.chunks(3).all(|c| c == b"\x1bOB"),
@@ -3055,10 +3097,10 @@ mod tests {
         h.drain_sent();
         // The spec row: wheel-up at (10,5) → ESC[<64;11;6M — true
         // coords, not the pre-M1 fake 1;1.
-        h.engine.on_mouse_scroll(1.0, &h.renderer);
+        h.scroll(1.0);
         assert_eq!(h.sent_bytes(), vec![b"\x1b[<64;11;6M".to_vec()]);
         h.drain_sent();
-        h.engine.on_mouse_scroll(-1.0, &h.renderer);
+        h.scroll(-1.0);
         assert_eq!(h.sent_bytes(), vec![b"\x1b[<65;11;6M".to_vec()]);
     }
 

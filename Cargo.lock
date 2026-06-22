@@ -2507,7 +2507,7 @@ dependencies = [
 [[package]]
 name = "madori"
 version = "0.1.3"
-source = "git+https://github.com/pleme-io/madori#234661aeecc945d323e2fe0b878598aaf39f9112"
+source = "git+https://github.com/pleme-io/madori#af8fd1183de9ea10531f03ca2721f769c102cc53"
 dependencies = [
  "egaku",
  "garasu",

@@ -235,7 +235,19 @@ Key font features to implement:
 - Double click (400ms window): word selection (alphanumeric + underscore)
 - Triple click: line selection
 - Drag: update selection endpoint
-- Scroll: viewport scroll (scrollback) or forwarded to PTY when mouse tracking active
+- Scroll: routed through the **scroll system** (`src/ux/scroll.rs`) — one typed
+  `ScrollSystem` that maps a source-typed gesture (`ScrollGesture::Wheel` ticks
+  vs `ScrollGesture::Precise` trackpad pixels — kept distinct by madori's typed
+  `ScrollDelta`) + live context to a typed `ScrollAction` (viewport scroll /
+  forward wheel reports / alt-screen arrows). **Precise (trackpad) = ghostty's
+  pixel accumulator** (peel whole cells via cell height, carry the signed
+  sub-cell remainder, NO synthetic friction — the OS momentum-phase stream that
+  winit forwards as more `PixelDelta`s supplies the inertia); **wheel = direct
+  lines OR mado's synthetic momentum glide** (a deliberate superset ghostty
+  lacks). A precise gesture cancels any in-flight wheel glide. O(1) offset
+  clamp ⇒ a fast fling respects the `usize::MAX` infinite-scrollback default.
+  Behaviors are selected by typed config (see Configuration); the engine is the
+  pure I/O edge.
 - Mouse forwarding: X10 and SGR encoding for modes 1000/1002/1003
 
 **IME**: winit IME events forwarded -- Commit text goes to PTY.
@@ -284,6 +296,15 @@ transitive git deps. Published to crates.io as `mado`.
 Config sections: `font_family`, `font_size`, `window` (width/height/padding),
 `shell` (command), `cursor` (style/blink/blink_rate_ms), `behavior`
 (scrollback_lines/copy_on_select), `appearance` (background/foreground/opacity).
+
+Scroll knobs (under `behavior`, projected into the typed `ux::scroll::ScrollConfig`
+via `UxBehavior::scroll_config`): `scroll_momentum` (wheel: Lines vs Momentum),
+`mouse_scroll_multiplier` (wheel lines/notch), `scroll_friction` + `scroll_max_velocity`
+(momentum-glide tuning), `precise_scroll_mode` (`pixels` = ghostty OS-inertia
+accumulator | `momentum` = synthetic glide), `precise_scroll_multiplier` (trackpad
+pixel gain; default 2.0 ≈ ghostty macOS feel), `selection_autoscroll` +
+`selection_autoscroll_speed` + `selection_autoscroll_max_overshoot` (drag-past-edge
+auto-scroll). Each knob is live + dead-knob-tested.
 
 Target config features:
 - **Theme system**: Named themes (Nord, Dracula, etc.) switchable at runtime -- 8 built-in themes done

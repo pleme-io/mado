@@ -1011,8 +1011,8 @@ where
                     renderer.snow_set_cursor(*x as f32, *y as f32);
                     engine.on_mouse_moved(*x, *y, renderer).into()
                 }
-                AppEvent::Mouse(madori::MouseEvent::Scroll { dy, .. }) => {
-                    engine.on_mouse_scroll(*dy, renderer).into()
+                AppEvent::Mouse(madori::MouseEvent::Scroll { delta, .. }) => {
+                    engine.on_mouse_scroll((*delta).into(), renderer).into()
                 }
                 AppEvent::Key(key_event @ KeyEvent { pressed: true, .. }) => {
                     renderer.snow_pulse_typing();

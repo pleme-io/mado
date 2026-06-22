@@ -1114,6 +1114,29 @@ pub struct BehaviorConfig {
     /// screen). `false` freezes selection at the viewport edges.
     #[serde(default = "default_true")]
     pub selection_autoscroll: bool,
+    /// Precise (trackpad / Magic Mouse) scroll behavior — see
+    /// [`PreciseScrollMode`]. `Pixels` (default) is the ghostty-faithful
+    /// pixel accumulator with OS-supplied inertia; `Momentum` routes the
+    /// trackpad into the synthetic glide instead. Selects the precise arm of
+    /// the scroll system (`ux::scroll`).
+    #[serde(default)]
+    pub precise_scroll_mode: PreciseScrollMode,
+    /// Precise-scroll pixel gain. Physical pixel deltas are multiplied by
+    /// this before the cell accumulator. `1.0` is true 1:1 finger tracking;
+    /// the default `2.0` matches ghostty's effective macOS trackpad feel
+    /// (its apprt's hard-coded 2× over a precision multiplier of 1). Trackpad
+    /// only — the discrete wheel uses `mouse_scroll_multiplier`.
+    #[serde(default = "default_precise_scroll_multiplier")]
+    pub precise_scroll_multiplier: f32,
+    /// Selection auto-scroll speed: sustained lines/sec per line of pointer
+    /// overshoot past a viewport edge. Higher reveals faster as you drag
+    /// further past the edge.
+    #[serde(default = "default_autoscroll_speed")]
+    pub selection_autoscroll_speed: f32,
+    /// Selection auto-scroll overshoot cap (lines): the speed saturates once
+    /// the pointer is this many lines past the edge.
+    #[serde(default = "default_autoscroll_max_overshoot")]
+    pub selection_autoscroll_max_overshoot: f32,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
@@ -1124,6 +1147,24 @@ pub enum MouseShiftCapture {
     True,
     Never,
     Always,
+}
+
+/// How a precise (trackpad / Magic Mouse) gesture scrolls — the typed
+/// behavior selector for the precise path of the scroll system
+/// (`ux::scroll::PreciseMode`).
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum PreciseScrollMode {
+    /// Ghostty-faithful pixel accumulation: peel whole cells from a carried
+    /// sub-cell pixel remainder, apply immediately, and let the OS momentum
+    /// stream supply inertia (no synthetic friction). The recommended
+    /// trackpad feel; the default.
+    #[default]
+    Pixels,
+    /// Feed precise pixels into the synthetic momentum glide instead —
+    /// app-side inertia on the trackpad, for devices/platforms with weak OS
+    /// momentum (or taste).
+    Momentum,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1728,6 +1769,13 @@ impl MadoConfig {
                 scroll_friction: default_scroll_friction(),
                 scroll_max_velocity: default_scroll_max_velocity(),
                 selection_autoscroll: false, // bare = selection frozen at edges
+                // bare = ghostty pixel accumulator at a literal 1:1 gain (no
+                // feel-bump), auto-scroll tuning at the shared defaults (it's
+                // gated off by selection_autoscroll: false anyway).
+                precise_scroll_mode: PreciseScrollMode::Pixels,
+                precise_scroll_multiplier: 1.0,
+                selection_autoscroll_speed: default_autoscroll_speed(),
+                selection_autoscroll_max_overshoot: default_autoscroll_max_overshoot(),
             },
             // ── Theme ────────────────────────────────────────────
             // Empty = no theme overlay; appearance.background +
@@ -2186,6 +2234,10 @@ impl Default for BehaviorConfig {
             scroll_friction: default_scroll_friction(),
             scroll_max_velocity: default_scroll_max_velocity(),
             selection_autoscroll: true,
+            precise_scroll_mode: PreciseScrollMode::default(),
+            precise_scroll_multiplier: default_precise_scroll_multiplier(),
+            selection_autoscroll_speed: default_autoscroll_speed(),
+            selection_autoscroll_max_overshoot: default_autoscroll_max_overshoot(),
         }
     }
 }
@@ -2317,6 +2369,24 @@ fn default_scroll_max_velocity() -> f32 {
     // acceleration real headroom to feel fast, yet still eye-trackable
     // (the friction glide always eases it back down).
     200.0
+}
+fn default_precise_scroll_multiplier() -> f32 {
+    // Physical-pixel gain for the trackpad. winit gives mado no free speed
+    // bump, so to match ghostty's effective macOS trackpad feel — its apprt's
+    // hard-coded 2× over a precision multiplier of 1 — we pin the gain to 2.0.
+    // 1.0 would be literal 1:1 finger tracking (the bare tier uses that).
+    2.0
+}
+fn default_autoscroll_speed() -> f32 {
+    // Sustained lines/sec per line of pointer overshoot past a viewport edge:
+    // one line past ⇒ a gentle 18 lines/sec crawl, scaling up to the overshoot
+    // cap so the further you drag the faster history reveals.
+    18.0
+}
+fn default_autoscroll_max_overshoot() -> f32 {
+    // Overshoot cap (lines): drag more than six lines past the edge and the
+    // auto-scroll speed saturates — fast, but never an uncontrollable launch.
+    6.0
 }
 fn default_shell_integration_enabled() -> bool {
     true
