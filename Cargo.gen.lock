@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "de19971b9e4d8a0338f6576359ddfaa8c8c29efc18067f8acd3051db3982dcb9",
+  "cargo_lock_sha256": "5e1ff5daf9283085cdb5f321ceae26ee6c056d0578e870e7b75344b1ff2f29d6",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -4147,7 +4147,7 @@
           "std"
         ]
       },
-      "hasami-0.1.1-0ebc8216648dde043eac21079b3850131f2192fa": {
+      "hasami-0.1.2-c20b0112c09fccae2a9f51260c83fb711f7512d5": {
         "runtime_dependencies": [
           {
             "name": "arboard",
@@ -18892,7 +18892,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.12": {
+          "mado-0.1.13": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -19043,7 +19043,7 @@
               },
               {
                 "name": "hasami",
-                "package_key": "hasami-0.1.1-0ebc8216648dde043eac21079b3850131f2192fa",
+                "package_key": "hasami-0.1.2-c20b0112c09fccae2a9f51260c83fb711f7512d5",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -22961,7 +22961,7 @@
               "system"
             ]
           },
-          "mado-0.1.12": {
+          "mado-0.1.13": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -23112,7 +23112,7 @@
               },
               {
                 "name": "hasami",
-                "package_key": "hasami-0.1.1-0ebc8216648dde043eac21079b3850131f2192fa",
+                "package_key": "hasami-0.1.2-c20b0112c09fccae2a9f51260c83fb711f7512d5",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26597,7 +26597,7 @@
               "system"
             ]
           },
-          "mado-0.1.12": {
+          "mado-0.1.13": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26748,7 +26748,7 @@
               },
               {
                 "name": "hasami",
-                "package_key": "hasami-0.1.1-0ebc8216648dde043eac21079b3850131f2192fa",
+                "package_key": "hasami-0.1.2-c20b0112c09fccae2a9f51260c83fb711f7512d5",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30327,7 +30327,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.12": {
+          "mado-0.1.13": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -30478,7 +30478,7 @@
               },
               {
                 "name": "hasami",
-                "package_key": "hasami-0.1.1-0ebc8216648dde043eac21079b3850131f2192fa",
+                "package_key": "hasami-0.1.2-c20b0112c09fccae2a9f51260c83fb711f7512d5",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34350,7 +34350,7 @@
               "system"
             ]
           },
-          "mado-0.1.12": {
+          "mado-0.1.13": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -34501,7 +34501,7 @@
               },
               {
                 "name": "hasami",
-                "package_key": "hasami-0.1.1-0ebc8216648dde043eac21079b3850131f2192fa",
+                "package_key": "hasami-0.1.2-c20b0112c09fccae2a9f51260c83fb711f7512d5",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37940,7 +37940,7 @@
               "system"
             ]
           },
-          "mado-0.1.12": {
+          "mado-0.1.13": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -38091,7 +38091,7 @@
               },
               {
                 "name": "hasami",
-                "package_key": "hasami-0.1.1-0ebc8216648dde043eac21079b3850131f2192fa",
+                "package_key": "hasami-0.1.2-c20b0112c09fccae2a9f51260c83fb711f7512d5",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -41438,7 +41438,7 @@
     "half-2.7.1": {
       "edition": "2021"
     },
-    "hasami-0.1.1-0ebc8216648dde043eac21079b3850131f2192fa": {
+    "hasami-0.1.2-c20b0112c09fccae2a9f51260c83fb711f7512d5": {
       "edition": "2024"
     },
     "hashbrown-0.12.3": {
@@ -41638,7 +41638,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.12": {
+    "mado-0.1.13": {
       "edition": "2024",
       "binaries": [
         {
@@ -42876,7 +42876,7 @@
     "gen-macros-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0": "sha256-khDWAqmgqr/pPPq73hZbZojnEw3gVc6RYFPLuNCoR/A=",
     "gen-platform-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0": "sha256-khDWAqmgqr/pPPq73hZbZojnEw3gVc6RYFPLuNCoR/A=",
     "gen-types-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0": "sha256-khDWAqmgqr/pPPq73hZbZojnEw3gVc6RYFPLuNCoR/A=",
-    "hasami-0.1.1-0ebc8216648dde043eac21079b3850131f2192fa": "sha256-W7ohQyb8fcqcErwB0V9EOLhJrh4EUyfDUA305o1uwjY=",
+    "hasami-0.1.2-c20b0112c09fccae2a9f51260c83fb711f7512d5": "sha256-jumH5OHgIV872elIb65ABgspnrfsA3rkeJyW5SIP6bo=",
     "irodzuki-0.1.7-28a0f5ed6d038d3bf1ec43eb9ae0b482ad85e506": "sha256-FLNMG+F1ZVpmjwpHq/eMys0MYjnWHr63B7vmZQWyo9w=",
     "ishou-tokens-0.1.3-22f900bbdd488297dcd2383014fdd344179cb104": "sha256-4MxDrBisMARCAiC4gVOTVCKuQxfLYaCjZaUzwE+QyV8=",
     "kaname-0.1.1-0570e7ec566b60444307fe5873f80f5beda8fe6c": "sha256-ue2v9p/Eq+z3hmCaL63toSyjpDY6s3H1gGBUFBOX3ek=",
