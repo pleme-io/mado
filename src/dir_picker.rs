@@ -1,97 +1,47 @@
-//! Reader-only directory-frecency picker state (轍 wadachi).
+//! Ctrl-T directory-frecency picker (轍 wadachi) — the dir expression of
+//! the shared fuzzy-picker base.
 //!
-//! Mirrors `search::SearchState`: pure data + the typed wadachi *reader* calls.
-//! The renderer (`render.rs`) reads it via a shared `Arc<Mutex<_>>`; the input
-//! handler (`main.rs`) drives it. mado **never records** — it calls only the
-//! `pleme_io_wadachi` reader API (`top_n` / `resolve`); the shell owns recording
-//! (single-recorder rule). On select, the input handler injects `cd <dir>\n`
-//! into the PTY — a keystroke, not a recording.
+//! Same shape as the session switcher: the modal state is the generic
+//! [`crate::picker::state::FuzzyPicker`] over [`DirRow`], and this file
+//! owns only the dir delta — the [`DirPickerSource`] (`list` ranks dirs
+//! via the typed `pleme_io_wadachi` reader) and the `cd`-injection accept
+//! (in the engine's effect arm). mado **never records** — it calls only
+//! the reader API (`top_n`); the shell owns recording (single-recorder
+//! rule). On select, the engine injects `cd <dir>\n` into the PTY.
 
 use std::path::PathBuf;
 
-/// The modal state of the in-terminal directory-frecency overlay.
-#[derive(Default)]
-pub struct DirPickerState {
-    /// Whether the overlay is open (gates all rendering + input capture).
-    pub open: bool,
-    /// The filter needle typed so far.
-    pub query: String,
-    /// Frecency-ranked `(path, score)` results. Plain tuples so no wadachi type
-    /// leaks into the render/state layer — keeps the dependency surface minimal.
-    pub results: Vec<(PathBuf, f64)>,
-    /// Index of the highlighted row.
-    pub selected: usize,
-}
+use crate::picker::state::PickerSource;
 
-impl DirPickerState {
-    #[must_use]
-    pub fn new() -> Self {
-        Self::default()
-    }
+/// One directory row: the path + its frecency score. Plain tuple so no
+/// wadachi type leaks into the render/state layer.
+pub type DirRow = (PathBuf, f64);
 
-    /// Open the overlay, seeding with the top frecency dirs (empty needle).
-    pub fn open(&mut self) {
-        self.open = true;
-        self.query.clear();
-        self.selected = 0;
-        self.recompute();
-    }
+/// The modal state of the Ctrl-T overlay — the generic fuzzy picker over
+/// [`DirRow`], shared with the session switcher.
+pub type DirPickerState = crate::picker::state::FuzzyPicker<DirRow>;
 
-    /// Close + reset.
-    pub fn close(&mut self) {
-        self.open = false;
-        self.query.clear();
-        self.results.clear();
-        self.selected = 0;
-    }
+/// The dir picker's [`PickerSource`]: ranks directories by frecency via
+/// the typed wadachi reader. Stateless (the reader is a free function),
+/// so it carries nothing — but implementing the trait keeps the dir
+/// picker an expression of the same base the session picker uses.
+#[derive(Debug, Default, Clone, Copy)]
+pub struct DirPickerSource;
 
-    /// Append typed text to the needle + re-rank.
-    pub fn push_str(&mut self, s: &str) {
-        self.query.push_str(s);
-        self.recompute();
-    }
+impl PickerSource for DirPickerSource {
+    type Row = DirRow;
 
-    /// Delete the last needle char + re-rank.
-    pub fn backspace(&mut self) {
-        self.query.pop();
-        self.recompute();
-    }
-
-    /// Move the highlight down (wraps).
-    pub fn move_down(&mut self) {
-        if !self.results.is_empty() {
-            self.selected = (self.selected + 1) % self.results.len();
-        }
-    }
-
-    /// Move the highlight up (wraps).
-    pub fn move_up(&mut self) {
-        if !self.results.is_empty() {
-            self.selected = if self.selected == 0 {
-                self.results.len() - 1
-            } else {
-                self.selected - 1
-            };
-        }
-    }
-
-    /// The currently-highlighted path, if any.
-    #[must_use]
-    pub fn selected_path(&self) -> Option<&PathBuf> {
-        self.results.get(self.selected).map(|(p, _)| p)
-    }
-
-    /// Re-rank against the current needle via the wadachi reader. Best-effort:
-    /// a reader error just yields an empty list (never panics, never records).
-    fn recompute(&mut self) {
-        self.selected = 0;
-        self.results = match pleme_io_wadachi::top_n(&self.query, 15) {
+    /// Frecency-ranked dirs for `query` via the wadachi reader.
+    /// Best-effort: a reader error yields an empty list (never panics,
+    /// never records). `now` is unused — wadachi owns its own recency.
+    fn list(&self, query: &str, _now: u64) -> Vec<DirRow> {
+        match pleme_io_wadachi::top_n(query, 15) {
             Ok(v) => v.into_iter().map(|d| (d.path, d.score)).collect(),
             Err(e) => {
                 tracing::warn!("wadachi top_n: {e}");
                 Vec::new()
             }
-        };
+        }
     }
 }
 

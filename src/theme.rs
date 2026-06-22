@@ -121,6 +121,17 @@ pub fn apply_config_theme(
     // render path linearizes both at paint time via `overlay_rect_color`.
     renderer.set_search_current_color(theme.search_current);
     renderer.set_search_other_color(theme.search_others);
+    // Picker overlay chrome (Ctrl-S switcher + Ctrl-T dirs): resolve the
+    // query / row / selected / hint colours from the active theme so the
+    // pickers track the theme instead of the old hardcoded Nord literals.
+    // query = the agent accent; selected = the theme's bright green;
+    // row = foreground; hint = the theme's dim (bright-black).
+    renderer.set_overlay_style(crate::picker::component::OverlayStyle {
+        query: theme.agent_accent,
+        row: theme.foreground,
+        selected: theme.ansi[10],
+        hint: theme.ansi[8],
+    });
     // Theme bg through the typed Srgb → Linear path (no gamma confusion).
     let theme_bg: wgpu::Color = ishou_tokens::Srgb::new(
         theme.background.r,

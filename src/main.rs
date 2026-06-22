@@ -45,6 +45,7 @@ mod pointer_shape;
 mod prompt_mark;
 mod pty;
 mod perf;
+mod picker;
 mod render;
 mod render_graph;
 mod scenario;

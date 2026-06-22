@@ -1208,6 +1208,13 @@ fn try_run_default_embedded(
     // log a one-time warning and behave as Off (no driver, byte-
     // identical to today). `None` everywhere else keeps the default
     // path pristine.
+    // The session-picker bridge can CREATE sessions (create-on-miss /
+    // emoji presets), so it needs the spawn shell + env — the same the
+    // auto-attach driver spawns with. Capture a clone before the driver
+    // construction below moves the original `spawn_env`.
+    let picker_spawn_env = spawn_env.clone();
+    let picker_shell = shell.clone();
+
     let auto_attach: Option<crate::auto_attach::AutoAttachDriver> = if config
         .tear
         .auto_attach
@@ -1293,6 +1300,8 @@ fn try_run_default_embedded(
                 shared_praca,
                 Arc::clone(&inproc),
                 switch.clone(),
+                picker_shell.clone(),
+                picker_spawn_env.clone(),
             )) as Box<dyn crate::session_picker::SessionPickerBridge>
         });
 

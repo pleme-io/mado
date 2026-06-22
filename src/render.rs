@@ -1130,6 +1130,13 @@ pub struct TerminalRenderer {
     /// `config.tear.session_picker_anchor` in
     /// [`apply_effects_and_accessibility`](Self::apply_effects_and_accessibility).
     session_picker_anchor: crate::config::PickerAnchor,
+    /// The themed colours every picker overlay paints with (query /
+    /// row / selected / hint). Resolved from the active theme by
+    /// [`crate::theme::apply_config_theme`] via `set_overlay_style`, so a
+    /// theme swap restyles the pickers — no Nord literal in the draw path.
+    /// Born with the Nord defaults the old `draw_*` methods hardcoded.
+    #[invalidating_setter]
+    overlay_style: crate::picker::component::OverlayStyle,
     /// Window focus — unfocused windows draw a hollow, steady cursor
     /// (the which-window-owns-the-keyboard affordance). Set by the
     /// adapters' Focused arms.
@@ -1382,6 +1389,9 @@ impl TerminalRenderer {
             search_other_color: Color::new(0xEB, 0xCB, 0x8B),
             reduce_motion: false,
             session_picker_anchor: crate::config::PickerAnchor::default(),
+            // Nord defaults (the exact literals the old draw_* methods
+            // hardcoded); `theme::apply_config_theme` overrides per theme.
+            overlay_style: crate::picker::component::OverlayStyle::nord_default(),
             focused: true,
             // 1.0 = no scaling; overwritten on the first render frame
             // by `set_scale_factor(ctx.scale_factor)`.
@@ -1714,54 +1724,76 @@ impl TerminalRenderer {
         }
     }
 
-    fn draw_dir_picker(
+    /// The ONE themed overlay renderer every picker draws through — the
+    /// shared 90% the old `draw_dir_picker` / `draw_session_picker` each
+    /// copy-pasted (buffer stack → `TextArea` per line → render pass).
+    /// Geometry follows [`crate::config::PickerAnchor`] (`Center` floats
+    /// the block in the middle; `Bottom` rises from the bottom edge; `Top`
+    /// drops from the top); every colour comes from `self.overlay_style`
+    /// (theme-resolved), so no Nord literal survives + a theme swap
+    /// restyles all pickers. Each line's [`LineRole`] picks its colour.
+    fn draw_overlay(
         &self,
-        query: &str,
-        results: &[(std::path::PathBuf, f64)],
-        selected: usize,
+        spec: &crate::picker::component::OverlaySpec,
         ctx: &mut RenderContext<'_>,
         encoder: &mut wgpu::CommandEncoder,
     ) {
+        use crate::config::PickerAnchor;
+        use crate::picker::component::LineRole;
+
+        if spec.lines.is_empty() {
+            return;
+        }
         let fs = self.font_size_px();
         let line_h = fs * self.line_height;
-        let left = self.padding_px() + self.cell_width * 2.0;
-        let top0 = self.padding_px() + self.cell_height;
-        let max_rows = 12usize;
 
-        // Build the line strings, then their shaped buffers (kept alive while
-        // the TextAreas borrow them through prepare).
-        let mut lines: Vec<String> = Vec::with_capacity(max_rows + 1);
-        lines.push(format!("\u{25b6} cd  {query}\u{2588}"));
-        if results.is_empty() {
-            lines.push("  (no matching directories)".to_owned());
-        } else {
-            for (i, (path, _score)) in results.iter().take(max_rows).enumerate() {
-                let marker = if i == selected { "\u{203a} " } else { "  " };
-                lines.push(format!("{marker}{}", path.display()));
-            }
-        }
-
-        let mut buffers: Vec<glyphon::Buffer> = Vec::with_capacity(lines.len());
-        for line in &lines {
+        // Shape every line first (the centred anchor needs the shaped
+        // widths to centre the block; the TextAreas borrow the buffers
+        // through prepare, so they're kept alive in `buffers`).
+        let mut buffers: Vec<glyphon::Buffer> = Vec::with_capacity(spec.lines.len());
+        for line in &spec.lines {
             let attrs = Attrs::new().family(Family::Name(&self.font_family));
-            let mut buf = ctx.text.create_rich_buffer(&[(line.as_str(), attrs)], fs, line_h);
+            let mut buf = ctx
+                .text
+                .create_rich_buffer(&[(line.text.as_str(), attrs)], fs, line_h);
             buf.shape_until_scroll(&mut ctx.text.font_system, false);
             buffers.push(buf);
         }
 
-        let frost = GlyphonColor::rgba(136, 192, 208, 255); // Nord frost — query
-        let green = GlyphonColor::rgba(163, 190, 140, 255); // Nord green — selected
-        let fg = GlyphonColor::rgba(self.fg_color.r, self.fg_color.g, self.fg_color.b, 255);
+        let pad = self.padding_px();
+        let block_h = spec.lines.len() as f32 * line_h;
+        let edge_left = pad + self.cell_width * 2.0;
+        let (left, top0) = match spec.anchor {
+            PickerAnchor::Top => (edge_left, pad + self.cell_height),
+            PickerAnchor::Bottom => (
+                edge_left,
+                (ctx.height as f32 - block_h - pad).max(pad),
+            ),
+            PickerAnchor::Center => {
+                let max_w = buffers
+                    .iter()
+                    .flat_map(glyphon::Buffer::layout_runs)
+                    .fold(0.0_f32, |m, run| m.max(run.line_w));
+                (
+                    ((ctx.width as f32 - max_w) / 2.0).max(pad),
+                    ((ctx.height as f32 - block_h) / 2.0).max(pad),
+                )
+            }
+        };
+
+        let style = self.overlay_style;
+        let color_for = |role: LineRole| {
+            let c = match role {
+                LineRole::Title => style.query,
+                LineRole::Selected => style.selected,
+                LineRole::Row => style.row,
+                LineRole::Hint => style.hint,
+            };
+            GlyphonColor::rgba(c.r, c.g, c.b, 255)
+        };
 
         let mut text_areas = Vec::with_capacity(buffers.len());
-        for (idx, buf) in buffers.iter().enumerate() {
-            let color = if idx == 0 {
-                frost
-            } else if !results.is_empty() && idx - 1 == selected {
-                green
-            } else {
-                fg
-            };
+        for (idx, (buf, line)) in buffers.iter().zip(&spec.lines).enumerate() {
             text_areas.push(glyphon::TextArea {
                 buffer: buf,
                 left,
@@ -1773,7 +1805,7 @@ impl TerminalRenderer {
                     right: ctx.width as i32,
                     bottom: ctx.height as i32,
                 },
-                default_color: color,
+                default_color: color_for(line.role),
                 custom_glyphs: &[],
             });
         }
@@ -1782,11 +1814,11 @@ impl TerminalRenderer {
             ctx.text
                 .prepare(&ctx.gpu.device, &ctx.gpu.queue, ctx.width, ctx.height, text_areas)
         {
-            tracing::warn!("dir_picker text prepare: {e}");
+            tracing::warn!("overlay text prepare: {e}");
             return;
         }
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("mado_dir_picker"),
+            label: Some("mado_overlay"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view: ctx.surface_view,
                 resolve_target: None,
@@ -1800,8 +1832,46 @@ impl TerminalRenderer {
             occlusion_query_set: None,
         });
         if let Err(e) = ctx.text.render(&mut pass) {
-            tracing::warn!("dir_picker text render: {e}");
+            tracing::warn!("overlay text render: {e}");
         }
+    }
+
+    /// Build the Ctrl-T dir-picker [`OverlaySpec`] (`cd` query line +
+    /// frecency rows, top-anchored) and draw it through [`Self::draw_overlay`].
+    fn draw_dir_picker(
+        &self,
+        query: &str,
+        results: &[(std::path::PathBuf, f64)],
+        selected: usize,
+        ctx: &mut RenderContext<'_>,
+        encoder: &mut wgpu::CommandEncoder,
+    ) {
+        use crate::picker::component::{LineRole, OverlayLine, OverlaySpec};
+        let max_rows = 12usize;
+
+        let mut lines: Vec<OverlayLine> = Vec::with_capacity(max_rows + 1);
+        lines.push(OverlayLine::new(
+            format!("\u{25b6} cd  {query}\u{2588}"),
+            LineRole::Title,
+        ));
+        if results.is_empty() {
+            lines.push(OverlayLine::new("  (no matching directories)", LineRole::Hint));
+        } else {
+            for (i, (path, _score)) in results.iter().take(max_rows).enumerate() {
+                let (marker, role) = if i == selected {
+                    ("\u{203a} ", LineRole::Selected)
+                } else {
+                    ("  ", LineRole::Row)
+                };
+                lines.push(OverlayLine::new(format!("{marker}{}", path.display()), role));
+            }
+        }
+        // The dir picker keeps the legacy top-drop anchor.
+        self.draw_overlay(
+            &OverlaySpec::new(crate::config::PickerAnchor::Top, lines),
+            ctx,
+            encoder,
+        );
     }
 
     /// Draw the Ctrl-S praça session-picker overlay — a text-only floating
@@ -1819,97 +1889,36 @@ impl TerminalRenderer {
         ctx: &mut RenderContext<'_>,
         encoder: &mut wgpu::CommandEncoder,
     ) {
-        let fs = self.font_size_px();
-        let line_h = fs * self.line_height;
-        let left = self.padding_px() + self.cell_width * 2.0;
+        use crate::picker::component::{LineRole, OverlayLine, OverlaySpec};
         let max_rows = 12usize;
 
-        let mut lines: Vec<String> = Vec::with_capacity(max_rows + 1);
-        lines.push(format!("\u{25b6} session  {query}\u{2588}"));
+        let mut lines: Vec<OverlayLine> = Vec::with_capacity(max_rows + 1);
+        lines.push(OverlayLine::new(
+            format!("\u{25b6} session  {query}\u{2588}"),
+            LineRole::Title,
+        ));
         if disabled {
-            lines.push("  (session switching disabled — set tear.session_switching = true)".to_owned());
+            lines.push(OverlayLine::new(
+                "  (session switching disabled — set tear.session_switching = true)",
+                LineRole::Hint,
+            ));
         } else if results.is_empty() {
-            lines.push("  (no matching sessions)".to_owned());
+            lines.push(OverlayLine::new("  (type a name to create a session)", LineRole::Hint));
         } else {
             for (i, row) in results.iter().take(max_rows).enumerate() {
-                let marker = if i == selected { "\u{203a} " } else { "  " };
-                lines.push(format!("{marker}{}", row.label));
+                let (marker, role) = if i == selected {
+                    ("\u{203a} ", LineRole::Selected)
+                } else {
+                    ("  ", LineRole::Row)
+                };
+                lines.push(OverlayLine::new(format!("{marker}{}", row.label), role));
             }
         }
 
-        // Anchor the picker block: Bottom (default) rises from the bottom
-        // edge like the shell's Ctrl-R / Ctrl-T fuzzy finders; Top is the
-        // legacy drop-from-top. Derived from the line count so the whole
-        // overlay sits flush against the chosen edge.
-        let block_h = lines.len() as f32 * line_h;
-        let top0 = match self.session_picker_anchor {
-            crate::config::PickerAnchor::Top => self.padding_px() + self.cell_height,
-            crate::config::PickerAnchor::Bottom => {
-                (ctx.height as f32 - block_h - self.padding_px()).max(self.padding_px())
-            }
-        };
-
-        let mut buffers: Vec<glyphon::Buffer> = Vec::with_capacity(lines.len());
-        for line in &lines {
-            let attrs = Attrs::new().family(Family::Name(&self.font_family));
-            let mut buf = ctx.text.create_rich_buffer(&[(line.as_str(), attrs)], fs, line_h);
-            buf.shape_until_scroll(&mut ctx.text.font_system, false);
-            buffers.push(buf);
-        }
-
-        let frost = GlyphonColor::rgba(136, 192, 208, 255); // Nord frost — query
-        let green = GlyphonColor::rgba(163, 190, 140, 255); // Nord green — selected
-        let fg = GlyphonColor::rgba(self.fg_color.r, self.fg_color.g, self.fg_color.b, 255);
-
-        let mut text_areas = Vec::with_capacity(buffers.len());
-        for (idx, buf) in buffers.iter().enumerate() {
-            let color = if idx == 0 {
-                frost
-            } else if !disabled && !results.is_empty() && idx - 1 == selected {
-                green
-            } else {
-                fg
-            };
-            text_areas.push(glyphon::TextArea {
-                buffer: buf,
-                left,
-                top: top0 + (idx as f32) * line_h,
-                scale: 1.0,
-                bounds: glyphon::TextBounds {
-                    left: 0,
-                    top: 0,
-                    right: ctx.width as i32,
-                    bottom: ctx.height as i32,
-                },
-                default_color: color,
-                custom_glyphs: &[],
-            });
-        }
-
-        if let Err(e) =
-            ctx.text
-                .prepare(&ctx.gpu.device, &ctx.gpu.queue, ctx.width, ctx.height, text_areas)
-        {
-            tracing::warn!("session_picker text prepare: {e}");
-            return;
-        }
-        let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("mado_session_picker"),
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: ctx.surface_view,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Load,
-                    store: wgpu::StoreOp::Store,
-                },
-            })],
-            depth_stencil_attachment: None,
-            timestamp_writes: None,
-            occlusion_query_set: None,
-        });
-        if let Err(e) = ctx.text.render(&mut pass) {
-            tracing::warn!("session_picker text render: {e}");
-        }
+        // Anchor per config — Center (default) floats the popup; Bottom /
+        // Top keep the edge-anchored feel. The shared draw_overlay owns the
+        // geometry + the theme-resolved colours.
+        self.draw_overlay(&OverlaySpec::new(self.session_picker_anchor, lines), ctx, encoder);
     }
 
     /// Set the shared search state (called from main to share with event handler).

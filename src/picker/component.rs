@@ -1,0 +1,110 @@
+//! Typed, themed inputs for the ONE overlay renderer
+//! (`crate::render::TerminalRenderer::draw_overlay`) every picker draws
+//! through.
+//!
+//! Pre-base, three near-identical `draw_*` methods each built a glyphon
+//! buffer stack, a `TextArea` per line, and a render pass — and each
+//! hardcoded the same two Nord literals (`rgba(136,192,208)` query,
+//! `rgba(163,190,140)` selected). This module is the typed surface that
+//! collapses them: a picker builds an [`OverlaySpec`] (anchor + typed
+//! [`OverlayLine`]s), the renderer draws it once, and every colour
+//! resolves from the active theme via [`OverlayStyle`] — no Nord literal
+//! survives, so a theme swap restyles every overlay.
+//!
+//! The colour values live here as `terminal::Color` (u8-RGB, the
+//! renderer's native shape); the theme→style resolution lives in
+//! `crate::theme` where the `Theme` + ANSI table are. The geometry
+//! (Top / Bottom / Center anchoring, the centred panel) lives in the
+//! renderer where the cell metrics are.
+
+use crate::config::PickerAnchor;
+use crate::terminal::Color;
+
+/// The resolved colours one overlay paints with. Resolved from the active
+/// theme (see `crate::theme::OverlayStyle::from_theme`) so the picker
+/// chrome tracks the operator's theme instead of a baked-in palette.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct OverlayStyle {
+    /// The query/prompt line (`▶ session  foo█`). Theme accent.
+    pub query: Color,
+    /// A non-selected result row. Theme foreground.
+    pub row: Color,
+    /// The highlighted result row. Theme success/selected accent.
+    pub selected: Color,
+    /// An empty-state / disabled hint line. Dimmed foreground.
+    pub hint: Color,
+}
+
+impl OverlayStyle {
+    /// The pre-theme Nord defaults — the exact literals the three `draw_*`
+    /// methods used, kept as the fallback the renderer is born with (and
+    /// what non-theme paths see). `from_theme` overrides these on every
+    /// `apply_config_theme`.
+    #[must_use]
+    pub const fn nord_default() -> Self {
+        Self {
+            query: Color::new(0x88, 0xC0, 0xD0),    // Nord frost
+            row: Color::new(0xD8, 0xDE, 0xE9),      // Nord snow
+            selected: Color::new(0xA3, 0xBE, 0x8C), // Nord green
+            hint: Color::new(0x4C, 0x56, 0x6A),     // Nord polar dim
+        }
+    }
+}
+
+impl Default for OverlayStyle {
+    fn default() -> Self {
+        Self::nord_default()
+    }
+}
+
+/// The semantic role of one overlay line — maps to a colour in
+/// [`OverlayStyle`] at draw time, so the call site never names a colour.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LineRole {
+    /// The query/prompt line.
+    Title,
+    /// The highlighted result row.
+    Selected,
+    /// A non-selected result row.
+    Row,
+    /// An empty-state / disabled hint.
+    Hint,
+}
+
+/// One line of an overlay: its already-composed display text + the role
+/// that picks its colour.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OverlayLine {
+    pub text: String,
+    pub role: LineRole,
+}
+
+impl OverlayLine {
+    #[must_use]
+    pub fn new(text: impl Into<String>, role: LineRole) -> Self {
+        Self {
+            text: text.into(),
+            role,
+        }
+    }
+}
+
+/// A complete overlay to draw: where it anchors + its typed lines. The
+/// renderer owns the geometry (line height, centring, the panel) and the
+/// [`OverlayStyle`]; this is purely *what* to draw.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OverlaySpec {
+    /// Where the block sits: [`PickerAnchor::Center`] floats it in the
+    /// middle (with a backing panel), `Bottom` rises from the bottom edge
+    /// (Ctrl-R/Ctrl-T feel), `Top` drops from the top.
+    pub anchor: PickerAnchor,
+    /// The lines, top to bottom: a title line then the rows (or a hint).
+    pub lines: Vec<OverlayLine>,
+}
+
+impl OverlaySpec {
+    #[must_use]
+    pub fn new(anchor: PickerAnchor, lines: Vec<OverlayLine>) -> Self {
+        Self { anchor, lines }
+    }
+}

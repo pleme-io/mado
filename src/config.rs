@@ -526,9 +526,9 @@ pub struct MadoTearConfig {
     #[serde(default)]
     pub auto_attach: AutoAttachMode,
     /// Where the Ctrl-S session picker overlay is anchored on screen.
-    /// **Defaults [`PickerAnchor::Bottom`]** — the picker rises from the
-    /// bottom edge (the Ctrl-R / Ctrl-T fuzzy-finder feel) instead of
-    /// dropping from the top.
+    /// **Defaults [`PickerAnchor::Center`]** — a centred popup (the
+    /// fzf/Telescope feel). `Bottom` rises from the bottom edge (Ctrl-R /
+    /// Ctrl-T feel); `Top` drops from the top.
     #[serde(default)]
     pub session_picker_anchor: PickerAnchor,
 }
@@ -656,15 +656,21 @@ impl Default for MadoTearConfig {
 }
 
 /// Where a floating picker overlay (Ctrl-S session picker) is anchored
-/// on screen. The operator's stated preference: pickers should rise from
-/// the **bottom** (like the shell's Ctrl-R / Ctrl-T fuzzy finders), not
-/// drop from the top — so [`Bottom`](PickerAnchor::Bottom) is the default.
+/// on screen. The operator's stated preference (2026-06-21): the session
+/// switcher floats in the **center** as a popup — so
+/// [`Center`](PickerAnchor::Center) is the default; `Bottom` (Ctrl-R /
+/// Ctrl-T feel) and `Top` remain available.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum PickerAnchor {
-    /// Pin the picker to the bottom of the window — it grows upward from
-    /// near the bottom edge. Default; matches the Ctrl-R/Ctrl-T feel.
+    /// Float the picker in the CENTER of the window as a popup, with a
+    /// backing panel — the fzf/Telescope feel. **Default** for the Ctrl-S
+    /// session switcher (operator request 2026-06-21: "the entire session
+    /// switcher in the center of the screen as a popup").
     #[default]
+    Center,
+    /// Pin the picker to the bottom of the window — it grows upward from
+    /// near the bottom edge. Matches the Ctrl-R/Ctrl-T feel.
     Bottom,
     /// Pin the picker to the top of the window — the legacy drop-from-top
     /// behavior, kept for operators who prefer it.

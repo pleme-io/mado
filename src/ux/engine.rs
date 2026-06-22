@@ -28,6 +28,7 @@ use madori::event::{KeyEvent, Modifiers, MouseButton, ScrollDelta};
 
 use crate::dir_picker::DirPickerState;
 use crate::font_size::{BoundedFontSize, FontSizeSteps};
+use crate::picker::state::PickerSource;
 use crate::keybind::{Action, KeybindManager};
 use crate::render::{SharedTerminal, TerminalRenderer};
 use crate::search::SearchState;
@@ -707,10 +708,15 @@ impl InputEngine {
                         .backspace_query(&rows, cols, first_abs);
                     self.scroll_to_active_match();
                 }
-                OverlayEffect::DirPickerOpen => self.dir_picker.lock().unwrap().open(),
+                OverlayEffect::DirPickerOpen => self.dir_picker_open(),
                 OverlayEffect::DirPickerClose => self.dir_picker.lock().unwrap().close(),
                 OverlayEffect::DirPickerAccept => {
-                    let path = self.dir_picker.lock().unwrap().selected_path().cloned();
+                    let path = self
+                        .dir_picker
+                        .lock()
+                        .unwrap()
+                        .selected_row()
+                        .map(|(p, _)| p.clone());
                     if let Some(p) = path {
                         // `cd '<path>'\n` composed from typed pieces
                         // (shell_quote_path owns the quoting rule).
@@ -723,10 +729,8 @@ impl InputEngine {
                 }
                 OverlayEffect::DirPickerMoveUp => self.dir_picker.lock().unwrap().move_up(),
                 OverlayEffect::DirPickerMoveDown => self.dir_picker.lock().unwrap().move_down(),
-                OverlayEffect::DirPickerBackspace => self.dir_picker.lock().unwrap().backspace(),
-                OverlayEffect::DirPickerPush(text) => {
-                    self.dir_picker.lock().unwrap().push_str(&text);
-                }
+                OverlayEffect::DirPickerBackspace => self.dir_picker_backspace(),
+                OverlayEffect::DirPickerPush(text) => self.dir_picker_push(&text),
                 OverlayEffect::SessionPickerOpen => self.session_picker_open(),
                 OverlayEffect::SessionPickerClose => {
                     self.session_picker.lock().unwrap().close();
@@ -742,6 +746,34 @@ impl InputEngine {
         }
     }
 
+    /// Open the Ctrl-T dir picker: seed the list from the wadachi reader
+    /// (top frecency dirs, empty query). Mirrors the session-picker open
+    /// path so both pickers drive the shared [`crate::picker::state::FuzzyPicker`]
+    /// identically — only the source differs.
+    fn dir_picker_open(&mut self) {
+        let rows = crate::dir_picker::DirPickerSource.list("", 0);
+        self.dir_picker.lock().unwrap().open(rows, false);
+    }
+
+    /// Re-rank the dir list after a query edit through the wadachi reader.
+    fn dir_picker_recompute(&mut self) {
+        let query = self.dir_picker.lock().unwrap().query.clone();
+        let rows = crate::dir_picker::DirPickerSource.list(&query, 0);
+        self.dir_picker.lock().unwrap().set_results(rows);
+    }
+
+    /// Append typed text to the dir-picker needle + re-rank.
+    fn dir_picker_push(&mut self, text: &str) {
+        self.dir_picker.lock().unwrap().query.push_str(text);
+        self.dir_picker_recompute();
+    }
+
+    /// Delete the last needle char + re-rank.
+    fn dir_picker_backspace(&mut self) {
+        self.dir_picker.lock().unwrap().query.pop();
+        self.dir_picker_recompute();
+    }
+
     /// Open the Ctrl-S session picker: seed the list from the praça
     /// bridge (frecency-ranked, empty query). With no bridge
     /// (session-switching disabled) open it in the typed `disabled`
@@ -752,6 +784,10 @@ impl InputEngine {
         match self.session_picker_bridge.as_ref() {
             Some(bridge) => {
                 let now = crate::auto_attach::now_unix_seconds();
+                // Sync the index to the live session set first, so a
+                // session spawned out-of-band (MCP / tear) shows up the
+                // moment the switcher opens — "always tracking + curating".
+                bridge.refresh(now);
                 let rows = bridge.list("", now);
                 self.session_picker.lock().unwrap().open(rows, false);
             }
@@ -786,19 +822,38 @@ impl InputEngine {
         self.session_picker_recompute();
     }
 
-    /// Switch to the highlighted session (post its pane into the SAME
-    /// switch channel auto-attach + the `switch_session` MCP tool drive)
-    /// and close the picker. Inert + just-closes when switching is
-    /// disabled or no row is highlighted.
+    /// Accept the highlighted session-picker row: **switch** to it if it's
+    /// an existing live session, or **create + switch** if it's an emoji
+    /// preset / a typed name. If nothing is highlighted but the operator
+    /// typed a non-empty query, create a session named by that query
+    /// (create-on-miss). Then close. Inert + just-closes when switching is
+    /// disabled.
     fn session_picker_accept(&mut self) {
-        let chosen = self.session_picker.lock().unwrap().selected_session();
-        if let (Some(session), Some(bridge)) = (chosen, self.session_picker_bridge.as_ref())
-            && !bridge.switch_to(session)
-        {
-            tracing::warn!(
-                ?session,
-                "session picker: chosen session had no live pane; nothing switched"
-            );
+        use crate::session_picker::{CreateSpec, RowKind};
+
+        let (chosen, query) = {
+            let sp = self.session_picker.lock().unwrap();
+            (sp.selected_row().map(|r| r.kind.clone()), sp.query.clone())
+        };
+        if let Some(bridge) = self.session_picker_bridge.as_ref() {
+            let now = crate::auto_attach::now_unix_seconds();
+            let ok = match chosen {
+                Some(RowKind::Switch(session)) => bridge.switch_to(session),
+                Some(RowKind::Create(spec)) => bridge.create_and_switch(spec, now),
+                // Nothing highlighted but a non-empty needle → create a
+                // session named literally by the query (create-on-miss).
+                None => {
+                    let q = query.trim();
+                    if q.is_empty() {
+                        true
+                    } else {
+                        bridge.create_and_switch(CreateSpec::Named { name: q.to_owned() }, now)
+                    }
+                }
+            };
+            if !ok {
+                tracing::warn!("session picker: accept produced no switch (session reaped or spawn failed)");
+            }
         }
         self.session_picker.lock().unwrap().close();
     }
@@ -2846,7 +2901,7 @@ mod tests {
 
     // ── Ctrl-S session picker (praça browse + switch) ────────────
 
-    use crate::session_picker::{SessionPickerBridge, SessionPickerRow};
+    use crate::session_picker::{CreateSpec, RowKind, SessionPickerBridge, SessionPickerRow};
 
     /// A recording session-picker bridge: returns a fixed frecency-
     /// ranked roster (filtered by a simple substring on `label` so the
@@ -2863,8 +2918,8 @@ mod tests {
             let roster = roster
                 .into_iter()
                 .map(|(id, label)| SessionPickerRow {
-                    id,
                     label: label.to_owned(),
+                    kind: RowKind::Switch(id),
                 })
                 .collect();
             (
@@ -2898,6 +2953,20 @@ mod tests {
             self.switched.lock().unwrap().push(session);
             true
         }
+
+        fn create_and_switch(&self, _spec: CreateSpec, _now: u64) -> bool {
+            // Create is not exercised by the switch-path tests; record
+            // nothing and report no-op.
+            false
+        }
+    }
+
+    /// The `SessionId` a row switches to, for test assertions.
+    fn row_switch_id(row: &SessionPickerRow) -> Option<SessionId> {
+        match row.kind {
+            RowKind::Switch(id) => Some(id),
+            RowKind::Create(_) => None,
+        }
     }
 
     fn sid(s: &str) -> SessionId {
@@ -2928,8 +2997,8 @@ mod tests {
             assert!(!sp.disabled, "a bridge means switching is enabled");
             // Frecency order is the bridge's roster order, verbatim.
             assert_eq!(sp.results.len(), 3);
-            assert_eq!(sp.results[0].id, sid("tide"), "first roster row first");
-            assert_eq!(sp.results[2].id, sid("flow"));
+            assert_eq!(row_switch_id(&sp.results[0]), Some(sid("tide")), "first roster row first");
+            assert_eq!(row_switch_id(&sp.results[2]), Some(sid("flow")));
             assert_eq!(sp.selected, 0, "top row highlighted on open");
         }
 
@@ -2942,7 +3011,7 @@ mod tests {
             let sp = h.engine.session_picker.lock().unwrap();
             assert_eq!(sp.query, "nix");
             assert_eq!(sp.results.len(), 1, "fuzzy filter narrowed to one");
-            assert_eq!(sp.results[0].id, sid("frost"));
+            assert_eq!(row_switch_id(&sp.results[0]), Some(sid("frost")));
             assert_eq!(sp.selected, 0);
         }
 
