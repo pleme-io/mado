@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "5e1ff5daf9283085cdb5f321ceae26ee6c056d0578e870e7b75344b1ff2f29d6",
+  "cargo_lock_sha256": "61c041536e45045815a7559bab09b5e0b817581a4cd15f51411e621c36d7bfbd",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -5667,7 +5667,7 @@
           "serde"
         ]
       },
-      "madori-0.1.3-234661aeecc945d323e2fe0b878598aaf39f9112": {
+      "madori-0.1.4-d998102cf3519d6eb4b0b79920723ee3bf006d87": {
         "runtime_dependencies": [
           {
             "name": "egaku",
@@ -18892,7 +18892,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.13": {
+          "mado-0.1.14": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -19157,7 +19157,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.3-234661aeecc945d323e2fe0b878598aaf39f9112",
+                "package_key": "madori-0.1.4-d998102cf3519d6eb4b0b79920723ee3bf006d87",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -22961,7 +22961,7 @@
               "system"
             ]
           },
-          "mado-0.1.13": {
+          "mado-0.1.14": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -23226,7 +23226,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.3-234661aeecc945d323e2fe0b878598aaf39f9112",
+                "package_key": "madori-0.1.4-d998102cf3519d6eb4b0b79920723ee3bf006d87",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26597,7 +26597,7 @@
               "system"
             ]
           },
-          "mado-0.1.13": {
+          "mado-0.1.14": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26862,7 +26862,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.3-234661aeecc945d323e2fe0b878598aaf39f9112",
+                "package_key": "madori-0.1.4-d998102cf3519d6eb4b0b79920723ee3bf006d87",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30327,7 +30327,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.13": {
+          "mado-0.1.14": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -30592,7 +30592,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.3-234661aeecc945d323e2fe0b878598aaf39f9112",
+                "package_key": "madori-0.1.4-d998102cf3519d6eb4b0b79920723ee3bf006d87",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34350,7 +34350,7 @@
               "system"
             ]
           },
-          "mado-0.1.13": {
+          "mado-0.1.14": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -34615,7 +34615,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.3-234661aeecc945d323e2fe0b878598aaf39f9112",
+                "package_key": "madori-0.1.4-d998102cf3519d6eb4b0b79920723ee3bf006d87",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37940,7 +37940,7 @@
               "system"
             ]
           },
-          "mado-0.1.13": {
+          "mado-0.1.14": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -38205,7 +38205,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.3-234661aeecc945d323e2fe0b878598aaf39f9112",
+                "package_key": "madori-0.1.4-d998102cf3519d6eb4b0b79920723ee3bf006d87",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -41638,7 +41638,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.13": {
+    "mado-0.1.14": {
       "edition": "2024",
       "binaries": [
         {
@@ -41647,7 +41647,7 @@
         }
       ]
     },
-    "madori-0.1.3-234661aeecc945d323e2fe0b878598aaf39f9112": {
+    "madori-0.1.4-d998102cf3519d6eb4b0b79920723ee3bf006d87": {
       "edition": "2024"
     },
     "malloc_buf-0.0.6": {
@@ -42883,7 +42883,7 @@
     "kanchi-0.1.0-bb057535a56dcfbc0627e8e9e74498e63e9d3ff2": "sha256-GMMX6pwMRyxHqie5Rr5XyjhnGGiYahv7t8z6LwTHLJk=",
     "kanshou-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
     "kanshou-derive-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
-    "madori-0.1.3-234661aeecc945d323e2fe0b878598aaf39f9112": "sha256-1JCyJ+aKK9KgrdOkEGS1NkJnAUxVJGECedN7xybZLO8=",
+    "madori-0.1.4-d998102cf3519d6eb4b0b79920723ee3bf006d87": "sha256-Y+jfOifgLp6ueqnK7hLuGqgzcCkv/jvqzKYl32uKH9M=",
     "pleme-allvariants-derive-0.1.0-c66f20d1dc5727cfa0d1f83a02a28609a13387ec": "sha256-XiO3eXRNjEzczetYv1+AYnyPrIuGpA/FYfRHD47QQYY=",
     "pleme-invalidating-setter-derive-0.1.0-ba2492fe88b02e0bc2d6057121e99888766a8d49": "sha256-CQG8YvxrlXPuMS0LI1snvTPA0BiFkLkvK0uTfAVbRBc=",
     "pleme-kindbyte-derive-0.1.0-f0922edec7e5d4ab6606c3e9057c94aa69c3d62f": "sha256-y8TLCtWL46lZXpA3/s5VTbGfS4rsaxI2E4JxlA66Lgo=",
