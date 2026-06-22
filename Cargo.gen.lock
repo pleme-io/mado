@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "69d7e0aec08a53b576e7cc3315367fd4164626e8b015fdb60bd1f09f7dd9b316",
+  "cargo_lock_sha256": "de19971b9e4d8a0338f6576359ddfaa8c8c29efc18067f8acd3051db3982dcb9",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -4147,7 +4147,7 @@
           "std"
         ]
       },
-      "hasami-0.1.1-6c37410cf5e1eef0f9852b57a55287c3c2bdd790": {
+      "hasami-0.1.1-0ebc8216648dde043eac21079b3850131f2192fa": {
         "runtime_dependencies": [
           {
             "name": "arboard",
@@ -19043,7 +19043,7 @@
               },
               {
                 "name": "hasami",
-                "package_key": "hasami-0.1.1-6c37410cf5e1eef0f9852b57a55287c3c2bdd790",
+                "package_key": "hasami-0.1.1-0ebc8216648dde043eac21079b3850131f2192fa",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23112,7 +23112,7 @@
               },
               {
                 "name": "hasami",
-                "package_key": "hasami-0.1.1-6c37410cf5e1eef0f9852b57a55287c3c2bdd790",
+                "package_key": "hasami-0.1.1-0ebc8216648dde043eac21079b3850131f2192fa",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26748,7 +26748,7 @@
               },
               {
                 "name": "hasami",
-                "package_key": "hasami-0.1.1-6c37410cf5e1eef0f9852b57a55287c3c2bdd790",
+                "package_key": "hasami-0.1.1-0ebc8216648dde043eac21079b3850131f2192fa",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30478,7 +30478,7 @@
               },
               {
                 "name": "hasami",
-                "package_key": "hasami-0.1.1-6c37410cf5e1eef0f9852b57a55287c3c2bdd790",
+                "package_key": "hasami-0.1.1-0ebc8216648dde043eac21079b3850131f2192fa",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34501,7 +34501,7 @@
               },
               {
                 "name": "hasami",
-                "package_key": "hasami-0.1.1-6c37410cf5e1eef0f9852b57a55287c3c2bdd790",
+                "package_key": "hasami-0.1.1-0ebc8216648dde043eac21079b3850131f2192fa",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38091,7 +38091,7 @@
               },
               {
                 "name": "hasami",
-                "package_key": "hasami-0.1.1-6c37410cf5e1eef0f9852b57a55287c3c2bdd790",
+                "package_key": "hasami-0.1.1-0ebc8216648dde043eac21079b3850131f2192fa",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -41438,7 +41438,7 @@
     "half-2.7.1": {
       "edition": "2021"
     },
-    "hasami-0.1.1-6c37410cf5e1eef0f9852b57a55287c3c2bdd790": {
+    "hasami-0.1.1-0ebc8216648dde043eac21079b3850131f2192fa": {
       "edition": "2024"
     },
     "hashbrown-0.12.3": {
@@ -42876,7 +42876,7 @@
     "gen-macros-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0": "sha256-khDWAqmgqr/pPPq73hZbZojnEw3gVc6RYFPLuNCoR/A=",
     "gen-platform-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0": "sha256-khDWAqmgqr/pPPq73hZbZojnEw3gVc6RYFPLuNCoR/A=",
     "gen-types-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0": "sha256-khDWAqmgqr/pPPq73hZbZojnEw3gVc6RYFPLuNCoR/A=",
-    "hasami-0.1.1-6c37410cf5e1eef0f9852b57a55287c3c2bdd790": "sha256-7aexbDhaGg2oupQb1f82ZWIEcYBAwK7O/avB0PMKbK8=",
+    "hasami-0.1.1-0ebc8216648dde043eac21079b3850131f2192fa": "sha256-W7ohQyb8fcqcErwB0V9EOLhJrh4EUyfDUA305o1uwjY=",
     "irodzuki-0.1.7-28a0f5ed6d038d3bf1ec43eb9ae0b482ad85e506": "sha256-FLNMG+F1ZVpmjwpHq/eMys0MYjnWHr63B7vmZQWyo9w=",
     "ishou-tokens-0.1.3-22f900bbdd488297dcd2383014fdd344179cb104": "sha256-4MxDrBisMARCAiC4gVOTVCKuQxfLYaCjZaUzwE+QyV8=",
     "kaname-0.1.1-0570e7ec566b60444307fe5873f80f5beda8fe6c": "sha256-ue2v9p/Eq+z3hmCaL63toSyjpDY6s3H1gGBUFBOX3ek=",

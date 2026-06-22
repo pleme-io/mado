@@ -799,8 +799,30 @@ impl InputEngine {
     /// without this, a clipboard containing ESC[201~ executes the
     /// rest of the paste as keystrokes (classic paste injection).
     fn paste(&mut self) {
-        let pasted_text = self.clipboard.paste_text().ok();
-        if let Some(pasted) = pasted_text {
+        // ghostty parity: a clipboard IMAGE becomes a temp PNG whose
+        // path we paste, so a file-loading TUI (Claude Code, $EDITOR)
+        // receives the image — OSC 52 can't carry image bytes, the path
+        // bridges it. Probe the image first: a copied screenshot carries
+        // no text, and when a source puts both on the clipboard the
+        // image is what the operator means to paste.
+        if let Ok(img) = self.clipboard.paste_image() {
+            match crate::clipboard_store::write_clipboard_png(
+                img.width as u32,
+                img.height as u32,
+                &img.rgba,
+            ) {
+                Ok(path) => {
+                    self.write_paste(&path.to_string_lossy());
+                    return;
+                }
+                // Encode/IO failure — fall back to text so a paste is
+                // never silently dropped.
+                Err(e) => {
+                    tracing::warn!(error = %e, "clipboard image paste failed; falling back to text");
+                }
+            }
+        }
+        if let Ok(pasted) = self.clipboard.paste_text() {
             self.write_paste(&pasted);
         }
     }
@@ -2646,6 +2668,52 @@ mod tests {
                 "paste must be framed AND PasteGuard-sanitized in every sink config"
             );
         }
+    }
+
+    #[test]
+    fn paste_image_writes_and_pastes_a_temp_png_path() {
+        use hasami::ClipboardImage;
+        for kind in [SinkKind::Closure, SinkKind::Control] {
+            let mut h = Harness::new(kind);
+            h.feed(b"\x1b[?2004h"); // arm bracketed paste
+            // A 1×1 opaque-red image on the clipboard, no text — the
+            // copied-screenshot shape.
+            h.clipboard
+                .set_image(ClipboardImage { width: 1, height: 1, rgba: vec![255, 0, 0, 255] });
+            let out = h.engine.apply_action(Action::Paste, &mut h.renderer);
+            assert!(matches!(out, ActionOutcome::Consumed(_)));
+            let sent = h.sent_bytes();
+            assert_eq!(sent.len(), 3, "the pasted path is bracketed-framed");
+            assert_eq!(sent[0], b"\x1b[200~".to_vec());
+            assert_eq!(sent[2], b"\x1b[201~".to_vec());
+            let path = String::from_utf8(sent[1].clone()).expect("path is utf8");
+            assert!(
+                path.contains("mado-clip-") && path.ends_with(".png"),
+                "pasted a mado clipboard-png path, got {path:?}"
+            );
+            // The path points at a REAL decodable PNG of the right size —
+            // exactly what a file-loading TUI reads back.
+            let bytes = std::fs::read(&path).expect("temp png exists on disk");
+            let img = image::load_from_memory_with_format(&bytes, image::ImageFormat::Png)
+                .expect("pasted file is a valid png");
+            assert_eq!((img.width(), img.height()), (1, 1));
+            let _ = std::fs::remove_file(&path);
+        }
+    }
+
+    #[test]
+    fn paste_falls_back_to_text_when_no_image() {
+        // No image on the clipboard ⇒ the existing text paste path is
+        // unchanged (the image probe returns Empty and we fall through).
+        let mut h = Harness::new(SinkKind::Closure);
+        h.feed(b"\x1b[?2004h");
+        h.clipboard.copy_text("plain text").unwrap();
+        h.engine.apply_action(Action::Paste, &mut h.renderer);
+        assert_eq!(
+            h.sent_bytes(),
+            vec![b"\x1b[200~".to_vec(), b"plain text".to_vec(), b"\x1b[201~".to_vec()],
+            "no image ⇒ ordinary bracketed text paste"
+        );
     }
 
     // ── Capability parity: search overlay ────────────────────────

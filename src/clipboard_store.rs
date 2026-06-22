@@ -36,6 +36,7 @@
 
 use std::collections::{HashMap, VecDeque};
 
+use image::ImageEncoder;
 use pleme_kindstr_derive::KindStr;
 
 /// 16-byte (128-bit) BLAKE3-prefix hash. Content-addressed
@@ -293,6 +294,139 @@ pub fn sanitize_paste(text: &str, bracketed: bool) -> Vec<u8> {
     }
 }
 
+// ── Clipboard image paste (ghostty parity) ──────────────────────────
+//
+// OSC 52 is text-only — it has no MIME concept and cannot carry image
+// bytes. So a terminal bridges a clipboard IMAGE through the filesystem
+// exactly like ghostty does: encode it to a PNG in `$TMPDIR` and paste
+// the *path*, which file-loading TUIs (Claude Code, `$EDITOR`) then read
+// back. hasami owns reading the raw RGBA off the system clipboard
+// (`ClipboardProvider::paste_image`); this owns the terminal-side policy
+// of materializing it into a pasteable file.
+
+/// How long a clipboard-image temp PNG lives before the next image paste
+/// reaps it. Matches ghostty's 24h retention — long enough that a pasted
+/// path stays valid across a work session, short enough that `$TMPDIR`
+/// doesn't accumulate screenshots forever.
+const CLIPBOARD_PNG_MAX_AGE: std::time::Duration = std::time::Duration::from_secs(24 * 60 * 60);
+
+/// Filename prefix for mado's clipboard-image temp PNGs. Owned (not the
+/// bare `clipboard-` ghostty uses) so the reaper only ever deletes
+/// mado's OWN files, never a sibling terminal's temp images.
+const CLIPBOARD_PNG_PREFIX: &str = "mado-clip-";
+
+/// Errors materializing a clipboard image into a pasteable temp PNG.
+#[derive(Debug, thiserror::Error)]
+pub enum ClipboardImageError {
+    /// The clipboard image carried no pixels.
+    #[error("clipboard image is empty")]
+    Empty,
+    /// `rgba.len()` did not match `width * height * 4`.
+    #[error("rgba buffer is {got} bytes, expected {expected} for {width}x{height}")]
+    SizeMismatch {
+        width: u32,
+        height: u32,
+        expected: usize,
+        got: usize,
+    },
+    /// PNG encoding failed.
+    #[error("png encode failed: {0}")]
+    Encode(String),
+    /// Writing the temp file failed.
+    #[error("write temp png failed: {0}")]
+    Write(#[from] std::io::Error),
+}
+
+/// Encode a raw RGBA8 clipboard image to PNG, write it to a temp file in
+/// `$TMPDIR`, and return the path — the bytes a terminal pastes so a
+/// file-loading TUI receives the image. The ghostty image-paste contract.
+///
+/// Best-effort reaps mado's own stale clipboard PNGs (older than
+/// [`CLIPBOARD_PNG_MAX_AGE`]) first so `$TMPDIR` can't grow without
+/// bound; a reap failure never blocks the paste.
+///
+/// # Errors
+///
+/// [`ClipboardImageError::Empty`] for a zero-sized image,
+/// [`ClipboardImageError::SizeMismatch`] when `rgba` isn't exactly
+/// `width * height * 4` bytes, [`ClipboardImageError::Encode`] on a PNG
+/// failure, and [`ClipboardImageError::Write`] if the temp file can't be
+/// written.
+pub fn write_clipboard_png(
+    width: u32,
+    height: u32,
+    rgba: &[u8],
+) -> Result<std::path::PathBuf, ClipboardImageError> {
+    if width == 0 || height == 0 || rgba.is_empty() {
+        return Err(ClipboardImageError::Empty);
+    }
+    let expected = (width as usize)
+        .checked_mul(height as usize)
+        .and_then(|px| px.checked_mul(4))
+        .ok_or(ClipboardImageError::SizeMismatch {
+            width,
+            height,
+            expected: usize::MAX,
+            got: rgba.len(),
+        })?;
+    if rgba.len() != expected {
+        return Err(ClipboardImageError::SizeMismatch {
+            width,
+            height,
+            expected,
+            got: rgba.len(),
+        });
+    }
+
+    let mut png: Vec<u8> = Vec::new();
+    image::codecs::png::PngEncoder::new(&mut png)
+        .write_image(rgba, width, height, image::ExtendedColorType::Rgba8)
+        .map_err(|e| ClipboardImageError::Encode(e.to_string()))?;
+
+    let dir = std::env::temp_dir();
+    reap_stale_clipboard_pngs(&dir, CLIPBOARD_PNG_MAX_AGE);
+    let path = dir.join(clipboard_png_filename());
+    std::fs::write(&path, &png)?;
+    tracing::debug!(path = %path.display(), bytes = png.len(), "wrote clipboard image to temp png");
+    Ok(path)
+}
+
+/// `mado-clip-<unix_nanos>-<pid>.png` — unique per write without an RNG
+/// dependency (nanosecond clock + pid don't collide within a process).
+fn clipboard_png_filename() -> String {
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    format!("{CLIPBOARD_PNG_PREFIX}{nanos}-{}.png", std::process::id())
+}
+
+/// Best-effort delete of mado's own clipboard PNGs older than `max_age`.
+/// Never errors — a paste must not fail because a stale temp file
+/// couldn't be reaped (permissions, a racing reaper, a vanished dir).
+fn reap_stale_clipboard_pngs(dir: &std::path::Path, max_age: std::time::Duration) {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
+    let now = std::time::SystemTime::now();
+    for entry in entries.flatten() {
+        let name = entry.file_name();
+        let Some(name) = name.to_str() else { continue };
+        if !(name.starts_with(CLIPBOARD_PNG_PREFIX) && name.ends_with(".png")) {
+            continue;
+        }
+        let stale = entry
+            .metadata()
+            .and_then(|m| m.modified())
+            .ok()
+            .and_then(|mtime| now.duration_since(mtime).ok())
+            .is_some_and(|age| age > max_age);
+        if stale {
+            let _ = std::fs::remove_file(entry.path());
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -474,5 +608,65 @@ mod tests {
     fn clear_on_empty_store_returns_zero() {
         let mut store = ClipboardStore::new(4);
         assert_eq!(store.clear(), 0);
+    }
+
+    // ---- clipboard image paste ----
+
+    #[test]
+    fn write_clipboard_png_roundtrips_a_2x2_image() {
+        // 2×2 RGBA: red, green / blue, white.
+        let rgba = vec![
+            255, 0, 0, 255, 0, 255, 0, 255, //
+            0, 0, 255, 255, 255, 255, 255, 255,
+        ];
+        let path = write_clipboard_png(2, 2, &rgba).expect("write temp png");
+        assert!(path.exists(), "temp png materialized");
+        assert!(
+            path.file_name().unwrap().to_str().unwrap().starts_with("mado-clip-"),
+            "owned prefix so the reaper only touches mado's files"
+        );
+        // It is a real, decodable PNG of the right size — the file a
+        // pasted path points at is loadable by the receiving TUI.
+        let bytes = std::fs::read(&path).unwrap();
+        let img =
+            image::load_from_memory_with_format(&bytes, image::ImageFormat::Png).expect("decode");
+        assert_eq!((img.width(), img.height()), (2, 2));
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn write_clipboard_png_rejects_size_mismatch() {
+        // 2×2 needs 16 RGBA bytes; 8 is short → typed SizeMismatch, not
+        // a panic or a corrupt file.
+        let err = write_clipboard_png(2, 2, &[0u8; 8]).unwrap_err();
+        assert!(matches!(err, ClipboardImageError::SizeMismatch { expected: 16, got: 8, .. }));
+    }
+
+    #[test]
+    fn write_clipboard_png_rejects_empty() {
+        assert!(matches!(write_clipboard_png(0, 0, &[]).unwrap_err(), ClipboardImageError::Empty));
+    }
+
+    #[test]
+    fn reap_targets_only_mados_own_stale_pngs() {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0);
+        let dir = std::env::temp_dir().join(format!("mado-reap-test-{}-{nanos}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let mine = dir.join("mado-clip-1-2.png");
+        let foreign = dir.join("clipboard-other.png"); // ghostty's prefix
+        let nonpng = dir.join("mado-clip-note.txt");
+        for f in [&mine, &foreign, &nonpng] {
+            std::fs::write(f, b"x").unwrap();
+        }
+        // max_age ZERO ⇒ every existing file is "stale"; only mado's own
+        // *.png is eligible. Proves the prefix+extension filter.
+        reap_stale_clipboard_pngs(&dir, std::time::Duration::ZERO);
+        assert!(!mine.exists(), "mado's own stale png reaped");
+        assert!(foreign.exists(), "a sibling terminal's png is never touched");
+        assert!(nonpng.exists(), "a non-png mado file is never touched");
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
