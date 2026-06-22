@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "61c041536e45045815a7559bab09b5e0b817581a4cd15f51411e621c36d7bfbd",
+  "cargo_lock_sha256": "fae32eb0271fe37d53b3efb5d70b7b3c3aad7a7d64462c2bdca05583b9f5fada",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -358,7 +358,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -397,7 +397,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -768,7 +768,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -854,7 +854,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -914,7 +914,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1266,7 +1266,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1775,7 +1775,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1824,7 +1824,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1876,7 +1876,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1912,7 +1912,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -2040,7 +2040,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -2198,7 +2198,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3206,7 +3206,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3505,7 +3505,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4978,7 +4978,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5375,7 +5375,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -6715,7 +6715,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -6813,7 +6813,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -6990,7 +6990,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7163,7 +7163,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7202,7 +7202,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7348,7 +7348,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7387,7 +7387,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7680,7 +7680,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7716,7 +7716,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7774,7 +7774,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8059,7 +8059,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8247,7 +8247,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "quote-1.0.45": {
+      "quote-1.0.46": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -8590,7 +8590,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8847,7 +8847,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9099,7 +9099,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9896,7 +9896,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9944,7 +9944,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -10015,7 +10015,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -10430,7 +10430,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -10858,7 +10858,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -10993,7 +10993,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -11101,7 +11101,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [
               "proc-macro"
@@ -11147,7 +11147,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -12456,7 +12456,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -12578,7 +12578,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -13854,7 +13854,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13953,7 +13953,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -13998,7 +13998,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -14046,7 +14046,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -14162,7 +14162,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14908,7 +14908,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14944,7 +14944,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15361,7 +15361,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15790,7 +15790,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16156,7 +16156,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16432,7 +16432,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17753,7 +17753,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17839,7 +17839,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17895,7 +17895,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18031,7 +18031,7 @@
           },
           {
             "name": "quote",
-            "package_key": "quote-1.0.45",
+            "package_key": "quote-1.0.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18713,7 +18713,7 @@
               },
               {
                 "name": "quote",
-                "package_key": "quote-1.0.45",
+                "package_key": "quote-1.0.46",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -18892,7 +18892,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.14": {
+          "mado-0.1.15": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -22961,7 +22961,7 @@
               "system"
             ]
           },
-          "mado-0.1.14": {
+          "mado-0.1.15": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -24827,7 +24827,7 @@
               },
               {
                 "name": "quote",
-                "package_key": "quote-1.0.45",
+                "package_key": "quote-1.0.46",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26597,7 +26597,7 @@
               "system"
             ]
           },
-          "mado-0.1.14": {
+          "mado-0.1.15": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -28463,7 +28463,7 @@
               },
               {
                 "name": "quote",
-                "package_key": "quote-1.0.45",
+                "package_key": "quote-1.0.46",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30148,7 +30148,7 @@
               },
               {
                 "name": "quote",
-                "package_key": "quote-1.0.45",
+                "package_key": "quote-1.0.46",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30327,7 +30327,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.14": {
+          "mado-0.1.15": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -34350,7 +34350,7 @@
               "system"
             ]
           },
-          "mado-0.1.14": {
+          "mado-0.1.15": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -36196,7 +36196,7 @@
               },
               {
                 "name": "quote",
-                "package_key": "quote-1.0.45",
+                "package_key": "quote-1.0.46",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37940,7 +37940,7 @@
               "system"
             ]
           },
-          "mado-0.1.14": {
+          "mado-0.1.15": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39786,7 +39786,7 @@
               },
               {
                 "name": "quote",
-                "package_key": "quote-1.0.45",
+                "package_key": "quote-1.0.46",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -41638,7 +41638,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.14": {
+    "mado-0.1.15": {
       "edition": "2024",
       "binaries": [
         {
@@ -41989,7 +41989,7 @@
     "quick-xml-0.39.4": {
       "edition": "2021"
     },
-    "quote-1.0.45": {
+    "quote-1.0.46": {
       "edition": "2021",
       "build_script": "build.rs"
     },

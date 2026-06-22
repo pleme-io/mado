@@ -7351,7 +7351,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.14";
+        version = "0.1.15";
         edition = "2024";
         crateBin = [
           {
@@ -7646,13 +7646,13 @@ rec {
       };
       "madori" = rec {
         crateName = "madori";
-        version = "0.1.3";
+        version = "0.1.4";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/madori";
-          rev = "af8fd1183de9ea10531f03ca2721f769c102cc53";
-          sha256 = "04x8fig4hzsf1dmcibvi7500q96lfwjwvl5andbv7na0pka2zjw7";
+          rev = "d998102cf3519d6eb4b0b79920723ee3bf006d87";
+          sha256 = "1lqzi9mxy9d6rkm3pzig55q37a0sxq9fxjm9gap9wbp04wxdzs33";
         };
         dependencies = [
           {
