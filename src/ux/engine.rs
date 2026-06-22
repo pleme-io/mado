@@ -1522,6 +1522,20 @@ impl InputEngine {
         EventOutcome::consumed()
     }
 
+    /// A file was drag-and-dropped onto the window: insert its
+    /// shell-quoted path into the PTY as a bracketed paste — the
+    /// ghostty contract, so a dragged screenshot becomes a path a TUI
+    /// (Claude Code, `$EDITOR`) or the shell can open. Routed through
+    /// the ONE guarded paste write (`write_paste`) so it gets the same
+    /// PasteGuard sanitization + bracketed framing as any other paste,
+    /// with a trailing space so successive drops stay separated.
+    pub fn drop_file(&mut self, path: &std::path::Path) -> EventOutcome {
+        let mut s = crate::dir_picker::shell_quote_path(&path.to_string_lossy());
+        s.push(' ');
+        self.write_paste(&s);
+        EventOutcome::consumed()
+    }
+
     /// Focus events (mode 1004) — emit ESC[I / ESC[O when the app
     /// enabled focus reporting (nvim autoread, tmux-style dim).
     pub fn on_focus(&mut self, focused: bool) -> EventOutcome {

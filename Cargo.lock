@@ -2507,7 +2507,7 @@ dependencies = [
 [[package]]
 name = "madori"
 version = "0.1.4"
-source = "git+https://github.com/pleme-io/madori#d998102cf3519d6eb4b0b79920723ee3bf006d87"
+source = "git+https://github.com/pleme-io/madori#baa272b8ed9d64a64482d937a460537ab201778f"
 dependencies = [
  "egaku",
  "garasu",
@@ -6545,7 +6545,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]

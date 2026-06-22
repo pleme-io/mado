@@ -884,6 +884,10 @@ fn main() -> anyhow::Result<()> {
                 AppEvent::Ime(madori::ImeEvent::Commit(text)) => {
                     engine.on_ime_commit(text).into()
                 }
+                // Drag-and-drop — a dropped file's shell-quoted path is
+                // bracket-pasted into the PTY (ghostty parity: a dragged
+                // screenshot becomes a path a TUI / $EDITOR can open).
+                AppEvent::DroppedFile(path) => engine.drop_file(path).into(),
                 // Mouse button events — selection or forward to PTY
                 AppEvent::Mouse(MouseEvent::Button {
                     button,

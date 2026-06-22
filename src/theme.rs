@@ -136,23 +136,24 @@ pub fn apply_config_theme(
     renderer.set_search_other_color(theme.search_others);
     // Picker overlay chrome (Ctrl-S switcher + Ctrl-T dirs): resolve every
     // colour from the active theme so the pickers track the theme instead
-    // of hardcoded Nord literals. The Center popup is anchored on the
-    // theme's BLUE / FROST ansi slots (4 = blue, 12 = bright blue, 14 =
-    // bright cyan) rather than the warm `foreground`, so the card reads as
-    // a dark-blue Nord-frost popup with crisp lettering — not a warm-grey
-    // slab — on the warm Vellum theme, while still tracking whatever blue
-    // any other theme defines. The Center popup gets a SOLID card:
-    //   panel       = bg lifted slightly for elevation, then pulled toward
-    //                 the theme blue → a dark-blue floating surface,
+    // of hardcoded Nord literals. The Center popup is a SOLID card that
+    // reads as the SAME dark surface as the terminal (operator: "make it
+    // match … not light blue") — only a faint blue tint + a crisp blue
+    // border distinguish it. The blue/frost ansi slots (4 = blue, 12 =
+    // bright blue, 14 = bright cyan) carry the accent on the EDGE + the
+    // selection bar, NOT the panel fill, so a vivid ansi-blue can't wash
+    // the card light.
+    //   panel       = the terminal bg with only a ~10% blue tint — a dark,
+    //                 nord-dark surface that matches the terminal,
     //   border      = the theme bright-blue (a crisp frost hairline edge),
     //   query/title = bright cyan (frost), selected = bright white on the
     //                 blue bar, rows = ink lifted out of grey toward snow,
-    //   selected_bg = bg pulled ~42% toward the theme blue (the highlight
+    //   selected_bg = bg pulled ~32% toward the theme blue (the highlight
     //                 bar that tracks the selection as you juggle sessions).
     let blue = theme.ansi[4];
     let bright_blue = theme.ansi[12];
-    let panel = blend(blend(theme.background, theme.foreground, 0.06), blue, 0.22);
-    let selected_bg = blend(theme.background, blue, 0.42);
+    let panel = blend(theme.background, blue, 0.10);
+    let selected_bg = blend(theme.background, blue, 0.32);
     renderer.set_overlay_style(crate::picker::component::OverlayStyle {
         query: theme.ansi[14],
         row: blend(theme.foreground, theme.ansi[15], 0.45),
