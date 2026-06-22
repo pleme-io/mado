@@ -3375,8 +3375,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/engawa";
-          rev = "bcccccecadc058907454c065056c1c54c0b2777d";
-          sha256 = "0v4ga5gch9nf6cvrgmd7gjfa75xh99capfby9z6b8zgszrbcxmsd";
+          rev = "bda639d5d9bd3ec2dd59ff84b2925ae278f24c52";
+          sha256 = "146qqhqvri8lhm92v723nv245bqbslwsv06hfis3z4v671vv3mv7";
         };
         authors = [
           "pleme-io"
@@ -3396,7 +3396,9 @@ rec {
             packageId = "thiserror 2.0.18";
           }
         ];
-
+        features = {
+          "lisp" = [ "dep:tatara-lisp" "dep:tatara-lisp-derive" "dep:serde_json" ];
+        };
       };
       "engawa-wgpu" = rec {
         crateName = "engawa-wgpu";
@@ -7351,7 +7353,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.17";
+        version = "0.1.18";
         edition = "2024";
         crateBin = [
           {
@@ -7651,8 +7653,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/madori";
-          rev = "d998102cf3519d6eb4b0b79920723ee3bf006d87";
-          sha256 = "1lqzi9mxy9d6rkm3pzig55q37a0sxq9fxjm9gap9wbp04wxdzs33";
+          rev = "baa272b8ed9d64a64482d937a460537ab201778f";
+          sha256 = "19slvdlpvcga2fmgaiy5h4v6mh8bwxdfryp4ik60sjxn6zvpg7bq";
         };
         dependencies = [
           {
@@ -23376,7 +23378,7 @@ rec {
         dependencies = [
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.61.2";
+            packageId = "windows-sys 0.48.0";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Storage_FileSystem" "Win32_System_Console" "Win32_System_SystemInformation" ];
           }
@@ -25444,7 +25446,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_UI" "Win32_UI_Shell" "default" ];
+        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Console" "Win32_System_SystemInformation" "Win32_UI" "Win32_UI_Shell" "default" ];
       };
       "windows-sys 0.52.0" = rec {
         crateName = "windows-sys";
@@ -26478,7 +26480,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Wdk" "Wdk_Foundation" "Wdk_Storage" "Wdk_Storage_FileSystem" "Wdk_System" "Wdk_System_IO" "Win32" "Win32_Devices" "Win32_Devices_Communication" "Win32_Foundation" "Win32_Globalization" "Win32_Networking" "Win32_Networking_WinSock" "Win32_Security" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Console" "Win32_System_Diagnostics" "Win32_System_Diagnostics_Debug" "Win32_System_IO" "Win32_System_LibraryLoader" "Win32_System_Pipes" "Win32_System_Registry" "Win32_System_SystemInformation" "Win32_System_SystemServices" "Win32_System_Threading" "Win32_System_WindowsProgramming" "Win32_UI" "Win32_UI_Shell" "default" ];
+        resolvedDefaultFeatures = [ "Wdk" "Wdk_Foundation" "Wdk_Storage" "Wdk_Storage_FileSystem" "Wdk_System" "Wdk_System_IO" "Win32" "Win32_Devices" "Win32_Devices_Communication" "Win32_Foundation" "Win32_Globalization" "Win32_Networking" "Win32_Networking_WinSock" "Win32_Security" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Console" "Win32_System_Diagnostics" "Win32_System_Diagnostics_Debug" "Win32_System_IO" "Win32_System_LibraryLoader" "Win32_System_Pipes" "Win32_System_Registry" "Win32_System_SystemServices" "Win32_System_Threading" "Win32_System_WindowsProgramming" "Win32_UI" "Win32_UI_Shell" "default" ];
       };
       "windows-targets 0.48.5" = rec {
         crateName = "windows-targets";
