@@ -159,6 +159,16 @@ pub struct MadoEffectsConfig {
     pub glow_on_bell: MadoGlowOnBellConfig,
     #[serde(default)]
     pub grain: MadoGrainConfig,
+    /// Window-depth — the inner-edge vignette engawa catalog effect
+    /// (a recessed "depth around the sides and edges" frame).
+    #[serde(default)]
+    pub window_depth: MadoWindowDepthConfig,
+    /// Popup-elevation — the soft drop-shadow behind the centred Ctrl-S
+    /// card. Overlay chrome (drawn outside the engawa post-graph via the
+    /// rect pipeline), config-toggleable like the catalog effects so the
+    /// window-depth + popup depth read as one consistent, switchable look.
+    #[serde(default)]
+    pub popup_elevation: MadoPopupElevationConfig,
 }
 
 /// Aurora (Vellum signature curtain) power-user override. The
@@ -353,6 +363,61 @@ impl Default for MadoGrainConfig {
     }
 }
 
+/// Window-depth knobs — the inner-edge vignette engawa catalog effect
+/// that gives the whole surface a recessed "depth around the sides and
+/// edges" frame. The edge tint is fed from the resolved theme (a deeper
+/// shade of the background), so it tracks the theme; these dials shape
+/// the geometry. Defaults mirror the catalog `WindowDepthParams`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MadoWindowDepthConfig {
+    /// Force the vignette on. Default `false` — opt-in depth.
+    #[serde(default)]
+    pub enabled: bool,
+    /// Reach inward as a fraction of the shorter dimension (0.08 = 8 %).
+    #[serde(default = "default_window_depth_depth")]
+    pub depth: f32,
+    /// Max edge darkening 0..=1 (0 = exact pass-through). Default 22 %.
+    #[serde(default = "default_window_depth_intensity")]
+    pub intensity: f32,
+    /// Falloff exponent; higher hugs the edge tighter. Default 1.6.
+    #[serde(default = "default_window_depth_softness")]
+    pub softness: f32,
+}
+
+fn default_window_depth_depth() -> f32 { 0.08 }
+fn default_window_depth_intensity() -> f32 { 0.22 }
+fn default_window_depth_softness() -> f32 { 1.6 }
+
+impl Default for MadoWindowDepthConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            depth: default_window_depth_depth(),
+            intensity: default_window_depth_intensity(),
+            softness: default_window_depth_softness(),
+        }
+    }
+}
+
+/// Popup-elevation knobs — the soft drop-shadow behind the centred
+/// Ctrl-S session-switcher card. Unlike [`MadoWindowDepthConfig`] this is
+/// overlay CHROME (the popup is drawn outside the engawa post-graph via
+/// the rect pipeline), so it lives here as a toggle rather than a catalog
+/// effect, but shares the same depth language so the window edges and the
+/// card read as one consistent look. Defaults ON — the card floats.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MadoPopupElevationConfig {
+    /// Cast the soft shadow behind the centred popup card. Default `true`.
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+}
+
+impl Default for MadoPopupElevationConfig {
+    fn default() -> Self {
+        Self { enabled: true }
+    }
+}
+
 /// Snow overlay knobs. Mirrors the engawa catalog `SnowParams` but only
 /// the operator-facing dials; runtime state (time, cursor,
 /// typing_pulse, accumulation drift) is mado-managed.
@@ -497,20 +562,23 @@ pub struct MadoTearConfig {
     /// or manual `ReloadConfig` reverts to the file.
     #[serde(default)]
     pub impose: Option<MadoTearImpose>,
-    /// Runtime single-pane re-attach. **Defaults OFF.** When `false`
-    /// (the default) mado binds its one GUI pane to ONE tear pane for
-    /// the window's lifetime — the byte-identical legacy one-shot
-    /// path. When `true`, mado polls a switch channel and can
-    /// re-attach the displayed pane to a DIFFERENT live in-process
-    /// tear session at runtime — same window, same renderer, fresh
-    /// terminal — without tabs or splits. The `switch_session` MCP
-    /// tool (forwarded via kanshou) posts switch requests; with the
-    /// flag off the tool is a typed no-op (`switching-disabled`).
+    /// Runtime single-pane re-attach. **Defaults ON.** When `true`
+    /// (the default) mado polls a switch channel and can re-attach the
+    /// displayed pane to a DIFFERENT live in-process tear session at
+    /// runtime — same window, same renderer, fresh terminal — without
+    /// tabs or splits. This is what makes the Ctrl-S session switcher
+    /// actually switch; the `switch_session` MCP tool (forwarded via
+    /// kanshou) posts switch requests. When `false`, mado binds its one
+    /// GUI pane to ONE tear pane for the window's lifetime — the
+    /// byte-identical legacy one-shot path — and the tool is a typed
+    /// no-op (`switching-disabled`).
     ///
     /// Embedded runtime only for now: the switch targets a pane in
     /// the GUI's own `tear_core::InProcess`. Daemon-mode switching is
-    /// a later phase (persistence across restarts).
-    #[serde(default)]
+    /// a later phase (persistence across restarts). A config that omits
+    /// this key (e.g. a partial mado.yaml) gets `true` via
+    /// [`default_true`], so the switcher works out of the box fleet-wide.
+    #[serde(default = "default_true")]
     pub session_switching: bool,
     /// Auto-attach-on-cd — the headline praça automation. When the
     /// *displayed* session's shell `cd`s into a DIFFERENT project, mado
@@ -648,7 +716,7 @@ impl Default for MadoTearConfig {
             session_name: None,
             pane: None,
             impose: None,
-            session_switching: false,
+            session_switching: true,
             auto_attach: AutoAttachMode::default(),
             session_picker_anchor: PickerAnchor::default(),
         }

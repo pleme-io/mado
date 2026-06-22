@@ -133,6 +133,11 @@
             default = 2000;
             description = "Milliseconds to wait for the auto-spawned daemon to bind.";
           };
+          session_switching = {
+            type = "bool";
+            default = true;
+            description = "Runtime single-pane re-attach: the Ctrl-S session switcher and the switch_session MCP tool actually switch the displayed pane. Defaults on; set false for the legacy one-shot binding.";
+          };
         };
 
         # Performance / pacing — null fields defer to garasu::adaptive.

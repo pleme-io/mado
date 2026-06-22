@@ -26,15 +26,16 @@ use engawa_wgpu::catalog::{CatalogEffect, CATALOG_SAMPLER, OUT, SCENE};
 
 /// Enabled-effect set — one bit per [`CatalogEffect::ALL`] entry (the
 /// mechanical registry position IS the bit index, so the set can never
-/// drift from the catalog). Fits `u8` while the catalog has ≤ 8
-/// effects; the forcing test pins that bound.
+/// drift from the catalog). Fits `u16` while the catalog has ≤ 16
+/// effects; the forcing test pins that bound. (Widened from `u8` when
+/// `window_depth` made the catalog 9 effects.)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
-pub struct EffectSet(u8);
+pub struct EffectSet(u16);
 
 impl EffectSet {
     pub const EMPTY: Self = Self(0);
 
-    fn bit(effect: CatalogEffect) -> u8 {
+    fn bit(effect: CatalogEffect) -> u16 {
         // CatalogEffect::ALL is emitted by pleme-allvariants-derive —
         // every variant is present by construction, so the position
         // lookup cannot miss (absence is unrepresentable upstream).
@@ -42,7 +43,7 @@ impl EffectSet {
             .iter()
             .position(|e| *e == effect)
             .expect("CatalogEffect::ALL is derive-total");
-        1 << idx
+        1u16 << idx
     }
 
     // Builder used by the test matrices; production sites insert().
@@ -88,7 +89,7 @@ impl EffectSet {
 /// N-1 intermediates, so the table holds `ALL.len() - 1` ids — the
 /// forcing test pins the length, so a new catalog effect cannot land
 /// without growing this table in the same change.
-pub const CHAIN_IDS: [&str; 7] = [
+pub const CHAIN_IDS: [&str; 8] = [
     "mado:chain:0",
     "mado:chain:1",
     "mado:chain:2",
@@ -96,6 +97,7 @@ pub const CHAIN_IDS: [&str; 7] = [
     "mado:chain:4",
     "mado:chain:5",
     "mado:chain:6",
+    "mado:chain:7",
 ];
 
 /// Cache key — the only two inputs that change the compiled topology
@@ -228,11 +230,11 @@ mod tests {
     use super::*;
 
     fn full_power_set() -> impl Iterator<Item = EffectSet> {
-        // Range in u16 so the 8-effect case (2^8 = 256 subsets) doesn't
-        // overflow a u8 `1 << 8`; each subset value fits the u8 bitset
-        // (bits 0..=7), so the cast back is lossless.
-        let bound: u16 = 1u16 << CatalogEffect::ALL.len();
-        (0u16..bound).map(|v| EffectSet(v as u8))
+        // Range in u32 so the subset count (2^ALL.len()) can't overflow
+        // the u16 bitset's `1 << len`; each subset value fits the u16
+        // bitset (bits 0..=15), so the cast back is lossless.
+        let bound: u32 = 1u32 << CatalogEffect::ALL.len();
+        (0u32..bound).map(|v| EffectSet(v as u16))
     }
 
     fn key(effects: EffectSet) -> GraphKey {
@@ -244,8 +246,8 @@ mod tests {
     #[test]
     fn effect_set_bits_are_total_and_distinct() {
         assert!(
-            CatalogEffect::ALL.len() <= 8,
-            "EffectSet is a u8 bitset — widen it before the catalog grows past 8 effects"
+            CatalogEffect::ALL.len() <= 16,
+            "EffectSet is a u16 bitset — widen it before the catalog grows past 16 effects"
         );
         let mut failures: Vec<String> = Vec::new();
         let mut seen = std::collections::BTreeSet::new();

@@ -235,6 +235,49 @@ impl RectInstance {
     }
 }
 
+/// Soft elevation shadow — the ONE depth primitive shared by mado's window
+/// edges and the Ctrl-S popup card, so both read with the same depth
+/// language (the operator's "flush and consistent together"). Fakes a
+/// blurred shadow with the solid rect pipeline: `layers` concentric rounded
+/// rects growing outward from `[x,y,w,h]` by `spread`, each fainter than the
+/// last, cast `dy` downward. Returned outermost-first so the translucent
+/// blacks accumulate toward the lit surface (densest at the edge it hugs).
+/// `base_alpha` is the per-layer alpha at the innermost ring.
+fn elevation_shadow(
+    x: f32,
+    y: f32,
+    w: f32,
+    h: f32,
+    radius: f32,
+    layers: usize,
+    spread: f32,
+    base_alpha: f32,
+    dy: f32,
+) -> Vec<RectInstance> {
+    let mut out = Vec::with_capacity(layers);
+    // Outermost (i = layers-1) first → faintest painted first, densest last.
+    for i in (0..layers).rev() {
+        let frac = (i as f32 + 1.0) / layers as f32; // 1.0 outer … near 0 inner
+        let grow = spread * frac;
+        // Alpha grows toward the inner rings (1 - frac), so the shadow is
+        // darkest where it meets the surface and fades into the terminal.
+        let alpha = base_alpha * (1.0 - frac + 1.0 / layers as f32);
+        out.push(RectInstance::rounded(
+            [x - grow, y - grow + dy],
+            [w + grow * 2.0, h + grow * 2.0],
+            radius + grow,
+            [0.0, 0.0, 0.0, alpha],
+        ));
+    }
+    out
+}
+
+// (The window-edge inner vignette is now the engawa `window_depth` catalog
+// effect — a portable, config-toggleable post-process — so the hand-rolled
+// rect-strip version that briefly lived here has been removed. The
+// popup-elevation drop shadow stays as overlay chrome via `elevation_shadow`
+// above, because the popup is drawn outside the engawa post-graph.)
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
 struct ScreenUniforms {
@@ -403,12 +446,21 @@ fn fs_main(frag: VertexOutput) -> @location(0) vec4<f32> {
 // RectPipeline — instanced colored rectangles
 // ---------------------------------------------------------------------------
 
+/// Fixed instance capacity for the modal-overlay panel buffer. A popup
+/// card is a soft shadow ring (≤6) + border + fill + selected-row bar;
+/// 24 leaves generous headroom and never needs to grow.
+const OVERLAY_RECT_CAPACITY: usize = 24;
+
 struct RectPipeline {
     pipeline: wgpu::RenderPipeline,
     uniform_buffer: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
     instance_buffer: wgpu::Buffer,
     instance_capacity: usize,
+    /// Separate instance buffer for modal-overlay panels — never shared
+    /// with `instance_buffer` (see `RectPipeline::new`). Drawn via
+    /// [`RectPipeline::draw_overlay`].
+    overlay_buffer: wgpu::Buffer,
 }
 
 impl RectPipeline {
@@ -524,12 +576,29 @@ impl RectPipeline {
             mapped_at_creation: false,
         });
 
+        // Dedicated instance buffer for modal-overlay panels (the Ctrl-S
+        // popup card). It MUST be separate from `instance_buffer`: the
+        // cell-background pass and the overlay-panel pass submit in the
+        // same frame, so a shared buffer would let the overlay's offset-0
+        // writes clobber the first few cell-background instances → stray
+        // panel-coloured quads at the top-left (operator report,
+        // 2026-06-22; theory ledger §VIII #4). A panel is ≤ a handful of
+        // rects, so a small fixed capacity never needs to grow.
+        let overlay_capacity = OVERLAY_RECT_CAPACITY;
+        let overlay_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("rect_overlay_instances"),
+            size: (overlay_capacity * std::mem::size_of::<RectInstance>()) as u64,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
         Self {
             pipeline,
             uniform_buffer,
             bind_group,
             instance_buffer,
             instance_capacity: initial_capacity,
+            overlay_buffer,
         }
     }
 
@@ -561,6 +630,20 @@ impl RectPipeline {
         pass.set_pipeline(&self.pipeline);
         pass.set_bind_group(0, &self.bind_group, &[]);
         pass.set_vertex_buffer(0, self.instance_buffer.slice(..));
+        pass.draw(0..6, 0..count);
+    }
+
+    /// Draw modal-overlay panel rects from the dedicated [`Self::overlay_buffer`]
+    /// — never the shared cell buffer, so an open popup can't clobber the
+    /// top-left cell backgrounds. Caller must `write_buffer` the rects into
+    /// `overlay_buffer` (offset 0) first; `count` ≤ [`OVERLAY_RECT_CAPACITY`].
+    fn draw_overlay<'pass>(&'pass self, pass: &mut wgpu::RenderPass<'pass>, count: u32) {
+        if count == 0 {
+            return;
+        }
+        pass.set_pipeline(&self.pipeline);
+        pass.set_bind_group(0, &self.bind_group, &[]);
+        pass.set_vertex_buffer(0, self.overlay_buffer.slice(..));
         pass.draw(0..6, 0..count);
     }
 }
@@ -1822,7 +1905,24 @@ impl TerminalRenderer {
                 let l = ishou_tokens::Srgb::new(c.r, c.g, c.b).to_linear();
                 [l.r, l.g, l.b, a]
             };
-            let mut rects: Vec<RectInstance> = Vec::with_capacity(3);
+            let mut rects: Vec<RectInstance> = Vec::with_capacity(OVERLAY_RECT_CAPACITY);
+            // Soft elevation shadow FIRST (painted behind the card) so the
+            // popup floats with the same depth language as the window-depth
+            // vignette. Config-toggleable (`effects.popup_elevation`) so the
+            // card depth and the window-edge depth switch together.
+            if self.effects_config.popup_elevation.enabled {
+                rects.extend(elevation_shadow(
+                    px,
+                    py,
+                    pw,
+                    ph,
+                    radius,
+                    4,
+                    line_h * 0.9,
+                    0.10,
+                    line_h * 0.18,
+                ));
+            }
             // Accent border: a slightly larger rounded rect peeking out
             // behind the panel as a hairline edge.
             rects.push(RectInstance::rounded(
@@ -1849,10 +1949,19 @@ impl TerminalRenderer {
                 ));
             }
             if let Some(ref pipeline) = self.rect_pipeline {
+                // Write to the DEDICATED overlay buffer (never the shared cell
+                // `instance_buffer`): the cell-background pass and this panel
+                // pass submit in the same frame, so sharing offset 0 would
+                // clobber the first cells → top-left stray quads. Cap the
+                // count so an unexpectedly large panel can't overrun the
+                // fixed-size overlay buffer.
+                let count = (rects.len()).min(OVERLAY_RECT_CAPACITY);
                 pipeline.update_resolution(&ctx.gpu.queue, ctx.width, ctx.height);
-                ctx.gpu
-                    .queue
-                    .write_buffer(&pipeline.instance_buffer, 0, bytemuck::cast_slice(&rects));
+                ctx.gpu.queue.write_buffer(
+                    &pipeline.overlay_buffer,
+                    0,
+                    bytemuck::cast_slice(&rects[..count]),
+                );
                 let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                     label: Some("mado_overlay_panel"),
                     color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -1867,7 +1976,7 @@ impl TerminalRenderer {
                     timestamp_writes: None,
                     occlusion_query_set: None,
                 });
-                pipeline.draw(&mut pass, rects.len() as u32);
+                pipeline.draw_overlay(&mut pass, count as u32);
             }
         }
 
@@ -3624,6 +3733,11 @@ impl TerminalRenderer {
         if e.grain.enabled {
             set.insert(CatalogEffect::Grain);
         }
+        // Window-depth (inner-edge vignette) is a static post effect like
+        // grain — not motion — so it's not under the reduce_motion gate.
+        if e.window_depth.enabled {
+            set.insert(CatalogEffect::WindowDepth);
+        }
         if !self.reduce_motion {
             if e.aurora.enabled {
                 set.insert(CatalogEffect::Aurora);
@@ -3832,6 +3946,25 @@ impl TerminalRenderer {
                         .with_scale(1.0)
                         .with_time(self.aurora_state.time);
                     frame.set(catalog::grain::PARAMS_RESOURCE, &p);
+                }
+                CatalogEffect::WindowDepth => {
+                    // Edge tint = the theme background pushed toward black (a
+                    // deeper shade of the current surface) — theme-portable
+                    // depth, no hardcoded colour. `bg_color` is already
+                    // linear, so it feeds the effect uniform directly.
+                    let bg = self.bg_color;
+                    let darken = 0.35_f64;
+                    let color = [
+                        (bg.r * darken) as f32,
+                        (bg.g * darken) as f32,
+                        (bg.b * darken) as f32,
+                    ];
+                    let p = catalog::window_depth::WindowDepthParams::new(res)
+                        .with_color(color)
+                        .with_depth(cfg.window_depth.depth)
+                        .with_intensity(cfg.window_depth.intensity)
+                        .with_softness(cfg.window_depth.softness);
+                    frame.set(catalog::window_depth::PARAMS_RESOURCE, &p);
                 }
             }
         }
@@ -5600,6 +5733,7 @@ mod render_invariants {
                 CatalogEffect::Aurora => e.aurora.enabled = true,
                 CatalogEffect::Snow => e.snow.enabled = true,
                 CatalogEffect::Grain => e.grain.enabled = true,
+                CatalogEffect::WindowDepth => e.window_depth.enabled = true,
             }
             r.set_effects_config(e);
         };

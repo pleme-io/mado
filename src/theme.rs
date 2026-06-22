@@ -136,21 +136,30 @@ pub fn apply_config_theme(
     renderer.set_search_other_color(theme.search_others);
     // Picker overlay chrome (Ctrl-S switcher + Ctrl-T dirs): resolve every
     // colour from the active theme so the pickers track the theme instead
-    // of hardcoded Nord literals. The Center popup gets a SOLID card:
-    //   panel       = the terminal bg lifted ~10% toward fg (an elevated,
-    //                 still-dark surface that reads as a floating card),
-    //   border      = the theme accent (a hairline edge),
-    //   selected_bg = the bg tinted ~32% toward the accent (the highlight
+    // of hardcoded Nord literals. The Center popup is anchored on the
+    // theme's BLUE / FROST ansi slots (4 = blue, 12 = bright blue, 14 =
+    // bright cyan) rather than the warm `foreground`, so the card reads as
+    // a dark-blue Nord-frost popup with crisp lettering — not a warm-grey
+    // slab — on the warm Vellum theme, while still tracking whatever blue
+    // any other theme defines. The Center popup gets a SOLID card:
+    //   panel       = bg lifted slightly for elevation, then pulled toward
+    //                 the theme blue → a dark-blue floating surface,
+    //   border      = the theme bright-blue (a crisp frost hairline edge),
+    //   query/title = bright cyan (frost), selected = bright white on the
+    //                 blue bar, rows = ink lifted out of grey toward snow,
+    //   selected_bg = bg pulled ~42% toward the theme blue (the highlight
     //                 bar that tracks the selection as you juggle sessions).
-    let panel = blend(theme.background, theme.foreground, 0.10);
-    let selected_bg = blend(theme.background, theme.agent_accent, 0.32);
+    let blue = theme.ansi[4];
+    let bright_blue = theme.ansi[12];
+    let panel = blend(blend(theme.background, theme.foreground, 0.06), blue, 0.22);
+    let selected_bg = blend(theme.background, blue, 0.42);
     renderer.set_overlay_style(crate::picker::component::OverlayStyle {
-        query: theme.agent_accent,
-        row: theme.foreground,
+        query: theme.ansi[14],
+        row: blend(theme.foreground, theme.ansi[15], 0.45),
         selected: theme.ansi[15],
         hint: theme.ansi[8],
         panel,
-        border: theme.agent_accent,
+        border: bright_blue,
         selected_bg,
     });
     // Theme bg through the typed Srgb → Linear path (no gamma confusion).
