@@ -5046,6 +5046,263 @@ impl TerminalOps for Terminal {
 }
 
 // ---------------------------------------------------------------------------
+// CSI interpreter — the apply half of the typed-AST dispatch.
+// ---------------------------------------------------------------------------
+
+impl Terminal {
+    /// Interpret a parsed [`crate::vt::CsiCommand`] against terminal
+    /// state. The parse half ([`crate::vt::parse_csi_action`]) is pure;
+    /// this is where the mutation lives. The bodies are the legacy
+    /// `csi_dispatch` `match action` arms moved verbatim, so behaviour is
+    /// preserved by construction (the 1019-test suite is the guard).
+    fn apply_csi(&mut self, cmd: crate::vt::CsiCommand) {
+        use crate::vt::CsiCommand as C;
+        match cmd {
+            C::CursorUp(n) => {
+                self.cursor.row = self.cursor.row.saturating_sub(n);
+                self.wrap_pending = false;
+                self.dirty();
+            }
+            C::CursorDown(n) => {
+                self.cursor.row = (self.cursor.row + n).min(self.rows.saturating_sub(1));
+                self.wrap_pending = false;
+                self.dirty();
+            }
+            C::CursorForward(n) => {
+                self.cursor.col = (self.cursor.col + n).min(self.cols.saturating_sub(1));
+                self.wrap_pending = false;
+                self.dirty();
+            }
+            C::CursorBack(n) => {
+                self.cursor.col = self.cursor.col.saturating_sub(n);
+                self.wrap_pending = false;
+                self.dirty();
+            }
+            C::CursorNextLine(n) => {
+                self.cursor.row = (self.cursor.row + n).min(self.rows.saturating_sub(1));
+                self.cursor.col = 0;
+                self.wrap_pending = false;
+                self.dirty();
+            }
+            C::CursorPrevLine(n) => {
+                self.cursor.row = self.cursor.row.saturating_sub(n);
+                self.cursor.col = 0;
+                self.wrap_pending = false;
+                self.dirty();
+            }
+            C::CursorColumn(col) => {
+                self.cursor.col = (col - 1).min(self.cols.saturating_sub(1));
+                self.wrap_pending = false;
+                self.dirty();
+            }
+            C::CursorPosition { row, col } => {
+                self.cursor.row = (row - 1).min(self.rows.saturating_sub(1));
+                self.cursor.col = (col - 1).min(self.cols.saturating_sub(1));
+                self.wrap_pending = false;
+                self.dirty();
+            }
+            C::EraseDisplay(mode) => {
+                match mode {
+                    0 => {
+                        self.erase_cells(self.cursor.row, self.cursor.col, self.cols);
+                        for r in (self.cursor.row + 1)..self.rows {
+                            self.erase_cells(r, 0, self.cols);
+                        }
+                    }
+                    1 => {
+                        for r in 0..self.cursor.row {
+                            self.erase_cells(r, 0, self.cols);
+                        }
+                        self.erase_cells(self.cursor.row, 0, self.cursor.col + 1);
+                    }
+                    2 | 3 => {
+                        for r in 0..self.rows {
+                            self.erase_cells(r, 0, self.cols);
+                        }
+                    }
+                    _ => {}
+                }
+                self.dirty();
+            }
+            C::EraseLine(mode) => {
+                let row = self.cursor.row;
+                match mode {
+                    0 => self.erase_cells(row, self.cursor.col, self.cols),
+                    1 => self.erase_cells(row, 0, self.cursor.col + 1),
+                    2 => self.erase_cells(row, 0, self.cols),
+                    _ => {}
+                }
+            }
+            C::InsertLines(n) => {
+                let cursor_row = self.cursor.row;
+                let bottom = self.scroll_bottom;
+                let fill = self.bce_fill_cell();
+                for _ in 0..n.min(bottom - cursor_row + 1) {
+                    self.grid_mut().scroll_region_down(cursor_row, bottom, &fill);
+                }
+                self.dirty();
+            }
+            C::DeleteLines(n) => {
+                let cursor_row = self.cursor.row;
+                let bottom = self.scroll_bottom;
+                let use_alt = self.use_alternate;
+                let fill = self.bce_fill_cell();
+                let mut evicted = 0;
+                for _ in 0..n.min(bottom - cursor_row + 1) {
+                    evicted += self.grid_mut().scroll_region_up(cursor_row, bottom, &fill);
+                }
+                if !use_alt && evicted > 0 {
+                    self.prompt_marks.shift_on_evict(evicted);
+                    self.user_marks.shift_on_evict(evicted);
+                }
+                self.dirty();
+            }
+            C::DeleteChars(n) => {
+                let row = self.cursor.row;
+                let col = self.cursor.col;
+                let cols = self.cols;
+                let r = self.grid_mut().visible_row_mut(row);
+                for _ in 0..n.min(cols - col) {
+                    if col < r.len() {
+                        r.remove(col);
+                        r.push(Cell::default());
+                    }
+                }
+                self.dirty();
+            }
+            C::InsertChars(n) => {
+                let row = self.cursor.row;
+                let col = self.cursor.col;
+                let cols = self.cols;
+                let r = self.grid_mut().visible_row_mut(row);
+                for _ in 0..n.min(cols - col) {
+                    r.insert(col, Cell::default());
+                    r.truncate(cols);
+                }
+                self.dirty();
+            }
+            C::EraseChars(n) => {
+                let row = self.cursor.row;
+                let col = self.cursor.col;
+                self.erase_cells(row, col, col + n);
+            }
+            C::RepeatChar(n) => {
+                let ch = self.last_char;
+                for _ in 0..n {
+                    self.put_char(ch);
+                }
+            }
+            C::ScrollUp(n) => {
+                for _ in 0..n {
+                    self.scroll_grid_up();
+                }
+            }
+            C::ScrollDown(n) => {
+                for _ in 0..n {
+                    self.scroll_grid_down();
+                }
+            }
+            C::VerticalPosition(row) => {
+                self.cursor.row = (row - 1).min(self.rows.saturating_sub(1));
+                self.wrap_pending = false;
+                self.dirty();
+            }
+            C::DeviceStatusReport(mode) => match mode {
+                5 => {
+                    self.response_bytes.extend_from_slice(b"\x1b[0n");
+                }
+                6 => {
+                    let row = u32::try_from(self.cursor.row + 1).unwrap_or(u32::MAX);
+                    let col = u32::try_from(self.cursor.col + 1).unwrap_or(u32::MAX);
+                    self.response_bytes
+                        .extend_from_slice(&crate::vt::csi(false, &[row, col], "", b'R'));
+                }
+                _ => tracing::trace!(mode, "unhandled DSR"),
+            },
+            C::SetScrollRegion { top, bottom } => {
+                let bottom = bottom.unwrap_or(self.rows);
+                let top = (top - 1).min(self.rows.saturating_sub(1));
+                let bottom = (bottom - 1).min(self.rows.saturating_sub(1));
+                if top < bottom {
+                    self.scroll_top = top;
+                    self.scroll_bottom = bottom;
+                    self.cursor.row = if self.origin_mode { top } else { 0 };
+                    self.cursor.col = 0;
+                    self.wrap_pending = false;
+                    self.dirty();
+                }
+            }
+            C::PrimaryDeviceAttributes => {
+                self.response_bytes
+                    .extend_from_slice(crate::caps::TerminalCaps::PRIMARY_DA);
+            }
+            C::CursorBackwardTab(n) => {
+                for _ in 0..n {
+                    if self.cursor.col == 0 {
+                        break;
+                    }
+                    self.cursor.col -= 1;
+                    while self.cursor.col > 0
+                        && !self.tab_stops.get(self.cursor.col).copied().unwrap_or(false)
+                    {
+                        self.cursor.col -= 1;
+                    }
+                }
+                self.wrap_pending = false;
+                self.dirty();
+            }
+            C::TabClear(mode) => match mode {
+                0 => {
+                    if self.cursor.col < self.tab_stops.len() {
+                        self.tab_stops[self.cursor.col] = false;
+                    }
+                }
+                3 => {
+                    self.tab_stops.iter_mut().for_each(|t| *t = false);
+                }
+                _ => {}
+            },
+            C::SetAnsiMode(modes) => {
+                for m in modes {
+                    match m {
+                        4 => self.insert_mode = true,
+                        _ => tracing::trace!(mode = m, "unhandled ANSI mode set"),
+                    }
+                }
+            }
+            C::ResetAnsiMode(modes) => {
+                for m in modes {
+                    match m {
+                        4 => self.insert_mode = false,
+                        _ => tracing::trace!(mode = m, "unhandled ANSI mode reset"),
+                    }
+                }
+            }
+            C::SaveCursor => self.save_cursor(),
+            C::RestoreCursor => self.restore_cursor(),
+            C::WindowOp(op) => {
+                if op == 18 {
+                    let rows = u16::try_from(self.rows).unwrap_or(u16::MAX);
+                    let cols = u16::try_from(self.cols).unwrap_or(u16::MAX);
+                    let mut resp = Vec::with_capacity(16);
+                    resp.extend_from_slice(b"\x1b[8;");
+                    resp.extend_from_slice(rows.to_string().as_bytes());
+                    resp.push(b';');
+                    resp.extend_from_slice(cols.to_string().as_bytes());
+                    resp.push(b't');
+                    self.response_bytes.extend_from_slice(&resp);
+                } else {
+                    tracing::trace!(op, "unhandled XTWINOPS (CSI Ps t)");
+                }
+            }
+            C::Unknown(action) => {
+                tracing::trace!(action = %action, "unhandled CSI action");
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // vte::Perform
 // ---------------------------------------------------------------------------
 
@@ -5281,10 +5538,6 @@ impl vte::Perform for Terminal {
         _ignore: bool,
         action: char,
     ) {
-        let first_param = |default: usize| -> usize {
-            params.iter().next().map_or(default, |p| (p[0] as usize).max(1))
-        };
-
         // Handle DEC private modes (CSI ? Ps h/l) and Kitty query (CSI ? u)
         if intermediates == [b'?'] {
             match action {
@@ -5425,354 +5678,27 @@ impl vte::Perform for Terminal {
             return;
         }
 
-        match action {
-            // CUU — Cursor Up
-            'A' => {
-                let n = first_param(1);
-                self.cursor.row = self.cursor.row.saturating_sub(n);
-                self.wrap_pending = false;
-                self.dirty();
+        // SGR (`m`) stays inline — it is param-heavy and its truecolor
+        // path is under active development; isolating it keeps the
+        // typed-AST migration off the actively-churned code. Everything
+        // else flows through the triplet: parse the action into a typed
+        // `CsiCommand` (pure, no state — `vt::parse_csi_action`), then
+        // interpret it (`apply_csi`).
+        if action == 'm' {
+            if params.iter().next().is_none() {
+                self.pen_fg = Color::WHITE;
+                self.pen_bg = Color::BLACK;
+                self.pen_attrs = Attrs::NONE;
+            } else {
+                self.handle_sgr(params);
             }
-            // CUD — Cursor Down
-            'B' => {
-                let n = first_param(1);
-                self.cursor.row = (self.cursor.row + n).min(self.rows.saturating_sub(1));
-                self.wrap_pending = false;
-                self.dirty();
-            }
-            // CUF — Cursor Forward
-            'C' => {
-                let n = first_param(1);
-                self.cursor.col = (self.cursor.col + n).min(self.cols.saturating_sub(1));
-                self.wrap_pending = false;
-                self.dirty();
-            }
-            // CUB — Cursor Backward
-            'D' => {
-                let n = first_param(1);
-                self.cursor.col = self.cursor.col.saturating_sub(n);
-                self.wrap_pending = false;
-                self.dirty();
-            }
-            // CNL — Cursor Next Line
-            'E' => {
-                let n = first_param(1);
-                self.cursor.row = (self.cursor.row + n).min(self.rows.saturating_sub(1));
-                self.cursor.col = 0;
-                self.wrap_pending = false;
-                self.dirty();
-            }
-            // CPL — Cursor Previous Line
-            'F' => {
-                let n = first_param(1);
-                self.cursor.row = self.cursor.row.saturating_sub(n);
-                self.cursor.col = 0;
-                self.wrap_pending = false;
-                self.dirty();
-            }
-            // CHA — Cursor Horizontal Absolute
-            'G' => {
-                let col = first_param(1);
-                self.cursor.col = (col - 1).min(self.cols.saturating_sub(1));
-                self.wrap_pending = false;
-                self.dirty();
-            }
-            // CUP / HVP — Cursor Position
-            'H' | 'f' => {
-                let mut piter = params.iter();
-                let row = piter.next().map_or(1, |p| (p[0] as usize).max(1));
-                let col = piter.next().map_or(1, |p| (p[0] as usize).max(1));
-                self.cursor.row = (row - 1).min(self.rows.saturating_sub(1));
-                self.cursor.col = (col - 1).min(self.cols.saturating_sub(1));
-                self.wrap_pending = false;
-                self.dirty();
-            }
-            // ED — Erase in Display
-            'J' => {
-                let mode = params.iter().next().map_or(0, |p| p[0]);
-                match mode {
-                    0 => {
-                        self.erase_cells(self.cursor.row, self.cursor.col, self.cols);
-                        for r in (self.cursor.row + 1)..self.rows {
-                            self.erase_cells(r, 0, self.cols);
-                        }
-                    }
-                    1 => {
-                        for r in 0..self.cursor.row {
-                            self.erase_cells(r, 0, self.cols);
-                        }
-                        self.erase_cells(self.cursor.row, 0, self.cursor.col + 1);
-                    }
-                    2 | 3 => {
-                        for r in 0..self.rows {
-                            self.erase_cells(r, 0, self.cols);
-                        }
-                    }
-                    _ => {}
-                }
-                // Bump seqno so the renderer's idle-skip path (P2/P28)
-                // re-renders. Without this, a clear-screen (CSI 2J)
-                // emitted without follow-up output would leave the
-                // previous frame's pixels on screen until the next
-                // write — a class of "shadow trail" symptom.
-                self.dirty();
-            }
-            // EL — Erase in Line
-            'K' => {
-                let mode = params.iter().next().map_or(0, |p| p[0]);
-                let row = self.cursor.row;
-                match mode {
-                    0 => self.erase_cells(row, self.cursor.col, self.cols),
-                    1 => self.erase_cells(row, 0, self.cursor.col + 1),
-                    2 => self.erase_cells(row, 0, self.cols),
-                    _ => {}
-                }
-            }
-            // IL — Insert Lines
-            'L' => {
-                let n = first_param(1);
-                let cursor_row = self.cursor.row;
-                let bottom = self.scroll_bottom;
-                // BCE: inserted blank lines take the current pen bg.
-                let fill = self.bce_fill_cell();
-                for _ in 0..n.min(bottom - cursor_row + 1) {
-                    self.grid_mut().scroll_region_down(cursor_row, bottom, &fill);
-                }
-                self.dirty();
-            }
-            // DL — Delete Lines
-            'M' => {
-                let n = first_param(1);
-                let cursor_row = self.cursor.row;
-                let bottom = self.scroll_bottom;
-                let use_alt = self.use_alternate;
-                // BCE: rows that scroll in from the bottom take the bg.
-                let fill = self.bce_fill_cell();
-                let mut evicted = 0;
-                for _ in 0..n.min(bottom - cursor_row + 1) {
-                    evicted += self.grid_mut().scroll_region_up(cursor_row, bottom, &fill);
-                }
-                if !use_alt && evicted > 0 {
-                    self.prompt_marks.shift_on_evict(evicted);
-                    self.user_marks.shift_on_evict(evicted);
-                }
-                self.dirty();
-            }
-            // DCH — Delete Characters
-            'P' => {
-                let n = first_param(1);
-                let row = self.cursor.row;
-                let col = self.cursor.col;
-                let cols = self.cols;
-                let r = self.grid_mut().visible_row_mut(row);
-                for _ in 0..n.min(cols - col) {
-                    if col < r.len() {
-                        r.remove(col);
-                        r.push(Cell::default());
-                    }
-                }
-                self.dirty();
-            }
-            // SU — Scroll Up
-            'S' => {
-                let n = first_param(1);
-                for _ in 0..n {
-                    self.scroll_grid_up();
-                }
-            }
-            // SD — Scroll Down
-            'T' => {
-                let n = first_param(1);
-                for _ in 0..n {
-                    self.scroll_grid_down();
-                }
-            }
-            // ECH — Erase Characters
-            'X' => {
-                let n = first_param(1);
-                let row = self.cursor.row;
-                let col = self.cursor.col;
-                self.erase_cells(row, col, col + n);
-            }
-            // REP — Repeat preceding graphic character
-            'b' => {
-                let n = first_param(1);
-                let ch = self.last_char;
-                for _ in 0..n {
-                    self.put_char(ch);
-                }
-            }
-            // ICH — Insert Characters
-            '@' => {
-                let n = first_param(1);
-                let row = self.cursor.row;
-                let col = self.cursor.col;
-                let cols = self.cols;
-                let r = self.grid_mut().visible_row_mut(row);
-                for _ in 0..n.min(cols - col) {
-                    r.insert(col, Cell::default());
-                    r.truncate(cols);
-                }
-                self.dirty();
-            }
-            // VPA — Vertical Position Absolute
-            'd' => {
-                let row = first_param(1);
-                self.cursor.row = (row - 1).min(self.rows.saturating_sub(1));
-                self.wrap_pending = false;
-                self.dirty();
-            }
-            // SGR — Select Graphic Rendition
-            'm' => {
-                if params.iter().next().is_none() {
-                    self.pen_fg = Color::WHITE;
-                    self.pen_bg = Color::BLACK;
-                    self.pen_attrs = Attrs::NONE;
-                } else {
-                    self.handle_sgr(params);
-                }
-            }
-            // DSR — Device Status Report
-            'n' => {
-                let mode = params.iter().next().map_or(0, |p| p[0]);
-                match mode {
-                    5 => {
-                        // Status report: terminal OK
-                        self.response_bytes.extend_from_slice(b"\x1b[0n");
-                    }
-                    6 => {
-                        // CPR: report cursor position (1-based)
-                        let response = format!(
-                            "\x1b[{};{}R",
-                            self.cursor.row + 1,
-                            self.cursor.col + 1
-                        );
-                        self.response_bytes.extend_from_slice(response.as_bytes());
-                    }
-                    _ => tracing::trace!(mode, "unhandled DSR"),
-                }
-            }
-            // DECSTBM — Set Top and Bottom Margins (scroll region)
-            'r' => {
-                let mut piter = params.iter();
-                let top = piter.next().map_or(1, |p| (p[0] as usize).max(1));
-                let bottom = piter.next().map_or(self.rows, |p| (p[0] as usize).max(1));
-                let top = (top - 1).min(self.rows.saturating_sub(1));
-                let bottom = (bottom - 1).min(self.rows.saturating_sub(1));
-                if top < bottom {
-                    self.scroll_top = top;
-                    self.scroll_bottom = bottom;
-                    // Cursor moves to home position
-                    self.cursor.row = if self.origin_mode { top } else { 0 };
-                    self.cursor.col = 0;
-                    self.wrap_pending = false;
-                    self.dirty();
-                }
-            }
-            // DA — Device Attributes (DA1). Single source of truth:
-            // crate::caps::TerminalCaps::PRIMARY_DA.
-            'c' => {
-                self.response_bytes
-                    .extend_from_slice(crate::caps::TerminalCaps::PRIMARY_DA);
-            }
-            // CBT — Cursor Backward Tabulation
-            'Z' => {
-                let n = first_param(1);
-                for _ in 0..n {
-                    if self.cursor.col == 0 {
-                        break;
-                    }
-                    self.cursor.col -= 1;
-                    while self.cursor.col > 0
-                        && !self.tab_stops.get(self.cursor.col).copied().unwrap_or(false)
-                    {
-                        self.cursor.col -= 1;
-                    }
-                }
-                self.wrap_pending = false;
-                self.dirty();
-            }
-            // TBC — Tab Clear
-            'g' => {
-                let mode = params.iter().next().map_or(0, |p| p[0]);
-                match mode {
-                    0 => {
-                        if self.cursor.col < self.tab_stops.len() {
-                            self.tab_stops[self.cursor.col] = false;
-                        }
-                    }
-                    3 => {
-                        self.tab_stops.iter_mut().for_each(|t| *t = false);
-                    }
-                    _ => {}
-                }
-            }
-            // ANSI mode set (CSI Ps h) — non-DEC modes (DEC private uses ? prefix above)
-            'h' => {
-                for p in params.iter() {
-                    match p[0] {
-                        4 => self.insert_mode = true,  // IRM — Insert Mode
-                        _ => tracing::trace!(mode = p[0], "unhandled ANSI mode set"),
-                    }
-                }
-            }
-            // ANSI mode reset (CSI Ps l)
-            'l' => {
-                for p in params.iter() {
-                    match p[0] {
-                        4 => self.insert_mode = false,  // IRM — Replace Mode
-                        _ => tracing::trace!(mode = p[0], "unhandled ANSI mode reset"),
-                    }
-                }
-            }
-            // DECSC — Save Cursor (alternate form)
-            's' => self.save_cursor(),
-            // DECRC — Restore Cursor (alternate form)
-            'u' => self.restore_cursor(),
-            // XTWINOPS — window manipulation / report.
-            //
-            // Modern TUIs (vim/nvim powerline tablines, fzf, lazygit)
-            // probe the text-area size to lay out their UI; a terminal
-            // that ignores the probe leaves the TUI guessing and can
-            // make it withhold whole rows (the missing-tabline symptom).
-            // We answer the SIZE REPORTS the substrate has the data for
-            // (character-cell dimensions), and ignore the manipulation
-            // ops (resize/move/raise/iconify) — mado is the size
-            // authority, a TUI can't drive our window geometry.
-            //
-            // CSI 18 t  → report text-area size in characters:
-            //             CSI 8 ; <rows> ; <cols> t
-            //
-            // Built through typed byte-vector construction (escape
-            // framing as byte literals, the numeric dimensions as their
-            // decimal value) — never a `format!()` of the escape syntax,
-            // per the ★★ TYPED EMISSION rule. Pixel-size reports
-            // (CSI 14 t / CSI 16 t) are intentionally NOT answered here:
-            // the Terminal grid model holds character dimensions only;
-            // cell pixel metrics live in the renderer. Wiring those is a
-            // separate change that threads cell_width/cell_height down.
-            't' => {
-                let op = params.iter().next().map_or(0, |p| p[0]);
-                if op == 18 {
-                    // u16 fits any realistic terminal dimension; the
-                    // decimal string is a VALUE, not escape syntax.
-                    let rows = u16::try_from(self.rows).unwrap_or(u16::MAX);
-                    let cols = u16::try_from(self.cols).unwrap_or(u16::MAX);
-                    let mut resp = Vec::with_capacity(16);
-                    resp.extend_from_slice(b"\x1b[8;");
-                    resp.extend_from_slice(rows.to_string().as_bytes());
-                    resp.push(b';');
-                    resp.extend_from_slice(cols.to_string().as_bytes());
-                    resp.push(b't');
-                    self.response_bytes.extend_from_slice(&resp);
-                } else {
-                    tracing::trace!(op, "unhandled XTWINOPS (CSI Ps t)");
-                }
-            }
-            _ => {
-                tracing::trace!(action = %action, "unhandled CSI action");
-            }
+            return;
         }
+        // Parse → typed CsiCommand → interpret. The 30-odd standard CSI
+        // commands (cursor moves, erase, insert/delete, scroll, DSR,
+        // DECSTBM, DA, tabs, ANSI modes, save/restore, XTWINOPS) are now
+        // a data-driven dispatch instead of a 350-line inline match.
+        self.apply_csi(crate::vt::parse_csi_action(params, action));
     }
 
     fn esc_dispatch(&mut self, intermediates: &[u8], _ignore: bool, byte: u8) {
