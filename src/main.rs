@@ -49,6 +49,7 @@ mod picker;
 mod render;
 mod render_graph;
 mod scenario;
+mod vt;
 mod search;
 mod selection;
 mod session;

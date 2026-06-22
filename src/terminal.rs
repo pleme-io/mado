@@ -4017,8 +4017,8 @@ impl Terminal {
                     .get(&b'i')
                     .and_then(|v| v.parse::<u32>().ok())
                     .unwrap_or(0);
-                let resp = format!("\x1b_Gi={id};OK\x1b\\");
-                self.response_bytes.extend_from_slice(resp.as_bytes());
+                self.response_bytes
+                    .extend_from_slice(&crate::vt::apc(&format!("Gi={id};OK")));
             }
             _ => {
                 tracing::trace!(action = %action, "unhandled Kitty graphics action");
@@ -4101,8 +4101,8 @@ impl Terminal {
             self.store_rgba_image(id, rgba_data, w, h);
 
             // Send OK response
-            let resp = format!("\x1b_Gi={id};OK\x1b\\");
-            self.response_bytes.extend_from_slice(resp.as_bytes());
+            self.response_bytes
+                .extend_from_slice(&crate::vt::apc(&format!("Gi={id};OK")));
 
             if display {
                 self.kitty_place_at_cursor(id, params);
@@ -5210,7 +5210,7 @@ impl vte::Perform for Terminal {
                     b"r" => {
                         let top = self.scroll_top + 1;
                         let bottom = self.scroll_bottom + 1;
-                        format!("\x1bP1$r{top};{bottom}r\x1b\\").into_bytes()
+                        crate::vt::dcs(&format!("1$r{top};{bottom}r"))
                     }
                     b"\"p" => b"\x1bP1$r62;1\"p\x1b\\".to_vec(),
                     b"\"q" => b"\x1bP1$r0\"q\x1b\\".to_vec(),
@@ -5303,8 +5303,8 @@ impl vte::Perform for Terminal {
                 'u' => {
                     // Kitty keyboard protocol: query current flags
                     let flags = self.kitty_keyboard_flags();
-                    let response = format!("\x1b[?{flags}u");
-                    self.response_bytes.extend_from_slice(response.as_bytes());
+                    self.response_bytes
+                        .extend_from_slice(&crate::vt::csi(true, &[flags], "", b'u'));
                     return;
                 }
                 _ => {
@@ -5361,13 +5361,13 @@ impl vte::Perform for Terminal {
         if intermediates == [b'$'] && action == 'p' {
             let mode = params.iter().next().map_or(0, |p| p[0]);
             // Pm: 1=set, 2=reset, 0=not recognized
-            let state = match mode {
+            let state: u32 = match mode {
                 4 => if self.insert_mode { 1 } else { 2 },  // IRM
                 20 => 2,  // LNM — always reset
                 _ => 0,
             };
-            let response = format!("\x1b[{mode};{state}$y");
-            self.response_bytes.extend_from_slice(response.as_bytes());
+            self.response_bytes
+                .extend_from_slice(&crate::vt::csi(false, &[u32::from(mode), state], "$", b'y'));
             return;
         }
 
@@ -5375,7 +5375,7 @@ impl vte::Perform for Terminal {
         if intermediates == [b'?', b'$'] && action == 'p' {
             let mode = params.iter().next().map_or(0, |p| p[0]);
             // Pm: 1=set, 2=reset, 0=not recognized, 3=permanently set, 4=permanently reset
-            let state = match mode {
+            let state: u32 = match mode {
                 1 => if self.cursor_keys_mode { 1 } else { 2 },    // DECCKM
                 6 => if self.origin_mode { 1 } else { 2 },         // DECOM
                 7 => if self.auto_wrap { 1 } else { 2 },           // DECAWM
@@ -5391,8 +5391,8 @@ impl vte::Perform for Terminal {
                 2026 => if self.synchronized_output { 1 } else { 2 },
                 _ => 0,
             };
-            let response = format!("\x1b[?{mode};{state}$y");
-            self.response_bytes.extend_from_slice(response.as_bytes());
+            self.response_bytes
+                .extend_from_slice(&crate::vt::csi(true, &[u32::from(mode), state], "$", b'y'));
             return;
         }
 
