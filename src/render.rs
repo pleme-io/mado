@@ -3134,6 +3134,21 @@ impl TerminalRenderer {
                     };
                     let mut s = String::new();
                     cell.write_to(&mut s);
+                    // Text-presentation emoji (❄ ☄ ✔ …) are Emoji=Yes but
+                    // Emoji_Presentation=No, so unicode-width books them at
+                    // width 1 — yet a color font would draw the ~2-cell emoji
+                    // glyph, overflowing into the next cell (the prompt
+                    // cursor). For a width-1 cell carrying such a codepoint,
+                    // append VS15 (U+FE0E) to force the monochrome 1-cell text
+                    // glyph. VS15 is part of the ShapeKey text, so the
+                    // text/emoji variants stay cache-distinct.
+                    if cell.width == 1 {
+                        if let Some(first) = s.chars().next() {
+                            if crate::glyph_class::is_text_presentation_emoji(first) {
+                                s.push('\u{FE0E}');
+                            }
+                        }
+                    }
                     let key = ShapeKey {
                         text: s.into_boxed_str(),
                         attrs: attrs_key,

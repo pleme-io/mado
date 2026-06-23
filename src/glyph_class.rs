@@ -51,6 +51,41 @@ const NERD_PUA_RANGES: &[(char, char)] = &[
     ('\u{F0000}', '\u{FFFFD}'), // Supplementary Private Use Area-A
 ];
 
+/// BMP symbol blocks that hold the `Emoji=Yes` + `Emoji_Presentation=No`
+/// codepoints — characters that are emoji-capable but default to a
+/// monochrome *text* glyph (❄ U+2744, ☄ U+2604, ✳ U+2733, ✔ U+2714, …).
+/// They live in Miscellaneous Technical (U+2300–23FF), Miscellaneous
+/// Symbols (U+2600–26FF) and Dingbats (U+2700–27BF); the single covering
+/// range U+2300–U+27FF is the idiom this module already uses for
+/// powerline/PUA.
+///
+/// The grid (unicode-width) assigns these `width == 1`, so the cell only
+/// reserves one column. The renderer must therefore draw the 1-cell text
+/// glyph, not the ~2-cell color/emoji glyph a color font would otherwise
+/// pick — see [`is_text_presentation_emoji`].
+const TEXT_PRESENTATION_EMOJI_RANGES: &[(char, char)] = &[
+    ('\u{2300}', '\u{27FF}'), // Misc Technical · Misc Symbols · Dingbats
+];
+
+/// True when `c` is an emoji-capable symbol that defaults to *text*
+/// presentation (`Emoji=Yes`, `Emoji_Presentation=No`).
+///
+/// The renderer consults this for `width == 1` cells and appends VS15
+/// (U+FE0E) to the shaping run so cosmic-text selects the monochrome,
+/// single-cell glyph instead of the wide color variant that would
+/// otherwise overflow into the next cell (the prompt cursor). The
+/// covering range is mildly over-inclusive (it also spans a few non-emoji
+/// symbols), but that is **benign**: VS15 only changes glyph selection for
+/// codepoints that actually have *both* a text and an emoji presentation;
+/// on a single-presentation symbol the font ignores the selector and
+/// renders its sole glyph unchanged. Astral emoji (U+1F300+) are
+/// deliberately excluded — they are `Emoji_Presentation=Yes`, `width == 2`,
+/// and must keep their color glyph.
+#[must_use]
+pub fn is_text_presentation_emoji(c: char) -> bool {
+    in_any(c, TEXT_PRESENTATION_EMOJI_RANGES)
+}
+
 /// True when `c` is a powerline separator or a Nerd-Font PUA icon — a
 /// codepoint that should shape against the configured symbols family
 /// rather than the primary text family.
@@ -89,6 +124,28 @@ fn in_any(c: char, ranges: &[(char, char)]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn text_presentation_emoji_are_classified() {
+        // The operator-reported snowflake plus its siblings from the
+        // Misc-Symbols / Dingbats blocks — all Emoji=Yes, EP=No.
+        assert!(is_text_presentation_emoji('\u{2744}')); // ❄ snowflake
+        assert!(is_text_presentation_emoji('\u{2604}')); // ☄ comet
+        assert!(is_text_presentation_emoji('\u{2733}')); // ✳ eight-spoked asterisk
+        assert!(is_text_presentation_emoji('\u{2714}')); // ✔ heavy check mark
+    }
+
+    #[test]
+    fn ordinary_text_is_not_text_presentation_emoji() {
+        // ASCII / Latin-1 / CJK / astral-emoji must NOT get VS15 forced.
+        // Astral 🍎 is Emoji_Presentation=Yes (width 2) and stays color.
+        for c in ['a', 'Z', '0', ' ', 'é', '日', '本', '\u{1F34E}'] {
+            assert!(
+                !is_text_presentation_emoji(c),
+                "{c:?} must not be classified as text-presentation emoji"
+            );
+        }
+    }
 
     #[test]
     fn powerline_separators_are_symbols() {
