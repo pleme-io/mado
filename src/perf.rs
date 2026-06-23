@@ -32,11 +32,3 @@ pub fn log_phase(name: &'static str) {
         tracing::info!(target: "mado::perf", phase = name, ms, "launch phase");
     }
 }
-
-/// Borrow the launch start instant — for callers that want to
-/// compute their own deltas (e.g. first-frame timing inside
-/// `render()`).
-#[must_use]
-pub fn launch_start() -> Option<Instant> {
-    LAUNCH_START.get().copied()
-}

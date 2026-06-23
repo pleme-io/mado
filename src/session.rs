@@ -274,10 +274,12 @@ impl GridSnapshot {
     #[must_use]
     pub fn to_pretty(&self) -> String {
         let mut out = String::new();
-        out.push_str(&format!(
-            "grid {}×{}  cursor=({},{}) visible={}\n",
+        use std::fmt::Write as _;
+        let _ = writeln!(
+            out,
+            "grid {}×{}  cursor=({},{}) visible={}",
             self.cols, self.rows, self.cursor_row, self.cursor_col, self.cursor_visible
-        ));
+        );
         for (r, row) in self.cells.iter().enumerate() {
             for (c, cell) in row.iter().enumerate() {
                 if cell.width == 0 {

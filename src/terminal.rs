@@ -2881,7 +2881,7 @@ impl Terminal {
         // The renderer snapshot resolves the live span every vsync
         // and the engine reconciler every redraw tick; without the
         // memo each resolve was an O(rows) deque scan per anchor.
-        if let Some(m) = *self.selection_span_memo.lock().unwrap()
+        if let Some(m) = *self.selection_span_memo.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
             && m.seqno == self.seqno
             && m.a == a
             && m.b == b
@@ -2893,7 +2893,7 @@ impl Terminal {
             let pb = self.resolve_selection_anchor(b)?;
             Some(if pb < pa { (pb, pa) } else { (pa, pb) })
         })();
-        *self.selection_span_memo.lock().unwrap() = Some(SelectionSpanMemo {
+        *self.selection_span_memo.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = Some(SelectionSpanMemo {
             seqno: self.seqno,
             a,
             b,

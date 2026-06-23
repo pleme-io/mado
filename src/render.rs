@@ -712,8 +712,6 @@ struct ImagePipeline {
     sampler: wgpu::Sampler,
     texture_bind_group_layout: wgpu::BindGroupLayout,
     instance_buffer: wgpu::Buffer,
-    #[allow(dead_code)]
-    instance_capacity: usize,
 }
 
 /// Cached GPU texture for a Kitty image.
@@ -865,21 +863,6 @@ impl ImagePipeline {
             sampler,
             texture_bind_group_layout: texture_bgl,
             instance_buffer,
-            instance_capacity: 64,
-        }
-    }
-
-    #[allow(dead_code)]
-    fn ensure_capacity(&mut self, device: &wgpu::Device, count: usize) {
-        if count > self.instance_capacity {
-            let new_cap = count.next_power_of_two();
-            self.instance_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-                label: Some("image_instances"),
-                size: (new_cap * std::mem::size_of::<ImageInstance>()) as u64,
-                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-                mapped_at_creation: false,
-            });
-            self.instance_capacity = new_cap;
         }
     }
 
@@ -1581,11 +1564,6 @@ impl TerminalRenderer {
     /// the cursor-deflection ring tracks the pointer.
     pub fn snow_set_cursor(&mut self, x: f32, y: f32) {
         self.snow_state.params.set_cursor([x, y]);
-    }
-
-    /// Mark the cursor as off-window — turns off cursor deflection.
-    pub fn snow_cursor_left(&mut self) {
-        self.snow_state.params.set_cursor([-1.0, -1.0]);
     }
 
     /// Bump the typing-pulse on the snow state. Called from the
@@ -3554,10 +3532,10 @@ impl TerminalRenderer {
         let term = self.terminal.read();
         let term_images = term.images();
         for (id, kitty_img) in term_images {
-            let needs_upload = match self.gpu_images.get(id) {
-                Some(gpu) => gpu.seqno != kitty_img.seqno,
-                None => true,
-            };
+            let needs_upload = self
+                .gpu_images
+                .get(id)
+                .is_none_or(|gpu| gpu.seqno != kitty_img.seqno);
             if needs_upload && !kitty_img.data.is_empty() {
                 let gpu_img = image_pipeline.create_gpu_image(
                     &ctx.gpu.device,
@@ -6000,7 +5978,7 @@ mod render_invariants {
         );
     }
 
-    /// Entry-point parity pin     /// application point both main.rs and `gui_tear_attach` call must
+    /// Entry-point parity pin — both main.rs and `gui_tear_attach` call must
     /// resolve the legacy `accessibility.colorblind` alias AND gate
     /// the animated effects via `reduce_motion` — both were dead in
     /// tear-attach windows when that path called only

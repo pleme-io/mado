@@ -267,11 +267,6 @@ pub fn run_sync(path: &Path) -> Result<()> {
     rt.block_on(async { run_with_path(&scenario, Some(path)).await })
 }
 
-/// Run a scenario in an existing tokio runtime.
-pub async fn run(scenario: &Scenario) -> Result<()> {
-    run_with_path(scenario, None).await
-}
-
 /// Run a scenario, with optional path-back-reference so the L3
 /// golden auto-recorder (MADO_GOLDEN_UPDATE=1) can rewrite the
 /// YAML in place when a frame_hash needs to be (re-)captured.
@@ -914,19 +909,20 @@ fn render_scenario_yaml(
     rows: u16,
     captured: &[u8],
 ) -> String {
+    use std::fmt::Write as _;
     let mut out = String::new();
-    out.push_str(&format!("name: {name}\n"));
+    let _ = writeln!(out, "name: {name}");
     out.push_str("description: |\n");
     for line in description.lines() {
         out.push_str("  ");
         out.push_str(line);
         out.push('\n');
     }
-    out.push_str(&format!("  # Captured via `mado record` from: {program}\n"));
-    out.push_str(&format!("  # Command: {cmd_quoted}\n"));
-    out.push_str(&format!("  # Bytes captured: {}\n", captured.len()));
-    out.push_str(&format!("cols: {cols}\n"));
-    out.push_str(&format!("rows: {rows}\n"));
+    let _ = writeln!(out, "  # Captured via `mado record` from: {program}");
+    let _ = writeln!(out, "  # Command: {cmd_quoted}");
+    let _ = writeln!(out, "  # Bytes captured: {}", captured.len());
+    let _ = writeln!(out, "cols: {cols}");
+    let _ = writeln!(out, "rows: {rows}");
     out.push_str("# `direct` runner: the captured byte stream lands in\n");
     out.push_str("# `Terminal::feed` without a PTY, so the vte parser sees\n");
     out.push_str("# exactly what the source process wrote — no\n");
@@ -943,7 +939,9 @@ fn render_scenario_yaml(
             b'\r' => out.push_str("\\r"),
             b'\t' => out.push_str("\\t"),
             0x20..=0x7e => out.push(b as char),
-            _ => out.push_str(&format!("\\x{b:02x}")),
+            _ => {
+                let _ = write!(out, "\\x{b:02x}");
+            }
         }
     }
     out.push_str("\"\n");

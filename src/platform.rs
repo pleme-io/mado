@@ -336,7 +336,7 @@ mod macos {
                 let r = f64::from(style.background.r) / 255.0;
                 let g = f64::from(style.background.g) / 255.0;
                 let b = f64::from(style.background.b) / 255.0;
-                let bg = unsafe { NSColor::colorWithSRGBRed_green_blue_alpha(r, g, b, 1.0) };
+                let bg = NSColor::colorWithSRGBRed_green_blue_alpha(r, g, b, 1.0);
                 window.setBackgroundColor(Some(&bg));
             }
             TitlebarStyle::Native => {
