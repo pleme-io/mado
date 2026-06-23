@@ -118,6 +118,15 @@ pub trait SessionPickerBridge: Send {
         false
     }
 
+    /// Capture a live session as a reusable preset — the save-as-preset
+    /// gesture. Dehydrates the session's layout + spawn specs (via the
+    /// shipped `praca::SessionDefinition::from_live`) into the latent
+    /// catalog, so it appears as a ○ Instantiate row once not running.
+    /// Default `false`; the live praça bridge overrides it.
+    fn save_as_preset(&self, _session: SessionId, _now: u64) -> bool {
+        false
+    }
+
     /// Reconcile the index against the live session registry before
     /// listing, so out-of-band-spawned sessions (MCP `spawn_term`, `tear
     /// new-session`, manual attach) are tracked + browsable too — the
@@ -260,6 +269,30 @@ impl PracaPickerBridge {
     }
 }
 
+/// Capture a live session into the latent preset catalog — the shared
+/// save-as-preset logic the bridge method AND the `save_session_as_preset`
+/// MCP verb both call (one place, per the prime directive). Dehydrates the
+/// session's layout + spawn specs via the shipped
+/// `praca::SessionDefinition::from_live`, keyed on the session's bound
+/// project root. `false` if the session is gone or untracked (no project).
+pub(crate) fn capture_preset(
+    inproc: &tear_core::InProcess,
+    praca: &Mutex<praca::Praca>,
+    session: SessionId,
+    now: u64,
+) -> bool {
+    let Ok(tear_session) = inproc.get_session(session) else {
+        return false;
+    };
+    let lock = || praca.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    let Some(project_root) = lock().index.get(session).map(|r| r.project_root.clone()) else {
+        return false;
+    };
+    let def = praca::SessionDefinition::from_live(&tear_session, project_root, now);
+    lock().definitions.upsert(def);
+    true
+}
+
 impl SessionPickerBridge for PracaPickerBridge {
     fn list(&self, query: &str, now: u64) -> Vec<SessionPickerRow> {
         let (existing, latent, style) = {
@@ -350,6 +383,10 @@ impl SessionPickerBridge for PracaPickerBridge {
 
     fn instantiate_and_switch(&self, def_id: DefinitionId, now: u64) -> bool {
         self.instantiate_preset(def_id, now)
+    }
+
+    fn save_as_preset(&self, session: SessionId, now: u64) -> bool {
+        capture_preset(self.inproc.as_ref(), &self.praca, session, now)
     }
 
     fn refresh(&self, now: u64) {
@@ -527,6 +564,38 @@ mod tests {
             rows.iter().all(|r| !matches!(r.kind, RowKind::Instantiate(_))),
             "a running preset is its Switch row, not a duplicate latent row"
         );
+    }
+
+    #[test]
+    fn bridge_saves_a_live_session_as_a_preset_then_can_instantiate_it() {
+        let (inproc, live) = live_inproc();
+        let mut praca = praca::Praca::new();
+        // The live session is tracked + bound to a project.
+        praca.index.upsert(praca::SessionRecord::for_project(
+            live,
+            PathBuf::from("/code/pleme-io/mado"),
+            SessionNameStyle::Emoji,
+            1000,
+        ));
+        let bridge = bridge_with(praca, Arc::clone(&inproc));
+
+        // Save it as a preset → into the latent catalog.
+        assert!(bridge.save_as_preset(live, 1000), "captures the live session");
+        // The preset is now in the catalog: instantiating its def (keyed on
+        // the same project root) spawns a fresh session + posts a pane.
+        let def_id = tear_types::DefinitionId::from_project(std::path::Path::new("/code/pleme-io/mado"));
+        assert!(
+            bridge.instantiate_and_switch(def_id, 1000),
+            "the saved preset is in the catalog + instantiable"
+        );
+    }
+
+    #[test]
+    fn bridge_save_as_preset_rejects_an_untracked_session() {
+        let (inproc, live) = live_inproc();
+        // No index entry for `live` → no project to key the preset on.
+        let bridge = bridge_with(praca::Praca::new(), Arc::clone(&inproc));
+        assert!(!bridge.save_as_preset(live, 1000));
     }
 
     #[test]

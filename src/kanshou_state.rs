@@ -7,6 +7,7 @@
 //! process-local zeros while the GUI renders" class structurally.
 
 use std::sync::Arc;
+use std::sync::Mutex;
 use std::sync::OnceLock;
 use std::sync::atomic::Ordering;
 
@@ -36,6 +37,11 @@ pub struct MadoAppState {
     /// kanshou queries reflect the GUI's actual session graph
     /// rather than the empty MCP-side registry.
     pub tear_inproc: OnceLock<Arc<tear_core::InProcess>>,
+    /// The shared praça orchestrator (index + binding + latent-preset
+    /// catalog), the SAME `Arc<Mutex<_>>` the picker bridge + auto-attach
+    /// driver hold. Set once at GUI startup; lets the
+    /// `save_session_as_preset` MCP verb capture a session into the catalog.
+    pub praca: OnceLock<Arc<Mutex<praca::Praca>>>,
     /// Keybinding table the `simulate_chord` method leaf resolves
     /// against — mado baseline + the operator's `keybinds.custom`
     /// (see `keybind::manager_from_config`). Built from the same
@@ -64,6 +70,7 @@ impl MadoAppState {
             config,
             sessions,
             tear_inproc: OnceLock::new(),
+            praca: OnceLock::new(),
             keybinds,
             injected: crate::action_injection::InjectedActions::default(),
             switch: crate::session_switch::SwitchRequests::default(),
@@ -75,6 +82,13 @@ impl MadoAppState {
     /// first attach path).
     pub fn set_tear_inproc(&self, inproc: Arc<tear_core::InProcess>) {
         let _ = self.tear_inproc.set(inproc);
+    }
+
+    /// Plumb the shared praça orchestrator in (the same `Arc` the picker
+    /// bridge holds), so the `save_session_as_preset` MCP verb can capture
+    /// into the latent catalog. Best-effort, set-once.
+    pub fn set_praca(&self, praca: Arc<Mutex<praca::Praca>>) {
+        let _ = self.praca.set(praca);
     }
 }
 
@@ -266,12 +280,83 @@ impl Introspect for MadoAppState {
                     "pane_id": pane_str,
                 }))
             }
+            // Method-call leaf — args: [pane_id]. Captures the pane's
+            // session as a reusable latent preset (layout + per-pane spawn
+            // specs, via the shipped `from_live`), so it appears as a ○
+            // Instantiate row in Ctrl-S once not running. The save-as-preset
+            // gesture that feeds the union picker's latent catalog.
+            "save_session_as_preset" => {
+                if q.args.len() != 1 {
+                    return Err(QueryError::BadArity {
+                        expected: 1,
+                        actual: q.args.len(),
+                    });
+                }
+                let Some(pane_str) = q.args[0].as_str() else {
+                    return Err(QueryError::TypeMismatch {
+                        path: "save_session_as_preset".to_string(),
+                        expected: "string".to_string(),
+                        actual: format!("{:?}", q.args[0]),
+                    });
+                };
+                let pane = match pane_str.parse::<tear_types::PaneId>() {
+                    Ok(p) => p,
+                    Err(e) => {
+                        return Err(QueryError::internal(format!(
+                            "invalid pane id {pane_str:?}: {e}"
+                        )));
+                    }
+                };
+                let Some(inproc) = self.tear_inproc.get() else {
+                    return Ok(serde_json::json!({
+                        "saved": false,
+                        "error": "no-live-backend",
+                        "pane_id": pane_str,
+                    }));
+                };
+                let Some(praca) = self.praca.get() else {
+                    return Ok(serde_json::json!({
+                        "saved": false,
+                        "error": "no-praca",
+                        "pane_id": pane_str,
+                    }));
+                };
+                // Resolve the pane to its session in the live registry.
+                let session = inproc.with_registry(|r| {
+                    r.sessions
+                        .values()
+                        .find(|s| s.panes.contains_key(&pane))
+                        .map(|s| s.id)
+                });
+                let Some(session) = session else {
+                    return Ok(serde_json::json!({
+                        "saved": false,
+                        "error": "no-such-pane",
+                        "pane_id": pane_str,
+                    }));
+                };
+                let now = crate::auto_attach::now_unix_seconds();
+                let saved = crate::session_picker::capture_preset(inproc, praca, session, now);
+                Ok(serde_json::json!({
+                    "saved": saved,
+                    "pane_id": pane_str,
+                    "session_id": session.to_string(),
+                }))
+            }
             other => Err(QueryError::unknown_field(other.to_string())),
         }
     }
 
     fn schema(&self) -> &'static [&'static str] {
-        &["frame_perf", "sessions", "config", "process", "simulate_chord", "switch_session"]
+        &[
+            "frame_perf",
+            "sessions",
+            "config",
+            "process",
+            "simulate_chord",
+            "switch_session",
+            "save_session_as_preset",
+        ]
     }
 }
 
@@ -475,5 +560,66 @@ mod tests {
     #[test]
     fn schema_advertises_switch_session() {
         assert!(state().schema().contains(&"switch_session"));
+    }
+
+    #[test]
+    fn save_session_as_preset_captures_the_panes_session() {
+        use tear_types::{MultiplexerControl, SessionSource};
+        let s = state();
+        let inproc = Arc::new(tear_core::InProcess::new());
+        let sid = inproc
+            .new_session_with_source_and_size(
+                "save-test",
+                "/bin/sh",
+                SessionSource::Named("save-test".into()),
+                (80, 24),
+            )
+            .expect("spawn session");
+        let pane = inproc
+            .with_registry(|r| {
+                r.sessions
+                    .get(&sid)
+                    .and_then(|sess| sess.panes.keys().next().copied())
+            })
+            .expect("session has a pane");
+        // praça with the session indexed → capture finds its project root.
+        let mut praca = praca::Praca::new();
+        praca.index.upsert(praca::SessionRecord::for_project(
+            sid,
+            std::path::PathBuf::from("/code/pleme-io/mado"),
+            ishou_tokens::SessionNameStyle::Emoji,
+            1000,
+        ));
+        s.set_tear_inproc(Arc::clone(&inproc));
+        s.set_praca(Arc::new(Mutex::new(praca)));
+
+        let v = s
+            .query(&Query::call(
+                ["save_session_as_preset"],
+                [serde_json::json!(pane.to_string())],
+            ))
+            .expect("query ok");
+        assert_eq!(v["saved"], true);
+        assert_eq!(v["pane_id"], pane.to_string());
+    }
+
+    #[test]
+    fn save_session_as_preset_unknown_pane_reports_no_such_pane() {
+        let (s, _live) = state_with_live_pane();
+        s.set_praca(Arc::new(Mutex::new(praca::Praca::new())));
+        let ghost = tear_types::PaneId::from_seed("never-created").to_string();
+        let v = s
+            .query(&Query::call(
+                ["save_session_as_preset"],
+                [serde_json::json!(ghost)],
+            ))
+            .expect("query ok");
+        assert_eq!(v["saved"], false);
+        assert_eq!(v["error"], "no-such-pane");
+    }
+
+    #[test]
+    fn schema_advertises_save_session_as_preset() {
+        assert!(state().schema().contains(&"save_session_as_preset"));
     }
 }

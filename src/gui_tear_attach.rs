@@ -1372,6 +1372,9 @@ fn try_run_default_embedded(
                     )))
                 }
             };
+            // Give the MCP surface the SAME catalog the picker reads, so
+            // `save_session_as_preset` writes where Ctrl-S reads its ○ rows.
+            kanshou_state.set_praca(std::sync::Arc::clone(&shared_praca));
             Box::new(crate::session_picker::PracaPickerBridge::new(
                 shared_praca,
                 Arc::clone(&inproc),
