@@ -44,7 +44,7 @@
 use std::sync::{Arc, Mutex};
 
 use ishou_tokens::{FleetSessionNames, SessionName};
-use tear_types::{MultiplexerControl, PaneId, SessionId, SessionSource};
+use tear_types::{DefinitionId, MultiplexerControl, PaneId, SessionId, SessionSource};
 
 /// What creating a session from the picker should name it.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -63,6 +63,9 @@ pub enum CreateSpec {
 pub enum RowKind {
     /// Switch to this existing, live session.
     Switch(SessionId),
+    /// Instantiate this latent preset (a saved/authored definition with no
+    /// live instance), then switch to it. The ○ rows in the union picker.
+    Instantiate(DefinitionId),
     /// Create a new session per the spec, then switch to it.
     Create(CreateSpec),
 }
@@ -107,6 +110,13 @@ pub trait SessionPickerBridge: Send {
     /// Create a new session per `spec`, index it, and switch to it.
     /// `true` on success, `false` if the spawn failed or produced no pane.
     fn create_and_switch(&self, spec: CreateSpec, now: u64) -> bool;
+
+    /// Instantiate a latent preset by id and switch to it — the
+    /// [`RowKind::Instantiate`] accept path. Default `false` (an inert
+    /// bridge doesn't instantiate); the live praça bridge overrides it.
+    fn instantiate_and_switch(&self, _def_id: DefinitionId, _now: u64) -> bool {
+        false
+    }
 
     /// Reconcile the index against the live session registry before
     /// listing, so out-of-band-spawned sessions (MCP `spawn_term`, `tear
@@ -176,6 +186,64 @@ impl PracaPickerBridge {
         })
     }
 
+    /// Compose a picker row label: `display_name  basename`, with a leading
+    /// `○ ` latent badge for a not-running preset. Live rows carry NO badge,
+    /// so their appearance is byte-identical to before the union — the
+    /// addition is purely the new ○ latent rows. The renderer draws it verbatim.
+    fn row_label(display_name: &str, project_root: &std::path::Path, latent: bool) -> String {
+        let mut label = String::new();
+        if latent {
+            label.push_str("\u{25cb} "); // ○
+        }
+        label.push_str(display_name);
+        let basename = project_root
+            .file_name()
+            .map(|s| s.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        if !basename.is_empty() && basename != "/" {
+            label.push_str("  ");
+            label.push_str(&basename);
+        }
+        label
+    }
+
+    /// Instantiate a latent preset by its [`DefinitionId`] and switch to it
+    /// — the [`RowKind::Instantiate`] accept path. Looks the definition up
+    /// in the catalog, runs the shipped `praca::instantiate` interpreter
+    /// against the live backend, indexes + binds the fresh session, and
+    /// posts its first pane to the same switch channel `switch_to` uses.
+    fn instantiate_preset(&self, def_id: tear_types::DefinitionId, now: u64) -> bool {
+        let def = {
+            let praca = self.praca();
+            praca.definitions.get(def_id).cloned()
+        };
+        let Some(def) = def else {
+            return false;
+        };
+        let live = match praca::instantiate(&def, self.inproc.as_ref()) {
+            Ok(l) => l,
+            Err(_) => return false,
+        };
+        let sid = live.instance();
+        let Some(pane) = self.first_pane_of(sid) else {
+            return false;
+        };
+        // Index + bind the new session so it's browsable/switchable and a
+        // `cd` back resolves to it (mirrors create_and_switch's bookkeeping).
+        {
+            let mut praca = self.praca();
+            let style = praca.name_style;
+            let mut rec =
+                praca::SessionRecord::for_project(sid, def.project_root.clone(), style, now);
+            rec.name_seed = def.name_seed;
+            praca.index.upsert(rec);
+            praca.binding.bind(def.project_root.clone(), sid);
+            praca.record_visit(sid, now);
+        }
+        self.switch.post(pane);
+        true
+    }
+
     /// Spawn a fresh session named `tear_name` into the live registry,
     /// inheriting mado's capability env. Mirrors
     /// `AutoAttachDriver::perform_spawn`'s spawn half.
@@ -194,37 +262,51 @@ impl PracaPickerBridge {
 
 impl SessionPickerBridge for PracaPickerBridge {
     fn list(&self, query: &str, now: u64) -> Vec<SessionPickerRow> {
-        let style = {
+        let (existing, latent, style) = {
             let praca = self.praca();
             // Existing live sessions matching the query, frecency-ranked,
             // filtered to those with a live pane (a row whose session was
             // reaped would post a no-op — keep the picker honest).
-            let existing: Vec<SessionPickerRow> = praca
+            let live_recs: Vec<&praca::SessionRecord> = praca
                 .search(query, now)
                 .into_iter()
                 .filter(|rec| self.first_pane_of(rec.id).is_some())
-                .map(|rec| {
-                    let basename = rec
-                        .project_root
-                        .file_name()
-                        .map(|s| s.to_string_lossy().into_owned())
-                        .unwrap_or_default();
-                    let mut label = rec.display_name();
-                    if !basename.is_empty() && basename != "/" {
-                        label.push_str("  ");
-                        label.push_str(&basename);
-                    }
-                    SessionPickerRow {
-                        label,
-                        kind: RowKind::Switch(rec.id),
-                    }
+                .collect();
+            // Project roots with a live session — suppress a latent row for
+            // a preset that's already running (it shows as its Switch row).
+            let live_roots: std::collections::HashSet<&std::path::Path> =
+                live_recs.iter().map(|r| r.project_root.as_path()).collect();
+            let existing: Vec<SessionPickerRow> = live_recs
+                .iter()
+                .map(|rec| SessionPickerRow {
+                    label: Self::row_label(&rec.display_name(), &rec.project_root, false),
+                    kind: RowKind::Switch(rec.id),
                 })
                 .collect();
-            if !existing.is_empty() {
-                return existing;
-            }
-            praca.name_style
+            // Latent presets matching the query — saved/authored definitions
+            // with NO live session, surfaced as ○ Instantiate rows. The
+            // catalog (praca.definitions) is empty until a preset is saved,
+            // so this is invisible until then.
+            let latent: Vec<SessionPickerRow> = praca
+                .definitions
+                .search(query, now)
+                .into_iter()
+                .filter(|def| !live_roots.contains(def.project_root.as_path()))
+                .map(|def| SessionPickerRow {
+                    label: Self::row_label(&def.display_name(), &def.project_root, true),
+                    kind: RowKind::Instantiate(def.def_id),
+                })
+                .collect();
+            (existing, latent, praca.name_style)
         };
+        // The union: live sessions first, then latent presets. If EITHER
+        // matched, that's the picker's answer; only an empty union falls
+        // through to the create surface.
+        if !existing.is_empty() || !latent.is_empty() {
+            let mut rows = existing;
+            rows.extend(latent);
+            return rows;
+        }
 
         // No live session matched → the CREATE surface. Emoji presets
         // first (every emoji on an empty query; fuzzy-matched by name /
@@ -264,6 +346,10 @@ impl SessionPickerBridge for PracaPickerBridge {
             }
             None => false,
         }
+    }
+
+    fn instantiate_and_switch(&self, def_id: DefinitionId, now: u64) -> bool {
+        self.instantiate_preset(def_id, now)
     }
 
     fn refresh(&self, now: u64) {
@@ -383,6 +469,64 @@ mod tests {
 
         assert!(bridge.switch_to(live), "live session switches");
         assert!(!bridge.switch_to(sid("ghost")), "dead session does not");
+    }
+
+    #[test]
+    fn bridge_surfaces_a_latent_preset_as_an_instantiate_row() {
+        let (inproc, _live) = live_inproc();
+        let mut praca = praca::Praca::new();
+        // Save a preset for a project that is NOT running.
+        let preset = praca::SessionDefinition::single_pane(
+            "/code/pleme-io/substrate",
+            "/bin/sh",
+            praca::NameStyle::Emoji,
+            1000,
+        );
+        let def_id = preset.def_id;
+        praca.definitions.upsert(preset);
+        let bridge = bridge_with(praca, Arc::clone(&inproc));
+
+        // Empty query → the latent preset appears as a ○ Instantiate row.
+        let rows = bridge.list("", 1000);
+        let inst = rows
+            .iter()
+            .find(|r| matches!(r.kind, RowKind::Instantiate(_)))
+            .expect("latent preset surfaces as an Instantiate row");
+        assert_eq!(inst.kind, RowKind::Instantiate(def_id));
+        assert!(inst.label.starts_with('\u{25cb}'), "○ latent badge: {}", inst.label);
+
+        // Accepting it instantiates the preset + switches (spawns a live pane).
+        assert!(
+            bridge.instantiate_and_switch(def_id, 1000),
+            "instantiate spawns the preset + posts its pane"
+        );
+    }
+
+    #[test]
+    fn bridge_hides_a_preset_whose_project_is_already_live() {
+        let (inproc, live) = live_inproc();
+        let mut praca = praca::Praca::new();
+        // The live session is bound to /code/pleme-io/mado.
+        praca.index.upsert(praca::SessionRecord::for_project(
+            live,
+            PathBuf::from("/code/pleme-io/mado"),
+            SessionNameStyle::Emoji,
+            1000,
+        ));
+        praca.binding.bind(PathBuf::from("/code/pleme-io/mado"), live);
+        // A preset for the SAME project must NOT appear as a duplicate latent row.
+        praca.definitions.upsert(praca::SessionDefinition::single_pane(
+            "/code/pleme-io/mado",
+            "/bin/sh",
+            praca::NameStyle::Emoji,
+            1000,
+        ));
+        let bridge = bridge_with(praca, Arc::clone(&inproc));
+        let rows = bridge.list("", 1000);
+        assert!(
+            rows.iter().all(|r| !matches!(r.kind, RowKind::Instantiate(_))),
+            "a running preset is its Switch row, not a duplicate latent row"
+        );
     }
 
     #[test]

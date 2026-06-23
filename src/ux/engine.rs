@@ -867,6 +867,7 @@ impl InputEngine {
             let now = crate::auto_attach::now_unix_seconds();
             let ok = match chosen {
                 Some(RowKind::Switch(session)) => bridge.switch_to(session),
+                Some(RowKind::Instantiate(def_id)) => bridge.instantiate_and_switch(def_id, now),
                 Some(RowKind::Create(spec)) => bridge.create_and_switch(spec, now),
                 // Nothing highlighted but a non-empty needle → create a
                 // session named literally by the query (create-on-miss).
@@ -1912,6 +1913,13 @@ mod tests {
             _id: PaneId,
             _direction: Direction,
             _delta_cells: i16,
+        ) -> ControlResult<()> {
+            Err(ControlError::Rejected("mock".into()))
+        }
+        fn apply_layout(
+            &self,
+            _window: tear_types::WindowId,
+            _kind: tear_types::LayoutKind,
         ) -> ControlResult<()> {
             Err(ControlError::Rejected("mock".into()))
         }
@@ -3007,7 +3015,7 @@ mod tests {
     fn row_switch_id(row: &SessionPickerRow) -> Option<SessionId> {
         match row.kind {
             RowKind::Switch(id) => Some(id),
-            RowKind::Create(_) => None,
+            RowKind::Instantiate(_) | RowKind::Create(_) => None,
         }
     }
 
