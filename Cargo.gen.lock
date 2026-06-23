@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "434a767d8be34d52d80527b68eff5a45f2ff3d6fac505e18046356f67fd7f6cd",
+  "cargo_lock_sha256": "39ae6c9e5a514bb21ad834c7658d2990488d8364f326f7d8ad702355341845a1",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -18904,7 +18904,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.28": {
+          "mado-0.1.29": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -22973,7 +22973,7 @@
               "system"
             ]
           },
-          "mado-0.1.28": {
+          "mado-0.1.29": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26609,7 +26609,7 @@
               "system"
             ]
           },
-          "mado-0.1.28": {
+          "mado-0.1.29": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -30339,7 +30339,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.28": {
+          "mado-0.1.29": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -34362,7 +34362,7 @@
               "system"
             ]
           },
-          "mado-0.1.28": {
+          "mado-0.1.29": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -37952,7 +37952,7 @@
               "system"
             ]
           },
-          "mado-0.1.28": {
+          "mado-0.1.29": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -41650,7 +41650,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.28": {
+    "mado-0.1.29": {
       "edition": "2024",
       "binaries": [
         {
