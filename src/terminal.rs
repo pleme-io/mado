@@ -2715,6 +2715,21 @@ impl Terminal {
         self.seqno
     }
 
+    /// RIS / content-reset epoch — bumped once per full terminal reset
+    /// ([`Self::reset`]), which is the single mechanism behind a RIS
+    /// escape, a config hot-reload, AND a session switch (the
+    /// gui_tear_attach switch handler calls `reset()` to blank the
+    /// prior pane before replaying the new one). The renderer observes
+    /// this to invalidate its per-pane frame state (last_seqno, blink
+    /// phase, sync-output defer) and force a clean repaint across every
+    /// swapchain slot on the frames immediately after a reset — so a
+    /// pane switch can't leave a stale slot showing the prior session
+    /// (the "shadow / copies of the prompt" afterimage class).
+    #[must_use]
+    pub fn grid_epoch(&self) -> u64 {
+        self.grid_epoch
+    }
+
     /// Grid-geometry generation — see the field doc. The UX engine's
     /// per-tick reconciler re-runs the active search when this
     /// changes (absolute match rows are stale after any resize).
@@ -5864,6 +5879,28 @@ mod tests {
         assert!(!italic_at(&term, 0, 0), "plain run must NOT be italic");
         assert!(italic_at(&term, 1, 0), "SGR-3 run must be italic");
         assert!(!italic_at(&term, 2, 0), "colored-but-non-italic run must NOT be italic");
+    }
+
+    /// **Invariant: `grid_epoch` bumps on every full reset.** The
+    /// renderer keys its per-pane frame-state invalidation + forced
+    /// post-switch swapchain repaint on observing this value change
+    /// (render.rs). A session switch blanks the prior pane via
+    /// `reset()`, so the epoch MUST advance for the renderer to drop
+    /// stale state and refresh every back-buffer slot — otherwise the
+    /// "shadow / copies of the prompt" afterimage returns. Streaming
+    /// content must NOT bump it (only a reset does), or the renderer
+    /// would force-repaint on ordinary output.
+    #[test]
+    fn grid_epoch_advances_on_reset_only() {
+        let mut term = Terminal::new(40, 4);
+        let e0 = term.grid_epoch();
+        term.feed(b"some ordinary streamed output\r\n");
+        assert_eq!(term.grid_epoch(), e0, "streaming output must not bump grid_epoch");
+        term.reset();
+        assert_ne!(term.grid_epoch(), e0, "reset (RIS / config-reload / switch) must bump grid_epoch");
+        let e1 = term.grid_epoch();
+        term.reset();
+        assert_ne!(term.grid_epoch(), e1, "a second reset bumps again (monotone per reset)");
     }
 
     /// **Invariant: output never moves the operator's view**

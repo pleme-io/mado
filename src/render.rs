@@ -1279,6 +1279,21 @@ pub struct TerminalRenderer {
     /// `SYNC_OUTPUT_MAX_DEFER`, we force a render and reset the
     /// timestamp.
     sync_output_deferred_since: Option<Instant>,
+    /// Last `Terminal::grid_epoch()` this renderer observed. A change
+    /// means the grid was fully reset (RIS / config hot-reload /
+    /// session switch) and this renderer's per-pane frame state
+    /// (last_seqno, blink phase, sync-output defer) is stale for the
+    /// new content. Seeing the bump triggers a frame-state reset plus a
+    /// forced full repaint across the swapchain — see
+    /// `force_paint_frames` and `Terminal::grid_epoch`.
+    last_grid_epoch: u64,
+    /// Frames remaining to force a full paint after a grid-epoch change,
+    /// bypassing the synchronized-output defer. Set to the swapchain
+    /// depth so EVERY back-buffer slot is repainted with the new pane's
+    /// content — otherwise a switch can leave one Metal slot showing the
+    /// prior session, surfacing as the "shadow / copies of the prompt"
+    /// afterimage when present() cycles back to it. Counts down to 0.
+    force_paint_frames: u8,
     /// Post-effect config — mirrors `MadoConfig.effects`. The
     /// enabled-effect set (and therefore the graph cache key) is
     /// derived from this each frame.
@@ -1409,6 +1424,16 @@ impl AuroraState {
 /// a stuck BSU is invisible to the user (~6 dropped frames at 60 Hz).
 const SYNC_OUTPUT_MAX_DEFER: std::time::Duration = std::time::Duration::from_millis(100);
 
+/// How many frames to force a full paint after a grid-epoch change
+/// (RIS / config hot-reload / session switch). Sized to comfortably
+/// exceed any platform swapchain depth (Metal double/triple buffer is
+/// 2–3) so `present()` cannot later cycle back to a back-buffer slot
+/// that still holds the prior pane — the cause of the post-switch
+/// "shadow / copies of the prompt" afterimage. Cheap: a full idle
+/// paint is ~300 µs (see the damage-gate P-FIX note), so 3 forced
+/// frames cost <1 ms, once, per switch.
+const EPOCH_FORCE_PAINT_FRAMES: u8 = 3;
+
 impl TerminalRenderer {
     pub fn new(
         terminal: SharedTerminal,
@@ -1500,6 +1525,8 @@ impl TerminalRenderer {
             last_cursor_on: false,
             box_draw_templates: RefCell::new(HashMap::new()),
             sync_output_deferred_since: None,
+            last_grid_epoch: 0,
+            force_paint_frames: 0,
             effects_config: crate::config::MadoEffectsConfig::default(),
             ambience: crate::config::MadoEffectsConfig::default().ambience.compose(),
             snow_state: SnowState::new(),
@@ -4172,11 +4199,35 @@ impl RenderCallback for TerminalRenderer {
         // Stage 2 is the existing post-snapshot gate that catches
         // the rare case where snapshot data still proves we don't
         // need to redraw (kept as a belt-and-braces safety net).
-        let (peek_seqno, peek_cursor_visible, peek_sync_output) = {
+        let (peek_seqno, peek_cursor_visible, peek_sync_output, peek_epoch) = {
             let term = self.terminal.read();
-            (term.seqno(), term.cursor().visible, term.synchronized_output())
+            (
+                term.seqno(),
+                term.cursor().visible,
+                term.synchronized_output(),
+                term.grid_epoch(),
+            )
         };
-        if peek_sync_output {
+        // Grid-epoch change = the grid was fully reset (RIS / config
+        // hot-reload / session switch — all route through
+        // `Terminal::reset`). This renderer's per-pane frame state is
+        // now stale for the new content, so drop it and force a clean
+        // full repaint across the whole swapchain. Without this, a
+        // session switch could leave the synchronized-output defer
+        // marker, the stale blink phase, or a back-buffer slot showing
+        // the prior pane — the "shadow / copies of the prompt"
+        // afterimage the operator hit switching back and forth.
+        if peek_epoch != self.last_grid_epoch {
+            self.last_grid_epoch = peek_epoch;
+            self.last_seqno = 0;
+            self.last_cursor_on = false;
+            self.sync_output_deferred_since = None;
+            self.force_paint_frames = EPOCH_FORCE_PAINT_FRAMES;
+        }
+        // While forcing post-reset frames, never defer on synchronized
+        // output — every swapchain slot must be repainted with the new
+        // content regardless of a transient BSU in the replay/stream.
+        if peek_sync_output && self.force_paint_frames == 0 {
             // BSU is in flight — defer. Don't bump last_seqno so the
             // matching ESU triggers the catch-up render on the next
             // frame. But cap the defer at SYNC_OUTPUT_MAX_DEFER: a
@@ -4194,6 +4245,11 @@ impl RenderCallback for TerminalRenderer {
             // Not deferring — clear any stale marker from a prior BSU.
             self.sync_output_deferred_since = None;
         }
+        // We are committed to painting this frame (the only early return
+        // above is the synchronized-output defer, which is bypassed
+        // while forcing). Count down the post-epoch forced-paint budget
+        // so each swapchain slot gets exactly one clean repaint.
+        self.force_paint_frames = self.force_paint_frames.saturating_sub(1);
         let search_active_peek = self.search.lock().unwrap().active;
         // P28 — cursor_on is a 1–4 Hz boolean (default 4 Hz at 500 ms
         // period). Compute it here and compare to last_cursor_on; only
