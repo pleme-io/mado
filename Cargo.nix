@@ -4434,8 +4434,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/garasu";
-          rev = "a7709af29cebfd6ac17e50e432a1403f6901fc15";
-          sha256 = "082m6m2yww6zjzxgha4gn22liac9kprgirvdbspxzhri9vi34jj9";
+          rev = "44ea7334bb1b83cff3fcc1e70cea324c8cfb452b";
+          sha256 = "0xhmha2wcc7d5m464yn80qv6dz7icnvp4mxssz5f71cl96rjngs4";
         };
         dependencies = [
           {
@@ -4445,6 +4445,11 @@ rec {
           {
             name = "blake3";
             packageId = "blake3";
+          }
+          {
+            name = "bytemuck";
+            packageId = "bytemuck";
+            features = [ "derive" ];
           }
           {
             name = "dirs";
@@ -7353,7 +7358,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.22";
+        version = "0.1.23";
         edition = "2024";
         crateBin = [
           {
@@ -7788,9 +7793,9 @@ rec {
       };
       "memmap2" = rec {
         crateName = "memmap2";
-        version = "0.9.10";
+        version = "0.9.11";
         edition = "2021";
-        sha256 = "1qz0n4ch68pz2mp07sdwnk27imdjjqy6aqir3hp9j4g0iw19hh3i";
+        sha256 = "1h4qnzgarnn488ljjpg9ns5y4bw0sq0xv0fj0iqywagjnz8rw8fi";
         authors = [
           "Dan Burkert <dan@danburkert.com>"
           "Yevhenii Reizner <razrfalcon@gmail.com>"
@@ -14982,9 +14987,9 @@ rec {
       };
       "rustls" = rec {
         crateName = "rustls";
-        version = "0.23.40";
+        version = "0.23.41";
         edition = "2021";
-        sha256 = "12qnv3ag4wrw7aj8jng74kgrilpjm2b1rfcjaac8h691frccv1pg";
+        sha256 = "07vbs2935a7xjqqvy8w3ndzmmw8dg769d9zcgdg7k6sdccjv34kb";
         dependencies = [
           {
             name = "once_cell";
