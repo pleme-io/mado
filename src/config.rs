@@ -3,9 +3,20 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, pleme_fleet_themed_derive::FleetThemed)]
+// ── ★★ EMITTER SUBSTRATE: the FleetThemedConfig impl is DERIVED ──
+// The flagship hand-written `impl FleetThemedConfig` (the fleet-audit
+// reference) is now `#[derive(FleetThemed)]` + per-field `#[fleet(…)]`
+// attributes. The flat `FleetDefaults → field` assignments are
+// mechanized; the genuinely-unique tail (theme-surface mapping, per-OS
+// decoration split, cursor name→enum map, the scrollback override) lives
+// in the named `*_from_fleet` escape-hatch fns + the `finalize` fn — see
+// below the struct. `base = "mado_fleet_base"` supplies the per-section
+// `*Config::default()` values for every untouched field via `..base()`.
+#[fleet(base = "mado_fleet_base", finalize = mado_fleet_scrollback_floor)]
 pub struct MadoConfig {
     #[serde(default = "default_font_family")]
+    #[fleet]
     pub font_family: String,
     /// Family used for italic cells. cosmic-text's
     /// `Attrs::style(Style::Italic)` walks the fontdb for an italic
@@ -16,6 +27,7 @@ pub struct MadoConfig {
     /// Sourced from `ishou-tokens::MonoFonts::pleme().italic` when
     /// blackmatter-mado renders the YAML.
     #[serde(default = "default_font_italic")]
+    #[fleet]
     pub font_italic: String,
     /// Family used for powerline separators (U+E0B0…) and Nerd-Font
     /// Private-Use-Area icon codepoints (see
@@ -31,6 +43,7 @@ pub struct MadoConfig {
     #[serde(default = "default_font_symbols")]
     pub font_symbols: String,
     #[serde(default = "default_font_size")]
+    #[fleet(font_size, copy)]
     pub font_size: f32,
     /// Cell-height multiplier — the line rhythm. The rendered cell is
     /// `font_size * line_height` (logical px); cosmic-text's line-box
@@ -40,20 +53,26 @@ pub struct MadoConfig {
     /// the renderer's old hardcoded `* 1.4`, which ignored config and
     /// produced a cramped rhythm vs ghostty's airier cell.
     #[serde(default = "default_line_height")]
+    #[fleet(line_height, copy)]
     pub line_height: f32,
     #[serde(default)]
     pub font: FontConfig,
     #[serde(default)]
+    #[fleet(with = mado_window_from_fleet)]
     pub window: WindowConfig,
     #[serde(default)]
     pub shell: ShellConfig,
     #[serde(default)]
+    #[fleet(with = mado_appearance_from_fleet)]
     pub appearance: AppearanceConfig,
     #[serde(default)]
+    #[fleet(with = mado_cursor_from_fleet)]
     pub cursor: CursorConfig,
     #[serde(default)]
+    #[fleet(with = mado_behavior_from_fleet)]
     pub behavior: BehaviorConfig,
     #[serde(default = "default_theme")]
+    #[fleet(with = mado_theme_name_from_fleet)]
     pub theme: String,
     #[serde(default)]
     pub profiles: HashMap<String, ProfileConfig>,
@@ -62,10 +81,12 @@ pub struct MadoConfig {
     #[serde(default)]
     pub shaders: ShaderConfig,
     #[serde(default)]
+    #[fleet(with = mado_accessibility_from_fleet)]
     pub accessibility: AccessibilityConfig,
     #[serde(default)]
     pub shell_integration: ShellIntegrationConfig,
     #[serde(default)]
+    #[fleet(with = mado_performance_from_fleet)]
     pub performance: PerformanceConfig,
     #[serde(default)]
     pub environment: EnvironmentConfig,
@@ -2081,113 +2102,161 @@ fn minimum_contrast_from_fleet(theme_name: &str) -> f32 {
 /// shaders, effects, vigy, quick-terminal, …) inherit the prescribed
 /// per-section defaults through the `*Config::default()` base, so mado
 /// keeps its frostmourne shell, snow-off effects, etc.
-impl ishou_tokens::FleetThemedConfig for MadoConfig {
-    fn from_fleet(fd: &ishou_tokens::FleetDefaults) -> Self {
-        // The theme's BORN tokens — bg/fg/cursor flow straight from
-        // here so the config's own fallback fields can never hold a
-        // stale palette (the audit's complaint: prescribed_default
-        // hand-pinned Nord #2e3440).
-        let resolved = fd.theme.resolve();
-        let bg = if resolved.background.is_empty() {
-            default_bg()
-        } else {
-            resolved.background.clone()
-        };
-        let fg = if resolved.foreground.is_empty() {
-            default_fg()
-        } else {
-            resolved.foreground.clone()
-        };
-        // The bare tier's cursor is "use foreground"; the resolved theme
-        // ships an explicit cursor (Vellum green_bright). Empty = the
-        // bare floor's "follow foreground" semantics.
-        let cursor_color = resolved.cursor.clone();
+// ── FleetThemed escape-hatch fns ──────────────────────────────────
+//
+// `#[derive(FleetThemed)]` on `MadoConfig` mechanizes the flat
+// `FleetDefaults → field` assignments (`font_family`, `font_italic`,
+// `font_size`, `line_height`). The genuinely-unique tail — theme-surface
+// mapping, the per-OS decoration split, the cursor name→enum map, the
+// minimum-contrast floor — lives in these named `fn(&FleetDefaults) -> T`
+// fns, referenced by `#[fleet(with = …)]`. Each reproduces the
+// corresponding nested-struct literal from the original flagship impl
+// byte-for-byte (proven by `from_fleet_byte_identical_to_handwritten`).
 
-        // Per-OS decorations: macOS keeps traffic-lights, tiling-WM
-        // platforms go borderless — the fleet's own split.
-        let decorations = if cfg!(target_os = "macos") {
-            fd.decorations_macos
-        } else {
-            fd.decorations_linux
-        };
+/// The fleet `theme` field: the resolved theme's BORN name (Vellum
+/// `vellum`). Setting `theme` is what makes the runtime resolve
+/// the ANSI palette / selection-glass / search surfaces to Vellum.
+fn mado_theme_name_from_fleet(fd: &ishou_tokens::FleetDefaults) -> String {
+    fd.theme.resolve().name.clone()
+}
 
-        // Start from the prescribed per-section app defaults so every
-        // field with NO fleet analogue keeps mado's curated value, then
-        // override the fleet-derived fields below.
-        let mut c = Self {
-            font_family: fd.font_family.clone(),
-            font_italic: fd.font_italic.clone(),
-            font_symbols: default_font_symbols(),
-            font_size: fd.font_size,
-            // The cell-height rhythm flows straight from the fleet
-            // (ghostty's native 1.32 × +25% = 1.65). The renderer reads
-            // this — no more hardcoded `* 1.4`.
-            line_height: fd.line_height,
-            font: FontConfig::default(),
-            window: WindowConfig {
-                padding: fd.padding,
-                decorations,
-                ..WindowConfig::default()
-            },
-            shell: ShellConfig::default(),
-            appearance: AppearanceConfig {
-                background: bg,
-                foreground: fg,
-                // The Vellum grid-cell contrast floor (§5
-                // `minimum_contrast = 3.0`) flows from the resolved
-                // theme's own surfaces — NOT a hand-pinned 3.0. On a
-                // non-Vellum theme it falls back to the curated app
-                // default (no fleet contrast token exists for those).
-                minimum_contrast: minimum_contrast_from_fleet(&resolved.name),
-                ..AppearanceConfig::default()
-            },
-            cursor: CursorConfig {
-                style: cursor_style_from_fleet(&fd.cursor_style),
-                blink: fd.cursor_blink,
-                blink_rate_ms: fd.cursor_blink_rate_ms,
-                color: cursor_color,
-                ..CursorConfig::default()
-            },
-            behavior: BehaviorConfig {
-                scrollback_lines: fd.scrollback_lines,
-                link_url: fd.link_url_detect,
-                mouse_reporting: fd.mouse_reporting,
-                mouse_hide_while_typing: fd.mouse_hide_while_typing,
-                ..BehaviorConfig::default()
-            },
-            theme: resolved.name.clone(),
-            profiles: HashMap::new(),
-            active_profile: None,
-            shaders: ShaderConfig::default(),
-            accessibility: AccessibilityConfig {
-                reduce_motion: fd.reduce_motion,
-                font_scale: fd.font_scale,
-                ..AccessibilityConfig::default()
-            },
-            shell_integration: ShellIntegrationConfig::default(),
-            performance: PerformanceConfig {
-                vsync: fd.vsync,
-                ..PerformanceConfig::default()
-            },
-            environment: EnvironmentConfig::default(),
-            selection: SelectionConfig::default(),
-            search: SearchColorsConfig::default(),
-            keybinds: KeybindConfig::default(),
-            quick_terminal: QuickTerminalConfig::default(),
-            tear: MadoTearConfig::default(),
-            effects: MadoEffectsConfig::default(),
-            vigy: MadoVigyConfig::default(),
-        };
-        // The fleet `scrollback_lines` (10k) is a RAM-cap *floor*; mado's
-        // own prescribed contract is "never lose anything" (usize::MAX).
-        // Honour the stronger contract when the fleet value is the
-        // documented 10k default — a smaller deliberate fleet value would
-        // still flow through. (The discovered tier is where RAM caps
-        // live; see `default_scrollback`.)
-        if fd.scrollback_lines == 10_000 {
-            c.behavior.scrollback_lines = default_scrollback();
-        }
-        c
+/// `window`: fleet `padding` + the per-OS decoration split (macOS keeps
+/// traffic-lights, tiling-WM platforms go borderless), every other field
+/// from `WindowConfig::default()`.
+fn mado_window_from_fleet(fd: &ishou_tokens::FleetDefaults) -> WindowConfig {
+    let decorations = if cfg!(target_os = "macos") {
+        fd.decorations_macos
+    } else {
+        fd.decorations_linux
+    };
+    WindowConfig {
+        padding: fd.padding,
+        decorations,
+        ..WindowConfig::default()
+    }
+}
+
+/// `appearance`: bg/fg from the resolved theme's BORN tokens (never a
+/// hand-pinned palette), the Vellum grid-cell contrast floor sourced
+/// from the theme's own surfaces, every other field from
+/// `AppearanceConfig::default()`.
+fn mado_appearance_from_fleet(fd: &ishou_tokens::FleetDefaults) -> AppearanceConfig {
+    let resolved = fd.theme.resolve();
+    let bg = if resolved.background.is_empty() {
+        default_bg()
+    } else {
+        resolved.background.clone()
+    };
+    let fg = if resolved.foreground.is_empty() {
+        default_fg()
+    } else {
+        resolved.foreground.clone()
+    };
+    AppearanceConfig {
+        background: bg,
+        foreground: fg,
+        minimum_contrast: minimum_contrast_from_fleet(&resolved.name),
+        ..AppearanceConfig::default()
+    }
+}
+
+/// `cursor`: the fleet cursor-style (name→enum), blink + rate, and the
+/// resolved theme's explicit cursor colour (Vellum `green_bright`;
+/// empty = "follow foreground"), every other field from
+/// `CursorConfig::default()`.
+fn mado_cursor_from_fleet(fd: &ishou_tokens::FleetDefaults) -> CursorConfig {
+    CursorConfig {
+        style: cursor_style_from_fleet(&fd.cursor_style),
+        blink: fd.cursor_blink,
+        blink_rate_ms: fd.cursor_blink_rate_ms,
+        color: fd.theme.resolve().cursor.clone(),
+        ..CursorConfig::default()
+    }
+}
+
+/// `behavior`: fleet scrollback floor + URL/mouse toggles, every other
+/// field from `BehaviorConfig::default()`. The scrollback value here is
+/// the fleet 10k floor; `mado_fleet_scrollback_floor` (the `finalize`
+/// hook) promotes it to mado's "never lose anything" contract.
+fn mado_behavior_from_fleet(fd: &ishou_tokens::FleetDefaults) -> BehaviorConfig {
+    BehaviorConfig {
+        scrollback_lines: fd.scrollback_lines,
+        link_url: fd.link_url_detect,
+        mouse_reporting: fd.mouse_reporting,
+        mouse_hide_while_typing: fd.mouse_hide_while_typing,
+        ..BehaviorConfig::default()
+    }
+}
+
+/// `accessibility`: fleet reduce-motion + font-scale, every other field
+/// from `AccessibilityConfig::default()`.
+fn mado_accessibility_from_fleet(fd: &ishou_tokens::FleetDefaults) -> AccessibilityConfig {
+    AccessibilityConfig {
+        reduce_motion: fd.reduce_motion,
+        font_scale: fd.font_scale,
+        ..AccessibilityConfig::default()
+    }
+}
+
+/// `performance`: fleet vsync, every other field from
+/// `PerformanceConfig::default()`.
+fn mado_performance_from_fleet(fd: &ishou_tokens::FleetDefaults) -> PerformanceConfig {
+    PerformanceConfig {
+        vsync: fd.vsync,
+        ..PerformanceConfig::default()
+    }
+}
+
+/// The `#[fleet(finalize = …)]` hook: the fleet `scrollback_lines` (10k)
+/// is a RAM-cap *floor*; mado's prescribed contract is "never lose
+/// anything" (`usize::MAX`). Honour the stronger contract when the fleet
+/// value is the documented 10k default; a smaller deliberate fleet value
+/// still flows through.
+fn mado_fleet_scrollback_floor(c: &mut MadoConfig, fd: &ishou_tokens::FleetDefaults) {
+    if fd.scrollback_lines == 10_000 {
+        c.behavior.scrollback_lines = default_scrollback();
+    }
+}
+
+/// The `#[fleet(base = …)]` ctor: supplies the per-section
+/// `*Config::default()` values for every field with NO fleet analogue
+/// (`font_symbols`, `font`, `shell`, `profiles`, `shaders`,
+/// `shell_integration`, `environment`, `selection`, `search`,
+/// `keybinds`, `quick_terminal`, `tear`, `effects`, `vigy`). The derive
+/// overrides every `#[fleet(…)]`-mapped field via `..mado_fleet_base()`,
+/// so the placeholder values for THOSE fields here are never observed —
+/// they only need to type-check.
+fn mado_fleet_base() -> MadoConfig {
+    MadoConfig {
+        // ── Fleet-mapped placeholders (overridden by the derive) ──
+        font_family: String::new(),
+        font_italic: String::new(),
+        font_size: 0.0,
+        line_height: 0.0,
+        window: WindowConfig::default(),
+        appearance: AppearanceConfig::default(),
+        cursor: CursorConfig::default(),
+        behavior: BehaviorConfig::default(),
+        theme: String::new(),
+        accessibility: AccessibilityConfig::default(),
+        performance: PerformanceConfig::default(),
+        // ── Untouched fields: the curated per-section defaults the
+        //    original flagship impl supplied verbatim ──
+        font_symbols: default_font_symbols(),
+        font: FontConfig::default(),
+        shell: ShellConfig::default(),
+        profiles: HashMap::new(),
+        active_profile: None,
+        shaders: ShaderConfig::default(),
+        shell_integration: ShellIntegrationConfig::default(),
+        environment: EnvironmentConfig::default(),
+        selection: SelectionConfig::default(),
+        search: SearchColorsConfig::default(),
+        keybinds: KeybindConfig::default(),
+        quick_terminal: QuickTerminalConfig::default(),
+        tear: MadoTearConfig::default(),
+        effects: MadoEffectsConfig::default(),
+        vigy: MadoVigyConfig::default(),
     }
 }
 
@@ -3125,6 +3194,118 @@ mod tests {
             (theme.agent_accent.r, theme.agent_accent.g, theme.agent_accent.b),
             (fable_violet.r, fable_violet.g, fable_violet.b),
         );
+    }
+
+    /// **The `#[derive(FleetThemed)]` byte-identical proof.** The
+    /// flagship `from_fleet` was migrated from a hand-written
+    /// `impl FleetThemedConfig` to `#[derive(FleetThemed)]` + per-field
+    /// `#[fleet(…)]` attributes (the ★★ EMITTER SUBSTRATE move). This
+    /// test pins that the derive reproduces the OLD hand-written body
+    /// **byte-for-byte**: `from_fleet_handwritten_frozen` below is a
+    /// frozen verbatim copy of the pre-migration constructor (it does
+    /// NOT call the derive), and the derived `from_fleet` must serialize
+    /// to identical YAML for every `FleetDefaults` tier. If the derive
+    /// (or an escape-hatch fn) drifts from the flagship, this fails.
+    #[test]
+    fn from_fleet_byte_identical_to_handwritten() {
+        for fd in [
+            ishou_tokens::FleetDefaults::prescribed(),
+            ishou_tokens::FleetDefaults::bare(),
+        ] {
+            let derived = <MadoConfig as ishou_tokens::FleetThemedConfig>::from_fleet(&fd);
+            let frozen = from_fleet_handwritten_frozen(&fd);
+            let derived_yaml = serde_yaml_ng::to_string(&derived).unwrap();
+            let frozen_yaml = serde_yaml_ng::to_string(&frozen).unwrap();
+            assert_eq!(
+                derived_yaml, frozen_yaml,
+                "FleetThemed derive drifted from the flagship hand-written from_fleet",
+            );
+        }
+    }
+
+    /// Frozen verbatim copy of the pre-`#[derive(FleetThemed)]` flagship
+    /// constructor. Intentionally NOT routed through the derive — this is
+    /// the independent reference the byte-identical proof compares
+    /// against. Do not "simplify" by delegating to the derive; that would
+    /// make the proof circular.
+    fn from_fleet_handwritten_frozen(fd: &ishou_tokens::FleetDefaults) -> MadoConfig {
+        let resolved = fd.theme.resolve();
+        let bg = if resolved.background.is_empty() {
+            default_bg()
+        } else {
+            resolved.background.clone()
+        };
+        let fg = if resolved.foreground.is_empty() {
+            default_fg()
+        } else {
+            resolved.foreground.clone()
+        };
+        let cursor_color = resolved.cursor.clone();
+        let decorations = if cfg!(target_os = "macos") {
+            fd.decorations_macos
+        } else {
+            fd.decorations_linux
+        };
+        let mut c = MadoConfig {
+            font_family: fd.font_family.clone(),
+            font_italic: fd.font_italic.clone(),
+            font_symbols: default_font_symbols(),
+            font_size: fd.font_size,
+            line_height: fd.line_height,
+            font: FontConfig::default(),
+            window: WindowConfig {
+                padding: fd.padding,
+                decorations,
+                ..WindowConfig::default()
+            },
+            shell: ShellConfig::default(),
+            appearance: AppearanceConfig {
+                background: bg,
+                foreground: fg,
+                minimum_contrast: minimum_contrast_from_fleet(&resolved.name),
+                ..AppearanceConfig::default()
+            },
+            cursor: CursorConfig {
+                style: cursor_style_from_fleet(&fd.cursor_style),
+                blink: fd.cursor_blink,
+                blink_rate_ms: fd.cursor_blink_rate_ms,
+                color: cursor_color,
+                ..CursorConfig::default()
+            },
+            behavior: BehaviorConfig {
+                scrollback_lines: fd.scrollback_lines,
+                link_url: fd.link_url_detect,
+                mouse_reporting: fd.mouse_reporting,
+                mouse_hide_while_typing: fd.mouse_hide_while_typing,
+                ..BehaviorConfig::default()
+            },
+            theme: resolved.name.clone(),
+            profiles: HashMap::new(),
+            active_profile: None,
+            shaders: ShaderConfig::default(),
+            accessibility: AccessibilityConfig {
+                reduce_motion: fd.reduce_motion,
+                font_scale: fd.font_scale,
+                ..AccessibilityConfig::default()
+            },
+            shell_integration: ShellIntegrationConfig::default(),
+            performance: PerformanceConfig {
+                vsync: fd.vsync,
+                ..PerformanceConfig::default()
+            },
+            environment: EnvironmentConfig::default(),
+            selection: SelectionConfig::default(),
+            search: SearchColorsConfig::default(),
+            keybinds: KeybindConfig::default(),
+            quick_terminal: QuickTerminalConfig::default(),
+            tear: MadoTearConfig::default(),
+            effects: MadoEffectsConfig::default(),
+            vigy: MadoVigyConfig::default(),
+        };
+        if fd.scrollback_lines == 10_000 {
+            c.behavior.scrollback_lines = default_scrollback();
+        }
+        c
     }
 
     #[test]

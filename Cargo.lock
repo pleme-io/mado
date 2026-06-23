@@ -2474,6 +2474,7 @@ dependencies = [
  "open",
  "parking_lot",
  "pleme-allvariants-derive",
+ "pleme-fleet-themed-derive",
  "pleme-invalidating-setter-derive",
  "pleme-io-wadachi",
  "pleme-kindbyte-derive",
@@ -3479,6 +3480,16 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 name = "pleme-allvariants-derive"
 version = "0.1.0"
 source = "git+https://github.com/pleme-io/pleme-allvariants-derive#c66f20d1dc5727cfa0d1f83a02a28609a13387ec"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.118",
+]
+
+[[package]]
+name = "pleme-fleet-themed-derive"
+version = "0.1.1"
+source = "git+https://github.com/pleme-io/pleme-fleet-themed-derive#a03a411857a340c89a0eefcb25b00ce6586abe30"
 dependencies = [
  "proc-macro2",
  "quote",
