@@ -60,6 +60,16 @@ pub enum Action {
     DirPickerOpen,
     #[kind(name = "session_picker_open", alias = "session_picker", alias = "session_switcher")]
     SessionPickerOpen,
+    /// **Reserved — consumed no-op for now.** Future home of the layout
+    /// picker: the Ctrl-L analog of [`Action::SessionPickerOpen`]'s
+    /// Ctrl-S, but switching *layouts* instead of sessions. Bound to
+    /// `ctrl+l` in `default_bindings()` TODAY purely to **claim the
+    /// chord and swallow it** so the keystroke no longer falls through
+    /// to the PTY as `0x0c` (which the shell renders as clear-screen).
+    /// The engine dispatch is an intentional consumed no-op until the
+    /// layout picker lands — see `ux::engine`'s `LayoutPickerOpen` arm.
+    #[kind(name = "layout_picker_open", alias = "layout_picker", alias = "layout_switcher")]
+    LayoutPickerOpen,
     #[kind(name = "font_increase", alias = "increase_font_size")]
     FontIncrease,
     #[kind(name = "font_decrease", alias = "decrease_font_size")]
@@ -676,6 +686,12 @@ fn default_bindings() -> Vec<Keybinding> {
         // (no atlas intent yet). Drives the SAME switch channel as
         // auto-attach + the `switch_session` MCP tool.
         Keybinding { hotkey: hk(ctrl, Key::S), action: Action::SessionPickerOpen },
+        // Layout picker — Ctrl-L ("switch layout"): RESERVED. The
+        // layout analog of Ctrl-S (sessions). Bound today as a consumed
+        // no-op (see Action::LayoutPickerOpen + its engine arm) so
+        // Ctrl-L stops falling through to the shell as 0x0c
+        // (clear-screen); the picker itself lands later. mado-specific.
+        Keybinding { hotkey: hk(ctrl, Key::L), action: Action::LayoutPickerOpen },
         // Terminal — mado-specific (no atlas reset intent).
         Keybinding { hotkey: hk(cmd_shift, Key::R), action: Action::ResetTerminal },
     ]
@@ -852,8 +868,9 @@ mod tests {
         // Default bindings after Phase 4 (multiplexing actions
         // removed): clipboard (2) + search (4) + font (3) +
         // scroll (4) + prompt jump (2) + terminal (1) + fullscreen
-        // (1) + dir-picker (1) + session-picker (1) = 19.
-        assert_eq!(mgr.bindings().len(), 19);
+        // (1) + dir-picker (1) + session-picker (1) + layout-picker
+        // (1, reserved no-op) = 20.
+        assert_eq!(mgr.bindings().len(), 20);
     }
 
     #[test]
@@ -866,7 +883,7 @@ mod tests {
             Action::JumpToPromptPrev, Action::JumpToPromptNext,
             Action::SearchOpen, Action::SearchClose,
             Action::SearchNext, Action::SearchPrev, Action::DirPickerOpen,
-            Action::SessionPickerOpen,
+            Action::SessionPickerOpen, Action::LayoutPickerOpen,
             Action::FontIncrease,
             Action::FontDecrease, Action::FontReset,
             Action::ResetTerminal,
@@ -924,7 +941,7 @@ mod tests {
     #[test]
     fn test_total_default_bindings_count() {
         let mgr = KeybindManager::with_mado_defaults();
-        assert_eq!(mgr.bindings().len(), 19);
+        assert_eq!(mgr.bindings().len(), 20);
     }
 
     #[test]
@@ -932,6 +949,24 @@ mod tests {
         let mgr = KeybindManager::with_mado_defaults();
         let hk = awase::Hotkey::new(awase::Modifiers::CTRL, awase::Key::S);
         assert_eq!(mgr.lookup(&hk), Some(Action::SessionPickerOpen));
+    }
+
+    #[test]
+    fn layout_picker_bound_to_ctrl_l() {
+        // Ctrl-L is RESERVED for the future layout picker (the
+        // Ctrl-S-for-layouts analog). Today it resolves to a consumed
+        // no-op so the keystroke no longer falls through to the shell
+        // as 0x0c (which the shell renders as clear-screen).
+        let mgr = KeybindManager::with_mado_defaults();
+        let hk = awase::Hotkey::new(awase::Modifiers::CTRL, awase::Key::L);
+        assert_eq!(mgr.lookup(&hk), Some(Action::LayoutPickerOpen));
+    }
+
+    #[test]
+    fn layout_picker_action_name_round_trips() {
+        assert_eq!(parse_action("layout_picker_open"), Some(Action::LayoutPickerOpen));
+        assert_eq!(parse_action("layout_picker"), Some(Action::LayoutPickerOpen));
+        assert_eq!(parse_action("layout_switcher"), Some(Action::LayoutPickerOpen));
     }
 
     #[test]
@@ -981,7 +1016,7 @@ mod tests {
             Action::JumpToPromptPrev, Action::JumpToPromptNext,
             Action::SearchOpen, Action::SearchClose,
             Action::SearchNext, Action::SearchPrev, Action::DirPickerOpen,
-            Action::SessionPickerOpen,
+            Action::SessionPickerOpen, Action::LayoutPickerOpen,
             Action::FontIncrease,
             Action::FontDecrease, Action::FontReset,
             Action::ResetTerminal,

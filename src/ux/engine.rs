@@ -486,6 +486,16 @@ impl InputEngine {
                 self.dispatch_overlay(OverlayEvent::OpenSessionPicker);
                 ActionOutcome::Consumed(EventOutcome::consumed())
             }
+            Action::LayoutPickerOpen => {
+                // RESERVED no-op. Ctrl-L claims the chord for the future
+                // layout picker (the Ctrl-S-for-layouts analog); for now
+                // it simply SWALLOWS the key so it does NOT fall through
+                // to the PTY as 0x0c — which the shell would render as a
+                // clear-screen. No overlay, no byte, nothing visible.
+                // When the layout picker lands, swap this for a
+                // `self.dispatch_overlay(OverlayEvent::OpenLayoutPicker)`.
+                ActionOutcome::Consumed(EventOutcome::consumed())
+            }
             // Close/Next/Prev are handled ONLY while the search
             // overlay is open: the fleet atlas binds search_close to
             // bare Escape, and consuming it on a closed overlay would
@@ -3265,6 +3275,53 @@ mod tests {
         );
         let recorded = h.control.sent.lock().unwrap().clone();
         assert_eq!(recorded, vec![(h.pane, vec![0x12u8])]);
+    }
+
+    // ── Ctrl-S is exclusive to session management ────────────────
+    // The INVERSE of the Ctrl-R reaches-PTY tests. Ctrl-S resolves to
+    // Action::SessionPickerOpen, which `on_key` dispatches + CONSUMES
+    // (engine.rs ~404) BEFORE the `madori_key_to_pty_bytes`
+    // translation (~443) ever runs — so 0x13 (XOFF) NEVER reaches the
+    // shell. The chord is owned by session management, not the PTY.
+    // This holds even in the default no-bridge harness (the picker
+    // opens inert) and even over a full-screen TUI. A regression that
+    // turned the SessionPickerOpen arm into a FallThrough would leak
+    // XOFF and freeze the terminal; these two tests forbid that.
+    #[test]
+    fn ctrl_s_is_exclusive_to_sessions_never_reaches_pty_closure_sink() {
+        let mut h = Harness::new(SinkKind::Closure);
+        let out = h.key(
+            KeyCode::Char('s'),
+            None,
+            Modifiers { ctrl: true, alt: false, shift: false, meta: false },
+        );
+        // Routed to session management (the picker opened)…
+        assert!(
+            h.engine.session_picker.lock().unwrap().open,
+            "Ctrl-S opens the session picker",
+        );
+        // …and CONSUMED, so no XOFF (0x13) ever reaches the shell.
+        assert!(out.consumed, "Ctrl-S is consumed, not forwarded");
+        assert!(
+            h.sent_bytes().is_empty(),
+            "Ctrl-S must NOT leak any byte to the PTY (no 0x13/XOFF); got {:?}",
+            h.sent_bytes(),
+        );
+    }
+
+    #[test]
+    fn ctrl_s_is_exclusive_to_sessions_never_reaches_pty_control_sink() {
+        let mut h = Harness::new(SinkKind::Control);
+        let out = h.key(
+            KeyCode::Char('s'),
+            None,
+            Modifiers { ctrl: true, alt: false, shift: false, meta: false },
+        );
+        assert!(out.consumed, "Ctrl-S is consumed, not forwarded");
+        assert!(
+            h.control.sent.lock().unwrap().is_empty(),
+            "Ctrl-S must NOT leak any byte to the PTY (no 0x13/XOFF)",
+        );
     }
 
     // ── Font zoom bounded by construction, both sink configs ─────
