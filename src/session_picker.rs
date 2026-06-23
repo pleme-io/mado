@@ -195,15 +195,17 @@ impl PracaPickerBridge {
         })
     }
 
-    /// Compose a picker row label: `display_name  basename`, with a leading
-    /// `○ ` latent badge for a not-running preset. Live rows carry NO badge,
-    /// so their appearance is byte-identical to before the union — the
-    /// addition is purely the new ○ latent rows. The renderer draws it verbatim.
+    /// Compose a picker row label: `<badge> display_name  basename`. A
+    /// running session gets a `● ` live badge; a not-running preset gets a
+    /// `○ ` latent badge — so the union picker reads at a glance which rows
+    /// are alive vs launchable. The renderer draws it verbatim.
     fn row_label(display_name: &str, project_root: &std::path::Path, latent: bool) -> String {
         let mut label = String::new();
-        if latent {
-            label.push_str("\u{25cb} "); // ○
-        }
+        label.push_str(if latent {
+            "\u{25cb} " // ○ latent
+        } else {
+            "\u{25cf} " // ● live
+        });
         label.push_str(display_name);
         let basename = project_root
             .file_name()
@@ -295,49 +297,50 @@ pub(crate) fn capture_preset(
 
 impl SessionPickerBridge for PracaPickerBridge {
     fn list(&self, query: &str, now: u64) -> Vec<SessionPickerRow> {
-        let (existing, latent, style) = {
+        let (rows, style) = {
             let praca = self.praca();
-            // Existing live sessions matching the query, frecency-ranked,
-            // filtered to those with a live pane (a row whose session was
-            // reaped would post a no-op — keep the picker honest).
+            // Live sessions with a live pane (a reaped one would post a
+            // no-op — keep the picker honest).
             let live_recs: Vec<&praca::SessionRecord> = praca
-                .search(query, now)
-                .into_iter()
+                .index
+                .all()
+                .iter()
                 .filter(|rec| self.first_pane_of(rec.id).is_some())
                 .collect();
             // Project roots with a live session — suppress a latent row for
-            // a preset that's already running (it shows as its Switch row).
+            // a running preset (it shows as its Switch row instead).
             let live_roots: std::collections::HashSet<&std::path::Path> =
                 live_recs.iter().map(|r| r.project_root.as_path()).collect();
-            let existing: Vec<SessionPickerRow> = live_recs
-                .iter()
-                .map(|rec| SessionPickerRow {
-                    label: Self::row_label(&rec.display_name(), &rec.project_root, false),
-                    kind: RowKind::Switch(rec.id),
-                })
-                .collect();
-            // Latent presets matching the query — saved/authored definitions
-            // with NO live session, surfaced as ○ Instantiate rows. The
-            // catalog (praca.definitions) is empty until a preset is saved,
-            // so this is invisible until then.
-            let latent: Vec<SessionPickerRow> = praca
-                .definitions
-                .search(query, now)
+            // ONE heterogeneous set: live sessions + non-running presets,
+            // ranked TOGETHER by the shared comparator so they interleave by
+            // frecency / fuzzy match — not "live always above latent".
+            let mut items: Vec<praca::Ranked> =
+                live_recs.iter().map(|r| praca::Ranked::Live(*r)).collect();
+            for def in praca.definitions.all() {
+                if !live_roots.contains(def.project_root.as_path()) {
+                    items.push(praca::Ranked::Latent(def));
+                }
+            }
+            let rows: Vec<SessionPickerRow> = praca::rank_mixed(items, query, now)
                 .into_iter()
-                .filter(|def| !live_roots.contains(def.project_root.as_path()))
-                .map(|def| SessionPickerRow {
-                    label: Self::row_label(&def.display_name(), &def.project_root, true),
-                    kind: RowKind::Instantiate(def.def_id),
+                .map(|ranked| match ranked {
+                    praca::Ranked::Live(rec) => SessionPickerRow {
+                        // ● live badge.
+                        label: Self::row_label(&rec.display_name(), &rec.project_root, false),
+                        kind: RowKind::Switch(rec.id),
+                    },
+                    praca::Ranked::Latent(def) => SessionPickerRow {
+                        // ○ latent badge.
+                        label: Self::row_label(&def.display_name(), &def.project_root, true),
+                        kind: RowKind::Instantiate(def.def_id),
+                    },
                 })
                 .collect();
-            (existing, latent, praca.name_style)
+            (rows, praca.name_style)
         };
-        // The union: live sessions first, then latent presets. If EITHER
-        // matched, that's the picker's answer; only an empty union falls
-        // through to the create surface.
-        if !existing.is_empty() || !latent.is_empty() {
-            let mut rows = existing;
-            rows.extend(latent);
+        // If anything matched (live or latent), that's the picker's answer;
+        // only an empty union falls through to the create surface.
+        if !rows.is_empty() {
             return rows;
         }
 

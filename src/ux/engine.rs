@@ -486,6 +486,29 @@ impl InputEngine {
                 self.dispatch_overlay(OverlayEvent::OpenSessionPicker);
                 ActionOutcome::Consumed(EventOutcome::consumed())
             }
+            Action::SaveSessionAsPreset => {
+                // Save the highlighted live session-picker row as a preset.
+                // A no-op (but consumed) unless the picker is open with a
+                // live `Switch` row highlighted — the keybind companion to
+                // the `save_session_as_preset` MCP verb.
+                if let Some(bridge) = self.session_picker_bridge.as_ref() {
+                    let session = {
+                        use crate::session_picker::RowKind;
+                        let sp = self.session_picker.lock().unwrap();
+                        sp.selected_row().and_then(|r| match r.kind {
+                            RowKind::Switch(id) => Some(id),
+                            RowKind::Instantiate(_) | RowKind::Create(_) => None,
+                        })
+                    };
+                    if let Some(session) = session {
+                        let now = crate::auto_attach::now_unix_seconds();
+                        bridge.save_as_preset(session, now);
+                        // Re-rank so the freshly-saved preset is reflected.
+                        self.session_picker_recompute();
+                    }
+                }
+                ActionOutcome::Consumed(EventOutcome::consumed())
+            }
             Action::LayoutPickerOpen => {
                 // RESERVED no-op. Ctrl-L claims the chord for the future
                 // layout picker (the Ctrl-S-for-layouts analog); for now

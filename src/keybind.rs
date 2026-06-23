@@ -60,6 +60,11 @@ pub enum Action {
     DirPickerOpen,
     #[kind(name = "session_picker_open", alias = "session_picker", alias = "session_switcher")]
     SessionPickerOpen,
+    /// Save the highlighted session-picker row's live session as a reusable
+    /// preset (the keybind companion to the `save_session_as_preset` MCP
+    /// verb). A no-op unless the picker is open with a live row highlighted.
+    #[kind(name = "save_session_as_preset", alias = "save_preset")]
+    SaveSessionAsPreset,
     /// **Reserved — consumed no-op for now.** Future home of the layout
     /// picker: the Ctrl-L analog of [`Action::SessionPickerOpen`]'s
     /// Ctrl-S, but switching *layouts* instead of sessions. Bound to
@@ -686,6 +691,11 @@ fn default_bindings() -> Vec<Keybinding> {
         // (no atlas intent yet). Drives the SAME switch channel as
         // auto-attach + the `switch_session` MCP tool.
         Keybinding { hotkey: hk(ctrl, Key::S), action: Action::SessionPickerOpen },
+        // Save the highlighted live session-picker row as a preset —
+        // Cmd+Shift+S ("save"). The keybind companion to the
+        // `save_session_as_preset` MCP verb; a no-op unless Ctrl-S is open
+        // with a live row highlighted. mado-specific.
+        Keybinding { hotkey: hk(cmd_shift, Key::S), action: Action::SaveSessionAsPreset },
         // Layout picker — Ctrl-L ("switch layout"): RESERVED. The
         // layout analog of Ctrl-S (sessions). Bound today as a consumed
         // no-op (see Action::LayoutPickerOpen + its engine arm) so
@@ -869,8 +879,8 @@ mod tests {
         // removed): clipboard (2) + search (4) + font (3) +
         // scroll (4) + prompt jump (2) + terminal (1) + fullscreen
         // (1) + dir-picker (1) + session-picker (1) + layout-picker
-        // (1, reserved no-op) = 20.
-        assert_eq!(mgr.bindings().len(), 20);
+        // (1, reserved no-op) + save-as-preset (1) = 21.
+        assert_eq!(mgr.bindings().len(), 21);
     }
 
     #[test]
@@ -941,7 +951,7 @@ mod tests {
     #[test]
     fn test_total_default_bindings_count() {
         let mgr = KeybindManager::with_mado_defaults();
-        assert_eq!(mgr.bindings().len(), 20);
+        assert_eq!(mgr.bindings().len(), 21);
     }
 
     #[test]
@@ -949,6 +959,16 @@ mod tests {
         let mgr = KeybindManager::with_mado_defaults();
         let hk = awase::Hotkey::new(awase::Modifiers::CTRL, awase::Key::S);
         assert_eq!(mgr.lookup(&hk), Some(Action::SessionPickerOpen));
+    }
+
+    #[test]
+    fn save_as_preset_bound_to_cmd_shift_s() {
+        let mgr = KeybindManager::with_mado_defaults();
+        let hk = awase::Hotkey::new(
+            awase::Modifiers::CMD | awase::Modifiers::SHIFT,
+            awase::Key::S,
+        );
+        assert_eq!(mgr.lookup(&hk), Some(Action::SaveSessionAsPreset));
     }
 
     #[test]
