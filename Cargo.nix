@@ -7353,7 +7353,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.21";
+        version = "0.1.22";
         edition = "2024";
         crateBin = [
           {

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "8133b29f6eca77ee4d6d8b3fa35eb35c31fa0602ca5bbf3740fe8fc542761220",
+  "cargo_lock_sha256": "be588cb8c71054de465ff33ffc6868fa11d5f8649b49250af571e24d76265597",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -3361,7 +3361,7 @@
           "std"
         ]
       },
-      "garasu-0.1.1-a7709af29cebfd6ac17e50e432a1403f6901fc15": {
+      "garasu-0.1.1-44ea7334bb1b83cff3fcc1e70cea324c8cfb452b": {
         "runtime_dependencies": [
           {
             "name": "bincode",
@@ -3378,6 +3378,18 @@
             "package_key": "blake3-1.8.5",
             "kind": "normal",
             "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "bytemuck",
+            "package_key": "bytemuck-1.25.0",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
             "uses_default_features": true,
             "optional": false,
             "target": null,
@@ -5681,7 +5693,7 @@
           },
           {
             "name": "garasu",
-            "package_key": "garasu-0.1.1-a7709af29cebfd6ac17e50e432a1403f6901fc15",
+            "package_key": "garasu-0.1.1-44ea7334bb1b83cff3fcc1e70cea324c8cfb452b",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5820,7 +5832,7 @@
           "std"
         ]
       },
-      "memmap2-0.9.10": {
+      "memmap2-0.9.11": {
         "runtime_dependencies": [
           {
             "name": "libc",
@@ -9426,7 +9438,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "rustls-0.23.40": {
+      "rustls-0.23.41": {
         "runtime_dependencies": [
           {
             "name": "once_cell",
@@ -12265,7 +12277,7 @@
           },
           {
             "name": "rustls",
-            "package_key": "rustls-0.23.40",
+            "package_key": "rustls-0.23.41",
             "kind": "normal",
             "features": [
               "std",
@@ -18613,7 +18625,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.10",
+                "package_key": "memmap2-0.9.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -18892,7 +18904,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.21": {
+          "mado-0.1.22": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -19023,7 +19035,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.1-a7709af29cebfd6ac17e50e432a1403f6901fc15",
+                "package_key": "garasu-0.1.1-44ea7334bb1b83cff3fcc1e70cea324c8cfb452b",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -22728,7 +22740,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.10",
+                "package_key": "memmap2-0.9.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -22961,7 +22973,7 @@
               "system"
             ]
           },
-          "mado-0.1.21": {
+          "mado-0.1.22": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -23092,7 +23104,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.1-a7709af29cebfd6ac17e50e432a1403f6901fc15",
+                "package_key": "garasu-0.1.1-44ea7334bb1b83cff3fcc1e70cea324c8cfb452b",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -24080,7 +24092,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.10",
+                "package_key": "memmap2-0.9.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -24182,7 +24194,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.10",
+                "package_key": "memmap2-0.9.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -25492,7 +25504,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.10",
+                "package_key": "memmap2-0.9.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26364,7 +26376,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.10",
+                "package_key": "memmap2-0.9.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26597,7 +26609,7 @@
               "system"
             ]
           },
-          "mado-0.1.21": {
+          "mado-0.1.22": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26728,7 +26740,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.1-a7709af29cebfd6ac17e50e432a1403f6901fc15",
+                "package_key": "garasu-0.1.1-44ea7334bb1b83cff3fcc1e70cea324c8cfb452b",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27716,7 +27728,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.10",
+                "package_key": "memmap2-0.9.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27818,7 +27830,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.10",
+                "package_key": "memmap2-0.9.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -29128,7 +29140,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.10",
+                "package_key": "memmap2-0.9.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30048,7 +30060,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.10",
+                "package_key": "memmap2-0.9.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30327,7 +30339,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.21": {
+          "mado-0.1.22": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -30458,7 +30470,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.1-a7709af29cebfd6ac17e50e432a1403f6901fc15",
+                "package_key": "garasu-0.1.1-44ea7334bb1b83cff3fcc1e70cea324c8cfb452b",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34117,7 +34129,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.10",
+                "package_key": "memmap2-0.9.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34350,7 +34362,7 @@
               "system"
             ]
           },
-          "mado-0.1.21": {
+          "mado-0.1.22": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -34481,7 +34493,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.1-a7709af29cebfd6ac17e50e432a1403f6901fc15",
+                "package_key": "garasu-0.1.1-44ea7334bb1b83cff3fcc1e70cea324c8cfb452b",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35449,7 +35461,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.10",
+                "package_key": "memmap2-0.9.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35551,7 +35563,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.10",
+                "package_key": "memmap2-0.9.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36861,7 +36873,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.10",
+                "package_key": "memmap2-0.9.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37707,7 +37719,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.10",
+                "package_key": "memmap2-0.9.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37940,7 +37952,7 @@
               "system"
             ]
           },
-          "mado-0.1.21": {
+          "mado-0.1.22": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -38071,7 +38083,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.1-a7709af29cebfd6ac17e50e432a1403f6901fc15",
+                "package_key": "garasu-0.1.1-44ea7334bb1b83cff3fcc1e70cea324c8cfb452b",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39039,7 +39051,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.10",
+                "package_key": "memmap2-0.9.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39141,7 +39153,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.10",
+                "package_key": "memmap2-0.9.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40451,7 +40463,7 @@
               },
               {
                 "name": "memmap2",
-                "package_key": "memmap2-0.9.10",
+                "package_key": "memmap2-0.9.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -41383,7 +41395,7 @@
     "futures-util-0.3.32": {
       "edition": "2018"
     },
-    "garasu-0.1.1-a7709af29cebfd6ac17e50e432a1403f6901fc15": {
+    "garasu-0.1.1-44ea7334bb1b83cff3fcc1e70cea324c8cfb452b": {
       "edition": "2024"
     },
     "gen-macros-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0": {
@@ -41638,7 +41650,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.21": {
+    "mado-0.1.22": {
       "edition": "2024",
       "binaries": [
         {
@@ -41666,7 +41678,7 @@
     "memchr-2.8.2": {
       "edition": "2021"
     },
-    "memmap2-0.9.10": {
+    "memmap2-0.9.11": {
       "edition": "2021"
     },
     "memoffset-0.9.1": {
@@ -42113,7 +42125,7 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "rustls-0.23.40": {
+    "rustls-0.23.41": {
       "edition": "2021",
       "build_script": "build.rs"
     },
@@ -42872,7 +42884,7 @@
     "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": "sha256-7dqrUg3KMEKH5ac5RuK7EJRogt4H3xtv6nDrM0jpccM=",
     "engawa-0.1.3-bda639d5d9bd3ec2dd59ff84b2925ae278f24c52": "sha256-Z9exdzhmkz90dNCArTnVC69CxLZDnC1ShRTFvDHE2JA=",
     "engawa-wgpu-0.1.7-a1ea87aba7c5f67c2831b4b6b5c17ee5286e7840": "sha256-hxtIeSH3mw3Hm6EAEbKIyNkGWkKyS27wm/o7HsmXLC4=",
-    "garasu-0.1.1-a7709af29cebfd6ac17e50e432a1403f6901fc15": "sha256-SUoy4k4xw9+vXm3n+PKdialIhbCPKPj6l99w7kU1VSA=",
+    "garasu-0.1.1-44ea7334bb1b83cff3fcc1e70cea324c8cfb452b": "sha256-RD8rs0mUhePK17pXcrdl8fxmNgbIemJILe0wxoWCFXY=",
     "gen-macros-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0": "sha256-khDWAqmgqr/pPPq73hZbZojnEw3gVc6RYFPLuNCoR/A=",
     "gen-platform-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0": "sha256-khDWAqmgqr/pPPq73hZbZojnEw3gVc6RYFPLuNCoR/A=",
     "gen-types-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0": "sha256-khDWAqmgqr/pPPq73hZbZojnEw3gVc6RYFPLuNCoR/A=",
