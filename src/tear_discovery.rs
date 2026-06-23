@@ -174,6 +174,7 @@ mod tests {
             session_switching: false,
             auto_attach: crate::config::AutoAttachMode::Off,
             session_picker_anchor: crate::config::PickerAnchor::default(),
+            ..MadoTearConfig::default()
         }
     }
 
@@ -302,6 +303,7 @@ mod tests {
             session_switching: false,
             auto_attach: crate::config::AutoAttachMode::Off,
             session_picker_anchor: crate::config::PickerAnchor::default(),
+            ..MadoTearConfig::default()
         };
 
         // 1 — discover the daemon

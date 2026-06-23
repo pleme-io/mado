@@ -599,6 +599,38 @@ pub struct MadoTearConfig {
     /// Ctrl-T feel); `Top` drops from the top.
     #[serde(default)]
     pub session_picker_anchor: PickerAnchor,
+    /// Whether the Ctrl-S picker surfaces LATENT presets (saved/authored
+    /// `(defsession)` definitions with no live instance) as ○ Instantiate
+    /// rows, interleaved with the live sessions. **Prescribed default
+    /// `true`** — but the catalog is empty until a preset is saved, so the
+    /// picker is unchanged until then. The bare tier sets `false`: the
+    /// picker is strictly live-sessions-only (the stripped legacy flow),
+    /// even if presets exist. A partial yaml gets `true` via [`default_true`].
+    #[serde(default = "default_true")]
+    pub session_picker_surface_presets: bool,
+    /// How the picker badges live vs latent rows. **Prescribed default
+    /// [`BadgeMode::Auto`]** — badges appear ONLY when the list actually
+    /// mixes live + latent (so an all-live picker, the common case, stays
+    /// byte-identical). `Off` never badges (stripped); `Always` badges
+    /// every row (● live / ○ latent). The bare tier sets `Off`.
+    #[serde(default)]
+    pub session_picker_badges: BadgeMode,
+}
+
+/// How the Ctrl-S union picker badges live vs latent rows — a tiered knob
+/// so the badge surface scales from stripped (`Off`) to always-on.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum BadgeMode {
+    /// Never badge — rows show their bare name (the stripped look).
+    Off,
+    /// Badge ● live / ○ latent ONLY when the rendered list mixes both, so
+    /// an all-live picker (the common case) is byte-identical to legacy.
+    /// The prescribed default — minimal impact, maximal clarity when mixed.
+    #[default]
+    Auto,
+    /// Always badge every row (● live / ○ latent), even an all-live list.
+    Always,
 }
 
 /// Per-field TearConfig overrides mado optionally pushes to the
@@ -719,6 +751,10 @@ impl Default for MadoTearConfig {
             session_switching: true,
             auto_attach: AutoAttachMode::default(),
             session_picker_anchor: PickerAnchor::default(),
+            // Prescribed: surface presets (empty until saved) + auto-badge
+            // (only when the list mixes live + latent → minimal impact).
+            session_picker_surface_presets: true,
+            session_picker_badges: BadgeMode::Auto,
         }
     }
 }
@@ -1940,6 +1976,11 @@ impl MadoConfig {
                 // Auto-attach is opt-in too; bare = no cd-driven moves.
                 auto_attach: AutoAttachMode::Off,
                 session_picker_anchor: PickerAnchor::default(),
+                // Stripped: the picker is live-sessions-only, never badged.
+                // (Moot while session_switching=false keeps the picker inert,
+                // but set explicitly so the bare tier is self-describing.)
+                session_picker_surface_presets: false,
+                session_picker_badges: BadgeMode::Off,
             },
             // ── Effects ──────────────────────────────────────────
             // All effects disabled in bare. Snow params stay at
@@ -2994,6 +3035,32 @@ mod tests {
         let unified = diff.render_unified();
         // Sanity: the prescribed default's theme is in the diff.
         assert!(unified.contains("theme"));
+    }
+
+    #[test]
+    fn session_picker_features_are_tiered_bare_stripped_prescribed_reasonable() {
+        use shikumi::TieredConfig;
+        // BARE: the union-picker features are stripped — no preset surfacing,
+        // no badges (the legacy live-only picker).
+        let b = <MadoConfig as TieredConfig>::bare();
+        assert!(
+            !b.tear.session_picker_surface_presets,
+            "bare must NOT surface latent presets"
+        );
+        assert_eq!(b.tear.session_picker_badges, BadgeMode::Off, "bare = no badges");
+        // PRESCRIBED: features on, but with REASONABLE defaults — presets
+        // surface (empty until saved) + Auto badges (only when mixed), so the
+        // common all-live picker stays byte-identical to legacy.
+        let d = <MadoConfig as TieredConfig>::prescribed_default();
+        assert!(
+            d.tear.session_picker_surface_presets,
+            "prescribed surfaces presets"
+        );
+        assert_eq!(
+            d.tear.session_picker_badges,
+            BadgeMode::Auto,
+            "prescribed = Auto badges (minimal impact)"
+        );
     }
 
     /// **Flagship FleetThemedConfig convergence Guard.** mado is the

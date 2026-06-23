@@ -1381,6 +1381,8 @@ fn try_run_default_embedded(
                 switch.clone(),
                 picker_shell.clone(),
                 picker_spawn_env.clone(),
+                config.tear.session_picker_surface_presets,
+                config.tear.session_picker_badges,
             )) as Box<dyn crate::session_picker::SessionPickerBridge>
         });
 

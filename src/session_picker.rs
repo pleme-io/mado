@@ -157,6 +157,13 @@ pub struct PracaPickerBridge {
     /// created session inherits the same truecolor/terminfo env as the
     /// boot session (mirrors `AutoAttachDriver`).
     spawn_env_base: tear_types::SpawnEnv,
+    /// Whether `list()` surfaces latent presets as ○ Instantiate rows
+    /// (`tear.session_picker_surface_presets`). `false` = strictly live
+    /// sessions (the stripped/bare flow), even if presets are saved.
+    surface_presets: bool,
+    /// How rows are badged (`tear.session_picker_badges`): never / only when
+    /// the list mixes live+latent (the minimal-impact default) / always.
+    badges: crate::config::BadgeMode,
 }
 
 impl PracaPickerBridge {
@@ -169,6 +176,8 @@ impl PracaPickerBridge {
         switch: crate::session_switch::SwitchRequests,
         shell: String,
         spawn_env_base: tear_types::SpawnEnv,
+        surface_presets: bool,
+        badges: crate::config::BadgeMode,
     ) -> Self {
         Self {
             praca,
@@ -176,6 +185,8 @@ impl PracaPickerBridge {
             switch,
             shell,
             spawn_env_base,
+            surface_presets,
+            badges,
         }
     }
 
@@ -199,13 +210,13 @@ impl PracaPickerBridge {
     /// running session gets a `● ` live badge; a not-running preset gets a
     /// `○ ` latent badge — so the union picker reads at a glance which rows
     /// are alive vs launchable. The renderer draws it verbatim.
-    fn row_label(display_name: &str, project_root: &std::path::Path, latent: bool) -> String {
+    fn row_label(display_name: &str, project_root: &std::path::Path, badge: Option<bool>) -> String {
         let mut label = String::new();
-        label.push_str(if latent {
-            "\u{25cb} " // ○ latent
-        } else {
-            "\u{25cf} " // ● live
-        });
+        match badge {
+            Some(true) => label.push_str("\u{25cb} "),  // ○ latent
+            Some(false) => label.push_str("\u{25cf} "), // ● live
+            None => {}                                  // no badge (stripped / all-homogeneous)
+        }
         label.push_str(display_name);
         let basename = project_root
             .file_name()
@@ -316,22 +327,42 @@ impl SessionPickerBridge for PracaPickerBridge {
             // frecency / fuzzy match — not "live always above latent".
             let mut items: Vec<praca::Ranked> =
                 live_recs.iter().map(|r| praca::Ranked::Live(*r)).collect();
-            for def in praca.definitions.all() {
-                if !live_roots.contains(def.project_root.as_path()) {
-                    items.push(praca::Ranked::Latent(def));
+            // Latent presets are surfaced only when the tier opts in
+            // (`surface_presets`); bare keeps the picker live-only.
+            if self.surface_presets {
+                for def in praca.definitions.all() {
+                    if !live_roots.contains(def.project_root.as_path()) {
+                        items.push(praca::Ranked::Latent(def));
+                    }
                 }
             }
+            // Badge decision per the tiered mode. Auto badges ONLY when the
+            // list actually mixes live + latent — so an all-live picker (the
+            // common case) stays byte-identical to legacy.
+            let has_live = items.iter().any(|r| matches!(r, praca::Ranked::Live(_)));
+            let has_latent = items.iter().any(|r| matches!(r, praca::Ranked::Latent(_)));
+            let badge_rows = match self.badges {
+                crate::config::BadgeMode::Off => false,
+                crate::config::BadgeMode::Always => true,
+                crate::config::BadgeMode::Auto => has_live && has_latent,
+            };
             let rows: Vec<SessionPickerRow> = praca::rank_mixed(items, query, now)
                 .into_iter()
                 .map(|ranked| match ranked {
                     praca::Ranked::Live(rec) => SessionPickerRow {
-                        // ● live badge.
-                        label: Self::row_label(&rec.display_name(), &rec.project_root, false),
+                        label: Self::row_label(
+                            &rec.display_name(),
+                            &rec.project_root,
+                            badge_rows.then_some(false),
+                        ),
                         kind: RowKind::Switch(rec.id),
                     },
                     praca::Ranked::Latent(def) => SessionPickerRow {
-                        // ○ latent badge.
-                        label: Self::row_label(&def.display_name(), &def.project_root, true),
+                        label: Self::row_label(
+                            &def.display_name(),
+                            &def.project_root,
+                            badge_rows.then_some(true),
+                        ),
                         kind: RowKind::Instantiate(def.def_id),
                     },
                 })
@@ -450,6 +481,16 @@ mod tests {
     }
 
     fn bridge_with(praca: praca::Praca, inproc: Arc<tear_core::InProcess>) -> PracaPickerBridge {
+        // Default test bridge: surface presets + Always-badge (deterministic).
+        bridge_with_cfg(praca, inproc, true, crate::config::BadgeMode::Always)
+    }
+
+    fn bridge_with_cfg(
+        praca: praca::Praca,
+        inproc: Arc<tear_core::InProcess>,
+        surface_presets: bool,
+        badges: crate::config::BadgeMode,
+    ) -> PracaPickerBridge {
         let switch = crate::session_switch::SwitchRequests::default();
         switch.attach_sink();
         PracaPickerBridge::new(
@@ -458,6 +499,8 @@ mod tests {
             switch,
             "/bin/sh".to_owned(),
             tear_types::SpawnEnv::none(),
+            surface_presets,
+            badges,
         )
     }
 
@@ -539,6 +582,48 @@ mod tests {
         assert!(
             bridge.instantiate_and_switch(def_id, 1000),
             "instantiate spawns the preset + posts its pane"
+        );
+    }
+
+    #[test]
+    fn auto_badges_only_when_the_list_mixes_live_and_latent() {
+        // All-live (no surfaced preset): Auto → NO badge, so the common
+        // case is byte-identical to the legacy picker.
+        let (inproc, live) = live_inproc();
+        let mut praca = praca::Praca::new();
+        praca.index.upsert(praca::SessionRecord::for_project(
+            live,
+            PathBuf::from("/code/pleme-io/mado"),
+            SessionNameStyle::Emoji,
+            1000,
+        ));
+        let bridge = bridge_with_cfg(praca, Arc::clone(&inproc), true, crate::config::BadgeMode::Auto);
+        let rows = bridge.list("", 1000);
+        assert!(!rows.is_empty());
+        assert!(
+            rows.iter().all(|r| !r.label.starts_with('\u{25cf}') && !r.label.starts_with('\u{25cb}')),
+            "all-live + Auto must NOT badge (byte-identical legacy): {:?}",
+            rows.iter().map(|r| &r.label).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn surface_presets_false_strips_latent_rows_even_when_presets_exist() {
+        // The bare/stripped tier: a saved preset must NOT appear.
+        let (inproc, _live) = live_inproc();
+        let mut praca = praca::Praca::new();
+        praca.definitions.upsert(praca::SessionDefinition::single_pane(
+            "/code/pleme-io/substrate",
+            "/bin/sh",
+            praca::NameStyle::Emoji,
+            1000,
+        ));
+        let bridge =
+            bridge_with_cfg(praca, Arc::clone(&inproc), false, crate::config::BadgeMode::Auto);
+        let rows = bridge.list("", 1000);
+        assert!(
+            rows.iter().all(|r| !matches!(r.kind, RowKind::Instantiate(_))),
+            "surface_presets=false must surface NO latent rows"
         );
     }
 
