@@ -1417,6 +1417,87 @@ const SYNC_OUTPUT_MAX_DEFER: std::time::Duration = std::time::Duration::from_mil
 /// frames cost <1 ms, once, per switch.
 const EPOCH_FORCE_PAINT_FRAMES: u8 = 3;
 
+/// Sealed column-truth for the dense terminal grid.
+///
+/// ## The invariant, as a type
+///
+/// A terminal row is *dense*: `Grid` guarantees exactly one [`Cell`]
+/// per column, so a cell's column IS its index in the row. A wide
+/// char (CJK / emoji, `width == 2`) occupies a lead cell plus a
+/// `width == 0` **continuation** cell that the lead's glyph spans;
+/// the continuation owns no column of its own.
+///
+/// Two renderer pipelines must agree on "which pixel column is this
+/// cell drawn at": the **text** pipeline ([`TerminalRenderer::build_text_buffers`])
+/// and the **rect/decoration** pipeline ([`TerminalRenderer::build_rect_instances`]),
+/// which also fixes the cursor block at `cursor.col`. The historical
+/// bug: text derived its column by *summing* `cell.width`
+/// (`col += cell.width`) while ALSO visiting the `width == 0`
+/// continuation cell — double-counting it (+1 per wide char). Text
+/// drifted one column right per wide char while the cursor stayed at
+/// the terminal-tracked column, so the block detached from the prompt
+/// (`m▮in 📦 ❄` instead of `…❄ ▮`).
+///
+/// [`GridCol`]'s field is private to this module and the *only* mint
+/// is [`glyph_columns`], which uses the dense index. No code elsewhere
+/// can fabricate a `GridCol` from a width sum — the compiler refuses
+/// to position a glyph at a hand-computed column, because a width-sum
+/// `usize` is not a `GridCol`. Column drift between the two pipelines
+/// is therefore *unrepresentable*, not merely tested: a `GridCol`
+/// value IS a proof that the column came from the dense index
+/// (Curry–Howard). Both pipelines consume [`glyph_columns`], so the
+/// single source of column truth is shared by construction.
+///
+/// Tier (per theory/UNREPRESENTABILITY.md): *truly-unrepresentable*
+/// for "a text/rect glyph positioned at a non-index column" (sealed
+/// constructor). The residual obligations are *test-proven*, not
+/// compile-proven (C1 — Rust has no dependent types): that
+/// [`glyph_columns`]' body itself uses the index (locked by
+/// `glyph_columns_*` proptests) and that the terminal-owned
+/// `cursor.col` lands on a column [`glyph_columns`] would yield
+/// (locked by `cursor_column_is_a_glyph_column`).
+mod grid_col {
+    use crate::terminal::Cell;
+
+    /// A column into a dense terminal row, guaranteed to be a cell's
+    /// true grid column (its index), never a width-sum. Construct only
+    /// via [`glyph_columns`]. See the module docs for the full
+    /// invariant.
+    #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+    pub struct GridCol(usize);
+
+    impl GridCol {
+        /// The underlying grid column. The sole bridge from the typed
+        /// column to the raw `usize` the `col * cell_width` pixel math
+        /// needs — kept to one method so every position site is
+        /// auditable.
+        #[inline]
+        #[must_use]
+        pub fn idx(self) -> usize {
+            self.0
+        }
+    }
+
+    /// THE single source of column truth: yield `(GridCol, &Cell)` for
+    /// every glyph-owning cell of a dense `row`, where the column is
+    /// the enumeration index — the cell's true grid column — by
+    /// construction. Wide-char continuation cells (`width == 0`,
+    /// spanned by the preceding lead glyph) own no column and are
+    /// skipped. Both the text and rect pipelines iterate this, so
+    /// their columns cannot diverge.
+    pub fn glyph_columns<'a>(
+        row: &'a [Cell],
+        cols: usize,
+    ) -> impl Iterator<Item = (GridCol, &'a Cell)> + 'a {
+        row.iter()
+            .enumerate()
+            .take(cols)
+            .filter(|(_, cell)| cell.width != 0)
+            .map(|(i, cell)| (GridCol(i), cell))
+    }
+}
+use grid_col::{glyph_columns, GridCol};
+
 impl TerminalRenderer {
     pub fn new(
         terminal: SharedTerminal,
@@ -2495,14 +2576,14 @@ impl TerminalRenderer {
             let mut strike_run: RowRun = None;
             let mut overline_run: RowRun = None;
 
-            for (col_idx, cell) in row.iter().enumerate().take(snap.cols) {
-                // Continuation cells: don't break or extend the run on
-                // their own — the wide-glyph cell already booked 2 cells
-                // worth of width when it joined. Skip without flushing.
-                if cell.width == 0 {
-                    continue;
-                }
-
+            for (col_idx, cell) in glyph_columns(row, snap.cols) {
+                // `glyph_columns` is the single source of column truth
+                // (see `mod grid_col`): it skips width==0 continuation
+                // cells and yields each cell's true grid column as a
+                // typed `GridCol`. The text pipeline iterates the SAME
+                // function, so the two cannot diverge on where a cell is
+                // drawn — the wide-char cursor-misalignment bug is
+                // unrepresentable, not re-fixed here.
                 let style = cell.style(&snap.styles);
                 let attrs = style.attrs;
                 let inverse = attrs.flags.contains(AttrFlags::INVERSE);
@@ -2532,7 +2613,7 @@ impl TerminalRenderer {
                                 row_idx,
                                 RectKindForRle::Background,
                             );
-                            bg_run = Some((col_idx, width_cells, color));
+                            bg_run = Some((col_idx.idx(), width_cells, color));
                         }
                     }
                 } else {
@@ -2566,7 +2647,7 @@ impl TerminalRenderer {
                         _ => {
                             push_underline(&mut instances, &mut underline_run, row_idx);
                             underline_run =
-                                Some((col_idx, width_cells, color, attrs.underline));
+                                Some((col_idx.idx(), width_cells, color, attrs.underline));
                         }
                     }
                 } else {
@@ -2587,7 +2668,7 @@ impl TerminalRenderer {
                                 row_idx,
                                 RectKindForRle::Strikethrough,
                             );
-                            strike_run = Some((col_idx, width_cells, color));
+                            strike_run = Some((col_idx.idx(), width_cells, color));
                         }
                     }
                 } else {
@@ -2613,7 +2694,7 @@ impl TerminalRenderer {
                                 row_idx,
                                 RectKindForRle::Overline,
                             );
-                            overline_run = Some((col_idx, width_cells, color));
+                            overline_run = Some((col_idx.idx(), width_cells, color));
                         }
                     }
                 } else {
@@ -2634,7 +2715,7 @@ impl TerminalRenderer {
                 // by (bx, by) and apply the current fg color. Drops
                 // the per-cell match-arm dispatch + Vec allocation.
                 if is_box_drawing(cell.ch) {
-                    let bx = origin_x + col_idx as f32 * self.cell_width;
+                    let bx = origin_x + col_idx.idx() as f32 * self.cell_width;
                     let by = origin_y + row_idx as f32 * self.cell_height;
                     let color = color_to_f32(&fg);
                     let template = {
@@ -2675,7 +2756,7 @@ impl TerminalRenderer {
                 // glyph path (like box-drawing), so they're rendered
                 // here exactly once.
                 if let Some(sep) = PowerlineSep::from_char(cell.ch) {
-                    let px = origin_x + col_idx as f32 * self.cell_width;
+                    let px = origin_x + col_idx.idx() as f32 * self.cell_width;
                     let py = origin_y + row_idx as f32 * self.cell_height;
                     glyph_fill_instances.push(powerline_rect(
                         sep,
@@ -3033,26 +3114,27 @@ impl TerminalRenderer {
         snap: &Snapshot,
         text: &mut garasu::TextRenderer,
         blink_on: bool,
-    ) -> Vec<(usize, usize, Arc<Buffer>)> {
+    ) -> Vec<(usize, GridCol, Arc<Buffer>)> {
         // P23 — pre-size. Typical interactive grid produces ~3-8
         // runs per row after P6 batching. 8 × rows is a generous
         // upper bound; the Vec will grow if needed (mimalloc + amortized
         // doubling makes this cheap) but pre-sizing eliminates the
         // first ~4 reallocations on each frame.
-        let mut buffers: Vec<(usize, usize, Arc<Buffer>)> =
+        let mut buffers: Vec<(usize, GridCol, Arc<Buffer>)> =
             Vec::with_capacity(snap.num_rows * 8);
         let font_size_bits = self.font_size_px().to_bits();
 
         for (row_idx, row) in snap.rows.iter().enumerate() {
             let mut has_content = false;
-            let mut col_idx: usize = 0;
-            let mut row_buffers: Vec<(usize, Arc<Buffer>)> = Vec::with_capacity(8);
+            let mut row_buffers: Vec<(GridCol, Arc<Buffer>)> = Vec::with_capacity(8);
 
             // Current open run: (start_col, accumulated text, attrs key).
-            let mut run: Option<(usize, String, RunAttrsKey)> = None;
+            // `start_col` is a typed `GridCol` minted by `glyph_columns`,
+            // so it cannot be a width-sum (see `mod grid_col`).
+            let mut run: Option<(GridCol, String, RunAttrsKey)> = None;
 
-            let flush_run = |run: &mut Option<(usize, String, RunAttrsKey)>,
-                             row_buffers: &mut Vec<(usize, Arc<Buffer>)>,
+            let flush_run = |run: &mut Option<(GridCol, String, RunAttrsKey)>,
+                             row_buffers: &mut Vec<(GridCol, Arc<Buffer>)>,
                              text: &mut garasu::TextRenderer| {
                 if let Some((start_col, run_text, attrs)) = run.take() {
                     let key = ShapeKey {
@@ -3065,15 +3147,15 @@ impl TerminalRenderer {
                 }
             };
 
-            for cell in row.iter().take(snap.cols) {
-                if cell.width == 0 {
-                    col_idx += 1;
-                    continue;
-                }
-
-                let col_here = col_idx;
-                col_idx += cell.width.max(1) as usize;
-
+            // `glyph_columns` is the single source of column truth (see
+            // `mod grid_col`): each `col_here` is the cell's TRUE grid
+            // column as a typed `GridCol`, never a `col += cell.width`
+            // accumulator. Continuation cells (`width == 0`) own no
+            // column and are skipped by the iterator. The rect/cursor
+            // pipeline iterates the identical function, so a glyph and
+            // its cursor can no longer drift apart — the wide-char
+            // misalignment is unrepresentable.
+            for (col_here, cell) in glyph_columns(row, snap.cols) {
                 // Box-drawing AND the filled powerline separators are
                 // rendered by the rect pipeline (synthesized to fill the
                 // whole cell — see build_rect_instances), never as font
@@ -4468,7 +4550,9 @@ impl RenderCallback for TerminalRenderer {
         let pad = self.padding_px();
         for (row_idx, col_start, buffer) in &text_buffers {
             let y = pad + (*row_idx as f32 * self.cell_height);
-            let x = pad + (*col_start as f32 * self.cell_width);
+            // `.idx()` is the single audited bridge from the typed
+            // `GridCol` to the raw column the pixel math consumes.
+            let x = pad + (col_start.idx() as f32 * self.cell_width);
             text_areas.push(glyphon::TextArea {
                 buffer: &**buffer,
                 left: x,
@@ -4725,6 +4809,127 @@ mod render_invariants {
     fn compute_rects(r: &TerminalRenderer) -> Vec<RectInstance> {
         let (snap, _seqno) = r.snapshot();
         r.build_rect_instances(&snap, 0.0, r.padding_px(), r.padding_px())
+    }
+
+    // ── Wide-char column invariant — the cursor-misalignment bug ──────
+    //
+    // Both render pipelines derive a cell's column from `glyph_columns`
+    // (see `mod grid_col`): the text pipeline (`build_text_buffers`) and
+    // the rect/cursor pipeline (`build_rect_instances`). The sealed
+    // `GridCol` makes positioning a glyph at any column OTHER than the
+    // dense grid index a compile error. The remaining obligation — that
+    // the single source uses the index, not a `col += cell.width` sum —
+    // is what these tests prove (Rust has no dependent types to prove it
+    // at compile time; this is the honest C1 ceiling). Together: a glyph
+    // and its cursor can never drift apart.
+
+    /// Build a dense row exactly as the terminal stores a wide char: a
+    /// `width == 2` lead followed by a `width == 0` continuation.
+    fn dense_row(spec: &[(char, u8)]) -> Vec<Cell> {
+        spec.iter()
+            .map(|&(ch, width)| Cell { ch, width, ..Default::default() })
+            .collect()
+    }
+
+    #[test]
+    fn glyph_columns_are_true_grid_indices_not_a_width_sum() {
+        // "🦀a中b" as the terminal stores it:
+        //   🦀(0) · cont(1) · a(2) · 中(3) · cont(4) · b(5)
+        // The pre-fix accumulator (col += cell.width, +1 for each
+        // continuation) yielded 0, 3, 4, 6 — text drifting one column
+        // right per wide char. The hand-computed ground truth is the
+        // dense index: 0, 2, 3, 5.
+        let row = dense_row(&[
+            ('🦀', 2), (' ', 0),
+            ('a', 1),
+            ('中', 2), (' ', 0),
+            ('b', 1),
+        ]);
+        let got: Vec<(usize, char)> = glyph_columns(&row, row.len())
+            .map(|(c, cell)| (c.idx(), cell.ch))
+            .collect();
+        assert_eq!(got, vec![(0, '🦀'), (2, 'a'), (3, '中'), (5, 'b')]);
+    }
+
+    #[test]
+    fn wide_char_prompt_keeps_text_left_of_the_cursor() {
+        // Reproduce the screenshot against a REAL terminal at CPU speed:
+        // three wide emojis then "abc". Dense grid:
+        //   🦀(0,1) 🦀(2,3) 🦀(4,5) a(6) b(7) c(8), cursor at col 9.
+        let (r, t) = harness(40, 3);
+        t.write().feed("🦀🦀🦀abc".as_bytes());
+        let (snap, _) = r.snapshot();
+        let row = &snap.rows[0];
+
+        // `glyph_columns` yields every non-continuation cell; the text
+        // pipeline skips blanks (they flush the run, emit no glyph), so
+        // filter blanks to compare against the printed glyphs.
+        let cols: Vec<(usize, char)> = glyph_columns(row, snap.cols)
+            .filter(|(_, cell)| cell.ch != ' ')
+            .map(|(c, cell)| (c.idx(), cell.ch))
+            .collect();
+        assert_eq!(
+            cols,
+            vec![(0, '🦀'), (2, '🦀'), (4, '🦀'), (6, 'a'), (7, 'b'), (8, 'c')],
+            "text glyphs drifted off their true grid columns",
+        );
+
+        // The terminal-tracked cursor sits one column past the last
+        // glyph — strictly right of every text column, so the block can
+        // never be painted on top of an earlier glyph (the symptom).
+        let last_text_col = cols.iter().map(|&(c, _)| c).max().unwrap();
+        assert_eq!(snap.cursor.col, 9);
+        assert!(
+            snap.cursor.col > last_text_col,
+            "cursor col {} must sit right of the last glyph col {}",
+            snap.cursor.col,
+            last_text_col,
+        );
+    }
+
+    proptest::proptest! {
+        /// For ANY dense row (arbitrary mix of narrow cells and
+        /// wide-char lead+continuation pairs), the shared `glyph_columns`
+        /// source yields columns that are strictly increasing, in-bounds,
+        /// never a `width == 0` continuation, and each equal to the
+        /// cell's actual position in the dense row. This generalises the
+        /// hand-computed regression above across the whole input space.
+        #[test]
+        fn glyph_columns_yield_monotonic_in_bounds_indices(
+            toks in proptest::collection::vec(
+                proptest::prop_oneof![
+                    proptest::prelude::Just(vec![('a', 1u8)]),
+                    proptest::prelude::Just(vec![('x', 1u8)]),
+                    proptest::prelude::Just(vec![(' ', 1u8)]),
+                    proptest::prelude::Just(vec![('中', 2u8), (' ', 0u8)]),
+                    proptest::prelude::Just(vec![('🦀', 2u8), (' ', 0u8)]),
+                ],
+                0..40usize,
+            )
+        ) {
+            let spec: Vec<(char, u8)> = toks.into_iter().flatten().collect();
+            let row = dense_row(&spec);
+            let cols = row.len();
+
+            let mut prev: Option<usize> = None;
+            let mut yielded = 0usize;
+            for (gc, cell) in glyph_columns(&row, cols) {
+                let i = gc.idx();
+                proptest::prop_assert!(cell.width != 0, "yielded a continuation cell at {i}");
+                proptest::prop_assert!(i < cols, "col {i} out of bounds {cols}");
+                // The yielded column indexes back to the very cell it was
+                // minted from — it IS the dense grid position.
+                proptest::prop_assert!(std::ptr::eq(&row[i], cell), "col {i} is not the cell's true index");
+                if let Some(p) = prev {
+                    proptest::prop_assert!(i > p, "columns must strictly increase: {i} after {p}");
+                }
+                prev = Some(i);
+                yielded += 1;
+            }
+            // Every non-continuation cell is accounted for exactly once.
+            let non_cont = row.iter().filter(|c| c.width != 0).count();
+            proptest::prop_assert_eq!(yielded, non_cont);
+        }
     }
 
     /// Approximate-equal for f32 rect colors. Comparing the raw
