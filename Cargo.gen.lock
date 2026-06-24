@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "065e24cdf44d6633684aa3ba403becd66fb2aba93fbbe43eaa032dc6c636c932",
+  "cargo_lock_sha256": "76329e0a2e681d9c78b7817a8c2ef8e506c9cfb1933ac14e6cd782a06e37f7eb",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -5139,7 +5139,7 @@
           "default"
         ]
       },
-      "ishou-tokens-0.1.3-22f900bbdd488297dcd2383014fdd344179cb104": {
+      "ishou-tokens-0.1.3-47e7e58da1d279b63d6ae464b0244d606741fea6": {
         "runtime_dependencies": [
           {
             "name": "irodori",
@@ -7665,7 +7665,7 @@
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.3-22f900bbdd488297dcd2383014fdd344179cb104",
+            "package_key": "ishou-tokens-0.1.3-47e7e58da1d279b63d6ae464b0244d606741fea6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14356,7 +14356,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.3-22f900bbdd488297dcd2383014fdd344179cb104",
+            "package_key": "ishou-tokens-0.1.3-47e7e58da1d279b63d6ae464b0244d606741fea6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14498,7 +14498,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.3-22f900bbdd488297dcd2383014fdd344179cb104",
+            "package_key": "ishou-tokens-0.1.3-47e7e58da1d279b63d6ae464b0244d606741fea6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14805,7 +14805,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.3-22f900bbdd488297dcd2383014fdd344179cb104",
+            "package_key": "ishou-tokens-0.1.3-47e7e58da1d279b63d6ae464b0244d606741fea6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19136,7 +19136,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-22f900bbdd488297dcd2383014fdd344179cb104",
+                "package_key": "ishou-tokens-0.1.3-47e7e58da1d279b63d6ae464b0244d606741fea6",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -23215,7 +23215,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-22f900bbdd488297dcd2383014fdd344179cb104",
+                "package_key": "ishou-tokens-0.1.3-47e7e58da1d279b63d6ae464b0244d606741fea6",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -26861,7 +26861,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-22f900bbdd488297dcd2383014fdd344179cb104",
+                "package_key": "ishou-tokens-0.1.3-47e7e58da1d279b63d6ae464b0244d606741fea6",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -30601,7 +30601,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-22f900bbdd488297dcd2383014fdd344179cb104",
+                "package_key": "ishou-tokens-0.1.3-47e7e58da1d279b63d6ae464b0244d606741fea6",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -34634,7 +34634,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-22f900bbdd488297dcd2383014fdd344179cb104",
+                "package_key": "ishou-tokens-0.1.3-47e7e58da1d279b63d6ae464b0244d606741fea6",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -38234,7 +38234,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-22f900bbdd488297dcd2383014fdd344179cb104",
+                "package_key": "ishou-tokens-0.1.3-47e7e58da1d279b63d6ae464b0244d606741fea6",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -41667,7 +41667,7 @@
     "is_terminal_polyfill-1.70.2": {
       "edition": "2021"
     },
-    "ishou-tokens-0.1.3-22f900bbdd488297dcd2383014fdd344179cb104": {
+    "ishou-tokens-0.1.3-47e7e58da1d279b63d6ae464b0244d606741fea6": {
       "edition": "2024"
     },
     "itoa-1.0.18": {
@@ -42994,7 +42994,7 @@
     "gen-types-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0": "sha256-khDWAqmgqr/pPPq73hZbZojnEw3gVc6RYFPLuNCoR/A=",
     "hasami-0.1.2-c20b0112c09fccae2a9f51260c83fb711f7512d5": "sha256-jumH5OHgIV872elIb65ABgspnrfsA3rkeJyW5SIP6bo=",
     "irodzuki-0.1.7-28a0f5ed6d038d3bf1ec43eb9ae0b482ad85e506": "sha256-FLNMG+F1ZVpmjwpHq/eMys0MYjnWHr63B7vmZQWyo9w=",
-    "ishou-tokens-0.1.3-22f900bbdd488297dcd2383014fdd344179cb104": "sha256-4MxDrBisMARCAiC4gVOTVCKuQxfLYaCjZaUzwE+QyV8=",
+    "ishou-tokens-0.1.3-47e7e58da1d279b63d6ae464b0244d606741fea6": "sha256-U9i60aKk/BvmGCl8xmXg4NTDoeVZ57thlB0dF9qy49Q=",
     "kaname-0.1.1-0570e7ec566b60444307fe5873f80f5beda8fe6c": "sha256-ue2v9p/Eq+z3hmCaL63toSyjpDY6s3H1gGBUFBOX3ek=",
     "kanchi-0.1.0-bb057535a56dcfbc0627e8e9e74498e63e9d3ff2": "sha256-GMMX6pwMRyxHqie5Rr5XyjhnGGiYahv7t8z6LwTHLJk=",
     "kanshou-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
