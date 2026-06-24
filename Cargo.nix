@@ -7358,7 +7358,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.29";
+        version = "0.1.30";
         edition = "2024";
         crateBin = [
           {
@@ -7513,6 +7513,10 @@ rec {
           {
             name = "parking_lot";
             packageId = "parking_lot";
+          }
+          {
+            name = "pleme-fleet-themed-derive";
+            packageId = "pleme-fleet-themed-derive";
           }
           {
             name = "pleme-invalidating-setter-derive";
@@ -12405,6 +12409,35 @@ rec {
         };
         procMacro = true;
         libName = "pleme_allvariants_derive";
+        dependencies = [
+          {
+            name = "proc-macro2";
+            packageId = "proc-macro2";
+          }
+          {
+            name = "quote";
+            packageId = "quote";
+          }
+          {
+            name = "syn";
+            packageId = "syn 2.0.118";
+            features = [ "full" "extra-traits" ];
+          }
+        ];
+
+      };
+      "pleme-fleet-themed-derive" = rec {
+        crateName = "pleme-fleet-themed-derive";
+        version = "0.1.1";
+        edition = "2024";
+        workspace_member = null;
+        src = pkgs.fetchgit {
+          url = "https://github.com/pleme-io/pleme-fleet-themed-derive";
+          rev = "a03a411857a340c89a0eefcb25b00ce6586abe30";
+          sha256 = "1as0l0vrfg0pw71d008zxp691qd9j4i0rgzjqvj960mq84sj043v";
+        };
+        procMacro = true;
+        libName = "pleme_fleet_themed_derive";
         dependencies = [
           {
             name = "proc-macro2";
