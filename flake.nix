@@ -45,6 +45,19 @@
       hmNamespace = "blackmatter.components";
       withShikumiConfig = true;
 
+      # Color-emoji on every host. mado renders the shell prompt's
+      # emoji (seki's 🦀 Rust segment, session-name presets, etc.)
+      # through garasu's cosmic-text stack. On macOS the system Apple
+      # Color Emoji is found by garasu's font scan; on a Linux/Nix host
+      # there is no system emoji font, so the prompt's emoji would
+      # resolve to .notdef (a red tofu box — the 2026-06-23 report).
+      # Declaring the font as a runtime dep installs it onto the user's
+      # font path (`~/.nix-profile/share/fonts`), which garasu scans —
+      # so color emoji render fleet-wide. (garasu also self-heals via
+      # build-time embed + runtime discovery; this is the clean,
+      # zero-bloat deployment lever.)
+      extraPackages = [ "noto-fonts-color-emoji" ];
+
       # Desktop GUI-app install (substrate mkModuleTrio appBundle).
       # A consumer who sets `blackmatter.components.mado.installApp = true`
       # gets a real Mado.app in ~/Applications (macOS — Spotlight /
