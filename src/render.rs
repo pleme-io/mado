@@ -237,6 +237,32 @@ impl RectInstance {
 
 /// Soft elevation shadow — the ONE depth primitive shared by mado's window
 /// edges and the Ctrl-S popup card, so both read with the same depth
+/// The `(px, py, pw, ph)` of a `Center`-anchored overlay's backing card.
+///
+/// Pure geometry so it is unit-testable without a GPU. `left`/`top0` are the
+/// already-centred text-block origin; the card insets by `(pad_x, pad_y)`.
+/// The origin is clamped to `>= pad` (one window-padding inset) — NOT `0.0` —
+/// so even a list wider/taller than the viewport can never collapse the panel
+/// onto `(0,0)` and blank out the top-left cells. For a normal (screen-fitting)
+/// picker the centred origin is far from the edges, so the clamp is a no-op;
+/// it only catches the degenerate oversize case. Regression invariant:
+/// `centered_panel_is_central_never_top_left`.
+fn centered_panel_geom(
+    left: f32,
+    top0: f32,
+    content_w: f32,
+    block_h: f32,
+    pad: f32,
+    pad_x: f32,
+    pad_y: f32,
+) -> (f32, f32, f32, f32) {
+    let px = (left - pad_x).max(pad);
+    let py = (top0 - pad_y).max(pad);
+    let pw = content_w + pad_x * 2.0;
+    let ph = block_h + pad_y * 2.0;
+    (px, py, pw, ph)
+}
+
 /// language (the operator's "flush and consistent together"). Fakes a
 /// blurred shadow with the solid rect pipeline: `layers` concentric rounded
 /// rects growing outward from `[x,y,w,h]` by `spread`, each fainter than the
@@ -1910,10 +1936,8 @@ impl TerminalRenderer {
                 .fold(0.0_f32, |m, run| m.max(run.line_w));
             let pad_x = self.cell_width * 2.0;
             let pad_y = line_h * 0.5;
-            let px = (left - pad_x).max(0.0);
-            let py = (top0 - pad_y).max(0.0);
-            let pw = content_w + pad_x * 2.0;
-            let ph = block_h + pad_y * 2.0;
+            let (px, py, pw, ph) =
+                centered_panel_geom(left, top0, content_w, block_h, pad, pad_x, pad_y);
             let radius = (line_h * 0.55).min(pw.min(ph) / 2.0);
             let border_w = 1.5_f32;
             let lin = |c: crate::terminal::Color, a: f32| -> [f32; 4] {
@@ -4758,6 +4782,34 @@ mod render_invariants {
         spec.iter()
             .map(|&(ch, width)| Cell { ch, width, ..Default::default() })
             .collect()
+    }
+
+    #[test]
+    fn centered_panel_is_central_never_top_left() {
+        // Regression invariant for the Ctrl-S picker: the Center-anchored
+        // backing card must sit in the MIDDLE of the viewport, never
+        // collapsed onto the top-left corner (the "top-left stuff getting
+        // blocked out" report). A normal few-row picker on a 1000×600 grid:
+        let (pad, width, height, line_h, content_w) =
+            (8.0_f32, 1000.0_f32, 600.0_f32, 20.0_f32, 220.0_f32);
+        let block_h = 3.0_f32 * line_h;
+        let pad_x = 16.0_f32;
+        let pad_y = line_h * 0.5;
+        // The renderer's centred text-block origin (Center anchor).
+        let left = ((width - content_w) / 2.0).max(pad);
+        let top0 = ((height - block_h) / 2.0).max(pad);
+        let (px, py, pw, ph) =
+            centered_panel_geom(left, top0, content_w, block_h, pad, pad_x, pad_y);
+        assert!(px > width * 0.2, "panel left {px} must be central, not top-left");
+        assert!(py > height * 0.2, "panel top {py} must be central, not top-left");
+        assert!(pw >= content_w && ph >= block_h, "panel must contain its content");
+
+        // Degenerate oversize list (wider + taller than the viewport): the
+        // origin must still clamp to >= pad — NEVER (0,0) blanking the
+        // top-left cells.
+        let (dx, dy, _, _) =
+            centered_panel_geom(pad, pad, width * 2.0, height * 2.0, pad, pad_x, pad_y);
+        assert!(dx >= pad && dy >= pad, "oversize panel must clamp to >= pad, got ({dx},{dy})");
     }
 
     #[test]

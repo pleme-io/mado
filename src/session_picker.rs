@@ -346,7 +346,7 @@ impl SessionPickerBridge for PracaPickerBridge {
                 crate::config::BadgeMode::Always => true,
                 crate::config::BadgeMode::Auto => has_live && has_latent,
             };
-            let rows: Vec<SessionPickerRow> = praca::rank_mixed(items, query, now)
+            let mut rows: Vec<SessionPickerRow> = praca::rank_mixed(items, query, now)
                 .into_iter()
                 .map(|ranked| match ranked {
                     praca::Ranked::Live(rec) => SessionPickerRow {
@@ -367,6 +367,26 @@ impl SessionPickerBridge for PracaPickerBridge {
                     },
                 })
                 .collect();
+
+            // MRU rule: on an EMPTY query, the FIRST row is the session you
+            // last came FROM. `last_seen` is a true visit order (every switch
+            // records a visit), so the most-recent live session is the one
+            // you're in NOW and the 2nd-most-recent is where you came from —
+            // hoist that to the top so Ctrl-S+Enter toggles back. With a real
+            // query the fuzzy rank wins (we don't reorder).
+            if query.trim().is_empty() {
+                let mut by_recency = live_recs.clone();
+                by_recency.sort_by(|a, b| b.last_seen.cmp(&a.last_seen));
+                if let Some(came_from) = by_recency.get(1).map(|r| r.id) {
+                    if let Some(pos) = rows
+                        .iter()
+                        .position(|row| matches!(row.kind, RowKind::Switch(id) if id == came_from))
+                    {
+                        let row = rows.remove(pos);
+                        rows.insert(0, row);
+                    }
+                }
+            }
             (rows, praca.name_style)
         };
         // If anything matched (live or latent), that's the picker's answer;
@@ -408,6 +428,13 @@ impl SessionPickerBridge for PracaPickerBridge {
     fn switch_to(&self, session: SessionId) -> bool {
         match self.first_pane_of(session) {
             Some(pane) => {
+                // Record the visit so `last_seen` stays a true MRU order:
+                // the switched-to session becomes most-recent, so the NEXT
+                // Ctrl-S surfaces the session you came FROM as the first row
+                // (Ctrl-S+Enter toggles back). Without this, picker switches
+                // wouldn't move the MRU cursor and the toggle would drift.
+                let now = crate::auto_attach::now_unix_seconds();
+                self.praca().record_visit(session, now);
                 self.switch.post(pane);
                 true
             }
@@ -552,6 +579,57 @@ mod tests {
 
         assert!(bridge.switch_to(live), "live session switches");
         assert!(!bridge.switch_to(sid("ghost")), "dead session does not");
+    }
+
+    #[test]
+    fn empty_query_hoists_the_session_you_came_from_first() {
+        // MRU rule: the FIRST empty-query row is the session you last came
+        // FROM — the 2nd-most-recently-visited live session (the most-recent
+        // being the one you're in NOW). So Ctrl-S + Enter toggles back.
+        let inproc = Arc::new(tear_core::InProcess::new());
+        inproc.set_spawn_env(tear_types::SpawnEnv::none());
+        let mut spawn = |name: &str| {
+            inproc
+                .new_session_with_source_and_size(
+                    name,
+                    "/bin/sh",
+                    SessionSource::Named("test".into()),
+                    (80, 24),
+                )
+                .expect("spawn")
+        };
+        let current = spawn("current"); // most-recent → where you are now
+        let came_from = spawn("camefrom"); // 2nd-most-recent → where you came from
+
+        let mut praca = praca::Praca::new();
+        // last_seen sets the visit recency: current=2000 (newest), came_from=1000.
+        praca.index.upsert(praca::SessionRecord::for_project(
+            current,
+            PathBuf::from("/code/a"),
+            SessionNameStyle::Emoji,
+            2000,
+        ));
+        praca.index.upsert(praca::SessionRecord::for_project(
+            came_from,
+            PathBuf::from("/code/b"),
+            SessionNameStyle::Emoji,
+            1000,
+        ));
+
+        let bridge = bridge_with(praca, Arc::clone(&inproc));
+        let rows = bridge.list("", 3000);
+        assert!(rows.len() >= 2, "both live sessions listed");
+        assert_eq!(
+            rows[0].kind,
+            RowKind::Switch(came_from),
+            "first empty-query row must be the session you came from (2nd-most-recent), not the current one"
+        );
+        // The hoist is empty-query only; with ≥2 sessions the current one is
+        // still present, just not first.
+        assert!(
+            rows.iter().any(|r| r.kind == RowKind::Switch(current)),
+            "the current session is still listed, just not first"
+        );
     }
 
     #[test]
