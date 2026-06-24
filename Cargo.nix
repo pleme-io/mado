@@ -4429,13 +4429,13 @@ rec {
       };
       "garasu" = rec {
         crateName = "garasu";
-        version = "0.1.2";
+        version = "0.1.3";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/garasu";
-          rev = "301398c3b8876a69674367c99f4f98e6d528cf7b";
-          sha256 = "0r73qb6m429zrk5ddm4gfl4ndpaxbrw1jvxfk4b0ixx5ajmy5z63";
+          rev = "af6dcf3c46e13850619523fe820b96ac38f9e792";
+          sha256 = "0h33pzzf48j1lk55z0c2avspzic49l0i42xjrigwf8ja539c22pf";
         };
         dependencies = [
           {
@@ -7358,7 +7358,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.31";
+        version = "0.1.32";
         edition = "2024";
         crateBin = [
           {
