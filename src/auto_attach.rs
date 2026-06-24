@@ -175,17 +175,22 @@ impl AutoAttachDriver {
         boot_session: SessionId,
         boot_pane: PaneId,
         boot_root: PathBuf,
+        boot_display_name: String,
         shell: String,
         spawn_env_base: tear_types::SpawnEnv,
         now: u64,
     ) -> Self {
         let mut index = praca::SessionIndex::new();
-        index.upsert(praca::SessionRecord::for_project(
-            boot_session,
-            boot_root.clone(),
-            name_style,
-            now,
-        ));
+        // Seed the boot record bound to its project root (for cd-resolution)
+        // but LABELLED by the authoritative `boot_display_name` — the EMOJI
+        // projection of the one identity the naming authority minted (the
+        // same identity the tear registry name / prompt glyph-projects).
+        // `rename` pins it into `custom_name`, so the picker never re-derives
+        // a competing name off boot_root — picker≠prompt is impossible here.
+        let mut boot_rec =
+            praca::SessionRecord::for_project(boot_session, boot_root.clone(), name_style, now);
+        boot_rec.rename(boot_display_name);
+        index.upsert(boot_rec);
         let mut binding = praca::ProjectBinding::new();
         binding.bind(boot_root, boot_session);
         let praca = Arc::new(Mutex::new(praca::Praca::with(
@@ -470,6 +475,14 @@ mod tests {
         let (inproc, sid, pane) = boot(root);
         let switch = SwitchRequests::default();
         switch.attach_sink();
+        // The authoritative picker label = the emoji projection of the
+        // minted identity, exactly as the production embedded path passes
+        // `boot_name.render(Emoji)`.
+        let boot_display = ishou_tokens::FleetSessionNames::from_project_path(
+            &praca::project::project_root(root),
+            ishou_tokens::SessionNameStyle::Emoji,
+        )
+        .to_string();
         let driver = AutoAttachDriver::new(
             inproc,
             switch.clone(),
@@ -480,11 +493,49 @@ mod tests {
             // The boot root must be the RESOLVED project root, exactly as
             // production passes `project_root(boot_cwd)`.
             praca::project::project_root(root),
+            boot_display,
             "/bin/sh".to_owned(),
             tear_types::SpawnEnv::none(),
             1000,
         );
         (driver, switch)
+    }
+
+    #[test]
+    fn boot_record_is_labelled_by_the_authoritative_name_not_a_rederivation() {
+        // THE sync-bug regression guard. The boot session's picker label
+        // must be the authoritative display name passed in (the emoji
+        // projection of the minted identity) so it matches what the prompt
+        // shows — NEVER a name re-derived from boot_root. A DISTINCT name
+        // that cannot equal the root re-derivation proves the point.
+        let p = TempProjects::new();
+        let (inproc, sid, pane) = boot(&p.a);
+        let switch = SwitchRequests::default();
+        switch.attach_sink();
+        let authoritative = "🌑 rime".to_owned();
+        let driver = AutoAttachDriver::new(
+            inproc,
+            switch,
+            AutoAttachMode::AutoSwitch.policy(),
+            ishou_tokens::SessionNameStyle::Emoji,
+            sid,
+            pane,
+            praca::project::project_root(&p.a),
+            authoritative.clone(),
+            "/bin/sh".to_owned(),
+            tear_types::SpawnEnv::none(),
+            1000,
+        );
+        let praca = driver.shared_praca();
+        let g = praca
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let rec = g.index.get(sid).expect("boot session indexed");
+        assert_eq!(
+            rec.display_name(),
+            authoritative,
+            "picker label must be the authoritative minted name, not a boot_root re-derivation"
+        );
     }
 
     #[test]

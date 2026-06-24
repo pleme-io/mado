@@ -191,13 +191,16 @@ pub fn try_run_default(
     // inherits prefix/shell/scrollback knobs the operator declared.
     impose_if_any(&client, &config.tear);
 
-    // Session name: explicit override OR the deterministic emoji name
-    // derived from the project root of the spawn cwd (praça naming
-    // slice). Same cwd the SpawnEnv handshake uses below, so the name
-    // matches the directory the shell actually starts in.
-    let session_name = config.tear.session_name.clone().unwrap_or_else(|| {
-        session_name_for_cwd(config.boot_spawn_cwd().as_deref())
-    });
+    // Session name: the ONE boot naming decision (fleet authority),
+    // rendered as the single-width GLYPH form — this is the tear registry
+    // name tear-core stamps into TEAR_SESSION_NAME, so the text prompt
+    // stays cursor-aligned (no wide emoji in the grid). The daemon path
+    // has no praça picker, so only the glyph projection is needed here.
+    let session_name = resolve_boot_name(
+        config.tear.session_name.as_deref(),
+        config.boot_spawn_cwd().as_deref(),
+    )
+    .render(ishou_tokens::SessionNameStyle::Glyph);
 
     // Compute the desired pane size up front from the operator's
     // configured window dimensions + font cell metrics, then pass
@@ -1206,12 +1209,17 @@ fn try_run_default_embedded(
     );
     inproc.set_spawn_env(spawn_env.clone());
 
-    // Deterministic emoji name from the spawn cwd's project root
-    // (praça naming slice) unless the operator pinned an explicit
-    // session_name. Same cwd as the SpawnEnv handshake above.
-    let session_name = config.tear.session_name.clone().unwrap_or_else(|| {
-        session_name_for_cwd(config.boot_spawn_cwd().as_deref())
-    });
+    // The ONE boot naming decision (fleet authority), minted ONCE here.
+    // `session_name` is the single-width GLYPH projection — the tear
+    // registry name → TEAR_SESSION_NAME → the cursor-aligned prompt.
+    // `boot_name` is kept so the praça picker seeds below project the
+    // EMOJI form of the SAME identity (vivid in the GUI). One identity,
+    // two surface renderings — picker and prompt cannot disagree.
+    let boot_name = resolve_boot_name(
+        config.tear.session_name.as_deref(),
+        config.boot_spawn_cwd().as_deref(),
+    );
+    let session_name = boot_name.render(ishou_tokens::SessionNameStyle::Glyph);
 
     let cell_w_logical = config.font_size * 0.6;
     let cell_h_logical = config.font_size * config.line_height;
@@ -1312,6 +1320,9 @@ fn try_run_default_embedded(
                 session_id,
                 pane_id,
                 boot_root,
+                // The EMOJI projection of the ONE minted identity — the
+                // picker label, matching the glyph form the prompt shows.
+                boot_name.render(ishou_tokens::SessionNameStyle::Emoji),
                 shell.clone(),
                 spawn_env,
                 now,
@@ -1356,12 +1367,18 @@ fn try_run_default_embedded(
                             .unwrap_or_else(|| std::path::Path::new(".")),
                     );
                     let mut index = praca::SessionIndex::new();
-                    index.upsert(praca::SessionRecord::for_project(
+                    // Label the boot record by the EMOJI projection of the
+                    // minted identity (the same identity the registry/prompt
+                    // glyph-projects) — NOT a re-derivation from boot_root —
+                    // so the picker shows exactly what the prompt names.
+                    let mut boot_rec = praca::SessionRecord::for_project(
                         session_id,
                         boot_root.clone(),
                         ishou_tokens::SessionNameStyle::Emoji,
                         now,
-                    ));
+                    );
+                    boot_rec.rename(boot_name.render(ishou_tokens::SessionNameStyle::Emoji));
+                    index.upsert(boot_rec);
                     let mut binding = praca::ProjectBinding::new();
                     binding.bind(boot_root, session_id);
                     std::sync::Arc::new(std::sync::Mutex::new(praca::Praca::with(
@@ -1458,44 +1475,38 @@ fn run_against_embedded_pane(
     )
 }
 
-/// Deterministic, project-derived session name when a spawn cwd is
-/// known; otherwise the stable per-process fallback.
+/// THE single boot-session naming decision, via the fleet authority
+/// [`ishou_tokens::FleetSessionNames::resolve`]. Both the daemon and the
+/// embedded launch paths call this with the same inputs, so they can
+/// never name the same context two different ways.
 ///
-/// First praça integration slice (naming only — no auto-attach, no
-/// picker, no facade). When `cwd` is `Some`, the project root is found
-/// via [`praca::project::project_root`] (walks up to `.git` /
-/// `Cargo.toml` / `flake.nix` / … markers; falls back to the cwd
-/// itself), and the name is the emoji identity of that root via
-/// [`ishou_tokens::FleetSessionNames::from_project_path`] in
-/// [`ishou_tokens::SessionNameStyle::Emoji`] (e.g. `🌊 tide`). The
-/// seed is a stable hash of the project path, so the SAME project
-/// always yields the SAME name — across daemon restarts and process
-/// re-launches. When `cwd` is `None`, we keep the legacy
-/// `mado-<unix-seconds>-<pid>` per-process tag.
-fn session_name_for_cwd(cwd: Option<&Path>) -> String {
-    match cwd {
+/// Returns the resolved identity; the caller renders it PER SURFACE —
+/// [`ishou_tokens::SessionNameStyle::Glyph`] for the tear registry name
+/// (→ `TEAR_SESSION_NAME` → the cursor-aligned text prompt) and
+/// [`ishou_tokens::SessionNameStyle::Emoji`] for the praça picker record
+/// (the vivid GUI surface). One identity, two projections: the picker
+/// and the prompt can never disagree on the session's word.
+///
+/// Precedence: an explicit operator override (`tear.session_name`) wins;
+/// else the project root of the spawn cwd yields the deterministic,
+/// path-stable identity; else (no spawn cwd — a Finder/launchd launch)
+/// the branded fleet default `🌑 rime`, replacing the old opaque
+/// `mado-<unix-seconds>-<pid>` tag.
+fn resolve_boot_name(
+    override_name: Option<&str>,
+    spawn_cwd: Option<&Path>,
+) -> ishou_tokens::ResolvedName {
+    use ishou_tokens::{FleetSessionNames, NameContext};
+    if let Some(explicit) = override_name {
+        return FleetSessionNames::resolve(NameContext::Override(explicit));
+    }
+    match spawn_cwd {
         Some(cwd) => {
             let root = praca::project::project_root(cwd);
-            ishou_tokens::FleetSessionNames::from_project_path(
-                &root,
-                ishou_tokens::SessionNameStyle::Emoji,
-            )
-            .to_string()
+            FleetSessionNames::resolve(NameContext::Project(&root))
         }
-        None => default_session_name(),
+        None => FleetSessionNames::resolve(NameContext::Default),
     }
-}
-
-/// Legacy fallback session name: `mado-<unix-seconds>-<pid>`. Stable
-/// per-process; sortable by creation time in `tear list`. Used only
-/// when no spawn cwd is known (`session_name_for_cwd(None)`).
-fn default_session_name() -> String {
-    let pid = std::process::id();
-    let ts = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .unwrap_or(0);
-    format!("mado-{ts}-{pid}")
 }
 
 /// If the operator declared `tear.impose.*` overrides, fetch the
@@ -1572,58 +1583,63 @@ fn run_against_pane(
 
 #[cfg(test)]
 mod tests {
-    use super::{default_session_name, session_name_for_cwd, with_title};
+    use super::{resolve_boot_name, with_title};
     use madori::EventResponse;
 
-    /// praça naming slice: a cwd inside a git project yields the
-    /// deterministic emoji name of the PROJECT ROOT (not the cwd), and
-    /// that name is stable across repeated calls. Asserts byte-equality
-    /// against the direct `FleetSessionNames::from_project_path(root,
-    /// Emoji)` so the helper is a thin, correct adapter over the typed
-    /// surface — not its own naming scheme.
+    /// The boot naming authority: a cwd inside a git project resolves to
+    /// the deterministic identity of the PROJECT ROOT (not the cwd), and
+    /// is stable across calls. The EMOJI projection (the picker) is
+    /// byte-identical to the direct `FleetSessionNames::from_project_path`,
+    /// and the GLYPH projection (the prompt) carries the SAME word — so the
+    /// helper is a thin caller of the one authority, and the two surface
+    /// renderings can never disagree.
     #[test]
-    fn session_name_for_cwd_is_deterministic_project_emoji() {
+    fn resolve_boot_name_project_is_deterministic_and_split_consistent() {
+        use ishou_tokens::SessionNameStyle::{Emoji, Glyph};
         let tmp = tempfile::tempdir().expect("tempdir");
         let root = tmp.path();
-        // Mark the tempdir as a project root (git marker).
         std::fs::create_dir(root.join(".git")).expect("mk .git");
-        // A nested cwd under the project root — the name must derive
-        // from the ROOT, so a subdir produces the same name.
         let nested = root.join("src").join("deep");
         std::fs::create_dir_all(&nested).expect("mk nested");
 
         let project_root = praca::project::project_root(&nested);
-        assert_eq!(
-            project_root, root,
-            "project_root must walk up to the .git-marked root"
-        );
+        assert_eq!(project_root, root, "project_root walks up to the .git root");
 
-        let expected = ishou_tokens::FleetSessionNames::from_project_path(
-            &project_root,
-            ishou_tokens::SessionNameStyle::Emoji,
-        )
-        .to_string();
+        let expected_emoji =
+            ishou_tokens::FleetSessionNames::from_project_path(&project_root, Emoji).to_string();
 
-        let a = session_name_for_cwd(Some(nested.as_path()));
-        let b = session_name_for_cwd(Some(nested.as_path()));
-        assert_eq!(a, expected, "helper must emit the ishou emoji name of the project root");
-        assert_eq!(a, b, "same project → same name, always (stable seed)");
-        assert!(!a.is_empty(), "emoji name is non-empty");
+        let a = resolve_boot_name(None, Some(nested.as_path()));
+        let b = resolve_boot_name(None, Some(nested.as_path()));
+        assert_eq!(a.render(Emoji), expected_emoji, "emoji form = the project identity");
+        assert_eq!(a.render(Emoji), b.render(Emoji), "same project → same name, always");
+        // Split projection: glyph (prompt) and emoji (picker) share the word.
+        assert_eq!(a.word(), b.word());
+        assert!(a.render(Glyph).ends_with(a.word()), "glyph form carries the same word");
+        assert!(!a.render(Emoji).is_empty());
     }
 
-    /// No cwd → the legacy per-process fallback tag, not an emoji name.
+    /// No spawn cwd (Finder/launchd launch) → the branded fleet default
+    /// `🌑 rime` (NOT an opaque `mado-<ts>-<pid>` tag). The prompt gets the
+    /// grid-safe glyph `◉ rime`; the picker gets the emoji; same word.
     #[test]
-    fn session_name_for_cwd_none_is_the_fallback() {
-        let name = session_name_for_cwd(None);
-        // mado-<unix-seconds>-<pid>: three dash-joined segments, the
-        // first literal `mado`, the trailing two numeric.
-        let parts: Vec<&str> = name.split('-').collect();
-        assert_eq!(parts.len(), 3, "fallback shape is mado-<ts>-<pid>, got {name:?}");
-        assert_eq!(parts[0], "mado");
-        assert!(parts[1].chars().all(|c| c.is_ascii_digit()), "ts numeric");
-        assert!(parts[2].chars().all(|c| c.is_ascii_digit()), "pid numeric");
-        // Sanity: the fallback is consistent with default_session_name's shape.
-        assert!(default_session_name().starts_with("mado-"));
+    fn resolve_boot_name_none_is_the_branded_default() {
+        use ishou_tokens::SessionNameStyle::{Emoji, Glyph};
+        let name = resolve_boot_name(None, None);
+        assert_eq!(name.render(Emoji), "🌑 rime", "picker projection");
+        assert_eq!(name.render(Glyph), "◉ rime", "grid-safe prompt projection");
+        assert_eq!(name.word(), "rime");
+    }
+
+    /// An explicit operator override (`tear.session_name`) wins over both
+    /// project + default and is used verbatim (no curated mark) in BOTH
+    /// projections — so the picker and the prompt still agree.
+    #[test]
+    fn resolve_boot_name_override_wins_verbatim() {
+        use ishou_tokens::SessionNameStyle::{Emoji, Glyph};
+        let name =
+            resolve_boot_name(Some("billing-stack"), Some(std::path::Path::new("/code/x")));
+        assert_eq!(name.render(Emoji), "billing-stack");
+        assert_eq!(name.render(Glyph), "billing-stack");
     }
 
     /// THE copy-on-release adapter regression, pinned (operator report
