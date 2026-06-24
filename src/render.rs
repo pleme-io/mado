@@ -1421,82 +1421,11 @@ const EPOCH_FORCE_PAINT_FRAMES: u8 = 3;
 ///
 /// ## The invariant, as a type
 ///
-/// A terminal row is *dense*: `Grid` guarantees exactly one [`Cell`]
-/// per column, so a cell's column IS its index in the row. A wide
-/// char (CJK / emoji, `width == 2`) occupies a lead cell plus a
-/// `width == 0` **continuation** cell that the lead's glyph spans;
-/// the continuation owns no column of its own.
-///
-/// Two renderer pipelines must agree on "which pixel column is this
-/// cell drawn at": the **text** pipeline ([`TerminalRenderer::build_text_buffers`])
-/// and the **rect/decoration** pipeline ([`TerminalRenderer::build_rect_instances`]),
-/// which also fixes the cursor block at `cursor.col`. The historical
-/// bug: text derived its column by *summing* `cell.width`
-/// (`col += cell.width`) while ALSO visiting the `width == 0`
-/// continuation cell — double-counting it (+1 per wide char). Text
-/// drifted one column right per wide char while the cursor stayed at
-/// the terminal-tracked column, so the block detached from the prompt
-/// (`m▮in 📦 ❄` instead of `…❄ ▮`).
-///
-/// [`GridCol`]'s field is private to this module and the *only* mint
-/// is [`glyph_columns`], which uses the dense index. No code elsewhere
-/// can fabricate a `GridCol` from a width sum — the compiler refuses
-/// to position a glyph at a hand-computed column, because a width-sum
-/// `usize` is not a `GridCol`. Column drift between the two pipelines
-/// is therefore *unrepresentable*, not merely tested: a `GridCol`
-/// value IS a proof that the column came from the dense index
-/// (Curry–Howard). Both pipelines consume [`glyph_columns`], so the
-/// single source of column truth is shared by construction.
-///
-/// Tier (per theory/UNREPRESENTABILITY.md): *truly-unrepresentable*
-/// for "a text/rect glyph positioned at a non-index column" (sealed
-/// constructor). The residual obligations are *test-proven*, not
-/// compile-proven (C1 — Rust has no dependent types): that
-/// [`glyph_columns`]' body itself uses the index (locked by
-/// `glyph_columns_*` proptests) and that the terminal-owned
-/// `cursor.col` lands on a column [`glyph_columns`] would yield
-/// (locked by `cursor_column_is_a_glyph_column`).
-mod grid_col {
-    use crate::terminal::Cell;
-
-    /// A column into a dense terminal row, guaranteed to be a cell's
-    /// true grid column (its index), never a width-sum. Construct only
-    /// via [`glyph_columns`]. See the module docs for the full
-    /// invariant.
-    #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-    pub struct GridCol(usize);
-
-    impl GridCol {
-        /// The underlying grid column. The sole bridge from the typed
-        /// column to the raw `usize` the `col * cell_width` pixel math
-        /// needs — kept to one method so every position site is
-        /// auditable.
-        #[inline]
-        #[must_use]
-        pub fn idx(self) -> usize {
-            self.0
-        }
-    }
-
-    /// THE single source of column truth: yield `(GridCol, &Cell)` for
-    /// every glyph-owning cell of a dense `row`, where the column is
-    /// the enumeration index — the cell's true grid column — by
-    /// construction. Wide-char continuation cells (`width == 0`,
-    /// spanned by the preceding lead glyph) own no column and are
-    /// skipped. Both the text and rect pipelines iterate this, so
-    /// their columns cannot diverge.
-    pub fn glyph_columns<'a>(
-        row: &'a [Cell],
-        cols: usize,
-    ) -> impl Iterator<Item = (GridCol, &'a Cell)> + 'a {
-        row.iter()
-            .enumerate()
-            .take(cols)
-            .filter(|(_, cell)| cell.width != 0)
-            .map(|(i, cell)| (GridCol(i), cell))
-    }
-}
-use grid_col::{glyph_columns, GridCol};
+// The dense-row column primitive (`GridCol` + `glyph_columns`) is the
+// crate's single source of column truth — see `crate::grid_col`. The
+// text + rect/decoration pipelines below and URL detection all consume
+// the same sealed mint, so their columns cannot diverge.
+use crate::grid_col::{glyph_columns, GridCol};
 
 impl TerminalRenderer {
     pub fn new(

@@ -4,6 +4,7 @@
 //! including proper parenthesis handling (Wikipedia URLs) and
 //! trailing-punctuation trimming.
 
+use crate::grid_col::glyph_columns;
 use crate::terminal::Cell;
 
 /// A detected URL in a terminal row.
@@ -16,18 +17,36 @@ pub struct DetectedUrl {
 }
 
 /// Scan a row of cells for URLs.
+///
+/// linkify reports **byte** ranges into the row's text, but the renderer
+/// (`render.rs` URL underline) and the click hit-test (`url_at`) both
+/// consume **display columns**. The two diverge the instant a row holds
+/// a multi-byte glyph (box-drawing, an arrow, an emoji) or a wide CJK
+/// cell — exactly the content a TUI paints. Aliasing byte offsets as
+/// columns drew the underline shifted right of its link, landing under
+/// unrelated text ("everything is underlined"). We translate byte→column
+/// through [`glyph_columns`] — the crate's single source of column truth
+/// (`crate::grid_col`) — so a URL's columns can never diverge from where
+/// the renderer paints the glyph.
 pub fn detect_urls_in_row(row: &[Cell], cols: usize, row_idx: usize) -> Vec<DetectedUrl> {
-    let text = row_to_string(row, cols);
-    let mut urls = Vec::new();
+    let RowColumns { text, start_col, end_col } = row_text_and_columns(row, cols);
 
     let mut finder = linkify::LinkFinder::new();
     finder.kinds(&[linkify::LinkKind::Url]);
 
+    let mut urls = Vec::new();
     for link in finder.links(&text) {
+        // `start_col[b]` / `end_col[b]` are the first / last grid column
+        // of the cell byte `b` belongs to (they differ only for a wide
+        // cell). `link.end()` is exclusive, so the URL's last byte is
+        // `link.end() - 1`, and that cell's last column is the URL's
+        // last occupied column.
+        let col_start = start_col[link.start()];
+        let col_end = end_col[link.end() - 1].max(col_start);
         urls.push(DetectedUrl {
             row: row_idx,
-            col_start: link.start(),
-            col_end: link.end().saturating_sub(1),
+            col_start,
+            col_end,
             url: link.as_str().to_string(),
         });
     }
@@ -52,15 +71,41 @@ pub fn url_at(urls: &[DetectedUrl], row: usize, col: usize) -> Option<&DetectedU
         .find(|u| u.row == row && col >= u.col_start && col <= u.col_end)
 }
 
-fn row_to_string(row: &[Cell], cols: usize) -> String {
-    let mut s = String::with_capacity(cols);
-    for cell in row.iter().take(cols) {
-        if cell.width == 0 {
-            continue;
+/// The row text linkify scans, plus the per-byte first/last grid column
+/// of the cell each byte belongs to. `start_col`/`end_col` hold exactly
+/// one entry per byte of `text`.
+struct RowColumns {
+    text: String,
+    start_col: Vec<usize>,
+    end_col: Vec<usize>,
+}
+
+/// Build the linkify text and, in lockstep, the per-byte first/last grid
+/// column — sourced from [`glyph_columns`], the crate's single source of
+/// column truth, so URL columns share the renderer's exact notion of
+/// where each glyph sits. The width-0 continuation cells of wide glyphs
+/// are skipped by `glyph_columns` and a wide lead cell's `end_col` is
+/// `start + width - 1`, so a URL ending in a wide glyph stays covered.
+fn row_text_and_columns(row: &[Cell], cols: usize) -> RowColumns {
+    let mut text = String::with_capacity(cols);
+    let mut start_col = Vec::with_capacity(cols);
+    let mut end_col = Vec::with_capacity(cols);
+    for (gc, cell) in glyph_columns(row, cols) {
+        let first = gc.idx();
+        let last = first + (cell.width as usize).saturating_sub(1);
+        let mut buf = [0u8; 4];
+        let encoded = cell.ch.encode_utf8(&mut buf);
+        for _ in 0..encoded.len() {
+            start_col.push(first);
+            end_col.push(last);
         }
-        s.push(cell.ch);
+        text.push_str(encoded);
     }
-    s
+    RowColumns {
+        text,
+        start_col,
+        end_col,
+    }
 }
 
 #[cfg(test)]
@@ -250,5 +295,65 @@ mod tests {
         let urls = detect_urls_in_row(&row, text.len(), 0);
         assert_eq!(urls.len(), 1);
         assert_eq!(urls[0].url, "https://example.com");
+    }
+
+    /// THE invariant: `col_start`/`col_end` are DISPLAY COLUMNS, never
+    /// linkify's byte offsets. Multi-byte-but-single-column box-drawing
+    /// glyphs (3 bytes, 1 column each) precede the URL, so the byte
+    /// offset (10) and the display column (4) diverge. Before the fix the
+    /// underline/click rect used the byte offset and smeared right of the
+    /// link — the "everything is underlined" bug. This row is the kind a
+    /// TUI (e.g. Claude Code) paints constantly.
+    #[test]
+    fn url_columns_are_display_columns_not_byte_offsets() {
+        let prefix = "│─→ "; // 3 box glyphs (3 bytes each) + space → 4 cols, 10 bytes
+        let url = "https://example.com";
+        let row = make_row(&format!("{prefix}{url}"));
+        let cols = prefix.chars().count() + url.chars().count();
+
+        let urls = detect_urls_in_row(&row, cols, 0);
+
+        assert_eq!(urls.len(), 1);
+        assert_eq!(urls[0].url, url);
+        assert_eq!(
+            urls[0].col_start, 4,
+            "col_start must be the display column (4), not the byte offset (10)"
+        );
+        assert_eq!(
+            urls[0].col_end,
+            4 + url.chars().count() - 1,
+            "col_end must be the display column of the URL's last cell"
+        );
+        // url_at — the click hit-test — must agree with the columns. The
+        // old code put col_start at the byte offset (10), so the URL's
+        // TRUE start column (4) would not hit; the fix makes it hit, and
+        // the blank column before the URL (3) stays a miss.
+        assert!(url_at(&urls, 0, 4).is_some(), "the URL's true start column must hit");
+        assert!(url_at(&urls, 0, 3).is_none(), "the space before the URL must not hit");
+    }
+
+    /// Wide (2-column) cells before the URL advance the display column by
+    /// 2 while contributing one char + a width-0 continuation cell. The
+    /// column map must honour the cell width, not the char count.
+    #[test]
+    fn url_columns_account_for_wide_cells_before_the_url() {
+        let url = "https://a.co";
+        let mut row = vec![
+            Cell { ch: '🚀', width: 2, ..Cell::default() }, // cols 0..=1
+            Cell { ch: ' ', width: 0, ..Cell::default() },  // wide continuation — no column
+            Cell { ch: ' ', width: 1, ..Cell::default() },  // col 2
+        ];
+        row.extend(url.chars().map(|ch| Cell { ch, width: 1, ..Cell::default() }));
+        let cols = row.len();
+
+        let urls = detect_urls_in_row(&row, cols, 0);
+
+        assert_eq!(urls.len(), 1);
+        assert_eq!(urls[0].url, url);
+        assert_eq!(
+            urls[0].col_start, 3,
+            "a wide cell before the URL must advance 2 display columns"
+        );
+        assert_eq!(urls[0].col_end, 3 + url.chars().count() - 1);
     }
 }
