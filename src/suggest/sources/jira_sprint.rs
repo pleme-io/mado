@@ -77,25 +77,7 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, max: usize) -> Vec<Suggest
 }
 
 /// Percent-encode a JQL string for use in a query parameter. Keeps the
-/// RFC 3986 unreserved set (`A-Z a-z 0-9 _ - . ~`); every other byte becomes
-/// `%XX` with uppercase hex.
-fn pct(s: &str) -> String {
-    const HEX: &[u8; 16] = b"0123456789ABCDEF";
-    let mut out = String::new();
-    for b in s.bytes() {
-        match b {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'_' | b'-' | b'.' | b'~' => {
-                out.push(b as char);
-            }
-            _ => {
-                out.push('%');
-                out.push(HEX[(b >> 4) as usize] as char);
-                out.push(HEX[(b & 0x0f) as usize] as char);
-            }
-        }
-    }
-    out
-}
+use super::util::pct;
 
 #[derive(serde::Deserialize, Default)]
 struct SearchResult {

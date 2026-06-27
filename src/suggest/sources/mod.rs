@@ -39,6 +39,7 @@ pub mod recent_dirs;
 pub mod secret_age;
 pub mod tend_repos;
 pub mod todo_backlog;
+pub mod util;
 
 /// Every implemented source, in catalog order. The engine runs the
 /// config-enabled subset.
@@ -113,6 +114,32 @@ mod tests {
         for k in &kinds {
             assert!(SourceKind::ALL.contains(k));
         }
+    }
+
+    /// The verification matrix forcing-function (CLOSED-LOOP MASS-SYNTHESIS
+    /// rule 1): EVERY catalog source has a registered provider. Add a new
+    /// `SourceKind` and forget to register/implement its provider → this fails,
+    /// so the catalog can never claim a source the engine can't actually run.
+    #[test]
+    fn every_catalog_source_is_registered() {
+        let registered: std::collections::BTreeSet<SourceKind> =
+            registry().iter().map(|s| s.kind()).collect();
+        let missing: Vec<&str> = SourceKind::ALL
+            .iter()
+            .filter(|k| !registered.contains(k))
+            .map(|k| k.slug())
+            .collect();
+        assert!(
+            missing.is_empty(),
+            "{} catalog source(s) have no registered provider: {}",
+            missing.len(),
+            missing.join(", ")
+        );
+        assert_eq!(
+            registered.len(),
+            SourceKind::ALL.len(),
+            "registry covers the whole catalog exactly"
+        );
     }
 
     #[test]

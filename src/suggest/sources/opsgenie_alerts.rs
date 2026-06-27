@@ -63,22 +63,7 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, max: usize) -> Vec<Suggest
         .collect()
 }
 
-/// Percent-encode an Opsgenie query value: RFC 3986 unreserved chars pass
-/// through; everything else becomes `%XX` (uppercase).
-fn pct(s: &str) -> String {
-    const HEX: &[u8; 16] = b"0123456789ABCDEF";
-    let mut out = String::new();
-    for b in s.bytes() {
-        if b.is_ascii_alphanumeric() || matches!(b, b'_' | b'-' | b'.' | b'~') {
-            out.push(b as char);
-        } else {
-            out.push('%');
-            out.push(HEX[(b >> 4) as usize] as char);
-            out.push(HEX[(b & 0x0f) as usize] as char);
-        }
-    }
-    out
-}
+use super::util::pct;
 
 /// Cap a string at `n` chars (char-boundary safe).
 fn truncate(s: &str, n: usize) -> String {

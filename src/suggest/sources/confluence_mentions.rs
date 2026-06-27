@@ -69,26 +69,7 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment) -> Vec<Suggestion> {
         .collect()
 }
 
-/// Percent-encode a query-string value (CQL) — unreserved bytes pass through,
-/// everything else becomes `%XX`. No `format!` (TYPED EMISSION): hex is built
-/// from a fixed nibble table.
-fn pct(s: &str) -> String {
-    const HEX: &[u8; 16] = b"0123456789ABCDEF";
-    let mut out = String::new();
-    for &b in s.as_bytes() {
-        match b {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
-                out.push(b as char);
-            }
-            _ => {
-                out.push('%');
-                out.push(HEX[(b >> 4) as usize] as char);
-                out.push(HEX[(b & 0x0f) as usize] as char);
-            }
-        }
-    }
-    out
-}
+use super::util::pct;
 
 #[derive(serde::Deserialize, Default)]
 struct SearchResponse {

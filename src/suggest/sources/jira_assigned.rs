@@ -57,25 +57,7 @@ impl SuggestionSource for JiraAssignedSource {
 }
 
 /// Percent-encode a URL query value without an external dependency: unreserved
-/// characters pass through, everything else becomes `%XX`. Folds the JQL into
-/// the search URL's query string (NO `format!()`).
-fn pct(s: &str) -> String {
-    const HEX: &[u8; 16] = b"0123456789ABCDEF";
-    let mut out = String::with_capacity(s.len());
-    for &b in s.as_bytes() {
-        match b {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
-                out.push(char::from(b));
-            }
-            _ => {
-                out.push('%');
-                out.push(char::from(HEX[usize::from(b >> 4)]));
-                out.push(char::from(HEX[usize::from(b & 0x0f)]));
-            }
-        }
-    }
-    out
-}
+use super::util::pct;
 
 /// Parse `/rest/api/3/search` output into suggestions. Pure — the unit the
 /// source is tested through. Capped at `max.max(1)`.
