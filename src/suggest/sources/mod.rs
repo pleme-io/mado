@@ -12,8 +12,33 @@ use std::sync::Arc;
 use super::env::SuggestionEnvironment;
 use super::source::SuggestionSource;
 
+pub mod aws_health;
+pub mod breathe_conflict;
+pub mod cargo_warnings;
+pub mod cloudflare_deployments;
+pub mod confluence_mentions;
+pub mod datadog_monitors;
+pub mod engenho_nodes;
+pub mod flux_failing;
 pub mod git_branch_pr;
+pub mod github_actions_failing;
+pub mod github_assigned_issues;
+pub mod github_review_requested;
+pub mod google_calendar;
+pub mod google_tasks;
+pub mod grafana_alerts;
+pub mod grafana_incidents;
+pub mod grafana_oncall;
+pub mod jira_assigned;
+pub mod jira_sprint;
+pub mod k8s_unhealthy;
+pub mod kurage_agents;
+pub mod opsgenie_alerts;
+pub mod project_marks;
+pub mod recent_dirs;
+pub mod secret_age;
 pub mod tend_repos;
+pub mod todo_backlog;
 
 /// Every implemented source, in catalog order. The engine runs the
 /// config-enabled subset.
@@ -21,7 +46,32 @@ pub mod tend_repos;
 pub fn registry() -> Vec<Arc<dyn SuggestionSource>> {
     vec![
         Arc::new(git_branch_pr::GitBranchPrSource),
+        Arc::new(github_review_requested::GithubReviewRequestedSource),
+        Arc::new(github_assigned_issues::GithubAssignedIssuesSource),
+        Arc::new(github_actions_failing::GithubActionsFailingSource),
         Arc::new(tend_repos::TendReposSource),
+        Arc::new(recent_dirs::RecentDirsSource),
+        Arc::new(project_marks::ProjectMarksSource),
+        Arc::new(cargo_warnings::CargoWarningsSource),
+        Arc::new(todo_backlog::TodoBacklogSource),
+        Arc::new(jira_sprint::JiraSprintSource),
+        Arc::new(jira_assigned::JiraAssignedSource),
+        Arc::new(confluence_mentions::ConfluenceMentionsSource),
+        Arc::new(flux_failing::FluxFailingSource),
+        Arc::new(k8s_unhealthy::K8sUnhealthySource),
+        Arc::new(breathe_conflict::BreatheConflictSource),
+        Arc::new(engenho_nodes::EngenhoNodesSource),
+        Arc::new(grafana_alerts::GrafanaAlertsSource),
+        Arc::new(grafana_incidents::GrafanaIncidentsSource),
+        Arc::new(grafana_oncall::GrafanaOncallSource),
+        Arc::new(datadog_monitors::DatadogMonitorsSource),
+        Arc::new(opsgenie_alerts::OpsgenieAlertsSource),
+        Arc::new(kurage_agents::KurageAgentsSource),
+        Arc::new(aws_health::AwsHealthSource),
+        Arc::new(cloudflare_deployments::CloudflareDeploymentsSource),
+        Arc::new(google_tasks::GoogleTasksSource),
+        Arc::new(google_calendar::GoogleCalendarSource),
+        Arc::new(secret_age::SecretAgeSource),
     ]
 }
 

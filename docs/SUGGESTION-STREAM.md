@@ -1,0 +1,135 @@
+# The Suggestion Stream — continuous task-flow dominance in the Ctrl-S picker
+
+> **Destination first** (Operating Principle #0). Open Ctrl-S any time and the
+> lower band of the session picker is a **living, gently self-refreshing stack
+> of "what you could start working on right now"** — a PR awaiting your review,
+> a sprint ticket, a failing Flux/k8s resource, a dirty repo, a Cursor agent
+> needing follow-up, an incident firing. Each row is ranked by urgency + score,
+> each **Enter-spawns a pre-named session aimed at that task**. Sources are
+> shikumi config; adding one is a single `SuggestionSource` impl. Nothing dead
+> or duplicate is ever offered. The terminal proposes your next task before you
+> go looking — *flow dominance*.
+
+This is **not** a new daemon or a new picker. mado already embeds **vigy** (a
+tatara-lisp reconciler runtime with parallel watchers + in-memory events +
+lazy SQLite persistence) and the Ctrl-S picker already renders latent **○**
+rows. The suggestion stream is a typed plane that parallel watchers feed into
+rows the picker already knows how to draw.
+
+## Architecture (reuse-first, no-overlap layering)
+
+```
+                      ┌─────────────────────────────────────────────┐
+   external state ──▶ │ SuggestionSource::poll(&dyn Environment,cfg) │  one impl per SourceKind
+ (gh / git / kubectl  └───────────────┬─────────────────────────────┘
+  / flux / HTTP / fs)                 │ Vec<Suggestion>   (pure; tested via MockEnvironment)
+                                      ▼
+   SuggestionEngine (one tokio watcher task per enabled source, own runtime thread like vigy)
+                                      │ store.ingest(source, items, now)
+                                      ▼
+   SuggestionStore  (ephemeral, ranked, decaying; SEPARATE from persisted presets;
+                     per-source ingest preserves first_seen → shade-in continuity)
+                                      │ ranked_stored(max)
+                                      ▼
+   PracaPickerBridge.list()  →  ○ RowKind::Suggestion rows BELOW live ● + preset ○ rows
+                                      │ Enter
+                                      ▼
+   bridge.spawn_suggestion(id)  →  spawn a session at the suggestion's cwd + name → switch
+```
+
+| Layer | Type / file | Notes |
+|---|---|---|
+| Data model | `suggest::core` — `Suggestion`, `SourceKind` (27-variant catalog), `SpawnSpec`, `Urgency`, `SuggestionId` | `SpawnSpec::new` rejects empty cwd/name → an un-actionable suggestion is **unrepresentable**. The 27-source catalog is CATALOG REFLECTION (exhaustive `match` per method). |
+| I/O boundary | `suggest::env` — `SuggestionEnvironment` (`RealEnvironment` / `MockEnvironment`) | The TYPED-SPEC+INTERPRETER triplet's `Environment`. Real = typed `Command` + `curl` HTTP + fs + sops secret (NO shell). Tests = canned fixtures. Every method returns `Option`/empty (graceful, never panics). |
+| Store | `suggest::store` — `SuggestionStore` | Ephemeral ranked + decaying; per-source `ingest` replaces only that source's slice, preserving `first_seen_ms`. JSON snapshot for warm restart. **Never** touches the persisted preset catalog (`PracaSnapshot.definitions`). |
+| Watcher plane | `suggest::source` — `SuggestionSource` trait + `SuggestionEngine` + `refresh_once` | One tokio task per enabled source, each on its own cadence, polling on the blocking pool (subprocess-safe). `refresh_once` is the single tested unit. |
+| Providers | `suggest::sources::*` — one file per `SourceKind` | Each a pure `poll` + a free `parse` fn + `#[cfg(test)]` mock tests. |
+| View | `session_picker::RowKind::Suggestion` + `PracaPickerBridge` | `list()` appends query-filtered, ranked ○ suggestion rows below sessions/presets (the union-navigator law). `spawn_suggestion` is the accept path. |
+| Config | `config::SuggestionsConfig` (shikumi-tiered) | bare = OFF (stripped); prescribed = ON, gentle cadence, all implemented sources at defaults; per-source overrides by kebab slug. |
+
+## Source catalog (27)
+
+Tiered by default urgency / flow value. Each maps to one `SuggestionSource`.
+`needs_auth` sources contribute nothing until their token/param is present
+(graceful, never an error).
+
+| Slug | Yields | Fetch | Auth |
+|---|---|---|---|
+| `git-branch-pr` | your open PRs | `gh search prs --author=@me` | gh |
+| `github-review-requested` | PRs awaiting your review | `gh search prs --review-requested=@me` | gh |
+| `github-assigned-issues` | issues assigned to you | `gh search issues --assignee=@me` | gh |
+| `github-actions-failing` | failing CI runs (cwd repo) | `gh run list --status=failure` | gh |
+| `tend-repos` | dirty / missing workspace repos | `tend status --json` | — |
+| `recent-dirs` | recently-visited dirs | `~/.local/share/mado/recent_dirs` | — |
+| `project-marks` | your project marks | `~/.local/share/mado/marks` | — |
+| `cargo-warnings` | cargo warnings in cwd | `cargo check --message-format short` | — |
+| `todo-backlog` | TODO/FIXME under code root | `rg -e TODO -e FIXME` | — |
+| `jira-sprint` | sprint issues assigned to you | Jira REST `/search` (JQL) | atlassian/api-token + base_url/email |
+| `jira-assigned` | all issues assigned to you | Jira REST `/search` | atlassian |
+| `confluence-mentions` | pages mentioning you | Confluence REST `/search` (CQL) | atlassian |
+| `flux-failing` | Flux Kustomizations/HelmReleases not Ready | `kubectl get kustomizations,helmreleases -A -o json` | kubeconfig |
+| `k8s-unhealthy` | Pending / CrashLoop pods | `kubectl get pods -A -o json` | kubeconfig |
+| `breathe-conflict` | breathe bands in Conflict | `kubectl get breathebands -A -o json` | kubeconfig |
+| `engenho-nodes` | nodes not Ready | `kubectl get nodes -o json` | kubeconfig |
+| `grafana-alerts` | firing alerts | Grafana `/api/prometheus/.../alerts` | grafana/api-token + base_url |
+| `grafana-incidents` | open incidents | Grafana annotations | grafana |
+| `grafana-oncall` | your on-call shifts | Grafana OnCall `/shifts` | grafana/oncall-token |
+| `datadog-monitors` | alerting monitors | Datadog `/api/v1/monitor` | datadog/api-key+app-key |
+| `opsgenie-alerts` | open alerts | Opsgenie `/v2/alerts` | opsgenie/api-key |
+| `kurage-agents` | Cursor agents needing follow-up | `kurage list-agents --json` | kurage |
+| `aws-health` | open AWS health events | `aws health describe-events` | aws cli |
+| `cloudflare-deployments` | failed Pages deployments | Cloudflare API | cloudflare/api-token |
+| `google-tasks` | tasks due | Google Tasks API | google/tasks-token |
+| `google-calendar` | imminent events | Google Calendar API | google/calendar-token |
+| `secret-age` | stale secrets to rotate | `find ~/.config -mtime +90` | — |
+
+## Config (shikumi-tiered)
+
+```yaml
+suggestions:
+  enabled: true            # master switch (bare tier = false)
+  default_enabled: true    # run a source with no explicit override
+  max_visible: 6           # rows shown in the picker
+  shade_in_ms: 600         # fade-in duration (M1)
+  ttl_secs: 900            # decay an unseen suggestion after this
+  sources:
+    - kind: jira-sprint
+      enabled: true
+      interval_secs: 300
+      max_items: 5
+      params: { base_url: "https://acme.atlassian.net", email: "me@acme.com" }
+    - kind: aws-health
+      enabled: false       # opt a heavy source out
+```
+
+`MADO_TIER=bare` strips the whole stream. Per-source secrets come from the
+sops-rendered `~/.config/<category>/<name>` path (e.g. `atlassian/api-token`).
+
+## Phased plan + tier ledger
+
+| Phase | Scope | State |
+|---|---|---|
+| **M0** | substrate (core/env/store/source) + 27-source catalog + 2 providers (git-branch-pr, tend-repos) + `RowKind::Suggestion` + bridge list/spawn + `SuggestionsConfig` + engine bootstrap | ✅ shipped (`64d2c87`) |
+| **M-bulk** | the remaining 25 providers, each parser-tested via `MockEnvironment` | ⏳ in progress |
+| **M1** | per-frame shade-in (alpha ramp in `draw_session_picker`) + refresh-while-open (throttled re-list on the redraw tick) | ⏭ render-deep; not yet |
+| **M2** | nix HM/NixOS/Darwin module trio for `suggestions` (blackmatter-mado + terminal.nix) | ⏭ |
+| **M3** | lift the data type into praça (`SessionOrigin::Suggested`) + a `(defsuggestionsource)` tlisp authoring surface via the vigy host (sources authored as watchers) | ⏭ |
+| **M4** | warm-restart persist + samba rate-limiting for HTTP/MCP sources + dedup-vs-live hardening | ⏭ |
+
+### Tier-honest notes (a `Result::Err` is mitigation, an absent path is unrepresentability — never round up)
+
+- **Unrepresentable today:** a `Suggestion` with no spawn target (`SpawnSpec::new` is the only ingress and rejects empty cwd/name).
+- **Only-mitigated today:** a suggestion whose target session is already live is *not yet* deduped to a Switch row (M4); `initial_command` is stored on the `SpawnSpec` but **not yet auto-typed** into the spawned session (no inproc pane-write path); the shade-in is **instant** at M-bulk (the per-frame alpha ramp is M1).
+- **Live-shape assumptions:** the HTTP providers (jira/grafana/datadog/opsgenie/cloudflare/google) parse documented-but-unverified response shapes; each is fully mock-tested and returns empty when unauthed, so a wrong live shape degrades to "no rows," never a crash. Verify against the live API when wiring each token.
+- **Core lives in mado first**, not praça — deliberate, to avoid the cross-repo git-rev-bump loop during build-out. M3 lifts it.
+
+## Directive compliance
+
+- **TYPED-SPEC + INTERPRETER TRIPLET** — each source = a pure interpreter over the `SuggestionEnvironment` trait, mocked in tests. (Lisp authoring leg is M3.)
+- **CATALOG REFLECTION** — `SourceKind::ALL` + exhaustive per-method matches; a new variant is a compile error until labelled/catalogued.
+- **shikumi** — `SuggestionsConfig` is tiered (bare/prescribed) with `deny_unknown_fields`.
+- **UNREPRESENTABILITY** — no suggestion without a spawn target.
+- **TYPED EMISSION** — no `format!()`; labels via `push_str`/`Display`.
+- **NO SHELL** — every subprocess is a typed `Cmd` (program + argv), HTTP via a typed `curl` argv.
+- **shigoto / vigy** — the recurring multi-source refresh is the watcher plane; vigy is the in-process daemon the M3 tlisp-authored sources run on.
+- **no-overlap layering** — tear = model, mado = view, praça = orchestration; the store + bridge respect it.

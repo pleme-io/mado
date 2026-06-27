@@ -80,6 +80,7 @@ impl Cmd {
 pub struct HttpReq {
     url: String,
     headers: Vec<(String, String)>,
+    basic: Option<(String, String)>,
 }
 
 impl HttpReq {
@@ -88,7 +89,21 @@ impl HttpReq {
         Self {
             url: url.into(),
             headers: Vec::new(),
+            basic: None,
         }
+    }
+
+    /// HTTP Basic auth (e.g. Atlassian Cloud: email + API token). curl
+    /// computes the header so we need no base64 dependency.
+    #[must_use]
+    pub fn basic_auth(mut self, user: impl Into<String>, pass: impl Into<String>) -> Self {
+        self.basic = Some((user.into(), pass.into()));
+        self
+    }
+
+    #[must_use]
+    pub fn basic(&self) -> Option<&(String, String)> {
+        self.basic.as_ref()
     }
 
     #[must_use]
@@ -176,6 +191,13 @@ impl SuggestionEnvironment for RealEnvironment {
             .arg("-sf")
             .arg("--max-time")
             .arg("10");
+        if let Some((user, pass)) = req.basic() {
+            let mut up = String::new();
+            up.push_str(user);
+            up.push(':');
+            up.push_str(pass);
+            c = c.arg("-u").arg(up);
+        }
         for (k, v) in req.headers() {
             let mut h = String::new();
             h.push_str(k);
