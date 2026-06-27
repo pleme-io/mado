@@ -682,6 +682,13 @@ pub struct SuggestionsConfig {
     pub shade_in_ms: u64,
     /// Drop a suggestion this many seconds after it was last seen (0 = never).
     pub ttl_secs: u64,
+    /// Lazily persist the cache to disk (atomic temp→rename) so a restart
+    /// re-surfaces the last-known tasks instantly while the watchers re-poll.
+    /// `~/.local/share/mado/suggestions.json` (override `MADO_SUGGEST_DB`).
+    pub persist: bool,
+    /// Coalesce disk writes: persist at most once per this many seconds, so the
+    /// 27 parallel watchers can't thrash the disk. 0 = persist on every change.
+    pub persist_debounce_secs: u64,
     /// Per-source overrides. Unlisted sources use `default_enabled` + the
     /// kind's default cadence.
     pub sources: Vec<SuggestionSourceConfig>,
@@ -704,6 +711,8 @@ impl SuggestionsConfig {
             per_source_cap: 0,
             shade_in_ms: 0,
             ttl_secs: 0,
+            persist: false,
+            persist_debounce_secs: 0,
             sources: Vec::new(),
         }
     }
@@ -720,6 +729,8 @@ impl SuggestionsConfig {
             per_source_cap: 3,
             shade_in_ms: 600,
             ttl_secs: 900,
+            persist: true,
+            persist_debounce_secs: 5,
             sources: Vec::new(),
         }
     }

@@ -15,25 +15,39 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
 
 use super::core::{SourceKind, Suggestion, SuggestionId};
+
+/// Snapshot framing magic — a schema tag so a future format bump is rejected
+/// (start-empty) rather than silently mis-parsed.
+const SNAPSHOT_MAGIC: &[u8] = b"mado-suggest v1\n";
 
 /// A suggestion plus the store-side bookkeeping the renderer needs.
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct StoredSuggestion {
     pub suggestion: Suggestion,
     /// When this id first appeared (ms) — the shade-in ramp anchor.
+    #[serde(default)]
     pub first_seen_ms: u64,
     /// When this id was last confirmed present (ms) — decay/freshness.
+    #[serde(default)]
     pub last_seen_ms: u64,
 }
 
 /// Thread-safe ranked suggestion cache. Cloneable handle pattern is not used
 /// here (callers hold an `Arc<SuggestionStore>`); the inner map is mutexed.
+///
+/// A monotonic `generation` is bumped only on a *meaningful* change (an id
+/// added/removed, or a row's displayed/ranked fields changed — NOT a mere
+/// `last_seen_ms` heartbeat). The picker memoizes its ranked read by it (O(1)
+/// reads while the watchers idle) and the persist task uses it as the dirty
+/// signal — one counter, the shikumi swap-then-observe contract.
 #[derive(Default)]
 pub struct SuggestionStore {
     inner: Mutex<BTreeMap<SuggestionId, StoredSuggestion>>,
+    generation: AtomicU64,
 }
 
 /// Serializable view for the warm-restart snapshot.
@@ -54,31 +68,61 @@ impl SuggestionStore {
             .unwrap_or_else(std::sync::PoisonError::into_inner)
     }
 
+    /// Current change-generation (Acquire). Bumped only on a meaningful change;
+    /// the picker memoizes its ranked read by it + the persist task uses it as
+    /// the dirty signal.
+    #[must_use]
+    pub fn generation(&self) -> u64 {
+        self.generation.load(Ordering::Acquire)
+    }
+
+    /// Bump the change-generation (Release) — called after a meaningful mutation.
+    fn bump(&self) {
+        self.generation.fetch_add(1, Ordering::Release);
+    }
+
     /// Replace the suggestion set contributed by `source`. Ids that persist
     /// keep their `first_seen_ms`; ids of this source that vanished are
     /// dropped; entries from other sources are untouched.
     pub fn ingest(&self, source: SourceKind, items: Vec<Suggestion>, now_ms: u64) {
-        let mut g = self.lock();
-        let incoming: BTreeSet<SuggestionId> = items.iter().map(|s| s.id).collect();
-        // Drop this source's vanished ids (keep all other sources').
-        g.retain(|id, st| st.suggestion.source != source || incoming.contains(id));
-        for s in items {
-            match g.get_mut(&s.id) {
-                Some(existing) => {
-                    existing.last_seen_ms = now_ms;
-                    existing.suggestion = s; // refresh title/urgency/score
-                }
-                None => {
-                    g.insert(
-                        s.id,
-                        StoredSuggestion {
-                            first_seen_ms: now_ms,
-                            last_seen_ms: now_ms,
-                            suggestion: s,
-                        },
-                    );
+        let mut changed = false;
+        {
+            let mut g = self.lock();
+            let incoming: BTreeSet<SuggestionId> = items.iter().map(|s| s.id).collect();
+            // Drop this source's vanished ids (keep all other sources').
+            let before = g.len();
+            g.retain(|id, st| st.suggestion.source != source || incoming.contains(id));
+            if g.len() != before {
+                changed = true; // an id of this source vanished
+            }
+            for s in items {
+                match g.get_mut(&s.id) {
+                    Some(existing) => {
+                        // Bump only on a DISPLAYED/RANKED change, not a mere
+                        // last_seen heartbeat — else every 30s poll would force a
+                        // re-render + a disk write for an unchanged row.
+                        if existing.suggestion != s {
+                            changed = true;
+                        }
+                        existing.last_seen_ms = now_ms;
+                        existing.suggestion = s;
+                    }
+                    None => {
+                        changed = true;
+                        g.insert(
+                            s.id,
+                            StoredSuggestion {
+                                first_seen_ms: now_ms,
+                                last_seen_ms: now_ms,
+                                suggestion: s,
+                            },
+                        );
+                    }
                 }
             }
+        }
+        if changed {
+            self.bump();
         }
     }
 
@@ -86,8 +130,15 @@ impl SuggestionStore {
     /// decay pass (a source that stops reporting an item lets it age out even
     /// if the source itself never re-polls).
     pub fn decay(&self, now_ms: u64, ttl_ms: u64) {
-        let mut g = self.lock();
-        g.retain(|_, st| now_ms.saturating_sub(st.last_seen_ms) <= ttl_ms);
+        let removed = {
+            let mut g = self.lock();
+            let before = g.len();
+            g.retain(|_, st| now_ms.saturating_sub(st.last_seen_ms) <= ttl_ms);
+            g.len() != before
+        };
+        if removed {
+            self.bump();
+        }
     }
 
     /// The top `max` suggestions, ranked by urgency→score→age→id.
@@ -131,7 +182,15 @@ impl SuggestionStore {
         self.lock().is_empty()
     }
     pub fn clear(&self) {
-        self.lock().clear();
+        let had = {
+            let mut g = self.lock();
+            let had = !g.is_empty();
+            g.clear();
+            had
+        };
+        if had {
+            self.bump();
+        }
     }
 
     /// Alpha (0..=255) for an id's shade-in ramp: 0 at birth, 255 after
@@ -156,37 +215,88 @@ impl SuggestionStore {
     /// Replace the store from a snapshot (warm restart). Birth times are kept
     /// so a row that survived the restart doesn't re-shade-in.
     pub fn load_snapshot(&self, snap: StoreSnapshot) {
-        let mut g = self.lock();
-        g.clear();
-        for st in snap.entries {
-            g.insert(st.suggestion.id, st);
-        }
-    }
-
-    /// Best-effort load from a JSON file — a torn/absent file starts empty.
-    pub fn load_file(&self, path: &Path) {
-        if let Ok(bytes) = std::fs::read(path) {
-            if let Ok(snap) = serde_json::from_slice::<StoreSnapshot>(&bytes) {
-                self.load_snapshot(snap);
+        {
+            let mut g = self.lock();
+            g.clear();
+            for st in snap.entries {
+                g.insert(st.suggestion.id, st);
             }
         }
+        self.bump();
     }
 
-    /// Best-effort atomic persist (temp → rename) — never blocks the caller on
-    /// a write failure.
-    pub fn persist_file(&self, path: &Path) {
-        let snap = self.to_snapshot();
-        let Ok(bytes) = serde_json::to_vec(&snap) else {
+    /// Warm-restart load: a magic-framed, BLAKE3-verified snapshot file. A
+    /// missing file, a wrong schema magic (format bump), or a torn body (hash
+    /// mismatch) all start empty — never feed garbage rows to the picker.
+    pub fn load_file(&self, path: &Path) {
+        let Ok(bytes) = std::fs::read(path) else {
             return;
         };
-        let mut tmp = path.to_path_buf();
-        let mut ext = tmp.extension().map(|e| e.to_os_string()).unwrap_or_default();
-        ext.push(".tmp");
-        tmp.set_extension(ext);
-        if std::fs::write(&tmp, &bytes).is_ok() {
-            let _ = std::fs::rename(&tmp, path);
+        let Some(json) = unframe_snapshot(&bytes) else {
+            return; // bad magic / hash mismatch → start empty
+        };
+        if let Ok(snap) = serde_json::from_slice::<StoreSnapshot>(&json) {
+            self.load_snapshot(snap);
         }
     }
+
+    /// Crash-safe atomic persist: serialize → BLAKE3-frame → write a pid-tagged
+    /// temp (after `create_dir_all`) → `sync_all` → rename. Snapshotting clones
+    /// under the lock then drops it, so the disk I/O is lock-free. Best-effort —
+    /// a write failure never blocks the caller.
+    pub fn persist_file(&self, path: &Path) {
+        let snap = self.to_snapshot();
+        let Ok(json) = serde_json::to_vec(&snap) else {
+            return;
+        };
+        let framed = frame_snapshot(&json);
+        if let Some(parent) = path.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        // pid-tagged temp so two processes never race the same temp name.
+        let mut tmp = path.as_os_str().to_owned();
+        tmp.push(".tmp.");
+        tmp.push(std::process::id().to_string());
+        let tmp = std::path::PathBuf::from(tmp);
+        use std::io::Write;
+        let Ok(mut f) = std::fs::File::create(&tmp) else {
+            return;
+        };
+        if f.write_all(&framed).is_err() {
+            let _ = std::fs::remove_file(&tmp);
+            return;
+        }
+        let _ = f.sync_all(); // durable before the rename
+        drop(f);
+        let _ = std::fs::rename(&tmp, path);
+    }
+}
+
+/// Frame a JSON snapshot: `MAGIC || blake3-hex || '\n' || json`. The magic is a
+/// schema tag; the embedded hash makes a torn file detectable on load.
+#[must_use]
+fn frame_snapshot(json: &[u8]) -> Vec<u8> {
+    let hex = blake3::hash(json).to_hex();
+    let mut out = Vec::with_capacity(SNAPSHOT_MAGIC.len() + hex.len() + 1 + json.len());
+    out.extend_from_slice(SNAPSHOT_MAGIC);
+    out.extend_from_slice(hex.as_bytes());
+    out.push(b'\n');
+    out.extend_from_slice(json);
+    out
+}
+
+/// Inverse of [`frame_snapshot`]: `None` on wrong magic (schema bump) or a hash
+/// mismatch (torn/corrupt) — both mean start-empty.
+#[must_use]
+fn unframe_snapshot(bytes: &[u8]) -> Option<Vec<u8>> {
+    let rest = bytes.strip_prefix(SNAPSHOT_MAGIC)?;
+    let nl = rest.iter().position(|&b| b == b'\n')?;
+    let (hex, after) = rest.split_at(nl);
+    let json = &after[1..]; // skip the newline
+    if blake3::hash(json).to_hex().as_bytes() != hex {
+        return None; // torn / corrupt
+    }
+    Some(json.to_vec())
 }
 
 /// Diversify a rank-ordered suggestion list: keep the order, but cap how many
@@ -315,6 +425,64 @@ mod tests {
         restored.load_snapshot(snap);
         assert_eq!(restored.len(), 1);
         assert_eq!(restored.ranked_stored(1)[0].first_seen_ms, 100);
+    }
+
+    #[test]
+    fn framed_persist_load_round_trips_and_rejects_corruption() {
+        let dir = std::env::temp_dir().join("mado-suggest-test-persist");
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("snap.json");
+        let _ = std::fs::remove_file(&path);
+
+        let store = SuggestionStore::new();
+        store.ingest(SourceKind::TendRepos, vec![sug(SourceKind::TendRepos, "a", "a")], 100);
+        store.persist_file(&path);
+
+        // Round-trip: a fresh store warm-loads the set.
+        let loaded = SuggestionStore::new();
+        loaded.load_file(&path);
+        assert_eq!(loaded.len(), 1, "warm restart re-surfaces the set");
+
+        // A torn body (flip a json byte) → hash mismatch → start empty.
+        let mut bytes = std::fs::read(&path).unwrap();
+        let last = bytes.len() - 1;
+        bytes[last] ^= 0xff;
+        std::fs::write(&path, &bytes).unwrap();
+        let torn = SuggestionStore::new();
+        torn.load_file(&path);
+        assert_eq!(torn.len(), 0, "a torn body is rejected → empty");
+
+        // Wrong magic (a foreign/old file) → start empty.
+        std::fs::write(&path, b"garbage not ours").unwrap();
+        let bad = SuggestionStore::new();
+        bad.load_file(&path);
+        assert_eq!(bad.len(), 0, "wrong magic → empty");
+
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn generation_bumps_on_change_not_on_last_seen_heartbeat() {
+        let store = SuggestionStore::new();
+        let g0 = store.generation();
+        store.ingest(SourceKind::TendRepos, vec![sug(SourceKind::TendRepos, "a", "a")], 100);
+        let g1 = store.generation();
+        assert!(g1 > g0, "first insert bumps");
+
+        // Re-ingest the SAME suggestion (only last_seen advances) → NO bump.
+        store.ingest(SourceKind::TendRepos, vec![sug(SourceKind::TendRepos, "a", "a")], 500);
+        assert_eq!(store.generation(), g1, "a last_seen heartbeat must not bump");
+
+        // A changed displayed field → bump.
+        let mut changed = sug(SourceKind::TendRepos, "a", "a");
+        changed.title = String::from("a CHANGED");
+        store.ingest(SourceKind::TendRepos, vec![changed], 600);
+        let g2 = store.generation();
+        assert!(g2 > g1, "a displayed change bumps");
+
+        // Removal → bump.
+        store.ingest(SourceKind::TendRepos, vec![], 700);
+        assert!(store.generation() > g2, "removal bumps");
     }
 
     fn stored(source: SourceKind, key: &str) -> StoredSuggestion {

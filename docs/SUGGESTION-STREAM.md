@@ -119,9 +119,19 @@ sops-rendered `~/.config/<category>/<name>` path (e.g. `atlassian/api-token`).
 | **Diversity** | `balance_per_source` + `per_source_cap` — one noisy source can't drown the band | ✅ shipped |
 | **Freshness** | `util::relative_age` nudge on tasks idle ≥ 5m | ✅ shipped |
 | **Testing** | property invariants (pct round-trip, rank-order, balance bounds, urgency dominance, spawnspec) | ✅ shipped |
+| **Persistence** | warm-restart load + crash-safe atomic write (mkdir-p + pid-temp + `sync_all` + rename) + BLAKE3-framed/versioned snapshot (torn/schema-bump → start-empty) + a single debounced maintenance task (one disk write per `persist_debounce_secs`, gated on a change-`generation`, off the watcher hot path) + decay moved to that task | ✅ shipped |
 | **M2** | nix HM/NixOS/Darwin module trio for `suggestions` (blackmatter-mado + terminal.nix) | ⏭ |
 | **M3** | lift the data type into praça (`SessionOrigin::Suggested`) + a `(defsuggestionsource)` tlisp authoring surface via the vigy host | ⏭ |
-| **M4** | warm-restart persist + samba rate-limiting for HTTP/MCP sources + dedup-vs-live *type-level* hardening | ⏭ |
+| **M4 (rest)** | samba rate-limiting for HTTP/MCP sources + dedup-vs-live *type-level* hardening + per-source-interval TTL + hard `max_entries` cap + picker ranked-read memoization (generation counter already in place) | ⏭ |
+
+### Caching + local-optimization (lessons applied from guardrail/kanshou/tend/shikumi/CAS)
+
+A fleet caching study (the guardrail/kanshou/PracaStore/shikumi/CAS patterns) shaped the persistence:
+- **Crash-safe atomic write** (the PracaStore temp→rename pattern, hardened): `create_dir_all` + a pid-tagged temp + `sync_all` before `rename` — first-run-safe + durable. Snapshot clones under the lock then drops it, so the disk I/O is lock-free.
+- **Versioned + content-verified snapshot** (the CAS/BLAKE3 lesson, inlined — `blake3` is already a dep, no new closure): a `mado-suggest v1` magic + an embedded BLAKE3 of the body. A schema bump (wrong magic) or a torn file (hash mismatch) starts empty rather than feeding garbage rows.
+- **Change-`generation: AtomicU64`** (the shikumi swap-then-observe contract): bumped only on a *meaningful* change (id added/removed or a displayed/ranked field changed — never a `last_seen` heartbeat). It is the persist task's dirty signal (a startup burst of 27 first-ticks coalesces to ONE write) and the future picker read-memoization key.
+- **Single maintenance task owns decay + debounced persist** (the tend "save once per cycle" lesson): the 27 watchers only ever touch RAM; one task on the `persist_debounce_secs` cadence decays + writes-if-dirty. No per-watcher disk thrash, no per-tick full-map scans.
+- **Deliberately NOT done** (tier-honest): kept `Mutex` (one hot reader; ArcSwap is the named-but-deferred destination if profiling ever shows picker stalls); FNV-1a `SuggestionId` kept as the RAM dedup key (not re-keyed to BLAKE3); the picker ranked-read memoization is deferred (list() is already ~2s-throttled, so its value is low until proven by profiling).
 
 ### Tier-honest notes (a `Result::Err` is mitigation, an absent path is unrepresentability — never round up)
 

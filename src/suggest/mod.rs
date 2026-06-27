@@ -59,6 +59,7 @@ pub use source::{refresh_once, EngineConfig, SourceConfig, SuggestionEngine, Sug
 #[allow(unused_imports)]
 pub use store::{shade_ramp, StoreSnapshot, StoredSuggestion, SuggestionStore};
 
+use std::path::PathBuf;
 use std::sync::{Arc, OnceLock};
 
 /// The process-wide suggestion cache — created lazily on first access. The
@@ -71,6 +72,24 @@ static STORE: OnceLock<Arc<SuggestionStore>> = OnceLock::new();
 #[must_use]
 pub fn store() -> Arc<SuggestionStore> {
     Arc::clone(STORE.get_or_init(|| Arc::new(SuggestionStore::new())))
+}
+
+/// Resolve the warm-restart snapshot path. `$MADO_SUGGEST_DB` is an explicit
+/// override; else `$MADO_STATE_DIR` (tests inject a temp dir); else the OS
+/// state dir (`~/.local/state` on Linux — warm-restart data is operator-
+/// meaningful *state*, not throwaway cache), falling back to the data dir, then
+/// the temp dir. The file lives under a `mado/` subdir.
+#[must_use]
+pub fn state_path() -> PathBuf {
+    if let Some(p) = std::env::var_os("MADO_SUGGEST_DB") {
+        return PathBuf::from(p);
+    }
+    let base = std::env::var_os("MADO_STATE_DIR")
+        .map(PathBuf::from)
+        .or_else(dirs::state_dir)
+        .or_else(dirs::data_dir)
+        .unwrap_or_else(std::env::temp_dir);
+    base.join("mado").join("suggestions.json")
 }
 
 /// Translate the typed shikumi `suggestions` config into an [`EngineConfig`].
@@ -108,6 +127,11 @@ pub fn spawn_engine_thread(cfg: &crate::config::SuggestionsConfig) {
         return;
     }
     let engine_cfg = engine_config_from(cfg);
+    let ttl_ms = cfg.ttl_secs.saturating_mul(1000);
+    let persist = cfg.persist;
+    // 0 = "persist on every change" → a 1s minimum tick (tokio rejects a 0
+    // interval); otherwise coalesce writes to this cadence.
+    let debounce = std::time::Duration::from_secs(cfg.persist_debounce_secs.max(1));
     let res = std::thread::Builder::new()
         .name("mado-suggest".into())
         .spawn(move || {
@@ -119,15 +143,48 @@ pub fn spawn_engine_thread(cfg: &crate::config::SuggestionsConfig) {
             {
                 Ok(rt) => rt.block_on(async move {
                     let env: Arc<dyn SuggestionEnvironment> = Arc::new(RealEnvironment::discover());
-                    let engine =
-                        SuggestionEngine::start(sources::registry(), env, store(), engine_cfg);
+                    let store = store();
+                    let path = state_path();
+                    // Warm restart: re-surface the last-known tasks INSTANTLY,
+                    // then age out anything already stale, before the watchers
+                    // re-poll. The picker is populated on the first frame.
+                    if persist {
+                        store.load_file(&path);
+                        if ttl_ms > 0 {
+                            store.decay(env.now_unix().saturating_mul(1000), ttl_ms);
+                        }
+                    }
+                    let engine = SuggestionEngine::start(
+                        sources::registry(),
+                        Arc::clone(&env),
+                        Arc::clone(&store),
+                        engine_cfg,
+                    );
                     tracing::info!(
                         watchers = engine.active_watchers(),
+                        persist,
                         "mado suggestion engine live"
                     );
-                    // Keep the runtime + engine alive for the process lifetime.
-                    std::future::pending::<()>().await;
-                    drop(engine);
+                    // Maintenance loop — the SINGLE owner of decay + debounced
+                    // persist, off the watcher hot path. The 27 watchers only
+                    // ever touch RAM; this coalesces a startup burst of first
+                    // ticks into ONE disk write, and only when the change-
+                    // generation actually advanced. Keeps the runtime + engine
+                    // alive for the process lifetime.
+                    let mut last_gen = store.generation();
+                    let mut tick = tokio::time::interval(debounce);
+                    loop {
+                        tick.tick().await;
+                        let now_ms = env.now_unix().saturating_mul(1000);
+                        if ttl_ms > 0 {
+                            store.decay(now_ms, ttl_ms);
+                        }
+                        let current_gen = store.generation();
+                        if persist && current_gen != last_gen {
+                            store.persist_file(&path);
+                            last_gen = current_gen;
+                        }
+                    }
                 }),
                 Err(e) => {
                     tracing::warn!(err = %e, "could not create suggestion tokio runtime");
@@ -136,5 +193,34 @@ pub fn spawn_engine_thread(cfg: &crate::config::SuggestionsConfig) {
         });
     if let Err(e) = res {
         tracing::warn!(err = %e, "could not spawn mado-suggest thread");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// One test (not two) so the process-global env mutations can't race in the
+    /// parallel test runner — nothing else reads these vars.
+    #[test]
+    fn state_path_resolves_overrides_then_state_dir() {
+        // SAFETY: env mutation is `unsafe` in edition 2024; this is the sole
+        // mutator of these vars and runs its set/clear sequentially.
+        unsafe {
+            // Explicit DB override wins outright.
+            std::env::set_var("MADO_SUGGEST_DB", "/tmp/mado-explicit/snap.json");
+            assert_eq!(state_path(), PathBuf::from("/tmp/mado-explicit/snap.json"));
+
+            // Without the explicit override, the state-dir override applies, under
+            // a `mado/` subdir.
+            std::env::remove_var("MADO_SUGGEST_DB");
+            std::env::set_var("MADO_STATE_DIR", "/tmp/mado-state-test");
+            assert_eq!(
+                state_path(),
+                PathBuf::from("/tmp/mado-state-test/mado/suggestions.json")
+            );
+
+            std::env::remove_var("MADO_STATE_DIR");
+        }
     }
 }

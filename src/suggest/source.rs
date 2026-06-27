@@ -129,7 +129,6 @@ impl SuggestionEngine {
     ) -> Self {
         let stop = Arc::new(AtomicBool::new(false));
         let mut handles = Vec::new();
-        let ttl_ms = cfg.ttl_ms;
         for src in sources {
             let scfg = cfg.config_for(src.kind());
             if !scfg.enabled {
@@ -160,10 +159,10 @@ impl SuggestionEngine {
                     })
                     .await
                     .unwrap_or_default();
+                    // Watchers only ever touch RAM. Decay + disk persistence are
+                    // owned by the single maintenance task (see mod.rs), off this
+                    // hot path — no per-watcher full-map scans or writes.
                     store.ingest(src.kind(), items, now_ms);
-                    if ttl_ms > 0 {
-                        store.decay(now_ms, ttl_ms);
-                    }
                 }
             }));
         }
