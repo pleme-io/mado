@@ -97,7 +97,7 @@ pleme-kindbyte-derive = { git = "https://github.com/pleme-io/pleme-kindbyte-deri
 pleme-fleet-themed-derive = { git = "https://github.com/pleme-io/pleme-fleet-themed-derive" }
 
 garasu = "0.1"
-madori = { git = "https://github.com/pleme-io/madori" , version = "0.1" }
+madori = { git = "https://github.com/pleme-io/madori", rev = "befd6aa9dd854c1dca900a4bc864d96f85fa812a", version = "0.1" }
 shikumi = { version = "0.1", features = ["cli"] }
 hasami = { git = "https://github.com/pleme-io/hasami" , version = "0.1" }
 # Tsuuchi (通知) — the fleet notification primitive. The M4 unified
@@ -314,11 +314,13 @@ default = []
 gpu_tests = ["dep:pollster"]
 
 [patch.crates-io]
-garasu = { git = "https://github.com/pleme-io/garasu" }
-# INTERIM PIN (2026-06-27): shikumi main advanced b41d01e → 2f8c6fd, which is
-# BROKEN (missing `closed_axis_label_string_surface` macro + `discovery::Format`
-# lost Display/from_str). Pinning to the last-green rev so the auto-release bot's
-# `cargo update` can't re-break mado. REMOVE this pin (restore `branch = "main"`)
-# once shikumi main is fixed upstream — that's the real load-bearing fix.
+# INTERIM FAMILY PIN (2026-06-27): the shikumi family (shikumi + garasu + egaku
+# + madori) MUST move together. shikumi main advanced b41d01e → 2f8c6fd, which is
+# BROKEN (missing `closed_axis_label_string_surface` + `serde_via_display_fromstr`
+# macros + `discovery::Format` lost Display/from_str); the bot's `cargo update`
+# then advanced garasu/egaku to HEADs needing that newer shikumi, desyncing the
+# family. Pin ALL of them (madori too, below) to the last mutually-green rev set.
+# REMOVE these pins once shikumi main is fixed upstream — the real load-bearing fix.
+garasu = { git = "https://github.com/pleme-io/garasu", rev = "2aec0df9debedccad4b98faf4c9059b3bc84234e" }
 shikumi = { git = "https://github.com/pleme-io/shikumi", rev = "b41d01e453b2c2505941ba02003f48721ca02b17" }
-egaku = { git = "https://github.com/pleme-io/egaku" }
+egaku = { git = "https://github.com/pleme-io/egaku", rev = "81d168190061c452d115f58f186429b84f489be8" }
