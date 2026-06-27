@@ -1904,10 +1904,32 @@ impl TerminalRenderer {
         // through prepare, so they're kept alive in `buffers`).
         let mut buffers: Vec<glyphon::Buffer> = Vec::with_capacity(spec.lines.len());
         for line in &spec.lines {
-            let attrs = Attrs::new().family(Family::Name(&self.font_family));
-            let mut buf = ctx
-                .text
-                .create_rich_buffer(&[(line.text.as_str(), attrs)], fs, line_h);
+            let base = Attrs::new().family(Family::Name(&self.font_family));
+            let mut buf = if line.highlights.is_empty() {
+                // Common path (no query / no match): one run, unchanged. The
+                // line's colour comes from the TextArea default_color below.
+                ctx.text
+                    .create_rich_buffer(&[(line.text.as_str(), base)], fs, line_h)
+            } else {
+                // Matched chars glow in the Nord frost accent (alpha-matched to
+                // the row's shade-in); unmatched runs carry no colour so they
+                // fall back to default_color (the role / urgency tint). This is
+                // the fzf-style "here's why this row matched" highlight.
+                let accent = GlyphonColor::rgba(0x88, 0xC0, 0xD0, line.alpha);
+                let runs = crate::picker::component::highlight_runs(&line.text, &line.highlights);
+                let spans: Vec<(&str, Attrs)> = runs
+                    .iter()
+                    .map(|(r, hl)| {
+                        let seg = &line.text[r.clone()];
+                        if *hl {
+                            (seg, base.clone().color(accent))
+                        } else {
+                            (seg, base.clone())
+                        }
+                    })
+                    .collect();
+                ctx.text.create_rich_buffer(&spans, fs, line_h)
+            };
             buf.shape_until_scroll(&mut ctx.text.font_system, false);
             buffers.push(buf);
         }
@@ -2207,10 +2229,22 @@ impl TerminalRenderer {
                     }
                     _ => (255, None),
                 };
+                let text = format!("{marker}{}", row.label);
+                // Highlight the chars this query matched (the SAME praça matcher
+                // the rows are ranked by, so the highlight is exactly the match).
+                // Empty query → no positions → renders solid, unchanged.
+                let highlights = if query.trim().is_empty() {
+                    Vec::new()
+                } else {
+                    praca::index::fuzzy_indices(query, &text)
+                        .map(|(_, p)| p)
+                        .unwrap_or_default()
+                };
                 lines.push(
-                    OverlayLine::new(format!("{marker}{}", row.label), role)
+                    OverlayLine::new(text, role)
                         .with_alpha(alpha)
-                        .with_color(color),
+                        .with_color(color)
+                        .with_highlights(highlights),
                 );
             }
             // Overflow affordance: how many rows lie below the window. A tiny

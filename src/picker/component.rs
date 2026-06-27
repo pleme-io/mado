@@ -98,6 +98,11 @@ pub struct OverlayLine {
     /// (the calm default); `Some` = a deliberate tint (e.g. an urgent task
     /// suggestion glowing hot). Kept sparing so the picker stays a calm home.
     pub color: Option<Color>,
+    /// CHAR positions in [`Self::text`] that matched the picker query — the
+    /// renderer tints exactly these (the fzf-style "here's why this row
+    /// matched" highlight). Empty = no highlight (the default / empty-query
+    /// view renders byte-identically to before).
+    pub highlights: Vec<usize>,
 }
 
 impl OverlayLine {
@@ -108,6 +113,7 @@ impl OverlayLine {
             role,
             alpha: 255,
             color: None,
+            highlights: Vec::new(),
         }
     }
 
@@ -125,6 +131,52 @@ impl OverlayLine {
         self.color = color;
         self
     }
+
+    /// Set the matched-char positions to highlight (the query-match tint).
+    /// Chainable.
+    #[must_use]
+    pub fn with_highlights(mut self, highlights: Vec<usize>) -> Self {
+        self.highlights = highlights;
+        self
+    }
+}
+
+/// Split `text` into consecutive byte-range runs flagged matched / unmatched,
+/// from a set of matched CHAR positions. The renderer turns each run into a
+/// glyphon span (matched runs get the accent colour). Pure — the unit the
+/// highlight render is tested through.
+#[must_use]
+pub fn highlight_runs(text: &str, positions: &[usize]) -> Vec<(std::ops::Range<usize>, bool)> {
+    if positions.is_empty() {
+        return if text.is_empty() {
+            Vec::new()
+        } else {
+            vec![(0..text.len(), false)]
+        };
+    }
+    let set: std::collections::HashSet<usize> = positions.iter().copied().collect();
+    let mut runs: Vec<(std::ops::Range<usize>, bool)> = Vec::new();
+    let mut run_start = 0usize;
+    let mut run_hl: Option<bool> = None;
+    for (ci, (byte, _ch)) in text.char_indices().enumerate() {
+        let hl = set.contains(&ci);
+        match run_hl {
+            None => {
+                run_hl = Some(hl);
+                run_start = byte;
+            }
+            Some(prev) if prev != hl => {
+                runs.push((run_start..byte, prev));
+                run_hl = Some(hl);
+                run_start = byte;
+            }
+            _ => {}
+        }
+    }
+    if let Some(prev) = run_hl {
+        runs.push((run_start..text.len(), prev));
+    }
+    runs
 }
 
 /// A complete overlay to draw: where it anchors + its typed lines. The
@@ -150,6 +202,37 @@ impl OverlaySpec {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn highlight_runs_splits_matched_and_unmatched() {
+        // "abcd" with chars 1,2 matched → [a](no) [bc](yes) [d](no).
+        let runs = highlight_runs("abcd", &[1, 2]);
+        assert_eq!(runs, vec![(0..1, false), (1..3, true), (3..4, false)]);
+        // No positions → one unmatched run over the whole string.
+        assert_eq!(highlight_runs("abc", &[]), vec![(0..3, false)]);
+        // Empty text → no runs.
+        assert_eq!(highlight_runs("", &[5]), Vec::new());
+        // A leading match → first run is matched.
+        assert_eq!(highlight_runs("xy", &[0]), vec![(0..1, true), (1..2, false)]);
+        // Concatenating the run slices reconstructs the text exactly.
+        let text = "pr#7 mado";
+        let reconstructed: String = highlight_runs(text, &[0, 1, 5, 6, 7, 8])
+            .iter()
+            .map(|(r, _)| &text[r.clone()])
+            .collect();
+        assert_eq!(reconstructed, text);
+    }
+
+    #[test]
+    fn highlight_runs_is_multibyte_safe() {
+        // 🌊 is 4 bytes; matching the ASCII tail must use correct byte offsets.
+        let text = "🌊ab";
+        let runs = highlight_runs(text, &[1]); // char 1 = 'a'
+        // Each run slice must be a valid &str (no panic) and rejoin to text.
+        let joined: String = runs.iter().map(|(r, _)| &text[r.clone()]).collect();
+        assert_eq!(joined, text);
+        assert!(runs.iter().any(|(r, hl)| *hl && &text[r.clone()] == "a"));
+    }
 
     #[test]
     fn overlay_line_is_solid_uncoloured_by_default_and_ramps() {
