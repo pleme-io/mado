@@ -329,6 +329,10 @@ impl PracaPickerBridge {
                         .as_deref()
                         .is_some_and(|d| d.to_ascii_lowercase().contains(&q))
             })
+            // A suggestion you've already STARTED is a live ● session row now —
+            // suppress its ○ twin so the picker never lists the same task twice.
+            // The visual half of "nothing duplicate is ever offered".
+            .filter(|s| self.live_session_for(&s.spawn).is_none())
             .take(self.suggest_max)
             .map(|s| {
                 let mut label = String::from("\u{25cb} "); // ○ latent
@@ -339,6 +343,28 @@ impl PracaPickerBridge {
                 }
             })
             .collect()
+    }
+
+    /// Find a LIVE session that already realizes this spawn target — same repo
+    /// (project root) AND same emoji-native name. The accept-path dedup anchor:
+    /// re-selecting a task you already started switches to it instead of
+    /// spawning a twin. Collects candidate ids under the praça lock, then probes
+    /// liveness through the registry (a separate lock) — never holds both at once.
+    fn live_session_for(&self, spawn: &crate::suggest::SpawnSpec) -> Option<SessionId> {
+        let candidates: Vec<SessionId> = {
+            let praca = self.praca();
+            praca
+                .index
+                .all()
+                .iter()
+                .filter(|rec| {
+                    rec.project_root.as_path() == spawn.cwd()
+                        && rec.display_name().as_str() == spawn.name()
+                })
+                .map(|rec| rec.id)
+                .collect()
+        };
+        candidates.into_iter().find(|id| self.first_pane_of(*id).is_some())
     }
 
     /// Spawn a session aimed at a suggestion + switch — the
@@ -352,6 +378,13 @@ impl PracaPickerBridge {
         let Some(sug) = store.get(id) else {
             return false;
         };
+        // Idempotent accept — if you already started this exact task (a live
+        // session at the same repo with the same emoji-native name), switch to
+        // it instead of spawning a duplicate. Makes the destination's "nothing
+        // duplicate is ever offered" true on the accept path, not just promised.
+        if let Some(existing) = self.live_session_for(&sug.spawn) {
+            return self.switch_to(existing);
+        }
         // Spawn into the suggestion's cwd (mado's capability env, cwd
         // overridden).
         let cwd = sug.spawn.cwd().to_string_lossy().into_owned();
@@ -1106,5 +1139,71 @@ mod tests {
         );
         let after = inproc.with_registry(|r| r.sessions.len());
         assert_eq!(after, before + 1, "the suggestion's session was spawned");
+    }
+
+    #[test]
+    fn spawn_suggestion_is_idempotent_no_duplicate_session() {
+        let (inproc, _live) = live_inproc();
+        let store = Arc::new(SuggestionStore::new());
+        let s = sug(
+            crate::suggest::SourceKind::GitBranchPr,
+            "tear#7",
+            "\u{1F50D} pr#7",
+            "/code/pleme-io/tear",
+        );
+        let id = s.id;
+        store.ingest(crate::suggest::SourceKind::GitBranchPr, vec![s], 1000);
+        let bridge = bridge_with_suggestions(praca::Praca::new(), Arc::clone(&inproc), store, 6);
+
+        let before = inproc.with_registry(|r| r.sessions.len());
+        assert!(bridge.spawn_suggestion(id, 1000), "first accept spawns the task session");
+        let after_first = inproc.with_registry(|r| r.sessions.len());
+        assert_eq!(after_first, before + 1);
+
+        // Re-accepting the same suggestion switches to the existing session
+        // instead of spawning a twin — "nothing duplicate is ever offered".
+        assert!(bridge.spawn_suggestion(id, 1001), "second accept switches");
+        let after_second = inproc.with_registry(|r| r.sessions.len());
+        assert_eq!(
+            after_second, after_first,
+            "second accept must NOT duplicate the session"
+        );
+    }
+
+    #[test]
+    fn a_started_suggestion_drops_from_the_band_no_double_listing() {
+        let (inproc, _live) = live_inproc();
+        let store = Arc::new(SuggestionStore::new());
+        let s = sug(
+            crate::suggest::SourceKind::GitBranchPr,
+            "tear#7",
+            "\u{1F50D} pr#7",
+            "/code/pleme-io/tear",
+        );
+        let id = s.id;
+        store.ingest(crate::suggest::SourceKind::GitBranchPr, vec![s], 1000);
+        let bridge = bridge_with_suggestions(praca::Praca::new(), Arc::clone(&inproc), store, 6);
+
+        // Before starting: it's a ○ Suggestion row.
+        assert!(
+            bridge
+                .list("", 1000)
+                .iter()
+                .any(|r| matches!(r.kind, RowKind::Suggestion(i) if i == id)),
+            "the task shows as a suggestion before it's started"
+        );
+
+        assert!(bridge.spawn_suggestion(id, 1000), "start the task");
+
+        // After: it's a live ● Switch row, and its ○ suggestion twin is gone.
+        let rows = bridge.list("", 1001);
+        assert!(
+            !rows.iter().any(|r| matches!(r.kind, RowKind::Suggestion(_))),
+            "no duplicate ○ suggestion row once the task is live"
+        );
+        assert!(
+            rows.iter().any(|r| matches!(r.kind, RowKind::Switch(_))),
+            "the started task is now a live session row"
+        );
     }
 }
