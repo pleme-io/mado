@@ -72,6 +72,15 @@ impl<Row> FuzzyPicker<Row> {
         self.results = rows;
     }
 
+    /// `true` when the picker is open AND the highlight is still at the top
+    /// (the operator hasn't navigated yet). The suggestion stream's live
+    /// re-list only fires while resting, so a refresh never yanks the cursor
+    /// out from under someone mid-selection.
+    #[must_use]
+    pub fn is_resting(&self) -> bool {
+        self.open && self.selected == 0
+    }
+
     /// Move the highlight down (wraps).
     pub fn move_down(&mut self) {
         if !self.results.is_empty() {

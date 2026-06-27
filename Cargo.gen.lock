@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "e76d2615db890155fbe25527708399f8ef556fd972f20191d77a4ccdd12967a9",
+  "cargo_lock_sha256": "2905b5c330a6182b80eb9876cab7f412f3f9bf504ada3f0d96f12e8539c96948",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -250,7 +250,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "anyhow-1.0.103": {
+      "anyhow-1.0.102": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": [
@@ -5725,7 +5725,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.103-2f8c6fd9f126c326015e5922d6736296ac9e2a49",
+            "package_key": "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7282,7 +7282,7 @@
         "runtime_dependencies": [
           {
             "name": "anyhow",
-            "package_key": "anyhow-1.0.103",
+            "package_key": "anyhow-1.0.102",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7530,7 +7530,7 @@
         "runtime_dependencies": [
           {
             "name": "anyhow",
-            "package_key": "anyhow-1.0.103",
+            "package_key": "anyhow-1.0.102",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -10310,7 +10310,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.23.4",
+            "package_key": "uuid-1.23.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -10731,7 +10731,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.23.4",
+            "package_key": "uuid-1.23.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -10847,7 +10847,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.23.4",
+            "package_key": "uuid-1.23.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -11581,7 +11581,7 @@
         "runtime_dependencies": [
           {
             "name": "anyhow",
-            "package_key": "anyhow-1.0.103",
+            "package_key": "anyhow-1.0.102",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11615,7 +11615,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.103-2f8c6fd9f126c326015e5922d6736296ac9e2a49",
+            "package_key": "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11662,7 +11662,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.103-2f8c6fd9f126c326015e5922d6736296ac9e2a49": {
+      "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -12449,7 +12449,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.23.4",
+            "package_key": "uuid-1.23.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13159,7 +13159,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.23.4",
+            "package_key": "uuid-1.23.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13551,7 +13551,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.23.4",
+            "package_key": "uuid-1.23.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13790,7 +13790,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.23.4",
+            "package_key": "uuid-1.23.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14336,7 +14336,7 @@
         "runtime_dependencies": [
           {
             "name": "anyhow",
-            "package_key": "anyhow-1.0.103",
+            "package_key": "anyhow-1.0.102",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14410,7 +14410,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.103-2f8c6fd9f126c326015e5922d6736296ac9e2a49",
+            "package_key": "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17",
             "kind": "normal",
             "features": [
               "cli"
@@ -14458,7 +14458,7 @@
         "runtime_dependencies": [
           {
             "name": "anyhow",
-            "package_key": "anyhow-1.0.103",
+            "package_key": "anyhow-1.0.102",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14619,7 +14619,7 @@
         "runtime_dependencies": [
           {
             "name": "anyhow",
-            "package_key": "anyhow-1.0.103",
+            "package_key": "anyhow-1.0.102",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14765,7 +14765,7 @@
         "runtime_dependencies": [
           {
             "name": "anyhow",
-            "package_key": "anyhow-1.0.103",
+            "package_key": "anyhow-1.0.102",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16516,7 +16516,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.23.4",
+            "package_key": "uuid-1.23.3",
             "kind": "normal",
             "features": [
               "serde"
@@ -16535,7 +16535,7 @@
           "uuid"
         ]
       },
-      "uuid-1.23.4": {
+      "uuid-1.23.3": {
         "runtime_dependencies": [
           {
             "name": "getrandom",
@@ -16639,7 +16639,7 @@
         "runtime_dependencies": [
           {
             "name": "anyhow",
-            "package_key": "anyhow-1.0.103",
+            "package_key": "anyhow-1.0.102",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16771,7 +16771,7 @@
         "runtime_dependencies": [
           {
             "name": "anyhow",
-            "package_key": "anyhow-1.0.103",
+            "package_key": "anyhow-1.0.102",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16858,7 +16858,7 @@
         "runtime_dependencies": [
           {
             "name": "anyhow",
-            "package_key": "anyhow-1.0.103",
+            "package_key": "anyhow-1.0.102",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16988,7 +16988,7 @@
         "runtime_dependencies": [
           {
             "name": "anyhow",
-            "package_key": "anyhow-1.0.103",
+            "package_key": "anyhow-1.0.102",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17123,7 +17123,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.23.4",
+            "package_key": "uuid-1.23.3",
             "kind": "normal",
             "features": [
               "serde",
@@ -17223,7 +17223,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.23.4",
+            "package_key": "uuid-1.23.3",
             "kind": "normal",
             "features": [
               "serde",
@@ -18947,7 +18947,7 @@
             "runtime_dependencies": [
               {
                 "name": "anyhow",
-                "package_key": "anyhow-1.0.103",
+                "package_key": "anyhow-1.0.102",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -19414,7 +19414,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.103-2f8c6fd9f126c326015e5922d6736296ac9e2a49",
+                "package_key": "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -23027,7 +23027,7 @@
             "runtime_dependencies": [
               {
                 "name": "anyhow",
-                "package_key": "anyhow-1.0.103",
+                "package_key": "anyhow-1.0.102",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23455,7 +23455,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.103-2f8c6fd9f126c326015e5922d6736296ac9e2a49",
+                "package_key": "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -26674,7 +26674,7 @@
             "runtime_dependencies": [
               {
                 "name": "anyhow",
-                "package_key": "anyhow-1.0.103",
+                "package_key": "anyhow-1.0.102",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27102,7 +27102,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.103-2f8c6fd9f126c326015e5922d6736296ac9e2a49",
+                "package_key": "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -30415,7 +30415,7 @@
             "runtime_dependencies": [
               {
                 "name": "anyhow",
-                "package_key": "anyhow-1.0.103",
+                "package_key": "anyhow-1.0.102",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30882,7 +30882,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.103-2f8c6fd9f126c326015e5922d6736296ac9e2a49",
+                "package_key": "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -34449,7 +34449,7 @@
             "runtime_dependencies": [
               {
                 "name": "anyhow",
-                "package_key": "anyhow-1.0.103",
+                "package_key": "anyhow-1.0.102",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34877,7 +34877,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.103-2f8c6fd9f126c326015e5922d6736296ac9e2a49",
+                "package_key": "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -38050,7 +38050,7 @@
             "runtime_dependencies": [
               {
                 "name": "anyhow",
-                "package_key": "anyhow-1.0.103",
+                "package_key": "anyhow-1.0.102",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38478,7 +38478,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.103-2f8c6fd9f126c326015e5922d6736296ac9e2a49",
+                "package_key": "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -41032,7 +41032,7 @@
     "anstyle-query-1.1.5": {
       "edition": "2021"
     },
-    "anyhow-1.0.103": {
+    "anyhow-1.0.102": {
       "edition": "2021",
       "build_script": "build.rs"
     },
@@ -42399,7 +42399,7 @@
     "shidou-0.1.8-b0929681f6f4323177b86e350c82ec3f9f61869f": {
       "edition": "2024"
     },
-    "shikumi-0.1.103-2f8c6fd9f126c326015e5922d6736296ac9e2a49": {
+    "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": {
       "edition": "2024"
     },
     "shlex-2.0.1": {
@@ -42747,7 +42747,7 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "uuid-1.23.4": {
+    "uuid-1.23.3": {
       "edition": "2021"
     },
     "vcpkg-0.2.15": {
@@ -43013,7 +43013,7 @@
     "pleme-kindstr-derive-0.1.0-d287f915e9bb8837a443f6238ee900e81318ce89": "sha256-5XDr9kPiT0doWBOOk9yXjxdTCpRgaqWWJCpsc1f+tdw=",
     "praca-0.1.2-37dfcea7db28da09d7d02f83f90ae9c326b86223": "sha256-OtDWATht+DsGpk0pLKjzMJs/8uunrQaiHb80UtD5qzE=",
     "shidou-0.1.8-b0929681f6f4323177b86e350c82ec3f9f61869f": "sha256-LteP9mCB8rSjBdbb9r/uh5URZ5XTPDDoNxSKy5mMD8A=",
-    "shikumi-0.1.103-2f8c6fd9f126c326015e5922d6736296ac9e2a49": "sha256-2VPWM1ipkjPaXjU0gMKCU6p4cMFo8hyU7EFb3TNFc1k=",
+    "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": "sha256-Jd6fUoNSdzk+I5iu7FbAg9F9gbc7oU9jdPnnaTIxL6w=",
     "tatara-lisp-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6": "sha256-sknlm2aQVNND1NFuQ/iZw27NS7rOTUsBxKTpgMTby2g=",
     "tatara-lisp-derive-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6": "sha256-sknlm2aQVNND1NFuQ/iZw27NS7rOTUsBxKTpgMTby2g=",
     "tatara-lisp-eval-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6": "sha256-sknlm2aQVNND1NFuQ/iZw27NS7rOTUsBxKTpgMTby2g=",

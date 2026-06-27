@@ -228,6 +228,11 @@ pub struct InputEngine {
     /// (a no-op kinetics frame), which keeps the L1/L2 determinism
     /// ladders byte-stable.
     last_scroll_tick: Option<Instant>,
+    /// Wall-clock of the last live suggestion-stream re-list while the Ctrl-S
+    /// picker is open. `None` when the picker is closed. Gates the gentle
+    /// (~2s) re-list so newly-watched task suggestions shade in without the
+    /// operator reopening — see `on_redraw_tick`.
+    last_suggest_refresh: Option<Instant>,
 }
 
 impl InputEngine {
@@ -282,6 +287,7 @@ impl InputEngine {
             search_grid_gen: None,
             scroll,
             last_scroll_tick: None,
+            last_suggest_refresh: None,
         }
     }
 
@@ -1642,6 +1648,26 @@ impl InputEngine {
         // the same tick).
         self.reconcile_search();
         self.reconcile_selection();
+        // Live suggestion-stream refresh: while the Ctrl-S picker is open AND
+        // the operator is resting at the top (not mid-navigation), gently
+        // re-list (~2s) so the continuously-watched task suggestions shade in
+        // without reopening. Cheap — the bridge re-reads the shared in-memory
+        // store; the per-source watchers do the actual I/O off-thread.
+        if self.session_picker_bridge.is_some() {
+            let resting = self.session_picker.lock().unwrap().is_resting();
+            if resting {
+                let now = Instant::now();
+                let due = self
+                    .last_suggest_refresh
+                    .is_none_or(|prev| now.duration_since(prev).as_secs_f32() >= 2.0);
+                if due {
+                    self.last_suggest_refresh = Some(now);
+                    self.session_picker_recompute();
+                }
+            } else {
+                self.last_suggest_refresh = None;
+            }
+        }
         // Momentum + selection auto-scroll: advance the kinetic
         // sub-state and apply the resulting viewport delta. Runs AFTER
         // selection reconcile so a dangled drag is already cleared. The

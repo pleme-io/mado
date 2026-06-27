@@ -315,5 +315,10 @@ gpu_tests = ["dep:pollster"]
 
 [patch.crates-io]
 garasu = { git = "https://github.com/pleme-io/garasu" }
-shikumi = { git = "https://github.com/pleme-io/shikumi", branch = "main" }
+# INTERIM PIN (2026-06-27): shikumi main advanced b41d01e → 2f8c6fd, which is
+# BROKEN (missing `closed_axis_label_string_surface` macro + `discovery::Format`
+# lost Display/from_str). Pinning to the last-green rev so the auto-release bot's
+# `cargo update` can't re-break mado. REMOVE this pin (restore `branch = "main"`)
+# once shikumi main is fixed upstream — that's the real load-bearing fix.
+shikumi = { git = "https://github.com/pleme-io/shikumi", rev = "b41d01e453b2c2505941ba02003f48721ca02b17" }
 egaku = { git = "https://github.com/pleme-io/egaku" }
