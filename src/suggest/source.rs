@@ -82,8 +82,6 @@ pub fn refresh_once(
 #[derive(Clone, Debug)]
 pub struct EngineConfig {
     pub per_source: BTreeMap<SourceKind, SourceConfig>,
-    /// Entries older than this (ms since last seen) are decayed. 0 disables.
-    pub ttl_ms: u64,
     /// Whether a source with no explicit override runs by default.
     pub default_enabled: bool,
 }
@@ -92,7 +90,6 @@ impl Default for EngineConfig {
     fn default() -> Self {
         Self {
             per_source: BTreeMap::new(),
-            ttl_ms: 0,
             default_enabled: true,
         }
     }

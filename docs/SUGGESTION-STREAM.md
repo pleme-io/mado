@@ -122,7 +122,8 @@ sops-rendered `~/.config/<category>/<name>` path (e.g. `atlassian/api-token`).
 | **Persistence** | warm-restart load + crash-safe atomic write (mkdir-p + pid-temp + `sync_all` + rename) + BLAKE3-framed/versioned snapshot (torn/schema-bump → start-empty) + a single debounced maintenance task (one disk write per `persist_debounce_secs`, gated on a change-`generation`, off the watcher hot path) + decay moved to that task | ✅ shipped |
 | **M2** | nix HM/NixOS/Darwin module trio for `suggestions` (blackmatter-mado + terminal.nix) | ⏭ |
 | **M3** | lift the data type into praça (`SessionOrigin::Suggested`) + a `(defsuggestionsource)` tlisp authoring surface via the vigy host | ⏭ |
-| **M4 (rest)** | samba rate-limiting for HTTP/MCP sources + dedup-vs-live *type-level* hardening + per-source-interval TTL + hard `max_entries` cap + picker ranked-read memoization (generation counter already in place) | ⏭ |
+| **Store hardening** | per-source-interval TTL (`decay_per_source`, 3× interval floored by global — slow sources don't flicker) + hard `max_entries` GC (rank-ordered eviction) + picker ranked-read memoization (generation-keyed cache; clone+sort skipped while idle) | ✅ shipped |
+| **M4 (rest)** | samba rate-limiting for HTTP/MCP sources + dedup-vs-live *type-level* hardening | ⏭ |
 
 ### Caching + local-optimization (lessons applied from guardrail/kanshou/tend/shikumi/CAS)
 

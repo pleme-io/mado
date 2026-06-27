@@ -141,6 +141,54 @@ impl SuggestionStore {
         }
     }
 
+    /// Per-source decay: each entry ages out against `ttl_for(its source)`, so a
+    /// slow source (e.g. a 1h poll) doesn't flicker under a fast global TTL. A
+    /// `ttl_for` of 0 means that source's entries never age out.
+    pub fn decay_per_source(&self, now_ms: u64, ttl_for: impl Fn(SourceKind) -> u64) {
+        let removed = {
+            let mut g = self.lock();
+            let before = g.len();
+            g.retain(|_, st| {
+                let ttl = ttl_for(st.suggestion.source);
+                ttl == 0 || now_ms.saturating_sub(st.last_seen_ms) <= ttl
+            });
+            g.len() != before
+        };
+        if removed {
+            self.bump();
+        }
+    }
+
+    /// Hard memory cap: if the store exceeds `max_entries`, evict the
+    /// lowest-ranked / stalest until it fits (urgency→score→freshness order, the
+    /// same axis the picker ranks by). `max_entries == 0` is unbounded. Insurance
+    /// against a source that stops polling with no TTL.
+    pub fn gc(&self, max_entries: usize) {
+        if max_entries == 0 {
+            return;
+        }
+        let removed = {
+            let mut g = self.lock();
+            if g.len() <= max_entries {
+                return;
+            }
+            let mut ranked: Vec<(SuggestionId, u64, u64)> = g
+                .values()
+                .map(|st| (st.suggestion.id, st.suggestion.rank_key(), st.last_seen_ms))
+                .collect();
+            // Keep the top `max_entries`: rank desc, then fresher, then id.
+            ranked.sort_by(|a, b| b.1.cmp(&a.1).then(b.2.cmp(&a.2)).then(a.0.cmp(&b.0)));
+            let keep: BTreeSet<SuggestionId> =
+                ranked.into_iter().take(max_entries).map(|(id, _, _)| id).collect();
+            let before = g.len();
+            g.retain(|id, _| keep.contains(id));
+            g.len() != before
+        };
+        if removed {
+            self.bump();
+        }
+    }
+
     /// The top `max` suggestions, ranked by urgency→score→age→id.
     #[must_use]
     pub fn ranked(&self, max: usize) -> Vec<Suggestion> {
@@ -483,6 +531,52 @@ mod tests {
         // Removal → bump.
         store.ingest(SourceKind::TendRepos, vec![], 700);
         assert!(store.generation() > g2, "removal bumps");
+    }
+
+    #[test]
+    fn gc_caps_total_keeping_highest_ranked() {
+        let store = SuggestionStore::new();
+        store.ingest(
+            SourceKind::GrafanaAlerts,
+            vec![sug(SourceKind::GrafanaAlerts, "fire", "fire").urgent(Urgency::Critical)],
+            100,
+        );
+        let mut lows = Vec::new();
+        for k in ["a", "b", "c", "d", "e"] {
+            lows.push(sug(SourceKind::TendRepos, k, k).urgent(Urgency::Low));
+        }
+        store.ingest(SourceKind::TendRepos, lows, 100);
+        assert_eq!(store.len(), 6);
+
+        store.gc(3);
+        assert_eq!(store.len(), 3, "capped to 3");
+        assert!(
+            store.get(SuggestionId::derive(SourceKind::GrafanaAlerts, "fire")).is_some(),
+            "the Critical row is kept (highest rank)"
+        );
+
+        store.gc(0); // unbounded → no-op
+        assert_eq!(store.len(), 3);
+    }
+
+    #[test]
+    fn decay_per_source_respects_each_sources_ttl() {
+        let store = SuggestionStore::new();
+        store.ingest(SourceKind::TendRepos, vec![sug(SourceKind::TendRepos, "a", "a")], 1000);
+        store.ingest(SourceKind::GrafanaAlerts, vec![sug(SourceKind::GrafanaAlerts, "b", "b")], 1000);
+        // At now=6000: tend (ttl 1000) is 5000ms stale → drop; grafana (ttl huge) kept.
+        store.decay_per_source(6000, |k| match k {
+            SourceKind::TendRepos => 1000,
+            _ => 100_000,
+        });
+        assert!(
+            store.get(SuggestionId::derive(SourceKind::TendRepos, "a")).is_none(),
+            "the short-TTL source aged out"
+        );
+        assert!(
+            store.get(SuggestionId::derive(SourceKind::GrafanaAlerts, "b")).is_some(),
+            "the long-TTL source is kept (no flicker)"
+        );
     }
 
     fn stored(source: SourceKind, key: &str) -> StoredSuggestion {

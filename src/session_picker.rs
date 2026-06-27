@@ -41,12 +41,13 @@
 //! "switching disabled" hint and Enter is inert — mirroring the
 //! `switch_session` MCP tool's `switching-disabled` answer.
 
+use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
 
 use ishou_tokens::{FleetSessionNames, SessionName};
 use tear_types::{DefinitionId, MultiplexerControl, PaneId, SessionId, SessionSource};
 
-use crate::suggest::{SuggestionId, SuggestionStore};
+use crate::suggest::{StoredSuggestion, SuggestionId, SuggestionStore};
 
 /// What creating a session from the picker should name it.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -188,6 +189,11 @@ pub struct PracaPickerBridge {
     /// Max rows a single source may contribute to the band
     /// (`suggestions.per_source_cap`) — keeps the band diverse. 0 = no cap.
     suggest_cap: usize,
+    /// Memoized ranked snapshot, keyed by the store's change-`generation`. The
+    /// expensive clone-whole-map + sort is skipped while the watchers idle (the
+    /// generation hasn't moved); the cheap query-filter + live-dedup + balance
+    /// still run each call. `RefCell` → mutable from the `&self` list path.
+    ranked_cache: RefCell<Option<(u64, Arc<Vec<StoredSuggestion>>)>>,
 }
 
 impl PracaPickerBridge {
@@ -217,6 +223,7 @@ impl PracaPickerBridge {
             suggestions,
             suggest_max,
             suggest_cap,
+            ranked_cache: RefCell::new(None),
         }
     }
 
@@ -325,9 +332,26 @@ impl PracaPickerBridge {
         // Over-fetch then query-filter so a needle still finds lower-ranked
         // suggestions (the store is already urgency/score ranked). `ranked_stored`
         // carries each row's birth time for the freshness nudge.
-        let filtered: Vec<crate::suggest::StoredSuggestion> = store
-            .ranked_stored(self.suggest_max.saturating_mul(4).max(self.suggest_max))
-            .into_iter()
+        // Memoized ranked snapshot — recompute the clone-whole-map + sort only
+        // when the store's change-generation advanced; reuse it across the rapid
+        // re-list calls (open + every keystroke + the ~2s live refresh) while the
+        // watchers idle. The query-filter + live-dedup below still run each call.
+        let cur_gen = store.generation();
+        let ranked: Arc<Vec<crate::suggest::StoredSuggestion>> = {
+            let mut cache = self.ranked_cache.borrow_mut();
+            match cache.as_ref() {
+                Some((g, v)) if *g == cur_gen => Arc::clone(v),
+                _ => {
+                    let fresh = Arc::new(
+                        store.ranked_stored(self.suggest_max.saturating_mul(4).max(self.suggest_max)),
+                    );
+                    *cache = Some((cur_gen, Arc::clone(&fresh)));
+                    fresh
+                }
+            }
+        };
+        let filtered: Vec<crate::suggest::StoredSuggestion> = ranked
+            .iter()
             .filter(|st| {
                 let s = &st.suggestion;
                 q.is_empty()
@@ -338,8 +362,8 @@ impl PracaPickerBridge {
             })
             // A suggestion you've already STARTED is a live ● session row now —
             // suppress its ○ twin so the picker never lists the same task twice.
-            // The visual half of "nothing duplicate is ever offered".
             .filter(|st| self.live_session_for(&st.suggestion.spawn).is_none())
+            .cloned()
             .collect();
         // Balance the band: cap per-source so one noisy source (20 CrashLoop
         // pods) can't drown your PRs/tickets/incidents — the band stays diverse.
@@ -1256,6 +1280,41 @@ mod tests {
             !frow.label.contains('m'),
             "a fresh row stays calm (no age stamp): {}",
             frow.label
+        );
+    }
+
+    #[test]
+    fn ranked_cache_invalidates_when_the_store_changes() {
+        let (inproc, _live) = live_inproc();
+        let store = Arc::new(SuggestionStore::new());
+        store.ingest(
+            crate::suggest::SourceKind::GitBranchPr,
+            vec![sug(crate::suggest::SourceKind::GitBranchPr, "1", "alpha", "/x")],
+            1000,
+        );
+        let bridge = bridge_with_suggestions(praca::Praca::new(), inproc, Arc::clone(&store), 6);
+
+        let first = bridge.list("", 1000);
+        assert_eq!(
+            first.iter().filter(|r| matches!(r.kind, RowKind::Suggestion(_))).count(),
+            1,
+            "first list memoizes one suggestion"
+        );
+
+        // Mutate the store (generation bumps) → the memoized snapshot must refresh.
+        store.ingest(
+            crate::suggest::SourceKind::GitBranchPr,
+            vec![
+                sug(crate::suggest::SourceKind::GitBranchPr, "1", "alpha", "/x"),
+                sug(crate::suggest::SourceKind::GitBranchPr, "2", "beta", "/y"),
+            ],
+            1100,
+        );
+        let second = bridge.list("", 1100);
+        assert_eq!(
+            second.iter().filter(|r| matches!(r.kind, RowKind::Suggestion(_))).count(),
+            2,
+            "the cache invalidated on the generation change"
         );
     }
 }

@@ -97,7 +97,6 @@ pub fn state_path() -> PathBuf {
 pub fn engine_config_from(cfg: &crate::config::SuggestionsConfig) -> EngineConfig {
     let mut ec = EngineConfig {
         per_source: std::collections::BTreeMap::new(),
-        ttl_ms: cfg.ttl_secs.saturating_mul(1000),
         default_enabled: cfg.default_enabled,
     };
     for s in &cfg.sources {
@@ -127,8 +126,22 @@ pub fn spawn_engine_thread(cfg: &crate::config::SuggestionsConfig) {
         return;
     }
     let engine_cfg = engine_config_from(cfg);
-    let ttl_ms = cfg.ttl_secs.saturating_mul(1000);
+    let global_ttl_ms = cfg.ttl_secs.saturating_mul(1000);
+    // Per-source TTL: a source's items live for max(3× its poll interval, the
+    // global floor) — so a slow (e.g. hourly) source never flickers under a fast
+    // global TTL. Built here, before `engine_cfg` moves into `start`.
+    let mut ttl_map: std::collections::BTreeMap<SourceKind, u64> = std::collections::BTreeMap::new();
+    for &kind in SourceKind::ALL {
+        let interval_ttl = engine_cfg
+            .config_for(kind)
+            .interval
+            .as_secs()
+            .saturating_mul(3)
+            .saturating_mul(1000);
+        ttl_map.insert(kind, interval_ttl.max(global_ttl_ms));
+    }
     let persist = cfg.persist;
+    let max_entries = cfg.max_entries;
     // 0 = "persist on every change" → a 1s minimum tick (tokio rejects a 0
     // interval); otherwise coalesce writes to this cadence.
     let debounce = std::time::Duration::from_secs(cfg.persist_debounce_secs.max(1));
@@ -150,9 +163,11 @@ pub fn spawn_engine_thread(cfg: &crate::config::SuggestionsConfig) {
                     // re-poll. The picker is populated on the first frame.
                     if persist {
                         store.load_file(&path);
-                        if ttl_ms > 0 {
-                            store.decay(env.now_unix().saturating_mul(1000), ttl_ms);
-                        }
+                        let now_ms = env.now_unix().saturating_mul(1000);
+                        store.decay_per_source(now_ms, |k| {
+                            ttl_map.get(&k).copied().unwrap_or(global_ttl_ms)
+                        });
+                        store.gc(max_entries);
                     }
                     let engine = SuggestionEngine::start(
                         sources::registry(),
@@ -176,9 +191,10 @@ pub fn spawn_engine_thread(cfg: &crate::config::SuggestionsConfig) {
                     loop {
                         tick.tick().await;
                         let now_ms = env.now_unix().saturating_mul(1000);
-                        if ttl_ms > 0 {
-                            store.decay(now_ms, ttl_ms);
-                        }
+                        store.decay_per_source(now_ms, |k| {
+                            ttl_map.get(&k).copied().unwrap_or(global_ttl_ms)
+                        });
+                        store.gc(max_entries);
                         let current_gen = store.generation();
                         if persist && current_gen != last_gen {
                             store.persist_file(&path);

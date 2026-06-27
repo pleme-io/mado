@@ -689,6 +689,11 @@ pub struct SuggestionsConfig {
     /// Coalesce disk writes: persist at most once per this many seconds, so the
     /// 27 parallel watchers can't thrash the disk. 0 = persist on every change.
     pub persist_debounce_secs: u64,
+    /// Hard cap on total cached suggestions (memory insurance): if exceeded, the
+    /// lowest-ranked / stalest are evicted. The store is already structurally
+    /// bounded for well-behaved sources; this guards a source that stops polling
+    /// with `ttl_secs = 0` or a mis-set `max_items`. 0 = unbounded.
+    pub max_entries: usize,
     /// Per-source overrides. Unlisted sources use `default_enabled` + the
     /// kind's default cadence.
     pub sources: Vec<SuggestionSourceConfig>,
@@ -713,6 +718,7 @@ impl SuggestionsConfig {
             ttl_secs: 0,
             persist: false,
             persist_debounce_secs: 0,
+            max_entries: 0,
             sources: Vec::new(),
         }
     }
@@ -731,6 +737,7 @@ impl SuggestionsConfig {
             ttl_secs: 900,
             persist: true,
             persist_debounce_secs: 5,
+            max_entries: 200,
             sources: Vec::new(),
         }
     }
