@@ -120,10 +120,10 @@ tsuuchi = { git = "https://github.com/pleme-io/tsuuchi" , version = "0.1" }
 # REQUIRED FOLLOW-UP BEFORE THIS LANDS: push tear's fix/spawn-env-seam
 # (or merge it to a stable rev) so this rev resolves on CI + for
 # downstream consumers; the Cargo.lock + Cargo.build-spec already pin it.
-tear-types = { git = "https://github.com/pleme-io/tear", rev = "73bae1130215d3d650cc633b6df98fcb8faeaabe", features = ["engate"] , version = "0.1" }
-tear-core = { git = "https://github.com/pleme-io/tear", rev = "73bae1130215d3d650cc633b6df98fcb8faeaabe", features = ["engate"] , version = "0.1" }
-tear-client = { git = "https://github.com/pleme-io/tear", rev = "73bae1130215d3d650cc633b6df98fcb8faeaabe", features = ["engate"] , version = "0.1" }
-tear-config = { git = "https://github.com/pleme-io/tear", rev = "73bae1130215d3d650cc633b6df98fcb8faeaabe" , version = "0.1" }
+tear-types = { git = "https://github.com/pleme-io/tear", rev = "0a918bed74d3c1001709a04931e16feadbbc464c", features = ["engate"] , version = "0.1" }
+tear-core = { git = "https://github.com/pleme-io/tear", rev = "0a918bed74d3c1001709a04931e16feadbbc464c", features = ["engate"] , version = "0.1" }
+tear-client = { git = "https://github.com/pleme-io/tear", rev = "0a918bed74d3c1001709a04931e16feadbbc464c", features = ["engate"] , version = "0.1" }
+tear-config = { git = "https://github.com/pleme-io/tear", rev = "0a918bed74d3c1001709a04931e16feadbbc464c" , version = "0.1" }
 
 # praça (praca) — typed session-orchestration substrate (project-root
 # detection, frecency, project↔session bindings, cd-driven attach
@@ -132,7 +132,7 @@ tear-config = { git = "https://github.com/pleme-io/tear", rev = "73bae1130215d3d
 # project root at spawn. Auto-attach-on-cd + the picker land in later
 # phases. Same tear git source + rev as the tear-* crates above so cargo
 # unifies the shared tear-types crate identity (one git source rule).
-praca = { git = "https://github.com/pleme-io/tear", rev = "73bae1130215d3d650cc633b6df98fcb8faeaabe" , version = "0.1" }
+praca = { git = "https://github.com/pleme-io/tear", rev = "0a918bed74d3c1001709a04931e16feadbbc464c" , version = "0.1" }
 
 # Vigy — always-on tatara-lisp reconciler runtime, embedded in-process.
 # Hosts small reconcilers ("vigies") that tick continuously to keep
@@ -293,8 +293,8 @@ pleme-allvariants-derive = { version = "0.1", git = "https://github.com/pleme-io
 # Same SpawnEnv-seam rev as the runtime deps above — a single tear
 # git source so cargo unifies the crate identities (a divergent rev
 # would split tear-types into two crates and break the trait unify).
-tear-core = { git = "https://github.com/pleme-io/tear", rev = "73bae1130215d3d650cc633b6df98fcb8faeaabe" }
-tear-daemon = { git = "https://github.com/pleme-io/tear", rev = "73bae1130215d3d650cc633b6df98fcb8faeaabe" }
+tear-core = { git = "https://github.com/pleme-io/tear", rev = "0a918bed74d3c1001709a04931e16feadbbc464c" }
+tear-daemon = { git = "https://github.com/pleme-io/tear", rev = "0a918bed74d3c1001709a04931e16feadbbc464c" }
 # Cross-process MCP integration test (tests/mcp_cross_process.rs)
 # uses the rmcp client + child-process transport. Those features now
 # ship in the main dependency (the `mado e2e` subcommand is a typed

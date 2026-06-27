@@ -1132,6 +1132,59 @@ mod tests {
     }
 
     #[test]
+    fn suggestion_rows_rank_high_priority_first_on_empty_query() {
+        use crate::suggest::{SourceKind, Urgency};
+        let (inproc, _live) = live_inproc();
+        let store = Arc::new(SuggestionStore::new());
+        // A high-priority (Critical) Jira ticket + an ordinary github issue.
+        let hi = sug(SourceKind::JiraAssigned, "PLEME-1", "PLEME-1 urgent fix", "/code/a")
+            .urgent(Urgency::Critical)
+            .scored(1000);
+        let lo = sug(SourceKind::GithubAssignedIssues, "gh-2", "gh issue", "/code/b");
+        store.ingest(SourceKind::JiraAssigned, vec![hi], 1000);
+        store.ingest(SourceKind::GithubAssignedIssues, vec![lo], 1000);
+        let bridge = bridge_with_suggestions(praca::Praca::new(), inproc, store, 6);
+        // Empty query → urgency order → the high-priority Jira ticket is first
+        // (the "bring high priority jira to the absolute top" behavior).
+        let rows = bridge.suggestion_rows("", 1000);
+        assert!(
+            rows.first().is_some_and(|r| r.label.contains("PLEME-1")),
+            "high-priority Jira ranks first: {:?}",
+            rows.iter().map(|r| &r.label).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn suggestion_rows_rank_by_match_quality_on_query() {
+        use crate::suggest::SourceKind;
+        let (inproc, _live) = live_inproc();
+        let store = Arc::new(SuggestionStore::new());
+        let a = sug(SourceKind::TendRepos, "a", "deploy the parser", "/code/a");
+        let b = sug(SourceKind::TendRepos, "b", "bump deps", "/code/b");
+        store.ingest(SourceKind::TendRepos, vec![a, b], 1000);
+        let bridge = bridge_with_suggestions(praca::Praca::new(), inproc, store, 6);
+        // A typed query ranks by match quality; the non-match is filtered out.
+        let rows = bridge.suggestion_rows("parser", 1000);
+        assert!(rows.first().is_some_and(|r| r.label.contains("parser")));
+        assert!(!rows.iter().any(|r| r.label.contains("bump deps")));
+    }
+
+    #[test]
+    fn suggestion_rows_multi_term_query_is_and() {
+        use crate::suggest::SourceKind;
+        let (inproc, _live) = live_inproc();
+        let store = Arc::new(SuggestionStore::new());
+        let a = sug(SourceKind::GitBranchPr, "pr7", "pr#7 fix mado", "/code/mado");
+        let b = sug(SourceKind::GitBranchPr, "pr8", "pr#8 fix tear", "/code/tear");
+        store.ingest(SourceKind::GitBranchPr, vec![a, b], 1000);
+        let bridge = bridge_with_suggestions(praca::Praca::new(), inproc, store, 6);
+        // "mado pr" — both terms must match; only the mado PR carries both.
+        let rows = bridge.suggestion_rows("mado pr", 1000);
+        assert_eq!(rows.len(), 1, "{:?}", rows.iter().map(|r| &r.label).collect::<Vec<_>>());
+        assert!(rows[0].label.contains("mado"));
+    }
+
+    #[test]
     fn bridge_shades_in_suggestions_below_sessions_and_spawns_on_accept() {
         let (inproc, live) = live_inproc();
         let mut praca = praca::Praca::new();
