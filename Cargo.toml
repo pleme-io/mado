@@ -222,7 +222,7 @@ open = "5"
 image = { version = "0.25", default-features = false, features = ["png"] }
 
 # PTY and process management
-tokio = { version = "1", features = ["rt-multi-thread", "process", "io-util", "sync", "macros", "net"] }
+tokio = { version = "1", features = ["rt-multi-thread", "process", "io-util", "sync", "macros", "net", "time"] }
 libc = "0.2"
 
 # mimalloc — Microsoft's general-purpose allocator. Ghostty / foot /

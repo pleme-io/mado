@@ -56,6 +56,7 @@ mod selection;
 mod session;
 mod session_picker;
 mod session_switch;
+mod suggest;
 // mod tab removed at Phase 4 — single-pane mado.
 mod term_spec;
 mod terminal;
@@ -554,6 +555,13 @@ fn main() -> anyhow::Result<()> {
     } else {
         tracing::debug!("vigy disabled in config (vigy.enabled = false)");
     }
+
+    // ── Suggestion stream engine ─────────────────────────────────────
+    // The parallel task-suggestion watcher plane (one tokio task per
+    // enabled source, each releasing in-memory updates into the shared
+    // store the Ctrl-S picker shades in). Own runtime thread, like vigy;
+    // gated by `suggestions.enabled` (prescribed ON, bare OFF).
+    crate::suggest::spawn_engine_thread(&config.suggestions);
 
     // ── Kanshou introspection server ─────────────────────────────────
     // Expose the GUI's live AppState (frame_perf atomics, session

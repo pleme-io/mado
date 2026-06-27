@@ -19490,7 +19490,8 @@
                   "net",
                   "process",
                   "rt-multi-thread",
-                  "sync"
+                  "sync",
+                  "time"
                 ],
                 "uses_default_features": true,
                 "optional": false,
@@ -23530,7 +23531,8 @@
                   "net",
                   "process",
                   "rt-multi-thread",
-                  "sync"
+                  "sync",
+                  "time"
                 ],
                 "uses_default_features": true,
                 "optional": false,
@@ -27176,7 +27178,8 @@
                   "net",
                   "process",
                   "rt-multi-thread",
-                  "sync"
+                  "sync",
+                  "time"
                 ],
                 "uses_default_features": true,
                 "optional": false,
@@ -30955,7 +30958,8 @@
                   "net",
                   "process",
                   "rt-multi-thread",
-                  "sync"
+                  "sync",
+                  "time"
                 ],
                 "uses_default_features": true,
                 "optional": false,
@@ -34949,7 +34953,8 @@
                   "net",
                   "process",
                   "rt-multi-thread",
-                  "sync"
+                  "sync",
+                  "time"
                 ],
                 "uses_default_features": true,
                 "optional": false,
@@ -38549,7 +38554,8 @@
                   "net",
                   "process",
                   "rt-multi-thread",
-                  "sync"
+                  "sync",
+                  "time"
                 ],
                 "uses_default_features": true,
                 "optional": false,

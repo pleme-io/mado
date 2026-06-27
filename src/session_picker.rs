@@ -46,6 +46,8 @@ use std::sync::{Arc, Mutex};
 use ishou_tokens::{FleetSessionNames, SessionName};
 use tear_types::{DefinitionId, MultiplexerControl, PaneId, SessionId, SessionSource};
 
+use crate::suggest::{SuggestionId, SuggestionStore};
+
 /// What creating a session from the picker should name it.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum CreateSpec {
@@ -66,6 +68,10 @@ pub enum RowKind {
     /// Instantiate this latent preset (a saved/authored definition with no
     /// live instance), then switch to it. The ○ rows in the union picker.
     Instantiate(DefinitionId),
+    /// Spawn a session aimed at an external task suggestion (PR, ticket,
+    /// failing resource, …), then switch to it. The continuously-refreshing
+    /// ○ rows the suggestion stream shades in beneath sessions + presets.
+    Suggestion(SuggestionId),
     /// Create a new session per the spec, then switch to it.
     Create(CreateSpec),
 }
@@ -127,6 +133,15 @@ pub trait SessionPickerBridge: Send {
         false
     }
 
+    /// Spawn a session aimed at a task suggestion (by id) and switch to it —
+    /// the [`RowKind::Suggestion`] accept path. Looks the suggestion up in the
+    /// store, spawns into its target cwd with its emoji-native name, indexes +
+    /// switches. Default `false` (inert bridge); the live praça bridge
+    /// overrides it.
+    fn spawn_suggestion(&self, _id: SuggestionId, _now: u64) -> bool {
+        false
+    }
+
     /// Reconcile the index against the live session registry before
     /// listing, so out-of-band-spawned sessions (MCP `spawn_term`, `tear
     /// new-session`, manual attach) are tracked + browsable too — the
@@ -164,6 +179,12 @@ pub struct PracaPickerBridge {
     /// How rows are badged (`tear.session_picker_badges`): never / only when
     /// the list mixes live+latent (the minimal-impact default) / always.
     badges: crate::config::BadgeMode,
+    /// The shared suggestion store the watcher engine fills — read to surface
+    /// the continuously-refreshing ○ task-suggestion rows. `None` = the stream
+    /// is off (no suggestion rows). Shared, never forked.
+    suggestions: Option<Arc<SuggestionStore>>,
+    /// Max suggestion rows to surface (`suggestions.max_visible`). 0 = none.
+    suggest_max: usize,
 }
 
 impl PracaPickerBridge {
@@ -178,6 +199,8 @@ impl PracaPickerBridge {
         spawn_env_base: tear_types::SpawnEnv,
         surface_presets: bool,
         badges: crate::config::BadgeMode,
+        suggestions: Option<Arc<SuggestionStore>>,
+        suggest_max: usize,
     ) -> Self {
         Self {
             praca,
@@ -187,6 +210,8 @@ impl PracaPickerBridge {
             spawn_env_base,
             surface_presets,
             badges,
+            suggestions,
+            suggest_max,
         }
     }
 
@@ -280,6 +305,82 @@ impl PracaPickerBridge {
             )
             .ok()
     }
+
+    /// Build the continuously-refreshing ○ task-suggestion rows: the store's
+    /// urgency/score-ranked set, query-filtered, capped at `suggest_max`.
+    /// Empty when the stream is off or no store is wired.
+    fn suggestion_rows(&self, query: &str) -> Vec<SessionPickerRow> {
+        if self.suggest_max == 0 {
+            return Vec::new();
+        }
+        let Some(store) = self.suggestions.as_ref() else {
+            return Vec::new();
+        };
+        let q = query.trim().to_ascii_lowercase();
+        // Over-fetch then query-filter so a needle still finds lower-ranked
+        // suggestions (the store is already urgency/score ranked).
+        store
+            .ranked(self.suggest_max.saturating_mul(4).max(self.suggest_max))
+            .into_iter()
+            .filter(|s| {
+                q.is_empty()
+                    || s.title.to_ascii_lowercase().contains(&q)
+                    || s.detail
+                        .as_deref()
+                        .is_some_and(|d| d.to_ascii_lowercase().contains(&q))
+            })
+            .take(self.suggest_max)
+            .map(|s| {
+                let mut label = String::from("\u{25cb} "); // ○ latent
+                label.push_str(&s.picker_label());
+                SessionPickerRow {
+                    label,
+                    kind: RowKind::Suggestion(s.id),
+                }
+            })
+            .collect()
+    }
+
+    /// Spawn a session aimed at a suggestion + switch — the
+    /// [`RowKind::Suggestion`] accept path. Spawns into the suggestion's target
+    /// cwd with its emoji-native name, indexes the new session, and posts its
+    /// first pane to the shared switch channel.
+    fn spawn_suggestion_inner(&self, id: SuggestionId, now: u64) -> bool {
+        let Some(store) = self.suggestions.as_ref() else {
+            return false;
+        };
+        let Some(sug) = store.get(id) else {
+            return false;
+        };
+        // Spawn into the suggestion's cwd (mado's capability env, cwd
+        // overridden). `initial_command` is captured for a later pane-input
+        // milestone — there is no inproc write path to type it yet.
+        let cwd = sug.spawn.cwd().to_string_lossy().into_owned();
+        let env = self.spawn_env_base.clone().with_cwd(Some(cwd));
+        self.inproc.set_spawn_env(env);
+        let Ok(sid) = self.inproc.new_session_with_source_and_size(
+            sug.spawn.name(),
+            &self.shell,
+            SessionSource::Named("mado-suggestion".into()),
+            (80, 24),
+        ) else {
+            return false;
+        };
+        let Some(pane) = self.first_pane_of(sid) else {
+            return false;
+        };
+        {
+            let mut praca = self.praca();
+            let style = praca.name_style;
+            let mut rec =
+                praca::SessionRecord::for_project(sid, sug.spawn.cwd().to_path_buf(), style, now);
+            rec.rename(sug.spawn.name().to_owned());
+            praca.index.upsert(rec);
+            praca.record_visit(sid, now);
+        }
+        self.switch.post(pane);
+        true
+    }
 }
 
 /// Capture a live session into the latent preset catalog — the shared
@@ -308,7 +409,7 @@ pub(crate) fn capture_preset(
 
 impl SessionPickerBridge for PracaPickerBridge {
     fn list(&self, query: &str, now: u64) -> Vec<SessionPickerRow> {
-        let (rows, style) = {
+        let (mut rows, style) = {
             let praca = self.praca();
             // Live sessions with a live pane (a reaped one would post a
             // no-op — keep the picker honest).
@@ -389,8 +490,12 @@ impl SessionPickerBridge for PracaPickerBridge {
             }
             (rows, praca.name_style)
         };
-        // If anything matched (live or latent), that's the picker's answer;
-        // only an empty union falls through to the create surface.
+        // Shade in the continuously-refreshing task suggestions BELOW the live
+        // sessions + presets (the union-navigator law: Ctrl-S stays the one
+        // navigator). Query-filtered + capped; empty when the stream is off.
+        rows.extend(self.suggestion_rows(query));
+        // If anything matched (live, latent, or a suggestion), that's the
+        // picker's answer; only an empty union falls through to create.
         if !rows.is_empty() {
             return rows;
         }
@@ -444,6 +549,10 @@ impl SessionPickerBridge for PracaPickerBridge {
 
     fn instantiate_and_switch(&self, def_id: DefinitionId, now: u64) -> bool {
         self.instantiate_preset(def_id, now)
+    }
+
+    fn spawn_suggestion(&self, id: SuggestionId, now: u64) -> bool {
+        self.spawn_suggestion_inner(id, now)
     }
 
     fn save_as_preset(&self, session: SessionId, now: u64) -> bool {
@@ -528,6 +637,31 @@ mod tests {
             tear_types::SpawnEnv::none(),
             surface_presets,
             badges,
+            None,
+            0,
+        )
+    }
+
+    /// A bridge wired to a suggestion store (surfacing up to `max` ○
+    /// suggestion rows) — the suggestion-stream test seam.
+    fn bridge_with_suggestions(
+        praca: praca::Praca,
+        inproc: Arc<tear_core::InProcess>,
+        store: Arc<SuggestionStore>,
+        max: usize,
+    ) -> PracaPickerBridge {
+        let switch = crate::session_switch::SwitchRequests::default();
+        switch.attach_sink();
+        PracaPickerBridge::new(
+            Arc::new(Mutex::new(praca)),
+            inproc,
+            switch,
+            "/bin/sh".to_owned(),
+            tear_types::SpawnEnv::none(),
+            true,
+            crate::config::BadgeMode::Auto,
+            Some(store),
+            max,
         )
     }
 
@@ -834,5 +968,93 @@ mod tests {
             rows.iter().any(|r| matches!(r.kind, RowKind::Switch(_)) && r.label.contains("frost")),
             "the preset session is named frost, got {rows:?}"
         );
+    }
+
+    fn sug(source: crate::suggest::SourceKind, key: &str, title: &str, cwd: &str) -> crate::suggest::Suggestion {
+        crate::suggest::Suggestion::new(
+            source,
+            key,
+            title,
+            crate::suggest::SpawnSpec::new(cwd, title).unwrap(),
+        )
+    }
+
+    #[test]
+    fn bridge_shades_in_suggestions_below_sessions_and_spawns_on_accept() {
+        let (inproc, live) = live_inproc();
+        let mut praca = praca::Praca::new();
+        praca.index.upsert(praca::SessionRecord::for_project(
+            live,
+            PathBuf::from("/code/pleme-io/mado"),
+            SessionNameStyle::Emoji,
+            1000,
+        ));
+        let store = Arc::new(SuggestionStore::new());
+        let s = sug(
+            crate::suggest::SourceKind::GitBranchPr,
+            "tear#7",
+            "pr#7 fix tear",
+            "/code/pleme-io/tear",
+        );
+        let id = s.id;
+        store.ingest(crate::suggest::SourceKind::GitBranchPr, vec![s], 1000);
+
+        let bridge = bridge_with_suggestions(praca, Arc::clone(&inproc), store, 6);
+        let rows = bridge.list("", 1000);
+
+        let sgrow = rows
+            .iter()
+            .find(|r| matches!(r.kind, RowKind::Suggestion(_)))
+            .expect("a suggestion row is shaded in");
+        assert_eq!(sgrow.kind, RowKind::Suggestion(id));
+        assert!(sgrow.label.starts_with('\u{25cb}'), "○ latent badge: {}", sgrow.label);
+        assert!(sgrow.label.contains("pr#7 fix tear"));
+
+        // Suggestions shade in BELOW the live session.
+        let live_pos = rows.iter().position(|r| matches!(r.kind, RowKind::Switch(_))).unwrap();
+        let sug_pos = rows.iter().position(|r| matches!(r.kind, RowKind::Suggestion(_))).unwrap();
+        assert!(live_pos < sug_pos, "suggestions shade in below sessions");
+
+        // Accept spawns a session aimed at the task.
+        let before = inproc.with_registry(|r| r.sessions.len());
+        assert!(bridge.spawn_suggestion(id, 1000), "accept spawns the suggestion");
+        let after = inproc.with_registry(|r| r.sessions.len());
+        assert_eq!(after, before + 1, "a session was spawned for the suggestion");
+    }
+
+    #[test]
+    fn suggestions_off_when_max_zero() {
+        let (inproc, _live) = live_inproc();
+        let store = Arc::new(SuggestionStore::new());
+        store.ingest(
+            crate::suggest::SourceKind::TendRepos,
+            vec![sug(crate::suggest::SourceKind::TendRepos, "a", "a", "/x")],
+            1000,
+        );
+        let bridge = bridge_with_suggestions(praca::Praca::new(), inproc, store, 0);
+        let rows = bridge.list("", 1000);
+        assert!(rows.iter().all(|r| !matches!(r.kind, RowKind::Suggestion(_))));
+    }
+
+    #[test]
+    fn suggestions_filter_by_query() {
+        let (inproc, _live) = live_inproc();
+        let store = Arc::new(SuggestionStore::new());
+        store.ingest(
+            crate::suggest::SourceKind::GitBranchPr,
+            vec![
+                sug(crate::suggest::SourceKind::GitBranchPr, "1", "alpha task", "/x"),
+                sug(crate::suggest::SourceKind::GitBranchPr, "2", "beta task", "/y"),
+            ],
+            1000,
+        );
+        let bridge = bridge_with_suggestions(praca::Praca::new(), inproc, store, 6);
+        let rows = bridge.list("alpha", 1000);
+        let sg: Vec<_> = rows
+            .iter()
+            .filter(|r| matches!(r.kind, RowKind::Suggestion(_)))
+            .collect();
+        assert_eq!(sg.len(), 1, "only the matching suggestion");
+        assert!(sg[0].label.contains("alpha"));
     }
 }

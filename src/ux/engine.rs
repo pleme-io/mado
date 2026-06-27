@@ -500,7 +500,11 @@ impl InputEngine {
                     let sp = self.session_picker.lock().unwrap();
                     sp.selected_row().and_then(|r| match r.kind {
                         RowKind::Switch(id) => Some(id),
-                        RowKind::Instantiate(_) | RowKind::Create(_) => None,
+                        // Latent presets, suggestions, and create rows are not
+                        // live sessions — nothing to save as a preset.
+                        RowKind::Instantiate(_)
+                        | RowKind::Suggestion(_)
+                        | RowKind::Create(_) => None,
                     })
                 };
                 let saved = match (self.session_picker_bridge.as_ref(), session) {
@@ -900,6 +904,7 @@ impl InputEngine {
             let ok = match chosen {
                 Some(RowKind::Switch(session)) => bridge.switch_to(session),
                 Some(RowKind::Instantiate(def_id)) => bridge.instantiate_and_switch(def_id, now),
+                Some(RowKind::Suggestion(id)) => bridge.spawn_suggestion(id, now),
                 Some(RowKind::Create(spec)) => bridge.create_and_switch(spec, now),
                 // Nothing highlighted but a non-empty needle → create a
                 // session named literally by the query (create-on-miss).
@@ -3047,7 +3052,7 @@ mod tests {
     fn row_switch_id(row: &SessionPickerRow) -> Option<SessionId> {
         match row.kind {
             RowKind::Switch(id) => Some(id),
-            RowKind::Instantiate(_) | RowKind::Create(_) => None,
+            RowKind::Instantiate(_) | RowKind::Suggestion(_) | RowKind::Create(_) => None,
         }
     }
 

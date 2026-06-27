@@ -1392,6 +1392,18 @@ fn try_run_default_embedded(
             // Give the MCP surface the SAME catalog the picker reads, so
             // `save_session_as_preset` writes where Ctrl-S reads its ○ rows.
             kanshou_state.set_praca(std::sync::Arc::clone(&shared_praca));
+            // The Ctrl-S picker shares the global suggestion store the watcher
+            // engine fills (see `crate::suggest`), so the continuously-
+            // refreshing ○ task rows appear beneath sessions + presets when the
+            // stream is enabled.
+            let (suggest_store, suggest_max) = if config.suggestions.enabled {
+                (
+                    Some(crate::suggest::store()),
+                    config.suggestions.max_visible,
+                )
+            } else {
+                (None, 0)
+            };
             Box::new(crate::session_picker::PracaPickerBridge::new(
                 shared_praca,
                 Arc::clone(&inproc),
@@ -1400,6 +1412,8 @@ fn try_run_default_embedded(
                 picker_spawn_env.clone(),
                 config.tear.session_picker_surface_presets,
                 config.tear.session_picker_badges,
+                suggest_store,
+                suggest_max,
             )) as Box<dyn crate::session_picker::SessionPickerBridge>
         });
 

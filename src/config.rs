@@ -122,6 +122,11 @@ pub struct MadoConfig {
     /// callers see a clean reason rather than a panic or hang.
     #[serde(default)]
     pub vigy: MadoVigyConfig,
+    /// The continuously-refreshing task-suggestion stream the Ctrl-S picker
+    /// shades in (see [`SuggestionsConfig`] + `crate::suggest`). Prescribed
+    /// default ON with a gentle cadence; the bare tier strips it off.
+    #[serde(default)]
+    pub suggestions: SuggestionsConfig,
 }
 
 /// Mado's embedded-vigy gate. Defaults the runtime OFF — operators
@@ -652,6 +657,86 @@ pub enum BadgeMode {
     Auto,
     /// Always badge every row (● live / ○ latent), even an all-live list.
     Always,
+}
+
+/// The continuously-refreshing task-suggestion stream the Ctrl-S picker shades
+/// in beneath the live + preset rows (see `crate::suggest`). Tiered: bare =
+/// fully OFF (stripped — picker shows only sessions/presets); prescribed = ON
+/// with a gentle cadence + every implemented source at its default. Per-source
+/// overrides live in `sources` (keyed by kebab `SourceKind` slug).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct SuggestionsConfig {
+    /// Master switch. `false` (bare) = no engine, no watchers, no rows.
+    pub enabled: bool,
+    /// Whether a source with no explicit `sources` override runs by default.
+    pub default_enabled: bool,
+    /// Max suggestion rows shown in the picker.
+    pub max_visible: usize,
+    /// Fade-in duration (ms) for a newly-arrived suggestion row (the slow
+    /// shade-in). 0 = appear instantly.
+    pub shade_in_ms: u64,
+    /// Drop a suggestion this many seconds after it was last seen (0 = never).
+    pub ttl_secs: u64,
+    /// Per-source overrides. Unlisted sources use `default_enabled` + the
+    /// kind's default cadence.
+    pub sources: Vec<SuggestionSourceConfig>,
+}
+
+impl Default for SuggestionsConfig {
+    fn default() -> Self {
+        Self::prescribed()
+    }
+}
+
+impl SuggestionsConfig {
+    /// Bare tier — the whole stream off (stripped).
+    #[must_use]
+    pub fn bare() -> Self {
+        Self {
+            enabled: false,
+            default_enabled: false,
+            max_visible: 0,
+            shade_in_ms: 0,
+            ttl_secs: 0,
+            sources: Vec::new(),
+        }
+    }
+
+    /// Prescribed tier — on, gentle cadence, every implemented source running
+    /// at its default. Unauthed sources contribute nothing (graceful), so an
+    /// all-on default is harmless.
+    #[must_use]
+    pub fn prescribed() -> Self {
+        Self {
+            enabled: true,
+            default_enabled: true,
+            max_visible: 6,
+            shade_in_ms: 600,
+            ttl_secs: 900,
+            sources: Vec::new(),
+        }
+    }
+}
+
+/// Per-source override in [`SuggestionsConfig::sources`].
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SuggestionSourceConfig {
+    /// Source kind kebab slug (e.g. `git-branch-pr`). Unknown slugs ignored.
+    pub kind: String,
+    /// Run this source. Defaults `true`.
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+    /// Override the poll cadence (seconds).
+    #[serde(default)]
+    pub interval_secs: Option<u64>,
+    /// Override the per-poll item cap.
+    #[serde(default)]
+    pub max_items: Option<usize>,
+    /// Free per-source params (token env override, JQL, grafana folder, …).
+    #[serde(default)]
+    pub params: std::collections::BTreeMap<String, String>,
 }
 
 /// Per-field TearConfig overrides mado optionally pushes to the
@@ -2009,6 +2094,7 @@ impl MadoConfig {
             // = false` already).
             effects: MadoEffectsConfig::default(),
             vigy: MadoVigyConfig::default(),
+            suggestions: SuggestionsConfig::bare(),
         }
     }
 
@@ -2257,6 +2343,7 @@ fn mado_fleet_base() -> MadoConfig {
         tear: MadoTearConfig::default(),
         effects: MadoEffectsConfig::default(),
         vigy: MadoVigyConfig::default(),
+        suggestions: SuggestionsConfig::default(),
     }
 }
 
@@ -3301,6 +3388,7 @@ mod tests {
             tear: MadoTearConfig::default(),
             effects: MadoEffectsConfig::default(),
             vigy: MadoVigyConfig::default(),
+            suggestions: SuggestionsConfig::default(),
         };
         if fd.scrollback_lines == 10_000 {
             c.behavior.scrollback_lines = default_scrollback();
