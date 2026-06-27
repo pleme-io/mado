@@ -7358,7 +7358,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.34";
+        version = "0.1.35";
         edition = "2024";
         crateBin = [
           {
@@ -7595,7 +7595,7 @@ rec {
           {
             name = "tokio";
             packageId = "tokio";
-            features = [ "rt-multi-thread" "process" "io-util" "sync" "macros" "net" ];
+            features = [ "rt-multi-thread" "process" "io-util" "sync" "macros" "net" "time" ];
           }
           {
             name = "tracing";
