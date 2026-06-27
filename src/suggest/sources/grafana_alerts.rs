@@ -59,8 +59,19 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, max: usize) -> Vec<Suggest
             let spawn = SpawnSpec::new(cwd, name)?;
             let mut title = alertname.clone();
             title.push_str(" firing");
+            // Key on alertname + the full (sorted) label-set, not alertname
+            // alone: the /api/v1/alerts feed returns one entry per firing
+            // INSTANCE (label-set), so N instances of one rule must stay N
+            // distinct ids — keying on alertname collapses them in the store.
+            let mut key = alertname.clone();
+            for (lk, lv) in &a.labels {
+                key.push('|');
+                key.push_str(lk);
+                key.push('=');
+                key.push_str(lv);
+            }
             Some(
-                Suggestion::new(SourceKind::GrafanaAlerts, &alertname, title, spawn)
+                Suggestion::new(SourceKind::GrafanaAlerts, &key, title, spawn)
                     .detail("grafana")
                     .urgent(Urgency::Critical),
             )

@@ -41,7 +41,8 @@ impl SuggestionSource for JiraAssignedSource {
         let limit = cfg.max_items.max(1).to_string();
         let mut url = String::from("https://");
         url.push_str(site);
-        url.push_str("/rest/api/3/search?jql=");
+        // /search/jql — current Jira Cloud endpoint (legacy /search removed 2025-05-01).
+        url.push_str("/rest/api/3/search/jql?jql=");
         url.push_str(&pct(jql));
         url.push_str("&maxResults=");
         url.push_str(&limit);
@@ -144,7 +145,7 @@ mod tests {
     /// The exact search URL the source builds for the default JQL — rebuilt
     /// here through `pct` so the fixture key can never drift from the encoder.
     fn search_url() -> String {
-        let mut u = String::from("https://pleme.atlassian.net/rest/api/3/search?jql=");
+        let mut u = String::from("https://pleme.atlassian.net/rest/api/3/search/jql?jql=");
         u.push_str(&pct(DEFAULT_JQL));
         u.push_str("&maxResults=5&fields=summary,status,priority");
         u

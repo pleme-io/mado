@@ -393,15 +393,47 @@ impl Urgency {
 }
 
 /// Everything needed to turn a suggestion into a live session — the
-/// always-spawnable contract. Constructed only via [`SpawnSpec::new`], which
-/// rejects an empty cwd/name, so a [`Suggestion`] can never carry an
-/// un-spawnable target (UNREPRESENTABILITY: there is no row the picker can
-/// show but not act on).
+/// always-spawnable contract.
+///
+/// Two ingresses, both validated: [`SpawnSpec::new`] rejects an empty cwd/name,
+/// and deserialization routes through `#[serde(try_from = "SpawnSpecWire")]` —
+/// the same `new` check — so a persisted snapshot or config can't reintroduce an
+/// un-spawnable target. The fields are private, so the only unchecked path is a
+/// struct literal *inside this crate*; outside it there is none.
+///
+/// Tier (per UNREPRESENTABILITY): **parse-time-rejected** on the deserialize
+/// boundary + sealed construction in-crate — not truly-unrepresentable (a
+/// crate-internal struct literal could still build a blank one), but no
+/// picker-reachable row can be shown-but-not-acted-on.
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "SpawnSpecWire")]
 pub struct SpawnSpec {
     cwd: PathBuf,
     name: String,
     initial_command: Option<String>,
+}
+
+/// Untrusted wire shape for [`SpawnSpec`]. The `TryFrom` runs the same
+/// validation as [`SpawnSpec::new`], so deserialization can't bypass the
+/// always-spawnable invariant.
+#[derive(serde::Deserialize)]
+struct SpawnSpecWire {
+    cwd: PathBuf,
+    name: String,
+    #[serde(default)]
+    initial_command: Option<String>,
+}
+
+impl TryFrom<SpawnSpecWire> for SpawnSpec {
+    type Error = String;
+    fn try_from(w: SpawnSpecWire) -> Result<Self, Self::Error> {
+        let spec = SpawnSpec::new(w.cwd, w.name)
+            .ok_or_else(|| String::from("SpawnSpec: cwd and name must be non-empty"))?;
+        Ok(match w.initial_command {
+            Some(c) => spec.with_command(c),
+            None => spec,
+        })
+    }
 }
 
 impl SpawnSpec {
@@ -576,6 +608,28 @@ mod tests {
         assert!(SpawnSpec::new("", "name").is_none());
         assert!(SpawnSpec::new("/x", "  ").is_none());
         assert!(SpawnSpec::new("/x", "ok").is_some());
+    }
+
+    #[test]
+    fn spawnspec_deserialize_enforces_the_invariant() {
+        // A valid wire shape round-trips through the try_from validation.
+        let ok: Result<SpawnSpec, _> =
+            serde_json::from_str(r#"{"cwd":"/code","name":"work","initial_command":null}"#);
+        assert!(ok.is_ok());
+        // A blank name on the wire is REJECTED — deserialization can no longer
+        // bypass `new` and reintroduce an un-spawnable target.
+        let bad_name: Result<SpawnSpec, _> =
+            serde_json::from_str(r#"{"cwd":"/code","name":"   "}"#);
+        assert!(bad_name.is_err(), "blank name must fail to deserialize");
+        // An empty cwd is likewise rejected.
+        let bad_cwd: Result<SpawnSpec, _> =
+            serde_json::from_str(r#"{"cwd":"","name":"work"}"#);
+        assert!(bad_cwd.is_err(), "empty cwd must fail to deserialize");
+        // Round-trip: serialize a built spec, deserialize it back unchanged.
+        let spec = SpawnSpec::new("/code", "work").unwrap().with_command("ls");
+        let json = serde_json::to_string(&spec).unwrap();
+        let back: SpawnSpec = serde_json::from_str(&json).unwrap();
+        assert_eq!(spec, back);
     }
 
     #[test]

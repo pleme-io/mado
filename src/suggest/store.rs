@@ -277,6 +277,10 @@ impl SuggestionStore {
     /// missing file, a wrong schema magic (format bump), or a torn body (hash
     /// mismatch) all start empty — never feed garbage rows to the picker.
     pub fn load_file(&self, path: &Path) {
+        // Reclaim `.tmp.<pid>` temps a crashed prior run left behind, before we
+        // read. The atomic persist renames its own temp away on success, so the
+        // only way one lingers is a crash between create and rename.
+        sweep_orphan_temps(path);
         let Ok(bytes) = std::fs::read(path) else {
             return;
         };
@@ -317,6 +321,53 @@ impl SuggestionStore {
         let _ = f.sync_all(); // durable before the rename
         drop(f);
         let _ = std::fs::rename(&tmp, path);
+    }
+}
+
+/// Reclaim sibling temp files (`<file>.tmp.<pid>`) left by a crashed prior
+/// persist. Default staleness floor is 5 minutes so a CONCURRENT process's
+/// in-flight temp — always seconds old — is never deleted out from under it.
+/// Best-effort; any I/O error is ignored.
+fn sweep_orphan_temps(path: &Path) {
+    sweep_orphan_temps_with(path, std::time::SystemTime::now(), 300);
+}
+
+/// Inner, testable form of [`sweep_orphan_temps`]: `now` + the staleness floor
+/// are injected so a test can prove both directions (fresh temp kept, stale
+/// temp reclaimed) without touching a file's real mtime.
+fn sweep_orphan_temps_with(path: &Path, now: std::time::SystemTime, max_age_secs: u64) {
+    let Some(parent) = path.parent() else {
+        return;
+    };
+    let Some(fname) = path.file_name().and_then(|n| n.to_str()) else {
+        return;
+    };
+    let mut prefix = String::from(fname);
+    prefix.push_str(".tmp.");
+    let Ok(rd) = std::fs::read_dir(parent) else {
+        return;
+    };
+    for entry in rd.flatten() {
+        let name = entry.file_name();
+        let Some(name) = name.to_str() else {
+            continue;
+        };
+        // Only `<file>.tmp.<digits>` — our own pid-tagged temp shape.
+        let Some(suffix) = name.strip_prefix(prefix.as_str()) else {
+            continue;
+        };
+        if suffix.is_empty() || !suffix.bytes().all(|b| b.is_ascii_digit()) {
+            continue;
+        }
+        let stale = entry
+            .metadata()
+            .and_then(|m| m.modified())
+            .ok()
+            .and_then(|mtime| now.duration_since(mtime).ok())
+            .is_some_and(|age| age.as_secs() >= max_age_secs);
+        if stale {
+            let _ = std::fs::remove_file(entry.path());
+        }
     }
 }
 
@@ -510,6 +561,37 @@ mod tests {
     }
 
     #[test]
+    fn orphan_temp_sweep_reclaims_stale_keeps_fresh() {
+        let dir = std::env::temp_dir().join("mado-suggest-test-sweep");
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("snap.json");
+
+        // A crashed run's leftover temp + a non-matching sibling + a "live"
+        // concurrent temp (created fresh now).
+        let orphan = dir.join("snap.json.tmp.4242");
+        let unrelated = dir.join("snap.json.bak");
+        let live = dir.join("snap.json.tmp.9999");
+        std::fs::write(&orphan, b"x").unwrap();
+        std::fs::write(&unrelated, b"x").unwrap();
+        std::fs::write(&live, b"x").unwrap();
+
+        // With max_age 0, every matching temp counts as stale → orphan + live
+        // both reclaimed; the unrelated sibling is untouched.
+        sweep_orphan_temps_with(&path, std::time::SystemTime::now(), 0);
+        assert!(!orphan.exists(), "a pid-tagged temp is reclaimed");
+        assert!(!live.exists(), "max_age 0 reclaims even a fresh temp");
+        assert!(unrelated.exists(), "a non-temp sibling is never touched");
+
+        // Safety direction: a fresh temp under the real 5-min floor SURVIVES,
+        // so a concurrent process's in-flight write is never deleted.
+        std::fs::write(&orphan, b"x").unwrap();
+        sweep_orphan_temps_with(&path, std::time::SystemTime::now(), 300);
+        assert!(orphan.exists(), "a fresh temp is kept under the staleness floor");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn generation_bumps_on_change_not_on_last_seen_heartbeat() {
         let store = SuggestionStore::new();
         let g0 = store.generation();
@@ -630,6 +712,96 @@ mod tests {
             prop_assert!(
                 out.iter().filter(|s| s.suggestion.source == SourceKind::TendRepos).count() <= cap
             );
+        }
+
+        /// DETERMINISTIC race coverage. Every store op takes the Mutex, so the
+        /// store is LINEARIZABLE — concurrent interleavings reduce to some
+        /// ordering of complete ops. Exhaustively exercising random ORDERINGS
+        /// (proptest-seeded → deterministic, replayable) therefore soundly
+        /// covers the map's concurrent behaviour. We assert the invariants the
+        /// lock-free generation counter + the picker memoization depend on:
+        /// generation is monotonic non-decreasing, and `ranked` is always sorted.
+        #[test]
+        fn store_is_linearizable_invariants_hold(
+            seq in prop::collection::vec((0u8..4, 0u8..8), 0..40),
+        ) {
+            let store = SuggestionStore::new();
+            let mut prev_gen = store.generation();
+            let mut now = 1000u64;
+            for (kind, arg) in seq {
+                now += 10;
+                match kind {
+                    0 => {
+                        let items: Vec<_> = (0..arg)
+                            .map(|i| sug(SourceKind::TendRepos, &i.to_string(), "t"))
+                            .collect();
+                        store.ingest(SourceKind::TendRepos, items, now);
+                    }
+                    1 => {
+                        let items: Vec<_> = (0..arg)
+                            .map(|i| {
+                                sug(SourceKind::GrafanaAlerts, &i.to_string(), "t")
+                                    .urgent(Urgency::Critical)
+                            })
+                            .collect();
+                        store.ingest(SourceKind::GrafanaAlerts, items, now);
+                    }
+                    2 => store.decay(now, u64::from(arg) * 5),
+                    _ => store.gc(usize::from(arg)),
+                }
+                let g = store.generation();
+                prop_assert!(g >= prev_gen, "generation must be monotonic non-decreasing");
+                prev_gen = g;
+                let ranked = store.ranked_stored(1000);
+                for w in ranked.windows(2) {
+                    prop_assert!(
+                        w[0].suggestion.rank_key() >= w[1].suggestion.rank_key(),
+                        "ranked must stay sorted after every op"
+                    );
+                }
+            }
+        }
+    }
+
+    /// REAL-concurrency smoke (complements the deterministic linearizability
+    /// proptest): 8 threads hammer the one store. The Mutex makes a data race on
+    /// the map unrepresentable; this catches what an ordering test can't — a
+    /// DEADLOCK (lock-ordering / a lock held across a call → the test hangs and
+    /// CI times out), a panic, or an atomic-ordering bug. Final invariants hold.
+    #[test]
+    fn concurrent_hammering_no_deadlock_no_panic_invariants_hold() {
+        let store = std::sync::Arc::new(SuggestionStore::new());
+        let mut handles = Vec::new();
+        for t in 0..8u64 {
+            let s = std::sync::Arc::clone(&store);
+            handles.push(std::thread::spawn(move || {
+                // Two threads share each source so ingest's retain/insert races.
+                let src = if t % 2 == 0 {
+                    SourceKind::TendRepos
+                } else {
+                    SourceKind::GitBranchPr
+                };
+                for i in 0..300u64 {
+                    let n = usize::try_from(i % 6).unwrap_or(0);
+                    let items: Vec<_> = (0..n).map(|j| sug(src, &j.to_string(), "t")).collect();
+                    s.ingest(src, items, 1000 + i);
+                    let _ = s.generation();
+                    let _ = s.ranked_stored(10);
+                    if i % 5 == 0 {
+                        s.decay(1000 + i, 50);
+                    }
+                    if i % 9 == 0 {
+                        s.gc(30);
+                    }
+                }
+            }));
+        }
+        for h in handles {
+            h.join().expect("a store thread panicked or deadlocked");
+        }
+        let ranked = store.ranked_stored(1000);
+        for w in ranked.windows(2) {
+            assert!(w[0].suggestion.rank_key() >= w[1].suggestion.rank_key());
         }
     }
 }

@@ -32,7 +32,9 @@ impl SuggestionSource for JiraSprintSource {
         let max = cfg.max_items.max(1);
         let mut url = String::new();
         url.push_str(base);
-        url.push_str("/rest/api/3/search?maxResults=");
+        // /search/jql — the current Jira Cloud endpoint (legacy /search was
+        // removed 2025-05-01); the response shape (issues[].key/fields) is the same.
+        url.push_str("/rest/api/3/search/jql?maxResults=");
         url.push_str(&max.to_string());
         url.push_str("&fields=summary&jql=");
         url.push_str(&pct(jql));
@@ -124,7 +126,7 @@ mod tests {
     fn url() -> String {
         // Built with the same helper poll uses so the mock matches exactly.
         let mut u = String::from(
-            "https://acme.atlassian.net/rest/api/3/search?maxResults=5&fields=summary&jql=",
+            "https://acme.atlassian.net/rest/api/3/search/jql?maxResults=5&fields=summary&jql=",
         );
         u.push_str(&pct("sprint=42"));
         u

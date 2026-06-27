@@ -2145,7 +2145,8 @@ impl TerminalRenderer {
         use crate::picker::component::{LineRole, OverlayLine, OverlaySpec};
         let max_rows = 12usize;
 
-        let mut lines: Vec<OverlayLine> = Vec::with_capacity(max_rows + 1);
+        // +2: a title line and a possible "… +N more" overflow footer.
+        let mut lines: Vec<OverlayLine> = Vec::with_capacity(max_rows + 2);
         lines.push(OverlayLine::new(
             format!("\u{25b6} session  {query}\u{2588}"),
             LineRole::Title,
@@ -2166,17 +2167,26 @@ impl TerminalRenderer {
             use crate::session_picker::RowKind;
             let now = Instant::now();
             let mut fade = self.suggestion_fade.borrow_mut();
-            let visible: std::collections::HashSet<crate::suggest::SuggestionId> = results
+            // Scroll window: keep the selected row visible even when the result
+            // set is longer than max_rows. Without this, selecting past row 12
+            // left the highlight off-screen (invisible selection). `start` puts
+            // `selected` at the window's bottom while scrolling down, then pins
+            // to the last full page so we never show blank rows past the end.
+            let start = selected
+                .saturating_sub(max_rows - 1)
+                .min(results.len().saturating_sub(max_rows));
+            let window = &results[start..(start + max_rows).min(results.len())];
+            let visible: std::collections::HashSet<crate::suggest::SuggestionId> = window
                 .iter()
-                .take(max_rows)
                 .filter_map(|r| match r.kind {
                     RowKind::Suggestion(id) => Some(id),
                     _ => None,
                 })
                 .collect();
             fade.retain(|id, _| visible.contains(id));
-            for (i, row) in results.iter().take(max_rows).enumerate() {
-                let (marker, role) = if i == selected {
+            for (i, row) in window.iter().enumerate() {
+                let abs = start + i;
+                let (marker, role) = if abs == selected {
                     ("\u{203a} ", LineRole::Selected)
                 } else {
                     ("  ", LineRole::Row)
@@ -2202,6 +2212,15 @@ impl TerminalRenderer {
                         .with_alpha(alpha)
                         .with_color(color),
                 );
+            }
+            // Overflow affordance: how many rows lie below the window. A tiny
+            // "… +N more" footer tells the operator the stack continues.
+            let below = results.len().saturating_sub(start + window.len());
+            if below > 0 {
+                lines.push(OverlayLine::new(
+                    format!("  \u{2026} +{below} more"),
+                    LineRole::Hint,
+                ));
             }
         }
 

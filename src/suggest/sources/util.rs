@@ -71,6 +71,56 @@ pub fn relative_age(secs: u64) -> String {
     out
 }
 
+/// Format a Unix timestamp (seconds, UTC) as an RFC 3339 / ISO-8601 instant
+/// (`YYYY-MM-DDTHH:MM:SSZ`) with no external crate. The `timeMin` /
+/// since-cursor every time-windowed API source needs (Google Calendar, any
+/// "events after now" feed). Uses Howard Hinnant's civil-from-days algorithm.
+#[must_use]
+pub fn rfc3339_utc(unix_secs: u64) -> String {
+    let days = i64::try_from(unix_secs / 86_400).unwrap_or(0);
+    let rem = unix_secs % 86_400;
+    let (h, m, s) = (rem / 3600, (rem % 3600) / 60, rem % 60);
+    let (year, month, day) = civil_from_days(days);
+    let mut out = String::with_capacity(20);
+    push_int(&mut out, year, 4);
+    out.push('-');
+    push_int(&mut out, i64::from(month), 2);
+    out.push('-');
+    push_int(&mut out, i64::from(day), 2);
+    out.push('T');
+    push_int(&mut out, i64::try_from(h).unwrap_or(0), 2);
+    out.push(':');
+    push_int(&mut out, i64::try_from(m).unwrap_or(0), 2);
+    out.push(':');
+    push_int(&mut out, i64::try_from(s).unwrap_or(0), 2);
+    out.push('Z');
+    out
+}
+
+/// Zero-pad `v` (assumed non-negative here) to at least `width` digits.
+fn push_int(out: &mut String, v: i64, width: usize) {
+    let s = v.to_string();
+    for _ in s.len()..width {
+        out.push('0');
+    }
+    out.push_str(&s);
+}
+
+/// Civil date `(year, month, day)` from a day count since 1970-01-01
+/// (Howard Hinnant, <http://howardhinnant.github.io/date_algorithms.html>).
+fn civil_from_days(z: i64) -> (i64, u32, u32) {
+    let z = z + 719_468;
+    let era = (if z >= 0 { z } else { z - 146_096 }) / 146_097;
+    let doe = z - era * 146_097; // [0, 146096]
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365; // [0, 399]
+    let y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100); // [0, 365]
+    let mp = (5 * doy + 2) / 153; // [0, 11]
+    let d = u32::try_from(doy - (153 * mp + 2) / 5 + 1).unwrap_or(1); // [1, 31]
+    let m = u32::try_from(if mp < 10 { mp + 3 } else { mp - 9 }).unwrap_or(1); // [1, 12]
+    (if m <= 2 { y + 1 } else { y }, m, d)
+}
+
 /// Final path component (after the last `/`); the whole string if there is no
 /// separator or the trailing component is empty.
 #[must_use]
@@ -132,6 +182,15 @@ mod tests {
         assert_eq!(relative_age(2 * 3600), "2h");
         assert_eq!(relative_age(2 * 86400), "2d");
         assert_eq!(relative_age(3 * 7 * 86400), "3w");
+    }
+
+    #[test]
+    fn rfc3339_utc_known_instants() {
+        assert_eq!(rfc3339_utc(0), "1970-01-01T00:00:00Z");
+        // 1_700_000_000 → 2023-11-14T22:13:20Z (a known reference value).
+        assert_eq!(rfc3339_utc(1_700_000_000), "2023-11-14T22:13:20Z");
+        // Leap-year boundary: 2024-02-29.
+        assert_eq!(rfc3339_utc(1_709_208_000), "2024-02-29T12:00:00Z");
     }
 
     #[test]

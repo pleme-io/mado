@@ -71,6 +71,13 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, cap: usize) -> Vec<Suggest
             if pod_name.is_empty() {
                 return None;
             }
+            // Defense-in-depth: namespace + pod name are interpolated into a
+            // shell `kubectl … describe pod` command. k8s guarantees DNS-1123
+            // names; reject anything else so a corrupt or hostile PodList can't
+            // inject shell syntax through the spawn's initial command.
+            if !dns_safe(namespace) || !dns_safe(pod_name) {
+                return None;
+            }
             let label = if reason.is_empty() {
                 phase.to_string()
             } else {
@@ -104,6 +111,16 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, cap: usize) -> Vec<Suggest
         })
         .take(cap)
         .collect()
+}
+
+/// A DNS-1123-safe k8s name: non-empty, ≤253 chars, only `[a-z0-9.-]`. This is
+/// the exact character class k8s enforces on namespace + pod names, so a real
+/// name always passes and anything carrying shell metacharacters is rejected.
+fn dns_safe(s: &str) -> bool {
+    !s.is_empty()
+        && s.len() <= 253
+        && s.bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-' || b == b'.')
 }
 
 #[derive(serde::Deserialize, Default)]
@@ -211,5 +228,36 @@ mod tests {
     #[test]
     fn garbage_json_is_safe() {
         assert!(parse("not json", &MockEnvironment::new(), 5).is_empty());
+    }
+
+    #[test]
+    fn shell_metachar_names_are_rejected() {
+        // A hostile/corrupt PodList carrying shell syntax in the pod name must
+        // not produce a suggestion (its describe command would be injectable).
+        const HOSTILE: &str = r#"{
+            "items": [
+                {
+                    "metadata": {"name": "x; rm -rf ~", "namespace": "prod"},
+                    "status": {
+                        "phase": "Pending",
+                        "containerStatuses": [
+                            {"state": {"waiting": {"reason": "CrashLoopBackOff"}}}
+                        ]
+                    }
+                }
+            ]
+        }"#;
+        let out = parse(HOSTILE, &MockEnvironment::new().roots("/code", "/home/op"), 5);
+        assert!(out.is_empty(), "injectable pod name must be skipped");
+    }
+
+    #[test]
+    fn dns_safe_accepts_real_names_rejects_metachars() {
+        assert!(dns_safe("api-7d9f"));
+        assert!(dns_safe("kube-system.thing"));
+        assert!(!dns_safe(""));
+        assert!(!dns_safe("x; rm -rf ~"));
+        assert!(!dns_safe("Upper"));
+        assert!(!dns_safe("$(whoami)"));
     }
 }

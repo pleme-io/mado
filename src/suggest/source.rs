@@ -149,17 +149,29 @@ impl SuggestionEngine {
                     let cfg2 = scfg.clone();
                     // poll may block (subprocess / curl) — keep it off the
                     // async reactor thread.
-                    let items = tokio::task::spawn_blocking(move || {
+                    // Watchers only ever touch RAM. Decay + disk persistence are
+                    // owned by the single maintenance task (see mod.rs), off this
+                    // hot path — no per-watcher full-map scans or writes.
+                    match tokio::task::spawn_blocking(move || {
                         let mut v = s.poll(e.as_ref(), &cfg2);
                         v.truncate(cfg2.max_items);
                         v
                     })
                     .await
-                    .unwrap_or_default();
-                    // Watchers only ever touch RAM. Decay + disk persistence are
-                    // owned by the single maintenance task (see mod.rs), off this
-                    // hot path — no per-watcher full-map scans or writes.
-                    store.ingest(src.kind(), items, now_ms);
+                    {
+                        Ok(items) => store.ingest(src.kind(), items, now_ms),
+                        Err(join_err) => {
+                            // The contract says poll must not panic. If it did,
+                            // LOG it (don't swallow silently) and PRESERVE the
+                            // last-known rows — an ingest of the empty default
+                            // would wipe this source's whole slice every tick.
+                            tracing::warn!(
+                                kind = ?src.kind(),
+                                %join_err,
+                                "suggestion source panicked; keeping last-known rows"
+                            );
+                        }
+                    }
                 }
             }));
         }

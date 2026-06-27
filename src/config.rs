@@ -680,7 +680,12 @@ pub struct SuggestionsConfig {
     /// Fade-in duration (ms) for a newly-arrived suggestion row (the slow
     /// shade-in). 0 = appear instantly.
     pub shade_in_ms: u64,
-    /// Drop a suggestion this many seconds after it was last seen (0 = never).
+    /// Global TTL FLOOR (seconds): a suggestion is dropped at least this long
+    /// after it was last seen. NOT the whole story — each source's items live
+    /// for `max(3× its poll interval, this floor)`, so a slow (hourly) source
+    /// never flickers under a fast global TTL. `0` does **not** mean "never": it
+    /// removes the floor, leaving each source's `3× poll interval` fallback in
+    /// force — items still age out, just per-source.
     pub ttl_secs: u64,
     /// Lazily persist the cache to disk (atomic temp→rename) so a restart
     /// re-surfaces the last-known tasks instantly while the watchers re-poll.

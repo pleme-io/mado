@@ -26,6 +26,10 @@ impl SuggestionSource for GoogleCalendarSource {
             "https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&maxResults=",
         );
         url.push_str(&max.to_string());
+        // timeMin = now, so we only surface UPCOMING events. Without it the API
+        // returns the whole history (past meetings as stale suggestions).
+        url.push_str("&timeMin=");
+        url.push_str(&super::util::pct(&super::util::rfc3339_utc(env.now_unix())));
         let req = HttpReq::new(url).bearer(&token);
         let Some(out) = env.http_get(&req) else {
             return Vec::new();
@@ -85,7 +89,9 @@ mod tests {
     use super::*;
     use crate::suggest::env::MockEnvironment;
 
-    const URL: &str = "https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&maxResults=5";
+    // The mock's default clock is 1_000_000 (1970-01-12T13:46:40Z); the URL
+    // carries the pct-encoded timeMin cursor the source now appends.
+    const URL: &str = "https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&maxResults=5&timeMin=1970-01-12T13%3A46%3A40Z";
 
     const FIXTURE: &str = r#"{
         "items": [

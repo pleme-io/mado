@@ -171,16 +171,56 @@ impl RealEnvironment {
     }
 }
 
+/// Wall-clock cap on a watcher subprocess — mirrors the `curl --max-time 10`
+/// contract so a hung `kubectl`/`gh` (VPN down, unreachable cluster) can't wedge
+/// its watcher or leak a blocking-pool thread for the process lifetime.
+const RUN_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(20);
+
 impl SuggestionEnvironment for RealEnvironment {
     fn run(&self, cmd: &Cmd) -> Option<String> {
-        let out = Command::new(cmd.program())
+        use std::io::Read;
+        use std::process::Stdio;
+        let mut child = Command::new(cmd.program())
             .args(cmd.args_slice())
-            .output()
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .spawn()
             .ok()?;
-        if !out.status.success() {
-            return None;
+        // Drain stdout on a thread so a full pipe buffer (a large `kubectl … -o
+        // json`) can't deadlock the wait, and so the read finishes when the
+        // child exits or is killed.
+        let mut out = child.stdout.take()?;
+        let reader = std::thread::spawn(move || {
+            let mut buf = Vec::new();
+            let _ = out.read_to_end(&mut buf);
+            buf
+        });
+        let deadline = std::time::Instant::now() + RUN_TIMEOUT;
+        let status = loop {
+            match child.try_wait() {
+                Ok(Some(status)) => break Some(status),
+                Ok(None) => {
+                    if std::time::Instant::now() >= deadline {
+                        let _ = child.kill();
+                        let _ = child.wait();
+                        tracing::debug!(program = cmd.program(), "suggestion source command timed out");
+                        break None;
+                    }
+                    std::thread::sleep(std::time::Duration::from_millis(40));
+                }
+                Err(_) => {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    break None;
+                }
+            }
+        };
+        let buf = reader.join().unwrap_or_default();
+        match status {
+            Some(s) if s.success() => Some(String::from_utf8_lossy(&buf).into_owned()),
+            _ => None,
         }
-        Some(String::from_utf8_lossy(&out.stdout).into_owned())
     }
 
     fn http_get(&self, req: &HttpReq) -> Option<String> {
