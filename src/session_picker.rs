@@ -328,7 +328,7 @@ impl PracaPickerBridge {
         let Some(store) = self.suggestions.as_ref() else {
             return Vec::new();
         };
-        let q = query.trim().to_ascii_lowercase();
+        let q = query.trim();
         // Over-fetch then query-filter so a needle still finds lower-ranked
         // suggestions (the store is already urgency/score ranked). `ranked_stored`
         // carries each row's birth time for the freshness nudge.
@@ -350,21 +350,32 @@ impl PracaPickerBridge {
                 }
             }
         };
-        let filtered: Vec<crate::suggest::StoredSuggestion> = ranked
-            .iter()
-            .filter(|st| {
-                let s = &st.suggestion;
-                q.is_empty()
-                    || s.title.to_ascii_lowercase().contains(&q)
-                    || s.detail
-                        .as_deref()
-                        .is_some_and(|d| d.to_ascii_lowercase().contains(&q))
-            })
-            // A suggestion you've already STARTED is a live ● session row now —
-            // suppress its ○ twin so the picker never lists the same task twice.
-            .filter(|st| self.live_session_for(&st.suggestion.spawn).is_none())
-            .cloned()
-            .collect();
+        // A suggestion you've already STARTED is a live ● session row now —
+        // suppress its ○ twin so the picker never lists the same task twice.
+        let filtered: Vec<crate::suggest::StoredSuggestion> = if q.is_empty() {
+            // Empty query → keep the store's urgency/score order.
+            ranked
+                .iter()
+                .filter(|st| self.live_session_for(&st.suggestion.spawn).is_none())
+                .cloned()
+                .collect()
+        } else {
+            // Non-empty query → FUZZY-rank with the SAME praça matcher the
+            // session/preset rows use, so Ctrl-S matching is ONE algorithm
+            // across sessions, presets, AND suggestions. Best field score wins;
+            // ties fall back to the store's urgency/score order (the over-fetch
+            // index `idx`), so the strongest textual match floats to the top.
+            let mut scored: Vec<(i32, usize, crate::suggest::StoredSuggestion)> = ranked
+                .iter()
+                .enumerate()
+                .filter(|(_, st)| self.live_session_for(&st.suggestion.spawn).is_none())
+                .filter_map(|(idx, st)| {
+                    suggestion_match_score(q, &st.suggestion).map(|sc| (sc, idx, st.clone()))
+                })
+                .collect();
+            scored.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));
+            scored.into_iter().map(|(_, _, st)| st).collect()
+        };
         // Balance the band: cap per-source so one noisy source (20 CrashLoop
         // pods) can't drown your PRs/tickets/incidents — the band stays diverse.
         crate::suggest::store::balance_per_source(filtered, self.suggest_max, self.suggest_cap)
@@ -465,6 +476,32 @@ impl PracaPickerBridge {
         self.switch.post(pane);
         true
     }
+}
+
+/// Best fuzzy score of `query` against any matchable field of a suggestion —
+/// the displayed title, its detail line, the spawn (session) name, the spawn
+/// cwd (so typing a repo name finds its suggestions, mirroring the session
+/// matcher's path tier), and the source's slug + human label (so typing `jira`
+/// matches every Jira row, `pr` every PR row). Uses the SAME
+/// `praca::index::fuzzy_score` the session/preset rows rank through, so Ctrl-S
+/// matching is one algorithm across every row kind. `None` if nothing matches.
+fn suggestion_match_score(query: &str, s: &crate::suggest::Suggestion) -> Option<i32> {
+    use praca::index::fuzzy_score;
+    let mut best: Option<i32> = None;
+    let mut consider = |hay: &str| {
+        if let Some(sc) = fuzzy_score(query, hay) {
+            best = Some(best.map_or(sc, |b: i32| b.max(sc)));
+        }
+    };
+    consider(s.title.as_str());
+    if let Some(d) = s.detail.as_deref() {
+        consider(d);
+    }
+    consider(s.spawn.name());
+    consider(&s.spawn.cwd().to_string_lossy());
+    consider(s.source.slug());
+    consider(s.source.label());
+    best
 }
 
 /// Encode a suggestion's kickoff command as keystrokes: the trimmed command
@@ -1073,6 +1110,25 @@ mod tests {
             title,
             crate::suggest::SpawnSpec::new(cwd, title).unwrap(),
         )
+    }
+
+    #[test]
+    fn suggestion_match_score_is_fuzzy_and_field_wide() {
+        let s = sug(
+            crate::suggest::SourceKind::JiraSprint,
+            "PLEME-42",
+            "PLEME-42 fix the parser",
+            "/code/pleme-io/mado",
+        );
+        // Subsequence match on the title (the praça matcher, not substring).
+        assert!(suggestion_match_score("parser", &s).is_some());
+        // The source slug ("jira-sprint") is matchable — typing the source
+        // name surfaces every row of that source.
+        assert!(suggestion_match_score("jira", &s).is_some());
+        // The spawn (session) name is matchable too.
+        assert!(suggestion_match_score("mado", &s).is_some());
+        // A query that hits no field scores nothing (the row is filtered out).
+        assert!(suggestion_match_score("zzqqxx", &s).is_none());
     }
 
     #[test]
