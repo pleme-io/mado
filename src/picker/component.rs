@@ -90,6 +90,10 @@ pub enum LineRole {
 pub struct OverlayLine {
     pub text: String,
     pub role: LineRole,
+    /// Text opacity 0..=255 (255 = solid). The suggestion-stream shade-in
+    /// ramps this per frame so a freshly-arrived row dissolves in from the
+    /// panel behind it rather than popping. Solid for every other line.
+    pub alpha: u8,
 }
 
 impl OverlayLine {
@@ -98,7 +102,15 @@ impl OverlayLine {
         Self {
             text: text.into(),
             role,
+            alpha: 255,
         }
+    }
+
+    /// Set the line's opacity (the shade-in ramp). Chainable.
+    #[must_use]
+    pub fn with_alpha(mut self, alpha: u8) -> Self {
+        self.alpha = alpha;
+        self
     }
 }
 
@@ -119,5 +131,21 @@ impl OverlaySpec {
     #[must_use]
     pub fn new(anchor: PickerAnchor, lines: Vec<OverlayLine>) -> Self {
         Self { anchor, lines }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn overlay_line_is_solid_by_default_and_alpha_ramps() {
+        let solid = OverlayLine::new("row", LineRole::Row);
+        assert_eq!(solid.alpha, 255, "lines are solid unless shaded");
+        let faint = OverlayLine::new("row", LineRole::Row).with_alpha(64);
+        assert_eq!(faint.alpha, 64);
+        // with_alpha leaves text + role untouched (only opacity).
+        assert_eq!(faint.text, solid.text);
+        assert_eq!(faint.role, solid.role);
     }
 }

@@ -1229,6 +1229,14 @@ pub struct TerminalRenderer {
     /// `config.tear.session_picker_anchor` in
     /// [`apply_effects_and_accessibility`](Self::apply_effects_and_accessibility).
     session_picker_anchor: crate::config::PickerAnchor,
+    /// Per-suggestion wall-clock of when a row first appeared on screen, so the
+    /// shade-in ramps from when the OPERATOR sees it (not when the watcher saw
+    /// it). Pruned to the visible set each draw, so a row that leaves + returns
+    /// re-fades. `RefCell` → mutable from the `&self` draw path.
+    suggestion_fade: RefCell<HashMap<crate::suggest::SuggestionId, Instant>>,
+    /// Shade-in duration (ms) from `config.suggestions.shade_in_ms` — how long
+    /// a freshly-arrived suggestion takes to dissolve in.
+    suggestion_shade_in_ms: u64,
     /// The themed colours every picker overlay paints with (query /
     /// row / selected / hint). Resolved from the active theme by
     /// [`crate::theme::apply_config_theme`] via `set_overlay_style`, so a
@@ -1526,6 +1534,8 @@ impl TerminalRenderer {
             search_other_color: Color::new(0xEB, 0xCB, 0x8B),
             reduce_motion: false,
             session_picker_anchor: crate::config::PickerAnchor::default(),
+            suggestion_fade: RefCell::new(HashMap::new()),
+            suggestion_shade_in_ms: 600,
             // Nord defaults (the exact literals the old draw_* methods
             // hardcoded); `theme::apply_config_theme` overrides per theme.
             overlay_style: crate::picker::component::OverlayStyle::nord_default(),
@@ -1570,6 +1580,7 @@ impl TerminalRenderer {
         self.set_bold_is_bright(config.appearance.bold_is_bright);
         self.set_reduce_motion(config.accessibility.reduce_motion);
         self.session_picker_anchor = config.tear.session_picker_anchor;
+        self.suggestion_shade_in_ms = config.suggestions.shade_in_ms;
         self.set_effects_config(config.resolved_effects());
     }
 
@@ -2019,14 +2030,17 @@ impl TerminalRenderer {
             }
         }
 
-        let color_for = |role: LineRole| {
-            let c = match role {
+        let color_for = |line: &crate::picker::component::OverlayLine| {
+            let c = match line.role {
                 LineRole::Title => style.query,
                 LineRole::Selected => style.selected,
                 LineRole::Row => style.row,
                 LineRole::Hint => style.hint,
             };
-            GlyphonColor::rgba(c.r, c.g, c.b, 255)
+            // Per-line alpha IS the shade-in: glyphon blends the text over the
+            // already-painted panel, so a low alpha dissolves the row into the
+            // card behind it.
+            GlyphonColor::rgba(c.r, c.g, c.b, line.alpha)
         };
 
         let mut text_areas = Vec::with_capacity(buffers.len());
@@ -2042,7 +2056,7 @@ impl TerminalRenderer {
                     right: ctx.width as i32,
                     bottom: ctx.height as i32,
                 },
-                default_color: color_for(line.role),
+                default_color: color_for(line),
                 custom_glyphs: &[],
             });
         }
@@ -2142,13 +2156,41 @@ impl TerminalRenderer {
         } else if results.is_empty() {
             lines.push(OverlayLine::new("  (type a name to create a session)", LineRole::Hint));
         } else {
+            // Shade-in: ramp each suggestion row's alpha from when it first
+            // appeared on screen, so it dissolves in from the panel rather than
+            // popping. Prune the fade map to the currently-visible suggestion
+            // ids so a row that leaves + returns re-fades. Sessions/presets stay
+            // solid (alpha 255).
+            use crate::session_picker::RowKind;
+            let now = Instant::now();
+            let mut fade = self.suggestion_fade.borrow_mut();
+            let visible: std::collections::HashSet<crate::suggest::SuggestionId> = results
+                .iter()
+                .take(max_rows)
+                .filter_map(|r| match r.kind {
+                    RowKind::Suggestion(id) => Some(id),
+                    _ => None,
+                })
+                .collect();
+            fade.retain(|id, _| visible.contains(id));
             for (i, row) in results.iter().take(max_rows).enumerate() {
                 let (marker, role) = if i == selected {
                     ("\u{203a} ", LineRole::Selected)
                 } else {
                     ("  ", LineRole::Row)
                 };
-                lines.push(OverlayLine::new(format!("{marker}{}", row.label), role));
+                let alpha = match row.kind {
+                    RowKind::Suggestion(id) => {
+                        let born = *fade.entry(id).or_insert(now);
+                        let elapsed = u64::try_from(now.duration_since(born).as_millis())
+                            .unwrap_or(u64::MAX);
+                        crate::suggest::shade_ramp(0, elapsed, self.suggestion_shade_in_ms)
+                    }
+                    _ => 255,
+                };
+                lines.push(
+                    OverlayLine::new(format!("{marker}{}", row.label), role).with_alpha(alpha),
+                );
             }
         }
 
