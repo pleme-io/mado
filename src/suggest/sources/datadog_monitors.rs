@@ -9,7 +9,7 @@
 //! empty) just yield an unauthorized body; a non-JSON / empty body → no
 //! suggestions (graceful).
 
-use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion, Urgency};
+use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion};
 use crate::suggest::env::{HttpReq, SuggestionEnvironment};
 use crate::suggest::source::{SourceConfig, SuggestionSource};
 
@@ -60,10 +60,27 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, max: usize) -> Vec<Suggest
             title.push_str(&label);
             title.push_str(" alerting");
             let key = m.id.to_string();
+            // Rank by Datadog's 1–5 monitor priority (P1 highest): a P1 outranks
+            // a P3. Absent priority stays Critical (firing-but-unprioritized).
+            let level = match m.priority {
+                Some(1) => "p1",
+                Some(2) => "p2",
+                Some(3) => "p3",
+                Some(4) => "p4",
+                Some(5) => "p5",
+                _ => "",
+            };
+            let (urgency, score) = super::util::incident_severity_rank(level);
+            let mut detail = String::from("datadog");
+            if let Some(p) = m.priority {
+                detail.push_str(" \u{00B7} P"); // ·
+                detail.push_str(&p.to_string());
+            }
             Some(
                 Suggestion::new(SourceKind::DatadogMonitors, &key, title, spawn)
-                    .detail("datadog")
-                    .urgent(Urgency::Critical),
+                    .detail(detail)
+                    .urgent(urgency)
+                    .scored(score),
             )
         })
         .collect()
@@ -77,17 +94,21 @@ struct MonitorRow {
     name: String,
     #[serde(default)]
     overall_state: String,
+    /// Datadog monitor priority 1 (highest) .. 5 (lowest); absent = unset.
+    #[serde(default)]
+    priority: Option<u8>,
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::suggest::core::Urgency;
     use crate::suggest::env::MockEnvironment;
 
     const FIXTURE: &str = r#"[
-        {"id":111,"name":"api latency p99","overall_state":"Alert"},
+        {"id":111,"name":"api latency p99","overall_state":"Alert","priority":1},
         {"id":222,"name":"disk usage","overall_state":"OK"},
-        {"id":333,"name":"error rate spike","overall_state":"Alert"}
+        {"id":333,"name":"error rate spike","overall_state":"Alert","priority":3}
     ]"#;
 
     fn cfg() -> SourceConfig {
@@ -113,11 +134,14 @@ mod tests {
         assert_eq!(out.len(), 2, "non-alert monitor excluded");
         let api = out.iter().find(|s| s.title.contains("api latency")).unwrap();
         assert!(api.title.contains("alerting"));
-        assert_eq!(api.detail.as_deref(), Some("datadog"));
+        // P1 → Critical, detail carries the priority.
+        assert_eq!(api.detail.as_deref(), Some("datadog \u{00B7} P1"));
         assert_eq!(api.urgency, Urgency::Critical);
         assert_eq!(api.spawn.cwd().to_str().unwrap(), "/code");
-        // The key is the monitor id.
-        assert!(out.iter().any(|s| s.title.contains("error rate spike")));
+        // A P3 monitor ranks below the P1 (High, not Critical).
+        let p3 = out.iter().find(|s| s.title.contains("error rate spike")).unwrap();
+        assert_eq!(p3.urgency, Urgency::High);
+        assert!(api.rank_key() > p3.rank_key(), "P1 monitor outranks P3");
     }
 
     #[test]

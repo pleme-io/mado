@@ -61,6 +61,33 @@ impl JiraPriority {
     }
 }
 
+/// Map an incident/alert SEVERITY (or priority) name to a `(urgency, score)`
+/// rank — the alert-domain sibling of [`JiraPriority::rank`]. Firing alerts all
+/// default to the Critical tier, but a `warning`/`P3` is NOT as urgent as a
+/// `critical`/`P1`: this orders them within the stream (a real P1 above a P3,
+/// a critical alert above a warning) instead of treating every firing thing
+/// identically. Case-insensitive; covers the common severity vocab
+/// (critical/error/warning/info/debug), Px (`P1`–`P5`), and SevN. An empty or
+/// unrecognized level keeps the firing-but-unlabeled alert urgent (Critical),
+/// so a source with no severity data is unchanged.
+#[must_use]
+pub fn incident_severity_rank(level: &str) -> (Urgency, u32) {
+    match level.trim().to_ascii_lowercase().as_str() {
+        "critical" | "crit" | "fatal" | "emergency" | "page" | "p1" | "sev1" | "sev-1" => {
+            (Urgency::Critical, 1000)
+        }
+        "error" | "err" | "high" | "p2" | "sev2" | "sev-2" => (Urgency::Critical, 880),
+        "warning" | "warn" | "medium" | "p3" | "sev3" | "sev-3" => (Urgency::High, 700),
+        "info" | "informational" | "notice" | "low" | "p4" | "sev4" | "sev-4" => {
+            (Urgency::Normal, 500)
+        }
+        "debug" | "trace" | "p5" | "sev5" | "sev-5" => (Urgency::Low, 300),
+        // Firing but unlabeled → stay urgent (preserves the all-Critical default
+        // for sources that carry no severity data).
+        _ => (Urgency::Critical, 900),
+    }
+}
+
 /// Percent-encode a query-string value (RFC 3986: unreserved `A-Za-z0-9-_.~`
 /// pass through, everything else → `%XX` uppercase). Used to build JQL / CQL /
 /// search query params for the HTTP sources.
@@ -275,6 +302,34 @@ mod tests {
             high.rank_key() > normal.rank_key(),
             "a Highest jira ticket must rank above default work"
         );
+    }
+
+    #[test]
+    fn incident_severity_orders_within_the_stream() {
+        use crate::suggest::core::Urgency;
+        // The high tiers stay Critical; lower severities drop a tier so a P1
+        // critical outranks a P3 warning outranks a P5.
+        let crit = incident_severity_rank("critical");
+        let warn = incident_severity_rank("warning");
+        let p1 = incident_severity_rank("P1");
+        let p3 = incident_severity_rank("P3");
+        let p5 = incident_severity_rank("p5");
+        assert_eq!(crit.0, Urgency::Critical);
+        assert_eq!(p1, (Urgency::Critical, 1000));
+        assert_eq!(warn.0, Urgency::High);
+        assert_eq!(p3.0, Urgency::High);
+        assert_eq!(p5.0, Urgency::Low);
+        // Strict ordering by rank-relevant score within/across tiers.
+        assert!(crit.1 > warn.1 && warn.1 > p5.1);
+        assert!(p1.1 > p3.1 && p3.1 > p5.1);
+        // Aliases + case-insensitivity.
+        assert_eq!(incident_severity_rank("CRIT"), incident_severity_rank("critical"));
+        assert_eq!(incident_severity_rank("warn"), incident_severity_rank("warning"));
+        assert_eq!(incident_severity_rank("sev1").0, Urgency::Critical);
+        // Unknown / empty → firing-but-unlabeled stays urgent (unchanged
+        // behavior for sources with no severity data).
+        assert_eq!(incident_severity_rank("").0, Urgency::Critical);
+        assert_eq!(incident_severity_rank("weird").0, Urgency::Critical);
     }
 
     #[test]

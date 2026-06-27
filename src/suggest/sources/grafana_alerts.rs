@@ -8,7 +8,7 @@
 //! a suggestion that drops you in the code root. No token / no base / no JSON →
 //! graceful empty.
 
-use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion, Urgency};
+use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion};
 use crate::suggest::env::{HttpReq, SuggestionEnvironment};
 use crate::suggest::source::{SourceConfig, SuggestionSource};
 
@@ -70,10 +70,21 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, max: usize) -> Vec<Suggest
                 key.push('=');
                 key.push_str(lv);
             }
+            // Rank by the alert's `severity` label, not a flat Critical: a
+            // firing `warning` is real but not as urgent as a `critical`. A
+            // missing label keeps it Critical (firing-but-unlabeled).
+            let severity = a.labels.get("severity").map(String::as_str).unwrap_or("");
+            let (urgency, score) = super::util::incident_severity_rank(severity);
+            let mut detail = String::from("grafana");
+            if !severity.is_empty() {
+                detail.push_str(" \u{00B7} "); // ·
+                detail.push_str(severity);
+            }
             Some(
                 Suggestion::new(SourceKind::GrafanaAlerts, &key, title, spawn)
-                    .detail("grafana")
-                    .urgent(Urgency::Critical),
+                    .detail(detail)
+                    .urgent(urgency)
+                    .scored(score),
             )
         })
         .take(max)
@@ -103,6 +114,7 @@ struct AlertRow {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::suggest::core::Urgency;
     use crate::suggest::env::MockEnvironment;
 
     const URL: &str = "https://grafana.rio/api/prometheus/grafana/api/v1/alerts";
@@ -111,6 +123,7 @@ mod tests {
         "data": {
             "alerts": [
                 {"labels": {"alertname": "HighCPU", "severity": "critical"}, "state": "Alerting"},
+                {"labels": {"alertname": "SlowQuery", "severity": "warning"}, "state": "firing"},
                 {"labels": {"alertname": "DiskFull"}, "state": "firing"},
                 {"labels": {"alertname": "Quiet"}, "state": "Normal"}
             ]
@@ -134,13 +147,21 @@ mod tests {
     #[test]
     fn surfaces_only_firing_alerts() {
         let out = GrafanaAlertsSource.poll(&env(), &cfg());
-        assert_eq!(out.len(), 2, "non-firing alert excluded");
+        assert_eq!(out.len(), 3, "non-firing alert excluded");
         let cpu = out.iter().find(|s| s.title.contains("HighCPU")).unwrap();
         assert!(cpu.title.contains("firing"));
-        assert_eq!(cpu.detail.as_deref(), Some("grafana"));
+        // Detail now carries the severity; a critical alert stays Critical.
+        assert_eq!(cpu.detail.as_deref(), Some("grafana \u{00B7} critical"));
         assert_eq!(cpu.urgency, Urgency::Critical);
         assert_eq!(cpu.spawn.cwd().to_str().unwrap(), "/code");
-        assert!(out.iter().any(|s| s.title.contains("DiskFull")));
+        // A firing WARNING is real but ranks below a critical (High, not Critical).
+        let warn = out.iter().find(|s| s.title.contains("SlowQuery")).unwrap();
+        assert_eq!(warn.urgency, Urgency::High);
+        assert!(cpu.rank_key() > warn.rank_key(), "critical outranks warning");
+        // An alert with NO severity label stays Critical (firing-but-unlabeled).
+        let disk = out.iter().find(|s| s.title.contains("DiskFull")).unwrap();
+        assert_eq!(disk.urgency, Urgency::Critical);
+        assert_eq!(disk.detail.as_deref(), Some("grafana"));
     }
 
     #[test]

@@ -7,7 +7,7 @@
 //! `Authorization: GenieKey <key>` header → `{data:[{id,message,priority}]}`.
 //! Missing key / unreachable endpoint / bad JSON → graceful empty.
 
-use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion, Urgency};
+use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion};
 use crate::suggest::env::{HttpReq, SuggestionEnvironment};
 use crate::suggest::source::{SourceConfig, SuggestionSource};
 
@@ -54,10 +54,14 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, max: usize) -> Vec<Suggest
             let mut name = String::from("\u{1F514} "); // 🔔
             name.push_str(&truncate(&a.message, 30));
             let spawn = SpawnSpec::new(cwd.clone(), name)?;
+            // Rank by P1–P5: a P1 outranks a P3 outranks a P5 (was a flat
+            // Critical for every open alert).
+            let (urgency, score) = super::util::incident_severity_rank(&a.priority);
             Some(
                 Suggestion::new(SourceKind::OpsgenieAlerts, &a.id, a.message, spawn)
                     .detail(a.priority)
-                    .urgent(Urgency::Critical),
+                    .urgent(urgency)
+                    .scored(score),
             )
         })
         .collect()
@@ -89,6 +93,7 @@ struct Alert {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::suggest::core::Urgency;
     use crate::suggest::env::MockEnvironment;
 
     const FIXTURE: &str = r#"{
@@ -99,7 +104,7 @@ mod tests {
     }"#;
 
     #[test]
-    fn surfaces_open_alerts_as_critical_suggestions() {
+    fn surfaces_open_alerts_ranked_by_priority() {
         let env = MockEnvironment::new()
             .roots("/code", "/home/op")
             .secret_val("opsgenie/api-key", "k3y")
@@ -110,14 +115,18 @@ mod tests {
         let cfg = SourceConfig::for_kind(SourceKind::OpsgenieAlerts);
         let out = OpsgenieAlertsSource.poll(&env, &cfg);
         assert_eq!(out.len(), 2);
-        let first = out
+        let p1 = out
             .iter()
             .find(|s| s.title.contains("db replica down"))
             .unwrap();
-        assert_eq!(first.urgency, Urgency::Critical);
-        assert_eq!(first.detail.as_deref(), Some("P1"));
+        // P1 → Critical (top); P3 → High. The P1 outranks the P3.
+        assert_eq!(p1.urgency, Urgency::Critical);
+        assert_eq!(p1.detail.as_deref(), Some("P1"));
+        let p3 = out.iter().find(|s| s.title.contains("disk almost full")).unwrap();
+        assert_eq!(p3.urgency, Urgency::High);
+        assert!(p1.rank_key() > p3.rank_key(), "P1 outranks P3");
         // No matching repo dir → triage starts in the code root.
-        assert_eq!(first.spawn.cwd().to_str().unwrap(), "/code");
+        assert_eq!(p1.spawn.cwd().to_str().unwrap(), "/code");
     }
 
     #[test]
