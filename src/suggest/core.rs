@@ -392,6 +392,62 @@ impl Urgency {
     }
 }
 
+/// A suggestion's typed rank contribution — an [`Urgency`] tier plus the
+/// within-tier score (0..=1000) — applied via [`Suggestion::ranked`]. The one
+/// typed result a source's priority/severity scale (any
+/// [`PriorityScale`](crate::suggest::sources::util::PriorityScale)) produces;
+/// replaces loose `(Urgency, u32)` tuples so a source can't swap the two or
+/// invent an off-scale value. The named constructors ARE the normalized ladder
+/// every scale maps onto, so Jira priorities and incident severities land on
+/// one shared scale.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Rank {
+    pub urgency: Urgency,
+    pub score: u32,
+}
+
+impl Rank {
+    /// An explicit `(urgency, score)` rank (score clamped to 0..=1000).
+    #[must_use]
+    pub const fn new(urgency: Urgency, score: u32) -> Self {
+        Self {
+            urgency,
+            score: if score > 1000 { 1000 } else { score },
+        }
+    }
+
+    /// Top of the stream — the most urgent, highest-priority thing.
+    #[must_use]
+    pub const fn critical_top() -> Self {
+        Self::new(Urgency::Critical, 1000)
+    }
+    /// Critical tier, just below the top (a High-priority ticket / an error).
+    #[must_use]
+    pub const fn critical() -> Self {
+        Self::new(Urgency::Critical, 900)
+    }
+    /// Should-look-soon (a warning alert / a P3).
+    #[must_use]
+    pub const fn high() -> Self {
+        Self::new(Urgency::High, 700)
+    }
+    /// Ordinary queued work (the calm default).
+    #[must_use]
+    pub const fn normal() -> Self {
+        Self::new(Urgency::Normal, 500)
+    }
+    /// Nice-to-do.
+    #[must_use]
+    pub const fn low() -> Self {
+        Self::new(Urgency::Low, 300)
+    }
+    /// The very bottom (a Lowest-priority ticket / a P5).
+    #[must_use]
+    pub const fn lowest() -> Self {
+        Self::new(Urgency::Low, 150)
+    }
+}
+
 /// Everything needed to turn a suggestion into a live session — the
 /// always-spawnable contract.
 ///
@@ -551,6 +607,17 @@ impl Suggestion {
         self
     }
 
+    /// Apply a typed [`Rank`] — sets urgency + score in one move. The
+    /// chokepoint a priority/severity scale feeds (e.g.
+    /// `.ranked(JiraPriority::rank_of(p))`), replacing the
+    /// `.urgent(u).scored(s)` pair so a source can't set one without the other.
+    #[must_use]
+    pub fn ranked(mut self, rank: Rank) -> Self {
+        self.urgency = rank.urgency;
+        self.score = rank.score.min(1000);
+        self
+    }
+
     /// Composite rank key — urgency weight in the high bits dominates, score
     /// in the low bits breaks ties. Higher = surfaced first.
     #[must_use]
@@ -578,6 +645,45 @@ impl Suggestion {
 mod tests {
     use super::*;
     use proptest::prelude::*;
+
+    #[test]
+    fn rank_named_scale_is_ordered_and_ranked_applies_both() {
+        // The named ladder descends strictly: critical_top > critical (both
+        // Critical) > high (High) > normal (Normal) > low (Low) > lowest (Low).
+        assert_eq!(Rank::critical_top(), Rank::new(Urgency::Critical, 1000));
+        assert_eq!(Rank::critical().urgency, Urgency::Critical);
+        assert_eq!(Rank::high().urgency, Urgency::High);
+        assert_eq!(Rank::normal().urgency, Urgency::Normal);
+        assert_eq!(Rank::low().urgency, Urgency::Low);
+        assert_eq!(Rank::lowest().urgency, Urgency::Low);
+        assert!(Rank::critical_top().score > Rank::critical().score);
+        assert!(Rank::low().score > Rank::lowest().score);
+        // The rank_key induced by the ladder is strictly descending.
+        let ladder = [
+            Rank::critical_top(),
+            Rank::critical(),
+            Rank::high(),
+            Rank::normal(),
+            Rank::low(),
+            Rank::lowest(),
+        ];
+        let spawn = SpawnSpec::new("/code", "n").unwrap();
+        let keys: Vec<u64> = ladder
+            .iter()
+            .map(|r| {
+                Suggestion::new(SourceKind::JiraSprint, "k", "t", spawn.clone())
+                    .ranked(*r)
+                    .rank_key()
+            })
+            .collect();
+        assert!(keys.windows(2).all(|w| w[0] > w[1]), "ladder must be strictly ranked: {keys:?}");
+        // new() clamps an off-scale score; ranked() sets BOTH urgency + score.
+        assert_eq!(Rank::new(Urgency::Critical, 9999).score, 1000);
+        let s = Suggestion::new(SourceKind::JiraSprint, "k", "t", spawn)
+            .ranked(Rank::new(Urgency::High, 5000));
+        assert_eq!(s.urgency, Urgency::High);
+        assert_eq!(s.score, 1000, "ranked clamps score to 1000");
+    }
 
     #[test]
     fn catalog_is_complete_and_unique() {

@@ -8,17 +8,34 @@
 
 use serde::de::DeserializeOwned;
 
-use crate::suggest::core::Urgency;
+use crate::suggest::core::Rank;
 use crate::suggest::env::{Cmd, HttpReq, SuggestionEnvironment};
+
+/// A source's priority/severity vocabulary, normalized to a [`Rank`] on the one
+/// shared scale. The trait both ranked-source families implement, so each maps
+/// its own words — Jira's `Highest/High/…`, an incident's `P1`/`critical`/
+/// `warning` — onto the same ladder, applied uniformly at the build site via
+/// [`Suggestion::ranked`](crate::suggest::core::Suggestion::ranked). One typed
+/// surface replaces the per-source ad-hoc `(urgency, score)` tuples.
+pub trait PriorityScale: Sized {
+    /// Parse a source's priority/severity name (case-insensitive, alias-aware).
+    fn parse(name: &str) -> Self;
+    /// The normalized [`Rank`] this level contributes.
+    fn rank(self) -> Rank;
+    /// Parse + rank in one call — the form sources use at the build site
+    /// (`.ranked(JiraPriority::rank_of(p))`).
+    #[must_use]
+    fn rank_of(name: &str) -> Rank {
+        Self::parse(name).rank()
+    }
+}
 
 /// A Jira issue priority, parsed from the API's free-text priority name.
 ///
-/// Operator directive: *"bring high priority jira tickets to the absolute top
-/// in terms of generating sessions."* The suggestion store ranks by
-/// `(urgency, score)` — so [`JiraPriority::rank`] lifts **Highest** and
-/// **High** into the **Critical** tier (the top of the whole stream), scored so
-/// Highest sits above High, while Medium/Low/Lowest stay calm. This is the one
-/// place the priority→rank policy lives; both Jira sources consume it.
+/// Operator directive: *"bring high priority jira tickets to the absolute top in
+/// terms of generating sessions."* So [`PriorityScale::rank`] lifts **Highest**
+/// and **High** into the **Critical** tier (the top of the stream), Highest
+/// above High, while Medium/Low/Lowest stay calm.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum JiraPriority {
     Highest,
@@ -30,12 +47,10 @@ pub enum JiraPriority {
     Unknown,
 }
 
-impl JiraPriority {
-    /// Parse a Jira priority name (case-insensitive). Handles the default
-    /// scheme (Highest/High/Medium/Low/Lowest), the legacy
+impl PriorityScale for JiraPriority {
+    /// Handles the default scheme (Highest/High/Medium/Low/Lowest), the legacy
     /// Blocker/Critical/Major/Minor/Trivial scheme, and `P0`–`P5`.
-    #[must_use]
-    pub fn parse(name: &str) -> Self {
+    fn parse(name: &str) -> Self {
         match name.trim().to_ascii_lowercase().as_str() {
             "highest" | "blocker" | "p0" | "p1" => Self::Highest,
             "high" | "critical" | "major" | "urgent" => Self::High,
@@ -46,45 +61,59 @@ impl JiraPriority {
         }
     }
 
-    /// `(urgency, score)` for the suggestion store's `rank_key`. Highest/High →
-    /// `Critical` (absolute top); Highest outscores High; the rest stay calm.
-    #[must_use]
-    pub fn rank(self) -> (Urgency, u32) {
+    fn rank(self) -> Rank {
         match self {
-            Self::Highest => (Urgency::Critical, 1000),
-            Self::High => (Urgency::Critical, 900),
-            Self::Medium => (Urgency::Normal, 550),
-            Self::Low => (Urgency::Low, 350),
-            Self::Lowest => (Urgency::Low, 150),
-            Self::Unknown => (Urgency::Normal, 500),
+            Self::Highest => Rank::critical_top(),
+            Self::High => Rank::critical(),
+            Self::Medium | Self::Unknown => Rank::normal(),
+            Self::Low => Rank::low(),
+            Self::Lowest => Rank::lowest(),
         }
     }
 }
 
-/// Map an incident/alert SEVERITY (or priority) name to a `(urgency, score)`
-/// rank — the alert-domain sibling of [`JiraPriority::rank`]. Firing alerts all
-/// default to the Critical tier, but a `warning`/`P3` is NOT as urgent as a
-/// `critical`/`P1`: this orders them within the stream (a real P1 above a P3,
-/// a critical alert above a warning) instead of treating every firing thing
-/// identically. Case-insensitive; covers the common severity vocab
-/// (critical/error/warning/info/debug), Px (`P1`–`P5`), and SevN. An empty or
-/// unrecognized level keeps the firing-but-unlabeled alert urgent (Critical),
-/// so a source with no severity data is unchanged.
-#[must_use]
-pub fn incident_severity_rank(level: &str) -> (Urgency, u32) {
-    match level.trim().to_ascii_lowercase().as_str() {
-        "critical" | "crit" | "fatal" | "emergency" | "page" | "p1" | "sev1" | "sev-1" => {
-            (Urgency::Critical, 1000)
+/// An incident/alert severity (or priority), the alert-domain sibling of
+/// [`JiraPriority`]. Firing alerts default to the Critical tier, but a
+/// `warning`/`P3` is NOT as urgent as a `critical`/`P1`: this orders them
+/// within the stream instead of treating every firing thing identically. An
+/// unrecognized/absent level keeps a firing-but-unlabeled alert urgent
+/// (`Critical`), so a source with no severity data is unchanged.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum IncidentSeverity {
+    Critical,
+    Error,
+    Warning,
+    Info,
+    Debug,
+    /// Unrecognized / absent — firing-but-unlabeled, stays urgent.
+    Unknown,
+}
+
+impl PriorityScale for IncidentSeverity {
+    /// Covers the common severity vocab (critical/error/warning/info/debug),
+    /// `P1`–`P5`, and `SevN`.
+    fn parse(name: &str) -> Self {
+        match name.trim().to_ascii_lowercase().as_str() {
+            "critical" | "crit" | "fatal" | "emergency" | "page" | "p1" | "sev1" | "sev-1" => {
+                Self::Critical
+            }
+            "error" | "err" | "high" | "p2" | "sev2" | "sev-2" => Self::Error,
+            "warning" | "warn" | "medium" | "p3" | "sev3" | "sev-3" => Self::Warning,
+            "info" | "informational" | "notice" | "low" | "p4" | "sev4" | "sev-4" => Self::Info,
+            "debug" | "trace" | "p5" | "sev5" | "sev-5" => Self::Debug,
+            _ => Self::Unknown,
         }
-        "error" | "err" | "high" | "p2" | "sev2" | "sev-2" => (Urgency::Critical, 880),
-        "warning" | "warn" | "medium" | "p3" | "sev3" | "sev-3" => (Urgency::High, 700),
-        "info" | "informational" | "notice" | "low" | "p4" | "sev4" | "sev-4" => {
-            (Urgency::Normal, 500)
+    }
+
+    fn rank(self) -> Rank {
+        match self {
+            Self::Critical => Rank::critical_top(),
+            // Error + an unlabeled-but-firing alert both sit at the Critical tier.
+            Self::Error | Self::Unknown => Rank::critical(),
+            Self::Warning => Rank::high(),
+            Self::Info => Rank::normal(),
+            Self::Debug => Rank::low(),
         }
-        "debug" | "trace" | "p5" | "sev5" | "sev-5" => (Urgency::Low, 300),
-        // Firing but unlabeled → stay urgent (preserves the all-Critical default
-        // for sources that carry no severity data).
-        _ => (Urgency::Critical, 900),
     }
 }
 
@@ -264,34 +293,34 @@ mod tests {
 
     #[test]
     fn jira_priority_lifts_high_to_the_top() {
-        use crate::suggest::core::Urgency;
+        use crate::suggest::core::{Rank, Urgency};
         // High-priority tickets land in the Critical tier (the absolute top of
         // the suggestion stream), Highest above High.
-        let (hu, hs) = JiraPriority::parse("Highest").rank();
-        let (gu, gs) = JiraPriority::parse("High").rank();
-        assert_eq!(hu, Urgency::Critical);
-        assert_eq!(gu, Urgency::Critical);
-        assert!(hs > gs, "Highest must outscore High within Critical");
+        let hi = JiraPriority::rank_of("Highest");
+        let high = JiraPriority::rank_of("High");
+        assert_eq!(hi.urgency, Urgency::Critical);
+        assert_eq!(high.urgency, Urgency::Critical);
+        assert!(hi.score > high.score, "Highest must outscore High within Critical");
         // Calm tiers stay calm.
-        assert_eq!(JiraPriority::parse("Medium").rank().0, Urgency::Normal);
-        assert_eq!(JiraPriority::parse("Low").rank().0, Urgency::Low);
-        assert_eq!(JiraPriority::parse("Lowest").rank().0, Urgency::Low);
-        // Aliases + case-insensitivity.
+        assert_eq!(JiraPriority::rank_of("Medium").urgency, Urgency::Normal);
+        assert_eq!(JiraPriority::rank_of("Low").urgency, Urgency::Low);
+        assert_eq!(JiraPriority::rank_of("Lowest").urgency, Urgency::Low);
+        // Aliases + case-insensitivity (the parse arm).
         assert_eq!(JiraPriority::parse("BLOCKER"), JiraPriority::Highest);
         assert_eq!(JiraPriority::parse("major"), JiraPriority::High);
         assert_eq!(JiraPriority::parse("P0"), JiraPriority::Highest);
         // Unknown/empty → ordinary queued work, never elevated.
-        assert_eq!(JiraPriority::parse("").rank().0, Urgency::Normal);
-        assert_eq!(JiraPriority::parse("weird").rank(), (Urgency::Normal, 500));
-        // The rank_key ordering a high ticket produces beats a default one.
-        let high = crate::suggest::core::Suggestion::new(
+        assert_eq!(JiraPriority::rank_of(""), Rank::normal());
+        assert_eq!(JiraPriority::rank_of("weird"), Rank::normal());
+        // The rank_key ordering a high ticket produces beats a default one —
+        // applied through the typed .ranked() chokepoint.
+        let high_sug = crate::suggest::core::Suggestion::new(
             crate::suggest::core::SourceKind::JiraAssigned,
             "H",
             "high ticket",
             crate::suggest::core::SpawnSpec::new("/code", "h").unwrap(),
         )
-        .urgent(hu)
-        .scored(hs);
+        .ranked(hi);
         let normal = crate::suggest::core::Suggestion::new(
             crate::suggest::core::SourceKind::GithubAssignedIssues,
             "N",
@@ -299,37 +328,37 @@ mod tests {
             crate::suggest::core::SpawnSpec::new("/code", "n").unwrap(),
         );
         assert!(
-            high.rank_key() > normal.rank_key(),
+            high_sug.rank_key() > normal.rank_key(),
             "a Highest jira ticket must rank above default work"
         );
     }
 
     #[test]
     fn incident_severity_orders_within_the_stream() {
-        use crate::suggest::core::Urgency;
+        use crate::suggest::core::{Rank, Urgency};
         // The high tiers stay Critical; lower severities drop a tier so a P1
         // critical outranks a P3 warning outranks a P5.
-        let crit = incident_severity_rank("critical");
-        let warn = incident_severity_rank("warning");
-        let p1 = incident_severity_rank("P1");
-        let p3 = incident_severity_rank("P3");
-        let p5 = incident_severity_rank("p5");
-        assert_eq!(crit.0, Urgency::Critical);
-        assert_eq!(p1, (Urgency::Critical, 1000));
-        assert_eq!(warn.0, Urgency::High);
-        assert_eq!(p3.0, Urgency::High);
-        assert_eq!(p5.0, Urgency::Low);
+        let crit = IncidentSeverity::rank_of("critical");
+        let warn = IncidentSeverity::rank_of("warning");
+        let p1 = IncidentSeverity::rank_of("P1");
+        let p3 = IncidentSeverity::rank_of("P3");
+        let p5 = IncidentSeverity::rank_of("p5");
+        assert_eq!(crit.urgency, Urgency::Critical);
+        assert_eq!(p1, Rank::critical_top());
+        assert_eq!(warn.urgency, Urgency::High);
+        assert_eq!(p3.urgency, Urgency::High);
+        assert_eq!(p5.urgency, Urgency::Low);
         // Strict ordering by rank-relevant score within/across tiers.
-        assert!(crit.1 > warn.1 && warn.1 > p5.1);
-        assert!(p1.1 > p3.1 && p3.1 > p5.1);
+        assert!(crit.score > warn.score && warn.score > p5.score);
+        assert!(p1.score > p3.score && p3.score > p5.score);
         // Aliases + case-insensitivity.
-        assert_eq!(incident_severity_rank("CRIT"), incident_severity_rank("critical"));
-        assert_eq!(incident_severity_rank("warn"), incident_severity_rank("warning"));
-        assert_eq!(incident_severity_rank("sev1").0, Urgency::Critical);
+        assert_eq!(IncidentSeverity::parse("CRIT"), IncidentSeverity::Critical);
+        assert_eq!(IncidentSeverity::parse("warn"), IncidentSeverity::Warning);
+        assert_eq!(IncidentSeverity::rank_of("sev1").urgency, Urgency::Critical);
         // Unknown / empty → firing-but-unlabeled stays urgent (unchanged
         // behavior for sources with no severity data).
-        assert_eq!(incident_severity_rank("").0, Urgency::Critical);
-        assert_eq!(incident_severity_rank("weird").0, Urgency::Critical);
+        assert_eq!(IncidentSeverity::rank_of("").urgency, Urgency::Critical);
+        assert_eq!(IncidentSeverity::rank_of("weird").urgency, Urgency::Critical);
     }
 
     #[test]

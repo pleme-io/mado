@@ -10,6 +10,7 @@
 use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion};
 use crate::suggest::env::{HttpReq, SuggestionEnvironment};
 use crate::suggest::source::{SourceConfig, SuggestionSource};
+use super::util::PriorityScale;
 
 pub struct OpsgenieAlertsSource;
 
@@ -56,12 +57,11 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, max: usize) -> Vec<Suggest
             let spawn = SpawnSpec::new(cwd.clone(), name)?;
             // Rank by P1–P5: a P1 outranks a P3 outranks a P5 (was a flat
             // Critical for every open alert).
-            let (urgency, score) = super::util::incident_severity_rank(&a.priority);
+            let rank = super::util::IncidentSeverity::rank_of(&a.priority);
             Some(
                 Suggestion::new(SourceKind::OpsgenieAlerts, &a.id, a.message, spawn)
                     .detail(a.priority)
-                    .urgent(urgency)
-                    .scored(score),
+                    .ranked(rank),
             )
         })
         .collect()

@@ -12,6 +12,7 @@
 use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion};
 use crate::suggest::env::{HttpReq, SuggestionEnvironment};
 use crate::suggest::source::{SourceConfig, SuggestionSource};
+use super::util::PriorityScale;
 
 pub struct DatadogMonitorsSource;
 
@@ -70,7 +71,7 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, max: usize) -> Vec<Suggest
                 Some(5) => "p5",
                 _ => "",
             };
-            let (urgency, score) = super::util::incident_severity_rank(level);
+            let rank = super::util::IncidentSeverity::rank_of(level);
             let mut detail = String::from("datadog");
             if let Some(p) = m.priority {
                 detail.push_str(" \u{00B7} P"); // ·
@@ -79,8 +80,7 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, max: usize) -> Vec<Suggest
             Some(
                 Suggestion::new(SourceKind::DatadogMonitors, &key, title, spawn)
                     .detail(detail)
-                    .urgent(urgency)
-                    .scored(score),
+                    .ranked(rank),
             )
         })
         .collect()

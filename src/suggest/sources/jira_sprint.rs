@@ -8,6 +8,7 @@
 //! `base_url` param / non-JSON body → no suggestions (graceful).
 
 use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion};
+use super::util::PriorityScale;
 use crate::suggest::env::{HttpReq, SuggestionEnvironment};
 use crate::suggest::source::{SourceConfig, SuggestionSource};
 
@@ -72,7 +73,6 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, max: usize) -> Vec<Suggest
             // Priority drives rank: a high-priority sprint ticket rises to the
             // top of the session-generation stream (operator directive).
             let prio = issue.fields.priority.name.trim();
-            let (urgency, score) = super::util::JiraPriority::parse(prio).rank();
             let mut detail = issue.key.clone();
             if !prio.is_empty() {
                 detail.push_str(" \u{00B7} "); // ·
@@ -81,8 +81,7 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, max: usize) -> Vec<Suggest
             Some(
                 Suggestion::new(SourceKind::JiraSprint, &issue.key, title, spawn)
                     .detail(detail)
-                    .urgent(urgency)
-                    .scored(score),
+                    .ranked(super::util::JiraPriority::rank_of(prio)),
             )
         })
         .collect()

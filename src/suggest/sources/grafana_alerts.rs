@@ -11,6 +11,7 @@
 use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion};
 use crate::suggest::env::{HttpReq, SuggestionEnvironment};
 use crate::suggest::source::{SourceConfig, SuggestionSource};
+use super::util::PriorityScale;
 
 pub struct GrafanaAlertsSource;
 
@@ -74,7 +75,6 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, max: usize) -> Vec<Suggest
             // firing `warning` is real but not as urgent as a `critical`. A
             // missing label keeps it Critical (firing-but-unlabeled).
             let severity = a.labels.get("severity").map(String::as_str).unwrap_or("");
-            let (urgency, score) = super::util::incident_severity_rank(severity);
             let mut detail = String::from("grafana");
             if !severity.is_empty() {
                 detail.push_str(" \u{00B7} "); // ·
@@ -83,8 +83,7 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, max: usize) -> Vec<Suggest
             Some(
                 Suggestion::new(SourceKind::GrafanaAlerts, &key, title, spawn)
                     .detail(detail)
-                    .urgent(urgency)
-                    .scored(score),
+                    .ranked(super::util::IncidentSeverity::rank_of(severity)),
             )
         })
         .take(max)

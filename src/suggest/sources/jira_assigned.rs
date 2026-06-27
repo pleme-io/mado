@@ -13,6 +13,7 @@
 use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion};
 use crate::suggest::env::{HttpReq, SuggestionEnvironment};
 use crate::suggest::source::{SourceConfig, SuggestionSource};
+use super::util::PriorityScale;
 
 /// Default JQL: everything assigned to me that isn't in the Done category,
 /// freshest first. Operators override with the `jql` param.
@@ -96,12 +97,10 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, max: usize) -> Vec<Suggest
             // Priority drives rank: a high-priority ticket rises to the top of
             // the session-generation stream (operator directive). Highest/High
             // → Critical, scored so Highest leads.
-            let (urgency, score) = super::util::JiraPriority::parse(prio).rank();
             Some(
                 Suggestion::new(SourceKind::JiraAssigned, key, title, spawn)
                     .detail(detail)
-                    .urgent(urgency)
-                    .scored(score),
+                    .ranked(super::util::JiraPriority::rank_of(prio)),
             )
         })
         .take(max.max(1))
