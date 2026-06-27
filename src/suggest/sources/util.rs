@@ -46,6 +46,31 @@ pub fn truncate(s: &str, n: usize) -> String {
     s.chars().take(n).collect()
 }
 
+/// Compact human age from a seconds-elapsed count: `now` / `5m` / `3h` / `2d` /
+/// `1w`. The freshness nudge the picker stamps on a task that's been waiting,
+/// and a reusable fleet primitive (any "X ago" surface can call it).
+#[must_use]
+pub fn relative_age(secs: u64) -> String {
+    const MIN: u64 = 60;
+    const HOUR: u64 = 60 * MIN;
+    const DAY: u64 = 24 * HOUR;
+    const WEEK: u64 = 7 * DAY;
+    let (n, unit) = if secs < MIN {
+        return String::from("now");
+    } else if secs < HOUR {
+        (secs / MIN, 'm')
+    } else if secs < DAY {
+        (secs / HOUR, 'h')
+    } else if secs < WEEK {
+        (secs / DAY, 'd')
+    } else {
+        (secs / WEEK, 'w')
+    };
+    let mut out = n.to_string();
+    out.push(unit);
+    out
+}
+
 /// Final path component (after the last `/`); the whole string if there is no
 /// separator or the trailing component is empty.
 #[must_use]
@@ -95,6 +120,17 @@ mod tests {
         assert_eq!(truncate("hello", 3), "hel");
         assert_eq!(truncate("hi", 9), "hi");
         assert_eq!(truncate("🌊🔥💨", 2), "🌊🔥");
+    }
+
+    #[test]
+    fn relative_age_is_compact() {
+        assert_eq!(relative_age(0), "now");
+        assert_eq!(relative_age(59), "now");
+        assert_eq!(relative_age(60), "1m");
+        assert_eq!(relative_age(125), "2m");
+        assert_eq!(relative_age(2 * 3600), "2h");
+        assert_eq!(relative_age(2 * 86400), "2d");
+        assert_eq!(relative_age(3 * 7 * 86400), "3w");
     }
 
     #[test]

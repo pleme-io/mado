@@ -309,7 +309,7 @@ impl PracaPickerBridge {
     /// Build the continuously-refreshing ○ task-suggestion rows: the store's
     /// urgency/score-ranked set, query-filtered, capped at `suggest_max`.
     /// Empty when the stream is off or no store is wired.
-    fn suggestion_rows(&self, query: &str) -> Vec<SessionPickerRow> {
+    fn suggestion_rows(&self, query: &str, now: u64) -> Vec<SessionPickerRow> {
         if self.suggest_max == 0 {
             return Vec::new();
         }
@@ -318,11 +318,13 @@ impl PracaPickerBridge {
         };
         let q = query.trim().to_ascii_lowercase();
         // Over-fetch then query-filter so a needle still finds lower-ranked
-        // suggestions (the store is already urgency/score ranked).
+        // suggestions (the store is already urgency/score ranked). `ranked_stored`
+        // carries each row's birth time for the freshness nudge.
         store
-            .ranked(self.suggest_max.saturating_mul(4).max(self.suggest_max))
+            .ranked_stored(self.suggest_max.saturating_mul(4).max(self.suggest_max))
             .into_iter()
-            .filter(|s| {
+            .filter(|st| {
+                let s = &st.suggestion;
                 q.is_empty()
                     || s.title.to_ascii_lowercase().contains(&q)
                     || s.detail
@@ -332,14 +334,22 @@ impl PracaPickerBridge {
             // A suggestion you've already STARTED is a live ● session row now —
             // suppress its ○ twin so the picker never lists the same task twice.
             // The visual half of "nothing duplicate is ever offered".
-            .filter(|s| self.live_session_for(&s.spawn).is_none())
+            .filter(|st| self.live_session_for(&st.suggestion.spawn).is_none())
             .take(self.suggest_max)
-            .map(|s| {
+            .map(|st| {
                 let mut label = String::from("\u{25cb} "); // ○ latent
-                label.push_str(&s.picker_label());
+                label.push_str(&st.suggestion.picker_label());
+                // Freshness nudge: once a task has been waiting a while (>= 5m)
+                // stamp its age, so the picker stays calm for fresh arrivals and
+                // quietly nags the ones that have been sitting.
+                let age = now.saturating_sub(st.first_seen_ms / 1000);
+                if age >= 300 {
+                    label.push_str("  ");
+                    label.push_str(&crate::suggest::sources::util::relative_age(age));
+                }
                 SessionPickerRow {
                     label,
-                    kind: RowKind::Suggestion(s.id),
+                    kind: RowKind::Suggestion(st.suggestion.id),
                 }
             })
             .collect()
@@ -544,7 +554,7 @@ impl SessionPickerBridge for PracaPickerBridge {
         // Shade in the continuously-refreshing task suggestions BELOW the live
         // sessions + presets (the union-navigator law: Ctrl-S stays the one
         // navigator). Query-filtered + capped; empty when the stream is off.
-        rows.extend(self.suggestion_rows(query));
+        rows.extend(self.suggestion_rows(query, now));
         // If anything matched (live, latent, or a suggestion), that's the
         // picker's answer; only an empty union falls through to create.
         if !rows.is_empty() {
@@ -1204,6 +1214,37 @@ mod tests {
         assert!(
             rows.iter().any(|r| matches!(r.kind, RowKind::Switch(_))),
             "the started task is now a live session row"
+        );
+    }
+
+    #[test]
+    fn stale_suggestion_shows_a_freshness_age_fresh_stays_calm() {
+        let (inproc, _live) = live_inproc();
+        let store = Arc::new(SuggestionStore::new());
+        let s = sug(crate::suggest::SourceKind::GitBranchPr, "x#1", "review parser", "/code/x");
+        let id = s.id;
+        // first_seen_ms = 1_000_000 → first_seen at unix-second 1000.
+        store.ingest(crate::suggest::SourceKind::GitBranchPr, vec![s], 1_000_000);
+        let bridge = bridge_with_suggestions(praca::Praca::new(), Arc::clone(&inproc), store, 6);
+
+        // 10 minutes later → a "10m" freshness stamp.
+        let stale = bridge.list("", 1000 + 600);
+        let row = stale
+            .iter()
+            .find(|r| matches!(r.kind, RowKind::Suggestion(i) if i == id))
+            .unwrap();
+        assert!(row.label.contains("10m"), "stale row shows its age: {}", row.label);
+
+        // 1 minute later → fresh, no stamp (the title has no 'm', so this is clean).
+        let fresh = bridge.list("", 1000 + 60);
+        let frow = fresh
+            .iter()
+            .find(|r| matches!(r.kind, RowKind::Suggestion(i) if i == id))
+            .unwrap();
+        assert!(
+            !frow.label.contains('m'),
+            "a fresh row stays calm (no age stamp): {}",
+            frow.label
         );
     }
 }
