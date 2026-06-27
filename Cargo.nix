@@ -508,9 +508,9 @@ rec {
       };
       "anyhow" = rec {
         crateName = "anyhow";
-        version = "1.0.103";
+        version = "1.0.102";
         edition = "2021";
-        sha256 = "1wsav2g6vxcvf2c0fv3jhxfr55l0p2g8nygy7rmmvcsfwgi8ahra";
+        sha256 = "0b447dra1v12z474c6z4jmicdmc5yxz5bakympdnij44ckw2s83z";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
         ];
@@ -4896,15 +4896,15 @@ rec {
         ];
 
       };
-      "git+https://github.com/pleme-io/shikumi#0.1.104" = rec {
+      "git+https://github.com/pleme-io/shikumi#0.1.80" = rec {
         crateName = "shikumi";
-        version = "0.1.104";
+        version = "0.1.80";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
-          rev = "688f7d1d74861e45d694d4176eccadfd9aba8afa";
-          sha256 = "0qx8i7sbfv74zpmfdjzgy6qvdgyxv78nh7kn26v8x751xxz59zac";
+          rev = "b41d01e453b2c2505941ba02003f48721ca02b17";
+          sha256 = "1b1g64r6krzrfiilz89vny0pvlc3q1bfrblq4cz3jxsjhd99zpi5";
         };
         dependencies = [
           {
@@ -4983,15 +4983,15 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" ];
       };
-      "git+https://github.com/pleme-io/shikumi?branch=main#0.1.104" = rec {
+      "git+https://github.com/pleme-io/shikumi?branch=main#0.1.80" = rec {
         crateName = "shikumi";
-        version = "0.1.104";
+        version = "0.1.80";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
-          rev = "688f7d1d74861e45d694d4176eccadfd9aba8afa";
-          sha256 = "0qx8i7sbfv74zpmfdjzgy6qvdgyxv78nh7kn26v8x751xxz59zac";
+          rev = "b41d01e453b2c2505941ba02003f48721ca02b17";
+          sha256 = "1b1g64r6krzrfiilz89vny0pvlc3q1bfrblq4cz3jxsjhd99zpi5";
         };
         dependencies = [
           {
@@ -6810,9 +6810,9 @@ rec {
       };
       "js-sys" = rec {
         crateName = "js-sys";
-        version = "0.3.103";
+        version = "0.3.102";
         edition = "2021";
-        sha256 = "00lib0b6hqmw56r2hjp7xrv730qacslirbkdlhvmi39zvgy4pd2k";
+        sha256 = "0cgxklnyrfpzvf32cvdl3x5d070kfsv7ykdxfl3yizwdjqq4rl03";
         libName = "js_sys";
         authors = [
           "The wasm-bindgen Developers"
@@ -7486,7 +7486,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.39";
+        version = "0.1.40";
         edition = "2024";
         crateBin = [
           {
@@ -17030,7 +17030,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "git+https://github.com/pleme-io/shikumi#0.1.104";
+            packageId = "git+https://github.com/pleme-io/shikumi#0.1.80";
           }
           {
             name = "serde";
@@ -19062,7 +19062,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "git+https://github.com/pleme-io/shikumi?branch=main#0.1.104";
+            packageId = "git+https://github.com/pleme-io/shikumi?branch=main#0.1.80";
             features = [ "cli" ];
           }
           {
@@ -21050,9 +21050,9 @@ rec {
       };
       "uuid" = rec {
         crateName = "uuid";
-        version = "1.23.4";
+        version = "1.23.3";
         edition = "2021";
-        sha256 = "0lws65rrqncssdz1rk8g8ww7xg6k4d3l6avzkslzwni78llag05z";
+        sha256 = "1drddl03gi12vl1s3l2h371dw39plhn9wappp00v707g7h96nk8l";
         authors = [
           "Ashley Mannix<ashleymannix@live.com.au>"
           "Dylan DPC<dylan.dpc@gmail.com>"
@@ -21650,9 +21650,9 @@ rec {
       };
       "wasm-bindgen" = rec {
         crateName = "wasm-bindgen";
-        version = "0.2.126";
+        version = "0.2.125";
         edition = "2021";
-        sha256 = "197rma4qg1kb8l4bl7857pgszzval8s1w740g9myyjh92467q1jb";
+        sha256 = "06nakz7nfy0ymyp7a27wfbjwx69659i12117hkgddkiv2iwkznwd";
         libName = "wasm_bindgen";
         authors = [
           "The wasm-bindgen Developers"
@@ -21706,9 +21706,9 @@ rec {
       };
       "wasm-bindgen-futures" = rec {
         crateName = "wasm-bindgen-futures";
-        version = "0.4.76";
+        version = "0.4.75";
         edition = "2021";
-        sha256 = "0799v92cpaprapnmpaflc51sdnz362q2fsjdqnwiq8ij1wsg2bf6";
+        sha256 = "104jssshr6cm5hmkn6c66mbkyxgaaphng6c17g0dmj7jhk918fsh";
         libName = "wasm_bindgen_futures";
         authors = [
           "The wasm-bindgen Developers"
@@ -21734,9 +21734,9 @@ rec {
       };
       "wasm-bindgen-macro" = rec {
         crateName = "wasm-bindgen-macro";
-        version = "0.2.126";
+        version = "0.2.125";
         edition = "2021";
-        sha256 = "1cda6wl5zyiy7777cfgrix7fhpaqba55l5zpqj4zig7ng7jyaz0n";
+        sha256 = "0g9w68dwcs4ylm5kxf7schi0kjdfarhc9qlnf8arxc9zn62a28af";
         procMacro = true;
         libName = "wasm_bindgen_macro";
         authors = [
@@ -21758,9 +21758,9 @@ rec {
       };
       "wasm-bindgen-macro-support" = rec {
         crateName = "wasm-bindgen-macro-support";
-        version = "0.2.126";
+        version = "0.2.125";
         edition = "2021";
-        sha256 = "03iq412frl2py55skwb3ya08xha0cf6q22zr5kqlwbr675w7r6gk";
+        sha256 = "1gayzdx5iwl8gllh7ys79wg9cf4iyasl9hrzzhh5m4xx6nfgvkpy";
         libName = "wasm_bindgen_macro_support";
         authors = [
           "The wasm-bindgen Developers"
@@ -21794,10 +21794,10 @@ rec {
       };
       "wasm-bindgen-shared" = rec {
         crateName = "wasm-bindgen-shared";
-        version = "0.2.126";
+        version = "0.2.125";
         edition = "2021";
         links = "wasm_bindgen";
-        sha256 = "097a3kbjls447s1lwr41l21x5crrh5vq3h6zsxccz7slrjq4q6yw";
+        sha256 = "07w7fy5qa14ys3p8v2p84h98yqinw713smibz9v7apcspd29x4r3";
         libName = "wasm_bindgen_shared";
         authors = [
           "The wasm-bindgen Developers"
@@ -22145,9 +22145,9 @@ rec {
       };
       "web-sys" = rec {
         crateName = "web-sys";
-        version = "0.3.103";
+        version = "0.3.102";
         edition = "2021";
-        sha256 = "0hb1zdnrp99p5r5q66jagsddmwha460yv2wklvzrzk0b3jvdq8l6";
+        sha256 = "0786aybrnwsgdmcynhc2k5ii291a02rq9zk054j35csyvxr0lhx6";
         libName = "web_sys";
         authors = [
           "The wasm-bindgen Developers"
