@@ -545,6 +545,7 @@ impl Suggestion {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
 
     #[test]
     fn catalog_is_complete_and_unique() {
@@ -626,5 +627,50 @@ mod tests {
             Urgency::High.tint(),
             "the two urgent tiers are visually distinct"
         );
+    }
+
+    #[test]
+    fn urgency_always_dominates_score_in_rank_key() {
+        // A higher-urgency suggestion scored 0 still outranks a lower-urgency
+        // one scored max — the dominant axis is urgency, by construction.
+        let order = [
+            Urgency::Idle,
+            Urgency::Low,
+            Urgency::Normal,
+            Urgency::High,
+            Urgency::Critical,
+        ];
+        let spawn = SpawnSpec::new("/x", "n").unwrap();
+        for w in order.windows(2) {
+            let lo = Suggestion::new(SourceKind::RecentDirs, "a", "t", spawn.clone())
+                .urgent(w[0])
+                .scored(1000);
+            let hi = Suggestion::new(SourceKind::RecentDirs, "b", "t", spawn.clone())
+                .urgent(w[1])
+                .scored(0);
+            assert!(
+                hi.rank_key() > lo.rank_key(),
+                "{:?}@0 must outrank {:?}@1000",
+                w[1],
+                w[0]
+            );
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn suggestion_id_is_deterministic(key in ".*") {
+            prop_assert_eq!(
+                SuggestionId::derive(SourceKind::GitBranchPr, &key),
+                SuggestionId::derive(SourceKind::GitBranchPr, &key)
+            );
+        }
+
+        #[test]
+        fn spawnspec_some_iff_cwd_and_name_nonblank(cwd in ".*", name in ".*") {
+            let made = SpawnSpec::new(cwd.clone(), name.clone()).is_some();
+            let expect = !name.trim().is_empty() && !cwd.is_empty();
+            prop_assert_eq!(made, expect);
+        }
     }
 }

@@ -673,6 +673,10 @@ pub struct SuggestionsConfig {
     pub default_enabled: bool,
     /// Max suggestion rows shown in the picker.
     pub max_visible: usize,
+    /// Cap how many rows a single source may contribute to the visible band, so
+    /// one noisy source (20 CrashLoop pods) can't drown your PRs/tickets. The
+    /// band stays diverse. 0 = no cap.
+    pub per_source_cap: usize,
     /// Fade-in duration (ms) for a newly-arrived suggestion row (the slow
     /// shade-in). 0 = appear instantly.
     pub shade_in_ms: u64,
@@ -697,6 +701,7 @@ impl SuggestionsConfig {
             enabled: false,
             default_enabled: false,
             max_visible: 0,
+            per_source_cap: 0,
             shade_in_ms: 0,
             ttl_secs: 0,
             sources: Vec::new(),
@@ -712,6 +717,7 @@ impl SuggestionsConfig {
             enabled: true,
             default_enabled: true,
             max_visible: 6,
+            per_source_cap: 3,
             shade_in_ms: 600,
             ttl_secs: 900,
             sources: Vec::new(),

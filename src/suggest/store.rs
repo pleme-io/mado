@@ -189,6 +189,34 @@ impl SuggestionStore {
     }
 }
 
+/// Diversify a rank-ordered suggestion list: keep the order, but cap how many
+/// rows any single source may contribute, so one noisy source (20 CrashLoop
+/// pods) can't drown your PRs / tickets / incidents. `cap == 0` disables the
+/// cap. Pure — the unit the picker's balanced band is tested through.
+#[must_use]
+pub fn balance_per_source(
+    items: Vec<StoredSuggestion>,
+    max: usize,
+    cap: usize,
+) -> Vec<StoredSuggestion> {
+    let mut counts: BTreeMap<SourceKind, usize> = BTreeMap::new();
+    let mut out: Vec<StoredSuggestion> = Vec::with_capacity(max.min(items.len()));
+    for st in items {
+        if out.len() >= max {
+            break;
+        }
+        if cap > 0 {
+            let c = counts.entry(st.suggestion.source).or_insert(0);
+            if *c >= cap {
+                continue;
+            }
+            *c += 1;
+        }
+        out.push(st);
+    }
+    out
+}
+
 /// Pure shade-in ramp — factored out for testing.
 #[must_use]
 pub fn shade_ramp(first_seen_ms: u64, now_ms: u64, shade_in_ms: u64) -> u8 {
@@ -208,6 +236,7 @@ pub fn shade_ramp(first_seen_ms: u64, now_ms: u64, shade_in_ms: u64) -> u8 {
 mod tests {
     use super::*;
     use crate::suggest::core::{SpawnSpec, Urgency};
+    use proptest::prelude::*;
 
     fn sug(source: SourceKind, key: &str, title: &str) -> Suggestion {
         Suggestion::new(source, key, title, SpawnSpec::new("/code/x", title).unwrap())
@@ -286,5 +315,59 @@ mod tests {
         restored.load_snapshot(snap);
         assert_eq!(restored.len(), 1);
         assert_eq!(restored.ranked_stored(1)[0].first_seen_ms, 100);
+    }
+
+    fn stored(source: SourceKind, key: &str) -> StoredSuggestion {
+        StoredSuggestion {
+            suggestion: sug(source, key, key),
+            first_seen_ms: 100,
+            last_seen_ms: 100,
+        }
+    }
+
+    #[test]
+    fn balance_caps_per_source_keeping_rank_order() {
+        // One Critical grafana alert + five Low tend repos.
+        let mut items = vec![stored(SourceKind::GrafanaAlerts, "fire")];
+        items[0].suggestion = items[0].suggestion.clone().urgent(Urgency::Critical);
+        for key in ["a", "b", "c", "d", "e"] {
+            items.push(stored(SourceKind::TendRepos, key));
+        }
+        // Rank first so balance sees urgency order (grafana on top).
+        items.sort_by(|x, y| y.suggestion.rank_key().cmp(&x.suggestion.rank_key()));
+        let out = balance_per_source(items, 10, 2);
+        assert_eq!(out.len(), 3, "1 grafana + 2 (capped) tend");
+        assert_eq!(out[0].suggestion.source, SourceKind::GrafanaAlerts, "critical kept on top");
+        assert_eq!(
+            out.iter().filter(|s| s.suggestion.source == SourceKind::TendRepos).count(),
+            2,
+            "tend capped at 2"
+        );
+    }
+
+    proptest! {
+        #[test]
+        fn ranked_is_sorted_by_rank_key_desc(n in 0usize..20) {
+            let store = SuggestionStore::new();
+            let items: Vec<Suggestion> = (0..n)
+                .map(|i| sug(SourceKind::TendRepos, &i.to_string(), "t").scored((u32::try_from(i).unwrap_or(0) * 37) % 1001))
+                .collect();
+            store.ingest(SourceKind::TendRepos, items, 100);
+            let ranked = store.ranked(100);
+            for w in ranked.windows(2) {
+                prop_assert!(w[0].rank_key() >= w[1].rank_key());
+            }
+        }
+
+        #[test]
+        fn balance_never_exceeds_cap_or_max(total in 0usize..30, cap in 1usize..5, max in 0usize..15) {
+            let items: Vec<StoredSuggestion> =
+                (0..total).map(|i| stored(SourceKind::TendRepos, &i.to_string())).collect();
+            let out = balance_per_source(items, max, cap);
+            prop_assert!(out.len() <= max);
+            prop_assert!(
+                out.iter().filter(|s| s.suggestion.source == SourceKind::TendRepos).count() <= cap
+            );
+        }
     }
 }

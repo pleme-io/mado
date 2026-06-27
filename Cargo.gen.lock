@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "d31ba8176fb214a5083b4f1370f522191955de9bec602fad1a9f7051628db62f",
+  "cargo_lock_sha256": "038a2835452fa6b23ea6c40219a1ee5fd52357ca942b8f1776b03796cfb456c8",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -250,7 +250,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "anyhow-1.0.103": {
+      "anyhow-1.0.102": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": [
@@ -7282,7 +7282,7 @@
         "runtime_dependencies": [
           {
             "name": "anyhow",
-            "package_key": "anyhow-1.0.103",
+            "package_key": "anyhow-1.0.102",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7530,7 +7530,7 @@
         "runtime_dependencies": [
           {
             "name": "anyhow",
-            "package_key": "anyhow-1.0.103",
+            "package_key": "anyhow-1.0.102",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -10310,7 +10310,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.23.4",
+            "package_key": "uuid-1.23.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -10731,7 +10731,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.23.4",
+            "package_key": "uuid-1.23.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -10847,7 +10847,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.23.4",
+            "package_key": "uuid-1.23.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -11581,7 +11581,7 @@
         "runtime_dependencies": [
           {
             "name": "anyhow",
-            "package_key": "anyhow-1.0.103",
+            "package_key": "anyhow-1.0.102",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11615,7 +11615,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.105-01e6ae9955a7543fa8442e76e48bec45e00025dd",
+            "package_key": "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11661,155 +11661,6 @@
         ],
         "build_dependencies": [],
         "features": []
-      },
-      "shikumi-0.1.105-01e6ae9955a7543fa8442e76e48bec45e00025dd": {
-        "runtime_dependencies": [
-          {
-            "name": "arc_swap",
-            "package_key": "arc-swap-1.9.1",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "async_trait",
-            "package_key": "async-trait-0.1.89",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "host"
-          },
-          {
-            "name": "clap",
-            "package_key": "clap-4.6.1",
-            "kind": "normal",
-            "features": [
-              "derive"
-            ],
-            "uses_default_features": true,
-            "optional": true,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "figment",
-            "package_key": "figment-0.10.19",
-            "kind": "normal",
-            "features": [
-              "env",
-              "toml",
-              "yaml"
-            ],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "gen_platform",
-            "package_key": "gen-platform-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "gen_types",
-            "package_key": "gen-types-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "notify",
-            "package_key": "notify-8.2.0",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": false,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "notify",
-            "package_key": "notify-8.2.0",
-            "kind": "normal",
-            "features": [
-              "macos_kqueue"
-            ],
-            "uses_default_features": false,
-            "optional": false,
-            "target": "cfg(target_os = \"macos\")",
-            "tree": "target"
-          },
-          {
-            "name": "serde",
-            "package_key": "serde-1.0.228",
-            "kind": "normal",
-            "features": [
-              "derive"
-            ],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "serde_json",
-            "package_key": "serde_json-1.0.150",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "serde_yaml",
-            "package_key": "serde_yaml-0.9.34+deprecated",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "thiserror",
-            "package_key": "thiserror-2.0.18",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "tracing",
-            "package_key": "tracing-0.1.44",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          }
-        ],
-        "build_dependencies": [],
-        "features": [
-          "cli",
-          "default"
-        ]
       },
       "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": {
         "runtime_dependencies": [
@@ -12598,7 +12449,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.23.4",
+            "package_key": "uuid-1.23.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13308,7 +13159,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.23.4",
+            "package_key": "uuid-1.23.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13700,7 +13551,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.23.4",
+            "package_key": "uuid-1.23.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13939,7 +13790,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.23.4",
+            "package_key": "uuid-1.23.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14485,7 +14336,7 @@
         "runtime_dependencies": [
           {
             "name": "anyhow",
-            "package_key": "anyhow-1.0.103",
+            "package_key": "anyhow-1.0.102",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14559,7 +14410,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.105-01e6ae9955a7543fa8442e76e48bec45e00025dd",
+            "package_key": "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17",
             "kind": "normal",
             "features": [
               "cli"
@@ -14607,7 +14458,7 @@
         "runtime_dependencies": [
           {
             "name": "anyhow",
-            "package_key": "anyhow-1.0.103",
+            "package_key": "anyhow-1.0.102",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14768,7 +14619,7 @@
         "runtime_dependencies": [
           {
             "name": "anyhow",
-            "package_key": "anyhow-1.0.103",
+            "package_key": "anyhow-1.0.102",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14914,7 +14765,7 @@
         "runtime_dependencies": [
           {
             "name": "anyhow",
-            "package_key": "anyhow-1.0.103",
+            "package_key": "anyhow-1.0.102",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16665,7 +16516,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.23.4",
+            "package_key": "uuid-1.23.3",
             "kind": "normal",
             "features": [
               "serde"
@@ -16684,7 +16535,7 @@
           "uuid"
         ]
       },
-      "uuid-1.23.4": {
+      "uuid-1.23.3": {
         "runtime_dependencies": [
           {
             "name": "getrandom",
@@ -16788,7 +16639,7 @@
         "runtime_dependencies": [
           {
             "name": "anyhow",
-            "package_key": "anyhow-1.0.103",
+            "package_key": "anyhow-1.0.102",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16920,7 +16771,7 @@
         "runtime_dependencies": [
           {
             "name": "anyhow",
-            "package_key": "anyhow-1.0.103",
+            "package_key": "anyhow-1.0.102",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17007,7 +16858,7 @@
         "runtime_dependencies": [
           {
             "name": "anyhow",
-            "package_key": "anyhow-1.0.103",
+            "package_key": "anyhow-1.0.102",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17137,7 +16988,7 @@
         "runtime_dependencies": [
           {
             "name": "anyhow",
-            "package_key": "anyhow-1.0.103",
+            "package_key": "anyhow-1.0.102",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17272,7 +17123,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.23.4",
+            "package_key": "uuid-1.23.3",
             "kind": "normal",
             "features": [
               "serde",
@@ -17372,7 +17223,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.23.4",
+            "package_key": "uuid-1.23.3",
             "kind": "normal",
             "features": [
               "serde",
@@ -19096,7 +18947,7 @@
             "runtime_dependencies": [
               {
                 "name": "anyhow",
-                "package_key": "anyhow-1.0.103",
+                "package_key": "anyhow-1.0.102",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23176,7 +23027,7 @@
             "runtime_dependencies": [
               {
                 "name": "anyhow",
-                "package_key": "anyhow-1.0.103",
+                "package_key": "anyhow-1.0.102",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26823,7 +26674,7 @@
             "runtime_dependencies": [
               {
                 "name": "anyhow",
-                "package_key": "anyhow-1.0.103",
+                "package_key": "anyhow-1.0.102",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30564,7 +30415,7 @@
             "runtime_dependencies": [
               {
                 "name": "anyhow",
-                "package_key": "anyhow-1.0.103",
+                "package_key": "anyhow-1.0.102",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34598,7 +34449,7 @@
             "runtime_dependencies": [
               {
                 "name": "anyhow",
-                "package_key": "anyhow-1.0.103",
+                "package_key": "anyhow-1.0.102",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38199,7 +38050,7 @@
             "runtime_dependencies": [
               {
                 "name": "anyhow",
-                "package_key": "anyhow-1.0.103",
+                "package_key": "anyhow-1.0.102",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -41181,7 +41032,7 @@
     "anstyle-query-1.1.5": {
       "edition": "2021"
     },
-    "anyhow-1.0.103": {
+    "anyhow-1.0.102": {
       "edition": "2021",
       "build_script": "build.rs"
     },
@@ -42548,9 +42399,6 @@
     "shidou-0.1.8-b0929681f6f4323177b86e350c82ec3f9f61869f": {
       "edition": "2024"
     },
-    "shikumi-0.1.105-01e6ae9955a7543fa8442e76e48bec45e00025dd": {
-      "edition": "2024"
-    },
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": {
       "edition": "2024"
     },
@@ -42899,7 +42747,7 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "uuid-1.23.4": {
+    "uuid-1.23.3": {
       "edition": "2021"
     },
     "vcpkg-0.2.15": {
@@ -43165,7 +43013,6 @@
     "pleme-kindstr-derive-0.1.0-d287f915e9bb8837a443f6238ee900e81318ce89": "sha256-5XDr9kPiT0doWBOOk9yXjxdTCpRgaqWWJCpsc1f+tdw=",
     "praca-0.1.2-37dfcea7db28da09d7d02f83f90ae9c326b86223": "sha256-OtDWATht+DsGpk0pLKjzMJs/8uunrQaiHb80UtD5qzE=",
     "shidou-0.1.8-b0929681f6f4323177b86e350c82ec3f9f61869f": "sha256-LteP9mCB8rSjBdbb9r/uh5URZ5XTPDDoNxSKy5mMD8A=",
-    "shikumi-0.1.105-01e6ae9955a7543fa8442e76e48bec45e00025dd": "sha256-srGkoREg2d9AeXfLDTZTg28ulq7kRIfdcJb4V4XVlCM=",
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": "sha256-Jd6fUoNSdzk+I5iu7FbAg9F9gbc7oU9jdPnnaTIxL6w=",
     "tatara-lisp-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6": "sha256-sknlm2aQVNND1NFuQ/iZw27NS7rOTUsBxKTpgMTby2g=",
     "tatara-lisp-derive-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6": "sha256-sknlm2aQVNND1NFuQ/iZw27NS7rOTUsBxKTpgMTby2g=",

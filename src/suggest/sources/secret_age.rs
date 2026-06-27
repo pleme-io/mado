@@ -7,8 +7,6 @@
 //! mtime, not a true secret-age stat; a stat-based check is a follow-up). `find`
 //! not installed / no output → no suggestions (graceful).
 
-use std::path::Path;
-
 use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion, Urgency};
 use crate::suggest::env::{Cmd, SuggestionEnvironment};
 use crate::suggest::source::{SourceConfig, SuggestionSource};
@@ -62,13 +60,7 @@ fn parse(out: &str, env: &dyn SuggestionEnvironment, max: usize) -> Vec<Suggesti
         .collect()
 }
 
-/// Final path component, or the whole string if there's no separator.
-fn basename(path: &str) -> String {
-    Path::new(path)
-        .file_name()
-        .map(|s| s.to_string_lossy().into_owned())
-        .unwrap_or_else(|| path.to_string())
-}
+use super::util::basename;
 
 #[cfg(test)]
 mod tests {

@@ -104,6 +104,7 @@ pub fn http_json<T: DeserializeOwned>(env: &dyn SuggestionEnvironment, req: &Htt
 mod tests {
     use super::*;
     use crate::suggest::env::MockEnvironment;
+    use proptest::prelude::*;
 
     #[test]
     fn pct_keeps_unreserved_and_encodes_the_rest() {
@@ -162,5 +163,59 @@ mod tests {
         let env = MockEnvironment::new().http("https://x", r#"{"n":3}"#);
         assert_eq!(http_json::<Row>(&env, &HttpReq::new("https://x")), Some(Row { n: 3 }));
         assert_eq!(http_json::<Row>(&env, &HttpReq::new("https://missing")), None);
+    }
+
+    /// Test-only inverse of `pct`, for the round-trip property.
+    fn pct_decode(s: &str) -> Vec<u8> {
+        let b = s.as_bytes();
+        let mut out = Vec::new();
+        let mut i = 0;
+        while i < b.len() {
+            if b[i] == b'%' && i + 2 < b.len() {
+                let hi = char::from(b[i + 1]).to_digit(16);
+                let lo = char::from(b[i + 2]).to_digit(16);
+                if let (Some(h), Some(l)) = (hi, lo) {
+                    out.push(u8::try_from(h * 16 + l).unwrap());
+                    i += 3;
+                    continue;
+                }
+            }
+            out.push(b[i]);
+            i += 1;
+        }
+        out
+    }
+
+    proptest! {
+        #[test]
+        fn pct_round_trips(s in ".*") {
+            prop_assert_eq!(pct_decode(&pct(&s)), s.as_bytes());
+        }
+
+        #[test]
+        fn pct_output_is_url_safe(s in ".*") {
+            for c in pct(&s).chars() {
+                prop_assert!(
+                    c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.' | '~' | '%'),
+                    "pct emitted an unsafe char: {c:?}"
+                );
+            }
+        }
+
+        #[test]
+        fn truncate_bounds_len_and_is_a_prefix(s in ".*", n in 0usize..50) {
+            let t = truncate(&s, n);
+            prop_assert!(t.chars().count() <= n);
+            prop_assert!(s.starts_with(&t));
+        }
+
+        #[test]
+        fn relative_age_is_nonempty_and_now_under_a_minute(secs in 0u64..3_000_000) {
+            let a = relative_age(secs);
+            prop_assert!(!a.is_empty());
+            if secs < 60 {
+                prop_assert_eq!(a.as_str(), "now");
+            }
+        }
     }
 }

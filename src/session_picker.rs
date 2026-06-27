@@ -185,6 +185,9 @@ pub struct PracaPickerBridge {
     suggestions: Option<Arc<SuggestionStore>>,
     /// Max suggestion rows to surface (`suggestions.max_visible`). 0 = none.
     suggest_max: usize,
+    /// Max rows a single source may contribute to the band
+    /// (`suggestions.per_source_cap`) — keeps the band diverse. 0 = no cap.
+    suggest_cap: usize,
 }
 
 impl PracaPickerBridge {
@@ -201,6 +204,7 @@ impl PracaPickerBridge {
         badges: crate::config::BadgeMode,
         suggestions: Option<Arc<SuggestionStore>>,
         suggest_max: usize,
+        suggest_cap: usize,
     ) -> Self {
         Self {
             praca,
@@ -212,6 +216,7 @@ impl PracaPickerBridge {
             badges,
             suggestions,
             suggest_max,
+            suggest_cap,
         }
     }
 
@@ -320,7 +325,7 @@ impl PracaPickerBridge {
         // Over-fetch then query-filter so a needle still finds lower-ranked
         // suggestions (the store is already urgency/score ranked). `ranked_stored`
         // carries each row's birth time for the freshness nudge.
-        store
+        let filtered: Vec<crate::suggest::StoredSuggestion> = store
             .ranked_stored(self.suggest_max.saturating_mul(4).max(self.suggest_max))
             .into_iter()
             .filter(|st| {
@@ -335,7 +340,11 @@ impl PracaPickerBridge {
             // suppress its ○ twin so the picker never lists the same task twice.
             // The visual half of "nothing duplicate is ever offered".
             .filter(|st| self.live_session_for(&st.suggestion.spawn).is_none())
-            .take(self.suggest_max)
+            .collect();
+        // Balance the band: cap per-source so one noisy source (20 CrashLoop
+        // pods) can't drown your PRs/tickets/incidents — the band stays diverse.
+        crate::suggest::store::balance_per_source(filtered, self.suggest_max, self.suggest_cap)
+            .into_iter()
             .map(|st| {
                 let mut label = String::from("\u{25cb} "); // ○ latent
                 label.push_str(&st.suggestion.picker_label());
@@ -700,6 +709,7 @@ mod tests {
             badges,
             None,
             0,
+            0,
         )
     }
 
@@ -723,6 +733,7 @@ mod tests {
             crate::config::BadgeMode::Auto,
             Some(store),
             max,
+            0,
         )
     }
 

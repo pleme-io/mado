@@ -58,14 +58,7 @@ fn parse(content: &str) -> Vec<Suggestion> {
         .collect()
 }
 
-/// The final path component, used as the mark when a line carries no name.
-fn basename(path: &str) -> String {
-    path.trim_end_matches('/')
-        .rsplit('/')
-        .next()
-        .unwrap_or(path)
-        .to_string()
-}
+use super::util::basename;
 
 #[cfg(test)]
 mod tests {

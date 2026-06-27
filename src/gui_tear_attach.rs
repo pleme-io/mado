@@ -1396,13 +1396,14 @@ fn try_run_default_embedded(
             // engine fills (see `crate::suggest`), so the continuously-
             // refreshing ○ task rows appear beneath sessions + presets when the
             // stream is enabled.
-            let (suggest_store, suggest_max) = if config.suggestions.enabled {
+            let (suggest_store, suggest_max, suggest_cap) = if config.suggestions.enabled {
                 (
                     Some(crate::suggest::store()),
                     config.suggestions.max_visible,
+                    config.suggestions.per_source_cap,
                 )
             } else {
-                (None, 0)
+                (None, 0, 0)
             };
             Box::new(crate::session_picker::PracaPickerBridge::new(
                 shared_praca,
@@ -1414,6 +1415,7 @@ fn try_run_default_embedded(
                 config.tear.session_picker_badges,
                 suggest_store,
                 suggest_max,
+                suggest_cap,
             )) as Box<dyn crate::session_picker::SessionPickerBridge>
         });
 

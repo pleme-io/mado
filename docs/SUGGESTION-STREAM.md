@@ -90,7 +90,8 @@ suggestions:
   enabled: true            # master switch (bare tier = false)
   default_enabled: true    # run a source with no explicit override
   max_visible: 6           # rows shown in the picker
-  shade_in_ms: 600         # fade-in duration (M1)
+  per_source_cap: 3        # max rows one source may contribute (band diversity; 0 = no cap)
+  shade_in_ms: 600         # per-frame fade-in duration
   ttl_secs: 900            # decay an unseen suggestion after this
   sources:
     - kind: jira-sprint
@@ -109,12 +110,18 @@ sops-rendered `~/.config/<category>/<name>` path (e.g. `atlassian/api-token`).
 
 | Phase | Scope | State |
 |---|---|---|
-| **M0** | substrate (core/env/store/source) + 27-source catalog + 2 providers (git-branch-pr, tend-repos) + `RowKind::Suggestion` + bridge list/spawn + `SuggestionsConfig` + engine bootstrap | ✅ shipped (`64d2c87`) |
-| **M-bulk** | the remaining 25 providers, each parser-tested via `MockEnvironment` | ⏳ in progress |
-| **M1** | per-frame shade-in (alpha ramp in `draw_session_picker`) + refresh-while-open (throttled re-list on the redraw tick) | ⏭ render-deep; not yet |
+| **M0** | substrate (core/env/store/source) + 27-source catalog + 2 providers + `RowKind::Suggestion` + bridge list/spawn + `SuggestionsConfig` + engine bootstrap | ✅ shipped |
+| **M-bulk** | all 27 providers, each parser-tested via `MockEnvironment` | ✅ shipped |
+| **M1a** | refresh-while-open — throttled (~2s) re-list while resting, so the band updates live | ✅ shipped |
+| **M1b** | per-frame shade-in (alpha ramp) + urgency tint (`Urgency::tint`) | ✅ shipped |
+| **Kickoff** | Enter runs the task (`send_keys`) — land in the repo AND run the command | ✅ shipped |
+| **Dedup** | idempotent accept + live-band suppression (`live_session_for`) — nothing duplicate offered | ✅ shipped |
+| **Diversity** | `balance_per_source` + `per_source_cap` — one noisy source can't drown the band | ✅ shipped |
+| **Freshness** | `util::relative_age` nudge on tasks idle ≥ 5m | ✅ shipped |
+| **Testing** | property invariants (pct round-trip, rank-order, balance bounds, urgency dominance, spawnspec) | ✅ shipped |
 | **M2** | nix HM/NixOS/Darwin module trio for `suggestions` (blackmatter-mado + terminal.nix) | ⏭ |
-| **M3** | lift the data type into praça (`SessionOrigin::Suggested`) + a `(defsuggestionsource)` tlisp authoring surface via the vigy host (sources authored as watchers) | ⏭ |
-| **M4** | warm-restart persist + samba rate-limiting for HTTP/MCP sources + dedup-vs-live hardening | ⏭ |
+| **M3** | lift the data type into praça (`SessionOrigin::Suggested`) + a `(defsuggestionsource)` tlisp authoring surface via the vigy host | ⏭ |
+| **M4** | warm-restart persist + samba rate-limiting for HTTP/MCP sources + dedup-vs-live *type-level* hardening | ⏭ |
 
 ### Tier-honest notes (a `Result::Err` is mitigation, an absent path is unrepresentability — never round up)
 

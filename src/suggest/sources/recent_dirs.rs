@@ -48,14 +48,7 @@ fn parse(content: &str, limit: usize) -> Vec<Suggestion> {
         .collect()
 }
 
-/// Final path component of an absolute dir path; falls back to the whole line
-/// when there is no trailing component (e.g. a bare `/`).
-fn basename(path: &str) -> String {
-    std::path::Path::new(path)
-        .file_name()
-        .map(|s| s.to_string_lossy().into_owned())
-        .unwrap_or_else(|| path.to_string())
-}
+use super::util::basename;
 
 #[cfg(test)]
 mod tests {
