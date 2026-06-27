@@ -2031,12 +2031,14 @@ impl TerminalRenderer {
         }
 
         let color_for = |line: &crate::picker::component::OverlayLine| {
-            let c = match line.role {
+            // A per-line colour override (the urgency tint) wins; otherwise the
+            // role's themed colour (the calm default).
+            let c = line.color.unwrap_or(match line.role {
                 LineRole::Title => style.query,
                 LineRole::Selected => style.selected,
                 LineRole::Row => style.row,
                 LineRole::Hint => style.hint,
-            };
+            });
             // Per-line alpha IS the shade-in: glyphon blends the text over the
             // already-painted panel, so a low alpha dissolves the row into the
             // card behind it.
@@ -2179,17 +2181,26 @@ impl TerminalRenderer {
                 } else {
                     ("  ", LineRole::Row)
                 };
-                let alpha = match row.kind {
+                let (alpha, color) = match row.kind {
                     RowKind::Suggestion(id) => {
                         let born = *fade.entry(id).or_insert(now);
                         let elapsed = u64::try_from(now.duration_since(born).as_millis())
                             .unwrap_or(u64::MAX);
-                        crate::suggest::shade_ramp(0, elapsed, self.suggestion_shade_in_ms)
+                        let a = crate::suggest::shade_ramp(0, elapsed, self.suggestion_shade_in_ms);
+                        // Urgency tint: an on-fire task glows hot; routine ones
+                        // keep the calm row colour (Urgency::tint → None).
+                        let tint = crate::suggest::store()
+                            .get(id)
+                            .and_then(|s| s.urgency.tint())
+                            .map(|(r, g, b)| Color::new(r, g, b));
+                        (a, tint)
                     }
-                    _ => 255,
+                    _ => (255, None),
                 };
                 lines.push(
-                    OverlayLine::new(format!("{marker}{}", row.label), role).with_alpha(alpha),
+                    OverlayLine::new(format!("{marker}{}", row.label), role)
+                        .with_alpha(alpha)
+                        .with_color(color),
                 );
             }
         }

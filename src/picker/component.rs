@@ -94,6 +94,10 @@ pub struct OverlayLine {
     /// ramps this per frame so a freshly-arrived row dissolves in from the
     /// panel behind it rather than popping. Solid for every other line.
     pub alpha: u8,
+    /// Optional foreground override. `None` = the [`LineRole`]'s themed colour
+    /// (the calm default); `Some` = a deliberate tint (e.g. an urgent task
+    /// suggestion glowing hot). Kept sparing so the picker stays a calm home.
+    pub color: Option<Color>,
 }
 
 impl OverlayLine {
@@ -103,6 +107,7 @@ impl OverlayLine {
             text: text.into(),
             role,
             alpha: 255,
+            color: None,
         }
     }
 
@@ -110,6 +115,14 @@ impl OverlayLine {
     #[must_use]
     pub fn with_alpha(mut self, alpha: u8) -> Self {
         self.alpha = alpha;
+        self
+    }
+
+    /// Override the line's foreground colour (the urgency tint). `None` keeps
+    /// the role colour. Chainable.
+    #[must_use]
+    pub fn with_color(mut self, color: Option<Color>) -> Self {
+        self.color = color;
         self
     }
 }
@@ -139,13 +152,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn overlay_line_is_solid_by_default_and_alpha_ramps() {
-        let solid = OverlayLine::new("row", LineRole::Row);
-        assert_eq!(solid.alpha, 255, "lines are solid unless shaded");
+    fn overlay_line_is_solid_uncoloured_by_default_and_ramps() {
+        let plain = OverlayLine::new("row", LineRole::Row);
+        assert_eq!(plain.alpha, 255, "lines are solid unless shaded");
+        assert_eq!(plain.color, None, "lines use the role colour unless tinted");
         let faint = OverlayLine::new("row", LineRole::Row).with_alpha(64);
         assert_eq!(faint.alpha, 64);
-        // with_alpha leaves text + role untouched (only opacity).
-        assert_eq!(faint.text, solid.text);
-        assert_eq!(faint.role, solid.role);
+        let hot = OverlayLine::new("row", LineRole::Row).with_color(Some(Color::new(0xBF, 0x61, 0x6A)));
+        assert_eq!(hot.color, Some(Color::new(0xBF, 0x61, 0x6A)));
+        // builders leave text + role untouched (only opacity / colour).
+        assert_eq!(faint.text, plain.text);
+        assert_eq!(hot.role, plain.role);
     }
 }

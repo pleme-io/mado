@@ -377,6 +377,19 @@ impl Urgency {
             Urgency::Critical => 1000,
         }
     }
+
+    /// Foreground tint (RGB) for a suggestion row, or `None` to keep the calm
+    /// default row colour. Deliberately SPARING — only the urgent tiers glow
+    /// (Nord aurora red for Critical, amber for High) so the picker draws the
+    /// eye to what's on fire and stays a calm home otherwise.
+    #[must_use]
+    pub fn tint(self) -> Option<(u8, u8, u8)> {
+        match self {
+            Urgency::Critical => Some((0xBF, 0x61, 0x6A)), // Nord aurora red
+            Urgency::High => Some((0xD0, 0x87, 0x70)),     // Nord aurora amber
+            Urgency::Normal | Urgency::Low | Urgency::Idle => None,
+        }
+    }
 }
 
 /// Everything needed to turn a suggestion into a live session — the
@@ -597,5 +610,21 @@ mod tests {
         assert!(label.starts_with(SourceKind::GithubReviewRequested.emoji()));
         assert!(label.contains("pr#1 fix"));
         assert!(label.contains("mado"));
+    }
+
+    #[test]
+    fn only_urgent_tiers_tint() {
+        // Sparing by design: only Critical + High glow; the calm tiers keep the
+        // default row colour.
+        assert!(Urgency::Critical.tint().is_some());
+        assert!(Urgency::High.tint().is_some());
+        assert_eq!(Urgency::Normal.tint(), None);
+        assert_eq!(Urgency::Low.tint(), None);
+        assert_eq!(Urgency::Idle.tint(), None);
+        assert_ne!(
+            Urgency::Critical.tint(),
+            Urgency::High.tint(),
+            "the two urgent tiers are visually distinct"
+        );
     }
 }
