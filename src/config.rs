@@ -728,14 +728,21 @@ impl SuggestionsConfig {
         }
     }
 
-    /// Prescribed tier — on, gentle cadence, every implemented source running
-    /// at its default. Unauthed sources contribute nothing (graceful), so an
-    /// all-on default is harmless.
+    /// Prescribed tier — the stream is ON, but **only the Jira sources run by
+    /// default**; every other source (and crucially every one that talks to an
+    /// outbound API — GitHub, Grafana, Datadog, Opsgenie, Cloudflare, AWS,
+    /// Google, the cluster, …) is OFF unless the operator explicitly enables it.
+    /// `default_enabled = false` is the gate: an unlisted source never runs, so
+    /// adding a new source can never silently start making network calls. The
+    /// operator opts a source in via a `sources` override (or flips
+    /// `default_enabled`).
     #[must_use]
     pub fn prescribed() -> Self {
         Self {
             enabled: true,
-            default_enabled: true,
+            // OFF by default — see the doc above. Only the explicitly-listed
+            // sources below run.
+            default_enabled: false,
             max_visible: 6,
             per_source_cap: 3,
             shade_in_ms: 600,
@@ -743,7 +750,12 @@ impl SuggestionsConfig {
             persist: true,
             persist_debounce_secs: 5,
             max_entries: 200,
-            sources: Vec::new(),
+            // The ONLY sources on by default: your Jira sprint + assigned
+            // tickets. Everything else is opt-in.
+            sources: vec![
+                SuggestionSourceConfig::enable(crate::suggest::SourceKind::JiraSprint),
+                SuggestionSourceConfig::enable(crate::suggest::SourceKind::JiraAssigned),
+            ],
         }
     }
 }
@@ -766,6 +778,22 @@ pub struct SuggestionSourceConfig {
     /// Free per-source params (token env override, JQL, grafana folder, …).
     #[serde(default)]
     pub params: std::collections::BTreeMap<String, String>,
+}
+
+impl SuggestionSourceConfig {
+    /// An override that simply enables a source at its default cadence/params —
+    /// the typed way to opt a `SourceKind` into the stream (slug stays in sync
+    /// with the enum via [`crate::suggest::SourceKind::slug`]).
+    #[must_use]
+    pub fn enable(kind: crate::suggest::SourceKind) -> Self {
+        Self {
+            kind: kind.slug().to_string(),
+            enabled: true,
+            interval_secs: None,
+            max_items: None,
+            params: std::collections::BTreeMap::new(),
+        }
+    }
 }
 
 /// Per-field TearConfig overrides mado optionally pushes to the
@@ -3432,6 +3460,44 @@ mod tests {
         // blackmatter + stylix + nord-dark fleet aesthetic.
         let d = MadoConfig::default();
         assert!(!d.effects.snow.enabled);
+    }
+
+    #[test]
+    fn prescribed_suggestions_only_jira_on_outbound_api_off() {
+        use crate::suggest::SourceKind;
+        let s = SuggestionsConfig::prescribed();
+        // The stream itself is on, but sources are off-by-default — the gate
+        // that keeps every outbound-API source quiet unless opted in.
+        assert!(s.enabled, "the suggestion stream is on");
+        assert!(!s.default_enabled, "sources are OFF unless explicitly listed");
+        // Exactly the two Jira sources are listed as enabled.
+        let on: std::collections::BTreeSet<&str> = s
+            .sources
+            .iter()
+            .filter(|sc| sc.enabled)
+            .map(|sc| sc.kind.as_str())
+            .collect();
+        let expected: std::collections::BTreeSet<&str> =
+            [SourceKind::JiraSprint.slug(), SourceKind::JiraAssigned.slug()]
+                .into_iter()
+                .collect();
+        assert_eq!(on, expected, "only the Jira sources run by default");
+        // Forcing function: resolve EVERY catalog source through the real engine
+        // config. Only the Jira pair may come back enabled — so every other
+        // source, and crucially every outbound-API one (GitHub / Grafana /
+        // Datadog / Opsgenie / Cloudflare / AWS / Google / cluster / …), is off.
+        // A newly-added source is off too (default_enabled = false), so this
+        // can't silently regress.
+        let ec = crate::suggest::engine_config_from(&s);
+        for &kind in SourceKind::ALL {
+            let want = matches!(kind, SourceKind::JiraSprint | SourceKind::JiraAssigned);
+            assert_eq!(
+                ec.config_for(kind).enabled,
+                want,
+                "{} default-enabled should be {want}",
+                kind.slug()
+            );
+        }
     }
 
     /// Every effects knob round-trips through YAML and the static
