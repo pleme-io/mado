@@ -1884,7 +1884,7 @@ dependencies = [
  "js-sys",
  "log",
  "wasm-bindgen",
- "windows-core 0.58.0",
+ "windows-core 0.62.2",
 ]
 
 [[package]]
@@ -2451,7 +2451,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.45"
+version = "0.1.46"
 dependencies = [
  "anyhow",
  "awase",
@@ -4235,7 +4235,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.4.15",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -4769,7 +4769,7 @@ dependencies = [
  "anyhow",
  "clap",
  "serde",
- "shikumi 0.1.106 (git+https://github.com/pleme-io/shikumi)",
+ "shikumi 0.1.107 (git+https://github.com/pleme-io/shikumi)",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -4796,8 +4796,8 @@ dependencies = [
 
 [[package]]
 name = "shikumi"
-version = "0.1.106"
-source = "git+https://github.com/pleme-io/shikumi?branch=main#f0ceb138022528f71e426c427c4aa6a0bff3baf6"
+version = "0.1.107"
+source = "git+https://github.com/pleme-io/shikumi?branch=main#79220e7b4d9980736b63a742c43f5e13f507681c"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -4815,8 +4815,8 @@ dependencies = [
 
 [[package]]
 name = "shikumi"
-version = "0.1.106"
-source = "git+https://github.com/pleme-io/shikumi#f0ceb138022528f71e426c427c4aa6a0bff3baf6"
+version = "0.1.107"
+source = "git+https://github.com/pleme-io/shikumi#79220e7b4d9980736b63a742c43f5e13f507681c"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -5378,7 +5378,7 @@ dependencies = [
  "once_cell",
  "serde",
  "serde_yaml_ng",
- "shikumi 0.1.106 (git+https://github.com/pleme-io/shikumi?branch=main)",
+ "shikumi 0.1.107 (git+https://github.com/pleme-io/shikumi?branch=main)",
  "tear-types",
  "thiserror 2.0.18",
  "tracing",
@@ -6588,7 +6588,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -6776,6 +6776,15 @@ name = "windows-sys"
 version = "0.52.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "282be5f36a8ce781fad8c8ae18fa3f9beff57ec1b52cb3de0789201425d9a33d"
+dependencies = [
+ "windows-targets 0.52.6",
+]
+
+[[package]]
+name = "windows-sys"
+version = "0.59.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e38bc4d79ed67fd075bcc251a1c39b32a1776bbe92e5bef1f0bf1f8c531853b"
 dependencies = [
  "windows-targets 0.52.6",
 ]
