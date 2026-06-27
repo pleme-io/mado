@@ -353,8 +353,7 @@ impl PracaPickerBridge {
             return false;
         };
         // Spawn into the suggestion's cwd (mado's capability env, cwd
-        // overridden). `initial_command` is captured for a later pane-input
-        // milestone — there is no inproc write path to type it yet.
+        // overridden).
         let cwd = sug.spawn.cwd().to_string_lossy().into_owned();
         let env = self.spawn_env_base.clone().with_cwd(Some(cwd));
         self.inproc.set_spawn_env(env);
@@ -378,9 +377,28 @@ impl PracaPickerBridge {
             praca.index.upsert(rec);
             praca.record_visit(sid, now);
         }
+        // The magic: kick off the task in the fresh session. Enter on a
+        // "🔍 pr#1234 fix the parser" suggestion lands you in the repo AND runs
+        // `gh pr checkout 1234`. Sent through the typed MultiplexerControl seam;
+        // PTY input buffering carries the keystrokes until the shell is ready,
+        // so this works exactly like typing-ahead. No-op when the suggestion
+        // carries no kickoff command (e.g. a dirty-repo row just seats you there).
+        if let Some(cmd) = sug.spawn.initial_command() {
+            let _ = self.inproc.send_keys(pane, &kickoff_keystrokes(cmd));
+        }
         self.switch.post(pane);
         true
     }
+}
+
+/// Encode a suggestion's kickoff command as keystrokes: the trimmed command
+/// text followed by Enter — the typed "run this now in the fresh session"
+/// encoding the [`RowKind::Suggestion`] accept path delivers through
+/// [`tear_types::MultiplexerControl::send_keys`].
+fn kickoff_keystrokes(command: &str) -> Vec<u8> {
+    let mut bytes = command.trim().as_bytes().to_vec();
+    bytes.push(b'\n');
+    bytes
 }
 
 /// Capture a live session into the latent preset catalog — the shared
@@ -1056,5 +1074,37 @@ mod tests {
             .collect();
         assert_eq!(sg.len(), 1, "only the matching suggestion");
         assert!(sg[0].label.contains("alpha"));
+    }
+
+    #[test]
+    fn kickoff_keystrokes_trims_and_appends_enter() {
+        assert_eq!(kickoff_keystrokes("gh pr checkout 7"), b"gh pr checkout 7\n");
+        assert_eq!(kickoff_keystrokes("  spaced  "), b"spaced\n");
+    }
+
+    #[test]
+    fn spawn_suggestion_with_a_command_spawns_and_kicks_off() {
+        let (inproc, _live) = live_inproc();
+        let store = Arc::new(SuggestionStore::new());
+        let spawn = crate::suggest::SpawnSpec::new("/code/pleme-io/tear", "\u{1F50D} pr#7")
+            .unwrap()
+            .with_command("echo kicked");
+        let s = crate::suggest::Suggestion::new(
+            crate::suggest::SourceKind::GitBranchPr,
+            "tear#7",
+            "pr#7 fix tear",
+            spawn,
+        );
+        let id = s.id;
+        store.ingest(crate::suggest::SourceKind::GitBranchPr, vec![s], 1000);
+        let bridge = bridge_with_suggestions(praca::Praca::new(), Arc::clone(&inproc), store, 6);
+
+        let before = inproc.with_registry(|r| r.sessions.len());
+        assert!(
+            bridge.spawn_suggestion(id, 1000),
+            "a suggestion with a kickoff command spawns + sends it without error"
+        );
+        let after = inproc.with_registry(|r| r.sessions.len());
+        assert_eq!(after, before + 1, "the suggestion's session was spawned");
     }
 }

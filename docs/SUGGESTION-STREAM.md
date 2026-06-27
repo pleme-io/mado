@@ -119,7 +119,8 @@ sops-rendered `~/.config/<category>/<name>` path (e.g. `atlassian/api-token`).
 ### Tier-honest notes (a `Result::Err` is mitigation, an absent path is unrepresentability — never round up)
 
 - **Unrepresentable today:** a `Suggestion` with no spawn target (`SpawnSpec::new` is the only ingress and rejects empty cwd/name).
-- **Only-mitigated today:** a suggestion whose target session is already live is *not yet* deduped to a Switch row (M4); `initial_command` is stored on the `SpawnSpec` but **not yet auto-typed** into the spawned session (no inproc pane-write path); the shade-in is **instant** at M-bulk (the per-frame alpha ramp is M1).
+- **Shipped since M-bulk:** `initial_command` now **runs** — Enter on a `🔍 pr#1234` suggestion spawns the session in the repo and types `gh pr checkout 1234` (+ Enter) through the typed `MultiplexerControl::send_keys` seam (PTY input-buffering carries it until the shell is ready). The shade-in is a real per-frame alpha ramp (M1b); urgent rows tint hot (`Urgency::tint`).
+- **Only-mitigated today:** a suggestion whose target session is already live is *not yet* deduped to a Switch row (M4); the kickoff relies on PTY type-ahead buffering (robust, but not a shell-ready handshake).
 - **Live-shape assumptions:** the HTTP providers (jira/grafana/datadog/opsgenie/cloudflare/google) parse documented-but-unverified response shapes; each is fully mock-tested and returns empty when unauthed, so a wrong live shape degrades to "no rows," never a crash. Verify against the live API when wiring each token.
 - **Core lives in mado first**, not praça — deliberate, to avoid the cross-repo git-rev-bump loop during build-out. M3 lifts it.
 
