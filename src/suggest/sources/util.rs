@@ -8,7 +8,58 @@
 
 use serde::de::DeserializeOwned;
 
+use crate::suggest::core::Urgency;
 use crate::suggest::env::{Cmd, HttpReq, SuggestionEnvironment};
+
+/// A Jira issue priority, parsed from the API's free-text priority name.
+///
+/// Operator directive: *"bring high priority jira tickets to the absolute top
+/// in terms of generating sessions."* The suggestion store ranks by
+/// `(urgency, score)` — so [`JiraPriority::rank`] lifts **Highest** and
+/// **High** into the **Critical** tier (the top of the whole stream), scored so
+/// Highest sits above High, while Medium/Low/Lowest stay calm. This is the one
+/// place the priority→rank policy lives; both Jira sources consume it.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum JiraPriority {
+    Highest,
+    High,
+    Medium,
+    Low,
+    Lowest,
+    /// Unrecognized / absent — ranked as ordinary queued work.
+    Unknown,
+}
+
+impl JiraPriority {
+    /// Parse a Jira priority name (case-insensitive). Handles the default
+    /// scheme (Highest/High/Medium/Low/Lowest), the legacy
+    /// Blocker/Critical/Major/Minor/Trivial scheme, and `P0`–`P5`.
+    #[must_use]
+    pub fn parse(name: &str) -> Self {
+        match name.trim().to_ascii_lowercase().as_str() {
+            "highest" | "blocker" | "p0" | "p1" => Self::Highest,
+            "high" | "critical" | "major" | "urgent" => Self::High,
+            "medium" | "normal" | "moderate" | "p2" => Self::Medium,
+            "low" | "minor" | "p3" => Self::Low,
+            "lowest" | "trivial" | "p4" | "p5" => Self::Lowest,
+            _ => Self::Unknown,
+        }
+    }
+
+    /// `(urgency, score)` for the suggestion store's `rank_key`. Highest/High →
+    /// `Critical` (absolute top); Highest outscores High; the rest stay calm.
+    #[must_use]
+    pub fn rank(self) -> (Urgency, u32) {
+        match self {
+            Self::Highest => (Urgency::Critical, 1000),
+            Self::High => (Urgency::Critical, 900),
+            Self::Medium => (Urgency::Normal, 550),
+            Self::Low => (Urgency::Low, 350),
+            Self::Lowest => (Urgency::Low, 150),
+            Self::Unknown => (Urgency::Normal, 500),
+        }
+    }
+}
 
 /// Percent-encode a query-string value (RFC 3986: unreserved `A-Za-z0-9-_.~`
 /// pass through, everything else → `%XX` uppercase). Used to build JQL / CQL /
@@ -182,6 +233,48 @@ mod tests {
         assert_eq!(relative_age(2 * 3600), "2h");
         assert_eq!(relative_age(2 * 86400), "2d");
         assert_eq!(relative_age(3 * 7 * 86400), "3w");
+    }
+
+    #[test]
+    fn jira_priority_lifts_high_to_the_top() {
+        use crate::suggest::core::Urgency;
+        // High-priority tickets land in the Critical tier (the absolute top of
+        // the suggestion stream), Highest above High.
+        let (hu, hs) = JiraPriority::parse("Highest").rank();
+        let (gu, gs) = JiraPriority::parse("High").rank();
+        assert_eq!(hu, Urgency::Critical);
+        assert_eq!(gu, Urgency::Critical);
+        assert!(hs > gs, "Highest must outscore High within Critical");
+        // Calm tiers stay calm.
+        assert_eq!(JiraPriority::parse("Medium").rank().0, Urgency::Normal);
+        assert_eq!(JiraPriority::parse("Low").rank().0, Urgency::Low);
+        assert_eq!(JiraPriority::parse("Lowest").rank().0, Urgency::Low);
+        // Aliases + case-insensitivity.
+        assert_eq!(JiraPriority::parse("BLOCKER"), JiraPriority::Highest);
+        assert_eq!(JiraPriority::parse("major"), JiraPriority::High);
+        assert_eq!(JiraPriority::parse("P0"), JiraPriority::Highest);
+        // Unknown/empty → ordinary queued work, never elevated.
+        assert_eq!(JiraPriority::parse("").rank().0, Urgency::Normal);
+        assert_eq!(JiraPriority::parse("weird").rank(), (Urgency::Normal, 500));
+        // The rank_key ordering a high ticket produces beats a default one.
+        let high = crate::suggest::core::Suggestion::new(
+            crate::suggest::core::SourceKind::JiraAssigned,
+            "H",
+            "high ticket",
+            crate::suggest::core::SpawnSpec::new("/code", "h").unwrap(),
+        )
+        .urgent(hu)
+        .scored(hs);
+        let normal = crate::suggest::core::Suggestion::new(
+            crate::suggest::core::SourceKind::GithubAssignedIssues,
+            "N",
+            "normal issue",
+            crate::suggest::core::SpawnSpec::new("/code", "n").unwrap(),
+        );
+        assert!(
+            high.rank_key() > normal.rank_key(),
+            "a Highest jira ticket must rank above default work"
+        );
     }
 
     #[test]

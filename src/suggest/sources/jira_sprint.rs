@@ -7,7 +7,7 @@
 //! with `Authorization: Basic <email:token>`. Missing secret / missing
 //! `base_url` param / non-JSON body → no suggestions (graceful).
 
-use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion, Urgency};
+use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion};
 use crate::suggest::env::{HttpReq, SuggestionEnvironment};
 use crate::suggest::source::{SourceConfig, SuggestionSource};
 
@@ -36,7 +36,7 @@ impl SuggestionSource for JiraSprintSource {
         // removed 2025-05-01); the response shape (issues[].key/fields) is the same.
         url.push_str("/rest/api/3/search/jql?maxResults=");
         url.push_str(&max.to_string());
-        url.push_str("&fields=summary&jql=");
+        url.push_str("&fields=summary,priority&jql=");
         url.push_str(&pct(jql));
         let req = HttpReq::new(url)
             .basic_auth(email, token)
@@ -69,10 +69,20 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, max: usize) -> Vec<Suggest
             title.push_str(&issue.key);
             title.push(' ');
             title.push_str(&summary);
+            // Priority drives rank: a high-priority sprint ticket rises to the
+            // top of the session-generation stream (operator directive).
+            let prio = issue.fields.priority.name.trim();
+            let (urgency, score) = super::util::JiraPriority::parse(prio).rank();
+            let mut detail = issue.key.clone();
+            if !prio.is_empty() {
+                detail.push_str(" \u{00B7} "); // ·
+                detail.push_str(prio);
+            }
             Some(
                 Suggestion::new(SourceKind::JiraSprint, &issue.key, title, spawn)
-                    .detail(issue.key.clone())
-                    .urgent(Urgency::Normal),
+                    .detail(detail)
+                    .urgent(urgency)
+                    .scored(score),
             )
         })
         .collect()
@@ -99,17 +109,26 @@ struct Issue {
 struct Fields {
     #[serde(default)]
     summary: String,
+    #[serde(default)]
+    priority: NamedField,
+}
+
+#[derive(serde::Deserialize, Default)]
+struct NamedField {
+    #[serde(default)]
+    name: String,
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::suggest::core::Urgency;
     use crate::suggest::env::MockEnvironment;
 
     const FIXTURE: &str = r#"{
         "issues": [
-            {"key":"PROJ-1","fields":{"summary":"fix the parser"}},
-            {"key":"PROJ-2","fields":{"summary":"bump deps"}}
+            {"key":"PROJ-1","fields":{"summary":"fix the parser","priority":{"name":"Highest"}}},
+            {"key":"PROJ-2","fields":{"summary":"bump deps","priority":{"name":"Low"}}}
         ]
     }"#;
 
@@ -126,7 +145,7 @@ mod tests {
     fn url() -> String {
         // Built with the same helper poll uses so the mock matches exactly.
         let mut u = String::from(
-            "https://acme.atlassian.net/rest/api/3/search/jql?maxResults=5&fields=summary&jql=",
+            "https://acme.atlassian.net/rest/api/3/search/jql?maxResults=5&fields=summary,priority&jql=",
         );
         u.push_str(&pct("sprint=42"));
         u
@@ -142,9 +161,15 @@ mod tests {
         assert_eq!(out.len(), 2);
         let one = out.iter().find(|s| s.title.contains("PROJ-1")).unwrap();
         assert!(one.title.contains("fix the parser"));
-        assert_eq!(one.detail.as_deref(), Some("PROJ-1"));
-        assert_eq!(one.urgency, Urgency::Normal);
+        // Detail carries the key + the priority name.
+        assert_eq!(one.detail.as_deref(), Some("PROJ-1 \u{00B7} Highest"));
+        // Highest priority → Critical tier (the absolute top of the stream).
+        assert_eq!(one.urgency, Urgency::Critical);
         assert_eq!(one.spawn.cwd().to_str().unwrap(), "/code");
+        // The Highest ticket ranks above the Low one.
+        let two = out.iter().find(|s| s.title.contains("PROJ-2")).unwrap();
+        assert_eq!(two.urgency, Urgency::Low);
+        assert!(one.rank_key() > two.rank_key());
     }
 
     #[test]

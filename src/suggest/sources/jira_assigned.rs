@@ -93,7 +93,16 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, max: usize) -> Vec<Suggest
                 }
                 detail.push_str(prio);
             }
-            Some(Suggestion::new(SourceKind::JiraAssigned, key, title, spawn).detail(detail))
+            // Priority drives rank: a high-priority ticket rises to the top of
+            // the session-generation stream (operator directive). Highest/High
+            // → Critical, scored so Highest leads.
+            let (urgency, score) = super::util::JiraPriority::parse(prio).rank();
+            Some(
+                Suggestion::new(SourceKind::JiraAssigned, key, title, spawn)
+                    .detail(detail)
+                    .urgent(urgency)
+                    .scored(score),
+            )
         })
         .take(max.max(1))
         .collect()
@@ -174,7 +183,15 @@ mod tests {
         assert!(one.detail.as_deref().unwrap().contains("High"));
         assert_eq!(one.spawn.name(), "\u{1F4CB} PLEME-1");
         assert_eq!(one.spawn.cwd().to_str().unwrap(), "/code");
-        assert_eq!(one.urgency, Urgency::Normal);
+        // Priority drives rank: the High ticket rises to the Critical tier (the
+        // top of the session-generation stream); the Low ticket stays calm.
+        assert_eq!(one.urgency, Urgency::Critical);
+        let two = out.iter().find(|s| s.title.contains("PLEME-2")).unwrap();
+        assert_eq!(two.urgency, Urgency::Low);
+        assert!(
+            one.rank_key() > two.rank_key(),
+            "the High-priority ticket must rank above the Low one"
+        );
     }
 
     #[test]
