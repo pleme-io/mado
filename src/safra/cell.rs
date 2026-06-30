@@ -62,9 +62,12 @@ impl SafraCell {
         let secret = endpoint.secret_ref.as_deref().and_then(|r| env.secret(r));
         let ctx = ObserveCtx { env: &self.env, kind: &self.kind, endpoint, secret };
         let observed = self.source.observe(env, &ctx);
-        // (M4 will enforce the per-cell `tuning.max_items` cap here, after
-        // convergence, so re-observed items bump recurrence before any eviction.)
-        self.curated.converge(observed, now)
+        let delta = self.curated.converge(observed, now);
+        // Keep the backlog under control: evict the lowest-ranked beyond the cap
+        // AFTER convergence, so re-observed items bump recurrence before any
+        // eviction (the lowest-ranked are never on the bounded visible board).
+        self.curated.cap(self.tuning.max_items);
+        delta
     }
 
     /// The curated items ranked for surfacing (highest-priority first).

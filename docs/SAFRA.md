@@ -31,6 +31,59 @@ the *curated truth*; Ctrl-S *renders* it. Two human verbs: declare + observe.
 
 ---
 
+## 1.5 The operating model — the live work board you burn down
+
+**Ctrl-S is a consistently-updating board of issues the operator works down to
+zero.** Two lanes, one board:
+
+- **Sprint lane** (planned) — Jira sprint + assigned tickets (the existing
+  suggestion sources).
+- **Stability / on-call lane** (reactive) — the safra-curated signals from the
+  Tendril/Lareira mesh (firing alerts, PromQL/SLO breaches, log spikes,
+  OpsGenie/Datadog paging state).
+
+Both are the same kind of thing — *a unit of work to pick up* — co-ranked in one
+board.
+
+**The loop: populate → target → open session → work → clean.**
+
+- *populate* — vigy agents converge each lane's items into its `CuratedSet`;
+  **resolved items decay off** (the board self-cleans as alerts recover /
+  tickets close).
+- *target* — scan Ctrl-S, pick one.
+- *open session* — Enter spawns a **pre-named session scoped to that item**
+  (ticket key + summary, or incident env + error) and **binds** the session to it.
+- *work → clean* — troubleshoot in the session; you burn the board **down to an
+  empty curated set — everything clean.**
+
+**Bounded board, capped backlog, backfill.** Every curated item is session-able
+— but the board must **stay under control**, never flood the screen:
+
+- The **curated backlog** (the `CuratedSet`) holds *all* live errors, kept
+  bounded by dedup + recurrence + decay + a per-cell `max_items` cap (the
+  "keep them under control" invariant).
+- The **visible board** shows only the top-`max_visible` ranked items, with a
+  `per_source_cap` so one noisy source can't crowd out the rest.
+- As a visible slot frees — an item resolved (decay), its session opened
+  (soft-acked, in-progress), or dismissed — **the next-ranked backlog item fills
+  in.** The board is always full of the most-important *open* work, and drains
+  as you resolve things.
+
+**Lifecycle — the "in progress" mark.** An item with an active bound session is
+*being worked*: soft-acked so it deprioritizes (doesn't crowd new errors) but
+doesn't vanish until upstream confirms resolution (decay) or you dismiss it. The
+board legibly shows *waiting* vs *in progress* vs *gone*.
+
+The engine already gives the hard part: `converge`/`decay` **is** the
+consistently-updating, self-cleaning board; `ranked()` is the priority; the
+suggestion stream's `max_visible`/`per_source_cap`/backfill is the windowing.
+The concrete additions this model implies: enforce the per-cell `max_items` cap;
+the **projection** (curated item → a board `Suggestion` carrying the
+scoped-session `SpawnSpec`); and the **session-binding lifecycle** (open →
+in-progress → resolved).
+
+---
+
 ## 2. What already exists (the foundation — extend, never duplicate)
 
 | Need | Already shipped | File |

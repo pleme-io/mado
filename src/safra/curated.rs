@@ -134,6 +134,28 @@ impl<I: CuratedItem> CuratedSet<I> {
         before - self.items.len()
     }
 
+    /// Enforce the per-cell memory cap — the "keep them under control"
+    /// invariant. Keeps at most `max_items` highest-ranked items, evicting the
+    /// lowest-ranked beyond it (which by construction are never on the bounded
+    /// visible board). `0` = unbounded. Returns how many were evicted.
+    pub fn cap(&mut self, max_items: usize) -> usize {
+        if max_items == 0 || self.items.len() <= max_items {
+            return 0;
+        }
+        // Signatures to KEEP = the top `max_items` ranked (the map key IS the
+        // signature). Collect owned keys first so the immutable `ranked` borrow
+        // is released before the mutable `retain`.
+        let keep: std::collections::HashSet<String> = self
+            .ranked()
+            .into_iter()
+            .take(max_items)
+            .map(|t| t.item.signature())
+            .collect();
+        let before = self.items.len();
+        self.items.retain(|sig, _| keep.contains(sig));
+        before - self.items.len()
+    }
+
     /// Items ranked for surfacing: severity weight × recurrence, tie-broken by
     /// recency (most-recent first). Highest-priority first.
     #[must_use]
@@ -249,5 +271,27 @@ mod tests {
         assert_eq!(d.added, 0);
         assert_eq!(d.expired, 0);
         assert_eq!(d.updated, 2);
+    }
+
+    #[test]
+    fn cap_keeps_top_ranked_under_control() {
+        let mut set = CuratedSet::new(0);
+        // 1 critical (score 16) + 3 info (score 1 each).
+        set.converge(vec![a("crit", Severity::Critical)], 1000);
+        set.converge(vec![a("i1", Severity::Info), a("i2", Severity::Info), a("i3", Severity::Info)], 1000);
+        assert_eq!(set.len(), 4);
+        let evicted = set.cap(2);
+        assert_eq!(evicted, 2, "two lowest-ranked evicted to honor cap=2");
+        assert_eq!(set.len(), 2);
+        assert_eq!(set.ranked()[0].item.title(), "crit", "the critical is always kept");
+    }
+
+    #[test]
+    fn cap_zero_is_unbounded_and_noop_under_cap() {
+        let mut set = CuratedSet::new(0);
+        set.converge(vec![a("x", Severity::Warning), a("y", Severity::Info)], 1000);
+        assert_eq!(set.cap(0), 0, "cap=0 is unbounded");
+        assert_eq!(set.cap(5), 0, "len under cap → no eviction");
+        assert_eq!(set.len(), 2);
     }
 }
