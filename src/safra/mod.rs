@@ -26,10 +26,16 @@
 // lands the production paths are unreferenced — allow it here, remove at M1.
 #![allow(dead_code)]
 
+pub mod cell;
 pub mod config;
 pub mod curated;
 pub mod schema;
+pub mod signal;
+pub mod source;
 
+pub use cell::SafraCell;
 pub use config::{CellTuning, ResolvedTuning, SafraConfig};
 pub use curated::{CuratedItem, CuratedSet, Delta, Severity, Tracked};
 pub use schema::{Endpoint, ServiceKind, TrackedDataKind, TrackedEnvironment};
+pub use signal::Signal;
+pub use source::{CellSource, ObserveCtx};
