@@ -30,6 +30,7 @@ pub mod cell;
 pub mod config;
 pub mod curated;
 pub mod gha;
+pub mod project;
 pub mod schema;
 pub mod signal;
 pub mod source;
