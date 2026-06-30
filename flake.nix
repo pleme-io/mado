@@ -112,6 +112,11 @@
           # contract (operator directive 2026-06-11): a highlight
           # goes straight to the clipboard, no extra chord.
           copy_on_select   = { type = "bool"; default = true; description = "Copy selection to clipboard automatically."; };
+          # Mirrors the Rust-side default_mouse_hide() = true. Hides the
+          # mouse pointer while typing; mado restores it on a mouse MOVE.
+          # Operators with a stationary pointer over the window (the
+          # "mado makes my mouse vanish" report) set this false.
+          mouse_hide_while_typing = { type = "bool"; default = true; description = "Hide the mouse pointer while typing (restored on mouse movement)."; };
         };
 
         appearance = {
