@@ -56,6 +56,52 @@ tunable config*, layered, authored in tatara-lisp, scoped to blackmatter-akeyles
 
 ---
 
+## 2.5 Upstream — the Lareira / Tendril mesh (what safra absorbs)
+
+**The target is Akeyless, and the concrete source is the Tendril / Lareira
+observability program** (Akeyless Confluence; doctrine home to author:
+`pleme-io/theory/LAREIRA.md`). Tendril deploys **taps** that branch live data
+flows off the Akeyless fleet (28 Vector clusters across
+MTE/akeyless_global · MEU · MUS · CVS · DBK · WMT × AWS/GCP/AZR ×
+dev/staging/prod) into an in-boundary **Lareira mesh** —
+`vector → NATS-JetStream (respiro, scale-to-zero) → breathe →
+VictoriaMetrics (victoriaops) / VictoriaLogs → Grafana(as-code) → grafana-rio
+MCP`, + ntfy. The store, dashboards-as-code, breathe, and the **`grafana-rio`
+MCP are LIVE on rio.**
+
+**safra is the mado-side operator consumer of that mesh** — the in-terminal
+realization of Tendril's `alert`-tap doctrine ("a personal early-warning over
+my own copy, earlier than the team, never paging"). It absorbs the curated
+signals the tendrils produce and surfaces them in Ctrl-S. The surfaces map
+directly onto safra's `ServiceKind`s:
+
+| Tendril / Lareira surface | safra `CellSource` |
+|---|---|
+| **victoriaops** (VictoriaMetrics) | PromQL — firing alerts / SLO breaches, per-tenant tag |
+| **VictoriaLogs** | error-log spikes |
+| **grafana-rio MCP** (live) | Grafana alerts via MCP — the "grafana-mcp, structured" path |
+| **`mirror` taps** (team OpsGenie / Datadog state) | read-only paging-state pull |
+
+**The cell ↔ tendril identity:** a safra `TrackedEnvironment` **is a tendril
+tap-cell** — Tendril's cell grammar `tap-<datakind>-<tenant>-<env>-<cloud>-<region>`
+(e.g. `tap-audit-mte-prod-aws-use2`), its endpoints the `tendril.*` access
+grammar (`grafana.tendril.<tenant>.<env>.akeyless.dev`), auth via the cofre/SOPS
+`SecretRef` safra already models. The `groups` axis carries
+tenant/env/cloud/region so the three-scope config can tune e.g. all
+`mte`-tenant cells or all `prod` cells at once.
+
+**First-real-cell unlock:** because `grafana-rio` MCP + victoriaops are
+**already live** (holding rio + akeyless_global telemetry), safra's first real
+cell can absorb **now** — no dependency on the per-tenant tendril deploys (which
+gate on Tendril's own M0). Scope: **akeyless_global (non-customer) only**;
+customer-tenant data is residency/governance-gated (raw data never crosses
+residency; rio receives only akeyless_global / derived signal). The `borealis`
+codename hygiene applies — safra's *generic* curation surface never names the
+consumer; the akeyless tendril endpoints + SecretRefs live in the
+blackmatter-akeyless config layer (§8).
+
+---
+
 ## 3. The declared schema (TYPED-SPEC + INTERPRETER triplet)
 
 Per the org ★★ TYPED-SPEC rule, every safra concept ships as **typed Rust

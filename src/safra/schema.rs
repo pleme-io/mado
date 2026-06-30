@@ -12,10 +12,16 @@ pub enum ServiceKind {
     VictoriaMetrics,
     /// Prometheus — PromQL.
     Prometheus,
-    /// Grafana (alerts / datasource proxy / grafana-mcp-shaped).
+    /// Grafana (alerts / datasource proxy / grafana-mcp-shaped) — the Lareira
+    /// `grafana-rio` MCP surface.
     Grafana,
-    /// Datadog (monitors / events).
+    /// VictoriaLogs — the Lareira log store (LogsQL error-log spikes).
+    VictoriaLogs,
+    /// Datadog (monitors / events) — the Tendril `mirror`-tap paging surface.
     Datadog,
+    /// OpsGenie (open/unacked alerts) — the Tendril `mirror`-tap team paging
+    /// state (read-only).
+    OpsGenie,
     /// Kubernetes API (list + field selectors).
     Kubernetes,
 }
@@ -28,7 +34,9 @@ impl ServiceKind {
             ServiceKind::VictoriaMetrics => "victoria-metrics",
             ServiceKind::Prometheus => "prometheus",
             ServiceKind::Grafana => "grafana",
+            ServiceKind::VictoriaLogs => "victoria-logs",
             ServiceKind::Datadog => "datadog",
+            ServiceKind::OpsGenie => "opsgenie",
             ServiceKind::Kubernetes => "kubernetes",
         }
     }
@@ -118,7 +126,9 @@ mod tests {
             ServiceKind::VictoriaMetrics,
             ServiceKind::Prometheus,
             ServiceKind::Grafana,
+            ServiceKind::VictoriaLogs,
             ServiceKind::Datadog,
+            ServiceKind::OpsGenie,
             ServiceKind::Kubernetes,
         ];
         let mut slugs: Vec<&str> = kinds.iter().map(|k| k.slug()).collect();
