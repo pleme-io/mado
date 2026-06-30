@@ -29,6 +29,7 @@
 pub mod cell;
 pub mod config;
 pub mod curated;
+pub mod gha;
 pub mod schema;
 pub mod signal;
 pub mod source;
@@ -36,6 +37,7 @@ pub mod source;
 pub use cell::SafraCell;
 pub use config::{CellTuning, ResolvedTuning, SafraConfig};
 pub use curated::{CuratedItem, CuratedSet, Delta, Severity, Tracked};
+pub use gha::{GhaDeploymentSource, GhaFilter, GhaRun, TextMatch};
 pub use schema::{Endpoint, ServiceKind, TrackedDataKind, TrackedEnvironment};
 pub use signal::Signal;
 pub use source::{CellSource, ObserveCtx};

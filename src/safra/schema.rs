@@ -24,6 +24,9 @@ pub enum ServiceKind {
     OpsGenie,
     /// Kubernetes API (list + field selectors).
     Kubernetes,
+    /// GitHub Actions — deployment-flow runs that change an environment
+    /// (the deploy / promote / failover / config-rollout workflows).
+    GitHubActions,
 }
 
 impl ServiceKind {
@@ -38,6 +41,7 @@ impl ServiceKind {
             ServiceKind::Datadog => "datadog",
             ServiceKind::OpsGenie => "opsgenie",
             ServiceKind::Kubernetes => "kubernetes",
+            ServiceKind::GitHubActions => "github-actions",
         }
     }
 }
@@ -130,6 +134,7 @@ mod tests {
             ServiceKind::Datadog,
             ServiceKind::OpsGenie,
             ServiceKind::Kubernetes,
+            ServiceKind::GitHubActions,
         ];
         let mut slugs: Vec<&str> = kinds.iter().map(|k| k.slug()).collect();
         slugs.sort_unstable();
