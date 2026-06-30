@@ -49,6 +49,7 @@ mod perf;
 mod picker;
 mod render;
 mod render_graph;
+mod safra;
 mod scenario;
 mod vt;
 mod search;
