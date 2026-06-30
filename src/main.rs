@@ -864,6 +864,7 @@ fn main() -> anyhow::Result<()> {
             clipboard: Arc::clone(&clipboard),
             keybinds,
             behavior,
+            links: config.links.clone(),
             cursor_keys_mode,
             default_font_size,
             padding,

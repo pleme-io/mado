@@ -731,6 +731,7 @@ where
             // bare defaults and ignored custom binds).
             keybinds: crate::keybind::manager_from_config(&config),
             behavior: crate::ux::UxBehavior::from(&config),
+            links: config.links.clone(),
             cursor_keys_mode,
             default_font_size: default_font_size_for_reset,
             padding,

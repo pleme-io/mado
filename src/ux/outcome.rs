@@ -23,6 +23,15 @@ pub struct EventOutcome {
     pub toggle_fullscreen: bool,
     /// Request cursor visibility change (None = no change).
     pub set_cursor_visible: Option<bool>,
+    /// Request a mouse pointer SHAPE change (None = no change) — e.g. the
+    /// hand/`Pointer` shape while hovering a clickable link. This is a
+    /// mado-side typed decision with NO `madori::EventResponse` peer yet:
+    /// the pinned madori exposes only `set_cursor_visible`, not a
+    /// cursor-ICON channel, so the `From` impl below cannot forward it to
+    /// the OS window. Tracked here (and unit-tested) at the engine boundary
+    /// exactly like the OSC 22 pointer shape — both await a madori
+    /// `set_cursor_icon` field to reach the live cursor.
+    pub set_pointer_shape: Option<crate::pointer_shape::PointerShape>,
 }
 
 impl EventOutcome {
@@ -58,6 +67,11 @@ impl From<EventOutcome> for madori::EventResponse {
         // Deliberately NO `..Default::default()` — when madori grows
         // a response field this stops compiling and the mapping must
         // name it. Totality by construction.
+        //
+        // `o.set_pointer_shape` has no `EventResponse` peer on the pinned
+        // madori (it carries `set_cursor_visible` but no cursor-ICON
+        // channel), so it is intentionally not forwarded here — it would
+        // reach the OS window once madori grows a `set_cursor_icon` field.
         madori::EventResponse {
             consumed: o.consumed,
             exit: o.exit,
@@ -84,6 +98,8 @@ mod tests {
             set_title: Some("mado — press close again to exit".into()),
             toggle_fullscreen: true,
             set_cursor_visible: Some(false),
+            // mado-side only — no EventResponse peer (see the From impl).
+            set_pointer_shape: Some(crate::pointer_shape::PointerShape::Pointer),
         };
         let resp: madori::EventResponse = outcome.clone().into();
         assert_eq!(resp.consumed, outcome.consumed);
@@ -91,6 +107,23 @@ mod tests {
         assert_eq!(resp.set_title, outcome.set_title);
         assert_eq!(resp.toggle_fullscreen, outcome.toggle_fullscreen);
         assert_eq!(resp.set_cursor_visible, outcome.set_cursor_visible);
+    }
+
+    #[test]
+    fn pointer_shape_is_mado_side_only_and_defaults_to_none() {
+        // The hover pointer shape is tracked on the outcome but has no
+        // madori EventResponse peer yet, so it never forces a default-cursor
+        // request: a fresh outcome carries None (no change).
+        assert!(EventOutcome::ignored().set_pointer_shape.is_none());
+        assert!(EventOutcome::consumed().set_pointer_shape.is_none());
+        let hover = EventOutcome {
+            set_pointer_shape: Some(crate::pointer_shape::PointerShape::Pointer),
+            ..EventOutcome::consumed()
+        };
+        assert_eq!(
+            hover.set_pointer_shape,
+            Some(crate::pointer_shape::PointerShape::Pointer),
+        );
     }
 
     #[test]

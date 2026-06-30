@@ -127,6 +127,11 @@ pub struct MadoConfig {
     /// default ON with a gentle cadence; the bare tier strips it off.
     #[serde(default)]
     pub suggestions: SuggestionsConfig,
+    /// Clickable, highlighted links (see [`MadoLinksConfig`]). Prescribed
+    /// default ON (highlight + hover cursor + click-to-open); the bare
+    /// tier strips every affordance.
+    #[serde(default)]
+    pub links: MadoLinksConfig,
 }
 
 /// Mado's embedded-vigy gate. Defaults the runtime OFF — operators
@@ -766,6 +771,55 @@ impl SuggestionsConfig {
                 SuggestionSourceConfig::enable(crate::suggest::SourceKind::JiraSprint),
                 SuggestionSourceConfig::enable(crate::suggest::SourceKind::JiraAssigned),
             ],
+        }
+    }
+}
+
+/// Clickable, highlighted links. Both OSC 8 hyperlinks (cells carrying a
+/// `link_id`) and auto-detected bare URLs are highlighted in the theme's
+/// frost accent + underlined, show a pointer/hand cursor on hover, and
+/// open on a plain (no-drag) click — a URL through the OS opener, a
+/// `file://path:line` through the operator's `$VISUAL`/`$EDITOR`. Tiered:
+/// bare = fully OFF; prescribed = every knob ON.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct MadoLinksConfig {
+    /// Master switch. `false` (bare) strips every link affordance.
+    pub enabled: bool,
+    /// Highlight links: frost-blue text + the underline decoration.
+    pub highlight: bool,
+    /// A plain (no-drag) left click on a link opens it.
+    pub open_on_click: bool,
+    /// Hovering a link shows a pointer/hand cursor.
+    pub pointer_cursor: bool,
+}
+
+impl Default for MadoLinksConfig {
+    fn default() -> Self {
+        Self::prescribed()
+    }
+}
+
+impl MadoLinksConfig {
+    /// Bare tier — every link affordance off.
+    #[must_use]
+    pub fn bare() -> Self {
+        Self {
+            enabled: false,
+            highlight: false,
+            open_on_click: false,
+            pointer_cursor: false,
+        }
+    }
+
+    /// Prescribed tier — highlight + hover cursor + click-to-open all on.
+    #[must_use]
+    pub fn prescribed() -> Self {
+        Self {
+            enabled: true,
+            highlight: true,
+            open_on_click: true,
+            pointer_cursor: true,
         }
     }
 }
@@ -2162,6 +2216,8 @@ impl MadoConfig {
             effects: MadoEffectsConfig::default(),
             vigy: MadoVigyConfig::default(),
             suggestions: SuggestionsConfig::bare(),
+            // bare = no link affordances at all.
+            links: MadoLinksConfig::bare(),
         }
     }
 
@@ -2411,6 +2467,7 @@ fn mado_fleet_base() -> MadoConfig {
         effects: MadoEffectsConfig::default(),
         vigy: MadoVigyConfig::default(),
         suggestions: SuggestionsConfig::default(),
+        links: MadoLinksConfig::default(),
     }
 }
 
@@ -3458,6 +3515,7 @@ mod tests {
             effects: MadoEffectsConfig::default(),
             vigy: MadoVigyConfig::default(),
             suggestions: SuggestionsConfig::default(),
+            links: MadoLinksConfig::default(),
         };
         if fd.scrollback_lines == 10_000 {
             c.behavior.scrollback_lines = default_scrollback();
@@ -3472,6 +3530,51 @@ mod tests {
         // blackmatter + stylix + nord-dark fleet aesthetic.
         let d = MadoConfig::default();
         assert!(!d.effects.snow.enabled);
+    }
+
+    #[test]
+    fn links_tiers_bare_all_off_prescribed_all_on() {
+        let bare = MadoLinksConfig::bare();
+        assert!(!bare.enabled);
+        assert!(!bare.highlight);
+        assert!(!bare.open_on_click);
+        assert!(!bare.pointer_cursor);
+
+        let pres = MadoLinksConfig::prescribed();
+        assert!(pres.enabled);
+        assert!(pres.highlight);
+        assert!(pres.open_on_click);
+        assert!(pres.pointer_cursor);
+
+        // Default == prescribed.
+        assert_eq!(MadoLinksConfig::default(), MadoLinksConfig::prescribed());
+    }
+
+    #[test]
+    fn links_master_config_tiers() {
+        // The bare MadoConfig strips every link affordance; the prescribed
+        // default turns them on.
+        assert!(!MadoConfig::bare().links.enabled);
+        assert!(MadoConfig::default().links.enabled);
+        assert!(MadoConfig::default().links.highlight);
+        assert!(MadoConfig::default().links.open_on_click);
+        assert!(MadoConfig::default().links.pointer_cursor);
+    }
+
+    #[test]
+    fn links_config_round_trips_through_yaml() {
+        // A links section round-trips through the YAML surface (deny_unknown_fields
+        // means a typo'd key is a hard parse error, not a silent default).
+        let cfg = MadoLinksConfig {
+            enabled: true,
+            highlight: false,
+            open_on_click: true,
+            pointer_cursor: false,
+        };
+        let yaml = serde_yaml_ng::to_string(&cfg).expect("serialize links config");
+        let back: MadoLinksConfig =
+            serde_yaml_ng::from_str(&yaml).expect("round-trip links config");
+        assert_eq!(cfg, back);
     }
 
     #[test]

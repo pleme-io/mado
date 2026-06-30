@@ -101,6 +101,9 @@ pub struct InputEngineParams {
     pub keybinds: KeybindManager,
     /// The typed config subset the handlers read.
     pub behavior: UxBehavior,
+    /// Clickable-link config (hover cursor + click-to-open gates). The
+    /// highlight half lives on the renderer; this is the interaction half.
+    pub links: crate::config::MadoLinksConfig,
     /// DECCKM (cursor-keys application mode) query — the one
     /// read-side divergence between the modes.
     pub cursor_keys_mode: Box<dyn Fn() -> bool + Send + Sync>,
@@ -153,6 +156,9 @@ pub struct InputEngine {
     clipboard: Arc<dyn ClipboardProvider>,
     keybinds: KeybindManager,
     pub(crate) behavior: UxBehavior,
+    /// Clickable-link interaction gates (hover pointer cursor +
+    /// plain-click-to-open). The highlight half is the renderer's.
+    links: crate::config::MadoLinksConfig,
     cursor_keys_mode: Box<dyn Fn() -> bool + Send + Sync>,
     default_font_size: f32,
     padding: f32,
@@ -270,6 +276,7 @@ impl InputEngine {
             clipboard: params.clipboard,
             keybinds: params.keybinds,
             behavior: params.behavior,
+            links: params.links,
             cursor_keys_mode: params.cursor_keys_mode,
             default_font_size: params.default_font_size,
             padding: params.padding,
@@ -349,6 +356,36 @@ impl InputEngine {
         let rows: Vec<_> = term.visible_rows().map(|r| r.to_vec()).collect();
         let cols = term.cols();
         (rows, cols)
+    }
+
+    /// Resolve the link at a viewport cell: an OSC 8 hyperlink
+    /// (`cell.link_id` → the link table) takes precedence, falling back to
+    /// an auto-detected bare URL in that row. `None` when the cell is not a
+    /// link. Shared by the hover (pointer-cursor) and click (open) paths so
+    /// they agree on what a link is.
+    fn link_url_at(&self, row: usize, col: usize) -> Option<String> {
+        let term = self.terminal.read();
+        // OSC 8 first — `hyperlink` resolves `NO_LINK_ID` (0) to `None`.
+        if let Some(uri) = term.cell(row, col).hyperlink(term.links()) {
+            return Some(uri.to_string());
+        }
+        let cols = term.cols();
+        let row_cells: Vec<Cell> = term.visible_rows().nth(row)?.to_vec();
+        drop(term);
+        let urls = crate::url::detect_urls_in_row(&row_cells, cols, row);
+        crate::url::url_at(&urls, row, col).map(|u| u.url.clone())
+    }
+
+    /// Open the link at a viewport cell, if any, with a typed
+    /// `std::process::Command` (see [`crate::url::open_link`] — a URL via
+    /// the OS opener, a `file://path:line` via `$VISUAL`/`$EDITOR`).
+    /// Failures are logged; never panics.
+    fn try_open_link_at(&self, row: usize, col: usize) {
+        if let Some(url) = self.link_url_at(row, col) {
+            if let Err(e) = crate::url::open_link(&url) {
+                tracing::warn!(error = %e, url = %url, "failed to open link");
+            }
+        }
     }
 
     // ── Key handling ─────────────────────────────────────────────
@@ -1260,8 +1297,15 @@ impl InputEngine {
                 self.copy_live_selection_if_enabled();
             }
             PointerEffect::SelectionRelease => {
+                // A zero-length single click leaves the selection empty
+                // (`finish()` → None); a drag leaves a committed span. The
+                // emptiness AFTER finish is how we tell a plain click (which
+                // may open a link) from a text-selecting drag (which must
+                // NOT open one — that would hijack selection).
+                let mut plain_click = false;
                 if self.click_count == 1 {
                     self.selection.lock().unwrap().finish();
+                    plain_click = self.selection.lock().unwrap().anchors().is_none();
                 }
                 // Muscle-memory contract: the highlight goes straight
                 // to the clipboard on release for EVERY selection
@@ -1270,21 +1314,17 @@ impl InputEngine {
                 // gate).
                 self.copy_live_selection_if_enabled();
                 if self.click_count == 1 {
-                    // Cmd+click (macOS) / Ctrl+click (Linux) to open
-                    // URLs — single-click release only, never
-                    // word/line selection.
-                    if modifiers.meta || modifiers.ctrl {
-                        let (row_cells, cols) = self.rows_snapshot();
-                        let detected = crate::url::detect_urls(&row_cells, cols);
-                        if let Some(url) = crate::url::url_at(&detected, row, col) {
-                            if let Err(e) = open::that(&url.url) {
-                                tracing::warn!(
-                                    error = %e,
-                                    url = %url.url,
-                                    "failed to open URL"
-                                );
-                            }
-                        }
+                    // Open a clickable link on release — single-click only
+                    // (word/line selection has click_count != 1, skipped).
+                    // A plain (no-drag) click opens when `links.open_on_click`
+                    // is set; the legacy Cmd+click (macOS) / Ctrl+click
+                    // (Linux) affordance still works whenever links are
+                    // enabled. Never on a drag (would hijack text selection).
+                    let modified = modifiers.meta || modifiers.ctrl;
+                    let want_open = (plain_click && self.links.open_on_click)
+                        || (modified && self.links.enabled);
+                    if want_open {
+                        self.try_open_link_at(row, col);
                     }
                 }
             }
@@ -1442,7 +1482,23 @@ impl InputEngine {
         for effect in step.effects {
             self.run_pointer_effect(effect, col, row, self.last_mods, sgr);
         }
-        EventOutcome::consumed().with_cursor_visibility(vis)
+
+        // Clickable-link hover: request the hand/`Pointer` cursor over a link
+        // cell when `links.pointer_cursor` is set, else the platform default.
+        // `None` leaves the cursor unchanged. The typed shape rides on the
+        // outcome; OS application awaits a madori cursor-icon channel (see
+        // `ux::outcome` + the OSC 22 pointer-shape precedent).
+        let pointer_shape = self.links.pointer_cursor.then(|| {
+            if self.link_url_at(row, col).is_some() {
+                crate::pointer_shape::PointerShape::Pointer
+            } else {
+                crate::pointer_shape::PointerShape::Default
+            }
+        });
+
+        let mut outcome = EventOutcome::consumed().with_cursor_visibility(vis);
+        outcome.set_pointer_shape = pointer_shape;
+        outcome
     }
 
     /// Wheel / trackpad scroll. Snapshots the live terminal context, asks the
@@ -2118,6 +2174,8 @@ mod tests {
                         selection_autoscroll_speed: 18.0,
                         selection_autoscroll_max_overshoot: 6.0,
                     },
+                    // Links on in the harness so the click/hover paths are exercised.
+                    links: crate::config::MadoLinksConfig::prescribed(),
                     cursor_keys_mode,
                     default_font_size: 14.0,
                     padding: 0.0,

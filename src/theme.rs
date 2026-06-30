@@ -51,6 +51,13 @@ pub struct Theme {
     /// OTHER (non-current) search-match highlight fill (`Vellum
     /// search_others` #443E2A). See [`Self::search_current`].
     pub search_others: Color,
+    /// Nord frost link/hyperlink accent, sourced from the ANSI bright-blue
+    /// slot (`ansi[12]`) — never a hex. Clickable OSC 8 hyperlinks AND
+    /// auto-detected bare URLs paint their text + underline with THIS
+    /// token, so a frost-palette retune in ishou propagates here on the
+    /// next compile. `u8`-RGB for the renderer; the GPU path linearizes at
+    /// paint time exactly like every other `Color` field.
+    pub link: Color,
 }
 
 impl Theme {
@@ -134,6 +141,12 @@ pub fn apply_config_theme(
     // render path linearizes both at paint time via `overlay_rect_color`.
     renderer.set_search_current_color(theme.search_current);
     renderer.set_search_other_color(theme.search_others);
+    // Clickable-link accent — the frost-blue text + underline colour for
+    // OSC 8 hyperlinks + auto-detected URLs. Routed through this ONE shared
+    // point so the local-PTY loop AND the embedded-tear loop pick up the
+    // link colour identically; the render path linearizes the underline at
+    // paint time via `overlay_rect_color`.
+    renderer.set_link_color(theme.link);
     // Picker overlay chrome (Ctrl-S switcher + Ctrl-T dirs): resolve every
     // colour from the active theme so the pickers track the theme instead
     // of hardcoded Nord literals. The Center popup is a SOLID card that
@@ -249,6 +262,9 @@ fn theme_from_scheme(scheme: ColorScheme) -> Theme {
         // presets render exactly as before.
         search_current: Color::new(0xEB, 0xCB, 0x8B),
         search_others: Color::new(0xEB, 0xCB, 0x8B),
+        // Link/hyperlink accent = ANSI bright-blue (Nord frost). Sourced
+        // from the scheme's own table, never a hex.
+        link: ansi[12],
     }
 }
 
@@ -327,6 +343,10 @@ fn vellum_theme() -> Theme {
             surfaces.search_others_background.g,
             surfaces.search_others_background.b,
         ),
+        // Link/hyperlink accent = ANSI bright-blue (the vivid Nord frost
+        // blue from the ishou keystone `content_ansi_16()` table built
+        // above) — ishou-sourced, never a mado-local hex.
+        link: ansi[12],
     }
 }
 
@@ -460,6 +480,16 @@ mod tests {
         let nord = Theme::by_name("nord").expect("nord preset");
         assert_eq!(nord.search_current, Color::new(0xEB, 0xCB, 0x8B));
         assert_eq!(nord.search_others, Color::new(0xEB, 0xCB, 0x8B));
+    }
+
+    #[test]
+    fn vellum_link_is_the_frost_bright_blue_ansi_slot() {
+        // The clickable-link accent flows from the ANSI bright-blue slot
+        // (`ansi[12]`, Nord frost) — never a hand-pinned hex — so a frost
+        // retune in the ishou keystone propagates here on the next compile.
+        let b = Theme::by_name("vellum").expect("vellum theme");
+        assert_eq!(b.link, b.ansi[12], "link must be the bright-blue ANSI slot");
+        assert_ne!(b.link, Color::new(0, 0, 0), "link must not be black");
     }
 
     #[test]

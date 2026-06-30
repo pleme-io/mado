@@ -65,10 +65,81 @@ pub fn detect_urls(rows: &[Vec<Cell>], cols: usize) -> Vec<DetectedUrl> {
 
 /// Check if a cell position is within a detected URL.
 #[must_use]
-#[allow(dead_code)]
 pub fn url_at(urls: &[DetectedUrl], row: usize, col: usize) -> Option<&DetectedUrl> {
     urls.iter()
         .find(|u| u.row == row && col >= u.col_start && col <= u.col_end)
+}
+
+/// The OS URL-opener program for the current platform. macOS uses the
+/// absolute `/usr/bin/open` (no PATH dependence); other platforms use
+/// `xdg-open`. NEVER a shell.
+#[must_use]
+fn os_opener() -> &'static str {
+    #[cfg(target_os = "macos")]
+    {
+        "/usr/bin/open"
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        "xdg-open"
+    }
+}
+
+/// Split a `file://`-stripped target into `(path, Some(line))` when it ends
+/// in `:<digits>`, else `(target, None)` — the `file:///path/to/file:42`
+/// editor-jump convention.
+fn split_file_line(target: &str) -> (&str, Option<u32>) {
+    if let Some((path, suffix)) = target.rsplit_once(':') {
+        if !suffix.is_empty() && suffix.bytes().all(|b| b.is_ascii_digit()) {
+            if let Ok(n) = suffix.parse::<u32>() {
+                return (path, Some(n));
+            }
+        }
+    }
+    (target, None)
+}
+
+/// Build the typed `(program, args)` for opening `url`, given the resolved
+/// `editor` (`$VISUAL`/`$EDITOR`/`nvim`) used for `file://` targets:
+///
+/// - `http`/`https`/`ftp`/… → the OS opener with the URL as its one arg.
+/// - `file://path` → the editor on `path` (with a `+LINE` arg prepended
+///   when the target carries a `:LINE` suffix).
+///
+/// PURE — no env reads, no spawn — so the argv shape is unit-testable
+/// without launching a process. NO shell, NO `format!()`: the returned argv
+/// is handed straight to `std::process::Command::args`.
+#[must_use]
+pub fn open_command(url: &str, editor: &str) -> (String, Vec<String>) {
+    if let Some(rest) = url.strip_prefix("file://") {
+        // `file:///path/to/file` → `/path/to/file`. Peel an optional `:LINE`.
+        let (path, line) = split_file_line(rest);
+        let mut args = Vec::new();
+        if let Some(n) = line {
+            // `+<n>` without `format!()` (TYPED EMISSION): Display via to_string.
+            let mut jump = String::from("+");
+            jump.push_str(&n.to_string());
+            args.push(jump);
+        }
+        args.push(path.to_string());
+        return (editor.to_string(), args);
+    }
+    (os_opener().to_string(), vec![url.to_string()])
+}
+
+/// Open a clickable link with a typed `std::process::Command` (NO shell):
+/// an `http`/`https`/`ftp` URL through the OS opener, a `file://path:line`
+/// through the operator's `$VISUAL`/`$EDITOR` (fallback `nvim`). Spawns
+/// detached (never blocks); the caller logs any error. Never panics.
+pub fn open_link(url: &str) -> std::io::Result<()> {
+    let editor = std::env::var("VISUAL")
+        .or_else(|_| std::env::var("EDITOR"))
+        .unwrap_or_else(|_| "nvim".to_string());
+    let (program, args) = open_command(url, &editor);
+    std::process::Command::new(&program)
+        .args(&args)
+        .spawn()
+        .map(|_child| ())
 }
 
 /// The row text linkify scans, plus the per-byte first/last grid column
@@ -330,6 +401,56 @@ mod tests {
         // the blank column before the URL (3) stays a miss.
         assert!(url_at(&urls, 0, 4).is_some(), "the URL's true start column must hit");
         assert!(url_at(&urls, 0, 3).is_none(), "the space before the URL must not hit");
+    }
+
+    /// The click hit-test must hit columns strictly INSIDE the URL span
+    /// (a click in the middle of a link opens it), not just the boundaries.
+    #[test]
+    fn url_at_hits_interior_column_for_click() {
+        let row = make_row("go to https://example.com/path now");
+        let urls = detect_urls_in_row(&row, 34, 7);
+        assert_eq!(urls.len(), 1);
+        let u = &urls[0];
+        let mid = (u.col_start + u.col_end) / 2;
+        assert!(mid > u.col_start && mid < u.col_end, "mid must be interior");
+        assert!(url_at(&urls, 7, mid).is_some(), "interior column must hit");
+        // A different row never hits, and the cell just before the URL misses.
+        assert!(url_at(&urls, 8, mid).is_none(), "wrong row must miss");
+        assert!(url_at(&urls, 7, u.col_start.saturating_sub(1)).is_none());
+    }
+
+    #[test]
+    fn open_command_http_uses_os_opener_with_url_arg() {
+        let (prog, args) = open_command("https://example.com/x?y=1", "nvim");
+        assert_eq!(args, vec!["https://example.com/x?y=1".to_string()]);
+        #[cfg(target_os = "macos")]
+        assert_eq!(prog, "/usr/bin/open");
+        #[cfg(not(target_os = "macos"))]
+        assert_eq!(prog, "xdg-open");
+    }
+
+    #[test]
+    fn open_command_ftp_uses_os_opener() {
+        let (_prog, args) = open_command("ftp://files.example.com/pub", "nvim");
+        assert_eq!(args, vec!["ftp://files.example.com/pub".to_string()]);
+    }
+
+    #[test]
+    fn open_command_file_with_line_jumps_in_editor() {
+        let (prog, args) = open_command("file:///home/u/src/main.rs:42", "nvim");
+        assert_eq!(prog, "nvim");
+        assert_eq!(
+            args,
+            vec!["+42".to_string(), "/home/u/src/main.rs".to_string()],
+            "file://path:line opens the editor at +LINE then the path",
+        );
+    }
+
+    #[test]
+    fn open_command_file_without_line_opens_editor_on_path() {
+        let (prog, args) = open_command("file:///home/u/src/main.rs", "hx");
+        assert_eq!(prog, "hx");
+        assert_eq!(args, vec!["/home/u/src/main.rs".to_string()]);
     }
 
     /// Wide (2-column) cells before the URL advance the display column by

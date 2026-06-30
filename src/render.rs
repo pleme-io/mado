@@ -1220,6 +1220,21 @@ pub struct TerminalRenderer {
     /// See [`Self::search_current_color`] — the OTHER-match fill.
     #[invalidating_setter]
     search_other_color: Color,
+    /// Clickable-link text + underline accent (u8-RGB; the rect pipeline
+    /// linearizes at paint time via `overlay_rect_color`, same discipline
+    /// as `search_current_color`). OSC 8 hyperlinks AND auto-detected URLs
+    /// paint their glyphs in this colour and underline with it. Set by
+    /// `theme::apply_config_theme` from the active theme's `link` (Nord
+    /// frost `ansi[12]`). Defaults to Nord frost #88C0D0 — the prior
+    /// hardcoded underline blue — until a theme loads.
+    #[invalidating_setter]
+    link_color: Color,
+    /// Whether clickable links are highlighted (frost text + underline).
+    /// Set from `config.links.{enabled,highlight}` in
+    /// [`apply_effects_and_accessibility`](Self::apply_effects_and_accessibility).
+    /// Defaults `true` (the prescribed tier); the bare tier strips it.
+    #[invalidating_setter]
+    links_highlight: bool,
     /// Reduce motion: disable cursor blink and bell flash.
     #[invalidating_setter]
     reduce_motion: bool,
@@ -1552,6 +1567,13 @@ impl TerminalRenderer {
             // first_light #D7C489 / search_others #443E2A).
             search_current_color: Color::new(0xEB, 0xCB, 0x8B),
             search_other_color: Color::new(0xEB, 0xCB, 0x8B),
+            // Nord frost #88C0D0 — the prior hardcoded URL-underline blue,
+            // kept as the pre-theme field default. `theme::apply_config_theme`
+            // overwrites this with the active theme's `link` (frost ansi[12]).
+            link_color: Color::new(0x88, 0xC0, 0xD0),
+            // Prescribed-tier default: links highlighted. `apply_effects_and_accessibility`
+            // re-derives this from `config.links` (bare strips it).
+            links_highlight: true,
             reduce_motion: false,
             session_picker_anchor: crate::config::PickerAnchor::default(),
             suggestion_fade: RefCell::new(HashMap::new()),
@@ -1605,6 +1627,10 @@ impl TerminalRenderer {
     pub fn apply_effects_and_accessibility(&mut self, config: &crate::config::MadoConfig) {
         self.set_bold_is_bright(config.appearance.bold_is_bright);
         self.set_reduce_motion(config.accessibility.reduce_motion);
+        // Clickable-link highlight gate — frost text + underline on OSC 8
+        // hyperlinks + auto-detected URLs. ON only when the feature is
+        // enabled AND highlight is requested; the bare tier strips both.
+        self.set_links_highlight(config.links.enabled && config.links.highlight);
         self.session_picker_anchor = config.tear.session_picker_anchor;
         self.suggestion_shade_in_ms = config.suggestions.shade_in_ms;
         self.set_effects_config(config.resolved_effects());
@@ -3011,24 +3037,28 @@ impl TerminalRenderer {
             }
         }
 
-        // URL underline decorations — RLE'd (one rect per URL).
-        for detected_url in &snap.urls {
-            instances.push(RectInstance { 
-                pos: [
-                    origin_x + detected_url.col_start as f32 * self.cell_width,
-                    origin_y
-                        + (detected_url.row as f32 + 1.0) * self.cell_height
-                        - 1.5,
-                ],
-                size: [
-                    (detected_url.col_end + 1 - detected_url.col_start) as f32
-                        * self.cell_width,
-                    1.0,
-                ],
-                // Nord frost blue #88C0D0 underline, linearized for the
-                // rect pipeline (see `overlay_rect_color`).
-                color: overlay_rect_color(0x88, 0xC0, 0xD0, 0.6), mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
+        // URL underline decorations — RLE'd (one rect per URL). Gated on
+        // the links-highlight config so the bare tier paints no underline.
+        if self.links_highlight {
+            let lc = self.link_color;
+            for detected_url in &snap.urls {
+                instances.push(RectInstance {
+                    pos: [
+                        origin_x + detected_url.col_start as f32 * self.cell_width,
+                        origin_y
+                            + (detected_url.row as f32 + 1.0) * self.cell_height
+                            - 1.5,
+                    ],
+                    size: [
+                        (detected_url.col_end + 1 - detected_url.col_start) as f32
+                            * self.cell_width,
+                        1.0,
+                    ],
+                    // Theme link accent (frost blue), linearized for the
+                    // rect pipeline (see `overlay_rect_color`) — never a hex.
+                    color: overlay_rect_color(lc.r, lc.g, lc.b, 0.6), mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
+                });
+            }
         }
 
         // Cursor (with optional blink). Unfocused windows pin the
@@ -3358,6 +3388,17 @@ impl TerminalRenderer {
                     };
                     if dim {
                         fg = Color::new(fg.r / 2, fg.g / 2, fg.b / 2);
+                    }
+                    // Clickable links repaint in the theme's frost accent so
+                    // OSC 8 hyperlinks + auto-detected URLs read as links, not
+                    // body text (the underline rect above carries the same
+                    // colour). Gated on the links-highlight config.
+                    if self.links_highlight
+                        && (cell.link_id != crate::terminal::NO_LINK_ID
+                            || crate::url::url_at(&snap.urls, row_idx, col_here.idx())
+                                .is_some())
+                    {
+                        fg = self.link_color;
                     }
                     fg
                 };
