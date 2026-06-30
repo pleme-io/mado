@@ -635,10 +635,25 @@ fn main() -> anyhow::Result<()> {
     let effective_fps = config.performance.resolve_target_fps(runtime_posture.as_ref());
     tracing::debug!(target_fps = effective_fps, "resolved target fps");
 
-    let shell = cli
-        .command
-        .or(config.shell.command.clone())
-        .unwrap_or_else(default_shell);
+    // Resolve the shell once, here, so BOTH spawn paths (the embedded /
+    // daemon tear branch in gui_tear_attach + the local-PTY branch in
+    // single_pane) inherit a shell that actually exists. An explicit
+    // `--command` is honored verbatim (the operator asked for it); the
+    // *config-derived* default is PATH-guarded, because the prescribed
+    // default is `frostmourne` (the fleet shell) and a standalone download
+    // won't have it. Without this guard the first window spawns a missing
+    // binary → ENOENT → a dead/empty pane (single_pane.rs marks the pane
+    // exited and returns with no shell). Falling back to `$SHELL`/`/bin/zsh`
+    // keeps the download-and-use experience working out of the box.
+    let shell = match cli.command {
+        Some(explicit) => explicit,
+        None => config
+            .shell
+            .command
+            .clone()
+            .map(resolve_shell_or_fallback)
+            .unwrap_or_else(default_shell),
+    };
 
     // ── Default-on tear attachment ───────────────────────────────
     // Discover (or auto-spawn) the tear-daemon and run mado as a
@@ -972,8 +987,53 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// First runnable login shell: `$SHELL` if it resolves to a real binary, else
+/// `/bin/zsh`, else `/bin/sh` (the POSIX floor). Never returns a missing
+/// binary — a stale/broken `$SHELL` is skipped rather than propagated, so the
+/// download-and-use path always lands on a shell that actually exists.
 fn default_shell() -> String {
-    std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_string())
+    if let Ok(s) = std::env::var("SHELL") {
+        if shell_is_executable(&s) {
+            return s;
+        }
+    }
+    for candidate in ["/bin/zsh", "/bin/sh"] {
+        if shell_is_executable(candidate) {
+            return candidate.to_string();
+        }
+    }
+    "/bin/sh".to_string()
+}
+
+/// True if `cmd` names a runnable binary: an absolute/relative path that is a
+/// file, or a bare name found on `$PATH`. Used to guard the config-derived
+/// shell so a standalone download (no `frostmourne` on PATH) never spawns a
+/// missing binary.
+fn shell_is_executable(cmd: &str) -> bool {
+    use std::path::Path;
+    if cmd.contains('/') {
+        return Path::new(cmd).is_file();
+    }
+    std::env::var_os("PATH")
+        .map(|paths| std::env::split_paths(&paths).any(|dir| dir.join(cmd).is_file()))
+        .unwrap_or(false)
+}
+
+/// Return `configured` if it resolves to a real binary, otherwise fall back to
+/// `$SHELL`/`/bin/zsh`. The prescribed default (`frostmourne`) only exists on
+/// fleet machines; a release-download user gets their login shell instead of a
+/// dead window. An explicit `--command` is resolved by the caller, not here.
+fn resolve_shell_or_fallback(configured: String) -> String {
+    if shell_is_executable(&configured) {
+        return configured;
+    }
+    let fallback = default_shell();
+    tracing::warn!(
+        configured = %configured,
+        fallback = %fallback,
+        "configured shell not found on PATH — falling back to login shell"
+    );
+    fallback
 }
 
 /// Build EventResponse for exit request, applying confirm_close logic when enabled.
@@ -1034,6 +1094,47 @@ mod tests {
     // coverage to the deleted `parse_hex_color` / `parse_hex_rgb`
     // tests, but with the gamma-correct path the architecture now
     // mandates.
+
+    #[test]
+    fn shell_is_executable_finds_sh_on_path() {
+        // /bin/sh is present on every unix that runs these tests.
+        assert!(shell_is_executable("/bin/sh"), "absolute path to a real binary resolves");
+        assert!(shell_is_executable("sh"), "bare name found on $PATH resolves");
+    }
+
+    #[test]
+    fn shell_is_executable_rejects_missing() {
+        assert!(
+            !shell_is_executable("definitely-not-a-real-shell-xyzzy"),
+            "a bare name not on $PATH does not resolve"
+        );
+        assert!(
+            !shell_is_executable("/nonexistent/frostmourne"),
+            "an absolute path that isn't a file does not resolve"
+        );
+    }
+
+    #[test]
+    fn resolve_shell_keeps_a_real_binary() {
+        // A configured shell that exists is returned verbatim.
+        assert_eq!(resolve_shell_or_fallback("/bin/sh".to_string()), "/bin/sh");
+    }
+
+    #[test]
+    fn resolve_shell_falls_back_when_missing() {
+        // The download-and-use case: the configured shell isn't installed (the
+        // prescribed default is `frostmourne`, absent on a standalone download).
+        // Use a guaranteed-missing name here — `frostmourne` itself IS on PATH
+        // on fleet workstations where these tests run. Resolution must yield a
+        // real login shell, never the missing name.
+        let missing = "definitely-not-a-real-shell-xyzzy";
+        let resolved = resolve_shell_or_fallback(missing.to_string());
+        assert_ne!(resolved, missing, "a missing shell must not be returned");
+        assert!(
+            shell_is_executable(&resolved),
+            "the fallback must itself be a runnable shell ({resolved})"
+        );
+    }
 
     #[test]
     fn ishou_srgb_from_hex_black() {

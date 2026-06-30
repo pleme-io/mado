@@ -728,14 +728,20 @@ impl SuggestionsConfig {
         }
     }
 
-    /// Prescribed tier — the stream is ON, but **only the Jira sources run by
-    /// default**; every other source (and crucially every one that talks to an
-    /// outbound API — GitHub, Grafana, Datadog, Opsgenie, Cloudflare, AWS,
-    /// Google, the cluster, …) is OFF unless the operator explicitly enables it.
-    /// `default_enabled = false` is the gate: an unlisted source never runs, so
-    /// adding a new source can never silently start making network calls. The
-    /// operator opts a source in via a `sources` override (or flips
-    /// `default_enabled`).
+    /// Prescribed tier — the stream is ON. The only sources armed by default
+    /// are the **zero-network local sources** (your mado recent-dirs + project
+    /// marks) plus your **Jira** sprint/assigned tickets. Every source that
+    /// talks to an outbound API beyond Jira — GitHub, Grafana, Datadog,
+    /// Opsgenie, Cloudflare, AWS, Google, the cluster, … — stays OFF unless the
+    /// operator explicitly enables it. `default_enabled = false` is the gate:
+    /// an unlisted source never runs, so adding a new source can never silently
+    /// start making network calls. The operator opts a source in via a
+    /// `sources` override (or flips `default_enabled`).
+    ///
+    /// The local sources (`RecentDirs`, `ProjectMarks`) make this delightful
+    /// out of the box for a standalone download: Ctrl-S surfaces your own
+    /// recent dirs + marks with no tokens, no cluster, no network — the band
+    /// fills as you use mado rather than staying empty.
     #[must_use]
     pub fn prescribed() -> Self {
         Self {
@@ -750,9 +756,13 @@ impl SuggestionsConfig {
             persist: true,
             persist_debounce_secs: 5,
             max_entries: 200,
-            // The ONLY sources on by default: your Jira sprint + assigned
-            // tickets. Everything else is opt-in.
             sources: vec![
+                // Zero-network local sources — work for ANY download, no creds,
+                // no outbound calls. The "delightful default" tier.
+                SuggestionSourceConfig::enable(crate::suggest::SourceKind::RecentDirs),
+                SuggestionSourceConfig::enable(crate::suggest::SourceKind::ProjectMarks),
+                // Your Jira sprint + assigned tickets (silently empty without a
+                // Jira org / token).
                 SuggestionSourceConfig::enable(crate::suggest::SourceKind::JiraSprint),
                 SuggestionSourceConfig::enable(crate::suggest::SourceKind::JiraAssigned),
             ],
@@ -2507,8 +2517,10 @@ impl Default for ShellConfig {
     /// keybind out of the box. Operators who want plain `$SHELL` /
     /// `/bin/zsh` / `/bin/sh` override via `mado.yaml` or via the
     /// blackmatter-mado HM module's `programs.mado.shell.command`
-    /// option. Falls back to `$SHELL → /bin/sh` at runtime if
-    /// frostmourne isn't on PATH (see `session.rs`).
+    /// option. The config-derived value is PATH-guarded at shell
+    /// resolution (`main.rs::resolve_shell_or_fallback`): if frostmourne
+    /// isn't on PATH (e.g. a standalone release download) it falls back to
+    /// `$SHELL → /bin/zsh`, so the first window always gets a real shell.
     fn default() -> Self {
         Self {
             command: Some("frostmourne".to_string()),
@@ -3463,34 +3475,46 @@ mod tests {
     }
 
     #[test]
-    fn prescribed_suggestions_only_jira_on_outbound_api_off() {
+    fn prescribed_suggestions_local_plus_jira_on_outbound_api_off() {
         use crate::suggest::SourceKind;
         let s = SuggestionsConfig::prescribed();
         // The stream itself is on, but sources are off-by-default — the gate
         // that keeps every outbound-API source quiet unless opted in.
         assert!(s.enabled, "the suggestion stream is on");
         assert!(!s.default_enabled, "sources are OFF unless explicitly listed");
-        // Exactly the two Jira sources are listed as enabled.
+        // Exactly the zero-network local sources + the two Jira sources are
+        // listed as enabled. The local pair is the delightful-default tier
+        // (works for any standalone download, no creds, no outbound calls).
         let on: std::collections::BTreeSet<&str> = s
             .sources
             .iter()
             .filter(|sc| sc.enabled)
             .map(|sc| sc.kind.as_str())
             .collect();
-        let expected: std::collections::BTreeSet<&str> =
-            [SourceKind::JiraSprint.slug(), SourceKind::JiraAssigned.slug()]
-                .into_iter()
-                .collect();
-        assert_eq!(on, expected, "only the Jira sources run by default");
+        let expected: std::collections::BTreeSet<&str> = [
+            SourceKind::RecentDirs.slug(),
+            SourceKind::ProjectMarks.slug(),
+            SourceKind::JiraSprint.slug(),
+            SourceKind::JiraAssigned.slug(),
+        ]
+        .into_iter()
+        .collect();
+        assert_eq!(on, expected, "only local + Jira sources run by default");
         // Forcing function: resolve EVERY catalog source through the real engine
-        // config. Only the Jira pair may come back enabled — so every other
-        // source, and crucially every outbound-API one (GitHub / Grafana /
-        // Datadog / Opsgenie / Cloudflare / AWS / Google / cluster / …), is off.
-        // A newly-added source is off too (default_enabled = false), so this
-        // can't silently regress.
+        // config. Only the local pair + the Jira pair may come back enabled — so
+        // every source that talks to an outbound API beyond Jira (GitHub /
+        // Grafana / Datadog / Opsgenie / Cloudflare / AWS / Google / cluster / …)
+        // stays off. A newly-added source is off too (default_enabled = false),
+        // so this can't silently regress into a surprise network call.
         let ec = crate::suggest::engine_config_from(&s);
         for &kind in SourceKind::ALL {
-            let want = matches!(kind, SourceKind::JiraSprint | SourceKind::JiraAssigned);
+            let want = matches!(
+                kind,
+                SourceKind::RecentDirs
+                    | SourceKind::ProjectMarks
+                    | SourceKind::JiraSprint
+                    | SourceKind::JiraAssigned
+            );
             assert_eq!(
                 ec.config_for(kind).enabled,
                 want,
