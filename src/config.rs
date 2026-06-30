@@ -132,6 +132,16 @@ pub struct MadoConfig {
     /// tier strips every affordance.
     #[serde(default)]
     pub links: MadoLinksConfig,
+    /// Tasteful-feedback flourishes (see [`FeedbackConfig`]). Prescribed
+    /// default ON (visual bell + copy flash + exit-code coloring); the
+    /// bare tier strips them.
+    #[serde(default)]
+    pub feedback: FeedbackConfig,
+    /// Motion-easing knobs (see [`MotionConfig`]). Prescribed default ON
+    /// (blink ease + picker animate + scroll lerp + unfocused dim); the
+    /// bare tier makes every transition instant.
+    #[serde(default)]
+    pub motion: MotionConfig,
 }
 
 /// Mado's embedded-vigy gate. Defaults the runtime OFF — operators
@@ -820,6 +830,106 @@ impl MadoLinksConfig {
             highlight: true,
             open_on_click: true,
             pointer_cursor: true,
+        }
+    }
+}
+
+/// Tasteful-feedback knobs — small visual acknowledgements of
+/// otherwise-invisible actions. `bare()` = every flourish off;
+/// `prescribed()` = every flourish on (the fleet default).
+///
+/// `copy_flash` + `exit_code_coloring` are forward gates: the typed
+/// surface lands now (so operators can opt out from day one), the
+/// render wiring follows once the copy-path signal + per-block exit
+/// status reach the renderer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct FeedbackConfig {
+    /// A short selection-overlay flash when `copy_on_select` copies.
+    pub copy_flash: bool,
+    /// The full-window visual bell flash on BEL (decays ~200ms).
+    pub visual_bell: bool,
+    /// Tint OSC 133 command-block separators by exit status
+    /// (green on 0 / red on non-zero).
+    pub exit_code_coloring: bool,
+}
+
+impl Default for FeedbackConfig {
+    fn default() -> Self {
+        Self::prescribed()
+    }
+}
+
+impl FeedbackConfig {
+    /// Bare tier — every feedback flourish off.
+    #[must_use]
+    pub fn bare() -> Self {
+        Self {
+            copy_flash: false,
+            visual_bell: false,
+            exit_code_coloring: false,
+        }
+    }
+
+    /// Prescribed tier — every feedback flourish on.
+    #[must_use]
+    pub fn prescribed() -> Self {
+        Self {
+            copy_flash: true,
+            visual_bell: true,
+            exit_code_coloring: true,
+        }
+    }
+}
+
+/// Motion-easing knobs — animations ease instead of popping.
+/// `bare()` = every easing off (instant/hard); `prescribed()` = every
+/// easing on (the fleet default).
+///
+/// `blink_ease` + `picker_animate` + `scroll_lerp` are forward gates:
+/// the typed surface lands now; their render wiring follows. Only
+/// `unfocused_dim` is wired in this round.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct MotionConfig {
+    /// Ease the cursor blink alpha (smoothstep edges) instead of a hard
+    /// on/off pop.
+    pub blink_ease: bool,
+    /// Fade + scale the Ctrl-S picker overlay in when it opens.
+    pub picker_animate: bool,
+    /// Lerp the rendered scroll offset toward its target each frame.
+    pub scroll_lerp: bool,
+    /// Whisper-dim an unfocused window so a backgrounded window reads as
+    /// backgrounded.
+    pub unfocused_dim: bool,
+}
+
+impl Default for MotionConfig {
+    fn default() -> Self {
+        Self::prescribed()
+    }
+}
+
+impl MotionConfig {
+    /// Bare tier — every easing off (instant, hard transitions).
+    #[must_use]
+    pub fn bare() -> Self {
+        Self {
+            blink_ease: false,
+            picker_animate: false,
+            scroll_lerp: false,
+            unfocused_dim: false,
+        }
+    }
+
+    /// Prescribed tier — every easing on.
+    #[must_use]
+    pub fn prescribed() -> Self {
+        Self {
+            blink_ease: true,
+            picker_animate: true,
+            scroll_lerp: true,
+            unfocused_dim: true,
         }
     }
 }
@@ -2218,6 +2328,9 @@ impl MadoConfig {
             suggestions: SuggestionsConfig::bare(),
             // bare = no link affordances at all.
             links: MadoLinksConfig::bare(),
+            // bare = no feedback flourishes, no motion easing.
+            feedback: FeedbackConfig::bare(),
+            motion: MotionConfig::bare(),
         }
     }
 
@@ -2468,6 +2581,8 @@ fn mado_fleet_base() -> MadoConfig {
         vigy: MadoVigyConfig::default(),
         suggestions: SuggestionsConfig::default(),
         links: MadoLinksConfig::default(),
+        feedback: FeedbackConfig::default(),
+        motion: MotionConfig::default(),
     }
 }
 
@@ -3516,6 +3631,8 @@ mod tests {
             vigy: MadoVigyConfig::default(),
             suggestions: SuggestionsConfig::default(),
             links: MadoLinksConfig::default(),
+            feedback: FeedbackConfig::default(),
+            motion: MotionConfig::default(),
         };
         if fd.scrollback_lines == 10_000 {
             c.behavior.scrollback_lines = default_scrollback();
@@ -3575,6 +3692,77 @@ mod tests {
         let back: MadoLinksConfig =
             serde_yaml_ng::from_str(&yaml).expect("round-trip links config");
         assert_eq!(cfg, back);
+    }
+
+    #[test]
+    fn feedback_tiers_bare_all_off_prescribed_all_on() {
+        let bare = FeedbackConfig::bare();
+        assert!(!bare.copy_flash);
+        assert!(!bare.visual_bell);
+        assert!(!bare.exit_code_coloring);
+
+        let pres = FeedbackConfig::prescribed();
+        assert!(pres.copy_flash);
+        assert!(pres.visual_bell);
+        assert!(pres.exit_code_coloring);
+
+        assert_eq!(FeedbackConfig::default(), FeedbackConfig::prescribed());
+    }
+
+    #[test]
+    fn motion_tiers_bare_all_off_prescribed_all_on() {
+        let bare = MotionConfig::bare();
+        assert!(!bare.blink_ease);
+        assert!(!bare.picker_animate);
+        assert!(!bare.scroll_lerp);
+        assert!(!bare.unfocused_dim);
+
+        let pres = MotionConfig::prescribed();
+        assert!(pres.blink_ease);
+        assert!(pres.picker_animate);
+        assert!(pres.scroll_lerp);
+        assert!(pres.unfocused_dim);
+
+        assert_eq!(MotionConfig::default(), MotionConfig::prescribed());
+    }
+
+    #[test]
+    fn feedback_motion_master_config_tiers() {
+        // The bare MadoConfig strips every flourish + easing; the
+        // prescribed default turns them on.
+        assert!(!MadoConfig::bare().feedback.visual_bell);
+        assert!(!MadoConfig::bare().motion.unfocused_dim);
+        assert!(MadoConfig::default().feedback.visual_bell);
+        assert!(MadoConfig::default().feedback.copy_flash);
+        assert!(MadoConfig::default().feedback.exit_code_coloring);
+        assert!(MadoConfig::default().motion.blink_ease);
+        assert!(MadoConfig::default().motion.unfocused_dim);
+    }
+
+    #[test]
+    fn feedback_motion_round_trip_through_yaml() {
+        // Both sections round-trip through the YAML surface
+        // (deny_unknown_fields → a typo'd key is a hard parse error).
+        let fb = FeedbackConfig {
+            copy_flash: true,
+            visual_bell: false,
+            exit_code_coloring: true,
+        };
+        let yaml = serde_yaml_ng::to_string(&fb).expect("serialize feedback config");
+        let back: FeedbackConfig =
+            serde_yaml_ng::from_str(&yaml).expect("round-trip feedback config");
+        assert_eq!(fb, back);
+
+        let mo = MotionConfig {
+            blink_ease: false,
+            picker_animate: true,
+            scroll_lerp: false,
+            unfocused_dim: true,
+        };
+        let yaml = serde_yaml_ng::to_string(&mo).expect("serialize motion config");
+        let back: MotionConfig =
+            serde_yaml_ng::from_str(&yaml).expect("round-trip motion config");
+        assert_eq!(mo, back);
     }
 
     #[test]

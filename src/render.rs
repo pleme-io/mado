@@ -1079,6 +1079,17 @@ enum RectKindForRle {
 /// single-underline pixels are unchanged.
 const UNDERLINE_OFFSET_FROM_BOTTOM: f32 = 2.0;
 const DECORATION_THICKNESS: f32 = 1.0;
+/// Visual-bell flash duration in frames (~200ms @ 60fps) — the
+/// full-window flash decays linearly from `BELL_FLASH_PEAK_ALPHA` to 0
+/// over this many frames. Gentle + brief per the polish-round spec
+/// (the old 4-frame / 0.15-alpha flash popped too hard).
+const BELL_FLASH_FRAMES: u8 = 12;
+/// Peak alpha of the visual-bell flash at frame 0 (subtle by default;
+/// the operator tunes intensity after).
+const BELL_FLASH_PEAK_ALPHA: f32 = 0.10;
+/// Whisper-dim alpha of the theme background painted over an unfocused
+/// window so a backgrounded window reads as backgrounded.
+const UNFOCUSED_DIM_ALPHA: f32 = 0.06;
 
 /// THE surface/scene texture format — one constant, consumed by
 /// pipeline construction (`init`), the per-frame SCENE/chain leases,
@@ -1235,6 +1246,45 @@ pub struct TerminalRenderer {
     /// Defaults `true` (the prescribed tier); the bare tier strips it.
     #[invalidating_setter]
     links_highlight: bool,
+    /// OSC 133 command-block separator accent (u8-RGB; the rect pipeline
+    /// linearizes at paint time via `overlay_rect_color`, same discipline
+    /// as `link_color`). Set by `theme::apply_config_theme` from the active
+    /// theme's `prompt_mark` (Nord frost `ansi[4]`). Defaults to Nord
+    /// `#5E81AC` — the prior hardcoded separator blue — until a theme loads.
+    #[invalidating_setter]
+    prompt_mark_color: Color,
+    /// Scrolled-into-history thumb accent (u8-RGB; linearized at paint
+    /// time). Set by `theme::apply_config_theme` from the active theme's
+    /// `scrollbar` (Nord cyan-frost `ansi[6]`). Defaults to Nord `#88C0D0`
+    /// — the prior hardcoded thumb blue — until a theme loads.
+    #[invalidating_setter]
+    scrollbar_color: Color,
+    /// Visual-bell flash colour (u8-RGB; linearized at paint time). Set by
+    /// `theme::apply_config_theme` from the active theme's `bell_flash`
+    /// (the theme foreground). Defaults to white — the prior hardcoded
+    /// flash — until a theme loads.
+    #[invalidating_setter]
+    bell_flash_color: Color,
+    /// Unfocused-window dim colour (u8-RGB; linearized at paint time) — the
+    /// theme background painted at a whisper alpha over a backgrounded
+    /// window. Set by `theme::apply_config_theme` from the active theme's
+    /// `background`. Defaults to the Vellum night0 ground until a theme loads.
+    #[invalidating_setter]
+    unfocused_dim_color: Color,
+    /// Whether the visual bell flash renders. Set from
+    /// `config.feedback.visual_bell` in
+    /// [`apply_effects_and_accessibility`](Self::apply_effects_and_accessibility).
+    /// Defaults `true` (prescribed); the bare tier strips the flash (the
+    /// audible-bell glow ring is governed by its own effect gate).
+    #[invalidating_setter]
+    feedback_visual_bell: bool,
+    /// Whether an unfocused window is whisper-dimmed. Set from
+    /// `config.motion.unfocused_dim` in
+    /// [`apply_effects_and_accessibility`](Self::apply_effects_and_accessibility).
+    /// Defaults `true` (prescribed); the bare tier leaves an unfocused
+    /// window undimmed.
+    #[invalidating_setter]
+    motion_unfocused_dim: bool,
     /// Reduce motion: disable cursor blink and bell flash.
     #[invalidating_setter]
     reduce_motion: bool,
@@ -1574,6 +1624,23 @@ impl TerminalRenderer {
             // Prescribed-tier default: links highlighted. `apply_effects_and_accessibility`
             // re-derives this from `config.links` (bare strips it).
             links_highlight: true,
+            // Nord #5E81AC / #88C0D0 — the prior hardcoded separator + thumb
+            // blues, kept as pre-theme field defaults. `apply_config_theme`
+            // overwrites both with the active theme's `prompt_mark` / `scrollbar`.
+            prompt_mark_color: Color::new(0x5E, 0x81, 0xAC),
+            scrollbar_color: Color::new(0x88, 0xC0, 0xD0),
+            // White — the prior hardcoded bell flash, kept until a theme's
+            // `bell_flash` (the theme foreground) loads.
+            bell_flash_color: Color::WHITE,
+            // Vellum night0 ground — the prescribed-theme background, kept
+            // as the pre-theme dim default until `apply_config_theme`
+            // overwrites it with the active theme's `background`.
+            unfocused_dim_color: Color::new(0x16, 0x14, 0x0E),
+            // Prescribed-tier defaults: visual bell on, unfocused dim on.
+            // `apply_effects_and_accessibility` re-derives both from
+            // `config.{feedback,motion}` (bare strips them).
+            feedback_visual_bell: true,
+            motion_unfocused_dim: true,
             reduce_motion: false,
             session_picker_anchor: crate::config::PickerAnchor::default(),
             suggestion_fade: RefCell::new(HashMap::new()),
@@ -1631,6 +1698,10 @@ impl TerminalRenderer {
         // hyperlinks + auto-detected URLs. ON only when the feature is
         // enabled AND highlight is requested; the bare tier strips both.
         self.set_links_highlight(config.links.enabled && config.links.highlight);
+        // Tasteful-feedback + motion gates — the visual bell flash and the
+        // unfocused-window dim. Both prescribed-ON; the bare tier strips them.
+        self.set_feedback_visual_bell(config.feedback.visual_bell);
+        self.set_motion_unfocused_dim(config.motion.unfocused_dim);
         self.session_picker_anchor = config.tear.session_picker_anchor;
         self.suggestion_shade_in_ms = config.suggestions.shade_in_ms;
         self.set_effects_config(config.resolved_effects());
@@ -2369,9 +2440,15 @@ impl TerminalRenderer {
     // set_window removed at Phase 4 — single-pane mado; no multi-pane state to set.
 
     /// Trigger a bell flash effect. No-op when reduce_motion is enabled.
+    /// The full-window flash is gated on `feedback.visual_bell`
+    /// (`feedback_visual_bell`); the glow-on-bell ring always saturates
+    /// (its own effect gate decides whether the glow renders), so the
+    /// audible-bell glow stays independent of the flash knob.
     pub fn trigger_bell(&mut self) {
         if !self.reduce_motion {
-            self.bell_flash_frames = 4;
+            if self.feedback_visual_bell {
+                self.bell_flash_frames = BELL_FLASH_FRAMES;
+            }
             // BEL also saturates the glow-on-bell clock; whether the
             // glow renders is the effect set's call (config-enabled +
             // not reduce_motion — already inside this gate).
@@ -3139,11 +3216,14 @@ impl TerminalRenderer {
             // The radius flows from ishou — no hand-pinned corner size,
             // so a fleet radius retune propagates on the next compile.
             let thumb_radius = ishou_tokens::Radius::default().sm as f32;
+            // Theme scrollbar accent (frost cyan), linearized for the rect
+            // pipeline — never a hex; tracks the active theme.
+            let sb = self.scrollbar_color;
             instances.push(RectInstance::rounded(
                 [thumb_x, thumb_y],
                 [thumb_w, thumb_h],
                 thumb_radius,
-                overlay_rect_color(0x88, 0xC0, 0xD0, 0.35),
+                overlay_rect_color(sb.r, sb.g, sb.b, 0.35),
             ));
         }
 
@@ -3160,13 +3240,15 @@ impl TerminalRenderer {
                 continue;
             }
             let y = origin_y + (*sep_row as f32) * self.cell_height;
-            instances.push(RectInstance { 
+            // Theme command-block accent (frost-blue), linearized for the
+            // rect pipeline — never a hex; tracks the active theme. (Exit-
+            // status tinting via `exit_ok`/`exit_err` is plumbed in the
+            // theme but awaits per-block status in the snapshot.)
+            let pm = self.prompt_mark_color;
+            instances.push(RectInstance {
                 pos: [origin_x, y],
                 size: [snap.cols as f32 * self.cell_width, 1.0],
-                // Nord #5E81AC @ 30% α — through the typed linearizer like
-                // every other overlay rect (raw sRGB here renders washed-out
-                // on the sRGB-storage surface).
-                color: overlay_rect_color(0x5E, 0x81, 0xAC, 0.30), mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
+                color: overlay_rect_color(pm.r, pm.g, pm.b, 0.30), mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
         }
 
@@ -4596,15 +4678,37 @@ impl RenderCallback for TerminalRenderer {
         let rects_us = rects_start.elapsed().as_micros() as u64;
         let rects_count = rect_instances.len();
 
-        // Bell flash: add full-screen semi-transparent overlay (before GPU upload)
+        // Bell flash: a full-window flash in the theme's `bell_flash`
+        // accent, decaying linearly to 0 over ~200ms (before GPU upload).
+        // INDEPENDENT of the ambience graph (a plain overlay rect) and of
+        // the audible-bell glow; gated at `trigger_bell` on
+        // `feedback.visual_bell` + `reduce_motion`.
         if self.bell_flash_frames > 0 {
-            let alpha = self.bell_flash_frames as f32 / 4.0 * 0.15;
-            rect_instances.push(RectInstance { 
+            let alpha = f32::from(self.bell_flash_frames) / f32::from(BELL_FLASH_FRAMES)
+                * BELL_FLASH_PEAK_ALPHA;
+            let bf = self.bell_flash_color;
+            rect_instances.push(RectInstance {
                 pos: [0.0, 0.0],
                 size: [ctx.width as f32, ctx.height as f32],
-                color: [1.0, 1.0, 1.0, alpha], mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
+                color: overlay_rect_color(bf.r, bf.g, bf.b, alpha), mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
             });
             self.bell_flash_frames -= 1;
+        }
+
+        // Unfocused dim: a whisper of the theme background over the whole
+        // window so a backgrounded window reads as backgrounded. Sourced
+        // from the theme background (`unfocused_dim_color`) and linearized
+        // for the rect pipeline via `overlay_rect_color` — no hex, tracks
+        // the theme. Gated on `motion.unfocused_dim`.
+        if !self.focused && self.motion_unfocused_dim {
+            let d = self.unfocused_dim_color;
+            rect_instances.push(RectInstance {
+                pos: [0.0, 0.0],
+                size: [ctx.width as f32, ctx.height as f32],
+                color: overlay_rect_color(d.r, d.g, d.b, UNFOCUSED_DIM_ALPHA),
+                mode: RectMode::Solid.word(),
+                pattern: [0.0f32; 4],
+            });
         }
 
         // Upload rect instances
@@ -5860,11 +5964,11 @@ mod render_invariants {
     // ── bell flash contract ───────────────────────────────────────
 
     #[test]
-    fn trigger_bell_sets_flash_frames_to_four() {
+    fn trigger_bell_sets_flash_frames() {
         let (mut r, _t) = harness(20, 5);
         assert_eq!(r.bell_flash_frames, 0);
         r.trigger_bell();
-        assert_eq!(r.bell_flash_frames, 4);
+        assert_eq!(r.bell_flash_frames, BELL_FLASH_FRAMES);
     }
 
     #[test]
@@ -5880,12 +5984,27 @@ mod render_invariants {
 
     #[test]
     fn trigger_bell_is_idempotent_for_max_value() {
-        // Calling twice in a row shouldn't push the counter past
-        // 4 — the flash is a fixed-duration effect.
+        // Calling twice in a row shouldn't push the counter past the
+        // duration — the flash is a fixed-duration effect.
         let (mut r, _t) = harness(20, 5);
         r.trigger_bell();
         r.trigger_bell();
-        assert_eq!(r.bell_flash_frames, 4);
+        assert_eq!(r.bell_flash_frames, BELL_FLASH_FRAMES);
+    }
+
+    #[test]
+    fn trigger_bell_flash_gated_on_feedback_visual_bell() {
+        // With the visual-bell feedback gate OFF, the flash never arms —
+        // but the glow-on-bell ring still saturates (its own effect gate
+        // decides whether it renders), so the audible-bell glow stays
+        // independent of the flash knob.
+        let (mut r, _t) = harness(20, 5);
+        r.set_feedback_visual_bell(false);
+        r.trigger_bell();
+        assert_eq!(
+            r.bell_flash_frames, 0,
+            "visual_bell=off must suppress the flash"
+        );
     }
 
     // ── alternate screen buffer transition ────────────────────────

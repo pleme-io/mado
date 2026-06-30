@@ -58,6 +58,30 @@ pub struct Theme {
     /// next compile. `u8`-RGB for the renderer; the GPU path linearizes at
     /// paint time exactly like every other `Color` field.
     pub link: Color,
+    /// OSC 133 command-block separator accent, sourced from the ANSI
+    /// frost-blue slot (`ansi[4]`, Nord `#5E81AC`) — never a hex. The
+    /// faint horizontal line drawn above each prompt-start mark paints
+    /// THIS token (linearized at paint time via `overlay_rect_color`), so
+    /// a frost retune in ishou propagates here on the next compile.
+    pub prompt_mark: Color,
+    /// Scrolled-into-history thumb accent, sourced from the ANSI cyan-frost
+    /// slot (`ansi[6]`, Nord `#88C0D0`) — never a hex. The right-edge
+    /// position thumb drawn while scrolled paints THIS token (linearized
+    /// at paint time). `u8`-RGB for the renderer.
+    pub scrollbar: Color,
+    /// Visual-bell flash colour, sourced from the theme foreground (warm
+    /// white on Vellum) — never a hex. The full-window BEL flash paints
+    /// THIS token at a decaying alpha (linearized at paint time), so the
+    /// flash tracks the theme instead of a hardcoded white.
+    pub bell_flash: Color,
+    /// Exit-status OK accent, sourced from the ANSI green slot (`ansi[2]`)
+    /// — never a hex. Reserved for tinting an OSC 133 `D` command-block
+    /// separator green on a clean (status 0) exit; tracks the theme.
+    pub exit_ok: Color,
+    /// Exit-status error accent, sourced from the ANSI red slot (`ansi[1]`)
+    /// — never a hex. Reserved for tinting an OSC 133 `D` command-block
+    /// separator red on a non-zero exit; tracks the theme.
+    pub exit_err: Color,
 }
 
 impl Theme {
@@ -147,6 +171,16 @@ pub fn apply_config_theme(
     // link colour identically; the render path linearizes the underline at
     // paint time via `overlay_rect_color`.
     renderer.set_link_color(theme.link);
+    // Polish-round chrome accents — the OSC 133 command-block separator,
+    // the scrolled-into-history thumb, and the visual-bell flash. Routed
+    // through this ONE shared point so the local-PTY loop AND the
+    // embedded-tear loop pick them up identically; the render path
+    // linearizes each at paint time via `overlay_rect_color`.
+    renderer.set_prompt_mark_color(theme.prompt_mark);
+    renderer.set_scrollbar_color(theme.scrollbar);
+    renderer.set_bell_flash_color(theme.bell_flash);
+    // Unfocused-window dim = the theme background at a whisper alpha.
+    renderer.set_unfocused_dim_color(theme.background);
     // Picker overlay chrome (Ctrl-S switcher + Ctrl-T dirs): resolve every
     // colour from the active theme so the pickers track the theme instead
     // of hardcoded Nord literals. The Center popup is a SOLID card that
@@ -265,6 +299,15 @@ fn theme_from_scheme(scheme: ColorScheme) -> Theme {
         // Link/hyperlink accent = ANSI bright-blue (Nord frost). Sourced
         // from the scheme's own table, never a hex.
         link: ansi[12],
+        // Command-block separator = ANSI frost-blue (`ansi[4]`); scrollbar
+        // = ANSI cyan-frost (`ansi[6]`); bell flash = the scheme foreground
+        // (base05). All from the scheme's own table, never a hex.
+        prompt_mark: ansi[4],
+        scrollbar: ansi[6],
+        bell_flash: iro_to_color(scheme.base05),
+        // Exit-status accents = ANSI green / red (`ansi[2]` / `ansi[1]`).
+        exit_ok: ansi[2],
+        exit_err: ansi[1],
     }
 }
 
@@ -347,6 +390,17 @@ fn vellum_theme() -> Theme {
         // blue from the ishou keystone `content_ansi_16()` table built
         // above) — ishou-sourced, never a mado-local hex.
         link: ansi[12],
+        // Command-block separator = ANSI frost-blue (`ansi[4]`); scrollbar
+        // = ANSI cyan-frost (`ansi[6]`); both from the vivid keystone table
+        // above — ishou-sourced, never a hex.
+        prompt_mark: ansi[4],
+        scrollbar: ansi[6],
+        // Bell flash = the BORN Vellum foreground (warm parchment white)
+        // straight from the ishou surfaces — never a hardcoded white.
+        bell_flash: Color::new(surfaces.foreground.r, surfaces.foreground.g, surfaces.foreground.b),
+        // Exit-status accents = ANSI green / red (`ansi[2]` / `ansi[1]`).
+        exit_ok: ansi[2],
+        exit_err: ansi[1],
     }
 }
 
@@ -490,6 +544,35 @@ mod tests {
         let b = Theme::by_name("vellum").expect("vellum theme");
         assert_eq!(b.link, b.ansi[12], "link must be the bright-blue ANSI slot");
         assert_ne!(b.link, Color::new(0, 0, 0), "link must not be black");
+    }
+
+    #[test]
+    fn vellum_polish_tokens_are_sourced_ansi_slots_not_hex() {
+        // The polish-round semantic tokens (prompt-mark separator,
+        // scrollbar thumb, bell flash, exit-ok/err) flow from sourced
+        // slots — never a hand-pinned hex — so an ishou retune propagates
+        // here on the next compile. Each must be non-black + the slot it
+        // claims.
+        let b = Theme::by_name("vellum").expect("vellum theme");
+        let surfaces = ishou_tokens::VellumPalette::vellum().surfaces();
+        assert_eq!(b.prompt_mark, b.ansi[4], "prompt_mark = ANSI frost-blue");
+        assert_eq!(b.scrollbar, b.ansi[6], "scrollbar = ANSI cyan-frost");
+        assert_eq!(
+            b.bell_flash,
+            Color::new(surfaces.foreground.r, surfaces.foreground.g, surfaces.foreground.b),
+            "bell_flash = the BORN Vellum foreground",
+        );
+        assert_eq!(b.exit_ok, b.ansi[2], "exit_ok = ANSI green");
+        assert_eq!(b.exit_err, b.ansi[1], "exit_err = ANSI red");
+        for (label, c) in [
+            ("prompt_mark", b.prompt_mark),
+            ("scrollbar", b.scrollbar),
+            ("bell_flash", b.bell_flash),
+            ("exit_ok", b.exit_ok),
+            ("exit_err", b.exit_err),
+        ] {
+            assert_ne!(c, Color::new(0, 0, 0), "{label} must not be black");
+        }
     }
 
     #[test]
