@@ -233,6 +233,52 @@ tracked across all these services."*
 
 ---
 
+## 5.5 Homeostatic curation — reuse `breathe-control`'s band law
+
+**The curation control loop and `breathe`'s resource-homeostasis loop are the
+same algorithm** — both hold a measured level inside a band by a pure
+observe → decide → carve loop with a shrink-safety clamp. So safra **consumes**
+breathe's control core rather than re-deriving it (Prime Directive: shared
+library at ≥2 consumers).
+
+`pleme-io/breathe`'s **`breathe-control`** crate already factors the pure band
+law out of the k8s executor: `decide` / `plan_tick` → a typed `Decision`
+(`Hold | Grow{from,to} | Shrink{from,to} | NoSafeShrink{current}`) against a
+`BandConfig` (floor / setpoint / ceiling / shrink-below / grow-above + a
+warmup-hold + a metric-missing policy), with a **shrink-safety clamp** so a carve
+never crosses the safe floor. Its tuned knobs ride `lapidar::TunedParam` — a
+second primitive safra shares. The law is pure; the only coupling is that its
+level is *named* for bytes (`floor_bytes` …).
+
+**The mapping is exact, including the safety semantics:**
+
+| breathe (memory) | safra (curation) |
+|---|---|
+| measured level = bytes used | measured level = curated item-count |
+| carved limit = the memory limit | carved limit = the retention budget |
+| shrink-safety: never carve below the safe floor → never OOM-kill | never evict an **unhandled high-rank** item → never drop an issue you haven't worked |
+| warmup-hold: don't shrink before the peak is observed | don't shrink retention before steady-state error volume is seen (post-boot) |
+| `Grow` / `Hold` / `Shrink` the limit | `Grow` / `Hold` / `Shrink` retention (supersedes the hard `max_items` cap) |
+
+**Two safra consumers of the one band law:**
+
+1. **Backlog homeostasis** — hold the curated item-count in a band; the hard
+   `CuratedSet::cap` becomes the degenerate floor of a `decide`-driven retention
+   carve whose `NoSafeShrink` analog is "an unhandled critical is present —
+   refuse to shrink."
+2. **Cadence breathing** — the `respiro` inhale/hold/exhale applied to the
+   reconcile interval: high error pressure → *inhale* (poll faster, keep more);
+   steady → *hold*; board clean → *exhale* (poll slowly, rest at near-zero cost).
+   The same `decide` law over poll-interval instead of retention.
+
+**The generalization move:** lift `breathe-control`'s band law to be
+**unit-agnostic** (the `_bytes` level → a unit-neutral `u64` / newtype) so both
+breathe (memory/CPU) and safra (item-count, cadence) consume one core. This is a
+focused cross-repo effort (breathe + mado) — greenlight-gated, its own phase
+(see §10 M4′).
+
+---
+
 ## 6. Three-scope tunability (global / group / specific) — layered config
 
 Per the directive *"all configurable and tunable both in the global, group, and
@@ -318,6 +364,11 @@ vocabulary — `SecretRef` stays the only consumer surface (composes with cofre)
 - **M4 — convergence hardening** — samba pacing per endpoint, decay/rank tuning,
   the seven-beat attestation, drift/“upstream changed” efficiency (etag/since
   cursors where the API supports incremental).
+- **M4′ — homeostatic curation (shared band law)** — generalize
+  `breathe-control`'s band law unit-agnostic; safra consumes it for backlog
+  homeostasis (shrink-safe retention) + cadence breathing (respiro
+  inhale/hold/exhale over poll interval). Cross-repo (breathe + mado); shares
+  `lapidar` tuned-params. See §5.5.
 
 Tier-honest ledger: every PR advances a phase or leaves a `pending-safra: <Mn>`
 note. **Per-repo waiver:** safra is **off by default** — no waiver needed to
