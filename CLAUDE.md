@@ -147,9 +147,22 @@ Target (six-pass model):
 6. Post-processing        -- custom WGSL shader chain
 ```
 
+**Per-layer-isolated text** (`garasu::TextLayerStack`): the terminal grid, the
+picker/overlay, and the search-status each draw on their OWN layer (own glyphon
+vertex buffer + own `Viewport`) of one shared atlas, minted once by
+`ensure_layers` (`TEXT_LAYERS` names them). `render()` opens ONE `Frame` across
+Pass 3 + Pass 6 and drops it (trim-once) before submit. This makes the
+top-left-blank class — a second text pass clobbering the first's recorded
+glyphs — unrepresentable (§VIII #8). `pending-engawa-text:` the residual
+cross-layer-eviction + intra-layer-double-prepare axes are *only-mitigated*
+here; they close truly-unrepresentably only at the engawa destination
+(`ResourceKind::TextLayer` + the shipped `MultipleWriters` validation), so this
+`TextLayerStack` interim must never be enshrined as the end state.
+
 Key GPU optimizations to implement:
 - **Dual texture atlas**: Separate grayscale (regular glyphs) and BGRA (emoji/color)
-  atlases for memory efficiency. Currently using single glyphon atlas.
+  atlases for memory efficiency. Currently one shared glyphon atlas across all
+  text layers (`TextLayerStack`).
 - **Instanced rendering**: Already using instanced rects. Extend to text quads
   for elimination of per-row buffer creation overhead.
 - **Damage tracking**: Already have sequence number tracking to skip unchanged

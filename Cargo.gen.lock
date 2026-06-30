@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "24fdd6ce79ca70c4fbb6ee72d5a78290867cbbe836ba92390b1eda01bc10130b",
+  "cargo_lock_sha256": "2dd5ac907270553f72eeeead3b95fae371c6645234cb202757f879850af28f30",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -3361,7 +3361,7 @@
           "std"
         ]
       },
-      "garasu-0.1.4-2aec0df9debedccad4b98faf4c9059b3bc84234e": {
+      "garasu-0.1.4-a2afc2ad6530ed096ab26f5d92bd4e1d348253ee": {
         "runtime_dependencies": [
           {
             "name": "bincode",
@@ -5679,7 +5679,7 @@
           "serde"
         ]
       },
-      "madori-0.1.5-befd6aa9dd854c1dca900a4bc864d96f85fa812a": {
+      "madori-0.1.5-79b33a4811853f1a8153735a69fb58bde894c2d9": {
         "runtime_dependencies": [
           {
             "name": "egaku",
@@ -5693,7 +5693,7 @@
           },
           {
             "name": "garasu",
-            "package_key": "garasu-0.1.4-2aec0df9debedccad4b98faf4c9059b3bc84234e",
+            "package_key": "garasu-0.1.4-a2afc2ad6530ed096ab26f5d92bd4e1d348253ee",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19223,7 +19223,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.4-2aec0df9debedccad4b98faf4c9059b3bc84234e",
+                "package_key": "garasu-0.1.4-a2afc2ad6530ed096ab26f5d92bd4e1d348253ee",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -19357,7 +19357,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.5-befd6aa9dd854c1dca900a4bc864d96f85fa812a",
+                "package_key": "madori-0.1.5-79b33a4811853f1a8153735a69fb58bde894c2d9",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23303,7 +23303,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.4-2aec0df9debedccad4b98faf4c9059b3bc84234e",
+                "package_key": "garasu-0.1.4-a2afc2ad6530ed096ab26f5d92bd4e1d348253ee",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23437,7 +23437,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.5-befd6aa9dd854c1dca900a4bc864d96f85fa812a",
+                "package_key": "madori-0.1.5-79b33a4811853f1a8153735a69fb58bde894c2d9",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26950,7 +26950,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.4-2aec0df9debedccad4b98faf4c9059b3bc84234e",
+                "package_key": "garasu-0.1.4-a2afc2ad6530ed096ab26f5d92bd4e1d348253ee",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27084,7 +27084,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.5-befd6aa9dd854c1dca900a4bc864d96f85fa812a",
+                "package_key": "madori-0.1.5-79b33a4811853f1a8153735a69fb58bde894c2d9",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30691,7 +30691,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.4-2aec0df9debedccad4b98faf4c9059b3bc84234e",
+                "package_key": "garasu-0.1.4-a2afc2ad6530ed096ab26f5d92bd4e1d348253ee",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30825,7 +30825,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.5-befd6aa9dd854c1dca900a4bc864d96f85fa812a",
+                "package_key": "madori-0.1.5-79b33a4811853f1a8153735a69fb58bde894c2d9",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34725,7 +34725,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.4-2aec0df9debedccad4b98faf4c9059b3bc84234e",
+                "package_key": "garasu-0.1.4-a2afc2ad6530ed096ab26f5d92bd4e1d348253ee",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34859,7 +34859,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.5-befd6aa9dd854c1dca900a4bc864d96f85fa812a",
+                "package_key": "madori-0.1.5-79b33a4811853f1a8153735a69fb58bde894c2d9",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38326,7 +38326,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.4-2aec0df9debedccad4b98faf4c9059b3bc84234e",
+                "package_key": "garasu-0.1.4-a2afc2ad6530ed096ab26f5d92bd4e1d348253ee",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38460,7 +38460,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.5-befd6aa9dd854c1dca900a4bc864d96f85fa812a",
+                "package_key": "madori-0.1.5-79b33a4811853f1a8153735a69fb58bde894c2d9",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -41649,7 +41649,7 @@
     "futures-util-0.3.32": {
       "edition": "2018"
     },
-    "garasu-0.1.4-2aec0df9debedccad4b98faf4c9059b3bc84234e": {
+    "garasu-0.1.4-a2afc2ad6530ed096ab26f5d92bd4e1d348253ee": {
       "edition": "2024",
       "build_script": "build.rs"
     },
@@ -41914,7 +41914,7 @@
         }
       ]
     },
-    "madori-0.1.5-befd6aa9dd854c1dca900a4bc864d96f85fa812a": {
+    "madori-0.1.5-79b33a4811853f1a8153735a69fb58bde894c2d9": {
       "edition": "2024"
     },
     "malloc_buf-0.0.6": {
@@ -43146,7 +43146,7 @@
     "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": "sha256-7dqrUg3KMEKH5ac5RuK7EJRogt4H3xtv6nDrM0jpccM=",
     "engawa-0.1.3-bda639d5d9bd3ec2dd59ff84b2925ae278f24c52": "sha256-Z9exdzhmkz90dNCArTnVC69CxLZDnC1ShRTFvDHE2JA=",
     "engawa-wgpu-0.1.7-a1ea87aba7c5f67c2831b4b6b5c17ee5286e7840": "sha256-hxtIeSH3mw3Hm6EAEbKIyNkGWkKyS27wm/o7HsmXLC4=",
-    "garasu-0.1.4-2aec0df9debedccad4b98faf4c9059b3bc84234e": "sha256-woSWxjN718i/dvPb5Ujmu3FY9fMrhfqyZEdyZJrtZh0=",
+    "garasu-0.1.4-a2afc2ad6530ed096ab26f5d92bd4e1d348253ee": "sha256-//cvGAyxRVhcwHD56yf9M5SPn63GiwP+y06b8OlVfvs=",
     "gen-macros-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0": "sha256-khDWAqmgqr/pPPq73hZbZojnEw3gVc6RYFPLuNCoR/A=",
     "gen-platform-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0": "sha256-khDWAqmgqr/pPPq73hZbZojnEw3gVc6RYFPLuNCoR/A=",
     "gen-types-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0": "sha256-khDWAqmgqr/pPPq73hZbZojnEw3gVc6RYFPLuNCoR/A=",
@@ -43157,7 +43157,7 @@
     "kanchi-0.1.0-bb057535a56dcfbc0627e8e9e74498e63e9d3ff2": "sha256-GMMX6pwMRyxHqie5Rr5XyjhnGGiYahv7t8z6LwTHLJk=",
     "kanshou-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
     "kanshou-derive-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
-    "madori-0.1.5-befd6aa9dd854c1dca900a4bc864d96f85fa812a": "sha256-9kKLsAI6PE9cYbEOYLWOZUONRTxvgmHZCCKYL+oZ71s=",
+    "madori-0.1.5-79b33a4811853f1a8153735a69fb58bde894c2d9": "sha256-35DB90eBg+O8Ie2w8R4sfZr4B4NG+FPbUfwePl0x9qw=",
     "pleme-allvariants-derive-0.1.0-c66f20d1dc5727cfa0d1f83a02a28609a13387ec": "sha256-XiO3eXRNjEzczetYv1+AYnyPrIuGpA/FYfRHD47QQYY=",
     "pleme-fleet-themed-derive-0.1.1-a03a411857a340c89a0eefcb25b00ce6586abe30": "sha256-exAgNUG4ApPkxvK/DCKRqeGQzO0fAdDC4Rc8lzegQKs=",
     "pleme-invalidating-setter-derive-0.1.0-ba2492fe88b02e0bc2d6057121e99888766a8d49": "sha256-CQG8YvxrlXPuMS0LI1snvTPA0BiFkLkvK0uTfAVbRBc=",

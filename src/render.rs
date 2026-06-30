@@ -1229,6 +1229,18 @@ pub struct TerminalRenderer {
     /// `config.tear.session_picker_anchor` in
     /// [`apply_effects_and_accessibility`](Self::apply_effects_and_accessibility).
     session_picker_anchor: crate::config::PickerAnchor,
+    /// The three text layers this renderer owns on the shared
+    /// `garasu::TextLayerStack` — one isolated glyphon renderer (own vertex
+    /// buffer) + own viewport each. Minted once by [`ensure_layers`](Self::ensure_layers)
+    /// on the first render. Terminal-grid text, overlay/picker text, and
+    /// search-status text each `prepare`+`render` their OWN layer so a second
+    /// text pass within a frame cannot clobber the first's vertex buffer (the
+    /// top-left-blank Ctrl-S bug). See `garasu::TextLayerStack` + the §VIII
+    /// ledger row in `docs/THEORY.md`. `TEXT_LAYERS` names them; a forcing-
+    /// function test asserts `ensure_layers` mints exactly that many.
+    term_layer: Option<garasu::TextLayerId>,
+    overlay_layer: Option<garasu::TextLayerId>,
+    search_layer: Option<garasu::TextLayerId>,
     /// Per-suggestion wall-clock of when a row first appeared on screen, so the
     /// shade-in ramps from when the OPERATOR sees it (not when the watcher saw
     /// it). Pruned to the visible set each draw, so a row that leaves + returns
@@ -1461,6 +1473,14 @@ const EPOCH_FORCE_PAINT_FRAMES: u8 = 3;
 // the same sealed mint, so their columns cannot diverge.
 use crate::grid_col::{glyph_columns, GridCol};
 
+/// The named text surfaces this renderer draws, each on its OWN isolated
+/// layer of the shared `garasu::TextLayerStack` (own vertex buffer). The
+/// forcing function `layers_match_text_layers_const` asserts `ensure_layers`
+/// mints exactly this many layers — so a NEW text surface added without its
+/// own isolated layer (which would reintroduce the cross-pass clobber) fails
+/// the test. Order matches the `add_layer` calls in `ensure_layers`.
+const TEXT_LAYERS: &[&str] = &["terminal", "overlay", "search"];
+
 impl TerminalRenderer {
     pub fn new(
         terminal: SharedTerminal,
@@ -1565,6 +1585,12 @@ impl TerminalRenderer {
             // starting at the catalog default Medium. The governor only
             // ever steps down from here under sustained load.
             ambience_governor: crate::ux::ambience_governor::AmbienceGovernor::default(),
+            // Text layers minted lazily on the first render via `ensure_layers`
+            // (mado has no hook at madori's Resumed). Each is its own isolated
+            // vertex buffer on the shared atlas — see `TEXT_LAYERS`.
+            term_layer: None,
+            overlay_layer: None,
+            search_layer: None,
         }
     }
 
@@ -1807,13 +1833,17 @@ impl TerminalRenderer {
         query: &str,
         current: usize,
         count: usize,
-        ctx: &mut RenderContext<'_>,
+        frame: &mut garasu::Frame<'_>,
+        gpu: &garasu::GpuContext,
+        surface_view: &wgpu::TextureView,
+        width: u32,
+        height: u32,
         encoder: &mut wgpu::CommandEncoder,
     ) {
         let fs = self.font_size_px();
         let line_h = fs * self.line_height;
         let left = self.padding_px() + self.cell_width;
-        let top = ctx.height as f32 - self.padding_px() - line_h * 1.2;
+        let top = height as f32 - self.padding_px() - line_h * 1.2;
 
         let status = if query.is_empty() {
             "/ (type to search, Esc to close)".to_owned()
@@ -1824,10 +1854,8 @@ impl TerminalRenderer {
         };
 
         let attrs = Attrs::new().family(Family::Name(&self.font_family));
-        let mut buf = ctx
-            .text
-            .create_rich_buffer(&[(status.as_str(), attrs)], fs, line_h);
-        buf.shape_until_scroll(&mut ctx.text.font_system, false);
+        let mut buf = frame.create_rich_buffer(&[(status.as_str(), attrs)], fs, line_h);
+        buf.shape_until_scroll(frame.font_system_mut(), false);
 
         // AGENT-RESERVED accent: search-status is an agent / MCP-activity
         // surface, so it paints with the theme's `agent_accent`
@@ -1844,23 +1872,33 @@ impl TerminalRenderer {
             bounds: glyphon::TextBounds {
                 left: 0,
                 top: 0,
-                right: ctx.width as i32,
-                bottom: ctx.height as i32,
+                right: width as i32,
+                bottom: height as i32,
             },
             default_color: agent,
             custom_glyphs: &[],
         }];
-        if let Err(e) =
-            ctx.text
-                .prepare(&ctx.gpu.device, &ctx.gpu.queue, ctx.width, ctx.height, text_areas)
-        {
-            tracing::warn!("search status text prepare: {e}");
-            return;
-        }
+        // The search-status layer owns its own vertex buffer — preparing it
+        // can't clobber the terminal or overlay layers. On a prepare error we
+        // skip the render (never draw a stale token), per the migration
+        // discipline (do not swallow the error while pretending it drew).
+        let token = match frame.prepare(
+            self.search_layer
+                .expect("ensure_layers minted the search layer before any draw"),
+            &gpu.device,
+            &gpu.queue,
+            text_areas,
+        ) {
+            Ok(t) => t,
+            Err(e) => {
+                tracing::warn!("search status text prepare: {e}");
+                return;
+            }
+        };
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("mado_search_status"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: ctx.surface_view,
+                view: surface_view,
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Load,
@@ -1871,7 +1909,7 @@ impl TerminalRenderer {
             timestamp_writes: None,
             occlusion_query_set: None,
         });
-        if let Err(e) = ctx.text.render(&mut pass) {
+        if let Err(e) = frame.render(token, &mut pass) {
             tracing::warn!("search status text render: {e}");
         }
     }
@@ -1887,7 +1925,11 @@ impl TerminalRenderer {
     fn draw_overlay(
         &self,
         spec: &crate::picker::component::OverlaySpec,
-        ctx: &mut RenderContext<'_>,
+        frame: &mut garasu::Frame<'_>,
+        gpu: &garasu::GpuContext,
+        surface_view: &wgpu::TextureView,
+        width: u32,
+        height: u32,
         encoder: &mut wgpu::CommandEncoder,
     ) {
         use crate::config::PickerAnchor;
@@ -1908,8 +1950,7 @@ impl TerminalRenderer {
             let mut buf = if line.highlights.is_empty() {
                 // Common path (no query / no match): one run, unchanged. The
                 // line's colour comes from the TextArea default_color below.
-                ctx.text
-                    .create_rich_buffer(&[(line.text.as_str(), base)], fs, line_h)
+                frame.create_rich_buffer(&[(line.text.as_str(), base)], fs, line_h)
             } else {
                 // Matched chars glow in the Nord frost accent (alpha-matched to
                 // the row's shade-in); unmatched runs carry no colour so they
@@ -1928,9 +1969,9 @@ impl TerminalRenderer {
                         }
                     })
                     .collect();
-                ctx.text.create_rich_buffer(&spans, fs, line_h)
+                frame.create_rich_buffer(&spans, fs, line_h)
             };
-            buf.shape_until_scroll(&mut ctx.text.font_system, false);
+            buf.shape_until_scroll(frame.font_system_mut(), false);
             buffers.push(buf);
         }
 
@@ -1941,7 +1982,7 @@ impl TerminalRenderer {
             PickerAnchor::Top => (edge_left, pad + self.cell_height),
             PickerAnchor::Bottom => (
                 edge_left,
-                (ctx.height as f32 - block_h - pad).max(pad),
+                (height as f32 - block_h - pad).max(pad),
             ),
             PickerAnchor::Center => {
                 let max_w = buffers
@@ -1949,8 +1990,8 @@ impl TerminalRenderer {
                     .flat_map(glyphon::Buffer::layout_runs)
                     .fold(0.0_f32, |m, run| m.max(run.line_w));
                 (
-                    ((ctx.width as f32 - max_w) / 2.0).max(pad),
-                    ((ctx.height as f32 - block_h) / 2.0).max(pad),
+                    ((width as f32 - max_w) / 2.0).max(pad),
+                    ((height as f32 - block_h) / 2.0).max(pad),
                 )
             }
         };
@@ -2028,8 +2069,8 @@ impl TerminalRenderer {
                 // count so an unexpectedly large panel can't overrun the
                 // fixed-size overlay buffer.
                 let count = (rects.len()).min(OVERLAY_RECT_CAPACITY);
-                pipeline.update_resolution(&ctx.gpu.queue, ctx.width, ctx.height);
-                ctx.gpu.queue.write_buffer(
+                pipeline.update_resolution(&gpu.queue, width, height);
+                gpu.queue.write_buffer(
                     &pipeline.overlay_buffer,
                     0,
                     bytemuck::cast_slice(&rects[..count]),
@@ -2037,7 +2078,7 @@ impl TerminalRenderer {
                 let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                     label: Some("mado_overlay_panel"),
                     color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                        view: ctx.surface_view,
+                        view: surface_view,
                         resolve_target: None,
                         ops: wgpu::Operations {
                             load: wgpu::LoadOp::Load,
@@ -2077,25 +2118,35 @@ impl TerminalRenderer {
                 bounds: glyphon::TextBounds {
                     left: 0,
                     top: 0,
-                    right: ctx.width as i32,
-                    bottom: ctx.height as i32,
+                    right: width as i32,
+                    bottom: height as i32,
                 },
                 default_color: color_for(line),
                 custom_glyphs: &[],
             });
         }
 
-        if let Err(e) =
-            ctx.text
-                .prepare(&ctx.gpu.device, &ctx.gpu.queue, ctx.width, ctx.height, text_areas)
-        {
-            tracing::warn!("overlay text prepare: {e}");
-            return;
-        }
+        // The overlay layer owns its own vertex buffer; preparing it cannot
+        // touch the terminal layer's buffer — this is the fix for the
+        // top-left-blank Ctrl-S bug. On a prepare error skip the render
+        // (never draw a stale token).
+        let token = match frame.prepare(
+            self.overlay_layer
+                .expect("ensure_layers minted the overlay layer before any draw"),
+            &gpu.device,
+            &gpu.queue,
+            text_areas,
+        ) {
+            Ok(t) => t,
+            Err(e) => {
+                tracing::warn!("overlay text prepare: {e}");
+                return;
+            }
+        };
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("mado_overlay"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: ctx.surface_view,
+                view: surface_view,
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Load,
@@ -2106,7 +2157,7 @@ impl TerminalRenderer {
             timestamp_writes: None,
             occlusion_query_set: None,
         });
-        if let Err(e) = ctx.text.render(&mut pass) {
+        if let Err(e) = frame.render(token, &mut pass) {
             tracing::warn!("overlay text render: {e}");
         }
     }
@@ -2118,7 +2169,11 @@ impl TerminalRenderer {
         query: &str,
         results: &[(std::path::PathBuf, f64)],
         selected: usize,
-        ctx: &mut RenderContext<'_>,
+        frame: &mut garasu::Frame<'_>,
+        gpu: &garasu::GpuContext,
+        surface_view: &wgpu::TextureView,
+        width: u32,
+        height: u32,
         encoder: &mut wgpu::CommandEncoder,
     ) {
         use crate::picker::component::{LineRole, OverlayLine, OverlaySpec};
@@ -2144,7 +2199,11 @@ impl TerminalRenderer {
         // The dir picker keeps the legacy top-drop anchor.
         self.draw_overlay(
             &OverlaySpec::new(crate::config::PickerAnchor::Top, lines),
-            ctx,
+            frame,
+            gpu,
+            surface_view,
+            width,
+            height,
             encoder,
         );
     }
@@ -2161,7 +2220,11 @@ impl TerminalRenderer {
         results: &[crate::session_picker::SessionPickerRow],
         selected: usize,
         disabled: bool,
-        ctx: &mut RenderContext<'_>,
+        frame: &mut garasu::Frame<'_>,
+        gpu: &garasu::GpuContext,
+        surface_view: &wgpu::TextureView,
+        width: u32,
+        height: u32,
         encoder: &mut wgpu::CommandEncoder,
     ) {
         use crate::picker::component::{LineRole, OverlayLine, OverlaySpec};
@@ -2261,7 +2324,15 @@ impl TerminalRenderer {
         // Anchor per config — Center (default) floats the popup; Bottom /
         // Top keep the edge-anchored feel. The shared draw_overlay owns the
         // geometry + the theme-resolved colours.
-        self.draw_overlay(&OverlaySpec::new(self.session_picker_anchor, lines), ctx, encoder);
+        self.draw_overlay(
+            &OverlaySpec::new(self.session_picker_anchor, lines),
+            frame,
+            gpu,
+            surface_view,
+            width,
+            height,
+            encoder,
+        );
     }
 
     /// Set the shared search state (called from main to share with event handler).
@@ -2320,9 +2391,36 @@ impl TerminalRenderer {
         self.last_seqno = 0;
     }
 
+    /// Mint this renderer's text layers on the shared [`garasu::TextLayerStack`]
+    /// — once, on the first render (idempotent thereafter). Each text surface
+    /// gets its OWN isolated layer (own vertex buffer) so a second pass in a
+    /// frame can't clobber the first's glyphs. Must mint exactly
+    /// [`TEXT_LAYERS`]`.len()` layers — `layers_match_text_layers_const` is the
+    /// forcing function that fails if a NEW text surface is added without its
+    /// own layer here.
+    fn ensure_layers(&mut self, text: &mut garasu::TextLayerStack, device: &wgpu::Device) {
+        if self.term_layer.is_none() {
+            self.term_layer = Some(text.add_layer(device));
+        }
+        if self.overlay_layer.is_none() {
+            self.overlay_layer = Some(text.add_layer(device));
+        }
+        if self.search_layer.is_none() {
+            self.search_layer = Some(text.add_layer(device));
+        }
+        // Forcing function: this renderer owns exactly the named TEXT_LAYERS on
+        // its (exclusively-owned) stack. A new text surface added without a
+        // matching TEXT_LAYERS entry (or vice versa) trips this in debug.
+        debug_assert_eq!(
+            text.layer_count(),
+            TEXT_LAYERS.len(),
+            "ensure_layers must mint exactly one layer per TEXT_LAYERS entry"
+        );
+    }
+
     /// Measure actual cell dimensions from glyphon font metrics.
     /// Called once on the first render when the text renderer is available.
-    fn measure_cell_metrics(&mut self, text: &mut garasu::TextRenderer) {
+    fn measure_cell_metrics(&mut self, text: &mut garasu::TextLayerStack) {
         if self.metrics_measured {
             return;
         }
@@ -3098,7 +3196,7 @@ impl TerminalRenderer {
     /// single-threaded so the borrow is always uncontested.
     fn shape_run(
         &self,
-        text: &mut garasu::TextRenderer,
+        text: &mut garasu::TextLayerStack,
         key: ShapeKey,
     ) -> Arc<Buffer> {
         if let Some(arc) = self.shape_cache.borrow_mut().get(&key) {
@@ -3171,7 +3269,7 @@ impl TerminalRenderer {
     fn build_text_buffers(
         &self,
         snap: &Snapshot,
-        text: &mut garasu::TextRenderer,
+        text: &mut garasu::TextLayerStack,
         blink_on: bool,
     ) -> Vec<(usize, GridCol, Arc<Buffer>)> {
         // P23 — pre-size. Typical interactive grid produces ~3-8
@@ -3194,7 +3292,7 @@ impl TerminalRenderer {
 
             let flush_run = |run: &mut Option<(GridCol, String, RunAttrsKey)>,
                              row_buffers: &mut Vec<(GridCol, Arc<Buffer>)>,
-                             text: &mut garasu::TextRenderer| {
+                             text: &mut garasu::TextLayerStack| {
                 if let Some((start_col, run_text, attrs)) = run.take() {
                     let key = ShapeKey {
                         text: run_text.into_boxed_str(),
@@ -3696,7 +3794,9 @@ impl TerminalRenderer {
     /// Draw Kitty image placements. GPU textures must be synced first.
     fn draw_kitty_images(
         &self,
-        ctx: &mut RenderContext<'_>,
+        gpu: &garasu::GpuContext,
+        width: u32,
+        height: u32,
         encoder: &mut wgpu::CommandEncoder,
         target_view: &wgpu::TextureView,
         placements: &[ImagePlacement],
@@ -3772,11 +3872,10 @@ impl TerminalRenderer {
 
         // Update uniforms
         let uniforms = ScreenUniforms {
-            resolution: [ctx.width as f32, ctx.height as f32],
+            resolution: [width as f32, height as f32],
             _padding: [0.0; 2],
         };
-        ctx.gpu
-            .queue
+        gpu.queue
             .write_buffer(&image_pipeline.uniform_buffer, 0, bytemuck::bytes_of(&uniforms));
 
         // NO sort-by-id here. `placements` arrives in z-then-transmission
@@ -3814,7 +3913,7 @@ impl TerminalRenderer {
                         .iter()
                         .map(|(_, inst)| *inst)
                         .collect();
-                    ctx.gpu.queue.write_buffer(
+                    gpu.queue.write_buffer(
                         &image_pipeline.instance_buffer,
                         0,
                         bytemuck::cast_slice(&batch),
@@ -3837,7 +3936,7 @@ impl TerminalRenderer {
                 .iter()
                 .map(|(_, inst)| *inst)
                 .collect();
-            ctx.gpu.queue.write_buffer(
+            gpu.queue.write_buffer(
                 &image_pipeline.instance_buffer,
                 0,
                 bytemuck::cast_slice(&batch),
@@ -4484,6 +4583,10 @@ impl RenderCallback for TerminalRenderer {
         let text_start = Instant::now();
         let blink_on = self.blink_phase_on(ctx.elapsed);
         let text_buffers = self.build_text_buffers(&snap, ctx.text, blink_on);
+        // Mint the per-surface text layers once (idempotent) before any text
+        // pass — each owns its own vertex buffer so overlay text can't clobber
+        // the terminal's. See `ensure_layers` + `garasu::TextLayerStack`.
+        self.ensure_layers(ctx.text, &ctx.gpu.device);
         let text_us = text_start.elapsed().as_micros() as u64;
         let text_count = text_buffers.len();
         let shape_cache_len = self.shape_cache.borrow().len();
@@ -4601,8 +4704,17 @@ impl RenderCallback for TerminalRenderer {
         // Pass 2.5: Kitty graphics images BELOW the text scene.
         if !images_below.is_empty() {
             let view = scene_view;
-            self.draw_kitty_images(ctx, &mut encoder, view, &images_below, self.padding_px(), self.padding_px());
+            self.draw_kitty_images(ctx.gpu, ctx.width, ctx.height, &mut encoder, view, &images_below, self.padding_px(), self.padding_px());
         }
+
+        // Open the one text frame for this whole render. It borrows the shared
+        // TextLayerStack across Pass 3 + Pass 6; each layer prepares/renders its
+        // OWN vertex buffer, and the frame's Drop trims the atlas exactly once
+        // AFTER all text renders (before submit) — the ordering that keeps a
+        // later layer's prepare from evicting an earlier layer's recorded
+        // glyphs. `ctx.gpu` / `ctx.surface_view` stay reachable (disjoint
+        // fields from `ctx.text`).
+        let mut frame = ctx.text.begin_frame(ctx.width, ctx.height);
 
         // Pass 3: Text with per-cell colors
         let mut text_areas = Vec::new();
@@ -4641,33 +4753,40 @@ impl RenderCallback for TerminalRenderer {
         // free — the encoder still records the pass state.
         let text_areas_empty = text_areas.is_empty();
         if !text_areas_empty {
-            if let Err(e) = ctx.text.prepare(
+            // Terminal-grid layer — its own vertex buffer. A prepare error skips
+            // the render (we never draw a stale token).
+            let token = match frame.prepare(
+                self.term_layer
+                    .expect("ensure_layers minted the terminal layer before Pass 3"),
                 &ctx.gpu.device,
                 &ctx.gpu.queue,
-                ctx.width,
-                ctx.height,
                 text_areas,
             ) {
-                tracing::warn!("text prepare error: {e}");
-            }
-
-            let view = scene_view;
-            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("mado_text"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Load,
-                        store: wgpu::StoreOp::Store,
-                    },
-                })],
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-            });
-            if let Err(e) = ctx.text.render(&mut pass) {
-                tracing::warn!("text render error: {e}");
+                Ok(t) => Some(t),
+                Err(e) => {
+                    tracing::warn!("text prepare error: {e}");
+                    None
+                }
+            };
+            if let Some(token) = token {
+                let view = scene_view;
+                let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("mado_text"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Load,
+                            store: wgpu::StoreOp::Store,
+                        },
+                    })],
+                    depth_stencil_attachment: None,
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                });
+                if let Err(e) = frame.render(token, &mut pass) {
+                    tracing::warn!("text render error: {e}");
+                }
             }
         }
 
@@ -4676,7 +4795,7 @@ impl RenderCallback for TerminalRenderer {
         // chain at Pass 4 still sees these pixels.
         if !images_above.is_empty() {
             let view = scene_view;
-            self.draw_kitty_images(ctx, &mut encoder, view, &images_above, self.padding_px(), self.padding_px());
+            self.draw_kitty_images(ctx.gpu, ctx.width, ctx.height, &mut encoder, view, &images_above, self.padding_px(), self.padding_px());
         }
 
         // Pass 4: engawa catalog dispatch — SCENE → enabled effect
@@ -4743,24 +4862,60 @@ impl RenderCallback for TerminalRenderer {
                     let g = self.session_picker.lock().unwrap();
                     (g.query.clone(), g.results.clone(), g.selected, g.disabled)
                 };
-                self.draw_session_picker(&q, &results, sel, disabled, ctx, &mut overlay_encoder);
+                self.draw_session_picker(
+                    &q,
+                    &results,
+                    sel,
+                    disabled,
+                    &mut frame,
+                    ctx.gpu,
+                    ctx.surface_view,
+                    ctx.width,
+                    ctx.height,
+                    &mut overlay_encoder,
+                );
             }
             Overlay::DirPicker => {
                 let (q, results, sel) = {
                     let g = self.dir_picker.lock().unwrap();
                     (g.query.clone(), g.results.clone(), g.selected)
                 };
-                self.draw_dir_picker(&q, &results, sel, ctx, &mut overlay_encoder);
+                self.draw_dir_picker(
+                    &q,
+                    &results,
+                    sel,
+                    &mut frame,
+                    ctx.gpu,
+                    ctx.surface_view,
+                    ctx.width,
+                    ctx.height,
+                    &mut overlay_encoder,
+                );
             }
             Overlay::Search => {
                 let (q, current, count) = {
                     let g = self.search.lock().unwrap();
                     (g.query.clone(), g.current, g.matches.len())
                 };
-                self.draw_search_status(&q, current, count, ctx, &mut overlay_encoder);
+                self.draw_search_status(
+                    &q,
+                    current,
+                    count,
+                    &mut frame,
+                    ctx.gpu,
+                    ctx.surface_view,
+                    ctx.width,
+                    ctx.height,
+                    &mut overlay_encoder,
+                );
             }
         }
 
+        // Drop the text frame BEFORE submit: its Drop trims the atlas exactly
+        // once, after every text render this frame recorded. trim() touches only
+        // CPU bookkeeping, never the already-recorded command buffers, so
+        // trim-then-submit is the correct ordering.
+        drop(frame);
         command_buffers.push(overlay_encoder.finish());
         ctx.gpu.queue.submit(command_buffers);
         // Leases return to the pool only after the submit that
@@ -5775,6 +5930,46 @@ mod render_invariants {
     /// decoration rects are identified by exact colour match.
     const UL_SENTINEL: Color = Color { r: 201, g: 31, b: 47 };
 
+    /// REGRESSION (URL underline bleed): on the MAIN screen, fed REAL bytes
+    /// (the path the unit tests in url.rs can't exercise — they hand-build
+    /// cells), a URL preceded by multi-byte / wide / nerd-font glyphs must
+    /// underline ONLY the URL's own columns. The reported bug is the URL
+    /// underline smearing across the row ("underscores bleeding everywhere
+    /// until everything is underscored"). The width of the single URL
+    /// underline must not exceed the URL's column span.
+    #[test]
+    fn url_underline_does_not_bleed_on_real_bytes() {
+        let (r, t) = harness(80, 4);
+        // The kind of line a seki prompt + git output paint: a nerd-font
+        // snowflake (multi-byte), box-drawing, an arrow, then a URL.
+        let url = "https://github.com/pleme-io/mado";
+        t.write()
+            .feed(format!("\u{2744} \u{2502}\u{2500}\u{2192} clone {url}\r\n").as_bytes());
+        let rects = compute_rects(&r);
+        // URL underline uses the fixed Nord frost #88C0D0 colour (see the
+        // "URL underline decorations" block in build_rect_instances).
+        let url_color = overlay_rect_color(0x88, 0xC0, 0xD0, 0.6);
+        let url_rects: Vec<&RectInstance> = rects
+            .iter()
+            .filter(|rt| colors_approx_eq(rt.color, url_color))
+            .collect();
+        assert_eq!(
+            url_rects.len(),
+            1,
+            "expected exactly one URL underline, got {}: {url_rects:?}",
+            url_rects.len()
+        );
+        let max_w = url.chars().count() as f32 * r.cell_width + 0.5;
+        assert!(
+            url_rects[0].size[0] <= max_w,
+            "URL underline width {} exceeds the URL's {} columns ({}) — it bled \
+             across the row",
+            url_rects[0].size[0],
+            url.chars().count(),
+            max_w
+        );
+    }
+
     fn underline_rects_for(style_param: &[u8]) -> (TerminalRenderer, Vec<RectInstance>) {
         let (r, t) = harness(20, 3);
         let mut feed = Vec::new();
@@ -6501,7 +6696,7 @@ mod render_gpu_invariants {
     use super::*;
     use crate::terminal::Terminal;
     use garasu::{
-        GpuContext, TextRenderer,
+        GpuContext, TextLayerStack,
         headless::{HeadlessTarget, assert_no_magenta_pixels},
     };
     use madori::RenderContext;
@@ -6511,10 +6706,10 @@ mod render_gpu_invariants {
     /// brought up against the given GPU context. Returns
     /// everything the render loop needs.
     fn build_gpu_renderer(
-        gpu: &GpuContext,
+        gpu: &garasu::GpuContext,
         cols: usize,
         rows: usize,
-    ) -> (TerminalRenderer, SharedTerminal, TextRenderer) {
+    ) -> (TerminalRenderer, SharedTerminal, TextLayerStack) {
         let term = Arc::new(parking_lot::RwLock::new(Terminal::new(cols, rows)));
         let mut renderer = TerminalRenderer::new(
             term.clone(),
@@ -6533,7 +6728,7 @@ mod render_gpu_invariants {
         // Bring up rect_pipeline / image_pipeline / post_pipeline
         // — the same init the live app runs once at startup.
         renderer.init(gpu);
-        let text = TextRenderer::new(
+        let text = TextLayerStack::new(
             &gpu.device,
             &gpu.queue,
             SURFACE_FORMAT,
@@ -6544,9 +6739,9 @@ mod render_gpu_invariants {
     /// Drive one frame of the renderer against an offscreen
     /// target. Returns the read-back RGBA8 pixel buffer.
     fn render_one_frame_headless(
-        gpu: &GpuContext,
+        gpu: &garasu::GpuContext,
         renderer: &mut TerminalRenderer,
-        text: &mut TextRenderer,
+        text: &mut TextLayerStack,
         target: &HeadlessTarget,
     ) -> Vec<u8> {
         let mut ctx = RenderContext {
@@ -6563,6 +6758,26 @@ mod render_gpu_invariants {
         // Wait for the GPU work to land before reading pixels.
         let _ = gpu.device.poll(wgpu::PollType::Wait);
         target.read_pixels_rgba8(gpu)
+    }
+
+    /// Forcing function for the per-surface-layer invariant: `ensure_layers`
+    /// must mint exactly one isolated layer per named text surface in
+    /// [`TEXT_LAYERS`]. A new text surface added without its own layer (which
+    /// would reintroduce the cross-pass vertex-buffer clobber) fails here.
+    #[cfg(feature = "gpu_tests")]
+    #[test]
+    fn layers_match_text_layers_const() {
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let (mut renderer, _term, mut stack) = build_gpu_renderer(&gpu, 80, 24);
+        renderer.ensure_layers(&mut stack, &gpu.device);
+        assert_eq!(
+            stack.layer_count(),
+            TEXT_LAYERS.len(),
+            "ensure_layers must mint one layer per TEXT_LAYERS entry"
+        );
+        // Idempotent — a second call mints nothing more.
+        renderer.ensure_layers(&mut stack, &gpu.device);
+        assert_eq!(stack.layer_count(), TEXT_LAYERS.len());
     }
 
     #[test]
@@ -6764,7 +6979,7 @@ mod render_gpu_invariants {
             // Drop ambience so we read the direct (un-grained) path —
             // exact color match, no SCENE pass to reason about.
             r.ambience.members.clear();
-            let mut text = TextRenderer::new(&gpu.device, &gpu.queue, SURFACE_FORMAT);
+            let mut text = TextLayerStack::new(&gpu.device, &gpu.queue, SURFACE_FORMAT);
             let sw = (r.cell_width * 3.0).ceil() as u32;
             let sh = (r.cell_height * 1.0).ceil() as u32;
             let target = HeadlessTarget::new(&gpu, sw, sh, SURFACE_FORMAT);

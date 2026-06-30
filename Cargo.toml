@@ -97,7 +97,7 @@ pleme-kindbyte-derive = { git = "https://github.com/pleme-io/pleme-kindbyte-deri
 pleme-fleet-themed-derive = { git = "https://github.com/pleme-io/pleme-fleet-themed-derive" }
 
 garasu = "0.1"
-madori = { git = "https://github.com/pleme-io/madori", rev = "befd6aa9dd854c1dca900a4bc864d96f85fa812a", version = "0.1" }
+madori = { git = "https://github.com/pleme-io/madori", rev = "79b33a4811853f1a8153735a69fb58bde894c2d9", version = "0.1" }
 shikumi = { version = "0.1", features = ["cli"] }
 hasami = { git = "https://github.com/pleme-io/hasami" , version = "0.1" }
 # Tsuuchi (通知) — the fleet notification primitive. The M4 unified
@@ -321,6 +321,6 @@ gpu_tests = ["dep:pollster"]
 # then advanced garasu/egaku to HEADs needing that newer shikumi, desyncing the
 # family. Pin ALL of them (madori too, below) to the last mutually-green rev set.
 # REMOVE these pins once shikumi main is fixed upstream — the real load-bearing fix.
-garasu = { git = "https://github.com/pleme-io/garasu", rev = "2aec0df9debedccad4b98faf4c9059b3bc84234e" }
+garasu = { git = "https://github.com/pleme-io/garasu", rev = "a2afc2ad6530ed096ab26f5d92bd4e1d348253ee" }
 shikumi = { git = "https://github.com/pleme-io/shikumi", rev = "b41d01e453b2c2505941ba02003f48721ca02b17" }
 egaku = { git = "https://github.com/pleme-io/egaku", rev = "81d168190061c452d115f58f186429b84f489be8" }

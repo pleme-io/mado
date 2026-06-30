@@ -346,7 +346,7 @@ fn check_frame_hash_golden(
         Color::WHITE,
     );
     renderer.init(&gpu);
-    let mut text = garasu::TextRenderer::new(
+    let mut text = garasu::TextLayerStack::new(
         &gpu.device,
         &gpu.queue,
         wgpu::TextureFormat::Bgra8UnormSrgb,

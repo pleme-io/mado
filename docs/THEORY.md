@@ -251,6 +251,17 @@ item, never an accepted end.
 | 5 | `create_and_switch` builds a `SessionRecord` by patching the pub `name_seed` field | works, ad-hoc | a typed praça constructor (`for_preset(idx)` / `for_named(name)`) | typed construction |
 | 6 | reconciler runs on picker-open (`bridge.refresh`) | covers the case | a continuous tick keeps the index live always (optional; open-sync is sufficient for the picker) | §III.11 |
 | 7 | search-status uses `agent_accent`; popup text roles share `OverlayStyle` | fine | a fuller modal-chrome token set if modal sophistication grows | §III.7 |
+| 8 | text surfaces (terminal Pass 3 + picker/overlay + search-status) each own their OWN layer on a shared `garasu::TextLayerStack` (own vertex buffer + own `Viewport`), two-phase `Frame`, trim-once-per-frame | CLOBBER + VIEWPORT + RECORD-WITHOUT-PREPARE + ATLAS-GROW: truly-unrep; CROSS-LAYER-EVICTION + MIS-ROUTE + INTRA-LAYER-DOUBLE-PREPARE: only-mitigated | engawa `ResourceKind::TextLayer` + the shipped `MultipleWriters` validation makes a second pass writing one vertex buffer a *validation-time* error (subsumes rect+text under one single-writer law; closes the residual axes) | §III.6, UNREPRESENTABILITY (eliminate-the-shared-cell) |
+
+Pattern 8 was the top-left-blank Ctrl-S bug: one shared `glyphon::TextRenderer`
+vertex buffer rewritten by every per-frame `prepare`, so the overlay's prepare
+clobbered the terminal draw's recorded glyphs (top-left, growing with query
+length). It is the text-path twin of pattern #4 (the rect `overlay_buffer` fix);
+both are instances of *eliminate-the-shared-cell*. The residual eviction /
+double-prepare / mis-route axes are graded honestly as only-mitigated and close
+truly-unrepresentably only at the engawa destination — tracked by the
+`pending-engawa-text:` note in `CLAUDE.md`. The fix ships in `garasu`
+(`TextLayerStack`) so every GPU-app consumer inherits it.
 
 Cross-references: the unrepresentability tiers + the per-pattern verdicts
 live in [UNREPRESENTABILITY-VERIFICATION.md](./UNREPRESENTABILITY-VERIFICATION.md);
