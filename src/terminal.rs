@@ -10339,6 +10339,37 @@ mod tests {
         );
     }
 
+    /// REGRESSION (underline bleed): once an app turns underline ON, EVERY
+    /// way it can reset must actually clear the pen — otherwise every byte
+    /// written afterwards inherits the underline and it "bleeds everywhere
+    /// until the whole screen is underscored". Covers SGR 0, SGR 24, the
+    /// colon `4:0` off form, and — the leak — bare `CSI m` (≡ `CSI 0 m`,
+    /// which many libraries emit), whose EMPTY params must reset the pen.
+    #[test]
+    fn underline_does_not_bleed_across_any_reset() {
+        let after_reset = |reset: &[u8]| -> UnderlineStyle {
+            let mut t = Terminal::new(20, 4);
+            t.feed(b"\x1b[4mUL"); // underline ON, two cells
+            t.feed(reset);
+            t.feed(b"P"); // first cell written after the reset
+            // "UL" = cols 0,1; "P" = col 2.
+            t.cell(0, 2).attrs(t.styles()).underline
+        };
+        for reset in [
+            &b"\x1b[0m"[..],  // SGR 0 — full reset
+            &b"\x1b[24m"[..], // SGR 24 — underline off
+            &b"\x1b[4:0m"[..],// colon 4:0 — underline none
+            &b"\x1b[m"[..],   // bare CSI m — empty params, ≡ SGR 0
+        ] {
+            assert_eq!(
+                after_reset(reset),
+                UnderlineStyle::None,
+                "text after reset {:?} must NOT inherit underline (bleed)",
+                std::str::from_utf8(reset).unwrap()
+            );
+        }
+    }
+
     /// RIS palette policy (M2 review wave): `reset` restores the
     /// extended 16..=255 cube/grayscale entries to the computed
     /// defaults — an app's OSC 4 overrides must not outlive ESC c —
