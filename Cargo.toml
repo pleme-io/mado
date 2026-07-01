@@ -280,6 +280,11 @@ objc2-app-kit = { version = "0.3", features = ["NSApplication", "NSWindow", "NSD
 [dev-dependencies]
 tempfile = "3"
 proptest = "1"
+# `test-util` (the paused-clock `#[tokio::test(start_paused = true)]`) is
+# test-only — it lets the livestream refresh-loop tests advance the interval
+# clock deterministically without real sleeps. Dev-dep so it never touches the
+# shipped binary build.
+tokio = { version = "1", features = ["test-util", "macros", "rt-multi-thread", "time", "sync"] }
 # Mechanical ALL registries for the ux::modes FSM test surfaces -
 # variant counts are derive-emitted from mirror enums, never hand
 # consts (M3 review 2026-06-12; same macro-farm pattern as

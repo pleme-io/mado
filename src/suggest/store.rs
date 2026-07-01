@@ -15,10 +15,12 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
 
+use tokio::sync::watch;
+
 use super::core::{SourceKind, Suggestion, SuggestionId};
+use crate::livestream::Reactive;
 
 /// Snapshot framing magic — a schema tag so a future format bump is rejected
 /// (start-empty) rather than silently mis-parsed.
@@ -44,10 +46,16 @@ pub struct StoredSuggestion {
 /// `last_seen_ms` heartbeat). The picker memoizes its ranked read by it (O(1)
 /// reads while the watchers idle) and the persist task uses it as the dirty
 /// signal — one counter, the shikumi swap-then-observe contract.
+///
+/// The generation + the change-broadcast are the shared
+/// [`Reactive`](crate::livestream::Reactive) core (stage 2 of the live-stream
+/// substrate): every meaningful mutation bumps AND notifies every
+/// [`subscribe`](SuggestionStore::subscribe)r, so the Ctrl-S board (and any
+/// other surface) re-renders on the fact of a change instead of a fixed timer.
 #[derive(Default)]
 pub struct SuggestionStore {
     inner: Mutex<BTreeMap<SuggestionId, StoredSuggestion>>,
-    generation: AtomicU64,
+    reactive: Reactive,
 }
 
 /// Serializable view for the warm-restart snapshot.
@@ -73,12 +81,22 @@ impl SuggestionStore {
     /// the dirty signal.
     #[must_use]
     pub fn generation(&self) -> u64 {
-        self.generation.load(Ordering::Acquire)
+        self.reactive.generation()
     }
 
-    /// Bump the change-generation (Release) — called after a meaningful mutation.
+    /// A change-notification subscription (stage 3): a [`watch::Receiver`] that
+    /// fires on every meaningful mutation. Async consumers `.changed().await`;
+    /// the synchronous Ctrl-S board polls `.has_changed()` per frame and
+    /// re-lists on the fact of a change — no fixed timer, no missed update.
+    #[must_use]
+    pub fn subscribe(&self) -> watch::Receiver<u64> {
+        self.reactive.subscribe()
+    }
+
+    /// Bump the change-generation (Release) AND broadcast — called after a
+    /// meaningful mutation.
     fn bump(&self) {
-        self.generation.fetch_add(1, Ordering::Release);
+        self.reactive.bump();
     }
 
     /// Replace the suggestion set contributed by `source`. Ids that persist
@@ -613,6 +631,28 @@ mod tests {
         // Removal → bump.
         store.ingest(SourceKind::TendRepos, vec![], 700);
         assert!(store.generation() > g2, "removal bumps");
+    }
+
+    #[test]
+    fn subscribe_broadcasts_on_change_not_on_heartbeat() {
+        // Stage 2: an ingest (meaningful change) wakes a subscriber; a pure
+        // last_seen heartbeat does not. This is the store→GUI wake the Ctrl-S
+        // board polls each frame.
+        let store = SuggestionStore::new();
+        let mut rx = store.subscribe();
+        assert!(!rx.has_changed().unwrap(), "no change before first ingest");
+
+        store.ingest(SourceKind::TendRepos, vec![sug(SourceKind::TendRepos, "a", "a")], 100);
+        assert!(rx.has_changed().unwrap(), "an ingest broadcasts to subscribers");
+        rx.mark_unchanged();
+
+        // Re-ingest the SAME row (only last_seen advances) → no broadcast.
+        store.ingest(SourceKind::TendRepos, vec![sug(SourceKind::TendRepos, "a", "a")], 500);
+        assert!(!rx.has_changed().unwrap(), "a heartbeat must not wake a subscriber");
+
+        // A new row → broadcast again.
+        store.ingest(SourceKind::TendRepos, vec![sug(SourceKind::TendRepos, "b", "b")], 600);
+        assert!(rx.has_changed().unwrap(), "a new row wakes the subscriber");
     }
 
     #[test]

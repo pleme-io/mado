@@ -35,6 +35,7 @@ mod keybind;
 // can reach crate::engate_consumer::TerminalSink.
 #[cfg(test)]
 mod l1_engate_loop;
+mod livestream;
 mod single_pane;
 mod tear_discovery;
 mod caps;

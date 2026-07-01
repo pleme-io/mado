@@ -148,6 +148,16 @@ pub trait SessionPickerBridge: Send {
     /// new-session`, manual attach) are tracked + browsable too — the
     /// "always tracking + curating" sync. Default no-op (test bridges).
     fn refresh(&self, _now: u64) {}
+
+    /// Subscribe to the suggestion store's change broadcast (stage 3 of the
+    /// live-stream substrate). The input engine holds the returned receiver and
+    /// re-lists the open Ctrl-S board the moment a source watcher writes fresh
+    /// rows — an event-driven subscription, never a fixed poll. `None` when the
+    /// suggestion stream is off (or a test bridge without a store), in which
+    /// case the board simply shows no live suggestions.
+    fn suggestion_subscribe(&self) -> Option<tokio::sync::watch::Receiver<u64>> {
+        None
+    }
 }
 
 /// The concrete [`SessionPickerBridge`] wired in the embedded event loop:
@@ -696,6 +706,10 @@ impl SessionPickerBridge for PracaPickerBridge {
             crate::picker::reconcile::InProcessSessionReconciler::new(Arc::clone(&self.inproc));
         let mut praca = self.praca();
         reconciler.reconcile(&mut praca, now);
+    }
+
+    fn suggestion_subscribe(&self) -> Option<tokio::sync::watch::Receiver<u64>> {
+        self.suggestions.as_ref().map(|store| store.subscribe())
     }
 
     fn create_and_switch(&self, spec: CreateSpec, now: u64) -> bool {

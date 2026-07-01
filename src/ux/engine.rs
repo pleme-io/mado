@@ -234,11 +234,13 @@ pub struct InputEngine {
     /// (a no-op kinetics frame), which keeps the L1/L2 determinism
     /// ladders byte-stable.
     last_scroll_tick: Option<Instant>,
-    /// Wall-clock of the last live suggestion-stream re-list while the Ctrl-S
-    /// picker is open. `None` when the picker is closed. Gates the gentle
-    /// (~2s) re-list so newly-watched task suggestions shade in without the
-    /// operator reopening — see `on_redraw_tick`.
-    last_suggest_refresh: Option<Instant>,
+    /// Subscription to the suggestion store's change broadcast (stage 3 of the
+    /// live-stream substrate). Obtained from the session-picker bridge at
+    /// construction. While the Ctrl-S board is open and resting, the tick
+    /// re-lists the moment this fires — an event-driven subscription, never a
+    /// fixed timer — so newly-watched task suggestions appear on the open board
+    /// without reopening. `None` when the stream is off (or no bridge).
+    suggest_rx: Option<tokio::sync::watch::Receiver<u64>>,
 }
 
 impl InputEngine {
@@ -264,6 +266,13 @@ impl InputEngine {
         // Build the scroll system from the typed scroll policy BEFORE the
         // behavior value moves into the struct.
         let scroll = ScrollSystem::new(params.behavior.scroll_config());
+        // Subscribe to the suggestion store's change broadcast BEFORE the bridge
+        // moves into the struct — the engine re-lists the open board on the fact
+        // of a change (stage 3), not a timer.
+        let suggest_rx = params
+            .session_picker_bridge
+            .as_ref()
+            .and_then(|bridge| bridge.suggestion_subscribe());
         Self {
             terminal: params.terminal,
             pty: params.pty,
@@ -294,7 +303,7 @@ impl InputEngine {
             search_grid_gen: None,
             scroll,
             last_scroll_tick: None,
-            last_suggest_refresh: None,
+            suggest_rx,
         }
     }
 
@@ -1704,24 +1713,27 @@ impl InputEngine {
         // the same tick).
         self.reconcile_search();
         self.reconcile_selection();
-        // Live suggestion-stream refresh: while the Ctrl-S picker is open AND
-        // the operator is resting at the top (not mid-navigation), gently
-        // re-list (~2s) so the continuously-watched task suggestions shade in
-        // without reopening. Cheap — the bridge re-reads the shared in-memory
-        // store; the per-source watchers do the actual I/O off-thread.
+        // Live suggestion-stream refresh (stage 3): while the Ctrl-S picker is
+        // open AND the operator is resting at the top (not mid-navigation),
+        // re-list the moment the shared store broadcasts a change — an
+        // event-driven subscription (`watch::Receiver::has_changed`), never a
+        // fixed timer. A source watcher writing fresh rows wakes the open board
+        // immediately; an idle store costs a single cheap atomic read per frame.
+        // The resting gate means a refresh never yanks the cursor out from under
+        // someone mid-selection (the change is consumed on the next rest).
         if self.session_picker_bridge.is_some() {
             let resting = self.session_picker.lock().unwrap().is_resting();
             if resting {
-                let now = Instant::now();
-                let due = self
-                    .last_suggest_refresh
-                    .is_none_or(|prev| now.duration_since(prev).as_secs_f32() >= 2.0);
-                if due {
-                    self.last_suggest_refresh = Some(now);
+                let changed = self
+                    .suggest_rx
+                    .as_mut()
+                    .is_some_and(|rx| rx.has_changed().unwrap_or(false));
+                if changed {
+                    if let Some(rx) = self.suggest_rx.as_mut() {
+                        rx.mark_unchanged();
+                    }
                     self.session_picker_recompute();
                 }
-            } else {
-                self.last_suggest_refresh = None;
             }
         }
         // Momentum + selection auto-scroll: advance the kinetic
@@ -3202,6 +3214,109 @@ mod tests {
             h.engine.overlay,
             Overlay::None,
             "the FSM returns to None after accept"
+        );
+    }
+
+    /// A bridge whose suggestion rows are driven by a shared cell + a real
+    /// `watch` broadcast — the seam the live-stream subscription test drives.
+    struct StreamBridge {
+        rows: Arc<StdMutex<Vec<SessionPickerRow>>>,
+        list_count: Arc<std::sync::atomic::AtomicUsize>,
+        tx: tokio::sync::watch::Sender<u64>,
+    }
+
+    impl StreamBridge {
+        fn new() -> (
+            Self,
+            Arc<StdMutex<Vec<SessionPickerRow>>>,
+            Arc<std::sync::atomic::AtomicUsize>,
+            tokio::sync::watch::Sender<u64>,
+        ) {
+            let (tx, _rx) = tokio::sync::watch::channel(0u64);
+            let rows = Arc::new(StdMutex::new(Vec::new()));
+            let list_count = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+            (
+                Self {
+                    rows: Arc::clone(&rows),
+                    list_count: Arc::clone(&list_count),
+                    tx: tx.clone(),
+                },
+                rows,
+                list_count,
+                tx,
+            )
+        }
+    }
+
+    impl SessionPickerBridge for StreamBridge {
+        fn list(&self, _query: &str, _now: u64) -> Vec<SessionPickerRow> {
+            self.list_count
+                .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            self.rows.lock().unwrap().clone()
+        }
+        fn switch_to(&self, _session: SessionId) -> bool {
+            true
+        }
+        fn create_and_switch(&self, _spec: CreateSpec, _now: u64) -> bool {
+            false
+        }
+        fn suggestion_subscribe(&self) -> Option<tokio::sync::watch::Receiver<u64>> {
+            Some(self.tx.subscribe())
+        }
+    }
+
+    /// The Ctrl-S board CONSUMES the store's change subscription (stage 3):
+    /// while the board is open and resting, a tick re-lists ONLY when the store
+    /// broadcasts a change — never on a fixed timer. Proves the store→GUI path
+    /// is an event-driven subscription, not a one-shot fetch / poll.
+    #[test]
+    fn session_picker_relists_on_store_broadcast_not_on_timer() {
+        use std::sync::atomic::Ordering::SeqCst;
+        let (bridge, rows, list_count, tx) = StreamBridge::new();
+        let mut h = Harness::new_with_bridge(SinkKind::Closure, Some(Box::new(bridge)));
+
+        // Open the board — the initial list is a single fetch (count == 1).
+        h.engine
+            .apply_action(Action::SessionPickerOpen, &mut h.renderer);
+        assert!(h.engine.session_picker.lock().unwrap().is_resting());
+        assert_eq!(list_count.load(SeqCst), 1, "open lists once");
+
+        // Ticks with NO broadcast do NOT re-list — no timer, purely event-driven.
+        for _ in 0..5 {
+            h.engine.on_redraw_tick(&h.renderer);
+        }
+        assert_eq!(
+            list_count.load(SeqCst),
+            1,
+            "no store change → no re-list (not a timer)"
+        );
+
+        // A source watcher writes fresh rows + broadcasts (what an ingest does).
+        rows.lock().unwrap().push(SessionPickerRow {
+            label: "\u{25cb} new task".into(),
+            kind: RowKind::Switch(sid("task")),
+        });
+        tx.send(1).unwrap();
+
+        // The next tick observes the broadcast → re-lists once → the new row
+        // appears on the OPEN board without reopening.
+        h.engine.on_redraw_tick(&h.renderer);
+        assert_eq!(list_count.load(SeqCst), 2, "the broadcast drove exactly one re-list");
+        {
+            let sp = h.engine.session_picker.lock().unwrap();
+            assert_eq!(sp.results.len(), 1, "the newly-streamed row is on the open board");
+            assert_eq!(row_switch_id(&sp.results[0]), Some(sid("task")));
+        }
+
+        // Further ticks with no new broadcast → no further re-list (the
+        // subscription was consumed; it is not a per-frame poll of the bridge).
+        for _ in 0..5 {
+            h.engine.on_redraw_tick(&h.renderer);
+        }
+        assert_eq!(
+            list_count.load(SeqCst),
+            2,
+            "the consumed broadcast does not re-fire every frame"
         );
     }
 

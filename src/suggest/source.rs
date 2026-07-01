@@ -124,56 +124,58 @@ impl SuggestionEngine {
         store: Arc<SuggestionStore>,
         cfg: EngineConfig,
     ) -> Self {
-        let stop = Arc::new(AtomicBool::new(false));
+        let stop: crate::livestream::StopFlag = Arc::new(AtomicBool::new(false));
         let mut handles = Vec::new();
         for src in sources {
             let scfg = cfg.config_for(src.kind());
             if !scfg.enabled {
                 continue;
             }
-            let env = Arc::clone(&env);
-            let store = Arc::clone(&store);
-            let stop = Arc::clone(&stop);
-            handles.push(tokio::spawn(async move {
-                // First tick fires immediately (interval's default behaviour),
-                // so suggestions appear shortly after startup, then on cadence.
-                let mut tick = tokio::time::interval(scfg.interval);
-                loop {
-                    tick.tick().await;
-                    if stop.load(Ordering::Relaxed) {
-                        break;
-                    }
+            let kind = src.kind();
+            // Stage 1 — one continuous refresh loop per source, driven by the
+            // reusable `livestream::spawn_interval_refresh`. Each tick re-polls
+            // the source (off the async reactor thread — poll may block on a
+            // subprocess/HTTP) and pushes its fresh set into the shared store,
+            // so a source's data is re-fetched continuously, never once.
+            //
+            // The refresher captures the source+env+cfg; the sink computes a
+            // fresh `now_ms` per tick and ingests. A panic is preserved (the
+            // last-known rows survive) rather than wiping the source's slice.
+            let refresh: Arc<dyn Fn() -> Vec<super::core::Suggestion> + Send + Sync> = {
+                let s = Arc::clone(&src);
+                let e = Arc::clone(&env);
+                let cfg2 = scfg.clone();
+                Arc::new(move || {
+                    let mut v = s.poll(e.as_ref(), &cfg2);
+                    v.truncate(cfg2.max_items);
+                    v
+                })
+            };
+            let sink = {
+                let store = Arc::clone(&store);
+                let env = Arc::clone(&env);
+                move |items: Vec<super::core::Suggestion>| {
                     let now_ms = env.now_unix().saturating_mul(1000);
-                    let s = Arc::clone(&src);
-                    let e = Arc::clone(&env);
-                    let cfg2 = scfg.clone();
-                    // poll may block (subprocess / curl) — keep it off the
-                    // async reactor thread.
-                    // Watchers only ever touch RAM. Decay + disk persistence are
-                    // owned by the single maintenance task (see mod.rs), off this
-                    // hot path — no per-watcher full-map scans or writes.
-                    match tokio::task::spawn_blocking(move || {
-                        let mut v = s.poll(e.as_ref(), &cfg2);
-                        v.truncate(cfg2.max_items);
-                        v
-                    })
-                    .await
-                    {
-                        Ok(items) => store.ingest(src.kind(), items, now_ms),
-                        Err(join_err) => {
-                            // The contract says poll must not panic. If it did,
-                            // LOG it (don't swallow silently) and PRESERVE the
-                            // last-known rows — an ingest of the empty default
-                            // would wipe this source's whole slice every tick.
-                            tracing::warn!(
-                                kind = ?src.kind(),
-                                %join_err,
-                                "suggestion source panicked; keeping last-known rows"
-                            );
-                        }
-                    }
+                    store.ingest(kind, items, now_ms);
                 }
-            }));
+            };
+            let on_panic = move || {
+                // The contract says poll must not panic. If it did, LOG it
+                // (don't swallow silently) and PRESERVE the last-known rows —
+                // an ingest of the empty default would wipe this source's whole
+                // slice every tick.
+                tracing::warn!(
+                    kind = ?kind,
+                    "suggestion source panicked; keeping last-known rows"
+                );
+            };
+            handles.push(crate::livestream::spawn_interval_refresh(
+                scfg.interval,
+                Arc::clone(&stop),
+                refresh,
+                sink,
+                on_panic,
+            ));
         }
         Self { handles, stop }
     }
