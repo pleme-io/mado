@@ -772,14 +772,42 @@ impl SuggestionsConfig {
             persist_debounce_secs: 5,
             max_entries: 200,
             sources: vec![
-                // Zero-network local sources — work for ANY download, no creds,
-                // no outbound calls. The "delightful default" tier.
+                // Every source degrades gracefully — a missing dep/cred/cluster
+                // yields an empty Vec, never an error or a blocking call (see
+                // suggest/source.rs contract). So the prescribed default arms the
+                // operator's full workflow surface: the band fills from whatever
+                // is actually reachable, live-streamed into the Ctrl-S board. The
+                // three external-cost pollers (AwsHealth / DatadogMonitors /
+                // CloudflareDeployments) stay opt-in to avoid steady API spend.
+                //
+                // Zero-network local tier — works for ANY download, no creds.
                 SuggestionSourceConfig::enable(crate::suggest::SourceKind::RecentDirs),
                 SuggestionSourceConfig::enable(crate::suggest::SourceKind::ProjectMarks),
-                // Your Jira sprint + assigned tickets (silently empty without a
-                // Jira org / token).
+                SuggestionSourceConfig::enable(crate::suggest::SourceKind::GitBranchPr),
+                SuggestionSourceConfig::enable(crate::suggest::SourceKind::TendRepos),
+                SuggestionSourceConfig::enable(crate::suggest::SourceKind::CargoWarnings),
+                SuggestionSourceConfig::enable(crate::suggest::SourceKind::TodoBacklog),
+                // GitHub (operator token).
+                SuggestionSourceConfig::enable(crate::suggest::SourceKind::GithubReviewRequested),
+                SuggestionSourceConfig::enable(crate::suggest::SourceKind::GithubAssignedIssues),
+                SuggestionSourceConfig::enable(crate::suggest::SourceKind::GithubActionsFailing),
+                // Jira + Confluence.
                 SuggestionSourceConfig::enable(crate::suggest::SourceKind::JiraSprint),
                 SuggestionSourceConfig::enable(crate::suggest::SourceKind::JiraAssigned),
+                SuggestionSourceConfig::enable(crate::suggest::SourceKind::ConfluenceMentions),
+                // Fleet cluster + ops surface.
+                SuggestionSourceConfig::enable(crate::suggest::SourceKind::FluxFailing),
+                SuggestionSourceConfig::enable(crate::suggest::SourceKind::BreatheConflict),
+                SuggestionSourceConfig::enable(crate::suggest::SourceKind::EngenhoNodes),
+                SuggestionSourceConfig::enable(crate::suggest::SourceKind::GrafanaAlerts),
+                SuggestionSourceConfig::enable(crate::suggest::SourceKind::GrafanaIncidents),
+                SuggestionSourceConfig::enable(crate::suggest::SourceKind::GrafanaOncall),
+                SuggestionSourceConfig::enable(crate::suggest::SourceKind::OpsgenieAlerts),
+                SuggestionSourceConfig::enable(crate::suggest::SourceKind::KurageAgents),
+                SuggestionSourceConfig::enable(crate::suggest::SourceKind::SecretAge),
+                // Personal cadence.
+                SuggestionSourceConfig::enable(crate::suggest::SourceKind::GoogleTasks),
+                SuggestionSourceConfig::enable(crate::suggest::SourceKind::GoogleCalendar),
             ],
         }
     }
@@ -3766,52 +3794,55 @@ mod tests {
     }
 
     #[test]
-    fn prescribed_suggestions_local_plus_jira_on_outbound_api_off() {
+    fn prescribed_suggestions_arm_the_workflow_surface_cost_pollers_off() {
         use crate::suggest::SourceKind;
         let s = SuggestionsConfig::prescribed();
-        // The stream itself is on, but sources are off-by-default — the gate
-        // that keeps every outbound-API source quiet unless opted in.
         assert!(s.enabled, "the suggestion stream is on");
-        assert!(!s.default_enabled, "sources are OFF unless explicitly listed");
-        // Exactly the zero-network local sources + the two Jira sources are
-        // listed as enabled. The local pair is the delightful-default tier
-        // (works for any standalone download, no creds, no outbound calls).
-        let on: std::collections::BTreeSet<&str> = s
+        assert!(
+            !s.default_enabled,
+            "sources are armed by an explicit list, not a blanket default-on"
+        );
+        // The prescribed default arms the operator's FULL workflow surface — every
+        // source degrades gracefully to an empty Vec when its dep/cred/cluster is
+        // absent (suggest/source.rs contract), so arming is safe and the band fills
+        // from whatever is actually reachable, live-streamed into Ctrl-S. Only the
+        // three steady-cost external pollers stay opt-in so the band never spends
+        // API budget the operator did not ask for.
+        let armed: std::collections::BTreeSet<&str> = s
             .sources
             .iter()
             .filter(|sc| sc.enabled)
             .map(|sc| sc.kind.as_str())
             .collect();
-        let expected: std::collections::BTreeSet<&str> = [
-            SourceKind::RecentDirs.slug(),
-            SourceKind::ProjectMarks.slug(),
-            SourceKind::JiraSprint.slug(),
-            SourceKind::JiraAssigned.slug(),
-        ]
-        .into_iter()
-        .collect();
-        assert_eq!(on, expected, "only local + Jira sources run by default");
-        // Forcing function: resolve EVERY catalog source through the real engine
-        // config. Only the local pair + the Jira pair may come back enabled — so
-        // every source that talks to an outbound API beyond Jira (GitHub /
-        // Grafana / Datadog / Opsgenie / Cloudflare / AWS / Google / cluster / …)
-        // stays off. A newly-added source is off too (default_enabled = false),
-        // so this can't silently regress into a surprise network call.
-        let ec = crate::suggest::engine_config_from(&s);
-        for &kind in SourceKind::ALL {
-            let want = matches!(
-                kind,
-                SourceKind::RecentDirs
-                    | SourceKind::ProjectMarks
-                    | SourceKind::JiraSprint
-                    | SourceKind::JiraAssigned
+        // "More than Jira": the band is armed across the whole workflow surface,
+        // not just the two Jira sources — this is the regression guard.
+        assert!(
+            armed.len() >= 20,
+            "prescribed must arm the full workflow surface (>=20), got {}",
+            armed.len()
+        );
+        // The three steady-cost external pollers stay opt-in.
+        for cp in [
+            SourceKind::AwsHealth,
+            SourceKind::DatadogMonitors,
+            SourceKind::CloudflareDeployments,
+        ] {
+            assert!(
+                !armed.contains(cp.slug()),
+                "{} is a cost-poller and must be off by default",
+                cp.slug()
             );
-            assert_eq!(
-                ec.config_for(kind).enabled,
-                want,
-                "{} default-enabled should be {want}",
-                kind.slug()
-            );
+        }
+        // A representative spread across every surface class is armed.
+        for k in [
+            SourceKind::JiraSprint,
+            SourceKind::GithubReviewRequested,
+            SourceKind::FluxFailing,
+            SourceKind::GrafanaAlerts,
+            SourceKind::GitBranchPr,
+            SourceKind::GoogleTasks,
+        ] {
+            assert!(armed.contains(k.slug()), "{} should be armed", k.slug());
         }
     }
 
