@@ -196,9 +196,9 @@ checksum = "76a2e8124351fda1ef8aaaa3bbd7ebbcb486bbcd4225aca0aa0d84bb2db8fecb"
 
 [[package]]
 name = "arrayvec"
-version = "0.7.7"
+version = "0.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f02882884d3e1bc524fb12c79f107f6ad0e1cfd498c536ffb494301740995dfe"
+checksum = "d3fb67a6e08acf24fdeccbac2cb6ac4305825bd1f117462e0e6f2f193345ad56"
 
 [[package]]
 name = "as-raw-xcb-connection"
@@ -2439,7 +2439,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.57"
+version = "0.1.58"
 dependencies = [
  "anyhow",
  "awase",
@@ -4758,12 +4758,12 @@ checksum = "dc6fe69c597f9c37bfeeeeeb33da3530379845f10be461a66d16d03eca2ded77"
 [[package]]
 name = "shidou"
 version = "0.1.8"
-source = "git+https://github.com/pleme-io/shidou#b0929681f6f4323177b86e350c82ec3f9f61869f"
+source = "git+https://github.com/pleme-io/shidou#527c3ce244c44b4bb581168ae8429e5dbcee6507"
 dependencies = [
  "anyhow",
  "clap",
  "serde",
- "shikumi 0.1.114 (git+https://github.com/pleme-io/shikumi)",
+ "shikumi 0.1.80",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -4790,30 +4790,12 @@ dependencies = [
 
 [[package]]
 name = "shikumi"
-version = "0.1.114"
-source = "git+https://github.com/pleme-io/shikumi?branch=main#7d4cf0418f0b9a40002263d69a0db70aa16bb408"
+version = "0.1.115"
+source = "git+https://github.com/pleme-io/shikumi?branch=main#570085ec6267bd9e6dd9c347ee9b54b10728ecab"
 dependencies = [
  "arc-swap",
  "async-trait",
  "clap",
- "figment",
- "gen-platform",
- "gen-types",
- "notify",
- "serde",
- "serde_json",
- "serde_yaml",
- "thiserror 2.0.18",
- "tracing",
-]
-
-[[package]]
-name = "shikumi"
-version = "0.1.114"
-source = "git+https://github.com/pleme-io/shikumi#7d4cf0418f0b9a40002263d69a0db70aa16bb408"
-dependencies = [
- "arc-swap",
- "async-trait",
  "figment",
  "gen-platform",
  "gen-types",
@@ -5372,7 +5354,7 @@ dependencies = [
  "once_cell",
  "serde",
  "serde_yaml_ng",
- "shikumi 0.1.114 (git+https://github.com/pleme-io/shikumi?branch=main)",
+ "shikumi 0.1.115",
  "tear-types",
  "thiserror 2.0.18",
  "tracing",
