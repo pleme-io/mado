@@ -49,6 +49,11 @@ use tear_types::{DefinitionId, MultiplexerControl, PaneId, SessionId, SessionSou
 
 use crate::suggest::{StoredSuggestion, SuggestionId, SuggestionStore};
 
+/// The picker's render window height in rows — the ONE constant the bridge's
+/// reserved-band math and the renderer's scroll window share (promoted from
+/// the render-side literal so the two can't drift).
+pub(crate) const WINDOW_ROWS: usize = 12;
+
 /// What creating a session from the picker should name it.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum CreateSpec {
@@ -162,6 +167,15 @@ pub trait SessionPickerBridge: Send {
     fn suggestion_subscribe(&self) -> Option<tokio::sync::watch::Receiver<u64>> {
         None
     }
+
+    /// One dim footer line summarizing BLIND lanes (armed sources whose last
+    /// poll was not Ok — needs config / needs auth / erroring), so a board
+    /// that cannot see reads as blind instead of calm. `None` = all healthy
+    /// (or no store). Read at list() time (the store lock is legal here,
+    /// never in the frame loop); the engine carries it on the picker state.
+    fn health_footer(&self) -> Option<String> {
+        None
+    }
 }
 
 /// The concrete [`SessionPickerBridge`] wired in the embedded event loop:
@@ -203,6 +217,11 @@ pub struct PracaPickerBridge {
     /// Max rows a single source may contribute to the band
     /// (`suggestions.per_source_cap`) — keeps the band diverse. 0 = no cap.
     suggest_cap: usize,
+    /// Band rows guaranteed INSIDE the picker window on the empty query
+    /// (`suggestions.reserved_rows`): the band is inserted at
+    /// `WINDOW_ROWS - reserve` instead of appended, so a long session list
+    /// can't push every suggestion below the fold. 0 = plain append.
+    suggest_reserved: usize,
     /// Memoized ranked snapshot, keyed by the store's change-`generation`. The
     /// expensive clone-whole-map + sort is skipped while the watchers idle (the
     /// generation hasn't moved); the cheap query-filter + live-dedup + balance
@@ -225,6 +244,7 @@ impl PracaPickerBridge {
         suggestions: Option<Arc<SuggestionStore>>,
         suggest_max: usize,
         suggest_cap: usize,
+        suggest_reserved: usize,
     ) -> Self {
         Self {
             praca,
@@ -237,6 +257,7 @@ impl PracaPickerBridge {
             suggestions,
             suggest_max,
             suggest_cap,
+            suggest_reserved,
             ranked_cache: RefCell::new(None),
         }
     }
@@ -668,7 +689,26 @@ impl SessionPickerBridge for PracaPickerBridge {
         // Shade in the continuously-refreshing task suggestions BELOW the live
         // sessions + presets (the union-navigator law: Ctrl-S stays the one
         // navigator). Query-filtered + capped; empty when the stream is off.
-        rows.extend(self.suggestion_rows(query, now));
+        //
+        // Reserved band quota (empty query only): a long session list would
+        // otherwise push the whole band below the render fold. INSERT the
+        // band at `WINDOW_ROWS - reserve` — displaced union rows slide below
+        // it (still scrollable, still counted by the +N-more footer), and
+        // nothing is ever truncated. Non-empty query: plain append (fuzzy
+        // rank rules the whole list).
+        let band = self.suggestion_rows(query, now);
+        if query.trim().is_empty() && !band.is_empty() && self.suggest_reserved > 0 {
+            let reserve = self
+                .suggest_reserved
+                .min(band.len())
+                .min(WINDOW_ROWS - 1);
+            let cut = rows.len().min(WINDOW_ROWS - reserve);
+            let tail = rows.split_off(cut);
+            rows.extend(band);
+            rows.extend(tail);
+        } else {
+            rows.extend(band);
+        }
         // If anything matched (live, latent, or a suggestion), that's the
         // picker's answer; only an empty union falls through to create.
         if !rows.is_empty() {
@@ -748,6 +788,39 @@ impl SessionPickerBridge for PracaPickerBridge {
         self.suggestions.as_ref().map(|store| store.subscribe())
     }
 
+    fn health_footer(&self) -> Option<String> {
+        let store = self.suggestions.as_ref()?;
+        if self.suggest_max == 0 {
+            return None;
+        }
+        // Non-Ok lanes among the armed set (only armed sources ever record a
+        // poll). BTreeMap keeps this catalog-ordered and stable.
+        let blind: Vec<(crate::suggest::SourceKind, crate::suggest::SourceHealth)> = store
+            .health()
+            .into_iter()
+            .filter(|(_, h)| h.status != crate::suggest::SourceStatus::Ok)
+            .collect();
+        if blind.is_empty() {
+            return None;
+        }
+        let mut line = String::from("\u{26a0} "); // warning sign
+        line.push_str(&blind.len().to_string());
+        line.push_str(if blind.len() == 1 { " lane blind: " } else { " lanes blind: " });
+        for (i, (kind, health)) in blind.iter().take(3).enumerate() {
+            if i > 0 {
+                line.push_str(" \u{00B7} "); // middle dot
+            }
+            line.push_str(kind.slug());
+            line.push(' ');
+            line.push_str(health.status.label());
+        }
+        if blind.len() > 3 {
+            line.push_str(" +");
+            line.push_str(&(blind.len() - 3).to_string());
+        }
+        Some(line)
+    }
+
     fn create_and_switch(&self, spec: CreateSpec, now: u64) -> bool {
         let style = self.praca().name_style;
         // The tear-registry name: the emoji label for a preset, the typed
@@ -821,6 +894,7 @@ mod tests {
             None,
             0,
             0,
+            0,
         )
     }
 
@@ -844,6 +918,7 @@ mod tests {
             crate::config::BadgeMode::Auto,
             Some(store),
             max,
+            0,
             0,
         )
     }
@@ -1276,6 +1351,123 @@ mod tests {
         assert!(bridge.spawn_suggestion(id, 1000), "accept spawns the suggestion");
         let after = inproc.with_registry(|r| r.sessions.len());
         assert_eq!(after, before + 1, "a session was spawned for the suggestion");
+    }
+
+    /// The reserved band quota: with more sessions than the render window,
+    /// the empty-query band is INSERTED above the fold (displaced sessions
+    /// slide below, nothing truncated); a query keeps the plain append.
+    #[test]
+    fn reserved_band_rows_stay_inside_the_window_on_the_empty_query() {
+        let inproc = Arc::new(tear_core::InProcess::new());
+        inproc.set_spawn_env(tear_types::SpawnEnv::none());
+        let mut praca = praca::Praca::new();
+        let now = 1000u64;
+        // 14 live sessions — enough to bury an appended band below row 12.
+        for i in 0..14 {
+            let mut name = String::from("sess");
+            name.push_str(&i.to_string());
+            let sid = inproc
+                .new_session_with_source_and_size(
+                    &name,
+                    "/bin/sh",
+                    SessionSource::Named("test".into()),
+                    (80, 24),
+                )
+                .expect("spawn");
+            let mut root = String::from("/code/p/");
+            root.push_str(&name);
+            praca
+                .index
+                .upsert(praca::SessionRecord::for_project(sid, PathBuf::from(root), SessionNameStyle::Emoji, now));
+        }
+        let store = Arc::new(SuggestionStore::new());
+        let items: Vec<crate::suggest::Suggestion> = (0..4)
+            .map(|i| {
+                let mut k = String::from("t");
+                k.push_str(&i.to_string());
+                sug(crate::suggest::SourceKind::JiraAssigned, &k, &k, "/code/x")
+            })
+            .collect();
+        store.ingest(crate::suggest::SourceKind::JiraAssigned, items, now * 1000);
+
+        let switch = crate::session_switch::SwitchRequests::default();
+        switch.attach_sink();
+        let bridge = PracaPickerBridge::new(
+            Arc::new(Mutex::new(praca)),
+            Arc::clone(&inproc),
+            switch,
+            "/bin/sh".to_owned(),
+            tear_types::SpawnEnv::none(),
+            true,
+            crate::config::BadgeMode::Auto,
+            Some(store),
+            6,
+            0,
+            3, // reserved_rows
+        );
+
+        // Empty query: the band is inserted at WINDOW_ROWS - 3 = row 9, so
+        // rows 9..12 (inside the window) are suggestions and the displaced
+        // sessions follow after the band. Nothing is lost.
+        let rows = bridge.list("", now);
+        assert_eq!(rows.len(), 14 + 4, "insert, never truncate");
+        for idx in (WINDOW_ROWS - 3)..WINDOW_ROWS {
+            assert!(
+                matches!(rows[idx].kind, RowKind::Suggestion(_)),
+                "row {idx} inside the window is a band row"
+            );
+        }
+        assert!(
+            matches!(rows[WINDOW_ROWS - 4].kind, RowKind::Switch(_)),
+            "the row above the band is still a session"
+        );
+        assert!(
+            matches!(rows[WINDOW_ROWS + 1].kind, RowKind::Switch(_)),
+            "displaced sessions slide below the band, still reachable"
+        );
+
+        // Non-empty query: plain append (fuzzy rank rules) — band after
+        // every matching session row.
+        let rows = bridge.list("sess", now);
+        let last_switch = rows.iter().rposition(|r| matches!(r.kind, RowKind::Switch(_))).unwrap();
+        let first_sug = rows.iter().position(|r| matches!(r.kind, RowKind::Suggestion(_)));
+        if let Some(fs) = first_sug {
+            assert!(last_switch < fs, "with a query the band appends below");
+        }
+    }
+
+    /// The health footer names blind lanes; all-Ok (or no store) is None.
+    #[test]
+    fn health_footer_names_blind_lanes_and_stays_quiet_when_healthy() {
+        let (inproc, live) = live_inproc();
+        let mut praca = praca::Praca::new();
+        praca.index.upsert(praca::SessionRecord::for_project(
+            live,
+            PathBuf::from("/code/pleme-io/mado"),
+            SessionNameStyle::Emoji,
+            1000,
+        ));
+        let store = Arc::new(SuggestionStore::new());
+        let bridge = bridge_with_suggestions(praca, inproc, Arc::clone(&store), 6);
+        assert!(bridge.health_footer().is_none(), "no polls yet → quiet");
+
+        store.record_poll(crate::suggest::SourceKind::TendRepos, crate::suggest::SourceStatus::Ok, 1000);
+        assert!(bridge.health_footer().is_none(), "all-Ok → quiet");
+
+        store.record_poll(
+            crate::suggest::SourceKind::GrafanaAlerts,
+            crate::suggest::SourceStatus::Error,
+            2000,
+        );
+        store.record_poll(
+            crate::suggest::SourceKind::DatadogMonitors,
+            crate::suggest::SourceStatus::AuthMissing,
+            2000,
+        );
+        let footer = bridge.health_footer().expect("blind lanes surface");
+        assert!(footer.contains("2 lanes blind"), "{footer}");
+        assert!(footer.contains("grafana-alerts erroring"), "{footer}");
+        assert!(footer.contains("datadog-monitors needs auth"), "{footer}");
     }
 
     #[test]

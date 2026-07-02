@@ -1423,6 +1423,7 @@ fn try_run_default_embedded(
                 suggest_store,
                 suggest_max,
                 suggest_cap,
+                config.suggestions.reserved_rows,
             )) as Box<dyn crate::session_picker::SessionPickerBridge>
         });
 

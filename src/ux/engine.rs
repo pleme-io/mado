@@ -937,7 +937,12 @@ impl InputEngine {
                 // moment the switcher opens — "always tracking + curating".
                 bridge.refresh(now);
                 let rows = bridge.list("", now);
-                self.session_picker.lock().unwrap().open(rows, false);
+                let footer = bridge.health_footer();
+                {
+                    let mut sp = self.session_picker.lock().unwrap();
+                    sp.open(rows, false);
+                    sp.footer = footer;
+                }
                 self.last_board_tick = Some(Instant::now());
                 self.board_shift_at = None;
             }
@@ -966,7 +971,10 @@ impl InputEngine {
         let query = self.session_picker.lock().unwrap().query.clone();
         let now = crate::auto_attach::now_unix_seconds();
         let rows = bridge.list(&query, now);
-        self.session_picker.lock().unwrap().set_results(rows);
+        let footer = bridge.health_footer();
+        let mut sp = self.session_picker.lock().unwrap();
+        sp.set_results(rows);
+        sp.footer = footer;
     }
 
     /// AUTONOMOUS whole-board refresh while the picker sits open + resting:

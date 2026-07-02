@@ -729,6 +729,11 @@ pub struct SuggestionsConfig {
     /// entirely instead of merging over it — an explicit allow-list for an
     /// operator who wants exactly-these-sources and nothing else.
     pub sources_replace: bool,
+    /// Band rows guaranteed INSIDE the picker's render window on the empty
+    /// query: with many live sessions the band is inserted above the fold
+    /// instead of appended below it (displaced session rows stay scrollable).
+    /// 0 = plain append (the band can fall below the fold).
+    pub reserved_rows: usize,
     /// Ambient signal while the board is closed: a NEW Critical suggestion
     /// bounces the dock / flashes the taskbar once per issue (the platform
     /// attention request), so an incident reaches the operator without the
@@ -758,6 +763,7 @@ impl SuggestionsConfig {
             max_entries: 0,
             sources: Vec::new(),
             sources_replace: false,
+            reserved_rows: 0,
             attention_on_critical: false,
         }
     }
@@ -832,6 +838,7 @@ impl SuggestionsConfig {
                 SuggestionSourceConfig::enable(crate::suggest::SourceKind::Safra),
             ],
             sources_replace: false,
+            reserved_rows: 3,
             attention_on_critical: true,
         }
     }

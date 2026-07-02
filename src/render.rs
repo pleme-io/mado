@@ -2318,6 +2318,7 @@ impl TerminalRenderer {
         selected: usize,
         disabled: bool,
         notice: Option<&str>,
+        footer: Option<&str>,
         frame: &mut garasu::Frame<'_>,
         gpu: &garasu::GpuContext,
         surface_view: &wgpu::TextureView,
@@ -2326,10 +2327,10 @@ impl TerminalRenderer {
         encoder: &mut wgpu::CommandEncoder,
     ) {
         use crate::picker::component::{LineRole, OverlayLine, OverlaySpec};
-        let max_rows = 12usize;
+        let max_rows = crate::session_picker::WINDOW_ROWS;
 
-        // +3: a title line, a possible notice, a possible "… +N more" footer.
-        let mut lines: Vec<OverlayLine> = Vec::with_capacity(max_rows + 3);
+        // +4: title, possible notice, possible "… +N more", possible health.
+        let mut lines: Vec<OverlayLine> = Vec::with_capacity(max_rows + 4);
         lines.push(OverlayLine::new(
             format!("\u{25b6} session  {query}\u{2588}"),
             LineRole::Title,
@@ -2426,6 +2427,15 @@ impl TerminalRenderer {
                     LineRole::Hint,
                 ));
             }
+        }
+
+        // Health footer: one dim line naming blind lanes (erroring / needs
+        // auth / needs config), so a board that cannot see never reads as
+        // calm. Chrome, not a row — never selectable.
+        if let Some(f) = footer {
+            let mut line = String::from("  ");
+            line.push_str(f);
+            lines.push(OverlayLine::new(line, LineRole::Hint));
         }
 
         // Anchor per config — Center (default) floats the popup; Bottom /
@@ -5013,7 +5023,7 @@ impl RenderCallback for TerminalRenderer {
         match focus {
             Overlay::None => {}
             Overlay::SessionPicker => {
-                let (q, results, sel, disabled, notice) = {
+                let (q, results, sel, disabled, notice, footer) = {
                     let g = self.session_picker.lock().unwrap();
                     (
                         g.query.clone(),
@@ -5021,6 +5031,7 @@ impl RenderCallback for TerminalRenderer {
                         g.selected,
                         g.disabled,
                         g.notice.clone(),
+                        g.footer.clone(),
                     )
                 };
                 self.draw_session_picker(
@@ -5029,6 +5040,7 @@ impl RenderCallback for TerminalRenderer {
                     sel,
                     disabled,
                     notice.as_deref(),
+                    footer.as_deref(),
                     &mut frame,
                     ctx.gpu,
                     ctx.surface_view,

@@ -36,6 +36,10 @@ pub struct FuzzyPicker<Row> {
     /// open/close and on the next query edit; survives autonomous
     /// re-lists so the operator actually sees it.
     pub notice: Option<String>,
+    /// A one-line dim health footer ("⚠ 2 lanes blind: …") — chrome, not a
+    /// row (never selectable). Refreshed by the engine on every re-list
+    /// from the bridge's health read; cleared on open/close.
+    pub footer: Option<String>,
 }
 
 impl<Row> FuzzyPicker<Row> {
@@ -48,6 +52,7 @@ impl<Row> FuzzyPicker<Row> {
             results: Vec::new(),
             selected: 0,
             notice: None,
+            footer: None,
         }
     }
 
@@ -61,6 +66,7 @@ impl<Row> FuzzyPicker<Row> {
         self.selected = 0;
         self.results = rows;
         self.notice = None;
+        self.footer = None;
     }
 
     /// Close + reset.
@@ -71,6 +77,7 @@ impl<Row> FuzzyPicker<Row> {
         self.results.clear();
         self.selected = 0;
         self.notice = None;
+        self.footer = None;
     }
 
     /// Replace the ranked rows after a query edit (the engine recomputes
