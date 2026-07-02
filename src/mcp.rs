@@ -434,12 +434,39 @@ impl MadoMcp {
         value.to_string()
     }
 
-    #[tool(description = "Set a mado configuration value at runtime. Changes take effect immediately via hot-reload.")]
+    #[tool(description = "Set a mado configuration value by editing the discovered mado.yaml — a typed read-modify-write: the patched document must deserialize into MadoConfig (unknown keys rejected) BEFORE anything is written, and the write is atomic (tmp + rename). The live GUI's config watcher then applies it within a frame: renderer setter delta + suggestion-engine hot-swap — one mutation ingress (the file), identical for operator and agent edits. Dotted keys navigate/create nested sections (e.g. 'tear.auto_attach', 'suggestions.enabled', 'behavior.scrollback_lines'). Value is parsed as JSON (numbers/bools/objects); bare words pass as strings. Fails typed when the config is nix-managed (a home-manager symlink) — declare those changes in the nix profile instead.")]
     async fn config_set(&self, Parameters(input): Parameters<ConfigSetInput>) -> String {
-        stub_response(
-            "config_set",
-            serde_json::json!({ "key": input.key, "value": input.value }),
-        )
+        let resp = match shikumi::ConfigDiscovery::new("mado")
+            .env_override("MADO_CONFIG")
+            .discover()
+        {
+            Err(e) => serde_json::json!({
+                "ok": false,
+                "tool": "config_set",
+                "key": input.key,
+                "error": format!(
+                    "no mado config file discovered ({e}); create one or set MADO_CONFIG"
+                ),
+            }),
+            Ok(path) => match config_set_rmw(&path, &input.key, &input.value) {
+                Ok(()) => serde_json::json!({
+                    "ok": true,
+                    "tool": "config_set",
+                    "key": input.key,
+                    "value": input.value,
+                    "path": path.display().to_string(),
+                    "note": "written atomically; a running GUI hot-reloads it (renderer delta + engine swap) within a frame",
+                }),
+                Err(e) => serde_json::json!({
+                    "ok": false,
+                    "tool": "config_set",
+                    "key": input.key,
+                    "path": path.display().to_string(),
+                    "error": e.to_string(),
+                }),
+            },
+        };
+        resp.to_string()
     }
 
     #[tool(description = "Simulate a keybind chord against the LIVE GUI mado. Parses `chord` (awase grammar, e.g. 'cmd+g'), forwards it via kanshou to the GUI process, where it is resolved against the keybinding table that window actually loaded and queued for dispatch on the GUI event loop — exactly the code path a physical keypress takes after key→action resolution. Unlike `send_keys` (which only reaches the PTY), this drives GUI-side actions (font zoom today; dir-picker/search/etc. as the tear-mode dispatch grows). Returns `{ok, queued, action, chord, live_gui_pid}` on success; `{ok: false, error: 'no-binding'}` for an unbound chord; `{ok: false, error: 'no-injection-sink'}` when the GUI isn't running the tear-attached event loop; `{ok: false, error: 'not-forwardable', resolved_action}` when no GUI mado is reachable (the chord is still resolved process-locally so bindings can be verified headlessly).")]
@@ -1697,6 +1724,92 @@ fn stub_value(tool: &str, extra: serde_json::Value) -> serde_json::Value {
     serde_json::Value::Object(obj)
 }
 
+/// Typed read-modify-write of the mado config file — the agent half of
+/// the one-ingress hot-reload design. The FILE is the mutation bus:
+/// agent edits land exactly like operator edits, and the GUI's shikumi
+/// watcher fires the same reactor (renderer `SetterCall` delta + the
+/// suggestion-engine `EngineCommand::Swap`). Guarantees, in order:
+///
+/// 1. **Never break nix management** — a symlinked config (the
+///    home-manager deployment shape; `fs::rename` over it would
+///    silently REPLACE the symlink with a regular file) is refused
+///    before anything is read.
+/// 2. **Parse, don't validate** — the patched document must
+///    deserialize into [`crate::config::MadoConfig`]
+///    (`deny_unknown_fields`) BEFORE anything is written; a typo'd
+///    key or ill-typed value never reaches the file.
+/// 3. **Atomic** — tmp file + rename in the config's directory.
+///
+/// The `value` arrives as MCP string input: parsed as JSON first
+/// (numbers / bools / objects / null), falling back to a bare string
+/// for unquoted scalars like `nord` or `auto_switch`.
+fn config_set_rmw(path: &std::path::Path, key: &str, value_json: &str) -> anyhow::Result<()> {
+    let meta = std::fs::symlink_metadata(path)
+        .map_err(|e| anyhow::anyhow!("stat {}: {e}", path.display()))?;
+    if meta.file_type().is_symlink() {
+        anyhow::bail!(
+            "{} is a symlink (home-manager / nix-managed) — declare the change \
+             in the nix profile instead of editing the rendered file",
+            path.display()
+        );
+    }
+    let raw = std::fs::read_to_string(path)
+        .map_err(|e| anyhow::anyhow!("read {}: {e}", path.display()))?;
+    let mut doc: serde_yaml_ng::Value = serde_yaml_ng::from_str(&raw)
+        .map_err(|e| anyhow::anyhow!("parse {}: {e}", path.display()))?;
+    if doc.is_null() {
+        doc = serde_yaml_ng::Value::Mapping(serde_yaml_ng::Mapping::new());
+    }
+    let vj: serde_json::Value = serde_json::from_str(value_json)
+        .unwrap_or_else(|_| serde_json::Value::String(value_json.to_owned()));
+    let vy: serde_yaml_ng::Value = serde_yaml_ng::to_value(&vj)
+        .map_err(|e| anyhow::anyhow!("value does not convert to YAML: {e}"))?;
+    {
+        let mut cur = &mut doc;
+        let parts: Vec<&str> = key.split('.').collect();
+        for (i, part) in parts.iter().enumerate() {
+            let map = cur.as_mapping_mut().ok_or_else(|| {
+                anyhow::anyhow!("config path {key:?} crosses a non-mapping node at {part:?}")
+            })?;
+            let k = serde_yaml_ng::Value::String((*part).to_owned());
+            if i == parts.len() - 1 {
+                map.insert(k, vy.clone());
+                break;
+            }
+            cur = map
+                .entry(k)
+                .or_insert_with(|| serde_yaml_ng::Value::Mapping(serde_yaml_ng::Mapping::new()));
+        }
+    }
+    let typed: crate::config::MadoConfig = serde_yaml_ng::from_value(doc.clone())
+        .map_err(|e| anyhow::anyhow!("rejected — patched config is not a valid MadoConfig: {e}"))?;
+    // MadoConfig's TOP level tolerates unknown fields (only sub-structs
+    // deny them), so deserialization alone would let a typo'd key land
+    // silently dead in the file. Round-trip check: the patched key must
+    // survive re-serialization of the TYPED config — if serde ignored
+    // it, it won't be there, and the write is refused instead of lying.
+    let echo = serde_yaml_ng::to_value(&typed)
+        .map_err(|e| anyhow::anyhow!("re-serialize typed config: {e}"))?;
+    let mut cur = &echo;
+    for part in key.split('.') {
+        cur = cur.get(part).ok_or_else(|| {
+            anyhow::anyhow!(
+                "rejected — {key:?} is not a known MadoConfig option \
+                 (the deserializer ignores it, so the write would be silently dead)"
+            )
+        })?;
+    }
+    let rendered = serde_yaml_ng::to_string(&doc)
+        .map_err(|e| anyhow::anyhow!("render patched config: {e}"))?;
+    let tmp = path.with_extension("yaml.mcp-tmp");
+    std::fs::write(&tmp, rendered).map_err(|e| anyhow::anyhow!("write {}: {e}", tmp.display()))?;
+    std::fs::rename(&tmp, path).map_err(|e| {
+        let _ = std::fs::remove_file(&tmp);
+        anyhow::anyhow!("rename over {}: {e}", path.display())
+    })?;
+    Ok(())
+}
+
 /// Render one [`ClipboardEntry`] as the MCP wire shape. `preview`
 /// is always the first 60 chars of the payload with newlines folded
 /// into `⏎` so callers can eyeball an entry without pulling the full
@@ -2596,26 +2709,16 @@ mod tests {
         // `list_sessions`, `send_keys`, `get_output`, `snapshot_grid`,
         // `resize_session`, `close_session`) are real implementations
         // backed by `SessionRegistry` — they no longer go through
-        // `stub_response`. Only the tools that still need a windowed
-        // mado process (config_*, split_pane, new_tab) live here.
+        // `stub_response`. `config_set` graduated to a real typed
+        // file RMW (its own tests below); only `config_get`'s
+        // no-live-GUI fallback still rides the stub shape.
         let server = new_server();
-        let responses: Vec<(&str, String)> = vec![
-            (
-                "config_get",
-                server
-                    .config_get(Parameters(ConfigGetInput { key: None }))
-                    .await,
-            ),
-            (
-                "config_set",
-                server
-                    .config_set(Parameters(ConfigSetInput {
-                        key: "font_size".into(),
-                        value: "14".into(),
-                    }))
-                    .await,
-            ),
-        ];
+        let responses: Vec<(&str, String)> = vec![(
+            "config_get",
+            server
+                .config_get(Parameters(ConfigGetInput { key: None }))
+                .await,
+        )];
         for (tool_name, raw) in responses {
             let parsed: serde_json::Value = serde_json::from_str(&raw)
                 .unwrap_or_else(|e| panic!("{tool_name} returned non-JSON: {e} in {raw:?}"));
@@ -2633,6 +2736,62 @@ mod tests {
                 "{tool_name}: note should mention IPC requirement",
             );
         }
+    }
+
+    /// The typed config RMW: round-trip through a real temp file, with
+    /// the validation gate refusing junk BEFORE the file changes. No
+    /// env vars, no discovery — the core fn takes an explicit path so
+    /// these can't race other tests or touch the developer's config.
+    #[test]
+    fn config_set_rmw_round_trips_and_validates() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("mado.yaml");
+        std::fs::write(&path, "font_size: 12\ntear:\n  runtime: embedded\n").unwrap();
+
+        // Scalar set + nested dotted-path set (creating no new keys).
+        config_set_rmw(&path, "font_size", "14").expect("font_size set");
+        config_set_rmw(&path, "tear.auto_attach", "auto_switch").expect("nested set");
+        // A section that didn't exist yet is created on the way.
+        config_set_rmw(&path, "behavior.copy_on_select", "false").expect("created section");
+
+        let doc: serde_yaml_ng::Value =
+            serde_yaml_ng::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        assert_eq!(doc["font_size"], serde_yaml_ng::Value::from(14));
+        assert_eq!(doc["tear"]["auto_attach"], serde_yaml_ng::Value::from("auto_switch"));
+        assert_eq!(doc["behavior"]["copy_on_select"], serde_yaml_ng::Value::from(false));
+        // And the whole file still IS a MadoConfig.
+        let _typed: crate::config::MadoConfig = serde_yaml_ng::from_value(doc).unwrap();
+
+        // Unknown key → refused by the round-trip presence gate (the
+        // top-level MadoConfig IGNORES unknown fields, so plain
+        // deserialization would have accepted this as silently dead).
+        let before = std::fs::read_to_string(&path).unwrap();
+        let err = config_set_rmw(&path, "no_such_option", "1").unwrap_err();
+        assert!(err.to_string().contains("not a known MadoConfig option"), "{err}");
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), before, "file mutated on reject");
+
+        // Ill-typed value → refused, file untouched.
+        let err = config_set_rmw(&path, "font_size", "\"not-a-number\"").unwrap_err();
+        assert!(err.to_string().contains("not a valid MadoConfig"), "{err}");
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), before, "file mutated on reject");
+    }
+
+    /// A symlinked config is the home-manager deployment shape;
+    /// rename-over-symlink would silently replace the link with a
+    /// regular file and break nix management — refused up front.
+    #[test]
+    #[cfg(unix)]
+    fn config_set_rmw_refuses_symlinked_config() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let real = dir.path().join("store-mado.yaml");
+        std::fs::write(&real, "font_size: 12\n").unwrap();
+        let link = dir.path().join("mado.yaml");
+        std::os::unix::fs::symlink(&real, &link).unwrap();
+        let err = config_set_rmw(&link, "font_size", "14").unwrap_err();
+        assert!(err.to_string().contains("symlink"), "{err}");
+        // Neither the link nor its target changed.
+        assert!(std::fs::symlink_metadata(&link).unwrap().file_type().is_symlink());
+        assert_eq!(std::fs::read_to_string(&real).unwrap(), "font_size: 12\n");
     }
 
     #[test]
