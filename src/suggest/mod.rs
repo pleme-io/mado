@@ -200,7 +200,7 @@ pub fn spawn_engine_thread(
                         store.decay_per_source(now_ms, |k| {
                             ttl_map.get(&k).copied().unwrap_or(global_ttl_ms)
                         });
-                        store.gc(max_entries);
+                        store.gc(max_entries, now_ms);
                     }
                     // The safra plane: swap the registry's unconfigured
                     // placeholder for the config-built adapter when the
@@ -238,7 +238,7 @@ pub fn spawn_engine_thread(
                         store.decay_per_source(now_ms, |k| {
                             ttl_map.get(&k).copied().unwrap_or(global_ttl_ms)
                         });
-                        store.gc(max_entries);
+                        store.gc(max_entries, now_ms);
                         let current_gen = store.generation();
                         if persist && current_gen != last_gen {
                             store.persist_file(&path, now_ms);

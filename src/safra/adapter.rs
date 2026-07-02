@@ -6,6 +6,15 @@
 //! the existing watcher plane — zero new runtime. (The vigy-hosted variant,
 //! where cells become tlisp-authored reconcilers, is the later phase; see
 //! `docs/SAFRA.md` §5.)
+//!
+//! **Blind-endpoint semantics (tier-honest):** `CellSource::observe` returns
+//! a plain `Vec`, so the adapter cannot distinguish observed-empty from
+//! unreachable — projections come from the CURATED set, which retains items
+//! until the kind's TTL, so a blind endpoint degrades to slow TTL decay,
+//! never an instant wipe. What IS lossy today: the Safra kind's health reads
+//! Ok while an endpoint is blind. Typed per-cell observe outcomes (the
+//! `PollOutcome` shape pushed down into `CellSource`) are the named M4
+//! convergence-hardening item in SAFRA.md §10.
 
 use std::sync::{Arc, Mutex};
 

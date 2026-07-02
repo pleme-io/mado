@@ -33,9 +33,12 @@ impl SuggestionSource for GithubActionsFailingSource {
             };
             return PollOutcome::Fetched(parse(&out, env, cfg));
         };
-        // Fleet mode: poll each named repo and merge. The upstream counts as
-        // observed if at least ONE repo answered; all-failed = Error (keep
-        // last rows) so a gh outage never reads as "every repo green".
+        // Fleet mode: poll each named repo and merge. ALL-OR-NOTHING: ingest
+        // replaces this source's whole store slice, so a partial merge would
+        // silently WIPE the rows of every repo whose gh call failed — the
+        // exact unobserved-path wipe the PollOutcome border exists to
+        // prevent, scoped per-repo. One failed repo = Error (keep every
+        // last-known row; health shows erroring) rather than a partial truth.
         let names: Vec<&str> = repos
             .split(',')
             .map(str::trim)
@@ -47,18 +50,13 @@ impl SuggestionSource for GithubActionsFailingSource {
             return PollOutcome::unconfigured();
         }
         let mut merged = Vec::new();
-        let mut observed = false;
         for repo in names {
-            if let Some(out) = env.run(&run_list_cmd(env, &limit, Some(repo))) {
-                observed = true;
-                merged.extend(parse(&out, env, cfg));
-            }
+            let Some(out) = env.run(&run_list_cmd(env, &limit, Some(repo))) else {
+                return PollOutcome::error();
+            };
+            merged.extend(parse(&out, env, cfg));
         }
-        if observed {
-            PollOutcome::Fetched(merged)
-        } else {
-            PollOutcome::error()
-        }
+        PollOutcome::Fetched(merged)
     }
 }
 
@@ -177,22 +175,39 @@ mod tests {
     }
 
     #[test]
-    fn repos_param_polls_each_repo_and_merges() {
-        // Fleet mode: one repo answers, the other's run fails — at least one
-        // observation → Fetched(merged), never a wipe.
+    fn repos_param_is_all_or_nothing() {
+        // Fleet mode is ALL-OR-NOTHING: ingest replaces the source's whole
+        // store slice, so a partial merge would wipe the failed repos' rows.
+        // One repo answering while the other fails → Error (keep last rows).
         let mut cfg = SourceConfig::for_kind(SourceKind::GithubActionsFailing);
         cfg.params.insert(
             "repos".to_string(),
             "pleme-io/mado,pleme-io/tear".to_string(),
         );
-        let env = MockEnvironment::new().roots("/code", "/home/op").cmd(
+        let partial = MockEnvironment::new().roots("/code", "/home/op").cmd(
             "gh run list --repo pleme-io/mado --status=failure --json databaseId,displayTitle,workflowName,headBranch --limit 5",
             FIXTURE,
         );
-        let PollOutcome::Fetched(out) = GithubActionsFailingSource.poll(&env, &cfg) else {
-            panic!("one observed repo is enough for Fetched");
+        assert_eq!(
+            GithubActionsFailingSource.poll(&partial, &cfg),
+            PollOutcome::error(),
+            "a partially-observed fleet must not become a partial truth"
+        );
+        // EVERY repo answering → Fetched(merged).
+        let full = MockEnvironment::new()
+            .roots("/code", "/home/op")
+            .cmd(
+                "gh run list --repo pleme-io/mado --status=failure --json databaseId,displayTitle,workflowName,headBranch --limit 5",
+                FIXTURE,
+            )
+            .cmd(
+                "gh run list --repo pleme-io/tear --status=failure --json databaseId,displayTitle,workflowName,headBranch --limit 5",
+                "[]",
+            );
+        let PollOutcome::Fetched(out) = GithubActionsFailingSource.poll(&full, &cfg) else {
+            panic!("all repos observed → Fetched");
         };
-        assert_eq!(out.len(), 2, "the answering repo's runs are merged");
+        assert_eq!(out.len(), 2, "merged across the fleet");
         // EVERY repo's run failing → Error (the fleet was not observed).
         let dead = MockEnvironment::new();
         assert_eq!(

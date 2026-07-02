@@ -52,7 +52,7 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, max: usize) -> Vec<Suggest
     let Ok(payload) = serde_json::from_str::<AlertsPayload>(json) else {
         return Vec::new();
     };
-    payload
+    let mut out: Vec<Suggestion> = payload
         .data
         .alerts
         .into_iter()
@@ -96,8 +96,13 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, max: usize) -> Vec<Suggest
                     .ranked(super::util::IncidentSeverity::rank_of(severity)),
             )
         })
-        .take(max)
-        .collect()
+        .collect();
+    // Rank BEFORE the cap: the alerts API has no server-side ordering we can
+    // trust, so cutting in upstream order could drop a critical while keeping
+    // warnings. Sort by rank, then cap.
+    out.sort_by(|a, b| b.rank_key().cmp(&a.rank_key()));
+    out.truncate(max);
+    out
 }
 
 #[derive(serde::Deserialize, Default)]

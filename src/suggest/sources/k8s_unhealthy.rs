@@ -48,7 +48,8 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, cap: usize) -> Vec<Suggest
     let Ok(list) = serde_json::from_str::<PodList>(json) else {
         return Vec::new();
     };
-    list.items
+    let mut out: Vec<Suggestion> = list
+        .items
         .into_iter()
         .filter_map(|pod| {
             // The first container stuck in `waiting` carries the reason we care
@@ -121,8 +122,12 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, cap: usize) -> Vec<Suggest
                     .ranked(severity_rank(&reason, phase)),
             )
         })
-        .take(cap)
-        .collect()
+        .collect();
+    // Rank BEFORE the cap: kubectl lists pods in name order, so cutting there
+    // could drop a CrashLoop while keeping Pendings. Sort by rank, then cap.
+    out.sort_by(|a, b| b.rank_key().cmp(&a.rank_key()));
+    out.truncate(cap);
+    out
 }
 
 /// Map an unhealthy pod onto the typed [`Rank`] ladder: a crash loop is the

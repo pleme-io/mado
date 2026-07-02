@@ -103,6 +103,11 @@ pub trait SuggestionSource: Send + Sync {
 /// rank-sorted BEFORE the `max_items` truncation (so a provider emitting its
 /// worst item last never loses its best), then ingested; an `Unavailable`
 /// records health and leaves the last-known rows in place.
+///
+/// Dismissed rows are exempt from the `max_items` budget: they are invisible
+/// on the board, so a dismissed top-ranked issue must not crowd offerable
+/// rows out of the store — but they still ride along in the ingest so their
+/// Dismissed state persists on the live entry (stickiness).
 pub fn apply_poll(
     kind: SourceKind,
     outcome: PollOutcome,
@@ -111,10 +116,13 @@ pub fn apply_poll(
     now_ms: u64,
 ) {
     match outcome {
-        PollOutcome::Fetched(mut items) => {
-            items.sort_by(|a, b| b.rank_key().cmp(&a.rank_key()));
-            items.truncate(cfg.max_items);
-            store.ingest(kind, items, now_ms);
+        PollOutcome::Fetched(items) => {
+            let (dismissed, mut live): (Vec<_>, Vec<_>) =
+                items.into_iter().partition(|s| store.is_dismissed(s.id));
+            live.sort_by(|a, b| b.rank_key().cmp(&a.rank_key()));
+            live.truncate(cfg.max_items);
+            live.extend(dismissed);
+            store.ingest(kind, live, now_ms);
             store.record_poll(kind, SourceStatus::Ok, now_ms);
         }
         PollOutcome::Unavailable(status) => {
@@ -353,6 +361,53 @@ mod tests {
         let empty_env = MockEnvironment::new().cmd("tend status", "");
         refresh_once(&FixtureSource, &empty_env, &store, &cfg, 3000);
         assert_eq!(store.len(), 0, "observed-empty means resolved");
+    }
+
+    #[test]
+    fn dismissed_rows_do_not_consume_the_max_items_budget() {
+        use crate::suggest::core::{SuggestionId, Urgency};
+        let store = SuggestionStore::new();
+        let mut cfg = SourceConfig::for_kind(SourceKind::TendRepos);
+        cfg.max_items = 2;
+        let mk = |k: &str, u: Urgency| {
+            Suggestion::new(SourceKind::TendRepos, k, k, SpawnSpec::new("/code", k).unwrap())
+                .urgent(u)
+        };
+        // Round 1: two hot rows fill the budget; the operator dismisses both.
+        apply_poll(
+            SourceKind::TendRepos,
+            PollOutcome::Fetched(vec![
+                mk("hot1", Urgency::Critical),
+                mk("hot2", Urgency::Critical),
+            ]),
+            &store,
+            &cfg,
+            1000,
+        );
+        assert!(store.dismiss(SuggestionId::derive(SourceKind::TendRepos, "hot1")));
+        assert!(store.dismiss(SuggestionId::derive(SourceKind::TendRepos, "hot2")));
+        // Round 2: upstream still reports the dismissed pair PLUS two calmer
+        // offerable rows. The dismissed pair must not eat the budget — both
+        // offerable rows reach the board, and the dismissals stay sticky.
+        apply_poll(
+            SourceKind::TendRepos,
+            PollOutcome::Fetched(vec![
+                mk("hot1", Urgency::Critical),
+                mk("hot2", Urgency::Critical),
+                mk("calm1", Urgency::Normal),
+                mk("calm2", Urgency::Normal),
+            ]),
+            &store,
+            &cfg,
+            2000,
+        );
+        let board = store.ranked(10, 2000);
+        assert_eq!(board.len(), 2, "both offerable rows surfaced");
+        assert!(board.iter().all(|s| s.title.starts_with("calm")));
+        assert!(
+            store.is_dismissed(SuggestionId::derive(SourceKind::TendRepos, "hot1")),
+            "dismissal survives riding along outside the budget"
+        );
     }
 
     #[test]

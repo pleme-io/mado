@@ -414,6 +414,21 @@ impl SuggestionStore {
         self.set_state(id, SuggestionState::Snoozed { until_ms })
     }
 
+    /// Whether this id is Dismissed — on its live entry OR its tombstone
+    /// (a dismissed row that decayed still counts, so the exemption in
+    /// `apply_poll`'s budget survives the gap between decay and re-fire).
+    #[must_use]
+    pub fn is_dismissed(&self, id: SuggestionId) -> bool {
+        let g = self.lock();
+        match g.entries.get(&id) {
+            Some(st) => matches!(st.state, SuggestionState::Dismissed),
+            None => g
+                .tombstones
+                .get(&id)
+                .is_some_and(|t| matches!(t.state, SuggestionState::Dismissed)),
+        }
+    }
+
     fn set_state(&self, id: SuggestionId, state: SuggestionState) -> bool {
         let changed = {
             let mut g = self.lock();
@@ -469,11 +484,15 @@ impl SuggestionStore {
         }
     }
 
-    /// Hard memory cap: if the store exceeds `max_entries`, evict the
-    /// lowest-ranked / stalest until it fits (urgency→score→freshness order, the
-    /// same axis the picker ranks by). `max_entries == 0` is unbounded. Insurance
-    /// against a source that stops polling with no TTL.
-    pub fn gc(&self, max_entries: usize) {
+    /// Hard memory cap: if the store exceeds `max_entries`, evict until it
+    /// fits — non-offerable rows (Dismissed, still-Snoozed) go first (they
+    /// are invisible; their lifecycle state survives in the tombstone), then
+    /// the lowest EFFECTIVE-ranked / stalest (the same living-board axis the
+    /// picker orders by, so an Accepted row's demotion counts here too).
+    /// Every eviction is tombstoned, so a gc under pressure can never
+    /// resurrect a dismissal or forget a recurrence count. `max_entries == 0`
+    /// is unbounded. Insurance against a source that stops polling with no TTL.
+    pub fn gc(&self, max_entries: usize, now_ms: u64) {
         if max_entries == 0 {
             return;
         }
@@ -482,18 +501,39 @@ impl SuggestionStore {
             if g.entries.len() <= max_entries {
                 return;
             }
-            let mut ranked: Vec<(SuggestionId, u64, u64)> = g
+            let mut ranked: Vec<(SuggestionId, bool, u64, u64)> = g
                 .entries
                 .values()
-                .map(|st| (st.suggestion.id, st.suggestion.rank_key(), st.last_seen_ms))
+                .map(|st| {
+                    (
+                        st.suggestion.id,
+                        offerable(st, now_ms),
+                        effective_rank_key(st, now_ms),
+                        st.last_seen_ms,
+                    )
+                })
                 .collect();
-            // Keep the top `max_entries`: rank desc, then fresher, then id.
-            ranked.sort_by(|a, b| b.1.cmp(&a.1).then(b.2.cmp(&a.2)).then(a.0.cmp(&b.0)));
+            // Keep the top `max_entries`: offerable first, then effective
+            // rank desc, then fresher, then id.
+            ranked.sort_by(|a, b| {
+                b.1.cmp(&a.1)
+                    .then(b.2.cmp(&a.2))
+                    .then(b.3.cmp(&a.3))
+                    .then(a.0.cmp(&b.0))
+            });
             let keep: BTreeSet<SuggestionId> =
-                ranked.into_iter().take(max_entries).map(|(id, _, _)| id).collect();
-            let before = g.entries.len();
-            g.entries.retain(|id, _| keep.contains(id));
-            g.entries.len() != before
+                ranked.into_iter().take(max_entries).map(|(id, ..)| id).collect();
+            let evicted: Vec<StoredSuggestion> = g
+                .entries
+                .values()
+                .filter(|st| !keep.contains(&st.suggestion.id))
+                .cloned()
+                .collect();
+            for st in &evicted {
+                Self::tombstone_locked(&mut g, st, now_ms);
+                g.entries.remove(&st.suggestion.id);
+            }
+            !evicted.is_empty()
         };
         if removed {
             self.bump();
@@ -1178,15 +1218,55 @@ mod tests {
         store.ingest(SourceKind::TendRepos, lows, 100);
         assert_eq!(store.len(), 6);
 
-        store.gc(3);
+        store.gc(3, 100);
         assert_eq!(store.len(), 3, "capped to 3");
         assert!(
             store.get(SuggestionId::derive(SourceKind::GrafanaAlerts, "fire")).is_some(),
             "the Critical row is kept (highest rank)"
         );
 
-        store.gc(0); // unbounded → no-op
+        store.gc(0, 100); // unbounded → no-op
         assert_eq!(store.len(), 3);
+    }
+
+    #[test]
+    fn gc_tombstones_evictions_and_prefers_evicting_non_offerable() {
+        let store = SuggestionStore::new();
+        // Three rows: a dismissed Critical (invisible, raw-rank highest), an
+        // offerable Normal, an offerable Low.
+        store.ingest(
+            SourceKind::GrafanaAlerts,
+            vec![sug(SourceKind::GrafanaAlerts, "dead", "dead").urgent(Urgency::Critical)],
+            100,
+        );
+        store.ingest(
+            SourceKind::TendRepos,
+            vec![
+                sug(SourceKind::TendRepos, "mid", "mid").urgent(Urgency::Normal),
+                sug(SourceKind::TendRepos, "low", "low").urgent(Urgency::Low),
+            ],
+            100,
+        );
+        let dead_id = SuggestionId::derive(SourceKind::GrafanaAlerts, "dead");
+        assert!(store.dismiss(dead_id));
+        // Cap to 2: the DISMISSED row is evicted first despite its raw rank —
+        // offerable rows win the survival contest.
+        store.gc(2, 200);
+        assert_eq!(store.len(), 2);
+        assert!(store.get(dead_id).is_none(), "non-offerable evicted first");
+        assert!(store.get(SuggestionId::derive(SourceKind::TendRepos, "mid")).is_some());
+        // The eviction left a tombstone carrying Dismissed: a re-ingest from
+        // the still-firing source must NOT resurrect the row as Offered.
+        store.ingest(
+            SourceKind::GrafanaAlerts,
+            vec![sug(SourceKind::GrafanaAlerts, "dead", "dead").urgent(Urgency::Critical)],
+            300,
+        );
+        assert!(
+            !store.ranked(10, 300).iter().any(|s| s.id == dead_id),
+            "gc under pressure must not launder a dismissal"
+        );
+        assert!(store.is_dismissed(dead_id), "dismissal restored from the tombstone");
     }
 
     #[test]
@@ -1323,7 +1403,7 @@ mod tests {
                         store.ingest(SourceKind::GrafanaAlerts, items, now);
                     }
                     2 => store.decay(now, u64::from(arg) * 5),
-                    3 => store.gc(usize::from(arg)),
+                    3 => store.gc(usize::from(arg), now),
                     4 => {
                         let _ = store.dismiss(SuggestionId::derive(
                             SourceKind::TendRepos,
@@ -1383,7 +1463,7 @@ mod tests {
                         let _ = s.dismiss(SuggestionId::derive(src, "1"));
                     }
                     if i % 9 == 0 {
-                        s.gc(30);
+                        s.gc(30, 1000 + i);
                     }
                 }
             }));

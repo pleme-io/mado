@@ -54,9 +54,9 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, max: usize) -> Vec<Suggest
     let Ok(rows) = serde_json::from_str::<Vec<MonitorRow>>(json) else {
         return Vec::new();
     };
-    rows.into_iter()
+    let mut out: Vec<Suggestion> = rows
+        .into_iter()
         .filter(|m| m.overall_state == "Alert")
-        .take(max)
         .filter_map(|m| {
             let cwd = env.code_root();
             // Display name (no emoji) drives both the session name and the
@@ -91,7 +91,12 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, max: usize) -> Vec<Suggest
                     .ranked(rank),
             )
         })
-        .collect()
+        .collect();
+    // Rank BEFORE the cap: the monitors API returns arbitrary order, so a
+    // cut before ranking could drop a P1 while keeping P4s.
+    out.sort_by(|a, b| b.rank_key().cmp(&a.rank_key()));
+    out.truncate(max);
+    out
 }
 
 #[derive(serde::Deserialize, Default)]
