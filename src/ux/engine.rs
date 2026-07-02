@@ -1119,6 +1119,14 @@ impl InputEngine {
                     "session picker: accept produced no switch (session reaped or spawn failed)"
                 );
                 self.session_picker_autorefresh();
+                // The re-list teleported the highlight back to row 0. If the
+                // operator was mid-list, a rapid second Enter would fire at
+                // the top row they never aimed at — stamp the stability
+                // window so that Enter is swallowed (autorefresh only stamps
+                // when the TOP row's identity changed, not a cursor move).
+                if !resting {
+                    self.board_shift_at = Some(Instant::now());
+                }
                 let mut sp = self.session_picker.lock().unwrap();
                 if sp.open {
                     sp.notice =
@@ -3528,6 +3536,74 @@ mod tests {
             switched.lock().unwrap().as_slice(),
             &[sid("c")],
             "Enter switched to the navigated-to session"
+        );
+    }
+
+    /// A FAILED accept mid-list resets the cursor to row 0 (set_results) —
+    /// the positional-stability window must swallow a rapid second Enter so
+    /// it can't fire at the top row the operator never aimed at, and the
+    /// board stays open with the typed notice.
+    #[test]
+    fn failed_accept_mid_list_stamps_stability_and_swallows_the_next_enter() {
+        /// Every switch fails (session reaped between list and Enter).
+        struct FailingBridge {
+            attempts: Arc<StdMutex<u32>>,
+        }
+        impl SessionPickerBridge for FailingBridge {
+            fn list(&self, _q: &str, _now: u64) -> Vec<SessionPickerRow> {
+                vec![
+                    SessionPickerRow {
+                        label: "alpha".into(),
+                        kind: RowKind::Switch(sid("a")),
+                        urgency: None,
+                    },
+                    SessionPickerRow {
+                        label: "bravo".into(),
+                        kind: RowKind::Switch(sid("b")),
+                        urgency: None,
+                    },
+                ]
+            }
+            fn switch_to(&self, _s: SessionId) -> bool {
+                *self.attempts.lock().unwrap() += 1;
+                false
+            }
+            fn create_and_switch(&self, _spec: CreateSpec, _now: u64) -> bool {
+                false
+            }
+        }
+        let attempts = Arc::new(StdMutex::new(0u32));
+        let bridge = FailingBridge {
+            attempts: Arc::clone(&attempts),
+        };
+        let mut h = Harness::new_with_bridge(SinkKind::Closure, Some(Box::new(bridge)));
+        h.engine
+            .apply_action(Action::SessionPickerOpen, &mut h.renderer);
+        h.key(KeyCode::Down, None, no_mods());
+        assert_eq!(h.engine.session_picker.lock().unwrap().selected, 1);
+
+        // Enter on row 1 → switch fails → board stays open with the notice,
+        // cursor teleported to row 0 by the autorefresh re-list.
+        h.key(KeyCode::Enter, None, no_mods());
+        assert_eq!(*attempts.lock().unwrap(), 1, "the failed switch was attempted");
+        {
+            let sp = h.engine.session_picker.lock().unwrap();
+            assert!(sp.open, "failed accept keeps the board open");
+            assert!(sp.notice.is_some(), "the operator sees why");
+            assert_eq!(sp.selected, 0, "re-list reset the cursor");
+        }
+
+        // A rapid second Enter is aimed at a row the operator never chose —
+        // the stability window swallows it (no second switch attempt).
+        h.key(KeyCode::Enter, None, no_mods());
+        assert_eq!(
+            *attempts.lock().unwrap(),
+            1,
+            "the teleported-cursor Enter is swallowed by the stability window"
+        );
+        assert!(
+            h.engine.session_picker.lock().unwrap().open,
+            "the swallowed Enter leaves the board open"
         );
     }
 

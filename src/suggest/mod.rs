@@ -330,11 +330,13 @@ pub fn spawn_engine_thread(
             .saturating_mul(1000);
         ttl_map.insert(kind, interval_ttl.max(global_ttl_ms));
     }
-    // Only the state-writer election winner persists (suggestions AND the
-    // praça snapshot): a second mado instance (another window, `mado mcp`)
-    // otherwise last-writer-wins clobbers the shared snapshot files. Losers
-    // still LOAD at boot and run their own in-memory engine.
-    let persist = cfg.persist && crate::single_writer::is_writer();
+    // Persistence is split across TWO decisions: LOADING at boot follows
+    // `cfg.persist` alone (every instance warm-restarts — an election loser
+    // must still see the last-known board and its sticky dismissals), while
+    // WRITING is re-decided every maintenance tick via the single-writer
+    // election (only one process may write the shared snapshots, and a
+    // survivor picks the role up when the previous writer exits).
+    let persist_cfg = cfg.persist;
     let max_entries = cfg.max_entries;
     // 0 = "persist on every change" → a 1s minimum tick (tokio rejects a 0
     // interval); otherwise coalesce writes to this cadence.
@@ -356,7 +358,10 @@ pub fn spawn_engine_thread(
                     // (ages rebased to the snapshot's save time), then age out
                     // anything already stale AT SAVE, before the watchers
                     // re-poll. The picker is populated on the first frame.
-                    if persist {
+                    // Deliberately NOT election-gated: a loser instance loads
+                    // too, so a second window boots with the live board and
+                    // the persisted dismissal stickiness intact.
+                    if persist_cfg {
                         let now_ms = env.now_unix().saturating_mul(1000);
                         store.load_file(&path, now_ms);
                         store.decay_per_source(now_ms, |k| {
@@ -383,7 +388,7 @@ pub fn spawn_engine_thread(
                     );
                     tracing::info!(
                         watchers = engine.active_watchers(),
-                        persist,
+                        persist = persist_cfg,
                         "mado suggestion engine live"
                     );
                     // Maintenance loop — the SINGLE owner of decay + debounced
@@ -402,7 +407,15 @@ pub fn spawn_engine_thread(
                         });
                         store.gc(max_entries, now_ms);
                         let current_gen = store.generation();
-                        if persist && current_gen != last_gen {
+                        // The writer election is RE-CHECKED every tick (a
+                        // cheap non-blocking flock attempt when not already
+                        // held), so a surviving instance picks up the writer
+                        // role when the previous winner exits — persistence
+                        // never silently dies with the first process.
+                        if persist_cfg
+                            && current_gen != last_gen
+                            && crate::single_writer::is_writer()
+                        {
                             store.persist_file(&path, now_ms);
                             last_gen = current_gen;
                         }
