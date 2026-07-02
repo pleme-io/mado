@@ -92,6 +92,14 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, max: usize) -> Vec<Suggest
             }
             Some(
                 Suggestion::new(SourceKind::GrafanaAlerts, &key, title, spawn)
+                    // Per-RULE correlation, only when the alertname label was
+                    // actually present (never the placeholder): N firing
+                    // instances of one rule fold into one board row.
+                    .correlated(if a.labels.contains_key("alertname") {
+                        crate::suggest::core::CorrKey::alert(&alertname)
+                    } else {
+                        None
+                    })
                     .detail(detail)
                     .ranked(super::util::IncidentSeverity::rank_of(severity)),
             )

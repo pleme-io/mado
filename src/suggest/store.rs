@@ -813,6 +813,86 @@ pub fn balance_per_source(
     out
 }
 
+/// Collapse rows sharing a [`CorrKey`] — the same real-world issue via two
+/// sources becomes ONE board row. Pure + order-preserving (a view concern:
+/// the store's per-source slices, tombstones, and health are untouched):
+///
+/// * `corr == None` → passes through untouched, always.
+/// * corr ∈ `live_corrs` (the keys of rows the live-session dedup already
+///   suppressed) → DROPPED: the real-world task has a live session via its
+///   twin, so offering the other spelling would offer work in progress.
+/// * first occurrence of a corr → the survivor (input is display-ordered,
+///   so keep-first IS highest-rank on the empty query / best match on a
+///   query).
+/// * later occurrences → absorbed: an absorbed `Accepted` state is copied
+///   onto the survivor (badge honesty — the row renders ◐), and the
+///   absorbed source's emoji joins the survivor's detail.
+///
+/// [`CorrKey`]: super::core::CorrKey
+#[must_use]
+pub fn collapse_correlated(
+    items: Vec<StoredSuggestion>,
+    live_corrs: &std::collections::HashSet<super::core::CorrKey>,
+) -> Vec<StoredSuggestion> {
+    let mut out: Vec<StoredSuggestion> = Vec::with_capacity(items.len());
+    let mut seen: BTreeMap<String, usize> = BTreeMap::new();
+    let mut absorbed: BTreeMap<usize, Vec<SourceKind>> = BTreeMap::new();
+    for st in items {
+        let Some(corr) = st.suggestion.corr.clone() else {
+            out.push(st);
+            continue;
+        };
+        if live_corrs.contains(&corr) {
+            continue;
+        }
+        match seen.get(corr.as_str()) {
+            None => {
+                seen.insert(corr.as_str().to_owned(), out.len());
+                out.push(st);
+            }
+            Some(&idx) => {
+                let survivor = &mut out[idx];
+                if !matches!(survivor.state, SuggestionState::Accepted { .. })
+                    && matches!(st.state, SuggestionState::Accepted { .. })
+                {
+                    survivor.state = st.state.clone();
+                }
+                absorbed.entry(idx).or_default().push(st.suggestion.source);
+            }
+        }
+    }
+    for (idx, sources) in absorbed {
+        let survivor = &mut out[idx];
+        let own = survivor.suggestion.source;
+        let mut added: Vec<SourceKind> = Vec::new();
+        for src in sources {
+            if src != own && !added.contains(&src) {
+                added.push(src);
+            }
+        }
+        if added.is_empty() {
+            continue;
+        }
+        let mut marker = String::from(" \u{00B7} +"); // middle dot, plus
+        for src in added {
+            marker.push_str(src.emoji());
+        }
+        let detail = match survivor.suggestion.detail.take() {
+            Some(mut d) => {
+                d.push_str(&marker);
+                d
+            }
+            None => {
+                let mut d = String::from("merged");
+                d.push_str(&marker);
+                d
+            }
+        };
+        survivor.suggestion.detail = Some(detail);
+    }
+    out
+}
+
 /// Pure shade-in ramp — factored out for testing.
 #[must_use]
 pub fn shade_ramp(first_seen_ms: u64, now_ms: u64, shade_in_ms: u64) -> u8 {
@@ -1305,6 +1385,94 @@ mod tests {
             last_seen_ms: 100,
             times_seen: 1,
             state: SuggestionState::Offered,
+        }
+    }
+
+    #[test]
+    fn collapse_folds_cross_source_twins_keeping_first_and_badge_honesty() {
+        use super::super::core::CorrKey;
+        let corr = CorrKey::jira("ASM-1");
+        // Sprint twin ranked first (input is display-ordered), assigned twin
+        // second and ACCEPTED — the survivor keeps its slot but inherits the
+        // in-progress badge, and wears the absorbed source's emoji.
+        let mut sprint = stored(SourceKind::JiraSprint, "ASM-1");
+        sprint.suggestion = sprint.suggestion.clone().correlated(corr.clone()).detail("Highest");
+        let mut assigned = stored(SourceKind::JiraAssigned, "ASM-1");
+        assigned.suggestion = assigned.suggestion.clone().correlated(corr.clone());
+        assigned.state = SuggestionState::Accepted { session: String::from("s") };
+        let none1 = stored(SourceKind::GrafanaIncidents, "a");
+        let none2 = stored(SourceKind::GrafanaIncidents, "b");
+
+        let out = collapse_correlated(
+            vec![sprint, assigned, none1, none2],
+            &std::collections::HashSet::new(),
+        );
+        assert_eq!(out.len(), 3, "twins folded; None-corr rows pass through");
+        assert_eq!(out[0].suggestion.source, SourceKind::JiraSprint, "first occurrence survives");
+        assert!(
+            matches!(out[0].state, SuggestionState::Accepted { .. }),
+            "absorbed Accepted state dominates the badge"
+        );
+        let d = out[0].suggestion.detail.as_deref().unwrap();
+        assert!(
+            d.contains(SourceKind::JiraAssigned.emoji()),
+            "absorbed source emoji joins the detail: {d}"
+        );
+
+        // Namespaces never collide: jira:X vs alert:X are distinct keys.
+        assert_ne!(
+            CorrKey::jira("X").unwrap().as_str(),
+            CorrKey::alert("X").unwrap().as_str()
+        );
+        // gh keys demand a true owner/repo.
+        assert!(CorrKey::github("mado", 1).is_none(), "bare repo name is ambiguous");
+        assert!(CorrKey::github("pleme-io/mado", 1).is_some());
+    }
+
+    #[test]
+    fn collapse_drops_twins_of_live_suppressed_rows() {
+        use super::super::core::CorrKey;
+        let corr = CorrKey::jira("ASM-2").unwrap();
+        let mut twin = stored(SourceKind::JiraAssigned, "ASM-2");
+        twin.suggestion = twin.suggestion.clone().correlated(Some(corr.clone()));
+        let other = stored(SourceKind::TendRepos, "r");
+        let mut live: std::collections::HashSet<CorrKey> = std::collections::HashSet::new();
+        live.insert(corr);
+        let out = collapse_correlated(vec![twin, other], &live);
+        assert_eq!(out.len(), 1, "the live task's other spelling never resurfaces");
+        assert_eq!(out[0].suggestion.source, SourceKind::TendRepos);
+    }
+
+    proptest! {
+        #[test]
+        fn collapse_is_idempotent_and_shrinking(n in 0usize..16, dup in 0usize..4) {
+            use super::super::core::CorrKey;
+            let mut items = Vec::new();
+            for i in 0..n {
+                let mut st = stored(SourceKind::TendRepos, &i.to_string());
+                if i % 3 == 0 {
+                    st.suggestion = st.suggestion.clone()
+                        .correlated(CorrKey::jira(&(i % (dup + 1)).to_string()));
+                }
+                items.push(st);
+            }
+            let empty = std::collections::HashSet::new();
+            let once = collapse_correlated(items.clone(), &empty);
+            let twice = collapse_correlated(once.clone(), &empty);
+            prop_assert!(once.len() <= items.len());
+            // Idempotent on the ID sequence (details may gain merge markers
+            // on the first pass only when something was absorbed; a second
+            // pass absorbs nothing, so ids AND details are stable).
+            let ids: Vec<_> = once.iter().map(|s| s.suggestion.id).collect();
+            let ids2: Vec<_> = twice.iter().map(|s| s.suggestion.id).collect();
+            prop_assert_eq!(ids, ids2);
+            // Each Some-corr appears at most once.
+            let mut seen = std::collections::HashSet::new();
+            for st in &once {
+                if let Some(c) = &st.suggestion.corr {
+                    prop_assert!(seen.insert(c.as_str().to_owned()), "corr appears once");
+                }
+            }
         }
     }
 

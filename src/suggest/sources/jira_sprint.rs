@@ -92,6 +92,7 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, base: &str, max: usize) ->
             }
             Some(
                 Suggestion::new(SourceKind::JiraSprint, &issue.key, title, spawn)
+                    .correlated(crate::suggest::core::CorrKey::jira(&issue.key))
                     .detail(detail)
                     .ranked(super::util::JiraPriority::rank_of(prio)),
             )

@@ -628,6 +628,67 @@ impl SuggestionId {
     }
 }
 
+/// A cross-source correlation key: the CANONICAL identity of the real-world
+/// issue behind a suggestion, so the same ticket/PR/alert surfacing through
+/// two sources can collapse to one board row at view time. The namespaced
+/// constructors ARE the load-bearing invariant — the whole mechanism dies
+/// silently if two providers spell the same identity differently, and a raw
+/// Option<String> cannot prevent that drift. Construction only through the
+/// constructors; `None` when no canonical identity exists (identity-less
+/// rows never collapse).
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
+pub struct CorrKey(String);
+
+impl CorrKey {
+    /// A Jira issue: `jira:ASM-1234`.
+    #[must_use]
+    pub fn jira(key: &str) -> Option<Self> {
+        let k = key.trim();
+        if k.is_empty() {
+            return None;
+        }
+        let mut s = String::from("jira:");
+        s.push_str(k);
+        Some(Self(s))
+    }
+
+    /// A GitHub PR/issue: `gh:owner/repo#42`. `None` unless `repo` is a true
+    /// `owner/repo` (a bare name is ambiguous across owners). PRs and issues
+    /// share one number space per repo, so this is canonical across the
+    /// author/review/assigned providers.
+    #[must_use]
+    pub fn github(repo: &str, number: u64) -> Option<Self> {
+        let r = repo.trim();
+        if r.is_empty() || !r.contains('/') {
+            return None;
+        }
+        let mut s = String::from("gh:");
+        s.push_str(r);
+        s.push('#');
+        s.push_str(&number.to_string());
+        Some(Self(s))
+    }
+
+    /// An alerting rule: `alert:HighCPU`. Deliberately per-RULE, so N firing
+    /// instances of one rule fold into one board row.
+    #[must_use]
+    pub fn alert(alias: &str) -> Option<Self> {
+        let a = alias.trim();
+        if a.is_empty() {
+            return None;
+        }
+        let mut s = String::from("alert:");
+        s.push_str(a);
+        Some(Self(s))
+    }
+
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
 /// One latent task the picker can shade in + spawn. Plain typed data — built
 /// by a source's `poll`, ranked by the store, rendered by the picker.
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -643,6 +704,10 @@ pub struct Suggestion {
     pub spawn: SpawnSpec,
     /// Source-relative score 0..=1000, ranking tie-break within an urgency.
     pub score: u32,
+    /// Canonical cross-source identity ([`CorrKey`]) — the view layer
+    /// collapses rows sharing it. `None` (the default) never collapses.
+    #[serde(default)]
+    pub corr: Option<CorrKey>,
 }
 
 impl Suggestion {
@@ -658,7 +723,16 @@ impl Suggestion {
             urgency: source.default_urgency(),
             spawn,
             score: 500,
+            corr: None,
         }
+    }
+
+    /// Attach the canonical cross-source identity. Option-taking so a
+    /// provider passes a [`CorrKey`] constructor result straight through.
+    #[must_use]
+    pub fn correlated(mut self, c: Option<CorrKey>) -> Self {
+        self.corr = c;
+        self
     }
 
     #[must_use]

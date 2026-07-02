@@ -392,11 +392,25 @@ impl PracaPickerBridge {
         };
         // A suggestion you've already STARTED is a live ● session row now —
         // suppress its ○ twin so the picker never lists the same task twice.
+        // The suppressed rows' correlation keys are COLLECTED: the same task
+        // spelled by another source (🎫 vs 📋 the same ticket) must not
+        // resurface as latent while its session is live.
+        let mut live_corrs: std::collections::HashSet<crate::suggest::CorrKey> =
+            std::collections::HashSet::new();
+        let mut live_or_collect = |st: &crate::suggest::StoredSuggestion| -> bool {
+            let live = self.live_session_for(&st.suggestion.spawn).is_some();
+            if live {
+                if let Some(c) = st.suggestion.corr.clone() {
+                    live_corrs.insert(c);
+                }
+            }
+            live
+        };
         let filtered: Vec<crate::suggest::StoredSuggestion> = if q.is_empty() {
             // Empty query → keep the store's urgency/score order.
             ranked
                 .iter()
-                .filter(|st| self.live_session_for(&st.suggestion.spawn).is_none())
+                .filter(|st| !live_or_collect(st))
                 .cloned()
                 .collect()
         } else {
@@ -408,7 +422,7 @@ impl PracaPickerBridge {
             let mut scored: Vec<(i32, usize, crate::suggest::StoredSuggestion)> = ranked
                 .iter()
                 .enumerate()
-                .filter(|(_, st)| self.live_session_for(&st.suggestion.spawn).is_none())
+                .filter(|(_, st)| !live_or_collect(st))
                 .filter_map(|(idx, st)| {
                     suggestion_match_score(q, &st.suggestion).map(|sc| (sc, idx, st.clone()))
                 })
@@ -416,6 +430,10 @@ impl PracaPickerBridge {
             scored.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));
             scored.into_iter().map(|(_, _, st)| st).collect()
         };
+        // Collapse cross-source twins BEFORE the per-source balance, so an
+        // absorbed duplicate never consumes a cap slot or a max_visible slot
+        // — the band stays full of DISTINCT work.
+        let filtered = crate::suggest::store::collapse_correlated(filtered, &live_corrs);
         // Balance the band: cap per-source so one noisy source (20 CrashLoop
         // pods) can't drown your PRs/tickets/incidents — the band stays diverse.
         crate::suggest::store::balance_per_source(filtered, self.suggest_max, self.suggest_cap)

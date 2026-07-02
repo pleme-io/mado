@@ -107,6 +107,7 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, site: &str, max: usize) ->
             // → Critical, scored so Highest leads.
             Some(
                 Suggestion::new(SourceKind::JiraAssigned, key, title, spawn)
+                    .correlated(crate::suggest::core::CorrKey::jira(key))
                     .detail(detail)
                     .ranked(super::util::JiraPriority::rank_of(prio)),
             )

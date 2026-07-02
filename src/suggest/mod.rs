@@ -51,7 +51,7 @@ pub mod store;
 // cfg(test) or by providers via their full paths), so the unused-import lint
 // for the re-export surface is intentionally allowed.
 #[allow(unused_imports)]
-pub use core::{SourceKind, SourceStatus, SpawnSpec, Suggestion, SuggestionId, Urgency};
+pub use core::{CorrKey, SourceKind, SourceStatus, SpawnSpec, Suggestion, SuggestionId, Urgency};
 #[allow(unused_imports)]
 pub use env::{Cmd, HttpReq, MockEnvironment, RealEnvironment, SuggestionEnvironment};
 #[allow(unused_imports)]

@@ -72,6 +72,7 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment) -> Vec<Suggestion> {
             title.push_str(pr.title.trim());
             Some(
                 Suggestion::new(SourceKind::GitBranchPr, &key, title, spawn)
+                    .correlated(crate::suggest::core::CorrKey::github(&owner, pr.number))
                     .detail(owner)
                     .urgent(Urgency::Low),
             )
