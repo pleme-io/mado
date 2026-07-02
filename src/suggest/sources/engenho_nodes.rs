@@ -4,12 +4,15 @@
 //! Live wiring: `kubectl get nodes -o json` → `{items:[{metadata:{name},
 //! status:{conditions:[{type,status}]}}]}`. A node carrying a `Ready`
 //! condition whose status is not `True` becomes a suggestion that drops you in
-//! your code root. `kubectl` not installed / no cluster / bad JSON → graceful
-//! empty.
+//! your code root. Config params: `context` (optional kubeconfig context the
+//! poll is scoped to). Honesty contract: a failed `kubectl` run is
+//! `Unavailable(Error)` — only an OBSERVED listing is `Fetched` (garbage JSON
+//! parses to empty: the upstream WAS observed), so an unreachable cluster
+//! never reads as "all nodes Ready".
 
 use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion, Urgency};
 use crate::suggest::env::{Cmd, SuggestionEnvironment};
-use crate::suggest::source::{SourceConfig, SuggestionSource};
+use crate::suggest::source::{PollOutcome, SourceConfig, SuggestionSource};
 
 pub struct EngenhoNodesSource;
 
@@ -18,16 +21,20 @@ impl SuggestionSource for EngenhoNodesSource {
         SourceKind::EngenhoNodes
     }
 
-    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> Vec<Suggestion> {
-        let cmd = Cmd::new("kubectl")
+    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> PollOutcome {
+        let mut cmd = Cmd::new("kubectl")
             .arg("get")
             .arg("nodes")
             .arg("-o")
             .arg("json");
+        // Optional `context` param scopes the poll to a named kubeconfig context.
+        if let Some(ctx) = cfg.param("context") {
+            cmd = cmd.arg("--context").arg(ctx);
+        }
         let Some(out) = env.run(&cmd) else {
-            return Vec::new();
+            return PollOutcome::error();
         };
-        parse(&out, env, cfg)
+        PollOutcome::Fetched(parse(&out, env, cfg))
     }
 }
 
@@ -129,7 +136,9 @@ mod tests {
             .roots("/code", "/home/op")
             .cmd("kubectl get nodes -o json", FIXTURE);
         let cfg = SourceConfig::for_kind(SourceKind::EngenhoNodes);
-        let out = EngenhoNodesSource.poll(&env, &cfg);
+        let PollOutcome::Fetched(out) = EngenhoNodesSource.poll(&env, &cfg) else {
+            panic!("an observed listing is Fetched");
+        };
         assert_eq!(out.len(), 1, "Ready node excluded");
         let zek = &out[0];
         assert!(zek.title.contains("zek") && zek.title.contains("not Ready"));
@@ -140,14 +149,38 @@ mod tests {
     }
 
     #[test]
-    fn no_kubectl_yields_nothing() {
-        // No fixture registered → run() returns None → empty.
+    fn honesty_tiers_are_typed_not_empty() {
+        // No required params/secret here — the only unavailability tier is a
+        // failed kubectl run (no fixture → run() returns None → Error, so an
+        // unreachable cluster keeps last-known rows instead of "all Ready").
         let cfg = SourceConfig::for_kind(SourceKind::EngenhoNodes);
-        assert!(
-            EngenhoNodesSource
-                .poll(&MockEnvironment::new(), &cfg)
-                .is_empty()
+        assert_eq!(
+            EngenhoNodesSource.poll(&MockEnvironment::new(), &cfg),
+            PollOutcome::error()
         );
+    }
+
+    #[test]
+    fn context_param_scopes_the_kubectl_call() {
+        // With `context` set, the --context args land in the typed argv (and
+        // thus the mock key): only the contexted fixture answers.
+        let mut cfg = SourceConfig::for_kind(SourceKind::EngenhoNodes);
+        cfg.params.insert("context".into(), "rio".into());
+        let plain = MockEnvironment::new()
+            .roots("/code", "/home/op")
+            .cmd("kubectl get nodes -o json", FIXTURE);
+        assert_eq!(
+            EngenhoNodesSource.poll(&plain, &cfg),
+            PollOutcome::error(),
+            "the un-contexted fixture must not answer a contexted poll"
+        );
+        let ctx_env = MockEnvironment::new()
+            .roots("/code", "/home/op")
+            .cmd("kubectl get nodes -o json --context rio", FIXTURE);
+        let PollOutcome::Fetched(out) = EngenhoNodesSource.poll(&ctx_env, &cfg) else {
+            panic!("the contexted listing is Fetched");
+        };
+        assert_eq!(out.len(), 1);
     }
 
     #[test]

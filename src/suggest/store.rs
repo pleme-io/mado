@@ -9,9 +9,30 @@
 //! shade-in animation rides on a stable birth time) and dropping vanished
 //! ones. Other sources' entries are untouched.
 //!
-//! A best-effort JSON snapshot (M4) lets a warm restart re-surface the last
-//! known set instantly while the watchers re-poll; a torn/absent snapshot
-//! simply starts empty.
+//! Beyond the raw set, the store carries the LIVING-BOARD algebra:
+//!
+//! * **Recurrence** — a vanished id leaves a bounded tombstone; if the same
+//!   issue re-fires within the tombstone window it comes back with its
+//!   original birth time and a bumped `times_seen` (the anomaly-recurrence
+//!   pattern), so a repeat offender ranks above a first-timer and the picker
+//!   can stamp `×N`.
+//! * **Aging** — the ranked read adds a bounded waiting-time bonus, so an
+//!   item that has sat unhandled slowly escalates within its urgency tier
+//!   (never across tiers: urgency stays the dominant axis).
+//! * **Lifecycle** — each row is `Offered → Accepted{session} /
+//!   Snoozed{until} / Dismissed`. Accepted rows are soft-acked (demoted to
+//!   the Idle tier — in progress, don't crowd new work); snoozed rows hide
+//!   until their deadline; dismissed rows never surface again (their state
+//!   survives re-ingest AND the tombstone window).
+//! * **Source health** — the typed `PollOutcome` border records whether a
+//!   source was actually observed (`Ok`) or could not be
+//!   (`Unconfigured`/`AuthMissing`/`Error`), so "the board is calm" and "the
+//!   board is blind" are distinguishable at a glance.
+//!
+//! A best-effort JSON snapshot lets a warm restart re-surface the last-known
+//! set instantly while the watchers re-poll; a torn/absent snapshot simply
+//! starts empty. The snapshot stamps its save time so ages rebase on load —
+//! rows fresh at save stay fresh, rows stale at save still decay.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -19,33 +40,126 @@ use std::sync::Mutex;
 
 use tokio::sync::watch;
 
-use super::core::{SourceKind, Suggestion, SuggestionId};
+use super::core::{SourceKind, SourceStatus, Suggestion, SuggestionId};
 use crate::livestream::Reactive;
 
 /// Snapshot framing magic — a schema tag so a future format bump is rejected
 /// (start-empty) rather than silently mis-parsed.
 const SNAPSHOT_MAGIC: &[u8] = b"mado-suggest v1\n";
 
+/// How long a vanished id's tombstone (recurrence memory) is kept, ms. A
+/// re-fire inside this window restores birth + bumps `times_seen`; outside it
+/// the issue counts as brand-new. Six hours: long enough to catch a flapping
+/// alert across a workday, short enough that yesterday's noise doesn't haunt.
+const TOMBSTONE_TTL_MS: u64 = 6 * 60 * 60 * 1000;
+
+/// Hard cap on remembered tombstones (memory insurance) — oldest-vanished
+/// evicted first.
+const TOMBSTONE_CAP: usize = 512;
+
+/// Aging escalation: +this much effective score per minute waited…
+const AGE_BONUS_PER_MIN: u64 = 2;
+/// …capped at this many minutes (3h → +360), so aging nudges within a tier
+/// but can never dominate genuine urgency/score differences alone.
+const AGE_BONUS_CAP_MIN: u64 = 180;
+
+/// Recurrence escalation: +this much effective score per re-sighting…
+const RECUR_BONUS_PER_SEEN: u64 = 40;
+/// …counting at most this many re-sightings (10 → +400).
+const RECUR_BONUS_CAP: u32 = 10;
+
+/// The low-bit budget of the composite rank key (urgency sits above bit 20).
+/// score (≤1000) + aging (≤360) + recurrence (≤400) ≤ 1760 fits comfortably;
+/// the mask is defense-in-depth so a future bonus can never leak into the
+/// urgency bits.
+const RANK_LOW_MASK: u64 = 0xF_FFFF;
+
+/// Where a suggestion sits in its worked-on lifecycle. Serialized in the
+/// snapshot so a dismissal survives a restart.
+#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "kebab-case", tag = "kind")]
+pub enum SuggestionState {
+    /// On the board, unworked.
+    #[default]
+    Offered,
+    /// The operator opened a session for it — in progress. Soft-acked: the
+    /// ranked read demotes it to the Idle tier so it stops crowding new work,
+    /// and the picker badges it ◐ instead of ○.
+    Accepted {
+        /// The session name the accept spawned/switched to.
+        session: String,
+    },
+    /// Hidden until the deadline passes, then Offered again.
+    Snoozed { until_ms: u64 },
+    /// Never offered again (until the source itself stops reporting it AND
+    /// the tombstone window lapses).
+    Dismissed,
+}
+
 /// A suggestion plus the store-side bookkeeping the renderer needs.
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct StoredSuggestion {
     pub suggestion: Suggestion,
-    /// When this id first appeared (ms) — the shade-in ramp anchor.
+    /// When this id first appeared (ms) — the shade-in ramp anchor + the
+    /// aging-escalation clock.
     #[serde(default)]
     pub first_seen_ms: u64,
     /// When this id was last confirmed present (ms) — decay/freshness.
     #[serde(default)]
     pub last_seen_ms: u64,
+    /// How many times this issue has (re)appeared — 1 on first sighting,
+    /// bumped when a tombstoned id re-fires (anomaly-recurrence).
+    #[serde(default = "default_times_seen")]
+    pub times_seen: u32,
+    /// Worked-on lifecycle state.
+    #[serde(default)]
+    pub state: SuggestionState,
+}
+
+fn default_times_seen() -> u32 {
+    1
+}
+
+/// Recurrence memory for a vanished id — enough to restore identity
+/// continuity (birth, count, a sticky Dismissed) if the issue re-fires.
+#[derive(Clone, Debug)]
+struct Tombstone {
+    first_seen_ms: u64,
+    times_seen: u32,
+    state: SuggestionState,
+    vanished_ms: u64,
+}
+
+/// A source's last observed poll health — fed by the typed `PollOutcome`
+/// border so an unobservable upstream is visible instead of silently empty.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct SourceHealth {
+    pub status: SourceStatus,
+    /// When the source last completed a poll attempt (ms).
+    pub last_poll_ms: u64,
+    /// When the source last observed its upstream successfully (ms). 0 =
+    /// never this process lifetime.
+    pub last_ok_ms: u64,
+}
+
+/// Everything behind the ONE mutex — entries + recurrence tombstones +
+/// per-source health share a lock so no two-lock ordering can deadlock.
+#[derive(Default)]
+struct StoreInner {
+    entries: BTreeMap<SuggestionId, StoredSuggestion>,
+    tombstones: BTreeMap<SuggestionId, Tombstone>,
+    health: BTreeMap<SourceKind, SourceHealth>,
 }
 
 /// Thread-safe ranked suggestion cache. Cloneable handle pattern is not used
-/// here (callers hold an `Arc<SuggestionStore>`); the inner map is mutexed.
+/// here (callers hold an `Arc<SuggestionStore>`); the inner state is mutexed.
 ///
 /// A monotonic `generation` is bumped only on a *meaningful* change (an id
-/// added/removed, or a row's displayed/ranked fields changed — NOT a mere
-/// `last_seen_ms` heartbeat). The picker memoizes its ranked read by it (O(1)
-/// reads while the watchers idle) and the persist task uses it as the dirty
-/// signal — one counter, the shikumi swap-then-observe contract.
+/// added/removed, a row's displayed/ranked fields or lifecycle state changed,
+/// a source's health status transitioned — NOT a mere `last_seen_ms`
+/// heartbeat). The picker memoizes its ranked read by it (O(1) reads while
+/// the watchers idle) and the persist task uses it as the dirty signal — one
+/// counter, the shikumi swap-then-observe contract.
 ///
 /// The generation + the change-broadcast are the shared
 /// [`Reactive`](crate::livestream::Reactive) core (stage 2 of the live-stream
@@ -54,7 +168,7 @@ pub struct StoredSuggestion {
 /// other surface) re-renders on the fact of a change instead of a fixed timer.
 #[derive(Default)]
 pub struct SuggestionStore {
-    inner: Mutex<BTreeMap<SuggestionId, StoredSuggestion>>,
+    inner: Mutex<StoreInner>,
     reactive: Reactive,
 }
 
@@ -62,6 +176,42 @@ pub struct SuggestionStore {
 #[derive(Default, serde::Serialize, serde::Deserialize)]
 pub struct StoreSnapshot {
     pub entries: Vec<StoredSuggestion>,
+    /// When this snapshot was written (ms). On load, each entry's freshness
+    /// rebases by `now - saved_at` so age-at-save is preserved — a row fresh
+    /// at save doesn't get decayed as stale just because the restart came
+    /// hours later. 0 (legacy snapshots) = no rebase.
+    #[serde(default)]
+    pub saved_at_ms: u64,
+}
+
+/// The effective (living-board) rank key of a stored row at `now_ms`:
+/// urgency dominates in the high bits — with an Accepted row demoted to the
+/// Idle tier (soft-ack) — while the low bits carry score + the bounded
+/// aging + recurrence escalations. Pure; the one ordering every read uses.
+#[must_use]
+pub fn effective_rank_key(st: &StoredSuggestion, now_ms: u64) -> u64 {
+    let urgency = match st.state {
+        SuggestionState::Accepted { .. } => super::core::Urgency::Idle,
+        _ => st.suggestion.urgency,
+    };
+    let waited_min = now_ms.saturating_sub(st.first_seen_ms) / 60_000;
+    let bonus = u64::from(st.suggestion.score.min(1000))
+        + waited_min.min(AGE_BONUS_CAP_MIN) * AGE_BONUS_PER_MIN
+        + u64::from(st.times_seen.saturating_sub(1).min(RECUR_BONUS_CAP))
+            * RECUR_BONUS_PER_SEEN;
+    (u64::from(urgency.weight()) << 20) | (bonus & RANK_LOW_MASK)
+}
+
+/// Whether a row is offerable on the board at `now_ms` — filters the
+/// dismissed and the still-snoozed. Accepted rows remain offerable (demoted +
+/// badged) so "in progress" stays legible instead of vanishing.
+#[must_use]
+fn offerable(st: &StoredSuggestion, now_ms: u64) -> bool {
+    match st.state {
+        SuggestionState::Dismissed => false,
+        SuggestionState::Snoozed { until_ms } => now_ms >= until_ms,
+        SuggestionState::Offered | SuggestionState::Accepted { .. } => true,
+    }
 }
 
 impl SuggestionStore {
@@ -70,7 +220,7 @@ impl SuggestionStore {
         Self::default()
     }
 
-    fn lock(&self) -> std::sync::MutexGuard<'_, BTreeMap<SuggestionId, StoredSuggestion>> {
+    fn lock(&self) -> std::sync::MutexGuard<'_, StoreInner> {
         self.inner
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
@@ -99,43 +249,98 @@ impl SuggestionStore {
         self.reactive.bump();
     }
 
+    /// Insert-or-update ONE row under an already-held lock, honoring the
+    /// tombstone window (recurrence restore) and preserving lifecycle state on
+    /// update. Returns whether the mutation was meaningful.
+    fn upsert_locked(g: &mut StoreInner, s: Suggestion, now_ms: u64) -> bool {
+        match g.entries.get_mut(&s.id) {
+            Some(existing) => {
+                // Bump only on a DISPLAYED/RANKED change, not a mere
+                // last_seen heartbeat — else every 30s poll would force a
+                // re-render + a disk write for an unchanged row.
+                let meaningful = existing.suggestion != s;
+                existing.last_seen_ms = now_ms;
+                existing.suggestion = s;
+                meaningful
+            }
+            None => {
+                // A re-fire inside the tombstone window keeps its identity:
+                // original birth (aging keeps counting), bumped times_seen
+                // (recurrence escalation), and a sticky Dismissed.
+                let tomb = g.tombstones.remove(&s.id).filter(|t| {
+                    now_ms.saturating_sub(t.vanished_ms) <= TOMBSTONE_TTL_MS
+                });
+                let (first_seen_ms, times_seen, state) = match tomb {
+                    Some(t) => (t.first_seen_ms, t.times_seen.saturating_add(1), t.state),
+                    None => (now_ms, 1, SuggestionState::Offered),
+                };
+                g.entries.insert(
+                    s.id,
+                    StoredSuggestion {
+                        first_seen_ms,
+                        last_seen_ms: now_ms,
+                        times_seen,
+                        state,
+                        suggestion: s,
+                    },
+                );
+                true
+            }
+        }
+    }
+
+    /// Move a dropped entry into the recurrence tombstones (bounded).
+    fn tombstone_locked(g: &mut StoreInner, st: &StoredSuggestion, now_ms: u64) {
+        g.tombstones.insert(
+            st.suggestion.id,
+            Tombstone {
+                first_seen_ms: st.first_seen_ms,
+                times_seen: st.times_seen,
+                state: st.state.clone(),
+                vanished_ms: now_ms,
+            },
+        );
+        if g.tombstones.len() > TOMBSTONE_CAP {
+            // Evict oldest-vanished first.
+            let mut by_age: Vec<(SuggestionId, u64)> = g
+                .tombstones
+                .iter()
+                .map(|(id, t)| (*id, t.vanished_ms))
+                .collect();
+            by_age.sort_by(|a, b| a.1.cmp(&b.1));
+            let drop_n = g.tombstones.len() - TOMBSTONE_CAP;
+            for (id, _) in by_age.into_iter().take(drop_n) {
+                g.tombstones.remove(&id);
+            }
+        }
+    }
+
     /// Replace the suggestion set contributed by `source`. Ids that persist
-    /// keep their `first_seen_ms`; ids of this source that vanished are
-    /// dropped; entries from other sources are untouched.
+    /// keep their `first_seen_ms` + lifecycle state; ids of this source that
+    /// vanished are tombstoned (recurrence memory) and dropped; entries from
+    /// other sources are untouched.
     pub fn ingest(&self, source: SourceKind, items: Vec<Suggestion>, now_ms: u64) {
         let mut changed = false;
         {
             let mut g = self.lock();
             let incoming: BTreeSet<SuggestionId> = items.iter().map(|s| s.id).collect();
-            // Drop this source's vanished ids (keep all other sources').
-            let before = g.len();
-            g.retain(|id, st| st.suggestion.source != source || incoming.contains(id));
-            if g.len() != before {
-                changed = true; // an id of this source vanished
+            // Tombstone + drop this source's vanished ids (keep all other
+            // sources'). Two passes because the borrow of the drop set ends
+            // before mutation of the tombstone map.
+            let dropped: Vec<StoredSuggestion> = g
+                .entries
+                .values()
+                .filter(|st| st.suggestion.source == source && !incoming.contains(&st.suggestion.id))
+                .cloned()
+                .collect();
+            for st in &dropped {
+                Self::tombstone_locked(&mut g, st, now_ms);
+                g.entries.remove(&st.suggestion.id);
+                changed = true;
             }
             for s in items {
-                match g.get_mut(&s.id) {
-                    Some(existing) => {
-                        // Bump only on a DISPLAYED/RANKED change, not a mere
-                        // last_seen heartbeat — else every 30s poll would force a
-                        // re-render + a disk write for an unchanged row.
-                        if existing.suggestion != s {
-                            changed = true;
-                        }
-                        existing.last_seen_ms = now_ms;
-                        existing.suggestion = s;
-                    }
-                    None => {
-                        changed = true;
-                        g.insert(
-                            s.id,
-                            StoredSuggestion {
-                                first_seen_ms: now_ms,
-                                last_seen_ms: now_ms,
-                                suggestion: s,
-                            },
-                        );
-                    }
+                if Self::upsert_locked(&mut g, s, now_ms) {
+                    changed = true;
                 }
             }
         }
@@ -144,33 +349,120 @@ impl SuggestionStore {
         }
     }
 
-    /// Drop every entry whose `last_seen_ms` is older than `ttl_ms` — the
-    /// decay pass (a source that stops reporting an item lets it age out even
-    /// if the source itself never re-polls).
-    pub fn decay(&self, now_ms: u64, ttl_ms: u64) {
-        let removed = {
+    /// Additive single-row upsert — the agent/MCP inject path. Unlike
+    /// [`SuggestionStore::ingest`] it never drops the source's other rows, so
+    /// repeated injections accumulate (and decay by TTL like everything else).
+    pub fn upsert(&self, s: Suggestion, now_ms: u64) {
+        let changed = {
             let mut g = self.lock();
-            let before = g.len();
-            g.retain(|_, st| now_ms.saturating_sub(st.last_seen_ms) <= ttl_ms);
-            g.len() != before
+            Self::upsert_locked(&mut g, s, now_ms)
         };
-        if removed {
+        if changed {
             self.bump();
         }
     }
 
+    /// Record a source's poll health from the typed `PollOutcome` border.
+    /// Bumps/broadcasts only on a STATUS transition (Ok→Error, …) — the
+    /// timestamps alone are heartbeats.
+    pub fn record_poll(&self, source: SourceKind, status: SourceStatus, now_ms: u64) {
+        let changed = {
+            let mut g = self.lock();
+            let entry = g.health.entry(source).or_insert(SourceHealth {
+                status,
+                last_poll_ms: 0,
+                last_ok_ms: 0,
+            });
+            let transitioned = entry.status != status || entry.last_poll_ms == 0;
+            entry.status = status;
+            entry.last_poll_ms = now_ms;
+            if status == SourceStatus::Ok {
+                entry.last_ok_ms = now_ms;
+            }
+            transitioned
+        };
+        if changed {
+            self.bump();
+        }
+    }
+
+    /// Every source's last-known poll health, catalog-ordered.
+    #[must_use]
+    pub fn health(&self) -> Vec<(SourceKind, SourceHealth)> {
+        let g = self.lock();
+        g.health.iter().map(|(k, h)| (*k, *h)).collect()
+    }
+
+    /// Mark a row Accepted (in progress) — the picker's accept path calls this
+    /// with the session it spawned/switched to. `false` if the id is gone.
+    pub fn mark_accepted(&self, id: SuggestionId, session: &str) -> bool {
+        self.set_state(
+            id,
+            SuggestionState::Accepted {
+                session: session.to_owned(),
+            },
+        )
+    }
+
+    /// Dismiss a row — never offered again (survives re-ingest + tombstone).
+    pub fn dismiss(&self, id: SuggestionId) -> bool {
+        self.set_state(id, SuggestionState::Dismissed)
+    }
+
+    /// Snooze a row until `until_ms`.
+    pub fn snooze(&self, id: SuggestionId, until_ms: u64) -> bool {
+        self.set_state(id, SuggestionState::Snoozed { until_ms })
+    }
+
+    fn set_state(&self, id: SuggestionId, state: SuggestionState) -> bool {
+        let changed = {
+            let mut g = self.lock();
+            match g.entries.get_mut(&id) {
+                Some(st) if st.state != state => {
+                    st.state = state;
+                    true
+                }
+                Some(_) => return true, // already in that state — success, no bump
+                None => return false,
+            }
+        };
+        if changed {
+            self.bump();
+        }
+        true
+    }
+
+    /// Drop every entry whose `last_seen_ms` is older than `ttl_ms` — the
+    /// decay pass (a source that stops reporting an item lets it age out even
+    /// if the source itself never re-polls). Decayed ids leave tombstones so a
+    /// slow flap still counts as recurrence.
+    pub fn decay(&self, now_ms: u64, ttl_ms: u64) {
+        self.decay_per_source(now_ms, |_| ttl_ms);
+    }
+
     /// Per-source decay: each entry ages out against `ttl_for(its source)`, so a
     /// slow source (e.g. a 1h poll) doesn't flicker under a fast global TTL. A
-    /// `ttl_for` of 0 means that source's entries never age out.
+    /// `ttl_for` of 0 means that source's entries never age out. Also purges
+    /// tombstones past their recurrence window.
     pub fn decay_per_source(&self, now_ms: u64, ttl_for: impl Fn(SourceKind) -> u64) {
         let removed = {
             let mut g = self.lock();
-            let before = g.len();
-            g.retain(|_, st| {
-                let ttl = ttl_for(st.suggestion.source);
-                ttl == 0 || now_ms.saturating_sub(st.last_seen_ms) <= ttl
-            });
-            g.len() != before
+            let stale: Vec<StoredSuggestion> = g
+                .entries
+                .values()
+                .filter(|st| {
+                    let ttl = ttl_for(st.suggestion.source);
+                    ttl != 0 && now_ms.saturating_sub(st.last_seen_ms) > ttl
+                })
+                .cloned()
+                .collect();
+            for st in &stale {
+                Self::tombstone_locked(&mut g, st, now_ms);
+                g.entries.remove(&st.suggestion.id);
+            }
+            g.tombstones
+                .retain(|_, t| now_ms.saturating_sub(t.vanished_ms) <= TOMBSTONE_TTL_MS);
+            !stale.is_empty()
         };
         if removed {
             self.bump();
@@ -187,10 +479,11 @@ impl SuggestionStore {
         }
         let removed = {
             let mut g = self.lock();
-            if g.len() <= max_entries {
+            if g.entries.len() <= max_entries {
                 return;
             }
             let mut ranked: Vec<(SuggestionId, u64, u64)> = g
+                .entries
                 .values()
                 .map(|st| (st.suggestion.id, st.suggestion.rank_key(), st.last_seen_ms))
                 .collect();
@@ -198,34 +491,42 @@ impl SuggestionStore {
             ranked.sort_by(|a, b| b.1.cmp(&a.1).then(b.2.cmp(&a.2)).then(a.0.cmp(&b.0)));
             let keep: BTreeSet<SuggestionId> =
                 ranked.into_iter().take(max_entries).map(|(id, _, _)| id).collect();
-            let before = g.len();
-            g.retain(|id, _| keep.contains(id));
-            g.len() != before
+            let before = g.entries.len();
+            g.entries.retain(|id, _| keep.contains(id));
+            g.entries.len() != before
         };
         if removed {
             self.bump();
         }
     }
 
-    /// The top `max` suggestions, ranked by urgency→score→age→id.
+    /// The top `max` offerable suggestions at `now_ms`, in living-board order
+    /// ([`effective_rank_key`]: urgency → score+aging+recurrence → birth → id).
     #[must_use]
-    pub fn ranked(&self, max: usize) -> Vec<Suggestion> {
-        self.ranked_stored(max)
+    pub fn ranked(&self, max: usize, now_ms: u64) -> Vec<Suggestion> {
+        self.ranked_stored(max, now_ms)
             .into_iter()
             .map(|st| st.suggestion)
             .collect()
     }
 
-    /// Like [`SuggestionStore::ranked`] but carries `first_seen_ms` so the
-    /// renderer can compute the per-row shade-in alpha.
+    /// Like [`SuggestionStore::ranked`] but carries the store bookkeeping
+    /// (birth for shade-in, `times_seen` for ×N, `state` for the ◐ badge).
+    /// Dismissed and still-snoozed rows are filtered out here — the one
+    /// offerability gate every read shares.
     #[must_use]
-    pub fn ranked_stored(&self, max: usize) -> Vec<StoredSuggestion> {
+    pub fn ranked_stored(&self, max: usize, now_ms: u64) -> Vec<StoredSuggestion> {
         let g = self.lock();
-        let mut v: Vec<StoredSuggestion> = g.values().cloned().collect();
+        let mut v: Vec<StoredSuggestion> = g
+            .entries
+            .values()
+            .filter(|st| offerable(st, now_ms))
+            .cloned()
+            .collect();
+        drop(g);
         v.sort_by(|a, b| {
-            b.suggestion
-                .rank_key()
-                .cmp(&a.suggestion.rank_key())
+            effective_rank_key(b, now_ms)
+                .cmp(&effective_rank_key(a, now_ms))
                 .then(a.first_seen_ms.cmp(&b.first_seen_ms))
                 .then(a.suggestion.id.cmp(&b.suggestion.id))
         });
@@ -236,22 +537,29 @@ impl SuggestionStore {
     /// Resolve a suggestion by id (the accept path looks up the spawn target).
     #[must_use]
     pub fn get(&self, id: SuggestionId) -> Option<Suggestion> {
-        self.lock().get(&id).map(|st| st.suggestion.clone())
+        self.lock().entries.get(&id).map(|st| st.suggestion.clone())
+    }
+
+    /// Resolve the full stored row (lifecycle + recurrence bookkeeping).
+    #[must_use]
+    pub fn get_stored(&self, id: SuggestionId) -> Option<StoredSuggestion> {
+        self.lock().entries.get(&id).cloned()
     }
 
     #[must_use]
     pub fn len(&self) -> usize {
-        self.lock().len()
+        self.lock().entries.len()
     }
     #[must_use]
     pub fn is_empty(&self) -> bool {
-        self.lock().is_empty()
+        self.lock().entries.is_empty()
     }
     pub fn clear(&self) {
         let had = {
             let mut g = self.lock();
-            let had = !g.is_empty();
-            g.clear();
+            let had = !g.entries.is_empty();
+            g.entries.clear();
+            g.tombstones.clear();
             had
         };
         if had {
@@ -263,29 +571,41 @@ impl SuggestionStore {
     /// `shade_in_ms`. Used by the renderer to gently fade new rows in.
     #[must_use]
     pub fn shade_alpha(&self, id: SuggestionId, now_ms: u64, shade_in_ms: u64) -> u8 {
-        let first = match self.lock().get(&id) {
+        let first = match self.lock().entries.get(&id) {
             Some(st) => st.first_seen_ms,
             None => return 255,
         };
         shade_ramp(first, now_ms, shade_in_ms)
     }
 
-    /// Snapshot the current set for a warm restart.
+    /// Snapshot the current set for a warm restart, stamped with the save time
+    /// so ages rebase on load.
     #[must_use]
-    pub fn to_snapshot(&self) -> StoreSnapshot {
+    pub fn to_snapshot(&self, now_ms: u64) -> StoreSnapshot {
         StoreSnapshot {
-            entries: self.lock().values().cloned().collect(),
+            entries: self.lock().entries.values().cloned().collect(),
+            saved_at_ms: now_ms,
         }
     }
 
-    /// Replace the store from a snapshot (warm restart). Birth times are kept
-    /// so a row that survived the restart doesn't re-shade-in.
-    pub fn load_snapshot(&self, snap: StoreSnapshot) {
+    /// Replace the store from a snapshot (warm restart). Each entry's
+    /// freshness is REBASED by `now - saved_at` so age-at-save is preserved:
+    /// a row fresh at save is fresh now (survives the post-load decay), a row
+    /// already stale at save still decays. Birth times stay absolute — aging
+    /// keeps counting from the true first sighting. Legacy snapshots
+    /// (`saved_at_ms == 0`, or an implausible future stamp) load unrebased.
+    pub fn load_snapshot(&self, snap: StoreSnapshot, now_ms: u64) {
+        let shift = if snap.saved_at_ms > 0 && now_ms >= snap.saved_at_ms {
+            now_ms - snap.saved_at_ms
+        } else {
+            0
+        };
         {
             let mut g = self.lock();
-            g.clear();
-            for st in snap.entries {
-                g.insert(st.suggestion.id, st);
+            g.entries.clear();
+            for mut st in snap.entries {
+                st.last_seen_ms = st.last_seen_ms.saturating_add(shift);
+                g.entries.insert(st.suggestion.id, st);
             }
         }
         self.bump();
@@ -294,7 +614,7 @@ impl SuggestionStore {
     /// Warm-restart load: a magic-framed, BLAKE3-verified snapshot file. A
     /// missing file, a wrong schema magic (format bump), or a torn body (hash
     /// mismatch) all start empty — never feed garbage rows to the picker.
-    pub fn load_file(&self, path: &Path) {
+    pub fn load_file(&self, path: &Path, now_ms: u64) {
         // Reclaim `.tmp.<pid>` temps a crashed prior run left behind, before we
         // read. The atomic persist renames its own temp away on success, so the
         // only way one lingers is a crash between create and rename.
@@ -306,7 +626,7 @@ impl SuggestionStore {
             return; // bad magic / hash mismatch → start empty
         };
         if let Ok(snap) = serde_json::from_slice::<StoreSnapshot>(&json) {
-            self.load_snapshot(snap);
+            self.load_snapshot(snap, now_ms);
         }
     }
 
@@ -314,8 +634,8 @@ impl SuggestionStore {
     /// temp (after `create_dir_all`) → `sync_all` → rename. Snapshotting clones
     /// under the lock then drops it, so the disk I/O is lock-free. Best-effort —
     /// a write failure never blocks the caller.
-    pub fn persist_file(&self, path: &Path) {
-        let snap = self.to_snapshot();
+    pub fn persist_file(&self, path: &Path, now_ms: u64) {
+        let snap = self.to_snapshot(now_ms);
         let Ok(json) = serde_json::to_vec(&snap) else {
             return;
         };
@@ -494,9 +814,172 @@ mod tests {
         store.ingest(SourceKind::TendRepos, vec![sug(SourceKind::TendRepos, "a", "a")], 500);
         // shade_alpha uses first_seen=100, so at now=100+shade it's full; the
         // re-ingest at 500 must NOT reset birth.
-        let st = store.ranked_stored(10);
+        let st = store.ranked_stored(10, 500);
         let first = st.iter().find(|s| s.suggestion.id == id).unwrap().first_seen_ms;
         assert_eq!(first, 100, "first_seen preserved across re-ingest");
+    }
+
+    #[test]
+    fn recurrence_survives_the_tombstone_window() {
+        let store = SuggestionStore::new();
+        let id = SuggestionId::derive(SourceKind::GrafanaAlerts, "flap");
+        // Fires, resolves (vanishes), re-fires within the window → identity
+        // continuity: original birth, times_seen 2.
+        store.ingest(
+            SourceKind::GrafanaAlerts,
+            vec![sug(SourceKind::GrafanaAlerts, "flap", "flap")],
+            1_000,
+        );
+        store.ingest(SourceKind::GrafanaAlerts, vec![], 2_000);
+        assert!(store.get(id).is_none(), "vanished from the board");
+        store.ingest(
+            SourceKind::GrafanaAlerts,
+            vec![sug(SourceKind::GrafanaAlerts, "flap", "flap")],
+            60_000,
+        );
+        let st = store.get_stored(id).expect("re-fired");
+        assert_eq!(st.times_seen, 2, "recurrence counted");
+        assert_eq!(st.first_seen_ms, 1_000, "original birth restored");
+
+        // A re-fire AFTER the window is a brand-new issue.
+        store.ingest(SourceKind::GrafanaAlerts, vec![], 70_000);
+        let later = 70_000 + TOMBSTONE_TTL_MS + 1;
+        store.ingest(
+            SourceKind::GrafanaAlerts,
+            vec![sug(SourceKind::GrafanaAlerts, "flap", "flap")],
+            later,
+        );
+        let st = store.get_stored(id).expect("re-fired late");
+        assert_eq!(st.times_seen, 1, "outside the window = new issue");
+        assert_eq!(st.first_seen_ms, later);
+    }
+
+    #[test]
+    fn recurrence_and_aging_escalate_within_a_tier_never_across() {
+        let now = 10 * 60 * 60 * 1000; // 10h
+        let mk = |first_seen_ms: u64, times_seen: u32, urgency: Urgency| StoredSuggestion {
+            suggestion: sug(SourceKind::TendRepos, "k", "t").urgent(urgency),
+            first_seen_ms,
+            last_seen_ms: now,
+            times_seen,
+            state: SuggestionState::Offered,
+        };
+        // Same tier: an old repeat offender outranks a fresh first-timer.
+        let fresh = mk(now, 1, Urgency::Normal);
+        let veteran = mk(now - 3_600_000, 5, Urgency::Normal);
+        assert!(
+            effective_rank_key(&veteran, now) > effective_rank_key(&fresh, now),
+            "aging + recurrence escalate within the tier"
+        );
+        // Across tiers: no amount of aging/recurrence beats real urgency.
+        let ancient_low = mk(0, u32::MAX, Urgency::Low);
+        let fresh_normal = mk(now, 1, Urgency::Normal);
+        assert!(
+            effective_rank_key(&fresh_normal, now) > effective_rank_key(&ancient_low, now),
+            "urgency stays the dominant axis"
+        );
+    }
+
+    #[test]
+    fn lifecycle_accept_demotes_snooze_hides_dismiss_removes() {
+        let store = SuggestionStore::new();
+        let hot = sug(SourceKind::GrafanaAlerts, "hot", "hot").urgent(Urgency::Critical);
+        let calm = sug(SourceKind::TendRepos, "calm", "calm").urgent(Urgency::Normal);
+        let hot_id = hot.id;
+        let calm_id = calm.id;
+        store.ingest(SourceKind::GrafanaAlerts, vec![hot], 1_000);
+        store.ingest(SourceKind::TendRepos, vec![calm], 1_000);
+        assert_eq!(store.ranked(10, 1_000)[0].id, hot_id, "critical on top");
+
+        // Accept → soft-ack: demoted below the calm Offered row, still listed.
+        assert!(store.mark_accepted(hot_id, "🔥 hot"));
+        let ranked = store.ranked(10, 1_000);
+        assert_eq!(ranked.len(), 2, "accepted stays on the board");
+        assert_eq!(ranked[0].id, calm_id, "accepted row is demoted (in progress)");
+        assert!(matches!(
+            store.get_stored(hot_id).unwrap().state,
+            SuggestionState::Accepted { .. }
+        ));
+
+        // Accepted state survives the source re-reporting the item.
+        store.ingest(
+            SourceKind::GrafanaAlerts,
+            vec![sug(SourceKind::GrafanaAlerts, "hot", "hot").urgent(Urgency::Critical)],
+            2_000,
+        );
+        assert!(matches!(
+            store.get_stored(hot_id).unwrap().state,
+            SuggestionState::Accepted { .. }
+        ));
+
+        // Snooze hides until the deadline, then re-offers.
+        assert!(store.snooze(calm_id, 5_000));
+        assert!(
+            !store.ranked(10, 4_999).iter().any(|s| s.id == calm_id),
+            "snoozed row hidden before the deadline"
+        );
+        assert!(
+            store.ranked(10, 5_000).iter().any(|s| s.id == calm_id),
+            "snoozed row re-offered at the deadline"
+        );
+
+        // Dismiss removes from every read and STICKS across re-ingest + the
+        // tombstone window.
+        assert!(store.dismiss(calm_id));
+        assert!(!store.ranked(10, 6_000).iter().any(|s| s.id == calm_id));
+        store.ingest(
+            SourceKind::TendRepos,
+            vec![sug(SourceKind::TendRepos, "calm", "calm")],
+            7_000,
+        );
+        assert!(
+            !store.ranked(10, 7_000).iter().any(|s| s.id == calm_id),
+            "dismissed survives re-ingest"
+        );
+        store.ingest(SourceKind::TendRepos, vec![], 8_000); // vanish → tombstone
+        store.ingest(
+            SourceKind::TendRepos,
+            vec![sug(SourceKind::TendRepos, "calm", "calm")],
+            9_000,
+        );
+        assert!(
+            !store.ranked(10, 9_000).iter().any(|s| s.id == calm_id),
+            "dismissed survives the tombstone round-trip"
+        );
+
+        // An unknown id fails, a repeat set succeeds without a bump.
+        assert!(!store.dismiss(SuggestionId(42)));
+    }
+
+    #[test]
+    fn upsert_is_additive_never_drops_siblings() {
+        let store = SuggestionStore::new();
+        store.upsert(sug(SourceKind::TendRepos, "a", "a"), 100);
+        store.upsert(sug(SourceKind::TendRepos, "b", "b"), 200);
+        assert_eq!(store.len(), 2, "upserts accumulate");
+        store.upsert(sug(SourceKind::TendRepos, "a", "a2"), 300);
+        assert_eq!(store.len(), 2, "same id updates in place");
+        assert_eq!(
+            store.get(SuggestionId::derive(SourceKind::TendRepos, "a")).unwrap().title,
+            "a2"
+        );
+    }
+
+    #[test]
+    fn record_poll_bumps_on_transition_not_heartbeat() {
+        let store = SuggestionStore::new();
+        let g0 = store.generation();
+        store.record_poll(SourceKind::JiraAssigned, SourceStatus::Ok, 1_000);
+        let g1 = store.generation();
+        assert!(g1 > g0, "first poll records (transition from unknown)");
+        store.record_poll(SourceKind::JiraAssigned, SourceStatus::Ok, 2_000);
+        assert_eq!(store.generation(), g1, "same-status heartbeat must not bump");
+        store.record_poll(SourceKind::JiraAssigned, SourceStatus::Error, 3_000);
+        assert!(store.generation() > g1, "a status transition bumps");
+        let health = store.health();
+        let (_, h) = health.iter().find(|(k, _)| *k == SourceKind::JiraAssigned).unwrap();
+        assert_eq!(h.status, SourceStatus::Error);
+        assert_eq!(h.last_ok_ms, 2_000, "last_ok remembers the last good poll");
     }
 
     #[test]
@@ -512,7 +995,7 @@ mod tests {
             vec![sug(SourceKind::TendRepos, "repo", "repo").urgent(Urgency::Low)],
             100,
         );
-        let ranked = store.ranked(10);
+        let ranked = store.ranked(10, 100);
         assert_eq!(ranked[0].source, SourceKind::GrafanaAlerts, "critical first");
     }
 
@@ -534,14 +1017,39 @@ mod tests {
     }
 
     #[test]
-    fn snapshot_round_trips_and_preserves_birth() {
+    fn snapshot_round_trips_and_rebases_ages() {
         let store = SuggestionStore::new();
-        store.ingest(SourceKind::TendRepos, vec![sug(SourceKind::TendRepos, "a", "a")], 100);
-        let snap = store.to_snapshot();
+        store.ingest(SourceKind::TendRepos, vec![sug(SourceKind::TendRepos, "a", "a")], 100_000);
+        let snap = store.to_snapshot(200_000);
+        assert_eq!(snap.saved_at_ms, 200_000);
+
+        // Load 1 hour later: the entry was 100s old at save; it must be 100s
+        // old relative to NOW after load (not 1h+100s old).
         let restored = SuggestionStore::new();
-        restored.load_snapshot(snap);
+        let now = 3_800_000;
+        restored.load_snapshot(snap, now);
         assert_eq!(restored.len(), 1);
-        assert_eq!(restored.ranked_stored(1)[0].first_seen_ms, 100);
+        let st = restored.ranked_stored(1, now)[0].clone();
+        assert_eq!(now - st.last_seen_ms, 100_000, "age-at-save preserved");
+        assert_eq!(st.first_seen_ms, 100_000, "birth stays absolute (aging clock)");
+        // The post-load decay with a 15-min TTL keeps it (it is 100s old).
+        restored.decay(now, 900_000);
+        assert_eq!(restored.len(), 1, "fresh-at-save row survives restart decay");
+
+        // Legacy snapshot (saved_at 0) loads unrebased.
+        let legacy = StoreSnapshot {
+            entries: vec![StoredSuggestion {
+                suggestion: sug(SourceKind::TendRepos, "b", "b"),
+                first_seen_ms: 50,
+                last_seen_ms: 50,
+                times_seen: 1,
+                state: SuggestionState::Offered,
+            }],
+            saved_at_ms: 0,
+        };
+        let old = SuggestionStore::new();
+        old.load_snapshot(legacy, now);
+        assert_eq!(old.ranked_stored(1, now)[0].last_seen_ms, 50, "legacy: no rebase");
     }
 
     #[test]
@@ -553,11 +1061,11 @@ mod tests {
 
         let store = SuggestionStore::new();
         store.ingest(SourceKind::TendRepos, vec![sug(SourceKind::TendRepos, "a", "a")], 100);
-        store.persist_file(&path);
+        store.persist_file(&path, 100);
 
         // Round-trip: a fresh store warm-loads the set.
         let loaded = SuggestionStore::new();
-        loaded.load_file(&path);
+        loaded.load_file(&path, 100);
         assert_eq!(loaded.len(), 1, "warm restart re-surfaces the set");
 
         // A torn body (flip a json byte) → hash mismatch → start empty.
@@ -566,13 +1074,13 @@ mod tests {
         bytes[last] ^= 0xff;
         std::fs::write(&path, &bytes).unwrap();
         let torn = SuggestionStore::new();
-        torn.load_file(&path);
+        torn.load_file(&path, 100);
         assert_eq!(torn.len(), 0, "a torn body is rejected → empty");
 
         // Wrong magic (a foreign/old file) → start empty.
         std::fs::write(&path, b"garbage not ours").unwrap();
         let bad = SuggestionStore::new();
-        bad.load_file(&path);
+        bad.load_file(&path, 100);
         assert_eq!(bad.len(), 0, "wrong magic → empty");
 
         let _ = std::fs::remove_file(&path);
@@ -706,6 +1214,8 @@ mod tests {
             suggestion: sug(source, key, key),
             first_seen_ms: 100,
             last_seen_ms: 100,
+            times_seen: 1,
+            state: SuggestionState::Offered,
         }
     }
 
@@ -731,15 +1241,15 @@ mod tests {
 
     proptest! {
         #[test]
-        fn ranked_is_sorted_by_rank_key_desc(n in 0usize..20) {
+        fn ranked_is_sorted_by_effective_key_desc(n in 0usize..20) {
             let store = SuggestionStore::new();
             let items: Vec<Suggestion> = (0..n)
                 .map(|i| sug(SourceKind::TendRepos, &i.to_string(), "t").scored((u32::try_from(i).unwrap_or(0) * 37) % 1001))
                 .collect();
             store.ingest(SourceKind::TendRepos, items, 100);
-            let ranked = store.ranked(100);
+            let ranked = store.ranked_stored(100, 100);
             for w in ranked.windows(2) {
-                prop_assert!(w[0].rank_key() >= w[1].rank_key());
+                prop_assert!(effective_rank_key(&w[0], 100) >= effective_rank_key(&w[1], 100));
             }
         }
 
@@ -754,6 +1264,32 @@ mod tests {
             );
         }
 
+        /// Aging + recurrence bonuses are BOUNDED: no combination of waiting
+        /// time, score, and times_seen lets a row cross into the next urgency
+        /// tier's key range.
+        #[test]
+        fn escalation_never_crosses_an_urgency_tier(
+            waited_min in 0u64..1_000_000,
+            score in 0u32..=1000,
+            times in 1u32..10_000,
+        ) {
+            let now = waited_min.saturating_mul(60_000).saturating_add(1);
+            let st = StoredSuggestion {
+                suggestion: sug(SourceKind::TendRepos, "k", "t")
+                    .urgent(Urgency::Normal)
+                    .scored(score),
+                first_seen_ms: 1,
+                last_seen_ms: now,
+                times_seen: times,
+                state: SuggestionState::Offered,
+            };
+            let key = effective_rank_key(&st, now);
+            let tier_floor = u64::from(Urgency::Normal.weight()) << 20;
+            let next_tier = u64::from(Urgency::High.weight()) << 20;
+            prop_assert!(key >= tier_floor, "never falls below its own tier");
+            prop_assert!(key < next_tier, "never escalates across tiers");
+        }
+
         /// DETERMINISTIC race coverage. Every store op takes the Mutex, so the
         /// store is LINEARIZABLE — concurrent interleavings reduce to some
         /// ordering of complete ops. Exhaustively exercising random ORDERINGS
@@ -763,7 +1299,7 @@ mod tests {
         /// generation is monotonic non-decreasing, and `ranked` is always sorted.
         #[test]
         fn store_is_linearizable_invariants_hold(
-            seq in prop::collection::vec((0u8..4, 0u8..8), 0..40),
+            seq in prop::collection::vec((0u8..6, 0u8..8), 0..40),
         ) {
             let store = SuggestionStore::new();
             let mut prev_gen = store.generation();
@@ -787,15 +1323,27 @@ mod tests {
                         store.ingest(SourceKind::GrafanaAlerts, items, now);
                     }
                     2 => store.decay(now, u64::from(arg) * 5),
-                    _ => store.gc(usize::from(arg)),
+                    3 => store.gc(usize::from(arg)),
+                    4 => {
+                        let _ = store.dismiss(SuggestionId::derive(
+                            SourceKind::TendRepos,
+                            &arg.to_string(),
+                        ));
+                    }
+                    _ => {
+                        let _ = store.mark_accepted(
+                            SuggestionId::derive(SourceKind::GrafanaAlerts, &arg.to_string()),
+                            "s",
+                        );
+                    }
                 }
                 let g = store.generation();
                 prop_assert!(g >= prev_gen, "generation must be monotonic non-decreasing");
                 prev_gen = g;
-                let ranked = store.ranked_stored(1000);
+                let ranked = store.ranked_stored(1000, now);
                 for w in ranked.windows(2) {
                     prop_assert!(
-                        w[0].suggestion.rank_key() >= w[1].suggestion.rank_key(),
+                        effective_rank_key(&w[0], now) >= effective_rank_key(&w[1], now),
                         "ranked must stay sorted after every op"
                     );
                 }
@@ -826,9 +1374,13 @@ mod tests {
                     let items: Vec<_> = (0..n).map(|j| sug(src, &j.to_string(), "t")).collect();
                     s.ingest(src, items, 1000 + i);
                     let _ = s.generation();
-                    let _ = s.ranked_stored(10);
+                    let _ = s.ranked_stored(10, 1000 + i);
+                    let _ = s.record_poll(src, SourceStatus::Ok, 1000 + i);
                     if i % 5 == 0 {
                         s.decay(1000 + i, 50);
+                    }
+                    if i % 7 == 0 {
+                        let _ = s.dismiss(SuggestionId::derive(src, "1"));
                     }
                     if i % 9 == 0 {
                         s.gc(30);
@@ -839,9 +1391,9 @@ mod tests {
         for h in handles {
             h.join().expect("a store thread panicked or deadlocked");
         }
-        let ranked = store.ranked_stored(1000);
+        let ranked = store.ranked_stored(1000, 2000);
         for w in ranked.windows(2) {
-            assert!(w[0].suggestion.rank_key() >= w[1].suggestion.rank_key());
+            assert!(effective_rank_key(&w[0], 2000) >= effective_rank_key(&w[1], 2000));
         }
     }
 }

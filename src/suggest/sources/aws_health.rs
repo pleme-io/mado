@@ -5,12 +5,14 @@
 //! Live wiring: `aws health describe-events --filter
 //! eventStatusCodes=open,upcoming --output json --region us-east-1` → an object
 //! `{events: [{arn, service, eventTypeCode, statusCode}]}`. Each event becomes
-//! a Critical suggestion dropping you in the code root. `aws` not installed /
-//! unauthed → graceful empty.
+//! a Critical suggestion dropping you in the code root. Honesty contract:
+//! only an OBSERVED response is `Fetched`; a missing/unauthed `aws` CLI is
+//! indistinguishable from a network failure through this seam, so any failed
+//! run is `Unavailable(Error)` — an auth blip never reads as "no open events".
 
 use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion, Urgency};
 use crate::suggest::env::{Cmd, SuggestionEnvironment};
-use crate::suggest::source::{SourceConfig, SuggestionSource};
+use crate::suggest::source::{PollOutcome, SourceConfig, SuggestionSource};
 
 pub struct AwsHealthSource;
 
@@ -19,7 +21,7 @@ impl SuggestionSource for AwsHealthSource {
         SourceKind::AwsHealth
     }
 
-    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> Vec<Suggestion> {
+    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> PollOutcome {
         let cmd = Cmd::new("aws")
             .arg("health")
             .arg("describe-events")
@@ -30,11 +32,13 @@ impl SuggestionSource for AwsHealthSource {
             .arg("--region")
             .arg("us-east-1");
         let Some(out) = env.run(&cmd) else {
-            return Vec::new();
+            // A missing/unauthed aws CLI is indistinguishable from a network
+            // failure through this seam — both are a real Error tier.
+            return PollOutcome::error();
         };
         let mut items = parse(&out, env);
         items.truncate(cfg.max_items.max(1));
-        items
+        PollOutcome::Fetched(items)
     }
 }
 
@@ -104,7 +108,9 @@ mod tests {
     #[test]
     fn produces_one_critical_suggestion_per_event() {
         let cfg = SourceConfig::for_kind(SourceKind::AwsHealth);
-        let out = AwsHealthSource.poll(&env(), &cfg);
+        let PollOutcome::Fetched(out) = AwsHealthSource.poll(&env(), &cfg) else {
+            panic!("an observed aws response is Fetched");
+        };
         assert_eq!(out.len(), 2);
         let ec2 = out.iter().find(|s| s.title.starts_with("EC2: ")).unwrap();
         assert!(ec2.title.contains("INSTANCE_STORE_DRIVE_PERFORMANCE_DEGRADED"));
@@ -119,15 +125,22 @@ mod tests {
     fn respects_max_items() {
         let mut cfg = SourceConfig::for_kind(SourceKind::AwsHealth);
         cfg.max_items = 1;
-        let out = AwsHealthSource.poll(&env(), &cfg);
+        let PollOutcome::Fetched(out) = AwsHealthSource.poll(&env(), &cfg) else {
+            panic!("an observed aws response is Fetched");
+        };
         assert_eq!(out.len(), 1);
     }
 
     #[test]
-    fn unauthed_aws_yields_nothing() {
-        // No fixture registered → run() returns None → empty.
+    fn honesty_tiers_are_typed_not_empty() {
+        // No fixture registered → run() returns None → Error (an unauthed or
+        // missing aws CLI is indistinguishable from a network failure through
+        // this seam — never "no open events"; keep the last-known rows).
         let cfg = SourceConfig::for_kind(SourceKind::AwsHealth);
-        assert!(AwsHealthSource.poll(&MockEnvironment::new(), &cfg).is_empty());
+        assert_eq!(
+            AwsHealthSource.poll(&MockEnvironment::new(), &cfg),
+            PollOutcome::error()
+        );
     }
 
     #[test]

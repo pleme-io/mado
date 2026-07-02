@@ -7,12 +7,14 @@
 //! the `atlassian/api-token` sops secret. Config params: `site` (the
 //! `*.atlassian.net` host, required), `email` (the account email, required),
 //! `jql` (override the default query), `secret` (override the token's
-//! `category/name`). A missing site/email/token, a non-2xx response, or bad
-//! JSON all yield no suggestions (graceful empty, never a panic).
+//! `category/name`). Honesty contract: a missing site/email is
+//! `Unavailable(Unconfigured)`, a missing token `Unavailable(AuthMissing)`, a
+//! failed fetch `Unavailable(Error)` — only an OBSERVED response is
+//! `Fetched` (so a network blip never reads as "all tickets done").
 
 use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion};
 use crate::suggest::env::{HttpReq, SuggestionEnvironment};
-use crate::suggest::source::{SourceConfig, SuggestionSource};
+use crate::suggest::source::{PollOutcome, SourceConfig, SuggestionSource};
 use super::util::PriorityScale;
 
 /// Default JQL: everything assigned to me that isn't in the Done category,
@@ -27,16 +29,16 @@ impl SuggestionSource for JiraAssignedSource {
         SourceKind::JiraAssigned
     }
 
-    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> Vec<Suggestion> {
+    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> PollOutcome {
         let Some(site) = cfg.param("site") else {
-            return Vec::new();
+            return PollOutcome::unconfigured();
         };
         let Some(email) = cfg.param("email") else {
-            return Vec::new();
+            return PollOutcome::unconfigured();
         };
         let secret_key = cfg.param("secret").unwrap_or("atlassian/api-token");
         let Some(token) = env.secret(secret_key) else {
-            return Vec::new();
+            return PollOutcome::auth_missing();
         };
         let jql = cfg.param("jql").unwrap_or(DEFAULT_JQL);
         let limit = cfg.max_items.max(1).to_string();
@@ -52,9 +54,9 @@ impl SuggestionSource for JiraAssignedSource {
             .basic_auth(email, token)
             .header("Accept", "application/json");
         let Some(body) = env.http_get(&req) else {
-            return Vec::new();
+            return PollOutcome::error();
         };
-        parse(&body, env, cfg.max_items)
+        PollOutcome::Fetched(parse(&body, env, site, cfg.max_items))
     }
 }
 
@@ -63,7 +65,7 @@ use super::util::pct;
 
 /// Parse `/rest/api/3/search` output into suggestions. Pure — the unit the
 /// source is tested through. Capped at `max.max(1)`.
-fn parse(json: &str, env: &dyn SuggestionEnvironment, max: usize) -> Vec<Suggestion> {
+fn parse(json: &str, env: &dyn SuggestionEnvironment, site: &str, max: usize) -> Vec<Suggestion> {
     let Ok(result) = serde_json::from_str::<SearchResult>(json) else {
         return Vec::new();
     };
@@ -78,7 +80,13 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, max: usize) -> Vec<Suggest
             // 📋 <KEY> — the session name leads with the source emoji.
             let mut name = String::from("\u{1F4CB} ");
             name.push_str(key);
-            let spawn = SpawnSpec::new(env.code_root(), name)?;
+            // Kickoff: pop the ticket in the browser while the shell seats you
+            // at the code root — Enter lands you working, not searching.
+            let mut kickoff = String::from("open https://");
+            kickoff.push_str(site);
+            kickoff.push_str("/browse/");
+            kickoff.push_str(key);
+            let spawn = SpawnSpec::new(env.code_root(), name)?.with_command(kickoff);
             let summary: String = issue.fields.summary.trim().chars().take(80).collect();
             let mut title = String::new();
             title.push_str(key);
@@ -174,7 +182,9 @@ mod tests {
             .roots("/code", "/home/op")
             .secret_val("atlassian/api-token", "tok")
             .http(search_url(), FIXTURE);
-        let out = JiraAssignedSource.poll(&env, &cfg());
+        let PollOutcome::Fetched(out) = JiraAssignedSource.poll(&env, &cfg()) else {
+            panic!("an observed response is Fetched");
+        };
         assert_eq!(out.len(), 2);
         let one = out.iter().find(|s| s.title.contains("PLEME-1")).unwrap();
         assert!(one.title.contains("fix the parser"));
@@ -182,6 +192,11 @@ mod tests {
         assert!(one.detail.as_deref().unwrap().contains("High"));
         assert_eq!(one.spawn.name(), "\u{1F4CB} PLEME-1");
         assert_eq!(one.spawn.cwd().to_str().unwrap(), "/code");
+        // Enter launches WORK: the kickoff opens the ticket itself.
+        assert_eq!(
+            one.spawn.initial_command(),
+            Some("open https://pleme.atlassian.net/browse/PLEME-1")
+        );
         // Priority drives rank: the High ticket rises to the Critical tier (the
         // top of the session-generation stream); the Low ticket stays calm.
         assert_eq!(one.urgency, Urgency::Critical);
@@ -194,17 +209,26 @@ mod tests {
     }
 
     #[test]
-    fn unconfigured_or_unauthed_yields_nothing() {
-        // No site/email params and no token secret → nothing to query.
+    fn honesty_tiers_are_typed_not_empty() {
+        // No site/email params → Unconfigured (needs config, not "no work").
         let env = MockEnvironment::new();
         let bare = SourceConfig::for_kind(SourceKind::JiraAssigned);
-        assert!(JiraAssignedSource.poll(&env, &bare).is_empty());
-        // Configured but the token secret is missing → still empty.
-        assert!(JiraAssignedSource.poll(&env, &cfg()).is_empty());
+        assert_eq!(
+            JiraAssignedSource.poll(&env, &bare),
+            PollOutcome::unconfigured()
+        );
+        // Params present but the token secret is missing → AuthMissing.
+        assert_eq!(
+            JiraAssignedSource.poll(&env, &cfg()),
+            PollOutcome::auth_missing()
+        );
+        // Params + token present but the fetch fails → Error (keep last rows).
+        let env = MockEnvironment::new().secret_val("atlassian/api-token", "tok");
+        assert_eq!(JiraAssignedSource.poll(&env, &cfg()), PollOutcome::error());
     }
 
     #[test]
     fn garbage_json_is_safe() {
-        assert!(parse("not json", &MockEnvironment::new(), 5).is_empty());
+        assert!(parse("not json", &MockEnvironment::new(), "x.atlassian.net", 5).is_empty());
     }
 }

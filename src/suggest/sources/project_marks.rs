@@ -3,11 +3,14 @@
 //!
 //! Live wiring: read `~/.local/share/mado/marks` (one mark per line). Each line
 //! is either `name<TAB>path` or a bare `path`. Enter spawns a session in the
-//! marked directory. Missing file → no suggestions (graceful).
+//! marked directory. Honesty contract: this source reads mado's OWN local
+//! state file, so an absent file is a legit first run — `Fetched` of an empty
+//! set; there is no param, credential, or tool whose absence could make it
+//! `Unavailable`.
 
 use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion};
 use crate::suggest::env::SuggestionEnvironment;
-use crate::suggest::source::{SourceConfig, SuggestionSource};
+use crate::suggest::source::{PollOutcome, SourceConfig, SuggestionSource};
 
 pub struct ProjectMarksSource;
 
@@ -16,14 +19,16 @@ impl SuggestionSource for ProjectMarksSource {
         SourceKind::ProjectMarks
     }
 
-    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> Vec<Suggestion> {
+    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> PollOutcome {
         let path = env.home().join(".local/share/mado/marks");
         let Some(content) = env.read_file(&path) else {
-            return Vec::new();
+            // mado's own marks file — absent means a legit first run (observed
+            // empty), not an unavailable upstream.
+            return PollOutcome::Fetched(Vec::new());
         };
         let mut out = parse(&content);
         out.truncate(cfg.max_items.max(1));
-        out
+        PollOutcome::Fetched(out)
     }
 }
 
@@ -76,7 +81,9 @@ mod tests {
             .roots("/code", "/home/op")
             .file(MARKS_PATH, FIXTURE);
         let cfg = SourceConfig::for_kind(SourceKind::ProjectMarks);
-        let out = ProjectMarksSource.poll(&env, &cfg);
+        let PollOutcome::Fetched(out) = ProjectMarksSource.poll(&env, &cfg) else {
+            panic!("an observed marks file is Fetched");
+        };
         assert_eq!(out.len(), 2, "blank line excluded");
         // Named mark keeps its name as the title.
         let nexus = out.iter().find(|s| s.title == "nexus").unwrap();
@@ -100,14 +107,22 @@ mod tests {
             .file(MARKS_PATH, FIXTURE);
         let mut cfg = SourceConfig::for_kind(SourceKind::ProjectMarks);
         cfg.max_items = 1;
-        assert_eq!(ProjectMarksSource.poll(&env, &cfg).len(), 1);
+        let PollOutcome::Fetched(out) = ProjectMarksSource.poll(&env, &cfg) else {
+            panic!("an observed marks file is Fetched");
+        };
+        assert_eq!(out.len(), 1);
     }
 
     #[test]
-    fn missing_file_yields_nothing() {
-        // No file registered → read_file returns None → empty.
+    fn honesty_tiers_are_typed_not_empty() {
+        // No file registered → read_file returns None → a legit first run:
+        // an observed-empty `Fetched`, never `Unavailable` — this source reads
+        // mado's own state file, so there is no param/credential/tool to miss.
         let cfg = SourceConfig::for_kind(SourceKind::ProjectMarks);
-        assert!(ProjectMarksSource.poll(&MockEnvironment::new(), &cfg).is_empty());
+        assert_eq!(
+            ProjectMarksSource.poll(&MockEnvironment::new(), &cfg),
+            PollOutcome::Fetched(Vec::new())
+        );
     }
 
     #[test]

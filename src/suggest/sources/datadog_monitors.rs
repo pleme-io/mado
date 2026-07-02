@@ -1,17 +1,19 @@
 //! `datadog-monitors` — Datadog monitors currently in the `Alert` state,
 //! surfaced as "go look at this fire" suggestions. HTTP against Datadog's v1
 //! monitor API; auth is the `datadog/api-key` + `datadog/app-key` secrets sent
-//! as headers. Enter spawns a session rooted at your code root.
+//! as headers (overridable via the `api_key_secret` / `app_key_secret`
+//! params). Enter spawns a session rooted at your code root.
 //!
 //! Live wiring: `GET <base_url>/api/v1/monitor?group_states=alert` with
 //! `DD-API-KEY` + `DD-APPLICATION-KEY` headers. Each monitor whose
-//! `overall_state` is `Alert` becomes a suggestion. Missing keys (sent as
-//! empty) just yield an unauthorized body; a non-JSON / empty body → no
-//! suggestions (graceful).
+//! `overall_state` is `Alert` becomes a suggestion. Honesty contract: either
+//! key missing is `Unavailable(AuthMissing)` (no request is fired), a failed
+//! fetch `Unavailable(Error)` — only an OBSERVED response is `Fetched` (so an
+//! auth outage never reads as "nothing is on fire").
 
 use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion};
 use crate::suggest::env::{HttpReq, SuggestionEnvironment};
-use crate::suggest::source::{SourceConfig, SuggestionSource};
+use crate::suggest::source::{PollOutcome, SourceConfig, SuggestionSource};
 use super::util::PriorityScale;
 
 pub struct DatadogMonitorsSource;
@@ -21,9 +23,15 @@ impl SuggestionSource for DatadogMonitorsSource {
         SourceKind::DatadogMonitors
     }
 
-    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> Vec<Suggestion> {
-        let apikey = env.secret("datadog/api-key").unwrap_or_default();
-        let appkey = env.secret("datadog/app-key").unwrap_or_default();
+    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> PollOutcome {
+        let api_key_secret = cfg.param("api_key_secret").unwrap_or("datadog/api-key");
+        let Some(apikey) = env.secret(api_key_secret) else {
+            return PollOutcome::auth_missing();
+        };
+        let app_key_secret = cfg.param("app_key_secret").unwrap_or("datadog/app-key");
+        let Some(appkey) = env.secret(app_key_secret) else {
+            return PollOutcome::auth_missing();
+        };
         let base = cfg.param("base_url").unwrap_or("https://api.datadoghq.com");
         let max = cfg.max_items.max(1);
         let mut url = String::new();
@@ -34,9 +42,9 @@ impl SuggestionSource for DatadogMonitorsSource {
             .header("DD-APPLICATION-KEY", appkey)
             .header("Accept", "application/json");
         let Some(out) = env.http_get(&req) else {
-            return Vec::new();
+            return PollOutcome::error();
         };
-        parse(&out, env, max)
+        PollOutcome::Fetched(parse(&out, env, max))
     }
 }
 
@@ -129,7 +137,9 @@ mod tests {
             .secret_val("datadog/api-key", "ddk")
             .secret_val("datadog/app-key", "dak")
             .http(&url(), FIXTURE);
-        let out = DatadogMonitorsSource.poll(&env, &cfg());
+        let PollOutcome::Fetched(out) = DatadogMonitorsSource.poll(&env, &cfg()) else {
+            panic!("an observed response is Fetched");
+        };
         // The OK monitor is excluded; only the two Alert monitors remain.
         assert_eq!(out.len(), 2, "non-alert monitor excluded");
         let api = out.iter().find(|s| s.title.contains("api latency")).unwrap();
@@ -145,11 +155,24 @@ mod tests {
     }
 
     #[test]
-    fn no_http_yields_nothing() {
-        // No fixture registered → http_get returns None → empty.
-        assert!(DatadogMonitorsSource
-            .poll(&MockEnvironment::new(), &cfg())
-            .is_empty());
+    fn honesty_tiers_are_typed_not_empty() {
+        // Neither key present → AuthMissing (needs auth, not "no fires") —
+        // and no request is ever fired unauthenticated.
+        assert_eq!(
+            DatadogMonitorsSource.poll(&MockEnvironment::new(), &cfg()),
+            PollOutcome::auth_missing()
+        );
+        // Only the api key present → the app key is still missing → AuthMissing.
+        let env = MockEnvironment::new().secret_val("datadog/api-key", "ddk");
+        assert_eq!(
+            DatadogMonitorsSource.poll(&env, &cfg()),
+            PollOutcome::auth_missing()
+        );
+        // Both keys present but the fetch fails → Error (keep last rows).
+        let env = MockEnvironment::new()
+            .secret_val("datadog/api-key", "ddk")
+            .secret_val("datadog/app-key", "dak");
+        assert_eq!(DatadogMonitorsSource.poll(&env, &cfg()), PollOutcome::error());
     }
 
     #[test]

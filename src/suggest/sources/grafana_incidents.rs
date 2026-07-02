@@ -4,13 +4,17 @@
 //! `base_url` param. Enter spawns a session rooted at your code root.
 //!
 //! Live wiring: `GET <base_url>/api/annotations?tags=incident&limit=N` with
-//! `Authorization: Bearer <token>`. Missing secret / missing `base_url` /
-//! non-JSON body → no suggestions (graceful). The incident annotation shape is
-//! assumed: a JSON array of `{id, text}` rows tagged `incident`.
+//! `Authorization: Bearer <token>`. Config params: `base_url` (the Grafana
+//! root, required), `secret` (override the token's `category/name`, default
+//! `grafana/api-token`). Honesty contract: a missing `base_url` is
+//! `Unavailable(Unconfigured)`, a missing token `Unavailable(AuthMissing)`, a
+//! failed fetch `Unavailable(Error)` — only an OBSERVED response is `Fetched`
+//! (so a network blip never reads as "no incidents"). The incident annotation
+//! shape is assumed: a JSON array of `{id, text}` rows tagged `incident`.
 
 use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion, Urgency};
 use crate::suggest::env::{HttpReq, SuggestionEnvironment};
-use crate::suggest::source::{SourceConfig, SuggestionSource};
+use crate::suggest::source::{PollOutcome, SourceConfig, SuggestionSource};
 
 pub struct GrafanaIncidentsSource;
 
@@ -19,9 +23,14 @@ impl SuggestionSource for GrafanaIncidentsSource {
         SourceKind::GrafanaIncidents
     }
 
-    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> Vec<Suggestion> {
-        let token = env.secret("grafana/api-token").unwrap_or_default();
-        let base = cfg.param("base_url").unwrap_or("");
+    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> PollOutcome {
+        let Some(base) = cfg.param("base_url") else {
+            return PollOutcome::unconfigured();
+        };
+        let secret_key = cfg.param("secret").unwrap_or("grafana/api-token");
+        let Some(token) = env.secret(secret_key) else {
+            return PollOutcome::auth_missing();
+        };
         let max = cfg.max_items.max(1);
         let mut url = String::new();
         url.push_str(base);
@@ -31,9 +40,9 @@ impl SuggestionSource for GrafanaIncidentsSource {
             .bearer(&token)
             .header("Accept", "application/json");
         let Some(out) = env.http_get(&req) else {
-            return Vec::new();
+            return PollOutcome::error();
         };
-        parse(&out, env, max)
+        PollOutcome::Fetched(parse(&out, env, max))
     }
 }
 
@@ -97,7 +106,9 @@ mod tests {
             .roots("/code", "/home/op")
             .secret_val("grafana/api-token", "tok")
             .http(&url(), FIXTURE);
-        let out = GrafanaIncidentsSource.poll(&env, &cfg());
+        let PollOutcome::Fetched(out) = GrafanaIncidentsSource.poll(&env, &cfg()) else {
+            panic!("an observed response is Fetched");
+        };
         assert_eq!(out.len(), 2);
         let disk = out.iter().find(|s| s.title.contains("disk full")).unwrap();
         assert_eq!(disk.urgency, Urgency::Critical);
@@ -109,13 +120,24 @@ mod tests {
     }
 
     #[test]
-    fn no_endpoint_yields_nothing() {
-        // No http fixture registered → http_get returns None → empty.
-        let cfg = SourceConfig::for_kind(SourceKind::GrafanaIncidents);
-        assert!(
-            GrafanaIncidentsSource
-                .poll(&MockEnvironment::new(), &cfg)
-                .is_empty()
+    fn honesty_tiers_are_typed_not_empty() {
+        // No base_url param → Unconfigured (needs config, not "no incidents").
+        let env = MockEnvironment::new();
+        let bare = SourceConfig::for_kind(SourceKind::GrafanaIncidents);
+        assert_eq!(
+            GrafanaIncidentsSource.poll(&env, &bare),
+            PollOutcome::unconfigured()
+        );
+        // base_url present but the token secret is missing → AuthMissing.
+        assert_eq!(
+            GrafanaIncidentsSource.poll(&env, &cfg()),
+            PollOutcome::auth_missing()
+        );
+        // base_url + token present but the fetch fails → Error (keep last rows).
+        let env = MockEnvironment::new().secret_val("grafana/api-token", "tok");
+        assert_eq!(
+            GrafanaIncidentsSource.poll(&env, &cfg()),
+            PollOutcome::error()
         );
     }
 

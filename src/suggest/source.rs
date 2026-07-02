@@ -18,7 +18,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
-use super::core::SourceKind;
+use super::core::{SourceKind, SourceStatus, Suggestion};
 use super::env::SuggestionEnvironment;
 use super::store::SuggestionStore;
 
@@ -51,21 +51,80 @@ impl SourceConfig {
     }
 }
 
+/// The typed outcome of one poll — the honest border between a provider and
+/// the store. `Fetched` means the upstream WAS observed and the carried set
+/// is the complete current truth for this source (empty = genuinely nothing —
+/// resolved items decay off). `Unavailable` means the upstream COULD NOT be
+/// observed (missing param, missing credential, network/tool failure): the
+/// store keeps the source's last-known rows (TTL ages them out) and records
+/// the health state, so an infrastructure blip never wipes the board or
+/// masquerades as "everything resolved".
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum PollOutcome {
+    Fetched(Vec<Suggestion>),
+    Unavailable(SourceStatus),
+}
+
+impl PollOutcome {
+    /// The source needs a param (site/base_url/…) the config doesn't supply.
+    #[must_use]
+    pub const fn unconfigured() -> Self {
+        Self::Unavailable(SourceStatus::Unconfigured)
+    }
+    /// The source's credential/secret is absent.
+    #[must_use]
+    pub const fn auth_missing() -> Self {
+        Self::Unavailable(SourceStatus::AuthMissing)
+    }
+    /// The fetch/parse failed (network, timeout, tool exit, bad shape).
+    #[must_use]
+    pub const fn error() -> Self {
+        Self::Unavailable(SourceStatus::Error)
+    }
+}
+
 /// A task-suggestion provider. One impl per [`SourceKind`].
 pub trait SuggestionSource: Send + Sync {
     /// Which source this is.
     fn kind(&self) -> SourceKind;
 
     /// Produce the current suggestion set by reading external state through
-    /// `env`. MUST be best-effort + pure w.r.t. `env`: an unauthed/missing
-    /// dependency returns an empty `Vec`, never an error or panic. `cfg`
-    /// carries the per-source knobs (max_items, params).
-    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig)
-        -> Vec<super::core::Suggestion>;
+    /// `env`. MUST be best-effort + pure w.r.t. `env` and MUST NOT panic.
+    /// Honesty contract: return [`PollOutcome::Fetched`] ONLY when the
+    /// upstream was actually observed (an observed-empty set is `Fetched` of
+    /// an empty `Vec`); a missing param / credential / tool / failed fetch is
+    /// the matching [`PollOutcome::Unavailable`] tier. `cfg` carries the
+    /// per-source knobs (max_items, params).
+    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> PollOutcome;
 }
 
-/// The single tested unit: poll a source through the environment and ingest
-/// its set into the store. Pure given `(source, env, store, cfg, now_ms)`.
+/// Apply one poll's outcome to the store — the shared sink the engine's
+/// watcher tasks and [`refresh_once`] both flow through. A `Fetched` set is
+/// rank-sorted BEFORE the `max_items` truncation (so a provider emitting its
+/// worst item last never loses its best), then ingested; an `Unavailable`
+/// records health and leaves the last-known rows in place.
+pub fn apply_poll(
+    kind: SourceKind,
+    outcome: PollOutcome,
+    store: &SuggestionStore,
+    cfg: &SourceConfig,
+    now_ms: u64,
+) {
+    match outcome {
+        PollOutcome::Fetched(mut items) => {
+            items.sort_by(|a, b| b.rank_key().cmp(&a.rank_key()));
+            items.truncate(cfg.max_items);
+            store.ingest(kind, items, now_ms);
+            store.record_poll(kind, SourceStatus::Ok, now_ms);
+        }
+        PollOutcome::Unavailable(status) => {
+            store.record_poll(kind, status, now_ms);
+        }
+    }
+}
+
+/// The single tested unit: poll a source through the environment and apply
+/// the outcome to the store. Pure given `(source, env, store, cfg, now_ms)`.
 pub fn refresh_once(
     source: &dyn SuggestionSource,
     env: &dyn SuggestionEnvironment,
@@ -73,9 +132,8 @@ pub fn refresh_once(
     cfg: &SourceConfig,
     now_ms: u64,
 ) {
-    let mut items = source.poll(env, cfg);
-    items.truncate(cfg.max_items);
-    store.ingest(source.kind(), items, now_ms);
+    let outcome = source.poll(env, cfg);
+    apply_poll(source.kind(), outcome, store, cfg, now_ms);
 }
 
 /// Engine-wide config: per-source overrides + global decay/visibility knobs.
@@ -135,28 +193,27 @@ impl SuggestionEngine {
             // Stage 1 — one continuous refresh loop per source, driven by the
             // reusable `livestream::spawn_interval_refresh`. Each tick re-polls
             // the source (off the async reactor thread — poll may block on a
-            // subprocess/HTTP) and pushes its fresh set into the shared store,
-            // so a source's data is re-fetched continuously, never once.
+            // subprocess/HTTP) and pushes its typed outcome into the shared
+            // store, so a source's data is re-fetched continuously, never once.
             //
             // The refresher captures the source+env+cfg; the sink computes a
-            // fresh `now_ms` per tick and ingests. A panic is preserved (the
-            // last-known rows survive) rather than wiping the source's slice.
-            let refresh: Arc<dyn Fn() -> Vec<super::core::Suggestion> + Send + Sync> = {
+            // fresh `now_ms` per tick and applies the outcome (rank-sort +
+            // truncate + ingest on Fetched; health-only on Unavailable — the
+            // last-known rows survive a blip). A panic is likewise preserved
+            // rather than wiping the source's slice.
+            let refresh: Arc<dyn Fn() -> PollOutcome + Send + Sync> = {
                 let s = Arc::clone(&src);
                 let e = Arc::clone(&env);
                 let cfg2 = scfg.clone();
-                Arc::new(move || {
-                    let mut v = s.poll(e.as_ref(), &cfg2);
-                    v.truncate(cfg2.max_items);
-                    v
-                })
+                Arc::new(move || s.poll(e.as_ref(), &cfg2))
             };
             let sink = {
                 let store = Arc::clone(&store);
                 let env = Arc::clone(&env);
-                move |items: Vec<super::core::Suggestion>| {
+                let cfg2 = scfg.clone();
+                move |outcome: PollOutcome| {
                     let now_ms = env.now_unix().saturating_mul(1000);
-                    store.ingest(kind, items, now_ms);
+                    apply_poll(kind, outcome, &store, &cfg2, now_ms);
                 }
             };
             let on_panic = move || {
@@ -169,12 +226,21 @@ impl SuggestionEngine {
                     "suggestion source panicked; keeping last-known rows"
                 );
             };
-            handles.push(crate::livestream::spawn_interval_refresh(
+            // Freshness nudge: Ctrl-S opening fires the shared notify so every
+            // watcher whose data is older than its pacing gap re-polls RIGHT
+            // NOW — the board you open onto is being re-verified at that
+            // moment. The per-watcher gap (interval/4, clamped 5s..60s) makes
+            // the pacing structural: a nudge storm cannot hammer an API.
+            let min_gap = (scfg.interval / 4)
+                .max(Duration::from_secs(5))
+                .min(Duration::from_secs(60));
+            handles.push(crate::livestream::spawn_interval_refresh_nudged(
                 scfg.interval,
                 Arc::clone(&stop),
                 refresh,
                 sink,
                 on_panic,
+                Some((super::board_nudge(), min_gap)),
             ));
         }
         Self { handles, stop }
@@ -206,29 +272,30 @@ mod tests {
     use crate::suggest::core::{SpawnSpec, Suggestion};
     use crate::suggest::env::MockEnvironment;
 
-    /// A source that echoes one suggestion per line of a fixture command.
+    /// A source that echoes one suggestion per line of a fixture command,
+    /// honoring the honesty contract (a failed run = `Unavailable`).
     struct FixtureSource;
     impl SuggestionSource for FixtureSource {
         fn kind(&self) -> SourceKind {
             SourceKind::TendRepos
         }
-        fn poll(
-            &self,
-            env: &dyn SuggestionEnvironment,
-            _cfg: &SourceConfig,
-        ) -> Vec<Suggestion> {
-            let out = env.run(&crate::suggest::env::Cmd::new("tend").arg("status")).unwrap_or_default();
-            out.lines()
-                .filter(|l| !l.trim().is_empty())
-                .map(|repo| {
-                    Suggestion::new(
-                        SourceKind::TendRepos,
-                        repo,
-                        repo,
-                        SpawnSpec::new("/code", repo).unwrap(),
-                    )
-                })
-                .collect()
+        fn poll(&self, env: &dyn SuggestionEnvironment, _cfg: &SourceConfig) -> PollOutcome {
+            let Some(out) = env.run(&crate::suggest::env::Cmd::new("tend").arg("status")) else {
+                return PollOutcome::error();
+            };
+            PollOutcome::Fetched(
+                out.lines()
+                    .filter(|l| !l.trim().is_empty())
+                    .map(|repo| {
+                        Suggestion::new(
+                            SourceKind::TendRepos,
+                            repo,
+                            repo,
+                            SpawnSpec::new("/code", repo).unwrap(),
+                        )
+                    })
+                    .collect(),
+            )
         }
     }
 
@@ -239,7 +306,15 @@ mod tests {
         let cfg = SourceConfig::for_kind(SourceKind::TendRepos);
         refresh_once(&FixtureSource, &env, &store, &cfg, 1000);
         assert_eq!(store.len(), 2);
-        assert!(store.ranked(10).iter().any(|s| s.title == "mado"));
+        assert!(store.ranked(10, 1000).iter().any(|s| s.title == "mado"));
+        let health = store.health();
+        assert!(
+            health
+                .iter()
+                .any(|(k, h)| *k == SourceKind::TendRepos
+                    && h.status == crate::suggest::core::SourceStatus::Ok),
+            "an observed poll records Ok health"
+        );
     }
 
     #[test]
@@ -250,6 +325,67 @@ mod tests {
         cfg.max_items = 2;
         refresh_once(&FixtureSource, &env, &store, &cfg, 1000);
         assert_eq!(store.len(), 2, "capped to max_items");
+    }
+
+    #[test]
+    fn unavailable_keeps_last_known_rows_and_records_health() {
+        // First poll observes two repos; the second poll's upstream is gone
+        // (no cmd fixture → run returns None → Unavailable). The board keeps
+        // the last-known rows instead of flickering empty, and health flips.
+        let store = SuggestionStore::new();
+        let cfg = SourceConfig::for_kind(SourceKind::TendRepos);
+        let ok_env = MockEnvironment::new().cmd("tend status", "mado\ntear\n");
+        refresh_once(&FixtureSource, &ok_env, &store, &cfg, 1000);
+        assert_eq!(store.len(), 2);
+
+        let dead_env = MockEnvironment::new();
+        refresh_once(&FixtureSource, &dead_env, &store, &cfg, 2000);
+        assert_eq!(store.len(), 2, "a fetch failure never wipes the board");
+        let health = store.health();
+        let (_, h) = health
+            .iter()
+            .find(|(k, _)| *k == SourceKind::TendRepos)
+            .expect("health recorded");
+        assert_eq!(h.status, crate::suggest::core::SourceStatus::Error);
+        assert_eq!(h.last_ok_ms, 1000, "last good observation remembered");
+
+        // A later OBSERVED-empty poll is the truth → rows genuinely resolve.
+        let empty_env = MockEnvironment::new().cmd("tend status", "");
+        refresh_once(&FixtureSource, &empty_env, &store, &cfg, 3000);
+        assert_eq!(store.len(), 0, "observed-empty means resolved");
+    }
+
+    #[test]
+    fn apply_poll_rank_sorts_before_truncation() {
+        // A provider emitting its BEST item last must not lose it to the
+        // max_items cut — apply_poll sorts by rank first.
+        let store = SuggestionStore::new();
+        let mut cfg = SourceConfig::for_kind(SourceKind::TendRepos);
+        cfg.max_items = 1;
+        let low = Suggestion::new(
+            SourceKind::TendRepos,
+            "low",
+            "low",
+            SpawnSpec::new("/code", "low").unwrap(),
+        )
+        .urgent(crate::suggest::core::Urgency::Low);
+        let hot = Suggestion::new(
+            SourceKind::TendRepos,
+            "hot",
+            "hot",
+            SpawnSpec::new("/code", "hot").unwrap(),
+        )
+        .urgent(crate::suggest::core::Urgency::Critical);
+        apply_poll(
+            SourceKind::TendRepos,
+            PollOutcome::Fetched(vec![low, hot]),
+            &store,
+            &cfg,
+            1000,
+        );
+        let ranked = store.ranked(10, 1000);
+        assert_eq!(ranked.len(), 1);
+        assert_eq!(ranked[0].title, "hot", "the best item survives the cap");
     }
 
     #[test]

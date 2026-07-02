@@ -1,16 +1,19 @@
 //! `google-calendar` — your upcoming primary-calendar events, surfaced so you
 //! can drop into a working session keyed to "the next thing on your schedule".
-//! HTTP source: a Google Calendar OAuth token (`google/calendar-token`) gets
-//! you the events list; no token / no response → graceful empty.
+//! HTTP source: a Google Calendar OAuth token (`google/calendar-token`,
+//! overridable via the `secret` param) gets you the events list.
 //!
 //! Live wiring: `GET
 //! https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&maxResults=N`
 //! with a bearer token → `{items:[{id, summary, start:{dateTime}}]}`. Each
 //! event becomes a suggestion whose spawn drops you in the code root.
+//! Honesty contract: a missing token is `Unavailable(AuthMissing)` (no request
+//! is fired), a failed fetch `Unavailable(Error)` — only an OBSERVED response
+//! is `Fetched` (so an auth outage never reads as "an empty calendar").
 
 use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion, Urgency};
 use crate::suggest::env::{HttpReq, SuggestionEnvironment};
-use crate::suggest::source::{SourceConfig, SuggestionSource};
+use crate::suggest::source::{PollOutcome, SourceConfig, SuggestionSource};
 
 pub struct GoogleCalendarSource;
 
@@ -19,9 +22,12 @@ impl SuggestionSource for GoogleCalendarSource {
         SourceKind::GoogleCalendar
     }
 
-    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> Vec<Suggestion> {
+    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> PollOutcome {
         let max = cfg.max_items.max(1);
-        let token = env.secret("google/calendar-token").unwrap_or_default();
+        let secret_key = cfg.param("secret").unwrap_or("google/calendar-token");
+        let Some(token) = env.secret(secret_key) else {
+            return PollOutcome::auth_missing();
+        };
         let mut url = String::from(
             "https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&maxResults=",
         );
@@ -32,9 +38,9 @@ impl SuggestionSource for GoogleCalendarSource {
         url.push_str(&super::util::pct(&super::util::rfc3339_utc(env.now_unix())));
         let req = HttpReq::new(url).bearer(&token);
         let Some(out) = env.http_get(&req) else {
-            return Vec::new();
+            return PollOutcome::error();
         };
-        parse(&out, env, max)
+        PollOutcome::Fetched(parse(&out, env, max))
     }
 }
 
@@ -111,7 +117,9 @@ mod tests {
     fn produces_a_suggestion_per_event() {
         let mut cfg = SourceConfig::for_kind(SourceKind::GoogleCalendar);
         cfg.max_items = 5;
-        let out = GoogleCalendarSource.poll(&env(), &cfg);
+        let PollOutcome::Fetched(out) = GoogleCalendarSource.poll(&env(), &cfg) else {
+            panic!("an observed response is Fetched");
+        };
         assert_eq!(out.len(), 2);
         let standup = out.iter().find(|s| s.title.contains("Standup")).unwrap();
         // Title is plain text — the picker prepends the source emoji.
@@ -123,14 +131,17 @@ mod tests {
     }
 
     #[test]
-    fn no_token_or_response_yields_nothing() {
-        // No secret + no http fixture registered → http_get returns None → empty.
+    fn honesty_tiers_are_typed_not_empty() {
+        // No token secret → AuthMissing (needs auth, not "an empty calendar")
+        // — and no request is ever fired unauthenticated.
         let cfg = SourceConfig::for_kind(SourceKind::GoogleCalendar);
-        assert!(
-            GoogleCalendarSource
-                .poll(&MockEnvironment::new(), &cfg)
-                .is_empty()
+        assert_eq!(
+            GoogleCalendarSource.poll(&MockEnvironment::new(), &cfg),
+            PollOutcome::auth_missing()
         );
+        // Token present but the fetch fails → Error (keep last rows).
+        let env = MockEnvironment::new().secret_val("google/calendar-token", "tok");
+        assert_eq!(GoogleCalendarSource.poll(&env, &cfg), PollOutcome::error());
     }
 
     #[test]

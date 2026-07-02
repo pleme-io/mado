@@ -4,13 +4,17 @@
 //! (HTTP Basic). Enter spawns a session rooted at your code root.
 //!
 //! Live wiring: `GET <base_url>/rest/api/3/search?maxResults=N&fields=summary&jql=<jql>`
-//! with `Authorization: Basic <email:token>`. Missing secret / missing
-//! `base_url` param / non-JSON body → no suggestions (graceful).
+//! with `Authorization: Basic <email:token>`. Config params: `base_url`
+//! (required), `email`, `jql` (override the default query), `secret` (override
+//! the token's `category/name`). Honesty contract: a missing `base_url` is
+//! `Unavailable(Unconfigured)`, a missing token `Unavailable(AuthMissing)`, a
+//! failed fetch `Unavailable(Error)` — only an OBSERVED response is `Fetched`
+//! (so a network blip never reads as "sprint cleared").
 
 use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion};
 use super::util::PriorityScale;
 use crate::suggest::env::{HttpReq, SuggestionEnvironment};
-use crate::suggest::source::{SourceConfig, SuggestionSource};
+use crate::suggest::source::{PollOutcome, SourceConfig, SuggestionSource};
 
 pub struct JiraSprintSource;
 
@@ -19,12 +23,13 @@ impl SuggestionSource for JiraSprintSource {
         SourceKind::JiraSprint
     }
 
-    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> Vec<Suggestion> {
-        let Some(token) = env.secret("atlassian/api-token") else {
-            return Vec::new();
-        };
+    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> PollOutcome {
         let Some(base) = cfg.param("base_url") else {
-            return Vec::new();
+            return PollOutcome::unconfigured();
+        };
+        let secret_key = cfg.param("secret").unwrap_or("atlassian/api-token");
+        let Some(token) = env.secret(secret_key) else {
+            return PollOutcome::auth_missing();
         };
         let email = cfg.param("email").unwrap_or("");
         let jql = cfg.param("jql").unwrap_or(
@@ -43,15 +48,15 @@ impl SuggestionSource for JiraSprintSource {
             .basic_auth(email, token)
             .header("Accept", "application/json");
         let Some(out) = env.http_get(&req) else {
-            return Vec::new();
+            return PollOutcome::error();
         };
-        parse(&out, env, max)
+        PollOutcome::Fetched(parse(&out, env, base, max))
     }
 }
 
 /// Parse a Jira `/rest/api/3/search` response into suggestions. Pure — the unit
 /// the source is tested through.
-fn parse(json: &str, env: &dyn SuggestionEnvironment, max: usize) -> Vec<Suggestion> {
+fn parse(json: &str, env: &dyn SuggestionEnvironment, base: &str, max: usize) -> Vec<Suggestion> {
     let Ok(result) = serde_json::from_str::<SearchResult>(json) else {
         return Vec::new();
     };
@@ -65,7 +70,14 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, max: usize) -> Vec<Suggest
             let summary: String = issue.fields.summary.trim().chars().take(80).collect();
             let mut name = String::from("\u{1F3AB} "); // 🎫
             name.push_str(&issue.key);
-            let spawn = SpawnSpec::new(cwd, name)?;
+            // Kickoff: pop the ticket in the browser while the shell seats you
+            // at the code root — Enter lands you working, not searching.
+            // `base_url` already carries the scheme, so no `https://` prefix.
+            let mut kickoff = String::from("open ");
+            kickoff.push_str(base);
+            kickoff.push_str("/browse/");
+            kickoff.push_str(&issue.key);
+            let spawn = SpawnSpec::new(cwd, name)?.with_command(kickoff);
             let mut title = String::new();
             title.push_str(&issue.key);
             title.push(' ');
@@ -156,7 +168,9 @@ mod tests {
             .roots("/code", "/home/op")
             .secret_val("atlassian/api-token", "tok")
             .http(&url(), FIXTURE);
-        let out = JiraSprintSource.poll(&env, &cfg());
+        let PollOutcome::Fetched(out) = JiraSprintSource.poll(&env, &cfg()) else {
+            panic!("an observed response is Fetched");
+        };
         assert_eq!(out.len(), 2);
         let one = out.iter().find(|s| s.title.contains("PROJ-1")).unwrap();
         assert!(one.title.contains("fix the parser"));
@@ -165,6 +179,11 @@ mod tests {
         // Highest priority → Critical tier (the absolute top of the stream).
         assert_eq!(one.urgency, Urgency::Critical);
         assert_eq!(one.spawn.cwd().to_str().unwrap(), "/code");
+        // Enter launches WORK: the kickoff opens the ticket itself.
+        assert_eq!(
+            one.spawn.initial_command(),
+            Some("open https://acme.atlassian.net/browse/PROJ-1")
+        );
         // The Highest ticket ranks above the Low one.
         let two = out.iter().find(|s| s.title.contains("PROJ-2")).unwrap();
         assert_eq!(two.urgency, Urgency::Low);
@@ -179,14 +198,26 @@ mod tests {
     }
 
     #[test]
-    fn no_secret_yields_nothing() {
-        // Secret missing → poll bails before any HTTP call.
-        let env = MockEnvironment::new().http(&url(), FIXTURE);
-        assert!(JiraSprintSource.poll(&env, &cfg()).is_empty());
+    fn honesty_tiers_are_typed_not_empty() {
+        // No base_url param → Unconfigured (needs config, not "no work").
+        let env = MockEnvironment::new();
+        let bare = SourceConfig::for_kind(SourceKind::JiraSprint);
+        assert_eq!(
+            JiraSprintSource.poll(&env, &bare),
+            PollOutcome::unconfigured()
+        );
+        // Params present but the token secret is missing → AuthMissing.
+        assert_eq!(
+            JiraSprintSource.poll(&env, &cfg()),
+            PollOutcome::auth_missing()
+        );
+        // Params + token present but the fetch fails → Error (keep last rows).
+        let env = MockEnvironment::new().secret_val("atlassian/api-token", "tok");
+        assert_eq!(JiraSprintSource.poll(&env, &cfg()), PollOutcome::error());
     }
 
     #[test]
     fn garbage_json_is_safe() {
-        assert!(parse("not json", &MockEnvironment::new(), 5).is_empty());
+        assert!(parse("not json", &MockEnvironment::new(), "https://x", 5).is_empty());
     }
 }

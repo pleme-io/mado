@@ -4,14 +4,16 @@
 //! the API base. Enter spawns a session rooted at your code root.
 //!
 //! Live wiring: `GET <oncall_url>/api/v1/shifts?per_page=N` with
-//! `Authorization: Bearer <token>`. A missing secret / missing `oncall_url`
-//! param degrades to an empty Bearer + empty base, so the request keys on a URL
-//! nothing answers → no suggestions; a non-JSON body → likewise empty
-//! (graceful).
+//! `Authorization: Bearer <token>`. Config params: `oncall_url` (the OnCall
+//! API base, required), `secret` (override the token's `category/name`,
+//! default `grafana/oncall-token`). Honesty contract: a missing `oncall_url`
+//! is `Unavailable(Unconfigured)`, a missing token `Unavailable(AuthMissing)`,
+//! a failed fetch `Unavailable(Error)` — only an OBSERVED response is
+//! `Fetched` (so a network blip never reads as "no shifts").
 
 use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion, Urgency};
 use crate::suggest::env::{HttpReq, SuggestionEnvironment};
-use crate::suggest::source::{SourceConfig, SuggestionSource};
+use crate::suggest::source::{PollOutcome, SourceConfig, SuggestionSource};
 
 pub struct GrafanaOncallSource;
 
@@ -20,9 +22,14 @@ impl SuggestionSource for GrafanaOncallSource {
         SourceKind::GrafanaOncall
     }
 
-    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> Vec<Suggestion> {
-        let token = env.secret("grafana/oncall-token").unwrap_or_default();
-        let base = cfg.param("oncall_url").unwrap_or("");
+    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> PollOutcome {
+        let Some(base) = cfg.param("oncall_url") else {
+            return PollOutcome::unconfigured();
+        };
+        let secret_key = cfg.param("secret").unwrap_or("grafana/oncall-token");
+        let Some(token) = env.secret(secret_key) else {
+            return PollOutcome::auth_missing();
+        };
         let max = cfg.max_items.max(1);
         let mut url = String::new();
         url.push_str(base);
@@ -30,9 +37,9 @@ impl SuggestionSource for GrafanaOncallSource {
         url.push_str(&max.to_string());
         let req = HttpReq::new(url).bearer(&token);
         let Some(out) = env.http_get(&req) else {
-            return Vec::new();
+            return PollOutcome::error();
         };
-        parse(&out, env, max)
+        PollOutcome::Fetched(parse(&out, env, max))
     }
 }
 
@@ -101,7 +108,9 @@ mod tests {
             .roots("/code", "/home/op")
             .secret_val("grafana/oncall-token", "tok")
             .http("https://oncall.example/api/v1/shifts?per_page=5", FIXTURE);
-        let out = GrafanaOncallSource.poll(&env, &cfg());
+        let PollOutcome::Fetched(out) = GrafanaOncallSource.poll(&env, &cfg()) else {
+            panic!("an observed response is Fetched");
+        };
         assert_eq!(out.len(), 2);
         let one = out
             .iter()
@@ -113,11 +122,22 @@ mod tests {
     }
 
     #[test]
-    fn no_secret_or_url_yields_nothing() {
-        // Secret + oncall_url both absent → empty Bearer + empty base; the
-        // request URL has no fixture registered → http_get returns None → empty.
-        let cfg = SourceConfig::for_kind(SourceKind::GrafanaOncall);
-        assert!(GrafanaOncallSource.poll(&MockEnvironment::new(), &cfg).is_empty());
+    fn honesty_tiers_are_typed_not_empty() {
+        // No oncall_url param → Unconfigured (needs config, not "no shifts").
+        let env = MockEnvironment::new();
+        let bare = SourceConfig::for_kind(SourceKind::GrafanaOncall);
+        assert_eq!(
+            GrafanaOncallSource.poll(&env, &bare),
+            PollOutcome::unconfigured()
+        );
+        // oncall_url present but the token secret is missing → AuthMissing.
+        assert_eq!(
+            GrafanaOncallSource.poll(&env, &cfg()),
+            PollOutcome::auth_missing()
+        );
+        // oncall_url + token present but the fetch fails → Error (keep last rows).
+        let env = MockEnvironment::new().secret_val("grafana/oncall-token", "tok");
+        assert_eq!(GrafanaOncallSource.poll(&env, &cfg()), PollOutcome::error());
     }
 
     #[test]

@@ -1,16 +1,19 @@
 //! `confluence-mentions` — Confluence pages that mention you, surfaced as
 //! "go read / respond to this" suggestions. Needs an Atlassian Cloud API
-//! token (`atlassian/api-token`) plus a `base_url` + `email` in the source's
-//! config params; absent either, the source contributes nothing (graceful).
+//! token (`atlassian/api-token`, overridable via the `secret` param) plus a
+//! `base_url` + `email` in the source's config params.
 //!
 //! Live wiring: `GET <base>/wiki/rest/api/search?limit=N&cql=<cql>` with HTTP
 //! Basic auth (email + API token), where the CQL selects pages that mention
-//! the current user, newest first. Atlassian's REST search is stable +
-//! documented; a non-2xx (bad token / wrong base) → no suggestions.
+//! the current user, newest first. Honesty contract: a missing `base_url` is
+//! `Unavailable(Unconfigured)`, a missing token `Unavailable(AuthMissing)`, a
+//! failed fetch (bad token / wrong base → non-2xx) `Unavailable(Error)` —
+//! only an OBSERVED response is `Fetched` (so an outage never reads as
+//! "nobody mentioned you").
 
 use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion, Urgency};
 use crate::suggest::env::{HttpReq, SuggestionEnvironment};
-use crate::suggest::source::{SourceConfig, SuggestionSource};
+use crate::suggest::source::{PollOutcome, SourceConfig, SuggestionSource};
 
 pub struct ConfluenceMentionsSource;
 
@@ -19,9 +22,14 @@ impl SuggestionSource for ConfluenceMentionsSource {
         SourceKind::ConfluenceMentions
     }
 
-    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> Vec<Suggestion> {
-        let token = env.secret("atlassian/api-token").unwrap_or_default();
-        let base = cfg.param("base_url").unwrap_or_default();
+    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> PollOutcome {
+        let Some(base) = cfg.param("base_url") else {
+            return PollOutcome::unconfigured();
+        };
+        let secret_key = cfg.param("secret").unwrap_or("atlassian/api-token");
+        let Some(token) = env.secret(secret_key) else {
+            return PollOutcome::auth_missing();
+        };
         let email = cfg.param("email").unwrap_or_default();
         let max = cfg.max_items.max(1).to_string();
         let cql = "mention = currentUser() order by lastModified desc";
@@ -35,11 +43,11 @@ impl SuggestionSource for ConfluenceMentionsSource {
             .basic_auth(email, token)
             .header("Accept", "application/json");
         let Some(body) = env.http_get(&req) else {
-            return Vec::new();
+            return PollOutcome::error();
         };
         let mut items = parse(&body, env);
         items.truncate(cfg.max_items.max(1));
-        items
+        PollOutcome::Fetched(items)
     }
 }
 
@@ -122,7 +130,9 @@ mod tests {
 
     #[test]
     fn produces_a_suggestion_per_mentioning_page() {
-        let out = ConfluenceMentionsSource.poll(&env(), &cfg());
+        let PollOutcome::Fetched(out) = ConfluenceMentionsSource.poll(&env(), &cfg()) else {
+            panic!("an observed response is Fetched");
+        };
         assert_eq!(out.len(), 2);
         let notes = out
             .iter()
@@ -137,13 +147,25 @@ mod tests {
     }
 
     #[test]
-    fn no_token_or_endpoint_yields_nothing() {
-        // No http fixture / secret / params registered → http_get returns
-        // None → empty.
-        let cfg = SourceConfig::for_kind(SourceKind::ConfluenceMentions);
-        assert!(ConfluenceMentionsSource
-            .poll(&MockEnvironment::new(), &cfg)
-            .is_empty());
+    fn honesty_tiers_are_typed_not_empty() {
+        // No base_url param → Unconfigured (needs config, not "no mentions").
+        let env = MockEnvironment::new();
+        let bare = SourceConfig::for_kind(SourceKind::ConfluenceMentions);
+        assert_eq!(
+            ConfluenceMentionsSource.poll(&env, &bare),
+            PollOutcome::unconfigured()
+        );
+        // Params present but the token secret is missing → AuthMissing.
+        assert_eq!(
+            ConfluenceMentionsSource.poll(&env, &cfg()),
+            PollOutcome::auth_missing()
+        );
+        // Params + token present but the fetch fails → Error (keep last rows).
+        let env = MockEnvironment::new().secret_val("atlassian/api-token", "tok");
+        assert_eq!(
+            ConfluenceMentionsSource.poll(&env, &cfg()),
+            PollOutcome::error()
+        );
     }
 
     #[test]

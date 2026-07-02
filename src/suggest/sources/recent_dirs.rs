@@ -4,11 +4,14 @@
 //!
 //! Live wiring: read `~/.local/share/mado/recent_dirs` — one absolute dir
 //! path per line. Each non-empty line becomes a suggestion whose spawn drops
-//! you in that directory. Missing file / nothing to read → graceful empty.
+//! you in that directory. Honesty contract: this source reads mado's OWN
+//! local state file, so an absent file is a legit first run — `Fetched` of an
+//! empty set; there is no param, credential, or tool whose absence could make
+//! it `Unavailable`.
 
 use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion, Urgency};
 use crate::suggest::env::SuggestionEnvironment;
-use crate::suggest::source::{SourceConfig, SuggestionSource};
+use crate::suggest::source::{PollOutcome, SourceConfig, SuggestionSource};
 
 pub struct RecentDirsSource;
 
@@ -17,12 +20,14 @@ impl SuggestionSource for RecentDirsSource {
         SourceKind::RecentDirs
     }
 
-    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> Vec<Suggestion> {
+    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> PollOutcome {
         let path = env.home().join(".local/share/mado/recent_dirs");
         let Some(content) = env.read_file(&path) else {
-            return Vec::new();
+            // mado's own state file — absent means a legit first run (observed
+            // empty), not an unavailable upstream.
+            return PollOutcome::Fetched(Vec::new());
         };
-        parse(&content, cfg.max_items.max(1))
+        PollOutcome::Fetched(parse(&content, cfg.max_items.max(1)))
     }
 }
 
@@ -64,7 +69,9 @@ mod tests {
             .file("/home/op/.local/share/mado/recent_dirs", FIXTURE);
         let mut cfg = SourceConfig::for_kind(SourceKind::RecentDirs);
         cfg.max_items = 10;
-        let out = RecentDirsSource.poll(&env, &cfg);
+        let PollOutcome::Fetched(out) = RecentDirsSource.poll(&env, &cfg) else {
+            panic!("an observed state file is Fetched");
+        };
         assert_eq!(out.len(), 2);
         let mado = out.iter().find(|s| s.title == "mado").unwrap();
         assert_eq!(mado.spawn.cwd().to_str().unwrap(), "/code/github/pleme-io/mado");
@@ -74,9 +81,14 @@ mod tests {
     }
 
     #[test]
-    fn missing_file_yields_nothing() {
-        // No file registered → read_file() returns None → empty.
+    fn honesty_tiers_are_typed_not_empty() {
+        // No file registered → read_file() returns None → a legit first run:
+        // an observed-empty `Fetched`, never `Unavailable` — this source reads
+        // mado's own state file, so there is no param/credential/tool to miss.
         let cfg = SourceConfig::for_kind(SourceKind::RecentDirs);
-        assert!(RecentDirsSource.poll(&MockEnvironment::new(), &cfg).is_empty());
+        assert_eq!(
+            RecentDirsSource.poll(&MockEnvironment::new(), &cfg),
+            PollOutcome::Fetched(Vec::new())
+        );
     }
 }

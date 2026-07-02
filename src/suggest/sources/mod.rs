@@ -73,7 +73,33 @@ pub fn registry() -> Vec<Arc<dyn SuggestionSource>> {
         Arc::new(google_tasks::GoogleTasksSource),
         Arc::new(google_calendar::GoogleCalendarSource),
         Arc::new(secret_age::SecretAgeSource),
+        // Placeholder adapter (no cells → typed "needs config" health). The
+        // engine bootstrap swaps in the config-built adapter when the
+        // `safra:` section declares cells — see `suggest::spawn_engine_thread`.
+        Arc::new(crate::safra::SafraSuggestionSource::unconfigured()),
+        Arc::new(AgentInjectedSource),
     ]
+}
+
+/// The push-only agent lane: `suggest_inject` (MCP) upserts rows directly into
+/// the store; there is nothing to poll, so the kind is never armed (no watcher
+/// runs) and this placeholder exists only so the catalog ↔ registry
+/// completeness gate holds. If it were ever polled it reports Unconfigured —
+/// honest ("this lane is fed, not fetched"), and crucially never `Fetched` (an
+/// observed-empty ingest would wipe the injected rows).
+struct AgentInjectedSource;
+
+impl SuggestionSource for AgentInjectedSource {
+    fn kind(&self) -> super::core::SourceKind {
+        super::core::SourceKind::Agent
+    }
+    fn poll(
+        &self,
+        _env: &dyn SuggestionEnvironment,
+        _cfg: &super::source::SourceConfig,
+    ) -> super::source::PollOutcome {
+        super::source::PollOutcome::unconfigured()
+    }
 }
 
 /// Resolve the local working directory for a `owner/name` repo under the

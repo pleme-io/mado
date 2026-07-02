@@ -5,11 +5,13 @@
 //!
 //! Live wiring: `gh search prs --author=@me --state=open --json
 //! number,title,url,repository --limit N`. `gh`'s `--json` output is stable +
-//! documented; an unauthed `gh` exits non-zero → no suggestions (graceful).
+//! documented. Honesty contract: a failed/unauthed `gh` run is
+//! `Unavailable(Error)` — only an OBSERVED run output is `Fetched` (so a
+//! network blip never reads as "all your PRs merged").
 
 use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion, Urgency};
 use crate::suggest::env::{Cmd, SuggestionEnvironment};
-use crate::suggest::source::{SourceConfig, SuggestionSource};
+use crate::suggest::source::{PollOutcome, SourceConfig, SuggestionSource};
 
 pub struct GitBranchPrSource;
 
@@ -18,9 +20,9 @@ impl SuggestionSource for GitBranchPrSource {
         SourceKind::GitBranchPr
     }
 
-    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> Vec<Suggestion> {
+    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> PollOutcome {
         let limit = cfg.max_items.max(1).to_string();
-        let cmd = Cmd::new("gh")
+        let mut cmd = Cmd::new("gh")
             .arg("search")
             .arg("prs")
             .arg("--author=@me")
@@ -29,10 +31,16 @@ impl SuggestionSource for GitBranchPrSource {
             .arg("number,title,url,repository")
             .arg("--limit")
             .arg(limit);
+        // A Dock-launched mado carries no shell env, so the sops-rendered
+        // token authenticates gh. The mock key is unchanged (envs are
+        // excluded from Cmd::key).
+        if let Some(tok) = env.secret("github/token") {
+            cmd = cmd.env("GH_TOKEN", tok);
+        }
         let Some(out) = env.run(&cmd) else {
-            return Vec::new();
+            return PollOutcome::error();
         };
-        parse(&out, env)
+        PollOutcome::Fetched(parse(&out, env))
     }
 }
 
@@ -121,7 +129,9 @@ mod tests {
     #[test]
     fn produces_a_suggestion_per_pr_with_checkout_command() {
         let cfg = SourceConfig::for_kind(SourceKind::GitBranchPr);
-        let out = GitBranchPrSource.poll(&env(), &cfg);
+        let PollOutcome::Fetched(out) = GitBranchPrSource.poll(&env(), &cfg) else {
+            panic!("an observed run is Fetched");
+        };
         assert_eq!(out.len(), 2);
         let mado = out.iter().find(|s| s.title.contains("pr#1234")).unwrap();
         assert!(mado.title.contains("fix the parser"));
@@ -138,10 +148,14 @@ mod tests {
     }
 
     #[test]
-    fn unauthed_gh_yields_nothing() {
-        // No fixture registered → run() returns None → empty.
+    fn honesty_tiers_are_typed_not_empty() {
+        // No fixture registered → run() returns None (gh missing/unauthed/
+        // failed) → Error, never an empty Fetched (keep last rows).
         let cfg = SourceConfig::for_kind(SourceKind::GitBranchPr);
-        assert!(GitBranchPrSource.poll(&MockEnvironment::new(), &cfg).is_empty());
+        assert_eq!(
+            GitBranchPrSource.poll(&MockEnvironment::new(), &cfg),
+            PollOutcome::error()
+        );
     }
 
     #[test]

@@ -31,6 +31,11 @@ pub struct FuzzyPicker<Row> {
     pub results: Vec<Row>,
     /// Index of the highlighted row.
     pub selected: usize,
+    /// A one-line operator-facing notice (e.g. "could not start that —
+    /// it may have just resolved"). Set by a failed accept, cleared on
+    /// open/close and on the next query edit; survives autonomous
+    /// re-lists so the operator actually sees it.
+    pub notice: Option<String>,
 }
 
 impl<Row> FuzzyPicker<Row> {
@@ -42,6 +47,7 @@ impl<Row> FuzzyPicker<Row> {
             query: String::new(),
             results: Vec::new(),
             selected: 0,
+            notice: None,
         }
     }
 
@@ -54,6 +60,7 @@ impl<Row> FuzzyPicker<Row> {
         self.query.clear();
         self.selected = 0;
         self.results = rows;
+        self.notice = None;
     }
 
     /// Close + reset.
@@ -63,6 +70,7 @@ impl<Row> FuzzyPicker<Row> {
         self.query.clear();
         self.results.clear();
         self.selected = 0;
+        self.notice = None;
     }
 
     /// Replace the ranked rows after a query edit (the engine recomputes

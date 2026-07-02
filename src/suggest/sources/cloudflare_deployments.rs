@@ -1,17 +1,20 @@
 //! `cloudflare-deployments` — failed Cloudflare Pages deployments for a project,
 //! surfaced as "go fix the build" suggestions. HTTP against the Cloudflare API;
-//! auth is the `cloudflare/api-token` secret (Bearer) + `account_id` /
-//! `pages_project` params. Enter spawns a session rooted at your code root.
+//! auth is the `cloudflare/api-token` secret (Bearer, overridable via the
+//! `secret` param) + `account_id` / `pages_project` params. Enter spawns a
+//! session rooted at your code root.
 //!
 //! Live wiring: `GET https://api.cloudflare.com/client/v4/accounts/<account_id>/
 //! pages/projects/<pages_project>/deployments?per_page=N` with `Authorization:
-//! Bearer <token>`. Missing secret / missing params / non-JSON body → no
-//! suggestions (graceful). Only deployments whose `latest_stage.status ==
-//! "failure"` surface.
+//! Bearer <token>`. Honesty contract: a missing `account_id`/`pages_project` is
+//! `Unavailable(Unconfigured)`, a missing token `Unavailable(AuthMissing)`, a
+//! failed fetch `Unavailable(Error)` — only an OBSERVED response is `Fetched`
+//! (so an API blip never reads as "every deploy is green"). Only deployments
+//! whose `latest_stage.status == "failure"` surface.
 
 use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion, Urgency};
 use crate::suggest::env::{HttpReq, SuggestionEnvironment};
-use crate::suggest::source::{SourceConfig, SuggestionSource};
+use crate::suggest::source::{PollOutcome, SourceConfig, SuggestionSource};
 
 pub struct CloudflareDeploymentsSource;
 
@@ -20,10 +23,17 @@ impl SuggestionSource for CloudflareDeploymentsSource {
         SourceKind::CloudflareDeployments
     }
 
-    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> Vec<Suggestion> {
-        let token = env.secret("cloudflare/api-token").unwrap_or_default();
-        let account = cfg.param("account_id").unwrap_or("");
-        let project = cfg.param("pages_project").unwrap_or("");
+    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> PollOutcome {
+        let Some(account) = cfg.param("account_id") else {
+            return PollOutcome::unconfigured();
+        };
+        let Some(project) = cfg.param("pages_project") else {
+            return PollOutcome::unconfigured();
+        };
+        let secret_key = cfg.param("secret").unwrap_or("cloudflare/api-token");
+        let Some(token) = env.secret(secret_key) else {
+            return PollOutcome::auth_missing();
+        };
         let max = cfg.max_items.max(1);
         let mut url = String::from("https://api.cloudflare.com/client/v4/accounts/");
         url.push_str(account);
@@ -33,9 +43,9 @@ impl SuggestionSource for CloudflareDeploymentsSource {
         url.push_str(&max.to_string());
         let req = HttpReq::new(url).bearer(&token);
         let Some(out) = env.http_get(&req) else {
-            return Vec::new();
+            return PollOutcome::error();
         };
-        parse(&out, project, env, max)
+        PollOutcome::Fetched(parse(&out, project, env, max))
     }
 }
 
@@ -121,7 +131,9 @@ mod tests {
             .roots("/code", "/home/op")
             .secret_val("cloudflare/api-token", "tok")
             .http(&url(), FIXTURE);
-        let out = CloudflareDeploymentsSource.poll(&env, &cfg());
+        let PollOutcome::Fetched(out) = CloudflareDeploymentsSource.poll(&env, &cfg()) else {
+            panic!("an observed response is Fetched");
+        };
         assert_eq!(out.len(), 1, "only the failed deployment surfaces");
         let d = &out[0];
         assert!(d.title.contains("gaveta-web") && d.title.contains("deploy failed"));
@@ -133,13 +145,24 @@ mod tests {
     }
 
     #[test]
-    fn no_endpoint_yields_nothing() {
-        // No http fixture registered → http_get returns None → empty.
-        let cfg = SourceConfig::for_kind(SourceKind::CloudflareDeployments);
-        assert!(
-            CloudflareDeploymentsSource
-                .poll(&MockEnvironment::new(), &cfg)
-                .is_empty()
+    fn honesty_tiers_are_typed_not_empty() {
+        // No account/project params → Unconfigured (needs config, not "green").
+        let env = MockEnvironment::new();
+        let bare = SourceConfig::for_kind(SourceKind::CloudflareDeployments);
+        assert_eq!(
+            CloudflareDeploymentsSource.poll(&env, &bare),
+            PollOutcome::unconfigured()
+        );
+        // Params present but the token secret is missing → AuthMissing.
+        assert_eq!(
+            CloudflareDeploymentsSource.poll(&env, &cfg()),
+            PollOutcome::auth_missing()
+        );
+        // Params + token present but the fetch fails → Error (keep last rows).
+        let env = MockEnvironment::new().secret_val("cloudflare/api-token", "tok");
+        assert_eq!(
+            CloudflareDeploymentsSource.poll(&env, &cfg()),
+            PollOutcome::error()
         );
     }
 

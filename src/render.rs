@@ -2317,6 +2317,7 @@ impl TerminalRenderer {
         results: &[crate::session_picker::SessionPickerRow],
         selected: usize,
         disabled: bool,
+        notice: Option<&str>,
         frame: &mut garasu::Frame<'_>,
         gpu: &garasu::GpuContext,
         surface_view: &wgpu::TextureView,
@@ -2327,12 +2328,19 @@ impl TerminalRenderer {
         use crate::picker::component::{LineRole, OverlayLine, OverlaySpec};
         let max_rows = 12usize;
 
-        // +2: a title line and a possible "… +N more" overflow footer.
-        let mut lines: Vec<OverlayLine> = Vec::with_capacity(max_rows + 2);
+        // +3: a title line, a possible notice, a possible "… +N more" footer.
+        let mut lines: Vec<OverlayLine> = Vec::with_capacity(max_rows + 3);
         lines.push(OverlayLine::new(
             format!("\u{25b6} session  {query}\u{2588}"),
             LineRole::Title,
         ));
+        // A failed accept's one-line explanation — the board tells the
+        // operator instead of silently closing.
+        if let Some(msg) = notice {
+            let mut line = String::from("  \u{26a0} "); // ⚠
+            line.push_str(msg);
+            lines.push(OverlayLine::new(line, LineRole::Hint));
+        }
         if disabled {
             lines.push(OverlayLine::new(
                 "  (session switching disabled — set tear.session_switching = true)",
@@ -2380,10 +2388,12 @@ impl TerminalRenderer {
                             .unwrap_or(u64::MAX);
                         let a = crate::suggest::shade_ramp(0, elapsed, self.suggestion_shade_in_ms);
                         // Urgency tint: an on-fire task glows hot; routine ones
-                        // keep the calm row colour (Urgency::tint → None).
-                        let tint = crate::suggest::store()
-                            .get(id)
-                            .and_then(|s| s.urgency.tint())
+                        // keep the calm row colour (Urgency::tint → None). Read
+                        // from the row itself — the bridge stamped it at list
+                        // time, so the frame loop takes no store lock.
+                        let tint = row
+                            .urgency
+                            .and_then(crate::suggest::Urgency::tint)
                             .map(|(r, g, b)| Color::new(r, g, b));
                         (a, tint)
                     }
@@ -5003,15 +5013,22 @@ impl RenderCallback for TerminalRenderer {
         match focus {
             Overlay::None => {}
             Overlay::SessionPicker => {
-                let (q, results, sel, disabled) = {
+                let (q, results, sel, disabled, notice) = {
                     let g = self.session_picker.lock().unwrap();
-                    (g.query.clone(), g.results.clone(), g.selected, g.disabled)
+                    (
+                        g.query.clone(),
+                        g.results.clone(),
+                        g.selected,
+                        g.disabled,
+                        g.notice.clone(),
+                    )
                 };
                 self.draw_session_picker(
                     &q,
                     &results,
                     sel,
                     disabled,
+                    notice.as_deref(),
                     &mut frame,
                     ctx.gpu,
                     ctx.surface_view,

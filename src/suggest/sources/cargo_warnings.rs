@@ -8,11 +8,13 @@
 //! empty `spans` array, and the old `--message-format short` substring scan
 //! double-counted it (plus the per-line ` warning:` markers). If any real
 //! warnings remain, emit a single "go fix these" suggestion that drops you in
-//! the code root. `cargo` not installed / a clean build → graceful empty.
+//! the code root. Honesty contract: a failed `cargo` run is
+//! `Unavailable(Error)`; a clean OBSERVED build is `Fetched` of an empty set
+//! (the nudge genuinely resolves).
 
 use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion, Urgency};
 use crate::suggest::env::{Cmd, SuggestionEnvironment};
-use crate::suggest::source::{SourceConfig, SuggestionSource};
+use crate::suggest::source::{PollOutcome, SourceConfig, SuggestionSource};
 
 pub struct CargoWarningsSource;
 
@@ -21,15 +23,18 @@ impl SuggestionSource for CargoWarningsSource {
         SourceKind::CargoWarnings
     }
 
-    fn poll(&self, env: &dyn SuggestionEnvironment, _cfg: &SourceConfig) -> Vec<Suggestion> {
+    fn poll(&self, env: &dyn SuggestionEnvironment, _cfg: &SourceConfig) -> PollOutcome {
         let cmd = Cmd::new("cargo")
             .arg("check")
             .arg("--message-format")
             .arg("json");
         let Some(out) = env.run(&cmd) else {
-            return Vec::new();
+            // A non-zero cargo exit (compile errors, missing cargo) is
+            // unobservable through this seam — Error keeps the last-known
+            // warnings on the board until the TTL ages them out.
+            return PollOutcome::error();
         };
-        parse(&out, env)
+        PollOutcome::Fetched(parse(&out, env))
     }
 }
 
@@ -114,7 +119,9 @@ mod tests {
             .roots("/code", "/home/op")
             .cmd("cargo check --message-format json", FIXTURE);
         let cfg = SourceConfig::for_kind(SourceKind::CargoWarnings);
-        let out = CargoWarningsSource.poll(&env, &cfg);
+        let PollOutcome::Fetched(out) = CargoWarningsSource.poll(&env, &cfg) else {
+            panic!("an observed run is Fetched");
+        };
         assert_eq!(out.len(), 1);
         assert!(
             out[0].title.contains('2'),
@@ -127,18 +134,28 @@ mod tests {
     }
 
     #[test]
-    fn clean_build_yields_nothing() {
+    fn clean_build_yields_observed_empty() {
+        // A clean OBSERVED build is Fetched of an empty set — the nudge
+        // genuinely resolves, unlike a failed run.
         let env = MockEnvironment::new()
             .roots("/code", "/home/op")
             .cmd("cargo check --message-format json", CLEAN);
         let cfg = SourceConfig::for_kind(SourceKind::CargoWarnings);
-        assert!(CargoWarningsSource.poll(&env, &cfg).is_empty());
+        let PollOutcome::Fetched(out) = CargoWarningsSource.poll(&env, &cfg) else {
+            panic!("an observed clean build is Fetched");
+        };
+        assert!(out.is_empty());
     }
 
     #[test]
-    fn no_cargo_yields_nothing() {
-        // No fixture registered → run() returns None → empty.
+    fn honesty_tiers_are_typed_not_empty() {
+        // No fixture registered → run() returns None (compile errors exit
+        // non-zero through this seam) → Error, never an empty Fetched — the
+        // last-known warnings stay and age out by TTL.
         let cfg = SourceConfig::for_kind(SourceKind::CargoWarnings);
-        assert!(CargoWarningsSource.poll(&MockEnvironment::new(), &cfg).is_empty());
+        assert_eq!(
+            CargoWarningsSource.poll(&MockEnvironment::new(), &cfg),
+            PollOutcome::error()
+        );
     }
 }

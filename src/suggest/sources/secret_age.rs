@@ -4,12 +4,14 @@
 //!
 //! Live wiring: `find ~/.config -maxdepth 2 -type f -name '*token*' -mtime +90`
 //! — one path per line. The `-mtime +90` window is a coarse age proxy (file
-//! mtime, not a true secret-age stat; a stat-based check is a follow-up). `find`
-//! not installed / no output → no suggestions (graceful).
+//! mtime, not a true secret-age stat; a stat-based check is a follow-up).
+//! Honesty contract: only an OBSERVED `find` run is `Fetched` (zero matches
+//! exits 0 with empty output); a failed run is `Unavailable(Error)` — so a
+//! missing tool never reads as "nothing stale".
 
 use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion, Urgency};
 use crate::suggest::env::{Cmd, SuggestionEnvironment};
-use crate::suggest::source::{SourceConfig, SuggestionSource};
+use crate::suggest::source::{PollOutcome, SourceConfig, SuggestionSource};
 
 pub struct SecretAgeSource;
 
@@ -18,7 +20,7 @@ impl SuggestionSource for SecretAgeSource {
         SourceKind::SecretAge
     }
 
-    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> Vec<Suggestion> {
+    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> PollOutcome {
         let cfgdir = env.home().join(".config").to_string_lossy().into_owned();
         let cmd = Cmd::new("find")
             .arg(cfgdir)
@@ -31,9 +33,11 @@ impl SuggestionSource for SecretAgeSource {
             .arg("-mtime")
             .arg("+90");
         let Some(out) = env.run(&cmd) else {
-            return Vec::new();
+            // `find` exits 0 on zero matches, so None here is the tool itself
+            // missing/failing — a real Error, not an empty result.
+            return PollOutcome::error();
         };
-        parse(&out, env, cfg.max_items.max(1))
+        PollOutcome::Fetched(parse(&out, env, cfg.max_items.max(1)))
     }
 }
 
@@ -79,7 +83,9 @@ mod tests {
     #[test]
     fn produces_a_rotate_suggestion_per_stale_token() {
         let cfg = SourceConfig::for_kind(SourceKind::SecretAge);
-        let out = SecretAgeSource.poll(&env(), &cfg);
+        let PollOutcome::Fetched(out) = SecretAgeSource.poll(&env(), &cfg) else {
+            panic!("an observed find run is Fetched");
+        };
         assert_eq!(out.len(), 2);
         let gh = out
             .iter()
@@ -95,14 +101,21 @@ mod tests {
     fn respects_max_items_cap() {
         let mut cfg = SourceConfig::for_kind(SourceKind::SecretAge);
         cfg.max_items = 1;
-        let out = SecretAgeSource.poll(&env(), &cfg);
+        let PollOutcome::Fetched(out) = SecretAgeSource.poll(&env(), &cfg) else {
+            panic!("an observed find run is Fetched");
+        };
         assert_eq!(out.len(), 1, "capped at max_items");
     }
 
     #[test]
-    fn no_find_yields_nothing() {
-        // No fixture registered → run() returns None → empty.
+    fn honesty_tiers_are_typed_not_empty() {
+        // No fixture registered → run() returns None → Error (find exits 0 on
+        // zero matches, so a failed run is the tool missing, not "nothing
+        // stale" — keep the last-known rows).
         let cfg = SourceConfig::for_kind(SourceKind::SecretAge);
-        assert!(SecretAgeSource.poll(&MockEnvironment::new(), &cfg).is_empty());
+        assert_eq!(
+            SecretAgeSource.poll(&MockEnvironment::new(), &cfg),
+            PollOutcome::error()
+        );
     }
 }

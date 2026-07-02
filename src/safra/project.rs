@@ -88,11 +88,9 @@ mod tests {
     use super::*;
     use crate::suggest::core::Urgency;
 
-    // A stand-in SourceKind for the projection test. The dedicated safra
-    // `SourceKind` + the `SuggestionSource` adapter that supplies it land in the
-    // live-stream integration (see the module doc); the projection itself is
-    // source-kind-agnostic, which this exercises.
-    const STUB: SourceKind = SourceKind::KurageAgents;
+    // The real owning kind — the `SafraSuggestionSource` adapter supplies it
+    // in production; the projection itself stays source-kind-agnostic.
+    const STUB: SourceKind = SourceKind::Safra;
 
     fn sig() -> Signal {
         Signal::new("mte_production", "deploy-flows", "o/r#42", Severity::Critical, "Deploy auth → mte production")

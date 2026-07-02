@@ -89,6 +89,10 @@ pub struct SessionPickerRow {
     pub label: String,
     /// What Enter on this row does.
     pub kind: RowKind,
+    /// The suggestion's urgency, carried ON the row so the renderer tints
+    /// without touching the store (the frame loop stays lock-free).
+    /// `None` for session / preset / create rows — calm default colour.
+    pub urgency: Option<crate::suggest::Urgency>,
 }
 
 /// The modal state of the Ctrl-S switcher — the generic fuzzy-picker over
@@ -339,23 +343,28 @@ impl PracaPickerBridge {
             return Vec::new();
         };
         let q = query.trim();
+        let now_ms = now.saturating_mul(1000);
         // Over-fetch then query-filter so a needle still finds lower-ranked
-        // suggestions (the store is already urgency/score ranked). `ranked_stored`
-        // carries each row's birth time for the freshness nudge.
+        // suggestions (the store is already living-board ranked: urgency →
+        // score+aging+recurrence). `ranked_stored` carries each row's birth
+        // time, recurrence count, and lifecycle state.
         // Memoized ranked snapshot — recompute the clone-whole-map + sort only
-        // when the store's change-generation advanced; reuse it across the rapid
-        // re-list calls (open + every keystroke + the ~2s live refresh) while the
+        // when the store's change-generation advanced OR the 30s aging bucket
+        // rolled (the living-board rank drifts with wall time even on a silent
+        // store); reuse it across the rapid re-list calls (open + every
+        // keystroke + the event-driven store-broadcast re-list) while the
         // watchers idle. The query-filter + live-dedup below still run each call.
-        let cur_gen = store.generation();
+        let memo_key = store.generation() ^ (now_ms / 30_000).rotate_left(32);
         let ranked: Arc<Vec<crate::suggest::StoredSuggestion>> = {
             let mut cache = self.ranked_cache.borrow_mut();
             match cache.as_ref() {
-                Some((g, v)) if *g == cur_gen => Arc::clone(v),
+                Some((g, v)) if *g == memo_key => Arc::clone(v),
                 _ => {
-                    let fresh = Arc::new(
-                        store.ranked_stored(self.suggest_max.saturating_mul(4).max(self.suggest_max)),
-                    );
-                    *cache = Some((cur_gen, Arc::clone(&fresh)));
+                    let fresh = Arc::new(store.ranked_stored(
+                        self.suggest_max.saturating_mul(4).max(self.suggest_max),
+                        now_ms,
+                    ));
+                    *cache = Some((memo_key, Arc::clone(&fresh)));
                     fresh
                 }
             }
@@ -391,8 +400,22 @@ impl PracaPickerBridge {
         crate::suggest::store::balance_per_source(filtered, self.suggest_max, self.suggest_cap)
             .into_iter()
             .map(|st| {
-                let mut label = String::from("\u{25cb} "); // ○ latent
+                // ◐ in progress (accepted, session open) vs ○ latent — the
+                // board legibly separates "waiting" from "being worked".
+                let mut label = String::from(
+                    if matches!(st.state, crate::suggest::SuggestionState::Accepted { .. }) {
+                        "\u{25d0} " // ◐ in progress
+                    } else {
+                        "\u{25cb} " // ○ latent
+                    },
+                );
                 label.push_str(&st.suggestion.picker_label());
+                // Recurrence stamp: a repeat offender wears its count (×3), so
+                // a flapping alert reads differently from a first-timer.
+                if st.times_seen >= 2 {
+                    label.push_str("  \u{d7}");
+                    label.push_str(&st.times_seen.to_string());
+                }
                 // Freshness nudge: once a task has been waiting a while (>= 5m)
                 // stamp its age, so the picker stays calm for fresh arrivals and
                 // quietly nags the ones that have been sitting.
@@ -404,6 +427,7 @@ impl PracaPickerBridge {
                 SessionPickerRow {
                     label,
                     kind: RowKind::Suggestion(st.suggestion.id),
+                    urgency: Some(st.suggestion.urgency),
                 }
             })
             .collect()
@@ -447,7 +471,11 @@ impl PracaPickerBridge {
         // it instead of spawning a duplicate. Makes the destination's "nothing
         // duplicate is ever offered" true on the accept path, not just promised.
         if let Some(existing) = self.live_session_for(&sug.spawn) {
-            return self.switch_to(existing);
+            let ok = self.switch_to(existing);
+            if ok {
+                store.mark_accepted(id, sug.spawn.name());
+            }
+            return ok;
         }
         // Spawn into the suggestion's cwd (mado's capability env, cwd
         // overridden).
@@ -483,6 +511,10 @@ impl PracaPickerBridge {
         if let Some(cmd) = sug.spawn.initial_command() {
             let _ = self.inproc.send_keys(pane, &kickoff_keystrokes(cmd));
         }
+        // Soft-ack: the row is now IN PROGRESS — demoted below fresh work and
+        // badged ◐, but still on the board until upstream confirms resolution
+        // (decay) or the operator dismisses it.
+        store.mark_accepted(id, sug.spawn.name());
         self.switch.post(pane);
         true
     }
@@ -598,6 +630,7 @@ impl SessionPickerBridge for PracaPickerBridge {
                             badge_rows.then_some(false),
                         ),
                         kind: RowKind::Switch(rec.id),
+                        urgency: None,
                     },
                     praca::Ranked::Latent(def) => SessionPickerRow {
                         label: Self::row_label(
@@ -606,6 +639,7 @@ impl SessionPickerBridge for PracaPickerBridge {
                             badge_rows.then_some(true),
                         ),
                         kind: RowKind::Instantiate(def.def_id),
+                        urgency: None,
                     },
                 })
                 .collect();
@@ -653,6 +687,7 @@ impl SessionPickerBridge for PracaPickerBridge {
                     kind: RowKind::Create(CreateSpec::Preset {
                         pool_index: p.pool_index,
                     }),
+                    urgency: None,
                 })
                 .collect();
         }
@@ -668,6 +703,7 @@ impl SessionPickerBridge for PracaPickerBridge {
         vec![SessionPickerRow {
             label,
             kind: RowKind::Create(CreateSpec::Named { name: q.to_owned() }),
+            urgency: None,
         }]
     }
 
@@ -829,7 +865,8 @@ mod tests {
     #[test]
     fn bridge_lists_live_sessions_and_switch_posts_pane() {
         let (inproc, live) = live_inproc();
-        let live_pane = inproc
+        // The expect IS the assertion (a live session must expose a pane).
+        let _live_pane = inproc
             .with_registry(|r| {
                 r.sessions
                     .get(&live)
@@ -869,7 +906,7 @@ mod tests {
         // being the one you're in NOW). So Ctrl-S + Enter toggles back.
         let inproc = Arc::new(tear_core::InProcess::new());
         inproc.set_spawn_env(tear_types::SpawnEnv::none());
-        let mut spawn = |name: &str| {
+        let spawn = |name: &str| {
             inproc
                 .new_session_with_source_and_size(
                     name,

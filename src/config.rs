@@ -127,6 +127,12 @@ pub struct MadoConfig {
     /// default ON with a gentle cadence; the bare tier strips it off.
     #[serde(default)]
     pub suggestions: SuggestionsConfig,
+    /// The safra observability-curation plane (see `crate::safra` +
+    /// `docs/SAFRA.md`): tracked environments × data-kinds → curated signals
+    /// projected onto the Ctrl-S board. **Defaults OFF** — a private config
+    /// layer (blackmatter) supplies the environments, SecretRefs, and tuning.
+    #[serde(default)]
+    pub safra: crate::safra::SafraConfig,
     /// Clickable, highlighted links (see [`MadoLinksConfig`]). Prescribed
     /// default ON (highlight + hover cursor + click-to-open); the bare
     /// tier strips every affordance.
@@ -714,9 +720,20 @@ pub struct SuggestionsConfig {
     /// bounded for well-behaved sources; this guards a source that stops polling
     /// with `ttl_secs = 0` or a mis-set `max_items`. 0 = unbounded.
     pub max_entries: usize,
-    /// Per-source overrides. Unlisted sources use `default_enabled` + the
-    /// kind's default cadence.
+    /// Per-source overrides, MERGED over the prescribed arm-list by kind slug
+    /// (see [`SuggestionsConfig::effective_sources`]): an entry overrides that
+    /// one kind (params, cadence, enabled) and never disarms the others. Kinds
+    /// in neither list follow `default_enabled`.
     pub sources: Vec<SuggestionSourceConfig>,
+    /// Escape hatch: `true` makes `sources` REPLACE the prescribed arm-list
+    /// entirely instead of merging over it — an explicit allow-list for an
+    /// operator who wants exactly-these-sources and nothing else.
+    pub sources_replace: bool,
+    /// Ambient signal while the board is closed: a NEW Critical suggestion
+    /// bounces the dock / flashes the taskbar once per issue (the platform
+    /// attention request), so an incident reaches the operator without the
+    /// picker being open. Warm-restart rows never alert.
+    pub attention_on_critical: bool,
 }
 
 impl Default for SuggestionsConfig {
@@ -740,23 +757,24 @@ impl SuggestionsConfig {
             persist_debounce_secs: 0,
             max_entries: 0,
             sources: Vec::new(),
+            sources_replace: false,
+            attention_on_critical: false,
         }
     }
 
-    /// Prescribed tier — the stream is ON. The only sources armed by default
-    /// are the **zero-network local sources** (your mado recent-dirs + project
-    /// marks) plus your **Jira** sprint/assigned tickets. Every source that
-    /// talks to an outbound API beyond Jira — GitHub, Grafana, Datadog,
-    /// Opsgenie, Cloudflare, AWS, Google, the cluster, … — stays OFF unless the
-    /// operator explicitly enables it. `default_enabled = false` is the gate:
-    /// an unlisted source never runs, so adding a new source can never silently
-    /// start making network calls. The operator opts a source in via a
-    /// `sources` override (or flips `default_enabled`).
+    /// Prescribed tier — the stream is ON with the operator's **full workflow
+    /// surface armed**: every source except the three steady-cost external
+    /// pollers (`AwsHealth` / `DatadogMonitors` / `CloudflareDeployments`,
+    /// which stay opt-in to avoid recurring API spend). Every source degrades
+    /// gracefully — a missing credential/param/cluster yields no rows and a
+    /// typed `Unavailable` health state, never an error — so the band fills
+    /// from whatever is actually reachable. `default_enabled = false` remains
+    /// the gate for kinds NOT in this list: a future source never silently
+    /// starts making network calls just by existing.
     ///
-    /// The local sources (`RecentDirs`, `ProjectMarks`) make this delightful
-    /// out of the box for a standalone download: Ctrl-S surfaces your own
-    /// recent dirs + marks with no tokens, no cluster, no network — the band
-    /// fills as you use mado rather than staying empty.
+    /// A yaml `sources` list is a per-kind OVERRIDE merged over this arm-list
+    /// (see [`SuggestionsConfig::effective_sources`]) — supplying params for
+    /// one source never disarms the rest.
     #[must_use]
     pub fn prescribed() -> Self {
         Self {
@@ -797,6 +815,7 @@ impl SuggestionsConfig {
                 SuggestionSourceConfig::enable(crate::suggest::SourceKind::ConfluenceMentions),
                 // Fleet cluster + ops surface.
                 SuggestionSourceConfig::enable(crate::suggest::SourceKind::FluxFailing),
+                SuggestionSourceConfig::enable(crate::suggest::SourceKind::K8sUnhealthy),
                 SuggestionSourceConfig::enable(crate::suggest::SourceKind::BreatheConflict),
                 SuggestionSourceConfig::enable(crate::suggest::SourceKind::EngenhoNodes),
                 SuggestionSourceConfig::enable(crate::suggest::SourceKind::GrafanaAlerts),
@@ -808,8 +827,36 @@ impl SuggestionsConfig {
                 // Personal cadence.
                 SuggestionSourceConfig::enable(crate::suggest::SourceKind::GoogleTasks),
                 SuggestionSourceConfig::enable(crate::suggest::SourceKind::GoogleCalendar),
+                // Curated observability (armed; typed "needs config" until the
+                // safra: section declares cells).
+                SuggestionSourceConfig::enable(crate::suggest::SourceKind::Safra),
             ],
+            sources_replace: false,
+            attention_on_critical: true,
         }
+    }
+
+    /// The EFFECTIVE per-source override list the engine runs from: the
+    /// prescribed arm-list with the operator's `sources` entries merged over it
+    /// by kind slug (an operator entry wins wholesale for its kind; unknown
+    /// slugs ride along and are ignored downstream). This is the load-bearing
+    /// fix for the "a params-only yaml override disarmed 22 sources" failure:
+    /// serde replaces a yaml `Vec` outright, so the merge has to happen here,
+    /// after deserialize. `sources_replace = true` restores replace semantics
+    /// as an explicit allow-list.
+    #[must_use]
+    pub fn effective_sources(&self) -> Vec<SuggestionSourceConfig> {
+        if self.sources_replace {
+            return self.sources.clone();
+        }
+        let mut merged = Self::prescribed().sources;
+        for over in &self.sources {
+            match merged.iter_mut().find(|m| m.kind == over.kind) {
+                Some(slot) => *slot = over.clone(),
+                None => merged.push(over.clone()),
+            }
+        }
+        merged
     }
 }
 
@@ -2354,6 +2401,8 @@ impl MadoConfig {
             effects: MadoEffectsConfig::default(),
             vigy: MadoVigyConfig::default(),
             suggestions: SuggestionsConfig::bare(),
+            // Safra ships off at every tier; a private config layer arms it.
+            safra: crate::safra::SafraConfig::default(),
             // bare = no link affordances at all.
             links: MadoLinksConfig::bare(),
             // bare = no feedback flourishes, no motion easing.
@@ -2608,6 +2657,7 @@ fn mado_fleet_base() -> MadoConfig {
         effects: MadoEffectsConfig::default(),
         vigy: MadoVigyConfig::default(),
         suggestions: SuggestionsConfig::default(),
+        safra: crate::safra::SafraConfig::default(),
         links: MadoLinksConfig::default(),
         feedback: FeedbackConfig::default(),
         motion: MotionConfig::default(),
@@ -3658,6 +3708,7 @@ mod tests {
             effects: MadoEffectsConfig::default(),
             vigy: MadoVigyConfig::default(),
             suggestions: SuggestionsConfig::default(),
+            safra: crate::safra::SafraConfig::default(),
             links: MadoLinksConfig::default(),
             feedback: FeedbackConfig::default(),
             motion: MotionConfig::default(),
@@ -3814,36 +3865,113 @@ mod tests {
             .filter(|sc| sc.enabled)
             .map(|sc| sc.kind.as_str())
             .collect();
-        // "More than Jira": the band is armed across the whole workflow surface,
-        // not just the two Jira sources — this is the regression guard.
-        assert!(
-            armed.len() >= 20,
-            "prescribed must arm the full workflow surface (>=20), got {}",
-            armed.len()
-        );
-        // The three steady-cost external pollers stay opt-in.
-        for cp in [
+        // EXACT-SET invariant (not a >= heuristic): prescribed arms every
+        // catalogued source EXCEPT the named opt-outs — the three steady-cost
+        // external pollers, plus the push-only agent lane (fed via the
+        // suggest_inject MCP tool; arming a watcher for it would poll
+        // nothing). A new SourceKind variant fails this test until it is
+        // either armed here or added to the opt-out list — the comment can
+        // never drift from the code.
+        let opt_out: std::collections::BTreeSet<&str> = [
             SourceKind::AwsHealth,
             SourceKind::DatadogMonitors,
             SourceKind::CloudflareDeployments,
-        ] {
-            assert!(
-                !armed.contains(cp.slug()),
-                "{} is a cost-poller and must be off by default",
-                cp.slug()
-            );
+            SourceKind::Agent,
+        ]
+        .iter()
+        .map(|k| k.slug())
+        .collect();
+        for &k in SourceKind::ALL {
+            if opt_out.contains(k.slug()) {
+                assert!(
+                    !armed.contains(k.slug()),
+                    "{} is a cost-poller and must be off by default",
+                    k.slug()
+                );
+            } else {
+                assert!(
+                    armed.contains(k.slug()),
+                    "{} must be armed at prescribed (or added to the opt-out set)",
+                    k.slug()
+                );
+            }
         }
-        // A representative spread across every surface class is armed.
-        for k in [
-            SourceKind::JiraSprint,
-            SourceKind::GithubReviewRequested,
-            SourceKind::FluxFailing,
-            SourceKind::GrafanaAlerts,
-            SourceKind::GitBranchPr,
-            SourceKind::GoogleTasks,
-        ] {
-            assert!(armed.contains(k.slug()), "{} should be armed", k.slug());
-        }
+    }
+
+    #[test]
+    fn suggestion_source_overrides_merge_over_prescribed_not_replace() {
+        use crate::suggest::SourceKind;
+        // The exact failure this pins: a nix/yaml block supplying ONLY a
+        // params override for one source (serde replaces the whole Vec) must
+        // NOT disarm the other prescribed sources.
+        let mut over = SuggestionSourceConfig::enable(SourceKind::JiraAssigned);
+        over.params
+            .insert(String::from("site"), String::from("acme.atlassian.net"));
+        let cfg = SuggestionsConfig {
+            sources: vec![over],
+            ..SuggestionsConfig::prescribed()
+        };
+        let eff = cfg.effective_sources();
+        let jira = eff
+            .iter()
+            .find(|s| s.kind == SourceKind::JiraAssigned.slug())
+            .expect("jira-assigned present");
+        assert_eq!(
+            jira.params.get("site").map(String::as_str),
+            Some("acme.atlassian.net"),
+            "the override's params win for its kind"
+        );
+        let prescribed_armed = SuggestionsConfig::prescribed()
+            .sources
+            .iter()
+            .filter(|s| s.enabled)
+            .count();
+        assert_eq!(
+            eff.iter().filter(|s| s.enabled).count(),
+            prescribed_armed,
+            "a params-only override must not change the armed count"
+        );
+        // A kind unknown to the prescribed list rides along (e.g. an opt-in
+        // cost poller the operator arms explicitly).
+        let cfg2 = SuggestionsConfig {
+            sources: vec![SuggestionSourceConfig::enable(SourceKind::AwsHealth)],
+            ..SuggestionsConfig::prescribed()
+        };
+        assert!(
+            cfg2.effective_sources()
+                .iter()
+                .any(|s| s.kind == SourceKind::AwsHealth.slug() && s.enabled),
+            "an explicitly-armed opt-out kind is appended"
+        );
+        // An explicit disable override disarms exactly its kind.
+        let mut off = SuggestionSourceConfig::enable(SourceKind::TodoBacklog);
+        off.enabled = false;
+        let cfg3 = SuggestionsConfig {
+            sources: vec![off],
+            ..SuggestionsConfig::prescribed()
+        };
+        let eff3 = cfg3.effective_sources();
+        assert!(
+            !eff3
+                .iter()
+                .find(|s| s.kind == SourceKind::TodoBacklog.slug())
+                .expect("todo-backlog present")
+                .enabled,
+            "an explicit disable wins for its kind"
+        );
+        assert_eq!(
+            eff3.iter().filter(|s| s.enabled).count(),
+            prescribed_armed - 1,
+            "only the disabled kind is disarmed"
+        );
+        // The escape hatch: sources_replace = true restores allow-list
+        // semantics — exactly the listed sources, nothing else.
+        let cfg4 = SuggestionsConfig {
+            sources: vec![SuggestionSourceConfig::enable(SourceKind::JiraAssigned)],
+            sources_replace: true,
+            ..SuggestionsConfig::prescribed()
+        };
+        assert_eq!(cfg4.effective_sources().len(), 1, "replace mode is an allow-list");
     }
 
     /// Every effects knob round-trips through YAML and the static

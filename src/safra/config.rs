@@ -72,6 +72,17 @@ impl ResolvedTuning {
 pub struct SafraConfig {
     /// Master switch. Bare = `false`.
     pub enabled: bool,
+    /// The tracked environments (endpoints + SecretRefs) — the declaration
+    /// half the M1 `(deftrackedenv)` lisp form will author; until then the
+    /// yaml layer declares them directly.
+    pub environments: Vec<super::schema::TrackedEnvironment>,
+    /// The tracked data-kinds — one curated structure per (kind × env) whose
+    /// environment exposes the kind's service.
+    pub kinds: Vec<super::schema::TrackedDataKind>,
+    /// The GitHub-Actions deploy-flow filter, consumed by every cell whose
+    /// kind's service is `github-actions` (repos/workflow/env patterns —
+    /// supplied by the private config layer, never hardcoded).
+    pub gha: super::gha::GhaFilter,
     /// Scope 1 — defaults for every (kind × env) cell.
     pub global: CellTuning,
     /// Scope 2 — per group name (a data-kind group OR an environment group;

@@ -5,11 +5,15 @@
 //! Live wiring: `kubectl get kustomizations,helmreleases -A -o json` → a list
 //! of objects, each carrying `status.conditions`. An object with a `Ready`
 //! condition whose `status` is `False` becomes a suggestion that drops you in
-//! the code root. `kubectl` not installed / no JSON → graceful empty.
+//! the code root. Config params: `context` (optional kubeconfig context the
+//! poll is scoped to). Honesty contract: a failed `kubectl` run is
+//! `Unavailable(Error)` — only an OBSERVED listing is `Fetched` (garbage JSON
+//! parses to empty: the upstream WAS observed), so a dead kubeconfig never
+//! reads as "everything reconciled".
 
 use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion, Urgency};
 use crate::suggest::env::{Cmd, SuggestionEnvironment};
-use crate::suggest::source::{SourceConfig, SuggestionSource};
+use crate::suggest::source::{PollOutcome, SourceConfig, SuggestionSource};
 
 pub struct FluxFailingSource;
 
@@ -18,19 +22,23 @@ impl SuggestionSource for FluxFailingSource {
         SourceKind::FluxFailing
     }
 
-    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> Vec<Suggestion> {
-        let cmd = Cmd::new("kubectl")
+    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> PollOutcome {
+        let mut cmd = Cmd::new("kubectl")
             .arg("get")
             .arg("kustomizations,helmreleases")
             .arg("-A")
             .arg("-o")
             .arg("json");
+        // Optional `context` param scopes the poll to a named kubeconfig context.
+        if let Some(ctx) = cfg.param("context") {
+            cmd = cmd.arg("--context").arg(ctx);
+        }
         let Some(out) = env.run(&cmd) else {
-            return Vec::new();
+            return PollOutcome::error();
         };
         let mut items = parse(&out, env);
         items.truncate(cfg.max_items.max(1));
-        items
+        PollOutcome::Fetched(items)
     }
 }
 
@@ -154,7 +162,9 @@ mod tests {
     #[test]
     fn surfaces_only_not_ready_objects() {
         let cfg = SourceConfig::for_kind(SourceKind::FluxFailing);
-        let out = FluxFailingSource.poll(&env(), &cfg);
+        let PollOutcome::Fetched(out) = FluxFailingSource.poll(&env(), &cfg) else {
+            panic!("an observed listing is Fetched");
+        };
         assert_eq!(out.len(), 1, "the Ready=True object is excluded");
         let failing = &out[0];
         assert!(failing.title.contains("Kustomization/apps not Ready"));
@@ -165,10 +175,36 @@ mod tests {
     }
 
     #[test]
-    fn no_kubectl_yields_nothing() {
-        // No fixture registered → run() returns None → empty.
+    fn honesty_tiers_are_typed_not_empty() {
+        // No required params/secret here — the only unavailability tier is a
+        // failed kubectl run (no fixture → run() returns None → Error, so a
+        // dead kubeconfig keeps last-known rows instead of "all reconciled").
         let cfg = SourceConfig::for_kind(SourceKind::FluxFailing);
-        assert!(FluxFailingSource.poll(&MockEnvironment::new(), &cfg).is_empty());
+        assert_eq!(
+            FluxFailingSource.poll(&MockEnvironment::new(), &cfg),
+            PollOutcome::error()
+        );
+    }
+
+    #[test]
+    fn context_param_scopes_the_kubectl_call() {
+        // With `context` set, the --context args land in the typed argv (and
+        // thus the mock key): only the contexted fixture answers.
+        let mut cfg = SourceConfig::for_kind(SourceKind::FluxFailing);
+        cfg.params.insert("context".into(), "rio".into());
+        assert_eq!(
+            FluxFailingSource.poll(&env(), &cfg),
+            PollOutcome::error(),
+            "the un-contexted fixture must not answer a contexted poll"
+        );
+        let ctx_env = MockEnvironment::new().roots("/code", "/home/op").cmd(
+            "kubectl get kustomizations,helmreleases -A -o json --context rio",
+            FIXTURE,
+        );
+        let PollOutcome::Fetched(out) = FluxFailingSource.poll(&ctx_env, &cfg) else {
+            panic!("the contexted listing is Fetched");
+        };
+        assert_eq!(out.len(), 1);
     }
 
     #[test]

@@ -51,13 +51,17 @@ pub mod store;
 // cfg(test) or by providers via their full paths), so the unused-import lint
 // for the re-export surface is intentionally allowed.
 #[allow(unused_imports)]
-pub use core::{SourceKind, SpawnSpec, Suggestion, SuggestionId, Urgency};
+pub use core::{SourceKind, SourceStatus, SpawnSpec, Suggestion, SuggestionId, Urgency};
 #[allow(unused_imports)]
 pub use env::{Cmd, HttpReq, MockEnvironment, RealEnvironment, SuggestionEnvironment};
 #[allow(unused_imports)]
-pub use source::{refresh_once, EngineConfig, SourceConfig, SuggestionEngine, SuggestionSource};
+pub use source::{
+    refresh_once, EngineConfig, PollOutcome, SourceConfig, SuggestionEngine, SuggestionSource,
+};
 #[allow(unused_imports)]
-pub use store::{shade_ramp, StoreSnapshot, StoredSuggestion, SuggestionStore};
+pub use store::{
+    shade_ramp, SourceHealth, StoreSnapshot, StoredSuggestion, SuggestionState, SuggestionStore,
+};
 
 use std::path::PathBuf;
 use std::sync::{Arc, OnceLock};
@@ -72,6 +76,26 @@ static STORE: OnceLock<Arc<SuggestionStore>> = OnceLock::new();
 #[must_use]
 pub fn store() -> Arc<SuggestionStore> {
     Arc::clone(STORE.get_or_init(|| Arc::new(SuggestionStore::new())))
+}
+
+/// The process-wide freshness nudge every watcher selects on alongside its
+/// cadence tick (see `spawn_interval_refresh_nudged`).
+static NUDGE: OnceLock<Arc<tokio::sync::Notify>> = OnceLock::new();
+
+/// The shared board-refresh notify (lazy global) — watchers wait on it, the
+/// GUI fires it.
+#[must_use]
+pub fn board_nudge() -> Arc<tokio::sync::Notify> {
+    Arc::clone(NUDGE.get_or_init(|| Arc::new(tokio::sync::Notify::new())))
+}
+
+/// Ask every suggestion watcher to refresh EARLY (paced per-watcher — a
+/// watcher inside its pacing gap absorbs the nudge). Fired when the Ctrl-S
+/// board opens, so the operator opens onto data being re-verified right now
+/// instead of whenever the next interval happens to land. Sync-callable from
+/// the GUI thread; wakes only parked watchers, never blocks.
+pub fn request_board_refresh() {
+    board_nudge().notify_waiters();
 }
 
 /// Resolve the warm-restart snapshot path. `$MADO_SUGGEST_DB` is an explicit
@@ -93,13 +117,15 @@ pub fn state_path() -> PathBuf {
 }
 
 /// Translate the typed shikumi `suggestions` config into an [`EngineConfig`].
+/// Reads the MERGED source list (prescribed arm-list ⊕ operator overrides), so
+/// a params-only yaml override never disarms the rest of the surface.
 #[must_use]
 pub fn engine_config_from(cfg: &crate::config::SuggestionsConfig) -> EngineConfig {
     let mut ec = EngineConfig {
         per_source: std::collections::BTreeMap::new(),
         default_enabled: cfg.default_enabled,
     };
-    for s in &cfg.sources {
+    for s in &cfg.effective_sources() {
         if let Some(kind) = SourceKind::from_slug(&s.kind) {
             let mut sc = SourceConfig::for_kind(kind);
             sc.enabled = s.enabled;
@@ -119,12 +145,18 @@ pub fn engine_config_from(cfg: &crate::config::SuggestionsConfig) -> EngineConfi
 /// Spawn the parallel watcher engine on its own multi-thread tokio runtime
 /// thread — mirrors the vigy runtime (the GUI thread is not async). Gated by
 /// `suggestions.enabled`; best-effort (a runtime build failure logs + leaves
-/// the store empty, so the picker simply shows no suggestions).
-pub fn spawn_engine_thread(cfg: &crate::config::SuggestionsConfig) {
+/// the store empty, so the picker simply shows no suggestions). The safra
+/// config builds the curated-observability adapter (cells + endpoints) that
+/// replaces the registry's unconfigured placeholder when enabled.
+pub fn spawn_engine_thread(
+    cfg: &crate::config::SuggestionsConfig,
+    safra: &crate::safra::SafraConfig,
+) {
     if !cfg.enabled {
         tracing::debug!("suggestion stream disabled (suggestions.enabled = false)");
         return;
     }
+    let safra_cfg = safra.clone();
     let engine_cfg = engine_config_from(cfg);
     let global_ttl_ms = cfg.ttl_secs.saturating_mul(1000);
     // Per-source TTL: a source's items live for max(3× its poll interval, the
@@ -158,19 +190,31 @@ pub fn spawn_engine_thread(cfg: &crate::config::SuggestionsConfig) {
                     let env: Arc<dyn SuggestionEnvironment> = Arc::new(RealEnvironment::discover());
                     let store = store();
                     let path = state_path();
-                    // Warm restart: re-surface the last-known tasks INSTANTLY,
-                    // then age out anything already stale, before the watchers
+                    // Warm restart: re-surface the last-known tasks INSTANTLY
+                    // (ages rebased to the snapshot's save time), then age out
+                    // anything already stale AT SAVE, before the watchers
                     // re-poll. The picker is populated on the first frame.
                     if persist {
-                        store.load_file(&path);
                         let now_ms = env.now_unix().saturating_mul(1000);
+                        store.load_file(&path, now_ms);
                         store.decay_per_source(now_ms, |k| {
                             ttl_map.get(&k).copied().unwrap_or(global_ttl_ms)
                         });
                         store.gc(max_entries);
                     }
+                    // The safra plane: swap the registry's unconfigured
+                    // placeholder for the config-built adapter when the
+                    // operator's safra: section declares cells.
+                    let mut sources_vec = sources::registry();
+                    if safra_cfg.enabled {
+                        let adapter =
+                            crate::safra::SafraSuggestionSource::from_config(&safra_cfg);
+                        tracing::info!(cells = adapter.cell_count(), "safra plane live");
+                        sources_vec.retain(|s| s.kind() != SourceKind::Safra);
+                        sources_vec.push(Arc::new(adapter));
+                    }
                     let engine = SuggestionEngine::start(
-                        sources::registry(),
+                        sources_vec,
                         Arc::clone(&env),
                         Arc::clone(&store),
                         engine_cfg,
@@ -197,7 +241,7 @@ pub fn spawn_engine_thread(cfg: &crate::config::SuggestionsConfig) {
                         store.gc(max_entries);
                         let current_gen = store.generation();
                         if persist && current_gen != last_gen {
-                            store.persist_file(&path);
+                            store.persist_file(&path, now_ms);
                             last_gen = current_gen;
                         }
                     }

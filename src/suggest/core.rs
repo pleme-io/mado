@@ -96,6 +96,16 @@ pub enum SourceKind {
     // ── secrets ────────────────────────────────────────────────────────—
     /// Secrets whose age exceeds a rotation threshold.
     SecretAge,
+    // ── curated observability (safra) ──────────────────────────────────—
+    /// The safra curation plane: per-(environment × data-kind) curated
+    /// signals (firing alerts, deploy flows, SLO breaches) projected onto
+    /// the board. Cells + endpoints come from the `safra:` config section.
+    Safra,
+    // ── agent lane ─────────────────────────────────────────────────────—
+    /// Tasks PUSHED onto the board by an agent through the `suggest_inject`
+    /// MCP tool (an agent needing review, a hand-off, a follow-up). Push-only:
+    /// no watcher polls it; rows live until they decay or are dismissed.
+    Agent,
 }
 
 impl SourceKind {
@@ -130,6 +140,8 @@ impl SourceKind {
         SourceKind::GoogleTasks,
         SourceKind::GoogleCalendar,
         SourceKind::SecretAge,
+        SourceKind::Safra,
+        SourceKind::Agent,
     ];
 
     /// Kebab slug — the stable id-derivation key + serde wire form.
@@ -163,6 +175,8 @@ impl SourceKind {
             SourceKind::GoogleTasks => "google-tasks",
             SourceKind::GoogleCalendar => "google-calendar",
             SourceKind::SecretAge => "secret-age",
+            SourceKind::Safra => "safra",
+            SourceKind::Agent => "agent",
         }
     }
 
@@ -204,6 +218,8 @@ impl SourceKind {
             SourceKind::GoogleTasks => "\u{2705}",             // ✅
             SourceKind::GoogleCalendar => "\u{1F4C5}",         // 📅
             SourceKind::SecretAge => "\u{1F511}",              // 🔑
+            SourceKind::Safra => "\u{1F33E}",                  // 🌾
+            SourceKind::Agent => "\u{1F91D}",                  // 🤝
         }
     }
 
@@ -238,6 +254,8 @@ impl SourceKind {
             SourceKind::GoogleTasks => "Google Tasks",
             SourceKind::GoogleCalendar => "Google Calendar",
             SourceKind::SecretAge => "secret age",
+            SourceKind::Safra => "safra curated signals",
+            SourceKind::Agent => "agent-injected tasks",
         }
     }
 
@@ -264,7 +282,12 @@ impl SourceKind {
             | SourceKind::KurageAgents
             | SourceKind::GoogleCalendar
             | SourceKind::SecretAge
-            | SourceKind::EngenhoNodes => Urgency::Normal,
+            | SourceKind::EngenhoNodes
+            // Safra signals carry their OWN per-item severity through the
+            // projection's Rank; this default never actually surfaces.
+            | SourceKind::Safra
+            // Agent injections carry their own urgency; Normal is the floor.
+            | SourceKind::Agent => Urgency::Normal,
             SourceKind::GitBranchPr
             | SourceKind::TendRepos
             | SourceKind::CargoWarnings
@@ -292,6 +315,11 @@ impl SourceKind {
             | SourceKind::K8sUnhealthy
             | SourceKind::BreatheConflict
             | SourceKind::EngenhoNodes
+            // Safra endpoints carry their own per-endpoint SecretRefs in the
+            // safra config; the plane itself needs no ambient credential.
+            | SourceKind::Safra
+            // The agent lane is push-only (MCP upsert), no credential.
+            | SourceKind::Agent
             | SourceKind::SecretAge => false,
             SourceKind::GithubReviewRequested
             | SourceKind::GithubAssignedIssues
@@ -342,6 +370,47 @@ impl SourceKind {
             SourceKind::AwsHealth | SourceKind::CloudflareDeployments => 300,
             SourceKind::GoogleTasks | SourceKind::GoogleCalendar => 300,
             SourceKind::SecretAge => 3600,
+            // The adapter fans out to per-cell cadences internally; this is
+            // just how often the fan-out itself runs.
+            SourceKind::Safra => 60,
+            // Push-only: never actually polled (no watcher is armed for it);
+            // the value only feeds the per-source TTL floor (3× interval).
+            SourceKind::Agent => 300,
+        }
+    }
+}
+
+/// The typed availability of a source's last poll — the border's honest
+/// outcome. `Ok` means the upstream WAS observed (even if it yielded zero
+/// items — genuine resolution); the other tiers mean it COULD NOT be
+/// observed, so the store keeps the source's last-known rows (aging them out
+/// via TTL) instead of wiping them. This is the "no silent wrong answers"
+/// rule applied to the source border: an infrastructure blip is typed, never
+/// disguised as "everything resolved".
+#[derive(
+    Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
+#[serde(rename_all = "kebab-case")]
+pub enum SourceStatus {
+    /// Upstream observed; the returned set is the truth.
+    Ok,
+    /// The source needs a param (site/base_url/…) the config doesn't supply.
+    Unconfigured,
+    /// The source's credential/secret is absent.
+    AuthMissing,
+    /// The fetch or parse failed (network, timeout, tool exit, bad shape).
+    Error,
+}
+
+impl SourceStatus {
+    /// Short operator-facing label for health footers / MCP output.
+    #[must_use]
+    pub fn label(self) -> &'static str {
+        match self {
+            SourceStatus::Ok => "ok",
+            SourceStatus::Unconfigured => "needs config",
+            SourceStatus::AuthMissing => "needs auth",
+            SourceStatus::Error => "erroring",
         }
     }
 }
@@ -510,11 +579,15 @@ impl SpawnSpec {
     }
 
     /// Attach a command to type into the fresh session (e.g. `gh pr checkout
-    /// 1234`). A blank command is ignored.
+    /// 1234`). A blank command is ignored — and so is any command carrying a
+    /// control byte (`\n`, `\r`, ESC, …): the kickoff is delivered as PTY
+    /// keystrokes + one Enter, so an embedded newline in upstream data (a
+    /// ticket summary, an alert label) would EXECUTE a second command. That
+    /// injection is rejected at this typed border, not per-provider.
     #[must_use]
     pub fn with_command(mut self, cmd: impl Into<String>) -> Self {
         let c = cmd.into();
-        if !c.trim().is_empty() {
+        if !c.trim().is_empty() && !c.chars().any(char::is_control) {
             self.initial_command = Some(c);
         }
         self
@@ -706,7 +779,7 @@ mod tests {
     fn all_len_matches_an_exhaustive_match() {
         // If a variant is added without extending ALL, this count diverges
         // from the exhaustive `slug` match the compiler enforces.
-        assert_eq!(SourceKind::ALL.len(), 27);
+        assert_eq!(SourceKind::ALL.len(), 29);
     }
 
     #[test]
@@ -714,6 +787,29 @@ mod tests {
         assert!(SpawnSpec::new("", "name").is_none());
         assert!(SpawnSpec::new("/x", "  ").is_none());
         assert!(SpawnSpec::new("/x", "ok").is_some());
+    }
+
+    #[test]
+    fn with_command_rejects_control_bytes_pty_injection() {
+        let spec = || SpawnSpec::new("/x", "s").unwrap();
+        // A clean command sticks.
+        assert_eq!(
+            spec().with_command("gh pr checkout 1").initial_command(),
+            Some("gh pr checkout 1")
+        );
+        // An embedded newline would execute a SECOND command through the
+        // kickoff keystrokes — the typed border drops the whole command.
+        assert_eq!(
+            spec().with_command("ls\nrm -rf /").initial_command(),
+            None,
+            "newline injection is unconstructible"
+        );
+        assert_eq!(spec().with_command("a\rb").initial_command(), None);
+        assert_eq!(spec().with_command("a\u{1b}[2Jb").initial_command(), None);
+        // The deserialize ingress runs the same border.
+        let wire = r#"{"cwd":"/x","name":"s","initial_command":"ls\nrm -rf /"}"#;
+        let s: SpawnSpec = serde_json::from_str(wire).unwrap();
+        assert_eq!(s.initial_command(), None, "wire path can't smuggle control bytes");
     }
 
     #[test]

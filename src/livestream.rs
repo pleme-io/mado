@@ -198,13 +198,56 @@ pub fn spawn_interval_refresh<T>(
 where
     T: Send + 'static,
 {
+    spawn_interval_refresh_nudged(interval, stop, refresh, sink, on_panic, None)
+}
+
+/// [`spawn_interval_refresh`] plus an optional **freshness nudge**: a shared
+/// [`tokio::sync::Notify`] any surface can fire (e.g. the Ctrl-S board
+/// opening) to request an EARLY refresh, paced by `min_gap` — a nudge landing
+/// within `min_gap` of the previous refresh is absorbed silently, so a nudge
+/// storm can never hammer an upstream API. The interval cadence continues
+/// regardless; the nudge only ever *advances* a refresh, never adds load
+/// beyond one early tick per gap.
+pub fn spawn_interval_refresh_nudged<T>(
+    interval: Duration,
+    stop: StopFlag,
+    refresh: Arc<dyn Fn() -> T + Send + Sync>,
+    sink: impl Fn(T) + Send + 'static,
+    on_panic: impl Fn() + Send + 'static,
+    nudge: Option<(Arc<tokio::sync::Notify>, Duration)>,
+) -> JoinHandle<()>
+where
+    T: Send + 'static,
+{
     tokio::spawn(async move {
         let mut tick = tokio::time::interval(interval);
+        let mut last_refresh: Option<std::time::Instant> = None;
         loop {
-            tick.tick().await;
+            match &nudge {
+                Some((notify, min_gap)) => {
+                    // Wake on whichever fires first: the cadence tick or a
+                    // freshness nudge. A nudge inside the pacing gap falls
+                    // through and re-waits (absorbed), so upstream pacing is
+                    // structural, not advisory.
+                    tokio::select! {
+                        _ = tick.tick() => {}
+                        () = notify.notified() => {
+                            let recent = last_refresh
+                                .is_some_and(|t| t.elapsed() < *min_gap);
+                            if recent {
+                                continue;
+                            }
+                        }
+                    }
+                }
+                None => {
+                    tick.tick().await;
+                }
+            }
             if stop.load(Ordering::Relaxed) {
                 break;
             }
+            last_refresh = Some(std::time::Instant::now());
             let r = Arc::clone(&refresh);
             match tokio::task::spawn_blocking(move || r()).await {
                 Ok(value) => sink(value),

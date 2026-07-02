@@ -5,12 +5,14 @@
 //!
 //! Live wiring: `kurage list-agents --json` → an array of `{id, name, status,
 //! repository}`. An agent whose status is not terminal (FINISHED / COMPLETED /
-//! STOPPED) becomes a suggestion landing in that agent's working copy. `kurage`
-//! not installed / no JSON → graceful empty.
+//! STOPPED) becomes a suggestion landing in that agent's working copy.
+//! Honesty contract: only an OBSERVED run is `Fetched` (garbage JSON parses
+//! to empty — the upstream WAS observed); `kurage` missing/failing is
+//! `Unavailable(Error)` — a CLI blip never reads as "no agents in flight".
 
 use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion, Urgency};
 use crate::suggest::env::{Cmd, SuggestionEnvironment};
-use crate::suggest::source::{SourceConfig, SuggestionSource};
+use crate::suggest::source::{PollOutcome, SourceConfig, SuggestionSource};
 
 pub struct KurageAgentsSource;
 
@@ -19,14 +21,14 @@ impl SuggestionSource for KurageAgentsSource {
         SourceKind::KurageAgents
     }
 
-    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> Vec<Suggestion> {
+    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> PollOutcome {
         let cmd = Cmd::new("kurage").arg("list-agents").arg("--json");
         let Some(out) = env.run(&cmd) else {
-            return Vec::new();
+            return PollOutcome::error();
         };
         let mut out = parse(&out, env);
         out.truncate(cfg.max_items.max(1));
-        out
+        PollOutcome::Fetched(out)
     }
 }
 
@@ -97,7 +99,9 @@ mod tests {
             .cmd("kurage list-agents --json", FIXTURE);
         let mut cfg = SourceConfig::for_kind(SourceKind::KurageAgents);
         cfg.max_items = 10;
-        let out = KurageAgentsSource.poll(&env, &cfg);
+        let PollOutcome::Fetched(out) = KurageAgentsSource.poll(&env, &cfg) else {
+            panic!("an observed kurage run is Fetched");
+        };
         assert_eq!(out.len(), 2, "finished agent excluded");
         let work = out.iter().find(|s| s.title.contains("refactor")).unwrap();
         assert!(work.title.contains("[RUNNING]"));
@@ -113,10 +117,15 @@ mod tests {
     }
 
     #[test]
-    fn missing_kurage_yields_nothing() {
-        // No fixture registered → run() returns None → empty.
+    fn honesty_tiers_are_typed_not_empty() {
+        // No fixture registered → run() returns None → Error (kurage
+        // missing/failing must never read as "no agents in flight" — keep
+        // the last-known rows).
         let cfg = SourceConfig::for_kind(SourceKind::KurageAgents);
-        assert!(KurageAgentsSource.poll(&MockEnvironment::new(), &cfg).is_empty());
+        assert_eq!(
+            KurageAgentsSource.poll(&MockEnvironment::new(), &cfg),
+            PollOutcome::error()
+        );
     }
 
     #[test]

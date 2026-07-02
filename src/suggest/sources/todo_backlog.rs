@@ -3,11 +3,14 @@
 //!
 //! Live wiring: `rg --no-heading -n -e TODO -e FIXME <code-root>` → lines of
 //! `path:line:text`. Each match becomes a suggestion whose spawn drops you in
-//! the file's directory. `rg` not installed / no output → graceful empty.
+//! the file's directory. Honesty contract: an observed run is `Fetched`, and
+//! a failed run is ALSO `Fetched`-empty — rg exits 1 on zero matches, which is
+//! indistinguishable from a real error through this seam, so empty is the
+//! honest common case (this source has no `Unavailable` tier).
 
 use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion, Urgency};
 use crate::suggest::env::{Cmd, SuggestionEnvironment};
-use crate::suggest::source::{SourceConfig, SuggestionSource};
+use crate::suggest::source::{PollOutcome, SourceConfig, SuggestionSource};
 use std::path::Path;
 
 /// Titles longer than this are truncated (the marker line is the title).
@@ -20,7 +23,7 @@ impl SuggestionSource for TodoBacklogSource {
         SourceKind::TodoBacklog
     }
 
-    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> Vec<Suggestion> {
+    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> PollOutcome {
         let root = env.code_root().to_string_lossy().into_owned();
         let cmd = Cmd::new("rg")
             .arg("--no-heading")
@@ -31,9 +34,11 @@ impl SuggestionSource for TodoBacklogSource {
             .arg("FIXME")
             .arg(root);
         let Some(out) = env.run(&cmd) else {
-            return Vec::new();
+            // rg exits 1 on zero matches — indistinguishable from a real error
+            // through this seam — so empty is the honest common case.
+            return PollOutcome::Fetched(Vec::new());
         };
-        parse(&out, env, cfg.max_items)
+        PollOutcome::Fetched(parse(&out, env, cfg.max_items))
     }
 }
 
@@ -99,7 +104,9 @@ mod tests {
     #[test]
     fn surfaces_one_suggestion_per_marker_line() {
         let cfg = SourceConfig::for_kind(SourceKind::TodoBacklog);
-        let out = TodoBacklogSource.poll(&env(), &cfg);
+        let PollOutcome::Fetched(out) = TodoBacklogSource.poll(&env(), &cfg) else {
+            panic!("an observed rg run is Fetched");
+        };
         assert_eq!(out.len(), 2, "malformed line skipped");
         let todo = out
             .iter()
@@ -123,18 +130,21 @@ mod tests {
     fn caps_at_max_items() {
         let mut cfg = SourceConfig::for_kind(SourceKind::TodoBacklog);
         cfg.max_items = 1;
-        let out = TodoBacklogSource.poll(&env(), &cfg);
+        let PollOutcome::Fetched(out) = TodoBacklogSource.poll(&env(), &cfg) else {
+            panic!("an observed rg run is Fetched");
+        };
         assert_eq!(out.len(), 1);
     }
 
     #[test]
-    fn missing_rg_yields_nothing() {
-        // No fixture registered → run() returns None → empty.
+    fn honesty_tiers_are_typed_not_empty() {
+        // No fixture registered → run() returns None. rg exits 1 on zero
+        // matches, indistinguishable from a real error through this seam, so
+        // the honest outcome is Fetched-empty — never Unavailable.
         let cfg = SourceConfig::for_kind(SourceKind::TodoBacklog);
-        assert!(
-            TodoBacklogSource
-                .poll(&MockEnvironment::new(), &cfg)
-                .is_empty()
+        assert_eq!(
+            TodoBacklogSource.poll(&MockEnvironment::new(), &cfg),
+            PollOutcome::Fetched(Vec::new())
         );
     }
 }

@@ -5,13 +5,17 @@
 //!
 //! Live wiring: `kubectl get pods -A -o json` → the standard PodList. A pod
 //! whose phase is `Pending`, or whose first waiting container reports a
-//! back-off reason, becomes a Critical suggestion whose spawn drops you at the
-//! code root with a `kubectl … describe pod` ready to run. No `kubectl` / no
-//! JSON → graceful empty.
+//! back-off reason, becomes a suggestion (ranked on the typed [`Rank`] ladder
+//! by how loud the failure is) whose spawn drops you at the code root with a
+//! `kubectl … describe pod` ready to run. Config params: `context` (optional
+//! kubeconfig context the poll is scoped to). Honesty contract: a failed
+//! `kubectl` run is `Unavailable(Error)` — only an OBSERVED listing is
+//! `Fetched` (garbage JSON parses to empty: the upstream WAS observed), so a
+//! dead kubeconfig never reads as "everything healthy".
 
-use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion, Urgency};
+use crate::suggest::core::{Rank, SourceKind, SpawnSpec, Suggestion};
 use crate::suggest::env::{Cmd, SuggestionEnvironment};
-use crate::suggest::source::{SourceConfig, SuggestionSource};
+use crate::suggest::source::{PollOutcome, SourceConfig, SuggestionSource};
 
 pub struct K8sUnhealthySource;
 
@@ -20,17 +24,21 @@ impl SuggestionSource for K8sUnhealthySource {
         SourceKind::K8sUnhealthy
     }
 
-    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> Vec<Suggestion> {
-        let cmd = Cmd::new("kubectl")
+    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> PollOutcome {
+        let mut cmd = Cmd::new("kubectl")
             .arg("get")
             .arg("pods")
             .arg("-A")
             .arg("-o")
             .arg("json");
+        // Optional `context` param scopes the poll to a named kubeconfig context.
+        if let Some(ctx) = cfg.param("context") {
+            cmd = cmd.arg("--context").arg(ctx);
+        }
         let Some(out) = env.run(&cmd) else {
-            return Vec::new();
+            return PollOutcome::error();
         };
-        parse(&out, env, cfg.max_items.max(1))
+        PollOutcome::Fetched(parse(&out, env, cfg.max_items.max(1)))
     }
 }
 
@@ -61,7 +69,11 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, cap: usize) -> Vec<Suggest
             let phase = pod.status.phase.trim();
             let bad_reason = matches!(
                 reason.as_str(),
-                "CrashLoopBackOff" | "ImagePullBackOff" | "ErrImagePull" | "CreateContainerError"
+                "CrashLoopBackOff"
+                    | "ImagePullBackOff"
+                    | "ErrImagePull"
+                    | "OOMKilled"
+                    | "CreateContainerError"
             );
             if phase != "Pending" && !bad_reason {
                 return None;
@@ -106,11 +118,26 @@ fn parse(json: &str, env: &dyn SuggestionEnvironment, cap: usize) -> Vec<Suggest
             Some(
                 Suggestion::new(SourceKind::K8sUnhealthy, &key, title, spawn)
                     .detail(label)
-                    .urgent(Urgency::Critical),
+                    .ranked(severity_rank(&reason, phase)),
             )
         })
         .take(cap)
         .collect()
+}
+
+/// Map an unhealthy pod onto the typed [`Rank`] ladder: a crash loop is the
+/// loudest thing a cluster can say (top of the Critical tier); image-pull
+/// failures and OOM kills are Critical; a stuck Pending is should-look-soon,
+/// not a fire. Local to this source — the ladder is k8s-reason-specific.
+fn severity_rank(reason: &str, phase: &str) -> Rank {
+    match reason {
+        "CrashLoopBackOff" => Rank::critical_top(),
+        "ImagePullBackOff" | "ErrImagePull" | "OOMKilled" | "CreateContainerError" => {
+            Rank::critical()
+        }
+        _ if phase == "Pending" => Rank::high(),
+        _ => Rank::critical(),
+    }
 }
 
 /// A DNS-1123-safe k8s name: non-empty, ≤253 chars, only `[a-z0-9.-]`. This is
@@ -174,6 +201,7 @@ struct Waiting {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::suggest::core::Urgency;
     use crate::suggest::env::MockEnvironment;
 
     const FIXTURE: &str = r#"{
@@ -185,6 +213,13 @@ mod tests {
                     "containerStatuses": [
                         {"state": {"waiting": {"reason": "CrashLoopBackOff"}}}
                     ]
+                }
+            },
+            {
+                "metadata": {"name": "queued-1", "namespace": "prod"},
+                "status": {
+                    "phase": "Pending",
+                    "containerStatuses": []
                 }
             },
             {
@@ -205,9 +240,11 @@ mod tests {
             .roots("/code", "/home/op")
             .cmd("kubectl get pods -A -o json", FIXTURE);
         let cfg = SourceConfig::for_kind(SourceKind::K8sUnhealthy);
-        let out = K8sUnhealthySource.poll(&env, &cfg);
-        assert_eq!(out.len(), 1, "running pod excluded");
-        let pod = &out[0];
+        let PollOutcome::Fetched(out) = K8sUnhealthySource.poll(&env, &cfg) else {
+            panic!("an observed listing is Fetched");
+        };
+        assert_eq!(out.len(), 2, "running pod excluded");
+        let pod = out.iter().find(|s| s.title.contains("api-7d9f")).unwrap();
         assert!(pod.title.contains("prod/api-7d9f"));
         assert!(pod.title.contains("CrashLoopBackOff"));
         assert_eq!(pod.urgency, Urgency::Critical);
@@ -216,13 +253,61 @@ mod tests {
             pod.spawn.initial_command(),
             Some("kubectl -n prod describe pod api-7d9f")
         );
+        // The typed ladder: a crash loop tops the stream; a stuck Pending is
+        // should-look-soon (High), ranked strictly below.
+        let pending = out.iter().find(|s| s.title.contains("queued-1")).unwrap();
+        assert_eq!(pending.urgency, Urgency::High);
+        assert!(
+            pod.rank_key() > pending.rank_key(),
+            "CrashLoopBackOff must rank above a stuck Pending"
+        );
     }
 
     #[test]
-    fn no_kubectl_yields_nothing() {
-        // No fixture registered → run() returns None → empty.
+    fn severity_ladder_is_typed() {
+        assert_eq!(severity_rank("CrashLoopBackOff", "Running"), Rank::critical_top());
+        assert_eq!(severity_rank("ImagePullBackOff", "Running"), Rank::critical());
+        assert_eq!(severity_rank("ErrImagePull", "Running"), Rank::critical());
+        assert_eq!(severity_rank("OOMKilled", "Running"), Rank::critical());
+        assert_eq!(severity_rank("", "Pending"), Rank::high());
+        // A reason always outranks the bare phase — Pending + crash loop is a
+        // crash loop.
+        assert_eq!(severity_rank("CrashLoopBackOff", "Pending"), Rank::critical_top());
+    }
+
+    #[test]
+    fn honesty_tiers_are_typed_not_empty() {
+        // No required params/secret here — the only unavailability tier is a
+        // failed kubectl run (no fixture → run() returns None → Error, so a
+        // dead kubeconfig keeps last-known rows instead of "all healthy").
         let cfg = SourceConfig::for_kind(SourceKind::K8sUnhealthy);
-        assert!(K8sUnhealthySource.poll(&MockEnvironment::new(), &cfg).is_empty());
+        assert_eq!(
+            K8sUnhealthySource.poll(&MockEnvironment::new(), &cfg),
+            PollOutcome::error()
+        );
+    }
+
+    #[test]
+    fn context_param_scopes_the_kubectl_call() {
+        // With `context` set, the --context args land in the typed argv (and
+        // thus the mock key): only the contexted fixture answers.
+        let mut cfg = SourceConfig::for_kind(SourceKind::K8sUnhealthy);
+        cfg.params.insert("context".into(), "rio".into());
+        let plain = MockEnvironment::new()
+            .roots("/code", "/home/op")
+            .cmd("kubectl get pods -A -o json", FIXTURE);
+        assert_eq!(
+            K8sUnhealthySource.poll(&plain, &cfg),
+            PollOutcome::error(),
+            "the un-contexted fixture must not answer a contexted poll"
+        );
+        let ctx_env = MockEnvironment::new()
+            .roots("/code", "/home/op")
+            .cmd("kubectl get pods -A -o json --context rio", FIXTURE);
+        let PollOutcome::Fetched(out) = K8sUnhealthySource.poll(&ctx_env, &cfg) else {
+            panic!("the contexted listing is Fetched");
+        };
+        assert_eq!(out.len(), 2);
     }
 
     #[test]

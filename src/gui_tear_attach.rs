@@ -736,6 +736,7 @@ where
             default_font_size: default_font_size_for_reset,
             padding,
             session_picker_bridge,
+            suggest_attention: config.suggestions.attention_on_critical,
         },
     );
 

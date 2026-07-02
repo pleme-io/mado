@@ -1,15 +1,19 @@
 //! `opsgenie-alerts` — open Opsgenie alerts surfaced as "go handle this now"
 //! suggestions. HTTP against the Opsgenie REST API, authed with a GenieKey API
-//! key pulled from the secret store. Each open alert becomes a Critical
-//! suggestion that drops you in your code root to start triage.
+//! key pulled from the secret store (`opsgenie/api-key`, overridable via the
+//! `secret` param). Each open alert becomes a suggestion that drops you in
+//! your code root to start triage.
 //!
 //! Live wiring: `GET {base}/v2/alerts?limit=N&query=status:%20open` with an
 //! `Authorization: GenieKey <key>` header → `{data:[{id,message,priority}]}`.
-//! Missing key / unreachable endpoint / bad JSON → graceful empty.
+//! Honesty contract: a missing key is `Unavailable(AuthMissing)` (no request
+//! is fired — never an unauthenticated GET per tick), a failed fetch / bad
+//! JSON `Unavailable(Error)` — only an OBSERVED response is `Fetched` (so an
+//! outage never reads as "no open alerts").
 
 use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion};
 use crate::suggest::env::{HttpReq, SuggestionEnvironment};
-use crate::suggest::source::{SourceConfig, SuggestionSource};
+use crate::suggest::source::{PollOutcome, SourceConfig, SuggestionSource};
 use super::util::PriorityScale;
 
 pub struct OpsgenieAlertsSource;
@@ -19,9 +23,15 @@ impl SuggestionSource for OpsgenieAlertsSource {
         SourceKind::OpsgenieAlerts
     }
 
-    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> Vec<Suggestion> {
+    fn poll(&self, env: &dyn SuggestionEnvironment, cfg: &SourceConfig) -> PollOutcome {
         let max = cfg.max_items.max(1);
-        let token = env.secret("opsgenie/api-key").unwrap_or_default();
+        // Bail BEFORE building the request when the key is absent — the old
+        // unwrap_or_default fired an unauthenticated GET every tick
+        // (guaranteed 401 spam against the live API).
+        let secret_key = cfg.param("secret").unwrap_or("opsgenie/api-key");
+        let Some(token) = env.secret(secret_key) else {
+            return PollOutcome::auth_missing();
+        };
         let base = cfg.param("base_url").unwrap_or("https://api.opsgenie.com");
         let mut url = base.to_string();
         url.push_str("/v2/alerts?limit=");
@@ -34,9 +44,9 @@ impl SuggestionSource for OpsgenieAlertsSource {
             .header("Authorization", auth)
             .header("Accept", "application/json");
         let Some(out) = env.http_get(&req) else {
-            return Vec::new();
+            return PollOutcome::error();
         };
-        parse(&out, env, max)
+        PollOutcome::Fetched(parse(&out, env, max))
     }
 }
 
@@ -113,7 +123,9 @@ mod tests {
                 FIXTURE,
             );
         let cfg = SourceConfig::for_kind(SourceKind::OpsgenieAlerts);
-        let out = OpsgenieAlertsSource.poll(&env, &cfg);
+        let PollOutcome::Fetched(out) = OpsgenieAlertsSource.poll(&env, &cfg) else {
+            panic!("an observed response is Fetched");
+        };
         assert_eq!(out.len(), 2);
         let p1 = out
             .iter()
@@ -130,14 +142,17 @@ mod tests {
     }
 
     #[test]
-    fn missing_key_or_endpoint_yields_nothing() {
-        // No http fixture registered → http_get returns None → empty.
+    fn honesty_tiers_are_typed_not_empty() {
+        // No API key → AuthMissing, and crucially NO request is fired (the old
+        // behavior GET-spammed the live API unauthenticated every tick).
         let cfg = SourceConfig::for_kind(SourceKind::OpsgenieAlerts);
-        assert!(
-            OpsgenieAlertsSource
-                .poll(&MockEnvironment::new(), &cfg)
-                .is_empty()
+        assert_eq!(
+            OpsgenieAlertsSource.poll(&MockEnvironment::new(), &cfg),
+            PollOutcome::auth_missing()
         );
+        // Key present but the fetch fails → Error (keep last rows).
+        let env = MockEnvironment::new().secret_val("opsgenie/api-key", "k3y");
+        assert_eq!(OpsgenieAlertsSource.poll(&env, &cfg), PollOutcome::error());
     }
 
     #[test]

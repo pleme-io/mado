@@ -16,13 +16,14 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-/// A typed external command — program + argv, never a shell string. The one
-/// sanctioned subprocess shape (per the NO SHELL law: a typed wrapper that
-/// constructs `Command` from typed pieces).
+/// A typed external command — program + argv (+ optional per-invocation env
+/// vars), never a shell string. The one sanctioned subprocess shape (per the
+/// NO SHELL law: a typed wrapper that constructs `Command` from typed pieces).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Cmd {
     program: String,
     args: Vec<String>,
+    envs: Vec<(String, String)>,
 }
 
 impl Cmd {
@@ -31,6 +32,7 @@ impl Cmd {
         Self {
             program: program.into(),
             args: Vec::new(),
+            envs: Vec::new(),
         }
     }
 
@@ -52,6 +54,15 @@ impl Cmd {
         self
     }
 
+    /// Set an env var for this invocation only (e.g. `GH_TOKEN` from the
+    /// sops-rendered secret so a Dock-launched mado's `gh` is authed even
+    /// though the GUI process env carries no token). Never logged.
+    #[must_use]
+    pub fn env(mut self, k: impl Into<String>, v: impl Into<String>) -> Self {
+        self.envs.push((k.into(), v.into()));
+        self
+    }
+
     #[must_use]
     pub fn program(&self) -> &str {
         &self.program
@@ -60,8 +71,14 @@ impl Cmd {
     pub fn args_slice(&self) -> &[String] {
         &self.args
     }
+    #[must_use]
+    pub fn envs_slice(&self) -> &[(String, String)] {
+        &self.envs
+    }
 
     /// Stable lookup key (program + space-joined args) for `MockEnvironment`.
+    /// Env vars are deliberately excluded — fixtures key on WHAT runs, and a
+    /// secret must never appear in a test-fixture key.
     #[must_use]
     pub fn key(&self) -> String {
         let mut k = String::new();
@@ -182,6 +199,7 @@ impl SuggestionEnvironment for RealEnvironment {
         use std::process::Stdio;
         let mut child = Command::new(cmd.program())
             .args(cmd.args_slice())
+            .envs(cmd.envs_slice().iter().map(|(k, v)| (k.as_str(), v.as_str())))
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::null())

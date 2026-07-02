@@ -347,12 +347,21 @@ vocabulary — `SecretRef` stays the only consumer surface (composes with cofre)
 
 ## 10. The route (phases — each shippable)
 
-- **M0 — typed core + one live cell.** The `safra` module: the declared schema
-  (`TrackedEnvironment`, `TrackedDataKind`, `CuratedSet<Item>` + `converge → Delta`),
-  the three-scope config resolver, and **one working (kind × env) cell** — rio
-  VictoriaMetrics firing-alerts → curated set → vigy reconciler rebuilds on boot
-  + converges in batch → projected into Ctrl-S. Fully mockable, tested, **off in
-  bare**. Proves the whole spine end-to-end on one cell.
+- **M0 — typed core + one live cell.** ✅ **shipped (2026-07-01).** The `safra`
+  module: the declared schema (`TrackedEnvironment`, `TrackedDataKind`,
+  `CuratedSet<Item>` + `converge → Delta`), the three-scope config resolver,
+  and the live wiring: a `safra:` section in the mado config (environments +
+  kinds + gha filter + tuning scopes, **off by default**), the
+  `SafraSuggestionSource` adapter (`SourceKind::Safra`) that reconciles every
+  configured cell on its OWN resolved cadence inside the suggestion engine's
+  fan-out poll and projects the top curated signals onto Ctrl-S, and TWO
+  concrete `CellSource`s — `VmAlertsSource` (VictoriaMetrics/Prometheus
+  `/api/v1/alerts` firing alerts, the M0 gate cell) + `GhaDeploymentSource`
+  (the deploy-flow lane). **Runtime note (supersedes §5's "vigy agents"
+  phrasing):** M0 rides the existing `SuggestionEngine` watcher plane — zero
+  new runtime; the vigy-hosted per-cell reconcilers are the M-later
+  destination, and §5's boot-rebuild + batch-convergence semantics hold
+  unchanged (the adapter's first poll IS the boot rebuild).
 - **M1 — the tatara-lisp domains** (`deftrackedenv`/`deftrackeddata`/`deferrorsource`)
   + the catalog + the persisted long-term snapshot (instant re-surface on restart).
 - **M2 — the source matrix** — VictoriaMetrics/Prometheus (PromQL), Grafana

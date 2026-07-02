@@ -118,6 +118,9 @@ pub struct InputEngineParams {
     /// the `switch_session` MCP tool. `Some` only on the embedded
     /// switchable path (the same gating as auto-attach).
     pub session_picker_bridge: Option<Box<dyn SessionPickerBridge>>,
+    /// `suggestions.attention_on_critical` — a NEW Critical suggestion
+    /// requests platform attention (dock bounce) even with the board closed.
+    pub suggest_attention: bool,
 }
 
 /// Result of dispatching a keybind [`Action`].
@@ -241,6 +244,24 @@ pub struct InputEngine {
     /// fixed timer — so newly-watched task suggestions appear on the open board
     /// without reopening. `None` when the stream is off (or no bridge).
     suggest_rx: Option<tokio::sync::watch::Receiver<u64>>,
+    /// Wall-clock of the last WHOLE-board refresh (registry reconcile +
+    /// re-list) while the picker sat open — drives the coarse liveness tick
+    /// that keeps the session half of the board and the age/aging labels
+    /// current even when the suggestion store is silent.
+    last_board_tick: Option<Instant>,
+    /// When an AUTONOMOUS re-list last changed the top row while the operator
+    /// was resting — the positional-stability stamp. An Enter landing within
+    /// the grace window of such a shift is swallowed (the row may have moved
+    /// under the cursor between the painted frame and the key event).
+    board_shift_at: Option<Instant>,
+    /// `suggestions.attention_on_critical` (from params).
+    suggest_attention: bool,
+    /// Critical suggestion ids already announced (once-latch per issue).
+    seen_criticals: std::collections::HashSet<crate::suggest::SuggestionId>,
+    /// Whether the initial critical set has been seeded — the first
+    /// observation only populates the latch (a warm restart must not bounce
+    /// the dock for old news).
+    criticals_seeded: bool,
 }
 
 impl InputEngine {
@@ -304,6 +325,11 @@ impl InputEngine {
             scroll,
             last_scroll_tick: None,
             suggest_rx,
+            last_board_tick: None,
+            board_shift_at: None,
+            suggest_attention: params.suggest_attention,
+            seen_criticals: std::collections::HashSet::new(),
+            criticals_seeded: false,
         }
     }
 
@@ -900,12 +926,20 @@ impl InputEngine {
         match self.session_picker_bridge.as_ref() {
             Some(bridge) => {
                 let now = crate::auto_attach::now_unix_seconds();
+                // Freshness nudge: ask every suggestion watcher whose data is
+                // older than its pacing gap to re-poll RIGHT NOW — the board
+                // the operator opens onto is being re-verified at this moment,
+                // not whenever the next interval lands. Paced per-watcher, so
+                // rapid Ctrl-S taps can never hammer an API.
+                crate::suggest::request_board_refresh();
                 // Sync the index to the live session set first, so a
                 // session spawned out-of-band (MCP / tear) shows up the
                 // moment the switcher opens — "always tracking + curating".
                 bridge.refresh(now);
                 let rows = bridge.list("", now);
                 self.session_picker.lock().unwrap().open(rows, false);
+                self.last_board_tick = Some(Instant::now());
+                self.board_shift_at = None;
             }
             None => {
                 self.session_picker.lock().unwrap().open(Vec::new(), true);
@@ -915,8 +949,17 @@ impl InputEngine {
 
     /// Re-rank the session list after a query edit through the praça
     /// bridge. No-op (beyond keeping the typed empty list) when
-    /// switching is disabled.
+    /// switching is disabled. Operator-initiated — clears the
+    /// positional-stability stamp (they are looking at what they typed).
     fn session_picker_recompute(&mut self) {
+        self.board_shift_at = None;
+        self.session_picker_relist();
+    }
+
+    /// Re-list through the bridge without touching the stability stamp —
+    /// the shared body of the operator-initiated recompute and the
+    /// autonomous refresh.
+    fn session_picker_relist(&mut self) {
         let Some(bridge) = self.session_picker_bridge.as_ref() else {
             return;
         };
@@ -926,15 +969,96 @@ impl InputEngine {
         self.session_picker.lock().unwrap().set_results(rows);
     }
 
+    /// AUTONOMOUS whole-board refresh while the picker sits open + resting:
+    /// reconcile the session registry (out-of-band spawns/deaths appear and
+    /// vanish live, not just suggestions), re-list, and stamp the
+    /// positional-stability window if the TOP row's identity changed —
+    /// an Enter within the grace of such a shift is swallowed rather than
+    /// firing at a row the operator never saw.
+    fn session_picker_autorefresh(&mut self) {
+        let Some(bridge) = self.session_picker_bridge.as_ref() else {
+            return;
+        };
+        let now = crate::auto_attach::now_unix_seconds();
+        bridge.refresh(now);
+        let prev_top = {
+            let sp = self.session_picker.lock().unwrap();
+            sp.results.first().map(|r| r.kind.clone())
+        };
+        self.session_picker_relist();
+        let new_top = {
+            let sp = self.session_picker.lock().unwrap();
+            sp.results.first().map(|r| r.kind.clone())
+        };
+        if prev_top != new_top {
+            self.board_shift_at = Some(Instant::now());
+        }
+    }
+
+    /// Ambient attention: on a store change, bounce the dock ONCE per newly-
+    /// arrived Critical suggestion (an incident reaches the operator with the
+    /// board closed). The first observation only seeds the latch — a warm
+    /// restart's re-surfaced rows are old news, never a bounce. Accepted /
+    /// snoozed / dismissed rows never alert (the offerability gate already
+    /// filtered them out of the ranked read).
+    fn notice_new_criticals(&mut self) {
+        if !self.suggest_attention {
+            return;
+        }
+        let store = crate::suggest::store();
+        let now_ms = crate::auto_attach::now_unix_seconds().saturating_mul(1000);
+        let criticals: Vec<crate::suggest::SuggestionId> = store
+            .ranked_stored(64, now_ms)
+            .into_iter()
+            .filter(|st| {
+                st.suggestion.urgency == crate::suggest::Urgency::Critical
+                    && matches!(st.state, crate::suggest::SuggestionState::Offered)
+            })
+            .map(|st| st.suggestion.id)
+            .collect();
+        if !self.criticals_seeded {
+            self.criticals_seeded = true;
+            self.seen_criticals.extend(criticals);
+            return;
+        }
+        let mut fresh = false;
+        for id in criticals {
+            if self.seen_criticals.insert(id) {
+                fresh = true;
+            }
+        }
+        if fresh {
+            crate::platform::request_dock_attention();
+        }
+        // Latch hygiene: ids decay out of the store but accumulate here; keep
+        // the set bounded without ever re-alerting a live id.
+        if self.seen_criticals.len() > 4096 {
+            let live: std::collections::HashSet<_> = store
+                .ranked_stored(usize::MAX, now_ms)
+                .into_iter()
+                .map(|st| st.suggestion.id)
+                .collect();
+            self.seen_criticals.retain(|id| live.contains(id));
+        }
+    }
+
     /// Append typed text to the session-picker needle + re-rank.
     fn session_picker_push(&mut self, text: &str) {
-        self.session_picker.lock().unwrap().query.push_str(text);
+        {
+            let mut sp = self.session_picker.lock().unwrap();
+            sp.query.push_str(text);
+            sp.notice = None;
+        }
         self.session_picker_recompute();
     }
 
     /// Delete the last needle char + re-rank.
     fn session_picker_backspace(&mut self) {
-        self.session_picker.lock().unwrap().query.pop();
+        {
+            let mut sp = self.session_picker.lock().unwrap();
+            sp.query.pop();
+            sp.notice = None;
+        }
         self.session_picker_recompute();
     }
 
@@ -946,6 +1070,23 @@ impl InputEngine {
     /// disabled.
     fn session_picker_accept(&mut self) {
         use crate::session_picker::{CreateSpec, RowKind};
+
+        // Positional stability: if an autonomous re-list swapped the TOP row
+        // within the grace window and the operator is still resting there,
+        // this Enter may be aimed at a row they never saw — swallow it (the
+        // board is now stable; the next Enter fires normally).
+        let resting = {
+            let sp = self.session_picker.lock().unwrap();
+            sp.open && sp.selected == 0
+        };
+        if resting
+            && self
+                .board_shift_at
+                .take()
+                .is_some_and(|t| t.elapsed() < std::time::Duration::from_millis(300))
+        {
+            return;
+        }
 
         let (chosen, query) = {
             let sp = self.session_picker.lock().unwrap();
@@ -970,7 +1111,20 @@ impl InputEngine {
                 }
             };
             if !ok {
-                tracing::warn!("session picker: accept produced no switch (session reaped or spawn failed)");
+                // The target vanished between listing and Enter (resolved
+                // upstream, session reaped, spawn failed). Tell the operator
+                // ON the board and keep it open with a fresh list — a silent
+                // close would read as "it worked".
+                tracing::warn!(
+                    "session picker: accept produced no switch (session reaped or spawn failed)"
+                );
+                self.session_picker_autorefresh();
+                let mut sp = self.session_picker.lock().unwrap();
+                if sp.open {
+                    sp.notice =
+                        Some(String::from("could not start that — it may have just resolved"));
+                }
+                return;
             }
         }
         self.session_picker.lock().unwrap().close();
@@ -1713,26 +1867,40 @@ impl InputEngine {
         // the same tick).
         self.reconcile_search();
         self.reconcile_selection();
-        // Live suggestion-stream refresh (stage 3): while the Ctrl-S picker is
-        // open AND the operator is resting at the top (not mid-navigation),
-        // re-list the moment the shared store broadcasts a change — an
-        // event-driven subscription (`watch::Receiver::has_changed`), never a
-        // fixed timer. A source watcher writing fresh rows wakes the open board
-        // immediately; an idle store costs a single cheap atomic read per frame.
-        // The resting gate means a refresh never yanks the cursor out from under
-        // someone mid-selection (the change is consumed on the next rest).
+        // The living Ctrl-S board (stage 3). Two intertwined signals per tick:
+        //
+        // 1. EVENT-DRIVEN — the store broadcast (`watch::Receiver::has_changed`,
+        //    one cheap atomic read per frame when idle). Consumed picker open
+        //    or closed: closed it feeds the ambient Critical attention latch;
+        //    open + resting it re-lists the board immediately.
+        // 2. COARSE WHOLE-BOARD TICK (~3s, open + resting only) — reconciles
+        //    the session registry (out-of-band spawns/deaths appear live, not
+        //    just suggestions) and advances the age/aging labels even when the
+        //    store is silent. Wall-clock drift is part of the living board.
+        //
+        // The resting gate means a refresh never yanks the cursor out from
+        // under someone mid-navigation (changes are consumed on the next rest);
+        // the positional-stability stamp inside autorefresh guards the
+        // Enter-vs-shift race at the top row.
         if self.session_picker_bridge.is_some() {
+            let changed = self
+                .suggest_rx
+                .as_mut()
+                .is_some_and(|rx| rx.has_changed().unwrap_or(false));
+            if changed {
+                if let Some(rx) = self.suggest_rx.as_mut() {
+                    rx.mark_unchanged();
+                }
+                self.notice_new_criticals();
+            }
             let resting = self.session_picker.lock().unwrap().is_resting();
             if resting {
-                let changed = self
-                    .suggest_rx
-                    .as_mut()
-                    .is_some_and(|rx| rx.has_changed().unwrap_or(false));
-                if changed {
-                    if let Some(rx) = self.suggest_rx.as_mut() {
-                        rx.mark_unchanged();
-                    }
-                    self.session_picker_recompute();
+                let coarse_due = self
+                    .last_board_tick
+                    .is_none_or(|t| t.elapsed() >= std::time::Duration::from_secs(3));
+                if changed || coarse_due {
+                    self.last_board_tick = Some(Instant::now());
+                    self.session_picker_autorefresh();
                 }
             }
         }
@@ -2192,6 +2360,9 @@ mod tests {
                     default_font_size: 14.0,
                     padding: 0.0,
                     session_picker_bridge: bridge,
+                    // Attention OFF in the harness: tests must never bounce
+                    // the real dock (platform call) from the tick path.
+                    suggest_attention: false,
                 },
             );
             Self {
@@ -2264,6 +2435,9 @@ mod tests {
         }
 
         /// One per-frame redraw tick — advances the scroll kinetics.
+        /// (Momentum tests drive `tick_dt` for determinism; kept for
+        /// wall-clock-shaped tests.)
+        #[allow(dead_code)]
         fn tick(&mut self) {
             self.engine.on_redraw_tick(&self.renderer);
         }
@@ -3103,6 +3277,7 @@ mod tests {
                 .map(|(id, label)| SessionPickerRow {
                     label: label.to_owned(),
                     kind: RowKind::Switch(id),
+                    urgency: None,
                 })
                 .collect();
             (
@@ -3295,6 +3470,7 @@ mod tests {
         rows.lock().unwrap().push(SessionPickerRow {
             label: "\u{25cb} new task".into(),
             kind: RowKind::Switch(sid("task")),
+            urgency: None,
         });
         tx.send(1).unwrap();
 
