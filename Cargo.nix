@@ -3240,6 +3240,41 @@ rec {
         ];
 
       };
+      "egaku" = rec {
+        crateName = "egaku";
+        version = "0.1.3";
+        edition = "2024";
+        workspace_member = null;
+        src = pkgs.fetchgit {
+          url = "https://github.com/pleme-io/egaku";
+          rev = "81d168190061c452d115f58f186429b84f489be8";
+          sha256 = "11vb9da48bjj34w3kd2sqsh5qp43b9gbkmf8p41n7qw3qfdykm5h";
+        };
+        dependencies = [
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+          {
+            name = "thiserror";
+            packageId = "thiserror 2.0.18";
+          }
+          {
+            name = "tracing";
+            packageId = "tracing";
+          }
+          {
+            name = "unicode-segmentation";
+            packageId = "unicode-segmentation";
+          }
+          {
+            name = "unicode-width";
+            packageId = "unicode-width";
+          }
+        ];
+
+      };
       "either" = rec {
         crateName = "either";
         version = "1.16.0";
@@ -4825,76 +4860,6 @@ rec {
           "sys_rng" = [ "dep:rand_core" ];
           "wasm_js" = [ "dep:wasm-bindgen" "dep:js-sys" ];
         };
-      };
-      "git+https://github.com/pleme-io/egaku#0.1.3" = rec {
-        crateName = "egaku";
-        version = "0.1.3";
-        edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/egaku";
-          rev = "507b0e7be84568bbb5567b2d61f5ce9ab6501882";
-          sha256 = "17kfysaqybdlz9zvid4qbvnplri8b403l9xix4rhj2pymvbylrnv";
-        };
-        dependencies = [
-          {
-            name = "serde";
-            packageId = "serde";
-            features = [ "derive" ];
-          }
-          {
-            name = "thiserror";
-            packageId = "thiserror 2.0.18";
-          }
-          {
-            name = "tracing";
-            packageId = "tracing";
-          }
-          {
-            name = "unicode-segmentation";
-            packageId = "unicode-segmentation";
-          }
-          {
-            name = "unicode-width";
-            packageId = "unicode-width";
-          }
-        ];
-
-      };
-      "git+https://github.com/pleme-io/egaku?rev=81d168190061c452d115f58f186429b84f489be8#0.1.3" = rec {
-        crateName = "egaku";
-        version = "0.1.3";
-        edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/egaku";
-          rev = "81d168190061c452d115f58f186429b84f489be8";
-          sha256 = "11vb9da48bjj34w3kd2sqsh5qp43b9gbkmf8p41n7qw3qfdykm5h";
-        };
-        dependencies = [
-          {
-            name = "serde";
-            packageId = "serde";
-            features = [ "derive" ];
-          }
-          {
-            name = "thiserror";
-            packageId = "thiserror 2.0.18";
-          }
-          {
-            name = "tracing";
-            packageId = "tracing";
-          }
-          {
-            name = "unicode-segmentation";
-            packageId = "unicode-segmentation";
-          }
-          {
-            name = "unicode-width";
-            packageId = "unicode-width";
-          }
-        ];
-
       };
       "git+https://github.com/pleme-io/shikumi#0.1.110" = rec {
         crateName = "shikumi";
@@ -6507,8 +6472,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/irodzuki";
-          rev = "28a0f5ed6d038d3bf1ec43eb9ae0b482ad85e506";
-          sha256 = "1p53n82nbrmv0yvvw7nn75i0rkfaikvsniqaixk5lrbmw4dlrcql";
+          rev = "d3bfe781e9c813164a37a0e0a1eeef16f5be9515";
+          sha256 = "1f7l4fblhikkk13k7hbl63lmh99223cz609mnqj564szbzf3a87f";
         };
         dependencies = [
           {
@@ -6518,7 +6483,7 @@ rec {
           }
           {
             name = "egaku";
-            packageId = "git+https://github.com/pleme-io/egaku#0.1.3";
+            packageId = "egaku";
           }
           {
             name = "serde";
@@ -7489,7 +7454,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.53";
+        version = "0.1.54";
         edition = "2024";
         crateBin = [
           {
@@ -7803,12 +7768,12 @@ rec {
         };
         dependencies = [
           {
-            name = "garasu";
-            packageId = "garasu";
+            name = "egaku";
+            packageId = "egaku";
           }
           {
-            name = "egaku";
-            packageId = "git+https://github.com/pleme-io/egaku?rev=81d168190061c452d115f58f186429b84f489be8#0.1.3";
+            name = "garasu";
+            packageId = "garasu";
           }
           {
             name = "shikumi";
