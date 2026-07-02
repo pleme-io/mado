@@ -42,6 +42,7 @@
 
 pub mod core;
 pub mod env;
+pub mod pace;
 pub mod source;
 pub mod sources;
 pub mod store;

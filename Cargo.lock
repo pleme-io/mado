@@ -2483,6 +2483,7 @@ dependencies = [
  "praca",
  "proptest",
  "rmcp",
+ "samba",
  "schemars 0.8.22",
  "serde",
  "serde_json",
@@ -4314,6 +4315,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "629516c85c29fe757770fa03f2074cf1eac43d44c02a3de9fc2ef7b0e207dfdd"
 dependencies = [
  "bytemuck",
+]
+
+[[package]]
+name = "samba"
+version = "0.1.3"
+source = "git+https://github.com/pleme-io/samba?rev=87cbeacb2e58dafa556aaf11db82512ede9df6de#87cbeacb2e58dafa556aaf11db82512ede9df6de"
+dependencies = [
+ "rand 0.9.4",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]

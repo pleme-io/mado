@@ -169,10 +169,14 @@ pub trait SuggestionEnvironment: Send + Sync {
 }
 
 /// The production environment: real subprocesses, `curl` HTTP, filesystem,
-/// sops-rendered secrets under `~/.config/<category>/<name>`.
+/// sops-rendered secrets under `~/.config/<category>/<name>`. All upstream
+/// calls are paced per host through one shared [`super::pace::HostPacer`]
+/// (ONE `RealEnvironment` is shared as an `Arc` across every watcher, so
+/// the buckets genuinely serialize the fan-out).
 pub struct RealEnvironment {
     code_root: PathBuf,
     home: PathBuf,
+    pacer: super::pace::HostPacer,
 }
 
 impl RealEnvironment {
@@ -184,7 +188,11 @@ impl RealEnvironment {
         let code_root = std::env::var_os("PLEME_CODE_ROOT")
             .map(PathBuf::from)
             .unwrap_or_else(|| home.join("code"));
-        Self { code_root, home }
+        Self {
+            code_root,
+            home,
+            pacer: super::pace::HostPacer::gentle(),
+        }
     }
 }
 
@@ -197,6 +205,15 @@ impl SuggestionEnvironment for RealEnvironment {
     fn run(&self, cmd: &Cmd) -> Option<String> {
         use std::io::Read;
         use std::process::Stdio;
+        // Every `gh` invocation hits the GitHub API even though no URL is
+        // visible here — bill it against the synthetic GH_HOST bucket so
+        // the CLI sources and the raw-HTTP sources share one budget.
+        if cmd.program() == "gh"
+            && self.pacer.admit(super::pace::GH_HOST) == super::pace::Admit::CoolingDown
+        {
+            tracing::debug!("skipping gh call — GitHub API cooling down");
+            return None;
+        }
         let mut child = Command::new(cmd.program())
             .args(cmd.args_slice())
             .envs(cmd.envs_slice().iter().map(|(k, v)| (k.as_str(), v.as_str())))
@@ -242,11 +259,26 @@ impl SuggestionEnvironment for RealEnvironment {
     }
 
     fn http_get(&self, req: &HttpReq) -> Option<String> {
-        // curl as a typed argv: `-sf` = silent + fail-on-error (non-2xx →
-        // exit≠0 → None), bounded by a max-time so a wedged endpoint can't
-        // stall the watcher. No shell — argv only.
+        // Per-host pacing BEFORE the request; a host inside its 429
+        // cooldown short-circuits to None, which the PollOutcome border
+        // reports as Unavailable(Error) — last-known rows stay up.
+        let host = super::pace::host_of(req.url()).map(str::to_owned);
+        if let Some(h) = host.as_deref() {
+            if self.pacer.admit(h) == super::pace::Admit::CoolingDown {
+                tracing::debug!(host = h, "skipping http_get — host cooling down");
+                return None;
+            }
+        }
+        // curl as a typed argv: `-s` plus an explicit status trailer
+        // (`-w "\n%{http_code}"` — the status is the guaranteed last
+        // line) instead of `-f`, so 429/403 are VISIBLE and classified
+        // rather than folded into a generic exit≠0. Network failures
+        // still exit≠0 → run() → None. Bounded by max-time so a wedged
+        // endpoint can't stall the watcher. No shell — argv only.
         let mut c = Cmd::new("curl")
-            .arg("-sf")
+            .arg("-s")
+            .arg("-w")
+            .arg("\n%{http_code}")
             .arg("--max-time")
             .arg("10");
         if let Some((user, pass)) = req.basic() {
@@ -264,7 +296,28 @@ impl SuggestionEnvironment for RealEnvironment {
             c = c.arg("-H").arg(h);
         }
         c = c.arg(req.url());
-        self.run(&c)
+        let raw = self.run(&c)?;
+        let (body, status_line) = raw.rsplit_once('\n')?;
+        let status: u16 = status_line.trim().parse().ok()?;
+        match status {
+            200..=299 => Some(body.to_owned()),
+            429 => {
+                if let Some(h) = host.as_deref() {
+                    self.pacer.report_rate_limited(h, status);
+                }
+                None
+            }
+            // GitHub answers secondary rate limits with 403; on any other
+            // host a 403 is authz (health reports it, no cooldown).
+            403 if host.as_deref() == Some(super::pace::GH_HOST) => {
+                self.pacer.report_rate_limited(super::pace::GH_HOST, status);
+                None
+            }
+            _ => {
+                tracing::debug!(status, url = req.url(), "http_get non-success status");
+                None
+            }
+        }
     }
 
     fn read_file(&self, path: &Path) -> Option<String> {

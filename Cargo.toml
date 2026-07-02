@@ -157,6 +157,12 @@ kaname = { git = "https://github.com/pleme-io/kaname" , version = "0.1" }
 # kanchi::probe. Git source (published at pleme-io/kanchi); pin a version when
 # kanchi reaches crates.io.
 kanchi = { git = "https://github.com/pleme-io/kanchi" , version = "0.1" }
+# samba light core (default-features = false: LeakyBucket + PressureLevel
+# only — no NATS/hyper/prometheus). Third light-core consumer after magma's
+# apply engine and tend: the suggestion watchers pace every upstream host
+# through one gentle in-process bucket (suggest/pace.rs). Rev-pinned per
+# the per-upstream-repo hermetic pinning discipline (the E0463 lesson).
+samba = { git = "https://github.com/pleme-io/samba", rev = "87cbeacb2e58dafa556aaf11db82512ede9df6de", default-features = false }
 # ishou-tokens — the typed colour-space + design-token primitive owns
 # Nord for the fleet. The `wgpu` feature exposes
 # `impl From<LinearRgba> for wgpu_types::Color` so the gamma path is
