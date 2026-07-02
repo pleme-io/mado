@@ -423,11 +423,20 @@ impl ConfigHotReload {
     }
 
     /// Frame-start poll: cheap atomic check; on a flagged reload,
-    /// delta-apply the freshest store config against the target.
+    /// delta-apply the freshest store config against the target AND hand
+    /// the `suggestions` + `safra` sections to the engine control plane.
+    /// One mutation ingress (the watched file), one reactor (this poll) —
+    /// operator edits and agent edits behave identically. The engine side
+    /// is idempotent at the receiver (unchanged sections are dropped
+    /// there), so renderer-only edits and the two render adapters firing
+    /// for the same reload are both free.
     pub fn poll_config_reload<T: ConfigSetters>(&mut self, target: &mut T) {
         if let Some(new) = self.source.take_if_dirty() {
             let applied = self.applier.apply_delta(&new, target);
             tracing::info!(setter_calls = applied, "config reload delta applied");
+            if let Some(ctl) = crate::suggest::engine_control() {
+                ctl.swap(new.suggestions.clone(), new.safra.clone());
+            }
         }
     }
 }

@@ -98,6 +98,53 @@ pub fn request_board_refresh() {
     board_nudge().notify_waiters();
 }
 
+// ── Engine hot-reload control plane ─────────────────────────────────────
+
+/// Command ingress for the engine maintenance loop. Boxed pair keeps the
+/// channel payload one pointer wide.
+enum EngineCommand {
+    /// Tear down the running engine (if any) and rebuild it from the new
+    /// `suggestions` + `safra` config sections. `enabled = false` parks the
+    /// loop with no engine; `enabled = true` (re)builds — enable, disable,
+    /// and reconfigure are ONE uniform path.
+    Swap(Box<(crate::config::SuggestionsConfig, crate::safra::SafraConfig)>),
+}
+
+/// Handle for requesting an engine rebuild from the GUI render thread.
+/// `UnboundedSender::send` is sync-callable — no runtime handle needed at
+/// the call site.
+pub struct EngineControl {
+    tx: tokio::sync::mpsc::UnboundedSender<EngineCommand>,
+}
+
+impl EngineControl {
+    /// Request a rebuild against the given config sections. Idempotent at
+    /// the receiver (a swap equal to the running config is dropped), so
+    /// double-fire from the two render adapters is harmless.
+    pub fn swap(
+        &self,
+        suggestions: crate::config::SuggestionsConfig,
+        safra: crate::safra::SafraConfig,
+    ) {
+        let _ = self
+            .tx
+            .send(EngineCommand::Swap(Box::new((suggestions, safra))));
+    }
+}
+
+/// Registered once by `spawn_engine_thread`; holding the sender in a static
+/// keeps the control channel open for the process lifetime (recv can never
+/// yield `None` while the static lives).
+static ENGINE_CONTROL: OnceLock<EngineControl> = OnceLock::new();
+
+/// The engine control handle — `None` only before `spawn_engine_thread`
+/// ran (the thread now spawns unconditionally, so after boot this is
+/// always `Some` and a boot-disabled engine can still be hot-enabled).
+#[must_use]
+pub fn engine_control() -> Option<&'static EngineControl> {
+    ENGINE_CONTROL.get()
+}
+
 // ── The agent-facing board surface (shared by two ingresses) ────────────
 //
 // `mado mcp` is a SEPARATE process from the GUI, so its process-global
@@ -300,47 +347,103 @@ pub fn engine_config_from(cfg: &crate::config::SuggestionsConfig) -> EngineConfi
     ec
 }
 
-/// Spawn the parallel watcher engine on its own multi-thread tokio runtime
-/// thread — mirrors the vigy runtime (the GUI thread is not async). Gated by
-/// `suggestions.enabled`; best-effort (a runtime build failure logs + leaves
-/// the store empty, so the picker simply shows no suggestions). The safra
-/// config builds the curated-observability adapter (cells + endpoints) that
-/// replaces the registry's unconfigured placeholder when enabled.
+/// Config-derived maintenance knobs — rebuilt on every hot swap so TTLs,
+/// persistence cadence, and entry caps track the LIVE config, not the boot
+/// config.
+struct LoopKnobs {
+    /// Per-source TTL: a source's items live for max(3× its poll interval,
+    /// the global floor) — so a slow (e.g. hourly) source never flickers
+    /// under a fast global TTL.
+    ttl_map: std::collections::BTreeMap<SourceKind, u64>,
+    global_ttl_ms: u64,
+    /// WRITING is additionally re-decided every maintenance tick via the
+    /// single-writer election; this knob is the config half of that AND.
+    persist: bool,
+    max_entries: usize,
+    /// 0 = "persist on every change" → a 1s minimum tick (tokio rejects a
+    /// 0 interval); otherwise coalesce writes to this cadence.
+    debounce: std::time::Duration,
+}
+
+impl LoopKnobs {
+    fn from_config(
+        cfg: &crate::config::SuggestionsConfig,
+        engine_cfg: &EngineConfig,
+    ) -> Self {
+        let global_ttl_ms = cfg.ttl_secs.saturating_mul(1000);
+        let mut ttl_map: std::collections::BTreeMap<SourceKind, u64> =
+            std::collections::BTreeMap::new();
+        for &kind in SourceKind::ALL {
+            let interval_ttl = engine_cfg
+                .config_for(kind)
+                .interval
+                .as_secs()
+                .saturating_mul(3)
+                .saturating_mul(1000);
+            ttl_map.insert(kind, interval_ttl.max(global_ttl_ms));
+        }
+        Self {
+            ttl_map,
+            global_ttl_ms,
+            persist: cfg.persist,
+            max_entries: cfg.max_entries,
+            debounce: std::time::Duration::from_secs(cfg.persist_debounce_secs.max(1)),
+        }
+    }
+}
+
+/// Build a RUNNING engine from the live config sections: merged source
+/// registry (with the safra adapter swapped in when its section declares
+/// cells) + watcher start. The one boot/hot-swap construction path.
+fn build_engine(
+    sugg: &crate::config::SuggestionsConfig,
+    safra: &crate::safra::SafraConfig,
+    env: &Arc<dyn SuggestionEnvironment>,
+    store: &Arc<SuggestionStore>,
+) -> (SuggestionEngine, LoopKnobs) {
+    let engine_cfg = engine_config_from(sugg);
+    let knobs = LoopKnobs::from_config(sugg, &engine_cfg);
+    // The safra plane: swap the registry's unconfigured placeholder for the
+    // config-built adapter when the operator's safra: section declares cells.
+    let mut sources_vec = sources::registry();
+    if safra.enabled {
+        let adapter = crate::safra::SafraSuggestionSource::from_config(safra);
+        tracing::info!(cells = adapter.cell_count(), "safra plane live");
+        sources_vec.retain(|s| s.kind() != SourceKind::Safra);
+        sources_vec.push(Arc::new(adapter));
+    }
+    let engine = SuggestionEngine::start(
+        sources_vec,
+        Arc::clone(env),
+        Arc::clone(store),
+        engine_cfg,
+    );
+    tracing::info!(
+        watchers = engine.active_watchers(),
+        persist = knobs.persist,
+        "mado suggestion engine live"
+    );
+    (engine, knobs)
+}
+
+/// Spawn the suggestion control plane on its own multi-thread tokio runtime
+/// thread — mirrors the vigy runtime (the GUI thread is not async). Spawns
+/// UNCONDITIONALLY: the `suggestions.enabled` gate lives INSIDE the thread
+/// (a boot-disabled engine is a parked loop holding the control channel, so
+/// a later config edit can hot-enable it — enable/disable/reconfigure are
+/// one uniform [`EngineCommand::Swap`] path via [`engine_control`]).
+/// Best-effort (a runtime build failure logs + leaves the store empty, so
+/// the picker simply shows no suggestions). Parking the disabled loop also
+/// keeps `praca_store::maintenance_tick` alive, so praça preset persistence
+/// no longer depends on suggestions being enabled.
 pub fn spawn_engine_thread(
     cfg: &crate::config::SuggestionsConfig,
     safra: &crate::safra::SafraConfig,
 ) {
-    if !cfg.enabled {
-        tracing::debug!("suggestion stream disabled (suggestions.enabled = false)");
-        return;
-    }
+    let sugg_cfg = cfg.clone();
     let safra_cfg = safra.clone();
-    let engine_cfg = engine_config_from(cfg);
-    let global_ttl_ms = cfg.ttl_secs.saturating_mul(1000);
-    // Per-source TTL: a source's items live for max(3× its poll interval, the
-    // global floor) — so a slow (e.g. hourly) source never flickers under a fast
-    // global TTL. Built here, before `engine_cfg` moves into `start`.
-    let mut ttl_map: std::collections::BTreeMap<SourceKind, u64> = std::collections::BTreeMap::new();
-    for &kind in SourceKind::ALL {
-        let interval_ttl = engine_cfg
-            .config_for(kind)
-            .interval
-            .as_secs()
-            .saturating_mul(3)
-            .saturating_mul(1000);
-        ttl_map.insert(kind, interval_ttl.max(global_ttl_ms));
-    }
-    // Persistence is split across TWO decisions: LOADING at boot follows
-    // `cfg.persist` alone (every instance warm-restarts — an election loser
-    // must still see the last-known board and its sticky dismissals), while
-    // WRITING is re-decided every maintenance tick via the single-writer
-    // election (only one process may write the shared snapshots, and a
-    // survivor picks the role up when the previous writer exits).
-    let persist_cfg = cfg.persist;
-    let max_entries = cfg.max_entries;
-    // 0 = "persist on every change" → a 1s minimum tick (tokio rejects a 0
-    // interval); otherwise coalesce writes to this cadence.
-    let debounce = std::time::Duration::from_secs(cfg.persist_debounce_secs.max(1));
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+    let _ = ENGINE_CONTROL.set(EngineControl { tx });
     let res = std::thread::Builder::new()
         .name("mado-suggest".into())
         .spawn(move || {
@@ -354,76 +457,118 @@ pub fn spawn_engine_thread(
                     let env: Arc<dyn SuggestionEnvironment> = Arc::new(RealEnvironment::discover());
                     let store = store();
                     let path = state_path();
+                    let mut current = (sugg_cfg, safra_cfg);
+                    // Config-gated (INSIDE the thread): enabled ⇒ live
+                    // engine; disabled ⇒ parked loop holding the control
+                    // channel so a hot-enable is one Swap away.
+                    let (mut engine, mut knobs) = if current.0.enabled {
+                        let (e, k) = build_engine(&current.0, &current.1, &env, &store);
+                        (Some(e), k)
+                    } else {
+                        tracing::debug!(
+                            "suggestion stream disabled (suggestions.enabled = false) — control plane parked"
+                        );
+                        (None, LoopKnobs::from_config(&current.0, &engine_config_from(&current.0)))
+                    };
                     // Warm restart: re-surface the last-known tasks INSTANTLY
                     // (ages rebased to the snapshot's save time), then age out
                     // anything already stale AT SAVE, before the watchers
                     // re-poll. The picker is populated on the first frame.
                     // Deliberately NOT election-gated: a loser instance loads
                     // too, so a second window boots with the live board and
-                    // the persisted dismissal stickiness intact.
-                    if persist_cfg {
+                    // the persisted dismissal stickiness intact. Loads even
+                    // when boot-disabled (cheap; a later hot-enable then
+                    // starts from the last-known board, not a blank one).
+                    if knobs.persist {
                         let now_ms = env.now_unix().saturating_mul(1000);
                         store.load_file(&path, now_ms);
                         store.decay_per_source(now_ms, |k| {
-                            ttl_map.get(&k).copied().unwrap_or(global_ttl_ms)
+                            knobs.ttl_map.get(&k).copied().unwrap_or(knobs.global_ttl_ms)
                         });
-                        store.gc(max_entries, now_ms);
+                        store.gc(knobs.max_entries, now_ms);
                     }
-                    // The safra plane: swap the registry's unconfigured
-                    // placeholder for the config-built adapter when the
-                    // operator's safra: section declares cells.
-                    let mut sources_vec = sources::registry();
-                    if safra_cfg.enabled {
-                        let adapter =
-                            crate::safra::SafraSuggestionSource::from_config(&safra_cfg);
-                        tracing::info!(cells = adapter.cell_count(), "safra plane live");
-                        sources_vec.retain(|s| s.kind() != SourceKind::Safra);
-                        sources_vec.push(Arc::new(adapter));
-                    }
-                    let engine = SuggestionEngine::start(
-                        sources_vec,
-                        Arc::clone(&env),
-                        Arc::clone(&store),
-                        engine_cfg,
-                    );
-                    tracing::info!(
-                        watchers = engine.active_watchers(),
-                        persist = persist_cfg,
-                        "mado suggestion engine live"
-                    );
                     // Maintenance loop — the SINGLE owner of decay + debounced
-                    // persist, off the watcher hot path. The 27 watchers only
+                    // persist, off the watcher hot path. The watchers only
                     // ever touch RAM; this coalesces a startup burst of first
                     // ticks into ONE disk write, and only when the change-
                     // generation actually advanced. Keeps the runtime + engine
-                    // alive for the process lifetime.
+                    // alive for the process lifetime. The select's second arm
+                    // is the hot-reload ingress: a Swap tears down the running
+                    // engine (stop() aborts every watcher task) and rebuilds
+                    // from the NEW config sections — same path for enable,
+                    // disable, and reconfigure.
                     let mut last_gen = store.generation();
-                    let mut tick = tokio::time::interval(debounce);
+                    let mut tick = tokio::time::interval(knobs.debounce);
                     loop {
-                        tick.tick().await;
-                        let now_ms = env.now_unix().saturating_mul(1000);
-                        store.decay_per_source(now_ms, |k| {
-                            ttl_map.get(&k).copied().unwrap_or(global_ttl_ms)
-                        });
-                        store.gc(max_entries, now_ms);
-                        let current_gen = store.generation();
-                        // The writer election is RE-CHECKED every tick (a
-                        // cheap non-blocking flock attempt when not already
-                        // held), so a surviving instance picks up the writer
-                        // role when the previous winner exits — persistence
-                        // never silently dies with the first process.
-                        if persist_cfg
-                            && current_gen != last_gen
-                            && crate::single_writer::is_writer()
-                        {
-                            store.persist_file(&path, now_ms);
-                            last_gen = current_gen;
+                        tokio::select! {
+                            _ = tick.tick() => {
+                                let now_ms = env.now_unix().saturating_mul(1000);
+                                store.decay_per_source(now_ms, |k| {
+                                    knobs.ttl_map.get(&k).copied().unwrap_or(knobs.global_ttl_ms)
+                                });
+                                store.gc(knobs.max_entries, now_ms);
+                                let current_gen = store.generation();
+                                // The writer election is RE-CHECKED every tick (a
+                                // cheap non-blocking flock attempt when not already
+                                // held), so a surviving instance picks up the writer
+                                // role when the previous winner exits — persistence
+                                // never silently dies with the first process.
+                                if knobs.persist
+                                    && current_gen != last_gen
+                                    && crate::single_writer::is_writer()
+                                {
+                                    store.persist_file(&path, now_ms);
+                                    last_gen = current_gen;
+                                }
+                                // Praça persistence rides the same maintenance tick
+                                // (internally change-gated + writer-election-gated) —
+                                // saved presets survive restarts with zero extra
+                                // threads and zero GUI-hot-path writes.
+                                crate::praca_store::maintenance_tick();
+                            }
+                            cmd = rx.recv() => match cmd {
+                                Some(EngineCommand::Swap(pair)) => {
+                                    // Idempotence gate: both config sections
+                                    // derive PartialEq, so double-fire from
+                                    // the two render adapters (and any
+                                    // renderer-only config edit) is free.
+                                    if *pair == current {
+                                        continue;
+                                    }
+                                    if let Some(e) = engine.take() {
+                                        e.stop();
+                                    }
+                                    current = *pair;
+                                    if current.0.enabled {
+                                        let (e, k) =
+                                            build_engine(&current.0, &current.1, &env, &store);
+                                        engine = Some(e);
+                                        knobs = k;
+                                    } else {
+                                        knobs = LoopKnobs::from_config(
+                                            &current.0,
+                                            &engine_config_from(&current.0),
+                                        );
+                                    }
+                                    tick = tokio::time::interval(knobs.debounce);
+                                    tracing::info!(
+                                        enabled = current.0.enabled,
+                                        "suggestion engine hot-swapped from config edit"
+                                    );
+                                }
+                                // Unreachable while ENGINE_CONTROL holds a
+                                // sender for the process lifetime; park
+                                // defensively rather than busy-spin on a
+                                // closed channel.
+                                None => {
+                                    tracing::warn!(
+                                        "engine control channel closed — hot-reload disabled"
+                                    );
+                                    tokio::time::sleep(std::time::Duration::from_secs(3600))
+                                        .await;
+                                }
+                            }
                         }
-                        // Praça persistence rides the same maintenance tick
-                        // (internally change-gated + writer-election-gated) —
-                        // saved presets survive restarts with zero extra
-                        // threads and zero GUI-hot-path writes.
-                        crate::praca_store::maintenance_tick();
                     }
                 }),
                 Err(e) => {
