@@ -981,16 +981,20 @@ impl InputEngine {
         };
         let now = crate::auto_attach::now_unix_seconds();
         bridge.refresh(now);
-        let prev_top = {
-            let sp = self.session_picker.lock().unwrap();
-            sp.results.first().map(|r| r.kind.clone())
-        };
-        self.session_picker_relist();
-        let new_top = {
-            let sp = self.session_picker.lock().unwrap();
-            sp.results.first().map(|r| r.kind.clone())
-        };
-        if prev_top != new_top {
+        let query = self.session_picker.lock().unwrap().query.clone();
+        let rows = bridge.list(&query, now);
+        let mut sp = self.session_picker.lock().unwrap();
+        let prev_top = sp.results.first().map(|r| r.kind.clone());
+        // Keep the cursor on its row by identity so the board can KEEP FLOWING
+        // while the operator navigates the filtered set (drive across problems
+        // live) — never yanking the highlight to the top on every re-list.
+        let vanished = sp.set_results_preserving(rows, |r| r.kind.clone());
+        let new_top = sp.results.first().map(|r| r.kind.clone());
+        drop(sp);
+        // Stamp the positional-stability window when the operator's highlighted
+        // row vanished (cursor clamped to a row they did not choose) or the top
+        // row's identity changed — so a same-instant Enter is swallowed.
+        if vanished || prev_top != new_top {
             self.board_shift_at = Some(Instant::now());
         }
     }
@@ -1049,6 +1053,11 @@ impl InputEngine {
             sp.query.push_str(text);
             sp.notice = None;
         }
+        // Refining is a freshness signal: nudge every watcher whose data is
+        // past its pacing gap to re-poll now, so the set the operator is
+        // driving across stays live as they type — not a stale pool filtered
+        // in place. Paced per-watcher, so per-keystroke calls can't hammer.
+        crate::suggest::request_board_refresh();
         self.session_picker_recompute();
     }
 
@@ -1059,6 +1068,7 @@ impl InputEngine {
             sp.query.pop();
             sp.notice = None;
         }
+        crate::suggest::request_board_refresh();
         self.session_picker_recompute();
     }
 
@@ -1118,7 +1128,21 @@ impl InputEngine {
                 tracing::warn!(
                     "session picker: accept produced no switch (session reaped or spawn failed)"
                 );
-                self.session_picker_autorefresh();
+                // Reset-to-top re-list here (NOT the identity-preserving
+                // autonomous refresh): a failed accept deliberately teleports
+                // the cursor to row 0 and stamps the stability window below, so
+                // a rapid second Enter can't fire at a row the operator never
+                // aimed at. The live flow's cursor-preservation is for the
+                // autonomous tick, not this operator-initiated failure path.
+                self.session_picker_relist();
+                // The re-list teleported the highlight back to row 0. If the
+                // operator was mid-list, a rapid second Enter would fire at
+                // the top row they never aimed at — stamp the stability
+                // window so that Enter is swallowed (autorefresh only stamps
+                // when the TOP row's identity changed, not a cursor move).
+                if !resting {
+                    self.board_shift_at = Some(Instant::now());
+                }
                 let mut sp = self.session_picker.lock().unwrap();
                 if sp.open {
                     sp.notice =
@@ -1893,8 +1917,14 @@ impl InputEngine {
                 }
                 self.notice_new_criticals();
             }
-            let resting = self.session_picker.lock().unwrap().is_resting();
-            if resting {
+            // Keep the board FLOWING whenever it is open — even while the
+            // operator navigates or searches. `session_picker_autorefresh`
+            // preserves the highlighted row by identity, so the live re-list
+            // no longer yanks the cursor (the old `resting`/selected==0 gate
+            // is gone); it just keeps the set the operator is driving across
+            // fresh. The positional-stability stamp still guards the Enter race.
+            let open = self.session_picker.lock().unwrap().open;
+            if open {
                 let coarse_due = self
                     .last_board_tick
                     .is_none_or(|t| t.elapsed() >= std::time::Duration::from_secs(3));

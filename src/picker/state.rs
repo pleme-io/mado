@@ -80,6 +80,37 @@ impl<Row> FuzzyPicker<Row> {
         self.results = rows;
     }
 
+    /// Replace the ranked rows while keeping the highlight on the SAME row by
+    /// identity (`key_of`), so an autonomous data-flow re-list can refresh the
+    /// board *while the operator navigates* without yanking the cursor — the
+    /// "keep flowing even when searching / driving across problems" behavior.
+    /// If the previously-highlighted row is gone from the new set, the
+    /// highlight clamps to the top. Returns `true` when the highlighted row
+    /// vanished (clamped to a row the operator did not choose) — the caller
+    /// stamps the positional-stability window so a same-instant Enter is
+    /// swallowed.
+    pub fn set_results_preserving<K: PartialEq>(
+        &mut self,
+        rows: Vec<Row>,
+        key_of: impl Fn(&Row) -> K,
+    ) -> bool {
+        let prev_key = self.results.get(self.selected).map(&key_of);
+        self.results = rows;
+        match prev_key.and_then(|k| self.results.iter().position(|r| key_of(r) == k)) {
+            Some(idx) => {
+                self.selected = idx;
+                false
+            }
+            None => {
+                // The highlighted row is gone — clamp to the top. A vanish is
+                // a shift the caller should guard against a stray Enter.
+                let had_selection = !self.results.is_empty();
+                self.selected = 0;
+                had_selection
+            }
+        }
+    }
+
     /// `true` when the picker is open AND the highlight is still at the top
     /// (the operator hasn't navigated yet). The suggestion stream's live
     /// re-list only fires while resting, so a refresh never yanks the cursor
@@ -191,6 +222,30 @@ mod tests {
         p.set_results(vec!["c".to_owned()]);
         assert_eq!(p.selected, 0);
         assert_eq!(p.selected_row().map(String::as_str), Some("c"));
+    }
+
+    #[test]
+    fn set_results_preserving_keeps_cursor_on_its_row() {
+        // Identity here is the string itself. The operator is on "b"; a live
+        // re-list reorders + inserts rows — the cursor must follow "b", so the
+        // board can keep flowing while they navigate.
+        let mut p = picker(&["a", "b", "c"]);
+        p.move_down(); // on "b"
+        assert_eq!(p.selected, 1);
+        let vanished = p.set_results_preserving(
+            vec!["x".to_owned(), "a".to_owned(), "b".to_owned(), "c".to_owned()],
+            |r: &String| r.clone(),
+        );
+        assert!(!vanished, "row still present → no vanish");
+        assert_eq!(p.selected_row().map(String::as_str), Some("b"), "cursor followed its row");
+
+        // When the highlighted row is gone, clamp to the top + report the vanish.
+        let vanished = p.set_results_preserving(
+            vec!["a".to_owned(), "c".to_owned()],
+            |r: &String| r.clone(),
+        );
+        assert!(vanished, "'b' vanished → caller must stamp the stability window");
+        assert_eq!(p.selected, 0);
     }
 
     #[test]
