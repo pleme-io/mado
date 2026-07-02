@@ -4903,8 +4903,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
-          rev = "904b9428c6cd5082a2e1dc26895ddcb6a7f28acb";
-          sha256 = "061mi4blfg8xhxy2czamvlxvcl37i9j5zapj3cdmdxsswc2ak5hk";
+          rev = "8b1d1dc0249bab41cbd38085454194f00b427338";
+          sha256 = "1vrmsjgnnnbir6pilgyx2d70knplygycayv2ryn8gs1szg0ynqsb";
         };
         dependencies = [
           {
@@ -4990,8 +4990,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
-          rev = "904b9428c6cd5082a2e1dc26895ddcb6a7f28acb";
-          sha256 = "061mi4blfg8xhxy2czamvlxvcl37i9j5zapj3cdmdxsswc2ak5hk";
+          rev = "8b1d1dc0249bab41cbd38085454194f00b427338";
+          sha256 = "1vrmsjgnnnbir6pilgyx2d70knplygycayv2ryn8gs1szg0ynqsb";
         };
         dependencies = [
           {
@@ -7488,7 +7488,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.51";
+        version = "0.1.52";
         edition = "2024";
         crateBin = [
           {

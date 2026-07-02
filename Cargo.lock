@@ -2071,9 +2071,9 @@ dependencies = [
 
 [[package]]
 name = "inotify-sys"
-version = "0.1.6"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6fda9741ca16536952da2ecaa6105c2f4653fa6f0724681df6d2414c4106d0b0"
+checksum = "9ea94e891b3606826e9c998be69ddca42247dad8ad50b1649a5cb7e1c9ae06fd"
 dependencies = [
  "libc",
 ]
@@ -2451,7 +2451,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.51"
+version = "0.1.52"
 dependencies = [
  "anyhow",
  "awase",
@@ -4762,7 +4762,7 @@ dependencies = [
  "anyhow",
  "clap",
  "serde",
- "shikumi 0.1.109 (git+https://github.com/pleme-io/shikumi)",
+ "shikumi 0.1.110 (git+https://github.com/pleme-io/shikumi)",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -4789,8 +4789,8 @@ dependencies = [
 
 [[package]]
 name = "shikumi"
-version = "0.1.109"
-source = "git+https://github.com/pleme-io/shikumi?branch=main#8b1d1dc0249bab41cbd38085454194f00b427338"
+version = "0.1.110"
+source = "git+https://github.com/pleme-io/shikumi?branch=main#289485c3f6737b54fc6ffdb3b494f418419c4fec"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -4808,8 +4808,8 @@ dependencies = [
 
 [[package]]
 name = "shikumi"
-version = "0.1.109"
-source = "git+https://github.com/pleme-io/shikumi#8b1d1dc0249bab41cbd38085454194f00b427338"
+version = "0.1.110"
+source = "git+https://github.com/pleme-io/shikumi#289485c3f6737b54fc6ffdb3b494f418419c4fec"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -5371,7 +5371,7 @@ dependencies = [
  "once_cell",
  "serde",
  "serde_yaml_ng",
- "shikumi 0.1.109 (git+https://github.com/pleme-io/shikumi?branch=main)",
+ "shikumi 0.1.110 (git+https://github.com/pleme-io/shikumi?branch=main)",
  "tear-types",
  "thiserror 2.0.18",
  "tracing",
