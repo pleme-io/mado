@@ -343,6 +343,53 @@ impl Introspect for MadoAppState {
                     "session_id": session.to_string(),
                 }))
             }
+            // The living Ctrl-S board, read from THIS GUI process's store —
+            // the truth the MCP `suggest_list` tool forwards to (its own
+            // process-global store is a separate world). Optional arg: [max].
+            "suggest" => {
+                let max = q
+                    .args
+                    .first()
+                    .and_then(serde_json::Value::as_u64)
+                    .and_then(|m| usize::try_from(m).ok())
+                    .unwrap_or(50);
+                Ok(crate::suggest::board_json(max))
+            }
+            // Method-call leaf — args: [InjectParams object]. Pushes a task
+            // onto THIS GUI's live board (the 🤝 agent lane), so an agent's
+            // injection lands where the operator's Ctrl-S actually reads.
+            "suggest_inject" => {
+                if q.args.len() != 1 {
+                    return Err(QueryError::BadArity {
+                        expected: 1,
+                        actual: q.args.len(),
+                    });
+                }
+                let params: crate::suggest::InjectParams =
+                    serde_json::from_value(q.args[0].clone()).map_err(|e| {
+                        QueryError::internal(format!("invalid inject params: {e}"))
+                    })?;
+                crate::suggest::inject(params).map_err(QueryError::internal)
+            }
+            // Method-call leaf — args: [id: String, snooze_secs: u64|null].
+            // Dismisses/snoozes a row on THIS GUI's live board.
+            "suggest_dismiss" => {
+                if q.args.is_empty() || q.args.len() > 2 {
+                    return Err(QueryError::BadArity {
+                        expected: 2,
+                        actual: q.args.len(),
+                    });
+                }
+                let Some(id_str) = q.args[0].as_str() else {
+                    return Err(QueryError::TypeMismatch {
+                        path: "suggest_dismiss".to_string(),
+                        expected: "string".to_string(),
+                        actual: format!("{:?}", q.args[0]),
+                    });
+                };
+                let snooze = q.args.get(1).and_then(serde_json::Value::as_u64);
+                crate::suggest::dismiss(id_str, snooze).map_err(QueryError::internal)
+            }
             other => Err(QueryError::unknown_field(other.to_string())),
         }
     }
@@ -356,6 +403,9 @@ impl Introspect for MadoAppState {
             "simulate_chord",
             "switch_session",
             "save_session_as_preset",
+            "suggest",
+            "suggest_inject",
+            "suggest_dismiss",
         ]
     }
 }

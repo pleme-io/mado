@@ -679,27 +679,35 @@ impl SuggestionStore {
         let Ok(json) = serde_json::to_vec(&snap) else {
             return;
         };
-        let framed = frame_snapshot(&json);
-        if let Some(parent) = path.parent() {
-            let _ = std::fs::create_dir_all(parent);
-        }
-        // pid-tagged temp so two processes never race the same temp name.
-        let mut tmp = path.as_os_str().to_owned();
-        tmp.push(".tmp.");
-        tmp.push(std::process::id().to_string());
-        let tmp = std::path::PathBuf::from(tmp);
-        use std::io::Write;
-        let Ok(mut f) = std::fs::File::create(&tmp) else {
-            return;
-        };
-        if f.write_all(&framed).is_err() {
-            let _ = std::fs::remove_file(&tmp);
-            return;
-        }
-        let _ = f.sync_all(); // durable before the rename
-        drop(f);
-        let _ = std::fs::rename(&tmp, path);
+        atomic_write_framed(path, &json);
     }
+}
+
+/// Frame `json` (magic + BLAKE3) and atomically write it to `path`:
+/// `create_dir_all` + a pid-tagged temp (two processes never race one temp
+/// name) + `sync_all` + rename. The shared persistence primitive the
+/// suggestion snapshot AND the praça snapshot both write through.
+/// Best-effort — a failure never blocks the caller.
+pub(crate) fn atomic_write_framed(path: &Path, json: &[u8]) {
+    let framed = frame_snapshot(json);
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    let mut tmp = path.as_os_str().to_owned();
+    tmp.push(".tmp.");
+    tmp.push(std::process::id().to_string());
+    let tmp = std::path::PathBuf::from(tmp);
+    use std::io::Write;
+    let Ok(mut f) = std::fs::File::create(&tmp) else {
+        return;
+    };
+    if f.write_all(&framed).is_err() {
+        let _ = std::fs::remove_file(&tmp);
+        return;
+    }
+    let _ = f.sync_all(); // durable before the rename
+    drop(f);
+    let _ = std::fs::rename(&tmp, path);
 }
 
 /// Reclaim sibling temp files (`<file>.tmp.<pid>`) left by a crashed prior
@@ -763,9 +771,10 @@ fn frame_snapshot(json: &[u8]) -> Vec<u8> {
 }
 
 /// Inverse of [`frame_snapshot`]: `None` on wrong magic (schema bump) or a hash
-/// mismatch (torn/corrupt) — both mean start-empty.
+/// mismatch (torn/corrupt) — both mean start-empty. Shared with the praça
+/// snapshot reader.
 #[must_use]
-fn unframe_snapshot(bytes: &[u8]) -> Option<Vec<u8>> {
+pub(crate) fn unframe_snapshot(bytes: &[u8]) -> Option<Vec<u8>> {
     let rest = bytes.strip_prefix(SNAPSHOT_MAGIC)?;
     let nl = rest.iter().position(|&b| b == b'\n')?;
     let (hex, after) = rest.split_at(nl);

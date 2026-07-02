@@ -1439,110 +1439,79 @@ impl MadoMcp {
     //
     // The board is the operator's work-detection surface; these three
     // tools make it an AGENT surface too: read the ranked board + source
-    // health, push a task onto it, and dismiss/snooze a row. All three
-    // ride the process-global suggestion store — the exact rows Ctrl-S
-    // shows.
+    // health, push a task onto it, and dismiss/snooze a row. The board
+    // the OPERATOR sees lives in the GUI process, so each tool forwards
+    // through kanshou to the live GUI (the `list_sessions` idiom) and
+    // falls back to this process's own store only when no GUI runs.
 
-    #[tool(description = "Read the Ctrl-S living board: ranked task suggestions (id, source, title, urgency, lifecycle state, recurrence, spawn target) plus per-source poll health (ok / needs config / needs auth / erroring). `max` defaults 20 (cap 200).")]
+    #[tool(description = "Read the Ctrl-S living board: ranked task suggestions (id, source, title, urgency, lifecycle state, recurrence, spawn target) plus per-source poll health (ok / needs config / needs auth / erroring). Forwards to the live GUI board when one is running. `max` defaults 20 (cap 200).")]
     async fn suggest_list(&self, Parameters(input): Parameters<SuggestListInput>) -> String {
-        let store = crate::suggest::store();
-        let now_ms = unix_now_ms();
-        let rows: Vec<serde_json::Value> = store
-            .ranked_stored(input.max.unwrap_or(20).min(200), now_ms)
-            .into_iter()
-            .map(|st| {
-                serde_json::json!({
-                    // Stringified: a u64 id does not survive JSON number
-                    // precision (2^53) — suggest_dismiss parses it back.
-                    "id": st.suggestion.id.0.to_string(),
-                    "source": st.suggestion.source.slug(),
-                    "title": st.suggestion.title,
-                    "detail": st.suggestion.detail,
-                    "urgency": serde_json::to_value(st.suggestion.urgency)
-                        .unwrap_or(serde_json::Value::Null),
-                    "state": serde_json::to_value(&st.state)
-                        .unwrap_or(serde_json::Value::Null),
-                    "times_seen": st.times_seen,
-                    "waiting_secs": now_ms.saturating_sub(st.first_seen_ms) / 1000,
-                    "cwd": st.suggestion.spawn.cwd().to_string_lossy(),
-                    "session_name": st.suggestion.spawn.name(),
-                    "initial_command": st.suggestion.spawn.initial_command(),
-                })
-            })
-            .collect();
-        let health: Vec<serde_json::Value> = store
-            .health()
-            .into_iter()
-            .map(|(kind, h)| {
-                serde_json::json!({
-                    "source": kind.slug(),
-                    "status": h.status.label(),
-                    "last_poll_secs_ago": now_ms.saturating_sub(h.last_poll_ms) / 1000,
-                    "ever_ok": h.last_ok_ms > 0,
-                })
-            })
-            .collect();
-        ok_json(serde_json::json!({ "suggestions": rows, "health": health }))
+        let max = input.max.unwrap_or(20).min(200);
+        let value = kanshou::mcp::forward(
+            "mado",
+            &kanshou::Query {
+                path: vec![String::from("suggest")],
+                args: vec![serde_json::json!(max)],
+            },
+            || Ok(crate::suggest::board_json(max)),
+        )
+        .await;
+        match value {
+            Ok(v) => ok_json(v),
+            Err(e) => err_json(e),
+        }
     }
 
-    #[tool(description = "Push a task onto the Ctrl-S living board (the 🤝 agent lane): Enter on the row spawns a session at `cwd` (named `session_name`) and types `command`. Re-injecting the same `key` updates the row; rows decay by the stream TTL unless re-injected, or are dismissed. Returns {ok, id}.")]
+    #[tool(description = "Push a task onto the Ctrl-S living board (the 🤝 agent lane): Enter on the row spawns a session at `cwd` (named `session_name`) and types `command`. Re-injecting the same `key` updates the row; rows decay by the stream TTL unless re-injected, or are dismissed. Lands on the live GUI board when one is running. Returns {ok, id}.")]
     async fn suggest_inject(&self, Parameters(input): Parameters<SuggestInjectInput>) -> String {
-        use crate::suggest::{SourceKind, SpawnSpec, Suggestion};
-        let title = input.title.trim().to_owned();
-        if title.is_empty() {
-            return err_json("title must be non-empty");
-        }
-        let cwd = input
-            .cwd
-            .filter(|c| !c.trim().is_empty())
-            .unwrap_or_else(default_code_root);
-        let name = input
-            .session_name
-            .filter(|n| !n.trim().is_empty())
-            .unwrap_or_else(|| {
-                let mut n = String::from("\u{1F91D} "); // 🤝 agent-lane native name
-                n.push_str(title.chars().take(40).collect::<String>().trim());
-                n
-            });
-        let Some(mut spawn) = SpawnSpec::new(cwd, name) else {
-            return err_json("cwd and session_name must be non-empty");
+        let params = crate::suggest::InjectParams {
+            title: input.title,
+            key: input.key,
+            detail: input.detail,
+            urgency: input.urgency,
+            cwd: input.cwd,
+            session_name: input.session_name,
+            command: input.command,
         };
-        if let Some(cmd) = input.command {
-            spawn = spawn.with_command(cmd);
+        let Ok(arg) = serde_json::to_value(&params) else {
+            return err_json("could not encode inject params");
+        };
+        let value = kanshou::mcp::forward(
+            "mado",
+            &kanshou::Query {
+                path: vec![String::from("suggest_inject")],
+                args: vec![arg],
+            },
+            || crate::suggest::inject(params).map_err(kanshou::QueryError::internal),
+        )
+        .await;
+        match value {
+            Ok(v) => ok_json(v),
+            Err(e) => err_json(e),
         }
-        let key = input.key.unwrap_or_else(|| title.clone());
-        let mut s = Suggestion::new(SourceKind::Agent, &key, &title, spawn);
-        if let Some(d) = input.detail {
-            s = s.detail(d);
-        }
-        if let Some(u) = input.urgency {
-            match serde_json::from_value::<crate::suggest::Urgency>(serde_json::Value::String(
-                u.clone(),
-            )) {
-                Ok(parsed) => s = s.urgent(parsed),
-                Err(_) => return err_json("urgency must be idle|low|normal|high|critical"),
-            }
-        }
-        let id = s.id;
-        crate::suggest::store().upsert(s, unix_now_ms());
-        ok_json(serde_json::json!({ "id": id.0.to_string() }))
     }
 
-    #[tool(description = "Dismiss (or snooze) a Ctrl-S board suggestion by the decimal id from suggest_list. With `snooze_secs` the row hides until the deadline, then re-offers; without it the row never surfaces again (survives re-ingest and the recurrence window). Returns {ok}.")]
+    #[tool(description = "Dismiss (or snooze) a Ctrl-S board suggestion by the decimal id from suggest_list. With `snooze_secs` the row hides until the deadline, then re-offers; without it the row never surfaces again (survives re-ingest and the recurrence window). Acts on the live GUI board when one is running. Returns {ok}.")]
     async fn suggest_dismiss(&self, Parameters(input): Parameters<SuggestDismissInput>) -> String {
-        let Ok(raw) = input.id.parse::<u64>() else {
-            return err_json("id must be the decimal u64 string from suggest_list");
-        };
-        let id = crate::suggest::SuggestionId(raw);
-        let store = crate::suggest::store();
-        let done = match input.snooze_secs {
-            Some(secs) => store.snooze(id, unix_now_ms().saturating_add(secs.saturating_mul(1000))),
-            None => store.dismiss(id),
-        };
-        if done {
-            ok_json(serde_json::Value::Null)
-        } else {
-            err_json("no suggestion with that id (it may have decayed)")
+        let mut args = vec![serde_json::json!(input.id)];
+        if let Some(s) = input.snooze_secs {
+            args.push(serde_json::json!(s));
+        }
+        let value = kanshou::mcp::forward(
+            "mado",
+            &kanshou::Query {
+                path: vec![String::from("suggest_dismiss")],
+                args,
+            },
+            || {
+                crate::suggest::dismiss(&input.id, input.snooze_secs)
+                    .map_err(kanshou::QueryError::internal)
+            },
+        )
+        .await;
+        match value {
+            Ok(v) => ok_json(v),
+            Err(e) => err_json(e),
         }
     }
 }
@@ -1611,24 +1580,6 @@ struct SuggestDismissInput {
     snooze_secs: Option<u64>,
 }
 
-/// Wall-clock unix milliseconds — the suggest tools' single clock read.
-fn unix_now_ms() -> u64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_millis().min(u128::from(u64::MAX)) as u64)
-        .unwrap_or(0)
-}
-
-/// The operator's code root as a string (`PLEME_CODE_ROOT` override, else
-/// `~/code`) — mirrors `RealEnvironment::discover` for the inject default.
-fn default_code_root() -> String {
-    let home = dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("/"));
-    std::env::var_os("PLEME_CODE_ROOT")
-        .map(std::path::PathBuf::from)
-        .unwrap_or_else(|| home.join("code"))
-        .to_string_lossy()
-        .into_owned()
-}
 
 async fn vigy_dispatch(tool: &str, args: serde_json::Value) -> String {
     let host = match crate::vigy_host::get() {
@@ -4226,14 +4177,18 @@ mod tests {
             &["ok"],
         ));
 
-        // ── suggest (the Ctrl-S living board; process-global store —
-        //    benign reads/writes against the test process's own store) ──
+        // ── suggest (the Ctrl-S living board). These forward to a LIVE
+        //    GUI when one runs on the test machine (the simulate_chord
+        //    precedent), so every row is a no-op on BOTH arms: list is
+        //    read-only; inject carries an INVALID urgency so the shared
+        //    border rejects it before any upsert; dismiss targets id 0,
+        //    which no board contains. ──
         rows.push((
             "suggest_list",
             server
                 .suggest_list(Parameters(SuggestListInput { max: Some(1) }))
                 .await,
-            &["suggestions"],
+            &["ok"],
         ));
         rows.push((
             "suggest_inject",
@@ -4242,13 +4197,13 @@ mod tests {
                     title: "uniformity-matrix row".into(),
                     key: Some("uniformity-matrix".into()),
                     detail: None,
-                    urgency: Some("low".into()),
+                    urgency: Some("matrix-invalid-urgency".into()),
                     cwd: Some("/tmp".into()),
                     session_name: None,
                     command: None,
                 }))
                 .await,
-            &["id"],
+            &["ok"],
         ));
         rows.push((
             "suggest_dismiss",

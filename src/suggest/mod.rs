@@ -98,6 +98,164 @@ pub fn request_board_refresh() {
     board_nudge().notify_waiters();
 }
 
+// ── The agent-facing board surface (shared by two ingresses) ────────────
+//
+// `mado mcp` is a SEPARATE process from the GUI, so its process-global
+// store is NOT the operator's live board. The three functions below are the
+// ONE implementation both ingresses call: the GUI's kanshou leaves (the
+// live-board truth an MCP tool forwards to — the `list_sessions` idiom) and
+// the MCP tools' local fallback (headless mado, no GUI running).
+
+/// Wall-clock unix milliseconds — the board surface's single clock read.
+#[must_use]
+pub fn now_unix_ms() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| u64::try_from(d.as_millis()).unwrap_or(u64::MAX))
+        .unwrap_or(0)
+}
+
+/// JSON view of THIS process's living board: ranked offerable rows (id,
+/// source, title, urgency, lifecycle state, recurrence, spawn target) plus
+/// per-source poll health. Ids are DECIMAL STRINGS — a u64 does not survive
+/// JSON number precision.
+#[must_use]
+pub fn board_json(max: usize) -> serde_json::Value {
+    let store = store();
+    let now_ms = now_unix_ms();
+    let rows: Vec<serde_json::Value> = store
+        .ranked_stored(max.clamp(1, 200), now_ms)
+        .into_iter()
+        .map(|st| {
+            serde_json::json!({
+                "id": st.suggestion.id.0.to_string(),
+                "source": st.suggestion.source.slug(),
+                "title": st.suggestion.title,
+                "detail": st.suggestion.detail,
+                "urgency": serde_json::to_value(st.suggestion.urgency)
+                    .unwrap_or(serde_json::Value::Null),
+                "state": serde_json::to_value(&st.state)
+                    .unwrap_or(serde_json::Value::Null),
+                "times_seen": st.times_seen,
+                "waiting_secs": now_ms.saturating_sub(st.first_seen_ms) / 1000,
+                "cwd": st.suggestion.spawn.cwd().to_string_lossy(),
+                "session_name": st.suggestion.spawn.name(),
+                "initial_command": st.suggestion.spawn.initial_command(),
+            })
+        })
+        .collect();
+    let health: Vec<serde_json::Value> = store
+        .health()
+        .into_iter()
+        .map(|(kind, h)| {
+            serde_json::json!({
+                "source": kind.slug(),
+                "status": h.status.label(),
+                "last_poll_secs_ago": now_ms.saturating_sub(h.last_poll_ms) / 1000,
+                "ever_ok": h.last_ok_ms > 0,
+            })
+        })
+        .collect();
+    serde_json::json!({ "suggestions": rows, "health": health })
+}
+
+/// Typed parameters for an agent-injected board row — deserialized from the
+/// MCP tool input AND from the kanshou call leaf's JSON argument (one
+/// border, two ingresses).
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct InjectParams {
+    /// The task line the board shows (required, non-blank).
+    pub title: String,
+    /// Stable dedup key — re-injecting the same key updates the row.
+    /// Defaults to the title.
+    #[serde(default)]
+    pub key: Option<String>,
+    /// Secondary context shown dimmer.
+    #[serde(default)]
+    pub detail: Option<String>,
+    /// idle | low | normal | high | critical. Default normal.
+    #[serde(default)]
+    pub urgency: Option<String>,
+    /// Working directory the accepted session spawns into. Defaults to the
+    /// operator's code root.
+    #[serde(default)]
+    pub cwd: Option<String>,
+    /// Session name for the accepted row. Defaults to `🤝 <title…>`.
+    #[serde(default)]
+    pub session_name: Option<String>,
+    /// Kickoff command typed into the fresh session (control bytes rejected
+    /// at the typed border).
+    #[serde(default)]
+    pub command: Option<String>,
+}
+
+/// Push a task onto THIS process's board (the 🤝 agent lane, additive
+/// upsert). Returns the row id as a decimal string.
+pub fn inject(params: InjectParams) -> Result<serde_json::Value, String> {
+    let title = params.title.trim().to_owned();
+    if title.is_empty() {
+        return Err(String::from("title must be non-empty"));
+    }
+    let cwd = params
+        .cwd
+        .filter(|c| !c.trim().is_empty())
+        .unwrap_or_else(|| {
+            let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"));
+            std::env::var_os("PLEME_CODE_ROOT")
+                .map(PathBuf::from)
+                .unwrap_or_else(|| home.join("code"))
+                .to_string_lossy()
+                .into_owned()
+        });
+    let name = params
+        .session_name
+        .filter(|n| !n.trim().is_empty())
+        .unwrap_or_else(|| {
+            let mut n = String::from("\u{1F91D} "); // 🤝 agent-lane native name
+            n.push_str(title.chars().take(40).collect::<String>().trim());
+            n
+        });
+    let Some(mut spawn) = SpawnSpec::new(cwd, name) else {
+        return Err(String::from("cwd and session_name must be non-empty"));
+    };
+    if let Some(cmd) = params.command {
+        spawn = spawn.with_command(cmd);
+    }
+    let key = params.key.unwrap_or_else(|| title.clone());
+    let mut s = Suggestion::new(SourceKind::Agent, &key, &title, spawn);
+    if let Some(d) = params.detail {
+        s = s.detail(d);
+    }
+    if let Some(u) = params.urgency {
+        match serde_json::from_value::<Urgency>(serde_json::Value::String(u)) {
+            Ok(parsed) => s = s.urgent(parsed),
+            Err(_) => return Err(String::from("urgency must be idle|low|normal|high|critical")),
+        }
+    }
+    let id = s.id;
+    store().upsert(s, now_unix_ms());
+    Ok(serde_json::json!({ "id": id.0.to_string() }))
+}
+
+/// Dismiss (or snooze) a board row by its decimal-string id on THIS
+/// process's board.
+pub fn dismiss(id_str: &str, snooze_secs: Option<u64>) -> Result<serde_json::Value, String> {
+    let Ok(raw) = id_str.parse::<u64>() else {
+        return Err(String::from("id must be the decimal u64 string from the board list"));
+    };
+    let id = core::SuggestionId(raw);
+    let st = store();
+    let done = match snooze_secs {
+        Some(secs) => st.snooze(id, now_unix_ms().saturating_add(secs.saturating_mul(1000))),
+        None => st.dismiss(id),
+    };
+    if done {
+        Ok(serde_json::json!({ "dismissed": true, "id": id_str }))
+    } else {
+        Err(String::from("no suggestion with that id (it may have decayed)"))
+    }
+}
+
 /// Resolve the warm-restart snapshot path. `$MADO_SUGGEST_DB` is an explicit
 /// override; else `$MADO_STATE_DIR` (tests inject a temp dir); else the OS
 /// state dir (`~/.local/state` on Linux — warm-restart data is operator-
@@ -172,7 +330,11 @@ pub fn spawn_engine_thread(
             .saturating_mul(1000);
         ttl_map.insert(kind, interval_ttl.max(global_ttl_ms));
     }
-    let persist = cfg.persist;
+    // Only the state-writer election winner persists (suggestions AND the
+    // praça snapshot): a second mado instance (another window, `mado mcp`)
+    // otherwise last-writer-wins clobbers the shared snapshot files. Losers
+    // still LOAD at boot and run their own in-memory engine.
+    let persist = cfg.persist && crate::single_writer::is_writer();
     let max_entries = cfg.max_entries;
     // 0 = "persist on every change" → a 1s minimum tick (tokio rejects a 0
     // interval); otherwise coalesce writes to this cadence.
@@ -244,6 +406,11 @@ pub fn spawn_engine_thread(
                             store.persist_file(&path, now_ms);
                             last_gen = current_gen;
                         }
+                        // Praça persistence rides the same maintenance tick
+                        // (internally change-gated + writer-election-gated) —
+                        // saved presets survive restarts with zero extra
+                        // threads and zero GUI-hot-path writes.
+                        crate::praca_store::maintenance_tick();
                     }
                 }),
                 Err(e) => {

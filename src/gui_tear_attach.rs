@@ -1391,6 +1391,11 @@ fn try_run_default_embedded(
                     )))
                 }
             };
+            // Presets survive restarts: restore the persisted definitions
+            // catalog into the freshly-built praça (boot index/binding/policy
+            // untouched — dead-session state must not steer auto-attach) and
+            // register it for the maintenance loop's debounced persist.
+            crate::praca_store::load_and_register(&shared_praca);
             // Give the MCP surface the SAME catalog the picker reads, so
             // `save_session_as_preset` writes where Ctrl-S reads its ○ rows.
             kanshou_state.set_praca(std::sync::Arc::clone(&shared_praca));
