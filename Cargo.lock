@@ -181,9 +181,9 @@ dependencies = [
 
 [[package]]
 name = "arc-swap"
-version = "1.9.1"
+version = "1.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a3a1fd6f75306b68087b831f025c712524bcb19aad54e557b1129cfa0a2b207"
+checksum = "c049c0be4daef0b145cb3555416b3b8ef5b7888a38aea1a3a155801fe7b0810b"
 dependencies = [
  "rustversion",
 ]
@@ -1115,7 +1115,7 @@ dependencies = [
 [[package]]
 name = "egaku"
 version = "0.1.3"
-source = "git+https://github.com/pleme-io/egaku#81d168190061c452d115f58f186429b84f489be8"
+source = "git+https://github.com/pleme-io/egaku#507b0e7be84568bbb5567b2d61f5ce9ab6501882"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -1690,9 +1690,9 @@ dependencies = [
 
 [[package]]
 name = "gpu-alloc"
-version = "0.6.0"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fbcd2dba93594b227a1f57ee09b8b9da8892c34d55aa332e034a228d0fe6a171"
+checksum = "45cf04b2726f02df5508c6de726acdc90cdf97ac771a9a0ffd8ba10a6e696bf9"
 dependencies = [
  "bitflags 2.13.0",
  "gpu-alloc-types",
@@ -1700,9 +1700,9 @@ dependencies = [
 
 [[package]]
 name = "gpu-alloc-types"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "98ff03b468aa837d70984d55f5d3f846f6ec31fe34bbb97c4f85219caeee1ca4"
+checksum = "b2bbed164dd10ed526c2e4fe3e721ca4a71c61730e5aafac6844b417b3227058"
 dependencies = [
  "bitflags 2.13.0",
 ]
@@ -2071,9 +2071,9 @@ dependencies = [
 
 [[package]]
 name = "inotify-sys"
-version = "0.1.5"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e05c02b5e89bff3b946cedeca278abc628fe811e604f027c45a8aa3cf793d0eb"
+checksum = "6fda9741ca16536952da2ecaa6105c2f4653fa6f0724681df6d2414c4106d0b0"
 dependencies = [
  "libc",
 ]
@@ -2249,7 +2249,7 @@ dependencies = [
 [[package]]
 name = "kanchi"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/kanchi#bb057535a56dcfbc0627e8e9e74498e63e9d3ff2"
+source = "git+https://github.com/pleme-io/kanchi#837f57e6c9b52e3d8781a56a46523627765362a0"
 dependencies = [
  "libc",
  "objc2 0.6.4",
@@ -2360,14 +2360,14 @@ dependencies = [
 
 [[package]]
 name = "libredox"
-version = "0.1.17"
+version = "0.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f02ab6bace2054fb888a3c16f990117b579d14a3088e472d63c6011fa185c9d3"
+checksum = "c943259e342f1e06ff2da7a83eabdfe7f92ce10262688dbf1895ff0b3e6e4652"
 dependencies = [
  "bitflags 2.13.0",
  "libc",
  "plain",
- "redox_syscall 0.8.1",
+ "redox_syscall 0.9.0",
 ]
 
 [[package]]
@@ -2451,7 +2451,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.48"
+version = "0.1.49"
 dependencies = [
  "anyhow",
  "awase",
@@ -3235,13 +3235,12 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 
 [[package]]
 name = "open"
-version = "5.3.5"
+version = "5.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2fbaa89d2ddc8473c78a3adf69eea8cffa28c483b8e02a971ef31527cd0fc92c"
+checksum = "cd8d3b65c44123a56e0133d2cd06ce4361bd3ca99d41198b2f25e3c3db9b8b4a"
 dependencies = [
  "is-wsl",
  "libc",
- "pathdiff",
 ]
 
 [[package]]
@@ -3375,12 +3374,6 @@ name = "pastey"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2ee67f1008b1ba2321834326597b8e186293b049a023cdef258527550b9935b4"
-
-[[package]]
-name = "pathdiff"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df94ce210e5bc13cb6651479fa48d14f601d9858cfe0467f43ae157023b938d3"
 
 [[package]]
 name = "pear"
@@ -3985,9 +3978,9 @@ dependencies = [
 
 [[package]]
 name = "redox_syscall"
-version = "0.8.1"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b44b894f2a6e36457d665d1e08c3866add6ed5e70050c1b4ba8a8ddedb02ce7"
+checksum = "c5102a6aaa05aa011a238e178e6bca86d2cb56fc9f586d37cb80f5bca6e07759"
 dependencies = [
  "bitflags 2.13.0",
 ]
@@ -4267,9 +4260,9 @@ dependencies = [
 
 [[package]]
 name = "rustls-pki-types"
-version = "1.14.1"
+version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30a7197ae7eb376e574fe940d068c30fe0462554a3ddbe4eca7838e049c937a9"
+checksum = "764899a24af3980067ee14bc143654f297b22eaebfe3c7b6b211920a5a59b046"
 dependencies = [
  "zeroize",
 ]
@@ -4769,7 +4762,7 @@ dependencies = [
  "anyhow",
  "clap",
  "serde",
- "shikumi 0.1.107 (git+https://github.com/pleme-io/shikumi)",
+ "shikumi 0.1.108 (git+https://github.com/pleme-io/shikumi)",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -4796,8 +4789,8 @@ dependencies = [
 
 [[package]]
 name = "shikumi"
-version = "0.1.107"
-source = "git+https://github.com/pleme-io/shikumi?branch=main#79220e7b4d9980736b63a742c43f5e13f507681c"
+version = "0.1.108"
+source = "git+https://github.com/pleme-io/shikumi?branch=main#5a9495dd6eb7326e58fcfb9952014eccd2ef30af"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -4815,8 +4808,8 @@ dependencies = [
 
 [[package]]
 name = "shikumi"
-version = "0.1.107"
-source = "git+https://github.com/pleme-io/shikumi#79220e7b4d9980736b63a742c43f5e13f507681c"
+version = "0.1.108"
+source = "git+https://github.com/pleme-io/shikumi#5a9495dd6eb7326e58fcfb9952014eccd2ef30af"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -5325,7 +5318,7 @@ checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 [[package]]
 name = "tatara-lisp"
 version = "0.2.4"
-source = "git+https://github.com/pleme-io/tatara-lisp#e9a60a6f21b1c28025399ad18789311b2a69e9c6"
+source = "git+https://github.com/pleme-io/tatara-lisp#546c894ed9e913a7f6be8839722873535a33e909"
 dependencies = [
  "blake3",
  "serde",
@@ -5337,7 +5330,7 @@ dependencies = [
 [[package]]
 name = "tatara-lisp-derive"
 version = "0.2.4"
-source = "git+https://github.com/pleme-io/tatara-lisp#e9a60a6f21b1c28025399ad18789311b2a69e9c6"
+source = "git+https://github.com/pleme-io/tatara-lisp#546c894ed9e913a7f6be8839722873535a33e909"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5347,7 +5340,7 @@ dependencies = [
 [[package]]
 name = "tatara-lisp-eval"
 version = "0.2.4"
-source = "git+https://github.com/pleme-io/tatara-lisp#e9a60a6f21b1c28025399ad18789311b2a69e9c6"
+source = "git+https://github.com/pleme-io/tatara-lisp#546c894ed9e913a7f6be8839722873535a33e909"
 dependencies = [
  "tatara-lisp",
  "thiserror 2.0.18",
@@ -5378,7 +5371,7 @@ dependencies = [
  "once_cell",
  "serde",
  "serde_yaml_ng",
- "shikumi 0.1.107 (git+https://github.com/pleme-io/shikumi?branch=main)",
+ "shikumi 0.1.108 (git+https://github.com/pleme-io/shikumi?branch=main)",
  "tear-types",
  "thiserror 2.0.18",
  "tracing",
@@ -5528,9 +5521,9 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.3.51"
+version = "0.3.53"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "85c17d80feb7334b40c484e45ed1a5273dfd8bfda537c3be2e74a06a6686f327"
+checksum = "18dfaaeddcb932337b5e7866ee7d0ce9b76d2fd092997146f187ec09b4558a50"
 dependencies = [
  "deranged",
  "num-conv",
@@ -5548,9 +5541,9 @@ checksum = "9e1c906769ad99c88eaa54e728060edef082f8e358ff32030cb7c7d315e81109"
 
 [[package]]
 name = "time-macros"
-version = "0.2.30"
+version = "0.2.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dcef1a61bdb119096e153208ec5cbec23944ce8bca13be5c7f60c634f7403935"
+checksum = "c431b87111666e491a90baa837f914fb45cd5dc3c268591b0220ff5057f2085f"
 dependencies = [
  "num-conv",
  "time-core",
@@ -6588,7 +6581,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

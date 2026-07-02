@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "2dd5ac907270553f72eeeead3b95fae371c6645234cb202757f879850af28f30",
+  "cargo_lock_sha256": "e777953109b75a75d41fc47c0fd60985926ad8eef7290516ad3c9f10bb2c7b27",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -258,7 +258,7 @@
           "std"
         ]
       },
-      "arc-swap-1.9.1": {
+      "arc-swap-1.9.2": {
         "runtime_dependencies": [
           {
             "name": "rustversion",
@@ -2269,6 +2269,64 @@
         "build_dependencies": [],
         "features": []
       },
+      "egaku-0.1.3-507b0e7be84568bbb5567b2d61f5ce9ab6501882": {
+        "runtime_dependencies": [
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.228",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "thiserror",
+            "package_key": "thiserror-2.0.18",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tracing",
+            "package_key": "tracing-0.1.44",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "unicode_segmentation",
+            "package_key": "unicode-segmentation-1.13.3",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "unicode_width",
+            "package_key": "unicode-width-0.2.2",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
       "egaku-0.1.3-81d168190061c452d115f58f186429b84f489be8": {
         "runtime_dependencies": [
           {
@@ -4011,7 +4069,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "gpu-alloc-0.6.0": {
+      "gpu-alloc-0.6.2": {
         "runtime_dependencies": [
           {
             "name": "bitflags",
@@ -4025,7 +4083,7 @@
           },
           {
             "name": "gpu_alloc_types",
-            "package_key": "gpu-alloc-types-0.3.0",
+            "package_key": "gpu-alloc-types-0.3.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4040,7 +4098,7 @@
           "std"
         ]
       },
-      "gpu-alloc-types-0.3.0": {
+      "gpu-alloc-types-0.3.1": {
         "runtime_dependencies": [
           {
             "name": "bitflags",
@@ -5068,7 +5126,7 @@
           },
           {
             "name": "egaku",
-            "package_key": "egaku-0.1.3-81d168190061c452d115f58f186429b84f489be8",
+            "package_key": "egaku-0.1.3-507b0e7be84568bbb5567b2d61f5ce9ab6501882",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -6929,11 +6987,6 @@
         "features": []
       },
       "pastey-0.2.3": {
-        "runtime_dependencies": [],
-        "build_dependencies": [],
-        "features": []
-      },
-      "pathdiff-0.2.3": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
@@ -9504,7 +9557,7 @@
           },
           {
             "name": "pki_types",
-            "package_key": "rustls-pki-types-1.14.1",
+            "package_key": "rustls-pki-types-1.15.0",
             "kind": "normal",
             "features": [
               "alloc"
@@ -9554,7 +9607,7 @@
           "tls12"
         ]
       },
-      "rustls-pki-types-1.14.1": {
+      "rustls-pki-types-1.15.0": {
         "runtime_dependencies": [
           {
             "name": "zeroize",
@@ -9588,7 +9641,7 @@
           },
           {
             "name": "pki_types",
-            "package_key": "rustls-pki-types-1.14.1",
+            "package_key": "rustls-pki-types-1.15.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -10277,7 +10330,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.51",
+            "package_key": "time-0.3.53",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -10718,7 +10771,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.51",
+            "package_key": "time-0.3.53",
             "kind": "normal",
             "features": [
               "formatting",
@@ -10834,7 +10887,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.51",
+            "package_key": "time-0.3.53",
             "kind": "normal",
             "features": [
               "formatting",
@@ -11615,7 +11668,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.107-79220e7b4d9980736b63a742c43f5e13f507681c",
+            "package_key": "shikumi-0.1.108-5a9495dd6eb7326e58fcfb9952014eccd2ef30af",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11662,11 +11715,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.107-79220e7b4d9980736b63a742c43f5e13f507681c": {
+      "shikumi-0.1.108-5a9495dd6eb7326e58fcfb9952014eccd2ef30af": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
-            "package_key": "arc-swap-1.9.1",
+            "package_key": "arc-swap-1.9.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11815,7 +11868,7 @@
         "runtime_dependencies": [
           {
             "name": "arc_swap",
-            "package_key": "arc-swap-1.9.1",
+            "package_key": "arc-swap-1.9.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12533,7 +12586,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.51",
+            "package_key": "time-0.3.53",
             "kind": "normal",
             "features": [
               "formatting",
@@ -13282,7 +13335,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.51",
+            "package_key": "time-0.3.53",
             "kind": "normal",
             "features": [
               "formatting",
@@ -13674,7 +13727,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.51",
+            "package_key": "time-0.3.53",
             "kind": "normal",
             "features": [
               "formatting",
@@ -13903,7 +13956,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.51",
+            "package_key": "time-0.3.53",
             "kind": "normal",
             "features": [
               "formatting",
@@ -14288,7 +14341,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6": {
+      "tatara-lisp-0.2.4-546c894ed9e913a7f6be8839722873535a33e909": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -14324,7 +14377,7 @@
           },
           {
             "name": "tatara_lisp_derive",
-            "package_key": "tatara-lisp-derive-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6",
+            "package_key": "tatara-lisp-derive-0.2.4-546c894ed9e913a7f6be8839722873535a33e909",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14348,7 +14401,7 @@
           "default"
         ]
       },
-      "tatara-lisp-derive-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6": {
+      "tatara-lisp-derive-0.2.4-546c894ed9e913a7f6be8839722873535a33e909": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -14386,11 +14439,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-eval-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6": {
+      "tatara-lisp-eval-0.2.4-546c894ed9e913a7f6be8839722873535a33e909": {
         "runtime_dependencies": [
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6",
+            "package_key": "tatara-lisp-0.2.4-546c894ed9e913a7f6be8839722873535a33e909",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14495,7 +14548,7 @@
           },
           {
             "name": "arc_swap",
-            "package_key": "arc-swap-1.9.1",
+            "package_key": "arc-swap-1.9.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14559,7 +14612,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.107-79220e7b4d9980736b63a742c43f5e13f507681c",
+            "package_key": "shikumi-0.1.108-5a9495dd6eb7326e58fcfb9952014eccd2ef30af",
             "kind": "normal",
             "features": [
               "cli"
@@ -15254,7 +15307,7 @@
           "lzw"
         ]
       },
-      "time-0.3.51": {
+      "time-0.3.53": {
         "runtime_dependencies": [
           {
             "name": "deranged",
@@ -15308,7 +15361,7 @@
           },
           {
             "name": "time_macros",
-            "package_key": "time-macros-0.2.30",
+            "package_key": "time-macros-0.2.31",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15333,7 +15386,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "time-macros-0.2.30": {
+      "time-macros-0.2.31": {
         "runtime_dependencies": [
           {
             "name": "num_conv",
@@ -15542,6 +15595,7 @@
           "signal-hook-registry",
           "socket2",
           "sync",
+          "test-util",
           "time",
           "tokio-macros",
           "windows-sys"
@@ -16830,7 +16884,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6",
+            "package_key": "tatara-lisp-0.2.4-546c894ed9e913a7f6be8839722873535a33e909",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16840,7 +16894,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6",
+            "package_key": "tatara-lisp-eval-0.2.4-546c894ed9e913a7f6be8839722873535a33e909",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16860,7 +16914,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.51",
+            "package_key": "time-0.3.53",
             "kind": "normal",
             "features": [
               "formatting",
@@ -17047,7 +17101,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.51",
+            "package_key": "time-0.3.53",
             "kind": "normal",
             "features": [
               "formatting",
@@ -17228,7 +17282,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.51",
+            "package_key": "time-0.3.53",
             "kind": "normal",
             "features": [
               "formatting",
@@ -17343,7 +17397,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.51",
+            "package_key": "time-0.3.53",
             "kind": "normal",
             "features": [
               "formatting",
@@ -17521,7 +17575,7 @@
         "runtime_dependencies": [
           {
             "name": "pki_types",
-            "package_key": "rustls-pki-types-1.14.1",
+            "package_key": "rustls-pki-types-1.15.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -18978,7 +19032,7 @@
               "fallback"
             ]
           },
-          "kanchi-0.1.0-bb057535a56dcfbc0627e8e9e74498e63e9d3ff2": {
+          "kanchi-0.1.0-837f57e6c9b52e3d8781a56a46523627765362a0": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -19092,7 +19146,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.48": {
+          "mado-0.1.49": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -19307,7 +19361,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.0-bb057535a56dcfbc0627e8e9e74498e63e9d3ff2",
+                "package_key": "kanchi-0.1.0-837f57e6c9b52e3d8781a56a46523627765362a0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -19416,7 +19470,7 @@
               },
               {
                 "name": "open",
-                "package_key": "open-5.3.5",
+                "package_key": "open-5.3.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -21523,7 +21577,7 @@
               "bitflags"
             ]
           },
-          "open-5.3.5": {
+          "open-5.3.6": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -21533,16 +21587,6 @@
                 "uses_default_features": true,
                 "optional": false,
                 "target": "cfg(unix)",
-                "tree": "target"
-              },
-              {
-                "name": "pathdiff",
-                "package_key": "pathdiff-0.2.3",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": "cfg(all(unix, not(macos)))",
                 "tree": "target"
               }
             ],
@@ -22030,7 +22074,7 @@
               },
               {
                 "name": "gpu_alloc",
-                "package_key": "gpu-alloc-0.6.0",
+                "package_key": "gpu-alloc-0.6.2",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23035,7 +23079,7 @@
               },
               {
                 "name": "inotify_sys",
-                "package_key": "inotify-sys-0.1.5",
+                "package_key": "inotify-sys-0.1.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23057,7 +23101,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "inotify-sys-0.1.5": {
+          "inotify-sys-0.1.6": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -23115,7 +23159,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "kanchi-0.1.0-bb057535a56dcfbc0627e8e9e74498e63e9d3ff2": {
+          "kanchi-0.1.0-837f57e6c9b52e3d8781a56a46523627765362a0": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -23172,7 +23216,7 @@
               "system"
             ]
           },
-          "mado-0.1.48": {
+          "mado-0.1.49": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -23387,7 +23431,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.0-bb057535a56dcfbc0627e8e9e74498e63e9d3ff2",
+                "package_key": "kanchi-0.1.0-837f57e6c9b52e3d8781a56a46523627765362a0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23457,7 +23501,7 @@
               },
               {
                 "name": "open",
-                "package_key": "open-5.3.5",
+                "package_key": "open-5.3.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23864,7 +23908,7 @@
               "mio"
             ]
           },
-          "open-5.3.5": {
+          "open-5.3.6": {
             "runtime_dependencies": [
               {
                 "name": "is_wsl",
@@ -23884,16 +23928,6 @@
                 "uses_default_features": true,
                 "optional": false,
                 "target": "cfg(unix)",
-                "tree": "target"
-              },
-              {
-                "name": "pathdiff",
-                "package_key": "pathdiff-0.2.3",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": "cfg(all(unix, not(macos)))",
                 "tree": "target"
               }
             ],
@@ -25427,7 +25461,7 @@
               },
               {
                 "name": "gpu_alloc",
-                "package_key": "gpu-alloc-0.6.0",
+                "package_key": "gpu-alloc-0.6.2",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26682,7 +26716,7 @@
               },
               {
                 "name": "inotify_sys",
-                "package_key": "inotify-sys-0.1.5",
+                "package_key": "inotify-sys-0.1.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26704,7 +26738,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "inotify-sys-0.1.5": {
+          "inotify-sys-0.1.6": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -26762,7 +26796,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "kanchi-0.1.0-bb057535a56dcfbc0627e8e9e74498e63e9d3ff2": {
+          "kanchi-0.1.0-837f57e6c9b52e3d8781a56a46523627765362a0": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -26819,7 +26853,7 @@
               "system"
             ]
           },
-          "mado-0.1.48": {
+          "mado-0.1.49": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -27034,7 +27068,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.0-bb057535a56dcfbc0627e8e9e74498e63e9d3ff2",
+                "package_key": "kanchi-0.1.0-837f57e6c9b52e3d8781a56a46523627765362a0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27104,7 +27138,7 @@
               },
               {
                 "name": "open",
-                "package_key": "open-5.3.5",
+                "package_key": "open-5.3.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27511,7 +27545,7 @@
               "mio"
             ]
           },
-          "open-5.3.5": {
+          "open-5.3.6": {
             "runtime_dependencies": [
               {
                 "name": "is_wsl",
@@ -27531,16 +27565,6 @@
                 "uses_default_features": true,
                 "optional": false,
                 "target": "cfg(unix)",
-                "tree": "target"
-              },
-              {
-                "name": "pathdiff",
-                "package_key": "pathdiff-0.2.3",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": "cfg(all(unix, not(macos)))",
                 "tree": "target"
               }
             ],
@@ -29074,7 +29098,7 @@
               },
               {
                 "name": "gpu_alloc",
-                "package_key": "gpu-alloc-0.6.0",
+                "package_key": "gpu-alloc-0.6.2",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30446,7 +30470,7 @@
               "fallback"
             ]
           },
-          "kanchi-0.1.0-bb057535a56dcfbc0627e8e9e74498e63e9d3ff2": {
+          "kanchi-0.1.0-837f57e6c9b52e3d8781a56a46523627765362a0": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -30560,7 +30584,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.48": {
+          "mado-0.1.49": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -30775,7 +30799,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.0-bb057535a56dcfbc0627e8e9e74498e63e9d3ff2",
+                "package_key": "kanchi-0.1.0-837f57e6c9b52e3d8781a56a46523627765362a0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30884,7 +30908,7 @@
               },
               {
                 "name": "open",
-                "package_key": "open-5.3.5",
+                "package_key": "open-5.3.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32991,7 +33015,7 @@
               "bitflags"
             ]
           },
-          "open-5.3.5": {
+          "open-5.3.6": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -33001,16 +33025,6 @@
                 "uses_default_features": true,
                 "optional": false,
                 "target": "cfg(unix)",
-                "tree": "target"
-              },
-              {
-                "name": "pathdiff",
-                "package_key": "pathdiff-0.2.3",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": "cfg(all(unix, not(macos)))",
                 "tree": "target"
               }
             ],
@@ -33478,7 +33492,7 @@
               },
               {
                 "name": "gpu_alloc",
-                "package_key": "gpu-alloc-0.6.0",
+                "package_key": "gpu-alloc-0.6.2",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34457,7 +34471,7 @@
               },
               {
                 "name": "inotify_sys",
-                "package_key": "inotify-sys-0.1.5",
+                "package_key": "inotify-sys-0.1.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34479,7 +34493,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "inotify-sys-0.1.5": {
+          "inotify-sys-0.1.6": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -34537,7 +34551,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "kanchi-0.1.0-bb057535a56dcfbc0627e8e9e74498e63e9d3ff2": {
+          "kanchi-0.1.0-837f57e6c9b52e3d8781a56a46523627765362a0": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -34594,7 +34608,7 @@
               "system"
             ]
           },
-          "mado-0.1.48": {
+          "mado-0.1.49": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -34809,7 +34823,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.0-bb057535a56dcfbc0627e8e9e74498e63e9d3ff2",
+                "package_key": "kanchi-0.1.0-837f57e6c9b52e3d8781a56a46523627765362a0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34879,7 +34893,7 @@
               },
               {
                 "name": "open",
-                "package_key": "open-5.3.5",
+                "package_key": "open-5.3.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35286,7 +35300,7 @@
               "mio"
             ]
           },
-          "open-5.3.5": {
+          "open-5.3.6": {
             "runtime_dependencies": [
               {
                 "name": "is_wsl",
@@ -35306,16 +35320,6 @@
                 "uses_default_features": true,
                 "optional": false,
                 "target": "cfg(unix)",
-                "tree": "target"
-              },
-              {
-                "name": "pathdiff",
-                "package_key": "pathdiff-0.2.3",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": "cfg(all(unix, not(macos)))",
                 "tree": "target"
               }
             ],
@@ -36829,7 +36833,7 @@
               },
               {
                 "name": "gpu_alloc",
-                "package_key": "gpu-alloc-0.6.0",
+                "package_key": "gpu-alloc-0.6.2",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38058,7 +38062,7 @@
               },
               {
                 "name": "inotify_sys",
-                "package_key": "inotify-sys-0.1.5",
+                "package_key": "inotify-sys-0.1.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38080,7 +38084,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "inotify-sys-0.1.5": {
+          "inotify-sys-0.1.6": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -38138,7 +38142,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "kanchi-0.1.0-bb057535a56dcfbc0627e8e9e74498e63e9d3ff2": {
+          "kanchi-0.1.0-837f57e6c9b52e3d8781a56a46523627765362a0": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -38195,7 +38199,7 @@
               "system"
             ]
           },
-          "mado-0.1.48": {
+          "mado-0.1.49": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -38410,7 +38414,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.0-bb057535a56dcfbc0627e8e9e74498e63e9d3ff2",
+                "package_key": "kanchi-0.1.0-837f57e6c9b52e3d8781a56a46523627765362a0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38480,7 +38484,7 @@
               },
               {
                 "name": "open",
-                "package_key": "open-5.3.5",
+                "package_key": "open-5.3.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38887,7 +38891,7 @@
               "mio"
             ]
           },
-          "open-5.3.5": {
+          "open-5.3.6": {
             "runtime_dependencies": [
               {
                 "name": "is_wsl",
@@ -38907,16 +38911,6 @@
                 "uses_default_features": true,
                 "optional": false,
                 "target": "cfg(unix)",
-                "tree": "target"
-              },
-              {
-                "name": "pathdiff",
-                "package_key": "pathdiff-0.2.3",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": "cfg(all(unix, not(macos)))",
                 "tree": "target"
               }
             ],
@@ -40430,7 +40424,7 @@
               },
               {
                 "name": "gpu_alloc",
-                "package_key": "gpu-alloc-0.6.0",
+                "package_key": "gpu-alloc-0.6.2",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -41188,7 +41182,7 @@
     "arboard-3.6.1": {
       "edition": "2021"
     },
-    "arc-swap-1.9.1": {
+    "arc-swap-1.9.2": {
       "edition": "2018"
     },
     "arrayref-0.3.9": {
@@ -41513,6 +41507,9 @@
     "dyn-clone-1.0.20": {
       "edition": "2018"
     },
+    "egaku-0.1.3-507b0e7be84568bbb5567b2d61f5ce9ab6501882": {
+      "edition": "2024"
+    },
     "egaku-0.1.3-81d168190061c452d115f58f186429b84f489be8": {
       "edition": "2024"
     },
@@ -41690,10 +41687,10 @@
     "glyphon-0.9.0": {
       "edition": "2021"
     },
-    "gpu-alloc-0.6.0": {
+    "gpu-alloc-0.6.2": {
       "edition": "2018"
     },
-    "gpu-alloc-types-0.3.0": {
+    "gpu-alloc-types-0.3.1": {
       "edition": "2018"
     },
     "gpu-descriptor-0.3.2": {
@@ -41801,8 +41798,9 @@
     "inotify-0.11.2": {
       "edition": "2018"
     },
-    "inotify-sys-0.1.5": {
-      "edition": "2015"
+    "inotify-sys-0.1.6": {
+      "edition": "2015",
+      "build_script": "build.rs"
     },
     "inventory-0.3.24": {
       "edition": "2021"
@@ -41834,7 +41832,7 @@
     "kaname-0.1.1-0570e7ec566b60444307fe5873f80f5beda8fe6c": {
       "edition": "2024"
     },
-    "kanchi-0.1.0-bb057535a56dcfbc0627e8e9e74498e63e9d3ff2": {
+    "kanchi-0.1.0-837f57e6c9b52e3d8781a56a46523627765362a0": {
       "edition": "2024"
     },
     "kanshou-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": {
@@ -41905,7 +41903,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.48": {
+    "mado-0.1.49": {
       "edition": "2024",
       "binaries": [
         {
@@ -42072,7 +42070,7 @@
     "once_cell-1.21.4": {
       "edition": "2021"
     },
-    "open-5.3.5": {
+    "open-5.3.6": {
       "edition": "2018",
       "binaries": [
         {
@@ -42126,9 +42124,6 @@
     "pastey-0.2.3": {
       "edition": "2018",
       "proc_macro": true
-    },
-    "pathdiff-0.2.3": {
-      "edition": "2018"
     },
     "pear-0.2.9": {
       "edition": "2018"
@@ -42388,7 +42383,7 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "rustls-pki-types-1.14.1": {
+    "rustls-pki-types-1.15.0": {
       "edition": "2021"
     },
     "rustls-webpki-0.103.13": {
@@ -42548,7 +42543,7 @@
     "shidou-0.1.8-b0929681f6f4323177b86e350c82ec3f9f61869f": {
       "edition": "2024"
     },
-    "shikumi-0.1.107-79220e7b4d9980736b63a742c43f5e13f507681c": {
+    "shikumi-0.1.108-5a9495dd6eb7326e58fcfb9952014eccd2ef30af": {
       "edition": "2024"
     },
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": {
@@ -42674,14 +42669,14 @@
     "tap-1.0.1": {
       "edition": "2015"
     },
-    "tatara-lisp-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6": {
+    "tatara-lisp-0.2.4-546c894ed9e913a7f6be8839722873535a33e909": {
       "edition": "2021"
     },
-    "tatara-lisp-derive-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6": {
+    "tatara-lisp-derive-0.2.4-546c894ed9e913a7f6be8839722873535a33e909": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-lisp-eval-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6": {
+    "tatara-lisp-eval-0.2.4-546c894ed9e913a7f6be8839722873535a33e909": {
       "edition": "2021"
     },
     "tear-client-0.1.5-8200ab19c786d562b03a82f91adec0878a8a9c0b": {
@@ -42727,13 +42722,13 @@
     "tiff-0.11.3": {
       "edition": "2021"
     },
-    "time-0.3.51": {
+    "time-0.3.53": {
       "edition": "2024"
     },
     "time-core-0.1.9": {
       "edition": "2024"
     },
-    "time-macros-0.2.30": {
+    "time-macros-0.2.31": {
       "edition": "2024",
       "proc_macro": true
     },
@@ -43141,6 +43136,7 @@
   },
   "git_nar_sha256": {
     "awase-0.1.1-25880f6a1dddb6d8d589207e8afc2a5a73969ee0": "sha256-UvuzaneHM+C0wq3+uZ+sf6GEv5JDB1e/sJ2SuA7kJuQ=",
+    "egaku-0.1.3-507b0e7be84568bbb5567b2d61f5ce9ab6501882": "sha256-22bq167+Cgkz6bEnOgBZKGZ67V6YtLh/+rQtj5X2bp4=",
     "egaku-0.1.3-81d168190061c452d115f58f186429b84f489be8": "sha256-sNTpm8OD42MDucjVuV5ag1xcoMZatDk4GVIuRFRLa4c=",
     "engate-attach-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": "sha256-7dqrUg3KMEKH5ac5RuK7EJRogt4H3xtv6nDrM0jpccM=",
     "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": "sha256-7dqrUg3KMEKH5ac5RuK7EJRogt4H3xtv6nDrM0jpccM=",
@@ -43154,7 +43150,7 @@
     "irodzuki-0.1.7-28a0f5ed6d038d3bf1ec43eb9ae0b482ad85e506": "sha256-FLNMG+F1ZVpmjwpHq/eMys0MYjnWHr63B7vmZQWyo9w=",
     "ishou-tokens-0.1.3-47e7e58da1d279b63d6ae464b0244d606741fea6": "sha256-U9i60aKk/BvmGCl8xmXg4NTDoeVZ57thlB0dF9qy49Q=",
     "kaname-0.1.1-0570e7ec566b60444307fe5873f80f5beda8fe6c": "sha256-ue2v9p/Eq+z3hmCaL63toSyjpDY6s3H1gGBUFBOX3ek=",
-    "kanchi-0.1.0-bb057535a56dcfbc0627e8e9e74498e63e9d3ff2": "sha256-GMMX6pwMRyxHqie5Rr5XyjhnGGiYahv7t8z6LwTHLJk=",
+    "kanchi-0.1.0-837f57e6c9b52e3d8781a56a46523627765362a0": "sha256-kxa3GKByEottN8fR/gQF4KGd/lu54j8DRGbwdrOjFhM=",
     "kanshou-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
     "kanshou-derive-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
     "madori-0.1.5-79b33a4811853f1a8153735a69fb58bde894c2d9": "sha256-35DB90eBg+O8Ie2w8R4sfZr4B4NG+FPbUfwePl0x9qw=",
@@ -43165,11 +43161,11 @@
     "pleme-kindstr-derive-0.1.0-d287f915e9bb8837a443f6238ee900e81318ce89": "sha256-5XDr9kPiT0doWBOOk9yXjxdTCpRgaqWWJCpsc1f+tdw=",
     "praca-0.1.5-8200ab19c786d562b03a82f91adec0878a8a9c0b": "sha256-6c39pcaEWKN0js+QpQmxrKU0D1c6ptYMu2h4mbusQu8=",
     "shidou-0.1.8-b0929681f6f4323177b86e350c82ec3f9f61869f": "sha256-LteP9mCB8rSjBdbb9r/uh5URZ5XTPDDoNxSKy5mMD8A=",
-    "shikumi-0.1.107-79220e7b4d9980736b63a742c43f5e13f507681c": "sha256-kBoCFEhmFV2hQe999RNsv8oFrNuibzcs0X/2jaGwz50=",
+    "shikumi-0.1.108-5a9495dd6eb7326e58fcfb9952014eccd2ef30af": "sha256-iAJXr2SJb0+fVH+zWBxSRCHHBm43qtlxW7meGvjVygA=",
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": "sha256-Jd6fUoNSdzk+I5iu7FbAg9F9gbc7oU9jdPnnaTIxL6w=",
-    "tatara-lisp-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6": "sha256-sknlm2aQVNND1NFuQ/iZw27NS7rOTUsBxKTpgMTby2g=",
-    "tatara-lisp-derive-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6": "sha256-sknlm2aQVNND1NFuQ/iZw27NS7rOTUsBxKTpgMTby2g=",
-    "tatara-lisp-eval-0.2.4-e9a60a6f21b1c28025399ad18789311b2a69e9c6": "sha256-sknlm2aQVNND1NFuQ/iZw27NS7rOTUsBxKTpgMTby2g=",
+    "tatara-lisp-0.2.4-546c894ed9e913a7f6be8839722873535a33e909": "sha256-cw2Nmo0sak5Gx8TN/xHj2JQoP/MSY8nHT53iFkbX4hA=",
+    "tatara-lisp-derive-0.2.4-546c894ed9e913a7f6be8839722873535a33e909": "sha256-cw2Nmo0sak5Gx8TN/xHj2JQoP/MSY8nHT53iFkbX4hA=",
+    "tatara-lisp-eval-0.2.4-546c894ed9e913a7f6be8839722873535a33e909": "sha256-cw2Nmo0sak5Gx8TN/xHj2JQoP/MSY8nHT53iFkbX4hA=",
     "tear-client-0.1.5-8200ab19c786d562b03a82f91adec0878a8a9c0b": "sha256-6c39pcaEWKN0js+QpQmxrKU0D1c6ptYMu2h4mbusQu8=",
     "tear-config-0.1.5-8200ab19c786d562b03a82f91adec0878a8a9c0b": "sha256-6c39pcaEWKN0js+QpQmxrKU0D1c6ptYMu2h4mbusQu8=",
     "tear-core-0.1.5-8200ab19c786d562b03a82f91adec0878a8a9c0b": "sha256-6c39pcaEWKN0js+QpQmxrKU0D1c6ptYMu2h4mbusQu8=",
