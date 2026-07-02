@@ -4896,15 +4896,15 @@ rec {
         ];
 
       };
-      "git+https://github.com/pleme-io/shikumi#0.1.109" = rec {
+      "git+https://github.com/pleme-io/shikumi#0.1.110" = rec {
         crateName = "shikumi";
-        version = "0.1.109";
+        version = "0.1.110";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
-          rev = "8b1d1dc0249bab41cbd38085454194f00b427338";
-          sha256 = "1vrmsjgnnnbir6pilgyx2d70knplygycayv2ryn8gs1szg0ynqsb";
+          rev = "289485c3f6737b54fc6ffdb3b494f418419c4fec";
+          sha256 = "1r5rf87938dadk86kmrm5lsqw70rg4rjq4bqb85r846kbixjpvbv";
         };
         dependencies = [
           {
@@ -4983,15 +4983,15 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" ];
       };
-      "git+https://github.com/pleme-io/shikumi?branch=main#0.1.109" = rec {
+      "git+https://github.com/pleme-io/shikumi?branch=main#0.1.110" = rec {
         crateName = "shikumi";
-        version = "0.1.109";
+        version = "0.1.110";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
-          rev = "8b1d1dc0249bab41cbd38085454194f00b427338";
-          sha256 = "1vrmsjgnnnbir6pilgyx2d70knplygycayv2ryn8gs1szg0ynqsb";
+          rev = "289485c3f6737b54fc6ffdb3b494f418419c4fec";
+          sha256 = "1r5rf87938dadk86kmrm5lsqw70rg4rjq4bqb85r846kbixjpvbv";
         };
         dependencies = [
           {
@@ -6443,9 +6443,9 @@ rec {
       };
       "inotify-sys" = rec {
         crateName = "inotify-sys";
-        version = "0.1.6";
+        version = "0.1.7";
         edition = "2015";
-        sha256 = "1c6h0r0lqhfjyqfnh907dzx56iigbh8adjifv996jlqnr90rgnkg";
+        sha256 = "1z86mv4y3dswk9jb2l5dv3d4f8m4vjfyd2wrkip841in3f4lxacy";
         libName = "inotify_sys";
         authors = [
           "Hanno Braun <hb@hannobraun.de>"
@@ -6456,7 +6456,8 @@ rec {
             packageId = "libc";
           }
         ];
-
+        features = {
+        };
       };
       "inventory" = rec {
         crateName = "inventory";
@@ -7488,7 +7489,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.52";
+        version = "0.1.53";
         edition = "2024";
         crateBin = [
           {
@@ -17020,7 +17021,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "git+https://github.com/pleme-io/shikumi#0.1.109";
+            packageId = "git+https://github.com/pleme-io/shikumi#0.1.110";
           }
           {
             name = "serde";
@@ -19052,7 +19053,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "git+https://github.com/pleme-io/shikumi?branch=main#0.1.109";
+            packageId = "git+https://github.com/pleme-io/shikumi?branch=main#0.1.110";
             features = [ "cli" ];
           }
           {
@@ -28409,15 +28410,7 @@ rec {
                 )
                 crateConfigs;
               target = makeTarget pkgs.stdenv.hostPlatform;
-              # Build-time dependency graph (for proc-macros and build
-              # dependencies). When not cross-compiling it equals the host
-              # graph, so reuse `self`; otherwise build it for
-              # `pkgs.buildPackages`.
-              build =
-                if pkgs.stdenv.buildPlatform.config == pkgs.stdenv.hostPlatform.config then
-                  self
-                else
-                  mkBuiltByPackageIdByPkgs pkgs.buildPackages;
+              build = mkBuiltByPackageIdByPkgs pkgs.buildPackages;
             };
           in
           self;
@@ -28433,35 +28426,38 @@ rec {
             devDependencies = lib.optionals (runTests && packageId == rootPackageId) (
               crateConfig'.devDependencies or [ ]
             );
-            # Enabled (platform- and feature-filtered) dependency lists, reused
-            # for both derivation wiring and the crate renames below.
-            enabledDependencies = filterEnabledDependencies {
+            dependencies = dependencyDerivations {
               inherit features;
               inherit (self) target;
+              buildByPackageId =
+                depPackageId:
+                # proc_macro crates must be compiled for the build architecture
+                if crateConfigs.${depPackageId}.procMacro or false then
+                  self.build.crates.${depPackageId}
+                else
+                  self.crates.${depPackageId};
               dependencies = (crateConfig.dependencies or [ ]) ++ devDependencies;
             };
-            enabledBuildDependencies = filterEnabledDependencies {
+            buildDependencies = dependencyDerivations {
               inherit features;
               inherit (self.build) target;
+              buildByPackageId = depPackageId: self.build.crates.${depPackageId};
               dependencies = crateConfig.buildDependencies or [ ];
             };
-            dependencies = map
-              (
-                dependency:
-                # proc_macro crates must be compiled for the build architecture
-                if crateConfigs.${dependency.packageId}.procMacro or false then
-                  self.build.crates.${dependency.packageId}
-                else
-                  self.crates.${dependency.packageId}
-              )
-              enabledDependencies;
-            buildDependencies = map
-              (dependency: self.build.crates.${dependency.packageId})
-              enabledBuildDependencies;
-            # Order (build dependencies, then normal dependencies) feeds the
-            # crateRenames grouping below.
             dependenciesWithRenames =
-              lib.filter (d: d ? "rename") (enabledBuildDependencies ++ enabledDependencies);
+              let
+                buildDeps = filterEnabledDependencies {
+                  inherit features;
+                  inherit (self) target;
+                  dependencies = crateConfig.dependencies or [ ] ++ devDependencies;
+                };
+                hostDeps = filterEnabledDependencies {
+                  inherit features;
+                  inherit (self.build) target;
+                  dependencies = crateConfig.buildDependencies or [ ];
+                };
+              in
+              lib.filter (d: d ? "rename") (hostDeps ++ buildDeps);
             # Crate renames have the form:
             #
             # {
@@ -28633,17 +28629,6 @@ rec {
     corresponding feature sets are merged. Features in rust are additive.
   */
   mergePackageFeatures =
-    args: builtins.mapAttrs (_packageId: builtins.attrNames) (mergePackageFeaturesImpl args);
-
-  /*
-    Core of the feature-resolution fixpoint. The cache (`featuresByPackageId`)
-    maps each packageId to a feature *set* (an attrset `feature -> 1`) rather
-    than a sorted list, so the fold merges with `//` and detects convergence
-    with attrset equality instead of re-concatenating and re-sorting the
-    accumulated feature list on every step. `mergePackageFeatures` projects the
-    result back to canonical sorted lists.
-  */
-  mergePackageFeaturesImpl =
     { crateConfigs ? crates
     , packageId
     , rootPackageId ? packageId
@@ -28692,15 +28677,14 @@ rec {
               cache:
               { packageId, features }:
               let
-                cacheFeatures = cache.${packageId} or { };
-                # `features` is the (small) incoming list; merge it into the set.
-                combinedFeatures = cacheFeatures // listToSet features;
+                cacheFeatures = cache.${packageId} or [ ];
+                combinedFeatures = sortedUnique (cacheFeatures ++ features);
               in
-              if cache ? ${packageId} && cacheFeatures == combinedFeatures then
+              if cache ? ${packageId} && cache.${packageId} == combinedFeatures then
                 cache
               else
-                mergePackageFeaturesImpl {
-                  features = builtins.attrNames combinedFeatures;
+                mergePackageFeatures {
+                  features = combinedFeatures;
                   featuresByPackageId = cache;
                   inherit
                     crateConfigs
@@ -28713,8 +28697,8 @@ rec {
             );
         cacheWithSelf =
           let
-            cacheFeatures = featuresByPackageId.${packageId} or { };
-            combinedFeatures = cacheFeatures // listToSet enabledFeatures;
+            cacheFeatures = featuresByPackageId.${packageId} or [ ];
+            combinedFeatures = sortedUnique (cacheFeatures ++ enabledFeatures);
           in
           featuresByPackageId
           // {
@@ -28741,31 +28725,27 @@ rec {
       assert (builtins.isList features);
       assert (builtins.isAttrs target);
 
-      let
-        # Identical for every dep in this call; build the predicate arg once.
-        targetArgs = { inherit features target; };
-      in
       lib.filter
         (
           dep:
-          (dep.target or (features: true)) targetArgs
+          let
+            targetFunc = dep.target or (features: true);
+          in
+          targetFunc { inherit features target; }
           && (!(dep.optional or false) || builtins.any (doesFeatureEnableDependency dep) features)
         )
         dependencies;
 
   # Returns whether the given feature should enable the given dependency.
   doesFeatureEnableDependency =
-    dependency:
-    # Callers partially apply this once per dependency, then test every feature,
-    # so hoist the dep-invariant strings out of the per-feature comparison.
+    dependency: feature:
     let
       name = dependency.rename or dependency.name;
-      depName = "dep:" + name;
       prefix = "${name}/";
       len = builtins.stringLength prefix;
+      startsWithPrefix = builtins.substring 0 len feature == prefix;
     in
-    feature:
-    feature == name || feature == depName || builtins.substring 0 len feature == prefix;
+    feature == name || feature == "dep:" + name || startsWithPrefix;
 
   /*
     Returns the expanded features for the given inputFeatures by applying the
@@ -28779,24 +28759,29 @@ rec {
       assert (builtins.isAttrs featureMap);
       assert (builtins.isList inputFeatures);
       let
-        # Transitive closure of `inputFeatures` under `featureMap`. `seen`
-        # tracks already-expanded features so each is visited at most once;
-        # this also breaks feature cycles (issue #209).
         expandFeaturesNoCycle =
-          seen: features:
-          builtins.foldl'
-            (
-              acc: feature:
-              if acc ? ${feature} then
-                acc
-              else
-                expandFeaturesNoCycle (acc // { ${feature} = 1; }) (featureMap.${feature} or [ ])
-            )
-            seen
-            features;
-        seen = expandFeaturesNoCycle { } inputFeatures;
+          oldSeen: inputFeatures:
+          if inputFeatures != [ ] then
+            let
+              # The feature we're currently expanding.
+              feature = builtins.head inputFeatures;
+              # All the features we've seen/expanded so far, including the one
+              # we're currently processing.
+              seen = oldSeen // {
+                ${feature} = 1;
+              };
+              # Expand the feature but be careful to not re-introduce a feature
+              # that we've already seen: this can easily cause a cycle, see issue
+              # #209.
+              enables = builtins.filter (f: !(seen ? "${f}")) (featureMap."${feature}" or [ ]);
+            in
+            [ feature ] ++ (expandFeaturesNoCycle seen (builtins.tail inputFeatures ++ enables))
+          # No more features left, nothing to expand to.
+          else
+            [ ];
+        outFeatures = expandFeaturesNoCycle { } inputFeatures;
       in
-      sortedUnique (builtins.attrNames seen);
+      sortedUnique outFeatures;
 
   /*
     This function adds optional dependencies as features if they are enabled
@@ -28855,19 +28840,16 @@ rec {
       in
       defaultOrNil ++ explicitFeatures ++ additionalDependencyFeatures;
 
-  # Builds a feature set (attrset `feature -> 1`) from a list of feature names.
-  listToSet =
-    features:
-    builtins.listToAttrs (map (feature: { name = feature; value = 1; }) features);
-
   # Sorts and removes duplicates from a list of strings.
   sortedUnique =
     features:
       assert (builtins.isList features);
-      # attrNames returns keys in ascending string order, so the result is
-      # sorted and deduplicated. The feature-merge fixpoint relies on this
-      # canonical order to detect convergence.
-      builtins.attrNames (listToSet features);
+      assert (builtins.all builtins.isString features);
+      let
+        outFeaturesSet = lib.foldl (set: feature: set // { "${feature}" = 1; }) { } features;
+        outFeaturesUnique = builtins.attrNames outFeaturesSet;
+      in
+      builtins.sort (a: b: a < b) outFeaturesUnique;
 
   deprecationWarning =
     message: value:
