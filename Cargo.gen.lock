@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "e777953109b75a75d41fc47c0fd60985926ad8eef7290516ad3c9f10bb2c7b27",
+  "cargo_lock_sha256": "d0a57f94b010376e68ace44a64688ed83ec6199030fe127bb2c4a3243cc40144",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -11668,7 +11668,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.108-5a9495dd6eb7326e58fcfb9952014eccd2ef30af",
+            "package_key": "shikumi-0.1.109-904b9428c6cd5082a2e1dc26895ddcb6a7f28acb",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11715,7 +11715,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.108-5a9495dd6eb7326e58fcfb9952014eccd2ef30af": {
+      "shikumi-0.1.109-904b9428c6cd5082a2e1dc26895ddcb6a7f28acb": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -14612,7 +14612,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.108-5a9495dd6eb7326e58fcfb9952014eccd2ef30af",
+            "package_key": "shikumi-0.1.109-904b9428c6cd5082a2e1dc26895ddcb6a7f28acb",
             "kind": "normal",
             "features": [
               "cli"
@@ -19146,7 +19146,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.49": {
+          "mado-0.1.50": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -23216,7 +23216,7 @@
               "system"
             ]
           },
-          "mado-0.1.49": {
+          "mado-0.1.50": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26853,7 +26853,7 @@
               "system"
             ]
           },
-          "mado-0.1.49": {
+          "mado-0.1.50": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -30584,7 +30584,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.49": {
+          "mado-0.1.50": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -34608,7 +34608,7 @@
               "system"
             ]
           },
-          "mado-0.1.49": {
+          "mado-0.1.50": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -38199,7 +38199,7 @@
               "system"
             ]
           },
-          "mado-0.1.49": {
+          "mado-0.1.50": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -41903,7 +41903,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.49": {
+    "mado-0.1.50": {
       "edition": "2024",
       "binaries": [
         {
@@ -42543,7 +42543,7 @@
     "shidou-0.1.8-b0929681f6f4323177b86e350c82ec3f9f61869f": {
       "edition": "2024"
     },
-    "shikumi-0.1.108-5a9495dd6eb7326e58fcfb9952014eccd2ef30af": {
+    "shikumi-0.1.109-904b9428c6cd5082a2e1dc26895ddcb6a7f28acb": {
       "edition": "2024"
     },
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": {
@@ -43161,7 +43161,7 @@
     "pleme-kindstr-derive-0.1.0-d287f915e9bb8837a443f6238ee900e81318ce89": "sha256-5XDr9kPiT0doWBOOk9yXjxdTCpRgaqWWJCpsc1f+tdw=",
     "praca-0.1.5-8200ab19c786d562b03a82f91adec0878a8a9c0b": "sha256-6c39pcaEWKN0js+QpQmxrKU0D1c6ptYMu2h4mbusQu8=",
     "shidou-0.1.8-b0929681f6f4323177b86e350c82ec3f9f61869f": "sha256-LteP9mCB8rSjBdbb9r/uh5URZ5XTPDDoNxSKy5mMD8A=",
-    "shikumi-0.1.108-5a9495dd6eb7326e58fcfb9952014eccd2ef30af": "sha256-iAJXr2SJb0+fVH+zWBxSRCHHBm43qtlxW7meGvjVygA=",
+    "shikumi-0.1.109-904b9428c6cd5082a2e1dc26895ddcb6a7f28acb": "sha256-E5apBONa91YbG/KqX2SKZ1C2O91VfSZ8hx09RxeJNRg=",
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": "sha256-Jd6fUoNSdzk+I5iu7FbAg9F9gbc7oU9jdPnnaTIxL6w=",
     "tatara-lisp-0.2.4-546c894ed9e913a7f6be8839722873535a33e909": "sha256-cw2Nmo0sak5Gx8TN/xHj2JQoP/MSY8nHT53iFkbX4hA=",
     "tatara-lisp-derive-0.2.4-546c894ed9e913a7f6be8839722873535a33e909": "sha256-cw2Nmo0sak5Gx8TN/xHj2JQoP/MSY8nHT53iFkbX4hA=",
