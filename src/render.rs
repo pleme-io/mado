@@ -247,6 +247,33 @@ impl RectInstance {
 /// picker the centred origin is far from the edges, so the clamp is a no-op;
 /// it only catches the degenerate oversize case. Regression invariant:
 /// `centered_panel_is_central_never_top_left`.
+/// Choose which overlay line indices to render so the popup NEVER exceeds
+/// the viewport. When the full list fits (`n <= max_lines`) every line shows,
+/// in order. When it doesn't, the first line (the title) is always kept and
+/// the body (`lines[1..]`) is scrolled so the `selected` row stays visible —
+/// so an over-long board renders as a centred, viewport-bounded card rather
+/// than pinning to a corner and running off the bottom (the "sized for full
+/// screen" Ctrl-S report, 2026-07-02). Pure index math so it is unit-testable
+/// without a GPU. Regression invariant: `overlay_window_keeps_selected_visible`.
+fn viewport_line_window(n: usize, selected: Option<usize>, max_lines: usize) -> Vec<usize> {
+    if max_lines == 0 || n <= max_lines {
+        return (0..n).collect();
+    }
+    // Keep the title (line 0); scroll the body (lines 1..n) within the budget.
+    let budget = max_lines.saturating_sub(1).max(1);
+    let body_len = n - 1;
+    let sel_body = selected.unwrap_or(0).saturating_sub(1);
+    let start_body = sel_body
+        .saturating_sub(budget - 1)
+        .min(body_len.saturating_sub(budget));
+    let mut idx = Vec::with_capacity(max_lines);
+    idx.push(0);
+    for b in start_body..(start_body + budget).min(body_len) {
+        idx.push(1 + b);
+    }
+    idx
+}
+
 fn centered_panel_geom(
     left: f32,
     top0: f32,
@@ -2073,7 +2100,22 @@ impl TerminalRenderer {
         }
 
         let pad = self.padding_px();
-        let block_h = spec.lines.len() as f32 * line_h;
+        let pad_y = line_h * 0.5;
+        // Cap the rendered lines to those that fit the viewport (panel height
+        // = block_h + 2*pad_y must fit within `height - 2*pad`), so the popup
+        // is always a centred, viewport-bounded card — never an oversized
+        // panel pinned to a corner and clipped (the Ctrl-S "sized for full
+        // screen" report). Keeps the title + the selected row visible.
+        let max_lines = (((height as f32 - 2.0 * pad - 2.0 * pad_y) / line_h).floor() as i64)
+            .max(1) as usize;
+        let sel_idx = spec.lines.iter().position(|l| l.role == LineRole::Selected);
+        let vis = viewport_line_window(spec.lines.len(), sel_idx, max_lines);
+        let vis_max_w = || {
+            vis.iter()
+                .flat_map(|&i| buffers[i].layout_runs())
+                .fold(0.0_f32, |m, run| m.max(run.line_w))
+        };
+        let block_h = vis.len() as f32 * line_h;
         let edge_left = pad + self.cell_width * 2.0;
         let (left, top0) = match spec.anchor {
             PickerAnchor::Top => (edge_left, pad + self.cell_height),
@@ -2082,10 +2124,7 @@ impl TerminalRenderer {
                 (height as f32 - block_h - pad).max(pad),
             ),
             PickerAnchor::Center => {
-                let max_w = buffers
-                    .iter()
-                    .flat_map(glyphon::Buffer::layout_runs)
-                    .fold(0.0_f32, |m, run| m.max(run.line_w));
+                let max_w = vis_max_w();
                 (
                     ((width as f32 - max_w) / 2.0).max(pad),
                     ((height as f32 - block_h) / 2.0).max(pad),
@@ -2101,12 +2140,8 @@ impl TerminalRenderer {
         // the selected row. Drawn through the rect pipeline FIRST; the text
         // pass below lands on top. Top/Bottom stay text-only (unchanged).
         if matches!(spec.anchor, PickerAnchor::Center) {
-            let content_w = buffers
-                .iter()
-                .flat_map(glyphon::Buffer::layout_runs)
-                .fold(0.0_f32, |m, run| m.max(run.line_w));
+            let content_w = vis_max_w();
             let pad_x = self.cell_width * 2.0;
-            let pad_y = line_h * 0.5;
             let (px, py, pw, ph) =
                 centered_panel_geom(left, top0, content_w, block_h, pad, pad_x, pad_y);
             let radius = (line_h * 0.55).min(pw.min(ph) / 2.0);
@@ -2148,9 +2183,11 @@ impl TerminalRenderer {
                 radius,
                 lin(style.panel, 1.0),
             ));
-            // Highlight bar behind the selected row.
-            if let Some(sel_idx) = spec.lines.iter().position(|l| l.role == LineRole::Selected) {
-                let bar_y = top0 + sel_idx as f32 * line_h;
+            // Highlight bar behind the selected row — at its VISIBLE position
+            // within the windowed line list (the selected row is always kept
+            // visible by `viewport_line_window`), not its absolute index.
+            if let Some(vis_pos) = sel_idx.and_then(|s| vis.iter().position(|&i| i == s)) {
+                let bar_y = top0 + vis_pos as f32 * line_h;
                 rects.push(RectInstance::rounded(
                     [px + pad_x * 0.5, bar_y],
                     [pw - pad_x, line_h],
@@ -2205,12 +2242,15 @@ impl TerminalRenderer {
             GlyphonColor::rgba(c.r, c.g, c.b, line.alpha)
         };
 
-        let mut text_areas = Vec::with_capacity(buffers.len());
-        for (idx, (buf, line)) in buffers.iter().zip(&spec.lines).enumerate() {
+        // Render only the visible (viewport-fitted) lines, each at its VISIBLE
+        // row position so the block stays flush with the centred card.
+        let mut text_areas = Vec::with_capacity(vis.len());
+        for (row, &i) in vis.iter().enumerate() {
+            let line = &spec.lines[i];
             text_areas.push(glyphon::TextArea {
-                buffer: buf,
+                buffer: &buffers[i],
                 left,
-                top: top0 + (idx as f32) * line_h,
+                top: top0 + (row as f32) * line_h,
                 scale: 1.0,
                 bounds: glyphon::TextBounds {
                     left: 0,
@@ -5236,6 +5276,31 @@ mod render_invariants {
     }
 
     #[test]
+    fn overlay_window_keeps_selected_visible() {
+        // Fits → every line, in order.
+        assert_eq!(viewport_line_window(5, Some(2), 12), vec![0, 1, 2, 3, 4]);
+        assert_eq!(viewport_line_window(5, None, 5), vec![0, 1, 2, 3, 4]);
+
+        // Overflow: budget = max_lines - 1 body rows + the title (line 0).
+        // A low selection shows the title + the top of the body.
+        let w = viewport_line_window(30, Some(1), 6);
+        assert_eq!(w.len(), 6, "window must cap to max_lines");
+        assert_eq!(w[0], 0, "title (line 0) is always kept");
+        assert!(w.contains(&1), "selected row must be visible");
+
+        // A deep selection scrolls the body so the selected row stays in view.
+        let w = viewport_line_window(30, Some(25), 6);
+        assert_eq!(w.len(), 6);
+        assert_eq!(w[0], 0, "title stays pinned even when scrolled");
+        assert!(w.contains(&25), "deep selection must remain visible, got {w:?}");
+        assert!(!w.contains(&29) || w.contains(&25), "must not scroll past selection");
+
+        // Degenerate max_lines: never panics, never empty.
+        assert_eq!(viewport_line_window(0, None, 0), Vec::<usize>::new());
+        assert_eq!(viewport_line_window(4, Some(0), 0), vec![0, 1, 2, 3]);
+    }
+
+    #[test]
     fn glyph_columns_are_true_grid_indices_not_a_width_sum() {
         // "🦀a中b" as the terminal stores it:
         //   🦀(0) · cont(1) · a(2) · 中(3) · cont(4) · b(5)
@@ -7821,6 +7886,108 @@ mod render_gpu_invariants {
             r.render(&mut ctx);
         });
         assert!(assert_no_magenta_pixels(&pixels, 128, 64).is_ok());
+    }
+
+    /// The frost border bbox of the Center-anchored overlay card, rendered
+    /// at `(w, h)` with `n_rows` body rows. Returns `(min_x,min_y,max_x,max_y,count)`.
+    fn center_overlay_border_bbox(
+        gpu: &GpuContext,
+        w: u32,
+        h: u32,
+        n_rows: usize,
+    ) -> (u32, u32, u32, u32, u32) {
+        use crate::config::PickerAnchor;
+        use crate::picker::component::{LineRole, OverlayLine, OverlaySpec};
+        use garasu::headless::HeadlessHarness;
+        let mut harness = HeadlessHarness::new(gpu, w, h, SURFACE_FORMAT);
+        let (mut r, _t, _drop) = build_gpu_renderer(gpu, 80, 24);
+
+        let mut lines = vec![OverlayLine::new("\u{25b6} session  \u{2588}", LineRole::Title)];
+        for i in 0..n_rows {
+            let role = if i == 3 { LineRole::Selected } else { LineRole::Row };
+            lines.push(OverlayLine::new(format!("  \u{203a} suggestion row {i}"), role));
+        }
+        lines.push(OverlayLine::new("  blind lanes: none", LineRole::Hint));
+        let spec = OverlaySpec::new(PickerAnchor::Center, lines);
+
+        let pixels = harness.render_one_frame(gpu, |text, view, fw, fh| {
+            r.measure_cell_metrics(text);
+            r.ensure_layers(text, &gpu.device);
+            let mut frame = text.begin_frame(fw, fh);
+            let mut enc = gpu.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("test_center_overlay"),
+            });
+            r.draw_overlay(&spec, &mut frame, gpu, view, fw, fh, &mut enc);
+            drop(frame);
+            gpu.queue.submit(std::iter::once(enc.finish()));
+        });
+
+        // Frost cyan border #88C0D0. Bgra8 readback → bytes [B, G, R, A].
+        let (mut min_x, mut min_y, mut max_x, mut max_y, mut count) =
+            (u32::MAX, u32::MAX, 0u32, 0u32, 0u32);
+        for y in 0..h {
+            for x in 0..w {
+                let p = garasu::headless::pixel_at(&pixels, w, x, y);
+                let (b, g, rr) = (i32::from(p[0]), i32::from(p[1]), i32::from(p[2]));
+                if b > 150 && g > 140 && rr < b - 30 && rr < g - 30 {
+                    min_x = min_x.min(x);
+                    min_y = min_y.min(y);
+                    max_x = max_x.max(x);
+                    max_y = max_y.max(y);
+                    count += 1;
+                }
+            }
+        }
+        (min_x, min_y, max_x, max_y, count)
+    }
+
+    /// Regression: the Ctrl-S Center popup must sit in the MIDDLE of the
+    /// window at ANY window size — fitting OR overflowing content. The
+    /// operator report (2026-07-02): "it seems to be sized for when the
+    /// screen is full screen but it needs to be in the center no matter
+    /// what" — an overflowing board pinned to the top-left corner and ran
+    /// off the bottom/right of a smaller window.
+    #[test]
+    fn ctrl_s_center_popup_is_centered_at_any_window_size() {
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+
+        // Case A — fitting content in a non-square, non-fullscreen window.
+        let (w, h) = (900u32, 560u32);
+        let (x0, y0, x1, y1, n) = center_overlay_border_bbox(&gpu, w, h, 10);
+        assert!(n > 100, "case A: expected a frost-bordered card, found {n} px");
+        let (cx, cy) = ((x0 + x1) as f32 / 2.0, (y0 + y1) as f32 / 2.0);
+        assert!(
+            (cx - w as f32 / 2.0).abs() < w as f32 * 0.08,
+            "case A: card h-center {cx} off window center {} (x {x0}..{x1})",
+            w as f32 / 2.0
+        );
+        assert!(
+            (cy - h as f32 / 2.0).abs() < h as f32 * 0.08,
+            "case A: card v-center {cy} off window center {} (y {y0}..{y1})",
+            h as f32 / 2.0
+        );
+
+        // Case B — a board with more rows than fit a SHORT window. The
+        // popup must still be centered (never corner-pinned + overflowing).
+        let (w, h) = (900u32, 300u32);
+        let (bx0, by0, bx1, by1, bn) = center_overlay_border_bbox(&gpu, w, h, 24);
+        assert!(bn > 100, "case B: expected a frost-bordered card, found {bn} px");
+        let (bcx, bcy) = ((bx0 + bx1) as f32 / 2.0, (by0 + by1) as f32 / 2.0);
+        // The card must fit inside the window (top and bottom borders visible).
+        assert!(
+            by0 > 0 && by1 < h - 1,
+            "case B: card overflows window vertically (y {by0}..{by1}, h {h})"
+        );
+        assert!(
+            (bcx - w as f32 / 2.0).abs() < w as f32 * 0.08,
+            "case B: card h-center {bcx} off window center {} (x {bx0}..{bx1})",
+            w as f32 / 2.0
+        );
+        assert!(
+            (bcy - h as f32 / 2.0).abs() < h as f32 * 0.08,
+            "case B: card v-center {bcy} off window center {} (y {by0}..{by1})",
+            h as f32 / 2.0
+        );
     }
 }
 
