@@ -2451,7 +2451,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.50"
+version = "0.1.51"
 dependencies = [
  "anyhow",
  "awase",
@@ -4790,7 +4790,7 @@ dependencies = [
 [[package]]
 name = "shikumi"
 version = "0.1.109"
-source = "git+https://github.com/pleme-io/shikumi?branch=main#904b9428c6cd5082a2e1dc26895ddcb6a7f28acb"
+source = "git+https://github.com/pleme-io/shikumi?branch=main#8b1d1dc0249bab41cbd38085454194f00b427338"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -4809,7 +4809,7 @@ dependencies = [
 [[package]]
 name = "shikumi"
 version = "0.1.109"
-source = "git+https://github.com/pleme-io/shikumi#904b9428c6cd5082a2e1dc26895ddcb6a7f28acb"
+source = "git+https://github.com/pleme-io/shikumi#8b1d1dc0249bab41cbd38085454194f00b427338"
 dependencies = [
  "arc-swap",
  "async-trait",
