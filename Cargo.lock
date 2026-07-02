@@ -1113,18 +1113,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "egaku"
-version = "0.1.3"
-source = "git+https://github.com/pleme-io/egaku#507b0e7be84568bbb5567b2d61f5ce9ab6501882"
-dependencies = [
- "serde",
- "thiserror 2.0.18",
- "tracing",
- "unicode-segmentation",
- "unicode-width",
-]
-
-[[package]]
 name = "either"
 version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2100,10 +2088,10 @@ dependencies = [
 [[package]]
 name = "irodzuki"
 version = "0.1.7"
-source = "git+https://github.com/pleme-io/irodzuki#28a0f5ed6d038d3bf1ec43eb9ae0b482ad85e506"
+source = "git+https://github.com/pleme-io/irodzuki?rev=d3bfe781e9c813164a37a0e0a1eeef16f5be9515#d3bfe781e9c813164a37a0e0a1eeef16f5be9515"
 dependencies = [
  "bytemuck",
- "egaku 0.1.3 (git+https://github.com/pleme-io/egaku)",
+ "egaku",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -2523,7 +2511,7 @@ name = "madori"
 version = "0.1.5"
 source = "git+https://github.com/pleme-io/madori?rev=79b33a4811853f1a8153735a69fb58bde894c2d9#79b33a4811853f1a8153735a69fb58bde894c2d9"
 dependencies = [
- "egaku 0.1.3 (git+https://github.com/pleme-io/egaku?rev=81d168190061c452d115f58f186429b84f489be8)",
+ "egaku",
  "garasu",
  "pollster",
  "serde",

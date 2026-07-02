@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "2fa7f24213fa03b00460fbbfdb60a39bdd3d54a165dfbddd20f2d8ef3d8a044b",
+  "cargo_lock_sha256": "49831b40af62de618bbc04412d647c853d835ce73210a2ff7c575132b59c0982",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -2266,64 +2266,6 @@
       },
       "dyn-clone-1.0.20": {
         "runtime_dependencies": [],
-        "build_dependencies": [],
-        "features": []
-      },
-      "egaku-0.1.3-507b0e7be84568bbb5567b2d61f5ce9ab6501882": {
-        "runtime_dependencies": [
-          {
-            "name": "serde",
-            "package_key": "serde-1.0.228",
-            "kind": "normal",
-            "features": [
-              "derive"
-            ],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "thiserror",
-            "package_key": "thiserror-2.0.18",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "tracing",
-            "package_key": "tracing-0.1.44",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "unicode_segmentation",
-            "package_key": "unicode-segmentation-1.13.3",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "unicode_width",
-            "package_key": "unicode-width-0.2.2",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          }
-        ],
         "build_dependencies": [],
         "features": []
       },
@@ -5110,7 +5052,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "irodzuki-0.1.7-28a0f5ed6d038d3bf1ec43eb9ae0b482ad85e506": {
+      "irodzuki-0.1.7-d3bfe781e9c813164a37a0e0a1eeef16f5be9515": {
         "runtime_dependencies": [
           {
             "name": "bytemuck",
@@ -5126,7 +5068,7 @@
           },
           {
             "name": "egaku",
-            "package_key": "egaku-0.1.3-507b0e7be84568bbb5567b2d61f5ce9ab6501882",
+            "package_key": "egaku-0.1.3-81d168190061c452d115f58f186429b84f489be8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19329,7 +19271,7 @@
               },
               {
                 "name": "irodzuki",
-                "package_key": "irodzuki-0.1.7-28a0f5ed6d038d3bf1ec43eb9ae0b482ad85e506",
+                "package_key": "irodzuki-0.1.7-d3bfe781e9c813164a37a0e0a1eeef16f5be9515",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23399,7 +23341,7 @@
               },
               {
                 "name": "irodzuki",
-                "package_key": "irodzuki-0.1.7-28a0f5ed6d038d3bf1ec43eb9ae0b482ad85e506",
+                "package_key": "irodzuki-0.1.7-d3bfe781e9c813164a37a0e0a1eeef16f5be9515",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27036,7 +26978,7 @@
               },
               {
                 "name": "irodzuki",
-                "package_key": "irodzuki-0.1.7-28a0f5ed6d038d3bf1ec43eb9ae0b482ad85e506",
+                "package_key": "irodzuki-0.1.7-d3bfe781e9c813164a37a0e0a1eeef16f5be9515",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30767,7 +30709,7 @@
               },
               {
                 "name": "irodzuki",
-                "package_key": "irodzuki-0.1.7-28a0f5ed6d038d3bf1ec43eb9ae0b482ad85e506",
+                "package_key": "irodzuki-0.1.7-d3bfe781e9c813164a37a0e0a1eeef16f5be9515",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34791,7 +34733,7 @@
               },
               {
                 "name": "irodzuki",
-                "package_key": "irodzuki-0.1.7-28a0f5ed6d038d3bf1ec43eb9ae0b482ad85e506",
+                "package_key": "irodzuki-0.1.7-d3bfe781e9c813164a37a0e0a1eeef16f5be9515",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38382,7 +38324,7 @@
               },
               {
                 "name": "irodzuki",
-                "package_key": "irodzuki-0.1.7-28a0f5ed6d038d3bf1ec43eb9ae0b482ad85e506",
+                "package_key": "irodzuki-0.1.7-d3bfe781e9c813164a37a0e0a1eeef16f5be9515",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -41507,9 +41449,6 @@
     "dyn-clone-1.0.20": {
       "edition": "2018"
     },
-    "egaku-0.1.3-507b0e7be84568bbb5567b2d61f5ce9ab6501882": {
-      "edition": "2024"
-    },
     "egaku-0.1.3-81d168190061c452d115f58f186429b84f489be8": {
       "edition": "2024"
     },
@@ -41808,7 +41747,7 @@
     "irodori-0.1.1": {
       "edition": "2024"
     },
-    "irodzuki-0.1.7-28a0f5ed6d038d3bf1ec43eb9ae0b482ad85e506": {
+    "irodzuki-0.1.7-d3bfe781e9c813164a37a0e0a1eeef16f5be9515": {
       "edition": "2024"
     },
     "is-docker-0.2.0": {
@@ -43136,7 +43075,6 @@
   },
   "git_nar_sha256": {
     "awase-0.1.1-25880f6a1dddb6d8d589207e8afc2a5a73969ee0": "sha256-UvuzaneHM+C0wq3+uZ+sf6GEv5JDB1e/sJ2SuA7kJuQ=",
-    "egaku-0.1.3-507b0e7be84568bbb5567b2d61f5ce9ab6501882": "sha256-22bq167+Cgkz6bEnOgBZKGZ67V6YtLh/+rQtj5X2bp4=",
     "egaku-0.1.3-81d168190061c452d115f58f186429b84f489be8": "sha256-sNTpm8OD42MDucjVuV5ag1xcoMZatDk4GVIuRFRLa4c=",
     "engate-attach-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": "sha256-7dqrUg3KMEKH5ac5RuK7EJRogt4H3xtv6nDrM0jpccM=",
     "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": "sha256-7dqrUg3KMEKH5ac5RuK7EJRogt4H3xtv6nDrM0jpccM=",
@@ -43147,7 +43085,7 @@
     "gen-platform-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0": "sha256-khDWAqmgqr/pPPq73hZbZojnEw3gVc6RYFPLuNCoR/A=",
     "gen-types-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0": "sha256-khDWAqmgqr/pPPq73hZbZojnEw3gVc6RYFPLuNCoR/A=",
     "hasami-0.1.2-c20b0112c09fccae2a9f51260c83fb711f7512d5": "sha256-jumH5OHgIV872elIb65ABgspnrfsA3rkeJyW5SIP6bo=",
-    "irodzuki-0.1.7-28a0f5ed6d038d3bf1ec43eb9ae0b482ad85e506": "sha256-FLNMG+F1ZVpmjwpHq/eMys0MYjnWHr63B7vmZQWyo9w=",
+    "irodzuki-0.1.7-d3bfe781e9c813164a37a0e0a1eeef16f5be9515": "sha256-7iA13F9fE1MktjUB89kQIiVY6TB0wTNHmHNGSJcj9Lg=",
     "ishou-tokens-0.1.3-47e7e58da1d279b63d6ae464b0244d606741fea6": "sha256-U9i60aKk/BvmGCl8xmXg4NTDoeVZ57thlB0dF9qy49Q=",
     "kaname-0.1.1-0570e7ec566b60444307fe5873f80f5beda8fe6c": "sha256-ue2v9p/Eq+z3hmCaL63toSyjpDY6s3H1gGBUFBOX3ek=",
     "kanchi-0.1.0-837f57e6c9b52e3d8781a56a46523627765362a0": "sha256-kxa3GKByEottN8fR/gQF4KGd/lu54j8DRGbwdrOjFhM=",

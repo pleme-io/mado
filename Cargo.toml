@@ -177,7 +177,17 @@ pleme-io-wadachi = "0.1.4"
 # here in `irodzuki::presets`, NOT in mado. Mado's theme.rs is a
 # thin shim that adapts irodzuki::ColorScheme → mado's
 # terminal::Color (u8 RGB) for the renderer.
-irodzuki = { git = "https://github.com/pleme-io/irodzuki" , version = "0.1" }
+# REV-PINNED (2026-07-02): d3bfe78 pins irodzuki's own egaku dep to the
+# shikumi-family rev. Before this, irodzuki's unpinned egaku floated to
+# branch HEAD on CI cargo updates while mado family-pins egaku — a split-rev
+# duplicate egaku that broke every nix build with E0463 "can't find crate
+# for irodzuki" (v0.1.49..v0.1.53, bisected 2026-07-02). Advance together
+# with the family pin. NOTE: bulk-pinning ALL unpinned pleme-io deps here
+# was tried and REVERTED — a ?rev= spelling splits identity against
+# transitive plain-URL references (engate_types trait mismatch); the
+# hermetic fix is per-UPSTREAM-repo pinning like irodzuki's, one family at
+# a time.
+irodzuki = { git = "https://github.com/pleme-io/irodzuki", rev = "d3bfe781e9c813164a37a0e0a1eeef16f5be9515" , version = "0.1" }
 # server + transport-io: the `mado mcp` stdio server. client +
 # transport-child-process: the `mado e2e` L2 smoke driver, which
 # spawns `mado mcp` as a child and drives it as a typed rmcp client
