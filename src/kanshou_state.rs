@@ -464,6 +464,71 @@ impl Introspect for MadoAppState {
                     })),
                 }
             }
+            // Method-call leaf — args: [target: String]. Read-side twin of
+            // `send_keys_embedded`: a text snapshot of an EMBEDDED pane so
+            // an agent can OBSERVE the session it spawned/typed into.
+            // Same target resolution (session id → first pane, else pane
+            // id). Read-only.
+            "pane_snapshot_embedded" => {
+                if q.args.len() != 1 {
+                    return Err(QueryError::BadArity {
+                        expected: 1,
+                        actual: q.args.len(),
+                    });
+                }
+                let Some(target) = q.args[0].as_str() else {
+                    return Err(QueryError::TypeMismatch {
+                        path: "pane_snapshot_embedded".to_string(),
+                        expected: "string".to_string(),
+                        actual: format!("{:?}", q.args[0]),
+                    });
+                };
+                let Some(inproc) = self.tear_inproc.get() else {
+                    return Ok(serde_json::json!({
+                        "found": false,
+                        "error": "no-live-backend",
+                    }));
+                };
+                let pane = inproc
+                    .with_registry(|r| {
+                        r.sessions
+                            .values()
+                            .find(|s| s.id.to_string() == target)
+                            .and_then(|s| s.panes.keys().next().copied())
+                    })
+                    .or_else(|| {
+                        let p = target.parse::<tear_types::PaneId>().ok()?;
+                        inproc
+                            .with_registry(|r| {
+                                r.sessions.values().any(|s| s.panes.contains_key(&p))
+                            })
+                            .then_some(p)
+                    });
+                let Some(pane) = pane else {
+                    return Ok(serde_json::json!({
+                        "found": false,
+                        "error": "no-such-target",
+                        "target": target,
+                    }));
+                };
+                match inproc.pane_snapshot(pane) {
+                    Ok(snap) => Ok(serde_json::json!({
+                        "found": true,
+                        "pane_id": pane.to_string(),
+                        "cols": snap.cols,
+                        "rows": snap.rows,
+                        "cursor_row": snap.cursor_row,
+                        "cursor_col": snap.cursor_col,
+                        "alt_screen_active": snap.alt_screen_active,
+                        "text_rows": snap.to_text_rows(),
+                    })),
+                    Err(e) => Ok(serde_json::json!({
+                        "found": false,
+                        "pane_id": pane.to_string(),
+                        "error": e.to_string(),
+                    })),
+                }
+            }
             // The living Ctrl-S board, read from THIS GUI process's store —
             // the truth the MCP `suggest_list` tool forwards to (its own
             // process-global store is a separate world). Optional arg: [max].
@@ -529,6 +594,7 @@ impl Introspect for MadoAppState {
             "suggest_dismiss",
             "spawn_term",
             "send_keys_embedded",
+            "pane_snapshot_embedded",
         ]
     }
 }
@@ -771,6 +837,48 @@ mod tests {
     #[test]
     fn schema_advertises_send_keys_embedded() {
         assert!(state().schema().contains(&"send_keys_embedded"));
+    }
+
+    // ── pane_snapshot_embedded leaf (read-side twin) ──────────────
+
+    #[test]
+    fn pane_snapshot_embedded_resolves_session_id() {
+        let (s, pane) = state_with_live_pane();
+        let sid = s
+            .tear_inproc
+            .get()
+            .unwrap()
+            .with_registry(|r| r.sessions.keys().next().copied())
+            .expect("live session")
+            .to_string();
+        let v = s
+            .query(&Query::call(
+                ["pane_snapshot_embedded"],
+                [serde_json::json!(sid)],
+            ))
+            .expect("query ok");
+        assert_eq!(v["found"], true, "got {v}");
+        assert_eq!(v["pane_id"], pane);
+        assert!(v["text_rows"].is_array());
+        assert!(v["cols"].as_u64().unwrap_or(0) > 0);
+    }
+
+    #[test]
+    fn pane_snapshot_embedded_unknown_target_refuses() {
+        let (s, _pane) = state_with_live_pane();
+        let v = s
+            .query(&Query::call(
+                ["pane_snapshot_embedded"],
+                [serde_json::json!("feedfacefeedface")],
+            ))
+            .expect("query ok");
+        assert_eq!(v["found"], false);
+        assert_eq!(v["error"], "no-such-target");
+    }
+
+    #[test]
+    fn schema_advertises_pane_snapshot_embedded() {
+        assert!(state().schema().contains(&"pane_snapshot_embedded"));
     }
 
     // ── switch_session leaf ───────────────────────────────────────

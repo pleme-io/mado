@@ -772,6 +772,51 @@ impl MadoMcp {
     #[tool(description = "Get the visible terminal output as plain text (trailing whitespace stripped per row). Lighter than `snapshot_grid` when the agent only needs to grep / match output. `lines` clips to the most recent N rows; omit for the full grid.")]
     async fn get_output(&self, Parameters(input): Parameters<GetOutputInput>) -> String {
         let Some(session) = self.state.sessions.get(&input.session_id) else {
+            // Embedded-world routing — read-side twin of send_keys'
+            // forward: 16-hex tear ids live in the GUI's registry.
+            // Same shape gate, so headless ids and test fakes stay local.
+            let looks_embedded = input.session_id.len() == 16
+                && input
+                    .session_id
+                    .bytes()
+                    .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase());
+            if looks_embedded {
+                let fwd = kanshou::mcp::forward(
+                    "mado",
+                    &kanshou::Query {
+                        path: vec![String::from("pane_snapshot_embedded")],
+                        args: vec![serde_json::json!(input.session_id)],
+                    },
+                    || Err(kanshou::QueryError::internal("no live GUI reachable")),
+                )
+                .await;
+                if let Ok(v) = fwd {
+                    if v.get("found").and_then(serde_json::Value::as_bool) == Some(true) {
+                        let rows: Vec<String> = v
+                            .get("text_rows")
+                            .and_then(|r| {
+                                serde_json::from_value::<Vec<String>>(r.clone()).ok()
+                            })
+                            .unwrap_or_default();
+                        let output = if let Some(n) = input.lines {
+                            let start = rows.len().saturating_sub(n as usize);
+                            rows[start..].join("\n")
+                        } else {
+                            rows.join("\n")
+                        };
+                        return serde_json::json!({
+                            "ok": true,
+                            "world": "embedded",
+                            "session_id": input.session_id,
+                            "pane_id": v.get("pane_id"),
+                            "cols": v.get("cols"),
+                            "rows": v.get("rows"),
+                            "output": output,
+                        })
+                        .to_string();
+                    }
+                }
+            }
             return serde_json::json!({
                 "ok": false,
                 "error": "no-such-session",
