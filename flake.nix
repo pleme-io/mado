@@ -223,7 +223,92 @@
         extraSettings = lib.mkOption {
           type = lib.types.attrs;
           default = { };
-          description = "Additional raw settings merged on top of the typed YAML.";
+          description = "Additional raw settings merged on top of the typed YAML. Do NOT set `suggestions` here when the typed `suggestions` option is used — extraSettings shallow-merges last and would clobber the typed render wholesale (the cross-module tear.* clobber class, 2026-07-02).";
+        };
+
+        # ── M2 typed surface for the Ctrl-S suggestion stream ──────────
+        # Rich schema (list-of-submodule sources) — too structured for
+        # shikumiTypedGroups' flat verbatim fields, so it rides the
+        # extraHmOptions idiom (the blackmatter-fortinet precedent).
+        # Every scalar is nullable and renders ONLY when set, and the
+        # whole `suggestions:` key renders only when something is set —
+        # consumers that don't touch this option get a byte-identical
+        # YAML. `safra` is deliberately NOT typed yet (no fleet consumer
+        # arms it; extraSettings still carries it raw if needed).
+        suggestions = lib.mkOption {
+          default = { };
+          description = "Typed config for the Ctrl-S suggestion stream (the living board). Rendered under `suggestions:` in mado.yaml; per-kind `sources` entries MERGE over mado's prescribed arm-list (SuggestionsConfig::effective_sources) — a params-only entry never disarms the rest.";
+          type = lib.types.submodule {
+            options = {
+              enabled = lib.mkOption {
+                type = lib.types.nullOr lib.types.bool;
+                default = null;
+                description = "Master switch. null = mado's default (on). With engine hot-reload, flipping this at runtime parks/revives the engine without a restart.";
+              };
+              persist = lib.mkOption {
+                type = lib.types.nullOr lib.types.bool;
+                default = null;
+                description = "Persist the board snapshot across restarts. null = mado's default.";
+              };
+              ttl_secs = lib.mkOption {
+                type = lib.types.nullOr lib.types.int;
+                default = null;
+                description = "Global row TTL floor in seconds. null = mado's default.";
+              };
+              max_entries = lib.mkOption {
+                type = lib.types.nullOr lib.types.int;
+                default = null;
+                description = "Hard cap on stored rows (rank-ordered GC). null = mado's default.";
+              };
+              persist_debounce_secs = lib.mkOption {
+                type = lib.types.nullOr lib.types.int;
+                default = null;
+                description = "Snapshot write coalescing cadence. null = mado's default.";
+              };
+              default_enabled = lib.mkOption {
+                type = lib.types.nullOr lib.types.bool;
+                default = null;
+                description = "Whether kinds absent from `sources` are armed. null = mado's default.";
+              };
+              sources_replace = lib.mkOption {
+                type = lib.types.nullOr lib.types.bool;
+                default = null;
+                description = "Escape hatch: true = `sources` REPLACES the prescribed arm-list instead of merging over it.";
+              };
+              sources = lib.mkOption {
+                default = [ ];
+                description = "Per-kind overrides (credentials, cadence, params). Merged over the prescribed arm-list by kind.";
+                type = lib.types.listOf (lib.types.submodule {
+                  options = {
+                    kind = lib.mkOption {
+                      type = lib.types.str;
+                      description = "Source kind slug (e.g. jira-assigned, flux-failing, github-actions-failing).";
+                    };
+                    enabled = lib.mkOption {
+                      type = lib.types.nullOr lib.types.bool;
+                      default = null;
+                      description = "Arm/disarm this kind. null = omit (mado's per-kind default).";
+                    };
+                    interval_secs = lib.mkOption {
+                      type = lib.types.nullOr lib.types.int;
+                      default = null;
+                      description = "Poll cadence override in seconds. null = omit.";
+                    };
+                    max_items = lib.mkOption {
+                      type = lib.types.nullOr lib.types.int;
+                      default = null;
+                      description = "Row budget override for this kind. null = omit.";
+                    };
+                    params = lib.mkOption {
+                      type = lib.types.attrs;
+                      default = { };
+                      description = "Kind-specific params (site, base_url, secret paths, context, repos, ...). Rendered only when non-empty.";
+                    };
+                  };
+                });
+              };
+            };
+          };
         };
       };
 
@@ -247,7 +332,33 @@
             font_family = resolvedFontFamily;
             font_italic = resolvedFontItalic;
           } // (if cfg.fontSize != null then { font_size = cfg.fontSize; } else { });
-          extras = fontExtras // cfg.extraSettings;
+          # Typed suggestions render: nullable scalars appear only when
+          # set; a source entry is {kind} plus set-only optionals; the
+          # whole `suggestions` key appears only when non-empty — a
+          # consumer that never touches the option renders byte-identical
+          # YAML. extraSettings still merges LAST (raw wins), so setting
+          # suggestions in BOTH places clobbers — documented on the option.
+          scalarOpt = name: v: lib.optionalAttrs (v != null) { ${name} = v; };
+          renderSource = src:
+            { kind = src.kind; }
+            // scalarOpt "enabled" src.enabled
+            // scalarOpt "interval_secs" src.interval_secs
+            // scalarOpt "max_items" src.max_items
+            // lib.optionalAttrs (src.params != { }) { params = src.params; };
+          suggestionsBody =
+            scalarOpt "enabled" cfg.suggestions.enabled
+            // scalarOpt "persist" cfg.suggestions.persist
+            // scalarOpt "ttl_secs" cfg.suggestions.ttl_secs
+            // scalarOpt "max_entries" cfg.suggestions.max_entries
+            // scalarOpt "persist_debounce_secs" cfg.suggestions.persist_debounce_secs
+            // scalarOpt "default_enabled" cfg.suggestions.default_enabled
+            // scalarOpt "sources_replace" cfg.suggestions.sources_replace
+            // lib.optionalAttrs (cfg.suggestions.sources != [ ]) {
+              sources = map renderSource cfg.suggestions.sources;
+            };
+          suggestionsExtras =
+            lib.optionalAttrs (suggestionsBody != { }) { suggestions = suggestionsBody; };
+          extras = fontExtras // suggestionsExtras // cfg.extraSettings;
           fontPackages = lib.filter (p: p != null) [
             fleetFonts.primary.package
             fleetFonts.italic.package
