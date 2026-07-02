@@ -653,6 +653,45 @@ impl MadoMcp {
     #[tool(description = "Send keystrokes / raw bytes to a terminal session. The string is sent as UTF-8 bytes to the PTY master — the child's read() advances. Use `\\n` for Enter, `\\x1b` for ESC, `\\x03` for Ctrl-C, etc.")]
     async fn send_keys(&self, Parameters(input): Parameters<SendKeysInput>) -> String {
         let Some(session) = self.state.sessions.get(&input.session_id) else {
+            // Embedded-world routing (session-world union): ids minted by
+            // a world:"auto"/"embedded" spawn are 16-hex tear SessionIds
+            // living in the GUI's registry, not this process's. Forward
+            // ONLY when the id has that shape — headless ids
+            // ("mado-session-N") and test fakes stay local, so a suite
+            // run can never type into the operator's live GUI.
+            let looks_embedded = input.session_id.len() == 16
+                && input
+                    .session_id
+                    .bytes()
+                    .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase());
+            if looks_embedded {
+                let bytes = decode_send_keys(&input.keys);
+                let text = String::from_utf8_lossy(&bytes).into_owned();
+                let fwd = kanshou::mcp::forward(
+                    "mado",
+                    &kanshou::Query {
+                        path: vec![String::from("send_keys_embedded")],
+                        args: vec![
+                            serde_json::json!(input.session_id),
+                            serde_json::json!(text),
+                        ],
+                    },
+                    || Err(kanshou::QueryError::internal("no live GUI reachable")),
+                )
+                .await;
+                if let Ok(v) = fwd {
+                    if v.get("sent").and_then(serde_json::Value::as_bool) == Some(true) {
+                        return serde_json::json!({
+                            "ok": true,
+                            "world": "embedded",
+                            "session_id": input.session_id,
+                            "pane_id": v.get("pane_id"),
+                            "bytes_written": v.get("bytes_written"),
+                        })
+                        .to_string();
+                    }
+                }
+            }
             return serde_json::json!({
                 "ok": false,
                 "error": "no-such-session",

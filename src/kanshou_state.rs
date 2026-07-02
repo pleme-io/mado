@@ -398,6 +398,72 @@ impl Introspect for MadoAppState {
                     })),
                 }
             }
+            // Method-call leaf — args: [target: String, text: String].
+            // Writes bytes into an EMBEDDED pane (session-world union:
+            // the agent-I/O half of the spawn_term leaf — an agent that
+            // spawned into the GUI's registry can now type into it).
+            // `target` resolves as a session id (its first pane) first,
+            // then as a bare pane id. Text bytes are written verbatim;
+            // the MCP side decodes its keys grammar before forwarding.
+            // inproc.send_keys carries the Leader-policy gate, so a
+            // locked pane refuses here exactly like the daemon path.
+            "send_keys_embedded" => {
+                if q.args.len() != 2 {
+                    return Err(QueryError::BadArity {
+                        expected: 2,
+                        actual: q.args.len(),
+                    });
+                }
+                let (Some(target), Some(text)) = (q.args[0].as_str(), q.args[1].as_str())
+                else {
+                    return Err(QueryError::TypeMismatch {
+                        path: "send_keys_embedded".to_string(),
+                        expected: "[string, string]".to_string(),
+                        actual: format!("{:?}", q.args),
+                    });
+                };
+                let Some(inproc) = self.tear_inproc.get() else {
+                    return Ok(serde_json::json!({
+                        "sent": false,
+                        "error": "no-live-backend",
+                    }));
+                };
+                let pane = inproc
+                    .with_registry(|r| {
+                        r.sessions
+                            .values()
+                            .find(|s| s.id.to_string() == target)
+                            .and_then(|s| s.panes.keys().next().copied())
+                    })
+                    .or_else(|| {
+                        let p = target.parse::<tear_types::PaneId>().ok()?;
+                        inproc
+                            .with_registry(|r| {
+                                r.sessions.values().any(|s| s.panes.contains_key(&p))
+                            })
+                            .then_some(p)
+                    });
+                let Some(pane) = pane else {
+                    return Ok(serde_json::json!({
+                        "sent": false,
+                        "error": "no-such-target",
+                        "target": target,
+                    }));
+                };
+                use tear_types::MultiplexerControl;
+                match inproc.send_keys(pane, text.as_bytes()) {
+                    Ok(()) => Ok(serde_json::json!({
+                        "sent": true,
+                        "pane_id": pane.to_string(),
+                        "bytes_written": text.len(),
+                    })),
+                    Err(e) => Ok(serde_json::json!({
+                        "sent": false,
+                        "pane_id": pane.to_string(),
+                        "error": e.to_string(),
+                    })),
+                }
+            }
             // The living Ctrl-S board, read from THIS GUI process's store —
             // the truth the MCP `suggest_list` tool forwards to (its own
             // process-global store is a separate world). Optional arg: [max].
@@ -462,6 +528,7 @@ impl Introspect for MadoAppState {
             "suggest_inject",
             "suggest_dismiss",
             "spawn_term",
+            "send_keys_embedded",
         ]
     }
 }
@@ -650,6 +717,60 @@ mod tests {
     #[test]
     fn schema_advertises_spawn_term() {
         assert!(state().schema().contains(&"spawn_term"));
+    }
+
+    // ── send_keys_embedded leaf (agent I/O into embedded panes) ───
+
+    #[test]
+    fn send_keys_embedded_resolves_session_id_to_first_pane() {
+        let (s, _pane) = state_with_live_pane();
+        // Resolve via the SESSION id (not the pane id).
+        let sid = s
+            .tear_inproc
+            .get()
+            .unwrap()
+            .with_registry(|r| r.sessions.keys().next().copied())
+            .expect("live session")
+            .to_string();
+        let v = s
+            .query(&Query::call(
+                ["send_keys_embedded"],
+                [serde_json::json!(sid), serde_json::json!("echo hi\n")],
+            ))
+            .expect("query ok");
+        assert_eq!(v["sent"], true, "got {v}");
+        assert_eq!(v["bytes_written"], 8);
+    }
+
+    #[test]
+    fn send_keys_embedded_unknown_target_is_typed_refusal() {
+        let (s, _pane) = state_with_live_pane();
+        let v = s
+            .query(&Query::call(
+                ["send_keys_embedded"],
+                [serde_json::json!("feedfacefeedface"), serde_json::json!("x")],
+            ))
+            .expect("query ok");
+        assert_eq!(v["sent"], false);
+        assert_eq!(v["error"], "no-such-target");
+    }
+
+    #[test]
+    fn send_keys_embedded_without_backend_reports_no_live_backend() {
+        let s = state();
+        let v = s
+            .query(&Query::call(
+                ["send_keys_embedded"],
+                [serde_json::json!("abc"), serde_json::json!("x")],
+            ))
+            .expect("query ok");
+        assert_eq!(v["sent"], false);
+        assert_eq!(v["error"], "no-live-backend");
+    }
+
+    #[test]
+    fn schema_advertises_send_keys_embedded() {
+        assert!(state().schema().contains(&"send_keys_embedded"));
     }
 
     // ── switch_session leaf ───────────────────────────────────────
