@@ -867,14 +867,86 @@ impl MadoMcp {
             self.state.sessions.focused_cwd(),
         )
     }
-    #[tool(description = "Spawn a headless terminal session from a typed TermSpec. Fields: shell (default $SHELL → /bin/sh), args, cwd (~/ expands; when empty AND window.inherit_working_directory is on, inherits the focused session's OSC-7 cwd), env, title (derives from shell/cwd if empty), placement (advisory — headless ignores; future window mode honors), attach (existing session id), effects (shader names — visual only), cols/rows (default 80/24). Returns `{ok, session_id, title, shell, cols, rows}`. The new session is live: the reader pump is already pulling bytes from the PTY into the terminal state machine.")]
+    #[tool(description = "Spawn a terminal session from a typed TermSpec. `world` selects the session world (session-world union): ''/'auto' spawns into the live GUI's embedded tear registry when reachable — the session appears as a ● row in the operator's Ctrl-S picker and anchors live-dedup — falling back to this process's headless registry; 'embedded' is GUI-only (typed error when unreachable); 'headless' is the legacy process-local registry. Fields: shell (default: GUI's configured shell / $SHELL → /bin/sh), args, cwd (~/ expands; headless-only for now), env, title, placement (advisory), attach (existing session id), effects, cols/rows (default 80/24). Returns `{ok, world, session_id, ...}` — NOTE: embedded sessions use tear SessionId hex ids and are NOT addressable by the headless send_keys/get_output tools (interact via the GUI, switch_session, or the tear_* tools when in daemon mode); headless sessions keep the mado-session-N contract.")]
     async fn spawn_term(&self, Parameters(spec): Parameters<TermSpec>) -> String {
         let spec = self.spec_with_inherited_cwd(spec);
+        // Session-world union phase 1: land the session in the world the
+        // operator's Ctrl-S actually reads whenever a GUI is reachable.
+        // The GUI-side leaf refuses in daemon mode (no embedded registry),
+        // and `auto` then falls through to the headless registry below.
+        let world = spec.world.as_str();
+        if world != "headless" {
+            let (cols, rows) = spec.resolved_dimensions();
+            let params = crate::kanshou_state::SpawnTermParams {
+                name: spec.display_title(),
+                shell: (!spec.shell.is_empty()).then(|| spec.shell.clone()),
+                cols: Some(cols),
+                rows: Some(rows),
+            };
+            let args = match serde_json::to_value(&params) {
+                Ok(v) => vec![v],
+                Err(e) => {
+                    return serde_json::json!({
+                        "ok": false,
+                        "error": format!("spawn params serialize: {e}"),
+                    })
+                    .to_string();
+                }
+            };
+            let fwd = kanshou::mcp::forward(
+                "mado",
+                &kanshou::Query {
+                    path: vec![String::from("spawn_term")],
+                    args,
+                },
+                || Err(kanshou::QueryError::internal("no live GUI reachable")),
+            )
+            .await;
+            match fwd {
+                Ok(v) if v.get("spawned").and_then(serde_json::Value::as_bool) == Some(true) => {
+                    return serde_json::json!({
+                        "ok": true,
+                        "world": "embedded",
+                        "session_id": v.get("session_id"),
+                        "title": v.get("name"),
+                        "shell": v.get("shell"),
+                        "cols": cols,
+                        "rows": rows,
+                        "note": "spawned into the live GUI's embedded tear registry — visible as a ● row in Ctrl-S. Not addressable by headless send_keys/get_output.",
+                    })
+                    .to_string();
+                }
+                Ok(v) => {
+                    // A GUI answered but refused (daemon-mode GUI or a spawn
+                    // error). `embedded` surfaces it; `auto` falls through.
+                    if world == "embedded" {
+                        return serde_json::json!({
+                            "ok": false,
+                            "world": "embedded",
+                            "error": v.get("error").cloned().unwrap_or_else(|| "spawn refused".into()),
+                            "note": v.get("note"),
+                        })
+                        .to_string();
+                    }
+                }
+                Err(e) => {
+                    if world == "embedded" {
+                        return serde_json::json!({
+                            "ok": false,
+                            "world": "embedded",
+                            "error": e.to_string(),
+                        })
+                        .to_string();
+                    }
+                }
+            }
+        }
         match self.state.sessions.spawn(&spec).await {
             Ok(id) => {
                 let (cols, rows) = spec.resolved_dimensions();
                 serde_json::json!({
                     "ok": true,
+                    "world": "headless",
                     "session_id": id,
                     "title": spec.display_title(),
                     "shell": if spec.shell.is_empty() {
@@ -2291,6 +2363,8 @@ mod tests {
                 // soft-wrap across rows and defeat the contains().
                 cols: 200,
                 rows: 6,
+                // Tests must NEVER forward a spawn into a live GUI.
+                world: "headless".into(),
                 ..TermSpec::default()
             }))
             .await;
@@ -2446,6 +2520,8 @@ mod tests {
             shell: "/bin/sh".into(),
             cols: 40,
             rows: 8,
+            // Tests must NEVER forward a spawn into a live GUI.
+            world: "headless".into(),
             ..TermSpec::default()
         };
         let raw = server.spawn_term(Parameters(spec)).await;
@@ -4050,6 +4126,8 @@ mod tests {
                 effects: Vec::new(),
                 cols: 20,
                 rows: 5,
+                // Tests must NEVER forward a spawn into a live GUI.
+                world: "headless".into(),
             }))
             .await;
         let spawned_id = serde_json::from_str::<serde_json::Value>(&spawn_raw)

@@ -56,6 +56,14 @@ pub struct TermSpec {
     /// defaults.
     #[serde(default)]
     pub effects: Vec<String>,
+    /// Which session world to spawn into (session-world union phase 1).
+    /// `""`/`"auto"` = spawn into the live GUI's embedded tear registry
+    /// when one is reachable (the session shows as a ● row in Ctrl-S),
+    /// falling back to this process's headless registry; `"embedded"` =
+    /// GUI-only (typed error when unreachable); `"headless"` = the
+    /// legacy process-local registry, never forwarded (what tests pin).
+    #[serde(default)]
+    pub world: String,
     /// Initial column count for the spawned session's grid. `0`
     /// means "inherit from the active window" (windowed spawns) or
     /// "use the standard 80" (headless spawns). Load-bearing for
@@ -194,6 +202,7 @@ impl Default for TermSpec {
             effects: Vec::new(),
             cols: 0,
             rows: 0,
+            world: String::new(),
         }
     }
 }

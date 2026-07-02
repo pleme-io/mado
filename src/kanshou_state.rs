@@ -343,6 +343,61 @@ impl Introspect for MadoAppState {
                     "session_id": session.to_string(),
                 }))
             }
+            // Method-call leaf — args: [SpawnTermParams object]. Spawns a
+            // session INTO THIS GUI's embedded tear registry (session-world
+            // union phase 1: the MCP `spawn_term` tool forwards here so an
+            // agent-spawned session lands in the world the Ctrl-S picker
+            // actually reads — the InProcessSessionReconciler absorbs it
+            // into praca on the next picker refresh, so it shows as a ●
+            // row and anchors live-dedup with zero picker changes).
+            // Deliberately does NOT touch the InProcess spawn env: the
+            // picker's set_spawn_env→spawn two-step runs on the GUI thread
+            // and a cwd override from this thread could interleave between
+            // them. cwd support waits on an atomic spawn-with-env upstream
+            // API in tear-core (ledgered).
+            "spawn_term" => {
+                if q.args.len() != 1 {
+                    return Err(QueryError::BadArity {
+                        expected: 1,
+                        actual: q.args.len(),
+                    });
+                }
+                let params: SpawnTermParams = serde_json::from_value(q.args[0].clone())
+                    .map_err(|e| QueryError::internal(format!("invalid spawn params: {e}")))?;
+                let Some(inproc) = self.tear_inproc.get() else {
+                    return Ok(serde_json::json!({
+                        "spawned": false,
+                        "error": "no-live-backend",
+                        "note": "this GUI runs without an embedded tear registry (daemon mode)",
+                    }));
+                };
+                let shell = params
+                    .shell
+                    .filter(|s| !s.is_empty())
+                    .or_else(|| self.config.shell.command.clone())
+                    .or_else(|| std::env::var("SHELL").ok())
+                    .unwrap_or_else(|| "/bin/sh".to_string());
+                use tear_types::{MultiplexerControl, SessionSource};
+                let size = (params.cols.unwrap_or(80), params.rows.unwrap_or(24));
+                match inproc.new_session_with_source_and_size(
+                    &params.name,
+                    &shell,
+                    SessionSource::Agent,
+                    size,
+                ) {
+                    Ok(sid) => Ok(serde_json::json!({
+                        "spawned": true,
+                        "session_id": sid.to_string(),
+                        "name": params.name,
+                        "shell": shell,
+                        "world": "embedded",
+                    })),
+                    Err(e) => Ok(serde_json::json!({
+                        "spawned": false,
+                        "error": e.to_string(),
+                    })),
+                }
+            }
             // The living Ctrl-S board, read from THIS GUI process's store —
             // the truth the MCP `suggest_list` tool forwards to (its own
             // process-global store is a separate world). Optional arg: [max].
@@ -406,8 +461,25 @@ impl Introspect for MadoAppState {
             "suggest",
             "suggest_inject",
             "suggest_dismiss",
+            "spawn_term",
         ]
     }
+}
+
+/// Params for the `spawn_term` leaf — the session-world-union spawn
+/// ingress. Shared by the leaf handler and the MCP tool's forward
+/// call so the two sides can't drift. `shell = None/""` resolves to
+/// the GUI's configured shell (then `$SHELL`, then `/bin/sh`); size
+/// defaults to 80×24 (the picker's own spawn size).
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SpawnTermParams {
+    pub name: String,
+    #[serde(default)]
+    pub shell: Option<String>,
+    #[serde(default)]
+    pub cols: Option<u16>,
+    #[serde(default)]
+    pub rows: Option<u16>,
 }
 
 /// Spawn the kanshou server in a tokio task. Returns the path the
@@ -509,6 +581,75 @@ mod tests {
     #[test]
     fn schema_advertises_simulate_chord() {
         assert!(state().schema().contains(&"simulate_chord"));
+    }
+
+    // ── spawn_term leaf (session-world union phase 1) ─────────────
+
+    #[test]
+    fn spawn_term_leaf_spawns_into_embedded_registry() {
+        let s = state();
+        let inproc = Arc::new(tear_core::InProcess::new());
+        s.set_tear_inproc(Arc::clone(&inproc));
+        let v = s
+            .query(&Query::call(
+                ["spawn_term"],
+                [serde_json::json!({
+                    "name": "spawn-leaf-test",
+                    "shell": "/bin/sh",
+                    "cols": 40,
+                    "rows": 8
+                })],
+            ))
+            .expect("query ok");
+        assert_eq!(v["spawned"], true);
+        assert_eq!(v["world"], "embedded");
+        let sid = v["session_id"].as_str().expect("session id").to_string();
+        // The session exists in the live registry, tagged as the
+        // agent lane (SessionSource::Agent) so the picker can style it.
+        let found = inproc.with_registry(|r| {
+            r.sessions.values().any(|sess| {
+                sess.id.to_string() == sid
+                    && matches!(sess.source, tear_types::SessionSource::Agent)
+            })
+        });
+        assert!(found, "spawned session must be in the embedded registry");
+    }
+
+    #[test]
+    fn spawn_term_leaf_without_backend_reports_no_live_backend() {
+        let s = state();
+        let v = s
+            .query(&Query::call(
+                ["spawn_term"],
+                [serde_json::json!({"name": "x"})],
+            ))
+            .expect("query ok");
+        assert_eq!(v["spawned"], false);
+        assert_eq!(v["error"], "no-live-backend");
+    }
+
+    #[test]
+    fn spawn_term_leaf_bad_params_is_typed_error() {
+        let s = state();
+        let err = s
+            .query(&Query::call(["spawn_term"], []))
+            .expect_err("zero args must be BadArity");
+        assert!(
+            matches!(err, QueryError::BadArity { expected: 1, actual: 0 }),
+            "got {err:?}"
+        );
+        let err = s
+            .query(&Query::call(["spawn_term"], [serde_json::json!(42)]))
+            .expect_err("non-object params must be a typed error");
+        assert!(
+            format!("{err:?}").contains("invalid spawn params"),
+            "got {err:?}"
+        );
+    }
+
+    #[test]
+    fn schema_advertises_spawn_term() {
+        assert!(state().schema().contains(&"spawn_term"));
     }
 
     // ── switch_session leaf ───────────────────────────────────────
