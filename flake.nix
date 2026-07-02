@@ -156,6 +156,26 @@
             default = true;
             description = "Runtime single-pane re-attach: the Ctrl-S session switcher and the switch_session MCP tool actually switch the displayed pane. Defaults on; set false for the legacy one-shot binding.";
           };
+          # runtime + auto_attach were previously authored only via
+          # extraSettings (raw attrs). Two modules both defining
+          # `extraSettings.tear` shallow-merge-clobbered each other,
+          # so the fleet's auto_attach silently rendered ABSENT and
+          # the Rust default (Off) won — cd-auto-switch dead in
+          # production. Typed-group fields render unconditionally
+          # into the YAML, so the defaults below ARE the fleet
+          # defaults (same convention as behavior.copy_on_select).
+          runtime = {
+            type    = "enum";
+            values  = [ "embedded" "daemon" ];
+            default = "embedded";
+            description = "Tear runtime: embedded = in-process tear_core (no IPC, ghostty-class latency; the default); daemon = Unix-socket tear daemon (multi-attach: ayatsuri overlay / namimado / ssh-mux sharing sessions).";
+          };
+          auto_attach = {
+            type    = "enum";
+            values  = [ "off" "auto_switch" "suggest" ];
+            default = "auto_switch";
+            description = "Auto-attach-on-cd (praca automation): when the displayed session cds into a different project — off = never move the pane (Rust default); auto_switch = switch to that project's session, spawning one if needed (fleet default); suggest = surface the decision, never move the pane. Requires session_switching = true.";
+          };
         };
 
         # Performance / pacing — null fields defer to garasu::adaptive.
