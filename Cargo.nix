@@ -4861,15 +4861,15 @@ rec {
           "wasm_js" = [ "dep:wasm-bindgen" "dep:js-sys" ];
         };
       };
-      "git+https://github.com/pleme-io/shikumi#0.1.112" = rec {
+      "git+https://github.com/pleme-io/shikumi#0.1.113" = rec {
         crateName = "shikumi";
-        version = "0.1.112";
+        version = "0.1.113";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
-          rev = "6dd52da3cbe33e726ebcd6e159bfff2aa8237ab6";
-          sha256 = "0a23wbwwpb5dj3gv8lnix1hibfcrcqnfzx6sgkwymp4j56b4fww6";
+          rev = "3a35bb52dda5976bf71a55f0c63640a87f1252b3";
+          sha256 = "1i773lw6wcbs8qn51rmi68l0n20kmj601paqi61z1mc5gxnaz11z";
         };
         dependencies = [
           {
@@ -4948,15 +4948,15 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" ];
       };
-      "git+https://github.com/pleme-io/shikumi?branch=main#0.1.112" = rec {
+      "git+https://github.com/pleme-io/shikumi?branch=main#0.1.113" = rec {
         crateName = "shikumi";
-        version = "0.1.112";
+        version = "0.1.113";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
-          rev = "6dd52da3cbe33e726ebcd6e159bfff2aa8237ab6";
-          sha256 = "0a23wbwwpb5dj3gv8lnix1hibfcrcqnfzx6sgkwymp4j56b4fww6";
+          rev = "3a35bb52dda5976bf71a55f0c63640a87f1252b3";
+          sha256 = "1i773lw6wcbs8qn51rmi68l0n20kmj601paqi61z1mc5gxnaz11z";
         };
         dependencies = [
           {
@@ -7454,7 +7454,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.55";
+        version = "0.1.56";
         edition = "2024";
         crateBin = [
           {
@@ -7643,6 +7643,11 @@ rec {
             name = "rmcp";
             packageId = "rmcp";
             features = [ "server" "transport-io" "client" "transport-child-process" ];
+          }
+          {
+            name = "samba";
+            packageId = "samba";
+            usesDefaultFeatures = false;
           }
           {
             name = "schemars";
@@ -13614,7 +13619,7 @@ rec {
           "std_rng" = [ "dep:rand_chacha" ];
           "thread_rng" = [ "std" "std_rng" "os_rng" ];
         };
-        resolvedDefaultFeatures = [ "alloc" "os_rng" "std" ];
+        resolvedDefaultFeatures = [ "alloc" "default" "os_rng" "small_rng" "std" "std_rng" "thread_rng" ];
       };
       "rand_chacha 0.3.1" = rec {
         crateName = "rand_chacha";
@@ -15354,6 +15359,51 @@ rec {
         };
         resolvedDefaultFeatures = [ "bytemuck" "default" ];
       };
+      "samba" = rec {
+        crateName = "samba";
+        version = "0.1.3";
+        edition = "2024";
+        workspace_member = null;
+        src = pkgs.fetchgit {
+          url = "https://github.com/pleme-io/samba";
+          rev = "87cbeacb2e58dafa556aaf11db82512ede9df6de";
+          sha256 = "1d7i2l97jkjgviardddd72ray1g06kqcbvnm82268shqah3zdnvx";
+        };
+        dependencies = [
+          {
+            name = "rand";
+            packageId = "rand 0.9.4";
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
+            name = "thiserror";
+            packageId = "thiserror 2.0.18";
+          }
+          {
+            name = "tokio";
+            packageId = "tokio";
+            features = [ "rt-multi-thread" "macros" "time" "sync" "signal" ];
+          }
+          {
+            name = "tracing";
+            packageId = "tracing";
+          }
+        ];
+        devDependencies = [
+          {
+            name = "tokio";
+            packageId = "tokio";
+            features = [ "test-util" "rt-multi-thread" "macros" ];
+          }
+        ];
+        features = {
+          "default" = [ "worker" ];
+          "worker" = [ "dep:async-nats" "dep:async-trait" "dep:serde" "dep:serde_yaml_ng" "dep:tracing-subscriber" "dep:prometheus" "dep:hyper" "dep:hyper-util" "dep:http-body-util" "dep:bytes" "dep:futures" ];
+        };
+      };
       "same-file" = rec {
         crateName = "same-file";
         version = "1.0.6";
@@ -16986,7 +17036,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "git+https://github.com/pleme-io/shikumi#0.1.112";
+            packageId = "git+https://github.com/pleme-io/shikumi#0.1.113";
           }
           {
             name = "serde";
@@ -19018,7 +19068,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "git+https://github.com/pleme-io/shikumi?branch=main#0.1.112";
+            packageId = "git+https://github.com/pleme-io/shikumi?branch=main#0.1.113";
             features = [ "cli" ];
           }
           {
