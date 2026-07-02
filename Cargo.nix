@@ -664,9 +664,9 @@ rec {
       };
       "arrayvec" = rec {
         crateName = "arrayvec";
-        version = "0.7.7";
+        version = "0.7.8";
         edition = "2018";
-        sha256 = "1zjxk501fc4lnkzkdicqsk7y3l3agw89ziqjzcjca6ry9n484a7h";
+        sha256 = "0mmd8lrijbvg1qp4c5zis5dq41a3mjv2rb6bxkyj9kwaw2k6gyyk";
         authors = [
           "bluss"
         ];
@@ -4861,279 +4861,6 @@ rec {
           "wasm_js" = [ "dep:wasm-bindgen" "dep:js-sys" ];
         };
       };
-      "git+https://github.com/pleme-io/shikumi#0.1.114" = rec {
-        crateName = "shikumi";
-        version = "0.1.114";
-        edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/shikumi";
-          rev = "7d4cf0418f0b9a40002263d69a0db70aa16bb408";
-          sha256 = "1d0bb0drjz936rgyv48qxkvgh7f2rbi9vks50nqa3fscdn85jikz";
-        };
-        dependencies = [
-          {
-            name = "arc-swap";
-            packageId = "arc-swap";
-          }
-          {
-            name = "async-trait";
-            packageId = "async-trait";
-          }
-          {
-            name = "figment";
-            packageId = "figment";
-            features = [ "env" "yaml" "toml" ];
-          }
-          {
-            name = "gen-platform";
-            packageId = "gen-platform";
-          }
-          {
-            name = "gen-types";
-            packageId = "gen-types";
-          }
-          {
-            name = "notify";
-            packageId = "notify";
-            usesDefaultFeatures = false;
-          }
-          {
-            name = "notify";
-            packageId = "notify";
-            usesDefaultFeatures = false;
-            target = { target, features }: ("macos" == target."os" or null);
-            features = [ "macos_kqueue" ];
-          }
-          {
-            name = "serde";
-            packageId = "serde";
-            features = [ "derive" ];
-          }
-          {
-            name = "serde_json";
-            packageId = "serde_json";
-          }
-          {
-            name = "serde_yaml";
-            packageId = "serde_yaml";
-          }
-          {
-            name = "thiserror";
-            packageId = "thiserror 2.0.18";
-          }
-          {
-            name = "tracing";
-            packageId = "tracing";
-          }
-        ];
-        devDependencies = [
-          {
-            name = "serde_json";
-            packageId = "serde_json";
-          }
-          {
-            name = "serde_yaml";
-            packageId = "serde_yaml";
-          }
-        ];
-        features = {
-          "akeyless-native" = [ "dep:akeyless-api" "dep:tokio" ];
-          "aws-native" = [ "dep:aws-sdk-secretsmanager" "dep:aws-config" "dep:tokio" ];
-          "cli" = [ "dep:clap" ];
-          "gcp-native" = [ "dep:reqwest" "dep:tokio" ];
-          "lisp" = [ "dep:tatara-lisp" ];
-          "op-native" = [ "dep:reqwest" "dep:tokio" ];
-          "vault-native" = [ "dep:reqwest" "dep:tokio" ];
-        };
-        resolvedDefaultFeatures = [ "default" ];
-      };
-      "git+https://github.com/pleme-io/shikumi?branch=main#0.1.114" = rec {
-        crateName = "shikumi";
-        version = "0.1.114";
-        edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/shikumi";
-          rev = "7d4cf0418f0b9a40002263d69a0db70aa16bb408";
-          sha256 = "1d0bb0drjz936rgyv48qxkvgh7f2rbi9vks50nqa3fscdn85jikz";
-        };
-        dependencies = [
-          {
-            name = "arc-swap";
-            packageId = "arc-swap";
-          }
-          {
-            name = "async-trait";
-            packageId = "async-trait";
-          }
-          {
-            name = "clap";
-            packageId = "clap";
-            optional = true;
-            features = [ "derive" ];
-          }
-          {
-            name = "figment";
-            packageId = "figment";
-            features = [ "env" "yaml" "toml" ];
-          }
-          {
-            name = "gen-platform";
-            packageId = "gen-platform";
-          }
-          {
-            name = "gen-types";
-            packageId = "gen-types";
-          }
-          {
-            name = "notify";
-            packageId = "notify";
-            usesDefaultFeatures = false;
-          }
-          {
-            name = "notify";
-            packageId = "notify";
-            usesDefaultFeatures = false;
-            target = { target, features }: ("macos" == target."os" or null);
-            features = [ "macos_kqueue" ];
-          }
-          {
-            name = "serde";
-            packageId = "serde";
-            features = [ "derive" ];
-          }
-          {
-            name = "serde_json";
-            packageId = "serde_json";
-          }
-          {
-            name = "serde_yaml";
-            packageId = "serde_yaml";
-          }
-          {
-            name = "thiserror";
-            packageId = "thiserror 2.0.18";
-          }
-          {
-            name = "tracing";
-            packageId = "tracing";
-          }
-        ];
-        devDependencies = [
-          {
-            name = "serde_json";
-            packageId = "serde_json";
-          }
-          {
-            name = "serde_yaml";
-            packageId = "serde_yaml";
-          }
-        ];
-        features = {
-          "akeyless-native" = [ "dep:akeyless-api" "dep:tokio" ];
-          "aws-native" = [ "dep:aws-sdk-secretsmanager" "dep:aws-config" "dep:tokio" ];
-          "cli" = [ "dep:clap" ];
-          "gcp-native" = [ "dep:reqwest" "dep:tokio" ];
-          "lisp" = [ "dep:tatara-lisp" ];
-          "op-native" = [ "dep:reqwest" "dep:tokio" ];
-          "vault-native" = [ "dep:reqwest" "dep:tokio" ];
-        };
-        resolvedDefaultFeatures = [ "cli" "default" ];
-      };
-      "git+https://github.com/pleme-io/shikumi?rev=b41d01e453b2c2505941ba02003f48721ca02b17#0.1.80" = rec {
-        crateName = "shikumi";
-        version = "0.1.80";
-        edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/shikumi";
-          rev = "b41d01e453b2c2505941ba02003f48721ca02b17";
-          sha256 = "1b1g64r6krzrfiilz89vny0pvlc3q1bfrblq4cz3jxsjhd99zpi5";
-        };
-        dependencies = [
-          {
-            name = "arc-swap";
-            packageId = "arc-swap";
-          }
-          {
-            name = "async-trait";
-            packageId = "async-trait";
-          }
-          {
-            name = "clap";
-            packageId = "clap";
-            optional = true;
-            features = [ "derive" ];
-          }
-          {
-            name = "figment";
-            packageId = "figment";
-            features = [ "env" "yaml" "toml" ];
-          }
-          {
-            name = "gen-platform";
-            packageId = "gen-platform";
-          }
-          {
-            name = "gen-types";
-            packageId = "gen-types";
-          }
-          {
-            name = "notify";
-            packageId = "notify";
-            usesDefaultFeatures = false;
-          }
-          {
-            name = "notify";
-            packageId = "notify";
-            usesDefaultFeatures = false;
-            target = { target, features }: ("macos" == target."os" or null);
-            features = [ "macos_kqueue" ];
-          }
-          {
-            name = "serde";
-            packageId = "serde";
-            features = [ "derive" ];
-          }
-          {
-            name = "serde_json";
-            packageId = "serde_json";
-          }
-          {
-            name = "serde_yaml";
-            packageId = "serde_yaml";
-          }
-          {
-            name = "thiserror";
-            packageId = "thiserror 2.0.18";
-          }
-          {
-            name = "tracing";
-            packageId = "tracing";
-          }
-        ];
-        devDependencies = [
-          {
-            name = "serde_json";
-            packageId = "serde_json";
-          }
-          {
-            name = "serde_yaml";
-            packageId = "serde_yaml";
-          }
-        ];
-        features = {
-          "akeyless-native" = [ "dep:akeyless-api" "dep:tokio" ];
-          "aws-native" = [ "dep:aws-sdk-secretsmanager" "dep:aws-config" "dep:tokio" ];
-          "cli" = [ "dep:clap" ];
-          "gcp-native" = [ "dep:reqwest" "dep:tokio" ];
-          "lisp" = [ "dep:tatara-lisp" ];
-          "op-native" = [ "dep:reqwest" "dep:tokio" ];
-          "vault-native" = [ "dep:reqwest" "dep:tokio" ];
-        };
-        resolvedDefaultFeatures = [ "cli" "default" ];
-      };
       "gl_generator" = rec {
         crateName = "gl_generator";
         version = "0.14.0";
@@ -7454,7 +7181,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.58";
+        version = "0.1.59";
         edition = "2024";
         crateBin = [
           {
@@ -7519,11 +7246,6 @@ rec {
           {
             name = "garasu";
             packageId = "garasu";
-          }
-          {
-            name = "shikumi";
-            packageId = "git+https://github.com/pleme-io/shikumi?rev=b41d01e453b2c2505941ba02003f48721ca02b17#0.1.80";
-            features = [ "cli" ];
           }
           {
             name = "glyphon";
@@ -7671,6 +7393,11 @@ rec {
             packageId = "shidou";
           }
           {
+            name = "shikumi";
+            packageId = "shikumi 0.1.80";
+            features = [ "cli" ];
+          }
+          {
             name = "tear-client";
             packageId = "tear-client";
             features = [ "engate" ];
@@ -7781,10 +7508,6 @@ rec {
             packageId = "garasu";
           }
           {
-            name = "shikumi";
-            packageId = "git+https://github.com/pleme-io/shikumi?rev=b41d01e453b2c2505941ba02003f48721ca02b17#0.1.80";
-          }
-          {
             name = "pollster";
             packageId = "pollster";
           }
@@ -7792,6 +7515,10 @@ rec {
             name = "serde";
             packageId = "serde";
             features = [ "derive" ];
+          }
+          {
+            name = "shikumi";
+            packageId = "shikumi 0.1.80";
           }
           {
             name = "thiserror";
@@ -17021,8 +16748,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shidou";
-          rev = "b0929681f6f4323177b86e350c82ec3f9f61869f";
-          sha256 = "1h0gijcwp2hl6zl30g6kjmki35c7xszzdnyn0niv9wl1c3v8zmrf";
+          rev = "527c3ce244c44b4bb581168ae8429e5dbcee6507";
+          sha256 = "1hbwdabc08vw4fm3m5gq7fmpz59pa5d8gblyvb4031b3mbkfjh7d";
         };
         dependencies = [
           {
@@ -17035,13 +16762,13 @@ rec {
             features = [ "derive" ];
           }
           {
-            name = "shikumi";
-            packageId = "git+https://github.com/pleme-io/shikumi#0.1.114";
-          }
-          {
             name = "serde";
             packageId = "serde";
             features = [ "derive" ];
+          }
+          {
+            name = "shikumi";
+            packageId = "shikumi 0.1.80";
           }
           {
             name = "tokio";
@@ -17059,6 +16786,192 @@ rec {
           }
         ];
 
+      };
+      "shikumi 0.1.115" = rec {
+        crateName = "shikumi";
+        version = "0.1.115";
+        edition = "2024";
+        workspace_member = null;
+        src = pkgs.fetchgit {
+          url = "https://github.com/pleme-io/shikumi";
+          rev = "570085ec6267bd9e6dd9c347ee9b54b10728ecab";
+          sha256 = "1az5d8dn11jxs9va7y9xhk1ch3ib4gdl0ncidjps03gg85bi2lbi";
+        };
+        dependencies = [
+          {
+            name = "arc-swap";
+            packageId = "arc-swap";
+          }
+          {
+            name = "async-trait";
+            packageId = "async-trait";
+          }
+          {
+            name = "clap";
+            packageId = "clap";
+            optional = true;
+            features = [ "derive" ];
+          }
+          {
+            name = "figment";
+            packageId = "figment";
+            features = [ "env" "yaml" "toml" ];
+          }
+          {
+            name = "gen-platform";
+            packageId = "gen-platform";
+          }
+          {
+            name = "gen-types";
+            packageId = "gen-types";
+          }
+          {
+            name = "notify";
+            packageId = "notify";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "notify";
+            packageId = "notify";
+            usesDefaultFeatures = false;
+            target = { target, features }: ("macos" == target."os" or null);
+            features = [ "macos_kqueue" ];
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
+            name = "serde_yaml";
+            packageId = "serde_yaml";
+          }
+          {
+            name = "thiserror";
+            packageId = "thiserror 2.0.18";
+          }
+          {
+            name = "tracing";
+            packageId = "tracing";
+          }
+        ];
+        devDependencies = [
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
+            name = "serde_yaml";
+            packageId = "serde_yaml";
+          }
+        ];
+        features = {
+          "akeyless-native" = [ "dep:akeyless-api" "dep:tokio" ];
+          "aws-native" = [ "dep:aws-sdk-secretsmanager" "dep:aws-config" "dep:tokio" ];
+          "cli" = [ "dep:clap" ];
+          "gcp-native" = [ "dep:reqwest" "dep:tokio" ];
+          "lisp" = [ "dep:tatara-lisp" ];
+          "op-native" = [ "dep:reqwest" "dep:tokio" ];
+          "vault-native" = [ "dep:reqwest" "dep:tokio" ];
+        };
+        resolvedDefaultFeatures = [ "cli" "default" ];
+      };
+      "shikumi 0.1.80" = rec {
+        crateName = "shikumi";
+        version = "0.1.80";
+        edition = "2024";
+        workspace_member = null;
+        src = pkgs.fetchgit {
+          url = "https://github.com/pleme-io/shikumi";
+          rev = "b41d01e453b2c2505941ba02003f48721ca02b17";
+          sha256 = "1b1g64r6krzrfiilz89vny0pvlc3q1bfrblq4cz3jxsjhd99zpi5";
+        };
+        dependencies = [
+          {
+            name = "arc-swap";
+            packageId = "arc-swap";
+          }
+          {
+            name = "async-trait";
+            packageId = "async-trait";
+          }
+          {
+            name = "clap";
+            packageId = "clap";
+            optional = true;
+            features = [ "derive" ];
+          }
+          {
+            name = "figment";
+            packageId = "figment";
+            features = [ "env" "yaml" "toml" ];
+          }
+          {
+            name = "gen-platform";
+            packageId = "gen-platform";
+          }
+          {
+            name = "gen-types";
+            packageId = "gen-types";
+          }
+          {
+            name = "notify";
+            packageId = "notify";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "notify";
+            packageId = "notify";
+            usesDefaultFeatures = false;
+            target = { target, features }: ("macos" == target."os" or null);
+            features = [ "macos_kqueue" ];
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
+            name = "serde_yaml";
+            packageId = "serde_yaml";
+          }
+          {
+            name = "thiserror";
+            packageId = "thiserror 2.0.18";
+          }
+          {
+            name = "tracing";
+            packageId = "tracing";
+          }
+        ];
+        devDependencies = [
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
+            name = "serde_yaml";
+            packageId = "serde_yaml";
+          }
+        ];
+        features = {
+          "akeyless-native" = [ "dep:akeyless-api" "dep:tokio" ];
+          "aws-native" = [ "dep:aws-sdk-secretsmanager" "dep:aws-config" "dep:tokio" ];
+          "cli" = [ "dep:clap" ];
+          "gcp-native" = [ "dep:reqwest" "dep:tokio" ];
+          "lisp" = [ "dep:tatara-lisp" ];
+          "op-native" = [ "dep:reqwest" "dep:tokio" ];
+          "vault-native" = [ "dep:reqwest" "dep:tokio" ];
+        };
+        resolvedDefaultFeatures = [ "cli" "default" ];
       };
       "shlex" = rec {
         crateName = "shlex";
@@ -19067,11 +18980,6 @@ rec {
             packageId = "arc-swap";
           }
           {
-            name = "shikumi";
-            packageId = "git+https://github.com/pleme-io/shikumi?branch=main#0.1.114";
-            features = [ "cli" ];
-          }
-          {
             name = "ishou-tokens";
             packageId = "ishou-tokens";
           }
@@ -19093,6 +19001,11 @@ rec {
           {
             name = "serde_yaml_ng";
             packageId = "serde_yaml_ng";
+          }
+          {
+            name = "shikumi";
+            packageId = "shikumi 0.1.115";
+            features = [ "cli" ];
           }
           {
             name = "tear-types";
