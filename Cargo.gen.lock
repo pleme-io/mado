@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "bdf394b56878cae4fb24c4d17a18e43a57133ed3e91019d4dbc3901f8f4471d8",
+  "cargo_lock_sha256": "4cf74ae6949247dda9ff255216f74192660b6fd4d7b550fa8d0edaf99d4f588a",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -19166,7 +19166,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.63": {
+          "mado-0.1.64": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -19476,8 +19476,12 @@
                 "features": [
                   "NSApplication",
                   "NSDockTile",
+                  "NSGraphics",
+                  "NSProgressIndicator",
                   "NSResponder",
                   "NSScreen",
+                  "NSSound",
+                  "NSView",
                   "NSWindow"
                 ],
                 "uses_default_features": true,
@@ -23399,7 +23403,7 @@
               "system"
             ]
           },
-          "mado-0.1.63": {
+          "mado-0.1.64": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -27046,7 +27050,7 @@
               "system"
             ]
           },
-          "mado-0.1.63": {
+          "mado-0.1.64": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -30789,7 +30793,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.63": {
+          "mado-0.1.64": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31099,8 +31103,12 @@
                 "features": [
                   "NSApplication",
                   "NSDockTile",
+                  "NSGraphics",
+                  "NSProgressIndicator",
                   "NSResponder",
                   "NSScreen",
+                  "NSSound",
+                  "NSView",
                   "NSWindow"
                 ],
                 "uses_default_features": true,
@@ -34976,7 +34984,7 @@
               "system"
             ]
           },
-          "mado-0.1.63": {
+          "mado-0.1.64": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -38577,7 +38585,7 @@
               "system"
             ]
           },
-          "mado-0.1.63": {
+          "mado-0.1.64": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -42288,7 +42296,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.63": {
+    "mado-0.1.64": {
       "edition": "2024",
       "binaries": [
         {

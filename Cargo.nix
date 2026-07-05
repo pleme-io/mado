@@ -7181,7 +7181,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.63";
+        version = "0.1.64";
         edition = "2024";
         crateBin = [
           {
@@ -7321,7 +7321,7 @@ rec {
             name = "objc2-app-kit";
             packageId = "objc2-app-kit 0.3.2";
             target = { target, features }: ("macos" == target."os" or null);
-            features = [ "NSApplication" "NSWindow" "NSDockTile" "NSResponder" "NSScreen" ];
+            features = [ "NSApplication" "NSWindow" "NSDockTile" "NSResponder" "NSScreen" "NSSound" "NSGraphics" "NSProgressIndicator" "NSView" ];
           }
           {
             name = "objc2-foundation";
