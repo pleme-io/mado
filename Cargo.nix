@@ -1240,7 +1240,7 @@ rec {
           "std" = [ "alloc" ];
           "unstable-winobjc" = [ "gnustep-1-8" ];
         };
-        resolvedDefaultFeatures = [ "alloc" ];
+        resolvedDefaultFeatures = [ "alloc" "default" "std" ];
       };
       "borsh" = rec {
         crateName = "borsh";
@@ -7181,7 +7181,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.60";
+        version = "0.1.61";
         edition = "2024";
         crateBin = [
           {
@@ -7203,6 +7203,11 @@ rec {
           {
             name = "blake3";
             packageId = "blake3";
+          }
+          {
+            name = "block2";
+            packageId = "block2 0.6.2";
+            target = { target, features }: ("macos" == target."os" or null);
           }
           {
             name = "bytemuck";
@@ -7322,7 +7327,13 @@ rec {
             name = "objc2-foundation";
             packageId = "objc2-foundation 0.3.2";
             target = { target, features }: ("macos" == target."os" or null);
-            features = [ "NSString" "NSUserDefaults" ];
+            features = [ "NSString" "NSUserDefaults" "NSBundle" "NSError" "NSUUID" "NSProcessInfo" ];
+          }
+          {
+            name = "objc2-user-notifications";
+            packageId = "objc2-user-notifications 0.3.2";
+            target = { target, features }: ("macos" == target."os" or null);
+            features = [ "UNUserNotificationCenter" "UNNotificationContent" "UNNotificationRequest" "UNNotificationSound" "UNNotificationTrigger" "UNError" "block2" ];
           }
           {
             name = "open";
@@ -9550,7 +9561,7 @@ rec {
           }
           {
             name = "objc2-core-location";
-            packageId = "objc2-core-location";
+            packageId = "objc2-core-location 0.2.2";
             optional = true;
             usesDefaultFeatures = false;
           }
@@ -10230,7 +10241,7 @@ rec {
         };
         resolvedDefaultFeatures = [ "CIColor" "CIContext" "CIFilter" "CIImage" ];
       };
-      "objc2-core-location" = rec {
+      "objc2-core-location 0.2.2" = rec {
         crateName = "objc2-core-location";
         version = "0.2.2";
         edition = "2021";
@@ -10292,6 +10303,58 @@ rec {
           "std" = [ "alloc" "block2?/std" "objc2/std" "objc2-contacts?/std" "objc2-foundation/std" ];
         };
         resolvedDefaultFeatures = [ "alloc" "std" ];
+      };
+      "objc2-core-location 0.3.2" = rec {
+        crateName = "objc2-core-location";
+        version = "0.3.2";
+        edition = "2021";
+        sha256 = "02908pp1knq64wjq07zd6q2z77qppdpd7l2z0by77jabw8a74d6a";
+        libName = "objc2_core_location";
+        dependencies = [
+          {
+            name = "objc2";
+            packageId = "objc2 0.6.4";
+            usesDefaultFeatures = false;
+            features = [ "std" ];
+          }
+          {
+            name = "objc2-foundation";
+            packageId = "objc2-foundation 0.3.2";
+            usesDefaultFeatures = false;
+            features = [ "alloc" ];
+          }
+        ];
+        features = {
+          "CLBeaconIdentityCondition" = [ "objc2-foundation/NSObject" "objc2-foundation/NSUUID" "objc2-foundation/NSValue" ];
+          "CLBeaconIdentityConstraint" = [ "objc2-foundation/NSObject" "objc2-foundation/NSUUID" ];
+          "CLBeaconRegion" = [ "objc2-foundation/NSDate" "objc2-foundation/NSDictionary" "objc2-foundation/NSObject" "objc2-foundation/NSString" "objc2-foundation/NSUUID" "objc2-foundation/NSValue" ];
+          "CLCircularGeographicCondition" = [ "objc2-foundation/NSObject" ];
+          "CLCircularRegion" = [ "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "CLCondition" = [ "objc2-foundation/NSObject" ];
+          "CLError" = [ "objc2-foundation/NSString" ];
+          "CLErrorDomain" = [ "objc2-foundation/NSString" ];
+          "CLGeocoder" = [ "objc2-foundation/NSArray" "objc2-foundation/NSDictionary" "objc2-foundation/NSError" "objc2-foundation/NSLocale" "objc2-foundation/NSString" ];
+          "CLHeading" = [ "objc2-foundation/NSDate" "objc2-foundation/NSObject" ];
+          "CLLocation" = [ "objc2-foundation/NSDate" "objc2-foundation/NSObject" ];
+          "CLLocationManager" = [ "objc2-foundation/NSArray" "objc2-foundation/NSData" "objc2-foundation/NSDate" "objc2-foundation/NSError" "objc2-foundation/NSSet" "objc2-foundation/NSString" ];
+          "CLLocationManagerDelegate" = [ "objc2-foundation/NSArray" "objc2-foundation/NSError" ];
+          "CLLocationPushServiceError" = [ "objc2-foundation/NSError" "objc2-foundation/NSString" ];
+          "CLLocationPushServiceExtension" = [ "objc2-foundation/NSDictionary" "objc2-foundation/NSString" ];
+          "CLMonitor" = [ "objc2-foundation/NSArray" "objc2-foundation/NSString" ];
+          "CLMonitorConfiguration" = [ "objc2-foundation/NSString" ];
+          "CLMonitoringEvent" = [ "objc2-foundation/NSDate" "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "CLMonitoringRecord" = [ "objc2-foundation/NSObject" ];
+          "CLPlacemark" = [ "objc2-foundation/NSArray" "objc2-foundation/NSDictionary" "objc2-foundation/NSObject" "objc2-foundation/NSString" "objc2-foundation/NSTimeZone" ];
+          "CLRegion" = [ "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "CLServiceSession" = [ "objc2-foundation/NSString" ];
+          "CLVisit" = [ "objc2-foundation/NSDate" "objc2-foundation/NSObject" ];
+          "block2" = [ "dep:block2" ];
+          "default" = [ "std" "CLAvailability" "CLBackgroundActivitySession" "CLBeaconIdentityCondition" "CLBeaconIdentityConstraint" "CLBeaconRegion" "CLCircularGeographicCondition" "CLCircularRegion" "CLCondition" "CLError" "CLErrorDomain" "CLGeocoder" "CLHeading" "CLLocation" "CLLocationManager" "CLLocationManagerDelegate" "CLLocationManager_CLVisitExtensions" "CLLocationPushServiceError" "CLLocationPushServiceExtension" "CLLocationUpdater" "CLMonitor" "CLMonitorConfiguration" "CLMonitoringEvent" "CLMonitoringRecord" "CLPlacemark" "CLRegion" "CLServiceSession" "CLVisit" "block2" "dispatch2" "objc2-contacts" ];
+          "dispatch2" = [ "dep:dispatch2" ];
+          "objc2-contacts" = [ "dep:objc2-contacts" ];
+          "std" = [ "alloc" ];
+        };
+        resolvedDefaultFeatures = [ "CLRegion" ];
       };
       "objc2-core-text" = rec {
         crateName = "objc2-core-text";
@@ -11008,7 +11071,7 @@ rec {
           }
           {
             name = "objc2-core-location";
-            packageId = "objc2-core-location";
+            packageId = "objc2-core-location 0.2.2";
             optional = true;
             usesDefaultFeatures = false;
           }
@@ -11045,7 +11108,7 @@ rec {
           }
           {
             name = "objc2-user-notifications";
-            packageId = "objc2-user-notifications";
+            packageId = "objc2-user-notifications 0.2.2";
             optional = true;
             usesDefaultFeatures = false;
           }
@@ -11449,7 +11512,7 @@ rec {
         };
         resolvedDefaultFeatures = [ "alloc" "std" ];
       };
-      "objc2-user-notifications" = rec {
+      "objc2-user-notifications 0.2.2" = rec {
         crateName = "objc2-user-notifications";
         version = "0.2.2";
         edition = "2021";
@@ -11475,7 +11538,7 @@ rec {
           }
           {
             name = "objc2-core-location";
-            packageId = "objc2-core-location";
+            packageId = "objc2-core-location 0.2.2";
             optional = true;
             usesDefaultFeatures = false;
           }
@@ -11509,6 +11572,70 @@ rec {
           "std" = [ "alloc" "bitflags?/std" "block2?/std" "objc2/std" "objc2-core-location?/std" "objc2-foundation/std" ];
         };
         resolvedDefaultFeatures = [ "alloc" "bitflags" "std" ];
+      };
+      "objc2-user-notifications 0.3.2" = rec {
+        crateName = "objc2-user-notifications";
+        version = "0.3.2";
+        edition = "2021";
+        sha256 = "0gk1frfj875pkbz3ncs8swvjgdipz3vwq5l42vd3rxzypf615ycx";
+        libName = "objc2_user_notifications";
+        dependencies = [
+          {
+            name = "bitflags";
+            packageId = "bitflags 2.13.0";
+            optional = true;
+            usesDefaultFeatures = false;
+            features = [ "std" ];
+          }
+          {
+            name = "block2";
+            packageId = "block2 0.6.2";
+            optional = true;
+            usesDefaultFeatures = false;
+            features = [ "alloc" ];
+          }
+          {
+            name = "objc2";
+            packageId = "objc2 0.6.4";
+            usesDefaultFeatures = false;
+            features = [ "std" ];
+          }
+          {
+            name = "objc2-core-location";
+            packageId = "objc2-core-location 0.3.2";
+            optional = true;
+            usesDefaultFeatures = false;
+            features = [ "CLRegion" ];
+          }
+          {
+            name = "objc2-foundation";
+            packageId = "objc2-foundation 0.3.2";
+            usesDefaultFeatures = false;
+            features = [ "alloc" ];
+          }
+        ];
+        features = {
+          "NSString_UserNotifications" = [ "objc2-foundation/NSArray" "objc2-foundation/NSString" ];
+          "UNError" = [ "objc2-foundation/NSString" ];
+          "UNNotification" = [ "objc2-foundation/NSDate" "objc2-foundation/NSObject" ];
+          "UNNotificationAction" = [ "bitflags" "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "UNNotificationActionIcon" = [ "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "UNNotificationAttachment" = [ "objc2-foundation/NSDictionary" "objc2-foundation/NSError" "objc2-foundation/NSObject" "objc2-foundation/NSString" "objc2-foundation/NSURL" ];
+          "UNNotificationCategory" = [ "bitflags" "objc2-foundation/NSArray" "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "UNNotificationContent" = [ "objc2-foundation/NSArray" "objc2-foundation/NSDictionary" "objc2-foundation/NSError" "objc2-foundation/NSObject" "objc2-foundation/NSString" "objc2-foundation/NSValue" ];
+          "UNNotificationRequest" = [ "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "UNNotificationResponse" = [ "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "UNNotificationSettings" = [ "objc2-foundation/NSObject" ];
+          "UNNotificationSound" = [ "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "UNNotificationTrigger" = [ "objc2-foundation/NSCalendar" "objc2-foundation/NSDate" "objc2-foundation/NSObject" ];
+          "UNUserNotificationCenter" = [ "bitflags" "objc2-foundation/NSArray" "objc2-foundation/NSError" "objc2-foundation/NSSet" "objc2-foundation/NSString" ];
+          "bitflags" = [ "dep:bitflags" ];
+          "block2" = [ "dep:block2" ];
+          "default" = [ "std" "NSString_UserNotifications" "UNError" "UNNotification" "UNNotificationAction" "UNNotificationActionIcon" "UNNotificationAttachment" "UNNotificationAttributedMessageContext" "UNNotificationCategory" "UNNotificationContent" "UNNotificationRequest" "UNNotificationResponse" "UNNotificationServiceExtension" "UNNotificationSettings" "UNNotificationSound" "UNNotificationTrigger" "UNUserNotificationCenter" "bitflags" "block2" "objc2-core-location" ];
+          "objc2-core-location" = [ "dep:objc2-core-location" ];
+          "std" = [ "alloc" ];
+        };
+        resolvedDefaultFeatures = [ "NSString_UserNotifications" "UNError" "UNNotification" "UNNotificationAction" "UNNotificationActionIcon" "UNNotificationAttachment" "UNNotificationAttributedMessageContext" "UNNotificationCategory" "UNNotificationContent" "UNNotificationRequest" "UNNotificationResponse" "UNNotificationServiceExtension" "UNNotificationSettings" "UNNotificationSound" "UNNotificationTrigger" "UNUserNotificationCenter" "alloc" "bitflags" "block2" "default" "objc2-core-location" "std" ];
       };
       "once_cell" = rec {
         crateName = "once_cell";
@@ -16794,8 +16921,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
-          rev = "570085ec6267bd9e6dd9c347ee9b54b10728ecab";
-          sha256 = "1az5d8dn11jxs9va7y9xhk1ch3ib4gdl0ncidjps03gg85bi2lbi";
+          rev = "b8dc49cbc286eb81378a5adb70b0bd6c09d36149";
+          sha256 = "1rh4i2l6dcgjsv4bvdsic9l7pqyckh9n1bwiml5xmhv1nz0z78rr";
         };
         dependencies = [
           {
@@ -20453,8 +20580,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tsuuchi";
-          rev = "0057a23d6187f59c1ed718731f41faf10dd15a56";
-          sha256 = "0yaa54n2wvz84mr85aqv15y3jk64w145s7f26mpnbrqbj0ln0r74";
+          rev = "cbe255b912d5195ba08fc055815df2790ba5dba7";
+          sha256 = "1y2i0zk3j8f48cy2nx4a8mxr3cpk595408mabqi81abk8d0657ar";
         };
         dependencies = [
           {
