@@ -1025,10 +1025,10 @@ impl InputEngine {
             .ranked_stored(64, now_ms)
             .into_iter()
             .filter(|st| {
-                st.suggestion.urgency == crate::suggest::Urgency::Critical
+                st.item.urgency == crate::suggest::Urgency::Critical
                     && matches!(st.state, crate::suggest::SuggestionState::Offered)
             })
-            .map(|st| st.suggestion.id)
+            .map(|st| st.item.id)
             .collect();
         if !self.criticals_seeded {
             self.criticals_seeded = true;
@@ -1050,7 +1050,7 @@ impl InputEngine {
             let live: std::collections::HashSet<_> = store
                 .ranked_stored(usize::MAX, now_ms)
                 .into_iter()
-                .map(|st| st.suggestion.id)
+                .map(|st| st.item.id)
                 .collect();
             self.seen_criticals.retain(|id| live.contains(id));
         }

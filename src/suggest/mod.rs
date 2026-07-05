@@ -9,43 +9,266 @@
 //! ticket, a failing Flux/k8s resource, a dirty repo, a Cursor agent needing
 //! follow-up, an incident firing — each ranked by urgency + score, each
 //! **Enter-spawns a pre-named session aimed at that task**. Sources are
-//! shikumi config; adding one is one [`SuggestionSource`] impl. Nothing dead
+//! shikumi config; adding one is one `izumi::Source` impl. Nothing dead
 //! or duplicate is ever offered. The terminal proposes the next task before
 //! you go looking — flow dominance.
 //!
 //! ## Layering (reuse-first, no-overlap)
 //!
-//! * [`core`] — the typed values ([`Suggestion`], [`SourceKind`] catalog,
-//!   [`SpawnSpec`], [`Urgency`]). An always-spawnable suggestion is the
-//!   in-mado twin of praça's latent `SessionDefinition`; it lifts into praça
-//!   (`SessionOrigin::Suggested`) at M3.
-//! * [`env`] — the mockable I/O boundary every source reads through (real =
-//!   typed `Command`/`curl`/fs/secrets; tests = canned fixtures).
-//! * [`store`] — the ephemeral ranked cache the watchers feed + the picker
-//!   reads (separate from persisted presets; shade-in birth times live here).
-//! * [`source`] — the [`SuggestionSource`] trait + the parallel
-//!   [`SuggestionEngine`] watcher plane (one tokio task per source).
-//! * [`sources`] — one provider impl per [`SourceKind`].
+//! The plane's algebra lives in the **izumi** substrate (the generalized
+//! extraction of this module): `izumi` (Item/Store/Engine/Environment),
+//! `izumi-sources` (the 25 generic providers), `izumi-config` (the shikumi
+//! `BoardConfig` surface). This module is the mado-side SHIM: it declares the
+//! 29-variant [`SourceKind`] catalog, re-exports the izumi types under their
+//! historical mado names (submodule paths preserved for every importer), keeps
+//! the mado-local providers ([`sources`]: recent-dirs, project-marks, agent
+//! lane, safra adapter), and owns the process-global engine/board facade.
 //!
-//! Each source is the TYPED-SPEC+INTERPRETER triplet's interpreter: a pure
-//! `poll(env)` tested through a `MockEnvironment`, with the real `Environment`
-//! the only live-wiring seam.
+//! Wire compatibility is contractual: the snapshot magic
+//! [`store::SNAPSHOT_MAGIC`] (`b"mado-suggest v1\n"`, trailing newline
+//! INCLUDED) is passed to izumi's magic-parameterized persist layer verbatim,
+//! item ids derive byte-identically (fnv1a over `slug ':' key`), and the
+//! `suggestions:` YAML schema is unchanged.
 
 // The suggestion plane is an actively-built substrate the binary consumes
-// thinly: several typed-API items (HTTP env, secret resolution, decay/snapshot,
-// per-item scoring, the initial-command spawn hint) are exercised by the source
-// providers + later milestones (shade-in render, warm-restart persist) and by
-// the per-module test suites, but not yet by a non-test build of the binary.
-// Allow dead_code module-wide while the plane fills out rather than scatter
-// per-item allows that churn as each milestone lands.
+// thinly: several typed-API items are exercised by the source providers +
+// later milestones and by the per-module test suites, but not yet by a
+// non-test build of the binary. Allow dead_code module-wide while the plane
+// fills out rather than scatter per-item allows that churn as each milestone
+// lands.
 #![allow(dead_code)]
 
-pub mod core;
-pub mod env;
-pub mod pace;
-pub mod source;
 pub mod sources;
-pub mod store;
+
+/// The typed suggestion values — shim over `izumi`'s item plane, preserving
+/// the historical `crate::suggest::core::*` import paths. [`SourceKind`] (the
+/// mado catalog) is authored here via [`izumi::catalog!`].
+pub mod core {
+    #[allow(unused_imports)]
+    pub use izumi::{fnv1a, CorrKey, Rank, SourceStatus, SpawnSpec, Urgency};
+
+    /// Stable identity of a suggestion — izumi's [`izumi::ItemId`] under the
+    /// historical mado name (the tuple constructor `SuggestionId(raw)` still
+    /// works: a `pub use` rename carries the value namespace).
+    pub use izumi::ItemId as SuggestionId;
+
+    /// One latent task the picker can shade in + spawn — izumi's
+    /// [`izumi::Item`] over the mado catalog + spawn payload.
+    pub type Suggestion = izumi::Item<SourceKind, SpawnSpec>;
+
+    izumi::catalog! {
+        /// Every task-suggestion source the plane knows about — the COMPLETE
+        /// catalog (CATALOG REFLECTION). Declared via `izumi::catalog!`, so
+        /// slugs are compile-time unique, `Ord` is declaration order, and the
+        /// serde wire form is the kebab slug — byte-identical to the previous
+        /// hand-written `#[serde(rename_all = "kebab-case")]` enum.
+        pub enum SourceKind {
+            // ── local / zero-auth (the proof-of-thread tier) ──────────────
+            /// Local git branches correlated to their open PR titles.
+            GitBranchPr { slug: "git-branch-pr", emoji: "\u{1F33F}", label: "git branch ↔ PR", urgency: Low, needs_auth: false, interval_secs: 30 },
+            /// `tend` workspace repos that are dirty / unsynced / missing.
+            TendRepos { slug: "tend-repos", emoji: "\u{1F9F9}", label: "tend dirty repos", urgency: Low, needs_auth: false, interval_secs: 30 },
+            /// Recently-visited directories (mado's own recent-dirs).
+            RecentDirs { slug: "recent-dirs", emoji: "\u{1F4C1}", label: "recent directories", urgency: Idle, needs_auth: false, interval_secs: 30 },
+            /// User-set project marks (mado marks).
+            ProjectMarks { slug: "project-marks", emoji: "\u{1F4CC}", label: "project marks", urgency: Idle, needs_auth: false, interval_secs: 30 },
+            /// `cargo` warnings/errors in the current project.
+            CargoWarnings { slug: "cargo-warnings", emoji: "\u{1F980}", label: "cargo warnings", urgency: Low, needs_auth: false, interval_secs: 120 },
+            /// `TODO` / `FIXME` backlog under the code root.
+            TodoBacklog { slug: "todo-backlog", emoji: "\u{1F4DD}", label: "TODO backlog", urgency: Idle, needs_auth: false, interval_secs: 120 },
+            // ── github ────────────────────────────────────────────────────
+            /// PRs awaiting your review.
+            GithubReviewRequested { slug: "github-review-requested", emoji: "\u{1F50D}", label: "GitHub review-requested", urgency: High, needs_auth: true, interval_secs: 180 },
+            /// Issues assigned to you.
+            GithubAssignedIssues { slug: "github-assigned-issues", emoji: "\u{1F41B}", label: "GitHub assigned issues", urgency: Normal, needs_auth: true, interval_secs: 180 },
+            /// GitHub Actions runs that are failing.
+            GithubActionsFailing { slug: "github-actions-failing", emoji: "\u{1F6A8}", label: "GitHub Actions failing", urgency: High, needs_auth: true, interval_secs: 180 },
+            // ── atlassian ─────────────────────────────────────────────────
+            /// Jira issues in your active sprint.
+            JiraSprint { slug: "jira-sprint", emoji: "\u{1F3AB}", label: "Jira sprint", urgency: Normal, needs_auth: true, interval_secs: 300 },
+            /// Jira issues assigned to you.
+            JiraAssigned { slug: "jira-assigned", emoji: "\u{1F4CB}", label: "Jira assigned", urgency: Normal, needs_auth: true, interval_secs: 300 },
+            /// Confluence pages mentioning you.
+            ConfluenceMentions { slug: "confluence-mentions", emoji: "\u{1F4AC}", label: "Confluence mentions", urgency: Low, needs_auth: true, interval_secs: 300 },
+            // ── cluster / gitops ──────────────────────────────────────────
+            /// FluxCD Kustomizations/HelmReleases failing to reconcile.
+            FluxFailing { slug: "flux-failing", emoji: "\u{1F501}", label: "Flux failing", urgency: High, needs_auth: false, interval_secs: 60 },
+            /// Kubernetes pods Pending / CrashLoopBackOff / unhealthy.
+            K8sUnhealthy { slug: "k8s-unhealthy", emoji: "\u{2638}", label: "k8s unhealthy pods", urgency: Critical, needs_auth: false, interval_secs: 60 },
+            /// `breathe` resource bands stuck in Conflict.
+            BreatheConflict { slug: "breathe-conflict", emoji: "\u{1F4A8}", label: "breathe Conflict bands", urgency: High, needs_auth: false, interval_secs: 60 },
+            /// engenho cluster nodes not Ready.
+            EngenhoNodes { slug: "engenho-nodes", emoji: "\u{1F5A5}", label: "engenho nodes", urgency: Normal, needs_auth: false, interval_secs: 60 },
+            // ── observability / incidents ─────────────────────────────────
+            /// grafana alerts firing.
+            GrafanaAlerts { slug: "grafana-alerts", emoji: "\u{1F525}", label: "grafana alerts", urgency: Critical, needs_auth: true, interval_secs: 90 },
+            /// grafana incidents open.
+            GrafanaIncidents { slug: "grafana-incidents", emoji: "\u{1F6A9}", label: "grafana incidents", urgency: Critical, needs_auth: true, interval_secs: 90 },
+            /// grafana on-call shifts assigned to you.
+            GrafanaOncall { slug: "grafana-oncall", emoji: "\u{1F4DF}", label: "grafana on-call", urgency: High, needs_auth: true, interval_secs: 600 },
+            /// Datadog monitors alerting.
+            DatadogMonitors { slug: "datadog-monitors", emoji: "\u{1F415}", label: "Datadog monitors", urgency: Critical, needs_auth: true, interval_secs: 90 },
+            /// Opsgenie alerts open/unacked.
+            OpsgenieAlerts { slug: "opsgenie-alerts", emoji: "\u{1F514}", label: "Opsgenie alerts", urgency: Critical, needs_auth: true, interval_secs: 90 },
+            // ── agents / cloud ────────────────────────────────────────────
+            /// Cursor cloud (kurage) agents needing follow-up.
+            KurageAgents { slug: "kurage-agents", emoji: "\u{1F916}", label: "Cursor agents", urgency: Normal, needs_auth: true, interval_secs: 120 },
+            /// AWS health/PHD events affecting your account.
+            AwsHealth { slug: "aws-health", emoji: "\u{2601}", label: "AWS health", urgency: Critical, needs_auth: true, interval_secs: 300 },
+            /// Cloudflare Pages/Workers deployments that failed.
+            CloudflareDeployments { slug: "cloudflare-deployments", emoji: "\u{1F310}", label: "Cloudflare deployments", urgency: High, needs_auth: true, interval_secs: 300 },
+            // ── calendar / tasks ──────────────────────────────────────────
+            /// Google Tasks due soon.
+            GoogleTasks { slug: "google-tasks", emoji: "\u{2705}", label: "Google Tasks", urgency: Low, needs_auth: true, interval_secs: 300 },
+            /// Google Calendar events imminent.
+            GoogleCalendar { slug: "google-calendar", emoji: "\u{1F4C5}", label: "Google Calendar", urgency: Normal, needs_auth: true, interval_secs: 300 },
+            // ── secrets ───────────────────────────────────────────────────
+            /// Secrets whose age exceeds a rotation threshold.
+            SecretAge { slug: "secret-age", emoji: "\u{1F511}", label: "secret age", urgency: Normal, needs_auth: false, interval_secs: 3600 },
+            // ── curated observability (safra) ─────────────────────────────
+            /// The safra curation plane: per-(environment × data-kind) curated
+            /// signals (firing alerts, deploy flows, SLO breaches) projected
+            /// onto the board. Cells + endpoints come from the `safra:`
+            /// config section.
+            Safra { slug: "safra", emoji: "\u{1F33E}", label: "safra curated signals", urgency: Normal, needs_auth: false, interval_secs: 60 },
+            // ── agent lane ────────────────────────────────────────────────
+            /// Tasks PUSHED onto the board by an agent through the
+            /// `suggest_inject` MCP tool (an agent needing review, a hand-off,
+            /// a follow-up). Push-only: no watcher polls it; rows live until
+            /// they decay or are dismissed.
+            Agent { slug: "agent", emoji: "\u{1F91D}", label: "agent-injected tasks", urgency: Normal, needs_auth: false, interval_secs: 300 },
+        }
+    }
+
+    /// Inherent mirrors of the [`izumi::Catalog`] table methods, so the
+    /// historical `SourceKind::ALL` / `kind.slug()` / `kind.emoji()` call
+    /// sites keep working WITHOUT importing the trait at every consumer.
+    impl SourceKind {
+        /// Every variant, in catalog (declaration) order — the reflection
+        /// surface tooling + config + tests iterate.
+        pub const ALL: &'static [SourceKind] = <SourceKind as izumi::Catalog>::ALL;
+
+        /// Kebab slug — the stable id-derivation key + serde wire form.
+        #[must_use]
+        pub fn slug(self) -> &'static str {
+            izumi::Catalog::slug(self)
+        }
+
+        /// Resolve a slug back to its kind (config parse / round-trip).
+        #[must_use]
+        pub fn from_slug(s: &str) -> Option<SourceKind> {
+            <SourceKind as izumi::Catalog>::from_slug(s)
+        }
+
+        /// One-glyph emoji signal for the picker row.
+        #[must_use]
+        pub fn emoji(self) -> &'static str {
+            izumi::Catalog::emoji(self)
+        }
+
+        /// Human label for config docs / tooling.
+        #[must_use]
+        pub fn label(self) -> &'static str {
+            izumi::Catalog::label(self)
+        }
+
+        /// Default urgency a fresh suggestion from this source carries.
+        #[must_use]
+        pub fn default_urgency(self) -> Urgency {
+            izumi::Catalog::default_urgency(self)
+        }
+
+        /// Whether the source needs a token/credential to return anything.
+        #[must_use]
+        pub fn needs_auth(self) -> bool {
+            izumi::Catalog::needs_auth(self)
+        }
+
+        /// Default poll cadence in seconds.
+        #[must_use]
+        pub fn default_interval_secs(self) -> u64 {
+            izumi::Catalog::default_interval_secs(self)
+        }
+    }
+}
+
+/// The mockable I/O boundary — shim over [`izumi::env`], preserving the
+/// historical `crate::suggest::env::*` paths (the trait keeps its mado name
+/// `SuggestionEnvironment`; a trait `pub use` rename is impl- and dyn-usable
+/// because [`izumi::Environment`] carries no generic parameters).
+pub mod env {
+    #[allow(unused_imports)]
+    pub use izumi::env::{Cmd, HttpReq, MockEnvironment, RealEnvironment};
+    pub use izumi::Environment as SuggestionEnvironment;
+}
+
+/// The provider border + watcher engine — shim over [`izumi::source`] /
+/// [`izumi::engine`], monomorphized to the mado catalog + spawn payload.
+pub mod source {
+    use super::core::{SourceKind, SpawnSpec};
+
+    /// The typed outcome of one poll (mado monomorphization).
+    pub type PollOutcome = izumi::PollOutcome<SourceKind, SpawnSpec>;
+    /// Engine-wide config over the mado catalog.
+    pub type EngineConfig = izumi::EngineConfig<SourceKind>;
+    #[allow(unused_imports)]
+    pub use izumi::source::{apply_poll, refresh_once, SourceConfig};
+    /// The parallel watcher engine (izumi's [`izumi::Engine`]; `start` now
+    /// takes the freshness nudge as a PARAMETER — the facade passes
+    /// [`super::board_nudge`]).
+    pub use izumi::Engine as SuggestionEngine;
+
+    /// The object-safe provider type mado registries hold. NOTE: the generic
+    /// [`izumi::Source`] trait cannot be `pub use`-renamed into an
+    /// `impl SuggestionSource for X` position (E0107 — the type parameters
+    /// don't default); providers write
+    /// `impl izumi::Source<SourceKind, izumi::SpawnSpec> for X` directly.
+    pub type DynSuggestionSource = dyn izumi::Source<SourceKind, SpawnSpec>;
+}
+
+/// The living-board store — shim over [`izumi::store`] monomorphized to the
+/// mado catalog + spawn payload, plus the mado snapshot-magic constants and
+/// the magic-hardwired framed-persist helpers `praca_store` shares.
+pub mod store {
+    use std::path::Path;
+
+    use super::core::{SourceKind, SpawnSpec};
+
+    /// Snapshot framing magic — the mado schema tag, passed VERBATIM
+    /// (trailing newline INCLUDED) to izumi's magic-parameterized persist
+    /// layer, so every pre-extraction snapshot still loads and every new
+    /// write is byte-identical to the old frame.
+    pub const SNAPSHOT_MAGIC: &[u8] = b"mado-suggest v1\n";
+
+    /// The ranked living-board cache (mado monomorphization).
+    pub type SuggestionStore = izumi::Store<SourceKind, SpawnSpec>;
+    /// A suggestion plus store bookkeeping. The Rust field for the item is
+    /// `item` (izumi's name); its serde wire name stays `suggestion`.
+    pub type StoredSuggestion = izumi::StoredItem<SourceKind, SpawnSpec>;
+    /// Serializable warm-restart snapshot view.
+    pub type StoreSnapshot = izumi::StoreSnapshot<SourceKind, SpawnSpec>;
+    /// Worked-on lifecycle state (wire form unchanged: kebab-case,
+    /// `kind`-tagged).
+    pub use izumi::ItemState as SuggestionState;
+    #[allow(unused_imports)]
+    pub use izumi::store::{
+        balance_per_source, collapse_correlated, effective_rank_key, shade_ramp, SourceHealth,
+    };
+
+    /// Frame `json` under the mado magic and atomically write it to `path`
+    /// (see [`izumi::persist::atomic_write_framed`]). The praça snapshot
+    /// writes through this same magic-hardwired helper.
+    pub fn atomic_write_framed(path: &Path, json: &[u8]) {
+        izumi::persist::atomic_write_framed(SNAPSHOT_MAGIC, path, json);
+    }
+
+    /// Verify + unframe a mado-magic snapshot: `None` on wrong magic (schema
+    /// bump) or hash mismatch (torn/corrupt) — both mean start-empty.
+    #[must_use]
+    pub fn unframe_snapshot(bytes: &[u8]) -> Option<Vec<u8>> {
+        izumi::persist::unframe_snapshot(SNAPSHOT_MAGIC, bytes)
+    }
+}
 
 // The suggest-plane facade. These are the module's public API; not every name
 // is consumed by the binary itself (several are used cross-module only under
@@ -57,7 +280,7 @@ pub use core::{CorrKey, SourceKind, SourceStatus, SpawnSpec, Suggestion, Suggest
 pub use env::{Cmd, HttpReq, MockEnvironment, RealEnvironment, SuggestionEnvironment};
 #[allow(unused_imports)]
 pub use source::{
-    refresh_once, EngineConfig, PollOutcome, SourceConfig, SuggestionEngine, SuggestionSource,
+    refresh_once, DynSuggestionSource, EngineConfig, PollOutcome, SourceConfig, SuggestionEngine,
 };
 #[allow(unused_imports)]
 pub use store::{
@@ -80,7 +303,7 @@ pub fn store() -> Arc<SuggestionStore> {
 }
 
 /// The process-wide freshness nudge every watcher selects on alongside its
-/// cadence tick (see `spawn_interval_refresh_nudged`).
+/// cadence tick (see `izumi::refresh::spawn_interval_refresh_nudged`).
 static NUDGE: OnceLock<Arc<tokio::sync::Notify>> = OnceLock::new();
 
 /// The shared board-refresh notify (lazy global) — watchers wait on it, the
@@ -176,19 +399,19 @@ pub fn board_json(max: usize) -> serde_json::Value {
         .into_iter()
         .map(|st| {
             serde_json::json!({
-                "id": st.suggestion.id.0.to_string(),
-                "source": st.suggestion.source.slug(),
-                "title": st.suggestion.title,
-                "detail": st.suggestion.detail,
-                "urgency": serde_json::to_value(st.suggestion.urgency)
+                "id": st.item.id.0.to_string(),
+                "source": st.item.source.slug(),
+                "title": st.item.title,
+                "detail": st.item.detail,
+                "urgency": serde_json::to_value(st.item.urgency)
                     .unwrap_or(serde_json::Value::Null),
                 "state": serde_json::to_value(&st.state)
                     .unwrap_or(serde_json::Value::Null),
                 "times_seen": st.times_seen,
                 "waiting_secs": now_ms.saturating_sub(st.first_seen_ms) / 1000,
-                "cwd": st.suggestion.spawn.cwd().to_string_lossy(),
-                "session_name": st.suggestion.spawn.name(),
-                "initial_command": st.suggestion.spawn.initial_command(),
+                "cwd": st.item.spawn.cwd().to_string_lossy(),
+                "session_name": st.item.spawn.name(),
+                "initial_command": st.item.spawn.initial_command(),
             })
         })
         .collect();
@@ -250,8 +473,7 @@ pub fn inject(params: InjectParams) -> Result<serde_json::Value, String> {
         .unwrap_or_else(|| {
             let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"));
             std::env::var_os("PLEME_CODE_ROOT")
-                .map(PathBuf::from)
-                .unwrap_or_else(|| home.join("code"))
+                .map_or_else(|| home.join("code"), PathBuf::from)
                 .to_string_lossy()
                 .into_owned()
         });
@@ -325,6 +547,11 @@ pub fn state_path() -> PathBuf {
 /// Translate the typed shikumi `suggestions` config into an [`EngineConfig`].
 /// Reads the MERGED source list (prescribed arm-list ⊕ operator overrides), so
 /// a params-only yaml override never disarms the rest of the surface.
+///
+/// Kept LOCAL (not delegated to `izumi_config::to_engine_config`) because the
+/// mado prescribed arm-list lives inside `SuggestionsConfig::prescribed()`
+/// (YAML byte-compat is contractual); a parity test in `config.rs` proves the
+/// merge semantics equal `izumi_config::BoardConfig::effective_sources`.
 #[must_use]
 pub fn engine_config_from(cfg: &crate::config::SuggestionsConfig) -> EngineConfig {
     let mut ec = EngineConfig {
@@ -413,11 +640,15 @@ fn build_engine(
         sources_vec.retain(|s| s.kind() != SourceKind::Safra);
         sources_vec.push(Arc::new(adapter));
     }
+    // izumi's Engine takes the freshness nudge as a PARAMETER (the extraction
+    // decoupled it from mado's process-global); the shared board nudge keeps
+    // the exact pre-extraction semantics.
     let engine = SuggestionEngine::start(
         sources_vec,
         Arc::clone(env),
         Arc::clone(store),
         engine_cfg,
+        Some(board_nudge()),
     );
     tracing::info!(
         watchers = engine.active_watchers(),
@@ -437,6 +668,7 @@ fn build_engine(
 /// the picker simply shows no suggestions). Parking the disabled loop also
 /// keeps `praca_store::maintenance_tick` alive, so praça preset persistence
 /// no longer depends on suggestions being enabled.
+#[allow(clippy::too_many_lines)] // one linear boot+loop narrative; splitting hides the lifecycle
 pub fn spawn_engine_thread(
     cfg: &crate::config::SuggestionsConfig,
     safra: &crate::safra::SafraConfig,
@@ -482,11 +714,13 @@ pub fn spawn_engine_thread(
                     // starts from the last-known board, not a blank one).
                     if knobs.persist {
                         let now_ms = env.now_unix().saturating_mul(1000);
-                        store.load_file(&path, now_ms);
-                        store.decay_per_source(now_ms, |k| {
-                            knobs.ttl_map.get(&k).copied().unwrap_or(knobs.global_ttl_ms)
-                        });
-                        store.gc(knobs.max_entries, now_ms);
+                        store.load_file(&path, store::SNAPSHOT_MAGIC, now_ms);
+                        izumi::maintain::maintenance_tick(
+                            &store,
+                            |k| knobs.ttl_map.get(&k).copied().unwrap_or(knobs.global_ttl_ms),
+                            knobs.max_entries,
+                            now_ms,
+                        );
                     }
                     // Maintenance loop — the SINGLE owner of decay + debounced
                     // persist, off the watcher hot path. The watchers only
@@ -504,10 +738,14 @@ pub fn spawn_engine_thread(
                         tokio::select! {
                             _ = tick.tick() => {
                                 let now_ms = env.now_unix().saturating_mul(1000);
-                                store.decay_per_source(now_ms, |k| {
-                                    knobs.ttl_map.get(&k).copied().unwrap_or(knobs.global_ttl_ms)
-                                });
-                                store.gc(knobs.max_entries, now_ms);
+                                // The shared izumi maintenance tick: per-source
+                                // decay + the hard gc cap, in one call.
+                                izumi::maintain::maintenance_tick(
+                                    &store,
+                                    |k| knobs.ttl_map.get(&k).copied().unwrap_or(knobs.global_ttl_ms),
+                                    knobs.max_entries,
+                                    now_ms,
+                                );
                                 let current_gen = store.generation();
                                 // The writer election is RE-CHECKED every tick (a
                                 // cheap non-blocking flock attempt when not already
@@ -518,7 +756,7 @@ pub fn spawn_engine_thread(
                                     && current_gen != last_gen
                                     && crate::single_writer::is_writer()
                                 {
-                                    store.persist_file(&path, now_ms);
+                                    store.persist_file(&path, store::SNAPSHOT_MAGIC, now_ms);
                                     last_gen = current_gen;
                                 }
                                 // Praça persistence rides the same maintenance tick
@@ -608,5 +846,39 @@ mod tests {
 
             std::env::remove_var("MADO_STATE_DIR");
         }
+    }
+
+    /// The wire-compat anchors the extraction must never move: the catalog's
+    /// serde form is the kebab slug, ids derive byte-identically (fnv1a over
+    /// `slug ':' key`), and the snapshot magic is the mado original VERBATIM
+    /// (trailing newline included).
+    #[test]
+    fn izumi_shim_preserves_the_mado_wire_contract() {
+        // Catalog shape: 29 variants, declaration order = Ord.
+        assert_eq!(SourceKind::ALL.len(), 29);
+        assert!(SourceKind::GitBranchPr < SourceKind::Agent);
+        // Serde wire form is the kebab slug (byte-identical to the old
+        // rename_all = "kebab-case" derive).
+        assert_eq!(
+            serde_json::to_string(&SourceKind::GithubReviewRequested).unwrap(),
+            "\"github-review-requested\""
+        );
+        assert_eq!(
+            SourceKind::from_slug("breathe-conflict"),
+            Some(SourceKind::BreatheConflict)
+        );
+        // Id derivation: fnv1a over `slug ':' key`, unchanged.
+        let id = SuggestionId::derive(SourceKind::TendRepos, "mado");
+        let mut buf = String::from("tend-repos");
+        buf.push(':');
+        buf.push_str("mado");
+        assert_eq!(id.0, izumi::fnv1a(buf.as_bytes()));
+        // The snapshot magic is passed verbatim — trailing newline INCLUDED
+        // (dropping it would silently orphan every persisted board + preset).
+        assert_eq!(store::SNAPSHOT_MAGIC, b"mado-suggest v1\n");
+        assert_eq!(store::SNAPSHOT_MAGIC.last(), Some(&b'\n'));
+        // The framed persist pair round-trips under that magic.
+        let framed = izumi::persist::frame_snapshot(store::SNAPSHOT_MAGIC, b"{}");
+        assert_eq!(store::unframe_snapshot(&framed).as_deref(), Some(&b"{}"[..]));
     }
 }

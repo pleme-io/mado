@@ -2460,12 +2460,12 @@ impl TerminalRenderer {
                             .unwrap_or(u64::MAX);
                         let a = crate::suggest::shade_ramp(0, elapsed, self.suggestion_shade_in_ms);
                         // Urgency tint: an on-fire task glows hot; routine ones
-                        // keep the calm row colour (Urgency::tint → None). Read
+                        // keep the calm row colour (urgency_tint → None). Read
                         // from the row itself — the bridge stamped it at list
                         // time, so the frame loop takes no store lock.
                         let tint = row
                             .urgency
-                            .and_then(crate::suggest::Urgency::tint)
+                            .and_then(crate::theme::urgency_tint)
                             .map(|(r, g, b)| Color::new(r, g, b));
                         (a, tint)
                     }

@@ -138,6 +138,23 @@ fn blend(a: Color, b: Color, t: f32) -> Color {
     Color::new(mix(a.r, b.r), mix(a.g, b.g), mix(a.b, b.b))
 }
 
+/// Foreground tint (RGB) for a suggestion row, or `None` to keep the calm
+/// default row colour. Deliberately SPARING — only the urgent tiers glow
+/// (Nord aurora red for Critical, amber for High) so the picker draws the
+/// eye to what's on fire and stays a calm home otherwise.
+///
+/// Lives mado-side (not on `izumi::Urgency`): which tiers glow, and in which
+/// palette, is a RENDER concern of this consumer — the substrate stays
+/// presentation-free.
+#[must_use]
+pub fn urgency_tint(u: izumi::Urgency) -> Option<(u8, u8, u8)> {
+    match u {
+        izumi::Urgency::Critical => Some((0xBF, 0x61, 0x6A)), // Nord aurora red
+        izumi::Urgency::High => Some((0xD0, 0x87, 0x70)),     // Nord aurora amber
+        izumi::Urgency::Normal | izumi::Urgency::Low | izumi::Urgency::Idle => None,
+    }
+}
+
 pub fn apply_config_theme(
     renderer: &mut crate::render::TerminalRenderer,
     terminal: &crate::render::SharedTerminal,
@@ -429,6 +446,24 @@ fn all() -> &'static [Theme] {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_urgent_tiers_tint() {
+        // Sparing by design: only Critical + High glow; the calm tiers keep
+        // the default row colour. (Moved here from the extracted suggest
+        // core — the tint is mado's render concern, not izumi's.)
+        use izumi::Urgency;
+        assert!(urgency_tint(Urgency::Critical).is_some());
+        assert!(urgency_tint(Urgency::High).is_some());
+        assert_eq!(urgency_tint(Urgency::Normal), None);
+        assert_eq!(urgency_tint(Urgency::Low), None);
+        assert_eq!(urgency_tint(Urgency::Idle), None);
+        assert_ne!(
+            urgency_tint(Urgency::Critical),
+            urgency_tint(Urgency::High),
+            "the two urgent tiers are visually distinct"
+        );
+    }
 
     #[test]
     fn every_preset_loads() {

@@ -4338,6 +4338,95 @@ mod tests {
         assert_eq!(cfg4.effective_sources().len(), 1, "replace mode is an allow-list");
     }
 
+    /// PARITY GATE against the extracted substrate: mado's local
+    /// `SuggestionsConfig::effective_sources` merge (kept local because the
+    /// prescribed arm-list is baked into `prescribed()` for YAML byte-compat)
+    /// must implement EXACTLY the semantics of
+    /// `izumi_config::BoardConfig::effective_sources`. If either side's merge
+    /// drifts (override-wins-wholesale, unknown-kind-rides-along,
+    /// replace-is-an-allow-list), this fails naming the divergent entry.
+    #[test]
+    fn effective_sources_merge_parity_with_izumi_config() {
+        use crate::suggest::SourceKind;
+
+        fn to_entry(sc: &SuggestionSourceConfig) -> izumi_config::SourceEntry {
+            let mut e = izumi_config::SourceEntry::enable(sc.kind.clone());
+            e.enabled = sc.enabled;
+            e.interval_secs = sc.interval_secs;
+            e.max_items = sc.max_items;
+            e.params = sc.params.clone();
+            e
+        }
+
+        // The mado prescribed arm-list, as izumi-config sees it: the slugs of
+        // the prescribed()-armed entries (izumi's merge seeds enabled=true
+        // defaults from slugs; mado's prescribed entries ARE exactly
+        // `enable(kind)` — asserted below so the translation stays honest).
+        let prescribed = SuggestionsConfig::prescribed();
+        for sc in &prescribed.sources {
+            assert_eq!(
+                *sc,
+                SuggestionSourceConfig::enable(
+                    SourceKind::from_slug(&sc.kind).expect("prescribed slug is a catalog kind")
+                ),
+                "prescribed entries must be plain enables for the parity translation to hold"
+            );
+        }
+        let prescribed_slugs: Vec<&str> =
+            prescribed.sources.iter().map(|s| s.kind.as_str()).collect();
+
+        // Exercise the same shapes the merge test above pins: a params-only
+        // override, an appended unknown kind, an explicit disable, and the
+        // replace-mode allow-list.
+        let mut params_over = SuggestionSourceConfig::enable(SourceKind::JiraAssigned);
+        params_over
+            .params
+            .insert(String::from("site"), String::from("acme.atlassian.net"));
+        let mut disable = SuggestionSourceConfig::enable(SourceKind::TodoBacklog);
+        disable.enabled = false;
+        let cases: Vec<SuggestionsConfig> = vec![
+            SuggestionsConfig::prescribed(),
+            SuggestionsConfig {
+                sources: vec![
+                    params_over,
+                    SuggestionSourceConfig::enable(SourceKind::AwsHealth),
+                    disable,
+                ],
+                ..SuggestionsConfig::prescribed()
+            },
+            SuggestionsConfig {
+                sources: vec![SuggestionSourceConfig::enable(SourceKind::JiraAssigned)],
+                sources_replace: true,
+                ..SuggestionsConfig::prescribed()
+            },
+        ];
+        for (i, cfg) in cases.iter().enumerate() {
+            let board = izumi_config::BoardConfig {
+                sources: cfg.sources.iter().map(to_entry).collect(),
+                sources_replace: cfg.sources_replace,
+                ..izumi_config::BoardConfig::default()
+            };
+            let ours = cfg.effective_sources();
+            let theirs = board.effective_sources(&prescribed_slugs);
+            assert_eq!(ours.len(), theirs.len(), "case {i}: merged length diverged");
+            for (m, z) in ours.iter().zip(theirs.iter()) {
+                assert_eq!(m.kind, z.kind, "case {i}: kind order diverged");
+                assert_eq!(m.enabled, z.enabled, "case {i}: enabled diverged for {}", m.kind);
+                assert_eq!(
+                    m.interval_secs, z.interval_secs,
+                    "case {i}: interval diverged for {}",
+                    m.kind
+                );
+                assert_eq!(
+                    m.max_items, z.max_items,
+                    "case {i}: max_items diverged for {}",
+                    m.kind
+                );
+                assert_eq!(m.params, z.params, "case {i}: params diverged for {}", m.kind);
+            }
+        }
+    }
+
     /// Every effects knob round-trips through YAML and the static
     /// params mirror the engawa catalog's reference defaults — the
     /// config IS a projection of the catalog's Params surface, so a

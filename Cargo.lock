@@ -1004,11 +1004,32 @@ dependencies = [
 
 [[package]]
 name = "dirs"
+version = "5.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "44c45a9d03d6676652bcb5e724c7e988de1acad23a711b5217ab9cbecbec2225"
+dependencies = [
+ "dirs-sys 0.4.1",
+]
+
+[[package]]
+name = "dirs"
 version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3e8aa94d75141228480295a7d0e7feb620b1a5ad9f12bc40be62411e38cce4e"
 dependencies = [
- "dirs-sys",
+ "dirs-sys 0.5.0",
+]
+
+[[package]]
+name = "dirs-sys"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "520f05a5cbd335fae5a99ff7a6ab8627577660ee5cfd6a94a6a929b52ff0321c"
+dependencies = [
+ "libc",
+ "option-ext",
+ "redox_users 0.4.6",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -1019,7 +1040,7 @@ checksum = "e01a3366d27ee9890022452ee61b2b63a67e6f13f58900b651ff5665f0bb1fab"
 dependencies = [
  "libc",
  "option-ext",
- "redox_users",
+ "redox_users 0.5.2",
  "windows-sys 0.61.2",
 ]
 
@@ -1522,7 +1543,7 @@ dependencies = [
  "bincode",
  "blake3",
  "bytemuck",
- "dirs",
+ "dirs 6.0.0",
  "fontdb",
  "glyphon",
  "pollster",
@@ -2142,6 +2163,38 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 
 [[package]]
+name = "izumi"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "dirs 5.0.1",
+ "parking_lot",
+ "samba",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "izumi-config"
+version = "0.1.0"
+dependencies = [
+ "izumi",
+ "serde",
+ "shikumi 0.1.80",
+]
+
+[[package]]
+name = "izumi-sources"
+version = "0.1.0"
+dependencies = [
+ "izumi",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "jni"
 version = "0.22.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2449,7 +2502,7 @@ dependencies = [
  "clap",
  "ctrlc",
  "data-encoding",
- "dirs",
+ "dirs 6.0.0",
  "engate-attach",
  "engate-types",
  "engawa",
@@ -2461,6 +2514,9 @@ dependencies = [
  "image",
  "irodzuki",
  "ishou-tokens",
+ "izumi",
+ "izumi-config",
+ "izumi-sources",
  "kaname",
  "kanchi",
  "kanshou",
@@ -2485,7 +2541,6 @@ dependencies = [
  "praca",
  "proptest",
  "rmcp",
- "samba",
  "schemars 0.8.22",
  "serde",
  "serde_json",
@@ -3534,7 +3589,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "clap",
- "dirs",
+ "dirs 6.0.0",
  "notify",
  "rusqlite",
  "serde",
@@ -4001,6 +4056,17 @@ dependencies = [
 
 [[package]]
 name = "redox_users"
+version = "0.4.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba009ff324d1fc1b900bd1fdb31564febe58a8ccc8a6fdbb93b543d33b13ca43"
+dependencies = [
+ "getrandom 0.2.17",
+ "libredox",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "redox_users"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4e608c6638b9c18977b00b475ac1f28d14e84b27d8d42f70e0bf1e3dec127ac"
@@ -4345,7 +4411,8 @@ dependencies = [
 [[package]]
 name = "samba"
 version = "0.1.3"
-source = "git+https://github.com/pleme-io/samba?rev=87cbeacb2e58dafa556aaf11db82512ede9df6de#87cbeacb2e58dafa556aaf11db82512ede9df6de"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb364208c71464fffce7231d4239b0e45f55da2158e041fb6d3c751a9ada1627"
 dependencies = [
  "rand 0.9.4",
  "serde_json",

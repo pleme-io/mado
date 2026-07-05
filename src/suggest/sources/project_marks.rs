@@ -10,11 +10,11 @@
 
 use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion};
 use crate::suggest::env::SuggestionEnvironment;
-use crate::suggest::source::{PollOutcome, SourceConfig, SuggestionSource};
+use crate::suggest::source::{PollOutcome, SourceConfig};
 
 pub struct ProjectMarksSource;
 
-impl SuggestionSource for ProjectMarksSource {
+impl izumi::Source<SourceKind, SpawnSpec> for ProjectMarksSource {
     fn kind(&self) -> SourceKind {
         SourceKind::ProjectMarks
     }
@@ -69,6 +69,7 @@ use super::util::basename;
 mod tests {
     use super::*;
     use crate::suggest::env::MockEnvironment;
+    use izumi::Source as _;
 
     const FIXTURE: &str =
         "nexus\t/code/github/pleme-io/nexus\n/code/github/pleme-io/mado\n\n";

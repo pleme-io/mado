@@ -11,11 +11,11 @@
 
 use crate::suggest::core::{SourceKind, SpawnSpec, Suggestion, Urgency};
 use crate::suggest::env::SuggestionEnvironment;
-use crate::suggest::source::{PollOutcome, SourceConfig, SuggestionSource};
+use crate::suggest::source::{PollOutcome, SourceConfig};
 
 pub struct RecentDirsSource;
 
-impl SuggestionSource for RecentDirsSource {
+impl izumi::Source<SourceKind, SpawnSpec> for RecentDirsSource {
     fn kind(&self) -> SourceKind {
         SourceKind::RecentDirs
     }
@@ -59,6 +59,7 @@ use super::util::basename;
 mod tests {
     use super::*;
     use crate::suggest::env::MockEnvironment;
+    use izumi::Source as _;
 
     const FIXTURE: &str = "/code/github/pleme-io/mado\n/code/github/pleme-io/tear\n";
 

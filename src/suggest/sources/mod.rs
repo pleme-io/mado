@@ -1,78 +1,84 @@
-//! Provider impls — one [`SuggestionSource`](super::source::SuggestionSource)
-//! per [`SourceKind`](super::core::SourceKind).
+//! Provider registry — one `izumi::Source` per [`SourceKind`](super::core::SourceKind).
 //!
-//! [`registry`] returns every implemented source; the engine consults the
-//! shikumi config to decide which to actually run. Each provider is a pure
-//! `poll(env)` tested through a `MockEnvironment` — the live wiring (real
-//! `Command`/HTTP/secret) is the only un-mocked seam.
+//! The 25 GENERIC providers (github/jira/grafana/k8s/flux/tend/cargo/…) live
+//! in the `izumi-sources` crate, each parameterized by the kind it reports
+//! (`Provider::new(SourceKind::X)`). What stays mado-local: the two
+//! mado-state providers ([`recent_dirs`], [`project_marks`] — they read
+//! mado's own files), the push-only [`AgentInjectedSource`] lane, and the
+//! safra placeholder. [`registry`] returns every implemented source; the
+//! engine consults the shikumi config to decide which to actually run.
+//!
+//! Shared provider primitives (priority scales, percent-encoding, JSON
+//! helpers, the workspace-convention cwd resolver) live in
+//! `izumi_sources::util`, re-exported here as [`util`] so the historical
+//! `crate::suggest::sources::util::*` paths keep working.
 
-use std::path::PathBuf;
 use std::sync::Arc;
 
+use super::core::SourceKind;
 use super::env::SuggestionEnvironment;
-use super::source::SuggestionSource;
+use super::source::DynSuggestionSource;
 
-pub mod aws_health;
-pub mod breathe_conflict;
-pub mod cargo_warnings;
-pub mod cloudflare_deployments;
-pub mod confluence_mentions;
-pub mod datadog_monitors;
-pub mod engenho_nodes;
-pub mod flux_failing;
-pub mod git_branch_pr;
-pub mod github_actions_failing;
-pub mod github_assigned_issues;
-pub mod github_review_requested;
-pub mod google_calendar;
-pub mod google_tasks;
-pub mod grafana_alerts;
-pub mod grafana_incidents;
-pub mod grafana_oncall;
-pub mod jira_assigned;
-pub mod jira_sprint;
-pub mod k8s_unhealthy;
-pub mod kurage_agents;
-pub mod opsgenie_alerts;
 pub mod project_marks;
 pub mod recent_dirs;
-pub mod secret_age;
-pub mod tend_repos;
-pub mod todo_backlog;
-pub mod util;
+
+/// Shared provider primitives — re-exported from `izumi_sources::util`
+/// (moved there with the provider extraction; same API).
+pub mod util {
+    #[allow(unused_imports)]
+    pub use izumi_sources::util::*;
+}
 
 /// Every implemented source, in catalog order. The engine runs the
 /// config-enabled subset.
 #[must_use]
-pub fn registry() -> Vec<Arc<dyn SuggestionSource>> {
+pub fn registry() -> Vec<Arc<DynSuggestionSource>> {
     vec![
-        Arc::new(git_branch_pr::GitBranchPrSource),
-        Arc::new(github_review_requested::GithubReviewRequestedSource),
-        Arc::new(github_assigned_issues::GithubAssignedIssuesSource),
-        Arc::new(github_actions_failing::GithubActionsFailingSource),
-        Arc::new(tend_repos::TendReposSource),
+        Arc::new(izumi_sources::GitBranchPr::new(SourceKind::GitBranchPr)),
+        Arc::new(izumi_sources::GithubReviewRequested::new(
+            SourceKind::GithubReviewRequested,
+        )),
+        Arc::new(izumi_sources::GithubAssignedIssues::new(
+            SourceKind::GithubAssignedIssues,
+        )),
+        Arc::new(izumi_sources::GithubActionsFailing::new(
+            SourceKind::GithubActionsFailing,
+        )),
+        Arc::new(izumi_sources::TendRepos::new(SourceKind::TendRepos)),
         Arc::new(recent_dirs::RecentDirsSource),
         Arc::new(project_marks::ProjectMarksSource),
-        Arc::new(cargo_warnings::CargoWarningsSource),
-        Arc::new(todo_backlog::TodoBacklogSource),
-        Arc::new(jira_sprint::JiraSprintSource),
-        Arc::new(jira_assigned::JiraAssignedSource),
-        Arc::new(confluence_mentions::ConfluenceMentionsSource),
-        Arc::new(flux_failing::FluxFailingSource),
-        Arc::new(k8s_unhealthy::K8sUnhealthySource),
-        Arc::new(breathe_conflict::BreatheConflictSource),
-        Arc::new(engenho_nodes::EngenhoNodesSource),
-        Arc::new(grafana_alerts::GrafanaAlertsSource),
-        Arc::new(grafana_incidents::GrafanaIncidentsSource),
-        Arc::new(grafana_oncall::GrafanaOncallSource),
-        Arc::new(datadog_monitors::DatadogMonitorsSource),
-        Arc::new(opsgenie_alerts::OpsgenieAlertsSource),
-        Arc::new(kurage_agents::KurageAgentsSource),
-        Arc::new(aws_health::AwsHealthSource),
-        Arc::new(cloudflare_deployments::CloudflareDeploymentsSource),
-        Arc::new(google_tasks::GoogleTasksSource),
-        Arc::new(google_calendar::GoogleCalendarSource),
-        Arc::new(secret_age::SecretAgeSource),
+        Arc::new(izumi_sources::CargoWarnings::new(SourceKind::CargoWarnings)),
+        Arc::new(izumi_sources::TodoBacklog::new(SourceKind::TodoBacklog)),
+        Arc::new(izumi_sources::JiraSprint::new(SourceKind::JiraSprint)),
+        Arc::new(izumi_sources::JiraAssigned::new(SourceKind::JiraAssigned)),
+        Arc::new(izumi_sources::ConfluenceMentions::new(
+            SourceKind::ConfluenceMentions,
+        )),
+        Arc::new(izumi_sources::FluxFailing::new(SourceKind::FluxFailing)),
+        Arc::new(izumi_sources::K8sUnhealthy::new(SourceKind::K8sUnhealthy)),
+        Arc::new(izumi_sources::BreatheConflict::new(
+            SourceKind::BreatheConflict,
+        )),
+        Arc::new(izumi_sources::EngenhoNodes::new(SourceKind::EngenhoNodes)),
+        Arc::new(izumi_sources::GrafanaAlerts::new(SourceKind::GrafanaAlerts)),
+        Arc::new(izumi_sources::GrafanaIncidents::new(
+            SourceKind::GrafanaIncidents,
+        )),
+        Arc::new(izumi_sources::GrafanaOncall::new(SourceKind::GrafanaOncall)),
+        Arc::new(izumi_sources::DatadogMonitors::new(
+            SourceKind::DatadogMonitors,
+        )),
+        Arc::new(izumi_sources::OpsgenieAlerts::new(
+            SourceKind::OpsgenieAlerts,
+        )),
+        Arc::new(izumi_sources::KurageAgents::new(SourceKind::KurageAgents)),
+        Arc::new(izumi_sources::AwsHealth::new(SourceKind::AwsHealth)),
+        Arc::new(izumi_sources::CloudflareDeployments::new(
+            SourceKind::CloudflareDeployments,
+        )),
+        Arc::new(izumi_sources::GoogleTasks::new(SourceKind::GoogleTasks)),
+        Arc::new(izumi_sources::GoogleCalendar::new(SourceKind::GoogleCalendar)),
+        Arc::new(izumi_sources::SecretAge::new(SourceKind::SecretAge)),
         // Placeholder adapter (no cells → typed "needs config" health). The
         // engine bootstrap swaps in the config-built adapter when the
         // `safra:` section declares cells — see `suggest::spawn_engine_thread`.
@@ -89,9 +95,9 @@ pub fn registry() -> Vec<Arc<dyn SuggestionSource>> {
 /// observed-empty ingest would wipe the injected rows).
 struct AgentInjectedSource;
 
-impl SuggestionSource for AgentInjectedSource {
-    fn kind(&self) -> super::core::SourceKind {
-        super::core::SourceKind::Agent
+impl izumi::Source<SourceKind, izumi::SpawnSpec> for AgentInjectedSource {
+    fn kind(&self) -> SourceKind {
+        SourceKind::Agent
     }
     fn poll(
         &self,
@@ -102,82 +108,18 @@ impl SuggestionSource for AgentInjectedSource {
     }
 }
 
-/// Resolve the local working directory for a `owner/name` repo under the
-/// operator's code root, following the workspace convention
-/// `~/code/${service}/${org}/${repo}` (service defaults to `github`). Falls
-/// back to the code root if the conventional path does not exist, so a spawn
-/// always has a real cwd.
-#[must_use]
-pub fn repo_cwd(env: &dyn SuggestionEnvironment, name_with_owner: &str) -> PathBuf {
-    let root = env.code_root();
-    let mut parts = name_with_owner.splitn(2, '/');
-    let owner = parts.next().unwrap_or_default();
-    let name = parts.next().unwrap_or(owner);
-    if owner.is_empty() || name.is_empty() {
-        return root;
-    }
-    let candidate = root.join("github").join(owner).join(name);
-    if env.path_exists(&candidate) {
-        candidate
-    } else {
-        root
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::suggest::core::SourceKind;
-
-    #[test]
-    fn registry_kinds_are_unique_and_in_catalog() {
-        let reg = registry();
-        let mut kinds: Vec<SourceKind> = reg.iter().map(|s| s.kind()).collect();
-        let n = kinds.len();
-        kinds.sort_unstable();
-        kinds.dedup();
-        assert_eq!(kinds.len(), n, "no source kind registered twice");
-        for k in &kinds {
-            assert!(SourceKind::ALL.contains(k));
-        }
-    }
 
     /// The verification matrix forcing-function (CLOSED-LOOP MASS-SYNTHESIS
-    /// rule 1): EVERY catalog source has a registered provider. Add a new
-    /// `SourceKind` and forget to register/implement its provider → this fails,
-    /// so the catalog can never claim a source the engine can't actually run.
+    /// rule 1), now the shared `izumi_sources::assert_registry_wiring`
+    /// invariant: EVERY catalog kind has exactly one registered provider —
+    /// no duplicates, no missing, no extras. Add a new `SourceKind` and
+    /// forget to register/implement its provider → this fails, so the
+    /// catalog can never claim a source the engine can't actually run.
     #[test]
-    fn every_catalog_source_is_registered() {
-        let registered: std::collections::BTreeSet<SourceKind> =
-            registry().iter().map(|s| s.kind()).collect();
-        let missing: Vec<&str> = SourceKind::ALL
-            .iter()
-            .filter(|k| !registered.contains(k))
-            .map(|k| k.slug())
-            .collect();
-        assert!(
-            missing.is_empty(),
-            "{} catalog source(s) have no registered provider: {}",
-            missing.len(),
-            missing.join(", ")
-        );
-        assert_eq!(
-            registered.len(),
-            SourceKind::ALL.len(),
-            "registry covers the whole catalog exactly"
-        );
-    }
-
-    #[test]
-    fn repo_cwd_follows_workspace_convention_when_present() {
-        let env = super::super::env::MockEnvironment::new()
-            .roots("/code", "/home/op")
-            .path("/code/github/pleme-io/mado");
-        assert_eq!(
-            repo_cwd(&env, "pleme-io/mado"),
-            PathBuf::from("/code/github/pleme-io/mado")
-        );
-        // Missing dir → fall back to the code root (spawn still has a cwd).
-        assert_eq!(repo_cwd(&env, "pleme-io/ghost"), PathBuf::from("/code"));
+    fn registry_covers_the_catalog_exactly() {
+        izumi_sources::assert_registry_wiring(&registry(), SourceKind::ALL);
     }
 }

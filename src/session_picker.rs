@@ -398,9 +398,9 @@ impl PracaPickerBridge {
         let mut live_corrs: std::collections::HashSet<crate::suggest::CorrKey> =
             std::collections::HashSet::new();
         let mut live_or_collect = |st: &crate::suggest::StoredSuggestion| -> bool {
-            let live = self.live_session_for(&st.suggestion.spawn).is_some();
+            let live = self.live_session_for(&st.item.spawn).is_some();
             if live {
-                if let Some(c) = st.suggestion.corr.clone() {
+                if let Some(c) = st.item.corr.clone() {
                     live_corrs.insert(c);
                 }
             }
@@ -424,7 +424,7 @@ impl PracaPickerBridge {
                 .enumerate()
                 .filter(|(_, st)| !live_or_collect(st))
                 .filter_map(|(idx, st)| {
-                    suggestion_match_score(q, &st.suggestion).map(|sc| (sc, idx, st.clone()))
+                    suggestion_match_score(q, &st.item).map(|sc| (sc, idx, st.clone()))
                 })
                 .collect();
             scored.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));
@@ -448,7 +448,7 @@ impl PracaPickerBridge {
                         "\u{25cb} " // ○ latent
                     },
                 );
-                label.push_str(&st.suggestion.picker_label());
+                label.push_str(&st.item.picker_label().to_string());
                 // Recurrence stamp: a repeat offender wears its count (×3), so
                 // a flapping alert reads differently from a first-timer.
                 if st.times_seen >= 2 {
@@ -465,8 +465,8 @@ impl PracaPickerBridge {
                 }
                 SessionPickerRow {
                     label,
-                    kind: RowKind::Suggestion(st.suggestion.id),
-                    urgency: Some(st.suggestion.urgency),
+                    kind: RowKind::Suggestion(st.item.id),
+                    urgency: Some(st.item.urgency),
                 }
             })
             .collect()

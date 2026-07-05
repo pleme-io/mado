@@ -1,4 +1,4 @@
-//! The safra → suggestion-stream adapter: ONE [`SuggestionSource`]
+//! The safra → suggestion-stream adapter: ONE `izumi::Source` provider
 //! (`SourceKind::Safra`) that owns every configured [`SafraCell`], reconciles
 //! each on its OWN resolved cadence inside the engine's fan-out poll, and
 //! projects the top curated signals onto the Ctrl-S board via
@@ -27,7 +27,7 @@ use super::source::CellSource;
 use super::vm_alerts::VmAlertsSource;
 use crate::suggest::core::{SourceKind, Suggestion};
 use crate::suggest::env::SuggestionEnvironment;
-use crate::suggest::source::{PollOutcome, SourceConfig, SuggestionSource};
+use crate::suggest::source::{PollOutcome, SourceConfig};
 
 /// How many top-ranked curated items each cell projects per poll. The board's
 /// own `per_source_cap` + `max_visible` window downstream; this only bounds
@@ -113,7 +113,7 @@ impl SafraSuggestionSource {
     }
 }
 
-impl SuggestionSource for SafraSuggestionSource {
+impl izumi::Source<SourceKind, izumi::SpawnSpec> for SafraSuggestionSource {
     fn kind(&self) -> SourceKind {
         SourceKind::Safra
     }
@@ -152,6 +152,7 @@ mod tests {
     use crate::safra::gha::{GhaFilter, TextMatch};
     use crate::safra::schema::{Endpoint, TrackedDataKind, TrackedEnvironment};
     use crate::suggest::env::MockEnvironment;
+    use izumi::Source as _;
 
     const VM_FIXTURE: &str = r#"{
       "data": { "alerts": [
