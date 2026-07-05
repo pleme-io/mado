@@ -129,17 +129,45 @@ pub fn request_dock_attention() {
 }
 
 /// Construct the boot-time notification dispatcher for the GUI event
-/// loops: the osascript-backed macOS backend on Darwin, tsuuchi's
-/// `LogBackend` elsewhere (headless/test environments construct their
-/// own `LogBackend` dispatcher directly).
+/// loops. Defaults ([`NotifyBackend::Auto`](crate::config::NotifyBackend))
+/// to the native `UNUserNotificationCenter` backend when mado runs
+/// bundled (`Mado.app`) — mado-attributed banners with sound + urgency,
+/// **no Script-Editor popup** — and to a silent `LogBackend` otherwise.
+/// `osascript` is opt-in only. Headless/test environments construct their
+/// own `LogBackend` dispatcher directly.
 #[must_use]
-pub fn notification_dispatcher() -> tsuuchi::NotificationDispatcher {
+pub fn notification_dispatcher(
+    choice: crate::config::NotifyBackend,
+) -> tsuuchi::NotificationDispatcher {
+    use crate::config::NotifyBackend;
     #[cfg(target_os = "macos")]
     {
-        tsuuchi::NotificationDispatcher::new(Box::new(macos::OsaScriptBackend))
+        use tsuuchi::NotificationDispatcher as D;
+        match choice {
+            NotifyBackend::Osascript => {
+                tracing::info!(
+                    "notifications: osascript backend (opt-in; Script-Editor-attributed)"
+                );
+                D::new(Box::new(macos::OsaScriptBackend))
+            }
+            NotifyBackend::Log => D::new(Box::new(tsuuchi::LogBackend::new())),
+            NotifyBackend::Auto | NotifyBackend::Native => {
+                if let Some(un) = crate::notify_mac::UnBackend::try_new() {
+                    tracing::info!("notifications: native UNUserNotificationCenter backend");
+                    D::new(Box::new(un))
+                } else {
+                    tracing::info!(
+                        "notifications: unbundled — LogBackend (no banner, no popup); \
+                         run Mado.app for native notifications"
+                    );
+                    D::new(Box::new(tsuuchi::LogBackend::new()))
+                }
+            }
+        }
     }
     #[cfg(not(target_os = "macos"))]
     {
+        let _ = choice;
         tsuuchi::NotificationDispatcher::new(Box::new(tsuuchi::LogBackend::new()))
     }
 }

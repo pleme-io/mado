@@ -712,9 +712,13 @@ where
     let side_effect_clipboard: Arc<hasami::Clipboard> = Arc::new(
         hasami::Clipboard::new().expect("failed to initialize clipboard"),
     );
-    // Boot-time notification dispatcher (M4 drain consumer): macOS
-    // osascript backend on Darwin, tsuuchi LogBackend elsewhere.
-    let notifier = crate::platform::notification_dispatcher();
+    // Boot-time notification center (M4 drain consumer): focus-aware,
+    // coalescing, rate-limiting orchestrator over the chosen backend. See
+    // docs/NOTIFICATIONS.md.
+    let mut notify_center = crate::notify_center::NotificationCenter::new(
+        crate::platform::notification_dispatcher(config.notifications.backend),
+        &config.notifications,
+    );
     let terminal_for_side_effects = Arc::clone(&terminal);
     let mut engine = crate::ux::InputEngine::attach_to_renderer(
         &mut renderer,
@@ -1010,7 +1014,7 @@ where
                     effects,
                     renderer,
                     &*side_effect_clipboard,
-                    &notifier,
+                    &mut notify_center,
                 )
             };
             // ── Elegant child-exit close ──────────────────────

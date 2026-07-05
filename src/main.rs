@@ -41,6 +41,9 @@ mod tear_discovery;
 mod caps;
 mod terminfo;
 mod mcp;
+mod notify_center;
+#[cfg(target_os = "macos")]
+mod notify_mac;
 mod osc_1337;
 mod platform;
 mod pointer_shape;
@@ -122,6 +125,12 @@ enum SubCmd {
     /// mado see on this machine" + fleet-wide auditing via
     /// `tend` / scripted queries.
     PrintPosture,
+    /// Emit sample desktop-notification escapes to stdout. Run this
+    /// **inside a Mado.app window** — the hosting mado parses the OSC
+    /// 9 / 777 / 99 sequences and BEL and fires the whole notification
+    /// pipeline (focus gate → center → native backend), so you see real
+    /// mado-attributed banners. See docs/NOTIFICATIONS.md.
+    NotifyTest,
     /// Show the materialized config at a tier (bare/default/discovered/custom/env).
     ///
     /// Operator surface delegated to `shikumi::cli::ConfigShowCommand` —
@@ -414,6 +423,43 @@ fn main() -> anyhow::Result<()> {
         Some(SubCmd::PrintPosture) => {
             let posture = detect_runtime_posture()?;
             println!("{}", serde_json::to_string_pretty(&posture)?);
+            return Ok(());
+        }
+        Some(SubCmd::NotifyTest) => {
+            use std::io::Write;
+            // Emit sample notification escapes to stdout. Run INSIDE a
+            // Mado.app window: the hosting mado parses these and fires the
+            // real pipeline (focus gate → center → native backend). Every
+            // sequence is built through the typed `vt` OSC emitters (the
+            // ★★ TYPED EMISSION surface) — the call site declares intent
+            // (code + typed params), never the escape bytes.
+            use crate::vt::{osc1337_request_attention, osc777_notify, osc99_notify, osc9_notify, Osc99Part};
+            let mut out = std::io::stdout().lock();
+            // OSC 9 (iTerm2 simple notification) — focus-gated.
+            out.write_all(&osc9_notify("mado notifications are live"))?;
+            // OSC 777 (title + body) — focus-gated.
+            out.write_all(&osc777_notify("Mado", "Native banners, sound, urgency"))?;
+            // OSC 99 (kitty protocol, Critical urgency=2) — focus-gated,
+            // two chunks accumulated until d=1.
+            out.write_all(&osc99_notify("madotest", false, 2, Osc99Part::Title, "Mado OSC 99"))?;
+            out.write_all(&osc99_notify(
+                "madotest",
+                true,
+                2,
+                Osc99Part::Body,
+                "Rich protocol, Critical urgency",
+            ))?;
+            // OSC 1337 RequestAttention — bypasses the focus gate
+            // (always delivered), so it shows even while mado is focused.
+            out.write_all(&osc1337_request_attention(true))?;
+            out.flush()?;
+            eprintln!(
+                "mado notify-test: emitted OSC 9/777/99 + RequestAttention escapes.\n\
+                 • The \"Attention requested\" banner shows immediately (bypasses the focus filter).\n\
+                 • The others show when mado is unfocused — click another app to see them.\n\
+                 • First run prompts \"Mado would like to send notifications\" — allow it.\n\
+                 Run this INSIDE a Mado.app window (native banners require the bundle)."
+            );
             return Ok(());
         }
         Some(SubCmd::ConfigShow(cmd)) => {
@@ -810,9 +856,15 @@ fn main() -> anyhow::Result<()> {
     let behavior = crate::ux::UxBehavior::from(&config);
     let confirm_close = behavior.confirm_close;
     let pending_close = Arc::new(AtomicBool::new(false));
-    // Boot-time notification dispatcher (M4 drain consumer): macOS
-    // osascript backend on Darwin, tsuuchi LogBackend elsewhere.
-    let notifier = crate::platform::notification_dispatcher();
+    // Boot-time notification center (M4 drain consumer): a focus-aware,
+    // coalescing, rate-limiting orchestrator over the chosen backend —
+    // native UNUserNotificationCenter when bundled (per
+    // notifications.backend), tsuuchi LogBackend elsewhere. See
+    // docs/NOTIFICATIONS.md.
+    let mut notify_center = crate::notify_center::NotificationCenter::new(
+        crate::platform::notification_dispatcher(config.notifications.backend),
+        &config.notifications,
+    );
     let default_font_size = effective_font_size;
     // macOS window-chrome styling latch — owns the style extracted from
     // the shikumi config plus its applied state, so the `'static`
@@ -974,7 +1026,7 @@ fn main() -> anyhow::Result<()> {
                             effects,
                             renderer,
                             &*clipboard,
-                            &notifier,
+                            &mut notify_center,
                         ) {
                             return EventResponse {
                                 set_title: Some(title),

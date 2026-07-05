@@ -143,6 +143,13 @@ pub struct MadoConfig {
     /// bare tier strips them.
     #[serde(default)]
     pub feedback: FeedbackConfig,
+    /// Desktop-notification system (see [`NotificationsConfig`] +
+    /// `docs/NOTIFICATIONS.md`). Prescribed default ON: native
+    /// UNUserNotificationCenter backend (no Script-Editor popup),
+    /// focus-aware, command-completion notify, OSC 9/777/99. The bare
+    /// tier disables the whole subsystem.
+    #[serde(default)]
+    pub notifications: NotificationsConfig,
     /// Motion-easing knobs (see [`MotionConfig`]). Prescribed default ON
     /// (blink ease + picker animate + scroll lerp + unfocused dim); the
     /// bare tier makes every transition instant.
@@ -960,6 +967,266 @@ impl FeedbackConfig {
             copy_flash: true,
             visual_bell: true,
             exit_code_coloring: true,
+        }
+    }
+}
+
+/// Which desktop-notification backend mado uses. See
+/// [`crate::platform::notification_dispatcher`] + `docs/NOTIFICATIONS.md`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NotifyBackend {
+    /// Native `UNUserNotificationCenter` when bundled (`Mado.app`), else a
+    /// silent log (dock attention still fires). **No Script-Editor
+    /// popup.** The default.
+    #[default]
+    Auto,
+    /// Force the native backend; falls back to log when unbundled.
+    Native,
+    /// The legacy `osascript` path — attributed to *Script Editor* and
+    /// tripping the automation popup. Opt-in only (the one way to get a
+    /// banner from an unbundled CLI mado).
+    Osascript,
+    /// Never raise an OS banner — log only (dock attention still fires).
+    Log,
+}
+
+/// Focus policy: when a notification is actually delivered.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NotifyWhen {
+    /// Deliver regardless of focus.
+    Always,
+    /// Deliver only when mado is **not** the focused window — the
+    /// standard terminal UX. The default.
+    #[default]
+    Unfocused,
+}
+
+/// BEL → desktop-notification policy. (The *visual* bell flash lives in
+/// [`FeedbackConfig::visual_bell`]; this governs the OS banner.)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct BellNotifyConfig {
+    /// Raise a desktop notification on BEL. Off by default — bells are
+    /// frequent and the visual/audible bell already fires.
+    pub notify: bool,
+    /// Urgency for bell notifications, if enabled.
+    pub urgency: NotifyUrgency,
+}
+
+impl Default for BellNotifyConfig {
+    fn default() -> Self {
+        Self::prescribed()
+    }
+}
+
+impl BellNotifyConfig {
+    /// Bare tier — no bell notifications.
+    #[must_use]
+    pub fn bare() -> Self {
+        Self { notify: false, urgency: NotifyUrgency::Normal }
+    }
+
+    /// Prescribed tier — bell notifications off (the visual bell suffices).
+    #[must_use]
+    pub fn prescribed() -> Self {
+        Self { notify: false, urgency: NotifyUrgency::Normal }
+    }
+}
+
+/// Urgency level, mirrored from [`tsuuchi::Urgency`] for the config
+/// surface (config must not depend on the exact tsuuchi type layout).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum NotifyUrgency {
+    /// Informational (macOS passive interruption level).
+    Low,
+    /// Standard (macOS active). The default.
+    #[default]
+    Normal,
+    /// Time-sensitive (pierces Focus).
+    Critical,
+}
+
+impl From<NotifyUrgency> for tsuuchi::Urgency {
+    fn from(u: NotifyUrgency) -> Self {
+        match u {
+            NotifyUrgency::Low => tsuuchi::Urgency::Low,
+            NotifyUrgency::Normal => tsuuchi::Urgency::Normal,
+            NotifyUrgency::Critical => tsuuchi::Urgency::Critical,
+        }
+    }
+}
+
+/// Long-command-completion notification policy — the "✓ `cargo build`
+/// finished in 2m 14s" banner when a slow command completes while mado is
+/// unfocused. Keyed off OSC 133 shell-integration prompt marks.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct CommandCompletionConfig {
+    /// Master switch for command-completion notifications.
+    pub enabled: bool,
+    /// Only notify for commands that ran at least this long (ms).
+    pub min_duration_ms: u64,
+    /// Notify when the command exited 0.
+    pub notify_on_success: bool,
+    /// Notify when the command exited non-zero.
+    pub notify_on_failure: bool,
+    /// Only notify when mado is not the focused window.
+    pub only_when_unfocused: bool,
+    /// Command basenames that never notify (interactive/full-screen tools
+    /// whose completion is not interesting). Matched against argv[0]'s
+    /// basename.
+    pub deny: Vec<String>,
+}
+
+impl Default for CommandCompletionConfig {
+    fn default() -> Self {
+        Self::prescribed()
+    }
+}
+
+impl CommandCompletionConfig {
+    /// Bare tier — no command-completion notifications.
+    #[must_use]
+    pub fn bare() -> Self {
+        Self {
+            enabled: false,
+            min_duration_ms: 10_000,
+            notify_on_success: true,
+            notify_on_failure: true,
+            only_when_unfocused: true,
+            deny: Self::default_deny(),
+        }
+    }
+
+    /// Prescribed tier — notify on slow (≥10s) command completion while
+    /// unfocused, success or failure, excluding interactive tools.
+    #[must_use]
+    pub fn prescribed() -> Self {
+        Self {
+            enabled: true,
+            min_duration_ms: 10_000,
+            notify_on_success: true,
+            notify_on_failure: true,
+            only_when_unfocused: true,
+            deny: Self::default_deny(),
+        }
+    }
+
+    /// Interactive / full-screen tools whose "completion" is just the
+    /// operator quitting — never interesting as a banner.
+    fn default_deny() -> Vec<String> {
+        [
+            "vim", "nvim", "vi", "emacs", "nano", "less", "more", "man", "top", "htop", "btop",
+            "watch", "ssh", "tmux", "screen", "fzf", "tig", "lazygit", "bat", "vise", "mado",
+        ]
+        .iter()
+        .map(|s| (*s).to_string())
+        .collect()
+    }
+}
+
+/// Toggles for the terminal desktop-notification escape protocols.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct OscNotifyConfig {
+    /// OSC 9 (iTerm2 simple notification).
+    pub osc9: bool,
+    /// OSC 777 (urxvt/foot `notify`).
+    pub osc777: bool,
+    /// OSC 99 (kitty rich desktop-notification protocol).
+    pub osc99: bool,
+}
+
+impl Default for OscNotifyConfig {
+    fn default() -> Self {
+        Self::prescribed()
+    }
+}
+
+impl OscNotifyConfig {
+    /// Bare tier — all OSC notification protocols off.
+    #[must_use]
+    pub fn bare() -> Self {
+        Self { osc9: false, osc777: false, osc99: false }
+    }
+
+    /// Prescribed tier — all OSC notification protocols on.
+    #[must_use]
+    pub fn prescribed() -> Self {
+        Self { osc9: true, osc777: true, osc99: true }
+    }
+}
+
+/// The desktop-notification system config. Governs the backend, focus
+/// policy, coalescing/rate-limiting, history, and every notification
+/// source. See `docs/NOTIFICATIONS.md`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct NotificationsConfig {
+    /// Master switch. When `false`, no desktop notification is ever
+    /// raised (the visual/audible bell + dock attention still work).
+    pub enabled: bool,
+    /// Which backend delivers banners.
+    pub backend: NotifyBackend,
+    /// Global focus policy (a source may tighten it, never loosen it).
+    pub when: NotifyWhen,
+    /// Max notifications delivered per rolling minute (0 = unlimited).
+    /// A storm beyond this is dropped (and traced), never queued forever.
+    pub rate_limit_per_min: u32,
+    /// Collapse a repeat of the same (title, group) within this window
+    /// into the earlier one (0 = no coalescing).
+    pub coalesce_window_ms: u64,
+    /// How many delivered notifications to retain in history (for the MCP
+    /// `notifications_list` surface).
+    pub history_capacity: usize,
+    /// BEL → notification policy.
+    pub bell: BellNotifyConfig,
+    /// Long-command-completion notification policy.
+    pub command_completion: CommandCompletionConfig,
+    /// Terminal notification-escape protocol toggles.
+    pub osc: OscNotifyConfig,
+}
+
+impl Default for NotificationsConfig {
+    fn default() -> Self {
+        Self::prescribed()
+    }
+}
+
+impl NotificationsConfig {
+    /// Bare tier — the whole subsystem off.
+    #[must_use]
+    pub fn bare() -> Self {
+        Self {
+            enabled: false,
+            backend: NotifyBackend::Auto,
+            when: NotifyWhen::Unfocused,
+            rate_limit_per_min: 30,
+            coalesce_window_ms: 800,
+            history_capacity: 50,
+            bell: BellNotifyConfig::bare(),
+            command_completion: CommandCompletionConfig::bare(),
+            osc: OscNotifyConfig::bare(),
+        }
+    }
+
+    /// Prescribed tier — native backend (no popup), focus-aware,
+    /// command-completion + all OSC protocols on.
+    #[must_use]
+    pub fn prescribed() -> Self {
+        Self {
+            enabled: true,
+            backend: NotifyBackend::Auto,
+            when: NotifyWhen::Unfocused,
+            rate_limit_per_min: 30,
+            coalesce_window_ms: 800,
+            history_capacity: 50,
+            bell: BellNotifyConfig::prescribed(),
+            command_completion: CommandCompletionConfig::prescribed(),
+            osc: OscNotifyConfig::prescribed(),
         }
     }
 }
@@ -2414,6 +2681,7 @@ impl MadoConfig {
             links: MadoLinksConfig::bare(),
             // bare = no feedback flourishes, no motion easing.
             feedback: FeedbackConfig::bare(),
+            notifications: NotificationsConfig::bare(),
             motion: MotionConfig::bare(),
         }
     }
@@ -2667,6 +2935,7 @@ fn mado_fleet_base() -> MadoConfig {
         safra: crate::safra::SafraConfig::default(),
         links: MadoLinksConfig::default(),
         feedback: FeedbackConfig::default(),
+        notifications: NotificationsConfig::default(),
         motion: MotionConfig::default(),
     }
 }
@@ -3718,6 +3987,7 @@ mod tests {
             safra: crate::safra::SafraConfig::default(),
             links: MadoLinksConfig::default(),
             feedback: FeedbackConfig::default(),
+            notifications: NotificationsConfig::default(),
             motion: MotionConfig::default(),
         };
         if fd.scrollback_lines == 10_000 {

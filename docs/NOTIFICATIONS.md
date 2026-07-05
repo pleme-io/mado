@@ -1,0 +1,138 @@
+# mado notifications — the dream system
+
+> Destination-first (Operating Principle #0). This document names the
+> *pinnacle* notification system for mado, then the phased path to it.
+> The primitive is `tsuuchi` (the fleet notification library); mado is
+> its richest consumer.
+
+## The problem we started from
+
+mado's macOS notification backend (`OsaScriptBackend`) *unconditionally*
+shelled out to `/usr/bin/osascript` running an AppleScript
+`display notification`. Consequences:
+
+- Banners were attributed to **Script Editor**, not mado (wrong name,
+  wrong icon).
+- It tripped the macOS **automation-permission popup** ("… wants to
+  control Script Editor") — the reported symptom.
+- `urgency` and `group` were silently dropped (osascript has no surface
+  for them).
+- A `fork`+`exec` of osascript per notification, plus a zombie-reaping
+  thread — a NO-SHELL / TYPED-EMISSION violation.
+
+The historical reason for osascript: an *unbundled* CLI binary cannot use
+`UNUserNotificationCenter` (it aborts without a bundle identifier) and
+`NSUserNotificationCenter` returns nil there. But mado ships as
+**`Mado.app`** (`CFBundleIdentifier = io.pleme.mado`), which *has* a
+bundle id — so the native, rich path is available whenever mado runs
+bundled.
+
+## The destination
+
+A **native, typed, rich, focus-aware** notification system:
+
+1. **`tsuuchi` is the rich vocabulary** (the load-bearing primitive, not
+   a mado-local hack). Extended with sound, actions (buttons + reply),
+   category, attachment (image), stable id (update-in-place), timeout,
+   and an `Urgency → interruption-level` mapping. Backward-compatible.
+   Every fleet consumer (tobira, hikyaku, ayatsuri, …) inherits the
+   richness for free.
+2. **A native `UNUserNotificationCenter` backend** in mado: proper
+   mado-attributed banners, sound, interruption levels, threading,
+   attachments — **no osascript, no Script-Editor popup**. The one
+   permission prompt it shows is the normal "Mado would like to send
+   notifications", under mado's own name.
+3. **Focus-aware, coalesced, rate-limited orchestration**: only-when-
+   unfocused delivery by default, storm coalescing, samba-style rate
+   limiting, quiet-hours / mute, threading, history, action routing.
+4. **Every terminal notification protocol** feeds it: OSC 9 (iTerm2),
+   OSC 777 (urxvt/foot), OSC 99 (kitty rich protocol), BEL, OSC 1337
+   RequestAttention.
+5. **mado-native event sources**: long-command-completion notify (the
+   killer feature — "✓ `cargo build` finished in 2m 14s" when you're not
+   looking), background-pane activity, session exit.
+6. **One typed shikumi `NotificationsConfig`** governs every axis, with
+   the HM/NixOS/Darwin module surface.
+
+The illegal state — "notification attributed to Script Editor / the
+automation popup" — becomes **unrepresentable** in a bundled build: the
+osascript path is demoted to explicit opt-in; the default path is native.
+
+## Layers
+
+| Layer | What | Where |
+|---|---|---|
+| **L0** | `tsuuchi` vocabulary: `NotificationSound`, `NotificationAction`/`ActionKind`, `NotificationAttachment`, `category`/`id`/`timeout`/`icon` fields, `Capabilities`, `Urgency::interruption_level()` | `tsuuchi/src/notification.rs`, `backend.rs` |
+| **L1** | native `UNUserNotificationCenter` backend + bundle detection + graceful fallback (dock/log); osascript opt-in | `mado/src/notify_mac.rs`, `platform.rs::notification_dispatcher()` |
+| **L2** | terminal protocols (already parsed; extended for OSC 99 richness) | `mado/src/terminal.rs` OSC dispatch |
+| **L3** | mado-native sources: command-completion (OSC 133), attention, session-exit | `mado/src/terminal.rs`, `ux/side_effects.rs` |
+| **L4** | orchestrator: focus-gating, coalesce, rate-limit, DND/mute, history, routing | `mado/src/notify/center.rs` |
+| **L5** | shikumi `NotificationsConfig` (+ nix module surface) | `mado/src/config.rs`, `blackmatter-mado` |
+| **L6** | MCP `notify_send` / `notifications_list` / mute + a live `notify-test` | `mado/src/mcp.rs`, `main.rs` |
+
+## The `Urgency → macOS interruption level` mapping (closes the dropped-urgency gap)
+
+| tsuuchi `Urgency` | `UNNotificationInterruptionLevel` | Sound default |
+|---|---|---|
+| `Low` | `Passive` (no banner intrusion, lands quietly) | Silent |
+| `Normal` | `Active` (standard banner + sound) | Default |
+| `Critical` | `TimeSensitive` (breaks through Focus modes) | Critical |
+
+(`Critical`/alert level proper needs an Apple entitlement; we use
+`TimeSensitive`, which needs none and still pierces Focus.)
+
+## Focus policy (`when`)
+
+Every notification carries an effective delivery policy:
+
+- `always` — deliver regardless of focus.
+- `unfocused` (default) — deliver only when mado is **not** the key
+  window. This is the standard terminal UX.
+- `invisible` — deliver only when mado is not visible at all.
+
+macOS already suppresses banners while your app is frontmost, so
+`unfocused` composes naturally with the native backend; the orchestrator
+enforces it explicitly for the log/dock fallbacks and for accurate
+history.
+
+## Tier honesty (UNREPRESENTABILITY discipline)
+
+- **Truly fixed:** the Script-Editor popup is gone in the bundled build —
+  the default backend is native; osascript is opt-in only.
+- **Parse-time / typed:** urgency now has a real surface (interruption
+  level); OSC 99 fields parse into the typed `PendingNotification`.
+- **Only-mitigated (named M2):** action-button *routing* back into mado
+  (the `UNUserNotificationCenterDelegate` `didReceiveResponse` path) and
+  foreground-presentation delegate. v1 carries actions in the vocabulary
+  and registers categories so buttons *appear*; routing their taps is
+  M2. This is the existing "honest partial mapping, never silently
+  dropped" discipline — unsupported axes are traced, not dropped.
+
+## Emitting escapes — the typed `vt` surface
+
+Outbound terminal escapes (the `notify-test` demo, and anything mado writes
+back to a PTY) are built through the typed emitters in `src/vt.rs` — the
+OSC peer of the existing `csi()` / `dcs()` / `apc()` builders:
+`osc(code, params, terminator)` plus `osc9_notify` / `osc777_notify` /
+`osc99_notify` / `osc1337_request_attention`. The call site declares the
+numeric code and typed params (never the escape bytes), and every builder
+is byte-pinned by tests. This is the ★★ TYPED EMISSION rule applied to
+terminal syntax — no hand-spelled `\x1b]9;…` control strings.
+
+## Milestones
+
+- **M0 (this arc — shipped):** L0 tsuuchi extension · L1 native backend +
+  fallback · L4 orchestrator (focus/coalesce/rate-limit/DND/history) ·
+  L5 config · L2 OSC 9/777/99 routed through the focus-gated center ·
+  L6 `notify-test` (typed `vt` OSC emitters). **The popup dies; rich
+  native banners land; the try-it-together path is ready.**
+- **M1:** L3 command-completion notify (OSC 133 marks + the alt-screen
+  heuristic to skip TUIs — emit a raw `(exit, duration, used_alt_screen)`
+  signal from `Terminal`, decide in `apply_side_effects` against the
+  `command_completion` config, which already ships) · richer OSC 99
+  parse (actions / sound / `o=` policy / `c=close`) · action-response
+  delegate (route taps: Focus pane / Copy / Open / Reply-inject) ·
+  foreground-presentation delegate · attachments delivery · MCP
+  `notify_send` / `notifications_list` / mute.
+- **M2:** Linux `libnotify` backend parity; converge with `shirase` (the
+  notification *center*/observe side) on one action model.

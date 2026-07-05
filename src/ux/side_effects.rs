@@ -118,42 +118,60 @@ pub struct TerminalSideEffects {
 ///
 /// Routing:
 /// - clipboard → system clipboard via the loop's `hasami` provider
-/// - bell → renderer bell flash AND a Normal-urgency notification
-/// - notifications → tsuuchi dispatch with their typed urgency
-/// - attention edge → Critical-urgency notification + dock attention
+/// - bell → renderer bell flash AND (when `bell.notify`) a focus-gated
+///   Normal-urgency notification
+/// - notifications → the notification center (focus-gated, coalesced,
+///   rate-limited) with their typed urgency
+/// - attention edge → Critical-urgency notification (always delivered) +
+///   dock attention
 /// - progress / cwd → typed trace (no renderer surface yet — the
 ///   progress UI lands with the renderer's M4 follow-up)
 /// - title → returned to the adapter, which owns the
 ///   `EventResponse::set_title` translation (madori applies it)
+///
+/// Every OS-banner decision (focus policy, coalescing, rate limiting,
+/// mute, the master switch) is owned by the [`NotificationCenter`]
+/// (`crate::notify_center`); this function only names the *source* of
+/// each notification.
 pub fn apply_side_effects(
     effects: TerminalSideEffects,
     renderer: &mut crate::render::TerminalRenderer,
     clipboard: &dyn hasami::ClipboardProvider,
-    notifier: &tsuuchi::NotificationDispatcher,
+    notify: &mut crate::notify_center::NotificationCenter,
 ) -> Option<String> {
+    let focused = renderer.focused();
     if let Some(clip) = effects.clipboard
         && let Err(e) = clipboard.copy_text(&clip)
     {
         tracing::warn!(error = %e, "OSC 52 clipboard sync failed");
     }
     if effects.bell {
+        // The visual/audible bell always fires; the desktop banner is
+        // opt-in (`notifications.bell.notify`, default off — bells are
+        // frequent).
         renderer.trigger_bell();
-        dispatch(
-            notifier,
-            &tsuuchi::Notification::new("mado", "Bell")
-                .urgency(Urgency::Normal)
-                .group("bell"),
-        );
+        if notify.bell_notify() {
+            notify.notify(
+                &tsuuchi::Notification::new("mado", "Bell")
+                    .urgency(Urgency::Normal)
+                    .group("bell"),
+                focused,
+            );
+        }
     }
     for pending in effects.notifications {
-        dispatch(notifier, &pending.into_tsuuchi());
+        notify.notify(&pending.into_tsuuchi(), focused);
     }
     if effects.attention {
-        dispatch(
-            notifier,
+        // An explicit attention request always breaks through (it is the
+        // program saying "I need the human"), so it bypasses the focus
+        // gate via `NotifyWhen::Always`.
+        notify.notify_with(
             &tsuuchi::Notification::new("mado", "Attention requested")
                 .urgency(Urgency::Critical)
                 .group("attention"),
+            crate::config::NotifyWhen::Always,
+            focused,
         );
         crate::platform::request_dock_attention();
     }
@@ -164,12 +182,4 @@ pub fn apply_side_effects(
         tracing::trace!(%cwd, "OSC 7 cwd update");
     }
     effects.title
-}
-
-/// Notification delivery is best-effort: a failed backend send is an
-/// operator-observability loss, never a render-loop fault.
-fn dispatch(notifier: &tsuuchi::NotificationDispatcher, n: &tsuuchi::Notification) {
-    if let Err(e) = notifier.send(n) {
-        tracing::warn!(error = %e, title = %n.title, "notification dispatch failed");
-    }
 }

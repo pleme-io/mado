@@ -63,6 +63,96 @@ pub fn apc(body: &str) -> Vec<u8> {
     out
 }
 
+/// How an OSC string is terminated: `BEL` (0x07) or `ST` (`ESC \`).
+/// Both are valid per ECMA-48; individual protocols pick one (iTerm2 OSC 9
+/// and OSC 1337 use BEL; the kitty OSC 99 protocol uses ST).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OscTerminator {
+    /// `BEL` — 0x07.
+    Bel,
+    /// `ST` — `ESC \`.
+    St,
+}
+
+/// An OSC sequence: `ESC ]` · numeric code · `;`-joined string params ·
+/// terminator. The envelope grammar (introducer, `;` separators,
+/// terminator) lives here once; the call site declares the numeric code
+/// and the typed string parameters, never the escape bytes. This is the
+/// OSC peer of [`csi`] / [`dcs`] / [`apc`] — the outbound half of the
+/// terminal-notification protocols mado also parses (OSC 9 / 777 / 99 /
+/// 1337, see `terminal.rs::osc_dispatch`).
+#[must_use]
+pub fn osc(code: u16, params: &[&str], terminator: OscTerminator) -> Vec<u8> {
+    let total: usize = params.iter().map(|p| p.len() + 1).sum();
+    let mut out = Vec::with_capacity(6 + total);
+    out.extend_from_slice(b"\x1b]");
+    let _ = write!(out, "{code}");
+    for p in params {
+        out.push(b';');
+        out.extend_from_slice(p.as_bytes());
+    }
+    match terminator {
+        OscTerminator::Bel => out.push(0x07),
+        OscTerminator::St => out.extend_from_slice(b"\x1b\\"),
+    }
+    out
+}
+
+/// OSC 9 (iTerm2) simple notification: `ESC ] 9 ; <body> BEL`.
+#[must_use]
+pub fn osc9_notify(body: &str) -> Vec<u8> {
+    osc(9, &[body], OscTerminator::Bel)
+}
+
+/// OSC 777 (urxvt/foot) notification:
+/// `ESC ] 777 ; notify ; <title> ; <body> BEL`.
+#[must_use]
+pub fn osc777_notify(title: &str, body: &str) -> Vec<u8> {
+    osc(777, &["notify", title, body], OscTerminator::Bel)
+}
+
+/// Which field an OSC 99 payload chunk carries.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Osc99Part {
+    /// The notification title.
+    Title,
+    /// The notification body.
+    Body,
+}
+
+impl Osc99Part {
+    fn as_str(self) -> &'static str {
+        match self {
+            Osc99Part::Title => "title",
+            Osc99Part::Body => "body",
+        }
+    }
+}
+
+/// One chunk of a kitty OSC 99 notification:
+/// `ESC ] 99 ; i=<id>:d=<0|1>:u=<urgency>:p=<part> ; <payload> ST`.
+///
+/// `done` marks the final chunk (the receiver renders on `d=1`);
+/// `urgency` is 0 (low) / 1 (normal) / 2 (critical). The metadata block
+/// is assembled from typed pieces — no escape or `:`/`;` grammar leaks to
+/// the call site.
+#[must_use]
+pub fn osc99_notify(id: &str, done: bool, urgency: u8, part: Osc99Part, payload: &str) -> Vec<u8> {
+    use std::fmt::Write as _;
+    let mut meta = String::with_capacity(id.len() + 20);
+    let _ = write!(meta, "i={id}:d={}:u={urgency}:p={}", u8::from(done), part.as_str());
+    osc(99, &[&meta, payload], OscTerminator::St)
+}
+
+/// OSC 1337 (iTerm2) `RequestAttention`: `ESC ] 1337 ; RequestAttention=<0|1> BEL`.
+/// Bounces the dock until focus returns (mado maps it to a Critical,
+/// focus-bypassing notification + dock attention).
+#[must_use]
+pub fn osc1337_request_attention(on: bool) -> Vec<u8> {
+    let param = if on { "RequestAttention=1" } else { "RequestAttention=0" };
+    osc(1337, &[param], OscTerminator::Bel)
+}
+
 /// The typed CSI-command AST — a `vte::Params` + final byte parsed into
 /// intent (parse-don't-validate), so the VT state machine's giant
 /// `match action` becomes data: [`parse_csi_action`] decides *which*
@@ -206,5 +296,40 @@ mod tests {
     fn csi_with_no_params_is_just_envelope_and_final() {
         assert_eq!(csi(false, &[], "", b'c'), b"\x1b[c");
         assert_eq!(csi(true, &[], "", b'c'), b"\x1b[?c");
+    }
+
+    #[test]
+    fn osc_envelope_bel_and_st() {
+        assert_eq!(osc(9, &["hi"], OscTerminator::Bel), b"\x1b]9;hi\x07");
+        assert_eq!(osc(99, &["m", "p"], OscTerminator::St), b"\x1b]99;m;p\x1b\\");
+        // No params → just introducer + code + terminator.
+        assert_eq!(osc(0, &[], OscTerminator::Bel), b"\x1b]0\x07");
+    }
+
+    #[test]
+    fn osc9_and_777_builders_are_byte_exact() {
+        assert_eq!(osc9_notify("Build done"), b"\x1b]9;Build done\x07");
+        assert_eq!(
+            osc777_notify("Mado", "All tests passed"),
+            b"\x1b]777;notify;Mado;All tests passed\x07"
+        );
+    }
+
+    #[test]
+    fn osc99_builder_encodes_metadata_and_payload() {
+        assert_eq!(
+            osc99_notify("t1", false, 2, Osc99Part::Title, "Title"),
+            b"\x1b]99;i=t1:d=0:u=2:p=title;Title\x1b\\"
+        );
+        assert_eq!(
+            osc99_notify("t1", true, 1, Osc99Part::Body, "Body"),
+            b"\x1b]99;i=t1:d=1:u=1:p=body;Body\x1b\\"
+        );
+    }
+
+    #[test]
+    fn osc1337_request_attention_builder() {
+        assert_eq!(osc1337_request_attention(true), b"\x1b]1337;RequestAttention=1\x07");
+        assert_eq!(osc1337_request_attention(false), b"\x1b]1337;RequestAttention=0\x07");
     }
 }

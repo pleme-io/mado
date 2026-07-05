@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "965932fcd7bd9c6bdf0e310a2e806baaba97d9907b2efa2154894eb529882f62",
+  "cargo_lock_sha256": "acef74e1b2363a3faf65da2c90c3aa81984f3b53bdf08b2e06eb03f9f2a54b08",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -16338,7 +16338,7 @@
           "tracing-serde"
         ]
       },
-      "tsuuchi-0.1.1-0057a23d6187f59c1ed718731f41faf10dd15a56": {
+      "tsuuchi-0.1.1-cbe255b912d5195ba08fc055815df2790ba5dba7": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -18593,7 +18593,9 @@
             ],
             "build_dependencies": [],
             "features": [
-              "alloc"
+              "alloc",
+              "default",
+              "std"
             ]
           },
           "core-foundation-0.9.4": {
@@ -19197,6 +19199,16 @@
                 "tree": "target"
               },
               {
+                "name": "block2",
+                "package_key": "block2-0.6.2",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(target_os = \"macos\")",
+                "tree": "target"
+              },
+              {
                 "name": "bytemuck",
                 "package_key": "bytemuck-1.25.0",
                 "kind": "normal",
@@ -19478,8 +19490,30 @@
                 "package_key": "objc2-foundation-0.3.2",
                 "kind": "normal",
                 "features": [
+                  "NSBundle",
+                  "NSError",
+                  "NSProcessInfo",
                   "NSString",
+                  "NSUUID",
                   "NSUserDefaults"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(target_os = \"macos\")",
+                "tree": "target"
+              },
+              {
+                "name": "objc2_user_notifications",
+                "package_key": "objc2-user-notifications-0.3.2",
+                "kind": "normal",
+                "features": [
+                  "UNError",
+                  "UNNotificationContent",
+                  "UNNotificationRequest",
+                  "UNNotificationSound",
+                  "UNNotificationTrigger",
+                  "UNUserNotificationCenter",
+                  "block2"
                 ],
                 "uses_default_features": true,
                 "optional": false,
@@ -19741,7 +19775,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.1-0057a23d6187f59c1ed718731f41faf10dd15a56",
+                "package_key": "tsuuchi-0.1.1-cbe255b912d5195ba08fc055815df2790ba5dba7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -20985,6 +21019,38 @@
               "CIImage"
             ]
           },
+          "objc2-core-location-0.3.2": {
+            "runtime_dependencies": [
+              {
+                "name": "objc2",
+                "package_key": "objc2-0.6.4",
+                "kind": "normal",
+                "features": [
+                  "std"
+                ],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "objc2_foundation",
+                "package_key": "objc2-foundation-0.3.2",
+                "kind": "normal",
+                "features": [
+                  "alloc"
+                ],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": [
+              "CLRegion"
+            ]
+          },
           "objc2-core-text-0.3.2": {
             "runtime_dependencies": [
               {
@@ -21603,6 +21669,95 @@
               "CAMediaTimingFunction",
               "CAOpenGLLayer",
               "bitflags"
+            ]
+          },
+          "objc2-user-notifications-0.3.2": {
+            "runtime_dependencies": [
+              {
+                "name": "bitflags",
+                "package_key": "bitflags-2.13.0",
+                "kind": "normal",
+                "features": [
+                  "std"
+                ],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "block2",
+                "package_key": "block2-0.6.2",
+                "kind": "normal",
+                "features": [
+                  "alloc"
+                ],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "objc2",
+                "package_key": "objc2-0.6.4",
+                "kind": "normal",
+                "features": [
+                  "std"
+                ],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "objc2_core_location",
+                "package_key": "objc2-core-location-0.3.2",
+                "kind": "normal",
+                "features": [
+                  "CLRegion"
+                ],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "objc2_foundation",
+                "package_key": "objc2-foundation-0.3.2",
+                "kind": "normal",
+                "features": [
+                  "alloc"
+                ],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": [
+              "NSString_UserNotifications",
+              "UNError",
+              "UNNotification",
+              "UNNotificationAction",
+              "UNNotificationActionIcon",
+              "UNNotificationAttachment",
+              "UNNotificationAttributedMessageContext",
+              "UNNotificationCategory",
+              "UNNotificationContent",
+              "UNNotificationRequest",
+              "UNNotificationResponse",
+              "UNNotificationServiceExtension",
+              "UNNotificationSettings",
+              "UNNotificationSound",
+              "UNNotificationTrigger",
+              "UNUserNotificationCenter",
+              "alloc",
+              "bitflags",
+              "block2",
+              "default",
+              "objc2-core-location",
+              "std"
             ]
           },
           "open-5.3.6": {
@@ -23782,7 +23937,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.1-0057a23d6187f59c1ed718731f41faf10dd15a56",
+                "package_key": "tsuuchi-0.1.1-cbe255b912d5195ba08fc055815df2790ba5dba7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27429,7 +27584,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.1-0057a23d6187f59c1ed718731f41faf10dd15a56",
+                "package_key": "tsuuchi-0.1.1-cbe255b912d5195ba08fc055815df2790ba5dba7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30097,7 +30252,9 @@
             ],
             "build_dependencies": [],
             "features": [
-              "alloc"
+              "alloc",
+              "default",
+              "std"
             ]
           },
           "core-foundation-0.9.4": {
@@ -30665,6 +30822,16 @@
                 "tree": "target"
               },
               {
+                "name": "block2",
+                "package_key": "block2-0.6.2",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(target_os = \"macos\")",
+                "tree": "target"
+              },
+              {
                 "name": "bytemuck",
                 "package_key": "bytemuck-1.25.0",
                 "kind": "normal",
@@ -30946,8 +31113,30 @@
                 "package_key": "objc2-foundation-0.3.2",
                 "kind": "normal",
                 "features": [
+                  "NSBundle",
+                  "NSError",
+                  "NSProcessInfo",
                   "NSString",
+                  "NSUUID",
                   "NSUserDefaults"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(target_os = \"macos\")",
+                "tree": "target"
+              },
+              {
+                "name": "objc2_user_notifications",
+                "package_key": "objc2-user-notifications-0.3.2",
+                "kind": "normal",
+                "features": [
+                  "UNError",
+                  "UNNotificationContent",
+                  "UNNotificationRequest",
+                  "UNNotificationSound",
+                  "UNNotificationTrigger",
+                  "UNUserNotificationCenter",
+                  "block2"
                 ],
                 "uses_default_features": true,
                 "optional": false,
@@ -31209,7 +31398,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.1-0057a23d6187f59c1ed718731f41faf10dd15a56",
+                "package_key": "tsuuchi-0.1.1-cbe255b912d5195ba08fc055815df2790ba5dba7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32453,6 +32642,38 @@
               "CIImage"
             ]
           },
+          "objc2-core-location-0.3.2": {
+            "runtime_dependencies": [
+              {
+                "name": "objc2",
+                "package_key": "objc2-0.6.4",
+                "kind": "normal",
+                "features": [
+                  "std"
+                ],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "objc2_foundation",
+                "package_key": "objc2-foundation-0.3.2",
+                "kind": "normal",
+                "features": [
+                  "alloc"
+                ],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": [
+              "CLRegion"
+            ]
+          },
           "objc2-core-text-0.3.2": {
             "runtime_dependencies": [
               {
@@ -33071,6 +33292,95 @@
               "CAMediaTimingFunction",
               "CAOpenGLLayer",
               "bitflags"
+            ]
+          },
+          "objc2-user-notifications-0.3.2": {
+            "runtime_dependencies": [
+              {
+                "name": "bitflags",
+                "package_key": "bitflags-2.13.0",
+                "kind": "normal",
+                "features": [
+                  "std"
+                ],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "block2",
+                "package_key": "block2-0.6.2",
+                "kind": "normal",
+                "features": [
+                  "alloc"
+                ],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "objc2",
+                "package_key": "objc2-0.6.4",
+                "kind": "normal",
+                "features": [
+                  "std"
+                ],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "objc2_core_location",
+                "package_key": "objc2-core-location-0.3.2",
+                "kind": "normal",
+                "features": [
+                  "CLRegion"
+                ],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "objc2_foundation",
+                "package_key": "objc2-foundation-0.3.2",
+                "kind": "normal",
+                "features": [
+                  "alloc"
+                ],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": [
+              "NSString_UserNotifications",
+              "UNError",
+              "UNNotification",
+              "UNNotificationAction",
+              "UNNotificationActionIcon",
+              "UNNotificationAttachment",
+              "UNNotificationAttributedMessageContext",
+              "UNNotificationCategory",
+              "UNNotificationContent",
+              "UNNotificationRequest",
+              "UNNotificationResponse",
+              "UNNotificationServiceExtension",
+              "UNNotificationSettings",
+              "UNNotificationSound",
+              "UNNotificationTrigger",
+              "UNUserNotificationCenter",
+              "alloc",
+              "bitflags",
+              "block2",
+              "default",
+              "objc2-core-location",
+              "std"
             ]
           },
           "open-5.3.6": {
@@ -35204,7 +35514,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.1-0057a23d6187f59c1ed718731f41faf10dd15a56",
+                "package_key": "tsuuchi-0.1.1-cbe255b912d5195ba08fc055815df2790ba5dba7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38805,7 +39115,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.1-0057a23d6187f59c1ed718731f41faf10dd15a56",
+                "package_key": "tsuuchi-0.1.1-cbe255b912d5195ba08fc055815df2790ba5dba7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -42115,6 +42425,9 @@
     "objc2-core-image-0.3.2": {
       "edition": "2021"
     },
+    "objc2-core-location-0.3.2": {
+      "edition": "2021"
+    },
     "objc2-core-text-0.3.2": {
       "edition": "2021"
     },
@@ -42140,6 +42453,9 @@
       "edition": "2021"
     },
     "objc2-quartz-core-0.3.2": {
+      "edition": "2021"
+    },
+    "objc2-user-notifications-0.3.2": {
       "edition": "2021"
     },
     "once_cell-1.21.4": {
@@ -42878,7 +43194,7 @@
     "tracing-subscriber-0.3.23": {
       "edition": "2018"
     },
-    "tsuuchi-0.1.1-0057a23d6187f59c1ed718731f41faf10dd15a56": {
+    "tsuuchi-0.1.1-cbe255b912d5195ba08fc055815df2790ba5dba7": {
       "edition": "2024"
     },
     "ttf-parser-0.20.0": {
@@ -43249,7 +43565,7 @@
     "tear-core-0.1.5-8200ab19c786d562b03a82f91adec0878a8a9c0b": "sha256-6c39pcaEWKN0js+QpQmxrKU0D1c6ptYMu2h4mbusQu8=",
     "tear-daemon-0.1.5-8200ab19c786d562b03a82f91adec0878a8a9c0b": "sha256-6c39pcaEWKN0js+QpQmxrKU0D1c6ptYMu2h4mbusQu8=",
     "tear-types-0.1.5-8200ab19c786d562b03a82f91adec0878a8a9c0b": "sha256-6c39pcaEWKN0js+QpQmxrKU0D1c6ptYMu2h4mbusQu8=",
-    "tsuuchi-0.1.1-0057a23d6187f59c1ed718731f41faf10dd15a56": "sha256-5GRgKZAL52VvNcIdXUjgxEw5fAkbq4JyJehvLiwpSnk=",
+    "tsuuchi-0.1.1-cbe255b912d5195ba08fc055815df2790ba5dba7": "sha256-WZ1iQENzqYAiXqoiQEoq87KRe0WKdCs8Q8QhOeYHUfg=",
     "vigy-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": "sha256-5/ZkxqorxVqbJdxV75GxgS8YcvOz4YOxFPMybHgAFsc=",
     "vigy-eval-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": "sha256-5/ZkxqorxVqbJdxV75GxgS8YcvOz4YOxFPMybHgAFsc=",
     "vigy-mcp-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": "sha256-5/ZkxqorxVqbJdxV75GxgS8YcvOz4YOxFPMybHgAFsc=",
