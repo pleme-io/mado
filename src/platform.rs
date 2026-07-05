@@ -128,6 +128,34 @@ pub fn request_dock_attention() {
     tracing::debug!("dock attention requested — no platform surface on this OS");
 }
 
+/// Request user attention at a typed level — the platform half of the
+/// "needs the human" signal (OSC 1337 `RequestAttention`, an unfocused
+/// bell, a critical notification). `critical` bounces the dock until
+/// focus returns (macOS `CriticalRequest`); otherwise a single
+/// informational bounce (`InformationalRequest`). Safe no-op off the main
+/// thread / off macOS.
+pub fn request_attention(critical: bool) {
+    #[cfg(target_os = "macos")]
+    macos::request_attention(critical);
+
+    #[cfg(not(target_os = "macos"))]
+    let _ = critical;
+}
+
+/// Ring the system audible bell — `None` plays the classic system beep
+/// (`NSBeep`); `Some(name)` plays a named `NSSound` (e.g. `"Basso"`,
+/// `"Ping"`), falling back to `NSBeep` when the name is unknown. Playback
+/// is async and non-blocking. Safe no-op off macOS. This is the real
+/// audible bell — previously the "audible bell" was fictional (only the
+/// visual flash + glow fired).
+pub fn ring_bell(sound: Option<&str>) {
+    #[cfg(target_os = "macos")]
+    macos::ring_bell(sound);
+
+    #[cfg(not(target_os = "macos"))]
+    let _ = sound;
+}
+
 /// Construct the boot-time notification dispatcher for the GUI event
 /// loops. Defaults ([`NotifyBackend::Auto`](crate::config::NotifyBackend))
 /// to the native `UNUserNotificationCenter` backend when mado runs
@@ -412,12 +440,46 @@ mod macos {
     /// (the drain consumer runs on the event-loop thread, which IS
     /// the main thread; the guard covers tests).
     pub fn request_dock_attention() {
+        request_attention(true);
+    }
+
+    /// Request attention at a typed level. `CriticalRequest` bounces the
+    /// dock until focus returns; `InformationalRequest` bounces once.
+    pub fn request_attention(critical: bool) {
         let Some(mtm) = MainThreadMarker::new() else {
-            tracing::debug!("request_dock_attention off main thread — skipped");
+            tracing::debug!("request_attention off main thread — skipped");
             return;
         };
         let app = NSApplication::sharedApplication(mtm);
-        let _token = app.requestUserAttention(NSRequestUserAttentionType::CriticalRequest);
+        let level = if critical {
+            NSRequestUserAttentionType::CriticalRequest
+        } else {
+            NSRequestUserAttentionType::InformationalRequest
+        };
+        let _token = app.requestUserAttention(level);
+    }
+
+    /// Ring the audible bell: `None` → the classic system beep
+    /// (`NSBeep`); `Some(name)` → a named `NSSound`, falling back to
+    /// `NSBeep` when the name is unknown. Playback is async + thread-safe;
+    /// in practice called from the event-loop (main) thread.
+    pub fn ring_bell(sound: Option<&str>) {
+        use objc2_app_kit::{NSBeep, NSSound};
+        match sound {
+            None => NSBeep(),
+            Some(name) => {
+                let ns = NSString::from_str(name);
+                match NSSound::soundNamed(&ns) {
+                    Some(s) => {
+                        s.play();
+                    }
+                    None => {
+                        tracing::debug!(sound = name, "bell sound not found — falling back to NSBeep");
+                        NSBeep();
+                    }
+                }
+            }
+        }
     }
 
     /// tsuuchi [`NotificationBackend`](tsuuchi::NotificationBackend)

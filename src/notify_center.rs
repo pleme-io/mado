@@ -179,6 +179,18 @@ impl NotificationCenter {
         self.cfg.bell.notify
     }
 
+    /// Whether a BEL should ring the native audible bell.
+    #[must_use]
+    pub fn bell_audible(&self) -> bool {
+        self.cfg.bell.audible
+    }
+
+    /// The `NSSound` name for the audible bell (`None` = system beep).
+    #[must_use]
+    pub fn bell_sound_name(&self) -> Option<&'static str> {
+        self.cfg.bell.sound.sound_name()
+    }
+
     /// The command-completion notification policy.
     #[must_use]
     pub fn command_completion(&self) -> &CommandCompletionConfig {

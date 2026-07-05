@@ -146,10 +146,13 @@ pub fn apply_side_effects(
         tracing::warn!(error = %e, "OSC 52 clipboard sync failed");
     }
     if effects.bell {
-        // The visual/audible bell always fires; the desktop banner is
-        // opt-in (`notifications.bell.notify`, default off — bells are
-        // frequent).
+        // The visual bell flash always fires; the native audible bell and
+        // the desktop banner are opt-in (`notifications.bell.audible` /
+        // `.notify`, default off — bells are frequent).
         renderer.trigger_bell();
+        if notify.bell_audible() {
+            crate::platform::ring_bell(notify.bell_sound_name());
+        }
         if notify.bell_notify() {
             notify.notify(
                 &tsuuchi::Notification::new("mado", "Bell")
@@ -173,7 +176,11 @@ pub fn apply_side_effects(
             crate::config::NotifyWhen::Always,
             focused,
         );
-        crate::platform::request_dock_attention();
+        // Only bounce the dock when mado is NOT already the focused
+        // window — bouncing to get attention you already have is noise.
+        if !focused {
+            crate::platform::request_dock_attention();
+        }
     }
     if let Some(progress) = effects.progress {
         tracing::debug!(?progress, "ConEmu progress update (no renderer surface yet)");

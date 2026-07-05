@@ -1003,13 +1003,65 @@ pub enum NotifyWhen {
     Unfocused,
 }
 
-/// BEL → desktop-notification policy. (The *visual* bell flash lives in
-/// [`FeedbackConfig::visual_bell`]; this governs the OS banner.)
+/// Which sound the audible bell plays. `Beep` is the classic system
+/// alert (`NSBeep`); the rest are named macOS system sounds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BellSound {
+    /// The classic system alert beep (`NSBeep`). The default.
+    #[default]
+    Beep,
+    /// Named macOS system sounds.
+    Basso,
+    /// A short high ping.
+    Ping,
+    /// A soft pop.
+    Pop,
+    /// A glassy chime.
+    Glass,
+    /// A submarine sonar ping.
+    Submarine,
+    /// A light tink.
+    Tink,
+    /// A funk tone.
+    Funk,
+    /// A hero fanfare.
+    Hero,
+    /// The classic "Sosumi".
+    Sosumi,
+}
+
+impl BellSound {
+    /// The `NSSound` name, or `None` for the plain system beep.
+    #[must_use]
+    pub fn sound_name(self) -> Option<&'static str> {
+        match self {
+            BellSound::Beep => None,
+            BellSound::Basso => Some("Basso"),
+            BellSound::Ping => Some("Ping"),
+            BellSound::Pop => Some("Pop"),
+            BellSound::Glass => Some("Glass"),
+            BellSound::Submarine => Some("Submarine"),
+            BellSound::Tink => Some("Tink"),
+            BellSound::Funk => Some("Funk"),
+            BellSound::Hero => Some("Hero"),
+            BellSound::Sosumi => Some("Sosumi"),
+        }
+    }
+}
+
+/// BEL behaviour: the *audible* bell (native system sound) + the optional
+/// desktop-notification on BEL. (The *visual* bell flash lives in
+/// [`FeedbackConfig::visual_bell`].)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct BellNotifyConfig {
-    /// Raise a desktop notification on BEL. Off by default — bells are
-    /// frequent and the visual/audible bell already fires.
+    /// Play the native audible bell on BEL. Off by default — bells are
+    /// frequent, so audio is opt-in (the visual flash always fires).
+    pub audible: bool,
+    /// Which sound the audible bell plays.
+    pub sound: BellSound,
+    /// Raise a desktop notification on BEL. Off by default.
     pub notify: bool,
     /// Urgency for bell notifications, if enabled.
     pub urgency: NotifyUrgency,
@@ -1022,16 +1074,17 @@ impl Default for BellNotifyConfig {
 }
 
 impl BellNotifyConfig {
-    /// Bare tier — no bell notifications.
+    /// Bare tier — no bell audio, no bell notifications.
     #[must_use]
     pub fn bare() -> Self {
-        Self { notify: false, urgency: NotifyUrgency::Normal }
+        Self { audible: false, sound: BellSound::Beep, notify: false, urgency: NotifyUrgency::Normal }
     }
 
-    /// Prescribed tier — bell notifications off (the visual bell suffices).
+    /// Prescribed tier — bell audio + notifications off (the visual bell
+    /// suffices; audio/banner are opt-in because bells are frequent).
     #[must_use]
     pub fn prescribed() -> Self {
-        Self { notify: false, urgency: NotifyUrgency::Normal }
+        Self { audible: false, sound: BellSound::Beep, notify: false, urgency: NotifyUrgency::Normal }
     }
 }
 
@@ -5520,5 +5573,27 @@ active_profile: "dark"
         // Non-specified fields fall back to defaults.
         assert_eq!(qt.animation_ms, 150);
         assert!(qt.autohide_on_blur);
+    }
+
+    #[test]
+    fn bell_sound_names_map_to_nssound_or_beep() {
+        assert_eq!(BellSound::Beep.sound_name(), None); // → NSBeep
+        assert_eq!(BellSound::Basso.sound_name(), Some("Basso"));
+        assert_eq!(BellSound::Glass.sound_name(), Some("Glass"));
+        assert_eq!(BellSound::default(), BellSound::Beep);
+    }
+
+    #[test]
+    fn bell_config_audible_defaults_off_and_round_trips() {
+        // Prescribed: audio + banner off (bells are frequent; opt-in).
+        let p = BellNotifyConfig::prescribed();
+        assert!(!p.audible);
+        assert_eq!(p.sound, BellSound::Beep);
+        // A configured audible bell round-trips through yaml, unknown-field-strict.
+        let yaml = "audible: true\nsound: glass\nnotify: false\nurgency: normal\n";
+        let cfg: BellNotifyConfig = serde_yaml_ng::from_str(yaml).unwrap();
+        assert!(cfg.audible);
+        assert_eq!(cfg.sound, BellSound::Glass);
+        assert_eq!(cfg.sound.sound_name(), Some("Glass"));
     }
 }
