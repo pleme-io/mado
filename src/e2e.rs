@@ -140,6 +140,13 @@ pub async fn run(shell: &str) -> Result<E2eSummary> {
     // Stderr stays inherited: the child's tracing can't corrupt the
     // stdio JSON-RPC framing, and failure context surfaces in CI logs.
     cmd.arg("mcp").env("RUST_LOG", "error");
+    // Guaranteed reap: kill the `mado mcp` child when the transport drops
+    // (normal / error / panic exit of the e2e), not just best-effort. The
+    // mcp already exits on stdin-EOF (so a SIGKILL of `mado e2e` is
+    // covered — the OS closes the pipe), and killing the mcp SIGHUPs its
+    // frostmourne PTY child. Together: the e2e never orphans a mcp or a
+    // frostmourne session.
+    cmd.kill_on_drop(true);
     let transport = TokioChildProcess::new(cmd).context("spawn `mado mcp` child")?;
     let client = ()
         .serve(transport)
