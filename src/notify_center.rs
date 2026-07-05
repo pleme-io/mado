@@ -153,6 +153,13 @@ pub struct NotificationCenter {
     /// Full config retained for source-gating queries (bell.notify,
     /// command-completion policy) — the gate owns delivery-gating.
     cfg: NotificationsConfig,
+    /// Dock-badge count: notifications delivered while unfocused, cleared
+    /// on focus. The count logic is pure + testable; the dock write is a
+    /// platform sink.
+    badge_count: u32,
+    /// Focus state at the last `on_frame` — to detect the unfocused→
+    /// focused transition that clears the badge.
+    last_focused: bool,
 }
 
 impl NotificationCenter {
@@ -164,7 +171,27 @@ impl NotificationCenter {
             gate: NotificationGate::new(cfg),
             history: NotificationHistory::new(cfg.history_capacity.max(1)),
             cfg: cfg.clone(),
+            badge_count: 0,
+            last_focused: true,
         }
+    }
+
+    /// Per-frame focus tick — the event loop calls this every frame with
+    /// the current window focus. On the unfocused→focused transition it
+    /// clears the dock badge (the operator has seen what was waiting).
+    pub fn on_frame(&mut self, focused: bool) {
+        if focused && !self.last_focused && self.badge_count != 0 {
+            self.badge_count = 0;
+            crate::platform::set_badge(None);
+        }
+        self.last_focused = focused;
+    }
+
+    /// The current unread-while-unfocused badge count (for tests + the
+    /// MCP status surface).
+    #[must_use]
+    pub fn badge_count(&self) -> u32 {
+        self.badge_count
     }
 
     /// Re-apply config on hot-reload.
@@ -237,6 +264,11 @@ impl NotificationCenter {
                     tracing::warn!(error = %e, title = %n.title, "notification dispatch failed");
                 } else {
                     self.history.push(n.clone());
+                    // Badge the dock with the unread-while-away count.
+                    if self.cfg.badge_unread && !focused {
+                        self.badge_count = self.badge_count.saturating_add(1);
+                        crate::platform::set_badge(Some(&self.badge_count.to_string()));
+                    }
                 }
             }
             GateDecision::Suppressed(reason) => {
@@ -403,5 +435,35 @@ mod tests {
         assert!(center.toggle_mute());
         assert!(center.is_muted());
         assert!(!center.toggle_mute());
+    }
+
+    #[test]
+    fn badge_counts_unfocused_deliveries_and_clears_on_focus() {
+        // prescribed() has badge_unread = true.
+        let dispatcher = NotificationDispatcher::new(Box::new(tsuuchi::LogBackend::new()));
+        let mut center = NotificationCenter::new(dispatcher, &cfg());
+        assert_eq!(center.badge_count(), 0);
+        // Two deliveries while unfocused → badge counts them (Always policy
+        // so the focus gate doesn't suppress the delivery itself).
+        center.notify_with(&note("a"), NotifyWhen::Always, false);
+        center.notify_with(&note("b"), NotifyWhen::Always, false);
+        assert_eq!(center.badge_count(), 2);
+        // A delivery while focused does not badge.
+        center.notify_with(&note("c"), NotifyWhen::Always, true);
+        assert_eq!(center.badge_count(), 2);
+        // The unfocused→focused transition clears the badge.
+        center.on_frame(false);
+        center.on_frame(true);
+        assert_eq!(center.badge_count(), 0);
+    }
+
+    #[test]
+    fn badge_off_when_disabled() {
+        let mut c = cfg();
+        c.badge_unread = false;
+        let dispatcher = NotificationDispatcher::new(Box::new(tsuuchi::LogBackend::new()));
+        let mut center = NotificationCenter::new(dispatcher, &c);
+        center.notify_with(&note("a"), NotifyWhen::Always, false);
+        assert_eq!(center.badge_count(), 0, "badge disabled → never counts");
     }
 }

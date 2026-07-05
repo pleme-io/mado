@@ -140,6 +140,9 @@ pub fn apply_side_effects(
     notify: &mut crate::notify_center::NotificationCenter,
 ) -> Option<String> {
     let focused = renderer.focused();
+    // Per-frame focus tick — clears the dock badge on the unfocused→
+    // focused transition.
+    notify.on_frame(focused);
     if let Some(clip) = effects.clipboard
         && let Err(e) = clipboard.copy_text(&clip)
     {

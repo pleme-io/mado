@@ -1241,6 +1241,9 @@ pub struct NotificationsConfig {
     pub command_completion: CommandCompletionConfig,
     /// Terminal notification-escape protocol toggles.
     pub osc: OscNotifyConfig,
+    /// Badge the dock icon with the count of notifications delivered
+    /// while mado was unfocused; cleared when the window regains focus.
+    pub badge_unread: bool,
 }
 
 impl Default for NotificationsConfig {
@@ -1263,6 +1266,7 @@ impl NotificationsConfig {
             bell: BellNotifyConfig::bare(),
             command_completion: CommandCompletionConfig::bare(),
             osc: OscNotifyConfig::bare(),
+            badge_unread: false,
         }
     }
 
@@ -1280,6 +1284,7 @@ impl NotificationsConfig {
             bell: BellNotifyConfig::prescribed(),
             command_completion: CommandCompletionConfig::prescribed(),
             osc: OscNotifyConfig::prescribed(),
+            badge_unread: true,
         }
     }
 }
