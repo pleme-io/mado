@@ -292,7 +292,7 @@ transitive git deps. Published to crates.io as `mado`.
 | **awase** | Modal hotkey system (Normal/Insert/Command modes) |
 | **mojiban** | Rich text in command palette and help overlays |
 | **tsunagu** | Daemon mode (background multiplexer with IPC) |
-| **tsuuchi** | Desktop notifications for bell, background process completion |
+| **tsuuchi** | Desktop notifications — native `UNUserNotificationCenter` backend (bundled), focus-aware center. See `docs/NOTIFICATIONS.md` |
 | **todoku** | HTTP client for update checks, plugin registry |
 
 ---
@@ -426,6 +426,18 @@ Shell scripts in `shell-integration/`:
 - `mado.bash`, `mado.zsh`, `mado.fish`
 - Emit OSC 133 (prompt marking), OSC 7 (CWD reporting), OSC 2 (title)
 - Installed automatically via HM module
+
+### Emitting terminal escapes — use `src/vt.rs`, never raw bytes
+
+Every outbound control sequence mado writes (PTY replies, the
+`notify-test` OSC demo, anything with dynamic params) is built through the
+typed `vt` emitters — `csi` / `dcs` / `apc` / `osc` and the notification
+helpers `osc9_notify` / `osc777_notify` / `osc99_notify` /
+`osc1337_request_attention`. Declare the code + typed params, never
+hand-spell `\x1b]…` or `format!()` a sequence (★★ TYPED EMISSION). Each
+builder is byte-pinned by a test. A fixed constant with no composition
+(e.g. `b"\x1b[I"` focus report) is fine; anything embedding a value goes
+through `vt`.
 
 ---
 
