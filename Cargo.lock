@@ -2439,7 +2439,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.61"
+version = "0.1.62"
 dependencies = [
  "anyhow",
  "awase",
@@ -5806,8 +5806,8 @@ dependencies = [
 
 [[package]]
 name = "tsuuchi"
-version = "0.1.1"
-source = "git+https://github.com/pleme-io/tsuuchi#cbe255b912d5195ba08fc055815df2790ba5dba7"
+version = "0.1.2"
+source = "git+https://github.com/pleme-io/tsuuchi#8721c64f1b678dc68d30435c82117e5a1f1538cb"
 dependencies = [
  "serde",
  "thiserror 2.0.18",

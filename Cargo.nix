@@ -4973,7 +4973,7 @@ rec {
           }
           {
             name = "rustc-hash";
-            packageId = "rustc-hash 2.1.2";
+            packageId = "rustc-hash 2.1.3";
           }
           {
             name = "wgpu";
@@ -7181,7 +7181,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.61";
+        version = "0.1.62";
         edition = "2024";
         crateBin = [
           {
@@ -8393,9 +8393,9 @@ rec {
       };
       "num-bigint" = rec {
         crateName = "num-bigint";
-        version = "0.4.6";
+        version = "0.4.8";
         edition = "2021";
-        sha256 = "1f903zd33i6hkjpsgwhqwi2wffnvkxbn6rv4mkgcjcqi7xr4zr55";
+        sha256 = "0ry3xjal8f5xhdinani268ci13h14mf7j4w0y1gflfzhw3knk7n8";
         libName = "num_bigint";
         authors = [
           "The Rust Project Developers"
@@ -14715,11 +14715,11 @@ rec {
           "default" = [ "std" ];
         };
       };
-      "rustc-hash 2.1.2" = rec {
+      "rustc-hash 2.1.3" = rec {
         crateName = "rustc-hash";
-        version = "2.1.2";
+        version = "2.1.3";
         edition = "2021";
-        sha256 = "1gjdc5bw9982cj176jvgz9rrqf9xvr1q1ddpzywf5qhs7yzhlc4l";
+        sha256 = "0bbla578m87qmf3yr55q49l97gxn7z0ha1dwqlnvwwc58ad7y7kb";
         libName = "rustc_hash";
         authors = [
           "The Rust Project Developers"
@@ -16914,15 +16914,15 @@ rec {
         ];
 
       };
-      "shikumi 0.1.115" = rec {
+      "shikumi 0.1.151" = rec {
         crateName = "shikumi";
-        version = "0.1.115";
+        version = "0.1.151";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
-          rev = "b8dc49cbc286eb81378a5adb70b0bd6c09d36149";
-          sha256 = "1rh4i2l6dcgjsv4bvdsic9l7pqyckh9n1bwiml5xmhv1nz0z78rr";
+          rev = "4927e26f092f9d5ab69729f4d8021d07cd74b147";
+          sha256 = "016cikc5ywzqbimi579qfpbj6yxis1m4vh0lqrxsvnca0wd7a210";
         };
         dependencies = [
           {
@@ -19131,7 +19131,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "shikumi 0.1.115";
+            packageId = "shikumi 0.1.151";
             features = [ "cli" ];
           }
           {
