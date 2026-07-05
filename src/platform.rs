@@ -128,20 +128,6 @@ pub fn request_dock_attention() {
     tracing::debug!("dock attention requested — no platform surface on this OS");
 }
 
-/// Request user attention at a typed level — the platform half of the
-/// "needs the human" signal (OSC 1337 `RequestAttention`, an unfocused
-/// bell, a critical notification). `critical` bounces the dock until
-/// focus returns (macOS `CriticalRequest`); otherwise a single
-/// informational bounce (`InformationalRequest`). Safe no-op off the main
-/// thread / off macOS.
-pub fn request_attention(critical: bool) {
-    #[cfg(target_os = "macos")]
-    macos::request_attention(critical);
-
-    #[cfg(not(target_os = "macos"))]
-    let _ = critical;
-}
-
 /// Ring the system audible bell — `None` plays the classic system beep
 /// (`NSBeep`); `Some(name)` plays a named `NSSound` (e.g. `"Basso"`,
 /// `"Ping"`), falling back to `NSBeep` when the name is unknown. Playback

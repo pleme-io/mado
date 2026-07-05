@@ -2014,6 +2014,15 @@ pub struct Terminal {
     // while the level stays high).
     attention_edge: bool,
 
+    // Command-completion tracking (OSC 133 C→D). `command_start_ms` is
+    // stamped at the C (output-start) mark; `command_used_alt_screen`
+    // flips true if the alternate screen is entered during the command
+    // (a TUI ran) and resets at C; at the D (end) mark the completion is
+    // emitted into `pending_command_completion` and drained once.
+    command_start_ms: Option<u64>,
+    command_used_alt_screen: bool,
+    pending_command_completion: Option<crate::ux::CommandCompletion>,
+
     // Kitty keyboard protocol — progressive enhancement mode stack.
     // Each entry is the flags bitmask pushed by the application.
     // Bit 0 (1):  Disambiguate escape codes
@@ -2175,6 +2184,9 @@ impl Terminal {
             ),
             attention_requested: false,
             attention_edge: false,
+            command_start_ms: None,
+            command_used_alt_screen: false,
+            pending_command_completion: None,
             kitty_keyboard_stack: Vec::new(),
             images: HashMap::new(),
             image_placements: Vec::new(),
@@ -3080,6 +3092,7 @@ impl Terminal {
                 None
             },
             attention: std::mem::replace(&mut self.attention_edge, false),
+            command_completion: self.pending_command_completion.take(),
         }
     }
 
@@ -3689,18 +3702,42 @@ impl Terminal {
             return;
         }
         let grid_row = self.primary.scrollback_len() + self.cursor.row;
-        self.prompt_marks.record(grid_row, kind, (self.clock_unix_ms)());
-        // `OSC 133 ; D ; <code>` — the optional third param is the
-        // command's exit status; stamp the D mark + back-fill the
-        // zone-opening C mark. Non-numeric codes trace + drop.
-        if kind == crate::prompt_mark::PromptKind::CommandEnd
-            && let Some(raw) = params.get(2).filter(|p| !p.is_empty())
-        {
-            if let Some(code) = std::str::from_utf8(raw).ok().and_then(|s| s.parse::<i32>().ok()) {
-                self.prompt_marks.apply_exit_status(code);
-            } else {
-                tracing::trace!(code = %String::from_utf8_lossy(raw), "OSC 133 D: non-numeric exit code, ignoring");
+        let now = (self.clock_unix_ms)();
+        self.prompt_marks.record(grid_row, kind, now);
+        let now_ms = u64::try_from(now).unwrap_or(u64::MAX);
+        use crate::prompt_mark::PromptKind;
+        match kind {
+            // `C` — the command begins executing. Start the completion
+            // clock and reset the TUI (alt-screen-used) flag.
+            PromptKind::CommandOutput => {
+                self.command_start_ms = Some(now_ms);
+                self.command_used_alt_screen = false;
             }
+            // `D` — the command finished. `OSC 133 ; D ; <code>` carries
+            // the exit status; stamp the marks (existing) AND emit a typed
+            // CommandCompletion (exit + C→D duration + whether a TUI ran).
+            PromptKind::CommandEnd => {
+                let exit = params
+                    .get(2)
+                    .filter(|p| !p.is_empty())
+                    .and_then(|raw| std::str::from_utf8(raw).ok())
+                    .and_then(|s| s.parse::<i32>().ok());
+                match exit {
+                    Some(code) => self.prompt_marks.apply_exit_status(code),
+                    None if params.get(2).is_some_and(|p| !p.is_empty()) => {
+                        tracing::trace!("OSC 133 D: non-numeric exit code, ignoring");
+                    }
+                    None => {}
+                }
+                if let Some(start) = self.command_start_ms.take() {
+                    self.pending_command_completion = Some(crate::ux::CommandCompletion {
+                        exit_code: exit.unwrap_or(0),
+                        duration_ms: now_ms.saturating_sub(start),
+                        used_alt_screen: self.command_used_alt_screen,
+                    });
+                }
+            }
+            _ => {}
         }
         tracing::trace!(
             row = self.cursor.row,
@@ -4675,6 +4712,9 @@ impl Terminal {
         if !self.use_alternate {
             self.save_cursor();
             self.use_alternate = true;
+            // A TUI ran during the in-flight command (if any) — mark it so
+            // command-completion notification skips vim/less/lazygit.
+            self.command_used_alt_screen = true;
             // BCE: the alt-screen clear takes the current pen
             // background, same as any erase (xterm contract).
             let fill = self.bce_fill_cell();

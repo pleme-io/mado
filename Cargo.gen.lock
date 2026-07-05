@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "4cf74ae6949247dda9ff255216f74192660b6fd4d7b550fa8d0edaf99d4f588a",
+  "cargo_lock_sha256": "5073f130db56ae3d983315f323e844c33e6d307c119c6bac5ff54383ad471daf",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -2486,7 +2486,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "engawa-wgpu-0.1.7-a1ea87aba7c5f67c2831b4b6b5c17ee5286e7840": {
+      "engawa-wgpu-0.1.8-acc2b02d46322077861c9e74c6d2e5cb15cb1e5f": {
         "runtime_dependencies": [
           {
             "name": "bytemuck",
@@ -19297,7 +19297,7 @@
               },
               {
                 "name": "engawa_wgpu",
-                "package_key": "engawa-wgpu-0.1.7-a1ea87aba7c5f67c2831b4b6b5c17ee5286e7840",
+                "package_key": "engawa-wgpu-0.1.8-acc2b02d46322077861c9e74c6d2e5cb15cb1e5f",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23524,7 +23524,7 @@
               },
               {
                 "name": "engawa_wgpu",
-                "package_key": "engawa-wgpu-0.1.7-a1ea87aba7c5f67c2831b4b6b5c17ee5286e7840",
+                "package_key": "engawa-wgpu-0.1.8-acc2b02d46322077861c9e74c6d2e5cb15cb1e5f",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27171,7 +27171,7 @@
               },
               {
                 "name": "engawa_wgpu",
-                "package_key": "engawa-wgpu-0.1.7-a1ea87aba7c5f67c2831b4b6b5c17ee5286e7840",
+                "package_key": "engawa-wgpu-0.1.8-acc2b02d46322077861c9e74c6d2e5cb15cb1e5f",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30924,7 +30924,7 @@
               },
               {
                 "name": "engawa_wgpu",
-                "package_key": "engawa-wgpu-0.1.7-a1ea87aba7c5f67c2831b4b6b5c17ee5286e7840",
+                "package_key": "engawa-wgpu-0.1.8-acc2b02d46322077861c9e74c6d2e5cb15cb1e5f",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35105,7 +35105,7 @@
               },
               {
                 "name": "engawa_wgpu",
-                "package_key": "engawa-wgpu-0.1.7-a1ea87aba7c5f67c2831b4b6b5c17ee5286e7840",
+                "package_key": "engawa-wgpu-0.1.8-acc2b02d46322077861c9e74c6d2e5cb15cb1e5f",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38706,7 +38706,7 @@
               },
               {
                 "name": "engawa_wgpu",
-                "package_key": "engawa-wgpu-0.1.7-a1ea87aba7c5f67c2831b4b6b5c17ee5286e7840",
+                "package_key": "engawa-wgpu-0.1.8-acc2b02d46322077861c9e74c6d2e5cb15cb1e5f",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -41918,7 +41918,7 @@
     "engawa-0.1.3-bda639d5d9bd3ec2dd59ff84b2925ae278f24c52": {
       "edition": "2024"
     },
-    "engawa-wgpu-0.1.7-a1ea87aba7c5f67c2831b4b6b5c17ee5286e7840": {
+    "engawa-wgpu-0.1.8-acc2b02d46322077861c9e74c6d2e5cb15cb1e5f": {
       "edition": "2024"
     },
     "equivalent-1.0.2": {
@@ -43542,7 +43542,7 @@
     "engate-attach-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": "sha256-7dqrUg3KMEKH5ac5RuK7EJRogt4H3xtv6nDrM0jpccM=",
     "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": "sha256-7dqrUg3KMEKH5ac5RuK7EJRogt4H3xtv6nDrM0jpccM=",
     "engawa-0.1.3-bda639d5d9bd3ec2dd59ff84b2925ae278f24c52": "sha256-Z9exdzhmkz90dNCArTnVC69CxLZDnC1ShRTFvDHE2JA=",
-    "engawa-wgpu-0.1.7-a1ea87aba7c5f67c2831b4b6b5c17ee5286e7840": "sha256-hxtIeSH3mw3Hm6EAEbKIyNkGWkKyS27wm/o7HsmXLC4=",
+    "engawa-wgpu-0.1.8-acc2b02d46322077861c9e74c6d2e5cb15cb1e5f": "sha256-sE/Qeve2DJY8NVMxAzjRbeZWIUmmWoF6hUAUusSJ4So=",
     "garasu-0.1.4-a2afc2ad6530ed096ab26f5d92bd4e1d348253ee": "sha256-//cvGAyxRVhcwHD56yf9M5SPn63GiwP+y06b8OlVfvs=",
     "gen-macros-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0": "sha256-khDWAqmgqr/pPPq73hZbZojnEw3gVc6RYFPLuNCoR/A=",
     "gen-platform-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0": "sha256-khDWAqmgqr/pPPq73hZbZojnEw3gVc6RYFPLuNCoR/A=",

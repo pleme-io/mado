@@ -108,6 +108,33 @@ pub struct TerminalSideEffects {
     /// OSC 1337 `RequestAttention` rising edge since the last drain —
     /// dock bounce + critical-urgency dispatch.
     pub attention: bool,
+    /// A shell command finished (OSC 133 `D`) since the last drain — the
+    /// raw fact (exit + duration + whether a TUI ran). `apply_side_effects`
+    /// decides the exit-status glow + the away-notification against config.
+    pub command_completion: Option<CommandCompletion>,
+}
+
+/// One completed shell command, derived from the OSC 133 `C`→`D` span.
+/// The *raw signal* — the policy (notify when away, skip TUIs, glow) lives
+/// in `apply_side_effects` + the config, keeping this a pure fact.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CommandCompletion {
+    /// The command's exit status (OSC 133 `D;<code>`).
+    pub exit_code: i32,
+    /// Wall-clock duration from `C` (output start) to `D` (end), ms.
+    pub duration_ms: u64,
+    /// Whether the alternate screen was entered during the command — i.e.
+    /// it was an interactive TUI (vim/less/lazygit), so completion is not
+    /// interesting (the operator just quit an editor).
+    pub used_alt_screen: bool,
+}
+
+impl CommandCompletion {
+    /// Whether the command exited cleanly.
+    #[must_use]
+    pub fn succeeded(&self) -> bool {
+        self.exit_code == 0
+    }
 }
 
 /// THE shared per-frame side-effect consumer — the single
@@ -204,5 +231,134 @@ pub fn apply_side_effects(
     if let Some(cwd) = effects.cwd {
         tracing::trace!(%cwd, "OSC 7 cwd update");
     }
+    if let Some(cc) = effects.command_completion {
+        // Peripheral exit-status glow. A finished command pulses the cursor
+        // glow green (clean) / red (failed). We skip TUIs (you just quit an
+        // editor) and skip *fast successes* (an `ls` shouldn't strobe) — but
+        // a failure ALWAYS pulses, however brief, because a fast failure is
+        // exactly the moment the cue earns its keep. The renderer applies the
+        // final `feedback.exit_code_glow` + reduce-motion gate.
+        if should_exit_glow(&cc) {
+            renderer.glow_on_exit_status(cc.exit_code);
+        }
+        // Away-notification for a long-running command. `should_notify`
+        // already applied the focus gate (`only_when_unfocused`), so the
+        // dispatch uses `Always` — double-gating here would silently drop it.
+        if notify.command_completion().should_notify(&cc, focused) {
+            notify.notify_with(&completion_notification(&cc), crate::config::NotifyWhen::Always, focused);
+        }
+    }
     effects.title
+}
+
+/// A clean command that ran at least this long (ms) still earns a success
+/// glow; anything faster is background noise (`cd`, `ls`) and stays quiet.
+/// Failures glow regardless of duration.
+const EXIT_GLOW_SUCCESS_MIN_MS: u64 = 2_000;
+
+/// Whether a finished command should pulse the exit-status glow — the pure
+/// policy core (the renderer applies the config + reduce-motion gate on top).
+/// Skip TUIs (you just quit an editor); a failure always pulses; a success
+/// pulses only when it ran long enough to be worth noticing.
+#[must_use]
+fn should_exit_glow(cc: &CommandCompletion) -> bool {
+    !cc.used_alt_screen && (!cc.succeeded() || cc.duration_ms >= EXIT_GLOW_SUCCESS_MIN_MS)
+}
+
+/// Build the desktop banner for a finished command — a typed
+/// [`tsuuchi::Notification`], never a hand-spliced string. Title names the
+/// outcome (✓/✗); body is the humanized runtime (+ exit code on failure).
+/// Grouped `command` so a burst of completions coalesces to the latest.
+fn completion_notification(cc: &CommandCompletion) -> tsuuchi::Notification {
+    let dur = humanize_duration(cc.duration_ms);
+    let (title, body) = if cc.succeeded() {
+        ("✓ Command finished".to_owned(), format!("Done in {dur}"))
+    } else {
+        ("✗ Command failed".to_owned(), format!("Exit {} after {dur}", cc.exit_code))
+    };
+    tsuuchi::Notification::new(title, body).urgency(Urgency::Normal).group("command")
+}
+
+/// Humanize a millisecond duration into a compact, glanceable string:
+/// `820ms`, `3.4s`, `1m 05s`, `1h 02m`. Pure + total (saturating), so it
+/// is trivially testable and never panics on absurd inputs.
+#[must_use]
+fn humanize_duration(ms: u64) -> String {
+    if ms < 1_000 {
+        return format!("{ms}ms");
+    }
+    let secs = ms / 1_000;
+    if secs < 60 {
+        // One decimal of seconds below a minute (3.4s reads better than 3s).
+        let tenths = (ms % 1_000) / 100;
+        return format!("{secs}.{tenths}s");
+    }
+    let mins = secs / 60;
+    if mins < 60 {
+        return format!("{mins}m {:02}s", secs % 60);
+    }
+    let hours = mins / 60;
+    format!("{hours}h {:02}m", mins % 60)
+}
+
+#[cfg(test)]
+mod completion_tests {
+    use super::*;
+
+    fn cc(exit_code: i32, duration_ms: u64, used_alt_screen: bool) -> CommandCompletion {
+        CommandCompletion { exit_code, duration_ms, used_alt_screen }
+    }
+
+    #[test]
+    fn humanize_covers_every_scale() {
+        assert_eq!(humanize_duration(0), "0ms");
+        assert_eq!(humanize_duration(820), "820ms");
+        assert_eq!(humanize_duration(999), "999ms");
+        assert_eq!(humanize_duration(1_000), "1.0s");
+        assert_eq!(humanize_duration(3_400), "3.4s");
+        assert_eq!(humanize_duration(59_900), "59.9s");
+        assert_eq!(humanize_duration(60_000), "1m 00s");
+        assert_eq!(humanize_duration(65_000), "1m 05s");
+        assert_eq!(humanize_duration(3_600_000), "1h 00m");
+        assert_eq!(humanize_duration(3_720_000), "1h 02m");
+    }
+
+    #[test]
+    fn humanize_never_panics_on_extremes() {
+        // Total + saturating — an absurd runtime must still format.
+        let _ = humanize_duration(u64::MAX);
+    }
+
+    #[test]
+    fn failure_always_glows_even_when_instant() {
+        // A fast failure is exactly when the cue earns its keep.
+        assert!(should_exit_glow(&cc(1, 5, false)));
+    }
+
+    #[test]
+    fn fast_success_stays_quiet_slow_success_glows() {
+        assert!(!should_exit_glow(&cc(0, 500, false)), "a quick `ls` must not strobe");
+        assert!(should_exit_glow(&cc(0, 5_000, false)), "a 5s job earns a done-pulse");
+    }
+
+    #[test]
+    fn a_tui_never_glows() {
+        // Quitting vim/less is not a completion worth flashing — even a
+        // non-zero editor exit stays quiet (the alt-screen filter wins).
+        assert!(!should_exit_glow(&cc(0, 60_000, true)));
+        assert!(!should_exit_glow(&cc(130, 60_000, true)));
+    }
+
+    #[test]
+    fn notification_names_the_outcome() {
+        let ok = completion_notification(&cc(0, 12_000, false));
+        assert_eq!(ok.title, "✓ Command finished");
+        assert_eq!(ok.body, "Done in 12.0s");
+
+        let fail = completion_notification(&cc(2, 90_000, false));
+        assert_eq!(fail.title, "✗ Command failed");
+        assert_eq!(fail.body, "Exit 2 after 1m 30s");
+        // Completions coalesce to the latest under one group.
+        assert_eq!(fail.group.as_deref(), Some("command"));
+    }
 }

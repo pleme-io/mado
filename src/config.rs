@@ -941,6 +941,9 @@ pub struct FeedbackConfig {
     /// Tint OSC 133 command-block separators by exit status
     /// (green on 0 / red on non-zero).
     pub exit_code_coloring: bool,
+    /// A brief green (exit 0) / red (non-zero) cursor glow when a command
+    /// completes — peripheral success/fail feedback (OSC 133 `D`).
+    pub exit_code_glow: bool,
 }
 
 impl Default for FeedbackConfig {
@@ -957,6 +960,7 @@ impl FeedbackConfig {
             copy_flash: false,
             visual_bell: false,
             exit_code_coloring: false,
+            exit_code_glow: false,
         }
     }
 
@@ -967,6 +971,7 @@ impl FeedbackConfig {
             copy_flash: true,
             visual_bell: true,
             exit_code_coloring: true,
+            exit_code_glow: true,
         }
     }
 }
@@ -1132,6 +1137,10 @@ pub struct CommandCompletionConfig {
     /// whose completion is not interesting). Matched against argv[0]'s
     /// basename.
     pub deny: Vec<String>,
+    /// Skip the notification when the command entered the alternate screen
+    /// (a TUI: vim/less/lazygit/btop) — you just quit an editor, not
+    /// finished a batch job. The robust, text-free filter.
+    pub respect_alt_screen: bool,
 }
 
 impl Default for CommandCompletionConfig {
@@ -1151,6 +1160,7 @@ impl CommandCompletionConfig {
             notify_on_failure: true,
             only_when_unfocused: true,
             deny: Self::default_deny(),
+            respect_alt_screen: true,
         }
     }
 
@@ -1165,6 +1175,7 @@ impl CommandCompletionConfig {
             notify_on_failure: true,
             only_when_unfocused: true,
             deny: Self::default_deny(),
+            respect_alt_screen: true,
         }
     }
 
@@ -1178,6 +1189,18 @@ impl CommandCompletionConfig {
         .iter()
         .map(|s| (*s).to_string())
         .collect()
+    }
+
+    /// Whether a completed command should raise a notification, given the
+    /// completion signal + current focus. The pure, testable decision
+    /// core: enabled ∧ not-a-TUI ∧ slow-enough ∧ outcome-wanted ∧ away.
+    #[must_use]
+    pub fn should_notify(&self, c: &crate::ux::CommandCompletion, focused: bool) -> bool {
+        self.enabled
+            && !(self.respect_alt_screen && c.used_alt_screen)
+            && c.duration_ms >= self.min_duration_ms
+            && (if c.succeeded() { self.notify_on_success } else { self.notify_on_failure })
+            && !(self.only_when_unfocused && focused)
     }
 }
 
@@ -4166,6 +4189,7 @@ mod tests {
             copy_flash: true,
             visual_bell: false,
             exit_code_coloring: true,
+            exit_code_glow: true,
         };
         let yaml = serde_yaml_ng::to_string(&fb).expect("serialize feedback config");
         let back: FeedbackConfig =

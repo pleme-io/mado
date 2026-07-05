@@ -153,6 +153,41 @@ pub fn osc1337_request_attention(on: bool) -> Vec<u8> {
     osc(1337, &[param], OscTerminator::Bel)
 }
 
+/// A shell-integration semantic prompt mark (OSC 133 / `FinalTerm`). mado
+/// brackets each command with these: `A` fresh prompt, `B` command-input
+/// start, `C` command-output start (execution begins — the completion clock
+/// starts), `D` command end (`D;<exit>` carries the status — the completion
+/// fires). See `terminal.rs::handle_osc_133_shell_integration`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Osc133Mark {
+    /// `A` — prompt start (fresh line + start of prompt).
+    PromptStart,
+    /// `B` — end of prompt, start of command input.
+    CommandStart,
+    /// `C` — command output begins (the command is now executing).
+    CommandOutput,
+    /// `D` — command finished; `Some(code)` carries the exit status.
+    CommandEnd(Option<i32>),
+}
+
+/// Emit one OSC 133 mark: `ESC ] 133 ; <letter>[;<exit>] ST`. The letter
+/// and optional exit code are declared as a typed [`Osc133Mark`]; the
+/// escape grammar stays in [`osc`]. The peer of the OSC 9/777/99/1337
+/// emitters above — the outbound half of a protocol mado also parses.
+#[must_use]
+pub fn osc133(mark: Osc133Mark) -> Vec<u8> {
+    match mark {
+        Osc133Mark::PromptStart => osc(133, &["A"], OscTerminator::St),
+        Osc133Mark::CommandStart => osc(133, &["B"], OscTerminator::St),
+        Osc133Mark::CommandOutput => osc(133, &["C"], OscTerminator::St),
+        Osc133Mark::CommandEnd(None) => osc(133, &["D"], OscTerminator::St),
+        Osc133Mark::CommandEnd(Some(code)) => {
+            let s = code.to_string();
+            osc(133, &["D", &s], OscTerminator::St)
+        }
+    }
+}
+
 /// The typed CSI-command AST — a `vte::Params` + final byte parsed into
 /// intent (parse-don't-validate), so the VT state machine's giant
 /// `match action` becomes data: [`parse_csi_action`] decides *which*
@@ -331,5 +366,16 @@ mod tests {
     fn osc1337_request_attention_builder() {
         assert_eq!(osc1337_request_attention(true), b"\x1b]1337;RequestAttention=1\x07");
         assert_eq!(osc1337_request_attention(false), b"\x1b]1337;RequestAttention=0\x07");
+    }
+
+    #[test]
+    fn osc133_marks_build() {
+        // ST-terminated per FinalTerm; letter in params[1], exit in params[2].
+        assert_eq!(osc133(Osc133Mark::PromptStart), b"\x1b]133;A\x1b\\");
+        assert_eq!(osc133(Osc133Mark::CommandStart), b"\x1b]133;B\x1b\\");
+        assert_eq!(osc133(Osc133Mark::CommandOutput), b"\x1b]133;C\x1b\\");
+        assert_eq!(osc133(Osc133Mark::CommandEnd(None)), b"\x1b]133;D\x1b\\");
+        assert_eq!(osc133(Osc133Mark::CommandEnd(Some(0))), b"\x1b]133;D;0\x1b\\");
+        assert_eq!(osc133(Osc133Mark::CommandEnd(Some(130))), b"\x1b]133;D;130\x1b\\");
     }
 }

@@ -179,6 +179,10 @@ pub fn apply_config_theme(
     renderer.set_prompt_mark_color(theme.prompt_mark);
     renderer.set_scrollbar_color(theme.scrollbar);
     renderer.set_bell_flash_color(theme.bell_flash);
+    // Command-completion glow accents — the ANSI green/red slots, so the
+    // success/failure cursor pulse tracks the active theme.
+    renderer.set_exit_ok_color(theme.exit_ok);
+    renderer.set_exit_err_color(theme.exit_err);
     // Unfocused-window dim = the theme background at a whisper alpha.
     renderer.set_unfocused_dim_color(theme.background);
     // Picker overlay chrome (Ctrl-S switcher + Ctrl-T dirs): resolve every

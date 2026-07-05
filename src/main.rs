@@ -131,6 +131,12 @@ enum SubCmd {
     /// pipeline (focus gate → center → native backend), so you see real
     /// mado-attributed banners. See docs/NOTIFICATIONS.md.
     NotifyTest,
+    /// Emit sample OSC 133 command-completion spans to stdout. Run this
+    /// **inside a Mado.app window** — the hosting mado brackets the fake
+    /// "commands" (C→D marks) and fires the exit-status glow (green on a
+    /// clean exit, red on failure) plus, for a slow unfocused command, the
+    /// "✓/✗ Command …" banner. The command-watching peer of `notify-test`.
+    FeedbackTest,
     /// Show the materialized config at a tier (bare/default/discovered/custom/env).
     ///
     /// Operator surface delegated to `shikumi::cli::ConfigShowCommand` —
@@ -459,6 +465,40 @@ fn main() -> anyhow::Result<()> {
                  • The others show when mado is unfocused — click another app to see them.\n\
                  • First run prompts \"Mado would like to send notifications\" — allow it.\n\
                  Run this INSIDE a Mado.app window (native banners require the bundle)."
+            );
+            return Ok(());
+        }
+        Some(SubCmd::FeedbackTest) => {
+            use crate::vt::{osc133, Osc133Mark};
+            use std::io::Write;
+            use std::thread::sleep;
+            use std::time::Duration;
+            // Two fake command spans, built through the typed OSC 133
+            // emitters (★★ TYPED EMISSION). Run INSIDE a Mado.app window:
+            // the hosting mado measures the real C→D wall time and fires the
+            // exit-status glow (and the completion banner for a slow, away run).
+            let mut out = std::io::stdout().lock();
+            // A slow, clean command → a green success pulse. `C` starts the
+            // completion clock; the sleep is the runtime mado measures.
+            out.write_all(&osc133(Osc133Mark::CommandOutput))?;
+            out.flush()?;
+            sleep(Duration::from_millis(2500));
+            out.write_all(&osc133(Osc133Mark::CommandEnd(Some(0))))?;
+            out.flush()?;
+            sleep(Duration::from_millis(900));
+            // A failed command → a red pulse. Failures glow even when instant.
+            out.write_all(&osc133(Osc133Mark::CommandOutput))?;
+            out.flush()?;
+            sleep(Duration::from_millis(300));
+            out.write_all(&osc133(Osc133Mark::CommandEnd(Some(1))))?;
+            out.flush()?;
+            eprintln!(
+                "mado feedback-test: emitted two OSC 133 C→D command spans.\n\
+                 • ~2.5s clean exit → a GREEN cursor glow (a slow success).\n\
+                 • ~0.3s exit 1 → a RED cursor glow (failures always pulse).\n\
+                 • A real command running >=10s while mado is unfocused also\n\
+                   raises a \"Command finished\" / \"Command failed\" banner.\n\
+                 Run this INSIDE a Mado.app window (the glow is mado's cursor)."
             );
             return Ok(());
         }

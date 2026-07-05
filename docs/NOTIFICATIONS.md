@@ -114,10 +114,37 @@ Outbound terminal escapes (the `notify-test` demo, and anything mado writes
 back to a PTY) are built through the typed emitters in `src/vt.rs` — the
 OSC peer of the existing `csi()` / `dcs()` / `apc()` builders:
 `osc(code, params, terminator)` plus `osc9_notify` / `osc777_notify` /
-`osc99_notify` / `osc1337_request_attention`. The call site declares the
-numeric code and typed params (never the escape bytes), and every builder
-is byte-pinned by tests. This is the ★★ TYPED EMISSION rule applied to
-terminal syntax — no hand-spelled `\x1b]9;…` control strings.
+`osc99_notify` / `osc1337_request_attention` / `osc133(Osc133Mark)` (the
+shell-integration prompt marks the `feedback-test` demo emits). The call
+site declares the numeric code and typed params (never the escape bytes),
+and every builder is byte-pinned by tests. This is the ★★ TYPED EMISSION
+rule applied to terminal syntax — no hand-spelled `\x1b]9;…` control strings.
+
+## Watching your commands (OSC 133 completion) — shipped
+
+mado brackets every shell command with OSC 133 marks (`C` output-start →
+`D;<exit>` end) and turns the span into two peripheral cues:
+
+- **Exit-status glow** — the cursor glow pulses **green on a clean exit,
+  red on a failure** (`feedback.exit_code_glow`, prescribed-on). The colours
+  are the active theme's `exit_ok` / `exit_err` (the ANSI green/red slots),
+  so the pulse tracks the theme. Policy (`ux/side_effects.rs::should_exit_glow`):
+  a failure *always* pulses (a fast failure is exactly when you want the
+  cue); a success pulses only when it ran ≥ 2 s (an `ls` never strobes); a
+  TUI (`used_alt_screen`) never pulses (you just quit an editor). This rides
+  the one tintable engawa `glow_on_bell` effect — `ring_tinted(rgb)` — so the
+  bell ring and the exit pulse share one GPU pass.
+- **Away-notification** — a slow command finishing while you're in another
+  app raises a **"✓ Command finished" / "✗ Command failed"** banner with the
+  humanized runtime (`CommandCompletionConfig::should_notify`: enabled ∧
+  not-a-TUI ∧ ≥ `min_duration_ms` (10 s) ∧ outcome-wanted ∧ unfocused).
+  `should_notify` already applies the focus gate, so the dispatch is
+  `NotifyWhen::Always` — no double-gate drops it.
+
+The raw fact (`CommandCompletion { exit_code, duration_ms, used_alt_screen }`)
+is emitted by `Terminal` and *all* policy lives in `apply_side_effects` +
+config — the signal stays a pure fact (TYPED-SPEC discipline). Try it inside
+a Mado.app window with `mado feedback-test`.
 
 ## Milestones
 
@@ -126,10 +153,12 @@ terminal syntax — no hand-spelled `\x1b]9;…` control strings.
   L5 config · L2 OSC 9/777/99 routed through the focus-gated center ·
   L6 `notify-test` (typed `vt` OSC emitters). **The popup dies; rich
   native banners land; the try-it-together path is ready.**
-- **M1:** L3 command-completion notify (OSC 133 marks + the alt-screen
-  heuristic to skip TUIs — emit a raw `(exit, duration, used_alt_screen)`
-  signal from `Terminal`, decide in `apply_side_effects` against the
-  `command_completion` config, which already ships) · richer OSC 99
+- **M1 (command-watching — shipped):** L3 command-completion — the raw
+  `(exit, duration, used_alt_screen)` signal from `Terminal`, decided in
+  `apply_side_effects` against the `command_completion` config, drives both
+  the away-**notification** and the exit-status **glow** (see "Watching your
+  commands" above). `mado feedback-test` demos it. **Remaining M1:** richer
+  OSC 99
   parse (actions / sound / `o=` policy / `c=close`) · action-response
   delegate (route taps: Focus pane / Copy / Open / Reply-inject) ·
   foreground-presentation delegate · attachments delivery · MCP

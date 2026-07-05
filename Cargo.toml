@@ -284,7 +284,7 @@ pollster = { version = "0.4", optional = true }
 # included — dispatches through ONE engawa graph per frame; the
 # engawa-snow overlay crate was absorbed by the catalog (M3).
 engawa = { git = "https://github.com/pleme-io/engawa" , version = "0.1" }
-engawa-wgpu = { git = "https://github.com/pleme-io/engawa-wgpu", rev = "a1ea87aba7c5f67c2831b4b6b5c17ee5286e7840" , version = "0.1" }
+engawa-wgpu = { git = "https://github.com/pleme-io/engawa-wgpu", rev = "acc2b02d46322077861c9e74c6d2e5cb15cb1e5f" , version = "0.1" }
 
 # Sixel decode (DCS q … ST → RGBA). Feeds the SAME texture upload path
 # as Kitty images: a decoded sixel becomes a KittyImage + ImagePlacement.

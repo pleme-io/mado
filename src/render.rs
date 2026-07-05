@@ -1111,6 +1111,11 @@ const DECORATION_THICKNESS: f32 = 1.0;
 /// over this many frames. Gentle + brief per the polish-round spec
 /// (the old 4-frame / 0.15-alpha flash popped too hard).
 const BELL_FLASH_FRAMES: u8 = 12;
+/// The bell glow colour — a cool near-white (matches engawa's `BELL_TINT`
+/// rgb). Set explicitly on every bell so a prior exit-status pulse's tint
+/// never lingers on the glow clock. The exit-status pulse colours are the
+/// theme's `exit_ok` / `exit_err` (ANSI green/red), read at pulse time.
+const BELL_GLOW_RGB: [f32; 3] = [0.85, 0.92, 1.0];
 /// Peak alpha of the visual-bell flash at frame 0 (subtle by default;
 /// the operator tunes intensity after).
 const BELL_FLASH_PEAK_ALPHA: f32 = 0.10;
@@ -1292,6 +1297,17 @@ pub struct TerminalRenderer {
     /// flash — until a theme loads.
     #[invalidating_setter]
     bell_flash_color: Color,
+    /// Command-completion glow colour on a clean exit (u8-RGB). Set by
+    /// `theme::apply_config_theme` from the active theme's `exit_ok` (the
+    /// ANSI green slot), so the success pulse tracks the theme instead of a
+    /// hardcoded green. Defaults to a calm green until a theme loads.
+    #[invalidating_setter]
+    exit_ok_color: Color,
+    /// Command-completion glow colour on a failure (u8-RGB). Set from the
+    /// active theme's `exit_err` (the ANSI red slot); the failure pulse
+    /// tracks the theme. Defaults to a warm red until a theme loads.
+    #[invalidating_setter]
+    exit_err_color: Color,
     /// Unfocused-window dim colour (u8-RGB; linearized at paint time) — the
     /// theme background painted at a whisper alpha over a backgrounded
     /// window. Set by `theme::apply_config_theme` from the active theme's
@@ -1305,6 +1321,14 @@ pub struct TerminalRenderer {
     /// audible-bell glow ring is governed by its own effect gate).
     #[invalidating_setter]
     feedback_visual_bell: bool,
+    /// Whether a completed command pulses the cursor glow — green on
+    /// success, red on failure. Set from `config.feedback.exit_code_glow`
+    /// in [`apply_effects_and_accessibility`](Self::apply_effects_and_accessibility).
+    /// Defaults `true` (prescribed); the bare tier strips it. The policy
+    /// for *which* completions pulse lives in `apply_side_effects`; this
+    /// gate is the final "render it at all" switch (like the bell's).
+    #[invalidating_setter]
+    feedback_exit_glow: bool,
     /// Whether an unfocused window is whisper-dimmed. Set from
     /// `config.motion.unfocused_dim` in
     /// [`apply_effects_and_accessibility`](Self::apply_effects_and_accessibility).
@@ -1659,6 +1683,11 @@ impl TerminalRenderer {
             // White — the prior hardcoded bell flash, kept until a theme's
             // `bell_flash` (the theme foreground) loads.
             bell_flash_color: Color::WHITE,
+            // Calm green / warm red — the pre-theme exit-glow defaults, kept
+            // until the active theme's `exit_ok` / `exit_err` (ANSI green/red)
+            // load via `apply_config_theme`.
+            exit_ok_color: Color::new(0x66, 0xF2, 0x8C),
+            exit_err_color: Color::new(0xFF, 0x52, 0x4D),
             // Vellum night0 ground — the prescribed-theme background, kept
             // as the pre-theme dim default until `apply_config_theme`
             // overwrites it with the active theme's `background`.
@@ -1667,6 +1696,7 @@ impl TerminalRenderer {
             // `apply_effects_and_accessibility` re-derives both from
             // `config.{feedback,motion}` (bare strips them).
             feedback_visual_bell: true,
+            feedback_exit_glow: true,
             motion_unfocused_dim: true,
             reduce_motion: false,
             session_picker_anchor: crate::config::PickerAnchor::default(),
@@ -1728,6 +1758,7 @@ impl TerminalRenderer {
         // Tasteful-feedback + motion gates — the visual bell flash and the
         // unfocused-window dim. Both prescribed-ON; the bare tier strips them.
         self.set_feedback_visual_bell(config.feedback.visual_bell);
+        self.set_feedback_exit_glow(config.feedback.exit_code_glow);
         self.set_motion_unfocused_dim(config.motion.unfocused_dim);
         self.session_picker_anchor = config.tear.session_picker_anchor;
         self.suggestion_shade_in_ms = config.suggestions.shade_in_ms;
@@ -2520,9 +2551,26 @@ impl TerminalRenderer {
             }
             // BEL also saturates the glow-on-bell clock; whether the
             // glow renders is the effect set's call (config-enabled +
-            // not reduce_motion — already inside this gate).
-            self.glow_state.params.ring();
+            // not reduce_motion — already inside this gate). Ring with
+            // the explicit bell colour so a prior exit-status pulse's
+            // red/green tint never bleeds into the bell glow.
+            self.glow_state.params.ring_tinted(BELL_GLOW_RGB);
         }
+    }
+
+    /// Pulse the cursor glow to signal a finished command — green on a
+    /// clean exit, red on a non-zero exit (OSC 133 `D`). No-op under
+    /// `reduce_motion` or when `feedback.exit_code_glow` is off. Which
+    /// completions pulse (skip fast successes / TUIs) is decided upstream
+    /// in `apply_side_effects`; this only renders the colour.
+    pub fn glow_on_exit_status(&mut self, exit_code: i32) {
+        if self.reduce_motion || !self.feedback_exit_glow {
+            return;
+        }
+        // The additive glow tint tracks the theme's exit accents (ANSI
+        // green/red), normalized u8→0..1 — never a hardcoded colour.
+        let c = if exit_code == 0 { self.exit_ok_color } else { self.exit_err_color };
+        self.glow_state.params.ring_tinted(color_to_rgb(&c));
     }
 
     /// Current font size.
@@ -3650,6 +3698,16 @@ impl TerminalRenderer {
 fn color_to_f32(c: &Color) -> [f32; 4] {
     let linear = ishou_tokens::Srgb::new(c.r, c.g, c.b).to_linear();
     [linear.r, linear.g, linear.b, 1.0]
+}
+
+/// Convert an sRGB theme colour into the linear `[f32; 3]` additive tint the
+/// engawa glow shader expects. The glow samples a linear scene texture and
+/// adds `tint * intensity`, so — same discipline as [`color_to_f32`] — the
+/// tint must be linearized (a raw-sRGB triple would blend wrong). Alpha is
+/// dropped; the glow tint carries none.
+fn color_to_rgb(c: &Color) -> [f32; 3] {
+    let linear = ishou_tokens::Srgb::new(c.r, c.g, c.b).to_linear();
+    [linear.r, linear.g, linear.b]
 }
 
 /// The single typed surface for translucent overlay-decoration rects
