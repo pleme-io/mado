@@ -7181,7 +7181,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.62";
+        version = "0.1.63";
         edition = "2024";
         crateBin = [
           {
@@ -20575,13 +20575,13 @@ rec {
       };
       "tsuuchi" = rec {
         crateName = "tsuuchi";
-        version = "0.1.1";
+        version = "0.1.2";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tsuuchi";
-          rev = "cbe255b912d5195ba08fc055815df2790ba5dba7";
-          sha256 = "1y2i0zk3j8f48cy2nx4a8mxr3cpk595408mabqi81abk8d0657ar";
+          rev = "8721c64f1b678dc68d30435c82117e5a1f1538cb";
+          sha256 = "1cx9diva6id7g7hv36gpjn1nn8h06y85xpk6gpgqh3d3pfjsz6fl";
         };
         dependencies = [
           {
