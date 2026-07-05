@@ -186,7 +186,20 @@ pub fn apply_side_effects(
         }
     }
     if let Some(progress) = effects.progress {
-        tracing::debug!(?progress, "ConEmu progress update (no renderer surface yet)");
+        // OSC 9;4 command progress → the dock badge (via the center's
+        // progress↔unread arbitration). The full in-window progress bar is
+        // a follow-up; the dock surface lands now.
+        use crate::notify_center::DockProgress;
+        let dock = match progress {
+            ProgressState::Remove => DockProgress::Clear,
+            ProgressState::Set { pct } => DockProgress::Percent(pct),
+            ProgressState::Indeterminate => DockProgress::Busy,
+            ProgressState::Error { pct } | ProgressState::Paused { pct } => {
+                pct.map_or(DockProgress::Busy, DockProgress::Percent)
+            }
+        };
+        notify.set_progress(dock);
+        tracing::debug!(?progress, "ConEmu progress → dock badge");
     }
     if let Some(cwd) = effects.cwd {
         tracing::trace!(%cwd, "OSC 7 cwd update");

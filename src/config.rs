@@ -1244,6 +1244,9 @@ pub struct NotificationsConfig {
     /// Badge the dock icon with the count of notifications delivered
     /// while mado was unfocused; cleared when the window regains focus.
     pub badge_unread: bool,
+    /// Show OSC 9;4 (ConEmu) command progress in the dock badge (e.g.
+    /// `45%`), taking precedence over the unread count while active.
+    pub progress_dock: bool,
 }
 
 impl Default for NotificationsConfig {
@@ -1267,6 +1270,7 @@ impl NotificationsConfig {
             command_completion: CommandCompletionConfig::bare(),
             osc: OscNotifyConfig::bare(),
             badge_unread: false,
+            progress_dock: false,
         }
     }
 
@@ -1285,6 +1289,7 @@ impl NotificationsConfig {
             command_completion: CommandCompletionConfig::prescribed(),
             osc: OscNotifyConfig::prescribed(),
             badge_unread: true,
+            progress_dock: true,
         }
     }
 }

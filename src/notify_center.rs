@@ -15,6 +15,19 @@ use std::time::{Duration, Instant};
 use crate::config::{CommandCompletionConfig, NotificationsConfig, NotifyWhen};
 use tsuuchi::{HistoryEntry, Notification, NotificationDispatcher, NotificationHistory};
 
+/// A dock-progress signal — the terminal's OSC 9;4 `ProgressState` mapped
+/// to what the dock badge should show. Kept decoupled from the OSC-layer
+/// enum so the center owns no terminal-parse types.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DockProgress {
+    /// Determinate progress, 0..=100 percent → badge `"<pct>%"`.
+    Percent(u8),
+    /// Indeterminate / busy (no percentage) → badge `"…"`.
+    Busy,
+    /// No active progress → revert the badge to the unread count.
+    Clear,
+}
+
 /// Outcome of the gate's admission decision.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GateDecision {
@@ -160,6 +173,9 @@ pub struct NotificationCenter {
     /// Focus state at the last `on_frame` — to detect the unfocused→
     /// focused transition that clears the badge.
     last_focused: bool,
+    /// Active command progress (OSC 9;4). While `Some`, it takes badge
+    /// precedence over the unread count.
+    progress: Option<DockProgress>,
 }
 
 impl NotificationCenter {
@@ -173,7 +189,48 @@ impl NotificationCenter {
             cfg: cfg.clone(),
             badge_count: 0,
             last_focused: true,
+            progress: None,
         }
+    }
+
+    /// Update the dock command-progress signal (OSC 9;4). `Clear` reverts
+    /// the badge to the unread count.
+    pub fn set_progress(&mut self, p: DockProgress) {
+        self.progress = match p {
+            DockProgress::Clear => None,
+            other => Some(other),
+        };
+        self.refresh_badge();
+    }
+
+    /// The dock badge label right now: active progress takes precedence
+    /// (`"45%"` / `"…"`), else the unread count (or nothing).
+    #[must_use]
+    fn badge_label(&self) -> Option<String> {
+        if self.cfg.progress_dock {
+            match self.progress {
+                Some(DockProgress::Percent(pct)) => {
+                    let mut s = pct.to_string();
+                    s.push('%');
+                    return Some(s);
+                }
+                Some(DockProgress::Busy) => return Some("…".to_owned()),
+                // `set_progress` maps `Clear` to `None`, so a stored
+                // `Some(Clear)` is unrepresentable — but keep the match
+                // exhaustive.
+                Some(DockProgress::Clear) | None => {}
+            }
+        }
+        if self.cfg.badge_unread && self.badge_count > 0 {
+            Some(self.badge_count.to_string())
+        } else {
+            None
+        }
+    }
+
+    /// Write the arbitrated badge label to the dock (progress vs unread).
+    fn refresh_badge(&self) {
+        crate::platform::set_badge(self.badge_label().as_deref());
     }
 
     /// Per-frame focus tick — the event loop calls this every frame with
@@ -182,7 +239,7 @@ impl NotificationCenter {
     pub fn on_frame(&mut self, focused: bool) {
         if focused && !self.last_focused && self.badge_count != 0 {
             self.badge_count = 0;
-            crate::platform::set_badge(None);
+            self.refresh_badge();
         }
         self.last_focused = focused;
     }
@@ -264,10 +321,11 @@ impl NotificationCenter {
                     tracing::warn!(error = %e, title = %n.title, "notification dispatch failed");
                 } else {
                     self.history.push(n.clone());
-                    // Badge the dock with the unread-while-away count.
+                    // Badge the dock with the unread-while-away count
+                    // (arbitrated with any active progress).
                     if self.cfg.badge_unread && !focused {
                         self.badge_count = self.badge_count.saturating_add(1);
-                        crate::platform::set_badge(Some(&self.badge_count.to_string()));
+                        self.refresh_badge();
                     }
                 }
             }
@@ -465,5 +523,23 @@ mod tests {
         let mut center = NotificationCenter::new(dispatcher, &c);
         center.notify_with(&note("a"), NotifyWhen::Always, false);
         assert_eq!(center.badge_count(), 0, "badge disabled → never counts");
+    }
+
+    #[test]
+    fn progress_badge_takes_precedence_over_unread_then_reverts() {
+        let dispatcher = NotificationDispatcher::new(Box::new(tsuuchi::LogBackend::new()));
+        let mut center = NotificationCenter::new(dispatcher, &cfg());
+        // One unread-while-unfocused notification → badge "1".
+        center.notify_with(&note("a"), NotifyWhen::Always, false);
+        assert_eq!(center.badge_label().as_deref(), Some("1"));
+        // Active determinate progress overrides the count.
+        center.set_progress(DockProgress::Percent(45));
+        assert_eq!(center.badge_label().as_deref(), Some("45%"));
+        // Busy (indeterminate) shows the ellipsis.
+        center.set_progress(DockProgress::Busy);
+        assert_eq!(center.badge_label().as_deref(), Some("…"));
+        // Clearing progress reverts to the unread count.
+        center.set_progress(DockProgress::Clear);
+        assert_eq!(center.badge_label().as_deref(), Some("1"));
     }
 }
