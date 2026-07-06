@@ -127,13 +127,12 @@ tsuuchi = { git = "https://github.com/pleme-io/tsuuchi" , version = "0.1" }
 # byte stream + stream it to stdout for now; future Phase 3.1
 # renders it in the GPU window). Phase 3 MVP of the mado⇄tear
 # de-overlap roadmap — see theory/MADO-TEAR-M5.md.
-# Pinned to the SpawnEnv-seam rev (tear `fix/spawn-env-seam`,
-# e06f67f) — the typed `tear_types::SpawnEnv` seam mado's
-# gui_tear_attach uses (`from_overrides` / `with_cwd` /
-# `inproc.set_spawn_env`) for the env-projection + PWD cwd-handshake.
-# REQUIRED FOLLOW-UP BEFORE THIS LANDS: push tear's fix/spawn-env-seam
-# (or merge it to a stable rev) so this rev resolves on CI + for
-# downstream consumers; the Cargo.lock + Cargo.build-spec already pin it.
+# Pinned to the reap-on-exit rev (tear main, f9b1f39 — tear-core
+# reaps fully-exited unwatched sessions, the session-leak fix; also
+# carries the SpawnEnv seam mado's gui_tear_attach uses:
+# `from_overrides` / `with_cwd` / `inproc.set_spawn_env` for the
+# env-projection + PWD cwd-handshake). Rev is on tear main, so it
+# resolves on CI + for downstream consumers.
 tear-types = { git = "https://github.com/pleme-io/tear", rev = "f9b1f394fa0ee5367b2e8d14c601fe1202707501", features = ["engate"] , version = "0.1" }
 tear-core = { git = "https://github.com/pleme-io/tear", rev = "f9b1f394fa0ee5367b2e8d14c601fe1202707501", features = ["engate"] , version = "0.1" }
 tear-client = { git = "https://github.com/pleme-io/tear", rev = "f9b1f394fa0ee5367b2e8d14c601fe1202707501", features = ["engate"] , version = "0.1" }
