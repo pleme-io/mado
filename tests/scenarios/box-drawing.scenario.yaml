@@ -27,7 +27,7 @@ expect:
   # --features gpu_tests; without it, the field is parsed but
   # ignored. Re-record by emptying the string, running the
   # scenario test, copying the printed hex.
-  frame_hash: "c8715181f700392cd4d10772fa251b583bf0c872e043922616fbcae558cdda74"
+  frame_hash: "ed4ab0f1a5f1ec7d3df01033ce7f5360a0523273b0906ab7037fd506123f3e77"
   cells:
     - row: 0
       col: 0

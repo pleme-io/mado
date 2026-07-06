@@ -28,7 +28,7 @@ steps:
 # the TERM upgrade, invalidating the old baseline. Re-record via
 # MADO_GOLDEN_UPDATE=1 cargo test --test scenarios --features gpu_tests.
 expect:
-  frame_hash: "55795921182b86eb88710c606dcfa3b830ee69a83981c7e712e864967641bc46"
+  frame_hash: "58a0bfaa7df894ac8cb0f5169cd2589b3a72b1a979594b7c1160c7bea011b8a6"
   text_contains:
     - "TERM_IS_xterm-ghostty"
   text_not_contains:

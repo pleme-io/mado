@@ -18,6 +18,6 @@ steps:
     text: "ORANGE"
     timeout_ms: 500
 expect:
-  frame_hash: "7bad716d2eb9ca76f54e72dacb4a31c5819e2d46a0df4a2c7971cef994984fc1"
+  frame_hash: "54942ab553dfab37cb5253a076898d74d814d1177b1fc64b906133d5f3b64b77"
   text_contains:
     - "ORANGE"

@@ -20,7 +20,7 @@ steps:
     text: "X"
     timeout_ms: 500
 expect:
-  frame_hash: "afced1aa1e41b8b480c407c169a9edb56a139783174b77451a65f2fba1d6cc27"
+  frame_hash: "79117accd7470f28c0ba47bf045d2223e0e9c82b7157f2637556e2349d837e62"
   cells:
     # CSI 5;10H → 1-indexed → row 4, col 9 in 0-indexed grid coords.
     - row: 4

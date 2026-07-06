@@ -24,7 +24,7 @@ steps:
     text: "AFTER"
     timeout_ms: 500
 expect:
-  frame_hash: "680243a6ea016a2f70e993095b3ed11cac64aff378bf5c187b7e22db194c3f96"
+  frame_hash: "82ba6bf4bfdb92c946ed3ee27bc0208140cd0b7e6071a0b005a123fcf3b85d2c"
   text_contains:
     - "BEFORE"
     - "AFTER"

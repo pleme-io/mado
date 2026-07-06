@@ -15,7 +15,7 @@ steps:
   - kind: send
     text: "total 4302228\r\n\x1b[0;38;2;76;86;106m\x1b[0;38;2;76;86;106mdrwxrwxrwt 471 root   wheel      15072 May 12 19:36 \x1b[m\x1b[1;38;2;143;188;187m.\x1b[0;38;2;76;86;106m\r\n\x1b[0;38;2;76;86;106mdrwxr-xr-x   6 root   wheel        192 Apr  1  1976 \x1b[m\x1b[1;38;2;143;188;187m..\x1b[0;38;2;76;86;106m\r\n\x1b[0;38;2;76;86;106m-rw-r--r--   1 drzzln wheel         15 May  9 00:12 \x1b[m\x1b[0;38;2;180;142;173magent.html\x1b[0;38;2;76;86;106m\r\n\x1b[0;38;2;76;86;106m-rw-r--r--   1 drzzln wheel       8263 May 12 15:59 \x1b[m\x1b[0;38;2;180;142;173makeyless-repos.json\x1b[0;38;2;76;86;106m\r\n"
 expect:
-  frame_hash: "50502daa23427d9c39fe562d0272abf35a514c3ca4801017e583bcbb5a1bf767"
+  frame_hash: "8fbafb26a41c2aa13dcbf360133e6f92bfb60c56401d02eaf16e1e96d6a5e521"
   # Operator: fill in assertions for the cells / text
   # that should hold after the captured stream replays.
   text_contains:

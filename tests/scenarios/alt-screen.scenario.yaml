@@ -23,7 +23,7 @@ steps:
   - kind: wait_ms
     ms: 200
 expect:
-  frame_hash: "d51e4a02ea8b0a7dc549c8e55a70c245d944dbf3735969824b0b073033164f28"
+  frame_hash: "41542ca05ade23402f28900e9a5a88514a448731b6e5d0010ae0655436401485"
   text_contains:
     - "PRIMARY_BEFORE"
   text_not_contains:

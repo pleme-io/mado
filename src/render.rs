@@ -1597,6 +1597,37 @@ use crate::grid_col::{glyph_columns, GridCol};
 /// the test. Order matches the `add_layer` calls in `ensure_layers`.
 const TEXT_LAYERS: &[&str] = &["terminal", "overlay", "search"];
 
+/// Quantize a cell **height** to a whole device pixel (ceil, floor 1px).
+///
+/// THE row-seam chokepoint (operator report 2026-07-05: thin full-width
+/// horizontal lines between text rows). A fractional cell height in
+/// device pixels (e.g. font 13 × line-height 1.25 × 2× Retina = 32.5px)
+/// gives consecutive rows a non-uniform pixel geometry: every other
+/// row's top edge lands mid-pixel, so row boundaries alternate between
+/// pixel-aligned and half-pixel rasterization — glyph baselines, cursor
+/// blocks, and row background quads all beat against the pixel grid at
+/// a 2-row rhythm, and any downstream resample (macOS scaled-display
+/// compositing, window screenshots at non-integer ratios) turns that
+/// rhythm into visible 1px luminance seams between rows.
+///
+/// Quantizing ONCE, here, at the metric chokepoint makes every row rect
+/// `[row*h, (row+1)*h)` land on identical integer pixel edges — rows
+/// tile exactly by construction, at every font size, with no
+/// per-callsite rounding anywhere in the geometry code. `ceil` (never
+/// `round`/`floor`) so the glyph line box always fits INSIDE the cell —
+/// a rounded-down cell would let the next row's background quad clip
+/// descenders.
+///
+/// Deliberately height-only: `cell_width` must stay the font's exact
+/// fractional advance — per-run glyph buffers advance at the font's
+/// natural metric, so quantizing width would re-introduce the
+/// 2026-05-13 "gap between every character" drift within multi-cell
+/// runs.
+#[inline]
+fn quantize_cell_height_px(h: f32) -> f32 {
+    h.ceil().max(1.0)
+}
+
 impl TerminalRenderer {
     pub fn new(
         terminal: SharedTerminal,
@@ -1613,7 +1644,7 @@ impl TerminalRenderer {
         fg_color: Color,
     ) -> Self {
         let cell_width = font_size * 0.6;
-        let cell_height = font_size * line_height;
+        let cell_height = quantize_cell_height_px(font_size * line_height);
 
         Self {
             terminal,
@@ -2585,7 +2616,7 @@ impl TerminalRenderer {
         let size = size.clamp(6.0, 72.0);
         self.font_size = size;
         self.cell_width = size * 0.6;
-        self.cell_height = size * self.line_height;
+        self.cell_height = quantize_cell_height_px(size * self.line_height);
         self.metrics_measured = false;
         self.last_seqno = 0;
         // P20 — same rationale as set_scale_factor: shape cache keys
@@ -2704,8 +2735,14 @@ impl TerminalRenderer {
             tracing::info!(cell_width = w, "measured cell advance from font");
         }
         if let Some(h) = measured_height {
-            self.cell_height = h;
-            tracing::info!(cell_height = h, "measured cell height from font");
+            // Quantized to a whole device pixel at THE chokepoint — see
+            // `quantize_cell_height_px` (row-seam line artifact, 2026-07-05).
+            self.cell_height = quantize_cell_height_px(h);
+            tracing::info!(
+                cell_height = self.cell_height,
+                measured = h,
+                "measured cell height from font (quantized to device px)"
+            );
         }
     }
 
@@ -5296,6 +5333,40 @@ mod render_invariants {
         (renderer, term)
     }
 
+    /// The row-seam chokepoint (operator report 2026-07-05): cell
+    /// heights are quantized to whole device pixels so consecutive
+    /// row rects tile on identical integer pixel edges. Pure-CPU
+    /// gate — the pixel-level proof lives in `render_gpu_invariants::
+    /// full_bg_rows_tile_without_horizontal_seams`.
+    // Strict float equality is the POINT here: ceil() results are
+    // exactly representable, and "exactly integer" is the invariant.
+    #[allow(clippy::float_cmp)]
+    #[test]
+    fn cell_height_is_quantized_to_whole_device_pixels() {
+        // The chokepoint function: ceil, floored at 1px.
+        assert_eq!(quantize_cell_height_px(16.8), 17.0); // 12 × 1.4
+        assert_eq!(quantize_cell_height_px(19.6), 20.0); // 14 × 1.4
+        assert_eq!(quantize_cell_height_px(32.5), 33.0); // 13 × 1.25 × 2
+        assert_eq!(quantize_cell_height_px(33.6), 34.0); // 24 × 1.4
+        assert_eq!(quantize_cell_height_px(20.0), 20.0); // already whole
+        assert_eq!(quantize_cell_height_px(0.2), 1.0); // floor at 1px
+
+        // Constructor + set_font_size both route through it: the
+        // renderer NEVER carries a fractional cell height, at any
+        // font size (14 × 1.4 = 19.6 unquantized).
+        let (mut r, _t) = harness(20, 5);
+        assert_eq!(r.cell_height.fract(), 0.0, "constructor: {}", r.cell_height);
+        for size in [12.0f32, 13.0, 14.0, 15.5, 24.0] {
+            r.set_font_size(size);
+            assert_eq!(
+                r.cell_height.fract(),
+                0.0,
+                "set_font_size({size}): {}",
+                r.cell_height
+            );
+        }
+    }
+
     /// Snapshot + build the rect instances exactly as the live
     /// renderer would for one frame. `elapsed = 0.0` keeps any
     /// time-driven blinking deterministic. The renderer's own shared
@@ -7376,6 +7447,95 @@ mod render_gpu_invariants {
         );
     }
 
+    /// PROBE + PROOF for the row-seam stripe artifact (operator report
+    /// 2026-07-05: thin full-width horizontal lines between text rows).
+    /// Every cell of the grid gets an explicit truecolor background;
+    /// if consecutive per-row background quads do not tile exactly
+    /// (fractional `cell_height` → per-row y accumulating fractional
+    /// offsets that rasterize to different pixel edges), the window
+    /// clear color bleeds through as 1px full-width seams between rows.
+    // Strict float equality is the POINT of the fract() == 0.0 gate:
+    // the quantized height is exactly integer by construction.
+    #[allow(clippy::float_cmp)]
+    #[test]
+    fn full_bg_rows_tile_without_horizontal_seams() {
+        use garasu::headless::pixel_at;
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let (cols, rows) = (20usize, 12usize);
+        let (mut r, term, mut text) = build_gpu_renderer(&gpu, cols, rows);
+        r.ambience.members.clear();
+
+        // Hide the cursor; paint EVERY cell with bg #8C3C3C.
+        let mut seq = String::from("\x1b[?25l\x1b[H\x1b[2J");
+        for row in 1..=rows {
+            use std::fmt::Write as _;
+            let _ = write!(seq, "\x1b[{row};1H\x1b[48;2;140;60;60m");
+            for _ in 0..cols {
+                seq.push('x');
+            }
+        }
+        seq.push_str("\x1b[0m");
+        t_feed(&term, seq.as_bytes());
+
+        // Parameterized across font sizes whose UN-quantized line box
+        // is fractional in device pixels — the row-seam artifact class
+        // (operator report 2026-07-05). 12.0 × 1.4 = 16.8 and 24.0 ×
+        // 1.4 = 33.6 are the canonical fractional pitches; 14.0 × 1.4
+        // = 19.6 is the build default. `quantize_cell_height_px` must
+        // make every one of them tile exactly.
+        for font_size in [14.0f32, 12.0, 24.0, 13.0] {
+            r.set_font_size(font_size);
+            // First render re-measures the real font metrics
+            // (cell_width / cell_height change on measure) — render to
+            // a scratch target, then size the real target from the
+            // measured cell.
+            let scratch = HeadlessTarget::new(&gpu, 64, 32, SURFACE_FORMAT);
+            let _ = render_one_frame_headless(&gpu, &mut r, &mut text, &scratch);
+            let (cw, chh) = (r.cell_width, r.cell_height);
+            eprintln!("font {font_size}: measured cell {cw} x {chh}");
+            // The chokepoint invariant: the measured cell height is a
+            // whole device pixel, so row N's bottom edge == row N+1's
+            // top edge on the SAME integer pixel boundary, at every
+            // font size (fractional heights rasterize consecutive rows
+            // at alternating half-pixel edges — the seam rhythm).
+            assert_eq!(
+                chh.fract(),
+                0.0,
+                "cell_height must be quantized to integer device px, got {chh}"
+            );
+            let sw = (cw * cols as f32).ceil() as u32;
+            let sh = (chh * rows as f32).ceil() as u32;
+            let target = HeadlessTarget::new(&gpu, sw, sh, SURFACE_FORMAT);
+
+            let px = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+
+            // A pixel "shows the clear color" when it matches #2E3440
+            // (readback BGRA ≈ (64, 52, 46)). Rows are majority-red
+            // (bg quad) with white-ish glyph pixels sprinkled in; a
+            // SEAM row is a pixel row that is majority-clear.
+            let is_clear = |p: [u8; 4]| {
+                let near = |a: u8, b: u8| (i16::from(a) - i16::from(b)).abs() <= 8;
+                near(p[2], 0x2E) && near(p[1], 0x34) && near(p[0], 0x40)
+            };
+            let grid_bottom = (chh * rows as f32).floor() as u32;
+            let mut seams: Vec<(u32, usize)> = Vec::new();
+            for y in 0..grid_bottom.saturating_sub(1).min(sh) {
+                let clear_count =
+                    (0..sw).filter(|&x| is_clear(pixel_at(&px, sw, x, y))).count();
+                if clear_count * 2 > sw as usize {
+                    seams.push((y, clear_count));
+                }
+            }
+            assert!(
+                seams.is_empty(),
+                "row-seam stripes at font {font_size}: {} pixel rows inside \
+                 the painted grid are majority-clear (cell {cw}x{chh}, \
+                 surface {sw}x{sh}): {seams:?}",
+                seams.len(),
+            );
+        }
+    }
+
     /// Feed bytes into a `SharedTerminal` regardless of whether the
     /// helper signatures elsewhere take `&Arc<RwLock<Terminal>>`.
     fn t_feed(term: &SharedTerminal, bytes: &[u8]) {
@@ -7866,7 +8026,9 @@ mod render_gpu_invariants {
         // explicit if/panic so the failure message shows the
         // actual hash for easy copy-paste.
         const GOLDEN: &str =
-            "732229ea36df58b8a00439379233690fa50ee80f6a7fad340317bda945318d03";
+            // Re-recorded 2026-07-06: cell_height quantized to whole
+            // device px (row-seam line-artifact fix) — 19.6 → 20.
+            "cf185c2f1ffd42bac98494b4d2ad78b0d7cf5105e979bfb25f5f47b70b41db36";
         if hex != GOLDEN {
             // First-run / regen path: print the new hash and a
             // hint. Tests fail intentionally; operator pastes
@@ -7919,7 +8081,9 @@ mod render_gpu_invariants {
         let hex = frame_hash(&pixels).to_hex().to_string();
 
         const GOLDEN: &str =
-            "64c2c1c1c04d4c1b42a780f31f1925bf3b127471db27ace42606c7258be271ee";
+            // Re-recorded 2026-07-06: cell_height quantized to whole
+            // device px (row-seam line-artifact fix) — 19.6 → 20.
+            "caa1be028954e6d29c1db119d9831d07c2fe8e88b44a7554c8d66eb9b3766f14";
         if hex != GOLDEN {
             // Recording protocol: with the PENDING sentinel in
             // GOLDEN, the assert message carries the fresh hash to
