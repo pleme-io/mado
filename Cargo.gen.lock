@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "c103de75e7a0b2106c1aff99410fa62d7dbcb0c7bd62da6a06d9c9b19a5fa316",
+  "cargo_lock_sha256": "c51be91f49ee25c0672ff6e6124031c3a18a93d0593235c601b0a733165ae360",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -6172,7 +6172,7 @@
           },
           {
             "name": "pxfm",
-            "package_key": "pxfm-0.1.29",
+            "package_key": "pxfm-0.1.30",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8342,7 +8342,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "pxfm-0.1.29": {
+      "pxfm-0.1.30": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
@@ -19379,7 +19379,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.68": {
+          "mado-0.1.69": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -23636,7 +23636,7 @@
               "system"
             ]
           },
-          "mado-0.1.68": {
+          "mado-0.1.69": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -27303,7 +27303,7 @@
               "system"
             ]
           },
-          "mado-0.1.68": {
+          "mado-0.1.69": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31066,7 +31066,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.68": {
+          "mado-0.1.69": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35277,7 +35277,7 @@
               "system"
             ]
           },
-          "mado-0.1.68": {
+          "mado-0.1.69": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -38898,7 +38898,7 @@
               "system"
             ]
           },
-          "mado-0.1.68": {
+          "mado-0.1.69": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -42644,7 +42644,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.68": {
+    "mado-0.1.69": {
       "edition": "2024",
       "binaries": [
         {
@@ -42987,7 +42987,7 @@
       "edition": "2018",
       "proc_macro": true
     },
-    "pxfm-0.1.29": {
+    "pxfm-0.1.30": {
       "edition": "2024"
     },
     "quantette-0.5.1": {
