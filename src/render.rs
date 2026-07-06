@@ -1395,6 +1395,15 @@ pub struct TerminalRenderer {
     /// is the framebuffer scale and stays 2.0 on a scaled Retina display);
     /// injected via `set_panel_ratio`. See the discoverability design.
     panel_ratio: f32,
+    /// Seam auto-tune master gate (config `display.seam_auto_tune`, default
+    /// on). When on, the render prologue re-discovers `panel_ratio` from the
+    /// live display on every surface-size change; off pins it to 1.0
+    /// (byte-identical to no adjustment).
+    seam_auto_tune: bool,
+    /// Operator override for the discovered downscale ratio (config
+    /// `display.downscale_ratio`). `Some(r)` pins the ratio (skips the probe);
+    /// `None` auto-discovers via `kanchi::probe::display_scaling_ratio`.
+    downscale_ratio_override: Option<f32>,
     /// Physical surface dims of the last rendered frame (0 until the
     /// first frame). Together with `metrics_measured`, this is the
     /// renderer's display truth — see [`Self::measured_grid`].
@@ -1792,6 +1801,10 @@ impl TerminalRenderer {
             // 1.0 = no compositor downscale; overwritten by `set_panel_ratio`
             // once the display's panel-vs-framebuffer ratio is discovered.
             panel_ratio: 1.0,
+            // Seam auto-tune on by default; the display config overrides via
+            // `apply_effects_and_accessibility` → `set_seam_config`.
+            seam_auto_tune: true,
+            downscale_ratio_override: None,
             // 0 until the first frame renders — `measured_grid`
             // reports None until then.
             last_surface_w: 0,
@@ -1845,7 +1858,22 @@ impl TerminalRenderer {
         self.set_motion_unfocused_dim(config.motion.unfocused_dim);
         self.session_picker_anchor = config.tear.session_picker_anchor;
         self.suggestion_shade_in_ms = config.suggestions.shade_in_ms;
+        self.set_seam_config(config.display.seam_auto_tune, config.display.downscale_ratio);
         self.set_effects_config(config.resolved_effects());
+    }
+
+    /// Apply the `display.*` seam-auto-tune config. `auto_tune` off pins the
+    /// panel ratio to 1.0 immediately (no adjustment); `override_ratio` pins a
+    /// specific ratio (skips the probe). The render prologue re-applies the
+    /// discovered ratio on the next surface-size change.
+    pub fn set_seam_config(&mut self, auto_tune: bool, override_ratio: Option<f32>) {
+        self.seam_auto_tune = auto_tune;
+        self.downscale_ratio_override = override_ratio;
+        if !auto_tune {
+            self.set_panel_ratio(1.0);
+        } else if let Some(r) = override_ratio {
+            self.set_panel_ratio(r);
+        }
     }
 
     // set_config_reload_cell / drain_config_reload DELETED at M4
@@ -4726,6 +4754,24 @@ impl RenderCallback for TerminalRenderer {
         // This is the load-bearing fix for "rendered content only fills
         // 1/scale_factor of the window" on Retina displays.
         self.set_scale_factor(ctx.scale_factor as f32);
+
+        // Seam auto-tune: on a surface-size change (startup, resize, or a move
+        // to a differently-scaled display) re-discover the panel-vs-framebuffer
+        // downscale ratio and re-snap the cell grid onto integer PANEL pixels.
+        // Dirty-gated on the size change (last_surface_* still holds the prior
+        // frame's dims here) so the CG probe runs only when the display
+        // geometry can actually have changed, never every frame.
+        // `set_panel_ratio` invalidates metrics on a real change, so the
+        // measure below re-snaps THIS frame. Off / override are resolved in
+        // `set_seam_config`; here Auto-with-no-override runs the probe (a
+        // `None`/failed probe → 1.0, a safe no-op).
+        if self.seam_auto_tune
+            && self.downscale_ratio_override.is_none()
+            && (self.last_surface_w != ctx.width || self.last_surface_h != ctx.height)
+        {
+            let ratio = kanchi::probe::display_scaling_ratio().unwrap_or(1.0);
+            self.set_panel_ratio(ratio);
+        }
 
         // Measure actual font metrics on first render (or after a
         // scale-factor change).

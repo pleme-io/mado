@@ -148,6 +148,8 @@ pub struct MadoConfig {
     /// bare tier strips them.
     #[serde(default)]
     pub feedback: FeedbackConfig,
+    #[serde(default)]
+    pub display: DisplayConfig,
     /// Desktop-notification system (see [`NotificationsConfig`] +
     /// `docs/NOTIFICATIONS.md`). Prescribed default ON: native
     /// UNUserNotificationCenter backend (no Script-Editor popup),
@@ -1064,6 +1066,48 @@ impl MadoLinksConfig {
 /// surface lands now (so operators can opt out from day one), the
 /// render wiring follows once the copy-path signal + per-block exit
 /// status reach the renderer.
+/// `display.*` — how mado adapts its cell grid to the physical display.
+///
+/// On a macOS "scaled" ("More Space") mode (and X11 RandR `--scale`) the OS
+/// compositor DOWNSCALES mado's framebuffer to a smaller physical panel at a
+/// non-integer ratio, which smears text-row boundaries into thin horizontal
+/// seams — an artifact mado can't fix in its own (pixel-perfect) framebuffer.
+/// Seam auto-tune discovers that panel-vs-framebuffer ratio and snaps the cell
+/// height so every row lands on a whole number of PANEL pixels, so the
+/// downscale has no periodic sub-pixel row structure to amplify.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct DisplayConfig {
+    /// Discover the display downscale ratio + snap the cell grid onto integer
+    /// panel pixels (kills the scaled-display row seam). Default on; off pins
+    /// the ratio to 1.0 (byte-identical to no adjustment).
+    pub seam_auto_tune: bool,
+    /// Pin the panel-vs-framebuffer downscale ratio instead of auto-detecting
+    /// (e.g. `0.8405`). `None` = auto-discover. Useful on a platform where the
+    /// probe can't read the geometry, or to force a specific value.
+    pub downscale_ratio: Option<f32>,
+}
+
+impl Default for DisplayConfig {
+    fn default() -> Self {
+        Self {
+            seam_auto_tune: true,
+            downscale_ratio: None,
+        }
+    }
+}
+
+impl DisplayConfig {
+    /// The bare tier — everything-off contract: seam auto-tune disabled.
+    #[must_use]
+    pub fn bare() -> Self {
+        Self {
+            seam_auto_tune: false,
+            downscale_ratio: None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct FeedbackConfig {
@@ -2910,6 +2954,7 @@ impl MadoConfig {
             links: MadoLinksConfig::bare(),
             // bare = no feedback flourishes, no motion easing.
             feedback: FeedbackConfig::bare(),
+            display: DisplayConfig::bare(),
             notifications: NotificationsConfig::bare(),
             motion: MotionConfig::bare(),
         }
@@ -3165,6 +3210,7 @@ fn mado_fleet_base() -> MadoConfig {
         janitors: JanitorsConfig::default(),
         links: MadoLinksConfig::default(),
         feedback: FeedbackConfig::default(),
+        display: DisplayConfig::default(),
         notifications: NotificationsConfig::default(),
         motion: MotionConfig::default(),
     }
@@ -4227,6 +4273,7 @@ mod tests {
             janitors: JanitorsConfig::default(),
             links: MadoLinksConfig::default(),
             feedback: FeedbackConfig::default(),
+        display: DisplayConfig::default(),
             notifications: NotificationsConfig::default(),
             motion: MotionConfig::default(),
         };

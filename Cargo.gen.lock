@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "fbc2b8e3309f8d50c252bbd0e9a8fe6279ef6eac830c9e63067febe95c1f5571",
+  "cargo_lock_sha256": "99a4245f18a7be8181e509d2194e84b550cc6b9437f3187c83c2a81a67ca861f",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -19265,7 +19265,7 @@
               "fallback"
             ]
           },
-          "kanchi-0.1.0-837f57e6c9b52e3d8781a56a46523627765362a0": {
+          "kanchi-0.1.0-ac43f6bea26c8ef612e0848c59bf94cc2180f990": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -19294,6 +19294,31 @@
                 "features": [
                   "NSApplication",
                   "NSScreen"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(target_os = \"macos\")",
+                "tree": "target"
+              },
+              {
+                "name": "objc2_core_foundation",
+                "package_key": "objc2-core-foundation-0.3.2",
+                "kind": "normal",
+                "features": [
+                  "CFArray",
+                  "CFBase"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(target_os = \"macos\")",
+                "tree": "target"
+              },
+              {
+                "name": "objc2_core_graphics",
+                "package_key": "objc2-core-graphics-0.3.2",
+                "kind": "normal",
+                "features": [
+                  "CGDirectDisplay"
                 ],
                 "uses_default_features": true,
                 "optional": false,
@@ -19634,7 +19659,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.0-837f57e6c9b52e3d8781a56a46523627765362a0",
+                "package_key": "kanchi-0.1.0-ac43f6bea26c8ef612e0848c59bf94cc2180f990",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -21096,6 +21121,40 @@
                 "tree": "target"
               },
               {
+                "name": "block2",
+                "package_key": "block2-0.6.2",
+                "kind": "normal",
+                "features": [
+                  "alloc"
+                ],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "dispatch2",
+                "package_key": "dispatch2-0.3.1",
+                "kind": "normal",
+                "features": [
+                  "alloc"
+                ],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "libc",
+                "package_key": "libc-0.2.186",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "objc2",
                 "package_key": "objc2-0.6.4",
                 "kind": "normal",
@@ -21112,25 +21171,56 @@
             "features": [
               "CFArray",
               "CFAttributedString",
+              "CFAvailability",
+              "CFBag",
+              "CFBase",
+              "CFBinaryHeap",
+              "CFBitVector",
+              "CFBundle",
+              "CFByteOrder",
               "CFCGTypes",
               "CFCalendar",
               "CFCharacterSet",
               "CFData",
               "CFDate",
+              "CFDateFormatter",
               "CFDictionary",
               "CFError",
+              "CFFileDescriptor",
               "CFFileSecurity",
               "CFLocale",
               "CFMachPort",
               "CFMessagePort",
+              "CFNotificationCenter",
               "CFNumber",
+              "CFNumberFormatter",
+              "CFPlugIn",
+              "CFPlugInCOM",
+              "CFPreferences",
+              "CFPropertyList",
               "CFRunLoop",
               "CFSet",
+              "CFSocket",
               "CFStream",
               "CFString",
+              "CFStringEncodingExt",
+              "CFStringTokenizer",
+              "CFTimeZone",
+              "CFTree",
               "CFURL",
+              "CFURLAccess",
+              "CFURLEnumerator",
+              "CFUUID",
+              "CFUserNotification",
+              "CFUtilities",
+              "CFXMLNode",
+              "CFXMLParser",
               "alloc",
               "bitflags",
+              "block2",
+              "default",
+              "dispatch2",
+              "libc",
               "objc2",
               "std"
             ]
@@ -21144,6 +21234,40 @@
                 "features": [
                   "std"
                 ],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "block2",
+                "package_key": "block2-0.6.2",
+                "kind": "normal",
+                "features": [
+                  "alloc"
+                ],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "dispatch2",
+                "package_key": "dispatch2-0.3.1",
+                "kind": "normal",
+                "features": [
+                  "alloc"
+                ],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "libc",
+                "package_key": "libc-0.2.186",
+                "kind": "normal",
+                "features": [],
                 "uses_default_features": false,
                 "optional": true,
                 "target": null,
@@ -21170,22 +21294,79 @@
                 "optional": false,
                 "target": null,
                 "tree": "target"
+              },
+              {
+                "name": "objc2_metal",
+                "package_key": "objc2-metal-0.3.2",
+                "kind": "normal",
+                "features": [
+                  "MTLDevice"
+                ],
+                "uses_default_features": false,
+                "optional": true,
+                "target": "cfg(not(target_os = \"watchos\"))",
+                "tree": "target"
               }
             ],
             "build_dependencies": [],
             "features": [
+              "CGAffineTransform",
+              "CGBase",
+              "CGBitmapContext",
               "CGColor",
+              "CGColorConversionInfo",
               "CGColorSpace",
               "CGContext",
+              "CGConvertColorDataWithFormat",
+              "CGDataConsumer",
               "CGDataProvider",
               "CGDirectDisplay",
+              "CGDirectDisplayMetal",
+              "CGDirectPalette",
+              "CGDisplayConfiguration",
+              "CGDisplayFade",
+              "CGDisplayStream",
+              "CGEXRToneMappingGamma",
+              "CGError",
+              "CGEvent",
+              "CGEventSource",
               "CGEventTypes",
               "CGFont",
+              "CGFunction",
+              "CGGeometry",
+              "CGGradient",
+              "CGITUToneMapping",
               "CGImage",
+              "CGLayer",
+              "CGPDFArray",
+              "CGPDFContentStream",
+              "CGPDFContext",
+              "CGPDFDictionary",
+              "CGPDFDocument",
+              "CGPDFObject",
+              "CGPDFOperatorTable",
+              "CGPDFPage",
+              "CGPDFScanner",
+              "CGPDFStream",
+              "CGPDFString",
+              "CGPSConverter",
               "CGPath",
+              "CGPattern",
+              "CGRemoteOperation",
+              "CGRenderingBufferProvider",
+              "CGSession",
+              "CGShading",
+              "CGToneMapping",
+              "CGWindow",
+              "CGWindowLevel",
               "alloc",
               "bitflags",
+              "block2",
+              "default",
+              "dispatch2",
+              "libc",
               "objc2",
+              "objc2-metal",
               "std"
             ]
           },
@@ -21814,6 +21995,54 @@
               "alloc",
               "bitflags",
               "std"
+            ]
+          },
+          "objc2-metal-0.3.2": {
+            "runtime_dependencies": [
+              {
+                "name": "bitflags",
+                "package_key": "bitflags-2.13.0",
+                "kind": "normal",
+                "features": [
+                  "std"
+                ],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "objc2",
+                "package_key": "objc2-0.6.4",
+                "kind": "normal",
+                "features": [
+                  "std"
+                ],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "objc2_foundation",
+                "package_key": "objc2-foundation-0.3.2",
+                "kind": "normal",
+                "features": [
+                  "alloc"
+                ],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": [
+              "MTLDevice",
+              "MTLGPUAddress",
+              "MTLLibrary",
+              "MTLResource",
+              "bitflags"
             ]
           },
           "objc2-quartz-core-0.2.2": {
@@ -23579,7 +23808,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "kanchi-0.1.0-837f57e6c9b52e3d8781a56a46523627765362a0": {
+          "kanchi-0.1.0-ac43f6bea26c8ef612e0848c59bf94cc2180f990": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -23881,7 +24110,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.0-837f57e6c9b52e3d8781a56a46523627765362a0",
+                "package_key": "kanchi-0.1.0-ac43f6bea26c8ef612e0848c59bf94cc2180f990",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27246,7 +27475,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "kanchi-0.1.0-837f57e6c9b52e3d8781a56a46523627765362a0": {
+          "kanchi-0.1.0-ac43f6bea26c8ef612e0848c59bf94cc2180f990": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -27548,7 +27777,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.0-837f57e6c9b52e3d8781a56a46523627765362a0",
+                "package_key": "kanchi-0.1.0-ac43f6bea26c8ef612e0848c59bf94cc2180f990",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30952,7 +31181,7 @@
               "fallback"
             ]
           },
-          "kanchi-0.1.0-837f57e6c9b52e3d8781a56a46523627765362a0": {
+          "kanchi-0.1.0-ac43f6bea26c8ef612e0848c59bf94cc2180f990": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -30981,6 +31210,31 @@
                 "features": [
                   "NSApplication",
                   "NSScreen"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(target_os = \"macos\")",
+                "tree": "target"
+              },
+              {
+                "name": "objc2_core_foundation",
+                "package_key": "objc2-core-foundation-0.3.2",
+                "kind": "normal",
+                "features": [
+                  "CFArray",
+                  "CFBase"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(target_os = \"macos\")",
+                "tree": "target"
+              },
+              {
+                "name": "objc2_core_graphics",
+                "package_key": "objc2-core-graphics-0.3.2",
+                "kind": "normal",
+                "features": [
+                  "CGDirectDisplay"
                 ],
                 "uses_default_features": true,
                 "optional": false,
@@ -31321,7 +31575,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.0-837f57e6c9b52e3d8781a56a46523627765362a0",
+                "package_key": "kanchi-0.1.0-ac43f6bea26c8ef612e0848c59bf94cc2180f990",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32783,6 +33037,40 @@
                 "tree": "target"
               },
               {
+                "name": "block2",
+                "package_key": "block2-0.6.2",
+                "kind": "normal",
+                "features": [
+                  "alloc"
+                ],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "dispatch2",
+                "package_key": "dispatch2-0.3.1",
+                "kind": "normal",
+                "features": [
+                  "alloc"
+                ],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "libc",
+                "package_key": "libc-0.2.186",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "objc2",
                 "package_key": "objc2-0.6.4",
                 "kind": "normal",
@@ -32799,25 +33087,56 @@
             "features": [
               "CFArray",
               "CFAttributedString",
+              "CFAvailability",
+              "CFBag",
+              "CFBase",
+              "CFBinaryHeap",
+              "CFBitVector",
+              "CFBundle",
+              "CFByteOrder",
               "CFCGTypes",
               "CFCalendar",
               "CFCharacterSet",
               "CFData",
               "CFDate",
+              "CFDateFormatter",
               "CFDictionary",
               "CFError",
+              "CFFileDescriptor",
               "CFFileSecurity",
               "CFLocale",
               "CFMachPort",
               "CFMessagePort",
+              "CFNotificationCenter",
               "CFNumber",
+              "CFNumberFormatter",
+              "CFPlugIn",
+              "CFPlugInCOM",
+              "CFPreferences",
+              "CFPropertyList",
               "CFRunLoop",
               "CFSet",
+              "CFSocket",
               "CFStream",
               "CFString",
+              "CFStringEncodingExt",
+              "CFStringTokenizer",
+              "CFTimeZone",
+              "CFTree",
               "CFURL",
+              "CFURLAccess",
+              "CFURLEnumerator",
+              "CFUUID",
+              "CFUserNotification",
+              "CFUtilities",
+              "CFXMLNode",
+              "CFXMLParser",
               "alloc",
               "bitflags",
+              "block2",
+              "default",
+              "dispatch2",
+              "libc",
               "objc2",
               "std"
             ]
@@ -32831,6 +33150,40 @@
                 "features": [
                   "std"
                 ],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "block2",
+                "package_key": "block2-0.6.2",
+                "kind": "normal",
+                "features": [
+                  "alloc"
+                ],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "dispatch2",
+                "package_key": "dispatch2-0.3.1",
+                "kind": "normal",
+                "features": [
+                  "alloc"
+                ],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "libc",
+                "package_key": "libc-0.2.186",
+                "kind": "normal",
+                "features": [],
                 "uses_default_features": false,
                 "optional": true,
                 "target": null,
@@ -32857,22 +33210,79 @@
                 "optional": false,
                 "target": null,
                 "tree": "target"
+              },
+              {
+                "name": "objc2_metal",
+                "package_key": "objc2-metal-0.3.2",
+                "kind": "normal",
+                "features": [
+                  "MTLDevice"
+                ],
+                "uses_default_features": false,
+                "optional": true,
+                "target": "cfg(not(target_os = \"watchos\"))",
+                "tree": "target"
               }
             ],
             "build_dependencies": [],
             "features": [
+              "CGAffineTransform",
+              "CGBase",
+              "CGBitmapContext",
               "CGColor",
+              "CGColorConversionInfo",
               "CGColorSpace",
               "CGContext",
+              "CGConvertColorDataWithFormat",
+              "CGDataConsumer",
               "CGDataProvider",
               "CGDirectDisplay",
+              "CGDirectDisplayMetal",
+              "CGDirectPalette",
+              "CGDisplayConfiguration",
+              "CGDisplayFade",
+              "CGDisplayStream",
+              "CGEXRToneMappingGamma",
+              "CGError",
+              "CGEvent",
+              "CGEventSource",
               "CGEventTypes",
               "CGFont",
+              "CGFunction",
+              "CGGeometry",
+              "CGGradient",
+              "CGITUToneMapping",
               "CGImage",
+              "CGLayer",
+              "CGPDFArray",
+              "CGPDFContentStream",
+              "CGPDFContext",
+              "CGPDFDictionary",
+              "CGPDFDocument",
+              "CGPDFObject",
+              "CGPDFOperatorTable",
+              "CGPDFPage",
+              "CGPDFScanner",
+              "CGPDFStream",
+              "CGPDFString",
+              "CGPSConverter",
               "CGPath",
+              "CGPattern",
+              "CGRemoteOperation",
+              "CGRenderingBufferProvider",
+              "CGSession",
+              "CGShading",
+              "CGToneMapping",
+              "CGWindow",
+              "CGWindowLevel",
               "alloc",
               "bitflags",
+              "block2",
+              "default",
+              "dispatch2",
+              "libc",
               "objc2",
+              "objc2-metal",
               "std"
             ]
           },
@@ -33501,6 +33911,54 @@
               "alloc",
               "bitflags",
               "std"
+            ]
+          },
+          "objc2-metal-0.3.2": {
+            "runtime_dependencies": [
+              {
+                "name": "bitflags",
+                "package_key": "bitflags-2.13.0",
+                "kind": "normal",
+                "features": [
+                  "std"
+                ],
+                "uses_default_features": false,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "objc2",
+                "package_key": "objc2-0.6.4",
+                "kind": "normal",
+                "features": [
+                  "std"
+                ],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "objc2_foundation",
+                "package_key": "objc2-foundation-0.3.2",
+                "kind": "normal",
+                "features": [
+                  "alloc"
+                ],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": [
+              "MTLDevice",
+              "MTLGPUAddress",
+              "MTLLibrary",
+              "MTLResource",
+              "bitflags"
             ]
           },
           "objc2-quartz-core-0.2.2": {
@@ -35220,7 +35678,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "kanchi-0.1.0-837f57e6c9b52e3d8781a56a46523627765362a0": {
+          "kanchi-0.1.0-ac43f6bea26c8ef612e0848c59bf94cc2180f990": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -35522,7 +35980,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.0-837f57e6c9b52e3d8781a56a46523627765362a0",
+                "package_key": "kanchi-0.1.0-ac43f6bea26c8ef612e0848c59bf94cc2180f990",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38841,7 +39299,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "kanchi-0.1.0-837f57e6c9b52e3d8781a56a46523627765362a0": {
+          "kanchi-0.1.0-ac43f6bea26c8ef612e0848c59bf94cc2180f990": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -39143,7 +39601,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.0-837f57e6c9b52e3d8781a56a46523627765362a0",
+                "package_key": "kanchi-0.1.0-ac43f6bea26c8ef612e0848c59bf94cc2180f990",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -42573,7 +43031,7 @@
     "kaname-0.1.1-0570e7ec566b60444307fe5873f80f5beda8fe6c": {
       "edition": "2024"
     },
-    "kanchi-0.1.0-837f57e6c9b52e3d8781a56a46523627765362a0": {
+    "kanchi-0.1.0-ac43f6bea26c8ef612e0848c59bf94cc2180f990": {
       "edition": "2024"
     },
     "kanshou-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": {
@@ -42803,6 +43261,9 @@
       "edition": "2021"
     },
     "objc2-metal-0.2.2": {
+      "edition": "2021"
+    },
+    "objc2-metal-0.3.2": {
       "edition": "2021"
     },
     "objc2-quartz-core-0.2.2": {
@@ -43902,7 +44363,7 @@
     "izumi-config-0.1.1-c78d0a536040b507ff86b52e24d19acb6012c337": "sha256-LDZff6mhn4wS6n0utIh8rBttWljAydbXgqEgkl49B18=",
     "izumi-sources-0.1.1-c78d0a536040b507ff86b52e24d19acb6012c337": "sha256-LDZff6mhn4wS6n0utIh8rBttWljAydbXgqEgkl49B18=",
     "kaname-0.1.1-0570e7ec566b60444307fe5873f80f5beda8fe6c": "sha256-ue2v9p/Eq+z3hmCaL63toSyjpDY6s3H1gGBUFBOX3ek=",
-    "kanchi-0.1.0-837f57e6c9b52e3d8781a56a46523627765362a0": "sha256-kxa3GKByEottN8fR/gQF4KGd/lu54j8DRGbwdrOjFhM=",
+    "kanchi-0.1.0-ac43f6bea26c8ef612e0848c59bf94cc2180f990": "sha256-UMZiw4Hc+VAD6UOXGAiDxEpNwiaOi7OWYonHXsaekIg=",
     "kanshou-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
     "kanshou-derive-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
     "madori-0.1.5-79b33a4811853f1a8153735a69fb58bde894c2d9": "sha256-35DB90eBg+O8Ie2w8R4sfZr4B4NG+FPbUfwePl0x9qw=",
