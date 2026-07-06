@@ -1385,6 +1385,16 @@ pub struct TerminalRenderer {
     /// `1/scale_factor`-sized chunk of the window. Refreshed each
     /// frame from `RenderContext::scale_factor`.
     scale_factor: f32,
+    /// panel_px / framebuffer_px for the display mado is currently on — the
+    /// downscale ratio the OS compositor applies AFTER mado's framebuffer.
+    /// 1.0 when the framebuffer IS the panel grid (integer scale / no
+    /// downscale); < 1.0 on a scaled display (macOS "More Space", X11 RandR
+    /// `--scale`). Consumed by `snap_cell_height_px` so each row lands on a
+    /// whole number of panel pixels and the compositor resample draws no
+    /// inter-row seam. Discovered out-of-band (NOT via `scale_factor`, which
+    /// is the framebuffer scale and stays 2.0 on a scaled Retina display);
+    /// injected via `set_panel_ratio`. See the discoverability design.
+    panel_ratio: f32,
     /// Physical surface dims of the last rendered frame (0 until the
     /// first frame). Together with `metrics_measured`, this is the
     /// renderer's display truth — see [`Self::measured_grid`].
@@ -1628,6 +1638,42 @@ fn quantize_cell_height_px(h: f32) -> f32 {
     h.ceil().max(1.0)
 }
 
+/// Snap a cell **height** so each row lands on an integer count of *panel*
+/// pixels — the seam chokepoint's scale-aware form.
+///
+/// `quantize_cell_height_px` above snaps to whole *framebuffer* pixels, which
+/// kills the seam only when the framebuffer IS the panel grid (integer scale:
+/// 1.0 / 2.0 Retina / Wayland-viewporter). But on a **scaled** display the OS
+/// compositor downscales mado's framebuffer to a smaller physical panel at a
+/// NON-integer ratio (measured live 2026-07-06: macOS "More Space" renders a
+/// 4112×2658 framebuffer, downscaled to a 3456×2234 panel, ratio ≈ 0.84).
+/// Integer *framebuffer* rows then map to *fractional* panel rows, and the
+/// downscale filter turns that periodic sub-pixel row structure back into
+/// visible 1px seams — the residual the framebuffer-only fix can't reach.
+///
+/// `panel_ratio` = panel_px / framebuffer_px (discovered per display; 1.0 when
+/// there is no downscale). At ratio 1.0 this is byte-identical to
+/// `quantize_cell_height_px` (the integer-scale path is untouched). At ratio
+/// < 1.0 we pick the framebuffer cell height whose panel projection is a whole
+/// number of panel pixels — `k = round(h · ratio)` panel px per row, then the
+/// framebuffer height `k / ratio` that lands on it — so every row boundary
+/// `N · (k/ratio)` framebuffer px → `N · k` panel px EXACTLY, identical
+/// resample phase every row, and the periodic luminance beat is gone.
+///
+/// Height-only, same as `quantize_cell_height_px`: `cell_width` keeps the
+/// font's fractional advance (the 2026-05-13 anti-gap rationale).
+#[inline]
+fn snap_cell_height_px(h: f32, panel_ratio: f32) -> f32 {
+    if (panel_ratio - 1.0).abs() < 1.0e-4 {
+        // Integer scale (or downscale disabled): framebuffer px == panel px.
+        quantize_cell_height_px(h)
+    } else {
+        // Scaled display: snap to a whole number of PANEL pixels.
+        let panel_px = (h * panel_ratio).round().max(1.0);
+        (panel_px / panel_ratio).max(1.0)
+    }
+}
+
 impl TerminalRenderer {
     pub fn new(
         terminal: SharedTerminal,
@@ -1644,7 +1690,10 @@ impl TerminalRenderer {
         fg_color: Color,
     ) -> Self {
         let cell_width = font_size * 0.6;
-        let cell_height = quantize_cell_height_px(font_size * line_height);
+        // panel_ratio starts at 1.0 (no discovered downscale yet) → identical
+        // to the framebuffer-only quantize; re-snapped once the ratio is
+        // discovered (set_panel_ratio) and metrics are re-measured.
+        let cell_height = snap_cell_height_px(font_size * line_height, 1.0);
 
         Self {
             terminal,
@@ -1740,6 +1789,9 @@ impl TerminalRenderer {
             // 1.0 = no scaling; overwritten on the first render frame
             // by `set_scale_factor(ctx.scale_factor)`.
             scale_factor: 1.0,
+            // 1.0 = no compositor downscale; overwritten by `set_panel_ratio`
+            // once the display's panel-vs-framebuffer ratio is discovered.
+            panel_ratio: 1.0,
             // 0 until the first frame renders — `measured_grid`
             // reports None until then.
             last_surface_w: 0,
@@ -1857,6 +1909,29 @@ impl TerminalRenderer {
             // emission rebuilds at the new resolution.
             self.box_draw_templates.borrow_mut().clear();
         }
+    }
+
+    /// Update the panel-vs-framebuffer downscale ratio (panel_px /
+    /// framebuffer_px) for the display mado is currently on. Like
+    /// `set_scale_factor`, invalidates the cached cell metrics on a real
+    /// change so the next render re-measures + re-snaps `cell_height` onto
+    /// the panel grid via `snap_cell_height_px`. Discovered out-of-band
+    /// (the compositor downscale is not reflected in `scale_factor`); fed
+    /// from the discoverability layer at startup + on display change.
+    pub fn set_panel_ratio(&mut self, ratio: f32) {
+        let ratio = ratio.clamp(0.25, 1.0);
+        if (self.panel_ratio - ratio).abs() > f32::EPSILON {
+            self.panel_ratio = ratio;
+            self.metrics_measured = false;
+            self.shape_cache.borrow_mut().clear();
+            self.box_draw_templates.borrow_mut().clear();
+        }
+    }
+
+    /// Current panel-vs-framebuffer downscale ratio (1.0 = no downscale).
+    #[inline]
+    pub fn panel_ratio(&self) -> f32 {
+        self.panel_ratio
     }
 
     /// Physical-pixel padding. The stored `padding` is logical
@@ -2616,7 +2691,7 @@ impl TerminalRenderer {
         let size = size.clamp(6.0, 72.0);
         self.font_size = size;
         self.cell_width = size * 0.6;
-        self.cell_height = quantize_cell_height_px(size * self.line_height);
+        self.cell_height = snap_cell_height_px(size * self.line_height, self.panel_ratio);
         self.metrics_measured = false;
         self.last_seqno = 0;
         // P20 — same rationale as set_scale_factor: shape cache keys
@@ -2735,13 +2810,16 @@ impl TerminalRenderer {
             tracing::info!(cell_width = w, "measured cell advance from font");
         }
         if let Some(h) = measured_height {
-            // Quantized to a whole device pixel at THE chokepoint — see
-            // `quantize_cell_height_px` (row-seam line artifact, 2026-07-05).
-            self.cell_height = quantize_cell_height_px(h);
+            // Snapped so each row lands on a whole number of PANEL pixels —
+            // see `snap_cell_height_px` (row-seam line artifact, 2026-07-05;
+            // scaled-display residual, 2026-07-06). At panel_ratio 1.0 this is
+            // the original whole-device-pixel quantize.
+            self.cell_height = snap_cell_height_px(h, self.panel_ratio);
             tracing::info!(
                 cell_height = self.cell_height,
                 measured = h,
-                "measured cell height from font (quantized to device px)"
+                panel_ratio = self.panel_ratio,
+                "measured cell height from font (snapped to panel px)"
             );
         }
     }
@@ -5364,6 +5442,46 @@ mod render_invariants {
                 "set_font_size({size}): {}",
                 r.cell_height
             );
+        }
+    }
+
+    /// The SCALED-DISPLAY residual (operator report 2026-07-06): on a
+    /// non-integer compositor downscale, whole *framebuffer* pixels are
+    /// *fractional* panel pixels, so the framebuffer-only quantize leaves a
+    /// seam. `snap_cell_height_px(h, ratio<1)` must instead make each row a
+    /// whole number of PANEL pixels: `snap(h,r) * r ∈ ℤ`. The current GPU
+    /// seam suite never exercises a fractional effective scale (every ctor
+    /// pins `scale_factor: 1.0`); this closes that gap at the geometry level.
+    #[allow(clippy::float_cmp)]
+    #[test]
+    fn cell_height_snaps_to_whole_panel_pixels_on_scaled_display() {
+        // ratio 1.0 is byte-identical to the framebuffer-only quantize — the
+        // integer-scale path (1.0 / 2.0 Retina / Wayland viewporter) is untouched.
+        for h in [16.8f32, 19.6, 32.5, 33.6, 20.0, 0.2] {
+            assert_eq!(
+                snap_cell_height_px(h, 1.0),
+                quantize_cell_height_px(h),
+                "ratio 1.0 must equal the framebuffer quantize for h={h}"
+            );
+        }
+
+        // macOS "More Space" measured live: 4112→3456 framebuffer→panel.
+        let macos_ratio = 3456.0f32 / 4112.0; // ≈ 0.8405
+        // Wayland/X11 fractional-downscale exemplar (1.5× effective).
+        let frac_ratio = 1.0f32 / 1.5; // ≈ 0.6667
+        for ratio in [macos_ratio, frac_ratio, 0.75, 0.84, 0.9] {
+            for base in [16.8f32, 19.6, 32.5, 33.6, 40.0, 25.0] {
+                let snapped = snap_cell_height_px(base, ratio);
+                let panel_px = snapped * ratio;
+                // Each row projects onto a whole number of panel pixels →
+                // every boundary N·snapped fb == N·round(panel_px) panel px,
+                // identical resample phase every row, no periodic seam.
+                assert!(
+                    (panel_px - panel_px.round()).abs() < 1.0e-3,
+                    "ratio {ratio}, base {base}: panel projection {panel_px} not whole",
+                );
+                assert!(snapped >= 1.0, "cell height floored at 1px");
+            }
         }
     }
 
