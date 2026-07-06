@@ -612,7 +612,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.52.0";
+            packageId = "windows-sys 0.60.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Storage_FileSystem" "Win32_System_DataExchange" "Win32_System_Memory" "Win32_System_Ole" "Win32_UI_Shell" ];
           }
@@ -3094,7 +3094,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.59.0";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_UI_Shell" "Win32_Foundation" "Win32_Globalization" "Win32_System_Com" ];
           }
@@ -3528,7 +3528,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.52.0";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_System_Diagnostics_Debug" ];
           }
@@ -5610,7 +5610,7 @@ rec {
           }
           {
             name = "windows-core";
-            packageId = "windows-core 0.58.0";
+            packageId = "windows-core 0.62.2";
             target = { target, features }: ("windows" == target."os" or null);
           }
         ];
@@ -6761,8 +6761,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/kanchi";
-          rev = "837f57e6c9b52e3d8781a56a46523627765362a0";
-          sha256 = "04qnlfrpdw368h1kzqmrbgz9v8g00l2gxlf76xnqn4kjl0cbf5lk";
+          rev = "ac43f6bea26c8ef612e0848c59bf94cc2180f990";
+          sha256 = "124hkv35xiw9cabb72wf4v14sjn4hc41i5s3x41m1yfwh71n5ijh";
         };
         dependencies = [
           {
@@ -6779,6 +6779,18 @@ rec {
             packageId = "objc2-app-kit 0.3.2";
             target = { target, features }: ("macos" == target."os" or null);
             features = [ "NSScreen" "NSApplication" ];
+          }
+          {
+            name = "objc2-core-foundation";
+            packageId = "objc2-core-foundation";
+            target = { target, features }: ("macos" == target."os" or null);
+            features = [ "CFBase" "CFArray" ];
+          }
+          {
+            name = "objc2-core-graphics";
+            packageId = "objc2-core-graphics";
+            target = { target, features }: ("macos" == target."os" or null);
+            features = [ "CGDirectDisplay" ];
           }
           {
             name = "objc2-foundation";
@@ -7353,7 +7365,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.70";
+        version = "0.1.71";
         edition = "2024";
         crateBin = [
           {
@@ -8557,7 +8569,7 @@ rec {
         dependencies = [
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.59.0";
+            packageId = "windows-sys 0.61.2";
             rename = "windows";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_System_Console" "Win32_Storage_FileSystem" "Win32_Security" ];
@@ -10159,11 +10171,24 @@ rec {
             features = [ "std" ];
           }
           {
+            name = "block2";
+            packageId = "block2 0.6.2";
+            optional = true;
+            usesDefaultFeatures = false;
+            features = [ "alloc" ];
+          }
+          {
             name = "dispatch2";
             packageId = "dispatch2";
             optional = true;
             usesDefaultFeatures = false;
             features = [ "alloc" ];
+          }
+          {
+            name = "libc";
+            packageId = "libc";
+            optional = true;
+            usesDefaultFeatures = false;
           }
           {
             name = "objc2";
@@ -10197,7 +10222,7 @@ rec {
           "objc2" = [ "dep:objc2" "dispatch2?/objc2" ];
           "std" = [ "alloc" ];
         };
-        resolvedDefaultFeatures = [ "CFArray" "CFAttributedString" "CFCGTypes" "CFCalendar" "CFCharacterSet" "CFData" "CFDate" "CFDictionary" "CFError" "CFFileSecurity" "CFLocale" "CFMachPort" "CFMessagePort" "CFNumber" "CFRunLoop" "CFSet" "CFStream" "CFString" "CFURL" "alloc" "bitflags" "objc2" "std" ];
+        resolvedDefaultFeatures = [ "CFArray" "CFAttributedString" "CFAvailability" "CFBag" "CFBase" "CFBinaryHeap" "CFBitVector" "CFBundle" "CFByteOrder" "CFCGTypes" "CFCalendar" "CFCharacterSet" "CFData" "CFDate" "CFDateFormatter" "CFDictionary" "CFError" "CFFileDescriptor" "CFFileSecurity" "CFLocale" "CFMachPort" "CFMessagePort" "CFNotificationCenter" "CFNumber" "CFNumberFormatter" "CFPlugIn" "CFPlugInCOM" "CFPreferences" "CFPropertyList" "CFRunLoop" "CFSet" "CFSocket" "CFStream" "CFString" "CFStringEncodingExt" "CFStringTokenizer" "CFTimeZone" "CFTree" "CFURL" "CFURLAccess" "CFURLEnumerator" "CFUUID" "CFUserNotification" "CFUtilities" "CFXMLNode" "CFXMLParser" "alloc" "bitflags" "block2" "default" "dispatch2" "libc" "objc2" "std" ];
       };
       "objc2-core-graphics" = rec {
         crateName = "objc2-core-graphics";
@@ -10214,11 +10239,24 @@ rec {
             features = [ "std" ];
           }
           {
+            name = "block2";
+            packageId = "block2 0.6.2";
+            optional = true;
+            usesDefaultFeatures = false;
+            features = [ "alloc" ];
+          }
+          {
             name = "dispatch2";
             packageId = "dispatch2";
             optional = true;
             usesDefaultFeatures = false;
             features = [ "alloc" ];
+          }
+          {
+            name = "libc";
+            packageId = "libc";
+            optional = true;
+            usesDefaultFeatures = false;
           }
           {
             name = "objc2";
@@ -10239,6 +10277,14 @@ rec {
             usesDefaultFeatures = false;
             target = { target, features }: (!("watchos" == target."os" or null));
             features = [ "IOSurfaceRef" ];
+          }
+          {
+            name = "objc2-metal";
+            packageId = "objc2-metal 0.3.2";
+            optional = true;
+            usesDefaultFeatures = false;
+            target = { target, features }: (!("watchos" == target."os" or null));
+            features = [ "MTLDevice" ];
           }
         ];
         features = {
@@ -10293,7 +10339,7 @@ rec {
           "objc2-metal" = [ "dep:objc2-metal" ];
           "std" = [ "alloc" ];
         };
-        resolvedDefaultFeatures = [ "CGColor" "CGColorSpace" "CGContext" "CGDataProvider" "CGDirectDisplay" "CGEventTypes" "CGFont" "CGImage" "CGPath" "alloc" "bitflags" "objc2" "std" ];
+        resolvedDefaultFeatures = [ "CGAffineTransform" "CGBase" "CGBitmapContext" "CGColor" "CGColorConversionInfo" "CGColorSpace" "CGContext" "CGConvertColorDataWithFormat" "CGDataConsumer" "CGDataProvider" "CGDirectDisplay" "CGDirectDisplayMetal" "CGDirectPalette" "CGDisplayConfiguration" "CGDisplayFade" "CGDisplayStream" "CGEXRToneMappingGamma" "CGError" "CGEvent" "CGEventSource" "CGEventTypes" "CGFont" "CGFunction" "CGGeometry" "CGGradient" "CGITUToneMapping" "CGImage" "CGLayer" "CGPDFArray" "CGPDFContentStream" "CGPDFContext" "CGPDFDictionary" "CGPDFDocument" "CGPDFObject" "CGPDFOperatorTable" "CGPDFPage" "CGPDFScanner" "CGPDFStream" "CGPDFString" "CGPSConverter" "CGPath" "CGPattern" "CGRemoteOperation" "CGRenderingBufferProvider" "CGSession" "CGShading" "CGToneMapping" "CGWindow" "CGWindowLevel" "alloc" "bitflags" "block2" "default" "dispatch2" "libc" "objc2" "objc2-metal" "std" ];
       };
       "objc2-core-image 0.2.2" = rec {
         crateName = "objc2-core-image";
@@ -10320,7 +10366,7 @@ rec {
           }
           {
             name = "objc2-metal";
-            packageId = "objc2-metal";
+            packageId = "objc2-metal 0.2.2";
             optional = true;
             usesDefaultFeatures = false;
           }
@@ -10958,7 +11004,7 @@ rec {
         };
         resolvedDefaultFeatures = [ "alloc" "std" ];
       };
-      "objc2-metal" = rec {
+      "objc2-metal 0.2.2" = rec {
         crateName = "objc2-metal";
         version = "0.2.2";
         edition = "2021";
@@ -11045,6 +11091,124 @@ rec {
         };
         resolvedDefaultFeatures = [ "MTLCommandQueue" "MTLDevice" "MTLResource" "MTLTexture" "alloc" "bitflags" "std" ];
       };
+      "objc2-metal 0.3.2" = rec {
+        crateName = "objc2-metal";
+        version = "0.3.2";
+        edition = "2021";
+        sha256 = "1527q158b8kagmdzlmvg782s5m7h15j62x1d2ps0ml0hd9vmy4m0";
+        libName = "objc2_metal";
+        dependencies = [
+          {
+            name = "bitflags";
+            packageId = "bitflags 2.13.0";
+            optional = true;
+            usesDefaultFeatures = false;
+            features = [ "std" ];
+          }
+          {
+            name = "objc2";
+            packageId = "objc2 0.6.4";
+            usesDefaultFeatures = false;
+            features = [ "std" ];
+          }
+          {
+            name = "objc2-foundation";
+            packageId = "objc2-foundation 0.3.2";
+            usesDefaultFeatures = false;
+            features = [ "alloc" ];
+          }
+        ];
+        features = {
+          "MTL4AccelerationStructure" = [ "objc2-foundation/NSArray" "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "MTL4Archive" = [ "objc2-foundation/NSError" "objc2-foundation/NSString" ];
+          "MTL4ArgumentTable" = [ "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "MTL4BinaryFunction" = [ "objc2-foundation/NSString" ];
+          "MTL4BinaryFunctionDescriptor" = [ "bitflags" "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "MTL4CommandAllocator" = [ "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "MTL4CommandBuffer" = [ "objc2-foundation/NSObject" "objc2-foundation/NSRange" "objc2-foundation/NSString" ];
+          "MTL4CommandEncoder" = [ "bitflags" "objc2-foundation/NSString" ];
+          "MTL4CommandQueue" = [ "objc2-foundation/NSError" "objc2-foundation/NSObject" "objc2-foundation/NSRange" "objc2-foundation/NSString" ];
+          "MTL4CommitFeedback" = [ "objc2-foundation/NSError" ];
+          "MTL4Compiler" = [ "objc2-foundation/NSArray" "objc2-foundation/NSError" "objc2-foundation/NSObject" "objc2-foundation/NSString" "objc2-foundation/NSURL" ];
+          "MTL4ComputeCommandEncoder" = [ "objc2-foundation/NSRange" ];
+          "MTL4ComputePipeline" = [ "objc2-foundation/NSObject" ];
+          "MTL4Counters" = [ "objc2-foundation/NSData" "objc2-foundation/NSObject" "objc2-foundation/NSRange" "objc2-foundation/NSString" ];
+          "MTL4FunctionDescriptor" = [ "objc2-foundation/NSObject" ];
+          "MTL4LibraryDescriptor" = [ "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "MTL4LibraryFunctionDescriptor" = [ "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "MTL4LinkingDescriptor" = [ "objc2-foundation/NSArray" "objc2-foundation/NSDictionary" "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "MTL4MachineLearningPipeline" = [ "objc2-foundation/NSArray" "objc2-foundation/NSObject" "objc2-foundation/NSRange" "objc2-foundation/NSString" ];
+          "MTL4MeshRenderPipeline" = [ "objc2-foundation/NSObject" ];
+          "MTL4PipelineDataSetSerializer" = [ "bitflags" "objc2-foundation/NSData" "objc2-foundation/NSError" "objc2-foundation/NSObject" "objc2-foundation/NSURL" ];
+          "MTL4PipelineState" = [ "bitflags" "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "MTL4RenderCommandEncoder" = [ "bitflags" "objc2-foundation/NSRange" ];
+          "MTL4RenderPass" = [ "objc2-foundation/NSObject" ];
+          "MTL4RenderPipeline" = [ "objc2-foundation/NSArray" "objc2-foundation/NSObject" ];
+          "MTL4SpecializedFunctionDescriptor" = [ "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "MTL4StitchedFunctionDescriptor" = [ "objc2-foundation/NSArray" "objc2-foundation/NSObject" ];
+          "MTL4TileRenderPipeline" = [ "objc2-foundation/NSObject" ];
+          "MTLAccelerationStructure" = [ "bitflags" "objc2-foundation/NSArray" "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "MTLAccelerationStructureCommandEncoder" = [ "objc2-foundation/NSObject" "MTLAccelerationStructure" ];
+          "MTLArgument" = [ "objc2-foundation/NSArray" "objc2-foundation/NSString" "MTLDataType" ];
+          "MTLArgumentEncoder" = [ "objc2-foundation/NSRange" "objc2-foundation/NSString" ];
+          "MTLBinaryArchive" = [ "objc2-foundation/NSError" "objc2-foundation/NSObject" "objc2-foundation/NSString" "objc2-foundation/NSURL" ];
+          "MTLBlitCommandEncoder" = [ "bitflags" "objc2-foundation/NSRange" ];
+          "MTLBlitPass" = [ "objc2-foundation/NSObject" ];
+          "MTLBuffer" = [ "objc2-foundation/NSError" "objc2-foundation/NSRange" "objc2-foundation/NSString" ];
+          "MTLCaptureManager" = [ "objc2-foundation/NSError" "objc2-foundation/NSObject" "objc2-foundation/NSString" "objc2-foundation/NSURL" ];
+          "MTLCaptureScope" = [ "objc2-foundation/NSString" ];
+          "MTLCommandBuffer" = [ "bitflags" "objc2-foundation/NSArray" "objc2-foundation/NSEnumerator" "objc2-foundation/NSError" "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "MTLCommandEncoder" = [ "bitflags" "objc2-foundation/NSString" ];
+          "MTLCommandQueue" = [ "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "MTLComputeCommandEncoder" = [ "objc2-foundation/NSRange" ];
+          "MTLComputePass" = [ "objc2-foundation/NSObject" ];
+          "MTLComputePipeline" = [ "objc2-foundation/NSArray" "objc2-foundation/NSError" "objc2-foundation/NSObject" "objc2-foundation/NSString" "MTLAllocation" ];
+          "MTLCounters" = [ "objc2-foundation/NSArray" "objc2-foundation/NSData" "objc2-foundation/NSError" "objc2-foundation/NSObject" "objc2-foundation/NSRange" "objc2-foundation/NSString" ];
+          "MTLDepthStencil" = [ "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "MTLDevice" = [ "bitflags" "objc2-foundation/NSArray" "objc2-foundation/NSBundle" "objc2-foundation/NSError" "objc2-foundation/NSObject" "objc2-foundation/NSString" "objc2-foundation/NSURL" "MTLLibrary" "MTLResource" "MTLGPUAddress" ];
+          "MTLDeviceCertification" = [ "objc2-foundation/NSNotification" "objc2-foundation/NSProcessInfo" "objc2-foundation/NSString" ];
+          "MTLDynamicLibrary" = [ "objc2-foundation/NSError" "objc2-foundation/NSString" "objc2-foundation/NSURL" ];
+          "MTLEvent" = [ "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "MTLFence" = [ "objc2-foundation/NSString" ];
+          "MTLFunctionConstantValues" = [ "objc2-foundation/NSObject" "objc2-foundation/NSRange" "objc2-foundation/NSString" ];
+          "MTLFunctionDescriptor" = [ "bitflags" "objc2-foundation/NSArray" "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "MTLFunctionHandle" = [ "objc2-foundation/NSString" ];
+          "MTLFunctionLog" = [ "objc2-foundation/NSEnumerator" "objc2-foundation/NSString" "objc2-foundation/NSURL" ];
+          "MTLFunctionStitching" = [ "bitflags" "objc2-foundation/NSArray" "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "MTLHeap" = [ "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "MTLIOCommandBuffer" = [ "objc2-foundation/NSError" "objc2-foundation/NSString" ];
+          "MTLIOCommandQueue" = [ "objc2-foundation/NSError" "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "MTLIndirectCommandBuffer" = [ "bitflags" "objc2-foundation/NSObject" "objc2-foundation/NSRange" ];
+          "MTLIntersectionFunctionTable" = [ "bitflags" "objc2-foundation/NSObject" "objc2-foundation/NSRange" ];
+          "MTLLibrary" = [ "objc2-foundation/NSArray" "objc2-foundation/NSDictionary" "objc2-foundation/NSError" "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "MTLLinkedFunctions" = [ "objc2-foundation/NSArray" "objc2-foundation/NSDictionary" "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "MTLLogState" = [ "objc2-foundation/NSError" "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "MTLPipeline" = [ "objc2-foundation/NSObject" ];
+          "MTLRasterizationRate" = [ "objc2-foundation/NSObject" "objc2-foundation/NSString" "objc2-foundation/NSValue" ];
+          "MTLRenderCommandEncoder" = [ "bitflags" "objc2-foundation/NSRange" ];
+          "MTLRenderPass" = [ "bitflags" "objc2-foundation/NSObject" ];
+          "MTLRenderPipeline" = [ "bitflags" "objc2-foundation/NSArray" "objc2-foundation/NSError" "objc2-foundation/NSObject" "objc2-foundation/NSString" "MTLAllocation" ];
+          "MTLResidencySet" = [ "objc2-foundation/NSArray" "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "MTLResource" = [ "bitflags" "objc2-foundation/NSString" ];
+          "MTLResourceStatePass" = [ "objc2-foundation/NSObject" ];
+          "MTLResourceViewPool" = [ "objc2-foundation/NSObject" "objc2-foundation/NSRange" "objc2-foundation/NSString" ];
+          "MTLSampler" = [ "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "MTLStageInputOutputDescriptor" = [ "objc2-foundation/NSObject" "MTLArgument" ];
+          "MTLTensor" = [ "bitflags" "objc2-foundation/NSError" "objc2-foundation/NSObject" "objc2-foundation/NSString" ];
+          "MTLTexture" = [ "bitflags" "objc2-foundation/NSObject" "objc2-foundation/NSRange" "objc2-foundation/NSString" ];
+          "MTLVertexDescriptor" = [ "objc2-foundation/NSObject" ];
+          "MTLVisibleFunctionTable" = [ "objc2-foundation/NSObject" "objc2-foundation/NSRange" ];
+          "bitflags" = [ "dep:bitflags" ];
+          "block2" = [ "dep:block2" ];
+          "default" = [ "std" "MTL4AccelerationStructure" "MTL4Archive" "MTL4ArgumentTable" "MTL4BinaryFunction" "MTL4BinaryFunctionDescriptor" "MTL4BufferRange" "MTL4CommandAllocator" "MTL4CommandBuffer" "MTL4CommandEncoder" "MTL4CommandQueue" "MTL4CommitFeedback" "MTL4Compiler" "MTL4CompilerTask" "MTL4ComputeCommandEncoder" "MTL4ComputePipeline" "MTL4Counters" "MTL4FunctionDescriptor" "MTL4LibraryDescriptor" "MTL4LibraryFunctionDescriptor" "MTL4LinkingDescriptor" "MTL4MachineLearningCommandEncoder" "MTL4MachineLearningPipeline" "MTL4MeshRenderPipeline" "MTL4PipelineDataSetSerializer" "MTL4PipelineState" "MTL4RenderCommandEncoder" "MTL4RenderPass" "MTL4RenderPipeline" "MTL4SpecializedFunctionDescriptor" "MTL4StitchedFunctionDescriptor" "MTL4TileRenderPipeline" "MTLAccelerationStructure" "MTLAccelerationStructureCommandEncoder" "MTLAccelerationStructureTypes" "MTLAllocation" "MTLArgument" "MTLArgumentEncoder" "MTLBinaryArchive" "MTLBlitCommandEncoder" "MTLBlitPass" "MTLBuffer" "MTLCaptureManager" "MTLCaptureScope" "MTLCommandBuffer" "MTLCommandEncoder" "MTLCommandQueue" "MTLComputeCommandEncoder" "MTLComputePass" "MTLComputePipeline" "MTLCounters" "MTLDataType" "MTLDefines" "MTLDepthStencil" "MTLDevice" "MTLDeviceCertification" "MTLDrawable" "MTLDynamicLibrary" "MTLEvent" "MTLFence" "MTLFunctionConstantValues" "MTLFunctionDescriptor" "MTLFunctionHandle" "MTLFunctionLog" "MTLFunctionStitching" "MTLGPUAddress" "MTLHeap" "MTLIOCommandBuffer" "MTLIOCommandQueue" "MTLIOCompressor" "MTLIndirectCommandBuffer" "MTLIndirectCommandEncoder" "MTLIntersectionFunctionTable" "MTLLibrary" "MTLLinkedFunctions" "MTLLogState" "MTLParallelRenderCommandEncoder" "MTLPipeline" "MTLPixelFormat" "MTLRasterizationRate" "MTLRenderCommandEncoder" "MTLRenderPass" "MTLRenderPipeline" "MTLResidencySet" "MTLResource" "MTLResourceStateCommandEncoder" "MTLResourceStatePass" "MTLResourceViewPool" "MTLSampler" "MTLStageInputOutputDescriptor" "MTLTensor" "MTLTexture" "MTLTextureViewPool" "MTLTypes" "MTLVertexDescriptor" "MTLVisibleFunctionTable" "bitflags" "block2" "dispatch2" "objc2-core-foundation" ];
+          "dispatch2" = [ "dep:dispatch2" ];
+          "objc2-core-foundation" = [ "dep:objc2-core-foundation" ];
+          "objc2-io-surface" = [ "dep:objc2-io-surface" ];
+          "std" = [ "alloc" ];
+          "unstable-private" = [ "objc2-foundation/NSString" "objc2-foundation/NSError" ];
+        };
+        resolvedDefaultFeatures = [ "MTLDevice" "MTLGPUAddress" "MTLLibrary" "MTLResource" "bitflags" ];
+      };
       "objc2-quartz-core 0.2.2" = rec {
         crateName = "objc2-quartz-core";
         version = "0.2.2";
@@ -11076,7 +11240,7 @@ rec {
           }
           {
             name = "objc2-metal";
-            packageId = "objc2-metal";
+            packageId = "objc2-metal 0.2.2";
             optional = true;
             usesDefaultFeatures = false;
           }
@@ -15132,7 +15296,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.52.0";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Networking_WinSock" ];
           }
@@ -19608,7 +19772,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.52.0";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Storage_FileSystem" "Win32_Foundation" ];
           }
@@ -23797,7 +23961,7 @@ rec {
         dependencies = [
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.52.0";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Storage_FileSystem" "Win32_System_Console" "Win32_System_SystemInformation" ];
           }
@@ -25319,7 +25483,7 @@ rec {
           "default" = [ "std" ];
           "std" = [ "windows-result/std" "windows-strings/std" ];
         };
-        resolvedDefaultFeatures = [ "std" ];
+        resolvedDefaultFeatures = [ "default" "std" ];
       };
       "windows-future" = rec {
         crateName = "windows-future";
@@ -26113,7 +26277,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Win32" "Win32_Devices" "Win32_Devices_HumanInterfaceDevice" "Win32_Foundation" "Win32_Globalization" "Win32_Graphics" "Win32_Graphics_Dwm" "Win32_Graphics_Gdi" "Win32_Media" "Win32_Networking" "Win32_Networking_WinSock" "Win32_Security" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Com_StructuredStorage" "Win32_System_Console" "Win32_System_DataExchange" "Win32_System_Diagnostics" "Win32_System_Diagnostics_Debug" "Win32_System_LibraryLoader" "Win32_System_Memory" "Win32_System_Ole" "Win32_System_SystemInformation" "Win32_System_SystemServices" "Win32_System_Threading" "Win32_System_WindowsProgramming" "Win32_UI" "Win32_UI_Accessibility" "Win32_UI_Controls" "Win32_UI_HiDpi" "Win32_UI_Input" "Win32_UI_Input_Ime" "Win32_UI_Input_KeyboardAndMouse" "Win32_UI_Input_Pointer" "Win32_UI_Input_Touch" "Win32_UI_Shell" "Win32_UI_TextServices" "Win32_UI_WindowsAndMessaging" "default" ];
+        resolvedDefaultFeatures = [ "Win32" "Win32_Devices" "Win32_Devices_HumanInterfaceDevice" "Win32_Foundation" "Win32_Globalization" "Win32_Graphics" "Win32_Graphics_Dwm" "Win32_Graphics_Gdi" "Win32_Media" "Win32_Security" "Win32_System" "Win32_System_Com" "Win32_System_Com_StructuredStorage" "Win32_System_LibraryLoader" "Win32_System_Ole" "Win32_System_SystemInformation" "Win32_System_SystemServices" "Win32_System_Threading" "Win32_System_WindowsProgramming" "Win32_UI" "Win32_UI_Accessibility" "Win32_UI_Controls" "Win32_UI_HiDpi" "Win32_UI_Input" "Win32_UI_Input_Ime" "Win32_UI_Input_KeyboardAndMouse" "Win32_UI_Input_Pointer" "Win32_UI_Input_Touch" "Win32_UI_Shell" "Win32_UI_TextServices" "Win32_UI_WindowsAndMessaging" "default" ];
       };
       "windows-sys 0.59.0" = rec {
         crateName = "windows-sys";
@@ -26372,7 +26536,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Globalization" "Win32_NetworkManagement" "Win32_NetworkManagement_IpHelper" "Win32_Networking" "Win32_Networking_WinSock" "Win32_Security" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Console" "Win32_System_Threading" "Win32_UI" "Win32_UI_Shell" "default" ];
+        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_NetworkManagement" "Win32_NetworkManagement_IpHelper" "Win32_Networking" "Win32_Networking_WinSock" "Win32_System" "Win32_System_Threading" "default" ];
       };
       "windows-sys 0.60.2" = rec {
         crateName = "windows-sys";
@@ -26637,7 +26801,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Security" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_IO" "Win32_System_Threading" "Win32_System_WindowsProgramming" "default" ];
+        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Graphics" "Win32_Graphics_Gdi" "Win32_Security" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_DataExchange" "Win32_System_IO" "Win32_System_Memory" "Win32_System_Ole" "Win32_System_Threading" "Win32_System_WindowsProgramming" "Win32_UI" "Win32_UI_Shell" "default" ];
       };
       "windows-sys 0.61.2" = rec {
         crateName = "windows-sys";
@@ -26899,7 +27063,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Wdk" "Wdk_Foundation" "Wdk_Storage" "Wdk_Storage_FileSystem" "Wdk_System" "Wdk_System_IO" "Win32" "Win32_Devices" "Win32_Devices_Communication" "Win32_Foundation" "Win32_Networking" "Win32_Networking_WinSock" "Win32_Security" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Console" "Win32_System_IO" "Win32_System_LibraryLoader" "Win32_System_Pipes" "Win32_System_Registry" "Win32_System_SystemServices" "Win32_System_Threading" "Win32_System_WindowsProgramming" "Win32_UI" "Win32_UI_Shell" "default" ];
+        resolvedDefaultFeatures = [ "Wdk" "Wdk_Foundation" "Wdk_Storage" "Wdk_Storage_FileSystem" "Wdk_System" "Wdk_System_IO" "Win32" "Win32_Devices" "Win32_Devices_Communication" "Win32_Foundation" "Win32_Globalization" "Win32_Networking" "Win32_Networking_WinSock" "Win32_Security" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Console" "Win32_System_Diagnostics" "Win32_System_Diagnostics_Debug" "Win32_System_IO" "Win32_System_LibraryLoader" "Win32_System_Pipes" "Win32_System_Registry" "Win32_System_SystemInformation" "Win32_System_SystemServices" "Win32_System_Threading" "Win32_System_WindowsProgramming" "Win32_UI" "Win32_UI_Shell" "default" ];
       };
       "windows-targets 0.48.5" = rec {
         crateName = "windows-targets";

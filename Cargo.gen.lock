@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "99a4245f18a7be8181e509d2194e84b550cc6b9437f3187c83c2a81a67ca861f",
+  "cargo_lock_sha256": "65be39799fdaeb5181213ec1f506303c6165f1456372d8cdf092614ffb993eb7",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -83,7 +83,7 @@
           },
           {
             "name": "zerocopy",
-            "package_key": "zerocopy-0.8.52",
+            "package_key": "zerocopy-0.8.53",
             "kind": "normal",
             "features": [
               "simd"
@@ -1335,7 +1335,7 @@
         "runtime_dependencies": [
           {
             "name": "crossbeam_utils",
-            "package_key": "crossbeam-utils-0.8.21",
+            "package_key": "crossbeam-utils-0.8.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -1571,11 +1571,11 @@
           "std"
         ]
       },
-      "crossbeam-deque-0.8.6": {
+      "crossbeam-deque-0.8.7": {
         "runtime_dependencies": [
           {
             "name": "crossbeam_epoch",
-            "package_key": "crossbeam-epoch-0.9.18",
+            "package_key": "crossbeam-epoch-0.9.19",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -1585,7 +1585,7 @@
           },
           {
             "name": "crossbeam_utils",
-            "package_key": "crossbeam-utils-0.8.21",
+            "package_key": "crossbeam-utils-0.8.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -1600,11 +1600,11 @@
           "std"
         ]
       },
-      "crossbeam-epoch-0.9.18": {
+      "crossbeam-epoch-0.9.19": {
         "runtime_dependencies": [
           {
             "name": "crossbeam_utils",
-            "package_key": "crossbeam-utils-0.8.21",
+            "package_key": "crossbeam-utils-0.8.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -1619,11 +1619,11 @@
           "std"
         ]
       },
-      "crossbeam-queue-0.3.12": {
+      "crossbeam-queue-0.3.13": {
         "runtime_dependencies": [
           {
             "name": "crossbeam_utils",
-            "package_key": "crossbeam-utils-0.8.21",
+            "package_key": "crossbeam-utils-0.8.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -1639,7 +1639,7 @@
           "std"
         ]
       },
-      "crossbeam-utils-0.8.21": {
+      "crossbeam-utils-0.8.22": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": [
@@ -4183,7 +4183,7 @@
           },
           {
             "name": "zerocopy",
-            "package_key": "zerocopy-0.8.52",
+            "package_key": "zerocopy-0.8.53",
             "kind": "normal",
             "features": [
               "derive",
@@ -7852,7 +7852,7 @@
         "runtime_dependencies": [
           {
             "name": "zerocopy",
-            "package_key": "zerocopy-0.8.52",
+            "package_key": "zerocopy-0.8.53",
             "kind": "normal",
             "features": [
               "simd"
@@ -8781,7 +8781,7 @@
         "runtime_dependencies": [
           {
             "name": "crossbeam_deque",
-            "package_key": "crossbeam-deque-0.8.6",
+            "package_key": "crossbeam-deque-0.8.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8791,7 +8791,7 @@
           },
           {
             "name": "crossbeam_utils",
-            "package_key": "crossbeam-utils-0.8.21",
+            "package_key": "crossbeam-utils-0.8.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12593,7 +12593,7 @@
           },
           {
             "name": "crossbeam_queue",
-            "package_key": "crossbeam-queue-0.3.12",
+            "package_key": "crossbeam-queue-0.3.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18280,11 +18280,11 @@
           "std"
         ]
       },
-      "zerocopy-0.8.52": {
+      "zerocopy-0.8.53": {
         "runtime_dependencies": [
           {
             "name": "zerocopy_derive",
-            "package_key": "zerocopy-derive-0.8.52",
+            "package_key": "zerocopy-derive-0.8.53",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18294,7 +18294,7 @@
           },
           {
             "name": "zerocopy_derive",
-            "package_key": "zerocopy-derive-0.8.52",
+            "package_key": "zerocopy-derive-0.8.53",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18310,7 +18310,7 @@
           "zerocopy-derive"
         ]
       },
-      "zerocopy-derive-0.8.52": {
+      "zerocopy-derive-0.8.53": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -19265,7 +19265,7 @@
               "fallback"
             ]
           },
-          "kanchi-0.1.0-ac43f6bea26c8ef612e0848c59bf94cc2180f990": {
+          "kanchi-0.1.0-e40b1e11a716c030b1c6037f25789c75e00fc646": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -19404,7 +19404,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.70": {
+          "mado-0.1.71": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -19659,7 +19659,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.0-ac43f6bea26c8ef612e0848c59bf94cc2180f990",
+                "package_key": "kanchi-0.1.0-e40b1e11a716c030b1c6037f25789c75e00fc646",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23714,7 +23714,7 @@
               "fallback"
             ]
           },
-          "inotify-0.11.2": {
+          "inotify-0.11.3": {
             "runtime_dependencies": [
               {
                 "name": "bitflags",
@@ -23808,7 +23808,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "kanchi-0.1.0-ac43f6bea26c8ef612e0848c59bf94cc2180f990": {
+          "kanchi-0.1.0-e40b1e11a716c030b1c6037f25789c75e00fc646": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -23865,7 +23865,7 @@
               "system"
             ]
           },
-          "mado-0.1.70": {
+          "mado-0.1.71": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -24110,7 +24110,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.0-ac43f6bea26c8ef612e0848c59bf94cc2180f990",
+                "package_key": "kanchi-0.1.0-e40b1e11a716c030b1c6037f25789c75e00fc646",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -24493,7 +24493,7 @@
             "runtime_dependencies": [
               {
                 "name": "inotify",
-                "package_key": "inotify-0.11.2",
+                "package_key": "inotify-0.11.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -27381,7 +27381,7 @@
               "fallback"
             ]
           },
-          "inotify-0.11.2": {
+          "inotify-0.11.3": {
             "runtime_dependencies": [
               {
                 "name": "bitflags",
@@ -27475,7 +27475,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "kanchi-0.1.0-ac43f6bea26c8ef612e0848c59bf94cc2180f990": {
+          "kanchi-0.1.0-e40b1e11a716c030b1c6037f25789c75e00fc646": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -27532,7 +27532,7 @@
               "system"
             ]
           },
-          "mado-0.1.70": {
+          "mado-0.1.71": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -27777,7 +27777,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.0-ac43f6bea26c8ef612e0848c59bf94cc2180f990",
+                "package_key": "kanchi-0.1.0-e40b1e11a716c030b1c6037f25789c75e00fc646",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -28160,7 +28160,7 @@
             "runtime_dependencies": [
               {
                 "name": "inotify",
-                "package_key": "inotify-0.11.2",
+                "package_key": "inotify-0.11.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -31181,7 +31181,7 @@
               "fallback"
             ]
           },
-          "kanchi-0.1.0-ac43f6bea26c8ef612e0848c59bf94cc2180f990": {
+          "kanchi-0.1.0-e40b1e11a716c030b1c6037f25789c75e00fc646": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -31320,7 +31320,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.70": {
+          "mado-0.1.71": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31575,7 +31575,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.0-ac43f6bea26c8ef612e0848c59bf94cc2180f990",
+                "package_key": "kanchi-0.1.0-e40b1e11a716c030b1c6037f25789c75e00fc646",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35584,7 +35584,7 @@
               "fallback"
             ]
           },
-          "inotify-0.11.2": {
+          "inotify-0.11.3": {
             "runtime_dependencies": [
               {
                 "name": "bitflags",
@@ -35678,7 +35678,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "kanchi-0.1.0-ac43f6bea26c8ef612e0848c59bf94cc2180f990": {
+          "kanchi-0.1.0-e40b1e11a716c030b1c6037f25789c75e00fc646": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -35735,7 +35735,7 @@
               "system"
             ]
           },
-          "mado-0.1.70": {
+          "mado-0.1.71": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35980,7 +35980,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.0-ac43f6bea26c8ef612e0848c59bf94cc2180f990",
+                "package_key": "kanchi-0.1.0-e40b1e11a716c030b1c6037f25789c75e00fc646",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36363,7 +36363,7 @@
             "runtime_dependencies": [
               {
                 "name": "inotify",
-                "package_key": "inotify-0.11.2",
+                "package_key": "inotify-0.11.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -39205,7 +39205,7 @@
               "fallback"
             ]
           },
-          "inotify-0.11.2": {
+          "inotify-0.11.3": {
             "runtime_dependencies": [
               {
                 "name": "bitflags",
@@ -39299,7 +39299,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "kanchi-0.1.0-ac43f6bea26c8ef612e0848c59bf94cc2180f990": {
+          "kanchi-0.1.0-e40b1e11a716c030b1c6037f25789c75e00fc646": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -39356,7 +39356,7 @@
               "system"
             ]
           },
-          "mado-0.1.70": {
+          "mado-0.1.71": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39601,7 +39601,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.0-ac43f6bea26c8ef612e0848c59bf94cc2180f990",
+                "package_key": "kanchi-0.1.0-e40b1e11a716c030b1c6037f25789c75e00fc646",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39984,7 +39984,7 @@
             "runtime_dependencies": [
               {
                 "name": "inotify",
-                "package_key": "inotify-0.11.2",
+                "package_key": "inotify-0.11.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -42585,16 +42585,18 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "crossbeam-deque-0.8.6": {
+    "crossbeam-deque-0.8.7": {
+      "edition": "2021",
+      "build_script": "build.rs"
+    },
+    "crossbeam-epoch-0.9.19": {
+      "edition": "2021",
+      "build_script": "build.rs"
+    },
+    "crossbeam-queue-0.3.13": {
       "edition": "2021"
     },
-    "crossbeam-epoch-0.9.18": {
-      "edition": "2021"
-    },
-    "crossbeam-queue-0.3.12": {
-      "edition": "2021"
-    },
-    "crossbeam-utils-0.8.21": {
+    "crossbeam-utils-0.8.22": {
       "edition": "2021",
       "build_script": "build.rs"
     },
@@ -42985,7 +42987,7 @@
     "inlinable_string-0.1.15": {
       "edition": "2018"
     },
-    "inotify-0.11.2": {
+    "inotify-0.11.3": {
       "edition": "2018"
     },
     "inotify-sys-0.1.7": {
@@ -43031,7 +43033,7 @@
     "kaname-0.1.1-0570e7ec566b60444307fe5873f80f5beda8fe6c": {
       "edition": "2024"
     },
-    "kanchi-0.1.0-ac43f6bea26c8ef612e0848c59bf94cc2180f990": {
+    "kanchi-0.1.0-e40b1e11a716c030b1c6037f25789c75e00fc646": {
       "edition": "2024"
     },
     "kanshou-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": {
@@ -43102,7 +43104,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.70": {
+    "mado-0.1.71": {
       "edition": "2024",
       "binaries": [
         {
@@ -44306,11 +44308,11 @@
     "zeno-0.3.3": {
       "edition": "2021"
     },
-    "zerocopy-0.8.52": {
+    "zerocopy-0.8.53": {
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "zerocopy-derive-0.8.52": {
+    "zerocopy-derive-0.8.53": {
       "edition": "2021",
       "proc_macro": true
     },
@@ -44363,7 +44365,7 @@
     "izumi-config-0.1.1-c78d0a536040b507ff86b52e24d19acb6012c337": "sha256-LDZff6mhn4wS6n0utIh8rBttWljAydbXgqEgkl49B18=",
     "izumi-sources-0.1.1-c78d0a536040b507ff86b52e24d19acb6012c337": "sha256-LDZff6mhn4wS6n0utIh8rBttWljAydbXgqEgkl49B18=",
     "kaname-0.1.1-0570e7ec566b60444307fe5873f80f5beda8fe6c": "sha256-ue2v9p/Eq+z3hmCaL63toSyjpDY6s3H1gGBUFBOX3ek=",
-    "kanchi-0.1.0-ac43f6bea26c8ef612e0848c59bf94cc2180f990": "sha256-UMZiw4Hc+VAD6UOXGAiDxEpNwiaOi7OWYonHXsaekIg=",
+    "kanchi-0.1.0-e40b1e11a716c030b1c6037f25789c75e00fc646": "sha256-0qWOMtFgvBuZq8E+/JI1oI65MI0H1gH6BaNIOj2u458=",
     "kanshou-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
     "kanshou-derive-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
     "madori-0.1.5-79b33a4811853f1a8153735a69fb58bde894c2d9": "sha256-35DB90eBg+O8Ie2w8R4sfZr4B4NG+FPbUfwePl0x9qw=",
