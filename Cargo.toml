@@ -104,12 +104,12 @@ shikumi = { version = "0.1", features = ["cli"] }
 # 25 generic providers, the shikumi BoardConfig surface). mado's `suggest::`
 # module is now a thin shim over these three crates; the snapshot magic
 # `b"mado-suggest v1\n"` + the YAML schema stay byte-compatible.
-# INTERIM path dep; switch to git+rev+version after first publish.
-izumi = { path = "/Users/drzzln/code/github/pleme-io/izumi/izumi", version = "0.1.0" }
-# INTERIM path dep; switch to git+rev+version after first publish.
-izumi-sources = { path = "/Users/drzzln/code/github/pleme-io/izumi/izumi-sources", version = "0.1.0" }
-# INTERIM path dep; switch to git+rev+version after first publish.
-izumi-config = { path = "/Users/drzzln/code/github/pleme-io/izumi/izumi-config", version = "0.1.0" }
+# git+rev pin (the madori/irodzuki idiom); bump rev to track izumi.
+izumi = { git = "https://github.com/pleme-io/izumi", rev = "70a9f2ae9ec9aaca898903d7a154364bcbb92423", version = "0.1.0" }
+# git+rev pin (the madori/irodzuki idiom); bump rev to track izumi.
+izumi-sources = { git = "https://github.com/pleme-io/izumi", rev = "70a9f2ae9ec9aaca898903d7a154364bcbb92423", version = "0.1.0" }
+# git+rev pin (the madori/irodzuki idiom); bump rev to track izumi.
+izumi-config = { git = "https://github.com/pleme-io/izumi", rev = "70a9f2ae9ec9aaca898903d7a154364bcbb92423", version = "0.1.0" }
 hasami = { git = "https://github.com/pleme-io/hasami" , version = "0.1" }
 # Tsuuchi (通知) — the fleet notification primitive (rich vocabulary:
 # sound / actions / attachment / id / Capabilities). The M4 unified
