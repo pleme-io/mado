@@ -1591,6 +1591,18 @@ impl InputEngine {
                 // (word/line used to be excluded by the click_count
                 // gate).
                 self.copy_live_selection_if_enabled();
+                // Lift-to-copy: the highlight is now on the clipboard, so drop
+                // it — lifting the mouse both COPIES and UNHIGHLIGHTS, and no
+                // click is ever needed to copy. Gated on `copy_on_select`
+                // (something was auto-copied) AND `deselect_on_copy` (default
+                // on), so the copy-keeps-highlight behavior stays available via
+                // config, and the bare/copy-off tier keeps the selection live
+                // for a manual Cmd+C. `plain_click` was already read above, so
+                // clearing here never affects the link-open decision below; an
+                // empty (plain-click) selection clears as a harmless no-op.
+                if self.behavior.copy_on_select && self.behavior.deselect_on_copy {
+                    self.selection.lock().unwrap().clear();
+                }
                 if self.click_count == 1 {
                     // Open a clickable link on release — single-click only
                     // (word/line selection has click_count != 1, skipped).
@@ -2453,6 +2465,12 @@ mod tests {
                     keybinds: KeybindManager::with_mado_defaults(),
                     behavior: UxBehavior {
                         copy_on_select: true,
+                        // Deselect-on-copy OFF in the harness so the existing
+                        // selection tests exercise the copy-keeps-highlight
+                        // path; the default-behavior test flips it on via
+                        // `harness.behavior`. (Production prescribes it ON —
+                        // asserted by the config prescribed-default test.)
+                        deselect_on_copy: false,
                         confirm_close: false,
                         mouse_hide_while_typing: false,
                         mouse_scroll_multiplier: 1,
@@ -3000,6 +3018,48 @@ mod tests {
             h.clipboard.paste_text().unwrap(),
             "hello",
             "a drag's release must commit the selection even if tracking armed mid-drag"
+        );
+    }
+
+    /// **Lift-to-copy default** (operator directive 2026-07-06): with
+    /// `deselect_on_copy` on (the production default), a drag-select's
+    /// release BOTH copies the highlight AND clears it — so lifting the
+    /// mouse copies and unhighlights, and no click is ever needed to copy.
+    #[test]
+    fn deselect_on_copy_lift_copies_and_unhighlights() {
+        let mut h = Harness::new(SinkKind::Closure);
+        h.feed(b"hello world");
+        h.engine.behavior.deselect_on_copy = true; // the production default
+        h.button(MouseButton::Left, true, 0, 0, no_mods());
+        h.moved(4, 0);
+        h.button(MouseButton::Left, false, 4, 0, no_mods());
+        assert_eq!(
+            h.clipboard.paste_text().unwrap(),
+            "hello",
+            "the lift must copy the highlight"
+        );
+        assert!(
+            !h.engine.selection.lock().unwrap().is_active(),
+            "the lift must clear the highlight when deselect_on_copy is on"
+        );
+    }
+
+    /// **Config opt-out** (expand-not-replace, 2026-07-06): with
+    /// `deselect_on_copy` OFF the release still auto-copies but KEEPS the
+    /// highlight live — the pre-2026-07-06 copy-without-deselect behavior,
+    /// preserved as a config, not coded away.
+    #[test]
+    fn deselect_off_keeps_the_highlight_after_the_release_copy() {
+        let mut h = Harness::new(SinkKind::Closure);
+        h.feed(b"hello world");
+        h.engine.behavior.deselect_on_copy = false;
+        h.button(MouseButton::Left, true, 0, 0, no_mods());
+        h.moved(4, 0);
+        h.button(MouseButton::Left, false, 4, 0, no_mods());
+        assert_eq!(h.clipboard.paste_text().unwrap(), "hello");
+        assert!(
+            h.engine.selection.lock().unwrap().is_active(),
+            "deselect_on_copy=false must keep the highlight live after the copy"
         );
     }
 

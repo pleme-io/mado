@@ -21,6 +21,10 @@ pub struct UxBehavior {
     /// Selection release copies straight to the clipboard
     /// (the muscle-memory contract).
     pub copy_on_select: bool,
+    /// After `copy_on_select` auto-copies on release, ALSO clear the
+    /// highlight — so lifting the mouse both copies AND unhighlights and no
+    /// click is ever needed to copy. Inert when `copy_on_select` is off.
+    pub deselect_on_copy: bool,
     /// Window close requires a second close request. Consumed by the
     /// loop-side `exit_response` (close handling stays loop-specific
     /// — child-exit semantics differ per mode).
@@ -115,6 +119,7 @@ impl From<&MadoConfig> for UxBehavior {
     fn from(config: &MadoConfig) -> Self {
         Self {
             copy_on_select: config.behavior.copy_on_select,
+            deselect_on_copy: config.behavior.deselect_on_copy,
             confirm_close: config.behavior.confirm_close,
             mouse_hide_while_typing: config.behavior.mouse_hide_while_typing,
             mouse_scroll_multiplier: config.behavior.mouse_scroll_multiplier,

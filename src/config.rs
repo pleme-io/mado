@@ -2081,6 +2081,14 @@ pub struct BehaviorConfig {
     pub scrollback_lines: usize,
     #[serde(default = "default_copy_on_select")]
     pub copy_on_select: bool,
+    /// When `copy_on_select` auto-copies a highlight on mouse release,
+    /// ALSO clear the highlight — so lifting the mouse both copies AND
+    /// unhighlights and no click is ever needed to copy. `false` keeps the
+    /// highlight live after the auto-copy (the pre-2026-07-06 behavior,
+    /// still fully available). Inert when `copy_on_select` is off (nothing
+    /// is auto-copied, so nothing is auto-cleared). Default on.
+    #[serde(default = "default_deselect_on_copy")]
+    pub deselect_on_copy: bool,
     #[serde(default)]
     pub confirm_close: bool,
     #[serde(default = "default_mouse_hide")]
@@ -2772,6 +2780,7 @@ impl MadoConfig {
             behavior: BehaviorConfig {
                 scrollback_lines: 0, // bare = no scrollback at all
                 copy_on_select: false,
+                deselect_on_copy: false,
                 confirm_close: false,
                 mouse_hide_while_typing: false,
                 mouse_scroll_multiplier: 1, // no multiplication
@@ -3309,6 +3318,7 @@ impl Default for BehaviorConfig {
         Self {
             scrollback_lines: default_scrollback(),
             copy_on_select: default_copy_on_select(),
+            deselect_on_copy: default_deselect_on_copy(),
             confirm_close: false,
             mouse_hide_while_typing: default_mouse_hide(),
             mouse_scroll_multiplier: default_mouse_scroll_mult(),
@@ -3434,6 +3444,13 @@ fn default_copy_on_select() -> bool {
     // Muscle-memory contract (operator directive 2026-06-11): a
     // highlight goes straight to the clipboard — no extra chord.
     // The bare tier still opts out (everything-off contract).
+    true
+}
+fn default_deselect_on_copy() -> bool {
+    // Lift-to-copy contract (operator directive 2026-07-06): lifting the
+    // mouse after a highlight both copies AND unhighlights, so no click is
+    // ever needed to copy and no highlight lingers. Expanded through config
+    // (not coded in): `false` restores the copy-without-deselect behavior.
     true
 }
 fn default_mouse_hide() -> bool {
@@ -3851,6 +3868,7 @@ mod tests {
         // ── Behavior ───────────────────────────────────────────
         assert_eq!(bare.behavior.scrollback_lines, 0);
         assert!(!bare.behavior.copy_on_select);
+        assert!(!bare.behavior.deselect_on_copy);
         assert!(!bare.behavior.confirm_close);
         assert!(!bare.behavior.mouse_hide_while_typing);
         assert_eq!(bare.behavior.mouse_scroll_multiplier, 1);
@@ -4784,6 +4802,7 @@ window:
         assert_eq!(config.behavior.scrollback_lines, usize::MAX);
         // Muscle-memory default: highlight → clipboard, no chord.
         assert!(config.behavior.copy_on_select);
+        assert!(config.behavior.deselect_on_copy);
         assert!(!config.behavior.confirm_close);
         assert!(config.behavior.mouse_hide_while_typing);
         assert_eq!(config.behavior.mouse_scroll_multiplier, 2);
