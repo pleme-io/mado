@@ -133,6 +133,11 @@ pub struct MadoConfig {
     /// layer (blackmatter) supplies the environments, SecretRefs, and tuning.
     #[serde(default)]
     pub safra: crate::safra::SafraConfig,
+    /// The reactive session-janitor plane (see [`JanitorsConfig`] +
+    /// `crate::janitors` + `docs/JANITORS.md`). Prescribed default ON,
+    /// **shadow-first**; the bare tier strips it off.
+    #[serde(default)]
+    pub janitors: JanitorsConfig,
     /// Clickable, highlighted links (see [`MadoLinksConfig`]). Prescribed
     /// default ON (highlight + hover cursor + click-to-open); the bare
     /// tier strips every affordance.
@@ -871,6 +876,134 @@ impl SuggestionsConfig {
             }
         }
         merged
+    }
+}
+
+/// The reactive session-janitor plane (see `crate::janitors` +
+/// `docs/JANITORS.md`): typed invariant-holders riding the suggest engine
+/// thread's maintenance tick, publishing findings on the `crate::fibers`
+/// bus and (optionally) onto the Ctrl-S board. Tiered: bare = fully OFF;
+/// prescribed = ON **shadow-first** (findings surface, remediation held —
+/// the operator flips `authority: effect` per janitor or globally).
+///
+/// Hot-reload: this section rides the same `EngineCommand::Swap` path as
+/// `suggestions`/`safra` — a config edit rebuilds the janitor runner live,
+/// no restart needed.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct JanitorsConfig {
+    /// Master switch. `false` (bare) = no janitors, no findings, no rows.
+    pub enabled: bool,
+    /// Global remediation authority — the shadow-first default every
+    /// janitor inherits unless it carries its own override.
+    pub authority: crate::janitors::Authority,
+    /// Project findings onto the Ctrl-S board as agent-lane rows (the
+    /// `suggest_inject` path; stable keys ⇒ one living row per finding).
+    pub board_rows: bool,
+    /// The ghost-session sweeper (embedded tear registry).
+    pub ghost_session: GhostSessionJanitorConfig,
+    /// The suggestion-source health watcher (izumi store).
+    pub suggest_health: SuggestHealthJanitorConfig,
+}
+
+impl Default for JanitorsConfig {
+    fn default() -> Self {
+        Self::prescribed()
+    }
+}
+
+impl JanitorsConfig {
+    /// Bare tier — the whole plane off (stripped).
+    #[must_use]
+    pub fn bare() -> Self {
+        Self {
+            enabled: false,
+            authority: crate::janitors::Authority::Shadow,
+            board_rows: false,
+            ghost_session: GhostSessionJanitorConfig {
+                enabled: false,
+                interval_secs: 0,
+                grace_secs: 0,
+                authority: None,
+            },
+            suggest_health: SuggestHealthJanitorConfig {
+                enabled: false,
+                interval_secs: 0,
+                min_consecutive_polls: 0,
+                authority: None,
+            },
+        }
+    }
+
+    /// Prescribed tier — both janitors armed, **shadow-first**: every
+    /// finding publishes + surfaces, no remediation runs until the
+    /// operator explicitly flips an `authority` knob to `effect`.
+    #[must_use]
+    pub fn prescribed() -> Self {
+        Self {
+            enabled: true,
+            authority: crate::janitors::Authority::Shadow,
+            board_rows: true,
+            ghost_session: GhostSessionJanitorConfig {
+                enabled: true,
+                // Sweep once a minute; tolerate 3 minutes of ghost-hood
+                // (an agent may legitimately leave an exited session
+                // briefly before re-attaching or closing it).
+                interval_secs: 60,
+                grace_secs: 180,
+                authority: None,
+            },
+            suggest_health: SuggestHealthJanitorConfig {
+                enabled: true,
+                // Health moves at poll cadence (30s–1h per source);
+                // checking every 2 minutes is plenty.
+                interval_secs: 120,
+                min_consecutive_polls: 3,
+                authority: None,
+            },
+        }
+    }
+}
+
+/// Per-janitor knobs for the ghost-session sweeper.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct GhostSessionJanitorConfig {
+    /// Run this janitor at all.
+    pub enabled: bool,
+    /// Observation cadence (seconds, floored at 1 by the runner).
+    pub interval_secs: u64,
+    /// How long a session must HOLD the ghost predicate (agent-owned +
+    /// fully exited + zero subscribers) before it is reported/closed.
+    pub grace_secs: u64,
+    /// Per-janitor authority override; `None` inherits the global.
+    pub authority: Option<crate::janitors::Authority>,
+}
+
+impl Default for GhostSessionJanitorConfig {
+    fn default() -> Self {
+        JanitorsConfig::prescribed().ghost_session
+    }
+}
+
+/// Per-janitor knobs for the suggestion-source health watcher.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct SuggestHealthJanitorConfig {
+    /// Run this janitor at all.
+    pub enabled: bool,
+    /// Observation cadence (seconds, floored at 1 by the runner).
+    pub interval_secs: u64,
+    /// Consecutive COMPLETED bad polls (`Error`/`AuthMissing`) before a
+    /// source is reported (floored at 1 by the janitor).
+    pub min_consecutive_polls: u32,
+    /// Per-janitor authority override; `None` inherits the global.
+    pub authority: Option<crate::janitors::Authority>,
+}
+
+impl Default for SuggestHealthJanitorConfig {
+    fn default() -> Self {
+        JanitorsConfig::prescribed().suggest_health
     }
 }
 
@@ -2763,6 +2896,7 @@ impl MadoConfig {
             suggestions: SuggestionsConfig::bare(),
             // Safra ships off at every tier; a private config layer arms it.
             safra: crate::safra::SafraConfig::default(),
+            janitors: JanitorsConfig::bare(),
             // bare = no link affordances at all.
             links: MadoLinksConfig::bare(),
             // bare = no feedback flourishes, no motion easing.
@@ -3019,6 +3153,7 @@ fn mado_fleet_base() -> MadoConfig {
         vigy: MadoVigyConfig::default(),
         suggestions: SuggestionsConfig::default(),
         safra: crate::safra::SafraConfig::default(),
+        janitors: JanitorsConfig::default(),
         links: MadoLinksConfig::default(),
         feedback: FeedbackConfig::default(),
         notifications: NotificationsConfig::default(),
@@ -4071,6 +4206,7 @@ mod tests {
             vigy: MadoVigyConfig::default(),
             suggestions: SuggestionsConfig::default(),
             safra: crate::safra::SafraConfig::default(),
+            janitors: JanitorsConfig::default(),
             links: MadoLinksConfig::default(),
             feedback: FeedbackConfig::default(),
             notifications: NotificationsConfig::default(),

@@ -435,7 +435,11 @@ impl ConfigHotReload {
             let applied = self.applier.apply_delta(&new, target);
             tracing::info!(setter_calls = applied, "config reload delta applied");
             if let Some(ctl) = crate::suggest::engine_control() {
-                ctl.swap(new.suggestions.clone(), new.safra.clone());
+                ctl.swap(
+                    new.suggestions.clone(),
+                    new.safra.clone(),
+                    new.janitors.clone(),
+                );
             }
         }
     }

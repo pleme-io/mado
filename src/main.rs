@@ -22,11 +22,13 @@ mod config;
 mod dir_picker;
 mod e2e;
 mod engate_consumer;
+mod fibers;
 mod font_size;
 mod glyph_class;
 mod grid_col;
 mod grid_damage;
 mod gui_tear_attach;
+mod janitors;
 mod kanshou_state;
 mod keybind;
 // L1 integration-test brick (docs/INTEGRATION-TESTING.md §L1): real
@@ -650,8 +652,10 @@ fn main() -> anyhow::Result<()> {
     // The parallel task-suggestion watcher plane (one tokio task per
     // enabled source, each releasing in-memory updates into the shared
     // store the Ctrl-S picker shades in). Own runtime thread, like vigy;
-    // gated by `suggestions.enabled` (prescribed ON, bare OFF).
-    crate::suggest::spawn_engine_thread(&config.suggestions, &config.safra);
+    // gated by `suggestions.enabled` (prescribed ON, bare OFF). The
+    // janitor plane (`janitors:` section) rides the same thread's
+    // maintenance tick — see crate::janitors.
+    crate::suggest::spawn_engine_thread(&config.suggestions, &config.safra, &config.janitors);
 
     // ── Kanshou introspection server ─────────────────────────────────
     // Expose the GUI's live AppState (frame_perf atomics, session

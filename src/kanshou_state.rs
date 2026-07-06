@@ -414,6 +414,11 @@ impl Introspect for MadoAppState {
             //   * a session with live pane subscribers (a mado window
             //     or recorder is attached) is refused — never yank a
             //     session a client is watching.
+            //
+            // The guards live in ONE place —
+            // `crate::janitors::guarded_close_agent_session` — shared with
+            // the ghost-session janitor's remediation path (solve-once);
+            // this leaf only parses args + renders the outcome to JSON.
             "close_session" => {
                 if q.args.len() != 1 {
                     return Err(QueryError::BadArity {
@@ -443,51 +448,36 @@ impl Introspect for MadoAppState {
                         "note": "this GUI runs without an embedded tear registry (daemon mode)",
                     }));
                 };
-                use tear_types::MultiplexerControl;
-                let looked_up = inproc.with_registry(|r| {
-                    r.sessions.get(&sid).map(|s| {
-                        (s.source.clone(), s.panes.keys().copied().collect::<Vec<_>>())
-                    })
-                });
-                let Some((source, panes)) = looked_up else {
-                    return Ok(serde_json::json!({
+                use crate::janitors::GuardedClose;
+                match crate::janitors::guarded_close_agent_session(inproc, sid) {
+                    GuardedClose::Closed => Ok(serde_json::json!({
+                        "closed": true,
+                        "session_id": sid_str,
+                        "world": "embedded",
+                    })),
+                    GuardedClose::NoSuchSession => Ok(serde_json::json!({
                         "closed": false,
                         "error": "no-such-session",
                         "session_id": sid_str,
-                    }));
-                };
-                if !matches!(source, tear_types::SessionSource::Agent) {
-                    return Ok(serde_json::json!({
+                    })),
+                    GuardedClose::NotAgentOwned { source } => Ok(serde_json::json!({
                         "closed": false,
                         "error": "not-agent-owned",
                         "session_id": sid_str,
-                        "source": source.label(),
+                        "source": source,
                         "note": "only SessionSource::Agent sessions are closable over MCP; operator sessions close from the GUI",
-                    }));
-                }
-                let subscribers: u32 = panes
-                    .iter()
-                    .map(|p| inproc.pane_subscriber_count(*p).unwrap_or(0))
-                    .sum();
-                if subscribers > 0 {
-                    return Ok(serde_json::json!({
+                    })),
+                    GuardedClose::Attached { subscribers } => Ok(serde_json::json!({
                         "closed": false,
                         "error": "attached",
                         "session_id": sid_str,
                         "subscribers": subscribers,
                         "note": "a client is attached to this session's byte stream; detach it first",
-                    }));
-                }
-                match inproc.kill_session(sid) {
-                    Ok(()) => Ok(serde_json::json!({
-                        "closed": true,
-                        "session_id": sid_str,
-                        "world": "embedded",
                     })),
-                    Err(e) => Ok(serde_json::json!({
+                    GuardedClose::Error(e) => Ok(serde_json::json!({
                         "closed": false,
                         "session_id": sid_str,
-                        "error": e.to_string(),
+                        "error": e,
                     })),
                 }
             }

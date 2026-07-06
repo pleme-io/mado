@@ -328,10 +328,18 @@ pub fn request_board_refresh() {
 /// channel payload one pointer wide.
 enum EngineCommand {
     /// Tear down the running engine (if any) and rebuild it from the new
-    /// `suggestions` + `safra` config sections. `enabled = false` parks the
-    /// loop with no engine; `enabled = true` (re)builds — enable, disable,
-    /// and reconfigure are ONE uniform path.
-    Swap(Box<(crate::config::SuggestionsConfig, crate::safra::SafraConfig)>),
+    /// `suggestions` + `safra` + `janitors` config sections. `enabled =
+    /// false` parks the loop with no engine; `enabled = true` (re)builds —
+    /// enable, disable, and reconfigure are ONE uniform path. The janitor
+    /// runner rebuilds on the same swap, so the janitor plane hot-reloads
+    /// with zero extra machinery.
+    Swap(
+        Box<(
+            crate::config::SuggestionsConfig,
+            crate::safra::SafraConfig,
+            crate::config::JanitorsConfig,
+        )>,
+    ),
 }
 
 /// Handle for requesting an engine rebuild from the GUI render thread.
@@ -349,10 +357,11 @@ impl EngineControl {
         &self,
         suggestions: crate::config::SuggestionsConfig,
         safra: crate::safra::SafraConfig,
+        janitors: crate::config::JanitorsConfig,
     ) {
         let _ = self
             .tx
-            .send(EngineCommand::Swap(Box::new((suggestions, safra))));
+            .send(EngineCommand::Swap(Box::new((suggestions, safra, janitors))));
     }
 }
 
@@ -672,9 +681,11 @@ fn build_engine(
 pub fn spawn_engine_thread(
     cfg: &crate::config::SuggestionsConfig,
     safra: &crate::safra::SafraConfig,
+    janitors: &crate::config::JanitorsConfig,
 ) {
     let sugg_cfg = cfg.clone();
     let safra_cfg = safra.clone();
+    let janitors_cfg = janitors.clone();
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
     let _ = ENGINE_CONTROL.set(EngineControl { tx });
     let res = std::thread::Builder::new()
@@ -690,7 +701,15 @@ pub fn spawn_engine_thread(
                     let env: Arc<dyn SuggestionEnvironment> = Arc::new(RealEnvironment::discover());
                     let store = store();
                     let path = state_path();
-                    let mut current = (sugg_cfg, safra_cfg);
+                    let mut current = (sugg_cfg, safra_cfg, janitors_cfg);
+                    // The janitor plane rides THIS loop's tick (see
+                    // `crate::janitors` for why: the tick already exists,
+                    // runs even when suggestions are disabled, and is
+                    // hot-reload-aware). Per-janitor cadence is gated
+                    // inside the runner; the shared bus is process-global.
+                    let mut janitor_runner =
+                        crate::janitors::JanitorRunner::from_config(&current.2);
+                    let janitor_env = crate::janitors::RealJanitorEnv;
                     // Config-gated (INSIDE the thread): enabled ⇒ live
                     // engine; disabled ⇒ parked loop holding the control
                     // channel so a hot-enable is one Swap away.
@@ -764,6 +783,14 @@ pub fn spawn_engine_thread(
                                 // saved presets survive restarts with zero extra
                                 // threads and zero GUI-hot-path writes.
                                 crate::praca_store::maintenance_tick();
+                                // The janitor plane: per-janitor cadence gated
+                                // inside; findings publish on the fiber bus;
+                                // remediation only under Authority::Effect.
+                                janitor_runner.tick(
+                                    &janitor_env,
+                                    crate::fibers::bus(),
+                                    now_ms,
+                                );
                             }
                             cmd = rx.recv() => match cmd {
                                 Some(EngineCommand::Swap(pair)) => {
@@ -777,7 +804,20 @@ pub fn spawn_engine_thread(
                                     if let Some(e) = engine.take() {
                                         e.stop();
                                     }
+                                    let janitors_changed = pair.2 != current.2;
                                     current = *pair;
+                                    if janitors_changed {
+                                        // Rebuild the janitor plane from the
+                                        // new section (fresh grace/streak
+                                        // state — deliberate: new knobs, new
+                                        // clocks). Left untouched on
+                                        // suggestions-only edits so janitor
+                                        // observation state survives them.
+                                        janitor_runner =
+                                            crate::janitors::JanitorRunner::from_config(
+                                                &current.2,
+                                            );
+                                    }
                                     if current.0.enabled {
                                         let (e, k) =
                                             build_engine(&current.0, &current.1, &env, &store);

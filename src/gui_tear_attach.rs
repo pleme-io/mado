@@ -1190,6 +1190,9 @@ fn try_run_default_embedded(
     // not the empty MCP-side registry that's only populated by
     // `spawn_term` in the --mcp path.
     kanshou_state.set_tear_inproc(inproc.clone());
+    // …and to the janitor plane, so the ghost-session sweeper observes
+    // the SAME live registry (see crate::janitors).
+    crate::janitors::set_tear_inproc(inproc.clone());
     crate::perf::log_phase("tear_inproc_constructed");
 
     // ── Spawn-env projection (FIX 2 + FIX 3) ──────────────────────
