@@ -560,6 +560,18 @@ async fn spawn_term(
         "shell": shell,
         "cols": E2E_COLS,
         "rows": E2E_ROWS,
+        // The harness MUST stay in the mcp child's process-local
+        // headless registry. Without this, `spawn_term`'s session-world
+        // union default (`world: auto`) forwards the spawn into the
+        // OPERATOR'S LIVE GUI — the session lands in the embedded tear
+        // registry where (a) the hermetic env above is silently dropped
+        // (the kanshou spawn leaf carries name/shell/size only, so the
+        // shell runs with the operator's real HOME — the exact isolation
+        // breach the hermetic env exists to prevent) and (b) the
+        // harness's `close_session` (headless-registry) can't reach it,
+        // so every run leaked ghost "sh"/shell rows into the operator's
+        // Ctrl-S picker (operator report 2026-07-06).
+        "world": "headless",
     });
     if let Some(env) = env {
         args["env"] = env;

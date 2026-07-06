@@ -908,15 +908,61 @@ impl MadoMcp {
         }
     }
 
-    #[tool(description = "Close a headless terminal session. The PTY is dropped (killing the child if still alive) and the reader task is aborted. Returns `{ok, closed}` — `closed: true` when the id matched a live session, `false` when it was already gone.")]
+    #[tool(description = "Close a terminal session. Headless sessions close in this process (PTY dropped, killing the child if still alive; reader task aborted). When the id isn't a headless session, the close forwards to the live GUI's embedded tear registry (session-world union — the teardown half of `spawn_term`'s embedded default) where only SessionSource::Agent sessions with no attached subscribers are closable. Returns `{ok, closed, world?}` — `closed: false` with an `error` field explains an embedded refusal (not-agent-owned / attached / no-such-session); without one the id was simply already gone.")]
     async fn close_session(&self, Parameters(input): Parameters<SessionIdInput>) -> String {
         match self.state.sessions.close(&input.session_id) {
-            Ok(closed) => serde_json::json!({
+            Ok(true) => serde_json::json!({
                 "ok": true,
                 "session_id": input.session_id,
-                "closed": closed,
+                "closed": true,
+                "world": "headless",
             })
             .to_string(),
+            // Not a headless session. Session-world union: `spawn_term`
+            // lands sessions in the live GUI's EMBEDDED registry by
+            // default, so the close must reach that world too — without
+            // this leg an agent could spawn embedded sessions but never
+            // clean them up, and they accumulated as ghost "sh" rows in
+            // the operator's Ctrl-S picker (operator report 2026-07-06).
+            Ok(false) => {
+                let fwd = kanshou::mcp::forward(
+                    "mado",
+                    &kanshou::Query {
+                        path: vec![String::from("close_session")],
+                        args: vec![serde_json::Value::String(input.session_id.clone())],
+                    },
+                    || Err(kanshou::QueryError::internal("no live GUI reachable")),
+                )
+                .await;
+                match fwd {
+                    Ok(v) => {
+                        let closed = v
+                            .get("closed")
+                            .and_then(serde_json::Value::as_bool)
+                            .unwrap_or(false);
+                        let mut out = serde_json::json!({
+                            "ok": true,
+                            "session_id": input.session_id,
+                            "closed": closed,
+                            "world": "embedded",
+                        });
+                        for key in ["error", "note", "subscribers", "source"] {
+                            if let Some(val) = v.get(key) {
+                                out[key] = val.clone();
+                            }
+                        }
+                        out.to_string()
+                    }
+                    // No GUI reachable — preserve the headless contract:
+                    // `closed: false` means the id was already gone.
+                    Err(_) => serde_json::json!({
+                        "ok": true,
+                        "session_id": input.session_id,
+                        "closed": false,
+                    })
+                    .to_string(),
+                }
+            }
             Err(e) => serde_json::json!({
                 "ok": false,
                 "session_id": input.session_id,

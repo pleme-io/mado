@@ -398,6 +398,99 @@ impl Introspect for MadoAppState {
                     })),
                 }
             }
+            // Method-call leaf — args: [session_id: String]. Closes an
+            // AGENT-spawned session in THIS GUI's embedded tear registry
+            // — the teardown half of the `spawn_term` leaf above
+            // (session-world union). Without it, a session an agent
+            // spawned into the embedded world was unkillable over MCP
+            // (`close_session` only knew the MCP-process-local headless
+            // registry), so agent/e2e sessions accumulated as ghost
+            // "sh" rows in the operator's Ctrl-S picker (operator
+            // report 2026-07-06). Two conservative typed guards:
+            //   * only `SessionSource::Agent` sessions are closable
+            //     here — the operator's own sessions (embedded window,
+            //     picker-named, human) are structurally out of reach of
+            //     this path;
+            //   * a session with live pane subscribers (a mado window
+            //     or recorder is attached) is refused — never yank a
+            //     session a client is watching.
+            "close_session" => {
+                if q.args.len() != 1 {
+                    return Err(QueryError::BadArity {
+                        expected: 1,
+                        actual: q.args.len(),
+                    });
+                }
+                let Some(sid_str) = q.args[0].as_str() else {
+                    return Err(QueryError::TypeMismatch {
+                        path: "close_session".to_string(),
+                        expected: "string".to_string(),
+                        actual: format!("{:?}", q.args[0]),
+                    });
+                };
+                let Ok(sid) = sid_str.parse::<tear_types::SessionId>() else {
+                    return Ok(serde_json::json!({
+                        "closed": false,
+                        "error": "invalid-session-id",
+                        "session_id": sid_str,
+                    }));
+                };
+                let Some(inproc) = self.tear_inproc.get() else {
+                    return Ok(serde_json::json!({
+                        "closed": false,
+                        "error": "no-live-backend",
+                        "session_id": sid_str,
+                        "note": "this GUI runs without an embedded tear registry (daemon mode)",
+                    }));
+                };
+                use tear_types::MultiplexerControl;
+                let looked_up = inproc.with_registry(|r| {
+                    r.sessions.get(&sid).map(|s| {
+                        (s.source.clone(), s.panes.keys().copied().collect::<Vec<_>>())
+                    })
+                });
+                let Some((source, panes)) = looked_up else {
+                    return Ok(serde_json::json!({
+                        "closed": false,
+                        "error": "no-such-session",
+                        "session_id": sid_str,
+                    }));
+                };
+                if !matches!(source, tear_types::SessionSource::Agent) {
+                    return Ok(serde_json::json!({
+                        "closed": false,
+                        "error": "not-agent-owned",
+                        "session_id": sid_str,
+                        "source": source.label(),
+                        "note": "only SessionSource::Agent sessions are closable over MCP; operator sessions close from the GUI",
+                    }));
+                }
+                let subscribers: u32 = panes
+                    .iter()
+                    .map(|p| inproc.pane_subscriber_count(*p).unwrap_or(0))
+                    .sum();
+                if subscribers > 0 {
+                    return Ok(serde_json::json!({
+                        "closed": false,
+                        "error": "attached",
+                        "session_id": sid_str,
+                        "subscribers": subscribers,
+                        "note": "a client is attached to this session's byte stream; detach it first",
+                    }));
+                }
+                match inproc.kill_session(sid) {
+                    Ok(()) => Ok(serde_json::json!({
+                        "closed": true,
+                        "session_id": sid_str,
+                        "world": "embedded",
+                    })),
+                    Err(e) => Ok(serde_json::json!({
+                        "closed": false,
+                        "session_id": sid_str,
+                        "error": e.to_string(),
+                    })),
+                }
+            }
             // Method-call leaf — args: [target: String, text: String].
             // Writes bytes into an EMBEDDED pane (session-world union:
             // the agent-I/O half of the spawn_term leaf — an agent that
@@ -593,6 +686,7 @@ impl Introspect for MadoAppState {
             "suggest_inject",
             "suggest_dismiss",
             "spawn_term",
+            "close_session",
             "send_keys_embedded",
             "pane_snapshot_embedded",
         ]
@@ -783,6 +877,133 @@ mod tests {
     #[test]
     fn schema_advertises_spawn_term() {
         assert!(state().schema().contains(&"spawn_term"));
+    }
+
+    // ── close_session leaf (session-world union teardown) ─────────
+
+    /// Spawn an agent session via the leaf, then return `(state,
+    /// inproc, session_id)` for the close-leaf tests.
+    fn state_with_agent_session() -> (MadoAppState, Arc<tear_core::InProcess>, String) {
+        let s = state();
+        let inproc = Arc::new(tear_core::InProcess::new());
+        s.set_tear_inproc(Arc::clone(&inproc));
+        let v = s
+            .query(&Query::call(
+                ["spawn_term"],
+                [serde_json::json!({
+                    "name": "close-leaf-test",
+                    "shell": "/bin/sh",
+                    "cols": 40,
+                    "rows": 8
+                })],
+            ))
+            .expect("spawn query ok");
+        let sid = v["session_id"].as_str().expect("session id").to_string();
+        (s, inproc, sid)
+    }
+
+    #[test]
+    fn close_session_leaf_closes_agent_session() {
+        let (s, inproc, sid) = state_with_agent_session();
+        let v = s
+            .query(&Query::call(["close_session"], [serde_json::json!(sid)]))
+            .expect("close query ok");
+        assert_eq!(v["closed"], true, "got {v}");
+        assert_eq!(v["world"], "embedded");
+        let still_there =
+            inproc.with_registry(|r| r.sessions.values().any(|sess| sess.id.to_string() == sid));
+        assert!(!still_there, "closed session must leave the registry");
+    }
+
+    #[test]
+    fn close_session_leaf_refuses_non_agent_session() {
+        use tear_types::MultiplexerControl;
+        let s = state();
+        let inproc = Arc::new(tear_core::InProcess::new());
+        s.set_tear_inproc(Arc::clone(&inproc));
+        // `new_session` defaults to SessionSource::Human — the
+        // operator-owned shape the leaf must refuse to touch.
+        let sid = inproc
+            .new_session("operator-session", "/bin/sh")
+            .expect("new_session");
+        let v = s
+            .query(&Query::call(
+                ["close_session"],
+                [serde_json::json!(sid.to_string())],
+            ))
+            .expect("close query ok");
+        assert_eq!(v["closed"], false, "got {v}");
+        assert_eq!(v["error"], "not-agent-owned");
+        let still_there = inproc.with_registry(|r| r.sessions.contains_key(&sid));
+        assert!(still_there, "refused session must stay in the registry");
+    }
+
+    #[test]
+    fn close_session_leaf_refuses_attached_session() {
+        let (s, inproc, sid) = state_with_agent_session();
+        // Attach a live subscriber (a mado window watching the pane).
+        let pane = inproc.with_registry(|r| {
+            r.sessions
+                .values()
+                .find(|sess| sess.id.to_string() == sid)
+                .and_then(|sess| sess.panes.keys().next().copied())
+                .expect("agent session has a pane")
+        });
+        let _rx = inproc.subscribe_pane_bytes(pane).expect("subscribe");
+        let v = s
+            .query(&Query::call(["close_session"], [serde_json::json!(sid)]))
+            .expect("close query ok");
+        assert_eq!(v["closed"], false, "got {v}");
+        assert_eq!(v["error"], "attached");
+        let still_there =
+            inproc.with_registry(|r| r.sessions.values().any(|sess| sess.id.to_string() == sid));
+        assert!(still_there, "watched session must never be yanked");
+    }
+
+    #[test]
+    fn close_session_leaf_unknown_session_reports_no_such_session() {
+        let s = state();
+        s.set_tear_inproc(Arc::new(tear_core::InProcess::new()));
+        let v = s
+            .query(&Query::call(
+                ["close_session"],
+                [serde_json::json!("00000000deadbeef")],
+            ))
+            .expect("close query ok");
+        assert_eq!(v["closed"], false);
+        assert_eq!(v["error"], "no-such-session");
+    }
+
+    #[test]
+    fn close_session_leaf_invalid_id_is_refused() {
+        let s = state();
+        s.set_tear_inproc(Arc::new(tear_core::InProcess::new()));
+        let v = s
+            .query(&Query::call(
+                ["close_session"],
+                [serde_json::json!("not-a-session-id")],
+            ))
+            .expect("close query ok");
+        assert_eq!(v["closed"], false);
+        assert_eq!(v["error"], "invalid-session-id");
+    }
+
+    #[test]
+    fn close_session_leaf_without_backend_reports_no_live_backend() {
+        let s = state();
+        let v = s
+            .query(&Query::call(
+                ["close_session"],
+                [serde_json::json!("00000000deadbeef")],
+            ))
+            .expect("close query ok");
+        assert_eq!(v["closed"], false);
+        assert_eq!(v["error"], "no-live-backend");
+    }
+
+    #[test]
+    fn schema_advertises_close_session() {
+        assert!(state().schema().contains(&"close_session"));
     }
 
     // ── send_keys_embedded leaf (agent I/O into embedded panes) ───
