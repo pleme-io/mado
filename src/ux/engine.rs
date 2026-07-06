@@ -884,6 +884,15 @@ impl InputEngine {
                 }
                 OverlayEffect::SessionPickerBackspace => self.session_picker_backspace(),
                 OverlayEffect::SessionPickerPush(text) => self.session_picker_push(&text),
+                OverlayEffect::SessionPickerRenameBegin => self.session_picker_rename_begin(),
+                OverlayEffect::SessionPickerRenamePush(text) => {
+                    self.session_picker_rename_push(&text);
+                }
+                OverlayEffect::SessionPickerRenameBackspace => {
+                    self.session_picker_rename_backspace();
+                }
+                OverlayEffect::SessionPickerRenameCommit => self.session_picker_rename_commit(),
+                OverlayEffect::SessionPickerRenameCancel => self.session_picker_rename_cancel(),
             }
         }
     }
@@ -1080,6 +1089,78 @@ impl InputEngine {
         }
         crate::suggest::request_board_refresh();
         self.session_picker_recompute();
+    }
+
+    /// The one-line rename echo shown on the picker notice line. Built by
+    /// plain String composition (typed-emission house rule: no `format!()`).
+    fn rename_echo(buf: &str) -> String {
+        let mut s = String::from("✎ rename → ");
+        s.push_str(buf);
+        s.push('▏'); // inline cursor bar
+        s
+    }
+
+    /// Ctrl-E: begin the inline rename. Seeds an empty buffer (an empty
+    /// commit clears the custom name → reverts to the emoji identity) and
+    /// echoes it on the notice line; the picker board stays visible. The
+    /// rename target is resolved from the highlighted row at COMMIT (nav is
+    /// inert in `Overlay::SessionRename`, so it stays put), keeping the
+    /// generic `FuzzyPicker` free of any session id.
+    fn session_picker_rename_begin(&mut self) {
+        let mut sp = self.session_picker.lock().unwrap();
+        sp.rename_buffer = Some(String::new());
+        sp.notice = Some(Self::rename_echo(""));
+    }
+
+    /// Append typed text to the live rename buffer + refresh the echo.
+    fn session_picker_rename_push(&mut self, text: &str) {
+        let mut sp = self.session_picker.lock().unwrap();
+        if let Some(buf) = sp.rename_buffer.as_mut() {
+            buf.push_str(text);
+        }
+        sp.notice = sp.rename_buffer.as_deref().map(Self::rename_echo);
+    }
+
+    /// Delete the last char of the rename buffer + refresh the echo.
+    fn session_picker_rename_backspace(&mut self) {
+        let mut sp = self.session_picker.lock().unwrap();
+        if let Some(buf) = sp.rename_buffer.as_mut() {
+            buf.pop();
+        }
+        sp.notice = sp.rename_buffer.as_deref().map(Self::rename_echo);
+    }
+
+    /// Enter: commit the rename buffer to the highlighted live session. The
+    /// new name flows to the tear owner + the praça custom_name via the
+    /// bridge; then drop the buffer + re-list so `display_name()` reflects it.
+    /// Only `RowKind::Switch` rows (live sessions) are renamable — presets /
+    /// suggestions are inert here.
+    fn session_picker_rename_commit(&mut self) {
+        use crate::session_picker::RowKind;
+        let (target, name) = {
+            let mut sp = self.session_picker.lock().unwrap();
+            let name = sp.rename_buffer.take();
+            let target = sp.selected_row().and_then(|r| match &r.kind {
+                RowKind::Switch(id) => Some(*id),
+                _ => None,
+            });
+            sp.notice = None;
+            (target, name)
+        };
+        if let (Some(session), Some(name), Some(bridge)) =
+            (target, name, self.session_picker_bridge.as_ref())
+        {
+            let now = crate::auto_attach::now_unix_seconds();
+            bridge.rename_session(session, name.trim(), now);
+        }
+        self.session_picker_recompute();
+    }
+
+    /// Escape: discard the rename buffer, target unchanged.
+    fn session_picker_rename_cancel(&mut self) {
+        let mut sp = self.session_picker.lock().unwrap();
+        sp.rename_buffer = None;
+        sp.notice = None;
     }
 
     /// Accept the highlighted session-picker row: **switch** to it if it's
@@ -3264,7 +3345,8 @@ mod tests {
                 Overlay::None => (false, false, false),
                 Overlay::Search => (true, false, false),
                 Overlay::DirPicker => (false, true, false),
-                Overlay::SessionPicker => (false, false, true),
+                // The rename sub-mode keeps the session-picker board open.
+                Overlay::SessionPicker | Overlay::SessionRename => (false, false, true),
             };
             if h.engine.overlay != want || (search_active, dp_open, sp_open) != want_cells {
                 failures.push(format!(

@@ -40,6 +40,13 @@ pub struct FuzzyPicker<Row> {
     /// row (never selectable). Refreshed by the engine on every re-list
     /// from the bridge's health read; cleared on open/close.
     pub footer: Option<String>,
+    /// Inline-edit buffer for the session picker's Ctrl-E rename sub-mode
+    /// (`Overlay::SessionRename`). `Some` = a live rename is in progress;
+    /// keystrokes edit it, Enter commits it to the highlighted session,
+    /// Escape drops it. Generic + additive: the dir picker never sets it.
+    /// The rename TARGET is resolved from `selected_row()` at commit time,
+    /// so no session-specific id lives on this shared picker type.
+    pub rename_buffer: Option<String>,
 }
 
 impl<Row> FuzzyPicker<Row> {
@@ -53,6 +60,7 @@ impl<Row> FuzzyPicker<Row> {
             selected: 0,
             notice: None,
             footer: None,
+            rename_buffer: None,
         }
     }
 
@@ -67,6 +75,7 @@ impl<Row> FuzzyPicker<Row> {
         self.results = rows;
         self.notice = None;
         self.footer = None;
+        self.rename_buffer = None;
     }
 
     /// Close + reset.
@@ -78,6 +87,7 @@ impl<Row> FuzzyPicker<Row> {
         self.selected = 0;
         self.notice = None;
         self.footer = None;
+        self.rename_buffer = None;
     }
 
     /// Replace the ranked rows after a query edit (the engine recomputes

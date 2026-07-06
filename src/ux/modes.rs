@@ -71,6 +71,13 @@ pub(crate) enum Overlay {
     /// (like [`Overlay::DirPicker`]); on Enter the highlighted
     /// session's pane is posted to the switch channel.
     SessionPicker,
+    /// Ctrl-E from the session picker — inline live rename of the
+    /// highlighted session. The picker stays open underneath; keystrokes
+    /// edit a rename buffer, Enter commits the new name (which flows down
+    /// to the tear session owner), Escape cancels; both return to
+    /// [`Overlay::SessionPicker`]. Navigation is inert here so the rename
+    /// target stays fixed on the row Ctrl-E was pressed on.
+    SessionRename,
 }
 
 /// Search-nav chords resolved from the keybind atlas (`search_close`
@@ -98,6 +105,11 @@ pub(crate) enum OverlayKeyClass {
     CtrlN,
     /// Ctrl-P — emacs/readline "prev" navigation (picker move up).
     CtrlP,
+    /// Ctrl-E — begin inline rename of the highlighted session-picker row.
+    /// Overlay-local: meaningful only while the session picker owns the
+    /// keyboard; everywhere else a bare Ctrl-E (readline end-of-line) still
+    /// falls through to the PTY.
+    CtrlE,
     Other,
 }
 
@@ -143,6 +155,7 @@ impl OverlayKey {
         let class = match key {
             KeyCode::Char('n' | 'N') if ctrl_only => OverlayKeyClass::CtrlN,
             KeyCode::Char('p' | 'P') if ctrl_only => OverlayKeyClass::CtrlP,
+            KeyCode::Char('e' | 'E') if ctrl_only => OverlayKeyClass::CtrlE,
             KeyCode::Escape => OverlayKeyClass::Escape,
             KeyCode::Enter => OverlayKeyClass::Enter,
             KeyCode::Up => OverlayKeyClass::Up,
@@ -212,6 +225,20 @@ pub(crate) enum OverlayEffect {
     SessionPickerMoveDown,
     SessionPickerBackspace,
     SessionPickerPush(String),
+    /// Begin inline rename of the highlighted session — capture the target
+    /// SessionId + seed the rename buffer from its display name.
+    SessionPickerRenameBegin,
+    /// Append committed text to the live rename buffer.
+    SessionPickerRenamePush(String),
+    /// Delete the last char of the rename buffer.
+    SessionPickerRenameBackspace,
+    /// Commit the rename buffer to the target session — the new name flows
+    /// to the tear session owner via `MultiplexerControl::rename_session`
+    /// AND the praça `custom_name`. Empty buffer clears `custom_name`
+    /// (reverts to the emoji/glyph identity).
+    SessionPickerRenameCommit,
+    /// Discard the rename buffer, target unchanged.
+    SessionPickerRenameCancel,
 }
 
 /// Whether the keystroke was consumed by the overlay or continues
@@ -460,6 +487,9 @@ impl Overlay {
                             overlay_step(Overlay::DirPicker, Consumed, vec![])
                         }
                     }
+                    // Ctrl-E is the session-picker rename gesture only — inert
+                    // in the dir picker.
+                    OverlayKeyClass::CtrlE => overlay_step(Overlay::DirPicker, Consumed, vec![]),
                     OverlayKeyClass::Other => {
                         if k.plain && let Some(t) = k.text {
                             return overlay_step(
@@ -542,6 +572,11 @@ impl Overlay {
                             overlay_step(Overlay::SessionPicker, Consumed, vec![])
                         }
                     }
+                    OverlayKeyClass::CtrlE => overlay_step(
+                        Overlay::SessionRename,
+                        Consumed,
+                        vec![OverlayEffect::SessionPickerRenameBegin],
+                    ),
                     OverlayKeyClass::Other => {
                         if k.plain && let Some(t) = k.text {
                             return overlay_step(
@@ -551,6 +586,79 @@ impl Overlay {
                             );
                         }
                         overlay_step(Overlay::SessionPicker, Consumed, vec![])
+                    }
+                },
+            },
+            // ── Inline session rename: the picker stays open underneath;
+            // keystrokes edit a rename buffer, Enter commits (→ tear),
+            // Escape cancels; both return to SessionPicker. Opening a
+            // sibling overlay switches away (cancels the rename first).
+            // Navigation keys are inert — the rename target is fixed on the
+            // row Ctrl-E was pressed. ──
+            Overlay::SessionRename => match event {
+                OverlayEvent::OpenSearch => overlay_step(
+                    Overlay::Search,
+                    Consumed,
+                    vec![
+                        OverlayEffect::SessionPickerRenameCancel,
+                        OverlayEffect::DirPickerClose,
+                        OverlayEffect::SessionPickerClose,
+                        OverlayEffect::SearchOpen,
+                    ],
+                ),
+                OverlayEvent::OpenDirPicker => overlay_step(
+                    Overlay::DirPicker,
+                    Consumed,
+                    vec![
+                        OverlayEffect::SessionPickerRenameCancel,
+                        OverlayEffect::SearchClose,
+                        OverlayEffect::SessionPickerClose,
+                        OverlayEffect::DirPickerOpen,
+                    ],
+                ),
+                OverlayEvent::OpenSessionPicker => overlay_step(
+                    Overlay::SessionPicker,
+                    Consumed,
+                    vec![
+                        OverlayEffect::SessionPickerRenameCancel,
+                        OverlayEffect::SearchClose,
+                        OverlayEffect::DirPickerClose,
+                        OverlayEffect::SessionPickerOpen,
+                    ],
+                ),
+                OverlayEvent::Key(k) => match k.key {
+                    OverlayKeyClass::Escape => overlay_step(
+                        Overlay::SessionPicker,
+                        Consumed,
+                        vec![OverlayEffect::SessionPickerRenameCancel],
+                    ),
+                    OverlayKeyClass::Enter => overlay_step(
+                        Overlay::SessionPicker,
+                        Consumed,
+                        vec![OverlayEffect::SessionPickerRenameCommit],
+                    ),
+                    OverlayKeyClass::Backspace => overlay_step(
+                        Overlay::SessionRename,
+                        Consumed,
+                        vec![OverlayEffect::SessionPickerRenameBackspace],
+                    ),
+                    // Navigation is inert during rename — keep the target row fixed.
+                    OverlayKeyClass::Up
+                    | OverlayKeyClass::Down
+                    | OverlayKeyClass::CtrlN
+                    | OverlayKeyClass::CtrlP
+                    | OverlayKeyClass::CtrlE => {
+                        overlay_step(Overlay::SessionRename, Consumed, vec![])
+                    }
+                    OverlayKeyClass::Other => {
+                        if k.plain && let Some(t) = k.text {
+                            return overlay_step(
+                                Overlay::SessionRename,
+                                Consumed,
+                                vec![OverlayEffect::SessionPickerRenamePush(t)],
+                            );
+                        }
+                        overlay_step(Overlay::SessionRename, Consumed, vec![])
                     }
                 },
             },
@@ -1231,6 +1339,38 @@ mod tests {
         }
     }
 
+    /// Ctrl-E rename sub-mode: the exact transition sequence — begin, edit,
+    /// inert-nav, then commit/cancel both return to the picker.
+    #[test]
+    fn ctrl_e_drives_the_session_rename_sub_mode() {
+        use OverlayKeyClass as K;
+        // Ctrl-E from the picker → SessionRename + begin.
+        let s = Overlay::SessionPicker.on_event(OverlayEvent::Key(key(None, K::CtrlE, None, false)));
+        assert_eq!(s.state, Overlay::SessionRename);
+        assert_eq!(s.effects, vec![OverlayEffect::SessionPickerRenameBegin]);
+        // Typing pushes to the rename buffer; stays in rename.
+        let s = Overlay::SessionRename.on_event(OverlayEvent::Key(key(None, K::Other, Some("x"), true)));
+        assert_eq!(s.state, Overlay::SessionRename);
+        assert_eq!(s.effects, vec![OverlayEffect::SessionPickerRenamePush("x".to_owned())]);
+        // Backspace edits the buffer.
+        let s = Overlay::SessionRename.on_event(OverlayEvent::Key(key(None, K::Backspace, None, true)));
+        assert_eq!(s.effects, vec![OverlayEffect::SessionPickerRenameBackspace]);
+        // Navigation is inert — the rename target stays on the row Ctrl-E hit.
+        for nav in [K::Up, K::Down, K::CtrlN, K::CtrlP, K::CtrlE] {
+            let s = Overlay::SessionRename.on_event(OverlayEvent::Key(key(None, nav, None, false)));
+            assert_eq!(s.state, Overlay::SessionRename);
+            assert!(s.effects.is_empty(), "nav {nav:?} must be inert in rename");
+        }
+        // Enter commits → back to the picker.
+        let s = Overlay::SessionRename.on_event(OverlayEvent::Key(key(None, K::Enter, None, false)));
+        assert_eq!(s.state, Overlay::SessionPicker);
+        assert_eq!(s.effects, vec![OverlayEffect::SessionPickerRenameCommit]);
+        // Escape cancels → back to the picker.
+        let s = Overlay::SessionRename.on_event(OverlayEvent::Key(key(None, K::Escape, None, false)));
+        assert_eq!(s.state, Overlay::SessionPicker);
+        assert_eq!(s.effects, vec![OverlayEffect::SessionPickerRenameCancel]);
+    }
+
     fn all_overlay_events() -> Vec<OverlayEvent> {
         vec![
             OverlayEvent::OpenSearch,
@@ -1245,6 +1385,7 @@ mod tests {
             OverlayEvent::Key(key(None, OverlayKeyClass::Down, None, true)),
             OverlayEvent::Key(key(None, OverlayKeyClass::CtrlN, None, false)),
             OverlayEvent::Key(key(None, OverlayKeyClass::CtrlP, None, false)),
+            OverlayEvent::Key(key(None, OverlayKeyClass::CtrlE, None, false)),
             OverlayEvent::Key(key(None, OverlayKeyClass::Backspace, None, true)),
             OverlayEvent::Key(key(None, OverlayKeyClass::Backspace, None, false)),
             OverlayEvent::Key(key(None, OverlayKeyClass::Other, Some("a"), true)),
@@ -1548,8 +1689,12 @@ mod tests {
                                 failures.push(format!("{ctx}: key opened an overlay by itself"));
                             }
                         }
-                        // An open overlay owns the keyboard totally.
-                        Overlay::Search | Overlay::DirPicker | Overlay::SessionPicker => {
+                        // An open overlay owns the keyboard totally (the
+                        // rename sub-mode consumes keys the same way).
+                        Overlay::Search
+                        | Overlay::DirPicker
+                        | Overlay::SessionPicker
+                        | Overlay::SessionRename => {
                             if step.routing != OverlayRouting::Consumed {
                                 failures.push(format!("{ctx}: open overlay leaked a key"));
                             }

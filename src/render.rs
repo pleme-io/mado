@@ -5244,7 +5244,10 @@ impl RenderCallback for TerminalRenderer {
         let focus = *self.overlay_focus.lock().unwrap();
         match focus {
             Overlay::None => {}
-            Overlay::SessionPicker => {
+            // The rename sub-mode keeps the picker board visible underneath;
+            // the live rename buffer rides the picker's `notice` line (set by
+            // the engine's rename handlers), so both states draw the picker.
+            Overlay::SessionPicker | Overlay::SessionRename => {
                 let (q, results, sel, disabled, notice, footer) = {
                     let g = self.session_picker.lock().unwrap();
                     (

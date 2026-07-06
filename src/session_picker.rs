@@ -143,6 +143,17 @@ pub trait SessionPickerBridge: Send {
         false
     }
 
+    /// Rename a live session to `new_name` — the Ctrl-E inline-rename commit.
+    /// The name flows to the tear session OWNER (the PTY-owning `s.name` via
+    /// `MultiplexerControl::rename_session`) AND the praça `custom_name` (so
+    /// `display_name()` + the fuzzy index reflect it). An empty `new_name`
+    /// clears `custom_name`, reverting to the emoji/glyph identity. Default
+    /// `false` (an inert bridge doesn't rename); the live praça bridge
+    /// overrides it.
+    fn rename_session(&self, _session: SessionId, _new_name: &str, _now: u64) -> bool {
+        false
+    }
+
     /// Spawn a session aimed at a task suggestion (by id) and switch to it —
     /// the [`RowKind::Suggestion`] accept path. Looks the suggestion up in the
     /// store, spawns into its target cwd with its emoji-native name, indexes +
@@ -792,6 +803,30 @@ impl SessionPickerBridge for PracaPickerBridge {
 
     fn save_as_preset(&self, session: SessionId, now: u64) -> bool {
         capture_preset(self.inproc.as_ref(), &self.praca, session, now)
+    }
+
+    fn rename_session(&self, session: SessionId, new_name: &str, now: u64) -> bool {
+        // (a) Rename the PTY-owning tear session — the MultiplexerControl RPC
+        // on the embedded InProcess owner; this IS "all the way down to tear".
+        let tear_ok = self.inproc.rename_session(session, new_name).is_ok();
+        // (b) Mirror into the praça custom_name so display_name() + the fuzzy
+        // index reflect it immediately (an empty name clears custom_name,
+        // reverting to the emoji/glyph identity — a free "reset name").
+        let praca_ok = {
+            let mut praca = self.praca();
+            match praca.index.get_mut(session) {
+                Some(rec) => {
+                    rec.rename(new_name);
+                    true
+                }
+                None => false,
+            }
+        };
+        // Keep the just-renamed session MRU-fresh (same rationale as switch_to).
+        if tear_ok || praca_ok {
+            self.praca().record_visit(session, now);
+        }
+        tear_ok || praca_ok
     }
 
     fn refresh(&self, now: u64) {
