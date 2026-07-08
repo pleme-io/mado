@@ -1493,9 +1493,9 @@ rec {
       };
       "bytes" = rec {
         crateName = "bytes";
-        version = "1.12.0";
+        version = "1.12.1";
         edition = "2021";
-        sha256 = "14xmxm8imyvw675bsgyadmzm9k63js1sdqh7099p0hlj2p9zbqwa";
+        sha256 = "017z19dpg4f942h051m7bpnzcgng042hhcpd7bmg7bjjqd42lrgw";
         authors = [
           "Carl Lerche <me@carllerche.com>"
           "Sean McArthur <sean@seanmonstar.com>"
@@ -2445,9 +2445,9 @@ rec {
       };
       "crossbeam-epoch" = rec {
         crateName = "crossbeam-epoch";
-        version = "0.9.19";
+        version = "0.9.20";
         edition = "2021";
-        sha256 = "07c5k0cfsxdxhawqj7jk5fnkmrdmyd07vrgaibfll6zk3prv0ya2";
+        sha256 = "0gzg0v8in20iajikalg5i5qgpp0m26r426f0fs8nwk953w218s9d";
         libName = "crossbeam_epoch";
         dependencies = [
           {
@@ -4549,13 +4549,13 @@ rec {
       };
       "gen-macros" = rec {
         crateName = "gen-macros";
-        version = "0.1.17";
+        version = "0.1.18";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/gen";
-          rev = "26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0";
-          sha256 = "1w27m38bijskc28wwmg01l9yg236bcbdxfzs7klvzam0m41dc44j";
+          rev = "8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2";
+          sha256 = "0kiyw3zag044005kjxfx55llxlk5y3q0zphcycfhvw73ipk2dywl";
         };
         procMacro = true;
         libName = "gen_macros";
@@ -4581,13 +4581,13 @@ rec {
       };
       "gen-platform" = rec {
         crateName = "gen-platform";
-        version = "0.1.17";
+        version = "0.1.18";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/gen";
-          rev = "26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0";
-          sha256 = "1w27m38bijskc28wwmg01l9yg236bcbdxfzs7klvzam0m41dc44j";
+          rev = "8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2";
+          sha256 = "0kiyw3zag044005kjxfx55llxlk5y3q0zphcycfhvw73ipk2dywl";
         };
         libName = "gen_platform";
         authors = [
@@ -4624,13 +4624,13 @@ rec {
       };
       "gen-types" = rec {
         crateName = "gen-types";
-        version = "0.1.17";
+        version = "0.1.18";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/gen";
-          rev = "26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0";
-          sha256 = "1w27m38bijskc28wwmg01l9yg236bcbdxfzs7klvzam0m41dc44j";
+          rev = "8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2";
+          sha256 = "0kiyw3zag044005kjxfx55llxlk5y3q0zphcycfhvw73ipk2dywl";
         };
         libName = "gen_types";
         authors = [
@@ -6160,9 +6160,9 @@ rec {
       };
       "inotify" = rec {
         crateName = "inotify";
-        version = "0.11.3";
+        version = "0.11.4";
         edition = "2018";
-        sha256 = "10v490hfkbw0fanrxw4z0g7j4b6kkw1kch85iknjyrxcljalm1fx";
+        sha256 = "1j7jkacw6cxra4jf1sbndkpkbm5qm0bvxpcms36cjghq3aaf2fqm";
         dependencies = [
           {
             name = "bitflags";
@@ -6186,9 +6186,9 @@ rec {
       };
       "inotify-sys" = rec {
         crateName = "inotify-sys";
-        version = "0.1.7";
+        version = "0.1.8";
         edition = "2015";
-        sha256 = "1z86mv4y3dswk9jb2l5dv3d4f8m4vjfyd2wrkip841in3f4lxacy";
+        sha256 = "0zgkxmqa7wlsc348166rr9np4560rflzlcvsmf8xyg0i5h5zhcy0";
         libName = "inotify_sys";
         authors = [
           "Hanno Braun <hb@hannobraun.de>"
@@ -6756,13 +6756,13 @@ rec {
       };
       "kanchi" = rec {
         crateName = "kanchi";
-        version = "0.1.0";
+        version = "0.1.1";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/kanchi";
-          rev = "e40b1e11a716c030b1c6037f25789c75e00fc646";
-          sha256 = "17z3mqyklj530px03mh7ilqbk3m06n9gqgn1mfcipg30s4r8x9fj";
+          rev = "c01183be8ac1224b0424b7be874fee52a1624117";
+          sha256 = "002dyd2ifg493yx2srsaal59df42lgbmy53j4zlkqlskb5nnp4pm";
         };
         dependencies = [
           {
@@ -7365,7 +7365,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.72";
+        version = "0.1.73";
         edition = "2024";
         crateBin = [
           {
@@ -7813,9 +7813,9 @@ rec {
       };
       "memchr" = rec {
         crateName = "memchr";
-        version = "2.8.2";
+        version = "2.8.3";
         edition = "2021";
-        sha256 = "1i33wr49pcz2sbd12nds3n9fszay8kq5bk78gwciz462mcs49448";
+        sha256 = "161xa63ipfanf8v3nb82xd5hqgydv55nzw59wyngqbz6alfaz2yg";
         authors = [
           "Andrew Gallant <jamslam@gmail.com>"
           "bluss"
@@ -8726,9 +8726,9 @@ rec {
       };
       "num-iter" = rec {
         crateName = "num-iter";
-        version = "0.1.45";
+        version = "0.1.46";
         edition = "2018";
-        sha256 = "1gzm7vc5g9qsjjl3bqk9rz1h6raxhygbrcpbfl04swlh0i506a8l";
+        sha256 = "12q4x0lp9l6bvsak1p5q24lvfzl99ak9vzmwhqbwksm1d6yh0a69";
         libName = "num_iter";
         authors = [
           "The Rust Project Developers"
@@ -8745,12 +8745,6 @@ rec {
             packageId = "num-traits";
             usesDefaultFeatures = false;
             features = [ "i128" ];
-          }
-        ];
-        buildDependencies = [
-          {
-            name = "autocfg";
-            packageId = "autocfg";
           }
         ];
         features = {
@@ -15454,9 +15448,9 @@ rec {
       };
       "rustversion" = rec {
         crateName = "rustversion";
-        version = "1.0.22";
+        version = "1.0.23";
         edition = "2018";
-        sha256 = "0vfl70jhv72scd9rfqgr2n11m5i9l1acnk684m2w83w0zbqdx75k";
+        sha256 = "07z2a843fs80fawwflj9jwn49k9b0bd0dhhbvy0ar69vaxd72m6g";
         procMacro = true;
         build = "build/build.rs";
         authors = [
@@ -17285,15 +17279,15 @@ rec {
         ];
 
       };
-      "shikumi 0.1.151" = rec {
+      "shikumi 0.1.170" = rec {
         crateName = "shikumi";
-        version = "0.1.151";
+        version = "0.1.170";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
-          rev = "4927e26f092f9d5ab69729f4d8021d07cd74b147";
-          sha256 = "016cikc5ywzqbimi579qfpbj6yxis1m4vh0lqrxsvnca0wd7a210";
+          rev = "5981edd51eef7181b52513e001ca5e99e648fc2d";
+          sha256 = "004iz2r9xqd3vi2bmklc2rs1q3wkyjjq4fxdq9h7i788vhhzn77x";
         };
         dependencies = [
           {
@@ -19502,7 +19496,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "shikumi 0.1.151";
+            packageId = "shikumi 0.1.170";
             features = [ "cli" ];
           }
           {
