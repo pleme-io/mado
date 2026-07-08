@@ -2421,9 +2421,9 @@ rec {
       };
       "crossbeam-deque" = rec {
         crateName = "crossbeam-deque";
-        version = "0.8.6";
+        version = "0.8.7";
         edition = "2021";
-        sha256 = "0l9f1saqp1gn5qy0rxvkmz4m6n7fc0b3dbm6q1r5pmgpnyvi3lcx";
+        sha256 = "1sqcxia1mmz2fw8ba1v72jjrvbkvg7c6sz9l3sl07sv1gggf10ai";
         libName = "crossbeam_deque";
         dependencies = [
           {
@@ -2445,9 +2445,9 @@ rec {
       };
       "crossbeam-epoch" = rec {
         crateName = "crossbeam-epoch";
-        version = "0.9.18";
+        version = "0.9.19";
         edition = "2021";
-        sha256 = "03j2np8llwf376m3fxqx859mgp9f83hj1w34153c7a9c7i5ar0jv";
+        sha256 = "07c5k0cfsxdxhawqj7jk5fnkmrdmyd07vrgaibfll6zk3prv0ya2";
         libName = "crossbeam_epoch";
         dependencies = [
           {
@@ -2467,9 +2467,9 @@ rec {
       };
       "crossbeam-queue" = rec {
         crateName = "crossbeam-queue";
-        version = "0.3.12";
+        version = "0.3.13";
         edition = "2021";
-        sha256 = "059igaxckccj6ndmg45d5yf7cm4ps46c18m21afq3pwiiz1bnn0g";
+        sha256 = "09ksdjzqk1iadmsfnz46f1qvy6bbqri91hnvyklqpn097gxi6gc0";
         libName = "crossbeam_queue";
         dependencies = [
           {
@@ -2487,9 +2487,9 @@ rec {
       };
       "crossbeam-utils" = rec {
         crateName = "crossbeam-utils";
-        version = "0.8.21";
+        version = "0.8.22";
         edition = "2021";
-        sha256 = "0a3aa2bmc8q35fb67432w16wvi54sfmb69rk9h5bhd18vw0c99fh";
+        sha256 = "05vwf7pmjq8c8f3fp5qqdm0z3cnk4p62wi8spf0jms5yjnh3v031";
         libName = "crossbeam_utils";
         features = {
           "default" = [ "std" ];
@@ -6160,9 +6160,9 @@ rec {
       };
       "inotify" = rec {
         crateName = "inotify";
-        version = "0.11.2";
+        version = "0.11.3";
         edition = "2018";
-        sha256 = "1hd2xixzzr8s6anxil0db57jbfxvr4zv17qmzr34jwrfhjjnhgjk";
+        sha256 = "10v490hfkbw0fanrxw4z0g7j4b6kkw1kch85iknjyrxcljalm1fx";
         dependencies = [
           {
             name = "bitflags";
@@ -6761,8 +6761,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/kanchi";
-          rev = "ac43f6bea26c8ef612e0848c59bf94cc2180f990";
-          sha256 = "124hkv35xiw9cabb72wf4v14sjn4hc41i5s3x41m1yfwh71n5ijh";
+          rev = "e40b1e11a716c030b1c6037f25789c75e00fc646";
+          sha256 = "17z3mqyklj530px03mh7ilqbk3m06n9gqgn1mfcipg30s4r8x9fj";
         };
         dependencies = [
           {
@@ -7365,7 +7365,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.71";
+        version = "0.1.72";
         edition = "2024";
         crateBin = [
           {
@@ -28210,9 +28210,9 @@ rec {
       };
       "zerocopy" = rec {
         crateName = "zerocopy";
-        version = "0.8.52";
+        version = "0.8.53";
         edition = "2021";
-        sha256 = "0gv563swc1yn3k8w3wjj07a8q293rkx99nfp3a25vzzmbycj446f";
+        sha256 = "1qcdv45iz4499bafwcnflvzf7adfvbnvgfc5w8cx8mk12d9n0wkm";
         authors = [
           "Joshua Liebow-Feeser <joshlf@google.com>"
           "Jack Wrenn <jswrenn@amazon.com>"
@@ -28246,9 +28246,9 @@ rec {
       };
       "zerocopy-derive" = rec {
         crateName = "zerocopy-derive";
-        version = "0.8.52";
+        version = "0.8.53";
         edition = "2021";
-        sha256 = "0c3rhsh4sd9kdym4z55zprybjkydy9y2gvw75d72aapcfa5z7rqs";
+        sha256 = "0wgxvsnv44x5xdli270xh085458m76dkl0iqjpa3624hry9gs527";
         procMacro = true;
         libName = "zerocopy_derive";
         authors = [

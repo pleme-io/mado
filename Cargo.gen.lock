@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "65be39799fdaeb5181213ec1f506303c6165f1456372d8cdf092614ffb993eb7",
+  "cargo_lock_sha256": "e21d3cbda12652e58571815263f34d1e04c1e2708b4d12f6ad3a28837d596c59",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -118,7 +118,7 @@
         "runtime_dependencies": [
           {
             "name": "memchr",
-            "package_key": "memchr-2.8.2",
+            "package_key": "memchr-2.8.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -262,7 +262,7 @@
         "runtime_dependencies": [
           {
             "name": "rustversion",
-            "package_key": "rustversion-1.0.22",
+            "package_key": "rustversion-1.0.23",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -951,7 +951,7 @@
           "std"
         ]
       },
-      "bytes-1.12.0": {
+      "bytes-1.12.1": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": [
@@ -1575,7 +1575,7 @@
         "runtime_dependencies": [
           {
             "name": "crossbeam_epoch",
-            "package_key": "crossbeam-epoch-0.9.19",
+            "package_key": "crossbeam-epoch-0.9.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -1600,7 +1600,7 @@
           "std"
         ]
       },
-      "crossbeam-epoch-0.9.19": {
+      "crossbeam-epoch-0.9.20": {
         "runtime_dependencies": [
           {
             "name": "crossbeam_utils",
@@ -3357,7 +3357,7 @@
           },
           {
             "name": "memchr",
-            "package_key": "memchr-2.8.2",
+            "package_key": "memchr-2.8.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3545,7 +3545,7 @@
           "default"
         ]
       },
-      "gen-macros-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0": {
+      "gen-macros-0.1.18-8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -3584,11 +3584,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "gen-platform-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0": {
+      "gen-platform-0.1.18-8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2": {
         "runtime_dependencies": [
           {
             "name": "gen_macros",
-            "package_key": "gen-macros-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0",
+            "package_key": "gen-macros-0.1.18-8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3598,7 +3598,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0",
+            "package_key": "gen-types-0.1.18-8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3652,7 +3652,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "gen-types-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0": {
+      "gen-types-0.1.18-8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -5793,7 +5793,7 @@
         "runtime_dependencies": [
           {
             "name": "memchr",
-            "package_key": "memchr-2.8.2",
+            "package_key": "memchr-2.8.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -6036,7 +6036,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "memchr-2.8.2": {
+      "memchr-2.8.3": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": [
@@ -6664,7 +6664,7 @@
           },
           {
             "name": "num_iter",
-            "package_key": "num-iter-0.1.45",
+            "package_key": "num-iter-0.1.46",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -6750,7 +6750,7 @@
           "std"
         ]
       },
-      "num-iter-0.1.45": {
+      "num-iter-0.1.46": {
         "runtime_dependencies": [
           {
             "name": "num_integer",
@@ -6777,18 +6777,7 @@
             "tree": "target"
           }
         ],
-        "build_dependencies": [
-          {
-            "name": "autocfg",
-            "package_key": "autocfg-1.5.1",
-            "kind": "build",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "host"
-          }
-        ],
+        "build_dependencies": [],
         "features": []
       },
       "num-traits-0.2.19": {
@@ -8899,7 +8888,7 @@
           },
           {
             "name": "memchr",
-            "package_key": "memchr-2.8.2",
+            "package_key": "memchr-2.8.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -8968,7 +8957,7 @@
           },
           {
             "name": "memchr",
-            "package_key": "memchr-2.8.2",
+            "package_key": "memchr-2.8.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -9836,7 +9825,7 @@
           "std"
         ]
       },
-      "rustversion-1.0.22": {
+      "rustversion-1.0.23": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
@@ -11523,7 +11512,7 @@
           },
           {
             "name": "memchr",
-            "package_key": "memchr-2.8.2",
+            "package_key": "memchr-2.8.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -11946,7 +11935,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.151-4927e26f092f9d5ab69729f4d8021d07cd74b147": {
+      "shikumi-0.1.170-5981edd51eef7181b52513e001ca5e99e648fc2d": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -11996,7 +11985,7 @@
           },
           {
             "name": "gen_platform",
-            "package_key": "gen-platform-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0",
+            "package_key": "gen-platform-0.1.18-8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12006,7 +11995,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0",
+            "package_key": "gen-types-0.1.18-8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12145,7 +12134,7 @@
           },
           {
             "name": "gen_platform",
-            "package_key": "gen-platform-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0",
+            "package_key": "gen-platform-0.1.18-8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12155,7 +12144,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0",
+            "package_key": "gen-types-0.1.18-8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12561,7 +12550,7 @@
           },
           {
             "name": "bytes",
-            "package_key": "bytes-1.12.0",
+            "package_key": "bytes-1.12.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12707,7 +12696,7 @@
           },
           {
             "name": "memchr",
-            "package_key": "memchr-2.8.2",
+            "package_key": "memchr-2.8.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -13248,7 +13237,7 @@
           },
           {
             "name": "bytes",
-            "package_key": "bytes-1.12.0",
+            "package_key": "bytes-1.12.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13431,7 +13420,7 @@
           },
           {
             "name": "memchr",
-            "package_key": "memchr-2.8.2",
+            "package_key": "memchr-2.8.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -13825,7 +13814,7 @@
           },
           {
             "name": "memchr",
-            "package_key": "memchr-2.8.2",
+            "package_key": "memchr-2.8.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -14348,7 +14337,7 @@
           },
           {
             "name": "rustversion",
-            "package_key": "rustversion-1.0.22",
+            "package_key": "rustversion-1.0.23",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14843,7 +14832,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.151-4927e26f092f9d5ab69729f4d8021d07cd74b147",
+            "package_key": "shikumi-0.1.170-5981edd51eef7181b52513e001ca5e99e648fc2d",
             "kind": "normal",
             "features": [
               "cli"
@@ -15704,7 +15693,7 @@
         "runtime_dependencies": [
           {
             "name": "bytes",
-            "package_key": "bytes-1.12.0",
+            "package_key": "bytes-1.12.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15916,7 +15905,7 @@
         "runtime_dependencies": [
           {
             "name": "bytes",
-            "package_key": "bytes-1.12.0",
+            "package_key": "bytes-1.12.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17688,7 +17677,7 @@
           },
           {
             "name": "memchr",
-            "package_key": "memchr-2.8.2",
+            "package_key": "memchr-2.8.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -19265,7 +19254,7 @@
               "fallback"
             ]
           },
-          "kanchi-0.1.0-e40b1e11a716c030b1c6037f25789c75e00fc646": {
+          "kanchi-0.1.1-c01183be8ac1224b0424b7be874fee52a1624117": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -19404,7 +19393,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.71": {
+          "mado-0.1.72": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -19659,7 +19648,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.0-e40b1e11a716c030b1c6037f25789c75e00fc646",
+                "package_key": "kanchi-0.1.1-c01183be8ac1224b0424b7be874fee52a1624117",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23714,7 +23703,7 @@
               "fallback"
             ]
           },
-          "inotify-0.11.3": {
+          "inotify-0.11.4": {
             "runtime_dependencies": [
               {
                 "name": "bitflags",
@@ -23728,7 +23717,7 @@
               },
               {
                 "name": "inotify_sys",
-                "package_key": "inotify-sys-0.1.7",
+                "package_key": "inotify-sys-0.1.8",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23750,7 +23739,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "inotify-sys-0.1.7": {
+          "inotify-sys-0.1.8": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -23808,7 +23797,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "kanchi-0.1.0-e40b1e11a716c030b1c6037f25789c75e00fc646": {
+          "kanchi-0.1.1-c01183be8ac1224b0424b7be874fee52a1624117": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -23865,7 +23854,7 @@
               "system"
             ]
           },
-          "mado-0.1.71": {
+          "mado-0.1.72": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -24110,7 +24099,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.0-e40b1e11a716c030b1c6037f25789c75e00fc646",
+                "package_key": "kanchi-0.1.1-c01183be8ac1224b0424b7be874fee52a1624117",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -24493,7 +24482,7 @@
             "runtime_dependencies": [
               {
                 "name": "inotify",
-                "package_key": "inotify-0.11.3",
+                "package_key": "inotify-0.11.4",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -24674,7 +24663,7 @@
             "runtime_dependencies": [
               {
                 "name": "memchr",
-                "package_key": "memchr-2.8.2",
+                "package_key": "memchr-2.8.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27381,7 +27370,7 @@
               "fallback"
             ]
           },
-          "inotify-0.11.3": {
+          "inotify-0.11.4": {
             "runtime_dependencies": [
               {
                 "name": "bitflags",
@@ -27395,7 +27384,7 @@
               },
               {
                 "name": "inotify_sys",
-                "package_key": "inotify-sys-0.1.7",
+                "package_key": "inotify-sys-0.1.8",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27417,7 +27406,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "inotify-sys-0.1.7": {
+          "inotify-sys-0.1.8": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -27475,7 +27464,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "kanchi-0.1.0-e40b1e11a716c030b1c6037f25789c75e00fc646": {
+          "kanchi-0.1.1-c01183be8ac1224b0424b7be874fee52a1624117": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -27532,7 +27521,7 @@
               "system"
             ]
           },
-          "mado-0.1.71": {
+          "mado-0.1.72": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -27777,7 +27766,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.0-e40b1e11a716c030b1c6037f25789c75e00fc646",
+                "package_key": "kanchi-0.1.1-c01183be8ac1224b0424b7be874fee52a1624117",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -28160,7 +28149,7 @@
             "runtime_dependencies": [
               {
                 "name": "inotify",
-                "package_key": "inotify-0.11.3",
+                "package_key": "inotify-0.11.4",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -28341,7 +28330,7 @@
             "runtime_dependencies": [
               {
                 "name": "memchr",
-                "package_key": "memchr-2.8.2",
+                "package_key": "memchr-2.8.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31181,7 +31170,7 @@
               "fallback"
             ]
           },
-          "kanchi-0.1.0-e40b1e11a716c030b1c6037f25789c75e00fc646": {
+          "kanchi-0.1.1-c01183be8ac1224b0424b7be874fee52a1624117": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -31320,7 +31309,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.71": {
+          "mado-0.1.72": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31575,7 +31564,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.0-e40b1e11a716c030b1c6037f25789c75e00fc646",
+                "package_key": "kanchi-0.1.1-c01183be8ac1224b0424b7be874fee52a1624117",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35584,7 +35573,7 @@
               "fallback"
             ]
           },
-          "inotify-0.11.3": {
+          "inotify-0.11.4": {
             "runtime_dependencies": [
               {
                 "name": "bitflags",
@@ -35598,7 +35587,7 @@
               },
               {
                 "name": "inotify_sys",
-                "package_key": "inotify-sys-0.1.7",
+                "package_key": "inotify-sys-0.1.8",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35620,7 +35609,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "inotify-sys-0.1.7": {
+          "inotify-sys-0.1.8": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -35678,7 +35667,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "kanchi-0.1.0-e40b1e11a716c030b1c6037f25789c75e00fc646": {
+          "kanchi-0.1.1-c01183be8ac1224b0424b7be874fee52a1624117": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -35735,7 +35724,7 @@
               "system"
             ]
           },
-          "mado-0.1.71": {
+          "mado-0.1.72": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35980,7 +35969,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.0-e40b1e11a716c030b1c6037f25789c75e00fc646",
+                "package_key": "kanchi-0.1.1-c01183be8ac1224b0424b7be874fee52a1624117",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36363,7 +36352,7 @@
             "runtime_dependencies": [
               {
                 "name": "inotify",
-                "package_key": "inotify-0.11.3",
+                "package_key": "inotify-0.11.4",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -36544,7 +36533,7 @@
             "runtime_dependencies": [
               {
                 "name": "memchr",
-                "package_key": "memchr-2.8.2",
+                "package_key": "memchr-2.8.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39205,7 +39194,7 @@
               "fallback"
             ]
           },
-          "inotify-0.11.3": {
+          "inotify-0.11.4": {
             "runtime_dependencies": [
               {
                 "name": "bitflags",
@@ -39219,7 +39208,7 @@
               },
               {
                 "name": "inotify_sys",
-                "package_key": "inotify-sys-0.1.7",
+                "package_key": "inotify-sys-0.1.8",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39241,7 +39230,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "inotify-sys-0.1.7": {
+          "inotify-sys-0.1.8": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -39299,7 +39288,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "kanchi-0.1.0-e40b1e11a716c030b1c6037f25789c75e00fc646": {
+          "kanchi-0.1.1-c01183be8ac1224b0424b7be874fee52a1624117": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -39356,7 +39345,7 @@
               "system"
             ]
           },
-          "mado-0.1.71": {
+          "mado-0.1.72": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39601,7 +39590,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.0-e40b1e11a716c030b1c6037f25789c75e00fc646",
+                "package_key": "kanchi-0.1.1-c01183be8ac1224b0424b7be874fee52a1624117",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39984,7 +39973,7 @@
             "runtime_dependencies": [
               {
                 "name": "inotify",
-                "package_key": "inotify-0.11.3",
+                "package_key": "inotify-0.11.4",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -40165,7 +40154,7 @@
             "runtime_dependencies": [
               {
                 "name": "memchr",
-                "package_key": "memchr-2.8.2",
+                "package_key": "memchr-2.8.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -42487,7 +42476,7 @@
     "byteorder-lite-0.1.0": {
       "edition": "2021"
     },
-    "bytes-1.12.0": {
+    "bytes-1.12.1": {
       "edition": "2021"
     },
     "calloop-0.13.0": {
@@ -42589,7 +42578,7 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "crossbeam-epoch-0.9.19": {
+    "crossbeam-epoch-0.9.20": {
       "edition": "2021",
       "build_script": "build.rs"
     },
@@ -42842,14 +42831,14 @@
       "edition": "2024",
       "build_script": "build.rs"
     },
-    "gen-macros-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0": {
+    "gen-macros-0.1.18-8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2": {
       "edition": "2024",
       "proc_macro": true
     },
-    "gen-platform-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0": {
+    "gen-platform-0.1.18-8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2": {
       "edition": "2024"
     },
-    "gen-types-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0": {
+    "gen-types-0.1.18-8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2": {
       "edition": "2024"
     },
     "generic-array-0.14.7": {
@@ -42987,10 +42976,10 @@
     "inlinable_string-0.1.15": {
       "edition": "2018"
     },
-    "inotify-0.11.3": {
+    "inotify-0.11.4": {
       "edition": "2018"
     },
-    "inotify-sys-0.1.7": {
+    "inotify-sys-0.1.8": {
       "edition": "2015",
       "build_script": "build.rs"
     },
@@ -43033,7 +43022,7 @@
     "kaname-0.1.1-0570e7ec566b60444307fe5873f80f5beda8fe6c": {
       "edition": "2024"
     },
-    "kanchi-0.1.0-e40b1e11a716c030b1c6037f25789c75e00fc646": {
+    "kanchi-0.1.1-c01183be8ac1224b0424b7be874fee52a1624117": {
       "edition": "2024"
     },
     "kanshou-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": {
@@ -43104,7 +43093,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.71": {
+    "mado-0.1.72": {
       "edition": "2024",
       "binaries": [
         {
@@ -43129,7 +43118,7 @@
         "path": "src/lib.rs"
       }
     },
-    "memchr-2.8.2": {
+    "memchr-2.8.3": {
       "edition": "2021"
     },
     "memmap2-0.9.11": {
@@ -43192,7 +43181,7 @@
     "num-integer-0.1.46": {
       "edition": "2018"
     },
-    "num-iter-0.1.45": {
+    "num-iter-0.1.46": {
       "edition": "2018"
     },
     "num-traits-0.2.19": {
@@ -43603,7 +43592,7 @@
         "path": "src/lib.rs"
       }
     },
-    "rustversion-1.0.22": {
+    "rustversion-1.0.23": {
       "edition": "2018",
       "proc_macro": true,
       "build_script": "build/build.rs"
@@ -43756,7 +43745,7 @@
     "shidou-0.1.8-527c3ce244c44b4bb581168ae8429e5dbcee6507": {
       "edition": "2024"
     },
-    "shikumi-0.1.151-4927e26f092f9d5ab69729f4d8021d07cd74b147": {
+    "shikumi-0.1.170-5981edd51eef7181b52513e001ca5e99e648fc2d": {
       "edition": "2024"
     },
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": {
@@ -44355,9 +44344,9 @@
     "engawa-0.1.3-bda639d5d9bd3ec2dd59ff84b2925ae278f24c52": "sha256-Z9exdzhmkz90dNCArTnVC69CxLZDnC1ShRTFvDHE2JA=",
     "engawa-wgpu-0.1.8-acc2b02d46322077861c9e74c6d2e5cb15cb1e5f": "sha256-sE/Qeve2DJY8NVMxAzjRbeZWIUmmWoF6hUAUusSJ4So=",
     "garasu-0.1.4-a2afc2ad6530ed096ab26f5d92bd4e1d348253ee": "sha256-//cvGAyxRVhcwHD56yf9M5SPn63GiwP+y06b8OlVfvs=",
-    "gen-macros-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0": "sha256-khDWAqmgqr/pPPq73hZbZojnEw3gVc6RYFPLuNCoR/A=",
-    "gen-platform-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0": "sha256-khDWAqmgqr/pPPq73hZbZojnEw3gVc6RYFPLuNCoR/A=",
-    "gen-types-0.1.17-26e5bdf9fe257a16e55d46b4b3e454e3f3f108d0": "sha256-khDWAqmgqr/pPPq73hZbZojnEw3gVc6RYFPLuNCoR/A=",
+    "gen-macros-0.1.18-8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2": "sha256-lPsm5o3j8A0d8wzeD/DwZdJOaSnddTkLAISAp/7gPk4=",
+    "gen-platform-0.1.18-8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2": "sha256-lPsm5o3j8A0d8wzeD/DwZdJOaSnddTkLAISAp/7gPk4=",
+    "gen-types-0.1.18-8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2": "sha256-lPsm5o3j8A0d8wzeD/DwZdJOaSnddTkLAISAp/7gPk4=",
     "hasami-0.1.2-c20b0112c09fccae2a9f51260c83fb711f7512d5": "sha256-jumH5OHgIV872elIb65ABgspnrfsA3rkeJyW5SIP6bo=",
     "irodzuki-0.1.7-d3bfe781e9c813164a37a0e0a1eeef16f5be9515": "sha256-7iA13F9fE1MktjUB89kQIiVY6TB0wTNHmHNGSJcj9Lg=",
     "ishou-tokens-0.1.3-47e7e58da1d279b63d6ae464b0244d606741fea6": "sha256-U9i60aKk/BvmGCl8xmXg4NTDoeVZ57thlB0dF9qy49Q=",
@@ -44365,7 +44354,7 @@
     "izumi-config-0.1.1-c78d0a536040b507ff86b52e24d19acb6012c337": "sha256-LDZff6mhn4wS6n0utIh8rBttWljAydbXgqEgkl49B18=",
     "izumi-sources-0.1.1-c78d0a536040b507ff86b52e24d19acb6012c337": "sha256-LDZff6mhn4wS6n0utIh8rBttWljAydbXgqEgkl49B18=",
     "kaname-0.1.1-0570e7ec566b60444307fe5873f80f5beda8fe6c": "sha256-ue2v9p/Eq+z3hmCaL63toSyjpDY6s3H1gGBUFBOX3ek=",
-    "kanchi-0.1.0-e40b1e11a716c030b1c6037f25789c75e00fc646": "sha256-0qWOMtFgvBuZq8E+/JI1oI65MI0H1gH6BaNIOj2u458=",
+    "kanchi-0.1.1-c01183be8ac1224b0424b7be874fee52a1624117": "sha256-9ZJrbVlTUzzpJ3IUX9ejgriWClVKZy26H4k8F0XzTQA=",
     "kanshou-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
     "kanshou-derive-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
     "madori-0.1.5-79b33a4811853f1a8153735a69fb58bde894c2d9": "sha256-35DB90eBg+O8Ie2w8R4sfZr4B4NG+FPbUfwePl0x9qw=",
@@ -44376,7 +44365,7 @@
     "pleme-kindstr-derive-0.1.0-d287f915e9bb8837a443f6238ee900e81318ce89": "sha256-5XDr9kPiT0doWBOOk9yXjxdTCpRgaqWWJCpsc1f+tdw=",
     "praca-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",
     "shidou-0.1.8-527c3ce244c44b4bb581168ae8429e5dbcee6507": "sha256-7UDp5qpjhQHI2p6uh1pRN5V/qzv4lTqqI3wjwJZqfME=",
-    "shikumi-0.1.151-4927e26f092f9d5ab69729f4d8021d07cd74b147": "sha256-IAh1GgeK2a17xhTATWrQsXsj13U4nRJrXPhzX9iMzAQ=",
+    "shikumi-0.1.170-5981edd51eef7181b52513e001ca5e99e648fc2d": "sha256-/Rz7IdwInXhgwq07gqX0kw8cdBaMzrpE3KPhnrL4kQA=",
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": "sha256-Jd6fUoNSdzk+I5iu7FbAg9F9gbc7oU9jdPnnaTIxL6w=",
     "tatara-lisp-0.2.4-546c894ed9e913a7f6be8839722873535a33e909": "sha256-cw2Nmo0sak5Gx8TN/xHj2JQoP/MSY8nHT53iFkbX4hA=",
     "tatara-lisp-derive-0.2.4-546c894ed9e913a7f6be8839722873535a33e909": "sha256-cw2Nmo0sak5Gx8TN/xHj2JQoP/MSY8nHT53iFkbX4hA=",
