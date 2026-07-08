@@ -3287,6 +3287,28 @@ impl Default for MadoConfig {
         // cap saves no memory — it only truncates history — so the
         // RAM tiers live in the *discovered* tier only (the "what
         // would detection alone give" question).
+
+        // ── mado ships Nord as its prescribed default (operator design
+        // law: "the default mado experience is Nord") ──
+        // `from_fleet` set the theme surfaces to the fleet theme (Vellum);
+        // mado deliberately diverges on the THEME only, sourcing bg/fg/cursor
+        // from `mado_prescribed_theme()` (Nord Polar Night) so there is no
+        // hand-pinned hex and no drift. Font / window / behaviour stay
+        // fleet-derived. Pinned by the `mado_prescribed_theme_is_nord` guard.
+        let nord = mado_prescribed_theme().resolve();
+        c.theme = MADO_PRESCRIBED_THEME_NAME.to_string();
+        if !nord.background.is_empty() {
+            c.appearance.background = nord.background.clone();
+        }
+        if !nord.foreground.is_empty() {
+            c.appearance.foreground = nord.foreground.clone();
+        }
+        c.appearance.minimum_contrast = minimum_contrast_from_fleet(&nord.name);
+        c.cursor.color = if nord.cursor.is_empty() {
+            nord.foreground.clone()
+        } else {
+            nord.cursor.clone()
+        };
         c
     }
 }
@@ -3439,21 +3461,37 @@ fn default_decorations() -> bool {
     // operator contract.
     cfg!(target_os = "macos")
 }
-/// The prescribed fleet theme, resolved to its BORN ishou tokens.
-/// `default_bg`/`default_fg`/`default_cursor_color` read from here so
-/// the appearance fallbacks carry the SAME palette as the registered
-/// `vellum` theme — no hand-pinned Nord hex, no drift. (The audit's
-/// complaint: `prescribed_default` hand-pinned `#2e3440`.)
+/// The theme mado ships as its prescribed default. mado DELIBERATELY
+/// diverges from the fleet theme (`FleetTheme::prescribed_default()` =
+/// Vellum) to ship **Nord** as its default terminal experience — the
+/// operator design law "the default mado experience is Nord". Font,
+/// window, cursor style, and behaviour still converge to the fleet
+/// baseline; only the *theme* is mado-pinned. `FleetTheme::PlemeDark`
+/// resolves to the canonical Nord Polar Night palette (ishou-tokens
+/// `ResolvedTheme::pleme_dark`), so there is no hand-pinned Nord hex here.
+fn mado_prescribed_theme() -> ishou_tokens::FleetTheme {
+    ishou_tokens::FleetTheme::PlemeDark
+}
+
+/// The registered mado theme name whose ANSI-16 palette the renderer
+/// applies for the prescribed default. mado registers "nord" (see
+/// `theme.rs`); it is the ANSI source matching `mado_prescribed_theme()`.
+const MADO_PRESCRIBED_THEME_NAME: &str = "nord";
+
+/// The prescribed theme (Nord), resolved to its BORN ishou tokens.
+/// `default_bg`/`default_fg`/`default_cursor_color` read from here so the
+/// appearance fallbacks carry the SAME palette as the registered theme —
+/// no hand-pinned Nord hex, no drift.
 fn prescribed_resolved_theme() -> ishou_tokens::ResolvedTheme {
-    ishou_tokens::FleetTheme::prescribed_default().resolve()
+    mado_prescribed_theme().resolve()
 }
 fn default_bg() -> String {
-    // Vellum night0 (#16140E) — derived from the BORN tokens, not
-    // the legacy Nord #2e3440.
+    // Nord Polar Night (#2E3440) — derived from the BORN tokens via
+    // `mado_prescribed_theme()`, not hand-pinned.
     prescribed_resolved_theme().background
 }
 fn default_fg() -> String {
-    // Vellum snow1 (#E2DBC8) — derived, not the legacy Nord #eceff4.
+    // Nord Snow Storm (#ECEFF4) — derived, not hand-pinned.
     prescribed_resolved_theme().foreground
 }
 fn default_opacity() -> f32 {
@@ -3466,10 +3504,9 @@ fn default_cursor_blink_rate() -> u32 {
     530
 }
 fn default_cursor_color() -> String {
-    // Vellum green_bright (#ADD7A3) — the §5 block cursor (inverse
-    // pair ≥7.0). Derived from the BORN tokens, not the legacy Nord
-    // snow #eceff4. Empty resolved cursor (the bare tier) falls back to
-    // "follow foreground" semantics by returning the foreground.
+    // The prescribed theme's cursor token (Nord). Derived from the BORN
+    // tokens, not hand-pinned. Empty resolved cursor (the bare tier) falls
+    // back to "follow foreground" semantics by returning the foreground.
     let resolved = prescribed_resolved_theme();
     if resolved.cursor.is_empty() {
         resolved.foreground
@@ -4107,15 +4144,14 @@ mod tests {
     /// against the BORN ishou tokens — the convergence guarantee made
     /// real, not asserted in prose.
     #[test]
-    fn mado_converges_with_fleet_vellum() {
+    fn mado_prescribed_theme_is_nord() {
         use shikumi::TieredConfig;
         let d = <MadoConfig as TieredConfig>::prescribed_default();
 
-        // ── Font + theme: the standard Guard chain ──
-        // Pins family / italic / size / line-height against the BORN
-        // FleetDefaults — the ghostty-aligned font (non-Mono family,
-        // synthesized-slant italics on the same face, size 13, 1.65
-        // cell rhythm) cannot drift from mado without failing here.
+        // ── Font: still converges to the fleet baseline ──
+        // Family / italic / size / line-height stay pinned to the BORN
+        // FleetDefaults — only the THEME is mado-pinned (below). The
+        // ghostty-aligned font cannot drift from mado without failing here.
         ishou_tokens::convergence::Guard::for_app("mado")
             .expect_font_family(&d.font_family)
             .expect_font_italic(&d.font_italic)
@@ -4123,43 +4159,29 @@ mod tests {
             .expect_line_height(d.line_height)
             .run();
 
-        // ── Theme: the config's String theme is the fleet theme's
-        // resolved name (the Guard's expect_theme takes the enum; mado
-        // stores the name, so we assert the resolved-name equality). ──
-        let fleet_theme = ishou_tokens::FleetDefaults::prescribed().theme;
-        assert_eq!(fleet_theme, ishou_tokens::FleetTheme::Vellum);
-        assert_eq!(d.theme, fleet_theme.resolve().name);
-        assert_eq!(d.theme, "vellum");
-
-        // ── ANSI palette: DECOUPLED from the BORN parchment ANSI
-        // (washed-out-colors fix, 2026-06-14). Vellum's CHROME stays
-        // BORN, but the ANSI-16 apps paint their CONTENT with is the
-        // vivid Nord set — otherwise vim/shell/autocomplete colors render
-        // as the dull grey-green muted parchment tones and diverge from
-        // ghostty. So the registered Vellum theme's ANSI must NOT equal
-        // the muted `ResolvedTheme::vellum().ansi_16`, and it must carry
-        // the vivid Nord aurora/frost values. ──
-        let theme = crate::theme::Theme::by_name(&d.theme).expect("vellum theme registered");
-        let resolved = ishou_tokens::ResolvedTheme::vellum();
-        let muted_green = ishou_tokens::Srgb::from_hex(&resolved.ansi_16[2])
-            .expect("resolved ANSI hex parses");
+        // ── Theme: mado DELIBERATELY ships Nord as its default (operator
+        // design law), diverging from the fleet theme (Vellum). The config's
+        // String theme is the registered "nord" preset; the window bg/fg are
+        // the Nord Polar Night / Snow Storm palette from
+        // `mado_prescribed_theme()`. ──
+        assert_eq!(d.theme, "nord");
+        assert_eq!(d.theme, MADO_PRESCRIBED_THEME_NAME);
         assert_ne!(
-            (theme.ansi[2].r, theme.ansi[2].g, theme.ansi[2].b),
-            (muted_green.r, muted_green.g, muted_green.b),
-            "Vellum content ANSI must be the vivid Nord set, not the muted BORN parchment ANSI",
+            ishou_tokens::FleetDefaults::prescribed().theme,
+            mado_prescribed_theme(),
+            "mado's prescribed theme is a deliberate divergence from the fleet default",
         );
-        // Vivid Nord anchors (aurora green / red, frost cyan).
-        assert_eq!((theme.ansi[1].r, theme.ansi[1].g, theme.ansi[1].b), (0xBF, 0x61, 0x6A));
-        assert_eq!((theme.ansi[2].r, theme.ansi[2].g, theme.ansi[2].b), (0xA3, 0xBE, 0x8C));
-        assert_eq!((theme.ansi[6].r, theme.ansi[6].g, theme.ansi[6].b), (0x88, 0xC0, 0xD0));
+        let nord = mado_prescribed_theme().resolve();
+        assert_eq!(d.appearance.background, nord.background);
+        assert_eq!(d.appearance.foreground, nord.foreground);
 
-        // ── Agent accent: the fable_violet SEMANTIC token, never a hex. ──
-        let fable_violet = ishou_tokens::VellumPalette::vellum()
-            .get(ishou_tokens::SemanticRoles::vellum().agent)
-            .expect("fable_violet token");
-        assert_eq!(
-            (theme.agent_accent.r, theme.agent_accent.g, theme.agent_accent.b),
-            (fable_violet.r, fable_violet.g, fable_violet.b),
+        // The prescribed theme name resolves to a registered mado theme. The
+        // Nord-ness of `mado_prescribed_theme()` (PlemeDark) is ishou's own
+        // tested invariant (`pleme_dark_resolved_uses_nord_palette`); here we
+        // only pin that mado ships it as the default.
+        assert!(
+            crate::theme::Theme::by_name(&d.theme).is_some(),
+            "the prescribed theme must be a registered mado theme",
         );
     }
 
