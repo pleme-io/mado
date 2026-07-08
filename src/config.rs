@@ -3335,19 +3335,19 @@ impl Default for WindowConfig {
 }
 
 impl Default for ShellConfig {
-    /// The prescribed default shell for mado is `frostmourne` — the
-    /// curated pleme-io shell distribution that ships skim + atuin +
-    /// the typed `(defbind :key "C-r" :action "__frost_picker_history__")`
-    /// keybind out of the box. Operators who want plain `$SHELL` /
-    /// `/bin/zsh` / `/bin/sh` override via `mado.yaml` or via the
-    /// blackmatter-mado HM module's `programs.mado.shell.command`
-    /// option. The config-derived value is PATH-guarded at shell
-    /// resolution (`main.rs::resolve_shell_or_fallback`): if frostmourne
-    /// isn't on PATH (e.g. a standalone release download) it falls back to
-    /// `$SHELL → /bin/zsh`, so the first window always gets a real shell.
+    /// The prescribed default is the operator's OWN login shell — `command:
+    /// None` resolves at launch (`main.rs`) to `$SHELL → /bin/zsh → /bin/sh`
+    /// via `default_shell()`. A config-less mado must feel like the system
+    /// terminal: it does NOT bind `frostmourne` (the curated pleme-io shell
+    /// distribution) or any bundled shell environment. Operators who WANT
+    /// frostmourne opt in explicitly via `mado.yaml`
+    /// (`shell.command: frostmourne`) or the blackmatter-mado HM module's
+    /// `programs.mado.shell.command` option — which is how the operator's own
+    /// fleet nodes get it. This keeps the default experience unsurprising
+    /// (your shell, your rc) while the fleet opt-in stays one line away.
     fn default() -> Self {
         Self {
-            command: Some("frostmourne".to_string()),
+            command: None,
             args: vec![],
         }
     }
@@ -5075,11 +5075,12 @@ window:
 
     #[test]
     fn test_shell_config_defaults() {
-        // Prescribed default: frostmourne (mado's official curated
-        // shell — ships skim+atuin+Ctrl-R out of the box). Operators
-        // who want $SHELL override via mado.yaml.
+        // Prescribed default: the operator's OWN login shell. `command: None`
+        // resolves to `$SHELL → /bin/zsh → /bin/sh` at launch — a config-less
+        // mado does NOT bind frostmourne or any bundled shell environment.
+        // Opt in to frostmourne via mado.yaml / the HM module.
         let s = ShellConfig::default();
-        assert_eq!(s.command.as_deref(), Some("frostmourne"));
+        assert_eq!(s.command, None);
         assert!(s.args.is_empty());
     }
 
