@@ -76,13 +76,26 @@ shell); split-pane step (extend single-pane) for "logs streaming in a split."
 
 ## Phased path
 
-| M | What | Risk |
+| M | What | Status |
 |---|---|---|
-| **M0** | Typed `PrewarmStep` border + interpreter + `(defprewarm)` reader (mado-side core, tested) — the foundation | med |
-| **M1** | `PrewarmExecutor`: generalize the single kickoff into the ordered eager-on-create loop (+ split-pane step) | med |
-| **M2** | Ship the Datadog CellSource (gap-A prerequisite for the Datadog path) + env→kube-context resolver | med |
-| **M3** | `(defprewarm-catalog)` generated strategy table + the vigy authoring surface + read-intrinsics for live-state gating | med |
-| **M4** | Session-birth event trigger (OSC-1338 ingress) + fleet strategy library (OOMKilled/OpsGenie/Grafana/JIT-creds) | high |
+| **M0** | Typed `PrewarmStep` border + interpreter (mado-side core, mockable `PrewarmEnv`, injection-safe by construction) | **✓ shipped** |
+| **M1** | `SessionPrewarmEnv` executor: generalize the single kickoff into the ordered eager-on-create walk (reuses `send_keys`/`url::open_link`) | **✓ shipped** |
+| **first slice** | `safra::prewarm::prewarm_for_signal` — the on-call strategy from a real VM Signal (kube-context + best-effort pod-describe + open link) | **✓ shipped** |
+| **M2** | Carry the `PrewarmSpec` from `project_signal` to `spawn_suggestion_inner` — **the one decision**: izumi-upstream `prewarm: Vec<PrewarmStep>` on `SpawnSpec` (destination) vs a mado-side `Item` payload wrapper (interim, must not be enshrined). Then the Datadog CellSource + `Endpoint.base_url` kube-context resolver | queued |
+| **M3** | `(defprewarm-catalog)` generated strategy table + the vigy authoring surface + read-intrinsics for live-state gating | queued |
+| **M4** | Session-birth event trigger (OSC-1338 ingress) + fleet strategy library (OpsGenie/Grafana/JIT-creds) | queued |
+
+### Ground-truth correction (first slice)
+
+The recon's idealized `kubectl describe pod $identity` does **not** hold: a real VM
+firing-alert `identity` is `alertname{k=v,…}` (e.g.
+`OOMKilled{pod=api-1,severity=critical}`), not a bare pod name. So
+`prewarm_for_signal` extracts the pod from the label set **best-effort**
+(`pod_from_identity`) and the always-correct steps (kube-context from `env`, open
+the deep-link) never depend on that parse — a signal with no extractable pod
+degrades to context + link, never a nonsense `describe pod OOMKilled{…}`. Every
+command re-flows through the injection guard (a `pod=api\n…` label can't build a
+step).
 
 ## First slice (the smallest end-to-end)
 
