@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "5df7a62122dc56ea8ade4a9aef51dc6b772e22b53166684005fd782eb0b9443c",
+  "cargo_lock_sha256": "d5020e70df136ffbb6a542c056ea8506f680429d43a41654c5ca948b7b8ab716",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -20055,6 +20055,16 @@
                 "tree": "target"
               },
               {
+                "name": "url",
+                "package_key": "url-2.5.8",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "vigy",
                 "package_key": "vigy-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
                 "kind": "normal",
@@ -24451,6 +24461,16 @@
                 "tree": "target"
               },
               {
+                "name": "url",
+                "package_key": "url-2.5.8",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "vigy",
                 "package_key": "vigy-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
                 "kind": "normal",
@@ -28120,6 +28140,16 @@
               {
                 "name": "unicode_width",
                 "package_key": "unicode-width-0.2.2",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "url",
+                "package_key": "url-2.5.8",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31993,6 +32023,16 @@
               {
                 "name": "unicode_width",
                 "package_key": "unicode-width-0.2.2",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "url",
+                "package_key": "url-2.5.8",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36351,6 +36391,16 @@
                 "tree": "target"
               },
               {
+                "name": "url",
+                "package_key": "url-2.5.8",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "vigy",
                 "package_key": "vigy-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
                 "kind": "normal",
@@ -39974,6 +40024,16 @@
               {
                 "name": "unicode_width",
                 "package_key": "unicode-width-0.2.2",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "url",
+                "package_key": "url-2.5.8",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,

@@ -2563,6 +2563,7 @@ dependencies = [
  "tracing",
  "tsuuchi",
  "unicode-width",
+ "url",
  "vigy",
  "vte",
  "wgpu",

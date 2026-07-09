@@ -49,6 +49,7 @@ mod notify_mac;
 mod osc_1337;
 mod platform;
 mod pointer_shape;
+mod prewarm;
 mod prompt_mark;
 mod pty;
 mod perf;

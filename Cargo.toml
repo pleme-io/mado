@@ -47,6 +47,12 @@ overflow-checks = false
 # MCP boundaries without re-hashing.
 blake3 = "1"
 
+# Typed URL parsing for prewarm deep-links (runbook / dashboard OpenUrl steps) —
+# a `url::Url` field makes a malformed link parse-time-rejected before it reaches
+# a PrewarmStep. Already in the tree transitively (izumi/madori); named direct so
+# `src/prewarm/` can construct `Url`s. See docs/PREWARM.md.
+url = "2"
+
 # Pleme-io shared libraries
 # garasu / shikumi declared as crates.io versions here AND redirected via
 # `[patch.crates-io]` below to the git source so madori's transitive
