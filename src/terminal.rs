@@ -2103,6 +2103,54 @@ impl fmt::Debug for Terminal {
     }
 }
 
+/// The DEC private-mode registry — the SINGLE authored source for the
+/// table-driven DEC private modes. `dec_private_modes!` emits the DECSET
+/// (`dec_set_generated`), DECRST (`dec_reset_generated`), and DECRQM
+/// (`dec_mode_report`) dispatch from ONE per-mode table, so the three can
+/// never drift. Before this, DEC mode 12 (att610 cursor blink) lived ONLY in
+/// the DECRQM path (reporting a fixed `2`) while `dec_set`/`dec_reset` had no
+/// arm for it — a silent no-op DECSET and a DECRQM that lied. One table makes
+/// that class unrepresentable. Modes whose set/reset are NOT a uniform field
+/// toggle (origin-mode cursor-home, alt-screen save/restore, the mouse-mode
+/// enum) stay bespoke in the callers' tails; `dec_mode_report` returns `None`
+/// for those and the caller answers them.
+///
+/// This is the same TYPED-SPEC + INTERPRETER shape `vt.rs`'s
+/// `CsiCommand`/`parse_csi_action` already proved for CSI dispatch — one
+/// authored spec, two (here, three) mechanically-derived interpreters.
+macro_rules! dec_private_modes {
+    (
+        plain: { $( $bc:literal $bn:ident => $bf:ident ),* $(,)? }
+        dirty: { $( $dc:literal $dn:ident => $df:ident $(. $ds:ident)? ),* $(,)? }
+    ) => {
+        /// DECSET (`CSI ? Ps h`) for the table-driven modes; `true` if handled.
+        fn dec_set_generated(&mut self, mode: u16) -> bool {
+            match mode {
+                $( $bc => { self.$bf = true; true } )*
+                $( $dc => { self.$df $(.$ds)? = true; self.dirty(); true } )*
+                _ => false,
+            }
+        }
+        /// DECRST (`CSI ? Ps l`) for the table-driven modes; `true` if handled.
+        fn dec_reset_generated(&mut self, mode: u16) -> bool {
+            match mode {
+                $( $bc => { self.$bf = false; true } )*
+                $( $dc => { self.$df $(.$ds)? = false; self.dirty(); true } )*
+                _ => false,
+            }
+        }
+        /// DECRQM (`CSI ? Ps $ p`) state for the table-driven modes: `1` = set,
+        /// `2` = reset. `None` for a bespoke mode (the caller's tail answers it).
+        fn dec_mode_report(&self, mode: u16) -> ::core::option::Option<u32> {
+            match mode {
+                $( $bc => ::core::option::Option::Some(if self.$bf { 1 } else { 2 }), )*
+                $( $dc => ::core::option::Option::Some(if self.$df $(.$ds)? { 1 } else { 2 }), )*
+                _ => ::core::option::Option::None,
+            }
+        }
+    };
+}
+
 impl Terminal {
     #[must_use]
     #[allow(dead_code)]
@@ -3513,7 +3561,7 @@ impl Terminal {
         }
         if params[2] == b"?" {
             let resp = osc4_rgb_query_response(idx, self.ansi_colors[idx]);
-            self.response_bytes.extend_from_slice(resp.as_bytes());
+            self.response_bytes.extend_from_slice(&resp);
             return;
         }
         if let Some(c) = parse_osc_color(params[2]) {
@@ -3530,7 +3578,7 @@ impl Terminal {
         }
         if params[1] == b"?" {
             let resp = osc_rgb_query_response(10, self.pen_fg);
-            self.response_bytes.extend_from_slice(resp.as_bytes());
+            self.response_bytes.extend_from_slice(&resp);
             return;
         }
         if let Some(c) = parse_osc_color(params[1]) {
@@ -3547,7 +3595,7 @@ impl Terminal {
         }
         if params[1] == b"?" {
             let resp = osc_rgb_query_response(11, self.default_bg);
-            self.response_bytes.extend_from_slice(resp.as_bytes());
+            self.response_bytes.extend_from_slice(&resp);
             return;
         }
         if let Some(c) = parse_osc_color(params[1]) {
@@ -3565,7 +3613,7 @@ impl Terminal {
         }
         if params[1] == b"?" {
             let resp = osc_rgb_query_response(12, self.default_fg);
-            self.response_bytes.extend_from_slice(resp.as_bytes());
+            self.response_bytes.extend_from_slice(&resp);
             return;
         }
         if let Some(c) = parse_osc_color(params[1]) {
@@ -4738,43 +4786,64 @@ impl Terminal {
         }
     }
 
-    /// Handle DEC private mode set (CSI ? Ps h).
+    // The table-driven DEC private modes — DECSET / DECRST / DECRQM are all
+    // generated from this ONE registry (the `dec_private_modes!` macro above).
+    // A new boolean mode is added here in one line and is instantly wired into
+    // set, reset, AND report; the three can no longer drift. `plain` = a bare
+    // `bool` field toggle; `dirty` = a `bool` toggle that also marks the grid
+    // dirty (a repaint-visible mode). Mode 12 (att610 cursor blink) is the
+    // drift this table closes — it used to be DECRQM-only.
+    dec_private_modes! {
+        plain: {
+            1    DECCKM   => cursor_keys_mode,
+            7    DECAWM   => auto_wrap,
+            12   ATT610   => cursor_blink,
+            1004 FOCUS    => focus_reporting,
+            1006 SGRMOUSE => sgr_mouse,
+            2004 BPASTE   => bracketed_paste,
+            2026 SYNC     => synchronized_output,
+        }
+        dirty: {
+            25 DECTCEM => cursor.visible,
+        }
+    }
+
+    /// Handle DEC private mode set (CSI ? Ps h). Table-driven modes are handled
+    /// by the generated [`Self::dec_set_generated`]; only the bespoke
+    /// (non-uniform-toggle) modes remain here.
     fn dec_set(&mut self, mode: u16) {
+        if self.dec_set_generated(mode) {
+            return;
+        }
         match mode {
-            1 => self.cursor_keys_mode = true,    // DECCKM
             6 => {
-                // DECOM — Origin Mode
+                // DECOM — Origin Mode (cursor homes to the scroll-region top)
                 self.origin_mode = true;
                 self.cursor.row = self.scroll_top;
                 self.cursor.col = 0;
                 self.wrap_pending = false;
                 self.dirty();
             }
-            7 => self.auto_wrap = true,            // DECAWM
-            25 => {
-                self.cursor.visible = true;        // DECTCEM
-                self.dirty();
-            }
             47 | 1047 => self.enter_alternate_screen(),
             1000 => self.mouse_mode = MouseMode::Normal,
             1002 => self.mouse_mode = MouseMode::ButtonEvent,
             1003 => self.mouse_mode = MouseMode::AnyEvent,
-            1004 => self.focus_reporting = true,
-            1006 => self.sgr_mouse = true,
             1049 => {
                 self.save_cursor();
                 self.enter_alternate_screen();
             }
-            2004 => self.bracketed_paste = true,
-            2026 => self.synchronized_output = true,
             _ => tracing::trace!(mode, "unhandled DECSET"),
         }
     }
 
-    /// Handle DEC private mode reset (CSI ? Ps l).
+    /// Handle DEC private mode reset (CSI ? Ps l). Table-driven modes are
+    /// handled by the generated [`Self::dec_reset_generated`]; only the bespoke
+    /// modes remain here.
     fn dec_reset(&mut self, mode: u16) {
+        if self.dec_reset_generated(mode) {
+            return;
+        }
         match mode {
-            1 => self.cursor_keys_mode = false,
             6 => {
                 self.origin_mode = false;
                 self.cursor.row = 0;
@@ -4782,21 +4851,12 @@ impl Terminal {
                 self.wrap_pending = false;
                 self.dirty();
             }
-            7 => self.auto_wrap = false,
-            25 => {
-                self.cursor.visible = false;
-                self.dirty();
-            }
             47 | 1047 => self.exit_alternate_screen(),
             1000 | 1002 | 1003 => self.mouse_mode = MouseMode::Off,
-            1004 => self.focus_reporting = false,
-            1006 => self.sgr_mouse = false,
             1049 => {
                 self.exit_alternate_screen();
                 self.restore_cursor();
             }
-            2004 => self.bracketed_paste = false,
-            2026 => self.synchronized_output = false,
             _ => tracing::trace!(mode, "unhandled DECRST"),
         }
     }
@@ -5683,22 +5743,19 @@ impl vte::Perform for Terminal {
         if intermediates == [b'?', b'$'] && action == 'p' {
             let mode = params.iter().next().map_or(0, |p| p[0]);
             // Pm: 1=set, 2=reset, 0=not recognized, 3=permanently set, 4=permanently reset
-            let state: u32 = match mode {
-                1 => if self.cursor_keys_mode { 1 } else { 2 },    // DECCKM
+            // Table-driven modes report through the generated `dec_mode_report`;
+            // the bespoke modes (origin, alt-screen, mouse) answer in the
+            // fallback. Mode 12 now flows through the table (reflecting
+            // `cursor_blink`) instead of a fixed `2` — the M4 caps-honesty fix
+            // that closed the DECRQM-only drift.
+            let state: u32 = self.dec_mode_report(mode).unwrap_or_else(|| match mode {
                 6 => if self.origin_mode { 1 } else { 2 },         // DECOM
-                7 => if self.auto_wrap { 1 } else { 2 },           // DECAWM
-                12 => 2,                                            // Cursor blink (always off for now)
-                25 => if self.cursor.visible { 1 } else { 2 },     // DECTCEM
                 47 | 1047 | 1049 => if self.use_alternate { 1 } else { 2 }, // Alt screen
                 1000 => if self.mouse_mode == MouseMode::Normal { 1 } else { 2 },
                 1002 => if self.mouse_mode == MouseMode::ButtonEvent { 1 } else { 2 },
                 1003 => if self.mouse_mode == MouseMode::AnyEvent { 1 } else { 2 },
-                1004 => if self.focus_reporting { 1 } else { 2 },
-                1006 => if self.sgr_mouse { 1 } else { 2 },
-                2004 => if self.bracketed_paste { 1 } else { 2 },
-                2026 => if self.synchronized_output { 1 } else { 2 },
                 _ => 0,
-            };
+            });
             self.response_bytes
                 .extend_from_slice(&crate::vt::csi(true, &[u32::from(mode), state], "$", b'y'));
             return;
@@ -5819,28 +5876,19 @@ fn base64_decode(input: &[u8]) -> Option<String> {
     String::from_utf8(base64_decode_bytes(input)).ok()
 }
 
-/// Build the xterm `rgb:RR/GG/BB` response for an OSC query. Used by
-/// OSC 10 / 11 / 12 (foreground / background / cursor color) and any
-/// future palette-query OSC that follows the same shape. The duplicated
-/// `RR/RR` / `GG/GG` / `BB/BB` pattern matches xterm: each channel is
-/// emitted twice so older parsers that expect 16-bit precision see
-/// `RRRR/GGGG/BBBB` fall-through as two-byte values.
-fn osc_rgb_query_response(osc_id: u16, c: Color) -> String {
-    format!(
-        "\x1b]{osc_id};rgb:{r:02x}{r:02x}/{g:02x}{g:02x}/{b:02x}{b:02x}\x1b\\",
-        r = c.r, g = c.g, b = c.b
-    )
+/// The xterm `ESC ] <id> ; rgb:RRRR/GGGG/BBBB ESC \` reply for an OSC color
+/// query (OSC 10 / 11 / 12 — foreground / background / cursor). Built through
+/// the typed [`crate::vt::osc_color_reply`] emitter — the escape envelope + the
+/// per-channel doubling live in `vt.rs` (byte-pinned), never a `format!` of the
+/// escape bytes (★★ TYPED EMISSION). This thin wrapper only adapts [`Color`].
+fn osc_rgb_query_response(osc_id: u16, c: Color) -> Vec<u8> {
+    crate::vt::osc_color_reply(osc_id, c.r, c.g, c.b)
 }
 
-/// Build the OSC 4 palette-query response — same `rgb:` doubling as
-/// [`osc_rgb_query_response`] but with the palette index echoed
-/// between the OSC id and the colour, per xterm:
-/// `ESC ] 4 ; <idx> ; rgb:RRRR/GGGG/BBBB ESC \`.
-fn osc4_rgb_query_response(idx: usize, c: Color) -> String {
-    format!(
-        "\x1b]4;{idx};rgb:{r:02x}{r:02x}/{g:02x}{g:02x}/{b:02x}{b:02x}\x1b\\",
-        r = c.r, g = c.g, b = c.b
-    )
+/// The OSC 4 palette-query reply (`ESC ] 4 ; <idx> ; rgb:RRRR/GGGG/BBBB ESC \`),
+/// built through the typed [`crate::vt::osc4_color_reply`] emitter.
+fn osc4_rgb_query_response(idx: usize, c: Color) -> Vec<u8> {
+    crate::vt::osc4_color_reply(idx, c.r, c.g, c.b)
 }
 
 /// Parse an OSC color payload into a [`Color`]. Accepts both common
@@ -5901,6 +5949,65 @@ fn parse_palette_index(payload: &[u8]) -> Option<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// M4 (defdecmode): the table-driven DEC private modes stay consistent
+    /// across DECSET / DECRST / DECRQM because all three are generated from the
+    /// one `dec_private_modes!` registry. DECSET makes DECRQM report `1`
+    /// (set); DECRST makes it report `2` (reset).
+    #[test]
+    fn dec_private_modes_set_reset_report_are_table_consistent() {
+        let mut t = Terminal::new(80, 24);
+        for &mode in &[1u16, 7, 1004, 1006, 2004, 2026] {
+            t.dec_set(mode);
+            assert_eq!(t.dec_mode_report(mode), Some(1), "DECSET {mode} → DECRQM set");
+            t.dec_reset(mode);
+            assert_eq!(t.dec_mode_report(mode), Some(2), "DECRST {mode} → DECRQM reset");
+        }
+        // DECTCEM (25) is a `dirty:` mode — same set/reset/report contract.
+        t.dec_set(25);
+        assert_eq!(t.dec_mode_report(25), Some(1));
+        assert!(t.cursor.visible);
+        t.dec_reset(25);
+        assert_eq!(t.dec_mode_report(25), Some(2));
+        assert!(!t.cursor.visible);
+    }
+
+    /// M4 intentional behaviour delta + drift fix: DEC mode 12 (att610 cursor
+    /// blink) used to live ONLY in the DECRQM path (a fixed `2`) while
+    /// `dec_set`/`dec_reset` had no arm — so DECSET 12 was a silent no-op and
+    /// DECRQM lied (reported "off" though the cursor blinks by default). It now
+    /// flows through the one table: DECRQM reflects `cursor_blink` (default
+    /// `true` → `1`) and DECSET/DECRST 12 actually toggle it. This is the ONE
+    /// deliberate wire-behaviour change in the defdecmode refactor.
+    #[test]
+    fn dec_mode_12_no_longer_drifts_and_is_caps_honest() {
+        let mut t = Terminal::new(80, 24);
+        assert!(t.cursor_blink, "cursor blinks by default");
+        assert_eq!(t.dec_mode_report(12), Some(1), "DECRQM 12 honestly reports blink-on");
+        t.dec_reset(12);
+        assert!(!t.cursor_blink);
+        assert_eq!(t.dec_mode_report(12), Some(2));
+        t.dec_set(12);
+        assert!(t.cursor_blink);
+        assert_eq!(t.dec_mode_report(12), Some(1));
+    }
+
+    /// Bespoke modes (origin, alt-screen, mouse) are NOT table-driven —
+    /// `dec_mode_report` returns `None` and the DECRQM caller's tail answers
+    /// them. This pins the split so a future table edit can't silently swallow
+    /// a bespoke mode.
+    #[test]
+    fn dec_bespoke_modes_are_not_table_driven() {
+        let mut t = Terminal::new(80, 24);
+        for &mode in &[6u16, 47, 1047, 1049, 1000, 1002, 1003] {
+            assert_eq!(t.dec_mode_report(mode), None, "mode {mode} is bespoke");
+        }
+        // …but the bespoke DECSET still works (origin mode homes the cursor).
+        t.dec_set(6);
+        assert!(t.origin_mode);
+        t.dec_reset(6);
+        assert!(!t.origin_mode);
+    }
 
     /// Regression guard for the "everything renders italic" report
     /// (2026-06-14). mado must italicize ONLY real SGR-3 runs — a plain

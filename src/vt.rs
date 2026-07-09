@@ -188,6 +188,36 @@ pub fn osc133(mark: Osc133Mark) -> Vec<u8> {
     }
 }
 
+/// An OSC color-reply body: `rgb:RRRR/GGGG/BBBB`, each channel byte doubled
+/// per xterm so 16-bit-precision parsers read `RR` as `RRRR`. This is a typed
+/// *value* payload (built with `write!`, not `format!` of the escape envelope)
+/// shared by the OSC 4 / 10 / 11 / 12 color-query replies below.
+fn rgb_body(r: u8, g: u8, b: u8) -> String {
+    use std::fmt::Write as _;
+    let mut s = String::with_capacity(19);
+    let _ = write!(s, "rgb:{r:02x}{r:02x}/{g:02x}{g:02x}/{b:02x}{b:02x}");
+    s
+}
+
+/// OSC 10 / 11 / 12 color-query reply: `ESC ] <code> ; rgb:RRRR/GGGG/BBBB ST`.
+/// The outbound half of the color-query protocol `terminal.rs` parses — the
+/// envelope grammar lives in [`osc`], the channel doubling in [`rgb_body`].
+/// The peer of the OSC 9/777/99/1337/133 emitters above.
+#[must_use]
+pub fn osc_color_reply(code: u16, r: u8, g: u8, b: u8) -> Vec<u8> {
+    osc(code, &[&rgb_body(r, g, b)], OscTerminator::St)
+}
+
+/// OSC 4 palette-query reply: `ESC ] 4 ; <idx> ; rgb:RRRR/GGGG/BBBB ST` — the
+/// palette index echoed before the color body, per xterm.
+#[must_use]
+pub fn osc4_color_reply(idx: usize, r: u8, g: u8, b: u8) -> Vec<u8> {
+    use std::fmt::Write as _;
+    let mut idx_s = String::with_capacity(3);
+    let _ = write!(idx_s, "{idx}");
+    osc(4, &[&idx_s, &rgb_body(r, g, b)], OscTerminator::St)
+}
+
 /// The typed CSI-command AST — a `vte::Params` + final byte parsed into
 /// intent (parse-don't-validate), so the VT state machine's giant
 /// `match action` becomes data: [`parse_csi_action`] decides *which*
@@ -377,5 +407,29 @@ mod tests {
         assert_eq!(osc133(Osc133Mark::CommandEnd(None)), b"\x1b]133;D\x1b\\");
         assert_eq!(osc133(Osc133Mark::CommandEnd(Some(0))), b"\x1b]133;D;0\x1b\\");
         assert_eq!(osc133(Osc133Mark::CommandEnd(Some(130))), b"\x1b]133;D;130\x1b\\");
+    }
+
+    #[test]
+    fn osc_color_reply_matches_the_legacy_format_string() {
+        // Byte-for-byte the former terminal.rs `osc_rgb_query_response` output
+        // (the M5 typed-emission migration is no-behaviour-change).
+        for (code, r, g, b) in [(10u16, 0x2Eu8, 0x34u8, 0x40u8), (11, 0, 255, 16), (12, 0xD8, 0xDE, 0xE9)] {
+            assert_eq!(
+                osc_color_reply(code, r, g, b),
+                format!("\x1b]{code};rgb:{r:02x}{r:02x}/{g:02x}{g:02x}/{b:02x}{b:02x}\x1b\\").into_bytes()
+            );
+        }
+        assert_eq!(osc_color_reply(11, 0x2E, 0x34, 0x40), b"\x1b]11;rgb:2e2e/3434/4040\x1b\\");
+    }
+
+    #[test]
+    fn osc4_color_reply_matches_the_legacy_format_string() {
+        for (idx, r, g, b) in [(5usize, 0xBFu8, 0x61u8, 0x6Au8), (0, 0, 0, 0), (255, 255, 255, 255)] {
+            assert_eq!(
+                osc4_color_reply(idx, r, g, b),
+                format!("\x1b]4;{idx};rgb:{r:02x}{r:02x}/{g:02x}{g:02x}/{b:02x}{b:02x}\x1b\\").into_bytes()
+            );
+        }
+        assert_eq!(osc4_color_reply(5, 0xBF, 0x61, 0x6A), b"\x1b]4;5;rgb:bfbf/6161/6a6a\x1b\\");
     }
 }

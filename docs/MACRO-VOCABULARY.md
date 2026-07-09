@@ -58,8 +58,8 @@ A **new** derive lands as one `catalog.json`/`pleme-derives.lisp` entry →
 | **M1** | `IsVariant`/`WithBuilder` (per-site verified) + extend `InvalidatingSetter`. **NOT `GetterAll`** — see the non-fit below | low | ~40 (revised down) | queued |
 | **M2** | `ImplFrom` on by-value projections (validate-first, per site) | med | ~12 | queued |
 | **M3** | Author `pleme-kindmirror-derive` (ux/ FSM twin + total `kind()` + `ordinal()`, 4 sites) upstream, then consume | med | ~120 | queued |
-| **M4** | `(defdecmode)` triplet — collapse `dec_set`/`dec_reset`/DECRQM + **fix the mode-12 drift bug** | med | ~70 | queued |
-| **M5** | `(defosc)` query-reply — **kills the 2 verified `format!("\x1b]…")` TYPED-EMISSION violations** | low | ~28 | queued |
+| **M4** | `dec_private_modes!` — one table generates `dec_set`/`dec_reset`/DECRQM + **fixed the mode-12 drift bug** | med | ~70 | **✓ shipped** |
+| **M5** | typed `vt::osc_color_reply`/`osc4_color_reply` — **killed the 2 `format!("\x1b]…")` emission violations** | low | ~28 | **✓ shipped** |
 | **M6** | `pleme-wireenum-derive` + promote `CsiCommand::to_bytes()` inverse | med | ~220 | queued |
 | **M7** | `(defsgr)` flag/basic-color half (65-arm blast radius — lands last) | high | ~50 | queued |
 | **M8** | `deftheme`/`defkeybind` TataraDomain (data, not impl) + config `TieredConstructor` interim | med | ~180 | queued |
