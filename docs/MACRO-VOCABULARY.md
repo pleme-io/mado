@@ -57,13 +57,13 @@ A **new** derive lands as one `catalog.json`/`pleme-derives.lisp` entry →
 | **M0** | Adopt `KindStr`/`AllVariants` on the verified non-adoption enums (`Subject`, `ServiceKind`) | low | ~50 | **✓ shipped** (nix-green) |
 | **M1** | Generic per-field/per-variant derives (Getter/Builder/IsVariant/InvalidatingSetter-extend) | low | ~0 | **✗ assessed — no clean fit** (see the learning) |
 | **M2** | `ImplFrom` on by-value projections | med | ~0 | **✗ assessed — arm-by-arm enum maps ≠ newtype From** |
-| **M3** | Author `pleme-kindmirror-derive` (ux/ FSM twin + total `kind()` + `ordinal()`, 4 sites) upstream, then consume | med | ~120 | queued |
+| **M3** | `pleme-kindmirror-derive` (ux/ FSM twin + total `kind()` + `ordinal()`, 4 sites) upstream, then consume | med | ~120 | **deferred** — 4 sites are `#[cfg(test)]` scaffolding (not production drift); a local `mirror_enum!` or the upstream derive is the future step when a 2nd fleet consumer appears (3-use rule) |
 | **M4** | `dec_private_modes!` — one table generates `dec_set`/`dec_reset`/DECRQM + **fixed the mode-12 drift bug** | med | ~70 | **✓ shipped** |
 | **M5** | typed `vt::osc_color_reply`/`osc4_color_reply` — **killed the 2 `format!("\x1b]…")` emission violations** | low | ~28 | **✓ shipped** |
-| **M6** | `pleme-wireenum-derive` + promote `CsiCommand::to_bytes()` inverse | med | ~220 | queued |
-| **M7** | `(defsgr)` flag/basic-color half (65-arm blast radius — lands last) | high | ~50 | queued |
-| **M8** | `deftheme`/`defkeybind` TataraDomain (data, not impl) + config `TieredConstructor` interim | med | ~180 | queued |
-| **M9** | MCP body `macro_rules!` **feeding rmcp** (never a bespoke derive) + this rejection list | med | ~200 | queued |
+| **M6** | `pleme-wireenum-derive` + promote `CsiCommand::to_bytes()` inverse | med | ~220 | **deferred** — cross-repo new derive; the highest-value *remaining* VT work (it unlocks M7's full parse⇆emit), but a careful cross-repo slice of its own |
+| **M7** | SGR flag/basic-color half | high | — | **partial ✓** — report side was already table-driven (`AttrFlags::ALL`); shipped a **coherence lock** binding `handle_sgr` parse ⇆ that table (`handle_sgr_parses_every_attrflags_set_code`). Full parse-side table-drive **rejected**: the plan itself forbids a runtime lookup on the hot SGR path, so the explicit compile-time `match` stays and the test is the drift-proof |
+| **M8** | `deftheme`/`defkeybind` TataraDomain + config `TieredConstructor` | med | ~180 | **deferred** — themes are already declarative via irodzuki presets (low value; only the one Nord/Vellum path is worth lifting); `TieredConstructor` is a new farm derive (future) |
+| **M9** | MCP body `macro_rules!` **feeding rmcp** | med | ~200 | **deferred** — rmcp already macro-registers dispatch+schema (a bespoke derive would fork the transport); a local body-template `macro_rules!` is moderate value (future) |
 
 ### The live drift bug M4 fixes (found during analysis)
 

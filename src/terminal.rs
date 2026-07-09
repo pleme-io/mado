@@ -6358,6 +6358,33 @@ mod tests {
         assert_eq!(term.cell(0, 9).ch, ' ');
     }
 
+    /// Coherence lock (the SGR flag half): `AttrFlags::ALL` is the single
+    /// authored `(flag, set-code)` registry that the DECRQSS/`SgrReport` REPORT
+    /// side iterates. This pins the PARSE side (`handle_sgr`) to the SAME table
+    /// — feeding each flag's set-code must set that flag — so the two can never
+    /// drift (a 9th flag added to `ALL` but forgotten in `handle_sgr` fails
+    /// here). Deliberately NOT a runtime table lookup on the hot parse path
+    /// (the explicit `match` arms stay a compile-time dispatch); the table is
+    /// the *spec*, this test is the *coherence proof* binding parse ⇆ report.
+    #[test]
+    fn handle_sgr_parses_every_attrflags_set_code() {
+        for (flag, code) in AttrFlags::ALL {
+            let mut term = Terminal::new(80, 24);
+            // Build `ESC [ <code> m X` with pushes (no `format!` of escapes).
+            let mut seq = Vec::with_capacity(code.len() + 4);
+            seq.extend_from_slice(b"\x1b[");
+            seq.extend_from_slice(code.as_bytes());
+            seq.push(b'm');
+            seq.push(b'X');
+            term.feed(&seq);
+            let cell = term.cell(0, 0);
+            assert!(
+                cell.attrs(term.styles()).flags.contains(flag),
+                "SGR set-code {code} must set {flag:?} — AttrFlags::ALL/handle_sgr drift"
+            );
+        }
+    }
+
     #[test]
     fn sgr_bold_and_color() {
         let mut term = Terminal::new(80, 24);
