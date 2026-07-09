@@ -61,7 +61,11 @@ fn push_truncated(out: &mut String, s: &str, max: usize) {
 /// real board context).
 #[must_use]
 pub fn project_signal(sig: &Signal, source: SourceKind, cwd: &Path) -> Option<Suggestion> {
-    let spawn = SpawnSpec::new(cwd, session_name(sig))?;
+    // Attach the on-call prewarm strategy (kube-context + best-effort
+    // pod-describe + open the deep-link) so choosing this alert's session lands
+    // the operator already-in-the-issue. Empty for a signal that yields no
+    // steps — then it's a bare scoped session, as before.
+    let spawn = SpawnSpec::new(cwd, session_name(sig))?.with_prewarm(super::prewarm::prewarm_for_signal(sig));
     let key = sig.signature();
     let title = if sig.label.is_empty() { sig.env.clone() } else { sig.label.clone() };
 

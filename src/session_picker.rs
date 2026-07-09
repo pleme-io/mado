@@ -528,10 +528,20 @@ impl PracaPickerBridge {
             }
             return ok;
         }
+        // The full ordered prewarm strategy for this suggestion (legacy
+        // `initial_command` + the richer `with_prewarm` steps). Computed BEFORE
+        // spawn so the pre-spawn `SetEnv` steps can be folded into the child's
+        // env — env can't be cleanly injected into an already-live shell.
+        let prewarm = sug.spawn.prewarm();
+
         // Spawn into the suggestion's cwd (mado's capability env, cwd
-        // overridden).
+        // overridden), with the prewarm's SetEnv steps folded onto the env
+        // overrides (pre-spawn half of the strategy).
         let cwd = sug.spawn.cwd().to_string_lossy().into_owned();
-        let env = self.spawn_env_base.clone().with_cwd(Some(cwd));
+        let mut env = self.spawn_env_base.clone().with_cwd(Some(cwd));
+        for (k, v) in prewarm.env_steps() {
+            env.overrides.push((k.to_string(), v.to_string()));
+        }
         self.inproc.set_spawn_env(env);
         let Ok(sid) = self.inproc.new_session_with_source_and_size(
             sug.spawn.name(),
@@ -556,21 +566,16 @@ impl PracaPickerBridge {
         // The magic: prewarm the fresh session. Enter on a
         // "🔍 pr#1234 fix the parser" suggestion lands you in the repo AND runs
         // `gh pr checkout 1234`; Enter on an alert suggestion lands you already
-        // in the issue (kube-context set, pod described, runbook open). The
-        // ordered prewarm strategy is the generalization of the single kickoff
-        // command — for now it is that one `initial_command` lowered to a
-        // one-step spec (the safra strategy builder attaches richer specs in the
-        // first slice). SetEnv steps were already folded into `spawn_env_base`
-        // pre-spawn above; `apply` runs the post-spawn steps in order through
-        // the typed `PrewarmEnv` seam. No-op for a bare suggestion.
-        let prewarm = sug
-            .spawn
-            .initial_command()
-            .map(crate::prewarm::PrewarmSpec::from_initial_command)
-            .unwrap_or_default();
+        // in the issue (kube-context set, pod described, runbook open).
+        // `spawn.prewarm()` is the full ordered strategy: the legacy
+        // `initial_command` folded in as the first `RunCommand`, then the richer
+        // steps the safra builder attached via `with_prewarm`. SetEnv steps were
+        // already folded into `spawn_env_base` pre-spawn above; `apply` runs the
+        // post-spawn steps in order through the typed `PrewarmEnv` seam. No-op
+        // for a bare suggestion.
         if !prewarm.is_empty() {
-            let mut env = SessionPrewarmEnv { inproc: self.inproc.as_ref(), pane };
-            let _ = crate::prewarm::apply(&prewarm, &mut env);
+            let mut penv = SessionPrewarmEnv { inproc: self.inproc.as_ref(), pane };
+            let _ = crate::prewarm::apply(&prewarm, &mut penv);
         }
         // Soft-ack: the row is now IN PROGRESS — demoted below fresh work and
         // badged ◐, but still on the board until upstream confirms resolution
