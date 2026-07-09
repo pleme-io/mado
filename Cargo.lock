@@ -2497,7 +2497,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.75"
+version = "0.1.76"
 dependencies = [
  "anyhow",
  "awase",
@@ -4119,9 +4119,9 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.12.4"
+version = "1.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1292b7759ae1cb9ec195452d1390a074f0cd8541ab7a5a8c31cd6db45d4a6ba"
+checksum = "2a0e75113e14dc5acb068cd0786884f214f1312650a3d36d269f5c4f3cdee8a2"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -4131,9 +4131,9 @@ dependencies = [
 
 [[package]]
 name = "regex-automata"
-version = "0.4.14"
+version = "0.4.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e1dd4122fc1595e8162618945476892eefca7b88c52820e74af6262213cae8f"
+checksum = "1f388202e4b80542a0921078cc23b6333bcf1409c1e3f86404cae4766a6131db"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -4903,8 +4903,8 @@ dependencies = [
 
 [[package]]
 name = "shikumi"
-version = "0.1.181"
-source = "git+https://github.com/pleme-io/shikumi?branch=main#5e8aad2352a0494234e5d5e4c0292c451489ed0b"
+version = "0.1.183"
+source = "git+https://github.com/pleme-io/shikumi?branch=main#aaf363addf8d3ff36ea79595ca27a57f7e3593dd"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -5467,7 +5467,7 @@ dependencies = [
  "once_cell",
  "serde",
  "serde_yaml_ng",
- "shikumi 0.1.181",
+ "shikumi 0.1.183",
  "tear-types",
  "thiserror 2.0.18",
  "tracing",

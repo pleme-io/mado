@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "d5020e70df136ffbb6a542c056ea8506f680429d43a41654c5ca948b7b8ab716",
+  "cargo_lock_sha256": "e04c04b6f00a320d5f77f43a3be568cb01deb91a59104c4a9b279026cd550fba",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -5994,7 +5994,7 @@
         "runtime_dependencies": [
           {
             "name": "regex_automata",
-            "package_key": "regex-automata-0.4.14",
+            "package_key": "regex-automata-0.4.15",
             "kind": "normal",
             "features": [
               "dfa-build",
@@ -8874,7 +8874,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "regex-1.12.4": {
+      "regex-1.13.0": {
         "runtime_dependencies": [
           {
             "name": "aho_corasick",
@@ -8898,7 +8898,7 @@
           },
           {
             "name": "regex_automata",
-            "package_key": "regex-automata-0.4.14",
+            "package_key": "regex-automata-0.4.15",
             "kind": "normal",
             "features": [
               "alloc",
@@ -8943,7 +8943,7 @@
           "unicode-segment"
         ]
       },
-      "regex-automata-0.4.14": {
+      "regex-automata-0.4.15": {
         "runtime_dependencies": [
           {
             "name": "aho_corasick",
@@ -10665,7 +10665,7 @@
           },
           {
             "name": "regex",
-            "package_key": "regex-1.12.4",
+            "package_key": "regex-1.13.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11935,7 +11935,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.181-5e8aad2352a0494234e5d5e4c0292c451489ed0b": {
+      "shikumi-0.1.183-aaf363addf8d3ff36ea79595ca27a57f7e3593dd": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -14832,7 +14832,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.181-5e8aad2352a0494234e5d5e4c0292c451489ed0b",
+            "package_key": "shikumi-0.1.183-aaf363addf8d3ff36ea79595ca27a57f7e3593dd",
             "kind": "normal",
             "features": [
               "cli"
@@ -16413,7 +16413,7 @@
           },
           {
             "name": "regex_automata",
-            "package_key": "regex-automata-0.4.14",
+            "package_key": "regex-automata-0.4.15",
             "kind": "normal",
             "features": [
               "std"
@@ -16916,7 +16916,7 @@
           },
           {
             "name": "regex",
-            "package_key": "regex-1.12.4",
+            "package_key": "regex-1.13.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19393,7 +19393,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.75": {
+          "mado-0.1.76": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -23874,7 +23874,7 @@
               "system"
             ]
           },
-          "mado-0.1.75": {
+          "mado-0.1.76": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -27561,7 +27561,7 @@
               "system"
             ]
           },
-          "mado-0.1.75": {
+          "mado-0.1.76": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31369,7 +31369,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.75": {
+          "mado-0.1.76": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35804,7 +35804,7 @@
               "system"
             ]
           },
-          "mado-0.1.75": {
+          "mado-0.1.76": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39445,7 +39445,7 @@
               "system"
             ]
           },
-          "mado-0.1.75": {
+          "mado-0.1.76": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -43213,7 +43213,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.75": {
+    "mado-0.1.76": {
       "edition": "2024",
       "binaries": [
         {
@@ -43631,10 +43631,10 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "regex-1.12.4": {
+    "regex-1.13.0": {
       "edition": "2021"
     },
-    "regex-automata-0.4.14": {
+    "regex-automata-0.4.15": {
       "edition": "2021"
     },
     "regex-syntax-0.8.11": {
@@ -43865,7 +43865,7 @@
     "shidou-0.1.8-527c3ce244c44b4bb581168ae8429e5dbcee6507": {
       "edition": "2024"
     },
-    "shikumi-0.1.181-5e8aad2352a0494234e5d5e4c0292c451489ed0b": {
+    "shikumi-0.1.183-aaf363addf8d3ff36ea79595ca27a57f7e3593dd": {
       "edition": "2024"
     },
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": {
@@ -44485,7 +44485,7 @@
     "pleme-kindstr-derive-0.1.0-d287f915e9bb8837a443f6238ee900e81318ce89": "sha256-5XDr9kPiT0doWBOOk9yXjxdTCpRgaqWWJCpsc1f+tdw=",
     "praca-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",
     "shidou-0.1.8-527c3ce244c44b4bb581168ae8429e5dbcee6507": "sha256-7UDp5qpjhQHI2p6uh1pRN5V/qzv4lTqqI3wjwJZqfME=",
-    "shikumi-0.1.181-5e8aad2352a0494234e5d5e4c0292c451489ed0b": "sha256-S3Tb0bI6cvCzkBQ1BhnWqNseLsTcyfm7afdpm32ryc8=",
+    "shikumi-0.1.183-aaf363addf8d3ff36ea79595ca27a57f7e3593dd": "sha256-Ek1TZQ/YWpNkaihfiEquqsW88k4Hq7zr0dgAIKpBq1I=",
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": "sha256-Jd6fUoNSdzk+I5iu7FbAg9F9gbc7oU9jdPnnaTIxL6w=",
     "tatara-lisp-0.2.4-546c894ed9e913a7f6be8839722873535a33e909": "sha256-cw2Nmo0sak5Gx8TN/xHj2JQoP/MSY8nHT53iFkbX4hA=",
     "tatara-lisp-derive-0.2.4-546c894ed9e913a7f6be8839722873535a33e909": "sha256-cw2Nmo0sak5Gx8TN/xHj2JQoP/MSY8nHT53iFkbX4hA=",

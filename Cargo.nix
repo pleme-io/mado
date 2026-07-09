@@ -7365,7 +7365,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.75";
+        version = "0.1.76";
         edition = "2024";
         crateBin = [
           {
@@ -7642,6 +7642,10 @@ rec {
           {
             name = "unicode-width";
             packageId = "unicode-width";
+          }
+          {
+            name = "url";
+            packageId = "url";
           }
           {
             name = "vigy";
@@ -17279,15 +17283,15 @@ rec {
         ];
 
       };
-      "shikumi 0.1.180" = rec {
+      "shikumi 0.1.181" = rec {
         crateName = "shikumi";
-        version = "0.1.180";
+        version = "0.1.181";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
-          rev = "060bf8a602c1dde99436f173957740065060e770";
-          sha256 = "1sngcwh4hjj45cb2rclcdnmir9vv4k4w7lwkhjfq5y9wvqd5zdkp";
+          rev = "5e8aad2352a0494234e5d5e4c0292c451489ed0b";
+          sha256 = "1ky9mdyrnsgpd6xzkjfwqhp1xnx8sqchcd8lj2rz0wisnb8xnx2b";
         };
         dependencies = [
           {
@@ -19496,7 +19500,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "shikumi 0.1.180";
+            packageId = "shikumi 0.1.181";
             features = [ "cli" ];
           }
           {
