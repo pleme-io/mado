@@ -7365,7 +7365,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.73";
+        version = "0.1.74";
         edition = "2024";
         crateBin = [
           {
@@ -7540,6 +7540,10 @@ rec {
             packageId = "parking_lot";
           }
           {
+            name = "pleme-allvariants-derive";
+            packageId = "pleme-allvariants-derive";
+          }
+          {
             name = "pleme-fleet-themed-derive";
             packageId = "pleme-fleet-themed-derive";
           }
@@ -7659,10 +7663,6 @@ rec {
           }
         ];
         devDependencies = [
-          {
-            name = "pleme-allvariants-derive";
-            packageId = "pleme-allvariants-derive";
-          }
           {
             name = "proptest";
             packageId = "proptest";
@@ -17279,15 +17279,15 @@ rec {
         ];
 
       };
-      "shikumi 0.1.170" = rec {
+      "shikumi 0.1.171" = rec {
         crateName = "shikumi";
-        version = "0.1.170";
+        version = "0.1.171";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
-          rev = "5981edd51eef7181b52513e001ca5e99e648fc2d";
-          sha256 = "004iz2r9xqd3vi2bmklc2rs1q3wkyjjq4fxdq9h7i788vhhzn77x";
+          rev = "09d0c3b721d3d2f4a28ee77200b2a38450fec6f3";
+          sha256 = "0wmfxzny46f6cacjks80bawsa57rafn2c6rd3js16apl66k1yypd";
         };
         dependencies = [
           {
@@ -19496,7 +19496,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "shikumi 0.1.170";
+            packageId = "shikumi 0.1.171";
             features = [ "cli" ];
           }
           {
