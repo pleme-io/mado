@@ -14,6 +14,16 @@ A GPU-accelerated terminal emulator built in pure Rust. Follows Ghostty's philos
 of speed + features + native UI without compromise, plus an embedded MCP server,
 an embedded vigy reconciler, and deep Nix integration that no competitor offers.
 
+> **★ Macro vocabulary — generate the problem space, don't derive everything.**
+> mado is the worked reference for the org ★★ EMITTER SUBSTRATE refinement: the
+> real macro leverage is **domain tables** (the VT/CSI/OSC/SGR dispatch — one
+> authored table generates parse + emit + report, killing whole drift classes;
+> e.g. `dec_private_modes!` in `terminal.rs`) and **genuine impl-duplication**
+> (an enum's real `slug()`/`ALL` match → `KindStr`/`AllVariants`). Blanket
+> per-field/per-variant deriving onto mado's ergonomic hand APIs is
+> over-abstraction — it does NOT pay. Author for the actual shape; byte-pin
+> every generated surface. Plan + rejection list: [`docs/MACRO-VOCABULARY.md`](./docs/MACRO-VOCABULARY.md).
+
 > **★ M5 de-overlap with tear.** Mado's `pane.rs` / `tab.rs` /
 > `window.rs` are **legacy** — multiplexing belongs in
 > [`pleme-io/tear`](https://github.com/pleme-io/tear) (the
