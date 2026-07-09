@@ -19802,6 +19802,16 @@
                 "tree": "target"
               },
               {
+                "name": "pleme_allvariants_derive",
+                "package_key": "pleme-allvariants-derive-0.1.0-c66f20d1dc5727cfa0d1f83a02a28609a13387ec",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "host"
+              },
+              {
                 "name": "pleme_fleet_themed_derive",
                 "package_key": "pleme-fleet-themed-derive-0.1.1-a03a411857a340c89a0eefcb25b00ce6586abe30",
                 "kind": "normal",
@@ -24188,6 +24198,16 @@
                 "tree": "target"
               },
               {
+                "name": "pleme_allvariants_derive",
+                "package_key": "pleme-allvariants-derive-0.1.0-c66f20d1dc5727cfa0d1f83a02a28609a13387ec",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "host"
+              },
+              {
                 "name": "pleme_fleet_themed_derive",
                 "package_key": "pleme-fleet-themed-derive-0.1.1-a03a411857a340c89a0eefcb25b00ce6586abe30",
                 "kind": "normal",
@@ -27853,6 +27873,16 @@
                 "optional": false,
                 "target": null,
                 "tree": "target"
+              },
+              {
+                "name": "pleme_allvariants_derive",
+                "package_key": "pleme-allvariants-derive-0.1.0-c66f20d1dc5727cfa0d1f83a02a28609a13387ec",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "host"
               },
               {
                 "name": "pleme_fleet_themed_derive",
@@ -31716,6 +31746,16 @@
                 "optional": false,
                 "target": null,
                 "tree": "target"
+              },
+              {
+                "name": "pleme_allvariants_derive",
+                "package_key": "pleme-allvariants-derive-0.1.0-c66f20d1dc5727cfa0d1f83a02a28609a13387ec",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "host"
               },
               {
                 "name": "pleme_fleet_themed_derive",
@@ -36058,6 +36098,16 @@
                 "tree": "target"
               },
               {
+                "name": "pleme_allvariants_derive",
+                "package_key": "pleme-allvariants-derive-0.1.0-c66f20d1dc5727cfa0d1f83a02a28609a13387ec",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "host"
+              },
+              {
                 "name": "pleme_fleet_themed_derive",
                 "package_key": "pleme-fleet-themed-derive-0.1.1-a03a411857a340c89a0eefcb25b00ce6586abe30",
                 "kind": "normal",
@@ -39677,6 +39727,16 @@
                 "optional": false,
                 "target": null,
                 "tree": "target"
+              },
+              {
+                "name": "pleme_allvariants_derive",
+                "package_key": "pleme-allvariants-derive-0.1.0-c66f20d1dc5727cfa0d1f83a02a28609a13387ec",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "host"
               },
               {
                 "name": "pleme_fleet_themed_derive",

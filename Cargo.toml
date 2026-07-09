@@ -96,6 +96,14 @@ pleme-kindbyte-derive = { git = "https://github.com/pleme-io/pleme-kindbyte-deri
 # the fleet. See github.com/pleme-io/pleme-fleet-themed-derive.
 pleme-fleet-themed-derive = { git = "https://github.com/pleme-io/pleme-fleet-themed-derive" }
 
+# Mechanical `ALL` / `all()` registries emitted from unit enums via
+# `#[derive(AllVariants)]` — one authored variant list, never a hand const
+# a new variant can silently drop. Promoted from dev-dependencies (2026-07-09):
+# non-test catalogs (fibers::Subject, the izumi-catalog idiom) now consume it,
+# not just the ux::modes test mirror enums. Proc-macro — build-time only, zero
+# runtime / binary cost. See github.com/pleme-io/pleme-allvariants-derive.
+pleme-allvariants-derive = { version = "0.1", git = "https://github.com/pleme-io/pleme-allvariants-derive" }
+
 garasu = "0.1"
 madori = { git = "https://github.com/pleme-io/madori", rev = "79b33a4811853f1a8153735a69fb58bde894c2d9", version = "0.1" }
 shikumi = { version = "0.1", features = ["cli"] }
@@ -319,11 +327,9 @@ proptest = "1"
 # clock deterministically without real sleeps. Dev-dep so it never touches the
 # shipped binary build.
 tokio = { version = "1", features = ["test-util", "macros", "rt-multi-thread", "time", "sync"] }
-# Mechanical ALL registries for the ux::modes FSM test surfaces -
-# variant counts are derive-emitted from mirror enums, never hand
-# consts (M3 review 2026-06-12; same macro-farm pattern as
-# engawa/engawa-wgpu).
-pleme-allvariants-derive = { version = "0.1", git = "https://github.com/pleme-io/pleme-allvariants-derive" }
+# pleme-allvariants-derive was promoted to [dependencies] (2026-07-09) — the
+# ux::modes test mirror enums still use it, but fibers::Subject now consumes
+# `ALL` in non-test catalog code, so it can no longer be dev-only.
 # tear-core + tear-daemon are pulled in for:
 #   - tests/tear_attach_integration.rs (Phase-3-MVP cross-process)
 #   - tests/mcp_cross_process.rs (mado bin spawned as `mado mcp`)

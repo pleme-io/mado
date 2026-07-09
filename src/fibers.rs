@@ -71,43 +71,52 @@ const DEFAULT_CAPACITY: usize = 64;
 // ─────────────────────────────────────────────────────────────────
 
 /// Every subject the fiber bus carries — the COMPLETE catalog. Adding a
-/// variant is a compile error until [`Subject::slug`], [`Subject::index`],
-/// and [`FiberEvent::subject`] are extended, and a test failure until
-/// [`Subject::ALL`] lists it (the izumi catalog idiom).
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, serde::Serialize, serde::Deserialize)]
+/// variant is a compile error until [`Subject::index`] and
+/// [`FiberEvent::subject`] are extended (the exhaustive `match` in
+/// `index` is the forcing-function). The slug↔subject round-trip is the
+/// `#[derive(KindStr)]`-generated [`Self::as_str`]/[`Self::from_str_kind`]
+/// pair over one authored `#[kind(name = …)]` table, and [`Self::ALL`] is
+/// the `#[derive(AllVariants)]` reflection const — always complete by
+/// construction, so a new variant can no longer be omitted from it.
+#[derive(
+    Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug,
+    serde::Serialize, serde::Deserialize,
+    pleme_kindstr_derive::KindStr, pleme_allvariants_derive::AllVariants,
+)]
 #[serde(rename_all = "kebab-case")]
 pub enum Subject {
     /// Session-lifecycle facts (a ghost session reaped, …). Payload:
     /// [`SessionEvent`].
+    #[kind(name = "sessions")]
     Sessions,
     /// Janitor findings — every invariant observation, shadow or effect.
     /// Payload: [`crate::janitors::JanitorFinding`].
+    #[kind(name = "janitors")]
     Janitors,
     /// Board-projection facts (a janitor row injected onto the Ctrl-S
     /// board, …). Payload: [`BoardEvent`].
+    #[kind(name = "board")]
     Board,
 }
 
 impl Subject {
-    /// Every subject, in declaration order — the reflection surface tests
-    /// and tooling iterate.
-    pub const ALL: &'static [Subject] = &[Subject::Sessions, Subject::Janitors, Subject::Board];
-
     /// Kebab slug — for logs / MCP output. NOT an addressing key: the bus
-    /// is addressed by the typed variant only.
+    /// is addressed by the typed variant only. Thin `self`-taking wrapper
+    /// over the `#[derive(KindStr)]`-generated [`Self::as_str`] (one
+    /// authored `#[kind(name = …)]` table replaces the former hand-kept
+    /// match).
     #[must_use]
     pub fn slug(self) -> &'static str {
-        match self {
-            Subject::Sessions => "sessions",
-            Subject::Janitors => "janitors",
-            Subject::Board => "board",
-        }
+        self.as_str()
     }
 
-    /// Resolve a slug back to its subject (log/tooling round-trip).
+    /// Resolve a slug back to its subject (log/tooling round-trip). Thin
+    /// wrapper over the derived [`Self::from_str_kind`] — the paired
+    /// inverse of [`Self::as_str`] (an exact match, as the former
+    /// `ALL.find(|k| k.slug() == s)` was).
     #[must_use]
     pub fn from_slug(s: &str) -> Option<Subject> {
-        Subject::ALL.iter().copied().find(|k| k.slug() == s)
+        Self::from_str_kind(s)
     }
 
     /// Dense channel index — exhaustive so a new variant cannot silently
@@ -267,6 +276,21 @@ mod tests {
             assert_eq!(Subject::from_slug(s.slug()), Some(s));
         }
         assert_eq!(Subject::from_slug("no-such-subject"), None);
+    }
+
+    /// Byte-pin: the `#[derive(KindStr)]` slug table is byte-for-byte the
+    /// former hand-written `slug()` match arms (the vt.rs
+    /// `csi_matches_the_legacy_format_strings` idiom — assert the derived
+    /// output equals the pre-refactor literal, not just self-consistency).
+    #[test]
+    fn subject_slugs_are_byte_identical_to_the_former_hand_match() {
+        assert_eq!(Subject::Sessions.slug(), "sessions");
+        assert_eq!(Subject::Janitors.slug(), "janitors");
+        assert_eq!(Subject::Board.slug(), "board");
+        // slug() delegates to the derived as_str() — they are the same bytes.
+        assert_eq!(Subject::Sessions.as_str(), "sessions");
+        // ALL is the derived reflection const, complete + in declaration order.
+        assert_eq!(Subject::ALL, &[Subject::Sessions, Subject::Janitors, Subject::Board]);
     }
 
     /// Every payload family maps onto its declared subject (the typed
