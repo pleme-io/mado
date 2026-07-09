@@ -2497,7 +2497,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.74"
+version = "0.1.75"
 dependencies = [
  "anyhow",
  "awase",
@@ -4902,8 +4902,8 @@ dependencies = [
 
 [[package]]
 name = "shikumi"
-version = "0.1.180"
-source = "git+https://github.com/pleme-io/shikumi?branch=main#060bf8a602c1dde99436f173957740065060e770"
+version = "0.1.181"
+source = "git+https://github.com/pleme-io/shikumi?branch=main#5e8aad2352a0494234e5d5e4c0292c451489ed0b"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -5466,7 +5466,7 @@ dependencies = [
  "once_cell",
  "serde",
  "serde_yaml_ng",
- "shikumi 0.1.180",
+ "shikumi 0.1.181",
  "tear-types",
  "thiserror 2.0.18",
  "tracing",

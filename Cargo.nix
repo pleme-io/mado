@@ -7365,7 +7365,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.74";
+        version = "0.1.75";
         edition = "2024";
         crateBin = [
           {
@@ -17279,15 +17279,15 @@ rec {
         ];
 
       };
-      "shikumi 0.1.171" = rec {
+      "shikumi 0.1.180" = rec {
         crateName = "shikumi";
-        version = "0.1.171";
+        version = "0.1.180";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
-          rev = "09d0c3b721d3d2f4a28ee77200b2a38450fec6f3";
-          sha256 = "0wmfxzny46f6cacjks80bawsa57rafn2c6rd3js16apl66k1yypd";
+          rev = "060bf8a602c1dde99436f173957740065060e770";
+          sha256 = "1sngcwh4hjj45cb2rclcdnmir9vv4k4w7lwkhjfq5y9wvqd5zdkp";
         };
         dependencies = [
           {
@@ -19496,7 +19496,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "shikumi 0.1.171";
+            packageId = "shikumi 0.1.180";
             features = [ "cli" ];
           }
           {
@@ -28204,9 +28204,9 @@ rec {
       };
       "zerocopy" = rec {
         crateName = "zerocopy";
-        version = "0.8.53";
+        version = "0.8.54";
         edition = "2021";
-        sha256 = "1qcdv45iz4499bafwcnflvzf7adfvbnvgfc5w8cx8mk12d9n0wkm";
+        sha256 = "06cxymy8i9q9a93xdins9ayakx9b1nc2arb7qdfd03ssf05brjxp";
         authors = [
           "Joshua Liebow-Feeser <joshlf@google.com>"
           "Jack Wrenn <jswrenn@amazon.com>"
@@ -28240,9 +28240,9 @@ rec {
       };
       "zerocopy-derive" = rec {
         crateName = "zerocopy-derive";
-        version = "0.8.53";
+        version = "0.8.54";
         edition = "2021";
-        sha256 = "0wgxvsnv44x5xdli270xh085458m76dkl0iqjpa3624hry9gs527";
+        sha256 = "1xb292dhgb0d4fs05cdj2s0v3srmk7bajv94sdc7631dnnvigs72";
         procMacro = true;
         libName = "zerocopy_derive";
         authors = [
