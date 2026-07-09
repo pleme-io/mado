@@ -6417,6 +6417,75 @@ mod tests {
         assert!(reply.starts_with(b"\x1bP1$r") && reply.ends_with(b"\x1b\\"), "reply={reply:?}");
     }
 
+    /// M7 (underline half): emit⇆reparse FIXPOINT for `UnderlineStyle` — the
+    /// SGR-4:N parse (`handle_sgr`) and emit (`SgrReport::Display`) are a
+    /// hand-kept inverse pair; this binds them so a variant added to one side
+    /// only is caught (the `AttrFlags::ALL` DECRQSS lock, for the underline
+    /// table). NO production/hot-path change — the two `match`es stay verbatim.
+    /// Only the CANONICAL emitted form must round-trip; input-only aliases
+    /// (`4:1`→Single, `21`→Double, `24`→None) are deliberately NOT asserted.
+    #[test]
+    fn underline_style_emit_reparse_fixpoint() {
+        use UnderlineStyle::{Curly, Dashed, Dotted, Double, None, Single};
+        // Compile-time exhaustiveness guard: a new variant breaks this match,
+        // forcing the corpus below to be reviewed (parse+emit+this test).
+        fn _exhaustive(u: UnderlineStyle) {
+            match u {
+                None | Single | Double | Curly | Dotted | Dashed => {}
+            }
+        }
+        let mut failures = Vec::new();
+        for style in [Single, Double, Curly, Dotted, Dashed] {
+            let mut attrs = Attrs::NONE;
+            attrs.underline = style;
+            let emitted = SgrReport { fg: Option::None, bg: Option::None, attrs }.to_string();
+            let mut seq = Vec::with_capacity(emitted.len() + 2);
+            seq.extend_from_slice(b"\x1b[");
+            seq.extend_from_slice(emitted.as_bytes());
+            let mut t = Terminal::new(20, 4);
+            t.feed(&seq);
+            if t.pen_attrs.underline != style {
+                failures.push(format!(
+                    "{style:?} emitted {emitted:?} reparsed to {:?}",
+                    t.pen_attrs.underline
+                ));
+            }
+        }
+        assert!(failures.is_empty(), "underline-style fixpoint broke:\n  {}", failures.join("\n  "));
+    }
+
+    /// M7 (underline half): emit⇆reparse FIXPOINT for `UnderlineColor` (SGR 58).
+    /// Same contract as the style fixpoint — binds `parse_underline_color` to
+    /// `SgrReport::Display` through the canonical emitted form only (`58:5:n`,
+    /// `58:2::r:g:b`; `Default` emits nothing → trivially holds).
+    #[test]
+    fn underline_color_emit_reparse_fixpoint() {
+        use UnderlineColor::{Default, Indexed, Rgb as UcRgb};
+        fn _exhaustive(u: UnderlineColor) {
+            match u {
+                Default | Indexed(_) | UcRgb(_) => {}
+            }
+        }
+        let mut failures = Vec::new();
+        for uc in [Default, Indexed(9), UcRgb(Rgb::new(10, 20, 30))] {
+            let mut attrs = Attrs::NONE;
+            attrs.underline_color = uc;
+            let emitted = SgrReport { fg: Option::None, bg: Option::None, attrs }.to_string();
+            let mut seq = Vec::with_capacity(emitted.len() + 2);
+            seq.extend_from_slice(b"\x1b[");
+            seq.extend_from_slice(emitted.as_bytes());
+            let mut t = Terminal::new(20, 4);
+            t.feed(&seq);
+            if t.pen_attrs.underline_color != uc {
+                failures.push(format!(
+                    "{uc:?} emitted {emitted:?} reparsed to {:?}",
+                    t.pen_attrs.underline_color
+                ));
+            }
+        }
+        assert!(failures.is_empty(), "underline-color fixpoint broke:\n  {}", failures.join("\n  "));
+    }
+
     #[test]
     fn sgr_bold_and_color() {
         let mut term = Terminal::new(80, 24);
