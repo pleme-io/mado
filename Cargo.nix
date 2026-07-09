@@ -7365,7 +7365,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.76";
+        version = "0.1.77";
         edition = "2024";
         crateBin = [
           {
@@ -14250,9 +14250,9 @@ rec {
       };
       "regex" = rec {
         crateName = "regex";
-        version = "1.12.4";
+        version = "1.13.0";
         edition = "2021";
-        sha256 = "1fm6si2xpmhwqflabdqsakc0qkq718wx2ljl37nbj75fb5vjnagi";
+        sha256 = "18p8vqy4yp4z4rnx78sh4qqz257jhil7il4c0v5mmp0l7q8pa3ia";
         authors = [
           "The Rust Project Developers"
           "Andrew Gallant <jamslam@gmail.com>"
@@ -14308,9 +14308,9 @@ rec {
       };
       "regex-automata" = rec {
         crateName = "regex-automata";
-        version = "0.4.14";
+        version = "0.4.15";
         edition = "2021";
-        sha256 = "13xf7hhn4qmgfh784llcp2kzrvljd13lb2b1ca0mwnf15w9d87bf";
+        sha256 = "1nric5m7dr6a0ijgiqy114acyfrknqiwqy0hjah441dqwh184f0z";
         libName = "regex_automata";
         authors = [
           "The Rust Project Developers"
@@ -17283,15 +17283,15 @@ rec {
         ];
 
       };
-      "shikumi 0.1.181" = rec {
+      "shikumi 0.1.183" = rec {
         crateName = "shikumi";
-        version = "0.1.181";
+        version = "0.1.183";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
-          rev = "5e8aad2352a0494234e5d5e4c0292c451489ed0b";
-          sha256 = "1ky9mdyrnsgpd6xzkjfwqhp1xnx8sqchcd8lj2rz0wisnb8xnx2b";
+          rev = "aaf363addf8d3ff36ea79595ca27a57f7e3593dd";
+          sha256 = "0lmb86m2006qs7mvraq79vrbridamr58hpr8d9j96nnq1xjm6k8j";
         };
         dependencies = [
           {
@@ -19500,7 +19500,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "shikumi 0.1.181";
+            packageId = "shikumi 0.1.183";
             features = [ "cli" ];
           }
           {
