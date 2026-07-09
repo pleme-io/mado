@@ -119,11 +119,11 @@ shikumi = { version = "0.1", features = ["cli"] }
 # module is now a thin shim over these three crates; the snapshot magic
 # `b"mado-suggest v1\n"` + the YAML schema stay byte-compatible.
 # git+rev pin (the madori/irodzuki idiom); bump rev to track izumi.
-izumi = { git = "https://github.com/pleme-io/izumi", rev = "3431c7d97cbe171069419bbc5290eaff57ed77f1", version = "0.1.0" }
+izumi = { git = "https://github.com/pleme-io/izumi", rev = "c23c71bc48d29dd1461e3c13375b99f70e513513", version = "0.1.0" }
 # git+rev pin (the madori/irodzuki idiom); bump rev to track izumi.
-izumi-sources = { git = "https://github.com/pleme-io/izumi", rev = "3431c7d97cbe171069419bbc5290eaff57ed77f1", version = "0.1.0" }
+izumi-sources = { git = "https://github.com/pleme-io/izumi", rev = "c23c71bc48d29dd1461e3c13375b99f70e513513", version = "0.1.0" }
 # git+rev pin (the madori/irodzuki idiom); bump rev to track izumi.
-izumi-config = { git = "https://github.com/pleme-io/izumi", rev = "3431c7d97cbe171069419bbc5290eaff57ed77f1", version = "0.1.0" }
+izumi-config = { git = "https://github.com/pleme-io/izumi", rev = "c23c71bc48d29dd1461e3c13375b99f70e513513", version = "0.1.0" }
 hasami = { git = "https://github.com/pleme-io/hasami" , version = "0.1" }
 # Tsuuchi (通知) — the fleet notification primitive (rich vocabulary:
 # sound / actions / attachment / id / Capabilities). The M4 unified
