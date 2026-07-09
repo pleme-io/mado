@@ -3639,12 +3639,11 @@ impl Terminal {
         }
         let arg = params[1];
         if arg == b"?" {
-            // Query form — emit current shape name.
+            // Query form — emit the current shape name through the typed OSC
+            // emitter (the `ESC ] 22 ; … ST` envelope lives in vt::osc, never
+            // hand-spelled — ★★ TYPED EMISSION).
             let name = self.pointer_shape.as_str();
-            let mut resp = Vec::with_capacity(8 + name.len());
-            resp.extend_from_slice(b"\x1b]22;");
-            resp.extend_from_slice(name.as_bytes());
-            resp.extend_from_slice(b"\x1b\\");
+            let resp = crate::vt::osc(22, &[name], crate::vt::OscTerminator::St);
             self.response_bytes.extend_from_slice(&resp);
             return;
         }
@@ -5397,14 +5396,11 @@ impl Terminal {
             C::RestoreCursor => self.restore_cursor(),
             C::WindowOp(op) => {
                 if op == 18 {
-                    let rows = u16::try_from(self.rows).unwrap_or(u16::MAX);
-                    let cols = u16::try_from(self.cols).unwrap_or(u16::MAX);
-                    let mut resp = Vec::with_capacity(16);
-                    resp.extend_from_slice(b"\x1b[8;");
-                    resp.extend_from_slice(rows.to_string().as_bytes());
-                    resp.push(b';');
-                    resp.extend_from_slice(cols.to_string().as_bytes());
-                    resp.push(b't');
+                    // XTWINOPS report text-area size: `CSI 8 ; rows ; cols t`,
+                    // built through the typed CSI emitter (★★ TYPED EMISSION).
+                    let rows = u32::from(u16::try_from(self.rows).unwrap_or(u16::MAX));
+                    let cols = u32::from(u16::try_from(self.cols).unwrap_or(u16::MAX));
+                    let resp = crate::vt::csi(false, &[8, rows, cols], "", b't');
                     self.response_bytes.extend_from_slice(&resp);
                 } else {
                     tracing::trace!(op, "unhandled XTWINOPS (CSI Ps t)");
@@ -5573,20 +5569,24 @@ impl vte::Perform for Terminal {
                             bg: (self.pen_bg != self.default_bg).then_some(self.pen_bg),
                             attrs: self.pen_attrs,
                         };
-                        let mut out = Vec::with_capacity(48);
-                        out.extend_from_slice(b"\x1bP1$r");
-                        out.extend_from_slice(report.to_string().as_bytes());
-                        out.extend_from_slice(b"\x1b\\");
-                        out
+                        // DECRQSS SGR reply through the typed DCS emitter (the
+                        // envelope lives in vt::dcs, as the `b"r"` arm already
+                        // does); the body is `1$r<sgr-report>`.
+                        let mut body = String::with_capacity(48);
+                        body.push_str("1$r");
+                        body.push_str(&report.to_string());
+                        crate::vt::dcs(&body)
                     }
                     b"r" => {
                         let top = self.scroll_top + 1;
                         let bottom = self.scroll_bottom + 1;
                         crate::vt::dcs(&format!("1$r{top};{bottom}r"))
                     }
-                    b"\"p" => b"\x1bP1$r62;1\"p\x1b\\".to_vec(),
-                    b"\"q" => b"\x1bP1$r0\"q\x1b\\".to_vec(),
-                    _ => b"\x1bP0$r\x1b\\".to_vec(),
+                    // Fixed DECRQSS replies — the DCS envelope stays in vt::dcs
+                    // (one home for the `ESC P … ST` grammar across all arms).
+                    b"\"p" => crate::vt::dcs("1$r62;1\"p"),
+                    b"\"q" => crate::vt::dcs("1$r0\"q"),
+                    _ => crate::vt::dcs("0$r"),
                 };
                 self.response_bytes.extend_from_slice(&response);
             }
@@ -6383,6 +6383,38 @@ mod tests {
                 "SGR set-code {code} must set {flag:?} — AttrFlags::ALL/handle_sgr drift"
             );
         }
+    }
+
+    /// M6 typed-emission sweep: the value-composing VT replies now route
+    /// through the typed `vt` emitters (envelope grammar in one place). Each
+    /// reply is byte-for-byte the former hand-spelled bytes.
+    #[test]
+    fn typed_replies_are_byte_identical_to_the_former_hand_spelled_bytes() {
+        // OSC 22 pointer-shape query → `ESC ] 22 ; <name> ST` (default shape).
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b]22;?\x1b\\");
+        assert_eq!(term.take_response().as_deref(), Some(&b"\x1b]22;default\x1b\\"[..]));
+
+        // XTWINOPS report text-area size (CSI 18 t) → `CSI 8 ; rows ; cols t`.
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[18t");
+        assert_eq!(term.take_response().as_deref(), Some(&b"\x1b[8;24;80t"[..]));
+
+        // DECRQSS fixed replies through vt::dcs (DECSCL / DECSCA / invalid).
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1bP$q\"p\x1b\\");
+        assert_eq!(term.take_response().as_deref(), Some(&b"\x1bP1$r62;1\"p\x1b\\"[..]));
+        term.feed(b"\x1bP$q\"q\x1b\\");
+        assert_eq!(term.take_response().as_deref(), Some(&b"\x1bP1$r0\"q\x1b\\"[..]));
+        term.feed(b"\x1bP$qZ\x1b\\");
+        assert_eq!(term.take_response().as_deref(), Some(&b"\x1bP0$r\x1b\\"[..]));
+
+        // DECRQSS SGR (`m`) routes through vt::dcs too — pin the envelope
+        // (the `1$r<sgr>` body is SgrReport's contract, tested separately).
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1bP$qm\x1b\\");
+        let reply = term.take_response().expect("DECRQSS m answers");
+        assert!(reply.starts_with(b"\x1bP1$r") && reply.ends_with(b"\x1b\\"), "reply={reply:?}");
     }
 
     #[test]
