@@ -55,8 +55,8 @@ A **new** derive lands as one `catalog.json`/`pleme-derives.lisp` entry →
 | M | What | Risk | ~LOC | Status |
 |---|---|---|---|---|
 | **M0** | Adopt `KindStr`/`AllVariants` on the verified non-adoption enums (`Subject`, `ServiceKind`) | low | ~50 | **✓ shipped** (nix-green) |
-| **M1** | `IsVariant`/`WithBuilder` (per-site verified) + extend `InvalidatingSetter`. **NOT `GetterAll`** — see the non-fit below | low | ~40 (revised down) | queued |
-| **M2** | `ImplFrom` on by-value projections (validate-first, per site) | med | ~12 | queued |
+| **M1** | Generic per-field/per-variant derives (Getter/Builder/IsVariant/InvalidatingSetter-extend) | low | ~0 | **✗ assessed — no clean fit** (see the learning) |
+| **M2** | `ImplFrom` on by-value projections | med | ~0 | **✗ assessed — arm-by-arm enum maps ≠ newtype From** |
 | **M3** | Author `pleme-kindmirror-derive` (ux/ FSM twin + total `kind()` + `ordinal()`, 4 sites) upstream, then consume | med | ~120 | queued |
 | **M4** | `dec_private_modes!` — one table generates `dec_set`/`dec_reset`/DECRQM + **fixed the mode-12 drift bug** | med | ~70 | **✓ shipped** |
 | **M5** | typed `vt::osc_color_reply`/`osc4_color_reply` — **killed the 2 `format!("\x1b]…")` emission violations** | low | ~28 | **✓ shipped** |
@@ -73,6 +73,49 @@ of one code→field registry that have already drifted. `(defdecmode)` collapses
 all three into one table; the mode-12 arm flowing consistently through set/reset
 is the **one intentional behaviour delta** in the whole plan (proven by a
 caps-honesty probe, never absorbed into a "byte-identical" claim).
+
+## ★ The core learning — "maximize macros" ≠ "derive everything"
+
+The single most important finding of this refactor, and the reason the tier is
+honest. Macro leverage is **not uniform** — it splits cleanly in two, and only
+one half pays:
+
+1. **Domain / problem-space tables (Layer B) — the real prize.** Where the code
+   is *the same algorithm transcribed N times against a table of cases* — the VT
+   dispatch (`dec_set`/`dec_reset`/DECRQM = one DEC-mode registry three times),
+   the OSC/CSI/SGR wire grammar (parse ⇆ emit) — one authored table + a generated
+   interpreter **eliminates a whole drift class** (M4 literally found + fixed a
+   live drift bug: mode 12 lived in only one of the three copies). This is where
+   "a macro vocabulary for the problem space" earns its keep. Mechanism: a local
+   `macro_rules!` table, or a `#[derive(TataraDomain)]` `(def…)` form, or the
+   TYPED-SPEC triplet — authored once, generating parse + emit + report.
+
+2. **Genuine impl-shape duplication (Layer A, narrow).** Where a *real*
+   hand-kept table already exists — an enum's `slug()`/`ALL`/`from_slug` match
+   (M0: `Subject`, `ServiceKind`) — an existing farm derive (`KindStr`/
+   `AllVariants`/`KindByte`) collapses it. This pays **only where the hand table
+   is real**; adopting on an enum that has no such table just *adds* speculative
+   API.
+
+**What does NOT pay — and adopting it is over-abstraction (debt, forbidden):**
+blanket per-field/per-variant deriving of getters/setters/builders/predicates.
+Every generic farm derive verified here (`GetterAll`, `WithBuilder`,
+`InvalidatingSetter`-extend, `IsVariant`) was a **non-fit** for mado because
+they emit *all* fields/variants with a *fixed, direct-assign, by-reference*
+shape, while mado's hand methods are **ergonomic and specific** — by-value `Copy`
+getters (`cols() -> usize`, not `-> &usize`), `impl Into<String>` + `Some(…)`
+wrapping builders, 2-field atomic invalidating setters, computed predicates
+(`is_up = amount > 0`, not a variant match). Force-fitting them would change
+signatures, collide with existing methods, expose internals, add unused API, and
+**regress ergonomics** — the opposite of the goal. A mature codebase's remaining
+hand methods are hand-written *because the generic shape doesn't fit*.
+
+**The rule this yields:** author a macro/derive for the **actual recurring
+shape** (M3 `kindmirror`, M6 `wireenum` are *new* derives designed to fit mado's
+real patterns — so they *will* fit), and reach for an *existing* derive only
+where the hand table it replaces genuinely exists. "Maximize generated code" =
+**generate the mechanical table/dispatch once; keep the ergonomic surface
+hand-crafted.** Never derive for the sake of a derive count.
 
 ## Verification strategy (mado's own three idioms, carried forward)
 
