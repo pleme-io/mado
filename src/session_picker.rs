@@ -49,10 +49,11 @@ use tear_types::{DefinitionId, MultiplexerControl, PaneId, SessionId, SessionSou
 
 use crate::suggest::{StoredSuggestion, SuggestionId, SuggestionStore};
 
-/// The picker's render window height in rows — the ONE constant the bridge's
-/// reserved-band math and the renderer's scroll window share (promoted from
-/// the render-side literal so the two can't drift).
-pub(crate) const WINDOW_ROWS: usize = 12;
+// The picker's visible row count is no longer a fixed constant: the renderer
+// derives it from the live surface height as a typed `crate::row_budget::
+// VisibleRows` (`overlay_row_budget`), so the Ctrl-S board reflows with the
+// window. Only the reserved-band ANCHOR (a screen-less union-ordering policy)
+// keeps a constant, `crate::row_budget::ROWS_DEFAULT`.
 
 /// What creating a session from the picker should name it.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -230,7 +231,7 @@ pub struct PracaPickerBridge {
     suggest_cap: usize,
     /// Band rows guaranteed INSIDE the picker window on the empty query
     /// (`suggestions.reserved_rows`): the band is inserted at
-    /// `WINDOW_ROWS - reserve` instead of appended, so a long session list
+    /// `ROWS_DEFAULT - reserve` (the reserved anchor) instead of appended, so a long session list
     /// can't push every suggestion below the fold. 0 = plain append.
     suggest_reserved: usize,
     /// Memoized ranked snapshot, keyed by the store's change-`generation`. The
@@ -721,17 +722,21 @@ impl SessionPickerBridge for PracaPickerBridge {
         //
         // Reserved band quota (empty query only): a long session list would
         // otherwise push the whole band below the render fold. INSERT the
-        // band at `WINDOW_ROWS - reserve` — displaced union rows slide below
+        // band at `ROWS_DEFAULT - reserve` (the reserved anchor) — displaced union rows slide below
         // it (still scrollable, still counted by the +N-more footer), and
         // nothing is ever truncated. Non-empty query: plain append (fuzzy
         // rank rules the whole list).
         let band = self.suggestion_rows(query, now);
         if query.trim().is_empty() && !band.is_empty() && self.suggest_reserved > 0 {
-            let reserve = self
-                .suggest_reserved
-                .min(band.len())
-                .min(WINDOW_ROWS - 1);
-            let cut = rows.len().min(WINDOW_ROWS - reserve);
+            // Reserved-band anchor: a union-ordering policy (where the
+            // suggestion band lands within the first rows), NOT a viewport-fit
+            // concern — this seam has no screen access. The VISIBLE row cap is
+            // screen-derived at the render layer (`overlay_row_budget`); this
+            // anchor stays the historical constant so the band never sinks
+            // below the guaranteed-visible head of the list.
+            let anchor = crate::row_budget::ROWS_DEFAULT;
+            let reserve = self.suggest_reserved.min(band.len()).min(anchor - 1);
+            let cut = rows.len().min(anchor - reserve);
             let tail = rows.split_off(cut);
             rows.extend(band);
             rows.extend(tail);
@@ -1459,23 +1464,24 @@ mod tests {
             3, // reserved_rows
         );
 
-        // Empty query: the band is inserted at WINDOW_ROWS - 3 = row 9, so
-        // rows 9..12 (inside the window) are suggestions and the displaced
-        // sessions follow after the band. Nothing is lost.
+        // Empty query: the band is inserted at ROWS_DEFAULT - 3 = row 9, so
+        // rows 9..12 (inside the reserved anchor) are suggestions and the
+        // displaced sessions follow after the band. Nothing is lost.
+        let win = crate::row_budget::ROWS_DEFAULT;
         let rows = bridge.list("", now);
         assert_eq!(rows.len(), 14 + 4, "insert, never truncate");
-        for idx in (WINDOW_ROWS - 3)..WINDOW_ROWS {
+        for idx in (win - 3)..win {
             assert!(
                 matches!(rows[idx].kind, RowKind::Suggestion(_)),
                 "row {idx} inside the window is a band row"
             );
         }
         assert!(
-            matches!(rows[WINDOW_ROWS - 4].kind, RowKind::Switch(_)),
+            matches!(rows[win - 4].kind, RowKind::Switch(_)),
             "the row above the band is still a session"
         );
         assert!(
-            matches!(rows[WINDOW_ROWS + 1].kind, RowKind::Switch(_)),
+            matches!(rows[win + 1].kind, RowKind::Switch(_)),
             "displaced sessions slide below the band, still reachable"
         );
 

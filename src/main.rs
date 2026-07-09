@@ -56,6 +56,7 @@ mod picker;
 mod praca_store;
 mod render;
 mod render_graph;
+mod row_budget;
 mod safra;
 mod single_writer;
 mod scenario;

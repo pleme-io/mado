@@ -1970,6 +1970,22 @@ impl TerminalRenderer {
         self.padding * self.scale_factor
     }
 
+    /// The viewport-derived overlay-list row budget — how many list rows a
+    /// picker should BUILD for the current surface height. It is the SAME
+    /// vertical-fit `draw_overlay` clamps its window to (`line_h = fs *
+    /// line_height`, `pad = padding_px()`, `pad_y = line_h*0.5`), so a picker
+    /// on a tall 4K window builds ~all the rows that fit instead of the old
+    /// fixed 12, and a short window shrinks below 12 — screen-size-aware by
+    /// construction. Resolved per frame at the reconciler tick, so it tracks
+    /// resize with no new event wiring. Typed [`crate::row_budget::VisibleRows`]
+    /// so no draw path can pass a hand-typed row count.
+    #[inline]
+    fn overlay_row_budget(&self, height: u32) -> crate::row_budget::VisibleRows {
+        let line_h = self.font_size_px() * self.line_height;
+        let pad = self.padding_px();
+        crate::row_budget::RowBudget::for_viewport(height as f32, line_h, pad, line_h * 0.5)
+    }
+
     /// Current HiDPI scale factor. Public so consumers (gui_tear_attach's
     /// resize event handler) can compute the same physical-pixel cell
     /// dimensions the renderer uses. Without this getter, the resize
@@ -2479,7 +2495,9 @@ impl TerminalRenderer {
         encoder: &mut wgpu::CommandEncoder,
     ) {
         use crate::picker::component::{LineRole, OverlayLine, OverlaySpec};
-        let max_rows = 12usize;
+        // Screen-size-aware: build as many rows as the live surface affords
+        // (draw_overlay windows the built lines to the same fit), not a fixed 12.
+        let max_rows = self.overlay_row_budget(height).get();
 
         let mut lines: Vec<OverlayLine> = Vec::with_capacity(max_rows + 1);
         lines.push(OverlayLine::new(
@@ -2532,7 +2550,9 @@ impl TerminalRenderer {
         encoder: &mut wgpu::CommandEncoder,
     ) {
         use crate::picker::component::{LineRole, OverlayLine, OverlaySpec};
-        let max_rows = crate::session_picker::WINDOW_ROWS;
+        // Screen-size-aware visible cap: the Ctrl-S board fills a tall window
+        // and shrinks on a short one (was a fixed `WINDOW_ROWS = 12`).
+        let max_rows = self.overlay_row_budget(height).get();
 
         // +4: title, possible notice, possible "… +N more", possible health.
         let mut lines: Vec<OverlayLine> = Vec::with_capacity(max_rows + 4);
