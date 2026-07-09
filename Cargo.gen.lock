@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "aa637e5de44e966bf82231acaeefcd32dd30c2ccb176180cca020fff3537d957",
+  "cargo_lock_sha256": "4fe657a3708a188c568dfe6f92effe708b3938f67327a0d4bbe4463404ad40f5",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -5239,7 +5239,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "izumi-0.1.2-3431c7d97cbe171069419bbc5290eaff57ed77f1": {
+      "izumi-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -5344,11 +5344,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "izumi-config-0.1.2-3431c7d97cbe171069419bbc5290eaff57ed77f1": {
+      "izumi-config-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513": {
         "runtime_dependencies": [
           {
             "name": "izumi",
-            "package_key": "izumi-0.1.2-3431c7d97cbe171069419bbc5290eaff57ed77f1",
+            "package_key": "izumi-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5382,11 +5382,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "izumi-sources-0.1.2-3431c7d97cbe171069419bbc5290eaff57ed77f1": {
+      "izumi-sources-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513": {
         "runtime_dependencies": [
           {
             "name": "izumi",
-            "package_key": "izumi-0.1.2-3431c7d97cbe171069419bbc5290eaff57ed77f1",
+            "package_key": "izumi-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11947,7 +11947,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.183-aaf363addf8d3ff36ea79595ca27a57f7e3593dd": {
+      "shikumi-0.1.187-8793d8e3ef08483c800ed4da8d10f5d8da7a06c8": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -14573,7 +14573,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-0.2.4-546c894ed9e913a7f6be8839722873535a33e909": {
+      "tatara-lisp-0.2.5-45534e162951cb5ec009372c1508185b71ac1510": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -14609,7 +14609,7 @@
           },
           {
             "name": "tatara_lisp_derive",
-            "package_key": "tatara-lisp-derive-0.2.4-546c894ed9e913a7f6be8839722873535a33e909",
+            "package_key": "tatara-lisp-derive-0.2.5-45534e162951cb5ec009372c1508185b71ac1510",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14633,7 +14633,7 @@
           "default"
         ]
       },
-      "tatara-lisp-derive-0.2.4-546c894ed9e913a7f6be8839722873535a33e909": {
+      "tatara-lisp-derive-0.2.5-45534e162951cb5ec009372c1508185b71ac1510": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -14671,11 +14671,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-eval-0.2.4-546c894ed9e913a7f6be8839722873535a33e909": {
+      "tatara-lisp-eval-0.2.5-45534e162951cb5ec009372c1508185b71ac1510": {
         "runtime_dependencies": [
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.2.4-546c894ed9e913a7f6be8839722873535a33e909",
+            "package_key": "tatara-lisp-0.2.5-45534e162951cb5ec009372c1508185b71ac1510",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14844,7 +14844,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.183-aaf363addf8d3ff36ea79595ca27a57f7e3593dd",
+            "package_key": "shikumi-0.1.187-8793d8e3ef08483c800ed4da8d10f5d8da7a06c8",
             "kind": "normal",
             "features": [
               "cli"
@@ -17137,7 +17137,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.2.4-546c894ed9e913a7f6be8839722873535a33e909",
+            "package_key": "tatara-lisp-0.2.5-45534e162951cb5ec009372c1508185b71ac1510",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17147,7 +17147,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.2.4-546c894ed9e913a7f6be8839722873535a33e909",
+            "package_key": "tatara-lisp-eval-0.2.5-45534e162951cb5ec009372c1508185b71ac1510",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19426,7 +19426,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.77": {
+          "mado-0.1.78": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -19641,7 +19641,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.2-3431c7d97cbe171069419bbc5290eaff57ed77f1",
+                "package_key": "izumi-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -19651,7 +19651,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.2-3431c7d97cbe171069419bbc5290eaff57ed77f1",
+                "package_key": "izumi-config-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -19661,7 +19661,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.2-3431c7d97cbe171069419bbc5290eaff57ed77f1",
+                "package_key": "izumi-sources-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23907,7 +23907,7 @@
               "system"
             ]
           },
-          "mado-0.1.77": {
+          "mado-0.1.78": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -24112,7 +24112,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.2-3431c7d97cbe171069419bbc5290eaff57ed77f1",
+                "package_key": "izumi-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -24122,7 +24122,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.2-3431c7d97cbe171069419bbc5290eaff57ed77f1",
+                "package_key": "izumi-config-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -24132,7 +24132,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.2-3431c7d97cbe171069419bbc5290eaff57ed77f1",
+                "package_key": "izumi-sources-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27594,7 +27594,7 @@
               "system"
             ]
           },
-          "mado-0.1.77": {
+          "mado-0.1.78": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -27799,7 +27799,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.2-3431c7d97cbe171069419bbc5290eaff57ed77f1",
+                "package_key": "izumi-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27809,7 +27809,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.2-3431c7d97cbe171069419bbc5290eaff57ed77f1",
+                "package_key": "izumi-config-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27819,7 +27819,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.2-3431c7d97cbe171069419bbc5290eaff57ed77f1",
+                "package_key": "izumi-sources-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31402,7 +31402,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.77": {
+          "mado-0.1.78": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31617,7 +31617,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.2-3431c7d97cbe171069419bbc5290eaff57ed77f1",
+                "package_key": "izumi-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31627,7 +31627,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.2-3431c7d97cbe171069419bbc5290eaff57ed77f1",
+                "package_key": "izumi-config-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31637,7 +31637,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.2-3431c7d97cbe171069419bbc5290eaff57ed77f1",
+                "package_key": "izumi-sources-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35837,7 +35837,7 @@
               "system"
             ]
           },
-          "mado-0.1.77": {
+          "mado-0.1.78": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -36042,7 +36042,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.2-3431c7d97cbe171069419bbc5290eaff57ed77f1",
+                "package_key": "izumi-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36052,7 +36052,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.2-3431c7d97cbe171069419bbc5290eaff57ed77f1",
+                "package_key": "izumi-config-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36062,7 +36062,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.2-3431c7d97cbe171069419bbc5290eaff57ed77f1",
+                "package_key": "izumi-sources-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39478,7 +39478,7 @@
               "system"
             ]
           },
-          "mado-0.1.77": {
+          "mado-0.1.78": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39683,7 +39683,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.2-3431c7d97cbe171069419bbc5290eaff57ed77f1",
+                "package_key": "izumi-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39693,7 +39693,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.2-3431c7d97cbe171069419bbc5290eaff57ed77f1",
+                "package_key": "izumi-config-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39703,7 +39703,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.2-3431c7d97cbe171069419bbc5290eaff57ed77f1",
+                "package_key": "izumi-sources-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -43160,13 +43160,13 @@
     "itoa-1.0.18": {
       "edition": "2021"
     },
-    "izumi-0.1.2-3431c7d97cbe171069419bbc5290eaff57ed77f1": {
+    "izumi-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513": {
       "edition": "2024"
     },
-    "izumi-config-0.1.2-3431c7d97cbe171069419bbc5290eaff57ed77f1": {
+    "izumi-config-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513": {
       "edition": "2024"
     },
-    "izumi-sources-0.1.2-3431c7d97cbe171069419bbc5290eaff57ed77f1": {
+    "izumi-sources-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513": {
       "edition": "2024"
     },
     "jobserver-0.1.35": {
@@ -43246,7 +43246,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.77": {
+    "mado-0.1.78": {
       "edition": "2024",
       "binaries": [
         {
@@ -43898,7 +43898,7 @@
     "shidou-0.1.8-527c3ce244c44b4bb581168ae8429e5dbcee6507": {
       "edition": "2024"
     },
-    "shikumi-0.1.183-aaf363addf8d3ff36ea79595ca27a57f7e3593dd": {
+    "shikumi-0.1.187-8793d8e3ef08483c800ed4da8d10f5d8da7a06c8": {
       "edition": "2024"
     },
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": {
@@ -44024,14 +44024,14 @@
     "tap-1.0.1": {
       "edition": "2015"
     },
-    "tatara-lisp-0.2.4-546c894ed9e913a7f6be8839722873535a33e909": {
+    "tatara-lisp-0.2.5-45534e162951cb5ec009372c1508185b71ac1510": {
       "edition": "2021"
     },
-    "tatara-lisp-derive-0.2.4-546c894ed9e913a7f6be8839722873535a33e909": {
+    "tatara-lisp-derive-0.2.5-45534e162951cb5ec009372c1508185b71ac1510": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-lisp-eval-0.2.4-546c894ed9e913a7f6be8839722873535a33e909": {
+    "tatara-lisp-eval-0.2.5-45534e162951cb5ec009372c1508185b71ac1510": {
       "edition": "2021"
     },
     "tear-client-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": {
@@ -44503,9 +44503,9 @@
     "hasami-0.1.2-c20b0112c09fccae2a9f51260c83fb711f7512d5": "sha256-jumH5OHgIV872elIb65ABgspnrfsA3rkeJyW5SIP6bo=",
     "irodzuki-0.1.7-d3bfe781e9c813164a37a0e0a1eeef16f5be9515": "sha256-7iA13F9fE1MktjUB89kQIiVY6TB0wTNHmHNGSJcj9Lg=",
     "ishou-tokens-0.1.3-47e7e58da1d279b63d6ae464b0244d606741fea6": "sha256-U9i60aKk/BvmGCl8xmXg4NTDoeVZ57thlB0dF9qy49Q=",
-    "izumi-0.1.2-3431c7d97cbe171069419bbc5290eaff57ed77f1": "sha256-L/6yW9+afW+xPsVWrYPBNrM2lXCz7X/WnuJgcPucI9w=",
-    "izumi-config-0.1.2-3431c7d97cbe171069419bbc5290eaff57ed77f1": "sha256-L/6yW9+afW+xPsVWrYPBNrM2lXCz7X/WnuJgcPucI9w=",
-    "izumi-sources-0.1.2-3431c7d97cbe171069419bbc5290eaff57ed77f1": "sha256-L/6yW9+afW+xPsVWrYPBNrM2lXCz7X/WnuJgcPucI9w=",
+    "izumi-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513": "sha256-nuR1nT8ljhe3ybKYVLBnH6CBzDdrPFQ/tM0/ovvQuSA=",
+    "izumi-config-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513": "sha256-nuR1nT8ljhe3ybKYVLBnH6CBzDdrPFQ/tM0/ovvQuSA=",
+    "izumi-sources-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513": "sha256-nuR1nT8ljhe3ybKYVLBnH6CBzDdrPFQ/tM0/ovvQuSA=",
     "kaname-0.1.1-0570e7ec566b60444307fe5873f80f5beda8fe6c": "sha256-ue2v9p/Eq+z3hmCaL63toSyjpDY6s3H1gGBUFBOX3ek=",
     "kanchi-0.1.1-c01183be8ac1224b0424b7be874fee52a1624117": "sha256-9ZJrbVlTUzzpJ3IUX9ejgriWClVKZy26H4k8F0XzTQA=",
     "kanshou-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
@@ -44518,11 +44518,11 @@
     "pleme-kindstr-derive-0.1.0-d287f915e9bb8837a443f6238ee900e81318ce89": "sha256-5XDr9kPiT0doWBOOk9yXjxdTCpRgaqWWJCpsc1f+tdw=",
     "praca-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",
     "shidou-0.1.8-527c3ce244c44b4bb581168ae8429e5dbcee6507": "sha256-7UDp5qpjhQHI2p6uh1pRN5V/qzv4lTqqI3wjwJZqfME=",
-    "shikumi-0.1.183-aaf363addf8d3ff36ea79595ca27a57f7e3593dd": "sha256-Ek1TZQ/YWpNkaihfiEquqsW88k4Hq7zr0dgAIKpBq1I=",
+    "shikumi-0.1.187-8793d8e3ef08483c800ed4da8d10f5d8da7a06c8": "sha256-Lwnzz9bPbGzMzDFv4L7wvY+9OMvLakQJ5iSBK4LMSLY=",
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": "sha256-Jd6fUoNSdzk+I5iu7FbAg9F9gbc7oU9jdPnnaTIxL6w=",
-    "tatara-lisp-0.2.4-546c894ed9e913a7f6be8839722873535a33e909": "sha256-cw2Nmo0sak5Gx8TN/xHj2JQoP/MSY8nHT53iFkbX4hA=",
-    "tatara-lisp-derive-0.2.4-546c894ed9e913a7f6be8839722873535a33e909": "sha256-cw2Nmo0sak5Gx8TN/xHj2JQoP/MSY8nHT53iFkbX4hA=",
-    "tatara-lisp-eval-0.2.4-546c894ed9e913a7f6be8839722873535a33e909": "sha256-cw2Nmo0sak5Gx8TN/xHj2JQoP/MSY8nHT53iFkbX4hA=",
+    "tatara-lisp-0.2.5-45534e162951cb5ec009372c1508185b71ac1510": "sha256-YIGLYFnd0mv/cNWp7Zr86Dl9whnufxANycNGi//6cBc=",
+    "tatara-lisp-derive-0.2.5-45534e162951cb5ec009372c1508185b71ac1510": "sha256-YIGLYFnd0mv/cNWp7Zr86Dl9whnufxANycNGi//6cBc=",
+    "tatara-lisp-eval-0.2.5-45534e162951cb5ec009372c1508185b71ac1510": "sha256-YIGLYFnd0mv/cNWp7Zr86Dl9whnufxANycNGi//6cBc=",
     "tear-client-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",
     "tear-config-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",
     "tear-core-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",

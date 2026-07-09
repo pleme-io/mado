@@ -2498,7 +2498,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.77"
+version = "0.1.78"
 dependencies = [
  "anyhow",
  "awase",
@@ -4904,8 +4904,8 @@ dependencies = [
 
 [[package]]
 name = "shikumi"
-version = "0.1.183"
-source = "git+https://github.com/pleme-io/shikumi?branch=main#aaf363addf8d3ff36ea79595ca27a57f7e3593dd"
+version = "0.1.187"
+source = "git+https://github.com/pleme-io/shikumi?branch=main#8793d8e3ef08483c800ed4da8d10f5d8da7a06c8"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -5414,8 +5414,8 @@ checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 
 [[package]]
 name = "tatara-lisp"
-version = "0.2.4"
-source = "git+https://github.com/pleme-io/tatara-lisp#546c894ed9e913a7f6be8839722873535a33e909"
+version = "0.2.5"
+source = "git+https://github.com/pleme-io/tatara-lisp#45534e162951cb5ec009372c1508185b71ac1510"
 dependencies = [
  "blake3",
  "serde",
@@ -5426,8 +5426,8 @@ dependencies = [
 
 [[package]]
 name = "tatara-lisp-derive"
-version = "0.2.4"
-source = "git+https://github.com/pleme-io/tatara-lisp#546c894ed9e913a7f6be8839722873535a33e909"
+version = "0.2.5"
+source = "git+https://github.com/pleme-io/tatara-lisp#45534e162951cb5ec009372c1508185b71ac1510"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5436,8 +5436,8 @@ dependencies = [
 
 [[package]]
 name = "tatara-lisp-eval"
-version = "0.2.4"
-source = "git+https://github.com/pleme-io/tatara-lisp#546c894ed9e913a7f6be8839722873535a33e909"
+version = "0.2.5"
+source = "git+https://github.com/pleme-io/tatara-lisp#45534e162951cb5ec009372c1508185b71ac1510"
 dependencies = [
  "tatara-lisp",
  "thiserror 2.0.18",
@@ -5468,7 +5468,7 @@ dependencies = [
  "once_cell",
  "serde",
  "serde_yaml_ng",
- "shikumi 0.1.183",
+ "shikumi 0.1.187",
  "tear-types",
  "thiserror 2.0.18",
  "tracing",

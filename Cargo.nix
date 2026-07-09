@@ -6384,13 +6384,13 @@ rec {
       };
       "izumi" = rec {
         crateName = "izumi";
-        version = "0.1.1";
+        version = "0.1.3";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/izumi";
-          rev = "c78d0a536040b507ff86b52e24d19acb6012c337";
-          sha256 = "0pq77mg94851hbbxdjf0b1d6s6xcgj4b8bkxx898r7x1m5zmydic";
+          rev = "c23c71bc48d29dd1461e3c13375b99f70e513513";
+          sha256 = "085rs3xs4gydnhzm8g3b6z68380zcyq5965jr6vig3i57yfpbr4y";
         };
         authors = [
           "pleme-io"
@@ -6431,6 +6431,11 @@ rec {
             name = "tracing";
             packageId = "tracing";
           }
+          {
+            name = "url";
+            packageId = "url";
+            features = [ "serde" ];
+          }
         ];
         devDependencies = [
           {
@@ -6443,13 +6448,13 @@ rec {
       };
       "izumi-config" = rec {
         crateName = "izumi-config";
-        version = "0.1.1";
+        version = "0.1.3";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/izumi";
-          rev = "c78d0a536040b507ff86b52e24d19acb6012c337";
-          sha256 = "0pq77mg94851hbbxdjf0b1d6s6xcgj4b8bkxx898r7x1m5zmydic";
+          rev = "c23c71bc48d29dd1461e3c13375b99f70e513513";
+          sha256 = "085rs3xs4gydnhzm8g3b6z68380zcyq5965jr6vig3i57yfpbr4y";
         };
         libName = "izumi_config";
         authors = [
@@ -6474,13 +6479,13 @@ rec {
       };
       "izumi-sources" = rec {
         crateName = "izumi-sources";
-        version = "0.1.1";
+        version = "0.1.3";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/izumi";
-          rev = "c78d0a536040b507ff86b52e24d19acb6012c337";
-          sha256 = "0pq77mg94851hbbxdjf0b1d6s6xcgj4b8bkxx898r7x1m5zmydic";
+          rev = "c23c71bc48d29dd1461e3c13375b99f70e513513";
+          sha256 = "085rs3xs4gydnhzm8g3b6z68380zcyq5965jr6vig3i57yfpbr4y";
         };
         libName = "izumi_sources";
         authors = [
@@ -7365,7 +7370,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.77";
+        version = "0.1.78";
         edition = "2024";
         crateBin = [
           {
@@ -21321,11 +21326,21 @@ rec {
             optional = true;
             usesDefaultFeatures = false;
           }
+          {
+            name = "serde_derive";
+            packageId = "serde_derive";
+            optional = true;
+            usesDefaultFeatures = false;
+          }
         ];
         devDependencies = [
           {
             name = "serde";
             packageId = "serde";
+          }
+          {
+            name = "serde_derive";
+            packageId = "serde_derive";
           }
         ];
         features = {
@@ -21333,7 +21348,7 @@ rec {
           "serde" = [ "dep:serde" "dep:serde_derive" ];
           "std" = [ "idna/std" "percent-encoding/std" "form_urlencoded/std" "serde?/std" ];
         };
-        resolvedDefaultFeatures = [ "default" "std" ];
+        resolvedDefaultFeatures = [ "default" "serde" "std" ];
       };
       "utf8_iter" = rec {
         crateName = "utf8_iter";
