@@ -553,14 +553,24 @@ impl PracaPickerBridge {
             praca.index.upsert(rec);
             praca.record_visit(sid, now);
         }
-        // The magic: kick off the task in the fresh session. Enter on a
+        // The magic: prewarm the fresh session. Enter on a
         // "🔍 pr#1234 fix the parser" suggestion lands you in the repo AND runs
-        // `gh pr checkout 1234`. Sent through the typed MultiplexerControl seam;
-        // PTY input buffering carries the keystrokes until the shell is ready,
-        // so this works exactly like typing-ahead. No-op when the suggestion
-        // carries no kickoff command (e.g. a dirty-repo row just seats you there).
-        if let Some(cmd) = sug.spawn.initial_command() {
-            let _ = self.inproc.send_keys(pane, &kickoff_keystrokes(cmd));
+        // `gh pr checkout 1234`; Enter on an alert suggestion lands you already
+        // in the issue (kube-context set, pod described, runbook open). The
+        // ordered prewarm strategy is the generalization of the single kickoff
+        // command — for now it is that one `initial_command` lowered to a
+        // one-step spec (the safra strategy builder attaches richer specs in the
+        // first slice). SetEnv steps were already folded into `spawn_env_base`
+        // pre-spawn above; `apply` runs the post-spawn steps in order through
+        // the typed `PrewarmEnv` seam. No-op for a bare suggestion.
+        let prewarm = sug
+            .spawn
+            .initial_command()
+            .map(crate::prewarm::PrewarmSpec::from_initial_command)
+            .unwrap_or_default();
+        if !prewarm.is_empty() {
+            let mut env = SessionPrewarmEnv { inproc: self.inproc.as_ref(), pane };
+            let _ = crate::prewarm::apply(&prewarm, &mut env);
         }
         // Soft-ack: the row is now IN PROGRESS — demoted below fresh work and
         // badged ◐, but still on the board until upstream confirms resolution
@@ -605,6 +615,34 @@ fn kickoff_keystrokes(command: &str) -> Vec<u8> {
     let mut bytes = command.trim().as_bytes().to_vec();
     bytes.push(b'\n');
     bytes
+}
+
+/// The real [`crate::prewarm::PrewarmEnv`] executor — actuates a prewarm
+/// strategy's post-spawn steps against a freshly-spawned session. Reuses the
+/// shipped, no-shell verbs: keystrokes through the typed `MultiplexerControl`
+/// seam (as the single kickoff always did) and links through mado's typed URL
+/// opener (`/usr/bin/open` / `xdg-open`, never a shell). Keeps the scope
+/// boundary: the strategy is data, this executor runs it in the new session's
+/// shell — no privileged write-intrinsics.
+struct SessionPrewarmEnv<'a> {
+    inproc: &'a tear_core::InProcess,
+    pane: PaneId,
+}
+
+impl crate::prewarm::PrewarmEnv for SessionPrewarmEnv<'_> {
+    fn run_command(&mut self, cmd: &str) {
+        // PTY input buffering carries the keystrokes until the shell is ready,
+        // so this works exactly like typing-ahead (as the kickoff did).
+        let _ = self.inproc.send_keys(self.pane, &kickoff_keystrokes(cmd));
+    }
+
+    fn open_url(&mut self, url: &url::Url) {
+        // Detached, never blocks; log-and-continue on error (a failed dashboard
+        // open must not abort the rest of the prewarm).
+        if let Err(e) = crate::url::open_link(url.as_str()) {
+            tracing::warn!(error = %e, url = %url, "prewarm: open_url failed");
+        }
+    }
 }
 
 /// Capture a live session into the latent preset catalog — the shared
