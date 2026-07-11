@@ -1683,6 +1683,38 @@ fn snap_cell_height_px(h: f32, panel_ratio: f32) -> f32 {
     }
 }
 
+/// Snap the grid's **rendering origin** (the top/left padding, in framebuffer
+/// px) so it projects onto a whole number of *panel* pixels — the seam fix's
+/// missing second half (operator report 2026-07-11: the seam persisted even
+/// with the correct 0.84 ratio + a panel-snapped `cell_height`).
+///
+/// `snap_cell_height_px` makes every row *pitch* a whole number of panel px,
+/// so consecutive row boundaries share the SAME fractional panel-pixel phase.
+/// But that shared phase is set by the ORIGIN: row boundary `N` sits at
+/// `origin + N·cell_height` framebuffer px → `(origin + N·cell_height)·ratio`
+/// panel px. With a whole panel pitch that is `origin·ratio + N·k`, so unless
+/// `origin·ratio` is itself an integer, *every* boundary lands the same
+/// fractional amount off a panel-pixel edge — the downscale filter turns that
+/// constant sub-pixel straddle back into a visible periodic seam. (Measured:
+/// default padding 4pt × scale 2.0 = 8 fb px → 8·0.8405 = 6.72 panel px, a
+/// constant ~0.72-panel-px phase on every row.)
+///
+/// Snapping the origin to `round(origin·ratio)/ratio` framebuffer px makes
+/// `origin·ratio` a whole panel pixel, so every boundary `origin·ratio + N·k`
+/// is an integer panel pixel — phase-locked to the panel grid, seam gone.
+///
+/// At `panel_ratio == 1.0` (integer scale) this is a no-op passthrough: the
+/// framebuffer IS the panel grid, and the framebuffer origin is already
+/// integer-authored (padding × integer scale). Non-negative by construction.
+#[inline]
+fn snap_origin_px(origin: f32, panel_ratio: f32) -> f32 {
+    if (panel_ratio - 1.0).abs() < 1.0e-4 {
+        origin
+    } else {
+        ((origin * panel_ratio).round() / panel_ratio).max(0.0)
+    }
+}
+
 impl TerminalRenderer {
     pub fn new(
         terminal: SharedTerminal,
@@ -1962,12 +1994,22 @@ impl TerminalRenderer {
         self.panel_ratio
     }
 
-    /// Physical-pixel padding. The stored `padding` is logical
-    /// (operator-authored in mado.yaml as "8 pixels"); GPU draws need
-    /// it scaled into physical pixels to align with the wgpu surface.
+    /// Physical-pixel padding — ALSO the grid's rendering origin (top/left).
+    /// The stored `padding` is logical (operator-authored in mado.yaml as
+    /// "8 pixels"); GPU draws need it scaled into physical pixels to align
+    /// with the wgpu surface.
+    ///
+    /// On a scaled display it is additionally snapped onto the PANEL grid
+    /// (`snap_origin_px`): every consumer uses this as the grid origin, so
+    /// snapping it here phase-locks the whole grid (backgrounds, glyphs,
+    /// cursor, images, overlays — all off the SAME origin) to integer panel
+    /// pixels, killing the residual row seam the `cell_height` snap alone
+    /// leaves behind (operator report 2026-07-11). At `panel_ratio == 1.0`
+    /// (integer scale) this is a no-op — byte-identical to the prior
+    /// `padding * scale_factor`.
     #[inline]
     fn padding_px(&self) -> f32 {
-        self.padding * self.scale_factor
+        snap_origin_px(self.padding * self.scale_factor, self.panel_ratio)
     }
 
     /// The viewport-derived overlay-list row budget — how many list rows a
@@ -5550,6 +5592,79 @@ mod render_invariants {
                     "ratio {ratio}, base {base}: panel projection {panel_px} not whole",
                 );
                 assert!(snapped >= 1.0, "cell height floored at 1px");
+            }
+        }
+    }
+
+    /// The seam fix's LOAD-BEARING second half (operator report 2026-07-11:
+    /// the seam persisted despite the correct 0.84 ratio + panel-snapped
+    /// `cell_height`). `snap_cell_height_px` locks the row PITCH to whole
+    /// panel px, but the shared phase is set by the ORIGIN — an unsnapped
+    /// origin leaves every boundary the same fraction off a panel edge. This
+    /// gate proves (a) ratio 1.0 is a passthrough no-op and (b) at any
+    /// downscale the snapped origin projects onto a whole panel pixel.
+    #[allow(clippy::float_cmp)]
+    #[test]
+    fn origin_snaps_to_whole_panel_pixels_on_scaled_display() {
+        // ratio 1.0 (integer scale): passthrough — the framebuffer origin is
+        // already integer-authored (padding × integer scale), never touched.
+        for o in [0.0f32, 8.0, 16.0, 6.72, 13.45] {
+            assert_eq!(
+                snap_origin_px(o, 1.0),
+                o,
+                "ratio 1.0 must leave the origin untouched for o={o}"
+            );
+        }
+
+        let macos_ratio = 3456.0f32 / 4112.0; // ≈ 0.8405, the live XDR value
+        for ratio in [macos_ratio, 1.0f32 / 1.5, 0.75, 0.9] {
+            // The live default: padding 4pt × scale 2.0 = 8 fb px.
+            for origin in [8.0f32, 16.0, 0.0, 12.0, 5.5] {
+                let snapped = snap_origin_px(origin, ratio);
+                let panel = snapped * ratio;
+                assert!(
+                    (panel - panel.round()).abs() < 1.0e-3,
+                    "ratio {ratio}, origin {origin}: snapped origin {snapped} \
+                     projects to {panel} panel px (not whole)",
+                );
+                assert!(snapped >= 0.0, "origin non-negative");
+                // The snap moves the origin by strictly < one panel pixel in
+                // framebuffer terms (it only kills the sub-pixel phase, never
+                // reflows the grid).
+                assert!(
+                    (snapped - origin).abs() <= (1.0 / ratio) + 1.0e-3,
+                    "ratio {ratio}, origin {origin}: snap moved it {} fb px \
+                     (should be < one panel px)",
+                    (snapped - origin).abs()
+                );
+            }
+        }
+    }
+
+    /// END-TO-END geometry proof: with BOTH snaps engaged at the live XDR
+    /// ratio, EVERY row boundary `origin + N·cell_height` projects to an
+    /// integer panel pixel — the exact condition that removes the periodic
+    /// seam. Without the origin snap the constant phase offset (0.72 panel px
+    /// at the default padding) reappears on every row; this test would fail.
+    #[allow(clippy::float_cmp)]
+    #[test]
+    fn every_row_boundary_lands_on_integer_panel_px_with_both_snaps() {
+        let ratio = 2234.0f32 / 2658.0; // ≈ 0.8404816 — the measured XDR ratio
+        // Live default cell box: font 13 × line_height 1.25 × scale 2.0.
+        for unsnapped_cell in [13.0f32 * 1.25 * 2.0, 16.8, 33.6, 19.6] {
+            let cell = snap_cell_height_px(unsnapped_cell, ratio);
+            // Live default origin: padding 4pt × scale 2.0 = 8 fb px.
+            for raw_origin in [8.0f32, 16.0, 0.0] {
+                let origin = snap_origin_px(raw_origin, ratio);
+                for n in 0..40u32 {
+                    let boundary_fb = origin + n as f32 * cell;
+                    let boundary_panel = boundary_fb * ratio;
+                    assert!(
+                        (boundary_panel - boundary_panel.round()).abs() < 2.0e-3,
+                        "cell {cell}, origin {origin}, row {n}: boundary \
+                         {boundary_fb} fb → {boundary_panel} panel px (not whole)",
+                    );
+                }
             }
         }
     }
