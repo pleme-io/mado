@@ -1418,9 +1418,9 @@ rec {
       };
       "bytemuck" = rec {
         crateName = "bytemuck";
-        version = "1.25.0";
+        version = "1.25.1";
         edition = "2018";
-        sha256 = "1v1z32igg9zq49phb3fra0ax5r2inf3aw473vldnm886sx5vdvy8";
+        sha256 = "094lrzwibbmazpqr1vlbs8vwrsgm3ksb8g6g09sk8ri7wy5dzbnn";
         authors = [
           "Lokathor <zefria@gmail.com>"
         ];
@@ -1444,9 +1444,9 @@ rec {
       };
       "bytemuck_derive" = rec {
         crateName = "bytemuck_derive";
-        version = "1.10.2";
+        version = "1.11.0";
         edition = "2018";
-        sha256 = "1zvmjmw1sdmx9znzm4dpbb2yvz9vyim8w6gp4z256l46qqdvvazr";
+        sha256 = "1r9xdwcdxw385lbflmqlcc2via7hvg7d3zk2ky5mi73bkc2r6mpn";
         procMacro = true;
         authors = [
           "Lokathor <zefria@gmail.com>"
@@ -1596,9 +1596,9 @@ rec {
       };
       "cc" = rec {
         crateName = "cc";
-        version = "1.2.66";
+        version = "1.2.67";
         edition = "2018";
-        sha256 = "15nr9bpbcinb9z7zvr1d70xyivv8969v490001qdjywrjg3wmmpm";
+        sha256 = "0f0srhm5s5371nqk7dlini2knpfhml1hxcp18ksixwyhlxjx4zg1";
         authors = [
           "Alex Crichton <alex@alexcrichton.com>"
         ];
@@ -6761,13 +6761,13 @@ rec {
       };
       "kanchi" = rec {
         crateName = "kanchi";
-        version = "0.1.1";
+        version = "0.1.2";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/kanchi";
-          rev = "c01183be8ac1224b0424b7be874fee52a1624117";
-          sha256 = "002dyd2ifg493yx2srsaal59df42lgbmy53j4zlkqlskb5nnp4pm";
+          rev = "141f61011932d1c479abfe44c71d5e7f06cd6071";
+          sha256 = "0bq46jkixj1hka8i2lkpa9iw1wgrhlyf4ggy4i0bjy61p75b77hy";
         };
         dependencies = [
           {
@@ -7370,7 +7370,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.79";
+        version = "0.1.80";
         edition = "2024";
         crateBin = [
           {
@@ -17113,9 +17113,9 @@ rec {
       };
       "sha1" = rec {
         crateName = "sha1";
-        version = "0.10.6";
+        version = "0.10.7";
         edition = "2018";
-        sha256 = "1fnnxlfg08xhkmwf2ahv634as30l1i3xhlhkvxflmasi5nd85gz3";
+        sha256 = "1f632d529qzz95yrprr632w1fxqkrv6b6jksjc11vnzl049lay59";
         authors = [
           "RustCrypto Developers"
         ];
@@ -17142,10 +17142,8 @@ rec {
           }
         ];
         features = {
-          "asm" = [ "sha1-asm" ];
           "default" = [ "std" ];
           "oid" = [ "digest/oid" ];
-          "sha1-asm" = [ "dep:sha1-asm" ];
           "std" = [ "digest/std" ];
         };
       };
@@ -17288,15 +17286,15 @@ rec {
         ];
 
       };
-      "shikumi 0.1.187" = rec {
+      "shikumi 0.1.221" = rec {
         crateName = "shikumi";
-        version = "0.1.187";
+        version = "0.1.221";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
-          rev = "8793d8e3ef08483c800ed4da8d10f5d8da7a06c8";
-          sha256 = "1dj8rj12p094wq4l8snbrcwbv3xxy2zf0vrirk66qv6gsv7z629g";
+          rev = "1fcd6ae33e58c8085e118d6c768aa566dc7b4e77";
+          sha256 = "185rsn0wqpg2mimxj61bsc8ga0lbvxbbkqj2mdrhkm46xx9m50gd";
         };
         dependencies = [
           {
@@ -19505,7 +19503,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "shikumi 0.1.187";
+            packageId = "shikumi 0.1.221";
             features = [ "cli" ];
           }
           {
@@ -19892,9 +19890,9 @@ rec {
       };
       "thread_local" = rec {
         crateName = "thread_local";
-        version = "1.1.9";
+        version = "1.1.10";
         edition = "2021";
-        sha256 = "1191jvl8d63agnq06pcnarivf63qzgpws5xa33hgc92gjjj4c0pn";
+        sha256 = "0w20g2pfdcp8pz3gds0bzksv6mxk802szca8qlr3701jdm69rn8s";
         authors = [
           "Amanieu d'Antras <amanieu@gmail.com>"
         ];
@@ -20175,9 +20173,9 @@ rec {
       };
       "tinyvec" = rec {
         crateName = "tinyvec";
-        version = "1.11.0";
+        version = "1.12.0";
         edition = "2018";
-        sha256 = "1wvycrghzmaysnw34kzwnf0mfx6r75045s24r214wnnjadqfcq9y";
+        sha256 = "0zxaid976y60f4722vjhfnwcbydmzpwva7p03aqzl15gl3dblkmv";
         authors = [
           "Lokathor <zefria@gmail.com>"
         ];
@@ -20191,12 +20189,14 @@ rec {
         features = {
           "alloc" = [ "tinyvec_macros" ];
           "arbitrary" = [ "dep:arbitrary" ];
+          "bin-proto" = [ "dep:bin-proto" ];
           "borsh" = [ "dep:borsh" ];
           "defmt" = [ "dep:defmt" ];
           "generic-array" = [ "dep:generic-array" ];
           "latest_stable_rust" = [ "rustc_1_61" ];
           "real_blackbox" = [ "criterion/real_blackbox" ];
           "rustc_1_61" = [ "rustc_1_57" ];
+          "schemars" = [ "dep:schemars" "alloc" ];
           "serde" = [ "dep:serde_core" ];
           "std" = [ "alloc" ];
           "tinyvec_macros" = [ "dep:tinyvec_macros" ];
