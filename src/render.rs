@@ -1409,6 +1409,17 @@ pub struct TerminalRenderer {
     /// renderer's display truth — see [`Self::measured_grid`].
     last_surface_w: u32,
     last_surface_h: u32,
+    /// The surface dims the panel-ratio probe last actually ran at (0
+    /// until the first probe). The panel ratio depends on the *display*,
+    /// not the surface size, so during a live drag-resize (macOS delivers a
+    /// distinct drawable size nearly every frame) re-running the
+    /// CoreGraphics `display_scaling_ratio` probe every intermediate frame
+    /// is wasted work — the ratio only meaningfully changes when the size
+    /// SETTLES (drag ends) or the window moves to a differently-scaled
+    /// display (which lands as a settled size too). The probe is gated to
+    /// fire once per settled size instead of ~60×/sec through the drag; the
+    /// final grid snaps on the settled size exactly as before.
+    last_ratio_probe_wh: (u32, u32),
     /// P7 shape cache: bounded LRU keyed by (text-bytes, attrs,
     /// physical font-size). The Arc<Buffer> lets cache hits share
     /// the same shaped Buffer with the per-frame text_areas Vec
@@ -1715,6 +1726,27 @@ fn snap_origin_px(origin: f32, panel_ratio: f32) -> f32 {
     }
 }
 
+/// Should the panel-ratio probe re-run this frame? Pure decision so the
+/// resize-storm gate (Deliverable 3) is unit-testable without CoreGraphics.
+///
+/// The panel ratio depends on the *display*, not the surface *size*, and macOS
+/// delivers a distinct drawable size nearly every frame of a live drag-resize.
+/// So the (real, allocating) `display_scaling_ratio` probe fires only when the
+/// size has **settled** (this frame's size == last frame's) and hasn't been
+/// probed yet — or on the very first frame (`last_probe == (0,0)`), so first
+/// paint gets the ratio with no delay. Result: ~1 probe per settled resize
+/// instead of ~60/sec through a drag, with byte-identical final geometry.
+#[inline]
+fn should_reprobe_ratio(
+    this: (u32, u32),
+    last_surface: (u32, u32),
+    last_probe: (u32, u32),
+) -> bool {
+    let settled = last_surface == this;
+    let never_probed = last_probe == (0, 0);
+    (settled || never_probed) && last_probe != this
+}
+
 impl TerminalRenderer {
     pub fn new(
         terminal: SharedTerminal,
@@ -1841,6 +1873,8 @@ impl TerminalRenderer {
             // reports None until then.
             last_surface_w: 0,
             last_surface_h: 0,
+            // (0, 0) forces the first frame to probe (0 != any real size).
+            last_ratio_probe_wh: (0, 0),
             shape_cache: RefCell::new(LruCache::new(
                 NonZeroUsize::new(SHAPE_CACHE_CAP)
                     .expect("SHAPE_CACHE_CAP is a non-zero compile-time constant"),
@@ -4827,12 +4861,28 @@ impl RenderCallback for TerminalRenderer {
         // measure below re-snaps THIS frame. Off / override are resolved in
         // `set_seam_config`; here Auto-with-no-override runs the probe (a
         // `None`/failed probe → 1.0, a safe no-op).
-        if self.seam_auto_tune
-            && self.downscale_ratio_override.is_none()
-            && (self.last_surface_w != ctx.width || self.last_surface_h != ctx.height)
-        {
-            let ratio = kanchi::probe::display_scaling_ratio().unwrap_or(1.0);
-            self.set_panel_ratio(ratio);
+        //
+        // Resize-storm optimization (Deliverable 3): the panel ratio depends
+        // on the *display*, not the surface *size*. macOS delivers a distinct
+        // drawable size nearly every frame of a live drag-resize, so firing
+        // the CoreGraphics probe (mode enumeration + a Vec build) on every
+        // intermediate frame is wasted work. Gate it to fire once per SETTLED
+        // size: run only when this frame's size equals the last frame's
+        // (`size_settled` — the drag has paused/ended) AND the probe hasn't
+        // already run for that size. A move to a differently-scaled display
+        // also lands as a new settled size, so re-discovery still happens; the
+        // final grid snaps on the settled size exactly as before.
+        if self.seam_auto_tune && self.downscale_ratio_override.is_none() {
+            let this = (ctx.width, ctx.height);
+            if should_reprobe_ratio(
+                this,
+                (self.last_surface_w, self.last_surface_h),
+                self.last_ratio_probe_wh,
+            ) {
+                let ratio = kanchi::probe::display_scaling_ratio().unwrap_or(1.0);
+                self.set_panel_ratio(ratio);
+                self.last_ratio_probe_wh = this;
+            }
         }
 
         // Measure actual font metrics on first render (or after a
@@ -5667,6 +5717,59 @@ mod render_invariants {
                 }
             }
         }
+    }
+
+    /// Resize-storm gate (Deliverable 3): the panel-ratio probe must fire
+    /// once per SETTLED size, not on every intermediate drag frame. Simulate
+    /// a drag (size changing every frame) then a settle (size stable), and
+    /// count how many frames would run the probe. A 60-frame drag + settle
+    /// must yield exactly ONE probe (at the settled size), vs 60 under the
+    /// old "probe on any size change" trigger.
+    #[test]
+    fn ratio_probe_fires_once_per_settled_resize_not_per_drag_frame() {
+        // Model the render loop's per-frame state transitions.
+        let mut last_surface = (0u32, 0u32);
+        let mut last_probe = (0u32, 0u32);
+        let mut probes = 0usize;
+
+        // A 60-frame drag: each frame a new (growing) size, none repeated.
+        for i in 0..60u32 {
+            let this = (1280 + i, 800 + i);
+            if super::should_reprobe_ratio(this, last_surface, last_probe) {
+                probes += 1;
+                last_probe = this;
+            }
+            last_surface = this; // render() records surface dims at frame end
+        }
+        // The FIRST frame (never_probed) probes once even mid-"drag" (first
+        // paint must get the ratio). Every subsequent drag frame is a new,
+        // unsettled size → no probe.
+        assert_eq!(probes, 1, "drag must probe only the first frame, not each");
+
+        // Now the drag SETTLES: the same size repeats for a few frames.
+        let settled = (1400u32, 900u32);
+        probes = 0;
+        for _ in 0..5 {
+            if super::should_reprobe_ratio(settled, last_surface, last_probe) {
+                probes += 1;
+                last_probe = settled;
+            }
+            last_surface = settled;
+        }
+        assert_eq!(probes, 1, "a settled size probes exactly once, then never again");
+
+        // A move to a differently-sized display lands as a new settled size →
+        // one more probe (re-discovery still happens).
+        let moved = (2560u32, 1440u32);
+        probes = 0;
+        for _ in 0..3 {
+            if super::should_reprobe_ratio(moved, last_surface, last_probe) {
+                probes += 1;
+                last_probe = moved;
+            }
+            last_surface = moved;
+        }
+        assert_eq!(probes, 1, "a new settled display size re-probes exactly once");
     }
 
     /// Snapshot + build the rect instances exactly as the live
@@ -7422,6 +7525,18 @@ mod render_gpu_invariants {
         // Bring up rect_pipeline / image_pipeline / post_pipeline
         // — the same init the live app runs once at startup.
         renderer.init(gpu);
+        // Headless render-to-texture IS the framebuffer — there is no
+        // compositor downscale to a smaller physical panel. Pin the panel
+        // ratio to 1.0 (seam auto-tune OFF) so every GPU test is
+        // deterministic regardless of the PHYSICAL display CI/dev runs on.
+        // Otherwise, on a machine whose main display is scaled (built-in XDR
+        // at "More Space", ratio ≈ 0.84), the render prologue's live
+        // `display_scaling_ratio` probe would panel-snap the cell to a
+        // FRACTIONAL framebuffer height and shift every recorded frame hash —
+        // correct on-screen, meaningless for a headless framebuffer that
+        // never downscales. (Pre-existing display-dependence surfaced
+        // 2026-07-11 while overhauling the seam path.)
+        renderer.set_seam_config(false, None);
         let text = TextLayerStack::new(
             &gpu.device,
             &gpu.queue,
@@ -7766,6 +7881,9 @@ mod render_gpu_invariants {
         let (cols, rows) = (20usize, 12usize);
         let (mut r, term, mut text) = build_gpu_renderer(&gpu, cols, rows);
         r.ambience.members.clear();
+        // NB: build_gpu_renderer already pins panel_ratio = 1.0 (seam
+        // auto-tune OFF) so this framebuffer-quantize `fract() == 0` gate is
+        // deterministic on a scaled main display (see build_gpu_renderer).
 
         // Hide the cursor; paint EVERY cell with bg #8C3C3C.
         let mut seq = String::from("\x1b[?25l\x1b[H\x1b[2J");
