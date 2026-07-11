@@ -188,16 +188,9 @@ fn powerline_rect(
     ch_h: f32,
     color: [f32; 4],
 ) -> RectInstance {
-    RectInstance {
-        pos: [x, y],
-        size: [cw, ch_h],
-        color,
-        mode: RectMode::Powerline.word(),
-        // pattern = [kind, cell_width, cell_height, _] — the shader needs
-        // the cell dims to evaluate the shape over `frag.local` (which is
-        // not a normalized varying; it spans 0..size).
-        pattern: [sep.kind(), cw, ch_h, 0.0],
-    }
+    // The whole-cell rect; `RectInstance::powerline` folds `sep.kind()` + the
+    // cell dims (= size) into the pattern the shader evaluates over `local`.
+    RectInstance::powerline([x, y], [cw, ch_h], color, sep.kind())
 }
 
 #[repr(C)]
@@ -212,26 +205,79 @@ struct RectInstance {
     pattern: [f32; 4],
 }
 
-impl RectInstance {
-    /// The historical constructor shape — every non-decoration rect
-    /// in the codebase is a solid fill.
-    const fn solid(pos: [f32; 2], size: [f32; 2], color: [f32; 4]) -> Self {
-        Self { pos, size, color, mode: RectMode::Solid.word(), pattern: [0.0; 4] }
-    }
-
-    /// A rounded-corner solid fill. The fragment runs the rounded-box
-    /// SDF over the rect's own `size` (carried in `pattern` because
-    /// `size` is not a fragment varying) and anti-aliases the corner
-    /// alpha. Used for freestanding chrome (the scrollback thumb) where
-    /// soft corners read as polish; grid-aligned cell bands stay square.
-    fn rounded(pos: [f32; 2], size: [f32; 2], radius: f32, color: [f32; 4]) -> Self {
-        Self {
-            pos,
-            size,
-            color,
-            mode: RectMode::RoundedSolid.word(),
-            pattern: [size[0], size[1], radius, 0.0],
+/// Generate the `RectInstance` constructor family from a per-`RectMode`-variant
+/// table (PRIME DIRECTIVE — the emitter substrate at Layer B). Every rect the
+/// renderer uploads is one variant of the SAME shape:
+/// `RectInstance { pos, size, color, mode: RectMode::V.word(), pattern: [...] }`;
+/// the ONLY per-variant differences are the mode word and the pattern payload.
+/// This macro is the single place that contract lives — one row per variant
+/// binds its name, its extra typed payload args, its `RectMode`, and how those
+/// args (plus `pos`/`size`/`color`) fold into the 4-float `pattern`. Adding a
+/// new rect mode is one row here, not a hand-written constructor that can drift
+/// its `.word()` from the shader's `mode` switch. `$pat` receives `pos`, `size`,
+/// `color`, and every named payload arg in scope.
+macro_rules! rect_constructors {
+    ($(
+        $(#[$meta:meta])*
+        $name:ident ( $pos:ident , $size:ident , $color:ident $(, $arg:ident : $ty:ty )* )
+            => $mode:ident , $pat:expr ;
+    )*) => {
+        impl RectInstance {
+            $(
+                $(#[$meta])*
+                #[allow(clippy::allow_attributes, clippy::missing_const_for_fn)]
+                #[inline]
+                fn $name(
+                    $pos: [f32; 2],
+                    $size: [f32; 2],
+                    $color: [f32; 4],
+                    $( $arg : $ty ),*
+                ) -> Self {
+                    // `$pos`, `$size`, `$color`, and each `$arg` — all named at
+                    // the CALL site — are in scope for `$pat` (shared hygiene).
+                    let pattern: [f32; 4] = $pat;
+                    Self { pos: $pos, size: $size, color: $color, mode: RectMode::$mode.word(), pattern }
+                }
+            )*
         }
+    };
+}
+
+rect_constructors! {
+    /// The historical constructor shape — most rects are a plain solid fill.
+    solid(pos, size, color) => Solid, [0.0, 0.0, 0.0, 0.0];
+
+    /// A rounded-corner solid fill. The fragment runs the rounded-box SDF over
+    /// the rect's own `size` (carried in `pattern` because `size` is not a
+    /// fragment varying) and anti-aliases the corner alpha. Used for
+    /// freestanding chrome (the scrollback thumb) where soft corners read as
+    /// polish; grid-aligned cell bands stay square.
+    rounded(pos, size, color, radius: f32) => RoundedSolid, [size[0], size[1], radius, 0.0];
+
+    /// A dashed / periodic run band (`RectMode::Run`): paint where
+    /// `((x + phase) % period) < period * duty`. `phase` fixed at 0.
+    run(pos, size, color, period: f32, duty: f32) => Run, [period, duty, 0.0, 0.0];
+
+    /// A curly (sine-centerline) underline band (`RectMode::Curly`): paint
+    /// within `thickness/2` of the sine centerline of wavelength `period` and
+    /// peak `amplitude`. `phase` fixed at 0.
+    curly(pos, size, color, period: f32, amplitude: f32, thickness: f32)
+        => Curly, [period, amplitude, thickness, 0.0];
+
+    /// A synthesized powerline separator (`RectMode::Powerline`) filling the
+    /// whole cell; `kind` selects the shape (see [`PowerlineSep::kind`]). The
+    /// shader needs the cell dims (= `size`) to evaluate the shape over the
+    /// rect's own `local`, so they ride in `pattern`.
+    powerline(pos, size, color, kind: f32) => Powerline, [kind, size[0], size[1], 0.0];
+}
+
+impl RectInstance {
+    /// A full-window solid overlay at the given physical dimensions — the
+    /// shared shape for the bell flash + unfocused dim + any whole-surface
+    /// wash. Just `solid` anchored at the origin spanning the surface.
+    #[inline]
+    fn full_window(width: f32, height: f32, color: [f32; 4]) -> Self {
+        Self::solid([0.0, 0.0], [width, height], color)
     }
 }
 
@@ -318,8 +364,8 @@ fn elevation_shadow(
         out.push(RectInstance::rounded(
             [x - grow, y - grow + dy],
             [w + grow * 2.0, h + grow * 2.0],
-            radius + grow,
             [0.0, 0.0, 0.0, alpha],
+            radius + grow,
         ));
     }
     out
@@ -2430,15 +2476,15 @@ impl TerminalRenderer {
             rects.push(RectInstance::rounded(
                 [px - border_w, py - border_w],
                 [pw + border_w * 2.0, ph + border_w * 2.0],
-                radius + border_w,
                 lin(style.border, 1.0),
+                radius + border_w,
             ));
             // The opaque card.
             rects.push(RectInstance::rounded(
                 [px, py],
                 [pw, ph],
-                radius,
                 lin(style.panel, 1.0),
+                radius,
             ));
             // Highlight bar behind the selected row — at its VISIBLE position
             // within the windowed line list (the selected row is always kept
@@ -2448,8 +2494,8 @@ impl TerminalRenderer {
                 rects.push(RectInstance::rounded(
                     [px + pad_x * 0.5, bar_y],
                     [pw - pad_x, line_h],
-                    radius * 0.5,
                     lin(style.selected_bg, 1.0),
+                    radius * 0.5,
                 ));
             }
             if let Some(ref pipeline) = self.rect_pipeline {
@@ -3159,22 +3205,23 @@ impl TerminalRenderer {
                         }
                     }
                     engawa::UnderlineGeometry::Run(seg) => {
-                        instances.push(RectInstance {
-                            pos: [x + seg.band.x, y0 + seg.band.y],
-                            size: [run_w, seg.band.height],
+                        instances.push(RectInstance::run(
+                            [x + seg.band.x, y0 + seg.band.y],
+                            [run_w, seg.band.height],
                             color,
-                            mode: RectMode::Run.word(),
-                            pattern: [seg.period, seg.duty, 0.0, 0.0],
-                        });
+                            seg.period,
+                            seg.duty,
+                        ));
                     }
                     engawa::UnderlineGeometry::Curly(band) => {
-                        instances.push(RectInstance {
-                            pos: [x + band.rect.x, y0 + band.rect.y],
-                            size: [run_w, band.rect.height],
+                        instances.push(RectInstance::curly(
+                            [x + band.rect.x, y0 + band.rect.y],
+                            [run_w, band.rect.height],
                             color,
-                            mode: RectMode::Curly.word(),
-                            pattern: [band.period, band.amplitude, band.thickness, 0.0],
-                        });
+                            band.period,
+                            band.amplitude,
+                            band.thickness,
+                        ));
                     }
                 }
             }
@@ -3354,11 +3401,7 @@ impl TerminalRenderer {
                             .clone()
                     };
                     for (rx, ry, rw, rh) in template {
-                        glyph_fill_instances.push(RectInstance {
-                            pos: [bx + rx, by + ry],
-                            size: [rw, rh],
-                            color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-                        });
+                        glyph_fill_instances.push(RectInstance::solid([bx + rx, by + ry], [rw, rh], color));
                     }
                 }
 
@@ -3414,17 +3457,13 @@ impl TerminalRenderer {
                 if c0 > c1 {
                     continue;
                 }
-                instances.push(RectInstance { 
-                    pos: [
+                instances.push(RectInstance::solid([
                         origin_x + c0 as f32 * self.cell_width,
                         origin_y + row_idx as f32 * self.cell_height,
-                    ],
-                    size: [
+                    ], [
                         (c1 - c0 + 1) as f32 * self.cell_width,
                         self.cell_height,
-                    ],
-                    color: self.selection_bg, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-                });
+                    ], self.selection_bg));
             }
         }
 
@@ -3456,17 +3495,13 @@ impl TerminalRenderer {
                     let c = self.search_other_color;
                     overlay_rect_color(c.r, c.g, c.b, 0.2)
                 };
-                instances.push(RectInstance { 
-                    pos: [
+                instances.push(RectInstance::solid([
                         origin_x + m.col_start as f32 * self.cell_width,
                         origin_y + vp_row as f32 * self.cell_height,
-                    ],
-                    size: [
+                    ], [
                         (m.col_end + 1 - m.col_start) as f32 * self.cell_width,
                         self.cell_height,
-                    ],
-                    color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-                });
+                    ], color));
             }
         }
 
@@ -3475,22 +3510,22 @@ impl TerminalRenderer {
         if self.links_highlight {
             let lc = self.link_color;
             for detected_url in &snap.urls {
-                instances.push(RectInstance {
-                    pos: [
+                instances.push(RectInstance::solid(
+                    [
                         origin_x + detected_url.col_start as f32 * self.cell_width,
                         origin_y
                             + (detected_url.row as f32 + 1.0) * self.cell_height
                             - 1.5,
                     ],
-                    size: [
+                    [
                         (detected_url.col_end + 1 - detected_url.col_start) as f32
                             * self.cell_width,
                         1.0,
                     ],
                     // Theme link accent (frost blue), linearized for the
                     // rect pipeline (see `overlay_rect_color`) — never a hex.
-                    color: overlay_rect_color(lc.r, lc.g, lc.b, 0.6), mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-                });
+                    overlay_rect_color(lc.r, lc.g, lc.b, 0.6),
+                ));
             }
         }
 
@@ -3534,16 +3569,12 @@ impl TerminalRenderer {
 
             if effective_style == CursorStyle::BlockHollow {
                 let thickness = 2.0_f32;
-                instances.push(RectInstance {  pos: [cx, cy], size: [self.cell_width, thickness], color: self.cursor_color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4] });
-                instances.push(RectInstance {  pos: [cx, cy + self.cell_height - thickness], size: [self.cell_width, thickness], color: self.cursor_color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4] });
-                instances.push(RectInstance {  pos: [cx, cy], size: [thickness, self.cell_height], color: self.cursor_color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4] });
-                instances.push(RectInstance {  pos: [cx + self.cell_width - thickness, cy], size: [thickness, self.cell_height], color: self.cursor_color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4] });
+                instances.push(RectInstance::solid([cx, cy], [self.cell_width, thickness], self.cursor_color));
+                instances.push(RectInstance::solid([cx, cy + self.cell_height - thickness], [self.cell_width, thickness], self.cursor_color));
+                instances.push(RectInstance::solid([cx, cy], [thickness, self.cell_height], self.cursor_color));
+                instances.push(RectInstance::solid([cx + self.cell_width - thickness, cy], [thickness, self.cell_height], self.cursor_color));
             } else {
-                instances.push(RectInstance { 
-                    pos,
-                    size,
-                    color: self.cursor_color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-                });
+                instances.push(RectInstance::solid(pos, size, self.cursor_color));
             }
         }
 
@@ -3578,8 +3609,8 @@ impl TerminalRenderer {
             instances.push(RectInstance::rounded(
                 [thumb_x, thumb_y],
                 [thumb_w, thumb_h],
-                thumb_radius,
                 overlay_rect_color(sb.r, sb.g, sb.b, 0.35),
+                thumb_radius,
             ));
         }
 
@@ -3601,11 +3632,11 @@ impl TerminalRenderer {
             // status tinting via `exit_ok`/`exit_err` is plumbed in the
             // theme but awaits per-block status in the snapshot.)
             let pm = self.prompt_mark_color;
-            instances.push(RectInstance {
-                pos: [origin_x, y],
-                size: [snap.cols as f32 * self.cell_width, 1.0],
-                color: overlay_rect_color(pm.r, pm.g, pm.b, 0.30), mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
+            instances.push(RectInstance::solid(
+                [origin_x, y],
+                [snap.cols as f32 * self.cell_width, 1.0],
+                overlay_rect_color(pm.r, pm.g, pm.b, 0.30),
+            ));
         }
 
         instances
@@ -4013,235 +4044,107 @@ fn box_drawing_rects(
     match ch {
         // ─ horizontal line
         '\u{2500}' => {
-            rects.push(RectInstance { 
-                pos: [x, cy - thick / 2.0],
-                size: [cw, thick],
-                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
+            rects.push(RectInstance::solid([x, cy - thick / 2.0], [cw, thick], color));
         }
         // │ vertical line
         '\u{2502}' => {
-            rects.push(RectInstance { 
-                pos: [cx - thick / 2.0, y],
-                size: [thick, ch_h],
-                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
+            rects.push(RectInstance::solid([cx - thick / 2.0, y], [thick, ch_h], color));
         }
         // ┌ top-left corner
         '\u{250C}' => {
-            rects.push(RectInstance { 
-                pos: [cx - thick / 2.0, cy - thick / 2.0],
-                size: [cw - (cx - x) + thick / 2.0, thick],
-                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
-            rects.push(RectInstance { 
-                pos: [cx - thick / 2.0, cy - thick / 2.0],
-                size: [thick, ch_h - (cy - y) + thick / 2.0],
-                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
+            rects.push(RectInstance::solid([cx - thick / 2.0, cy - thick / 2.0], [cw - (cx - x) + thick / 2.0, thick], color));
+            rects.push(RectInstance::solid([cx - thick / 2.0, cy - thick / 2.0], [thick, ch_h - (cy - y) + thick / 2.0], color));
         }
         // ┐ top-right corner
         '\u{2510}' => {
-            rects.push(RectInstance { 
-                pos: [x, cy - thick / 2.0],
-                size: [cx - x + thick / 2.0, thick],
-                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
-            rects.push(RectInstance { 
-                pos: [cx - thick / 2.0, cy - thick / 2.0],
-                size: [thick, ch_h - (cy - y) + thick / 2.0],
-                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
+            rects.push(RectInstance::solid([x, cy - thick / 2.0], [cx - x + thick / 2.0, thick], color));
+            rects.push(RectInstance::solid([cx - thick / 2.0, cy - thick / 2.0], [thick, ch_h - (cy - y) + thick / 2.0], color));
         }
         // └ bottom-left corner
         '\u{2514}' => {
-            rects.push(RectInstance { 
-                pos: [cx - thick / 2.0, cy - thick / 2.0],
-                size: [cw - (cx - x) + thick / 2.0, thick],
-                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
-            rects.push(RectInstance { 
-                pos: [cx - thick / 2.0, y],
-                size: [thick, cy - y + thick / 2.0],
-                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
+            rects.push(RectInstance::solid([cx - thick / 2.0, cy - thick / 2.0], [cw - (cx - x) + thick / 2.0, thick], color));
+            rects.push(RectInstance::solid([cx - thick / 2.0, y], [thick, cy - y + thick / 2.0], color));
         }
         // ┘ bottom-right corner
         '\u{2518}' => {
-            rects.push(RectInstance { 
-                pos: [x, cy - thick / 2.0],
-                size: [cx - x + thick / 2.0, thick],
-                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
-            rects.push(RectInstance { 
-                pos: [cx - thick / 2.0, y],
-                size: [thick, cy - y + thick / 2.0],
-                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
+            rects.push(RectInstance::solid([x, cy - thick / 2.0], [cx - x + thick / 2.0, thick], color));
+            rects.push(RectInstance::solid([cx - thick / 2.0, y], [thick, cy - y + thick / 2.0], color));
         }
         // ├ left tee
         '\u{251C}' => {
-            rects.push(RectInstance { 
-                pos: [cx - thick / 2.0, y],
-                size: [thick, ch_h],
-                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
-            rects.push(RectInstance { 
-                pos: [cx - thick / 2.0, cy - thick / 2.0],
-                size: [cw - (cx - x) + thick / 2.0, thick],
-                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
+            rects.push(RectInstance::solid([cx - thick / 2.0, y], [thick, ch_h], color));
+            rects.push(RectInstance::solid([cx - thick / 2.0, cy - thick / 2.0], [cw - (cx - x) + thick / 2.0, thick], color));
         }
         // ┤ right tee
         '\u{2524}' => {
-            rects.push(RectInstance { 
-                pos: [cx - thick / 2.0, y],
-                size: [thick, ch_h],
-                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
-            rects.push(RectInstance { 
-                pos: [x, cy - thick / 2.0],
-                size: [cx - x + thick / 2.0, thick],
-                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
+            rects.push(RectInstance::solid([cx - thick / 2.0, y], [thick, ch_h], color));
+            rects.push(RectInstance::solid([x, cy - thick / 2.0], [cx - x + thick / 2.0, thick], color));
         }
         // ┬ top tee
         '\u{252C}' => {
-            rects.push(RectInstance { 
-                pos: [x, cy - thick / 2.0],
-                size: [cw, thick],
-                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
-            rects.push(RectInstance { 
-                pos: [cx - thick / 2.0, cy - thick / 2.0],
-                size: [thick, ch_h - (cy - y) + thick / 2.0],
-                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
+            rects.push(RectInstance::solid([x, cy - thick / 2.0], [cw, thick], color));
+            rects.push(RectInstance::solid([cx - thick / 2.0, cy - thick / 2.0], [thick, ch_h - (cy - y) + thick / 2.0], color));
         }
         // ┴ bottom tee
         '\u{2534}' => {
-            rects.push(RectInstance { 
-                pos: [x, cy - thick / 2.0],
-                size: [cw, thick],
-                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
-            rects.push(RectInstance { 
-                pos: [cx - thick / 2.0, y],
-                size: [thick, cy - y + thick / 2.0],
-                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
+            rects.push(RectInstance::solid([x, cy - thick / 2.0], [cw, thick], color));
+            rects.push(RectInstance::solid([cx - thick / 2.0, y], [thick, cy - y + thick / 2.0], color));
         }
         // ┼ cross
         '\u{253C}' => {
-            rects.push(RectInstance { 
-                pos: [x, cy - thick / 2.0],
-                size: [cw, thick],
-                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
-            rects.push(RectInstance { 
-                pos: [cx - thick / 2.0, y],
-                size: [thick, ch_h],
-                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
+            rects.push(RectInstance::solid([x, cy - thick / 2.0], [cw, thick], color));
+            rects.push(RectInstance::solid([cx - thick / 2.0, y], [thick, ch_h], color));
         }
         // ═ double horizontal
         '\u{2550}' => {
             let gap = thick;
-            rects.push(RectInstance { 
-                pos: [x, cy - thick - gap / 2.0],
-                size: [cw, thick],
-                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
-            rects.push(RectInstance { 
-                pos: [x, cy + gap / 2.0],
-                size: [cw, thick],
-                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
+            rects.push(RectInstance::solid([x, cy - thick - gap / 2.0], [cw, thick], color));
+            rects.push(RectInstance::solid([x, cy + gap / 2.0], [cw, thick], color));
         }
         // ║ double vertical
         '\u{2551}' => {
             let gap = thick;
-            rects.push(RectInstance { 
-                pos: [cx - thick - gap / 2.0, y],
-                size: [thick, ch_h],
-                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
-            rects.push(RectInstance { 
-                pos: [cx + gap / 2.0, y],
-                size: [thick, ch_h],
-                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
+            rects.push(RectInstance::solid([cx - thick - gap / 2.0, y], [thick, ch_h], color));
+            rects.push(RectInstance::solid([cx + gap / 2.0, y], [thick, ch_h], color));
         }
         // Block elements
         // ▀ upper half block
         '\u{2580}' => {
-            rects.push(RectInstance { 
-                pos: [x, y],
-                size: [cw, ch_h / 2.0],
-                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
+            rects.push(RectInstance::solid([x, y], [cw, ch_h / 2.0], color));
         }
         // ▄ lower half block
         '\u{2584}' => {
-            rects.push(RectInstance { 
-                pos: [x, y + ch_h / 2.0],
-                size: [cw, ch_h / 2.0],
-                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
+            rects.push(RectInstance::solid([x, y + ch_h / 2.0], [cw, ch_h / 2.0], color));
         }
         // █ full block
         '\u{2588}' => {
-            rects.push(RectInstance { 
-                pos: [x, y],
-                size: [cw, ch_h],
-                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
+            rects.push(RectInstance::solid([x, y], [cw, ch_h], color));
         }
         // ▌ left half block
         '\u{258C}' => {
-            rects.push(RectInstance { 
-                pos: [x, y],
-                size: [cw / 2.0, ch_h],
-                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
+            rects.push(RectInstance::solid([x, y], [cw / 2.0, ch_h], color));
         }
         // ▐ right half block
         '\u{2590}' => {
-            rects.push(RectInstance { 
-                pos: [x + cw / 2.0, y],
-                size: [cw / 2.0, ch_h],
-                color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
+            rects.push(RectInstance::solid([x + cw / 2.0, y], [cw / 2.0, ch_h], color));
         }
         // ░ light shade
         '\u{2591}' => {
             let mut shade_color = color;
             shade_color[3] *= 0.25;
-            rects.push(RectInstance { 
-                pos: [x, y],
-                size: [cw, ch_h],
-                color: shade_color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
+            rects.push(RectInstance::solid([x, y], [cw, ch_h], shade_color));
         }
         // ▒ medium shade
         '\u{2592}' => {
             let mut shade_color = color;
             shade_color[3] *= 0.5;
-            rects.push(RectInstance { 
-                pos: [x, y],
-                size: [cw, ch_h],
-                color: shade_color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
+            rects.push(RectInstance::solid([x, y], [cw, ch_h], shade_color));
         }
         // ▓ dark shade
         '\u{2593}' => {
             let mut shade_color = color;
             shade_color[3] *= 0.75;
-            rects.push(RectInstance { 
-                pos: [x, y],
-                size: [cw, ch_h],
-                color: shade_color, mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
+            rects.push(RectInstance::solid([x, y], [cw, ch_h], shade_color));
         }
         _ => {} // Unhandled box drawing — fall through to font glyph
     }
@@ -5087,11 +4990,11 @@ impl RenderCallback for TerminalRenderer {
             let alpha = f32::from(self.bell_flash_frames) / f32::from(BELL_FLASH_FRAMES)
                 * BELL_FLASH_PEAK_ALPHA;
             let bf = self.bell_flash_color;
-            rect_instances.push(RectInstance {
-                pos: [0.0, 0.0],
-                size: [ctx.width as f32, ctx.height as f32],
-                color: overlay_rect_color(bf.r, bf.g, bf.b, alpha), mode: RectMode::Solid.word(), pattern: [0.0f32; 4]
-            });
+            rect_instances.push(RectInstance::full_window(
+                ctx.width as f32,
+                ctx.height as f32,
+                overlay_rect_color(bf.r, bf.g, bf.b, alpha),
+            ));
             self.bell_flash_frames -= 1;
         }
 
@@ -5102,13 +5005,11 @@ impl RenderCallback for TerminalRenderer {
         // the theme. Gated on `motion.unfocused_dim`.
         if !self.focused && self.motion_unfocused_dim {
             let d = self.unfocused_dim_color;
-            rect_instances.push(RectInstance {
-                pos: [0.0, 0.0],
-                size: [ctx.width as f32, ctx.height as f32],
-                color: overlay_rect_color(d.r, d.g, d.b, UNFOCUSED_DIM_ALPHA),
-                mode: RectMode::Solid.word(),
-                pattern: [0.0f32; 4],
-            });
+            rect_instances.push(RectInstance::full_window(
+                ctx.width as f32,
+                ctx.height as f32,
+                overlay_rect_color(d.r, d.g, d.b, UNFOCUSED_DIM_ALPHA),
+            ));
         }
 
         // Upload rect instances
@@ -5717,6 +5618,56 @@ mod render_invariants {
                 }
             }
         }
+    }
+
+    /// The `rect_constructors!`-generated constructor family (Deliverable 4):
+    /// every variant must emit the correct `RectMode` wire word and fold its
+    /// typed args into the documented `pattern` payload. This is the
+    /// emitter-substrate discipline — the macro generates the mechanical
+    /// table, this test pins every row of it, so a shader `mode` switch and
+    /// its constructor can never silently drift apart.
+    #[allow(clippy::float_cmp)]
+    #[test]
+    fn rect_constructor_family_matches_the_rectmode_table() {
+        let pos = [3.0f32, 5.0];
+        let size = [40.0f32, 12.0];
+        let color = [0.1f32, 0.2, 0.3, 0.4];
+
+        let s = RectInstance::solid(pos, size, color);
+        assert_eq!(s.mode, RectMode::Solid.word());
+        assert_eq!(s.pattern, [0.0, 0.0, 0.0, 0.0]);
+        assert_eq!((s.pos, s.size, s.color), (pos, size, color));
+
+        let r = RectInstance::rounded(pos, size, color, 4.0);
+        assert_eq!(r.mode, RectMode::RoundedSolid.word());
+        assert_eq!(r.pattern, [size[0], size[1], 4.0, 0.0]);
+
+        let run = RectInstance::run(pos, size, color, 6.0, 0.5);
+        assert_eq!(run.mode, RectMode::Run.word());
+        assert_eq!(run.pattern, [6.0, 0.5, 0.0, 0.0]);
+
+        let c = RectInstance::curly(pos, size, color, 8.0, 2.0, 1.0);
+        assert_eq!(c.mode, RectMode::Curly.word());
+        assert_eq!(c.pattern, [8.0, 2.0, 1.0, 0.0]);
+
+        let p = RectInstance::powerline(pos, size, color, 2.0);
+        assert_eq!(p.mode, RectMode::Powerline.word());
+        assert_eq!(p.pattern, [2.0, size[0], size[1], 0.0]);
+
+        // full_window is solid anchored at the origin spanning the surface.
+        let fw = RectInstance::full_window(800.0, 600.0, color);
+        assert_eq!(fw.mode, RectMode::Solid.word());
+        assert_eq!((fw.pos, fw.size), ([0.0, 0.0], [800.0, 600.0]));
+        assert_eq!(fw.pattern, [0.0, 0.0, 0.0, 0.0]);
+
+        // The generated powerline constructor is byte-identical to the typed
+        // powerline_rect wrapper (proves the wrapper didn't drift).
+        let via_wrapper = powerline_rect(PowerlineSep::RightHalfDisk, 3.0, 5.0, 40.0, 12.0, color);
+        let via_ctor = RectInstance::powerline(pos, size, color, PowerlineSep::RightHalfDisk.kind());
+        assert_eq!(via_wrapper.pos, via_ctor.pos);
+        assert_eq!(via_wrapper.size, via_ctor.size);
+        assert_eq!(via_wrapper.mode, via_ctor.mode);
+        assert_eq!(via_wrapper.pattern, via_ctor.pattern);
     }
 
     /// Resize-storm gate (Deliverable 3): the panel-ratio probe must fire
