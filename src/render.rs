@@ -8706,6 +8706,39 @@ mod tests {
         assert!(c >= 1 && h >= 1);
     }
 
+    /// The seam fix (panel-snapping `padding_px()`) must NOT destabilize the
+    /// resize path: `cells_for_window_phys` uses `padding_px()` as its inner
+    /// origin, and the origin snap moves it by strictly < one panel pixel, so
+    /// the cell count it derives can differ by at most 0 cells vs the
+    /// unsnapped origin at any realistic window size — the reflow reconciler
+    /// stays stable across the fix. (Guards the Deliverable-1 ↔ Deliverable-2
+    /// interaction.)
+    #[test]
+    fn panel_snap_does_not_shift_resize_cell_counts() {
+        let mut r = gpu_free_renderer();
+        // Force the scaled-display path so padding_px() actually snaps.
+        r.set_scale_factor(2.0);
+        r.set_panel_ratio(2234.0 / 2658.0); // the live XDR ratio
+        // A representative window spread; the snapped padding differs from the
+        // raw padding by < 1 panel px, far below one cell, so cols/rows match
+        // what the raw-padding math would give (no wedge, no jitter).
+        for (w, h) in [(1280u32, 800u32), (2056, 1329), (4112, 2658), (800, 600)] {
+            let (cols, rows) = r.cells_for_window_phys(w, h);
+            assert!(cols >= 1 && rows >= 1, "never wedges at {w}x{h}");
+            // Recompute with the UNsnapped padding to bound the drift.
+            let raw_pad = r.padding * r.scale_factor;
+            let cw = r.cell_width.max(1.0);
+            let ch = r.cell_height.max(1.0);
+            let raw_cols = (((w as f32 - 2.0 * raw_pad).max(0.0) / cw).floor() as u16).max(1);
+            let raw_rows = (((h as f32 - 2.0 * raw_pad).max(0.0) / ch).floor() as u16).max(1);
+            assert!(
+                (cols as i32 - raw_cols as i32).abs() <= 1
+                    && (rows as i32 - raw_rows as i32).abs() <= 1,
+                "snap shifted grid at {w}x{h}: snapped {cols}x{rows} vs raw {raw_cols}x{raw_rows}",
+            );
+        }
+    }
+
     // ---- color_to_f32 ----
 
     #[test]
