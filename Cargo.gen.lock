@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "4fe657a3708a188c568dfe6f92effe708b3938f67327a0d4bbe4463404ad40f5",
+  "cargo_lock_sha256": "db6a84fdd344834d6d541c55fb1581f87b9b4f21f6eb8c0574f661bba78960d8",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -878,11 +878,11 @@
           "std"
         ]
       },
-      "bytemuck-1.25.0": {
+      "bytemuck-1.25.1": {
         "runtime_dependencies": [
           {
             "name": "bytemuck_derive",
-            "package_key": "bytemuck_derive-1.10.2",
+            "package_key": "bytemuck_derive-1.11.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -900,7 +900,7 @@
           "min_const_generics"
         ]
       },
-      "bytemuck_derive-1.10.2": {
+      "bytemuck_derive-1.11.0": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -959,7 +959,7 @@
           "std"
         ]
       },
-      "cc-1.2.66": {
+      "cc-1.2.67": {
         "runtime_dependencies": [
           {
             "name": "find_msvc_tools",
@@ -2532,7 +2532,7 @@
         "runtime_dependencies": [
           {
             "name": "bytemuck",
-            "package_key": "bytemuck-1.25.0",
+            "package_key": "bytemuck-1.25.1",
             "kind": "normal",
             "features": [
               "derive"
@@ -2976,7 +2976,7 @@
         "runtime_dependencies": [
           {
             "name": "bytemuck",
-            "package_key": "bytemuck-1.25.0",
+            "package_key": "bytemuck-1.25.1",
             "kind": "normal",
             "features": [
               "derive",
@@ -3427,7 +3427,7 @@
           },
           {
             "name": "bytemuck",
-            "package_key": "bytemuck-1.25.0",
+            "package_key": "bytemuck-1.25.1",
             "kind": "normal",
             "features": [
               "derive"
@@ -4912,7 +4912,7 @@
         "runtime_dependencies": [
           {
             "name": "bytemuck",
-            "package_key": "bytemuck-1.25.0",
+            "package_key": "bytemuck-1.25.1",
             "kind": "normal",
             "features": [
               "extern_crate_alloc"
@@ -5100,7 +5100,7 @@
         "runtime_dependencies": [
           {
             "name": "bytemuck",
-            "package_key": "bytemuck-1.25.0",
+            "package_key": "bytemuck-1.25.1",
             "kind": "normal",
             "features": [
               "derive"
@@ -5745,7 +5745,7 @@
         "build_dependencies": [
           {
             "name": "cc",
-            "package_key": "cc-1.2.66",
+            "package_key": "cc-1.2.67",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -5761,7 +5761,7 @@
         "build_dependencies": [
           {
             "name": "cc",
-            "package_key": "cc-1.2.66",
+            "package_key": "cc-1.2.67",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -6969,7 +6969,7 @@
         "runtime_dependencies": [
           {
             "name": "bytemuck",
-            "package_key": "bytemuck-1.25.0",
+            "package_key": "bytemuck-1.25.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8364,7 +8364,7 @@
           },
           {
             "name": "bytemuck",
-            "package_key": "bytemuck-1.25.0",
+            "package_key": "bytemuck-1.25.1",
             "kind": "normal",
             "features": [
               "derive",
@@ -8808,7 +8808,7 @@
         "runtime_dependencies": [
           {
             "name": "bytemuck",
-            "package_key": "bytemuck-1.25.0",
+            "package_key": "bytemuck-1.25.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9905,7 +9905,7 @@
           },
           {
             "name": "bytemuck",
-            "package_key": "bytemuck-1.25.0",
+            "package_key": "bytemuck-1.25.1",
             "kind": "normal",
             "features": [
               "extern_crate_alloc"
@@ -10008,7 +10008,7 @@
         "runtime_dependencies": [
           {
             "name": "bytemuck",
-            "package_key": "bytemuck-1.25.0",
+            "package_key": "bytemuck-1.25.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11763,7 +11763,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "sha1-0.10.6": {
+      "sha1-0.10.7": {
         "runtime_dependencies": [
           {
             "name": "cfg_if",
@@ -11947,7 +11947,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.187-8793d8e3ef08483c800ed4da8d10f5d8da7a06c8": {
+      "shikumi-0.1.221-1fcd6ae33e58c8085e118d6c768aa566dc7b4e77": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -12330,7 +12330,7 @@
         "runtime_dependencies": [
           {
             "name": "bytemuck",
-            "package_key": "bytemuck-1.25.0",
+            "package_key": "bytemuck-1.25.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13507,7 +13507,7 @@
           },
           {
             "name": "sha1",
-            "package_key": "sha1-0.10.6",
+            "package_key": "sha1-0.10.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -14844,7 +14844,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.187-8793d8e3ef08483c800ed4da8d10f5d8da7a06c8",
+            "package_key": "shikumi-0.1.221-1fcd6ae33e58c8085e118d6c768aa566dc7b4e77",
             "kind": "normal",
             "features": [
               "cli"
@@ -15451,7 +15451,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "thread_local-1.1.9": {
+      "thread_local-1.1.10": {
         "runtime_dependencies": [
           {
             "name": "cfg_if",
@@ -15676,7 +15676,7 @@
           "zerovec"
         ]
       },
-      "tinyvec-1.11.0": {
+      "tinyvec-1.12.0": {
         "runtime_dependencies": [
           {
             "name": "tinyvec_macros",
@@ -16477,7 +16477,7 @@
           },
           {
             "name": "thread_local",
-            "package_key": "thread_local-1.1.9",
+            "package_key": "thread_local-1.1.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16729,7 +16729,7 @@
         "runtime_dependencies": [
           {
             "name": "tinyvec",
-            "package_key": "tinyvec-1.11.0",
+            "package_key": "tinyvec-1.12.0",
             "kind": "normal",
             "features": [
               "alloc"
@@ -18074,7 +18074,7 @@
           },
           {
             "name": "bytemuck",
-            "package_key": "bytemuck-1.25.0",
+            "package_key": "bytemuck-1.25.1",
             "kind": "normal",
             "features": [
               "derive",
@@ -18123,7 +18123,7 @@
         "runtime_dependencies": [
           {
             "name": "bytemuck",
-            "package_key": "bytemuck-1.25.0",
+            "package_key": "bytemuck-1.25.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18772,7 +18772,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.2.66",
+                "package_key": "cc-1.2.67",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -19142,7 +19142,7 @@
               },
               {
                 "name": "tinyvec",
-                "package_key": "tinyvec-1.11.0",
+                "package_key": "tinyvec-1.12.0",
                 "kind": "normal",
                 "features": [
                   "alloc"
@@ -19287,7 +19287,7 @@
               "fallback"
             ]
           },
-          "kanchi-0.1.1-c01183be8ac1224b0424b7be874fee52a1624117": {
+          "kanchi-0.1.2-141f61011932d1c479abfe44c71d5e7f06cd6071": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -19426,7 +19426,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.78": {
+          "mado-0.1.79": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -19470,7 +19470,7 @@
               },
               {
                 "name": "bytemuck",
-                "package_key": "bytemuck-1.25.0",
+                "package_key": "bytemuck-1.25.1",
                 "kind": "normal",
                 "features": [
                   "derive"
@@ -19681,7 +19681,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.1-c01183be8ac1224b0424b7be874fee52a1624117",
+                "package_key": "kanchi-0.1.2-141f61011932d1c479abfe44c71d5e7f06cd6071",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -22340,7 +22340,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.2.66",
+                "package_key": "cc-1.2.67",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -22721,7 +22721,7 @@
               },
               {
                 "name": "bytemuck",
-                "package_key": "bytemuck-1.25.0",
+                "package_key": "bytemuck-1.25.1",
                 "kind": "normal",
                 "features": [
                   "derive",
@@ -23419,7 +23419,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.2.66",
+                "package_key": "cc-1.2.67",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -23694,7 +23694,7 @@
               },
               {
                 "name": "tinyvec",
-                "package_key": "tinyvec-1.11.0",
+                "package_key": "tinyvec-1.12.0",
                 "kind": "normal",
                 "features": [
                   "alloc"
@@ -23850,7 +23850,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "kanchi-0.1.1-c01183be8ac1224b0424b7be874fee52a1624117": {
+          "kanchi-0.1.2-141f61011932d1c479abfe44c71d5e7f06cd6071": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -23907,7 +23907,7 @@
               "system"
             ]
           },
-          "mado-0.1.78": {
+          "mado-0.1.79": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -23941,7 +23941,7 @@
               },
               {
                 "name": "bytemuck",
-                "package_key": "bytemuck-1.25.0",
+                "package_key": "bytemuck-1.25.1",
                 "kind": "normal",
                 "features": [
                   "derive"
@@ -24152,7 +24152,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.1-c01183be8ac1224b0424b7be874fee52a1624117",
+                "package_key": "kanchi-0.1.2-141f61011932d1c479abfe44c71d5e7f06cd6071",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -24806,7 +24806,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.2.66",
+                "package_key": "cc-1.2.67",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -25333,7 +25333,7 @@
               },
               {
                 "name": "bytemuck",
-                "package_key": "bytemuck-1.25.0",
+                "package_key": "bytemuck-1.25.1",
                 "kind": "normal",
                 "features": [
                   "aarch64_simd"
@@ -25394,7 +25394,7 @@
               },
               {
                 "name": "bytemuck",
-                "package_key": "bytemuck-1.25.0",
+                "package_key": "bytemuck-1.25.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -25495,7 +25495,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.2.66",
+                "package_key": "cc-1.2.67",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -26168,7 +26168,7 @@
               },
               {
                 "name": "bytemuck",
-                "package_key": "bytemuck-1.25.0",
+                "package_key": "bytemuck-1.25.1",
                 "kind": "normal",
                 "features": [
                   "derive",
@@ -26439,7 +26439,7 @@
               },
               {
                 "name": "bytemuck",
-                "package_key": "bytemuck-1.25.0",
+                "package_key": "bytemuck-1.25.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -27106,7 +27106,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.2.66",
+                "package_key": "cc-1.2.67",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -27381,7 +27381,7 @@
               },
               {
                 "name": "tinyvec",
-                "package_key": "tinyvec-1.11.0",
+                "package_key": "tinyvec-1.12.0",
                 "kind": "normal",
                 "features": [
                   "alloc"
@@ -27537,7 +27537,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "kanchi-0.1.1-c01183be8ac1224b0424b7be874fee52a1624117": {
+          "kanchi-0.1.2-141f61011932d1c479abfe44c71d5e7f06cd6071": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -27594,7 +27594,7 @@
               "system"
             ]
           },
-          "mado-0.1.78": {
+          "mado-0.1.79": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -27628,7 +27628,7 @@
               },
               {
                 "name": "bytemuck",
-                "package_key": "bytemuck-1.25.0",
+                "package_key": "bytemuck-1.25.1",
                 "kind": "normal",
                 "features": [
                   "derive"
@@ -27839,7 +27839,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.1-c01183be8ac1224b0424b7be874fee52a1624117",
+                "package_key": "kanchi-0.1.2-141f61011932d1c479abfe44c71d5e7f06cd6071",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -28493,7 +28493,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.2.66",
+                "package_key": "cc-1.2.67",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -29020,7 +29020,7 @@
               },
               {
                 "name": "bytemuck",
-                "package_key": "bytemuck-1.25.0",
+                "package_key": "bytemuck-1.25.1",
                 "kind": "normal",
                 "features": [
                   "aarch64_simd"
@@ -29081,7 +29081,7 @@
               },
               {
                 "name": "bytemuck",
-                "package_key": "bytemuck-1.25.0",
+                "package_key": "bytemuck-1.25.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -29182,7 +29182,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.2.66",
+                "package_key": "cc-1.2.67",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -29855,7 +29855,7 @@
               },
               {
                 "name": "bytemuck",
-                "package_key": "bytemuck-1.25.0",
+                "package_key": "bytemuck-1.25.1",
                 "kind": "normal",
                 "features": [
                   "derive",
@@ -30126,7 +30126,7 @@
               },
               {
                 "name": "bytemuck",
-                "package_key": "bytemuck-1.25.0",
+                "package_key": "bytemuck-1.25.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -30784,7 +30784,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.2.66",
+                "package_key": "cc-1.2.67",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -31118,7 +31118,7 @@
               },
               {
                 "name": "tinyvec",
-                "package_key": "tinyvec-1.11.0",
+                "package_key": "tinyvec-1.12.0",
                 "kind": "normal",
                 "features": [
                   "alloc"
@@ -31263,7 +31263,7 @@
               "fallback"
             ]
           },
-          "kanchi-0.1.1-c01183be8ac1224b0424b7be874fee52a1624117": {
+          "kanchi-0.1.2-141f61011932d1c479abfe44c71d5e7f06cd6071": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -31402,7 +31402,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.78": {
+          "mado-0.1.79": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31446,7 +31446,7 @@
               },
               {
                 "name": "bytemuck",
-                "package_key": "bytemuck-1.25.0",
+                "package_key": "bytemuck-1.25.1",
                 "kind": "normal",
                 "features": [
                   "derive"
@@ -31657,7 +31657,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.1-c01183be8ac1224b0424b7be874fee52a1624117",
+                "package_key": "kanchi-0.1.2-141f61011932d1c479abfe44c71d5e7f06cd6071",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34296,7 +34296,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.2.66",
+                "package_key": "cc-1.2.67",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -34677,7 +34677,7 @@
               },
               {
                 "name": "bytemuck",
-                "package_key": "bytemuck-1.25.0",
+                "package_key": "bytemuck-1.25.1",
                 "kind": "normal",
                 "features": [
                   "derive",
@@ -35385,7 +35385,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.2.66",
+                "package_key": "cc-1.2.67",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -35624,7 +35624,7 @@
               },
               {
                 "name": "tinyvec",
-                "package_key": "tinyvec-1.11.0",
+                "package_key": "tinyvec-1.12.0",
                 "kind": "normal",
                 "features": [
                   "alloc"
@@ -35780,7 +35780,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "kanchi-0.1.1-c01183be8ac1224b0424b7be874fee52a1624117": {
+          "kanchi-0.1.2-141f61011932d1c479abfe44c71d5e7f06cd6071": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -35837,7 +35837,7 @@
               "system"
             ]
           },
-          "mado-0.1.78": {
+          "mado-0.1.79": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35871,7 +35871,7 @@
               },
               {
                 "name": "bytemuck",
-                "package_key": "bytemuck-1.25.0",
+                "package_key": "bytemuck-1.25.1",
                 "kind": "normal",
                 "features": [
                   "derive"
@@ -36082,7 +36082,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.1-c01183be8ac1224b0424b7be874fee52a1624117",
+                "package_key": "kanchi-0.1.2-141f61011932d1c479abfe44c71d5e7f06cd6071",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36716,7 +36716,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.2.66",
+                "package_key": "cc-1.2.67",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -37243,7 +37243,7 @@
               },
               {
                 "name": "bytemuck",
-                "package_key": "bytemuck-1.25.0",
+                "package_key": "bytemuck-1.25.1",
                 "kind": "normal",
                 "features": [
                   "aarch64_simd"
@@ -37304,7 +37304,7 @@
               },
               {
                 "name": "bytemuck",
-                "package_key": "bytemuck-1.25.0",
+                "package_key": "bytemuck-1.25.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37405,7 +37405,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.2.66",
+                "package_key": "cc-1.2.67",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -38078,7 +38078,7 @@
               },
               {
                 "name": "bytemuck",
-                "package_key": "bytemuck-1.25.0",
+                "package_key": "bytemuck-1.25.1",
                 "kind": "normal",
                 "features": [
                   "derive",
@@ -38349,7 +38349,7 @@
               },
               {
                 "name": "bytemuck",
-                "package_key": "bytemuck-1.25.0",
+                "package_key": "bytemuck-1.25.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -39026,7 +39026,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.2.66",
+                "package_key": "cc-1.2.67",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -39265,7 +39265,7 @@
               },
               {
                 "name": "tinyvec",
-                "package_key": "tinyvec-1.11.0",
+                "package_key": "tinyvec-1.12.0",
                 "kind": "normal",
                 "features": [
                   "alloc"
@@ -39421,7 +39421,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "kanchi-0.1.1-c01183be8ac1224b0424b7be874fee52a1624117": {
+          "kanchi-0.1.2-141f61011932d1c479abfe44c71d5e7f06cd6071": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -39478,7 +39478,7 @@
               "system"
             ]
           },
-          "mado-0.1.78": {
+          "mado-0.1.79": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39512,7 +39512,7 @@
               },
               {
                 "name": "bytemuck",
-                "package_key": "bytemuck-1.25.0",
+                "package_key": "bytemuck-1.25.1",
                 "kind": "normal",
                 "features": [
                   "derive"
@@ -39723,7 +39723,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.1-c01183be8ac1224b0424b7be874fee52a1624117",
+                "package_key": "kanchi-0.1.2-141f61011932d1c479abfe44c71d5e7f06cd6071",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40357,7 +40357,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.2.66",
+                "package_key": "cc-1.2.67",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -40884,7 +40884,7 @@
               },
               {
                 "name": "bytemuck",
-                "package_key": "bytemuck-1.25.0",
+                "package_key": "bytemuck-1.25.1",
                 "kind": "normal",
                 "features": [
                   "aarch64_simd"
@@ -40945,7 +40945,7 @@
               },
               {
                 "name": "bytemuck",
-                "package_key": "bytemuck-1.25.0",
+                "package_key": "bytemuck-1.25.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -41046,7 +41046,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.2.66",
+                "package_key": "cc-1.2.67",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -41719,7 +41719,7 @@
               },
               {
                 "name": "bytemuck",
-                "package_key": "bytemuck-1.25.0",
+                "package_key": "bytemuck-1.25.1",
                 "kind": "normal",
                 "features": [
                   "derive",
@@ -41990,7 +41990,7 @@
               },
               {
                 "name": "bytemuck",
-                "package_key": "bytemuck-1.25.0",
+                "package_key": "bytemuck-1.25.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -42616,10 +42616,10 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "bytemuck-1.25.0": {
+    "bytemuck-1.25.1": {
       "edition": "2018"
     },
-    "bytemuck_derive-1.10.2": {
+    "bytemuck_derive-1.11.0": {
       "edition": "2018",
       "proc_macro": true
     },
@@ -42638,7 +42638,7 @@
     "calloop-wayland-source-0.3.0": {
       "edition": "2021"
     },
-    "cc-1.2.66": {
+    "cc-1.2.67": {
       "edition": "2018"
     },
     "cfg-if-1.0.4": {
@@ -43175,7 +43175,7 @@
     "kaname-0.1.1-0570e7ec566b60444307fe5873f80f5beda8fe6c": {
       "edition": "2024"
     },
-    "kanchi-0.1.1-c01183be8ac1224b0424b7be874fee52a1624117": {
+    "kanchi-0.1.2-141f61011932d1c479abfe44c71d5e7f06cd6071": {
       "edition": "2024"
     },
     "kanshou-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": {
@@ -43246,7 +43246,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.78": {
+    "mado-0.1.79": {
       "edition": "2024",
       "binaries": [
         {
@@ -43883,7 +43883,7 @@
     "serial2-0.2.37": {
       "edition": "2021"
     },
-    "sha1-0.10.6": {
+    "sha1-0.10.7": {
       "edition": "2018"
     },
     "sha2-0.10.9": {
@@ -43898,7 +43898,7 @@
     "shidou-0.1.8-527c3ce244c44b4bb581168ae8429e5dbcee6507": {
       "edition": "2024"
     },
-    "shikumi-0.1.187-8793d8e3ef08483c800ed4da8d10f5d8da7a06c8": {
+    "shikumi-0.1.221-1fcd6ae33e58c8085e118d6c768aa566dc7b4e77": {
       "edition": "2024"
     },
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": {
@@ -44071,7 +44071,7 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "thread_local-1.1.9": {
+    "thread_local-1.1.10": {
       "edition": "2021"
     },
     "tiff-0.11.3": {
@@ -44096,7 +44096,7 @@
     "tinystr-0.8.3": {
       "edition": "2021"
     },
-    "tinyvec-1.11.0": {
+    "tinyvec-1.12.0": {
       "edition": "2018"
     },
     "tinyvec_macros-0.1.1": {
@@ -44507,7 +44507,7 @@
     "izumi-config-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513": "sha256-nuR1nT8ljhe3ybKYVLBnH6CBzDdrPFQ/tM0/ovvQuSA=",
     "izumi-sources-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513": "sha256-nuR1nT8ljhe3ybKYVLBnH6CBzDdrPFQ/tM0/ovvQuSA=",
     "kaname-0.1.1-0570e7ec566b60444307fe5873f80f5beda8fe6c": "sha256-ue2v9p/Eq+z3hmCaL63toSyjpDY6s3H1gGBUFBOX3ek=",
-    "kanchi-0.1.1-c01183be8ac1224b0424b7be874fee52a1624117": "sha256-9ZJrbVlTUzzpJ3IUX9ejgriWClVKZy26H4k8F0XzTQA=",
+    "kanchi-0.1.2-141f61011932d1c479abfe44c71d5e7f06cd6071": "sha256-Hp6zyrnBeLlAJP494jyF+fHAY1J3UhGRmjDIHqc0BC8=",
     "kanshou-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
     "kanshou-derive-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
     "madori-0.1.5-79b33a4811853f1a8153735a69fb58bde894c2d9": "sha256-35DB90eBg+O8Ie2w8R4sfZr4B4NG+FPbUfwePl0x9qw=",
@@ -44518,7 +44518,7 @@
     "pleme-kindstr-derive-0.1.0-d287f915e9bb8837a443f6238ee900e81318ce89": "sha256-5XDr9kPiT0doWBOOk9yXjxdTCpRgaqWWJCpsc1f+tdw=",
     "praca-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",
     "shidou-0.1.8-527c3ce244c44b4bb581168ae8429e5dbcee6507": "sha256-7UDp5qpjhQHI2p6uh1pRN5V/qzv4lTqqI3wjwJZqfME=",
-    "shikumi-0.1.187-8793d8e3ef08483c800ed4da8d10f5d8da7a06c8": "sha256-Lwnzz9bPbGzMzDFv4L7wvY+9OMvLakQJ5iSBK4LMSLY=",
+    "shikumi-0.1.221-1fcd6ae33e58c8085e118d6c768aa566dc7b4e77": "sha256-7YFSU++G1Alzq0LiuVbfiwL1ENMrGNlrrOJdzIHVuaA=",
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": "sha256-Jd6fUoNSdzk+I5iu7FbAg9F9gbc7oU9jdPnnaTIxL6w=",
     "tatara-lisp-0.2.5-45534e162951cb5ec009372c1508185b71ac1510": "sha256-YIGLYFnd0mv/cNWp7Zr86Dl9whnufxANycNGi//6cBc=",
     "tatara-lisp-derive-0.2.5-45534e162951cb5ec009372c1508185b71ac1510": "sha256-YIGLYFnd0mv/cNWp7Zr86Dl9whnufxANycNGi//6cBc=",

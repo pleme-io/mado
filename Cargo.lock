@@ -472,18 +472,18 @@ dependencies = [
 
 [[package]]
 name = "bytemuck"
-version = "1.25.0"
+version = "1.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8efb64bd706a16a1bdde310ae86b351e4d21550d98d056f22f8a7f7a2183fec"
+checksum = "d6aedf8ae72766347502cf3cb4f41cf5e9cc37d28bee90f1fdaaae15f9cf9424"
 dependencies = [
  "bytemuck_derive",
 ]
 
 [[package]]
 name = "bytemuck_derive"
-version = "1.10.2"
+version = "1.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9abbd1bc6865053c427f7198e6af43bfdedc55ab791faed4fbd361d789575ff"
+checksum = "f65693059b6b9c588b9f62fed1cedbf0a8b805631457ea162d68f0de186f3de5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -536,9 +536,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.2.66"
+version = "1.2.67"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5d6cac793997bd970000024b2934968efe83b382de4fdcf4fcb46b6ee4ad996"
+checksum = "e17dd265a7d0f31ef544e1b20e03add05d3b45b491b633b10d67145d2acc1a38"
 dependencies = [
  "find-msvc-tools",
  "jobserver",
@@ -2293,8 +2293,8 @@ dependencies = [
 
 [[package]]
 name = "kanchi"
-version = "0.1.1"
-source = "git+https://github.com/pleme-io/kanchi#c01183be8ac1224b0424b7be874fee52a1624117"
+version = "0.1.2"
+source = "git+https://github.com/pleme-io/kanchi#141f61011932d1c479abfe44c71d5e7f06cd6071"
 dependencies = [
  "libc",
  "objc2 0.6.4",
@@ -2498,7 +2498,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.78"
+version = "0.1.79"
 dependencies = [
  "anyhow",
  "awase",
@@ -4824,9 +4824,9 @@ dependencies = [
 
 [[package]]
 name = "sha1"
-version = "0.10.6"
+version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3bf829a2d51ab4a5ddf1352d8470c140cadc8301b2ae1789db023f01cedd6ba"
+checksum = "a978451301f4db1d02937a4ab3ccce137717b81826e79b7d49ffe3244a13c3b8"
 dependencies = [
  "cfg-if",
  "cpufeatures 0.2.17",
@@ -4904,8 +4904,8 @@ dependencies = [
 
 [[package]]
 name = "shikumi"
-version = "0.1.187"
-source = "git+https://github.com/pleme-io/shikumi?branch=main#8793d8e3ef08483c800ed4da8d10f5d8da7a06c8"
+version = "0.1.221"
+source = "git+https://github.com/pleme-io/shikumi?branch=main#1fcd6ae33e58c8085e118d6c768aa566dc7b4e77"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -5468,7 +5468,7 @@ dependencies = [
  "once_cell",
  "serde",
  "serde_yaml_ng",
- "shikumi 0.1.187",
+ "shikumi 0.1.221",
  "tear-types",
  "thiserror 2.0.18",
  "tracing",
@@ -5595,9 +5595,9 @@ dependencies = [
 
 [[package]]
 name = "thread_local"
-version = "1.1.9"
+version = "1.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f60246a4944f24f6e018aa17cdeffb7818b76356965d03b07d6a9886e8962185"
+checksum = "1ad99c4c6d32803332c548b1af0540b357b3f5fc0be8f6c6bfe8b2e6ae784070"
 dependencies = [
  "cfg-if",
 ]
@@ -5683,9 +5683,9 @@ dependencies = [
 
 [[package]]
 name = "tinyvec"
-version = "1.11.0"
+version = "1.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e61e67053d25a4e82c844e8424039d9745781b3fc4f32b8d55ed50f5f667ef3"
+checksum = "bb4ebadaa0af04fab11ae01eb5f9fdb5f9c5b875506e210e71c07873528baa7f"
 dependencies = [
  "tinyvec_macros",
 ]
