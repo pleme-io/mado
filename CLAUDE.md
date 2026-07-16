@@ -24,17 +24,17 @@ an embedded vigy reconciler, and deep Nix integration that no competitor offers.
 > over-abstraction — it does NOT pay. Author for the actual shape; byte-pin
 > every generated surface. Plan + rejection list: [`docs/MACRO-VOCABULARY.md`](./docs/MACRO-VOCABULARY.md).
 
-> **★ M5 de-overlap with tear.** Mado's `pane.rs` / `tab.rs` /
-> `window.rs` are **legacy** — multiplexing belongs in
+> **★ M5 de-overlap with tear.** Mado's legacy `pane.rs` / `tab.rs` /
+> `window.rs` have been **DELETED** — multiplexing lives in
 > [`pleme-io/tear`](https://github.com/pleme-io/tear) (the
-> tmux-compatible multiplexer), not here. The canonical destination
+> tmux-compatible multiplexer), not here; mado is single-pane
+> (`single_pane.rs`) and attaches to tear. The canonical destination
 > and phased plan live in
 > [`theory/MADO-TEAR-M5.md`](../theory/MADO-TEAR-M5.md). Phase 1
 > (tear-daemon UDS RPC + tear-client) shipped at tear@0d0a240; Phase 2
 > (tear-core gains per-pane vte parsing + cell grids) is the next
-> heavy lift. **Do not add features to the legacy modules** — every
-> line of new pane/tab/window code added today is debt that has to
-> be ripped out at Phase 4.
+> heavy lift. **Do not re-introduce in-mado multiplexing** — pane/tab/
+> window state belongs in tear-core, never back in mado.
 
 > **★ Capability gap analysis + remediation plan (2026-05-31).** A full
 > 13-agent audit of mado against the modern terminal landscape
@@ -91,18 +91,15 @@ Config <-- shikumi (hot-reload, ArcSwap) <-- ~/.config/mado/mado.yaml
 
 | Module | Lines | Purpose | Key Types |
 |--------|-------|---------|-----------|
-| `terminal.rs` | ~3300 | VT100/xterm state machine | `Terminal`, `Grid`, `Cell`, `CellAttrs`, `Color`, `MouseMode` |
-| `render.rs` | ~2350 | Three-pass GPU pipeline | `TerminalRenderer`, `RectPipeline`, `Snapshot` |
-| `main.rs` | ~1000 | Event loop, input dispatch | CLI args, clipboard, double/triple click, pane/tab wiring |
+| `terminal.rs` | ~11300 | VT100/xterm state machine | `Terminal`, `Grid`, `Cell`, `CellAttrs`, `Color`, `MouseMode` |
+| `render.rs` | ~9500 | Multi-pass GPU pipeline | `TerminalRenderer`, `RectPipeline`, `Snapshot` |
+| `main.rs` | ~1450 | Event loop, input dispatch | CLI args, clipboard, double/triple click, single-pane wiring |
+| `config.rs` | ~6200 | shikumi config with hot-reload | `MadoConfig`, `load_and_watch()` |
 | `selection.rs` | ~390 | Mouse text selection | `Selection`, `CellPos` |
-| `config.rs` | ~380 | shikumi config with hot-reload | `MadoConfig`, `load_and_watch()` |
-| `window.rs` | ~380 | **LEGACY** — multi-pane/tab state. Slated for deletion at M5; see [`theory/MADO-TEAR-M5.md`](../theory/MADO-TEAR-M5.md). | `WindowState`, `PaneTerminal` |
 | `keybind.rs` | ~350 | Configurable keybindings | `KeybindManager`, `Action`, `Key` |
-| `pane.rs` | ~340 | **LEGACY** — split pane layout. Slated for deletion at M5; tear-core owns multiplexing. | `PaneManager`, `PaneNode`, `SplitDir` |
 | `pty.rs` | ~330 | PTY allocation + async I/O | `Pty`, `PtyReader`, `PtyWriter` |
 | `theme.rs` | ~280 | Color theme system | `Theme`, 8 built-in themes (Nord, Dracula, etc.) |
 | `search.rs` | ~270 | Scrollback search | `SearchState`, `SearchMatch` |
-| `tab.rs` | ~220 | **LEGACY** — tab management. Slated for deletion at M5; tear owns sessions/windows/tabs. | `TabManager`, `Tab`, `TabId` |
 | `url.rs` | ~180 | URL detection (no regex) | `DetectedUrl`, `detect_urls_in_row` |
 | `platform.rs` | ~95 | Platform-native integration | Pure safe Rust via objc2 (macOS styling, dark mode, dock badge) |
 | `module/default.nix` | | Home-manager module | `blackmatter.components.mado.*` |
@@ -187,13 +184,17 @@ Key GPU optimizations to implement:
 **Grid**: `VecDeque<Vec<Cell>>` -- O(1) scroll via push_back/pop_front. Primary
 and alternate screen buffers. Configurable scrollback (default 10,000 lines).
 
-**Cell**: 6 fields -- `ch: char`, `extra: Option<Box<Vec<char>>>` (combining),
-`width: u8` (0=continuation, 1=normal, 2=wide), `fg/bg: Color`, `attrs: CellAttrs`.
+**Cell**: 5 fields, **24 bytes** -- `ch: char`, `extra: Option<Box<Vec<char>>>`
+(combining), `width: u8` (0=continuation, 1=normal, 2=wide), `style_id: u16`,
+`link_id: u16`. fg/bg/attrs are **interned**: `style_id` indexes a per-grid
+`StyleTable`, `link_id` a `LinkTable`, so most cells share one style entry. A
+`size_of::<Cell>() <= 24` guard is live in `terminal.rs`.
 
-Target cell optimization (Ghostty uses 24 bytes per cell with style dedup):
-- Pack codepoint + style ID + flags into a fixed-size struct
-- Deduplicate styles per page (most cells share the same style)
-- Store grapheme clusters in a side table, cell holds offset
+> **The Ghostty-style 24-byte + style-dedup cell has LANDED** — this is the
+> shipped `Cell`, not a Phase-4 target. (Pack codepoint + style ID + flags:
+> done via `style_id`. Dedup styles per page: done via `StyleTable`/`LinkTable`
+> interning.) The one remaining sub-item is a grapheme side-table with a
+> cell-held offset; today combining marks live in `extra: Option<Box<Vec<char>>>`.
 
 **Implemented sequences**:
 - Cursor: CUU/CUD/CUF/CUB/CUP/CHA/VPA/CNL/CPL, DECSC/DECRC
