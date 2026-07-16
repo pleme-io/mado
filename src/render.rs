@@ -1459,6 +1459,12 @@ pub struct TerminalRenderer {
     /// is the framebuffer scale and stays 2.0 on a scaled Retina display);
     /// injected via `set_panel_ratio`. See the discoverability design.
     panel_ratio: f32,
+    /// The PROVENANCE of `panel_ratio` — was it probed (`Discovered`),
+    /// operator-set (`Configured`), or is it a silent fallback because the
+    /// probe failed (`Unavailable`)? Sealing the old `unwrap_or(1.0)` so a
+    /// seam on an unknown ratio is diagnosable, not a mystery. See
+    /// `crate::panel_fit`.
+    panel_ratio_source: crate::panel_fit::PanelRatio,
     /// Seam auto-tune master gate (config `display.seam_auto_tune`, default
     /// on). When on, the render prologue re-discovers `panel_ratio` from the
     /// live display on every surface-size change; off pins it to 1.0
@@ -1935,6 +1941,9 @@ impl TerminalRenderer {
             // 1.0 = no compositor downscale; overwritten by `set_panel_ratio`
             // once the display's panel-vs-framebuffer ratio is discovered.
             panel_ratio: 1.0,
+            // Unknown until the first probe / config apply — an honest
+            // "not yet measured", never a silent genuine-1.0.
+            panel_ratio_source: crate::panel_fit::PanelRatio::Unavailable,
             // Seam auto-tune on by default; the display config overrides via
             // `apply_effects_and_accessibility` → `set_seam_config`.
             seam_auto_tune: true,
@@ -2012,10 +2021,17 @@ impl TerminalRenderer {
         self.seam_auto_tune = auto_tune;
         self.downscale_ratio_override = override_ratio;
         if !auto_tune {
+            // Seam auto-tune off is a deliberate operator choice — a trusted
+            // (configured) 1.0, never a probe fallback.
             self.set_panel_ratio(1.0);
+            self.panel_ratio_source = crate::panel_fit::PanelRatio::from_config(1.0);
         } else if let Some(r) = override_ratio {
-            self.set_panel_ratio(r);
+            let source = crate::panel_fit::PanelRatio::from_config(r);
+            self.set_panel_ratio(source.ratio());
+            self.panel_ratio_source = source;
         }
+        // else: auto_tune on, no override → the per-frame probe sets the
+        // source (Discovered / Unavailable).
     }
 
     // set_config_reload_cell / drain_config_reload DELETED at M4
@@ -2102,6 +2118,14 @@ impl TerminalRenderer {
     #[inline]
     pub fn panel_ratio(&self) -> f32 {
         self.panel_ratio
+    }
+
+    /// The PROVENANCE of the current panel ratio (`Discovered` / `Configured`
+    /// / `Unavailable`). A seam with an `Unavailable` source is a probe
+    /// failure, not a snap bug — surfaced in `mado print-posture`.
+    #[inline]
+    pub fn panel_ratio_source(&self) -> crate::panel_fit::PanelRatio {
+        self.panel_ratio_source
     }
 
     /// Physical-pixel padding — ALSO the grid's rendering origin (top/left).
@@ -4821,8 +4845,21 @@ impl RenderCallback for TerminalRenderer {
                 (self.last_surface_w, self.last_surface_h),
                 self.last_ratio_probe_wh,
             ) {
-                let ratio = kanchi::probe::display_scaling_ratio().unwrap_or(1.0);
-                self.set_panel_ratio(ratio);
+                // Typed, no silent fallback: a failed/nonsense probe is a
+                // recorded `Unavailable`, distinct from a genuine 1.0, and
+                // it is SURFACED (warn + print-posture) — so a seam here is
+                // attributable to "the probe failed", not a mystery.
+                let source =
+                    crate::panel_fit::PanelRatio::from_probe(kanchi::probe::display_scaling_ratio());
+                if !source.is_known() {
+                    tracing::warn!(
+                        target: "mado::seam",
+                        "panel-ratio probe unavailable — falling back to 1.0; a fractionally-scaled \
+                         display will show row seams. Run `mado print-posture` to confirm the ratio."
+                    );
+                }
+                self.set_panel_ratio(source.ratio());
+                self.panel_ratio_source = source;
                 self.last_ratio_probe_wh = this;
             }
         }

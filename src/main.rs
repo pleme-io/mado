@@ -48,6 +48,7 @@ mod notify_center;
 #[cfg(target_os = "macos")]
 mod notify_mac;
 mod osc_1337;
+mod panel_fit;
 mod platform;
 mod pointer_shape;
 mod prewarm;
@@ -434,6 +435,18 @@ fn main() -> anyhow::Result<()> {
         Some(SubCmd::PrintPosture) => {
             let posture = detect_runtime_posture()?;
             println!("{}", serde_json::to_string_pretty(&posture)?);
+            // The seam-critical panel-ratio probe + its TYPED provenance —
+            // where the operator confirms a scaled-display row seam.
+            // `unavailable` = the probe failed and mado is falling back to
+            // no-downscale (which seams IF this display is downscaled);
+            // `discovered <fraction>` = a real downscale the snap corrects.
+            let panel_ratio =
+                crate::panel_fit::PanelRatio::from_probe(kanchi::probe::display_scaling_ratio());
+            println!(
+                "panel_ratio: {panel_ratio}  (known={}, downscaled={})",
+                panel_ratio.is_known(),
+                panel_ratio.is_downscaled()
+            );
             return Ok(());
         }
         Some(SubCmd::NotifyTest) => {
