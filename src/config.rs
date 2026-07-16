@@ -5022,13 +5022,9 @@ window:
         assert_eq!(config.font_italic, "JetBrainsMono Nerd Font");
         assert_eq!(config.font_size, 13.0);
         assert!((config.line_height - 1.65).abs() < 0.001);
-        // Prescribed theme is now the fleet theme (Vellum), derived
-        // from FleetTheme::prescribed_default() — not the legacy "nord".
-        assert_eq!(config.theme, "vellum");
-        assert_eq!(
-            config.theme,
-            ishou_tokens::FleetTheme::prescribed_default().resolve().name,
-        );
+        // Prescribed theme is mado's Nord override (a63be86: "ship Nord as
+        // mado's prescribed default (not the fleet Vellum)").
+        assert_eq!(config.theme, "nord");
         assert!(config.active_profile.is_none());
         // Window dims are auto-detected from the focused display
         // (macOS NSScreen); range-asserted because the exact value
@@ -5051,23 +5047,16 @@ window:
         assert!(config.window.inherit_working_directory);
         assert!(config.window.inherit_font_size);
         assert!(config.window.padding_balance);
-        // The prescribed config now DERIVES its appearance + cursor
-        // colours from the fleet theme (Vellum) via from_fleet — not
-        // the legacy Nord hexes. Asserted by reference to the resolved
-        // theme so a fleet rebrand propagates on the next compile.
-        let resolved = ishou_tokens::FleetTheme::prescribed_default().resolve();
-        assert_eq!(config.appearance.background, "#16140E"); // night0
-        assert_eq!(config.appearance.foreground, "#E2DBC8"); // snow1
-        assert_eq!(config.appearance.background, resolved.background);
-        assert_eq!(config.appearance.foreground, resolved.foreground);
+        // The prescribed config derives its appearance + cursor colours from
+        // mado's Nord default (a63be86) via from_fleet — Nord polar-night bg,
+        // snow-storm fg, frost cursor. Pinned as a regression guard.
+        assert_eq!(config.appearance.background, "#2E3440"); // Nord night0
+        assert_eq!(config.appearance.foreground, "#ECEFF4"); // Nord snow3
         assert_eq!(config.appearance.opacity, 1.0);
         assert!(!config.appearance.bold_is_bright);
-        // The Vellum grid-cell contrast floor (§5 = 3.0), derived from
-        // the resolved theme's OWN surfaces (not a hand-pinned 3.0), so a
-        // Vellum re-tune propagates on the next compile.
-        let surfaces = ishou_tokens::VellumPalette::vellum().surfaces();
-        assert!((config.appearance.minimum_contrast - surfaces.minimum_contrast).abs() < 0.001);
-        assert!((config.appearance.minimum_contrast - 3.0).abs() < 0.001);
+        // Nord does NOT raise the grid-cell contrast floor above the curated
+        // 1.0 app default (unlike Vellum's §5 = 3.0 floor).
+        assert!((config.appearance.minimum_contrast - 1.0).abs() < 0.001);
         assert!(!config.appearance.background_blur);
         assert!(config.appearance.unfocused_split_fill.is_none());
         assert_eq!(config.cursor.style, CursorStyle::Block);
@@ -5078,8 +5067,7 @@ window:
             config.cursor.blink_rate_ms,
             ishou_tokens::FleetDefaults::prescribed().cursor_blink_rate_ms,
         );
-        assert_eq!(config.cursor.color, "#ADD7A3"); // green_bright
-        assert_eq!(config.cursor.color, resolved.cursor);
+        assert_eq!(config.cursor.color, "#88C0D0"); // Nord frost1
         assert!((config.cursor.opacity - 1.0).abs() < 0.001);
         assert!(config.cursor.text_color.is_none());
         assert!(!config.cursor.click_to_move);
@@ -5137,26 +5125,21 @@ window:
         assert!(config.keybinds.custom.is_empty());
     }
 
-    /// theme-fidelity-4: the prescribed `minimum_contrast` is the Vellum
-    /// §5 grid-cell floor (3.0), DERIVED from the theme's own surfaces —
-    /// NOT the curated 1.0 app default and NOT a hand-pinned 3.0. A
-    /// Vellum re-tune of the floor propagates here on the next compile.
+    /// theme-fidelity-4: mado's Nord default does NOT raise the grid-cell
+    /// `minimum_contrast` above the curated 1.0 app default (unlike the fleet
+    /// Vellum's §5 = 3.0 floor). Both the app default and the resolved value
+    /// are 1.0 under Nord.
     #[test]
-    fn prescribed_minimum_contrast_is_the_vellum_floor() {
+    fn prescribed_minimum_contrast_is_the_app_default_under_nord() {
         // `MadoConfig::default()` IS the prescribed config (it delegates
         // to the `FleetThemedConfig::from_fleet` path); using it here
         // avoids pulling the `TieredConfig` trait into test scope.
         let config = MadoConfig::default();
-        let surfaces = ishou_tokens::VellumPalette::vellum().surfaces();
-        assert!(
-            (config.appearance.minimum_contrast - surfaces.minimum_contrast).abs() < 0.001,
-            "prescribed minimum_contrast must equal the Vellum surfaces floor"
-        );
-        assert!((config.appearance.minimum_contrast - 3.0).abs() < 0.001);
-        // And it is NOT the curated app default (1.0) — the fleet floor
-        // genuinely raised it.
         assert!((default_minimum_contrast() - 1.0).abs() < 0.001);
-        assert!(config.appearance.minimum_contrast > default_minimum_contrast());
+        assert!(
+            (config.appearance.minimum_contrast - 1.0).abs() < 0.001,
+            "Nord does not raise minimum_contrast above the 1.0 app default"
+        );
     }
 
     #[test]
@@ -5304,15 +5287,10 @@ window:
     #[test]
     fn test_appearance_config_defaults() {
         let a = AppearanceConfig::default();
-        // The appearance fallbacks now DERIVE from the prescribed fleet
-        // theme's BORN tokens (Vellum night0 / snow1), not a legacy
-        // Nord hex. Asserted against the resolved theme by reference so
-        // a fleet rebrand propagates here on the next compile.
-        let resolved = ishou_tokens::FleetTheme::prescribed_default().resolve();
-        assert_eq!(a.background, "#16140E"); // Vellum night0
-        assert_eq!(a.foreground, "#E2DBC8"); // Vellum snow1
-        assert_eq!(a.background, resolved.background);
-        assert_eq!(a.foreground, resolved.foreground);
+        // The appearance fallbacks derive from mado's Nord default (a63be86):
+        // Nord polar-night bg + snow-storm fg. Pinned as a regression guard.
+        assert_eq!(a.background, "#2E3440"); // Nord night0
+        assert_eq!(a.foreground, "#ECEFF4"); // Nord snow3
         assert_eq!(a.opacity, 1.0);
         assert!(!a.bold_is_bright);
     }
@@ -5323,11 +5301,9 @@ window:
         assert_eq!(c.style, CursorStyle::Block);
         assert!(c.blink);
         assert_eq!(c.blink_rate_ms, 530);
-        // Cursor colour now derives from the prescribed theme's cursor
-        // (Vellum green_bright), not Nord snow.
-        let resolved = ishou_tokens::FleetTheme::prescribed_default().resolve();
-        assert_eq!(c.color, "#ADD7A3"); // Vellum green_bright
-        assert_eq!(c.color, resolved.cursor);
+        // Cursor colour derives from mado's Nord default (a63be86) — the
+        // Nord frost1 accent.
+        assert_eq!(c.color, "#88C0D0"); // Nord frost1
     }
 
     #[test]
@@ -5392,9 +5368,9 @@ window:
         let applied = config.with_profile("large");
         assert_eq!(applied.font_family, "Monaco");
         assert_eq!(applied.font_size, 18.0);
-        // The profile doesn't override theme, so the prescribed fleet
-        // theme (Vellum) carries through unchanged.
-        assert_eq!(applied.theme, "vellum");
+        // The profile doesn't override theme, so the prescribed default
+        // theme (Nord) carries through unchanged.
+        assert_eq!(applied.theme, "nord");
     }
 
     #[test]
