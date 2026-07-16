@@ -1682,11 +1682,11 @@
         "substrate": "substrate"
       },
       "locked": {
-        "lastModified": 1782287102,
-        "narHash": "sha256-U9i60aKk/BvmGCl8xmXg4NTDoeVZ57thlB0dF9qy49Q=",
+        "lastModified": 1784224255,
+        "narHash": "sha256-6CiDNDD71s5vIfWG/JZ6IrIxrsbJkTs2E/sbDkCdcQU=",
         "owner": "pleme-io",
         "repo": "ishou",
-        "rev": "47e7e58da1d279b63d6ae464b0244d606741fea6",
+        "rev": "dcdba47bec1811360dc38beae81efd61e5f46c5c",
         "type": "github"
       },
       "original": {
@@ -2419,11 +2419,11 @@
         "nixpkgs": "nixpkgs_13"
       },
       "locked": {
-        "lastModified": 1783568816,
-        "narHash": "sha256-hnEo5MTKkJ2hZVWwSjrl8nGaDuDlG6Iv6uFtIhMfisY=",
+        "lastModified": 1784227437,
+        "narHash": "sha256-hY3dFzZ5+E+cAIU6dnYdqqZtZOr0UvQQ8rvTzFvt6VI=",
         "owner": "pleme-io",
         "repo": "substrate",
-        "rev": "274ee8e4ce9ef53f090dbfc1974d8eb0e131ce8f",
+        "rev": "3d59aac13c1af1b823a71d9b1225ce5ef049a3f1",
         "type": "github"
       },
       "original": {
