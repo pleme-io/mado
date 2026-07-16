@@ -390,13 +390,24 @@ pub struct MadoGlowOnBellConfig {
     /// Gaussian sigma in physical pixels.
     #[serde(default = "default_glow_radius_px")]
     pub radius_px: f32,
+    /// Bell-glow exponential decay retain factor per 60fps frame, `(0, 1]`.
+    /// Our opinion: 0.92 (~0.14s half-life). Higher = the glow lingers;
+    /// 1.0 = it never fades. Wired into `GlowState::tick` via
+    /// `motion::frame_decay` (clamped at the consumer).
+    #[serde(default = "default_glow_retain")]
+    pub glow_retain: f32,
 }
 
 fn default_glow_radius_px() -> f32 { 240.0 }
+fn default_glow_retain() -> f32 { 0.92 }
 
 impl Default for MadoGlowOnBellConfig {
     fn default() -> Self {
-        Self { enabled: false, radius_px: default_glow_radius_px() }
+        Self {
+            enabled: false,
+            radius_px: default_glow_radius_px(),
+            glow_retain: default_glow_retain(),
+        }
     }
 }
 
@@ -519,6 +530,12 @@ pub struct MadoSnowConfig {
     /// How fast the pile melts when warm. Default 0.06.
     #[serde(default = "default_snow_melt_rate")]
     pub melt_rate: f32,
+    /// Typing-pulse exponential decay retain factor per 60fps frame,
+    /// `(0, 1]`. Our opinion: 0.92 (~0.14s half-life). Higher = the pulse
+    /// fades slower; 1.0 = it never decays. Wired into `SnowState::tick`
+    /// via `motion::frame_decay` (clamped at the consumer).
+    #[serde(default = "default_snow_pulse_retain")]
+    pub snow_pulse_retain: f32,
 }
 
 // PRESCRIBED DEFAULT: snow OFF. The launch-perf A/B test (May
@@ -537,6 +554,7 @@ fn default_snow_layer_count() -> f32 { 2.0 }
 fn default_snow_temperature() -> f32 { 0.20 }
 fn default_snow_pile_rate() -> f32 { 0.04 }
 fn default_snow_melt_rate() -> f32 { 0.06 }
+fn default_snow_pulse_retain() -> f32 { 0.92 }
 
 impl Default for MadoSnowConfig {
     fn default() -> Self {
@@ -549,6 +567,7 @@ impl Default for MadoSnowConfig {
             temperature: default_snow_temperature(),
             pile_rate: default_snow_pile_rate(),
             melt_rate: default_snow_melt_rate(),
+            snow_pulse_retain: default_snow_pulse_retain(),
         }
     }
 }
@@ -4606,6 +4625,23 @@ mod tests {
         }
         assert!(matches!(EasingConfig::Linear.curve(), Curve::Linear));
         assert_eq!(EasingConfig::default(), EasingConfig::Linear);
+    }
+
+    #[test]
+    fn motion_decay_retains_are_our_opinion_and_morphable() {
+        // Defaults are our opinion (0.92 ≈ 0.14s half-life); each retain is
+        // fully morphable, inheriting the rest of its section (per-field
+        // serde defaults).
+        assert!((MadoGlowOnBellConfig::default().glow_retain - 0.92).abs() < 1e-6);
+        assert!((MadoSnowConfig::default().snow_pulse_retain - 0.92).abs() < 1e-6);
+        let glow: MadoGlowOnBellConfig =
+            serde_yaml_ng::from_str("glow_retain: 0.5\n").expect("partial glow YAML");
+        assert!((glow.glow_retain - 0.5).abs() < 1e-6, "the overridden knob takes the value");
+        assert!(!glow.enabled, "un-set `enabled` inherits its default");
+        let snow: MadoSnowConfig =
+            serde_yaml_ng::from_str("snow_pulse_retain: 0.8\n").expect("partial snow YAML");
+        assert!((snow.snow_pulse_retain - 0.8).abs() < 1e-6);
+        assert!((snow.intensity - 0.30).abs() < 1e-6, "un-set intensity inherits our opinion");
     }
 
     #[test]

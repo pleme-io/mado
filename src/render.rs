@@ -1611,7 +1611,7 @@ impl SnowState {
         // The frame-rate-independent 0.92^(dt·60) decay, shared with the
         // bell glow below — collapsed into `motion::frame_decay` (the 2nd
         // copy is the extract trigger; byte-identical to the old inline).
-        let decay = crate::motion::frame_decay(dt, 0.92);
+        let decay = crate::motion::frame_decay(dt, cfg.snow_pulse_retain.clamp(f32::MIN_POSITIVE, 1.0));
         self.params.set_typing_pulse(self.params.frame[3] * decay);
         let temp = cfg.temperature.clamp(0.0, 1.0);
         let pile_delta = if temp < 0.5 {
@@ -1635,8 +1635,9 @@ impl GlowState {
         Self { params: engawa_wgpu::catalog::glow_on_bell::GlowOnBellParams::default() }
     }
 
-    fn tick(&mut self, dt: f32) {
-        self.params.decay(crate::motion::frame_decay(dt, 0.92));
+    fn tick(&mut self, dt: f32, retain: f32) {
+        self.params
+            .decay(crate::motion::frame_decay(dt, retain.clamp(f32::MIN_POSITIVE, 1.0)));
     }
 }
 
@@ -2261,8 +2262,12 @@ impl TerminalRenderer {
         if self.reduce_motion {
             return true;
         }
-        let period = self.cursor_blink_rate_ms as f32 / 1000.0 * 2.0;
-        (elapsed % period) < period / 2.0
+        // One blink law, shared with the cursor-draw + idle-Hz gates and the
+        // SGR-5 attribute: motion::blink_on. Byte-identical to the old
+        // `(elapsed % period) < period/2` for the reachable rate>0 range
+        // (elapsed ≥ 0 in the render clock, so `%` ≡ `rem_euclid`); at
+        // rate==0 it is now always-on = solid, the intended "disabled" shape.
+        crate::motion::blink_on(elapsed, self.cursor_blink_rate_ms as f32 / 1000.0 * 2.0)
     }
 
     // set_selection_bg, set_cursor_color, set_reduce_motion now
@@ -3598,10 +3603,7 @@ impl TerminalRenderer {
         // (kitty/ghostty/iTerm2/Terminal.app).
         let cursor_on = !self.focused
             || !self.cursor_blink
-            || {
-                let period = self.cursor_blink_rate_ms as f32 / 1000.0 * 2.0;
-                (elapsed % period) < period / 2.0
-            };
+            || crate::motion::blink_on(elapsed, self.cursor_blink_rate_ms as f32 / 1000.0 * 2.0);
 
         // While scrolled into history the live-grid cursor position
         // is meaningless for the rows on screen — drawing it painted
@@ -4977,10 +4979,8 @@ impl RenderCallback for TerminalRenderer {
         // this we'd repaint every vsync just to redraw the same
         // cursor state, which was the case before this change (idle
         // render rate stuck at 60 Hz instead of 4 Hz).
-        let cursor_on_now = !self.cursor_blink || {
-            let period = self.cursor_blink_rate_ms as f32 / 1000.0 * 2.0;
-            (ctx.elapsed % period) < period / 2.0
-        };
+        let cursor_on_now = !self.cursor_blink
+            || crate::motion::blink_on(ctx.elapsed, self.cursor_blink_rate_ms as f32 / 1000.0 * 2.0);
         let blink_flip =
             self.cursor_blink && peek_cursor_visible && cursor_on_now != self.last_cursor_on;
         // The bell flash reads through the motion algebra's `Advance`
@@ -5131,7 +5131,7 @@ impl RenderCallback for TerminalRenderer {
         // ladders) every tick is the identity, keeping the route
         // byte-deterministic.
         self.snow_state.tick(ctx.elapsed, ctx.dt, &self.effects_config.snow);
-        self.glow_state.tick(ctx.dt);
+        self.glow_state.tick(ctx.dt, self.effects_config.glow_on_bell.glow_retain);
         self.aurora_state.tick(ctx.elapsed);
         // Ambience perf governor (2026-06-13): classify the PREVIOUS
         // frame's measured time against the budget and advance the
@@ -6703,6 +6703,29 @@ mod render_invariants {
         assert!(
             (r.bell_flash.value() - 0.5).abs() < 1e-6,
             "a re-armed flash starts at the CONFIGURED peak (0.5), not the 0.10 default"
+        );
+    }
+
+    /// LIVE-KNOB — the snow typing-pulse honors `effects.snow.snow_pulse_retain`
+    /// (not a dead knob): `retain=1.0` HOLDS the pulse where the 0.92 default
+    /// decays it after one 60fps frame, proving `SnowState::tick` reads the
+    /// config rather than a hardcode.
+    #[test]
+    fn snow_pulse_retain_is_a_live_knob() {
+        let dt = 1.0 / 60.0;
+        let mut held = SnowState::new();
+        held.params.set_typing_pulse(1.0);
+        let mut cfg_hold = crate::config::MadoSnowConfig::default();
+        cfg_hold.snow_pulse_retain = 1.0;
+        held.tick(0.0, dt, &cfg_hold);
+        assert!((held.params.frame[3] - 1.0).abs() < 1e-6, "retain=1.0 holds the pulse");
+
+        let mut faded = SnowState::new();
+        faded.params.set_typing_pulse(1.0);
+        faded.tick(0.0, dt, &crate::config::MadoSnowConfig::default()); // default 0.92
+        assert!(
+            faded.params.frame[3] < held.params.frame[3],
+            "the default 0.92 retain decays the pulse below the retain=1.0 hold"
         );
     }
 

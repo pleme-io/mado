@@ -107,6 +107,30 @@ mod tests {
         assert!(blink_on(3.7, 0.0), "period 0 = blink disabled = always on");
     }
 
+    /// BYTE-PIN — `blink_on` reproduces EXACTLY the `(elapsed % period) <
+    /// period/2` formula the three `render.rs` cursor/SGR-5 sites open-coded,
+    /// across the reachable cursor-blink-rate range (rate > 0). `elapsed` is
+    /// always ≥ 0 in the render clock (madori `Instant::duration_since`), so
+    /// `%` ≡ `rem_euclid`. (rate == 0 is the one intended divergence — always
+    /// on vs the legacy `NaN < 0 == false` — covered by `non_positive_period…`.)
+    #[test]
+    fn blink_on_matches_the_legacy_render_formula_for_rate_gt_0() {
+        let legacy = |elapsed: f32, rate_ms: u32| {
+            let period = rate_ms as f32 / 1000.0 * 2.0;
+            (elapsed % period) < period / 2.0
+        };
+        for rate_ms in [1u32, 250, 500, 530, 1000, 2000] {
+            let period = rate_ms as f32 / 1000.0 * 2.0;
+            for &e in &[0.0f32, 0.001, 0.49, 0.5, 0.53, 0.6, 1.0, 1.06, 3.7, 9.9] {
+                assert_eq!(
+                    blink_on(e, period),
+                    legacy(e, rate_ms),
+                    "blink_on diverged from the legacy render formula at rate_ms={rate_ms}, elapsed={e}"
+                );
+            }
+        }
+    }
+
     #[test]
     fn oscillator_dt_zero_is_a_noop() {
         let mut o = Oscillator::new(secs(1.0));
