@@ -1501,7 +1501,108 @@ impl NotificationsConfig {
 /// `blink_ease` + `picker_animate` + `scroll_lerp` are forward gates:
 /// the typed surface lands now; their render wiring follows. Only
 /// `unfocused_dim` is wired in this round.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+/// The operator's easing-curve vocabulary — `linear` plus the named
+/// cubic-bézier curves `ishou_tokens::motion` ships. Authored in YAML
+/// (`easing: sonic_boom`), resolved to a [`crate::motion::Curve`] at
+/// apply time. This is the config-surface twin of
+/// [`crate::motion::EasingKind`]; the `easing_config_covers_every_curve`
+/// test pins them so they cannot drift.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EasingConfig {
+    /// The identity `t → t` — an even, mechanical fade. Our default.
+    #[default]
+    Linear,
+    /// Material "standard" — accelerate then decelerate.
+    Standard,
+    /// Fast start, gentle stop (entering the screen).
+    Decelerate,
+    /// Gentle start, fast exit (leaving the screen).
+    Accelerate,
+    /// Quick attack, long settle (the "sonic boom" shader curve).
+    SonicBoom,
+    /// Curved in/out, steady middle (the "saber swoop" shader curve).
+    Saber,
+}
+
+impl EasingConfig {
+    /// Resolve to the evaluator curve consumed by `crate::motion`.
+    #[must_use]
+    pub fn curve(self) -> crate::motion::Curve {
+        use crate::motion::{Curve, EasingKind};
+        match self {
+            EasingConfig::Linear => Curve::Linear,
+            EasingConfig::Standard => Curve::named(EasingKind::Standard),
+            EasingConfig::Decelerate => Curve::named(EasingKind::Decelerate),
+            EasingConfig::Accelerate => Curve::named(EasingKind::Accelerate),
+            EasingConfig::SonicBoom => Curve::named(EasingKind::SonicBoom),
+            EasingConfig::Saber => Curve::named(EasingKind::Saber),
+        }
+    }
+}
+
+/// The visual-bell flash overlay — a [`crate::motion::Tween`] from
+/// `peak_alpha` → 0 over `duration_ms`, eased by `easing`.
+///
+/// **Our opinion (the `prescribed` tier): a subtle 200 ms linear fade.**
+/// Every field is yours to morph — set one in `~/.config/mado/mado.yaml`
+/// and inherit the rest of the opinion (shikumi's per-field serde default
+/// + the tiered fold):
+///
+/// ```yaml
+/// motion:
+///   bell_flash:
+///     duration_ms: 400      # linger longer; keep our 0.10 peak + linear
+///     easing: sonic_boom    # …or reshape the fade entirely
+/// ```
+///
+/// The on/off gate is `feedback.visual_bell` (off in the bare tier) +
+/// the accessibility `reduce_motion` floor — this section only shapes the
+/// flash *when it fires*.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct BellFlashConfig {
+    /// Flash duration in milliseconds. Our opinion: 200 (gentle + brief;
+    /// the old 4-frame/0.15 flash popped too hard).
+    pub duration_ms: u64,
+    /// Peak overlay alpha at the flash start, clamped to `[0, 1]`. Our
+    /// opinion: 0.10 (subtle).
+    pub peak_alpha: f32,
+    /// The fade curve. Our opinion: `linear` (an even, mechanical fade).
+    pub easing: EasingConfig,
+}
+
+impl Default for BellFlashConfig {
+    fn default() -> Self {
+        Self::prescribed()
+    }
+}
+
+impl BellFlashConfig {
+    /// Bare tier — the flash keeps our tasteful shape *when armed*; the
+    /// bare experience strips the flash via `feedback.visual_bell = false`,
+    /// not by degrading the shape here.
+    #[must_use]
+    pub fn bare() -> Self {
+        Self::prescribed()
+    }
+
+    /// Prescribed tier — mado's opinion: a subtle 200 ms linear fade.
+    #[must_use]
+    pub fn prescribed() -> Self {
+        Self { duration_ms: 200, peak_alpha: 0.10, easing: EasingConfig::Linear }
+    }
+}
+
+/// Motion + animation shaping — the operator's dial-board over mado's
+/// data-first animation algebra (`docs/MOTION.md`). Defaults are our
+/// opinion (the `prescribed` tier); every field is fully morphable.
+///
+/// `blink_ease` + `picker_animate` + `scroll_lerp` remain forward gates
+/// (typed surface present, render wiring follows). `unfocused_dim` and
+/// now `bell_flash` are wired.
+// `Eq` dropped: `bell_flash.peak_alpha` is an `f32`, so only `PartialEq`.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct MotionConfig {
     /// Ease the cursor blink alpha (smoothstep edges) instead of a hard
@@ -1514,6 +1615,8 @@ pub struct MotionConfig {
     /// Whisper-dim an unfocused window so a backgrounded window reads as
     /// backgrounded.
     pub unfocused_dim: bool,
+    /// The visual-bell flash animation — fully wired + morphable.
+    pub bell_flash: BellFlashConfig,
 }
 
 impl Default for MotionConfig {
@@ -1523,7 +1626,9 @@ impl Default for MotionConfig {
 }
 
 impl MotionConfig {
-    /// Bare tier — every easing off (instant, hard transitions).
+    /// Bare tier — every easing off (instant, hard transitions). The
+    /// bell-flash shape stays tasteful; the bare experience strips the
+    /// flash itself via `feedback.visual_bell = false`.
     #[must_use]
     pub fn bare() -> Self {
         Self {
@@ -1531,10 +1636,11 @@ impl MotionConfig {
             picker_animate: false,
             scroll_lerp: false,
             unfocused_dim: false,
+            bell_flash: BellFlashConfig::bare(),
         }
     }
 
-    /// Prescribed tier — every easing on.
+    /// Prescribed tier — every easing on, the bell flash at our opinion.
     #[must_use]
     pub fn prescribed() -> Self {
         Self {
@@ -1542,6 +1648,7 @@ impl MotionConfig {
             picker_animate: true,
             scroll_lerp: true,
             unfocused_dim: true,
+            bell_flash: BellFlashConfig::prescribed(),
         }
     }
 }
@@ -4424,11 +4531,95 @@ mod tests {
             picker_animate: true,
             scroll_lerp: false,
             unfocused_dim: true,
+            bell_flash: BellFlashConfig::prescribed(),
         };
         let yaml = serde_yaml_ng::to_string(&mo).expect("serialize motion config");
         let back: MotionConfig =
             serde_yaml_ng::from_str(&yaml).expect("round-trip motion config");
         assert_eq!(mo, back);
+    }
+
+    #[test]
+    fn motion_bell_flash_prescribed_is_our_opinion() {
+        // The prescribed tier IS mado's introduction on the bell flash: a
+        // subtle 200ms linear fade. Pinned so a future re-tune is a
+        // deliberate edit, never a silent drift; Default == prescribed.
+        let p = BellFlashConfig::prescribed();
+        assert_eq!(p.duration_ms, 200);
+        assert!((p.peak_alpha - 0.10).abs() < 1e-6);
+        assert_eq!(p.easing, EasingConfig::Linear);
+        assert_eq!(BellFlashConfig::default(), BellFlashConfig::prescribed());
+    }
+
+    #[test]
+    fn motion_bell_flash_partial_override_inherits_the_opinion() {
+        // THE morphability contract (the operator's ask): override ONE knob
+        // and inherit the rest of our opinion (shikumi container-default +
+        // the tiered fold). Set only the duration; peak + easing stay ours.
+        let cfg: BellFlashConfig =
+            serde_yaml_ng::from_str("duration_ms: 400\n").expect("partial bell_flash YAML");
+        assert_eq!(cfg.duration_ms, 400, "the overridden knob takes the user's value");
+        assert!(
+            (cfg.peak_alpha - 0.10).abs() < 1e-6,
+            "the un-set peak_alpha inherits our opinion"
+        );
+        assert_eq!(cfg.easing, EasingConfig::Linear, "the un-set easing inherits our opinion");
+
+        // …and a fully-custom shape morphs completely.
+        let cfg2: BellFlashConfig =
+            serde_yaml_ng::from_str("duration_ms: 90\npeak_alpha: 0.5\neasing: sonic_boom\n")
+                .expect("full bell_flash YAML");
+        assert_eq!(cfg2.duration_ms, 90);
+        assert!((cfg2.peak_alpha - 0.5).abs() < 1e-6);
+        assert_eq!(cfg2.easing, EasingConfig::SonicBoom);
+    }
+
+    #[test]
+    fn motion_bell_flash_rejects_unknown_keys() {
+        // deny_unknown_fields: a typo'd knob is a parse error, not a
+        // silently-ignored setting (shikumi unrepresentability at the seam).
+        assert!(
+            serde_yaml_ng::from_str::<BellFlashConfig>("durationms: 400\n").is_err(),
+            "an unknown key must be rejected, not ignored"
+        );
+    }
+
+    #[test]
+    fn easing_config_covers_every_curve() {
+        // Coherence (CATALOG-REFLECTION): every EasingConfig resolves to a
+        // curve that hits the endpoints, Linear is the identity, and the
+        // default is Linear (our opinion) — so the YAML vocabulary cannot
+        // drift from motion::Curve / EasingKind.
+        use crate::motion::Curve;
+        let all = [
+            EasingConfig::Linear,
+            EasingConfig::Standard,
+            EasingConfig::Decelerate,
+            EasingConfig::Accelerate,
+            EasingConfig::SonicBoom,
+            EasingConfig::Saber,
+        ];
+        for e in all {
+            let c = e.curve();
+            assert!(c.ease(0.0).abs() < 1e-4, "{e:?}: ease(0)=0");
+            assert!((c.ease(1.0) - 1.0).abs() < 1e-4, "{e:?}: ease(1)=1");
+        }
+        assert!(matches!(EasingConfig::Linear.curve(), Curve::Linear));
+        assert_eq!(EasingConfig::default(), EasingConfig::Linear);
+    }
+
+    #[test]
+    fn easing_config_round_trips_snake_case() {
+        for (e, s) in [
+            (EasingConfig::Linear, "linear"),
+            (EasingConfig::SonicBoom, "sonic_boom"),
+            (EasingConfig::Saber, "saber"),
+        ] {
+            let y = serde_yaml_ng::to_string(&e).unwrap();
+            assert!(y.contains(s), "{e:?} serializes to {s}");
+            let back: EasingConfig = serde_yaml_ng::from_str(&y).unwrap();
+            assert_eq!(e, back);
+        }
     }
 
     #[test]

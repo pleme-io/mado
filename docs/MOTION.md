@@ -264,6 +264,47 @@ answer, tier-graded:
 - **DirtyRegion coupling** to the deferred M7 render-thread decouple + the
   deliberate idle-full-repaint — the reason it is *not* pulled forward.
 
+## 10. Configuration — defaults are our opinion, everything is yours
+
+Every shaped value in the algebra is a shikumi knob under `motion:` in
+`~/.config/mado/mado.yaml`. The philosophy, in the operator's words: **the
+defaults are mado's curated introduction (our opinion); every knob is fully
+morphable, and overriding one inherits the rest of the opinion.**
+
+This falls straight out of shikumi's tiered fold — the `prescribed()` tier IS
+the opinion, `#[serde(default, deny_unknown_fields)]` means a partial YAML
+overrides one field and inherits the rest, and a typo'd knob is rejected at the
+seam (never silently ignored).
+
+Shipped this round — the bell flash, fully wired end to end:
+
+```yaml
+motion:
+  bell_flash:
+    duration_ms: 200      # our opinion: gentle + brief
+    peak_alpha: 0.10      # our opinion: subtle
+    easing: linear        # our opinion: an even fade
+    #   easing ∈ linear | standard | decelerate | accelerate | sonic_boom | saber
+```
+
+- **Override ONE**, inherit the rest: `motion: {bell_flash: {duration_ms: 400}}`
+  → a 400 ms flash at *our* 0.10 peak + linear fade.
+- **Morph completely**: `{duration_ms: 90, peak_alpha: 0.5, easing: sonic_boom}`.
+- **Strip it**: `feedback.visual_bell: false` (the on/off gate) — or the
+  accessibility `reduce_motion` floor.
+
+Guarded by dead-knob + morphability tests: `bell_flash_honors_configured_shape`
+(the renderer reads it, end to end), `motion_bell_flash_partial_override_inherits_the_opinion`,
+`motion_bell_flash_rejects_unknown_keys`, `easing_config_covers_every_curve`.
+
+**Roadmap — each knob lands WITH its wiring (no dead knobs, ever):**
+`motion.glow` + `motion.snow_pulse` decay-retain (wire into the
+`GlowState`/`SnowState` `frame_decay` calls); `motion.cursor_blink` shape (the
+`Oscillator` migration; unblocks the pre-existing `blink_ease` forward gate);
+render wiring for the existing `picker_animate` / `scroll_lerp` forward gates;
+and the HM/NixOS/Darwin module trio (`blackmatter.components.mado.motion.*`)
+generating the YAML from typed Nix options.
+
 ---
 
 *Reference exemplar the whole algebra emanates from:

@@ -1290,6 +1290,13 @@ pub struct TerminalRenderer {
     /// Framerate-independent (the old `u8` frame counter made the flash
     /// last half as long at 120fps).
     bell_flash: crate::motion::Tween,
+    /// Bell-flash duration in seconds — from `motion.bell_flash.duration_ms`
+    /// (operator-morphable; applied via `apply_config`).
+    bell_flash_duration_secs: f32,
+    /// Bell-flash peak alpha — from `motion.bell_flash.peak_alpha`.
+    bell_flash_peak: f32,
+    /// Bell-flash easing curve — from `motion.bell_flash.easing`.
+    bell_flash_curve: crate::motion::Curve,
     /// Selection highlight background (RGBA).
     #[invalidating_setter]
     selection_bg: [f32; 4],
@@ -1866,6 +1873,9 @@ impl TerminalRenderer {
             cursor_blink_rate_ms,
             metrics_measured: false,
             bell_flash: crate::motion::Tween::inert(),
+            bell_flash_duration_secs: BELL_FLASH_SECS,
+            bell_flash_peak: BELL_FLASH_PEAK_ALPHA,
+            bell_flash_curve: crate::motion::Curve::Linear,
             // Nord frost #88C0D0 at 0.3 alpha, linearized for the rect
             // pipeline (see `overlay_rect_color`). NOT the raw byte/255
             // triple — that would render washed-out on the sRGB surface.
@@ -1982,6 +1992,12 @@ impl TerminalRenderer {
         self.set_feedback_visual_bell(config.feedback.visual_bell);
         self.set_feedback_exit_glow(config.feedback.exit_code_glow);
         self.set_motion_unfocused_dim(config.motion.unfocused_dim);
+        // Bell-flash SHAPE is the operator's to morph (motion.bell_flash);
+        // the on/off gate is feedback.visual_bell above. Resolve the named
+        // easing to a motion::Curve here so trigger_bell is a cheap build.
+        self.bell_flash_duration_secs = config.motion.bell_flash.duration_ms as f32 / 1000.0;
+        self.bell_flash_peak = config.motion.bell_flash.peak_alpha.clamp(0.0, 1.0);
+        self.bell_flash_curve = config.motion.bell_flash.easing.curve();
         self.session_picker_anchor = config.tear.session_picker_anchor;
         self.suggestion_shade_in_ms = config.suggestions.shade_in_ms;
         self.set_seam_config(config.display.seam_auto_tune, config.display.downscale_ratio);
@@ -2837,13 +2853,15 @@ impl TerminalRenderer {
     pub fn trigger_bell(&mut self) {
         if !self.reduce_motion {
             if self.feedback_visual_bell {
-                // Re-arm a fresh flash: peak → 0, linear, over the fixed
-                // duration. A repeat bell restarts at peak (elapsed 0),
+                // Re-arm a fresh flash: peak → 0 over the operator-configured
+                // duration + easing (motion.bell_flash), applied via
+                // apply_config. A repeat bell restarts at peak (elapsed 0),
                 // never stacks past it.
-                self.bell_flash = crate::motion::Tween::linear(
-                    BELL_FLASH_PEAK_ALPHA,
+                self.bell_flash = crate::motion::Tween::new(
+                    self.bell_flash_peak,
                     0.0,
-                    crate::motion::secs(BELL_FLASH_SECS),
+                    crate::motion::secs(self.bell_flash_duration_secs),
+                    self.bell_flash_curve,
                 );
             }
             // BEL also saturates the glow-on-bell clock; whether the
@@ -6626,6 +6644,29 @@ mod render_invariants {
         // After 12 frames the flash is spent — exactly like the legacy
         // counter reaching 0.
         assert!(!flash.is_active(), "flash must be spent after 12 frames");
+    }
+
+    /// LIVE-KNOB — the bell flash honors the operator's `motion.bell_flash`
+    /// config end to end (not a dead knob): apply a morphed shape, ring the
+    /// bell, and the armed Tween starts at the CONFIGURED peak, not the
+    /// default. Proves the config → apply → renderer → trigger path is wired.
+    #[test]
+    fn bell_flash_honors_configured_shape() {
+        use crate::motion::Advance;
+        let (mut r, _t) = harness(20, 5);
+        let mut cfg = crate::config::MadoConfig::default();
+        cfg.motion.bell_flash = crate::config::BellFlashConfig {
+            duration_ms: 500,
+            peak_alpha: 0.5,
+            easing: crate::config::EasingConfig::SonicBoom,
+        };
+        r.apply_effects_and_accessibility(&cfg);
+        r.trigger_bell();
+        assert!(r.bell_flash.is_active(), "the configured bell still arms");
+        assert!(
+            (r.bell_flash.value() - 0.5).abs() < 1e-6,
+            "a re-armed flash starts at the CONFIGURED peak (0.5), not the 0.10 default"
+        );
     }
 
     #[test]
