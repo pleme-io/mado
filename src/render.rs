@@ -1297,6 +1297,14 @@ pub struct TerminalRenderer {
     bell_flash_peak: f32,
     /// Bell-flash easing curve — from `motion.bell_flash.easing`.
     bell_flash_curve: crate::motion::Curve,
+    /// Picker fade-in (`motion.picker_animate`): `overlay_open_at` is the
+    /// render-clock time (`ctx.elapsed`) the overlay last opened (the None→open
+    /// edge); `overlay_progress` is this frame's cached fade alpha ∈ [0,1] that
+    /// `draw_overlay` reads via `&self`. Born from `ctx.elapsed` (NOT `Instant`)
+    /// so the determinism ladders stay byte-stable; `Cell` for the `&self`
+    /// draw path.
+    overlay_open_at: std::cell::Cell<Option<f32>>,
+    overlay_progress: std::cell::Cell<f32>,
     /// Selection highlight background (RGBA).
     #[invalidating_setter]
     selection_bg: [f32; 4],
@@ -1400,6 +1408,10 @@ pub struct TerminalRenderer {
     /// window undimmed.
     #[invalidating_setter]
     motion_unfocused_dim: bool,
+    /// `motion.picker_animate`: fade the Ctrl-S picker overlay in when it
+    /// opens. Off ⇒ the overlay appears instantly at full alpha.
+    #[invalidating_setter]
+    motion_picker_animate: bool,
     /// Reduce motion: disable cursor blink and bell flash.
     #[invalidating_setter]
     reduce_motion: bool,
@@ -1895,6 +1907,8 @@ impl TerminalRenderer {
             bell_flash_duration_secs: BELL_FLASH_SECS,
             bell_flash_peak: BELL_FLASH_PEAK_ALPHA,
             bell_flash_curve: crate::motion::Curve::Linear,
+            overlay_open_at: std::cell::Cell::new(None),
+            overlay_progress: std::cell::Cell::new(1.0),
             // Nord frost #88C0D0 at 0.3 alpha, linearized for the rect
             // pipeline (see `overlay_rect_color`). NOT the raw byte/255
             // triple — that would render washed-out on the sRGB surface.
@@ -1940,6 +1954,7 @@ impl TerminalRenderer {
             feedback_visual_bell: true,
             feedback_exit_glow: true,
             motion_unfocused_dim: true,
+            motion_picker_animate: true,
             reduce_motion: false,
             session_picker_anchor: crate::config::PickerAnchor::default(),
             suggestion_fade: RefCell::new(HashMap::new()),
@@ -2015,6 +2030,7 @@ impl TerminalRenderer {
         self.set_feedback_visual_bell(config.feedback.visual_bell);
         self.set_feedback_exit_glow(config.feedback.exit_code_glow);
         self.set_motion_unfocused_dim(config.motion.unfocused_dim);
+        self.set_motion_picker_animate(config.motion.picker_animate);
         // Bell-flash SHAPE is the operator's to morph (motion.bell_flash);
         // the on/off gate is feedback.visual_bell above. Resolve the named
         // easing to a motion::Curve here so trigger_bell is a cheap build.
@@ -2421,6 +2437,30 @@ impl TerminalRenderer {
     /// drops from the top); every colour comes from `self.overlay_style`
     /// (theme-resolved), so no Nord literal survives + a theme swap
     /// restyles all pickers. Each line's [`LineRole`] picks its colour.
+    /// The picker fade-in alpha ∈ [0,1] for this frame (`motion.picker_animate`).
+    /// `1.0` when the knob is off or the fade has completed; ramps from ~0 at
+    /// the overlay-open edge over ~0.18s via a decelerate curve. A pure fn of
+    /// `elapsed - overlay_open_at` (dt-invariant → determinism-safe; the golden
+    /// GPU tests render with `Overlay::None`, so this never perturbs them).
+    fn overlay_fade_progress(&self, elapsed: f32) -> f32 {
+        if !self.motion_picker_animate {
+            return 1.0;
+        }
+        match self.overlay_open_at.get() {
+            Some(born) => {
+                use crate::motion::Advance;
+                let mut t = crate::motion::Tween::new(
+                    0.0,
+                    1.0,
+                    crate::motion::secs(0.18),
+                    crate::motion::Curve::named(crate::motion::EasingKind::Decelerate),
+                );
+                t.advance((elapsed - born).max(0.0))
+            }
+            None => 1.0,
+        }
+    }
+
     fn draw_overlay(
         &self,
         spec: &crate::picker::component::OverlaySpec,
@@ -2439,6 +2479,10 @@ impl TerminalRenderer {
         }
         let fs = self.font_size_px();
         let line_h = fs * self.line_height;
+        // picker_animate fade-in: multiply every overlay alpha by this frame's
+        // fade progress (1.0 = fully open / knob off). Read via &self from the
+        // Cell the render loop set (draw_overlay takes no `elapsed`).
+        let progress = self.overlay_progress.get();
 
         // Shape every line first (the centred anchor needs the shaped
         // widths to centre the block; the TextAreas borrow the buffers
@@ -2523,7 +2567,7 @@ impl TerminalRenderer {
             let border_w = 1.5_f32;
             let lin = |c: crate::terminal::Color, a: f32| -> [f32; 4] {
                 let l = ishou_tokens::Srgb::new(c.r, c.g, c.b).to_linear();
-                [l.r, l.g, l.b, a]
+                [l.r, l.g, l.b, a * progress]
             };
             let mut rects: Vec<RectInstance> = Vec::with_capacity(OVERLAY_RECT_CAPACITY);
             // Soft elevation shadow FIRST (painted behind the card) so the
@@ -2614,7 +2658,7 @@ impl TerminalRenderer {
             // Per-line alpha IS the shade-in: glyphon blends the text over the
             // already-painted panel, so a low alpha dissolves the row into the
             // card behind it.
-            GlyphonColor::rgba(c.r, c.g, c.b, line.alpha)
+            GlyphonColor::rgba(c.r, c.g, c.b, ((f32::from(line.alpha)) * progress) as u8)
         };
 
         // Render only the visible (viewport-fitted) lines, each at its VISIBLE
@@ -5428,6 +5472,15 @@ impl RenderCallback for TerminalRenderer {
         // below only for CONTENT, never as the gate.
         use crate::ux::modes::Overlay;
         let focus = *self.overlay_focus.lock().unwrap();
+        // picker_animate fade-in: born from the None->open edge on the render
+        // clock (ctx.elapsed, NOT Instant — determinism), cached for
+        // draw_overlay to read via &self.
+        if matches!(focus, Overlay::None) {
+            self.overlay_open_at.set(None);
+        } else if self.overlay_open_at.get().is_none() {
+            self.overlay_open_at.set(Some(ctx.elapsed));
+        }
+        self.overlay_progress.set(self.overlay_fade_progress(ctx.elapsed));
         match focus {
             Overlay::None => {}
             // The rename sub-mode keeps the picker board visible underneath;
@@ -6772,6 +6825,29 @@ mod render_invariants {
         assert!(
             faded.params.frame[3] < held.params.frame[3],
             "the default 0.92 retain decays the pulse below the retain=1.0 hold"
+        );
+    }
+
+    /// LIVE-KNOB — the Ctrl-S picker fade honors `motion.picker_animate` (not a
+    /// dead knob): ON fades the overlay in from the open edge (progress < 1),
+    /// reaching full alpha after the ~0.18s fade; OFF is instant full alpha.
+    #[test]
+    fn picker_animate_fade_is_a_live_knob() {
+        let (mut r, _t) = harness(20, 5);
+        r.motion_picker_animate = true;
+        r.overlay_open_at.set(Some(1.0)); // overlay opened at elapsed = 1.0
+        assert!(
+            r.overlay_fade_progress(1.0) < 1.0,
+            "with picker_animate on, the overlay fades in from the open edge"
+        );
+        assert!(
+            (r.overlay_fade_progress(5.0) - 1.0).abs() < 1e-6,
+            "full alpha once the ~0.18s fade completes"
+        );
+        r.motion_picker_animate = false;
+        assert!(
+            (r.overlay_fade_progress(1.0) - 1.0).abs() < 1e-6,
+            "picker_animate off = instant full alpha (the renderer reads the knob)"
         );
     }
 
