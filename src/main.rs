@@ -43,7 +43,10 @@ mod tear_discovery;
 mod caps;
 mod terminfo;
 mod mcp;
-mod motion;
+// `motion` lives in the lib target (src/lib.rs) so `benches/*.rs` can link
+// it; re-export it here so `crate::motion::…` still resolves at every call
+// site (render.rs / config.rs) and the module compiles exactly once.
+use mado::motion;
 mod notify_center;
 #[cfg(target_os = "macos")]
 mod notify_mac;

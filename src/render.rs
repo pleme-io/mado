@@ -1421,11 +1421,13 @@ pub struct TerminalRenderer {
     term_layer: Option<garasu::TextLayerId>,
     overlay_layer: Option<garasu::TextLayerId>,
     search_layer: Option<garasu::TextLayerId>,
-    /// Per-suggestion wall-clock of when a row first appeared on screen, so the
-    /// shade-in ramps from when the OPERATOR sees it (not when the watcher saw
-    /// it). Pruned to the visible set each draw, so a row that leaves + returns
-    /// re-fades. `RefCell` → mutable from the `&self` draw path.
-    suggestion_fade: RefCell<HashMap<crate::suggest::SuggestionId, Instant>>,
+    /// Per-suggestion render-clock time (`ctx.elapsed` seconds) of when a row
+    /// first appeared on screen, so the shade-in ramps from when the OPERATOR
+    /// sees it. Render-clock, NOT wall-clock `Instant` — so two renders at the
+    /// same `elapsed` produce identical alpha, the determinism the L1/L2
+    /// ladders assert. Pruned to the visible set each draw, so a row that
+    /// leaves + returns re-fades. `RefCell` → mutable from the `&self` draw path.
+    suggestion_fade: RefCell<HashMap<crate::suggest::SuggestionId, f32>>,
     /// Shade-in duration (ms) from `config.suggestions.shade_in_ms` — how long
     /// a freshly-arrived suggestion takes to dissolve in.
     suggestion_shade_in_ms: u64,
@@ -2720,6 +2722,9 @@ impl TerminalRenderer {
         query: &str,
         results: &[crate::session_picker::SessionPickerRow],
         selected: usize,
+        // Render clock (`ctx.elapsed`, seconds since app start) — the suggestion
+        // shade-in fade is a pure fn of this (determinism, not wall-clock).
+        elapsed: f32,
         disabled: bool,
         notice: Option<&str>,
         footer: Option<&str>,
@@ -2762,7 +2767,10 @@ impl TerminalRenderer {
             // ids so a row that leaves + returns re-fades. Sessions/presets stay
             // solid (alpha 255).
             use crate::session_picker::RowKind;
-            let now = Instant::now();
+            // Render-clock seconds since app start; the fade is a pure fn of
+            // this, so two renders at the same `elapsed` produce identical alpha
+            // (determinism — replaces the wall-clock `Instant::now()`).
+            let now = elapsed;
             let mut fade = self.suggestion_fade.borrow_mut();
             // Scroll window: keep the selected row visible even when the result
             // set is longer than max_rows. Without this, selecting past row 12
@@ -2791,9 +2799,11 @@ impl TerminalRenderer {
                 let (alpha, color) = match row.kind {
                     RowKind::Suggestion(id) => {
                         let born = *fade.entry(id).or_insert(now);
-                        let elapsed = u64::try_from(now.duration_since(born).as_millis())
-                            .unwrap_or(u64::MAX);
-                        let a = crate::suggest::shade_ramp(0, elapsed, self.suggestion_shade_in_ms);
+                        // Seconds → ms for shade_ramp. `now >= born` always
+                        // (monotonic render clock; `born` captured from the same
+                        // `elapsed`), so the max(0.0) is belt-and-suspenders.
+                        let age_ms = ((now - born) * 1000.0).max(0.0) as u64;
+                        let a = crate::suggest::shade_ramp(0, age_ms, self.suggestion_shade_in_ms);
                         // Urgency tint: an on-fire task glows hot; routine ones
                         // keep the calm row colour (urgency_tint → None). Read
                         // from the row itself — the bridge stamped it at list
@@ -5404,6 +5414,7 @@ impl RenderCallback for TerminalRenderer {
                     &q,
                     &results,
                     sel,
+                    ctx.elapsed,
                     disabled,
                     notice.as_deref(),
                     footer.as_deref(),
@@ -6726,6 +6737,33 @@ mod render_invariants {
         assert!(
             faded.params.frame[3] < held.params.frame[3],
             "the default 0.92 retain decays the pulse below the retain=1.0 hold"
+        );
+    }
+
+    /// DETERMINISM — the suggestion shade-in fade is a pure function of the
+    /// render clock: two evaluations at the SAME `elapsed` (e.g. the L2
+    /// elapsed=0 determinism frames) yield identical alpha. The CI-forcing gate
+    /// against a regression to wall-clock `Instant::now()` (which advances
+    /// between renders and broke frame-hash determinism for the picker overlay).
+    #[test]
+    fn suggestion_fade_is_pure_in_ctx_elapsed() {
+        let shade_in_ms = 600u64;
+        let age_at = |now: f32, born: f32| ((now - born) * 1000.0).max(0.0) as u64;
+        // At elapsed=0 (born == now == 0): fully transparent + reproducible.
+        let a0 = age_at(0.0, 0.0);
+        assert_eq!(
+            crate::suggest::shade_ramp(0, a0, shade_in_ms),
+            crate::suggest::shade_ramp(0, a0, shade_in_ms),
+            "same elapsed → identical alpha (pure)"
+        );
+        assert_eq!(crate::suggest::shade_ramp(0, a0, shade_in_ms), 0, "elapsed=0 = transparent");
+        // A fixed later elapsed: reproducible + monotone toward opaque.
+        let mid = crate::suggest::shade_ramp(0, age_at(0.3, 0.0), shade_in_ms);
+        assert!((120..=140).contains(&mid), "300ms of a 600ms ramp is ~half (got {mid})");
+        assert_eq!(
+            crate::suggest::shade_ramp(0, age_at(1.0, 0.0), shade_in_ms),
+            255,
+            "past the shade-in duration the fade is fully opaque"
         );
     }
 
