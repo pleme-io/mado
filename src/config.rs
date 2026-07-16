@@ -1513,13 +1513,6 @@ impl NotificationsConfig {
     }
 }
 
-/// Motion-easing knobs — animations ease instead of popping.
-/// `bare()` = every easing off (instant/hard); `prescribed()` = every
-/// easing on (the fleet default).
-///
-/// `blink_ease` + `picker_animate` + `scroll_lerp` are forward gates:
-/// the typed surface lands now; their render wiring follows. Only
-/// `unfocused_dim` is wired in this round.
 /// The operator's easing-curve vocabulary — `linear` plus the named
 /// cubic-bézier curves `ishou_tokens::motion` ships. Authored in YAML
 /// (`easing: sonic_boom`), resolved to a [`crate::motion::Curve`] at
@@ -1617,9 +1610,11 @@ impl BellFlashConfig {
 /// data-first animation algebra (`docs/MOTION.md`). Defaults are our
 /// opinion (the `prescribed` tier); every field is fully morphable.
 ///
-/// `blink_ease` + `picker_animate` + `scroll_lerp` remain forward gates
-/// (typed surface present, render wiring follows). `unfocused_dim` and
-/// now `bell_flash` are wired.
+/// `blink_ease` + `picker_animate` remain forward gates (typed surface
+/// present, render wiring follows). `unfocused_dim` + `bell_flash` are wired.
+/// (`scroll_lerp` was removed — smooth scrolling is owned by the shipped
+/// `ux::scroll_kinetics::ScrollKinetics` momentum integrator; a second
+/// rendered-offset lerp would fight it, a redundant dead knob per solve-once.)
 // `Eq` dropped: `bell_flash.peak_alpha` is an `f32`, so only `PartialEq`.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
@@ -1631,11 +1626,6 @@ pub struct MotionConfig {
     /// **Forward gate — render wiring pending** (the typed knob exists; it
     /// does not yet drive a `motion::Tween` at the picker draw site).
     pub picker_animate: bool,
-    /// Lerp the rendered scroll offset toward its target each frame.
-    /// **Forward gate — render wiring pending** (and its ownership must be
-    /// reconciled with `ux::scroll_kinetics::ScrollKinetics` before wiring,
-    /// so a second smoother doesn't fight the momentum integrator).
-    pub scroll_lerp: bool,
     /// Whisper-dim an unfocused window so a backgrounded window reads as
     /// backgrounded.
     pub unfocused_dim: bool,
@@ -1658,7 +1648,6 @@ impl MotionConfig {
         Self {
             blink_ease: false,
             picker_animate: false,
-            scroll_lerp: false,
             unfocused_dim: false,
             bell_flash: BellFlashConfig::bare(),
         }
@@ -1670,7 +1659,6 @@ impl MotionConfig {
         Self {
             blink_ease: true,
             picker_animate: true,
-            scroll_lerp: true,
             unfocused_dim: true,
             bell_flash: BellFlashConfig::prescribed(),
         }
@@ -4510,13 +4498,11 @@ mod tests {
         let bare = MotionConfig::bare();
         assert!(!bare.blink_ease);
         assert!(!bare.picker_animate);
-        assert!(!bare.scroll_lerp);
         assert!(!bare.unfocused_dim);
 
         let pres = MotionConfig::prescribed();
         assert!(pres.blink_ease);
         assert!(pres.picker_animate);
-        assert!(pres.scroll_lerp);
         assert!(pres.unfocused_dim);
 
         assert_eq!(MotionConfig::default(), MotionConfig::prescribed());
@@ -4553,7 +4539,6 @@ mod tests {
         let mo = MotionConfig {
             blink_ease: false,
             picker_animate: true,
-            scroll_lerp: false,
             unfocused_dim: true,
             bell_flash: BellFlashConfig::prescribed(),
         };
