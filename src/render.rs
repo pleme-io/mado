@@ -1157,6 +1157,13 @@ const DECORATION_THICKNESS: f32 = 1.0;
 /// over this many frames. Gentle + brief per the polish-round spec
 /// (the old 4-frame / 0.15-alpha flash popped too hard).
 const BELL_FLASH_FRAMES: u8 = 12;
+/// Visual-bell flash duration in seconds — DERIVED from the legacy frame
+/// count (`12 / 60 = 0.2 s`) so the two cannot drift and the golden
+/// byte-pin can prove they agree exactly at 60fps. The flash is a
+/// duration-based [`crate::motion::Tween`], so it lasts the same
+/// wall-clock time at any framerate (the old `u8` frame counter made the
+/// flash last half as long at 120fps).
+const BELL_FLASH_SECS: f32 = BELL_FLASH_FRAMES as f32 / 60.0;
 /// The bell glow colour — a cool near-white (matches engawa's `BELL_TINT`
 /// rgb). Set explicitly on every bell so a prior exit-status pulse's tint
 /// never lingers on the glow clock. The exit-status pulse colours are the
@@ -1277,8 +1284,12 @@ pub struct TerminalRenderer {
     #[invalidating_setter]
     cursor_blink_rate_ms: u32,
     metrics_measured: bool,
-    /// Bell visual flash — remaining frames to show.
-    bell_flash_frames: u8,
+    /// Bell visual flash — a linear [`crate::motion::Tween`] from
+    /// `BELL_FLASH_PEAK_ALPHA` to 0 over `BELL_FLASH_SECS`, advanced by
+    /// `ctx.dt` each frame. A resting flash is `Tween::inert()`.
+    /// Framerate-independent (the old `u8` frame counter made the flash
+    /// last half as long at 120fps).
+    bell_flash: crate::motion::Tween,
     /// Selection highlight background (RGBA).
     #[invalidating_setter]
     selection_bg: [f32; 4],
@@ -1584,7 +1595,10 @@ impl SnowState {
         // n ≈ 8.3 frames @ 60 Hz), frame-rate-independent. Verbatim
         // SnowOverlay port — the prior "~0.5 s" comment was wrong by
         // 3.6x; the CONSTANT is the shipped behavior, keep it.
-        let decay = 0.92_f32.powf(dt * 60.0);
+        // The frame-rate-independent 0.92^(dt·60) decay, shared with the
+        // bell glow below — collapsed into `motion::frame_decay` (the 2nd
+        // copy is the extract trigger; byte-identical to the old inline).
+        let decay = crate::motion::frame_decay(dt, 0.92);
         self.params.set_typing_pulse(self.params.frame[3] * decay);
         let temp = cfg.temperature.clamp(0.0, 1.0);
         let pile_delta = if temp < 0.5 {
@@ -1609,7 +1623,7 @@ impl GlowState {
     }
 
     fn tick(&mut self, dt: f32) {
-        self.params.decay(0.92_f32.powf(dt * 60.0));
+        self.params.decay(crate::motion::frame_decay(dt, 0.92));
     }
 }
 
@@ -1851,7 +1865,7 @@ impl TerminalRenderer {
             cursor_blink,
             cursor_blink_rate_ms,
             metrics_measured: false,
-            bell_flash_frames: 0,
+            bell_flash: crate::motion::Tween::inert(),
             // Nord frost #88C0D0 at 0.3 alpha, linearized for the rect
             // pipeline (see `overlay_rect_color`). NOT the raw byte/255
             // triple — that would render washed-out on the sRGB surface.
@@ -2823,7 +2837,14 @@ impl TerminalRenderer {
     pub fn trigger_bell(&mut self) {
         if !self.reduce_motion {
             if self.feedback_visual_bell {
-                self.bell_flash_frames = BELL_FLASH_FRAMES;
+                // Re-arm a fresh flash: peak → 0, linear, over the fixed
+                // duration. A repeat bell restarts at peak (elapsed 0),
+                // never stacks past it.
+                self.bell_flash = crate::motion::Tween::linear(
+                    BELL_FLASH_PEAK_ALPHA,
+                    0.0,
+                    crate::motion::secs(BELL_FLASH_SECS),
+                );
             }
             // BEL also saturates the glow-on-bell clock; whether the
             // glow renders is the effect set's call (config-enabled +
@@ -4907,7 +4928,10 @@ impl RenderCallback for TerminalRenderer {
         };
         let blink_flip =
             self.cursor_blink && peek_cursor_visible && cursor_on_now != self.last_cursor_on;
-        let bell_active = self.bell_flash_frames > 0;
+        // The bell flash reads through the motion algebra's `Advance`
+        // trait (value / advance / is_active).
+        use crate::motion::Advance;
+        let bell_active = self.bell_flash.is_active();
         // P-FIX: The original damage gate returned here without
         // touching the GPU surface, which is a correctness bug on
         // multi-buffered swapchains (macOS Metal, in particular):
@@ -4986,16 +5010,19 @@ impl RenderCallback for TerminalRenderer {
         // INDEPENDENT of the ambience graph (a plain overlay rect) and of
         // the audible-bell glow; gated at `trigger_bell` on
         // `feedback.visual_bell` + `reduce_motion`.
-        if self.bell_flash_frames > 0 {
-            let alpha = f32::from(self.bell_flash_frames) / f32::from(BELL_FLASH_FRAMES)
-                * BELL_FLASH_PEAK_ALPHA;
+        if self.bell_flash.is_active() {
+            // Read the current alpha BEFORE advancing — the legacy code
+            // drew then decremented, so reading-then-advancing keeps the
+            // drawn sequence byte-identical to the old `frames/12 * peak`
+            // decay at 60fps, while being framerate-independent elsewhere.
+            let alpha = self.bell_flash.value();
             let bf = self.bell_flash_color;
             rect_instances.push(RectInstance::full_window(
                 ctx.width as f32,
                 ctx.height as f32,
                 overlay_rect_color(bf.r, bf.g, bf.b, alpha),
             ));
-            self.bell_flash_frames -= 1;
+            self.bell_flash.advance(ctx.dt);
         }
 
         // Unfocused dim: a whisper of the theme background over the whole
@@ -6552,32 +6579,81 @@ mod render_invariants {
     // ── bell flash contract ───────────────────────────────────────
 
     #[test]
-    fn trigger_bell_sets_flash_frames() {
+    fn trigger_bell_arms_the_flash_tween() {
+        use crate::motion::Advance;
         let (mut r, _t) = harness(20, 5);
-        assert_eq!(r.bell_flash_frames, 0);
+        assert!(!r.bell_flash.is_active(), "no flash before the bell");
         r.trigger_bell();
-        assert_eq!(r.bell_flash_frames, BELL_FLASH_FRAMES);
+        assert!(r.bell_flash.is_active(), "the bell arms the flash");
+        assert!(
+            (r.bell_flash.value() - BELL_FLASH_PEAK_ALPHA).abs() < 1e-6,
+            "a fresh flash starts at peak alpha"
+        );
+    }
+
+    /// GOLDEN BYTE-PIN — the duration-based flash `Tween` reproduces the
+    /// legacy `frames/12 * peak` linear decay EXACTLY at 60fps, frame for
+    /// frame, then goes inactive after 12 frames. This proves the port is
+    /// behaviour-preserving at the reference framerate while being
+    /// framerate-independent everywhere else (the whole point). The old
+    /// formula is diffed straight into the assertion, per mado's byte-pin
+    /// idiom.
+    #[test]
+    fn bell_flash_tween_matches_legacy_frame_decay_at_60fps() {
+        use crate::motion::Advance;
+        let mut flash = crate::motion::Tween::linear(
+            BELL_FLASH_PEAK_ALPHA,
+            0.0,
+            crate::motion::secs(BELL_FLASH_SECS),
+        );
+        let dt = 1.0 / 60.0;
+        // The legacy loop drew 12 frames: frames = 12, 11, …, 1, each
+        // alpha = frames/12 * peak, decrementing AFTER the draw.
+        for legacy_frames in (1..=u32::from(BELL_FLASH_FRAMES)).rev() {
+            assert!(
+                flash.is_active(),
+                "flash must still be active at legacy frame {legacy_frames}"
+            );
+            let legacy_alpha =
+                legacy_frames as f32 / f32::from(BELL_FLASH_FRAMES) * BELL_FLASH_PEAK_ALPHA;
+            let got = flash.value();
+            assert!(
+                (got - legacy_alpha).abs() < 1e-5,
+                "frame {legacy_frames}: tween alpha {got} != legacy {legacy_alpha}"
+            );
+            flash.advance(dt);
+        }
+        // After 12 frames the flash is spent — exactly like the legacy
+        // counter reaching 0.
+        assert!(!flash.is_active(), "flash must be spent after 12 frames");
     }
 
     #[test]
     fn trigger_bell_is_noop_under_reduce_motion() {
+        use crate::motion::Advance;
         let (mut r, _t) = harness(20, 5);
         r.reduce_motion = true;
         r.trigger_bell();
-        assert_eq!(
-            r.bell_flash_frames, 0,
+        assert!(
+            !r.bell_flash.is_active(),
             "reduce_motion should suppress the bell flash"
         );
     }
 
     #[test]
     fn trigger_bell_is_idempotent_for_max_value() {
-        // Calling twice in a row shouldn't push the counter past the
-        // duration — the flash is a fixed-duration effect.
+        // Calling twice in a row re-arms a FRESH flash (elapsed 0, full
+        // peak) — the flash is a fixed-duration effect, never stacked
+        // past its peak.
+        use crate::motion::Advance;
         let (mut r, _t) = harness(20, 5);
         r.trigger_bell();
         r.trigger_bell();
-        assert_eq!(r.bell_flash_frames, BELL_FLASH_FRAMES);
+        assert!(r.bell_flash.is_active());
+        assert!(
+            (r.bell_flash.value() - BELL_FLASH_PEAK_ALPHA).abs() < 1e-6,
+            "a re-armed flash restarts at peak, not past it"
+        );
     }
 
     #[test]
@@ -6586,11 +6662,12 @@ mod render_invariants {
         // but the glow-on-bell ring still saturates (its own effect gate
         // decides whether it renders), so the audible-bell glow stays
         // independent of the flash knob.
+        use crate::motion::Advance;
         let (mut r, _t) = harness(20, 5);
         r.set_feedback_visual_bell(false);
         r.trigger_bell();
-        assert_eq!(
-            r.bell_flash_frames, 0,
+        assert!(
+            !r.bell_flash.is_active(),
             "visual_bell=off must suppress the flash"
         );
     }

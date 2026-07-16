@@ -43,6 +43,7 @@ mod tear_discovery;
 mod caps;
 mod terminfo;
 mod mcp;
+mod motion;
 mod notify_center;
 #[cfg(target_os = "macos")]
 mod notify_mac;
