@@ -1503,6 +1503,16 @@ pub struct TerminalRenderer {
     /// touch and dropped immediately so cross-frame conflicts are
     /// impossible (single-threaded render).
     shape_cache: RefCell<LruCache<ShapeKey, Arc<Buffer>>>,
+    /// Cross-frame row-buffer reservoir. `snapshot()` swaps this retained
+    /// `Vec<Vec<Cell>>` into the fresh Snapshot and refills it in place
+    /// (clear-not-drop per inner row keeps its `Vec<Cell>` capacity), so the
+    /// per-vsync visible-rows clone reuses last frame's allocations instead of
+    /// realloc'ing — the dominant idle-frame cost. `RefCell` because
+    /// `snapshot()` takes `&self` (the `&self` draw-path idiom — see
+    /// `shape_cache`); single-threaded render ⇒ the borrow is taken + dropped
+    /// inside one statement. The buffers return here right after the builds
+    /// consume `snap.rows` (byte-identical frames — determinism tests guard it).
+    row_scratch: RefCell<Vec<Vec<Cell>>>,
     /// P28 — last-rendered cursor_on bit. Cursor blink is a 1–4 Hz
     /// animation (period 500 ms default); we'd otherwise wake every
     /// 16 ms vsync just to repaint the SAME cursor state. Skip frames
@@ -1963,6 +1973,7 @@ impl TerminalRenderer {
             )),
             last_cursor_on: false,
             box_draw_templates: RefCell::new(HashMap::new()),
+            row_scratch: RefCell::new(Vec::new()),
             sync_output_deferred_since: None,
             last_grid_epoch: 0,
             force_paint_frames: 0,
@@ -3099,7 +3110,26 @@ impl TerminalRenderer {
         let on_alt = term.on_alt_screen();
         let scroll_offset = term.scroll_offset();
         let scrollback_total = term.scrollback_total();
-        let rows: Vec<Vec<Cell>> = term.visible_rows().map(|r| r.to_vec()).collect();
+        // Recycle last frame's row buffers (retained outer + inner-row
+        // capacities) instead of allocating a fresh Vec<Vec<Cell>> every vsync
+        // — the dominant idle-frame cost. clear()-not-drop on each inner row
+        // keeps its per-row cap; extend_from_slice refills without realloc at
+        // steady state. The buffers return to `row_scratch` in render() after
+        // the builds consume `snap.rows`. Byte-identical to the old
+        // `.map(to_vec).collect()` (same Cell contents) — determinism tests guard it.
+        let mut rows: Vec<Vec<Cell>> = std::mem::take(&mut *self.row_scratch.borrow_mut());
+        let mut vi = 0usize;
+        for src in term.visible_rows() {
+            if vi < rows.len() {
+                let dst = &mut rows[vi];
+                dst.clear();
+                dst.extend_from_slice(src);
+            } else {
+                rows.push(src.to_vec());
+            }
+            vi += 1;
+        }
+        rows.truncate(vi); // grid shrank (resize) → drop surplus rows
         let styles = term.styles().snapshot();
         let palette = *term.ansi_palette();
         let image_placements = term.image_placements().to_vec();
@@ -5048,7 +5078,7 @@ impl RenderCallback for TerminalRenderer {
         }
 
         let snapshot_start = Instant::now();
-        let (snap, seqno) = self.snapshot();
+        let (mut snap, seqno) = self.snapshot();
         let snapshot_us = snapshot_start.elapsed().as_micros() as u64;
         // Memoise cursor_on for the next-frame peek's flip detection.
         self.last_cursor_on = cursor_on_now;
@@ -5121,6 +5151,11 @@ impl RenderCallback for TerminalRenderer {
         let text_start = Instant::now();
         let blink_on = self.blink_phase_on(ctx.elapsed);
         let text_buffers = self.build_text_buffers(&snap, ctx.text, blink_on);
+        // snap.rows was last read by build_rect_instances + build_text_buffers
+        // above; return its buffers to the reservoir now (retained capacities)
+        // so next frame's snapshot() recycles them. snap's OTHER fields
+        // (cursor, image_placements, num_rows/cols) stay valid + are used below.
+        *self.row_scratch.borrow_mut() = std::mem::take(&mut snap.rows);
         // Mint the per-surface text layers once (idempotent) before any text
         // pass — each owns its own vertex buffer so overlay text can't clobber
         // the terminal's. See `ensure_layers` + `garasu::TextLayerStack`.
