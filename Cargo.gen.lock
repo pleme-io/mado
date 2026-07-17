@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "c4a663b1cad126ec8c0e2af40e681d7e1e67fbfba736e6a1bea589d5647b1dad",
+  "cargo_lock_sha256": "44d4a5cba581f72b50f0c2aa055b27e54fb33b9c9d81319d25f849181a75b38c",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -370,7 +370,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.52.3",
+            "package_key": "tokio-1.53.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -446,7 +446,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "full",
@@ -485,7 +485,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "clone-impls",
@@ -533,7 +533,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "awase-0.1.1-25880f6a1dddb6d8d589207e8afc2a5a73969ee0": {
+      "awase-0.1.1-7286b3bc2a1bc4c63929cc60b9d6d1ca2d82616f": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -701,7 +701,7 @@
           "std"
         ]
       },
-      "bitflags-2.13.0": {
+      "bitflags-2.13.1": {
         "runtime_dependencies": [
           {
             "name": "serde_core",
@@ -785,11 +785,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "borsh-1.7.0": {
+      "borsh-1.8.0": {
         "runtime_dependencies": [
           {
             "name": "borsh_derive",
-            "package_key": "borsh-derive-1.7.0",
+            "package_key": "borsh-derive-1.8.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -801,7 +801,7 @@
         "build_dependencies": [
           {
             "name": "cfg_aliases",
-            "package_key": "cfg_aliases-0.2.1",
+            "package_key": "cfg_aliases-0.2.2",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -817,7 +817,7 @@
           "unstable__schema"
         ]
       },
-      "borsh-derive-1.7.0": {
+      "borsh-derive-1.8.0": {
         "runtime_dependencies": [
           {
             "name": "once_cell",
@@ -861,7 +861,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "fold",
@@ -1076,7 +1076,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1174,7 +1174,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "cfg_aliases-0.2.1": {
+      "cfg_aliases-0.2.2": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
@@ -1309,11 +1309,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "clap-4.6.1": {
+      "clap-4.6.2": {
         "runtime_dependencies": [
           {
             "name": "clap_builder",
-            "package_key": "clap_builder-4.6.0",
+            "package_key": "clap_builder-4.6.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -1345,7 +1345,7 @@
           "usage"
         ]
       },
-      "clap_builder-4.6.0": {
+      "clap_builder-4.6.2": {
         "runtime_dependencies": [
           {
             "name": "anstream",
@@ -1433,7 +1433,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "full"
@@ -1807,7 +1807,7 @@
         "runtime_dependencies": [
           {
             "name": "bitflags",
-            "package_key": "bitflags-2.13.0",
+            "package_key": "bitflags-2.13.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1869,7 +1869,7 @@
           },
           {
             "name": "self_cell",
-            "package_key": "self_cell-1.2.2",
+            "package_key": "self_cell-1.3.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1889,7 +1889,7 @@
           },
           {
             "name": "swash",
-            "package_key": "swash-0.2.9",
+            "package_key": "swash-0.2.10",
             "kind": "normal",
             "features": [
               "render",
@@ -2046,7 +2046,7 @@
           },
           {
             "name": "clap",
-            "package_key": "clap-4.6.1",
+            "package_key": "clap-4.6.2",
             "kind": "normal",
             "features": [
               "std"
@@ -2120,7 +2120,7 @@
           },
           {
             "name": "regex",
-            "package_key": "regex-1.13.0",
+            "package_key": "regex-1.13.1",
             "kind": "normal",
             "features": [
               "std"
@@ -2404,7 +2404,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "extra-traits",
@@ -2527,7 +2527,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "extra-traits",
@@ -2586,7 +2586,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "extra-traits",
@@ -2628,7 +2628,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -2664,7 +2664,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -2792,7 +2792,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -2992,7 +2992,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3536,7 +3536,7 @@
         "runtime_dependencies": [
           {
             "name": "simd_adler32",
-            "package_key": "simd-adler32-0.3.9",
+            "package_key": "simd-adler32-0.3.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3724,7 +3724,7 @@
           },
           {
             "name": "spin1",
-            "package_key": "spin-0.9.8",
+            "package_key": "spin-0.9.9",
             "kind": "normal",
             "features": [
               "mutex"
@@ -3755,7 +3755,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "font-types-0.11.3": {
+      "font-types-0.12.1": {
         "runtime_dependencies": [
           {
             "name": "bytemuck",
@@ -4068,7 +4068,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "full"
@@ -4355,7 +4355,7 @@
           "default"
         ]
       },
-      "gen-macros-0.1.18-8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2": {
+      "gen-macros-0.1.19-2e575c5b50d39ec1060239f65280fab674673aa3": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -4379,7 +4379,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "extra-traits",
@@ -4394,11 +4394,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "gen-platform-0.1.18-8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2": {
+      "gen-platform-0.1.19-2e575c5b50d39ec1060239f65280fab674673aa3": {
         "runtime_dependencies": [
           {
             "name": "gen_macros",
-            "package_key": "gen-macros-0.1.18-8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2",
+            "package_key": "gen-macros-0.1.19-2e575c5b50d39ec1060239f65280fab674673aa3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4408,7 +4408,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.18-8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2",
+            "package_key": "gen-types-0.1.19-2e575c5b50d39ec1060239f65280fab674673aa3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4462,7 +4462,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "gen-types-0.1.18-8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2": {
+      "gen-types-0.1.19-2e575c5b50d39ec1060239f65280fab674673aa3": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -4884,7 +4884,7 @@
         "runtime_dependencies": [
           {
             "name": "bitflags",
-            "package_key": "bitflags-2.13.0",
+            "package_key": "bitflags-2.13.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -4913,7 +4913,7 @@
         "runtime_dependencies": [
           {
             "name": "bitflags",
-            "package_key": "bitflags-2.13.0",
+            "package_key": "bitflags-2.13.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -4929,7 +4929,7 @@
         "runtime_dependencies": [
           {
             "name": "bitflags",
-            "package_key": "bitflags-2.13.0",
+            "package_key": "bitflags-2.13.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -4970,7 +4970,7 @@
         "runtime_dependencies": [
           {
             "name": "bitflags",
-            "package_key": "bitflags-2.13.0",
+            "package_key": "bitflags-2.13.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -5075,7 +5075,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.52.3",
+            "package_key": "tokio-1.53.0",
             "kind": "normal",
             "features": [
               "io-util"
@@ -5184,7 +5184,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.52.3",
+            "package_key": "tokio-1.53.0",
             "kind": "normal",
             "features": [
               "rt",
@@ -5336,11 +5336,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "hayai-0.1.1-b94f82c562d3f10ffa18f1147a87f16a3176674b": {
+      "hayai-0.1.1-0aa8014aa7ca0d4723e5b46a3dd68daa21dec7b3": {
         "runtime_dependencies": [
           {
             "name": "regex",
-            "package_key": "regex-1.13.0",
+            "package_key": "regex-1.13.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5735,7 +5735,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.52.3",
+            "package_key": "tokio-1.53.0",
             "kind": "normal",
             "features": [
               "sync"
@@ -5801,7 +5801,7 @@
           },
           {
             "name": "rustls",
-            "package_key": "rustls-0.23.41",
+            "package_key": "rustls-0.23.42",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -5811,7 +5811,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.52.3",
+            "package_key": "tokio-1.53.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5917,7 +5917,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.52.3",
+            "package_key": "tokio-1.53.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -6548,7 +6548,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "full"
@@ -6711,7 +6711,7 @@
           "default"
         ]
       },
-      "ishou-tokens-0.1.3-47e7e58da1d279b63d6ae464b0244d606741fea6": {
+      "ishou-tokens-0.1.3-90485056d461bc04b243ccccad3cdf34e7c7bb0c": {
         "runtime_dependencies": [
           {
             "name": "irodori",
@@ -6853,7 +6853,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.52.3",
+            "package_key": "tokio-1.53.0",
             "kind": "normal",
             "features": [
               "macros",
@@ -7043,7 +7043,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.52.3",
+            "package_key": "tokio-1.53.0",
             "kind": "normal",
             "features": [
               "macros",
@@ -7114,7 +7114,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.52.3",
+            "package_key": "tokio-1.53.0",
             "kind": "normal",
             "features": [
               "io-util",
@@ -7170,7 +7170,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "full"
@@ -7238,7 +7238,7 @@
         "runtime_dependencies": [
           {
             "name": "spin",
-            "package_key": "spin-0.9.8",
+            "package_key": "spin-0.9.9",
             "kind": "normal",
             "features": [
               "once"
@@ -7363,7 +7363,7 @@
           },
           {
             "name": "bitflags",
-            "package_key": "bitflags-2.13.0",
+            "package_key": "bitflags-2.13.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7851,7 +7851,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "full"
@@ -7869,7 +7869,7 @@
         "runtime_dependencies": [
           {
             "name": "regex_automata",
-            "package_key": "regex-automata-0.4.15",
+            "package_key": "regex-automata-0.4.16",
             "kind": "normal",
             "features": [
               "dfa-build",
@@ -7989,7 +7989,7 @@
           },
           {
             "name": "simd_adler32",
-            "package_key": "simd-adler32-0.3.9",
+            "package_key": "simd-adler32-0.3.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -8006,7 +8006,7 @@
           "with-alloc"
         ]
       },
-      "mio-1.2.1": {
+      "mio-1.2.2": {
         "runtime_dependencies": [
           {
             "name": "libc",
@@ -8103,7 +8103,7 @@
           },
           {
             "name": "bitflags",
-            "package_key": "bitflags-2.13.0",
+            "package_key": "bitflags-2.13.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8258,7 +8258,7 @@
         "build_dependencies": [
           {
             "name": "cfg_aliases",
-            "package_key": "cfg_aliases-0.2.1",
+            "package_key": "cfg_aliases-0.2.2",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -8292,7 +8292,7 @@
           },
           {
             "name": "hayai",
-            "package_key": "hayai-0.1.1-b94f82c562d3f10ffa18f1147a87f16a3176674b",
+            "package_key": "hayai-0.1.1-0aa8014aa7ca0d4723e5b46a3dd68daa21dec7b3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8344,7 +8344,7 @@
           },
           {
             "name": "regex",
-            "package_key": "regex-1.13.0",
+            "package_key": "regex-1.13.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8461,7 +8461,7 @@
         "runtime_dependencies": [
           {
             "name": "bitflags",
-            "package_key": "bitflags-2.13.0",
+            "package_key": "bitflags-2.13.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8514,7 +8514,7 @@
         "runtime_dependencies": [
           {
             "name": "bitflags",
-            "package_key": "bitflags-2.13.0",
+            "package_key": "bitflags-2.13.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8558,7 +8558,7 @@
         "build_dependencies": [
           {
             "name": "cfg_aliases",
-            "package_key": "cfg_aliases-0.2.1",
+            "package_key": "cfg_aliases-0.2.2",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -8578,7 +8578,7 @@
         "runtime_dependencies": [
           {
             "name": "bitflags",
-            "package_key": "bitflags-2.13.0",
+            "package_key": "bitflags-2.13.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8612,7 +8612,7 @@
         "build_dependencies": [
           {
             "name": "cfg_aliases",
-            "package_key": "cfg_aliases-0.2.1",
+            "package_key": "cfg_aliases-0.2.2",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -8632,7 +8632,7 @@
         "runtime_dependencies": [
           {
             "name": "bitflags",
-            "package_key": "bitflags-2.13.0",
+            "package_key": "bitflags-2.13.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8745,7 +8745,7 @@
           },
           {
             "name": "rand",
-            "package_key": "rand-0.8.6",
+            "package_key": "rand-0.8.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -9003,7 +9003,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "full"
@@ -9101,7 +9101,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "clone-impls",
@@ -9124,7 +9124,7 @@
         "runtime_dependencies": [
           {
             "name": "bitflags",
-            "package_key": "bitflags-2.13.0",
+            "package_key": "bitflags-2.13.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9370,7 +9370,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "extra-traits",
@@ -9504,7 +9504,7 @@
           },
           {
             "name": "rand",
-            "package_key": "rand-0.8.6",
+            "package_key": "rand-0.8.7",
             "kind": "normal",
             "features": [
               "small_rng"
@@ -9562,7 +9562,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "full"
@@ -9705,7 +9705,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "extra-traits",
@@ -9744,7 +9744,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "extra-traits",
@@ -9783,7 +9783,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "extra-traits",
@@ -9825,7 +9825,7 @@
           },
           {
             "name": "clap",
-            "package_key": "clap-4.6.1",
+            "package_key": "clap-4.6.2",
             "kind": "normal",
             "features": [
               "derive"
@@ -9929,7 +9929,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "extra-traits",
@@ -9968,7 +9968,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "extra-traits",
@@ -9987,7 +9987,7 @@
         "runtime_dependencies": [
           {
             "name": "bitflags",
-            "package_key": "bitflags-2.13.0",
+            "package_key": "bitflags-2.13.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -10185,7 +10185,7 @@
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.3-47e7e58da1d279b63d6ae464b0244d606741fea6",
+            "package_key": "ishou-tokens-0.1.3-90485056d461bc04b243ccccad3cdf34e7c7bb0c",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -10228,7 +10228,7 @@
         "runtime_dependencies": [
           {
             "name": "toml_edit",
-            "package_key": "toml_edit-0.25.12+spec-1.1.0",
+            "package_key": "toml_edit-0.25.13+spec-1.1.0",
             "kind": "normal",
             "features": [
               "parse"
@@ -10302,7 +10302,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -10360,7 +10360,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -10435,7 +10435,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.52.3",
+            "package_key": "tokio-1.53.0",
             "kind": "normal",
             "features": [
               "io-util",
@@ -10500,7 +10500,7 @@
           },
           {
             "name": "bitflags",
-            "package_key": "bitflags-2.13.0",
+            "package_key": "bitflags-2.13.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -10520,7 +10520,7 @@
           },
           {
             "name": "rand",
-            "package_key": "rand-0.9.4",
+            "package_key": "rand-0.9.5",
             "kind": "normal",
             "features": [
               "alloc"
@@ -10785,7 +10785,7 @@
           },
           {
             "name": "rand",
-            "package_key": "rand-0.9.4",
+            "package_key": "rand-0.9.5",
             "kind": "normal",
             "features": [
               "alloc"
@@ -10914,7 +10914,7 @@
           },
           {
             "name": "rustls",
-            "package_key": "rustls-0.23.41",
+            "package_key": "rustls-0.23.42",
             "kind": "normal",
             "features": [
               "std"
@@ -10926,7 +10926,7 @@
           },
           {
             "name": "socket2",
-            "package_key": "socket2-0.6.4",
+            "package_key": "socket2-0.6.5",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -10946,7 +10946,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.52.3",
+            "package_key": "tokio-1.53.0",
             "kind": "normal",
             "features": [
               "sync"
@@ -10972,7 +10972,7 @@
         "build_dependencies": [
           {
             "name": "cfg_aliases",
-            "package_key": "cfg_aliases-0.2.1",
+            "package_key": "cfg_aliases-0.2.2",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -11064,7 +11064,7 @@
           },
           {
             "name": "rustls",
-            "package_key": "rustls-0.23.41",
+            "package_key": "rustls-0.23.42",
             "kind": "normal",
             "features": [
               "std"
@@ -11140,7 +11140,7 @@
           },
           {
             "name": "socket2",
-            "package_key": "socket2-0.6.4",
+            "package_key": "socket2-0.6.5",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11164,7 +11164,7 @@
         "build_dependencies": [
           {
             "name": "cfg_aliases",
-            "package_key": "cfg_aliases-0.2.1",
+            "package_key": "cfg_aliases-0.2.2",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -11246,7 +11246,7 @@
           "thread_rng"
         ]
       },
-      "rand-0.8.6": {
+      "rand-0.8.7": {
         "runtime_dependencies": [
           {
             "name": "libc",
@@ -11290,7 +11290,7 @@
           "std_rng"
         ]
       },
-      "rand-0.9.4": {
+      "rand-0.9.5": {
         "runtime_dependencies": [
           {
             "name": "rand_chacha",
@@ -11541,7 +11541,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "read-fonts-0.39.2": {
+      "read-fonts-0.41.0": {
         "runtime_dependencies": [
           {
             "name": "bytemuck",
@@ -11555,12 +11555,25 @@
           },
           {
             "name": "font_types",
-            "package_key": "font-types-0.11.3",
+            "package_key": "font-types-0.12.1",
             "kind": "normal",
             "features": [
               "bytemuck"
             ],
             "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "once_cell",
+            "package_key": "once_cell-1.21.4",
+            "kind": "normal",
+            "features": [
+              "alloc",
+              "race"
+            ],
+            "uses_default_features": false,
             "optional": false,
             "target": null,
             "tree": "target"
@@ -11611,7 +11624,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11623,7 +11636,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "regex-1.13.0": {
+      "regex-1.13.1": {
         "runtime_dependencies": [
           {
             "name": "aho_corasick",
@@ -11647,7 +11660,7 @@
           },
           {
             "name": "regex_automata",
-            "package_key": "regex-automata-0.4.15",
+            "package_key": "regex-automata-0.4.16",
             "kind": "normal",
             "features": [
               "alloc",
@@ -11692,7 +11705,7 @@
           "unicode-segment"
         ]
       },
-      "regex-automata-0.4.15": {
+      "regex-automata-0.4.16": {
         "runtime_dependencies": [
           {
             "name": "aho_corasick",
@@ -11999,7 +12012,7 @@
           },
           {
             "name": "rustls",
-            "package_key": "rustls-0.23.41",
+            "package_key": "rustls-0.23.42",
             "kind": "normal",
             "features": [
               "std",
@@ -12076,7 +12089,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.52.3",
+            "package_key": "tokio-1.53.0",
             "kind": "normal",
             "features": [
               "net",
@@ -12423,7 +12436,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.52.3",
+            "package_key": "tokio-1.53.0",
             "kind": "normal",
             "features": [
               "macros",
@@ -12523,7 +12536,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "full"
@@ -12694,7 +12707,7 @@
         "runtime_dependencies": [
           {
             "name": "bitflags",
-            "package_key": "bitflags-2.13.0",
+            "package_key": "bitflags-2.13.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12830,7 +12843,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "rustls-0.23.41": {
+      "rustls-0.23.42": {
         "runtime_dependencies": [
           {
             "name": "once_cell",
@@ -13027,7 +13040,7 @@
         "runtime_dependencies": [
           {
             "name": "bitflags",
-            "package_key": "bitflags-2.13.0",
+            "package_key": "bitflags-2.13.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13159,7 +13172,7 @@
         "runtime_dependencies": [
           {
             "name": "rand",
-            "package_key": "rand-0.9.4",
+            "package_key": "rand-0.9.5",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13189,7 +13202,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.52.3",
+            "package_key": "tokio-1.53.0",
             "kind": "normal",
             "features": [
               "macros",
@@ -13384,7 +13397,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "extra-traits"
@@ -13432,7 +13445,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13493,7 +13506,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "extra-traits",
@@ -13727,7 +13740,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.23.4",
+            "package_key": "uuid-1.24.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -13776,7 +13789,7 @@
           },
           {
             "name": "clap",
-            "package_key": "clap-4.6.1",
+            "package_key": "clap-4.6.2",
             "kind": "normal",
             "features": [
               "derive",
@@ -13809,7 +13822,7 @@
           },
           {
             "name": "regex",
-            "package_key": "regex-1.13.0",
+            "package_key": "regex-1.13.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13819,7 +13832,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.52.3",
+            "package_key": "tokio-1.53.0",
             "kind": "normal",
             "features": [
               "macros",
@@ -13918,7 +13931,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "derive",
@@ -13963,7 +13976,7 @@
           },
           {
             "name": "clap",
-            "package_key": "clap-4.6.1",
+            "package_key": "clap-4.6.2",
             "kind": "normal",
             "features": [
               "derive",
@@ -14148,7 +14161,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.23.4",
+            "package_key": "uuid-1.24.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -14264,7 +14277,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.23.4",
+            "package_key": "uuid-1.24.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -14336,7 +14349,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "derive",
@@ -14471,7 +14484,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "derive",
@@ -14495,7 +14508,7 @@
           "default"
         ]
       },
-      "self_cell-1.2.2": {
+      "self_cell-1.3.0": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
@@ -14581,7 +14594,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "clone-impls",
@@ -14625,7 +14638,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "clone-impls",
@@ -14676,7 +14689,7 @@
           },
           {
             "name": "zmij",
-            "package_key": "zmij-1.0.21",
+            "package_key": "zmij-1.0.23",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15011,7 +15024,7 @@
           },
           {
             "name": "clap",
-            "package_key": "clap-4.6.1",
+            "package_key": "clap-4.6.2",
             "kind": "normal",
             "features": [
               "derive"
@@ -15045,7 +15058,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.52.3",
+            "package_key": "tokio-1.53.0",
             "kind": "normal",
             "features": [
               "rt-multi-thread"
@@ -15082,7 +15095,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.222-9aaf267431b92d9a3a218a6f384f0ed5dd684c93": {
+      "shikumi-0.1.318-0802c4d8b7b16c8e435eed546edb011206c8ba50": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -15106,7 +15119,7 @@
           },
           {
             "name": "clap",
-            "package_key": "clap-4.6.1",
+            "package_key": "clap-4.6.2",
             "kind": "normal",
             "features": [
               "derive"
@@ -15132,7 +15145,7 @@
           },
           {
             "name": "gen_platform",
-            "package_key": "gen-platform-0.1.18-8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2",
+            "package_key": "gen-platform-0.1.19-2e575c5b50d39ec1060239f65280fab674673aa3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15142,7 +15155,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.18-8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2",
+            "package_key": "gen-types-0.1.19-2e575c5b50d39ec1060239f65280fab674673aa3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15255,7 +15268,7 @@
           },
           {
             "name": "clap",
-            "package_key": "clap-4.6.1",
+            "package_key": "clap-4.6.2",
             "kind": "normal",
             "features": [
               "derive"
@@ -15281,7 +15294,7 @@
           },
           {
             "name": "gen_platform",
-            "package_key": "gen-platform-0.1.18-8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2",
+            "package_key": "gen-platform-0.1.19-2e575c5b50d39ec1060239f65280fab674673aa3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15291,7 +15304,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.18-8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2",
+            "package_key": "gen-types-0.1.19-2e575c5b50d39ec1060239f65280fab674673aa3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15445,7 +15458,7 @@
           "std"
         ]
       },
-      "simd-adler32-0.3.9": {
+      "simd-adler32-0.3.10": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": [
@@ -15469,7 +15482,7 @@
           "std"
         ]
       },
-      "skrifa-0.42.1": {
+      "skrifa-0.44.0": {
         "runtime_dependencies": [
           {
             "name": "bytemuck",
@@ -15483,7 +15496,7 @@
           },
           {
             "name": "read_fonts",
-            "package_key": "read-fonts-0.39.2",
+            "package_key": "read-fonts-0.41.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -15553,7 +15566,7 @@
           "std"
         ]
       },
-      "socket2-0.6.4": {
+      "socket2-0.6.5": {
         "runtime_dependencies": [
           {
             "name": "libc",
@@ -15571,7 +15584,7 @@
           "all"
         ]
       },
-      "spin-0.9.8": {
+      "spin-0.9.9": {
         "runtime_dependencies": [
           {
             "name": "lock_api_crate",
@@ -15601,7 +15614,7 @@
         "runtime_dependencies": [
           {
             "name": "bitflags",
-            "package_key": "bitflags-2.13.0",
+            "package_key": "bitflags-2.13.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15893,7 +15906,7 @@
           },
           {
             "name": "rustls",
-            "package_key": "rustls-0.23.41",
+            "package_key": "rustls-0.23.42",
             "kind": "normal",
             "features": [
               "std",
@@ -15975,7 +15988,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.52.3",
+            "package_key": "tokio-1.53.0",
             "kind": "normal",
             "features": [
               "fs",
@@ -16026,7 +16039,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.23.4",
+            "package_key": "uuid-1.24.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16116,7 +16129,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "parsing",
@@ -16273,7 +16286,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "clone-impls",
@@ -16289,7 +16302,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.52.3",
+            "package_key": "tokio-1.53.0",
             "kind": "normal",
             "features": [
               "fs",
@@ -16368,7 +16381,7 @@
           },
           {
             "name": "bitflags",
-            "package_key": "bitflags-2.13.0",
+            "package_key": "bitflags-2.13.1",
             "kind": "normal",
             "features": [
               "serde"
@@ -16605,7 +16618,7 @@
           },
           {
             "name": "rand",
-            "package_key": "rand-0.8.6",
+            "package_key": "rand-0.8.7",
             "kind": "normal",
             "features": [
               "std",
@@ -16736,7 +16749,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.23.4",
+            "package_key": "uuid-1.24.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16804,7 +16817,7 @@
           },
           {
             "name": "bitflags",
-            "package_key": "bitflags-2.13.0",
+            "package_key": "bitflags-2.13.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -16999,7 +17012,7 @@
           },
           {
             "name": "rand",
-            "package_key": "rand-0.8.6",
+            "package_key": "rand-0.8.7",
             "kind": "normal",
             "features": [
               "std",
@@ -17128,7 +17141,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.23.4",
+            "package_key": "uuid-1.24.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17367,7 +17380,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.23.4",
+            "package_key": "uuid-1.24.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17608,7 +17621,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "extra-traits",
@@ -17633,11 +17646,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "swash-0.2.9": {
+      "swash-0.2.10": {
         "runtime_dependencies": [
           {
             "name": "skrifa",
-            "package_key": "skrifa-0.42.1",
+            "package_key": "skrifa-0.44.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -17719,7 +17732,7 @@
           "quote"
         ]
       },
-      "syn-2.0.118": {
+      "syn-2.0.119": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -17810,7 +17823,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "clone-impls",
@@ -17972,7 +17985,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "full"
@@ -18105,7 +18118,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.3-47e7e58da1d279b63d6ae464b0244d606741fea6",
+            "package_key": "ishou-tokens-0.1.3-90485056d461bc04b243ccccad3cdf34e7c7bb0c",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18159,7 +18172,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.222-9aaf267431b92d9a3a218a6f384f0ed5dd684c93",
+            "package_key": "shikumi-0.1.318-0802c4d8b7b16c8e435eed546edb011206c8ba50",
             "kind": "normal",
             "features": [
               "cli"
@@ -18247,7 +18260,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.3-47e7e58da1d279b63d6ae464b0244d606741fea6",
+            "package_key": "ishou-tokens-0.1.3-90485056d461bc04b243ccccad3cdf34e7c7bb0c",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18482,7 +18495,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.52.3",
+            "package_key": "tokio-1.53.0",
             "kind": "normal",
             "features": [
               "macros",
@@ -18554,7 +18567,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.3-47e7e58da1d279b63d6ae464b0244d606741fea6",
+            "package_key": "ishou-tokens-0.1.3-90485056d461bc04b243ccccad3cdf34e7c7bb0c",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18754,7 +18767,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18790,7 +18803,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19140,7 +19153,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.52.3",
+            "package_key": "tokio-1.53.0",
             "kind": "normal",
             "features": [
               "net",
@@ -19178,7 +19191,7 @@
           "default"
         ]
       },
-      "tokio-1.52.3": {
+      "tokio-1.53.0": {
         "runtime_dependencies": [
           {
             "name": "bytes",
@@ -19222,7 +19235,7 @@
           },
           {
             "name": "mio",
-            "package_key": "mio-1.2.1",
+            "package_key": "mio-1.2.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -19232,7 +19245,7 @@
           },
           {
             "name": "mio",
-            "package_key": "mio-1.2.1",
+            "package_key": "mio-1.2.2",
             "kind": "normal",
             "features": [
               "os-ext",
@@ -19265,7 +19278,7 @@
           },
           {
             "name": "socket2",
-            "package_key": "socket2-0.6.4",
+            "package_key": "socket2-0.6.5",
             "kind": "normal",
             "features": [
               "all"
@@ -19277,7 +19290,7 @@
           },
           {
             "name": "tokio_macros",
-            "package_key": "tokio-macros-2.7.0",
+            "package_key": "tokio-macros-2.7.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19310,7 +19323,7 @@
           "windows-sys"
         ]
       },
-      "tokio-macros-2.7.0": {
+      "tokio-macros-2.7.1": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -19334,7 +19347,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "full"
@@ -19362,7 +19375,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.52.3",
+            "package_key": "tokio-1.53.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19378,7 +19391,7 @@
         "runtime_dependencies": [
           {
             "name": "rustls",
-            "package_key": "rustls-0.23.41",
+            "package_key": "rustls-0.23.42",
             "kind": "normal",
             "features": [
               "std"
@@ -19390,7 +19403,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.52.3",
+            "package_key": "tokio-1.53.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19429,7 +19442,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.52.3",
+            "package_key": "tokio-1.53.0",
             "kind": "normal",
             "features": [
               "sync"
@@ -19491,7 +19504,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.52.3",
+            "package_key": "tokio-1.53.0",
             "kind": "normal",
             "features": [
               "sync"
@@ -19666,7 +19679,7 @@
           "serde"
         ]
       },
-      "toml_edit-0.25.12+spec-1.1.0": {
+      "toml_edit-0.25.13+spec-1.1.0": {
         "runtime_dependencies": [
           {
             "name": "indexmap",
@@ -19702,7 +19715,7 @@
           },
           {
             "name": "winnow",
-            "package_key": "winnow-1.0.3",
+            "package_key": "winnow-1.0.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19720,7 +19733,7 @@
         "runtime_dependencies": [
           {
             "name": "winnow",
-            "package_key": "winnow-1.0.3",
+            "package_key": "winnow-1.0.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -19791,7 +19804,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.52.3",
+            "package_key": "tokio-1.53.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19848,7 +19861,7 @@
           },
           {
             "name": "bitflags",
-            "package_key": "bitflags-2.13.0",
+            "package_key": "bitflags-2.13.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19928,7 +19941,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.52.3",
+            "package_key": "tokio-1.53.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -20086,7 +20099,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "clone-impls",
@@ -20225,7 +20238,7 @@
           },
           {
             "name": "regex_automata",
-            "package_key": "regex-automata-0.4.15",
+            "package_key": "regex-automata-0.4.16",
             "kind": "normal",
             "features": [
               "std"
@@ -20457,7 +20470,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "extra-traits",
@@ -20759,7 +20772,7 @@
           },
           {
             "name": "regex",
-            "package_key": "regex-1.13.0",
+            "package_key": "regex-1.13.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20769,7 +20782,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "extra-traits",
@@ -20782,7 +20795,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.23.4",
+            "package_key": "uuid-1.24.0",
             "kind": "normal",
             "features": [
               "serde"
@@ -20801,7 +20814,7 @@
           "uuid"
         ]
       },
-      "uuid-1.23.4": {
+      "uuid-1.24.0": {
         "runtime_dependencies": [
           {
             "name": "getrandom",
@@ -20992,7 +21005,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.52.3",
+            "package_key": "tokio-1.53.0",
             "kind": "normal",
             "features": [
               "fs",
@@ -21069,7 +21082,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.52.3",
+            "package_key": "tokio-1.53.0",
             "kind": "normal",
             "features": [
               "fs",
@@ -21179,7 +21192,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.52.3",
+            "package_key": "tokio-1.53.0",
             "kind": "normal",
             "features": [
               "fs",
@@ -21360,7 +21373,7 @@
           },
           {
             "name": "tokio",
-            "package_key": "tokio-1.52.3",
+            "package_key": "tokio-1.53.0",
             "kind": "normal",
             "features": [
               "fs",
@@ -21389,7 +21402,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.23.4",
+            "package_key": "uuid-1.24.0",
             "kind": "normal",
             "features": [
               "serde",
@@ -21489,7 +21502,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.23.4",
+            "package_key": "uuid-1.24.0",
             "kind": "normal",
             "features": [
               "serde",
@@ -21689,7 +21702,7 @@
           },
           {
             "name": "bitflags",
-            "package_key": "bitflags-2.13.0",
+            "package_key": "bitflags-2.13.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21865,7 +21878,7 @@
         "build_dependencies": [
           {
             "name": "cfg_aliases",
-            "package_key": "cfg_aliases-0.2.1",
+            "package_key": "cfg_aliases-0.2.2",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -21888,7 +21901,7 @@
         "runtime_dependencies": [
           {
             "name": "bitflags",
-            "package_key": "bitflags-2.13.0",
+            "package_key": "bitflags-2.13.1",
             "kind": "normal",
             "features": [
               "serde"
@@ -21984,7 +21997,7 @@
           "std"
         ]
       },
-      "winnow-1.0.3": {
+      "winnow-1.0.4": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": [
@@ -22096,7 +22109,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "fold"
@@ -22182,7 +22195,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "full"
@@ -22238,7 +22251,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "fold"
@@ -22374,7 +22387,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.118",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "extra-traits"
@@ -22388,7 +22401,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "zmij-1.0.21": {
+      "zmij-1.0.23": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
@@ -22936,7 +22949,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -23115,7 +23128,7 @@
               },
               {
                 "name": "syn",
-                "package_key": "syn-2.0.118",
+                "package_key": "syn-2.0.119",
                 "kind": "normal",
                 "features": [
                   "full"
@@ -23266,7 +23279,7 @@
               },
               {
                 "name": "socket2",
-                "package_key": "socket2-0.6.4",
+                "package_key": "socket2-0.6.5",
                 "kind": "normal",
                 "features": [
                   "all"
@@ -23288,7 +23301,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.52.3",
+                "package_key": "tokio-1.53.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -23349,7 +23362,7 @@
               "fallback"
             ]
           },
-          "kanchi-0.1.2-141f61011932d1c479abfe44c71d5e7f06cd6071": {
+          "kanchi-0.1.2-09d1ad4c33f8adbff438f0ce8b47b21b15544251": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -23466,7 +23479,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -23488,7 +23501,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.80": {
+          "mado-0.1.81": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -23502,7 +23515,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.1-25880f6a1dddb6d8d589207e8afc2a5a73969ee0",
+                "package_key": "awase-0.1.1-7286b3bc2a1bc4c63929cc60b9d6d1ca2d82616f",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23544,7 +23557,7 @@
               },
               {
                 "name": "clap",
-                "package_key": "clap-4.6.1",
+                "package_key": "clap-4.6.2",
                 "kind": "normal",
                 "features": [
                   "derive",
@@ -23701,7 +23714,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-47e7e58da1d279b63d6ae464b0244d606741fea6",
+                "package_key": "ishou-tokens-0.1.3-90485056d461bc04b243ccccad3cdf34e7c7bb0c",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -23753,7 +23766,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.2-141f61011932d1c479abfe44c71d5e7f06cd6071",
+                "package_key": "kanchi-0.1.2-09d1ad4c33f8adbff438f0ce8b47b21b15544251",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -23900,7 +23913,7 @@
               },
               {
                 "name": "open",
-                "package_key": "open-5.3.6",
+                "package_key": "open-5.4.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -24135,7 +24148,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.52.3",
+                "package_key": "tokio-1.53.0",
                 "kind": "normal",
                 "features": [
                   "io-util",
@@ -24259,7 +24272,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -24386,7 +24399,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -24446,7 +24459,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.1",
+                "package_key": "mio-1.2.2",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -24458,7 +24471,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.1",
+                "package_key": "mio-1.2.2",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -24470,7 +24483,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.1",
+                "package_key": "mio-1.2.2",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -24589,7 +24602,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -24656,7 +24669,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -25155,7 +25168,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -25203,7 +25216,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -25243,7 +25256,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -25294,7 +25307,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -25413,7 +25426,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -25657,7 +25670,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -25704,7 +25717,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -25756,7 +25769,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -25848,7 +25861,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -26107,7 +26120,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -26141,7 +26154,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -26185,7 +26198,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -26233,7 +26246,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -26276,7 +26289,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -26325,7 +26338,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -26410,7 +26423,7 @@
               "std"
             ]
           },
-          "open-5.3.6": {
+          "open-5.4.0": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -26502,7 +26515,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -26580,7 +26593,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26670,7 +26683,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26762,7 +26775,7 @@
               },
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26929,7 +26942,7 @@
             "build_dependencies": [
               {
                 "name": "cfg_aliases",
-                "package_key": "cfg_aliases-0.2.1",
+                "package_key": "cfg_aliases-0.2.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -26996,7 +27009,7 @@
               },
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27272,7 +27285,7 @@
             "build_dependencies": [
               {
                 "name": "cfg_aliases",
-                "package_key": "cfg_aliases-0.2.1",
+                "package_key": "cfg_aliases-0.2.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -27295,7 +27308,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27488,7 +27501,7 @@
             "build_dependencies": [
               {
                 "name": "cfg_aliases",
-                "package_key": "cfg_aliases-0.2.1",
+                "package_key": "cfg_aliases-0.2.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -27732,7 +27745,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -28207,7 +28220,7 @@
               },
               {
                 "name": "socket2",
-                "package_key": "socket2-0.6.4",
+                "package_key": "socket2-0.6.5",
                 "kind": "normal",
                 "features": [
                   "all"
@@ -28219,7 +28232,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.52.3",
+                "package_key": "tokio-1.53.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -28273,7 +28286,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -28363,7 +28376,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "kanchi-0.1.2-141f61011932d1c479abfe44c71d5e7f06cd6071": {
+          "kanchi-0.1.2-09d1ad4c33f8adbff438f0ce8b47b21b15544251": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -28420,7 +28433,7 @@
               "system"
             ]
           },
-          "mado-0.1.80": {
+          "mado-0.1.81": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -28434,7 +28447,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.1-25880f6a1dddb6d8d589207e8afc2a5a73969ee0",
+                "package_key": "awase-0.1.1-7286b3bc2a1bc4c63929cc60b9d6d1ca2d82616f",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -28466,7 +28479,7 @@
               },
               {
                 "name": "clap",
-                "package_key": "clap-4.6.1",
+                "package_key": "clap-4.6.2",
                 "kind": "normal",
                 "features": [
                   "derive",
@@ -28623,7 +28636,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-47e7e58da1d279b63d6ae464b0244d606741fea6",
+                "package_key": "ishou-tokens-0.1.3-90485056d461bc04b243ccccad3cdf34e7c7bb0c",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -28675,7 +28688,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.2-141f61011932d1c479abfe44c71d5e7f06cd6071",
+                "package_key": "kanchi-0.1.2-09d1ad4c33f8adbff438f0ce8b47b21b15544251",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -28757,7 +28770,7 @@
               },
               {
                 "name": "open",
-                "package_key": "open-5.3.6",
+                "package_key": "open-5.4.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -28992,7 +29005,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.52.3",
+                "package_key": "tokio-1.53.0",
                 "kind": "normal",
                 "features": [
                   "io-util",
@@ -29178,7 +29191,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.1",
+                "package_key": "mio-1.2.2",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -29190,7 +29203,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.1",
+                "package_key": "mio-1.2.2",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -29202,7 +29215,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.1",
+                "package_key": "mio-1.2.2",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -29242,7 +29255,7 @@
               "mio"
             ]
           },
-          "open-5.3.6": {
+          "open-5.4.0": {
             "runtime_dependencies": [
               {
                 "name": "is_wsl",
@@ -29272,7 +29285,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -29360,7 +29373,7 @@
               },
               {
                 "name": "syn",
-                "package_key": "syn-2.0.118",
+                "package_key": "syn-2.0.119",
                 "kind": "normal",
                 "features": [
                   "full"
@@ -29586,7 +29599,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -29695,7 +29708,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -29871,7 +29884,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30265,7 +30278,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30313,7 +30326,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30387,7 +30400,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30438,7 +30451,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30497,7 +30510,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30673,7 +30686,7 @@
               },
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30840,7 +30853,7 @@
             "build_dependencies": [
               {
                 "name": "cfg_aliases",
-                "package_key": "cfg_aliases-0.2.1",
+                "package_key": "cfg_aliases-0.2.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -30910,7 +30923,7 @@
               },
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31146,7 +31159,7 @@
             "build_dependencies": [
               {
                 "name": "cfg_aliases",
-                "package_key": "cfg_aliases-0.2.1",
+                "package_key": "cfg_aliases-0.2.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -31181,7 +31194,7 @@
               },
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31415,7 +31428,7 @@
             "build_dependencies": [
               {
                 "name": "cfg_aliases",
-                "package_key": "cfg_aliases-0.2.1",
+                "package_key": "cfg_aliases-0.2.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -31603,7 +31616,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31876,7 +31889,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32351,7 +32364,7 @@
               },
               {
                 "name": "socket2",
-                "package_key": "socket2-0.6.4",
+                "package_key": "socket2-0.6.5",
                 "kind": "normal",
                 "features": [
                   "all"
@@ -32363,7 +32376,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.52.3",
+                "package_key": "tokio-1.53.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -32417,7 +32430,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32507,7 +32520,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "kanchi-0.1.2-141f61011932d1c479abfe44c71d5e7f06cd6071": {
+          "kanchi-0.1.2-09d1ad4c33f8adbff438f0ce8b47b21b15544251": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -32564,7 +32577,7 @@
               "system"
             ]
           },
-          "mado-0.1.80": {
+          "mado-0.1.81": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -32578,7 +32591,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.1-25880f6a1dddb6d8d589207e8afc2a5a73969ee0",
+                "package_key": "awase-0.1.1-7286b3bc2a1bc4c63929cc60b9d6d1ca2d82616f",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32610,7 +32623,7 @@
               },
               {
                 "name": "clap",
-                "package_key": "clap-4.6.1",
+                "package_key": "clap-4.6.2",
                 "kind": "normal",
                 "features": [
                   "derive",
@@ -32767,7 +32780,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-47e7e58da1d279b63d6ae464b0244d606741fea6",
+                "package_key": "ishou-tokens-0.1.3-90485056d461bc04b243ccccad3cdf34e7c7bb0c",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -32819,7 +32832,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.2-141f61011932d1c479abfe44c71d5e7f06cd6071",
+                "package_key": "kanchi-0.1.2-09d1ad4c33f8adbff438f0ce8b47b21b15544251",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32901,7 +32914,7 @@
               },
               {
                 "name": "open",
-                "package_key": "open-5.3.6",
+                "package_key": "open-5.4.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33136,7 +33149,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.52.3",
+                "package_key": "tokio-1.53.0",
                 "kind": "normal",
                 "features": [
                   "io-util",
@@ -33322,7 +33335,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.1",
+                "package_key": "mio-1.2.2",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -33334,7 +33347,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.1",
+                "package_key": "mio-1.2.2",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -33346,7 +33359,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.1",
+                "package_key": "mio-1.2.2",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -33386,7 +33399,7 @@
               "mio"
             ]
           },
-          "open-5.3.6": {
+          "open-5.4.0": {
             "runtime_dependencies": [
               {
                 "name": "is_wsl",
@@ -33416,7 +33429,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33504,7 +33517,7 @@
               },
               {
                 "name": "syn",
-                "package_key": "syn-2.0.118",
+                "package_key": "syn-2.0.119",
                 "kind": "normal",
                 "features": [
                   "full"
@@ -33730,7 +33743,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -33839,7 +33852,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -34015,7 +34028,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34409,7 +34422,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34457,7 +34470,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34531,7 +34544,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34582,7 +34595,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34641,7 +34654,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34817,7 +34830,7 @@
               },
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34984,7 +34997,7 @@
             "build_dependencies": [
               {
                 "name": "cfg_aliases",
-                "package_key": "cfg_aliases-0.2.1",
+                "package_key": "cfg_aliases-0.2.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -35054,7 +35067,7 @@
               },
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35290,7 +35303,7 @@
             "build_dependencies": [
               {
                 "name": "cfg_aliases",
-                "package_key": "cfg_aliases-0.2.1",
+                "package_key": "cfg_aliases-0.2.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -35325,7 +35338,7 @@
               },
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35559,7 +35572,7 @@
             "build_dependencies": [
               {
                 "name": "cfg_aliases",
-                "package_key": "cfg_aliases-0.2.1",
+                "package_key": "cfg_aliases-0.2.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -35747,7 +35760,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36305,7 +36318,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -36484,7 +36497,7 @@
               },
               {
                 "name": "syn",
-                "package_key": "syn-2.0.118",
+                "package_key": "syn-2.0.119",
                 "kind": "normal",
                 "features": [
                   "full"
@@ -36635,7 +36648,7 @@
               },
               {
                 "name": "socket2",
-                "package_key": "socket2-0.6.4",
+                "package_key": "socket2-0.6.5",
                 "kind": "normal",
                 "features": [
                   "all"
@@ -36657,7 +36670,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.52.3",
+                "package_key": "tokio-1.53.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -36718,7 +36731,7 @@
               "fallback"
             ]
           },
-          "kanchi-0.1.2-141f61011932d1c479abfe44c71d5e7f06cd6071": {
+          "kanchi-0.1.2-09d1ad4c33f8adbff438f0ce8b47b21b15544251": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -36835,7 +36848,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -36857,7 +36870,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.80": {
+          "mado-0.1.81": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -36871,7 +36884,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.1-25880f6a1dddb6d8d589207e8afc2a5a73969ee0",
+                "package_key": "awase-0.1.1-7286b3bc2a1bc4c63929cc60b9d6d1ca2d82616f",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36913,7 +36926,7 @@
               },
               {
                 "name": "clap",
-                "package_key": "clap-4.6.1",
+                "package_key": "clap-4.6.2",
                 "kind": "normal",
                 "features": [
                   "derive",
@@ -37070,7 +37083,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-47e7e58da1d279b63d6ae464b0244d606741fea6",
+                "package_key": "ishou-tokens-0.1.3-90485056d461bc04b243ccccad3cdf34e7c7bb0c",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -37122,7 +37135,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.2-141f61011932d1c479abfe44c71d5e7f06cd6071",
+                "package_key": "kanchi-0.1.2-09d1ad4c33f8adbff438f0ce8b47b21b15544251",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37269,7 +37282,7 @@
               },
               {
                 "name": "open",
-                "package_key": "open-5.3.6",
+                "package_key": "open-5.4.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37504,7 +37517,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.52.3",
+                "package_key": "tokio-1.53.0",
                 "kind": "normal",
                 "features": [
                   "io-util",
@@ -37628,7 +37641,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37755,7 +37768,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37815,7 +37828,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.1",
+                "package_key": "mio-1.2.2",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -37827,7 +37840,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.1",
+                "package_key": "mio-1.2.2",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -37839,7 +37852,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.1",
+                "package_key": "mio-1.2.2",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -37958,7 +37971,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -38025,7 +38038,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -38524,7 +38537,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -38572,7 +38585,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -38612,7 +38625,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -38663,7 +38676,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -38782,7 +38795,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -39026,7 +39039,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -39073,7 +39086,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -39125,7 +39138,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -39217,7 +39230,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -39476,7 +39489,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -39510,7 +39523,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -39554,7 +39567,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -39602,7 +39615,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -39645,7 +39658,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -39694,7 +39707,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -39779,7 +39792,7 @@
               "std"
             ]
           },
-          "open-5.3.6": {
+          "open-5.4.0": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -39851,7 +39864,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -39929,7 +39942,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40019,7 +40032,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40111,7 +40124,7 @@
               },
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40278,7 +40291,7 @@
             "build_dependencies": [
               {
                 "name": "cfg_aliases",
-                "package_key": "cfg_aliases-0.2.1",
+                "package_key": "cfg_aliases-0.2.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -40345,7 +40358,7 @@
               },
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40621,7 +40634,7 @@
             "build_dependencies": [
               {
                 "name": "cfg_aliases",
-                "package_key": "cfg_aliases-0.2.1",
+                "package_key": "cfg_aliases-0.2.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -40644,7 +40657,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40837,7 +40850,7 @@
             "build_dependencies": [
               {
                 "name": "cfg_aliases",
-                "package_key": "cfg_aliases-0.2.1",
+                "package_key": "cfg_aliases-0.2.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -41091,7 +41104,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -41540,7 +41553,7 @@
               },
               {
                 "name": "socket2",
-                "package_key": "socket2-0.6.4",
+                "package_key": "socket2-0.6.5",
                 "kind": "normal",
                 "features": [
                   "all"
@@ -41552,7 +41565,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.52.3",
+                "package_key": "tokio-1.53.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -41606,7 +41619,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -41696,7 +41709,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "kanchi-0.1.2-141f61011932d1c479abfe44c71d5e7f06cd6071": {
+          "kanchi-0.1.2-09d1ad4c33f8adbff438f0ce8b47b21b15544251": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -41753,7 +41766,7 @@
               "system"
             ]
           },
-          "mado-0.1.80": {
+          "mado-0.1.81": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -41767,7 +41780,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.1-25880f6a1dddb6d8d589207e8afc2a5a73969ee0",
+                "package_key": "awase-0.1.1-7286b3bc2a1bc4c63929cc60b9d6d1ca2d82616f",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -41799,7 +41812,7 @@
               },
               {
                 "name": "clap",
-                "package_key": "clap-4.6.1",
+                "package_key": "clap-4.6.2",
                 "kind": "normal",
                 "features": [
                   "derive",
@@ -41956,7 +41969,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-47e7e58da1d279b63d6ae464b0244d606741fea6",
+                "package_key": "ishou-tokens-0.1.3-90485056d461bc04b243ccccad3cdf34e7c7bb0c",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -42008,7 +42021,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.2-141f61011932d1c479abfe44c71d5e7f06cd6071",
+                "package_key": "kanchi-0.1.2-09d1ad4c33f8adbff438f0ce8b47b21b15544251",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -42090,7 +42103,7 @@
               },
               {
                 "name": "open",
-                "package_key": "open-5.3.6",
+                "package_key": "open-5.4.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -42325,7 +42338,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.52.3",
+                "package_key": "tokio-1.53.0",
                 "kind": "normal",
                 "features": [
                   "io-util",
@@ -42511,7 +42524,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.1",
+                "package_key": "mio-1.2.2",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -42523,7 +42536,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.1",
+                "package_key": "mio-1.2.2",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -42535,7 +42548,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.1",
+                "package_key": "mio-1.2.2",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -42575,7 +42588,7 @@
               "mio"
             ]
           },
-          "open-5.3.6": {
+          "open-5.4.0": {
             "runtime_dependencies": [
               {
                 "name": "is_wsl",
@@ -42605,7 +42618,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -42693,7 +42706,7 @@
               },
               {
                 "name": "syn",
-                "package_key": "syn-2.0.118",
+                "package_key": "syn-2.0.119",
                 "kind": "normal",
                 "features": [
                   "full"
@@ -42899,7 +42912,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -43008,7 +43021,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -43184,7 +43197,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -43578,7 +43591,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -43626,7 +43639,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -43700,7 +43713,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -43751,7 +43764,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -43810,7 +43823,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -43986,7 +43999,7 @@
               },
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44153,7 +44166,7 @@
             "build_dependencies": [
               {
                 "name": "cfg_aliases",
-                "package_key": "cfg_aliases-0.2.1",
+                "package_key": "cfg_aliases-0.2.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -44223,7 +44236,7 @@
               },
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44459,7 +44472,7 @@
             "build_dependencies": [
               {
                 "name": "cfg_aliases",
-                "package_key": "cfg_aliases-0.2.1",
+                "package_key": "cfg_aliases-0.2.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -44494,7 +44507,7 @@
               },
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44728,7 +44741,7 @@
             "build_dependencies": [
               {
                 "name": "cfg_aliases",
-                "package_key": "cfg_aliases-0.2.1",
+                "package_key": "cfg_aliases-0.2.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -44916,7 +44929,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45199,7 +45212,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45648,7 +45661,7 @@
               },
               {
                 "name": "socket2",
-                "package_key": "socket2-0.6.4",
+                "package_key": "socket2-0.6.5",
                 "kind": "normal",
                 "features": [
                   "all"
@@ -45660,7 +45673,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.52.3",
+                "package_key": "tokio-1.53.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -45714,7 +45727,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45804,7 +45817,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "kanchi-0.1.2-141f61011932d1c479abfe44c71d5e7f06cd6071": {
+          "kanchi-0.1.2-09d1ad4c33f8adbff438f0ce8b47b21b15544251": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -45861,7 +45874,7 @@
               "system"
             ]
           },
-          "mado-0.1.80": {
+          "mado-0.1.81": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -45875,7 +45888,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.1-25880f6a1dddb6d8d589207e8afc2a5a73969ee0",
+                "package_key": "awase-0.1.1-7286b3bc2a1bc4c63929cc60b9d6d1ca2d82616f",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45907,7 +45920,7 @@
               },
               {
                 "name": "clap",
-                "package_key": "clap-4.6.1",
+                "package_key": "clap-4.6.2",
                 "kind": "normal",
                 "features": [
                   "derive",
@@ -46064,7 +46077,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-47e7e58da1d279b63d6ae464b0244d606741fea6",
+                "package_key": "ishou-tokens-0.1.3-90485056d461bc04b243ccccad3cdf34e7c7bb0c",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -46116,7 +46129,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.2-141f61011932d1c479abfe44c71d5e7f06cd6071",
+                "package_key": "kanchi-0.1.2-09d1ad4c33f8adbff438f0ce8b47b21b15544251",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -46198,7 +46211,7 @@
               },
               {
                 "name": "open",
-                "package_key": "open-5.3.6",
+                "package_key": "open-5.4.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -46433,7 +46446,7 @@
               },
               {
                 "name": "tokio",
-                "package_key": "tokio-1.52.3",
+                "package_key": "tokio-1.53.0",
                 "kind": "normal",
                 "features": [
                   "io-util",
@@ -46619,7 +46632,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.1",
+                "package_key": "mio-1.2.2",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -46631,7 +46644,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.1",
+                "package_key": "mio-1.2.2",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -46643,7 +46656,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.1",
+                "package_key": "mio-1.2.2",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -46683,7 +46696,7 @@
               "mio"
             ]
           },
-          "open-5.3.6": {
+          "open-5.4.0": {
             "runtime_dependencies": [
               {
                 "name": "is_wsl",
@@ -46713,7 +46726,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -46801,7 +46814,7 @@
               },
               {
                 "name": "syn",
-                "package_key": "syn-2.0.118",
+                "package_key": "syn-2.0.119",
                 "kind": "normal",
                 "features": [
                   "full"
@@ -47007,7 +47020,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -47116,7 +47129,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -47292,7 +47305,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47686,7 +47699,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47734,7 +47747,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47808,7 +47821,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47859,7 +47872,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47918,7 +47931,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48094,7 +48107,7 @@
               },
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48261,7 +48274,7 @@
             "build_dependencies": [
               {
                 "name": "cfg_aliases",
-                "package_key": "cfg_aliases-0.2.1",
+                "package_key": "cfg_aliases-0.2.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -48331,7 +48344,7 @@
               },
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48567,7 +48580,7 @@
             "build_dependencies": [
               {
                 "name": "cfg_aliases",
-                "package_key": "cfg_aliases-0.2.1",
+                "package_key": "cfg_aliases-0.2.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -48602,7 +48615,7 @@
               },
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48836,7 +48849,7 @@
             "build_dependencies": [
               {
                 "name": "cfg_aliases",
-                "package_key": "cfg_aliases-0.2.1",
+                "package_key": "cfg_aliases-0.2.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -49024,7 +49037,7 @@
             "runtime_dependencies": [
               {
                 "name": "bitflags",
-                "package_key": "bitflags-2.13.0",
+                "package_key": "bitflags-2.13.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49193,7 +49206,7 @@
     "autocfg-1.5.1": {
       "edition": "2015"
     },
-    "awase-0.1.1-25880f6a1dddb6d8d589207e8afc2a5a73969ee0": {
+    "awase-0.1.1-7286b3bc2a1bc4c63929cc60b9d6d1ca2d82616f": {
       "edition": "2024"
     },
     "base64-0.22.1": {
@@ -49218,7 +49231,7 @@
     "bitflags-1.3.2": {
       "edition": "2018"
     },
-    "bitflags-2.13.0": {
+    "bitflags-2.13.1": {
       "edition": "2021"
     },
     "bitvec-1.1.1": {
@@ -49240,7 +49253,7 @@
     "block2-0.6.2": {
       "edition": "2021"
     },
-    "borsh-1.7.0": {
+    "borsh-1.8.0": {
       "edition": "2018",
       "build_script": "build.rs",
       "binaries": [
@@ -49250,7 +49263,7 @@
         }
       ]
     },
-    "borsh-derive-1.7.0": {
+    "borsh-derive-1.8.0": {
       "edition": "2018",
       "proc_macro": true
     },
@@ -49321,7 +49334,7 @@
     "cfg_aliases-0.1.1": {
       "edition": "2018"
     },
-    "cfg_aliases-0.2.1": {
+    "cfg_aliases-0.2.2": {
       "edition": "2018"
     },
     "chacha20-0.10.1": {
@@ -49339,7 +49352,7 @@
     "ciborium-ll-0.2.2": {
       "edition": "2021"
     },
-    "clap-4.6.1": {
+    "clap-4.6.2": {
       "edition": "2024",
       "binaries": [
         {
@@ -49348,7 +49361,7 @@
         }
       ]
     },
-    "clap_builder-4.6.0": {
+    "clap_builder-4.6.2": {
       "edition": "2024"
     },
     "clap_derive-4.6.1": {
@@ -49657,7 +49670,7 @@
     "foldhash-0.1.5": {
       "edition": "2021"
     },
-    "font-types-0.11.3": {
+    "font-types-0.12.1": {
       "edition": "2021"
     },
     "fontconfig-parser-0.5.8": {
@@ -49729,14 +49742,14 @@
       "edition": "2024",
       "build_script": "build.rs"
     },
-    "gen-macros-0.1.18-8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2": {
+    "gen-macros-0.1.19-2e575c5b50d39ec1060239f65280fab674673aa3": {
       "edition": "2024",
       "proc_macro": true
     },
-    "gen-platform-0.1.18-8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2": {
+    "gen-platform-0.1.19-2e575c5b50d39ec1060239f65280fab674673aa3": {
       "edition": "2024"
     },
-    "gen-types-0.1.18-8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2": {
+    "gen-types-0.1.19-2e575c5b50d39ec1060239f65280fab674673aa3": {
       "edition": "2024"
     },
     "generic-array-0.14.7": {
@@ -49808,7 +49821,7 @@
     "hashlink-0.9.1": {
       "edition": "2018"
     },
-    "hayai-0.1.1-b94f82c562d3f10ffa18f1147a87f16a3176674b": {
+    "hayai-0.1.1-0aa8014aa7ca0d4723e5b46a3dd68daa21dec7b3": {
       "edition": "2024"
     },
     "heck-0.4.1": {
@@ -49942,7 +49955,7 @@
     "is_terminal_polyfill-1.70.2": {
       "edition": "2021"
     },
-    "ishou-tokens-0.1.3-47e7e58da1d279b63d6ae464b0244d606741fea6": {
+    "ishou-tokens-0.1.3-90485056d461bc04b243ccccad3cdf34e7c7bb0c": {
       "edition": "2024"
     },
     "itertools-0.10.5": {
@@ -49966,7 +49979,7 @@
     "kaname-0.1.1-0570e7ec566b60444307fe5873f80f5beda8fe6c": {
       "edition": "2024"
     },
-    "kanchi-0.1.2-141f61011932d1c479abfe44c71d5e7f06cd6071": {
+    "kanchi-0.1.2-09d1ad4c33f8adbff438f0ce8b47b21b15544251": {
       "edition": "2024"
     },
     "kanshou-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": {
@@ -50056,7 +50069,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.80": {
+    "mado-0.1.81": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -50119,7 +50132,7 @@
     "miniz_oxide-0.8.9": {
       "edition": "2021"
     },
-    "mio-1.2.1": {
+    "mio-1.2.2": {
       "edition": "2021"
     },
     "moxcms-0.8.1": {
@@ -50268,7 +50281,7 @@
     "oorandom-11.1.5": {
       "edition": "2018"
     },
-    "open-5.3.6": {
+    "open-5.4.0": {
       "edition": "2018",
       "binaries": [
         {
@@ -50537,10 +50550,10 @@
     "rand-0.10.2": {
       "edition": "2024"
     },
-    "rand-0.8.6": {
+    "rand-0.8.7": {
       "edition": "2018"
     },
-    "rand-0.9.4": {
+    "rand-0.9.5": {
       "edition": "2021"
     },
     "rand_chacha-0.3.1": {
@@ -50581,7 +50594,7 @@
       "build_script": "build.rs",
       "links": "rayon-core"
     },
-    "read-fonts-0.39.2": {
+    "read-fonts-0.41.0": {
       "edition": "2021"
     },
     "ref-cast-1.0.25": {
@@ -50592,10 +50605,10 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "regex-1.13.0": {
+    "regex-1.13.1": {
       "edition": "2021"
     },
-    "regex-automata-0.4.15": {
+    "regex-automata-0.4.16": {
       "edition": "2021"
     },
     "regex-syntax-0.8.11": {
@@ -50662,7 +50675,7 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "rustls-0.23.41": {
+    "rustls-0.23.42": {
       "edition": "2021",
       "build_script": "build.rs"
     },
@@ -50776,7 +50789,7 @@
     "security-framework-sys-2.17.0": {
       "edition": "2021"
     },
-    "self_cell-1.2.2": {
+    "self_cell-1.3.0": {
       "edition": "2018"
     },
     "semver-1.0.28": {
@@ -50835,7 +50848,7 @@
     "shidou-0.1.8-527c3ce244c44b4bb581168ae8429e5dbcee6507": {
       "edition": "2024"
     },
-    "shikumi-0.1.222-9aaf267431b92d9a3a218a6f384f0ed5dd684c93": {
+    "shikumi-0.1.318-0802c4d8b7b16c8e435eed546edb011206c8ba50": {
       "edition": "2024"
     },
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": {
@@ -50850,7 +50863,7 @@
     "signature-2.2.0": {
       "edition": "2021"
     },
-    "simd-adler32-0.3.9": {
+    "simd-adler32-0.3.10": {
       "edition": "2018"
     },
     "simdutf8-0.1.5": {
@@ -50859,7 +50872,7 @@
     "siphasher-1.0.3": {
       "edition": "2018"
     },
-    "skrifa-0.42.1": {
+    "skrifa-0.44.0": {
       "edition": "2021"
     },
     "slab-0.4.12": {
@@ -50879,10 +50892,10 @@
     "smol_str-0.2.2": {
       "edition": "2018"
     },
-    "socket2-0.6.4": {
+    "socket2-0.6.5": {
       "edition": "2021"
     },
-    "spin-0.9.8": {
+    "spin-0.9.9": {
       "edition": "2015"
     },
     "spirv-0.3.0+sdk-1.3.268.0": {
@@ -50955,14 +50968,14 @@
     "svg_fmt-0.4.5": {
       "edition": "2018"
     },
-    "swash-0.2.9": {
+    "swash-0.2.10": {
       "edition": "2021"
     },
     "syn-1.0.109": {
       "edition": "2018",
       "build_script": "build.rs"
     },
-    "syn-2.0.118": {
+    "syn-2.0.119": {
       "edition": "2021"
     },
     "sync_wrapper-1.0.2": {
@@ -51074,10 +51087,10 @@
     "todoku-0.1.0-0f2dc32405f9da2ccebac7f11c8c54f96131a12f": {
       "edition": "2024"
     },
-    "tokio-1.52.3": {
+    "tokio-1.53.0": {
       "edition": "2021"
     },
-    "tokio-macros-2.7.0": {
+    "tokio-macros-2.7.1": {
       "edition": "2021",
       "proc_macro": true
     },
@@ -51105,7 +51118,7 @@
     "toml_edit-0.22.27": {
       "edition": "2021"
     },
-    "toml_edit-0.25.12+spec-1.1.0": {
+    "toml_edit-0.25.13+spec-1.1.0": {
       "edition": "2024"
     },
     "toml_parser-1.1.2+spec-1.1.0": {
@@ -51249,7 +51262,7 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "uuid-1.23.4": {
+    "uuid-1.24.0": {
       "edition": "2021"
     },
     "vcpkg-0.2.15": {
@@ -51425,7 +51438,7 @@
     "winnow-0.7.15": {
       "edition": "2021"
     },
-    "winnow-1.0.3": {
+    "winnow-1.0.4": {
       "edition": "2021"
     },
     "writeable-0.6.3": {
@@ -51497,7 +51510,7 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "zmij-1.0.21": {
+    "zmij-1.0.23": {
       "edition": "2021",
       "build_script": "build.rs"
     },
@@ -51509,25 +51522,25 @@
     }
   },
   "git_nar_sha256": {
-    "awase-0.1.1-25880f6a1dddb6d8d589207e8afc2a5a73969ee0": "sha256-UvuzaneHM+C0wq3+uZ+sf6GEv5JDB1e/sJ2SuA7kJuQ=",
+    "awase-0.1.1-7286b3bc2a1bc4c63929cc60b9d6d1ca2d82616f": "sha256-mtrSTNN3fPcYZy4ky2o328paZtGhkCNpGcd1MfOm6uo=",
     "egaku-0.1.3-81d168190061c452d115f58f186429b84f489be8": "sha256-sNTpm8OD42MDucjVuV5ag1xcoMZatDk4GVIuRFRLa4c=",
     "engate-attach-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": "sha256-7dqrUg3KMEKH5ac5RuK7EJRogt4H3xtv6nDrM0jpccM=",
     "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": "sha256-7dqrUg3KMEKH5ac5RuK7EJRogt4H3xtv6nDrM0jpccM=",
     "engawa-0.1.3-bda639d5d9bd3ec2dd59ff84b2925ae278f24c52": "sha256-Z9exdzhmkz90dNCArTnVC69CxLZDnC1ShRTFvDHE2JA=",
     "engawa-wgpu-0.1.8-acc2b02d46322077861c9e74c6d2e5cb15cb1e5f": "sha256-sE/Qeve2DJY8NVMxAzjRbeZWIUmmWoF6hUAUusSJ4So=",
     "garasu-0.1.4-a2afc2ad6530ed096ab26f5d92bd4e1d348253ee": "sha256-//cvGAyxRVhcwHD56yf9M5SPn63GiwP+y06b8OlVfvs=",
-    "gen-macros-0.1.18-8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2": "sha256-lPsm5o3j8A0d8wzeD/DwZdJOaSnddTkLAISAp/7gPk4=",
-    "gen-platform-0.1.18-8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2": "sha256-lPsm5o3j8A0d8wzeD/DwZdJOaSnddTkLAISAp/7gPk4=",
-    "gen-types-0.1.18-8ff43f2c8fae5d7b46a499eac0dc7c3f96481ae2": "sha256-lPsm5o3j8A0d8wzeD/DwZdJOaSnddTkLAISAp/7gPk4=",
+    "gen-macros-0.1.19-2e575c5b50d39ec1060239f65280fab674673aa3": "sha256-n3VgNtGxxQMe/Ec/90FlXG3cG5GpgcvtTkgS2G9t/WM=",
+    "gen-platform-0.1.19-2e575c5b50d39ec1060239f65280fab674673aa3": "sha256-n3VgNtGxxQMe/Ec/90FlXG3cG5GpgcvtTkgS2G9t/WM=",
+    "gen-types-0.1.19-2e575c5b50d39ec1060239f65280fab674673aa3": "sha256-n3VgNtGxxQMe/Ec/90FlXG3cG5GpgcvtTkgS2G9t/WM=",
     "hasami-0.1.2-c20b0112c09fccae2a9f51260c83fb711f7512d5": "sha256-jumH5OHgIV872elIb65ABgspnrfsA3rkeJyW5SIP6bo=",
-    "hayai-0.1.1-b94f82c562d3f10ffa18f1147a87f16a3176674b": "sha256-smLCXm9bPhMmgljDjFbugnuj55QGAn0WRVV4Ipn+3CU=",
+    "hayai-0.1.1-0aa8014aa7ca0d4723e5b46a3dd68daa21dec7b3": "sha256-5Tt5kEJclnNn07QvwVQhf7uFCiElFi86xegaPs1GArw=",
     "irodzuki-0.1.7-d3bfe781e9c813164a37a0e0a1eeef16f5be9515": "sha256-7iA13F9fE1MktjUB89kQIiVY6TB0wTNHmHNGSJcj9Lg=",
-    "ishou-tokens-0.1.3-47e7e58da1d279b63d6ae464b0244d606741fea6": "sha256-U9i60aKk/BvmGCl8xmXg4NTDoeVZ57thlB0dF9qy49Q=",
+    "ishou-tokens-0.1.3-90485056d461bc04b243ccccad3cdf34e7c7bb0c": "sha256-/JSI6iU8elFbkRNaSFXj84KkjTdyNwAs9PiYcnUNo98=",
     "izumi-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513": "sha256-nuR1nT8ljhe3ybKYVLBnH6CBzDdrPFQ/tM0/ovvQuSA=",
     "izumi-config-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513": "sha256-nuR1nT8ljhe3ybKYVLBnH6CBzDdrPFQ/tM0/ovvQuSA=",
     "izumi-sources-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513": "sha256-nuR1nT8ljhe3ybKYVLBnH6CBzDdrPFQ/tM0/ovvQuSA=",
     "kaname-0.1.1-0570e7ec566b60444307fe5873f80f5beda8fe6c": "sha256-ue2v9p/Eq+z3hmCaL63toSyjpDY6s3H1gGBUFBOX3ek=",
-    "kanchi-0.1.2-141f61011932d1c479abfe44c71d5e7f06cd6071": "sha256-Hp6zyrnBeLlAJP494jyF+fHAY1J3UhGRmjDIHqc0BC8=",
+    "kanchi-0.1.2-09d1ad4c33f8adbff438f0ce8b47b21b15544251": "sha256-D44OuJAAPaQD+m/MOEw7xXAapoWmPVb/ZdqMn3IUs+c=",
     "kanshou-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
     "kanshou-derive-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
     "madori-0.1.5-79b33a4811853f1a8153735a69fb58bde894c2d9": "sha256-35DB90eBg+O8Ie2w8R4sfZr4B4NG+FPbUfwePl0x9qw=",
@@ -51539,7 +51552,7 @@
     "pleme-kindstr-derive-0.1.0-d287f915e9bb8837a443f6238ee900e81318ce89": "sha256-5XDr9kPiT0doWBOOk9yXjxdTCpRgaqWWJCpsc1f+tdw=",
     "praca-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",
     "shidou-0.1.8-527c3ce244c44b4bb581168ae8429e5dbcee6507": "sha256-7UDp5qpjhQHI2p6uh1pRN5V/qzv4lTqqI3wjwJZqfME=",
-    "shikumi-0.1.222-9aaf267431b92d9a3a218a6f384f0ed5dd684c93": "sha256-uCCjAPeKANdtqD2T6oTXdHdee3M8alI7X34POAAVkto=",
+    "shikumi-0.1.318-0802c4d8b7b16c8e435eed546edb011206c8ba50": "sha256-1we4pE+XQRRrjqjledOtzABriKSqYpEw4PbG5HQUbGA=",
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": "sha256-Jd6fUoNSdzk+I5iu7FbAg9F9gbc7oU9jdPnnaTIxL6w=",
     "tatara-lisp-0.2.5-45534e162951cb5ec009372c1508185b71ac1510": "sha256-YIGLYFnd0mv/cNWp7Zr86Dl9whnufxANycNGi//6cBc=",
     "tatara-lisp-derive-0.2.5-45534e162951cb5ec009372c1508185b71ac1510": "sha256-YIGLYFnd0mv/cNWp7Zr86Dl9whnufxANycNGi//6cBc=",
