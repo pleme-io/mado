@@ -52,6 +52,24 @@ an embedded vigy reconciler, and deep Nix integration that no competitor offers.
 > paste-safety) gate nothing and ship from day one. Read these before
 > adding terminal features.
 
+> **★ Floating browser — "The DOM Way of the Browser" (M0/M1 shipped).** mado
+> hosts N floating, snapping, GPU-composited browser surfaces, drivable
+> identically over MCP (`browser_*`), tatara-lisp (`(mado-browser-*)`), and
+> declarative layout (`(deffloatingbrowser)`/`(defsnapzone)`). The panel shows
+> REAL page pixels: nami-core parses HTML → `DisplayList`, `render.rs`
+> `draw_float_panels` rasterizes it per-surface (garasu offscreen → texture,
+> cached by content seqno) + composites via the E1 per-quad-opacity image path.
+> The DOM is a **tatara-lisp value**: nami-core `eval` is re-enabled →
+> `inline_lisp::expand` macroexpands inline lisp in the page tree before paint
+> (DOM manipulation as lisp; no-op for plain HTML) + `dom_to_sexp` is queryable
+> via `(mado-browser-dom-sexp id)`. The pure geometry/snap/state core is in
+> `src/float/` (39 tests); the engine + render port in `src/browser_engine.rs`;
+> the control substrate in `src/browser_bridge.rs`. **Doctrine + phased M0..M4
+> ledger + named debt (`pending-shared-content-translator`,
+> `pending-browser-async-fetch`):**
+> [`theory/DOM-WAY.md`](../theory/DOM-WAY.md). Do NOT re-author the DrawCmd→GPU
+> translator a third time — the Op#1 fix is one shared crate.
+
 ## Build & Test
 
 ```bash
