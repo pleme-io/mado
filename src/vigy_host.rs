@@ -254,6 +254,98 @@ fn mado_intrinsics_extension() -> ExtensionHandle {
                 Ok(ExtValue::Nil)
             },
         );
+
+        // ── Floating-browser control (mado-memory-privileged: needs mado's
+        // live in-process float/window state; cannot be done in the shell).
+        // Each mutating verb queues a BrowserVerb on the process-global
+        // browser bridge; it returns `true` only when a live GUI float loop
+        // is draining the sink (else `false` — the no-injection-sink honesty
+        // gate, never a silent success). The bridge is installed only in the
+        // GUI process, so a vigy in the `mado mcp` process honestly gets
+        // `false`. ──
+
+        // (mado-browser-open "https://…") → bool (queued?)
+        interp.register_fn(
+            "mado-browser-open",
+            ExtArity::Exact(1),
+            |args: &[ExtValue], _host: &mut VigyHost, sp| {
+                let url = lisp_string(&args[0], sp)?;
+                let ok = crate::browser_bridge::get()
+                    .map(|b| b.open(&url))
+                    .unwrap_or(false);
+                Ok(ExtValue::Bool(ok))
+            },
+        );
+
+        // (mado-browser-navigate id "url") → bool
+        interp.register_fn(
+            "mado-browser-navigate",
+            ExtArity::Exact(2),
+            |args: &[ExtValue], _host: &mut VigyHost, sp| {
+                let id = lisp_int(&args[0], sp)?;
+                let url = lisp_string(&args[1], sp)?;
+                let ok = crate::browser_bridge::get()
+                    .map(|b| b.navigate(mado::float::BrowserId(id as u32), &url))
+                    .unwrap_or(false);
+                Ok(ExtValue::Bool(ok))
+            },
+        );
+
+        // (mado-browser-snap id :left-half) → bool
+        interp.register_fn(
+            "mado-browser-snap",
+            ExtArity::Exact(2),
+            |args: &[ExtValue], _host: &mut VigyHost, sp| {
+                let id = lisp_int(&args[0], sp)?;
+                let zone = lisp_string(&args[1], sp)?;
+                let ok = crate::browser_bridge::get()
+                    .map(|b| b.snap(mado::float::BrowserId(id as u32), &zone))
+                    .unwrap_or(false);
+                Ok(ExtValue::Bool(ok))
+            },
+        );
+
+        // (mado-browser-focus id) → bool
+        interp.register_fn(
+            "mado-browser-focus",
+            ExtArity::Exact(1),
+            |args: &[ExtValue], _host: &mut VigyHost, sp| {
+                let id = lisp_int(&args[0], sp)?;
+                let ok = crate::browser_bridge::get()
+                    .map(|b| b.focus(mado::float::BrowserId(id as u32)))
+                    .unwrap_or(false);
+                Ok(ExtValue::Bool(ok))
+            },
+        );
+
+        // (mado-browser-close id) → bool
+        interp.register_fn(
+            "mado-browser-close",
+            ExtArity::Exact(1),
+            |args: &[ExtValue], _host: &mut VigyHost, sp| {
+                let id = lisp_int(&args[0], sp)?;
+                let ok = crate::browser_bridge::get()
+                    .map(|b| b.close(mado::float::BrowserId(id as u32)))
+                    .unwrap_or(false);
+                Ok(ExtValue::Bool(ok))
+            },
+        );
+
+        // (mado-browser-list) → JSON string of live float surfaces
+        // (ExtValue has no list variant, so the read snapshot is JSON —
+        // the same shape browser_list returns over MCP).
+        interp.register_fn(
+            "mado-browser-list",
+            ExtArity::Exact(0),
+            |_args: &[ExtValue], _host: &mut VigyHost, _sp| {
+                let surfaces = crate::browser_bridge::get()
+                    .map(crate::browser_bridge::BrowserBridge::surfaces)
+                    .unwrap_or_default();
+                let json = serde_json::to_string(&surfaces)
+                    .unwrap_or_else(|_| String::from("[]"));
+                Ok(ExtValue::Str(std::sync::Arc::from(json.as_str())))
+            },
+        );
     })
 }
 
@@ -284,6 +376,14 @@ fn lisp_string(v: &ExtValue, sp: vigy::eval::Span) -> std::result::Result<String
             other.type_name(),
             sp,
         )),
+    }
+}
+
+/// Extract an `i64` from a lisp arg (browser-surface ids arrive as ints).
+fn lisp_int(v: &ExtValue, sp: vigy::eval::Span) -> std::result::Result<i64, ExtEvalError> {
+    match v {
+        ExtValue::Int(i) => Ok(*i),
+        other => Err(ExtEvalError::type_mismatch("int", other.type_name(), sp)),
     }
 }
 
