@@ -162,6 +162,11 @@ pub struct MadoConfig {
     /// bare tier makes every transition instant.
     #[serde(default)]
     pub motion: MotionConfig,
+    /// Floating & snapping browser surfaces (see [`BrowserConfig`] +
+    /// [`crate::float`]). Prescribed default ON (a float surface can be
+    /// spawned, snapping armed); the bare tier disables the whole subsystem.
+    #[serde(default)]
+    pub browser: BrowserConfig,
 }
 
 /// Mado's embedded-vigy gate. Defaults the runtime OFF — operators
@@ -1073,6 +1078,89 @@ impl MadoLinksConfig {
             highlight: true,
             open_on_click: true,
             pointer_cursor: true,
+        }
+    }
+}
+
+/// Floating & snapping browser surfaces (see [`crate::float`] +
+/// theory/BROWSER.md). Tiered: bare = the whole subsystem OFF (no float
+/// surface can be spawned); prescribed = ON with a sensible default float
+/// geometry + edge-snapping armed. The snap knobs project into the pure
+/// [`mado::float::SnapConfig`] the [`mado::float::SnapSystem`] consumes —
+/// the ONE wiring site (mirrors [`crate::ux::behavior::UxBehavior::scroll_config`]).
+///
+/// `f32` fields (`default_opacity`, `snap_band`) forbid `Eq` — `PartialEq`
+/// only, the `UxBehavior` precedent.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct BrowserConfig {
+    /// Master switch. `false` (bare) means no floating browser surface can
+    /// be created at all — the browser command path is inert.
+    pub enabled: bool,
+    /// Default float width in logical pixels for a newly-spawned surface.
+    pub default_width: u32,
+    /// Default float height in logical pixels for a newly-spawned surface.
+    pub default_height: u32,
+    /// Default float opacity (0.0..=1.0) — the browser quad's alpha when
+    /// composited over the terminal grid.
+    pub default_opacity: f32,
+    /// Enable edge/corner snapping during a window drag. Projects into
+    /// [`mado::float::SnapConfig`]`::enabled`.
+    pub snap_enabled: bool,
+    /// Snap activation-band thickness as a fraction of the viewport
+    /// dimension. Projects into [`mado::float::SnapConfig`]`::band`
+    /// (clamped 0.0..=0.5 by the snap system).
+    pub snap_band: f32,
+    /// Restore the last float geometry + URL when a surface is re-opened.
+    pub restore_on_close: bool,
+}
+
+impl Default for BrowserConfig {
+    fn default() -> Self {
+        Self::prescribed()
+    }
+}
+
+impl BrowserConfig {
+    /// Bare tier — the whole floating-browser subsystem off.
+    #[must_use]
+    pub fn bare() -> Self {
+        Self {
+            enabled: false,
+            default_width: 0,
+            default_height: 0,
+            default_opacity: 1.0,
+            snap_enabled: false,
+            snap_band: 0.0,
+            restore_on_close: false,
+        }
+    }
+
+    /// Prescribed tier — subsystem on, sensible float geometry, snapping
+    /// armed at the `SnapConfig::default()` band.
+    #[must_use]
+    pub fn prescribed() -> Self {
+        Self {
+            enabled: true,
+            default_width: 900,
+            default_height: 640,
+            default_opacity: 0.98,
+            snap_enabled: true,
+            // Matches `float::SnapConfig::default().band` (0.06).
+            snap_band: 0.06,
+            restore_on_close: true,
+        }
+    }
+
+    /// Project the flat browser snap knobs into the typed
+    /// [`mado::float::SnapConfig`] the [`mado::float::SnapSystem`]
+    /// consumes. The ONE wiring site (mirrors `UxBehavior::scroll_config`).
+    #[must_use]
+    pub fn snap_config(&self) -> mado::float::SnapConfig {
+        mado::float::SnapConfig {
+            // A globally-disabled browser also disables snapping.
+            enabled: self.enabled && self.snap_enabled,
+            band: self.snap_band,
         }
     }
 }
@@ -3076,6 +3164,8 @@ impl MadoConfig {
             display: DisplayConfig::bare(),
             notifications: NotificationsConfig::bare(),
             motion: MotionConfig::bare(),
+            // bare = floating-browser subsystem fully off.
+            browser: BrowserConfig::bare(),
         }
     }
 
@@ -3332,6 +3422,7 @@ fn mado_fleet_base() -> MadoConfig {
         display: DisplayConfig::default(),
         notifications: NotificationsConfig::default(),
         motion: MotionConfig::default(),
+        browser: BrowserConfig::default(),
     }
 }
 
@@ -4417,6 +4508,7 @@ mod tests {
         display: DisplayConfig::default(),
             notifications: NotificationsConfig::default(),
             motion: MotionConfig::default(),
+            browser: BrowserConfig::default(),
         };
         if fd.scrollback_lines == 10_000 {
             c.behavior.scrollback_lines = default_scrollback();
@@ -4449,6 +4541,59 @@ mod tests {
 
         // Default == prescribed.
         assert_eq!(MadoLinksConfig::default(), MadoLinksConfig::prescribed());
+    }
+
+    #[test]
+    fn browser_config_tiers() {
+        // Bare disables the whole floating-browser subsystem; prescribed
+        // arms it with a sensible float geometry + snapping.
+        assert!(!MadoConfig::bare().browser.enabled);
+        assert!(!MadoConfig::bare().browser.snap_enabled);
+        assert!(MadoConfig::default().browser.enabled);
+        assert!(MadoConfig::default().browser.snap_enabled);
+        assert!(MadoConfig::default().browser.restore_on_close);
+        assert!(MadoConfig::default().browser.default_width > 0);
+        assert!(MadoConfig::default().browser.default_height > 0);
+
+        // A browser section round-trips through YAML; deny_unknown_fields
+        // makes a typo'd key a hard parse error, not a silent default.
+        let cfg = BrowserConfig {
+            enabled: true,
+            default_width: 1024,
+            default_height: 720,
+            default_opacity: 0.9,
+            snap_enabled: false,
+            snap_band: 0.1,
+            restore_on_close: false,
+        };
+        let yaml = serde_yaml_ng::to_string(&cfg).expect("serialize browser config");
+        let back: BrowserConfig =
+            serde_yaml_ng::from_str(&yaml).expect("round-trip browser config");
+        assert_eq!(cfg, back);
+    }
+
+    #[test]
+    fn browser_config_projects_the_knobs() {
+        // The flat browser knobs project into the pure float::SnapConfig —
+        // the ONE wiring site. A dead knob (hard-coded at the consumer) is
+        // the regression this guards.
+        let mut config = MadoConfig::default();
+        config.browser.enabled = true;
+        config.browser.snap_enabled = true;
+        config.browser.snap_band = 0.08;
+        let sc = config.browser.snap_config();
+        assert!(sc.enabled);
+        assert!((sc.band - 0.08).abs() < 1e-6);
+
+        // Master-off forces snapping off even if snap_enabled is true.
+        config.browser.enabled = false;
+        config.browser.snap_enabled = true;
+        assert!(!config.browser.snap_config().enabled);
+
+        // snap_enabled off with master on → snapping off.
+        config.browser.enabled = true;
+        config.browser.snap_enabled = false;
+        assert!(!config.browser.snap_config().enabled);
     }
 
     #[test]

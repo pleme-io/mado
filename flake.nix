@@ -197,6 +197,49 @@
             description = "Upper bound when on battery.";
           };
         };
+
+        # Floating & snapping browser surfaces (theory/BROWSER.md).
+        # Lands at blackmatter.components.mado.browser.* in Nix and
+        # `browser: { … }` in ~/.config/mado/mado.yaml — the typed mirror of
+        # config.rs::BrowserConfig (keep the two in lockstep or a rendered
+        # key fails deny_unknown_fields at load).
+        browser = {
+          enabled = {
+            type = "bool";
+            default = true;
+            description = "Enable floating & snapping browser surfaces. false disables the whole subsystem.";
+          };
+          default_width = {
+            type = "int";
+            default = 900;
+            description = "Default float width in logical pixels for a new surface.";
+          };
+          default_height = {
+            type = "int";
+            default = 640;
+            description = "Default float height in logical pixels for a new surface.";
+          };
+          default_opacity = {
+            type = "float";
+            default = 0.98;
+            description = "Default float opacity (0.0-1.0) — the browser quad's alpha over the grid.";
+          };
+          snap_enabled = {
+            type = "bool";
+            default = true;
+            description = "Enable edge/corner snapping during a window drag.";
+          };
+          snap_band = {
+            type = "float";
+            default = 0.06;
+            description = "Snap activation-band thickness as a fraction of the viewport dimension (clamped 0.0-0.5).";
+          };
+          restore_on_close = {
+            type = "bool";
+            default = true;
+            description = "Restore last float geometry + URL when a surface is re-opened.";
+          };
+        };
       };
 
       # Top-level font_family / font_size live outside any typed
