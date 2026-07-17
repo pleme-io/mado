@@ -13,6 +13,15 @@
 //!
 //! **Do not widen this surface ad hoc.** Add a module here only when a
 //! second pure, self-contained module earns a bench or an extraction.
+//!
+//! [`float`] is the second such module: the pure, engine-agnostic floating &
+//! snapping browser-surface substrate (geometry, snapping, z-stack + window
+//! FSM, and the injectable `BrowserBackend` engine seam). It lives here so its
+//! property/mock tests link the lib crate and so the snap-geometry / chrome
+//! primitives have a lib target to extract from (an egaku/ishou candidate per
+//! QUADRO T1). Zero GPU / engine / MCP — those layers (M1+) live in the bin and
+//! consume this via `use mado::float;`.
 #![allow(dead_code)]
 
+pub mod float;
 pub mod motion;

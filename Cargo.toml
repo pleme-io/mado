@@ -174,6 +174,23 @@ tear-config = { git = "https://github.com/pleme-io/tear", rev = "f9b1f394fa0ee53
 # unifies the shared tear-types crate identity (one git source rule).
 praca = { git = "https://github.com/pleme-io/tear", rev = "f9b1f394fa0ee5367b2e8d14c601fe1202707501" , version = "0.1" }
 
+# egaku — the fleet widget-geometry + widget typescape. Consumed today ONLY
+# for `egaku::Rect` (the geometry type the `float` floating-browser module
+# builds on — "no second Rect type", Op#1). SAME git source + rev as the
+# `[patch.crates-io]` egaku pin below (and as irodzuki's egaku dep) so cargo
+# unifies ONE egaku crate identity — a divergent rev is the documented E0463
+# split-crate break. When the floating-window CHROME widget lands it consumes
+# egaku's widget trait too (QUADRO T1); until then this is a geometry-only dep.
+egaku = { git = "https://github.com/pleme-io/egaku", rev = "81d168190061c452d115f58f186429b84f489be8" , version = "0.1" }
+
+# tatara-lisp — the Four-Lisps authoring engine. Consumed by the `float`
+# module's `spec` border: `#[derive(DeriveTataraDomain)]` turns
+# `(deffloatingbrowser …)` / `(defsnapzone …)` forms into typed specs
+# (org Pillar 1: Rust owns types, tatara-lisp owns declarative authoring).
+# SAME git source as vigy's tatara-lisp dep so cargo unifies ONE tatara-lisp
+# crate identity (vigy already locks it at 0.2.5 — one git source rule).
+tatara-lisp = { git = "https://github.com/pleme-io/tatara-lisp" , version = "0.2" }
+
 # Vigy — always-on tatara-lisp reconciler runtime, embedded in-process.
 # Hosts small reconcilers ("vigies") that tick continuously to keep
 # pieces of mado's state always-converging toward desired. Apps inside
