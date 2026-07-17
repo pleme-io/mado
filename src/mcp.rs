@@ -1878,6 +1878,52 @@ impl MadoMcp {
         merge_browser_outcome(outcome, "closed", serde_json::json!({ "id": id }))
     }
 
+    #[tool(description = "Free-float a browser surface (numeric `id`) to an absolute top-left (`x`,`y` in logical px) in the LIVE GUI mado; clamped to the viewport (use browser_snap for named half/quadrant zones). Returns `{ok, moved, id, x, y, live_gui_pid}`, or the typed error envelope (no-injection-sink / not-forwardable).")]
+    async fn browser_move(&self, Parameters(input): Parameters<BrowserMoveInput>) -> String {
+        let (id, x, y) = (input.id, input.x, input.y);
+        let outcome = kanshou::mcp::forward_status(
+            "mado",
+            &kanshou::Query::call(
+                ["browser_move"],
+                [serde_json::json!(id), serde_json::json!(x), serde_json::json!(y)],
+            ),
+            move || {
+                Ok(browser_not_forwardable(
+                    serde_json::json!({ "id": id, "x": x, "y": y }),
+                ))
+            },
+        )
+        .await;
+        merge_browser_outcome(
+            outcome,
+            "moved",
+            serde_json::json!({ "id": id, "x": x, "y": y }),
+        )
+    }
+
+    #[tool(description = "Resize a browser surface (numeric `id`) to absolute `w`×`h` (logical px) in the LIVE GUI mado; clamped to the viewport. Returns `{ok, resized, id, w, h, live_gui_pid}`, or the typed error envelope (no-injection-sink / not-forwardable).")]
+    async fn browser_resize(&self, Parameters(input): Parameters<BrowserResizeInput>) -> String {
+        let (id, w, h) = (input.id, input.w, input.h);
+        let outcome = kanshou::mcp::forward_status(
+            "mado",
+            &kanshou::Query::call(
+                ["browser_resize"],
+                [serde_json::json!(id), serde_json::json!(w), serde_json::json!(h)],
+            ),
+            move || {
+                Ok(browser_not_forwardable(
+                    serde_json::json!({ "id": id, "w": w, "h": h }),
+                ))
+            },
+        )
+        .await;
+        merge_browser_outcome(
+            outcome,
+            "resized",
+            serde_json::json!({ "id": id, "w": w, "h": h }),
+        )
+    }
+
     #[tool(description = "Request a PNG snapshot of a floating browser surface (numeric `id`, from browser_list) in the LIVE GUI mado. The page renders on the next GUI tick; then poll `browser_snapshot_get` for the base64 PNG. Returns `{ok, requested, id, live_gui_pid}`, or the typed error envelope (no-injection-sink / not-forwardable).")]
     async fn browser_snapshot(&self, Parameters(input): Parameters<BrowserIdInput>) -> String {
         let id = input.id;
@@ -2023,6 +2069,26 @@ struct BrowserSnapInput {
 struct BrowserIdInput {
     #[schemars(description = "The numeric surface id (from browser_list).")]
     id: u32,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct BrowserMoveInput {
+    #[schemars(description = "The numeric surface id (from browser_list).")]
+    id: u32,
+    #[schemars(description = "Absolute top-left x in logical px; clamped to the viewport.")]
+    x: f64,
+    #[schemars(description = "Absolute top-left y in logical px; clamped to the viewport.")]
+    y: f64,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct BrowserResizeInput {
+    #[schemars(description = "The numeric surface id (from browser_list).")]
+    id: u32,
+    #[schemars(description = "Width in logical px; clamped to the viewport.")]
+    w: f64,
+    #[schemars(description = "Height in logical px; clamped to the viewport.")]
+    h: f64,
 }
 
 
@@ -5012,6 +5078,28 @@ mod tests {
             "browser_close",
             server
                 .browser_close(Parameters(BrowserIdInput { id: u32::MAX }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "browser_move",
+            server
+                .browser_move(Parameters(BrowserMoveInput {
+                    id: u32::MAX,
+                    x: 0.0,
+                    y: 0.0,
+                }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "browser_resize",
+            server
+                .browser_resize(Parameters(BrowserResizeInput {
+                    id: u32::MAX,
+                    w: 0.0,
+                    h: 0.0,
+                }))
                 .await,
             &["ok"],
         ));

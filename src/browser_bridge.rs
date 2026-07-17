@@ -204,6 +204,16 @@ impl BrowserBridge {
         self.commands.push(BrowserVerb::Close { id })
     }
 
+    /// Free-float a surface to an absolute top-left (px), clamped to the viewport.
+    pub fn move_to(&self, id: BrowserId, x: f64, y: f64) -> bool {
+        self.commands.push(BrowserVerb::Move { id, x, y })
+    }
+
+    /// Resize a surface to absolute px, clamped to the viewport.
+    pub fn resize(&self, id: BrowserId, w: f64, h: f64) -> bool {
+        self.commands.push(BrowserVerb::Resize { id, w, h })
+    }
+
     /// Request a page snapshot (rendered + published a tick later).
     pub fn snapshot(&self, id: BrowserId) -> bool {
         self.commands.push(BrowserVerb::Snapshot { id })

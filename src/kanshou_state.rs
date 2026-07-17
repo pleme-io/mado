@@ -815,6 +815,70 @@ impl Introspect for MadoAppState {
                 let closed = bridge.close(mado::float::BrowserId(id));
                 Ok(serde_json::json!({ "closed": closed, "id": id }))
             }
+            // Method-call leaf — args: [id: int, x: number, y: number]. Free-floats
+            // a surface to an absolute top-left (px), clamped to the viewport.
+            "browser_move" => {
+                if q.args.len() != 3 {
+                    return Err(QueryError::BadArity {
+                        expected: 3,
+                        actual: q.args.len(),
+                    });
+                }
+                let Some(id) = browser_id_arg(&q.args[0]) else {
+                    return Err(QueryError::TypeMismatch {
+                        path: "browser_move".to_string(),
+                        expected: "u32".to_string(),
+                        actual: format!("{:?}", q.args[0]),
+                    });
+                };
+                let (Some(x), Some(y)) = (q.args[1].as_f64(), q.args[2].as_f64()) else {
+                    return Err(QueryError::TypeMismatch {
+                        path: "browser_move".to_string(),
+                        expected: "number".to_string(),
+                        actual: format!("{:?} {:?}", q.args[1], q.args[2]),
+                    });
+                };
+                let Some(bridge) = crate::browser_bridge::get() else {
+                    return Ok(no_injection_sink());
+                };
+                if !bridge.sink_attached() {
+                    return Ok(no_injection_sink());
+                }
+                let moved = bridge.move_to(mado::float::BrowserId(id), x, y);
+                Ok(serde_json::json!({ "moved": moved, "id": id, "x": x, "y": y }))
+            }
+            // Method-call leaf — args: [id: int, w: number, h: number]. Resizes a
+            // surface to absolute px, clamped to the viewport.
+            "browser_resize" => {
+                if q.args.len() != 3 {
+                    return Err(QueryError::BadArity {
+                        expected: 3,
+                        actual: q.args.len(),
+                    });
+                }
+                let Some(id) = browser_id_arg(&q.args[0]) else {
+                    return Err(QueryError::TypeMismatch {
+                        path: "browser_resize".to_string(),
+                        expected: "u32".to_string(),
+                        actual: format!("{:?}", q.args[0]),
+                    });
+                };
+                let (Some(w), Some(h)) = (q.args[1].as_f64(), q.args[2].as_f64()) else {
+                    return Err(QueryError::TypeMismatch {
+                        path: "browser_resize".to_string(),
+                        expected: "number".to_string(),
+                        actual: format!("{:?} {:?}", q.args[1], q.args[2]),
+                    });
+                };
+                let Some(bridge) = crate::browser_bridge::get() else {
+                    return Ok(no_injection_sink());
+                };
+                if !bridge.sink_attached() {
+                    return Ok(no_injection_sink());
+                }
+                let resized = bridge.resize(mado::float::BrowserId(id), w, h);
+                Ok(serde_json::json!({ "resized": resized, "id": id, "w": w, "h": h }))
+            }
             // Method-call leaf — args: [id: int]. Requests a GPU render of the
             // surface's current page into a base64 PNG (published a tick later);
             // poll `browser_snapshot_get` for the result. Honesty-gated like the
@@ -903,6 +967,8 @@ impl Introspect for MadoAppState {
             "browser_snap",
             "browser_focus",
             "browser_close",
+            "browser_move",
+            "browser_resize",
             "browser_snapshot",
             "browser_snapshot_get",
             "browser_surfaces",
@@ -1519,6 +1585,8 @@ mod tests {
             "browser_snap",
             "browser_focus",
             "browser_close",
+            "browser_move",
+            "browser_resize",
             "browser_snapshot",
             "browser_snapshot_get",
             "browser_surfaces",
@@ -1620,6 +1688,51 @@ mod tests {
             let err = s
                 .query(&Query::call([leaf], [serde_json::json!("nope")]))
                 .expect_err("non-int id must be TypeMismatch");
+            assert!(
+                matches!(err, QueryError::TypeMismatch { .. }),
+                "{leaf}: got {err:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn browser_move_and_resize_reject_bad_args() {
+        let s = state();
+        for leaf in ["browser_move", "browser_resize"] {
+            // Zero args → BadArity (both take [id, a, b]).
+            let err = s
+                .query(&Query::call([leaf], []))
+                .expect_err("zero args must be BadArity");
+            assert!(
+                matches!(err, QueryError::BadArity { expected: 3, actual: 0 }),
+                "{leaf}: got {err:?}"
+            );
+            // Non-int id → TypeMismatch.
+            let err = s
+                .query(&Query::call(
+                    [leaf],
+                    [
+                        serde_json::json!("nope"),
+                        serde_json::json!(0.0),
+                        serde_json::json!(0.0),
+                    ],
+                ))
+                .expect_err("non-int id must be TypeMismatch");
+            assert!(
+                matches!(err, QueryError::TypeMismatch { .. }),
+                "{leaf}: got {err:?}"
+            );
+            // Non-number coordinate → TypeMismatch.
+            let err = s
+                .query(&Query::call(
+                    [leaf],
+                    [
+                        serde_json::json!(1),
+                        serde_json::json!("x"),
+                        serde_json::json!(0.0),
+                    ],
+                ))
+                .expect_err("non-number coordinate must be TypeMismatch");
             assert!(
                 matches!(err, QueryError::TypeMismatch { .. }),
                 "{leaf}: got {err:?}"
