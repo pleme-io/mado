@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "c37b9b38b8d81d4a2f3f6b4eddf58b498f9a251af472ccefe5504eb293b799f0",
+  "cargo_lock_sha256": "61268cfef7e206ea11961c47a61de9c5d950e425781de4fd9efe821eecbd3a2e",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -17392,7 +17392,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.319-13af7e69f28abb0eb207594b7162ecce41cd49ec": {
+      "shikumi-0.1.320-e8a1f924d61f8f23834343ec719ceba9f9b2db3a": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -21109,7 +21109,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.319-13af7e69f28abb0eb207594b7162ecce41cd49ec",
+            "package_key": "shikumi-0.1.320-e8a1f924d61f8f23834343ec719ceba9f9b2db3a",
             "kind": "normal",
             "features": [
               "cli"
@@ -26578,7 +26578,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.82": {
+          "mado-0.1.83": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31539,7 +31539,7 @@
               "system"
             ]
           },
-          "mado-0.1.82": {
+          "mado-0.1.83": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35712,7 +35712,7 @@
               "system"
             ]
           },
-          "mado-0.1.82": {
+          "mado-0.1.83": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -40034,7 +40034,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.82": {
+          "mado-0.1.83": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44959,7 +44959,7 @@
               "system"
             ]
           },
-          "mado-0.1.82": {
+          "mado-0.1.83": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -49096,7 +49096,7 @@
               "system"
             ]
           },
-          "mado-0.1.82": {
+          "mado-0.1.83": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -53404,7 +53404,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.82": {
+    "mado-0.1.83": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -54236,7 +54236,7 @@
     "shidou-0.1.9-35c12221ac8622d90e03e21d5fec30ac329547e7": {
       "edition": "2024"
     },
-    "shikumi-0.1.319-13af7e69f28abb0eb207594b7162ecce41cd49ec": {
+    "shikumi-0.1.320-e8a1f924d61f8f23834343ec719ceba9f9b2db3a": {
       "edition": "2024"
     },
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": {
@@ -54980,7 +54980,7 @@
     "pleme-kindstr-derive-0.1.0-d287f915e9bb8837a443f6238ee900e81318ce89": "sha256-5XDr9kPiT0doWBOOk9yXjxdTCpRgaqWWJCpsc1f+tdw=",
     "praca-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",
     "shidou-0.1.9-35c12221ac8622d90e03e21d5fec30ac329547e7": "sha256-rjs+1FgZD/d2rqK7EXglvJI0IlziAYLwLOiQAJOE7PQ=",
-    "shikumi-0.1.319-13af7e69f28abb0eb207594b7162ecce41cd49ec": "sha256-OZbyTWkaBPcCJ/iUPpvqzbDrmgY4fpYMJt2WTM2yumo=",
+    "shikumi-0.1.320-e8a1f924d61f8f23834343ec719ceba9f9b2db3a": "sha256-yyWdbyK7EIBSW3ng3XBUpo+RchEK1FOa+Rm9do3kbqk=",
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": "sha256-Jd6fUoNSdzk+I5iu7FbAg9F9gbc7oU9jdPnnaTIxL6w=",
     "tatara-core-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
     "tatara-eval-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
