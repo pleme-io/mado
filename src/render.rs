@@ -762,11 +762,13 @@ struct ImageVertex {
     @location(1) size: vec2<f32>,
     @location(2) uv_offset: vec2<f32>,
     @location(3) uv_scale: vec2<f32>,
+    @location(4) opacity: f32,
 };
 
 struct VsOut {
     @builtin(position) position: vec4<f32>,
     @location(0) uv: vec2<f32>,
+    @location(1) opacity: f32,
 };
 
 @group(0) @binding(0) var<uniform> screen: ScreenUniforms;
@@ -786,12 +788,15 @@ fn vs_main(@builtin(vertex_index) vi: u32, instance: ImageVertex) -> VsOut {
     var out: VsOut;
     out.position = vec4(ndc, 0.0, 1.0);
     out.uv = instance.uv_offset + c * instance.uv_scale;
+    out.opacity = instance.opacity;
     return out;
 }
 
 @fragment
 fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
-    return textureSample(image_tex, image_samp, in.uv);
+    var col = textureSample(image_tex, image_samp, in.uv);
+    col.a = col.a * in.opacity;
+    return col;
 }
 ";
 
@@ -802,7 +807,18 @@ struct ImageInstance {
     size: [f32; 2],
     uv_offset: [f32; 2],
     uv_scale: [f32; 2],
+    // Per-quad opacity multiplier (offset 32). Kept in LOCKSTEP with the
+    // VertexBufferLayout attribute (shader_location 4, offset 32) and the
+    // IMAGE_SHADER `col.a *= in.opacity`; a mismatch of any of the three is
+    // silent GPU corruption, so the size + offset are compile-pinned below.
+    opacity: f32,
 }
+
+// Byte-pin (compile-time): the opacity field's size + offset must match the
+// VertexBufferLayout attribute (offset 32) or bytemuck reads garbage. A struct
+// layout change that desyncs them is a compile error, not a silent GPU glitch.
+const _: () = assert!(std::mem::size_of::<ImageInstance>() == 36);
+const _: () = assert!(std::mem::offset_of!(ImageInstance, opacity) == 32);
 
 struct ImagePipeline {
     pipeline: wgpu::RenderPipeline,
@@ -892,6 +908,13 @@ impl ImagePipeline {
                     format: wgpu::VertexFormat::Float32x2,
                     offset: 24,
                     shader_location: 3,
+                },
+                // opacity — LOCKSTEP with ImageInstance.opacity (offset 32) +
+                // IMAGE_SHADER @location(4). Pinned by the byte-pin test.
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32,
+                    offset: 32,
+                    shader_location: 4,
                 },
             ],
         };
@@ -4403,6 +4426,9 @@ impl TerminalRenderer {
                     size: [pw, ph],
                     uv_offset: [uv_x, uv_y],
                     uv_scale: [uv_w, uv_h],
+                    // Kitty images composite at full opacity; the browser
+                    // overlay path (draw_float_surfaces) is what varies it.
+                    opacity: 1.0,
                 },
             ));
         }
