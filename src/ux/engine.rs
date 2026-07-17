@@ -200,18 +200,17 @@ pub struct InputEngine {
     float: mado::float::FloatFocus,
     /// Pure snapping geometry (the built-in zone table).
     snap: mado::float::SnapSystem,
-    /// Per-surface interaction FSM + the live engine + current URL, keyed by
-    /// browser id.
+    /// Per-surface browser state (FSM + engine + url + fetch epoch), keyed by
+    /// browser id. See [`crate::browser_engine::BrowserSurface`].
     browsers: std::collections::HashMap<
         mado::float::BrowserId,
-        (
-            mado::float::FloatWindowFsm,
-            crate::browser_engine::RealBrowserBackend,
-            String,
-        ),
+        crate::browser_engine::BrowserSurface,
     >,
     /// The next browser id to mint.
     next_browser_id: mado::float::BrowserId,
+    /// Completed off-thread page fetches (the sender is cloned into each worker).
+    fetch_tx: std::sync::mpsc::Sender<crate::browser_fetch::FetchDone>,
+    fetch_rx: std::sync::mpsc::Receiver<crate::browser_fetch::FetchDone>,
     /// The surface currently being title-bar-dragged + the grab offset from its
     /// rect origin. `None` ⇒ no drag in flight (the common case).
     active_drag: Option<(mado::float::BrowserId, (f32, f32))>,
@@ -325,6 +324,9 @@ impl InputEngine {
             .session_picker_bridge
             .as_ref()
             .and_then(|bridge| bridge.suggestion_subscribe());
+        // The async page-fetch channel: workers send completed fetches back here,
+        // the engine drains them each render tick (never blocks the GUI).
+        let (fetch_tx, fetch_rx) = std::sync::mpsc::channel();
         Self {
             terminal: params.terminal,
             pty: params.pty,
@@ -352,6 +354,8 @@ impl InputEngine {
             snap: mado::float::SnapSystem::new(mado::float::SnapConfig::default()),
             browsers: std::collections::HashMap::new(),
             next_browser_id: mado::float::BrowserId(0),
+            fetch_tx,
+            fetch_rx,
             active_drag: None,
             last_viewport: egaku::Rect::new(0.0, 0.0, 0.0, 0.0),
             overlay_focus,
@@ -2067,21 +2071,9 @@ impl InputEngine {
     /// RENDERED surface signature; resizes BOTH halves: mado's
     /// mirror VT grid (wrap math, CPR/XTWINOPS answers, mouse
     /// clamps) and the pane's PTY through the [`ResizeSink`].
-    /// A non-blocking Nord placeholder page rendered on open/navigate. The
-    /// real network fetch is a synchronous blocking call, so it CANNOT run on
-    /// the render thread — an off-thread fetch that swaps in the real
-    /// DisplayList is the named follow-up (`pending-browser-async-fetch`).
-    const BROWSER_PLACEHOLDER_HTML: &'static str = "<style>div{background-color:#2e3440;width:520px;height:140px} p{color:#88c0d0;height:28px}</style><div><p>floating browser</p></div>";
-
     /// Title-bar band height (px) — a Left press in the top band of a surface
     /// starts a drag; elsewhere in the panel it only focuses/raises.
     const FLOAT_TITLE_BAR_PX: f32 = 28.0;
-
-    /// Whether any floating browser surface is open.
-    #[must_use]
-    pub(crate) fn has_browsers(&self) -> bool {
-        !self.float.is_empty()
-    }
 
     /// Realize one queued browser command against the float z-stack + engines
     /// (called from the per-frame bridge drain). `viewport` is the terminal
@@ -2112,26 +2104,59 @@ impl InputEngine {
                     rect.width as u32,
                     rect.height as u32,
                 );
-                // Non-blocking: render the placeholder (real engine, real
-                // DisplayList). Real fetch is off-thread (backlog).
-                backend.render_html(Self::BROWSER_PLACEHOLDER_HTML);
+                // Non-blocking: show a loading card immediately; the real page
+                // fetch runs off-thread and replaces it a tick later (via
+                // drain_browser_fetches). A malformed URL renders the error card
+                // and never spawns a worker.
+                let epoch = 1;
+                match url::Url::parse(&url) {
+                    Ok(parsed) => {
+                        backend.set_loading();
+                        crate::browser_fetch::spawn_fetch(
+                            self.fetch_tx.clone(),
+                            id,
+                            parsed,
+                            epoch,
+                        );
+                    }
+                    Err(e) => backend.render_error(&e.to_string()),
+                }
                 self.float.open(id, rect, RectProvenance::Configured);
                 self.browsers.insert(
                     id,
-                    (mado::float::FloatWindowFsm::floating(), backend, url),
+                    crate::browser_engine::BrowserSurface {
+                        backend,
+                        url,
+                        fetch_epoch: epoch,
+                    },
                 );
             }
             V::Navigate { id, url } => {
-                if let Some((_, backend, u)) = self.browsers.get_mut(&id) {
-                    backend.render_html(Self::BROWSER_PLACEHOLDER_HTML);
-                    *u = url;
+                if let Some(s) = self.browsers.get_mut(&id) {
+                    // Bump the epoch so an in-flight fetch for the previous URL
+                    // is dropped when it lands (stale-guard in drain).
+                    s.fetch_epoch += 1;
+                    let epoch = s.fetch_epoch;
+                    match url::Url::parse(&url) {
+                        Ok(parsed) => {
+                            s.backend.set_loading();
+                            crate::browser_fetch::spawn_fetch(
+                                self.fetch_tx.clone(),
+                                id,
+                                parsed,
+                                epoch,
+                            );
+                        }
+                        Err(e) => s.backend.render_error(&e.to_string()),
+                    }
+                    s.url = url;
                 }
             }
             V::Snap { id, zone } => {
                 if let Some(rect) = self.snap.resolve_named(&zone, viewport) {
                     self.float.set_rect(id, rect, RectProvenance::Snapped);
-                    if let Some((_, backend, _)) = self.browsers.get_mut(&id) {
-                        backend.resize(rect.width as u32, rect.height as u32);
+                    if let Some(s) = self.browsers.get_mut(&id) {
+                        s.backend.resize(rect.width as u32, rect.height as u32);
                     }
                 }
             }
@@ -2147,8 +2172,8 @@ impl InputEngine {
                     let r = egaku::Rect::new(s.rect.x, s.rect.y, w as f32, h as f32)
                         .clamp_within(viewport);
                     self.float.set_rect(id, r, RectProvenance::FreeDragged);
-                    if let Some((_, backend, _)) = self.browsers.get_mut(&id) {
-                        backend.resize(r.width as u32, r.height as u32);
+                    if let Some(s) = self.browsers.get_mut(&id) {
+                        s.backend.resize(r.width as u32, r.height as u32);
                     }
                 }
             }
@@ -2176,7 +2201,13 @@ impl InputEngine {
             .map(|s| {
                 let (url, load, dom_sexp) = self.browsers.get(&s.id).map_or_else(
                     || (String::new(), String::from("idle"), String::new()),
-                    |(_, b, u)| (u.clone(), b.load_state().as_str().to_owned(), b.dom_sexp()),
+                    |bs| {
+                        (
+                            bs.url.clone(),
+                            bs.backend.load_state().as_str().to_owned(),
+                            bs.backend.dom_sexp(),
+                        )
+                    },
                 );
                 crate::browser_bridge::BrowserSurfaceInfo {
                     id: s.id.0,
@@ -2215,6 +2246,22 @@ impl InputEngine {
         self.publish_browser_snapshot(bridge);
     }
 
+    /// Drain completed off-thread page fetches, rendering each landed page into
+    /// its surface. A fetch whose epoch no longer matches the surface's current
+    /// epoch (a newer navigate superseded it) is dropped — an out-of-order slow
+    /// fetch never clobbers a fresher page. Cheap when idle (an empty `try_recv`
+    /// loop). Re-publishes the snapshot so the MCP/vigy load-state flips to
+    /// `loaded`/`failed` the tick the page lands.
+    fn drain_browser_fetches(&mut self) {
+        let mut landed = false;
+        while let Ok(done) = self.fetch_rx.try_recv() {
+            landed |= crate::browser_fetch::apply_fetch_done(&mut self.browsers, done);
+        }
+        if landed {
+            self.publish_browser_snapshot(crate::browser_bridge::ensure());
+        }
+    }
+
     /// Publish the float z-stack (draw order) to the renderer's panel mirror so
     /// the GPU composite pass draws each surface. Cheap (a lock + a small Vec);
     /// an empty stack writes an empty Vec ⇒ the renderer's pass is a no-op.
@@ -2226,7 +2273,7 @@ impl InputEngine {
             .map(|s| {
                 let (content, content_seqno) = self.browsers.get(&s.id).map_or_else(
                     || (None, 0),
-                    |(_, b, _)| (Some(b.current_display_list()), b.content_seqno()),
+                    |bs| (Some(bs.backend.current_display_list()), bs.backend.content_seqno()),
                 );
                 crate::render::FloatPanel {
                     id: s.id.0,
@@ -2248,6 +2295,8 @@ impl InputEngine {
         // focus/close from the MCP + vigy surfaces), then publish the panel
         // mirror the GPU composite reads. No-op when idle.
         self.drain_browser_commands(renderer);
+        // Land any completed off-thread page fetches (open/navigate results).
+        self.drain_browser_fetches();
         self.publish_float_panels();
         if let Some((w, h)) = renderer.last_surface_size() {
             #[allow(clippy::cast_precision_loss)]

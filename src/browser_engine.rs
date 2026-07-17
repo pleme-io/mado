@@ -105,12 +105,6 @@ impl MadoNamiEngine {
         self.last_sexp = nami_core::lisp::dom_to_sexp(&doc);
         self.last_html = Some(html.to_owned());
     }
-
-    /// Command count in the cached display list (loaded-vs-empty probe).
-    #[must_use]
-    pub fn content_len(&self) -> usize {
-        self.display_list.cmds.len()
-    }
 }
 
 impl BrowserEngine for MadoNamiEngine {
@@ -182,6 +176,27 @@ fn collect_style_into(node: &Node, out: &mut String) {
 /// live GPU compositor (Ledge E) takes the [`DisplayList`] from
 /// [`Self::display_list`] and paints its `DrawCmd`s onto mado's RectPipeline +
 /// glyphon.
+/// The non-blank card rendered while an off-thread fetch is in flight.
+const BROWSER_LOADING_HTML: &str = "<style>div{background-color:#2e3440;width:420px;height:80px} p{color:#88c0d0;height:24px}</style><div><p>loading…</p></div>";
+/// The typed error card (the actual error goes to the log + `load_state`, never
+/// into built HTML — TYPED EMISSION).
+const BROWSER_ERROR_HTML: &str = "<style>div{background-color:#3b1f24;width:520px;height:100px} p{color:#bf616a;height:24px}</style><div><p>page load failed</p></div>";
+
+/// One live floating browser surface's non-geometry state (the geometry, focus,
+/// z-order + drag FSM all live in `float::FloatFocus`, keyed by the same
+/// `BrowserId`). Promoted from a bare tuple so each debt paydown APPENDS a field
+/// rather than re-churning a tuple across every call site (the collision-safe
+/// shape).
+pub struct BrowserSurface {
+    /// The live engine.
+    pub backend: RealBrowserBackend,
+    /// The current URL.
+    pub url: String,
+    /// The fetch epoch — bumped on each navigate; the stale-guard that drops a
+    /// slow out-of-order fetch superseded by a newer one.
+    pub fetch_epoch: u64,
+}
+
 pub struct RealBrowserBackend {
     engine: MadoNamiEngine,
     load: LoadState,
@@ -220,6 +235,22 @@ impl RealBrowserBackend {
         self.last_list = std::sync::Arc::new(self.engine.take_display_list());
         self.content_seqno = self.content_seqno.wrapping_add(1);
         self.load = LoadState::Loaded;
+    }
+
+    /// Show a non-blank "loading" card + mark `Loading` — rendered while an
+    /// off-thread fetch is in flight (so the panel is never blank).
+    pub fn set_loading(&mut self) {
+        self.render_html(BROWSER_LOADING_HTML);
+        self.load = LoadState::Loading;
+    }
+
+    /// Render a typed error card + mark `Failed`. TYPED EMISSION: the message
+    /// is NOT built into HTML (`format!()` of markup is banned) — it surfaces
+    /// via `load_state()` + a `tracing` log; the card itself is a const.
+    pub fn render_error(&mut self, msg: &str) {
+        tracing::warn!(error = %msg, "browser: page load failed");
+        self.render_html(BROWSER_ERROR_HTML);
+        self.load = LoadState::Failed;
     }
 
     /// The current cached display list (shared) — the GPU layer rasterizes this
