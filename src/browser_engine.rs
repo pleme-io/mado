@@ -79,15 +79,32 @@ impl MadoNamiEngine {
     /// cosmic-text measurer is needed.
     pub fn render_html(&mut self, html: &str) {
         let mut doc = Document::parse(html);
-        // Runtime fluidity: macroexpand inline tatara-lisp in the page tree
-        // (conditionals / loops / interpolation) BEFORE cascade + layout — DOM
-        // manipulation AS lisp. A no-op for a page with no inline lisp, so
-        // ordinary HTML is unaffected; the homoiconic manipulation surface for
-        // pages that carry it ("The DOM Way of the Browser").
-        {
-            let evaluator = nami_core::eval::NamiEvaluator::new();
-            let _report = nami_core::inline_lisp::expand(&mut doc, &evaluator);
-        }
+        expand_inline_lisp(&mut doc);
+        self.render_document(&doc);
+        self.last_html = Some(html.to_owned());
+    }
+
+    /// Set the DOM from a tatara-lisp S-expression — the write-side inverse of
+    /// [`Self::dom_sexp`], completing the DOM-Way read↔write loop: read the DOM
+    /// as a homoiconic sexp, rewrite it, push it back live. Inline `<lisp>` in
+    /// the sexp is expanded too (the same runtime fluidity `render_html` gives
+    /// HTML). Returns a typed `Err` (never a silent wrong render) when the sexp
+    /// doesn't parse.
+    pub fn set_dom_sexp(&mut self, sexp: &str) -> Result<(), String> {
+        let mut doc = nami_core::lisp::sexp_to_dom(sexp)?;
+        expand_inline_lisp(&mut doc);
+        self.render_document(&doc);
+        // Authored from a sexp, not HTML — `last_html` no longer describes the
+        // live DOM, so a later resize re-lays out from the sexp path.
+        self.last_html = None;
+        Ok(())
+    }
+
+    /// The shared cascade → layout → paint → sexp tail: turn a (post-expansion)
+    /// `Document` into the cached display list + homoiconic sexp read. The one
+    /// render path both `render_html` and `set_dom_sexp` funnel through — the
+    /// pipeline lives once.
+    fn render_document(&mut self, doc: &Document) {
         let css = collect_style_text(&doc.root);
         let mut resolver = StyleResolver::new();
         if !css.trim().is_empty() {
@@ -96,15 +113,24 @@ impl MadoNamiEngine {
                 Err(e) => tracing::warn!(error = %e, "mado-nami: <style> parse failed"),
             }
         }
-        let styled = resolver.resolve(&doc);
+        let styled = resolver.resolve(doc);
         let viewport = Size::new(self.content_rect.width, self.content_rect.height);
         let mut engine = LayoutEngine::new();
         let layout = engine.compute(&styled, viewport);
-        self.display_list = paint::build_display_list(&layout, &styled, &doc);
+        self.display_list = paint::build_display_list(&layout, &styled, doc);
         // The homoiconic read: the post-expansion DOM as a tatara-lisp sexp.
-        self.last_sexp = nami_core::lisp::dom_to_sexp(&doc);
-        self.last_html = Some(html.to_owned());
+        self.last_sexp = nami_core::lisp::dom_to_sexp(doc);
     }
+}
+
+/// Runtime fluidity: macroexpand inline tatara-lisp in the page tree
+/// (conditionals / loops / interpolation) BEFORE cascade + layout — DOM
+/// manipulation AS lisp. A no-op for a tree with no inline lisp, so ordinary
+/// HTML/sexp is unaffected; the homoiconic manipulation surface for pages that
+/// carry it ("The DOM Way of the Browser").
+fn expand_inline_lisp(doc: &mut Document) {
+    let evaluator = nami_core::eval::NamiEvaluator::new();
+    let _report = nami_core::inline_lisp::expand(doc, &evaluator);
 }
 
 impl BrowserEngine for MadoNamiEngine {
@@ -235,6 +261,18 @@ impl RealBrowserBackend {
         self.last_list = std::sync::Arc::new(self.engine.take_display_list());
         self.content_seqno = self.content_seqno.wrapping_add(1);
         self.load = LoadState::Loaded;
+    }
+
+    /// Set the DOM from a tatara-lisp S-expression (the write-side of the
+    /// DOM-Way loop), cache the new list, bump the seqno, mark loaded. Returns a
+    /// typed `Err` when the sexp doesn't parse — the surface keeps its prior
+    /// page, never a silent blank.
+    pub fn set_dom_sexp(&mut self, sexp: &str) -> Result<(), String> {
+        self.engine.set_dom_sexp(sexp)?;
+        self.last_list = std::sync::Arc::new(self.engine.take_display_list());
+        self.content_seqno = self.content_seqno.wrapping_add(1);
+        self.load = LoadState::Loaded;
+        Ok(())
     }
 
     /// Show a non-blank "loading" card + mark `Loading` — rendered while an
@@ -569,6 +607,38 @@ mod tests {
             "resize should re-layout the cached page"
         );
         assert_eq!(b.size(), (400, 300));
+    }
+
+    #[test]
+    fn set_dom_sexp_round_trips_from_the_dom_read() {
+        // The DOM-Way read↔write loop: render → read the DOM as a tatara-lisp
+        // sexp → push it back via set_dom_sexp → still a live, non-empty page.
+        let mut b = backend();
+        b.render_html("<style>div{background-color:#00ff00;width:120px;height:40px}</style><div></div>");
+        let sexp = b.dom_sexp().to_owned();
+        assert!(
+            sexp.starts_with("(document"),
+            "dom_sexp is a (document …) form: {sexp}"
+        );
+        b.set_dom_sexp(&sexp)
+            .expect("the read-back DOM sexp must set cleanly");
+        assert!(
+            !b.current_display_list().is_empty(),
+            "set_dom re-renders a non-empty display list"
+        );
+    }
+
+    #[test]
+    fn set_dom_sexp_rejects_a_malformed_sexp_without_blanking() {
+        let mut b = backend();
+        b.render_html("<div></div>");
+        let before_len = b.current_display_list().cmds.len();
+        assert!(
+            b.set_dom_sexp("not an s-expression").is_err(),
+            "a malformed sexp must be a typed Err"
+        );
+        // The prior page is untouched — a bad sexp never silently blanks it.
+        assert_eq!(b.current_display_list().cmds.len(), before_len);
     }
 
     // GPU golden — needs an adapter. Gated on `gpu_tests` (cid + dev

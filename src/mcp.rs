@@ -1924,6 +1924,32 @@ impl MadoMcp {
         )
     }
 
+    #[tool(description = "Replace a floating browser surface's DOM (numeric `id`) from a tatara-lisp S-expression in the LIVE GUI mado — the write side of the DOM-Way loop: read the DOM via browser_list's dom_sexp, rewrite it, push it back live. Inline `<lisp>` in the sexp is expanded. The sexp is parse-validated first. Returns `{ok, set, id, live_gui_pid}`, or the typed error envelope (invalid-dom-sexp / no-injection-sink / not-forwardable).")]
+    async fn browser_set_dom(&self, Parameters(input): Parameters<BrowserSetDomInput>) -> String {
+        // Validate the sexp process-locally FIRST so a bad sexp is the same
+        // typed error whether or not a GUI is running (mirrors browser_navigate's
+        // url gate).
+        if let Err(e) = nami_core::lisp::sexp_to_dom(&input.sexp) {
+            return serde_json::json!({
+                "ok": false,
+                "error": "invalid-dom-sexp",
+                "detail": e,
+            })
+            .to_string();
+        }
+        let id = input.id;
+        let outcome = kanshou::mcp::forward_status(
+            "mado",
+            &kanshou::Query::call(
+                ["browser_set_dom"],
+                [serde_json::json!(id), serde_json::Value::String(input.sexp)],
+            ),
+            move || Ok(browser_not_forwardable(serde_json::json!({ "id": id }))),
+        )
+        .await;
+        merge_browser_outcome(outcome, "set", serde_json::json!({ "id": id }))
+    }
+
     #[tool(description = "Request a PNG snapshot of a floating browser surface (numeric `id`, from browser_list) in the LIVE GUI mado. The page renders on the next GUI tick; then poll `browser_snapshot_get` for the base64 PNG. Returns `{ok, requested, id, live_gui_pid}`, or the typed error envelope (no-injection-sink / not-forwardable).")]
     async fn browser_snapshot(&self, Parameters(input): Parameters<BrowserIdInput>) -> String {
         let id = input.id;
@@ -2089,6 +2115,14 @@ struct BrowserResizeInput {
     w: f64,
     #[schemars(description = "Height in logical px; clamped to the viewport.")]
     h: f64,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct BrowserSetDomInput {
+    #[schemars(description = "The numeric surface id (from browser_list).")]
+    id: u32,
+    #[schemars(description = "The new DOM as a tatara-lisp S-expression (the same shape browser_list's dom_sexp returns). Rejected at the typed border if it doesn't parse.")]
+    sexp: String,
 }
 
 
@@ -5099,6 +5133,16 @@ mod tests {
                     id: u32::MAX,
                     w: 0.0,
                     h: 0.0,
+                }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "browser_set_dom",
+            server
+                .browser_set_dom(Parameters(BrowserSetDomInput {
+                    id: u32::MAX,
+                    sexp: "(html (body))".to_owned(),
                 }))
                 .await,
             &["ok"],

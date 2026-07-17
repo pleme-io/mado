@@ -48,6 +48,10 @@ pub enum BrowserVerb {
     /// bridge's snapshot store, where `browser_snapshot_get` polls for it. Needs
     /// the GPU, so it's realized on the render tick (not in `apply_browser_verb`).
     Snapshot { id: BrowserId },
+    /// Replace a surface's DOM from a tatara-lisp S-expression — the write side
+    /// of the DOM-Way loop (the inverse of the `dom_sexp` read). The sexp is
+    /// validated at the MCP/vigy border before this verb is pushed.
+    SetDom { id: BrowserId, sexp: String },
 }
 
 /// The write sink — an `Arc<Mutex<VecDeque<BrowserVerb>>>` + an attached flag.
@@ -212,6 +216,15 @@ impl BrowserBridge {
     /// Resize a surface to absolute px, clamped to the viewport.
     pub fn resize(&self, id: BrowserId, w: f64, h: f64) -> bool {
         self.commands.push(BrowserVerb::Resize { id, w, h })
+    }
+
+    /// Replace a surface's DOM from a tatara-lisp S-expression (the DOM-Way
+    /// write side). The sexp is validated at the caller (border) before push.
+    pub fn set_dom(&self, id: BrowserId, sexp: &str) -> bool {
+        self.commands.push(BrowserVerb::SetDom {
+            id,
+            sexp: sexp.to_owned(),
+        })
     }
 
     /// Request a page snapshot (rendered + published a tick later).

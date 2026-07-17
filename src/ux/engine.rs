@@ -2189,6 +2189,15 @@ impl InputEngine {
                 // pass (`draw_float_panels`) drains it, renders + publishes.
                 crate::browser_bridge::ensure().push_render_req(id.0);
             }
+            V::SetDom { id, sexp } => {
+                if let Some(s) = self.browsers.get_mut(&id) {
+                    // The sexp was validated at the MCP/vigy border; a parse
+                    // failure here would be a border bug — log, keep the page.
+                    if let Err(e) = s.backend.set_dom_sexp(&sexp) {
+                        tracing::warn!(error = %e, id = id.0, "browser: set_dom re-parse failed post-border");
+                    }
+                }
+            }
         }
     }
 

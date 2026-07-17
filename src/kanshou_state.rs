@@ -879,6 +879,48 @@ impl Introspect for MadoAppState {
                 let resized = bridge.resize(mado::float::BrowserId(id), w, h);
                 Ok(serde_json::json!({ "resized": resized, "id": id, "w": w, "h": h }))
             }
+            // Method-call leaf — args: [id: int, sexp: String]. Replaces a
+            // surface's DOM from a tatara-lisp S-expression (the DOM-Way write
+            // side — the inverse of `browser_surfaces`'s `dom_sexp` read). The
+            // sexp is PARSE-VALIDATED here (border) so a malformed sexp is a
+            // typed `invalid-dom-sexp` error, never a silent blank render.
+            "browser_set_dom" => {
+                if q.args.len() != 2 {
+                    return Err(QueryError::BadArity {
+                        expected: 2,
+                        actual: q.args.len(),
+                    });
+                }
+                let Some(id) = browser_id_arg(&q.args[0]) else {
+                    return Err(QueryError::TypeMismatch {
+                        path: "browser_set_dom".to_string(),
+                        expected: "u32".to_string(),
+                        actual: format!("{:?}", q.args[0]),
+                    });
+                };
+                let Some(sexp) = q.args[1].as_str() else {
+                    return Err(QueryError::TypeMismatch {
+                        path: "browser_set_dom".to_string(),
+                        expected: "string".to_string(),
+                        actual: format!("{:?}", q.args[1]),
+                    });
+                };
+                if let Err(e) = nami_core::lisp::sexp_to_dom(sexp) {
+                    return Ok(serde_json::json!({
+                        "ok": false,
+                        "error": "invalid-dom-sexp",
+                        "detail": e,
+                    }));
+                }
+                let Some(bridge) = crate::browser_bridge::get() else {
+                    return Ok(no_injection_sink());
+                };
+                if !bridge.sink_attached() {
+                    return Ok(no_injection_sink());
+                }
+                let set = bridge.set_dom(mado::float::BrowserId(id), sexp);
+                Ok(serde_json::json!({ "set": set, "id": id }))
+            }
             // Method-call leaf — args: [id: int]. Requests a GPU render of the
             // surface's current page into a base64 PNG (published a tick later);
             // poll `browser_snapshot_get` for the result. Honesty-gated like the
@@ -969,6 +1011,7 @@ impl Introspect for MadoAppState {
             "browser_close",
             "browser_move",
             "browser_resize",
+            "browser_set_dom",
             "browser_snapshot",
             "browser_snapshot_get",
             "browser_surfaces",
@@ -1587,6 +1630,7 @@ mod tests {
             "browser_close",
             "browser_move",
             "browser_resize",
+            "browser_set_dom",
             "browser_snapshot",
             "browser_snapshot_get",
             "browser_surfaces",
@@ -1738,6 +1782,40 @@ mod tests {
                 "{leaf}: got {err:?}"
             );
         }
+    }
+
+    #[test]
+    fn browser_set_dom_validates_arity_and_sexp() {
+        let s = state();
+        // Wrong arity → BadArity.
+        let err = s
+            .query(&Query::call(["browser_set_dom"], [serde_json::json!(1)]))
+            .expect_err("one arg must be BadArity");
+        assert!(
+            matches!(err, QueryError::BadArity { expected: 2, actual: 1 }),
+            "got {err:?}"
+        );
+        // Non-int id → TypeMismatch.
+        let err = s
+            .query(&Query::call(
+                ["browser_set_dom"],
+                [serde_json::json!("x"), serde_json::json!("(document)")],
+            ))
+            .expect_err("non-int id must be TypeMismatch");
+        assert!(
+            matches!(err, QueryError::TypeMismatch { .. }),
+            "got {err:?}"
+        );
+        // A malformed sexp is a typed invalid-dom-sexp envelope — checked BEFORE
+        // the bridge lookup, so it's the same result with or without a live GUI.
+        let v = s
+            .query(&Query::call(
+                ["browser_set_dom"],
+                [serde_json::json!(1), serde_json::json!("not an s-expression")],
+            ))
+            .expect("invalid sexp returns an envelope, not an Err");
+        assert_eq!(v["ok"], serde_json::json!(false));
+        assert_eq!(v["error"], serde_json::json!("invalid-dom-sexp"));
     }
 
     #[test]

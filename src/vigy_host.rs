@@ -331,6 +331,30 @@ fn mado_intrinsics_extension() -> ExtensionHandle {
             },
         );
 
+        // (mado-browser-set-dom id "sexp") → bool. The WRITE side of the DOM-Way
+        // loop (pairs with mado-browser-dom-sexp's read): replace the surface's
+        // DOM from a tatara-lisp S-expression — read the DOM as lisp, rewrite it,
+        // push it back live. Inline `<lisp>` in the sexp is expanded. Validates
+        // the sexp first; a malformed sexp returns false, never a silent bad
+        // render. Needs mado's live in-process page state (mado-memory-
+        // privileged), so it is a mado intrinsic, not shell.
+        interp.register_fn(
+            "mado-browser-set-dom",
+            ExtArity::Exact(2),
+            |args: &[ExtValue], _host: &mut VigyHost, sp| {
+                let id = lisp_int(&args[0], sp)?;
+                let sexp = lisp_string(&args[1], sp)?;
+                if nami_core::lisp::sexp_to_dom(&sexp).is_err() {
+                    return Ok(ExtValue::Bool(false));
+                }
+                #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+                let ok = crate::browser_bridge::get()
+                    .map(|b| b.set_dom(mado::float::BrowserId(id as u32), &sexp))
+                    .unwrap_or(false);
+                Ok(ExtValue::Bool(ok))
+            },
+        );
+
         // (mado-browser-list) → JSON string of live float surfaces
         // (ExtValue has no list variant, so the read snapshot is JSON —
         // the same shape browser_list returns over MCP).
