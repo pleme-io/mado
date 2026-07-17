@@ -659,6 +659,174 @@ impl Introspect for MadoAppState {
                 let snooze = q.args.get(1).and_then(serde_json::Value::as_u64);
                 crate::suggest::dismiss(id_str, snooze).map_err(QueryError::internal)
             }
+            // ── Browser control leaves (float-browser C surface) ──────
+            //
+            // GUI-mutating leaves push a `BrowserVerb` onto the live GUI's
+            // `browser_bridge` write sink; the GUI event loop drains + realizes
+            // it (open/navigate/snap/focus/close). Each mirrors `switch_session`'s
+            // honest-surface gate: with no live bridge or no drainer attached, we
+            // refuse (`{ok:false, error:"no-injection-sink"}`) rather than report
+            // a queued-but-undrained command as success. The read-only
+            // `browser_surfaces` leaf reads the GUI-published snapshot.
+
+            // Method-call leaf — args: [url: String]. Mints a new floating
+            // surface + navigates to `url`.
+            "browser_open" => {
+                if q.args.len() != 1 {
+                    return Err(QueryError::BadArity {
+                        expected: 1,
+                        actual: q.args.len(),
+                    });
+                }
+                let Some(url) = q.args[0].as_str() else {
+                    return Err(QueryError::TypeMismatch {
+                        path: "browser_open".to_string(),
+                        expected: "string".to_string(),
+                        actual: format!("{:?}", q.args[0]),
+                    });
+                };
+                let Some(bridge) = crate::browser_bridge::get() else {
+                    return Ok(no_injection_sink());
+                };
+                if !bridge.sink_attached() {
+                    return Ok(no_injection_sink());
+                }
+                let opened = bridge.open(url);
+                Ok(serde_json::json!({ "opened": opened, "url": url }))
+            }
+            // Method-call leaf — args: [id: int, url: String]. Navigates an
+            // existing surface to `url`.
+            "browser_navigate" => {
+                if q.args.len() != 2 {
+                    return Err(QueryError::BadArity {
+                        expected: 2,
+                        actual: q.args.len(),
+                    });
+                }
+                let Some(id) = browser_id_arg(&q.args[0]) else {
+                    return Err(QueryError::TypeMismatch {
+                        path: "browser_navigate".to_string(),
+                        expected: "u32".to_string(),
+                        actual: format!("{:?}", q.args[0]),
+                    });
+                };
+                let Some(url) = q.args[1].as_str() else {
+                    return Err(QueryError::TypeMismatch {
+                        path: "browser_navigate".to_string(),
+                        expected: "string".to_string(),
+                        actual: format!("{:?}", q.args[1]),
+                    });
+                };
+                let Some(bridge) = crate::browser_bridge::get() else {
+                    return Ok(no_injection_sink());
+                };
+                if !bridge.sink_attached() {
+                    return Ok(no_injection_sink());
+                }
+                let navigated = bridge.navigate(mado::float::BrowserId(id), url);
+                Ok(serde_json::json!({ "navigated": navigated, "id": id, "url": url }))
+            }
+            // Method-call leaf — args: [id: int, zone: String]. Snaps a surface
+            // to a named built-in zone (validated against BUILTIN_ZONE_NAMES).
+            "browser_snap" => {
+                if q.args.len() != 2 {
+                    return Err(QueryError::BadArity {
+                        expected: 2,
+                        actual: q.args.len(),
+                    });
+                }
+                let Some(id) = browser_id_arg(&q.args[0]) else {
+                    return Err(QueryError::TypeMismatch {
+                        path: "browser_snap".to_string(),
+                        expected: "u32".to_string(),
+                        actual: format!("{:?}", q.args[0]),
+                    });
+                };
+                let Some(zone) = q.args[1].as_str() else {
+                    return Err(QueryError::TypeMismatch {
+                        path: "browser_snap".to_string(),
+                        expected: "string".to_string(),
+                        actual: format!("{:?}", q.args[1]),
+                    });
+                };
+                if !mado::float::BUILTIN_ZONE_NAMES.contains(&zone) {
+                    return Ok(serde_json::json!({
+                        "ok": false,
+                        "error": "invalid-zone",
+                        "zone": zone,
+                        "valid_zones": mado::float::BUILTIN_ZONE_NAMES,
+                    }));
+                }
+                let Some(bridge) = crate::browser_bridge::get() else {
+                    return Ok(no_injection_sink());
+                };
+                if !bridge.sink_attached() {
+                    return Ok(no_injection_sink());
+                }
+                let snapped = bridge.snap(mado::float::BrowserId(id), zone);
+                Ok(serde_json::json!({ "snapped": snapped, "id": id, "zone": zone }))
+            }
+            // Method-call leaf — args: [id: int]. Raises + focuses a surface.
+            "browser_focus" => {
+                if q.args.len() != 1 {
+                    return Err(QueryError::BadArity {
+                        expected: 1,
+                        actual: q.args.len(),
+                    });
+                }
+                let Some(id) = browser_id_arg(&q.args[0]) else {
+                    return Err(QueryError::TypeMismatch {
+                        path: "browser_focus".to_string(),
+                        expected: "u32".to_string(),
+                        actual: format!("{:?}", q.args[0]),
+                    });
+                };
+                let Some(bridge) = crate::browser_bridge::get() else {
+                    return Ok(no_injection_sink());
+                };
+                if !bridge.sink_attached() {
+                    return Ok(no_injection_sink());
+                }
+                let focused = bridge.focus(mado::float::BrowserId(id));
+                Ok(serde_json::json!({ "focused": focused, "id": id }))
+            }
+            // Method-call leaf — args: [id: int]. Closes a surface (+ its bound
+            // tear session, GUI-side).
+            "browser_close" => {
+                if q.args.len() != 1 {
+                    return Err(QueryError::BadArity {
+                        expected: 1,
+                        actual: q.args.len(),
+                    });
+                }
+                let Some(id) = browser_id_arg(&q.args[0]) else {
+                    return Err(QueryError::TypeMismatch {
+                        path: "browser_close".to_string(),
+                        expected: "u32".to_string(),
+                        actual: format!("{:?}", q.args[0]),
+                    });
+                };
+                let Some(bridge) = crate::browser_bridge::get() else {
+                    return Ok(no_injection_sink());
+                };
+                if !bridge.sink_attached() {
+                    return Ok(no_injection_sink());
+                }
+                let closed = bridge.close(mado::float::BrowserId(id));
+                Ok(serde_json::json!({ "closed": closed, "id": id }))
+            }
+            // Read-only leaf — no args. The last-published float z-stack
+            // snapshot (the GUI publishes it each tick). Empty when no bridge
+            // is installed / nothing has been opened yet.
+            "browser_surfaces" => {
+                let surfaces = crate::browser_bridge::get()
+                    .map(crate::browser_bridge::BrowserBridge::surfaces)
+                    .unwrap_or_default();
+                Ok(serde_json::json!({
+                    "count": surfaces.len(),
+                    "surfaces": surfaces,
+                }))
+            }
             other => Err(QueryError::unknown_field(other.to_string())),
         }
     }
@@ -679,8 +847,34 @@ impl Introspect for MadoAppState {
             "close_session",
             "send_keys_embedded",
             "pane_snapshot_embedded",
+            "browser_open",
+            "browser_navigate",
+            "browser_snap",
+            "browser_focus",
+            "browser_close",
+            "browser_surfaces",
         ]
     }
+}
+
+/// The `{ok:false, error:"no-injection-sink"}` refusal every GUI-mutating
+/// browser leaf returns when no live bridge is installed or no event loop is
+/// draining it — the honest-surface gate (mirrors `switch_session`'s
+/// `switching-disabled`). Never report a queued-but-undrained command as a
+/// success.
+fn no_injection_sink() -> serde_json::Value {
+    serde_json::json!({
+        "ok": false,
+        "error": "no-injection-sink",
+        "note": "no live GUI mado is draining the browser command sink",
+    })
+}
+
+/// Read a browser surface id (a `BrowserId` u32) from a JSON arg. Accepts a
+/// non-negative integer that fits in `u32`; anything else is `None` so the
+/// caller returns a typed `TypeMismatch`.
+fn browser_id_arg(v: &serde_json::Value) -> Option<u32> {
+    v.as_u64().and_then(|n| u32::try_from(n).ok())
 }
 
 /// Params for the `spawn_term` leaf — the session-world-union spawn
@@ -1252,5 +1446,143 @@ mod tests {
     #[test]
     fn schema_advertises_save_session_as_preset() {
         assert!(state().schema().contains(&"save_session_as_preset"));
+    }
+
+    // ── Browser control leaves (float-browser C surface) ──────────
+    //
+    // The GUI-mutating leaves read the process-global `browser_bridge`
+    // OnceLock, so their sink-attached path can't be isolated per-test.
+    // The tests below cover the paths that are independent of that global:
+    // schema advertisement, arg-validation (BadArity / TypeMismatch), the
+    // invalid-zone gate (checked BEFORE the bridge lookup), and the
+    // read-only `browser_surfaces` shape (defaults empty with no bridge).
+
+    #[test]
+    fn schema_advertises_all_browser_leaves() {
+        let schema = state().schema();
+        for leaf in [
+            "browser_open",
+            "browser_navigate",
+            "browser_snap",
+            "browser_focus",
+            "browser_close",
+            "browser_surfaces",
+        ] {
+            assert!(schema.contains(&leaf), "schema must advertise {leaf}");
+        }
+    }
+
+    #[test]
+    fn browser_open_bad_arity_and_type_are_typed_errors() {
+        let s = state();
+        let err = s
+            .query(&Query::call(["browser_open"], []))
+            .expect_err("zero args must be BadArity");
+        assert!(
+            matches!(err, QueryError::BadArity { expected: 1, actual: 0 }),
+            "got {err:?}"
+        );
+        let err = s
+            .query(&Query::call(["browser_open"], [serde_json::json!(42)]))
+            .expect_err("non-string url must be TypeMismatch");
+        assert!(matches!(err, QueryError::TypeMismatch { .. }), "got {err:?}");
+    }
+
+    #[test]
+    fn browser_navigate_bad_arity_and_type_are_typed_errors() {
+        let s = state();
+        let err = s
+            .query(&Query::call(["browser_navigate"], [serde_json::json!(0)]))
+            .expect_err("one arg must be BadArity");
+        assert!(
+            matches!(err, QueryError::BadArity { expected: 2, actual: 1 }),
+            "got {err:?}"
+        );
+        // Non-integer id.
+        let err = s
+            .query(&Query::call(
+                ["browser_navigate"],
+                [serde_json::json!("x"), serde_json::json!("https://a.test/")],
+            ))
+            .expect_err("non-int id must be TypeMismatch");
+        assert!(matches!(err, QueryError::TypeMismatch { .. }), "got {err:?}");
+        // Non-string url.
+        let err = s
+            .query(&Query::call(
+                ["browser_navigate"],
+                [serde_json::json!(1), serde_json::json!(42)],
+            ))
+            .expect_err("non-string url must be TypeMismatch");
+        assert!(matches!(err, QueryError::TypeMismatch { .. }), "got {err:?}");
+    }
+
+    #[test]
+    fn browser_snap_invalid_zone_is_refused_before_the_bridge() {
+        // The zone gate runs BEFORE any bridge lookup, so a bad zone is a
+        // clean typed refusal independent of whether a GUI is running.
+        let s = state();
+        let v = s
+            .query(&Query::call(
+                ["browser_snap"],
+                [serde_json::json!(1), serde_json::json!("not-a-zone")],
+            ))
+            .expect("query ok");
+        assert_eq!(v["ok"], false, "got {v}");
+        assert_eq!(v["error"], "invalid-zone");
+        assert_eq!(v["zone"], "not-a-zone");
+    }
+
+    #[test]
+    fn browser_snap_bad_arity_and_type_are_typed_errors() {
+        let s = state();
+        let err = s
+            .query(&Query::call(["browser_snap"], [serde_json::json!(1)]))
+            .expect_err("one arg must be BadArity");
+        assert!(
+            matches!(err, QueryError::BadArity { expected: 2, actual: 1 }),
+            "got {err:?}"
+        );
+        let err = s
+            .query(&Query::call(
+                ["browser_snap"],
+                [serde_json::json!("x"), serde_json::json!("left-half")],
+            ))
+            .expect_err("non-int id must be TypeMismatch");
+        assert!(matches!(err, QueryError::TypeMismatch { .. }), "got {err:?}");
+    }
+
+    #[test]
+    fn browser_focus_and_close_reject_bad_args() {
+        let s = state();
+        for leaf in ["browser_focus", "browser_close"] {
+            let err = s
+                .query(&Query::call([leaf], []))
+                .expect_err("zero args must be BadArity");
+            assert!(
+                matches!(err, QueryError::BadArity { expected: 1, actual: 0 }),
+                "{leaf}: got {err:?}"
+            );
+            let err = s
+                .query(&Query::call([leaf], [serde_json::json!("nope")]))
+                .expect_err("non-int id must be TypeMismatch");
+            assert!(
+                matches!(err, QueryError::TypeMismatch { .. }),
+                "{leaf}: got {err:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn browser_surfaces_is_read_only_and_returns_a_count_object() {
+        // No args, never errors, always an object with count + surfaces.
+        // With no bridge installed in this process the snapshot is empty;
+        // we assert the SHAPE, not a specific count (a co-running test may
+        // have installed the global bridge).
+        let s = state();
+        let v = s
+            .query(&Query::call(["browser_surfaces"], []))
+            .expect("query ok");
+        assert!(v["count"].is_u64(), "got {v}");
+        assert!(v["surfaces"].is_array(), "got {v}");
     }
 }

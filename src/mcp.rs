@@ -1743,6 +1743,162 @@ impl MadoMcp {
             Err(e) => err_json(e),
         }
     }
+
+    // ── Browser control tools (float-browser C surface) ─────────────────
+    //
+    // These drive the LIVE GUI mado's floating browser surfaces. The
+    // GUI-mutating tools forward a `browser_*` leaf via `forward_status`
+    // (the `switch_session` idiom) — the leaf pushes a `BrowserVerb` onto
+    // the GUI's `browser_bridge` write sink, which the GUI event loop
+    // drains + realizes. Each returns `{ok, live_gui_pid, …}`; a push with
+    // no live drainer surfaces as `{ok:false, error:"no-injection-sink"}`;
+    // no reachable GUI surfaces as `{ok:false, error:"not-forwardable"}`
+    // (the honesty envelope — never a silent success). `browser_list`
+    // (read-only) forwards to `browser_surfaces` via `forward`.
+    //
+    // TODO(pending-browser-snapshot): a `browser_snapshot` tool that
+    // returns a rendered PNG of a surface needs a GPU readback path that
+    // is not yet available — left unimplemented rather than stubbed.
+
+    #[tool(description = "Open a new floating browser surface in the LIVE GUI mado and navigate it to `url`. Validates `url` as an absolute URL process-locally first. Forwards via kanshou to the GUI, which mints the surface + navigates. Returns `{ok, opened, url, live_gui_pid}`; `{ok:false, error:'invalid-url'}` for a malformed url; `{ok:false, error:'no-injection-sink'}` when the GUI isn't draining the browser sink; `{ok:false, error:'not-forwardable'}` when no GUI mado is reachable.")]
+    async fn browser_open(&self, Parameters(input): Parameters<BrowserOpenInput>) -> String {
+        // Validate the url process-locally FIRST so a malformed url is the
+        // same typed error whether or not a GUI is running.
+        if url::Url::parse(&input.url).is_err() {
+            return serde_json::json!({
+                "ok": false,
+                "error": "invalid-url",
+                "url": input.url,
+                "note": "url must be an absolute URL (e.g. https://example.com/)",
+            })
+            .to_string();
+        }
+        let url = input.url.clone();
+        let url_for_fallback = input.url.clone();
+        let outcome = kanshou::mcp::forward_status(
+            "mado",
+            &kanshou::Query::call(["browser_open"], [serde_json::Value::String(input.url)]),
+            move || Ok(browser_not_forwardable(serde_json::json!({ "url": url_for_fallback }))),
+        )
+        .await;
+        merge_browser_outcome(outcome, "opened", serde_json::json!({ "url": url }))
+    }
+
+    #[tool(description = "Navigate an existing floating browser surface (by numeric `id`, from browser_list) to `url` in the LIVE GUI mado. Validates `url` first. Returns `{ok, navigated, id, url, live_gui_pid}`, or the typed error envelope (invalid-url / no-injection-sink / not-forwardable).")]
+    async fn browser_navigate(&self, Parameters(input): Parameters<BrowserNavigateInput>) -> String {
+        if url::Url::parse(&input.url).is_err() {
+            return serde_json::json!({
+                "ok": false,
+                "error": "invalid-url",
+                "url": input.url,
+                "note": "url must be an absolute URL (e.g. https://example.com/)",
+            })
+            .to_string();
+        }
+        let id = input.id;
+        let url = input.url.clone();
+        let url_for_fallback = input.url.clone();
+        let outcome = kanshou::mcp::forward_status(
+            "mado",
+            &kanshou::Query::call(
+                ["browser_navigate"],
+                [serde_json::json!(id), serde_json::Value::String(input.url)],
+            ),
+            move || {
+                Ok(browser_not_forwardable(
+                    serde_json::json!({ "id": id, "url": url_for_fallback }),
+                ))
+            },
+        )
+        .await;
+        merge_browser_outcome(
+            outcome,
+            "navigated",
+            serde_json::json!({ "id": id, "url": url }),
+        )
+    }
+
+    #[tool(description = "Snap a floating browser surface (numeric `id`) to a named built-in zone in the LIVE GUI mado. Valid zones: top-left, top-right, bottom-left, bottom-right, left-half, right-half, top-half, bottom-half, maximize. Validates `zone` process-locally first. Returns `{ok, snapped, id, zone, live_gui_pid}`, or the typed error envelope (invalid-zone / no-injection-sink / not-forwardable).")]
+    async fn browser_snap(&self, Parameters(input): Parameters<BrowserSnapInput>) -> String {
+        // Validate the zone process-locally FIRST so a bad zone is the same
+        // typed error whether or not a GUI is running.
+        if !mado::float::BUILTIN_ZONE_NAMES.contains(&input.zone.as_str()) {
+            return serde_json::json!({
+                "ok": false,
+                "error": "invalid-zone",
+                "zone": input.zone,
+                "valid_zones": mado::float::BUILTIN_ZONE_NAMES,
+            })
+            .to_string();
+        }
+        let id = input.id;
+        let zone = input.zone.clone();
+        let zone_for_fallback = input.zone.clone();
+        let outcome = kanshou::mcp::forward_status(
+            "mado",
+            &kanshou::Query::call(
+                ["browser_snap"],
+                [serde_json::json!(id), serde_json::Value::String(input.zone)],
+            ),
+            move || {
+                Ok(browser_not_forwardable(
+                    serde_json::json!({ "id": id, "zone": zone_for_fallback }),
+                ))
+            },
+        )
+        .await;
+        merge_browser_outcome(
+            outcome,
+            "snapped",
+            serde_json::json!({ "id": id, "zone": zone }),
+        )
+    }
+
+    #[tool(description = "Raise + focus a floating browser surface (numeric `id`) in the LIVE GUI mado. Returns `{ok, focused, id, live_gui_pid}`, or the typed error envelope (no-injection-sink / not-forwardable).")]
+    async fn browser_focus(&self, Parameters(input): Parameters<BrowserIdInput>) -> String {
+        let id = input.id;
+        let outcome = kanshou::mcp::forward_status(
+            "mado",
+            &kanshou::Query::call(["browser_focus"], [serde_json::json!(id)]),
+            move || Ok(browser_not_forwardable(serde_json::json!({ "id": id }))),
+        )
+        .await;
+        merge_browser_outcome(outcome, "focused", serde_json::json!({ "id": id }))
+    }
+
+    #[tool(description = "Close a floating browser surface (numeric `id`) in the LIVE GUI mado — also tears down its bound tear session GUI-side. Returns `{ok, closed, id, live_gui_pid}`, or the typed error envelope (no-injection-sink / not-forwardable).")]
+    async fn browser_close(&self, Parameters(input): Parameters<BrowserIdInput>) -> String {
+        let id = input.id;
+        let outcome = kanshou::mcp::forward_status(
+            "mado",
+            &kanshou::Query::call(["browser_close"], [serde_json::json!(id)]),
+            move || Ok(browser_not_forwardable(serde_json::json!({ "id": id }))),
+        )
+        .await;
+        merge_browser_outcome(outcome, "closed", serde_json::json!({ "id": id }))
+    }
+
+    #[tool(description = "List every live floating browser surface in the GUI mado's float z-stack: id, url, on-screen rect (x/y/w/h), stacking order (z), focus, coarse mode, and page load_state. Forwards to the live GUI's published snapshot; returns an empty list when no GUI is running or nothing is open. Returns `{ok, count, surfaces}`.")]
+    async fn browser_list(&self) -> String {
+        let value = kanshou::mcp::forward(
+            "mado",
+            &kanshou::Query::field(["browser_surfaces"]),
+            || {
+                let surfaces = crate::browser_bridge::get()
+                    .map(crate::browser_bridge::BrowserBridge::surfaces)
+                    .unwrap_or_default();
+                Ok(serde_json::json!({
+                    "count": surfaces.len(),
+                    "surfaces": surfaces,
+                }))
+            },
+        )
+        .await;
+        match value {
+            Ok(v) => ok_json(v),
+            Err(e) => err_json(e),
+        }
+    }
 }
 
 // ── vigy MCP plumbing ───────────────────────────────────────────────
@@ -1807,6 +1963,36 @@ struct SuggestDismissInput {
     id: String,
     #[schemars(description = "Hide until now + this many seconds instead of dismissing forever.")]
     snooze_secs: Option<u64>,
+}
+
+// ── browser (float-browser control) plumbing ────────────────────────
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct BrowserOpenInput {
+    #[schemars(description = "Absolute URL to open (e.g. https://example.com/). Rejected at the typed border if not parseable.")]
+    url: String,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct BrowserNavigateInput {
+    #[schemars(description = "The numeric surface id (from browser_list).")]
+    id: u32,
+    #[schemars(description = "Absolute URL to navigate to. Rejected at the typed border if not parseable.")]
+    url: String,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct BrowserSnapInput {
+    #[schemars(description = "The numeric surface id (from browser_list).")]
+    id: u32,
+    #[schemars(description = "Built-in zone name: top-left, top-right, bottom-left, bottom-right, left-half, right-half, top-half, bottom-half, maximize.")]
+    zone: String,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct BrowserIdInput {
+    #[schemars(description = "The numeric surface id (from browser_list).")]
+    id: u32,
 }
 
 
@@ -1888,6 +2074,86 @@ fn ok_json(extra: serde_json::Value) -> String {
 /// branch on `ok` exactly once.
 fn err_json<E: std::fmt::Display>(error: E) -> String {
     serde_json::json!({ "ok": false, "error": error.to_string() }).to_string()
+}
+
+/// The `{ok:false, error:"not-forwardable", …}` fallback shape a browser
+/// GUI-mutating tool returns when no live GUI mado is reachable via kanshou.
+/// A browser command is a GUI-side operation (it re-attaches nothing
+/// headlessly) so there is nothing to do without a running event loop — we
+/// report the typed shape rather than pretend, merging any tool-specific
+/// echo fields (`id`, `url`, `zone`). Mirrors `switch_session`'s fallback.
+fn browser_not_forwardable(extra: serde_json::Value) -> serde_json::Value {
+    let mut obj = serde_json::Map::with_capacity(4);
+    obj.insert(
+        "error".into(),
+        serde_json::Value::String("not-forwardable".to_string()),
+    );
+    obj.insert(
+        "note".into(),
+        serde_json::Value::String(
+            "no live GUI mado discoverable via kanshou; browser control only acts on a running GUI event loop".to_string(),
+        ),
+    );
+    if let serde_json::Value::Object(fields) = extra {
+        obj.extend(fields);
+    }
+    serde_json::Value::Object(obj)
+}
+
+/// Merge a browser leaf's `forward_status` outcome into the honesty
+/// envelope. `success_field` is the leaf's own boolean (`opened` /
+/// `navigated` / `snapped` / `focused` / `closed`); `ok` mirrors it so MCP
+/// clients branch on one field. `echo` carries the tool's own request
+/// fields for the LiveError path (where the leaf value is absent). This is
+/// the `switch_session`/`simulate_chord` merge pattern factored so the five
+/// browser tools can't drift.
+fn merge_browser_outcome(
+    outcome: kanshou::mcp::ForwardOutcome,
+    success_field: &str,
+    echo: serde_json::Value,
+) -> String {
+    match outcome {
+        kanshou::mcp::ForwardOutcome::Live { pid, value } => {
+            // The leaf reports its own boolean AND, when refused, an `error`
+            // like `no-injection-sink`. `ok` follows the success boolean if
+            // present, else the leaf's own `ok` (the refusal shape carries
+            // `ok:false`).
+            let ok = value
+                .get(success_field)
+                .and_then(serde_json::Value::as_bool)
+                .or_else(|| value.get("ok").and_then(serde_json::Value::as_bool))
+                .unwrap_or(false);
+            let mut obj = serde_json::Map::with_capacity(8);
+            obj.insert("ok".into(), serde_json::Value::Bool(ok));
+            obj.insert("live_gui_pid".into(), serde_json::json!(pid));
+            if let serde_json::Value::Object(fields) = value {
+                obj.extend(fields);
+            }
+            serde_json::Value::Object(obj).to_string()
+        }
+        kanshou::mcp::ForwardOutcome::Fallback { value } => {
+            let mut obj = serde_json::Map::with_capacity(8);
+            obj.insert("ok".into(), serde_json::Value::Bool(false));
+            obj.insert("live_gui_pid".into(), serde_json::Value::Null);
+            if let serde_json::Value::Object(fields) = value {
+                obj.extend(fields);
+            }
+            serde_json::Value::Object(obj).to_string()
+        }
+        kanshou::mcp::ForwardOutcome::LiveError { pid, error } => {
+            let mut obj = serde_json::Map::with_capacity(8);
+            obj.insert("ok".into(), serde_json::Value::Bool(false));
+            obj.insert("live_gui_pid".into(), serde_json::json!(pid));
+            obj.insert(
+                "kanshou_error".into(),
+                serde_json::Value::String(error.to_string()),
+            );
+            if let serde_json::Value::Object(fields) = echo {
+                obj.extend(fields);
+            }
+            serde_json::Value::Object(obj).to_string()
+        }
+    }
 }
 
 /// Render the "stubbed — requires IPC" response shape used by every
@@ -2637,6 +2903,92 @@ mod tests {
                 || kanshou_error.is_some(),
             "unexpected simulate_chord shape: {parsed}",
         );
+    }
+
+    // ── Browser control tools (float-browser C surface) ────────────
+
+    #[tokio::test]
+    async fn browser_open_rejects_malformed_url() {
+        // URL validation is process-local — the same typed error with or
+        // without a live GUI, so this test is environment-stable.
+        let server = new_server();
+        let raw = server
+            .browser_open(Parameters(BrowserOpenInput {
+                url: "not a url".into(),
+            }))
+            .await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed["ok"], false);
+        assert_eq!(parsed["error"], "invalid-url");
+        assert_eq!(parsed["url"], "not a url");
+    }
+
+    #[tokio::test]
+    async fn browser_navigate_rejects_malformed_url() {
+        let server = new_server();
+        let raw = server
+            .browser_navigate(Parameters(BrowserNavigateInput {
+                id: 1,
+                url: "::::".into(),
+            }))
+            .await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed["ok"], false);
+        assert_eq!(parsed["error"], "invalid-url");
+    }
+
+    #[tokio::test]
+    async fn browser_snap_rejects_unknown_zone() {
+        // Zone validation is process-local — stable regardless of GUI.
+        let server = new_server();
+        let raw = server
+            .browser_snap(Parameters(BrowserSnapInput {
+                id: 1,
+                zone: "not-a-zone".into(),
+            }))
+            .await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed["ok"], false);
+        assert_eq!(parsed["error"], "invalid-zone");
+        assert_eq!(parsed["zone"], "not-a-zone");
+        assert!(parsed["valid_zones"].is_array());
+    }
+
+    #[tokio::test]
+    async fn browser_open_valid_url_never_reports_ok_without_a_gui() {
+        // A well-formed url PASSES the process-local gate, then forwards.
+        // On operator machines a REAL GUI mado may be live, so we assert
+        // the typed not-ok shape without pinning which arm answered:
+        //   live GUI, sink       → ok:true (opened) — but new_server()
+        //                           points KANSHOU_SOCKET_DIR at an empty
+        //                           dir so no GUI is discoverable here
+        //   live GUI, no sink    → error: "no-injection-sink"
+        //   no GUI               → error: "not-forwardable"
+        let server = new_server();
+        let raw = server
+            .browser_open(Parameters(BrowserOpenInput {
+                url: "https://example.com/".into(),
+            }))
+            .await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        // With the hermetic empty socket dir, this is the not-forwardable arm.
+        assert_eq!(parsed["ok"], false, "no GUI reachable → not ok: {parsed}");
+        let error = parsed["error"].as_str();
+        assert!(
+            matches!(error, Some("no-injection-sink" | "not-forwardable"))
+                || parsed["kanshou_error"].is_string(),
+            "unexpected browser_open shape: {parsed}",
+        );
+    }
+
+    #[tokio::test]
+    async fn browser_list_is_read_only_and_returns_surfaces() {
+        let server = new_server();
+        let raw = server.browser_list().await;
+        let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(parsed["ok"], true, "got {parsed}");
+        assert!(parsed["surfaces"].is_array(), "got {parsed}");
+        assert!(parsed["count"].is_number(), "got {parsed}");
     }
 
     #[tokio::test]
@@ -4580,6 +4932,62 @@ mod tests {
                     snooze_secs: None,
                 }))
                 .await,
+            &["ok"],
+        ));
+
+        // ── browser (float-browser control). Like suggest/simulate_chord
+        //    these forward to a LIVE GUI when one runs on the test machine,
+        //    so every row is a no-op on BOTH arms: open/navigate carry a
+        //    VALID url that resolves the same either way but targets a
+        //    surface nobody watches (a fresh open, or a non-existent id);
+        //    snap carries a VALID zone + a non-existent id; focus/close
+        //    target a non-existent id; list is read-only. ──
+        rows.push((
+            "browser_open",
+            server
+                .browser_open(Parameters(BrowserOpenInput {
+                    url: "https://uniformity-matrix.test/".into(),
+                }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "browser_navigate",
+            server
+                .browser_navigate(Parameters(BrowserNavigateInput {
+                    id: u32::MAX,
+                    url: "https://uniformity-matrix.test/".into(),
+                }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "browser_snap",
+            server
+                .browser_snap(Parameters(BrowserSnapInput {
+                    id: u32::MAX,
+                    zone: "left-half".into(),
+                }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "browser_focus",
+            server
+                .browser_focus(Parameters(BrowserIdInput { id: u32::MAX }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "browser_close",
+            server
+                .browser_close(Parameters(BrowserIdInput { id: u32::MAX }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "browser_list",
+            server.browser_list().await,
             &["ok"],
         ));
 
