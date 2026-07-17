@@ -17,6 +17,7 @@ mod action_injection;
 mod ambience;
 mod auto_attach;
 mod auto_detect;
+mod browser_bridge;
 mod clipboard_store;
 mod config;
 mod dir_picker;
