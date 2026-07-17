@@ -224,6 +224,9 @@ pub struct InputEngine {
     /// bools remain for each picker's own data lifecycle, but no longer
     /// decide what paints.
     overlay_focus: Arc<Mutex<Overlay>>,
+    /// Floating browser panels published to the renderer each frame (the
+    /// `overlay_focus` mirror pattern — engine writes, renderer reads + draws).
+    float_panels: Arc<Mutex<Vec<crate::render::FloatPanel>>>,
     /// Last modifier state seen on any key/button event — wheel
     /// events don't carry modifiers on the current madori pin.
     last_mods: Modifiers,
@@ -304,6 +307,8 @@ impl InputEngine {
         // on it in Pass 6 (one overlay drawn, never two).
         let overlay_focus = Arc::new(Mutex::new(Overlay::None));
         renderer.set_overlay_focus(Arc::clone(&overlay_focus));
+        let float_panels = Arc::new(Mutex::new(Vec::new()));
+        renderer.set_float_panels(Arc::clone(&float_panels));
         // Build the scroll system from the typed scroll policy BEFORE the
         // behavior value moves into the struct.
         let scroll = ScrollSystem::new(params.behavior.scroll_config());
@@ -342,6 +347,7 @@ impl InputEngine {
             browsers: std::collections::HashMap::new(),
             next_browser_id: mado::float::BrowserId(0),
             overlay_focus,
+            float_panels,
             last_mods: Modifiers::default(),
             last_mouse_pos: (0.0, 0.0),
             grid_sync_sig: None,
@@ -2145,10 +2151,31 @@ impl InputEngine {
         self.publish_browser_snapshot(bridge);
     }
 
+    /// Publish the float z-stack (draw order) to the renderer's panel mirror so
+    /// the GPU composite pass draws each surface. Cheap (a lock + a small Vec);
+    /// an empty stack writes an empty Vec ⇒ the renderer's pass is a no-op.
+    fn publish_float_panels(&self) {
+        let panels: Vec<crate::render::FloatPanel> = self
+            .float
+            .draw_order()
+            .iter()
+            .map(|s| crate::render::FloatPanel {
+                x: s.rect.x,
+                y: s.rect.y,
+                w: s.rect.width,
+                h: s.rect.height,
+                opacity: 0.98,
+            })
+            .collect();
+        *self.float_panels.lock().unwrap() = panels;
+    }
+
     pub fn on_redraw_tick(&mut self, renderer: &TerminalRenderer) {
         // Realize any queued floating-browser commands (open/navigate/snap/
-        // focus/close from the MCP + vigy surfaces). No-op when idle.
+        // focus/close from the MCP + vigy surfaces), then publish the panel
+        // mirror the GPU composite reads. No-op when idle.
         self.drain_browser_commands(renderer);
+        self.publish_float_panels();
         if let Some((w, h)) = renderer.last_surface_size() {
             let cw = renderer.cell_width();
             let ch = renderer.cell_height();

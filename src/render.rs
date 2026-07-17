@@ -820,6 +820,20 @@ struct ImageInstance {
 const _: () = assert!(std::mem::size_of::<ImageInstance>() == 36);
 const _: () = assert!(std::mem::offset_of!(ImageInstance, opacity) == 32);
 
+/// One floating browser surface to composite — its on-screen rect (px) + its
+/// opacity. Published by the engine (from the `float::FloatFocus` z-stack, in
+/// draw order) into a mirror the renderer reads each frame. The panel body is
+/// a themed solid texture today; the page's rendered `DisplayList` fills it at
+/// the `render_content` port (named follow-up `pending-browser-content-render`).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct FloatPanel {
+    pub x: f32,
+    pub y: f32,
+    pub w: f32,
+    pub h: f32,
+    pub opacity: f32,
+}
+
 struct ImagePipeline {
     pipeline: wgpu::RenderPipeline,
     uniform_buffer: wgpu::Buffer,
@@ -1237,6 +1251,16 @@ pub struct TerminalRenderer {
     /// overlays can never paint at once (theory §VI). The picker `.open`
     /// bools above are read only for their *content*, never as the gate.
     overlay_focus: Arc<Mutex<crate::ux::modes::Overlay>>,
+    /// Floating browser panels to composite this frame (engine-written mirror,
+    /// in z draw-order). Empty ⇒ the float pass is skipped entirely.
+    float_panels: Arc<Mutex<Vec<FloatPanel>>>,
+    /// The shared themed panel texture, created lazily on the first float draw.
+    float_panel_tex: std::cell::RefCell<Option<GpuImage>>,
+    /// A DEDICATED instance buffer for the float panel draw — NOT the shared
+    /// `image_pipeline.instance_buffer`, so a panel write never clobbers the
+    /// Kitty-image instances in the same submit (last-write-wins hazard).
+    /// Lazily created + grown to fit (persistent so it outlives the pass).
+    float_panel_buf: std::cell::RefCell<Option<wgpu::Buffer>>,
     // window field removed at Phase 4 — single-pane mado.
     font_size: f32,
     /// Cell-height multiplier — the line rhythm. The cell height is
@@ -1900,6 +1924,9 @@ impl TerminalRenderer {
             // Born `None`; the engine rewires this to its shared cell via
             // `set_overlay_focus` in `attach_to_renderer`.
             overlay_focus: Arc::new(Mutex::new(crate::ux::modes::Overlay::None)),
+            float_panels: Arc::new(Mutex::new(Vec::new())),
+            float_panel_tex: std::cell::RefCell::new(None),
+            float_panel_buf: std::cell::RefCell::new(None),
             // window: removed Phase 4
             font_size,
             line_height,
@@ -2351,6 +2378,12 @@ impl TerminalRenderer {
     /// transition; the renderer matches on it.
     pub fn set_overlay_focus(&mut self, overlay_focus: Arc<Mutex<crate::ux::modes::Overlay>>) {
         self.overlay_focus = overlay_focus;
+    }
+
+    /// Share the engine's floating-browser panel mirror so the render loop can
+    /// composite the surfaces (the `overlay_focus` mirror pattern).
+    pub fn set_float_panels(&mut self, float_panels: Arc<Mutex<Vec<FloatPanel>>>) {
+        self.float_panels = float_panels;
     }
 
     pub fn set_dir_picker(&mut self, dir_picker: Arc<Mutex<crate::dir_picker::DirPickerState>>) {
@@ -4512,6 +4545,109 @@ impl TerminalRenderer {
             pass.draw(0..6, 0..batch.len() as u32);
         }
     }
+
+    /// Composite the floating browser panels (the engine-written mirror) as
+    /// themed quads on `target_view` (post-effect — they escape the CRT/
+    /// scanline chain). A shared solid Nord panel texture is created lazily on
+    /// the first draw. Skipped entirely when no surface is open, so the common
+    /// terminal path pays nothing. (The page's rendered `DisplayList` fills the
+    /// panel at the `render_content` port — `pending-browser-content-render`.)
+    fn draw_float_panels(
+        &self,
+        gpu: &garasu::GpuContext,
+        width: u32,
+        height: u32,
+        encoder: &mut wgpu::CommandEncoder,
+        target_view: &wgpu::TextureView,
+    ) {
+        let panels: Vec<FloatPanel> = {
+            let g = self.float_panels.lock().unwrap();
+            if g.is_empty() {
+                return;
+            }
+            g.clone()
+        };
+        let image_pipeline = match self.image_pipeline {
+            Some(ref p) => p,
+            None => return,
+        };
+        // Lazily create the shared themed panel texture (Nord polar-night bg,
+        // #2e3440); a 2x2 solid stretched to each panel rect.
+        if self.float_panel_tex.borrow().is_none() {
+            let px: [u8; 4] = [0x2e, 0x34, 0x40, 0xff];
+            let mut rgba = Vec::with_capacity(2 * 2 * 4);
+            for _ in 0..4 {
+                rgba.extend_from_slice(&px);
+            }
+            let img = image_pipeline.create_gpu_image(&gpu.device, &gpu.queue, &rgba, 2, 2, 0);
+            *self.float_panel_tex.borrow_mut() = Some(img);
+        }
+        let tex_ref = self.float_panel_tex.borrow();
+        let Some(panel_tex) = tex_ref.as_ref() else {
+            return;
+        };
+
+        let uniforms = ScreenUniforms {
+            resolution: [width as f32, height as f32],
+            _padding: [0.0; 2],
+        };
+        gpu.queue
+            .write_buffer(&image_pipeline.uniform_buffer, 0, bytemuck::bytes_of(&uniforms));
+
+        let instances: Vec<ImageInstance> = panels
+            .iter()
+            .map(|p| ImageInstance {
+                pos: [p.x, p.y],
+                size: [p.w, p.h],
+                uv_offset: [0.0, 0.0],
+                uv_scale: [1.0, 1.0],
+                opacity: p.opacity,
+            })
+            .collect();
+        // Dedicated instance buffer (lazily grown to fit) — never the shared
+        // image_pipeline.instance_buffer, so a panel write cannot clobber the
+        // Kitty-image instances that share one submit (last-write-wins).
+        let needed = (instances.len() * std::mem::size_of::<ImageInstance>()) as u64;
+        {
+            let mut buf = self.float_panel_buf.borrow_mut();
+            let grow = buf.as_ref().is_none_or(|b| b.size() < needed);
+            if grow {
+                *buf = Some(gpu.device.create_buffer(&wgpu::BufferDescriptor {
+                    label: Some("float_panel_instances"),
+                    size: needed.max(std::mem::size_of::<ImageInstance>() as u64),
+                    usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                    mapped_at_creation: false,
+                }));
+            }
+        }
+        let buf_ref = self.float_panel_buf.borrow();
+        let Some(inst_buf) = buf_ref.as_ref() else {
+            return;
+        };
+        gpu.queue
+            .write_buffer(inst_buf, 0, bytemuck::cast_slice(&instances));
+
+        let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("mado_float_panels"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: target_view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Load,
+                    store: wgpu::StoreOp::Store,
+                },
+            })],
+            depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
+        });
+        pass.set_pipeline(&image_pipeline.pipeline);
+        pass.set_bind_group(0, &image_pipeline.uniform_bind_group, &[]);
+        pass.set_bind_group(1, &panel_tex.bind_group, &[]);
+        pass.set_vertex_buffer(0, inst_buf.slice(..));
+        #[allow(clippy::cast_possible_truncation)]
+        pass.draw(0..6, 0..instances.len() as u32);
+    }
 }
 
 impl TerminalRenderer {
@@ -5481,6 +5617,18 @@ impl RenderCallback for TerminalRenderer {
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
                 label: Some("mado_overlays"),
             });
+
+        // Floating browser panels — composited post-effect on the surface via
+        // the overlay encoder, BELOW the modal pickers (a modal picker floats
+        // over a browser window). A no-op when no float surface is open, so the
+        // terminal path is unaffected.
+        self.draw_float_panels(
+            ctx.gpu,
+            ctx.width,
+            ctx.height,
+            &mut overlay_encoder,
+            ctx.surface_view,
+        );
 
         // Pass 6: modal overlays (session switcher / dir picker / search),
         // reader-only. Renders AFTER snow so it floats on top, onto
