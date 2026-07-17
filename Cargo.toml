@@ -183,6 +183,15 @@ praca = { git = "https://github.com/pleme-io/tear", rev = "f9b1f394fa0ee5367b2e8
 # egaku's widget trait too (QUADRO T1); until then this is a geometry-only dep.
 egaku = { git = "https://github.com/pleme-io/egaku", rev = "81d168190061c452d115f58f186429b84f489be8" , version = "0.1" }
 
+# nami-core — the pure-Rust web engine (DOM → CSS → layout → typed paint IR).
+# Drives the RealBrowserBackend behind float::BrowserBackend (browser_engine.rs).
+# namimado's NamiNativeEngine is bin-only (unreachable), so mado re-authors the
+# ~40-line engine over nami-core's PUBLIC pipeline. default-features=false drops
+# the `lisp` default (tatara-lisp) + never pulls the optional `config` (shikumi)
+# feature — so NO shikumi-family rev to split (no E0463). `network` enables the
+# todoku fetch client for navigate(). Rev-pinned to namimado's locked rev.
+nami-core = { git = "https://github.com/pleme-io/nami-core", rev = "b271c62203024263e7e06da1fb3f443e0fa1d7b5", default-features = false, features = ["network"] , version = "0.1" }
+
 # tatara-lisp — the Four-Lisps authoring engine. Consumed by the `float`
 # module's `spec` border: `#[derive(DeriveTataraDomain)]` turns
 # `(deffloatingbrowser …)` / `(defsnapzone …)` forms into typed specs

@@ -18,6 +18,7 @@ mod ambience;
 mod auto_attach;
 mod auto_detect;
 mod browser_bridge;
+mod browser_engine;
 mod clipboard_store;
 mod config;
 mod dir_picker;
