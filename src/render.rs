@@ -825,13 +825,21 @@ const _: () = assert!(std::mem::offset_of!(ImageInstance, opacity) == 32);
 /// draw order) into a mirror the renderer reads each frame. The panel body is
 /// a themed solid texture today; the page's rendered `DisplayList` fills it at
 /// the `render_content` port (named follow-up `pending-browser-content-render`).
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone)]
 pub(crate) struct FloatPanel {
+    /// The surface id — the key into the per-surface page-texture cache.
+    pub id: u32,
     pub x: f32,
     pub y: f32,
     pub w: f32,
     pub h: f32,
     pub opacity: f32,
+    /// The page's rendered display list. `None` ⇒ draw the solid themed
+    /// fallback (no page yet). `Some` ⇒ rasterize it into the panel texture.
+    pub content: Option<std::sync::Arc<nami_core::paint::DisplayList>>,
+    /// Bumped on each content change — the renderer re-rasterizes only when it
+    /// differs from the cached texture's seqno.
+    pub content_seqno: u64,
 }
 
 struct ImagePipeline {
@@ -1261,6 +1269,10 @@ pub struct TerminalRenderer {
     /// Kitty-image instances in the same submit (last-write-wins hazard).
     /// Lazily created + grown to fit (persistent so it outlives the pass).
     float_panel_buf: std::cell::RefCell<Option<wgpu::Buffer>>,
+    /// Per-surface rendered-page texture cache, keyed by browser id →
+    /// (content_seqno, texture). Re-rasterized only when the surface's seqno
+    /// moves (navigate/resize), never per frame.
+    browser_page_tex: std::cell::RefCell<std::collections::HashMap<u32, (u64, GpuImage)>>,
     // window field removed at Phase 4 — single-pane mado.
     font_size: f32,
     /// Cell-height multiplier — the line rhythm. The cell height is
@@ -1927,6 +1939,7 @@ impl TerminalRenderer {
             float_panels: Arc::new(Mutex::new(Vec::new())),
             float_panel_tex: std::cell::RefCell::new(None),
             float_panel_buf: std::cell::RefCell::new(None),
+            browser_page_tex: std::cell::RefCell::new(std::collections::HashMap::new()),
             // window: removed Phase 4
             font_size,
             line_height,
@@ -4571,8 +4584,32 @@ impl TerminalRenderer {
             Some(ref p) => p,
             None => return,
         };
-        // Lazily create the shared themed panel texture (Nord polar-night bg,
-        // #2e3440); a 2x2 solid stretched to each panel rect.
+
+        // ── Pre-rasterize each surface's page into its cached texture, only
+        // when the content seqno moved (navigate/resize) — never per frame. GC
+        // textures for closed surfaces. ──
+        {
+            use ishou_tokens::space::srgb_channel_to_linear as lin;
+            let bg = [lin(0x2e as f32 / 255.0), lin(0x34 as f32 / 255.0), lin(0x40 as f32 / 255.0), 1.0];
+            let fg = [lin(0xd8 as f32 / 255.0), lin(0xde as f32 / 255.0), lin(0xe9 as f32 / 255.0), 1.0];
+            let live: std::collections::HashSet<u32> = panels.iter().map(|p| p.id).collect();
+            let mut cache = self.browser_page_tex.borrow_mut();
+            cache.retain(|id, _| live.contains(id));
+            for p in &panels {
+                let Some(dl) = &p.content else { continue };
+                let stale = cache.get(&p.id).is_none_or(|(seq, _)| *seq != p.content_seqno);
+                if stale && !dl.is_empty() {
+                    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+                    let (pw, ph) = (p.w.max(1.0) as u32, p.h.max(1.0) as u32);
+                    let rgba = crate::browser_engine::render_display_list_to_rgba(gpu, dl, pw, ph, bg, fg);
+                    let img = image_pipeline.create_gpu_image(&gpu.device, &gpu.queue, &rgba, pw, ph, p.content_seqno);
+                    cache.insert(p.id, (p.content_seqno, img));
+                }
+            }
+        }
+
+        // Lazily create the shared themed solid FALLBACK texture (Nord
+        // #2e3440) — drawn for a surface that has no page yet.
         if self.float_panel_tex.borrow().is_none() {
             let px: [u8; 4] = [0x2e, 0x34, 0x40, 0xff];
             let mut rgba = Vec::with_capacity(2 * 2 * 4);
@@ -4582,10 +4619,6 @@ impl TerminalRenderer {
             let img = image_pipeline.create_gpu_image(&gpu.device, &gpu.queue, &rgba, 2, 2, 0);
             *self.float_panel_tex.borrow_mut() = Some(img);
         }
-        let tex_ref = self.float_panel_tex.borrow();
-        let Some(panel_tex) = tex_ref.as_ref() else {
-            return;
-        };
 
         let uniforms = ScreenUniforms {
             resolution: [width as f32, height as f32],
@@ -4594,6 +4627,7 @@ impl TerminalRenderer {
         gpu.queue
             .write_buffer(&image_pipeline.uniform_buffer, 0, bytemuck::bytes_of(&uniforms));
 
+        // One ImageInstance per panel (same shape; the texture varies per draw).
         let instances: Vec<ImageInstance> = panels
             .iter()
             .map(|p| ImageInstance {
@@ -4604,9 +4638,8 @@ impl TerminalRenderer {
                 opacity: p.opacity,
             })
             .collect();
-        // Dedicated instance buffer (lazily grown to fit) — never the shared
-        // image_pipeline.instance_buffer, so a panel write cannot clobber the
-        // Kitty-image instances that share one submit (last-write-wins).
+        // Dedicated instance buffer (lazily grown) — never the shared
+        // image_pipeline.instance_buffer (last-write-wins clobber hazard).
         let needed = (instances.len() * std::mem::size_of::<ImageInstance>()) as u64;
         {
             let mut buf = self.float_panel_buf.borrow_mut();
@@ -4627,6 +4660,8 @@ impl TerminalRenderer {
         gpu.queue
             .write_buffer(inst_buf, 0, bytemuck::cast_slice(&instances));
 
+        let cache = self.browser_page_tex.borrow();
+        let solid_ref = self.float_panel_tex.borrow();
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("mado_float_panels"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -4643,10 +4678,20 @@ impl TerminalRenderer {
         });
         pass.set_pipeline(&image_pipeline.pipeline);
         pass.set_bind_group(0, &image_pipeline.uniform_bind_group, &[]);
-        pass.set_bind_group(1, &panel_tex.bind_group, &[]);
         pass.set_vertex_buffer(0, inst_buf.slice(..));
-        #[allow(clippy::cast_possible_truncation)]
-        pass.draw(0..6, 0..instances.len() as u32);
+        // Draw each panel with ITS OWN texture (rendered page, else solid),
+        // using instance index i into the one written buffer.
+        for (i, p) in panels.iter().enumerate() {
+            let bind = cache
+                .get(&p.id)
+                .map(|(_, img)| &img.bind_group)
+                .or_else(|| solid_ref.as_ref().map(|s| &s.bind_group));
+            let Some(bind_group) = bind else { continue };
+            pass.set_bind_group(1, bind_group, &[]);
+            #[allow(clippy::cast_possible_truncation)]
+            let idx = i as u32;
+            pass.draw(0..6, idx..idx + 1);
+        }
     }
 }
 

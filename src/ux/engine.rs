@@ -2222,12 +2222,21 @@ impl InputEngine {
             .float
             .draw_order()
             .iter()
-            .map(|s| crate::render::FloatPanel {
-                x: s.rect.x,
-                y: s.rect.y,
-                w: s.rect.width,
-                h: s.rect.height,
-                opacity: 0.98,
+            .map(|s| {
+                let (content, content_seqno) = self.browsers.get(&s.id).map_or_else(
+                    || (None, 0),
+                    |(_, b, _)| (Some(b.current_display_list()), b.content_seqno()),
+                );
+                crate::render::FloatPanel {
+                    id: s.id.0,
+                    x: s.rect.x,
+                    y: s.rect.y,
+                    w: s.rect.width,
+                    h: s.rect.height,
+                    opacity: 0.98,
+                    content,
+                    content_seqno,
+                }
             })
             .collect();
         *self.float_panels.lock().unwrap() = panels;

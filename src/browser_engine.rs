@@ -166,6 +166,12 @@ pub struct RealBrowserBackend {
     clock: f64,
     width: u32,
     height: u32,
+    /// The last built display list, cached (shared) so the GPU layer can
+    /// re-rasterize it on demand without a re-parse.
+    last_list: std::sync::Arc<DisplayList>,
+    /// Bumped on every content change (render_html / successful navigate) — the
+    /// renderer re-renders the panel texture only when this moves.
+    content_seqno: u64,
 }
 
 impl RealBrowserBackend {
@@ -180,20 +186,31 @@ impl RealBrowserBackend {
             clock: 0.0,
             width,
             height,
+            last_list: std::sync::Arc::new(DisplayList::default()),
+            content_seqno: 0,
         }
     }
 
-    /// Render HTML offline (no network) + mark loaded. For feeding HTML
-    /// directly + tests.
+    /// Render HTML offline (no network), cache the display list, bump the
+    /// content seqno, + mark loaded. For feeding HTML directly + tests.
     pub fn render_html(&mut self, html: &str) {
         self.engine.render_html(html);
+        self.last_list = std::sync::Arc::new(self.engine.take_display_list());
+        self.content_seqno = self.content_seqno.wrapping_add(1);
         self.load = LoadState::Loaded;
     }
 
-    /// Take the current display list (the GPU layer consumes this). Clears it,
-    /// so a stale list is never re-painted.
-    pub fn display_list(&mut self) -> DisplayList {
-        self.engine.take_display_list()
+    /// The current cached display list (shared) — the GPU layer rasterizes this
+    /// into the panel texture. Not consumed; stable until the next content change.
+    #[must_use]
+    pub fn current_display_list(&self) -> std::sync::Arc<DisplayList> {
+        std::sync::Arc::clone(&self.last_list)
+    }
+
+    /// The content-change counter — the renderer re-rasterizes only when it moves.
+    #[must_use]
+    pub fn content_seqno(&self) -> u64 {
+        self.content_seqno
     }
 
     /// The content-area size (CSS px).
@@ -208,6 +225,8 @@ impl BrowserBackend for RealBrowserBackend {
         self.load = LoadState::Loading;
         self.engine.navigate(url);
         if self.engine.navigate_ok {
+            self.last_list = std::sync::Arc::new(self.engine.take_display_list());
+            self.content_seqno = self.content_seqno.wrapping_add(1);
             self.load = LoadState::Loaded;
             Ok(())
         } else {
@@ -244,6 +263,170 @@ impl BrowserBackend for RealBrowserBackend {
     }
 }
 
+/// Rasterize a nami-core [`DisplayList`] to a tightly-packed RGBA8 buffer,
+/// offscreen (no window). Ports namimado's `render_content` renders_pixels
+/// branch: `DrawCmd::Rect`/`Image` → garasu `QuadInstance` (sRGB→linear via
+/// `ishou_tokens`), `DrawCmd::Text` → glyphon `Buffer`/`TextArea`, one scoped
+/// pass into a garasu [`garasu::headless::HeadlessTarget`], read back.
+///
+/// `bg` clears the frame, `fg_fallback` colors text with no explicit color
+/// (inherited / `currentColor`). Both are LINEAR-space RGBA (the caller
+/// converts from sRGB), matching the `render_content` convention into an
+/// `Rgba8UnormSrgb` target. DisplayList coords are content-relative — the panel
+/// IS the content rect, so no address-bar offset.
+///
+/// TIER-HONEST interim: this re-authors namimado's translator in mado because
+/// namimado is a bin (unreachable). The Op#1 load-bearing fix is ONE shared
+/// `DisplayList`→GPU translator crate consumed by both mado + namimado —
+/// `pending-shared-content-translator`.
+#[must_use]
+pub fn render_display_list_to_rgba(
+    gpu: &garasu::GpuContext,
+    dl: &DisplayList,
+    width: u32,
+    height: u32,
+    bg: [f32; 4],
+    fg_fallback: [f32; 4],
+) -> Vec<u8> {
+    use garasu::{QuadInstance, QuadPipeline, TextRenderer};
+    use glyphon::{Color as GlyphColor, TextArea, TextBounds};
+    use ishou_tokens::space::srgb_channel_to_linear;
+    use nami_core::paint::DrawCmd;
+
+    let fmt = wgpu::TextureFormat::Rgba8UnormSrgb;
+    let w = width.max(1);
+    let h = height.max(1);
+    let target = garasu::headless::HeadlessTarget::new(gpu, w, h, fmt);
+    let mut quad = QuadPipeline::new(&gpu.device, fmt);
+    quad.update_resolution(&gpu.queue, w, h);
+    let mut text = TextRenderer::new(&gpu.device, &gpu.queue, fmt);
+
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    let to_byte = |f: f32| (f.clamp(0.0, 1.0) * 255.0).round() as u8;
+
+    let mut quads: Vec<QuadInstance> = Vec::new();
+    // Text buffers must outlive the `areas` that borrow them.
+    let mut runs: Vec<(glyphon::Buffer, f32, f32, f32, f32, GlyphColor)> = Vec::new();
+    for cmd in &dl.cmds {
+        match cmd {
+            DrawCmd::Rect {
+                x,
+                y,
+                width,
+                height,
+                color,
+            } => quads.push(QuadInstance {
+                pos: [*x, *y],
+                size: [*width, *height],
+                color: [
+                    srgb_channel_to_linear(color.r),
+                    srgb_channel_to_linear(color.g),
+                    srgb_channel_to_linear(color.b),
+                    color.a,
+                ],
+            }),
+            DrawCmd::Image {
+                x,
+                y,
+                width,
+                height,
+                placeholder,
+                ..
+            } => quads.push(QuadInstance {
+                pos: [*x, *y],
+                size: [*width, *height],
+                color: [
+                    srgb_channel_to_linear(placeholder.r),
+                    srgb_channel_to_linear(placeholder.g),
+                    srgb_channel_to_linear(placeholder.b),
+                    placeholder.a,
+                ],
+            }),
+            DrawCmd::Text {
+                x,
+                y,
+                max_width,
+                max_height,
+                text: run,
+                color,
+                font_size,
+                line_height,
+            } => {
+                let mut buf = text.create_buffer(run, *font_size, *line_height);
+                buf.set_size(
+                    &mut text.font_system,
+                    Some(max_width.max(1.0)),
+                    Some(max_height.max(*line_height)),
+                );
+                buf.shape_until_scroll(&mut text.font_system, false);
+                let glyph = if color.a > 0.0 {
+                    GlyphColor::rgb(to_byte(color.r), to_byte(color.g), to_byte(color.b))
+                } else {
+                    GlyphColor::rgb(
+                        to_byte(fg_fallback[0]),
+                        to_byte(fg_fallback[1]),
+                        to_byte(fg_fallback[2]),
+                    )
+                };
+                runs.push((buf, *x, *y, *max_width, *max_height, glyph));
+            }
+        }
+    }
+
+    #[allow(clippy::cast_possible_truncation)]
+    let areas: Vec<TextArea> = runs
+        .iter()
+        .map(|(buf, left, top, rw, rh, color)| TextArea {
+            buffer: buf,
+            left: *left,
+            top: *top,
+            scale: 1.0,
+            bounds: TextBounds {
+                left: *left as i32,
+                top: *top as i32,
+                right: (*left + *rw) as i32,
+                bottom: (*top + *rh) as i32,
+            },
+            default_color: *color,
+            custom_glyphs: &[],
+        })
+        .collect();
+    // On a prepare failure, still render the rects (never a silent full-blank).
+    let _ = text.prepare(&gpu.device, &gpu.queue, w, h, areas);
+
+    let mut encoder = gpu
+        .device
+        .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("mado_browser_page"),
+        });
+    {
+        let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("mado_browser_page_pass"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: target.view(),
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(wgpu::Color {
+                        r: f64::from(bg[0]),
+                        g: f64::from(bg[1]),
+                        b: f64::from(bg[2]),
+                        a: f64::from(bg[3]),
+                    }),
+                    store: wgpu::StoreOp::Store,
+                },
+            })],
+            depth_stencil_attachment: None,
+            occlusion_query_set: None,
+            timestamp_writes: None,
+        });
+        // Backgrounds/images before text, so glyphs sit on their box fills.
+        quad.draw(&gpu.device, &gpu.queue, &mut pass, &quads);
+        let _ = text.render(&mut pass);
+    }
+    gpu.queue.submit(std::iter::once(encoder.finish()));
+    target.read_pixels_rgba8(gpu)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -263,7 +446,7 @@ mod tests {
              p{color:#ffffff;height:30px}</style><div><p>Hello</p></div>",
         );
         assert_eq!(b.load_state(), LoadState::Loaded);
-        let dl = b.display_list();
+        let dl = b.current_display_list();
         assert!(!dl.is_empty(), "expected a non-empty display list: {dl:?}");
         assert!(
             dl.cmds
@@ -282,12 +465,16 @@ mod tests {
     }
 
     #[test]
-    fn display_list_clears_after_take() {
+    fn content_seqno_bumps_on_each_render() {
         let mut b = backend();
+        let s0 = b.content_seqno();
         b.render_html("<style>div{background-color:#112233;width:50px;height:50px}</style><div></div>");
-        assert!(!b.display_list().is_empty());
-        // Second take is empty — the cached list was consumed.
-        assert!(b.display_list().is_empty());
+        let s1 = b.content_seqno();
+        assert_ne!(s0, s1, "seqno must bump on render");
+        // The cached list is stable (not consumed) across reads.
+        assert!(!b.current_display_list().is_empty());
+        assert!(!b.current_display_list().is_empty());
+        assert_eq!(b.content_seqno(), s1, "reading the list must not bump the seqno");
     }
 
     #[test]
@@ -313,10 +500,46 @@ mod tests {
     fn resize_relays_out_from_cached_html() {
         let mut b = backend();
         b.render_html("<style>div{background-color:#00ff00;width:100px;height:40px}</style><div></div>");
-        let _ = b.display_list(); // consume
+        assert!(!b.current_display_list().is_empty());
         // A resize re-lays out from the cached HTML (no re-render_html call).
         b.resize(400, 300);
-        assert!(!b.display_list().is_empty(), "resize should re-layout the cached page");
+        assert!(
+            !b.current_display_list().is_empty(),
+            "resize should re-layout the cached page"
+        );
         assert_eq!(b.size(), (400, 300));
+    }
+
+    // GPU golden — needs an adapter. Gated on `gpu_tests` (cid + dev
+    // workstations have one; CI runners typically don't) so plain `cargo test`
+    // never needs a GPU. The empirical proof that real page pixels reach the
+    // panel texture — the layer below render_html_builds_a_nonempty_display_list.
+    #[cfg(feature = "gpu_tests")]
+    mod gpu {
+        use super::*;
+
+        #[test]
+        fn page_render_paints_the_blue_div_and_is_not_a_uniform_fill() {
+            let gpu = pollster::block_on(garasu::GpuContext::new()).expect("GPU adapter");
+            let mut b = backend();
+            b.render_html(
+                "<style>div{background-color:#3050ff;width:200px;height:100px} \
+                 p{color:#ffffff;height:30px}</style><div><p>Hello</p></div>",
+            );
+            let dl = b.current_display_list();
+            let bg = [0.03_f32, 0.04, 0.06, 1.0];
+            let fg = [0.85_f32, 0.87, 0.91, 1.0];
+            let rgba = render_display_list_to_rgba(&gpu, &dl, 400, 300, bg, fg);
+            assert_eq!(rgba.len(), 400 * 300 * 4, "tightly-packed RGBA8");
+            // A blue div pixel exists — b channel high, r/g low (≈#3050ff).
+            let has_blue = rgba
+                .chunks_exact(4)
+                .any(|px| px[2] > 180 && px[0] < 120 && px[1] < 120);
+            assert!(has_blue, "expected a blue div pixel — real page pixels reached the texture");
+            // The page is NOT a uniform fill (something painted over the clear).
+            let first = &rgba[0..4];
+            let uniform = rgba.chunks_exact(4).all(|px| px == first);
+            assert!(!uniform, "the rendered page must not be a uniform fill");
+        }
     }
 }
