@@ -121,6 +121,9 @@ pub struct BrowserSurfaceInfo {
     pub mode: String,
     /// Page load state (a `LoadState` slug).
     pub load_state: String,
+    /// The page DOM as a homoiconic tatara-lisp S-expression (`dom_to_sexp`) —
+    /// the queryable read side of "The DOM Way of the Browser".
+    pub dom_sexp: String,
 }
 
 /// The process-global bridge: the write sink + the published read snapshot.
@@ -289,6 +292,7 @@ mod tests {
             focused: true,
             mode: "floating".to_owned(),
             load_state: "loaded".to_owned(),
+            dom_sexp: "(html (body))".to_owned(),
         }];
         bridge.publish(rows.clone());
         assert_eq!(bridge.surfaces(), rows);

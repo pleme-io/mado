@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "44d4a5cba581f72b50f0c2aa055b27e54fb33b9c9d81319d25f849181a75b38c",
+  "cargo_lock_sha256": "f0e35dc0665e58ba32df0bfa1753585dbf87d0978d490a9fdc449c5df84c989c",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -278,6 +278,26 @@
         "build_dependencies": [],
         "features": []
       },
+      "anyerror-0.1.13": {
+        "runtime_dependencies": [
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.228",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "default"
+        ]
+      },
       "anyhow-1.0.103": {
         "runtime_dependencies": [],
         "build_dependencies": [],
@@ -335,6 +355,52 @@
           "loaded",
           "std"
         ]
+      },
+      "async-broadcast-0.7.2": {
+        "runtime_dependencies": [
+          {
+            "name": "event_listener",
+            "package_key": "event-listener-5.4.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "event_listener_strategy",
+            "package_key": "event-listener-strategy-0.5.4",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "futures_core",
+            "package_key": "futures-core-0.3.32",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "pin_project_lite",
+            "package_key": "pin-project-lite-0.2.17",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
       },
       "async-compression-0.4.42": {
         "runtime_dependencies": [
@@ -570,6 +636,40 @@
         ],
         "build_dependencies": [],
         "features": []
+      },
+      "backon-1.6.0": {
+        "runtime_dependencies": [
+          {
+            "name": "fastrand",
+            "package_key": "fastrand-2.4.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tokio",
+            "package_key": "tokio-1.53.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": "cfg(not(target_arch = \"wasm32\"))",
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "default",
+          "gloo-timers",
+          "gloo-timers-sleep",
+          "std",
+          "std-blocking-sleep",
+          "tokio",
+          "tokio-sleep"
+        ]
       },
       "base64-0.22.1": {
         "runtime_dependencies": [],
@@ -948,10 +1048,49 @@
           "std"
         ]
       },
+      "bumpalo-3.20.3": {
+        "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": [
+          "collections",
+          "default"
+        ]
+      },
       "by_address-1.2.1": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
+      },
+      "byte-unit-5.2.5": {
+        "runtime_dependencies": [
+          {
+            "name": "rust_decimal",
+            "package_key": "rust_decimal-1.42.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "utf8_width",
+            "package_key": "utf8-width-0.1.9",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "byte",
+          "default",
+          "rust_decimal",
+          "std"
+        ]
       },
       "bytecheck-0.6.12": {
         "runtime_dependencies": [
@@ -2452,7 +2591,10 @@
           }
         ],
         "build_dependencies": [],
-        "features": []
+        "features": [
+          "default",
+          "suggestions"
+        ]
       },
       "darling-0.23.0": {
         "runtime_dependencies": [
@@ -2526,6 +2668,16 @@
             "tree": "target"
           },
           {
+            "name": "strsim",
+            "package_key": "strsim-0.11.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
             "name": "syn",
             "package_key": "syn-2.0.119",
             "kind": "normal",
@@ -2540,7 +2692,10 @@
           }
         ],
         "build_dependencies": [],
-        "features": []
+        "features": [
+          "strsim",
+          "suggestions"
+        ]
       },
       "darling_core-0.23.0": {
         "runtime_dependencies": [
@@ -2748,6 +2903,28 @@
           "serde"
         ]
       },
+      "derive_more-1.0.0": {
+        "runtime_dependencies": [
+          {
+            "name": "derive_more_impl",
+            "package_key": "derive_more-impl-1.0.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "host"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "default",
+          "display",
+          "from",
+          "std",
+          "try_into"
+        ]
+      },
       "derive_more-2.1.1": {
         "runtime_dependencies": [
           {
@@ -2766,6 +2943,57 @@
           "debug",
           "default",
           "std"
+        ]
+      },
+      "derive_more-impl-1.0.0": {
+        "runtime_dependencies": [
+          {
+            "name": "proc_macro2",
+            "package_key": "proc-macro2-1.0.106",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "quote",
+            "package_key": "quote-1.0.46",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "syn",
+            "package_key": "syn-2.0.119",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "unicode_xid",
+            "package_key": "unicode-xid-0.2.6",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "default",
+          "display",
+          "from",
+          "try_into"
         ]
       },
       "derive_more-impl-2.1.1": {
@@ -3074,6 +3302,59 @@
         "build_dependencies": [],
         "features": []
       },
+      "educe-0.6.0": {
+        "runtime_dependencies": [
+          {
+            "name": "enum_ordinalize",
+            "package_key": "enum-ordinalize-4.4.1",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "proc_macro2",
+            "package_key": "proc-macro2-1.0.106",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "quote",
+            "package_key": "quote-1.0.46",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "syn",
+            "package_key": "syn-2.0.119",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "Clone",
+          "Debug",
+          "Hash",
+          "PartialEq"
+        ]
+      },
       "egaku-0.1.3-81d168190061c452d115f58f186429b84f489be8": {
         "runtime_dependencies": [
           {
@@ -3371,6 +3652,60 @@
           "default"
         ]
       },
+      "enum-ordinalize-4.4.1": {
+        "runtime_dependencies": [
+          {
+            "name": "enum_ordinalize_derive",
+            "package_key": "enum-ordinalize-derive-4.4.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": true,
+            "target": null,
+            "tree": "host"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "derive"
+        ]
+      },
+      "enum-ordinalize-derive-4.4.1": {
+        "runtime_dependencies": [
+          {
+            "name": "proc_macro2",
+            "package_key": "proc-macro2-1.0.106",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "quote",
+            "package_key": "quote-1.0.46",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "syn",
+            "package_key": "syn-2.0.119",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
       "equivalent-1.0.2": {
         "runtime_dependencies": [],
         "build_dependencies": [],
@@ -3497,6 +3832,35 @@
         "features": [
           "default",
           "parking",
+          "std"
+        ]
+      },
+      "event-listener-strategy-0.5.4": {
+        "runtime_dependencies": [
+          {
+            "name": "event_listener",
+            "package_key": "event-listener-5.4.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "pin_project_lite",
+            "package_key": "pin-project-lite-0.2.17",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "default",
           "std"
         ]
       },
@@ -5384,6 +5748,98 @@
         "build_dependencies": [],
         "features": []
       },
+      "headers-0.4.1": {
+        "runtime_dependencies": [
+          {
+            "name": "base64",
+            "package_key": "base64-0.22.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "bytes",
+            "package_key": "bytes-1.12.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "headers_core",
+            "package_key": "headers-core-0.3.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "http",
+            "package_key": "http-1.4.2",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "httpdate",
+            "package_key": "httpdate-1.0.3",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "mime",
+            "package_key": "mime-0.3.17",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "sha1",
+            "package_key": "sha1-0.10.7",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "headers-core-0.3.0": {
+        "runtime_dependencies": [
+          {
+            "name": "http",
+            "package_key": "http-1.4.2",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
       "heck-0.4.1": {
         "runtime_dependencies": [],
         "build_dependencies": [],
@@ -5450,6 +5906,34 @@
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
+      },
+      "hostname-0.4.2": {
+        "runtime_dependencies": [
+          {
+            "name": "cfg_if",
+            "package_key": "cfg-if-1.0.4",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "libc",
+            "package_key": "libc-0.2.186",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": "cfg(any(unix, target_os = \"redox\"))",
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "default"
+        ]
       },
       "html5ever-0.29.1": {
         "runtime_dependencies": [
@@ -5618,6 +6102,11 @@
           "std"
         ]
       },
+      "httpdate-1.0.3": {
+        "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": []
+      },
       "hyper-1.10.1": {
         "runtime_dependencies": [
           {
@@ -5764,6 +6253,135 @@
           "http2"
         ]
       },
+      "hyper-http-proxy-1.1.1": {
+        "runtime_dependencies": [
+          {
+            "name": "bytes",
+            "package_key": "bytes-1.12.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "futures_util",
+            "package_key": "futures-util-0.3.32",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "headers",
+            "package_key": "headers-0.4.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "http",
+            "package_key": "http-1.4.2",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "hyper",
+            "package_key": "hyper-1.10.1",
+            "kind": "normal",
+            "features": [
+              "client"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "hyper_rustls",
+            "package_key": "hyper-rustls-0.27.9",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "hyper_util",
+            "package_key": "hyper-util-0.1.20",
+            "kind": "normal",
+            "features": [
+              "client",
+              "client-legacy",
+              "tokio"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "pin_project_lite",
+            "package_key": "pin-project-lite-0.2.17",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tokio",
+            "package_key": "tokio-1.53.0",
+            "kind": "normal",
+            "features": [
+              "io-std",
+              "io-util"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tokio_rustls",
+            "package_key": "tokio-rustls-0.26.4",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tower_service",
+            "package_key": "tower-service-0.3.3",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "__rustls",
+          "__tls",
+          "rustls-tls-native-roots"
+        ]
+      },
       "hyper-rustls-0.27.9": {
         "runtime_dependencies": [
           {
@@ -5800,12 +6418,32 @@
             "tree": "target"
           },
           {
+            "name": "log",
+            "package_key": "log-0.4.33",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
             "name": "rustls",
             "package_key": "rustls-0.23.42",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
             "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "rustls_native_certs",
+            "package_key": "rustls-native-certs-0.8.4",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
             "target": null,
             "tree": "target"
           },
@@ -5854,11 +6492,74 @@
         "features": [
           "http1",
           "http2",
+          "log",
+          "logging",
+          "native-tokio",
           "ring",
+          "rustls-native-certs",
           "tls12",
           "webpki-roots",
           "webpki-tokio"
         ]
+      },
+      "hyper-timeout-0.5.2": {
+        "runtime_dependencies": [
+          {
+            "name": "hyper",
+            "package_key": "hyper-1.10.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "hyper_util",
+            "package_key": "hyper-util-0.1.20",
+            "kind": "normal",
+            "features": [
+              "client-legacy",
+              "http1"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "pin_project_lite",
+            "package_key": "pin-project-lite-0.2.17",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tokio",
+            "package_key": "tokio-1.53.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tower_service",
+            "package_key": "tower-service-0.3.3",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
       },
       "hyper-tls-0.6.0": {
         "runtime_dependencies": [
@@ -6984,6 +7685,217 @@
         "build_dependencies": [],
         "features": []
       },
+      "json-patch-4.2.0": {
+        "runtime_dependencies": [
+          {
+            "name": "jsonptr",
+            "package_key": "jsonptr-0.7.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.228",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.150",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "thiserror",
+            "package_key": "thiserror-2.0.18",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "default",
+          "diff"
+        ]
+      },
+      "jsonpath-rust-0.7.5": {
+        "runtime_dependencies": [
+          {
+            "name": "pest",
+            "package_key": "pest-2.8.7",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "pest_derive",
+            "package_key": "pest_derive-2.8.7",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "host"
+          },
+          {
+            "name": "regex",
+            "package_key": "regex-1.13.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.150",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "thiserror",
+            "package_key": "thiserror-2.0.18",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "jsonptr-0.7.1": {
+        "runtime_dependencies": [
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.228",
+            "kind": "normal",
+            "features": [
+              "alloc"
+            ],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.150",
+            "kind": "normal",
+            "features": [
+              "alloc"
+            ],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "assign",
+          "default",
+          "delete",
+          "json",
+          "resolve",
+          "serde",
+          "std"
+        ]
+      },
+      "k8s-openapi-0.24.0": {
+        "runtime_dependencies": [
+          {
+            "name": "base64",
+            "package_key": "base64-0.22.1",
+            "kind": "normal",
+            "features": [
+              "alloc"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "chrono",
+            "package_key": "chrono-0.4.45",
+            "kind": "normal",
+            "features": [
+              "alloc",
+              "serde"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.228",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_value",
+            "package_key": "serde-value-0.7.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.150",
+            "kind": "normal",
+            "features": [
+              "alloc"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "latest",
+          "v1_32"
+        ]
+      },
       "kaname-0.1.1-0570e7ec566b60444307fe5873f80f5beda8fe6c": {
         "runtime_dependencies": [
           {
@@ -7233,6 +8145,826 @@
           "pkg-config",
           "static"
         ]
+      },
+      "kube-0.99.0": {
+        "runtime_dependencies": [
+          {
+            "name": "k8s_openapi",
+            "package_key": "k8s-openapi-0.24.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "kube_client",
+            "package_key": "kube-client-0.99.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "kube_core",
+            "package_key": "kube-core-0.99.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "kube_derive",
+            "package_key": "kube-derive-0.99.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "host"
+          },
+          {
+            "name": "kube_runtime",
+            "package_key": "kube-runtime-0.99.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "client",
+          "config",
+          "default",
+          "derive",
+          "kube-client",
+          "kube-derive",
+          "kube-runtime",
+          "ring",
+          "runtime",
+          "rustls-tls"
+        ]
+      },
+      "kube-client-0.99.0": {
+        "runtime_dependencies": [
+          {
+            "name": "base64",
+            "package_key": "base64-0.22.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "bytes",
+            "package_key": "bytes-1.12.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "chrono",
+            "package_key": "chrono-0.4.45",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "either",
+            "package_key": "either-1.16.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "futures",
+            "package_key": "futures-0.3.32",
+            "kind": "normal",
+            "features": [
+              "std"
+            ],
+            "uses_default_features": false,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "home",
+            "package_key": "home-0.5.12",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "http",
+            "package_key": "http-1.4.2",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "http_body",
+            "package_key": "http-body-1.1.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "http_body_util",
+            "package_key": "http-body-util-0.1.4",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "hyper",
+            "package_key": "hyper-1.10.1",
+            "kind": "normal",
+            "features": [
+              "client",
+              "http1"
+            ],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "hyper_rustls",
+            "package_key": "hyper-rustls-0.27.9",
+            "kind": "normal",
+            "features": [
+              "http1",
+              "logging",
+              "native-tokio",
+              "tls12"
+            ],
+            "uses_default_features": false,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "hyper_timeout",
+            "package_key": "hyper-timeout-0.5.2",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "hyper_util",
+            "package_key": "hyper-util-0.1.20",
+            "kind": "normal",
+            "features": [
+              "client",
+              "client-legacy",
+              "http1",
+              "tokio"
+            ],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "jsonpath_rust",
+            "package_key": "jsonpath-rust-0.7.5",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "k8s_openapi",
+            "package_key": "k8s-openapi-0.24.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "kube_core",
+            "package_key": "kube-core-0.99.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "pem",
+            "package_key": "pem-3.0.6",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "rustls",
+            "package_key": "rustls-0.23.42",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "secrecy",
+            "package_key": "secrecy-0.10.3",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.228",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.150",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_yaml",
+            "package_key": "serde_yaml-0.9.34+deprecated",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "thiserror",
+            "package_key": "thiserror-2.0.18",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tokio",
+            "package_key": "tokio-1.53.0",
+            "kind": "normal",
+            "features": [
+              "signal",
+              "sync",
+              "time"
+            ],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tokio_util",
+            "package_key": "tokio-util-0.7.18",
+            "kind": "normal",
+            "features": [
+              "codec",
+              "io"
+            ],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tower",
+            "package_key": "tower-0.5.3",
+            "kind": "normal",
+            "features": [
+              "buffer",
+              "filter",
+              "util"
+            ],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tower_http",
+            "package_key": "tower-http-0.6.11",
+            "kind": "normal",
+            "features": [
+              "auth",
+              "map-response-body",
+              "trace"
+            ],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tracing",
+            "package_key": "tracing-0.1.44",
+            "kind": "normal",
+            "features": [
+              "log"
+            ],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "__non_core",
+          "base64",
+          "bytes",
+          "chrono",
+          "client",
+          "config",
+          "either",
+          "futures",
+          "home",
+          "http-body",
+          "http-body-util",
+          "hyper",
+          "hyper-rustls",
+          "hyper-timeout",
+          "hyper-util",
+          "jsonpatch",
+          "jsonpath-rust",
+          "pem",
+          "ring",
+          "rustls",
+          "rustls-tls",
+          "serde_yaml",
+          "tokio",
+          "tokio-util",
+          "tower",
+          "tower-http",
+          "tracing"
+        ]
+      },
+      "kube-core-0.99.0": {
+        "runtime_dependencies": [
+          {
+            "name": "chrono",
+            "package_key": "chrono-0.4.45",
+            "kind": "normal",
+            "features": [
+              "now"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "form_urlencoded",
+            "package_key": "form_urlencoded-1.2.2",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "http",
+            "package_key": "http-1.4.2",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "json_patch",
+            "package_key": "json-patch-4.2.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "k8s_openapi",
+            "package_key": "k8s-openapi-0.24.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "schemars",
+            "package_key": "schemars-0.8.22",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.228",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_value",
+            "package_key": "serde-value-0.7.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.150",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "thiserror",
+            "package_key": "thiserror-2.0.18",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "json-patch",
+          "jsonpatch",
+          "schema",
+          "schemars"
+        ]
+      },
+      "kube-derive-0.99.0": {
+        "runtime_dependencies": [
+          {
+            "name": "darling",
+            "package_key": "darling-0.20.11",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "proc_macro2",
+            "package_key": "proc-macro2-1.0.106",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "quote",
+            "package_key": "quote-1.0.46",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.228",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.150",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "syn",
+            "package_key": "syn-2.0.119",
+            "kind": "normal",
+            "features": [
+              "extra-traits"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "kube-runtime-0.99.0": {
+        "runtime_dependencies": [
+          {
+            "name": "ahash",
+            "package_key": "ahash-0.8.12",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "async_broadcast",
+            "package_key": "async-broadcast-0.7.2",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "async_stream",
+            "package_key": "async-stream-0.3.6",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "async_trait",
+            "package_key": "async-trait-0.1.89",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "host"
+          },
+          {
+            "name": "backon",
+            "package_key": "backon-1.6.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "educe",
+            "package_key": "educe-0.6.0",
+            "kind": "normal",
+            "features": [
+              "Clone",
+              "Debug",
+              "Hash",
+              "PartialEq"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "host"
+          },
+          {
+            "name": "futures",
+            "package_key": "futures-0.3.32",
+            "kind": "normal",
+            "features": [
+              "async-await"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "hashbrown",
+            "package_key": "hashbrown-0.15.5",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "hostname",
+            "package_key": "hostname-0.4.2",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "json_patch",
+            "package_key": "json-patch-4.2.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "k8s_openapi",
+            "package_key": "k8s-openapi-0.24.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "kube_client",
+            "package_key": "kube-client-0.99.0",
+            "kind": "normal",
+            "features": [
+              "client",
+              "jsonpatch"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "parking_lot",
+            "package_key": "parking_lot-0.12.5",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "pin_project",
+            "package_key": "pin-project-1.1.13",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.228",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.150",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "thiserror",
+            "package_key": "thiserror-2.0.18",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tokio",
+            "package_key": "tokio-1.53.0",
+            "kind": "normal",
+            "features": [
+              "time"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tokio_util",
+            "package_key": "tokio-util-0.7.18",
+            "kind": "normal",
+            "features": [
+              "time"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tracing",
+            "package_key": "tracing-0.1.44",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
       },
       "lazy_static-1.5.0": {
         "runtime_dependencies": [
@@ -7757,6 +9489,11 @@
             "tree": "target"
           }
         ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "maplit-1.0.2": {
+        "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
       },
@@ -8405,6 +10142,26 @@
             "tree": "target"
           },
           {
+            "name": "tatara_eval",
+            "package_key": "tatara-eval-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tatara_lisp",
+            "package_key": "tatara-lisp-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
             "name": "thiserror",
             "package_key": "thiserror-2.0.18",
             "kind": "normal",
@@ -8449,6 +10206,8 @@
         ],
         "build_dependencies": [],
         "features": [
+          "eval",
+          "lisp",
           "network"
         ]
       },
@@ -8886,10 +10645,265 @@
         "build_dependencies": [],
         "features": []
       },
+      "openraft-0.9.24": {
+        "runtime_dependencies": [
+          {
+            "name": "anyerror",
+            "package_key": "anyerror-0.1.13",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "byte_unit",
+            "package_key": "byte-unit-5.2.5",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "chrono",
+            "package_key": "chrono-0.4.45",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "clap",
+            "package_key": "clap-4.6.2",
+            "kind": "normal",
+            "features": [
+              "derive",
+              "env"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "derive_more",
+            "package_key": "derive_more-1.0.0",
+            "kind": "normal",
+            "features": [
+              "display",
+              "from",
+              "std",
+              "try_into"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "futures",
+            "package_key": "futures-0.3.32",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "maplit",
+            "package_key": "maplit-1.0.2",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "openraft_macros",
+            "package_key": "openraft-macros-0.9.24",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "host"
+          },
+          {
+            "name": "rand",
+            "package_key": "rand-0.8.7",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.228",
+            "kind": "normal",
+            "features": [
+              "derive",
+              "rc"
+            ],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "thiserror",
+            "package_key": "thiserror-1.0.69",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tokio",
+            "package_key": "tokio-1.53.0",
+            "kind": "normal",
+            "features": [
+              "io-util",
+              "macros",
+              "rt",
+              "rt-multi-thread",
+              "sync",
+              "time"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tracing",
+            "package_key": "tracing-0.1.44",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tracing_futures",
+            "package_key": "tracing-futures-0.2.5",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "validit",
+            "package_key": "validit-0.2.6",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "serde",
+          "storage-v2"
+        ]
+      },
+      "openraft-macros-0.9.24": {
+        "runtime_dependencies": [
+          {
+            "name": "chrono",
+            "package_key": "chrono-0.4.45",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "proc_macro2",
+            "package_key": "proc-macro2-1.0.106",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "quote",
+            "package_key": "quote-1.0.46",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "semver",
+            "package_key": "semver-1.0.28",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "syn",
+            "package_key": "syn-2.0.119",
+            "kind": "normal",
+            "features": [
+              "extra-traits",
+              "full"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
       "option-ext-0.2.0": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
+      },
+      "ordered-float-2.10.1": {
+        "runtime_dependencies": [
+          {
+            "name": "num_traits",
+            "package_key": "num-traits-0.2.19",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "default",
+          "std"
+        ]
       },
       "ordered-float-4.6.0": {
         "runtime_dependencies": [
@@ -9386,6 +11400,27 @@
         "build_dependencies": [],
         "features": []
       },
+      "pem-3.0.6": {
+        "runtime_dependencies": [
+          {
+            "name": "base64",
+            "package_key": "base64-0.22.1",
+            "kind": "normal",
+            "features": [
+              "alloc"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "default",
+          "std"
+        ]
+      },
       "pem-rfc7468-0.7.0": {
         "runtime_dependencies": [
           {
@@ -9411,6 +11446,141 @@
           "alloc",
           "default",
           "std"
+        ]
+      },
+      "pest-2.8.7": {
+        "runtime_dependencies": [
+          {
+            "name": "memchr",
+            "package_key": "memchr-2.8.3",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "ucd_trie",
+            "package_key": "ucd-trie-0.1.7",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "default",
+          "memchr",
+          "std"
+        ]
+      },
+      "pest_derive-2.8.7": {
+        "runtime_dependencies": [
+          {
+            "name": "pest",
+            "package_key": "pest-2.8.7",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "pest_generator",
+            "package_key": "pest_generator-2.8.7",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "default",
+          "std"
+        ]
+      },
+      "pest_generator-2.8.7": {
+        "runtime_dependencies": [
+          {
+            "name": "pest",
+            "package_key": "pest-2.8.7",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "pest_meta",
+            "package_key": "pest_meta-2.8.7",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "proc_macro2",
+            "package_key": "proc-macro2-1.0.106",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "quote",
+            "package_key": "quote-1.0.46",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "syn",
+            "package_key": "syn-2.0.119",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "std"
+        ]
+      },
+      "pest_meta-2.8.7": {
+        "runtime_dependencies": [
+          {
+            "name": "pest",
+            "package_key": "pest-2.8.7",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "default"
         ]
       },
       "pgvector-0.4.2": {
@@ -9594,6 +11764,65 @@
           "default",
           "std"
         ]
+      },
+      "pin-project-1.1.13": {
+        "runtime_dependencies": [
+          {
+            "name": "pin_project_internal",
+            "package_key": "pin-project-internal-1.1.13",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "host"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "pin-project-internal-1.1.13": {
+        "runtime_dependencies": [
+          {
+            "name": "proc_macro2",
+            "package_key": "proc-macro2-1.0.106",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "quote",
+            "package_key": "quote-1.0.46",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "syn",
+            "package_key": "syn-2.0.119",
+            "kind": "normal",
+            "features": [
+              "clone-impls",
+              "full",
+              "parsing",
+              "printing",
+              "proc-macro",
+              "visit-mut"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
       },
       "pin-project-lite-0.2.17": {
         "runtime_dependencies": [],
@@ -11282,6 +13511,7 @@
         "build_dependencies": [],
         "features": [
           "alloc",
+          "default",
           "getrandom",
           "libc",
           "rand_chacha",
@@ -12846,6 +15076,16 @@
       "rustls-0.23.42": {
         "runtime_dependencies": [
           {
+            "name": "log",
+            "package_key": "log-0.4.33",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
             "name": "once_cell",
             "package_key": "once_cell-1.21.4",
             "kind": "normal",
@@ -12915,6 +15155,8 @@
         ],
         "build_dependencies": [],
         "features": [
+          "log",
+          "logging",
           "ring",
           "std",
           "tls12"
@@ -13238,6 +15480,16 @@
       "schemars-0.8.22": {
         "runtime_dependencies": [
           {
+            "name": "chrono",
+            "package_key": "chrono-0.4.45",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
             "name": "dyn_clone",
             "package_key": "dyn-clone-1.0.20",
             "kind": "normal",
@@ -13282,6 +15534,7 @@
         ],
         "build_dependencies": [],
         "features": [
+          "chrono",
           "default",
           "derive",
           "schemars_derive"
@@ -14508,6 +16761,24 @@
           "default"
         ]
       },
+      "secrecy-0.10.3": {
+        "runtime_dependencies": [
+          {
+            "name": "zeroize",
+            "package_key": "zeroize-1.9.0",
+            "kind": "normal",
+            "features": [
+              "alloc"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
       "self_cell-1.3.0": {
         "runtime_dependencies": [],
         "build_dependencies": [],
@@ -14555,6 +16826,32 @@
           "serde_derive",
           "std"
         ]
+      },
+      "serde-value-0.7.0": {
+        "runtime_dependencies": [
+          {
+            "name": "ordered_float",
+            "package_key": "ordered-float-2.10.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.228",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
       },
       "serde_core-1.0.228": {
         "runtime_dependencies": [],
@@ -17901,6 +20198,342 @@
         "build_dependencies": [],
         "features": []
       },
+      "tatara-core-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
+        "runtime_dependencies": [
+          {
+            "name": "anyhow",
+            "package_key": "anyhow-1.0.103",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "blake3",
+            "package_key": "blake3-1.8.5",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "chrono",
+            "package_key": "chrono-0.4.45",
+            "kind": "normal",
+            "features": [
+              "serde"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "dirs",
+            "package_key": "dirs-6.0.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "hex",
+            "package_key": "hex-0.4.3",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "hostname",
+            "package_key": "hostname-0.4.2",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "openraft",
+            "package_key": "openraft-0.9.24",
+            "kind": "normal",
+            "features": [
+              "serde",
+              "storage-v2"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.228",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.150",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "sha2",
+            "package_key": "sha2-0.10.9",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "thiserror",
+            "package_key": "thiserror-2.0.18",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "toml",
+            "package_key": "toml-0.8.23",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tracing",
+            "package_key": "tracing-0.1.44",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "uuid",
+            "package_key": "uuid-1.24.0",
+            "kind": "normal",
+            "features": [
+              "serde",
+              "v4"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "tatara-eval-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
+        "runtime_dependencies": [
+          {
+            "name": "bumpalo",
+            "package_key": "bumpalo-3.20.3",
+            "kind": "normal",
+            "features": [
+              "collections"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.228",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.150",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tatara_lisp",
+            "package_key": "tatara-lisp-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tatara_nix",
+            "package_key": "tatara-nix-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "thiserror",
+            "package_key": "thiserror-2.0.18",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "tatara-lattice-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
+        "runtime_dependencies": [
+          {
+            "name": "schemars",
+            "package_key": "schemars-0.8.22",
+            "kind": "normal",
+            "features": [
+              "chrono"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.228",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tatara_core",
+            "package_key": "tatara-core-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tatara_process",
+            "package_key": "tatara-process-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "tatara-lisp-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
+        "runtime_dependencies": [
+          {
+            "name": "blake3",
+            "package_key": "blake3-1.8.5",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.228",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.150",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tatara_lisp_derive",
+            "package_key": "tatara-lisp-derive-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "host"
+          },
+          {
+            "name": "thiserror",
+            "package_key": "thiserror-2.0.18",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "default"
+        ]
+      },
       "tatara-lisp-0.2.5-45534e162951cb5ec009372c1508185b71ac1510": {
         "runtime_dependencies": [
           {
@@ -17961,6 +20594,44 @@
           "default"
         ]
       },
+      "tatara-lisp-derive-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
+        "runtime_dependencies": [
+          {
+            "name": "proc_macro2",
+            "package_key": "proc-macro2-1.0.106",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "quote",
+            "package_key": "quote-1.0.46",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "syn",
+            "package_key": "syn-2.0.119",
+            "kind": "normal",
+            "features": [
+              "full"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
       "tatara-lisp-derive-0.2.5-45534e162951cb5ec009372c1508185b71ac1510": {
         "runtime_dependencies": [
           {
@@ -18014,6 +20685,272 @@
           {
             "name": "thiserror",
             "package_key": "thiserror-2.0.18",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "tatara-nix-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
+        "runtime_dependencies": [
+          {
+            "name": "blake3",
+            "package_key": "blake3-1.8.5",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "hex",
+            "package_key": "hex-0.4.3",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.228",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.150",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tatara_lattice",
+            "package_key": "tatara-lattice-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tatara_lisp",
+            "package_key": "tatara-lisp-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tatara_lisp_derive",
+            "package_key": "tatara-lisp-derive-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "host"
+          },
+          {
+            "name": "tempfile",
+            "package_key": "tempfile-3.27.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "thiserror",
+            "package_key": "thiserror-2.0.18",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "tatara-process-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
+        "runtime_dependencies": [
+          {
+            "name": "anyhow",
+            "package_key": "anyhow-1.0.103",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "blake3",
+            "package_key": "blake3-1.8.5",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "chrono",
+            "package_key": "chrono-0.4.45",
+            "kind": "normal",
+            "features": [
+              "serde"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "hex",
+            "package_key": "hex-0.4.3",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "k8s_openapi",
+            "package_key": "k8s-openapi-0.24.0",
+            "kind": "normal",
+            "features": [
+              "latest"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "kube",
+            "package_key": "kube-0.99.0",
+            "kind": "normal",
+            "features": [
+              "client",
+              "derive",
+              "runtime"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "schemars",
+            "package_key": "schemars-0.8.22",
+            "kind": "normal",
+            "features": [
+              "chrono"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.228",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.150",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_yaml",
+            "package_key": "serde_yaml-0.9.34+deprecated",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tatara_core",
+            "package_key": "tatara-core-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tatara_lisp",
+            "package_key": "tatara-lisp-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tatara_lisp_derive",
+            "package_key": "tatara-lisp-derive-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "host"
+          },
+          {
+            "name": "thiserror",
+            "package_key": "thiserror-2.0.18",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tracing",
+            "package_key": "tracing-0.1.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19414,6 +22351,7 @@
         ],
         "build_dependencies": [],
         "features": [
+          "logging",
           "ring",
           "tls12"
         ]
@@ -19503,6 +22441,16 @@
             "tree": "target"
           },
           {
+            "name": "slab",
+            "package_key": "slab-0.4.12",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
             "name": "tokio",
             "package_key": "tokio-1.53.0",
             "kind": "normal",
@@ -19519,7 +22467,9 @@
         "features": [
           "codec",
           "default",
-          "io"
+          "io",
+          "slab",
+          "time"
         ]
       },
       "toml-0.8.23": {
@@ -19813,6 +22763,16 @@
             "tree": "target"
           },
           {
+            "name": "tokio_util",
+            "package_key": "tokio-util-0.7.18",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
             "name": "tower_layer",
             "package_key": "tower-layer-0.3.3",
             "kind": "normal",
@@ -19831,10 +22791,24 @@
             "optional": false,
             "target": null,
             "tree": "target"
+          },
+          {
+            "name": "tracing",
+            "package_key": "tracing-0.1.44",
+            "kind": "normal",
+            "features": [
+              "std"
+            ],
+            "uses_default_features": false,
+            "optional": true,
+            "target": null,
+            "tree": "target"
           }
         ],
         "build_dependencies": [],
         "features": [
+          "buffer",
+          "filter",
           "futures-core",
           "futures-util",
           "pin-project-lite",
@@ -19842,6 +22816,8 @@
           "sync_wrapper",
           "timeout",
           "tokio",
+          "tokio-util",
+          "tracing",
           "util"
         ]
       },
@@ -19854,6 +22830,16 @@
             "features": [
               "tokio"
             ],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "base64",
+            "package_key": "base64-0.22.1",
+            "kind": "normal",
+            "features": [],
             "uses_default_features": true,
             "optional": true,
             "target": null,
@@ -19930,6 +22916,16 @@
             "tree": "target"
           },
           {
+            "name": "mime",
+            "package_key": "mime-0.3.17",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
             "name": "pin_project_lite",
             "package_key": "pin-project-lite-0.2.17",
             "kind": "normal",
@@ -19992,6 +22988,16 @@
             "tree": "target"
           },
           {
+            "name": "tracing",
+            "package_key": "tracing-0.1.44",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
             "name": "url",
             "package_key": "url-2.5.8",
             "kind": "normal",
@@ -20004,13 +23010,21 @@
         ],
         "build_dependencies": [],
         "features": [
+          "auth",
+          "base64",
           "decompression-br",
           "decompression-gzip",
+          "default",
           "follow-redirect",
           "futures-core",
           "futures-util",
+          "map-response-body",
+          "mime",
           "tokio-util",
-          "tower"
+          "tower",
+          "trace",
+          "tracing",
+          "validate-request"
         ]
       },
       "tower-layer-0.3.3": {
@@ -20137,6 +23151,37 @@
           "default",
           "once_cell",
           "std"
+        ]
+      },
+      "tracing-futures-0.2.5": {
+        "runtime_dependencies": [
+          {
+            "name": "pin_project",
+            "package_key": "pin-project-1.1.13",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tracing",
+            "package_key": "tracing-0.1.44",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "default",
+          "pin-project",
+          "std",
+          "std-future"
         ]
       },
       "tracing-log-0.2.0": {
@@ -20490,6 +23535,13 @@
         "build_dependencies": [],
         "features": []
       },
+      "ucd-trie-0.1.7": {
+        "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": [
+          "std"
+        ]
+      },
       "unarray-0.1.4": {
         "runtime_dependencies": [],
         "build_dependencies": [],
@@ -20680,6 +23732,11 @@
         "build_dependencies": [],
         "features": []
       },
+      "utf8-width-0.1.9": {
+        "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": []
+      },
       "utf8_iter-1.0.4": {
         "runtime_dependencies": [],
         "build_dependencies": [],
@@ -20843,7 +23900,27 @@
           "rng",
           "serde",
           "std",
+          "v4",
           "v7"
+        ]
+      },
+      "validit-0.2.6": {
+        "runtime_dependencies": [
+          {
+            "name": "anyerror",
+            "package_key": "anyerror-0.1.13",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "default",
+          "macros"
         ]
       },
       "vcpkg-0.2.15": {
@@ -23839,6 +26916,7 @@
                 "package_key": "nami-core-0.1.8-b271c62203024263e7e06da1fb3f443e0fa1d7b5",
                 "kind": "normal",
                 "features": [
+                  "eval",
                   "network"
                 ],
                 "uses_default_features": false,
@@ -26589,6 +29667,34 @@
               "time"
             ]
           },
+          "rustls-native-certs-0.8.4": {
+            "runtime_dependencies": [
+              {
+                "name": "pki_types",
+                "package_key": "rustls-pki-types-1.15.0",
+                "kind": "normal",
+                "features": [
+                  "std"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "security_framework",
+                "package_key": "security-framework-3.7.0",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(target_os = \"macos\")",
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": []
+          },
           "security-framework-3.7.0": {
             "runtime_dependencies": [
               {
@@ -28761,6 +31867,7 @@
                 "package_key": "nami-core-0.1.8-b271c62203024263e7e06da1fb3f443e0fa1d7b5",
                 "kind": "normal",
                 "features": [
+                  "eval",
                   "network"
                 ],
                 "uses_default_features": false,
@@ -29812,6 +32919,34 @@
               "system",
               "time"
             ]
+          },
+          "rustls-native-certs-0.8.4": {
+            "runtime_dependencies": [
+              {
+                "name": "openssl_probe",
+                "package_key": "openssl-probe-0.2.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(all(unix, not(target_os = \"macos\")))",
+                "tree": "target"
+              },
+              {
+                "name": "pki_types",
+                "package_key": "rustls-pki-types-1.15.0",
+                "kind": "normal",
+                "features": [
+                  "std"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": []
           },
           "scoped-tls-1.0.1": {
             "runtime_dependencies": [],
@@ -32905,6 +36040,7 @@
                 "package_key": "nami-core-0.1.8-b271c62203024263e7e06da1fb3f443e0fa1d7b5",
                 "kind": "normal",
                 "features": [
+                  "eval",
                   "network"
                 ],
                 "uses_default_features": false,
@@ -33956,6 +37092,34 @@
               "system",
               "time"
             ]
+          },
+          "rustls-native-certs-0.8.4": {
+            "runtime_dependencies": [
+              {
+                "name": "openssl_probe",
+                "package_key": "openssl-probe-0.2.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(all(unix, not(target_os = \"macos\")))",
+                "tree": "target"
+              },
+              {
+                "name": "pki_types",
+                "package_key": "rustls-pki-types-1.15.0",
+                "kind": "normal",
+                "features": [
+                  "std"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": []
           },
           "scoped-tls-1.0.1": {
             "runtime_dependencies": [],
@@ -37208,6 +40372,7 @@
                 "package_key": "nami-core-0.1.8-b271c62203024263e7e06da1fb3f443e0fa1d7b5",
                 "kind": "normal",
                 "features": [
+                  "eval",
                   "network"
                 ],
                 "uses_default_features": false,
@@ -39938,6 +43103,34 @@
               "time"
             ]
           },
+          "rustls-native-certs-0.8.4": {
+            "runtime_dependencies": [
+              {
+                "name": "pki_types",
+                "package_key": "rustls-pki-types-1.15.0",
+                "kind": "normal",
+                "features": [
+                  "std"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "security_framework",
+                "package_key": "security-framework-3.7.0",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(target_os = \"macos\")",
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": []
+          },
           "security-framework-3.7.0": {
             "runtime_dependencies": [
               {
@@ -42094,6 +45287,7 @@
                 "package_key": "nami-core-0.1.8-b271c62203024263e7e06da1fb3f443e0fa1d7b5",
                 "kind": "normal",
                 "features": [
+                  "eval",
                   "network"
                 ],
                 "uses_default_features": false,
@@ -43125,6 +46319,34 @@
               "system",
               "time"
             ]
+          },
+          "rustls-native-certs-0.8.4": {
+            "runtime_dependencies": [
+              {
+                "name": "openssl_probe",
+                "package_key": "openssl-probe-0.2.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(all(unix, not(target_os = \"macos\")))",
+                "tree": "target"
+              },
+              {
+                "name": "pki_types",
+                "package_key": "rustls-pki-types-1.15.0",
+                "kind": "normal",
+                "features": [
+                  "std"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": []
           },
           "scoped-tls-1.0.1": {
             "runtime_dependencies": [],
@@ -46202,6 +49424,7 @@
                 "package_key": "nami-core-0.1.8-b271c62203024263e7e06da1fb3f443e0fa1d7b5",
                 "kind": "normal",
                 "features": [
+                  "eval",
                   "network"
                 ],
                 "uses_default_features": false,
@@ -47233,6 +50456,34 @@
               "system",
               "time"
             ]
+          },
+          "rustls-native-certs-0.8.4": {
+            "runtime_dependencies": [
+              {
+                "name": "openssl_probe",
+                "package_key": "openssl-probe-0.2.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(all(unix, not(target_os = \"macos\")))",
+                "tree": "target"
+              },
+              {
+                "name": "pki_types",
+                "package_key": "rustls-pki-types-1.15.0",
+                "kind": "normal",
+                "features": [
+                  "std"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": []
           },
           "scoped-tls-1.0.1": {
             "runtime_dependencies": [],
@@ -49160,6 +52411,9 @@
     "anstyle-query-1.1.5": {
       "edition": "2021"
     },
+    "anyerror-0.1.13": {
+      "edition": "2021"
+    },
     "anyhow-1.0.103": {
       "edition": "2021",
       "build_script": "build.rs"
@@ -49182,6 +52436,9 @@
     "ash-0.38.0+1.3.281": {
       "edition": "2021",
       "build_script": "build.rs"
+    },
+    "async-broadcast-0.7.2": {
+      "edition": "2021"
     },
     "async-compression-0.4.42": {
       "edition": "2018"
@@ -49207,6 +52464,9 @@
       "edition": "2015"
     },
     "awase-0.1.1-7286b3bc2a1bc4c63929cc60b9d6d1ca2d82616f": {
+      "edition": "2024"
+    },
+    "backon-1.6.0": {
       "edition": "2024"
     },
     "base64-0.22.1": {
@@ -49289,8 +52549,14 @@
         }
       ]
     },
+    "bumpalo-3.20.3": {
+      "edition": "2021"
+    },
     "by_address-1.2.1": {
       "edition": "2021"
+    },
+    "byte-unit-5.2.5": {
+      "edition": "2024"
     },
     "bytecheck-0.6.12": {
       "edition": "2021",
@@ -49520,8 +52786,15 @@
     "deranged-0.5.8": {
       "edition": "2021"
     },
+    "derive_more-1.0.0": {
+      "edition": "2021"
+    },
     "derive_more-2.1.1": {
       "edition": "2021"
+    },
+    "derive_more-impl-1.0.0": {
+      "edition": "2021",
+      "proc_macro": true
     },
     "derive_more-impl-2.1.1": {
       "edition": "2021",
@@ -49590,6 +52863,10 @@
     "dyn-clone-1.0.20": {
       "edition": "2018"
     },
+    "educe-0.6.0": {
+      "edition": "2021",
+      "proc_macro": true
+    },
     "egaku-0.1.3-81d168190061c452d115f58f186429b84f489be8": {
       "edition": "2024"
     },
@@ -49611,6 +52888,13 @@
     "engawa-wgpu-0.1.8-acc2b02d46322077861c9e74c6d2e5cb15cb1e5f": {
       "edition": "2024"
     },
+    "enum-ordinalize-4.4.1": {
+      "edition": "2024"
+    },
+    "enum-ordinalize-derive-4.4.1": {
+      "edition": "2024",
+      "proc_macro": true
+    },
     "equivalent-1.0.2": {
       "edition": "2015"
     },
@@ -49624,6 +52908,9 @@
       "edition": "2021"
     },
     "event-listener-5.4.1": {
+      "edition": "2021"
+    },
+    "event-listener-strategy-0.5.4": {
       "edition": "2021"
     },
     "fallible-iterator-0.3.0": {
@@ -49824,6 +53111,12 @@
     "hayai-0.1.1-0aa8014aa7ca0d4723e5b46a3dd68daa21dec7b3": {
       "edition": "2024"
     },
+    "headers-0.4.1": {
+      "edition": "2018"
+    },
+    "headers-core-0.3.0": {
+      "edition": "2015"
+    },
     "heck-0.4.1": {
       "edition": "2018"
     },
@@ -49845,6 +53138,9 @@
     "home-0.5.12": {
       "edition": "2024"
     },
+    "hostname-0.4.2": {
+      "edition": "2021"
+    },
     "html5ever-0.29.1": {
       "edition": "2021"
     },
@@ -49861,11 +53157,20 @@
       "edition": "2018",
       "build_script": "build.rs"
     },
+    "httpdate-1.0.3": {
+      "edition": "2021"
+    },
     "hyper-1.10.1": {
+      "edition": "2021"
+    },
+    "hyper-http-proxy-1.1.1": {
       "edition": "2021"
     },
     "hyper-rustls-0.27.9": {
       "edition": "2021"
+    },
+    "hyper-timeout-0.5.2": {
+      "edition": "2018"
     },
     "hyper-tls-0.6.0": {
       "edition": "2018"
@@ -49976,6 +53281,20 @@
     "jobserver-0.1.35": {
       "edition": "2021"
     },
+    "json-patch-4.2.0": {
+      "edition": "2021"
+    },
+    "jsonpath-rust-0.7.5": {
+      "edition": "2021"
+    },
+    "jsonptr-0.7.1": {
+      "edition": "2021"
+    },
+    "k8s-openapi-0.24.0": {
+      "edition": "2021",
+      "build_script": "build.rs",
+      "links": "k8s-openapi-0.24.0"
+    },
     "kaname-0.1.1-0570e7ec566b60444307fe5873f80f5beda8fe6c": {
       "edition": "2024"
     },
@@ -49997,6 +53316,22 @@
       "edition": "2021"
     },
     "kqueue-sys-1.1.2": {
+      "edition": "2021"
+    },
+    "kube-0.99.0": {
+      "edition": "2021"
+    },
+    "kube-client-0.99.0": {
+      "edition": "2021"
+    },
+    "kube-core-0.99.0": {
+      "edition": "2021"
+    },
+    "kube-derive-0.99.0": {
+      "edition": "2021",
+      "proc_macro": true
+    },
+    "kube-runtime-0.99.0": {
       "edition": "2021"
     },
     "lazy_static-1.5.0": {
@@ -50086,6 +53421,9 @@
       "edition": "2024"
     },
     "malloc_buf-0.0.6": {
+      "edition": "2015"
+    },
+    "maplit-1.0.2": {
       "edition": "2015"
     },
     "markup5ever-0.14.1": {
@@ -50290,6 +53628,21 @@
         }
       ]
     },
+    "openraft-0.9.24": {
+      "edition": "2021",
+      "quirks": [
+        {
+          "kind": "substitute-source",
+          "file": "src/metrics/wait.rs",
+          "from": "let got = m.membership_config.membership().voter_ids().collect();",
+          "to": "let got: std::collections::BTreeSet<_> = m.membership_config.membership().voter_ids().collect();"
+        }
+      ]
+    },
+    "openraft-macros-0.9.24": {
+      "edition": "2021",
+      "proc_macro": true
+    },
     "openssl-0.10.81": {
       "edition": "2021",
       "build_script": "build.rs"
@@ -50308,6 +53661,9 @@
     },
     "option-ext-0.2.0": {
       "edition": "2015"
+    },
+    "ordered-float-2.10.1": {
+      "edition": "2018"
     },
     "ordered-float-4.6.0": {
       "edition": "2021"
@@ -50374,11 +53730,27 @@
       "edition": "2018",
       "proc_macro": true
     },
+    "pem-3.0.6": {
+      "edition": "2021"
+    },
     "pem-rfc7468-0.7.0": {
       "edition": "2021"
     },
     "percent-encoding-2.3.2": {
       "edition": "2018"
+    },
+    "pest-2.8.7": {
+      "edition": "2021"
+    },
+    "pest_derive-2.8.7": {
+      "edition": "2021",
+      "proc_macro": true
+    },
+    "pest_generator-2.8.7": {
+      "edition": "2021"
+    },
+    "pest_meta-2.8.7": {
+      "edition": "2021"
     },
     "pgvector-0.4.2": {
       "edition": "2021"
@@ -50404,6 +53776,13 @@
     },
     "phf_shared-0.11.3": {
       "edition": "2021"
+    },
+    "pin-project-1.1.13": {
+      "edition": "2021"
+    },
+    "pin-project-internal-1.1.13": {
+      "edition": "2021",
+      "proc_macro": true
     },
     "pin-project-lite-0.2.17": {
       "edition": "2018"
@@ -50679,6 +54058,9 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
+    "rustls-native-certs-0.8.4": {
+      "edition": "2021"
+    },
     "rustls-pki-types-1.15.0": {
       "edition": "2021"
     },
@@ -50783,6 +54165,9 @@
     "seahash-4.1.0": {
       "edition": "2015"
     },
+    "secrecy-0.10.3": {
+      "edition": "2021"
+    },
     "security-framework-3.7.0": {
       "edition": "2024"
     },
@@ -50798,6 +54183,9 @@
     "serde-1.0.228": {
       "edition": "2021",
       "build_script": "build.rs"
+    },
+    "serde-value-0.7.0": {
+      "edition": "2018"
     },
     "serde_core-1.0.228": {
       "edition": "2021",
@@ -51000,8 +54388,24 @@
     "tap-1.0.1": {
       "edition": "2015"
     },
+    "tatara-core-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
+      "edition": "2021"
+    },
+    "tatara-eval-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
+      "edition": "2021"
+    },
+    "tatara-lattice-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
+      "edition": "2021"
+    },
+    "tatara-lisp-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
+      "edition": "2021"
+    },
     "tatara-lisp-0.2.5-45534e162951cb5ec009372c1508185b71ac1510": {
       "edition": "2021"
+    },
+    "tatara-lisp-derive-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
+      "edition": "2021",
+      "proc_macro": true
     },
     "tatara-lisp-derive-0.2.5-45534e162951cb5ec009372c1508185b71ac1510": {
       "edition": "2021",
@@ -51009,6 +54413,18 @@
     },
     "tatara-lisp-eval-0.2.5-45534e162951cb5ec009372c1508185b71ac1510": {
       "edition": "2021"
+    },
+    "tatara-nix-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
+      "edition": "2021"
+    },
+    "tatara-process-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
+      "edition": "2021",
+      "binaries": [
+        {
+          "name": "tatara-lispc",
+          "path": "src/bin/tatara-lispc.rs"
+        }
+      ]
     },
     "tear-client-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": {
       "edition": "2024"
@@ -51149,6 +54565,9 @@
     "tracing-core-0.1.36": {
       "edition": "2018"
     },
+    "tracing-futures-0.2.5": {
+      "edition": "2018"
+    },
     "tracing-log-0.2.0": {
       "edition": "2018"
     },
@@ -51182,6 +54601,9 @@
     },
     "typenum-1.20.1": {
       "edition": "2018"
+    },
+    "ucd-trie-0.1.7": {
+      "edition": "2021"
     },
     "unarray-0.1.4": {
       "edition": "2018"
@@ -51249,6 +54671,9 @@
         "path": "src/lib.rs"
       }
     },
+    "utf8-width-0.1.9": {
+      "edition": "2021"
+    },
     "utf8_iter-1.0.4": {
       "edition": "2021"
     },
@@ -51264,6 +54689,9 @@
     },
     "uuid-1.24.0": {
       "edition": "2021"
+    },
+    "validit-0.2.6": {
+      "edition": "2024"
     },
     "vcpkg-0.2.15": {
       "edition": "2015"
@@ -51554,9 +54982,16 @@
     "shidou-0.1.8-527c3ce244c44b4bb581168ae8429e5dbcee6507": "sha256-7UDp5qpjhQHI2p6uh1pRN5V/qzv4lTqqI3wjwJZqfME=",
     "shikumi-0.1.318-0802c4d8b7b16c8e435eed546edb011206c8ba50": "sha256-1we4pE+XQRRrjqjledOtzABriKSqYpEw4PbG5HQUbGA=",
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": "sha256-Jd6fUoNSdzk+I5iu7FbAg9F9gbc7oU9jdPnnaTIxL6w=",
+    "tatara-core-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
+    "tatara-eval-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
+    "tatara-lattice-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
+    "tatara-lisp-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
     "tatara-lisp-0.2.5-45534e162951cb5ec009372c1508185b71ac1510": "sha256-YIGLYFnd0mv/cNWp7Zr86Dl9whnufxANycNGi//6cBc=",
+    "tatara-lisp-derive-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
     "tatara-lisp-derive-0.2.5-45534e162951cb5ec009372c1508185b71ac1510": "sha256-YIGLYFnd0mv/cNWp7Zr86Dl9whnufxANycNGi//6cBc=",
     "tatara-lisp-eval-0.2.5-45534e162951cb5ec009372c1508185b71ac1510": "sha256-YIGLYFnd0mv/cNWp7Zr86Dl9whnufxANycNGi//6cBc=",
+    "tatara-nix-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
+    "tatara-process-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
     "tear-client-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",
     "tear-config-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",
     "tear-core-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",

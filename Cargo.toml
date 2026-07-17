@@ -190,7 +190,7 @@ egaku = { git = "https://github.com/pleme-io/egaku", rev = "81d168190061c452d115
 # the `lisp` default (tatara-lisp) + never pulls the optional `config` (shikumi)
 # feature — so NO shikumi-family rev to split (no E0463). `network` enables the
 # todoku fetch client for navigate(). Rev-pinned to namimado's locked rev.
-nami-core = { git = "https://github.com/pleme-io/nami-core", rev = "b271c62203024263e7e06da1fb3f443e0fa1d7b5", default-features = false, features = ["network"] , version = "0.1" }
+nami-core = { git = "https://github.com/pleme-io/nami-core", rev = "b271c62203024263e7e06da1fb3f443e0fa1d7b5", default-features = false, features = ["network", "eval"] , version = "0.1" }
 
 # tatara-lisp — the Four-Lisps authoring engine. Consumed by the `float`
 # module's `spec` border: `#[derive(DeriveTataraDomain)]` turns

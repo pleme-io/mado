@@ -346,6 +346,30 @@ fn mado_intrinsics_extension() -> ExtensionHandle {
                 Ok(ExtValue::Str(std::sync::Arc::from(json.as_str())))
             },
         );
+
+        // (mado-browser-dom-sexp id) → the page DOM as a homoiconic tatara-lisp
+        // S-expression string (nami-core dom_to_sexp). "The DOM Way of the
+        // Browser": the live page tree, queryable as lisp data — the read side
+        // of the DOM-manipulation surface. Needs mado's live in-process page
+        // state (mado-memory-privileged), so it is a mado intrinsic, not shell.
+        interp.register_fn(
+            "mado-browser-dom-sexp",
+            ExtArity::Exact(1),
+            |args: &[ExtValue], _host: &mut VigyHost, sp| {
+                let id = lisp_int(&args[0], sp)?;
+                #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+                let target = id as u32;
+                let sexp = crate::browser_bridge::get()
+                    .and_then(|b| {
+                        b.surfaces()
+                            .into_iter()
+                            .find(|s| s.id == target)
+                            .map(|s| s.dom_sexp)
+                    })
+                    .unwrap_or_default();
+                Ok(ExtValue::Str(std::sync::Arc::from(sexp.as_str())))
+            },
+        );
     })
 }
 

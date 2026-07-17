@@ -46,6 +46,10 @@ pub struct MadoNamiEngine {
     last_html: Option<String>,
     /// Whether the last `navigate` fetched + rendered content (vs failed).
     navigate_ok: bool,
+    /// The page's DOM as a homoiconic tatara-lisp S-expression (nami-core
+    /// `dom_to_sexp`), recomputed on each render — the read side of "The DOM
+    /// Way of the Browser": the same tree an operator/vigy transform rewrites.
+    last_sexp: String,
 }
 
 impl MadoNamiEngine {
@@ -58,7 +62,14 @@ impl MadoNamiEngine {
             display_list: DisplayList::default(),
             last_html: None,
             navigate_ok: false,
+            last_sexp: String::new(),
         }
+    }
+
+    /// The page DOM as a tatara-lisp S-expression (empty until first render).
+    #[must_use]
+    pub fn dom_sexp(&self) -> &str {
+        &self.last_sexp
     }
 
     /// Run the parse → cascade → layout → display-list pipeline on a static
@@ -67,7 +78,16 @@ impl MadoNamiEngine {
     /// no-measure `LayoutEngine::compute` (single-line floor), so no
     /// cosmic-text measurer is needed.
     pub fn render_html(&mut self, html: &str) {
-        let doc = Document::parse(html);
+        let mut doc = Document::parse(html);
+        // Runtime fluidity: macroexpand inline tatara-lisp in the page tree
+        // (conditionals / loops / interpolation) BEFORE cascade + layout — DOM
+        // manipulation AS lisp. A no-op for a page with no inline lisp, so
+        // ordinary HTML is unaffected; the homoiconic manipulation surface for
+        // pages that carry it ("The DOM Way of the Browser").
+        {
+            let evaluator = nami_core::eval::NamiEvaluator::new();
+            let _report = nami_core::inline_lisp::expand(&mut doc, &evaluator);
+        }
         let css = collect_style_text(&doc.root);
         let mut resolver = StyleResolver::new();
         if !css.trim().is_empty() {
@@ -81,6 +101,8 @@ impl MadoNamiEngine {
         let mut engine = LayoutEngine::new();
         let layout = engine.compute(&styled, viewport);
         self.display_list = paint::build_display_list(&layout, &styled, &doc);
+        // The homoiconic read: the post-expansion DOM as a tatara-lisp sexp.
+        self.last_sexp = nami_core::lisp::dom_to_sexp(&doc);
         self.last_html = Some(html.to_owned());
     }
 
@@ -211,6 +233,14 @@ impl RealBrowserBackend {
     #[must_use]
     pub fn content_seqno(&self) -> u64 {
         self.content_seqno
+    }
+
+    /// The page DOM as a homoiconic tatara-lisp S-expression (`dom_to_sexp`) —
+    /// the read side of the DOM-manipulation surface (queried via
+    /// `(mado-browser-dom-sexp id)` + `browser_dom_sexp`).
+    #[must_use]
+    pub fn dom_sexp(&self) -> String {
+        self.engine.dom_sexp().to_owned()
     }
 
     /// The content-area size (CSS px).

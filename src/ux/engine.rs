@@ -2174,9 +2174,9 @@ impl InputEngine {
             .draw_order()
             .iter()
             .map(|s| {
-                let (url, load) = self.browsers.get(&s.id).map_or_else(
-                    || (String::new(), String::from("idle")),
-                    |(_, b, u)| (u.clone(), b.load_state().as_str().to_owned()),
+                let (url, load, dom_sexp) = self.browsers.get(&s.id).map_or_else(
+                    || (String::new(), String::from("idle"), String::new()),
+                    |(_, b, u)| (u.clone(), b.load_state().as_str().to_owned(), b.dom_sexp()),
                 );
                 crate::browser_bridge::BrowserSurfaceInfo {
                     id: s.id.0,
@@ -2189,6 +2189,7 @@ impl InputEngine {
                     focused: s.focused,
                     mode: s.mode.as_str().to_owned(),
                     load_state: load,
+                    dom_sexp,
                 }
             })
             .collect();
