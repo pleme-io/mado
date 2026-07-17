@@ -20,7 +20,7 @@
 //! The process-global [`OnceLock`] mirrors `vigy_host::HOST` — installed once at
 //! GUI startup, `get()` from the MCP/vigy closures.
 
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 
@@ -44,6 +44,10 @@ pub enum BrowserVerb {
     Focus { id: BrowserId },
     /// Close a surface (+ its bound tear session, GUI-side).
     Close { id: BrowserId },
+    /// Render the surface's current page to a PNG + publish it (base64) to the
+    /// bridge's snapshot store, where `browser_snapshot_get` polls for it. Needs
+    /// the GPU, so it's realized on the render tick (not in `apply_browser_verb`).
+    Snapshot { id: BrowserId },
 }
 
 /// The write sink — an `Arc<Mutex<VecDeque<BrowserVerb>>>` + an attached flag.
@@ -132,6 +136,15 @@ pub struct BrowserBridge {
     /// The command write sink.
     pub commands: BrowserCommands,
     surfaces: Arc<Mutex<Vec<BrowserSurfaceInfo>>>,
+    /// Completed page snapshots, keyed by surface id — a base64 PNG each. The
+    /// GUI `put_snapshot`s after rendering a `Snapshot` verb; the MCP
+    /// `browser_snapshot_get` `take_snapshot`s (remove-on-read, one-shot).
+    snapshots: Arc<Mutex<HashMap<u32, String>>>,
+    /// Surface ids awaiting a GPU render into a snapshot. The engine records one
+    /// here when it drains a `Snapshot` verb (it has no GPU); the render pass
+    /// (`draw_float_panels`, which has the GPU) drains + renders them. The
+    /// engine→renderer hop of the snapshot pipeline.
+    render_reqs: Arc<Mutex<Vec<u32>>>,
 }
 
 impl BrowserBridge {
@@ -189,6 +202,36 @@ impl BrowserBridge {
     /// Close a surface.
     pub fn close(&self, id: BrowserId) -> bool {
         self.commands.push(BrowserVerb::Close { id })
+    }
+
+    /// Request a page snapshot (rendered + published a tick later).
+    pub fn snapshot(&self, id: BrowserId) -> bool {
+        self.commands.push(BrowserVerb::Snapshot { id })
+    }
+
+    /// GUI-side: publish a rendered page snapshot (base64 PNG) for a surface.
+    pub fn put_snapshot(&self, id: u32, png_base64: String) {
+        self.snapshots.lock().unwrap().insert(id, png_base64);
+    }
+
+    /// Reader-side: take (remove-on-read) a published snapshot, if ready. The
+    /// one-shot semantics mean a poll returns each render exactly once — a stale
+    /// PNG never lingers under an id.
+    #[must_use]
+    pub fn take_snapshot(&self, id: u32) -> Option<String> {
+        self.snapshots.lock().unwrap().remove(&id)
+    }
+
+    /// Engine-side: record a surface id awaiting a GPU snapshot render.
+    pub fn push_render_req(&self, id: u32) {
+        self.render_reqs.lock().unwrap().push(id);
+    }
+
+    /// Render-side: take every pending snapshot render request (drained each
+    /// render pass).
+    #[must_use]
+    pub fn take_render_reqs(&self) -> Vec<u32> {
+        std::mem::take(&mut *self.render_reqs.lock().unwrap())
     }
 }
 

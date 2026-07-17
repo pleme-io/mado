@@ -4585,13 +4585,16 @@ impl TerminalRenderer {
             None => return,
         };
 
+        // The Nord page bg/fg (linear), shared by the pre-rasterize + the
+        // snapshot renders below.
+        use ishou_tokens::space::srgb_channel_to_linear as lin;
+        let page_bg = [lin(0x2e as f32 / 255.0), lin(0x34 as f32 / 255.0), lin(0x40 as f32 / 255.0), 1.0];
+        let page_fg = [lin(0xd8 as f32 / 255.0), lin(0xde as f32 / 255.0), lin(0xe9 as f32 / 255.0), 1.0];
+
         // ── Pre-rasterize each surface's page into its cached texture, only
         // when the content seqno moved (navigate/resize) — never per frame. GC
         // textures for closed surfaces. ──
         {
-            use ishou_tokens::space::srgb_channel_to_linear as lin;
-            let bg = [lin(0x2e as f32 / 255.0), lin(0x34 as f32 / 255.0), lin(0x40 as f32 / 255.0), 1.0];
-            let fg = [lin(0xd8 as f32 / 255.0), lin(0xde as f32 / 255.0), lin(0xe9 as f32 / 255.0), 1.0];
             let live: std::collections::HashSet<u32> = panels.iter().map(|p| p.id).collect();
             let mut cache = self.browser_page_tex.borrow_mut();
             cache.retain(|id, _| live.contains(id));
@@ -4601,9 +4604,30 @@ impl TerminalRenderer {
                 if stale && !dl.is_empty() {
                     #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
                     let (pw, ph) = (p.w.max(1.0) as u32, p.h.max(1.0) as u32);
-                    let rgba = crate::browser_engine::render_display_list_to_rgba(gpu, dl, pw, ph, bg, fg);
+                    let rgba = crate::browser_engine::render_display_list_to_rgba(gpu, dl, pw, ph, page_bg, page_fg);
                     let img = image_pipeline.create_gpu_image(&gpu.device, &gpu.queue, &rgba, pw, ph, p.content_seqno);
                     cache.insert(p.id, (p.content_seqno, img));
+                }
+            }
+        }
+
+        // ── Snapshot renders: fulfill any pending `browser_snapshot` requests by
+        // rendering the requested surface's page to RGBA + publishing a base64
+        // PNG to the bridge (the MCP `browser_snapshot_get` polls it). A FRESH
+        // render (not the seqno cache) so a snapshot reflects the current page
+        // even when its seqno didn't move. ──
+        if let Some(bridge) = crate::browser_bridge::get() {
+            for id in bridge.take_render_reqs() {
+                let Some(p) = panels.iter().find(|p| p.id == id) else {
+                    continue;
+                };
+                let Some(dl) = &p.content else { continue };
+                #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+                let (pw, ph) = (p.w.max(1.0) as u32, p.h.max(1.0) as u32);
+                let rgba =
+                    crate::browser_engine::render_display_list_to_rgba(gpu, dl, pw, ph, page_bg, page_fg);
+                if let Some(b64) = crate::browser_snapshot::encode_png_base64(&rgba, pw, ph) {
+                    bridge.put_snapshot(id, b64);
                 }
             }
         }

@@ -2184,6 +2184,11 @@ impl InputEngine {
                 self.float.close(id);
                 self.browsers.remove(&id);
             }
+            V::Snapshot { id } => {
+                // The engine has no GPU here — record the request; the render
+                // pass (`draw_float_panels`) drains it, renders + publishes.
+                crate::browser_bridge::ensure().push_render_req(id.0);
+            }
         }
     }
 

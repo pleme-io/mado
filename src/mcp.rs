@@ -1878,6 +1878,36 @@ impl MadoMcp {
         merge_browser_outcome(outcome, "closed", serde_json::json!({ "id": id }))
     }
 
+    #[tool(description = "Request a PNG snapshot of a floating browser surface (numeric `id`, from browser_list) in the LIVE GUI mado. The page renders on the next GUI tick; then poll `browser_snapshot_get` for the base64 PNG. Returns `{ok, requested, id, live_gui_pid}`, or the typed error envelope (no-injection-sink / not-forwardable).")]
+    async fn browser_snapshot(&self, Parameters(input): Parameters<BrowserIdInput>) -> String {
+        let id = input.id;
+        let outcome = kanshou::mcp::forward_status(
+            "mado",
+            &kanshou::Query::call(["browser_snapshot"], [serde_json::json!(id)]),
+            move || Ok(browser_not_forwardable(serde_json::json!({ "id": id }))),
+        )
+        .await;
+        merge_browser_outcome(outcome, "requested", serde_json::json!({ "id": id }))
+    }
+
+    #[tool(description = "Poll for a completed browser snapshot (requested via browser_snapshot) of surface `id` in the LIVE GUI mado. Take-on-read: returns each render exactly once. Returns `{ok, ready:true, id, png_base64}` (a base64 PNG) once rendered, else `{ok, ready:false, id}` until the render lands (a tick after browser_snapshot).")]
+    async fn browser_snapshot_get(&self, Parameters(input): Parameters<BrowserIdInput>) -> String {
+        let id = input.id;
+        let value = kanshou::mcp::forward(
+            "mado",
+            &kanshou::Query::call(["browser_snapshot_get"], [serde_json::json!(id)]),
+            move || match crate::browser_bridge::get().and_then(|b| b.take_snapshot(id)) {
+                Some(b64) => Ok(serde_json::json!({ "ready": true, "id": id, "png_base64": b64 })),
+                None => Ok(serde_json::json!({ "ready": false, "id": id })),
+            },
+        )
+        .await;
+        match value {
+            Ok(v) => ok_json(v),
+            Err(e) => err_json(e),
+        }
+    }
+
     #[tool(description = "List every live floating browser surface in the GUI mado's float z-stack: id, url, on-screen rect (x/y/w/h), stacking order (z), focus, coarse mode, and page load_state. Forwards to the live GUI's published snapshot; returns an empty list when no GUI is running or nothing is open. Returns `{ok, count, surfaces}`.")]
     async fn browser_list(&self) -> String {
         let value = kanshou::mcp::forward(
@@ -4982,6 +5012,20 @@ mod tests {
             "browser_close",
             server
                 .browser_close(Parameters(BrowserIdInput { id: u32::MAX }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "browser_snapshot",
+            server
+                .browser_snapshot(Parameters(BrowserIdInput { id: u32::MAX }))
+                .await,
+            &["ok"],
+        ));
+        rows.push((
+            "browser_snapshot_get",
+            server
+                .browser_snapshot_get(Parameters(BrowserIdInput { id: u32::MAX }))
                 .await,
             &["ok"],
         ));

@@ -815,6 +815,57 @@ impl Introspect for MadoAppState {
                 let closed = bridge.close(mado::float::BrowserId(id));
                 Ok(serde_json::json!({ "closed": closed, "id": id }))
             }
+            // Method-call leaf — args: [id: int]. Requests a GPU render of the
+            // surface's current page into a base64 PNG (published a tick later);
+            // poll `browser_snapshot_get` for the result. Honesty-gated like the
+            // other mutating leaves (a request with no live drainer is refused).
+            "browser_snapshot" => {
+                if q.args.len() != 1 {
+                    return Err(QueryError::BadArity {
+                        expected: 1,
+                        actual: q.args.len(),
+                    });
+                }
+                let Some(id) = browser_id_arg(&q.args[0]) else {
+                    return Err(QueryError::TypeMismatch {
+                        path: "browser_snapshot".to_string(),
+                        expected: "u32".to_string(),
+                        actual: format!("{:?}", q.args[0]),
+                    });
+                };
+                let Some(bridge) = crate::browser_bridge::get() else {
+                    return Ok(no_injection_sink());
+                };
+                if !bridge.sink_attached() {
+                    return Ok(no_injection_sink());
+                }
+                let requested = bridge.snapshot(mado::float::BrowserId(id));
+                Ok(serde_json::json!({ "requested": requested, "id": id }))
+            }
+            // Read-only leaf — args: [id: int]. Polls for a completed snapshot
+            // (base64 PNG); take-on-read (returns each render exactly once).
+            // `ready:false` until the render lands (a tick after the request).
+            "browser_snapshot_get" => {
+                if q.args.len() != 1 {
+                    return Err(QueryError::BadArity {
+                        expected: 1,
+                        actual: q.args.len(),
+                    });
+                }
+                let Some(id) = browser_id_arg(&q.args[0]) else {
+                    return Err(QueryError::TypeMismatch {
+                        path: "browser_snapshot_get".to_string(),
+                        expected: "u32".to_string(),
+                        actual: format!("{:?}", q.args[0]),
+                    });
+                };
+                match crate::browser_bridge::get().and_then(|b| b.take_snapshot(id)) {
+                    Some(b64) => {
+                        Ok(serde_json::json!({ "ready": true, "id": id, "png_base64": b64 }))
+                    }
+                    None => Ok(serde_json::json!({ "ready": false, "id": id })),
+                }
+            }
             // Read-only leaf — no args. The last-published float z-stack
             // snapshot (the GUI publishes it each tick). Empty when no bridge
             // is installed / nothing has been opened yet.
@@ -852,6 +903,8 @@ impl Introspect for MadoAppState {
             "browser_snap",
             "browser_focus",
             "browser_close",
+            "browser_snapshot",
+            "browser_snapshot_get",
             "browser_surfaces",
         ]
     }
@@ -1466,6 +1519,8 @@ mod tests {
             "browser_snap",
             "browser_focus",
             "browser_close",
+            "browser_snapshot",
+            "browser_snapshot_get",
             "browser_surfaces",
         ] {
             assert!(schema.contains(&leaf), "schema must advertise {leaf}");
