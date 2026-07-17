@@ -192,6 +192,26 @@ pub struct InputEngine {
     /// decision (`reconcile_search` gates on it, M3 review
     /// 2026-06-12).
     overlay: Overlay,
+    /// The floating-browser z-stack — N surfaces with the single-focus
+    /// invariant by construction (a browser is NOT a modal picker, so it needs
+    /// a real z-order, not a sibling bool). Empty by default: every input
+    /// handler short-circuits straight through when no surface is open, so the
+    /// terminal path is untouched until a browser exists.
+    float: mado::float::FloatFocus,
+    /// Pure snapping geometry (the built-in zone table).
+    snap: mado::float::SnapSystem,
+    /// Per-surface interaction FSM + the live engine + current URL, keyed by
+    /// browser id.
+    browsers: std::collections::HashMap<
+        mado::float::BrowserId,
+        (
+            mado::float::FloatWindowFsm,
+            crate::browser_engine::RealBrowserBackend,
+            String,
+        ),
+    >,
+    /// The next browser id to mint.
+    next_browser_id: mado::float::BrowserId,
     /// The renderer's SINGLE source of truth for which overlay to draw
     /// — a faithful 1:1 mirror of [`Self::overlay`], written on the SAME
     /// line the FSM state changes ([`Self::apply_overlay_step`]) and
@@ -317,6 +337,10 @@ impl InputEngine {
             last_click_pos: CellPos { row: 0, col: 0 },
             pointer: Pointer::Up,
             overlay: Overlay::None,
+            float: mado::float::FloatFocus::new(),
+            snap: mado::float::SnapSystem::new(mado::float::SnapConfig::default()),
+            browsers: std::collections::HashMap::new(),
+            next_browser_id: mado::float::BrowserId(0),
             overlay_focus,
             last_mods: Modifiers::default(),
             last_mouse_pos: (0.0, 0.0),
@@ -1978,7 +2002,153 @@ impl InputEngine {
     /// RENDERED surface signature; resizes BOTH halves: mado's
     /// mirror VT grid (wrap math, CPR/XTWINOPS answers, mouse
     /// clamps) and the pane's PTY through the [`ResizeSink`].
+    /// A non-blocking Nord placeholder page rendered on open/navigate. The
+    /// real network fetch is a synchronous blocking call, so it CANNOT run on
+    /// the render thread — an off-thread fetch that swaps in the real
+    /// DisplayList is the named follow-up (`pending-browser-async-fetch`).
+    const BROWSER_PLACEHOLDER_HTML: &'static str = "<style>div{background-color:#2e3440;width:520px;height:140px} p{color:#88c0d0;height:28px}</style><div><p>floating browser</p></div>";
+
+    /// Whether any floating browser surface is open.
+    #[must_use]
+    pub(crate) fn has_browsers(&self) -> bool {
+        !self.float.is_empty()
+    }
+
+    /// Realize one queued browser command against the float z-stack + engines
+    /// (called from the per-frame bridge drain). `viewport` is the terminal
+    /// surface rect in px.
+    pub(crate) fn apply_browser_verb(
+        &mut self,
+        verb: crate::browser_bridge::BrowserVerb,
+        viewport: egaku::Rect,
+    ) {
+        use crate::browser_bridge::BrowserVerb as V;
+        use mado::float::{BrowserBackend, RectExt, RectProvenance};
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        match verb {
+            V::Open { url } => {
+                let id = self.next_browser_id;
+                self.next_browser_id = id.next();
+                let w = 900.0_f32.min(viewport.width);
+                let h = 640.0_f32.min(viewport.height);
+                let rect = egaku::Rect::new(
+                    (viewport.width - w) * 0.5,
+                    (viewport.height - h) * 0.5,
+                    w,
+                    h,
+                )
+                .round_to_int_px()
+                .clamp_within(viewport);
+                let mut backend = crate::browser_engine::RealBrowserBackend::nami_native(
+                    rect.width as u32,
+                    rect.height as u32,
+                );
+                // Non-blocking: render the placeholder (real engine, real
+                // DisplayList). Real fetch is off-thread (backlog).
+                backend.render_html(Self::BROWSER_PLACEHOLDER_HTML);
+                self.float.open(id, rect, RectProvenance::Configured);
+                self.browsers.insert(
+                    id,
+                    (mado::float::FloatWindowFsm::floating(), backend, url),
+                );
+            }
+            V::Navigate { id, url } => {
+                if let Some((_, backend, u)) = self.browsers.get_mut(&id) {
+                    backend.render_html(Self::BROWSER_PLACEHOLDER_HTML);
+                    *u = url;
+                }
+            }
+            V::Snap { id, zone } => {
+                if let Some(rect) = self.snap.resolve_named(&zone, viewport) {
+                    self.float.set_rect(id, rect, RectProvenance::Snapped);
+                    if let Some((_, backend, _)) = self.browsers.get_mut(&id) {
+                        backend.resize(rect.width as u32, rect.height as u32);
+                    }
+                }
+            }
+            V::Move { id, x, y } => {
+                if let Some(s) = self.float.get(id) {
+                    let r = egaku::Rect::new(x as f32, y as f32, s.rect.width, s.rect.height)
+                        .clamp_within(viewport);
+                    self.float.set_rect(id, r, RectProvenance::FreeDragged);
+                }
+            }
+            V::Resize { id, w, h } => {
+                if let Some(s) = self.float.get(id) {
+                    let r = egaku::Rect::new(s.rect.x, s.rect.y, w as f32, h as f32)
+                        .clamp_within(viewport);
+                    self.float.set_rect(id, r, RectProvenance::FreeDragged);
+                    if let Some((_, backend, _)) = self.browsers.get_mut(&id) {
+                        backend.resize(r.width as u32, r.height as u32);
+                    }
+                }
+            }
+            V::Focus { id } => {
+                self.float.raise(id);
+            }
+            V::Close { id } => {
+                self.float.close(id);
+                self.browsers.remove(&id);
+            }
+        }
+    }
+
+    /// Publish the live float z-stack as a snapshot the read-only `browser_list`
+    /// verb (MCP + vigy) consumes.
+    pub(crate) fn publish_browser_snapshot(
+        &self,
+        bridge: &crate::browser_bridge::BrowserBridge,
+    ) {
+        use mado::float::BrowserBackend;
+        let rows = self
+            .float
+            .draw_order()
+            .iter()
+            .map(|s| {
+                let (url, load) = self.browsers.get(&s.id).map_or_else(
+                    || (String::new(), String::from("idle")),
+                    |(_, b, u)| (u.clone(), b.load_state().as_str().to_owned()),
+                );
+                crate::browser_bridge::BrowserSurfaceInfo {
+                    id: s.id.0,
+                    url,
+                    x: f64::from(s.rect.x),
+                    y: f64::from(s.rect.y),
+                    w: f64::from(s.rect.width),
+                    h: f64::from(s.rect.height),
+                    z: s.z,
+                    focused: s.focused,
+                    mode: s.mode.as_str().to_owned(),
+                    load_state: load,
+                }
+            })
+            .collect();
+        bridge.publish(rows);
+    }
+
+    /// Drain + realize queued browser commands, then publish the snapshot.
+    /// Called once per frame from [`Self::on_redraw_tick`]; a no-op (a single
+    /// atomic + an empty drain) when no browser activity is pending.
+    fn drain_browser_commands(&mut self, renderer: &TerminalRenderer) {
+        let bridge = crate::browser_bridge::ensure();
+        let verbs = bridge.commands.drain();
+        if verbs.is_empty() {
+            return;
+        }
+        let viewport = match renderer.last_surface_size() {
+            Some((w, h)) => egaku::Rect::new(0.0, 0.0, w as f32, h as f32),
+            None => return,
+        };
+        for verb in verbs {
+            self.apply_browser_verb(verb, viewport);
+        }
+        self.publish_browser_snapshot(bridge);
+    }
+
     pub fn on_redraw_tick(&mut self, renderer: &TerminalRenderer) {
+        // Realize any queued floating-browser commands (open/navigate/snap/
+        // focus/close from the MCP + vigy surfaces). No-op when idle.
+        self.drain_browser_commands(renderer);
         if let Some((w, h)) = renderer.last_surface_size() {
             let cw = renderer.cell_width();
             let ch = renderer.cell_height();

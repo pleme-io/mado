@@ -204,6 +204,15 @@ pub fn get() -> Option<&'static BrowserBridge> {
     BRIDGE.get()
 }
 
+/// Get the process-global bridge, installing a fresh one on first call, and
+/// (re-)attach its command sink. The GUI's per-frame tick calls this so the
+/// sink is live whenever the GUI is drawing — an idempotent ensure.
+pub fn ensure() -> &'static BrowserBridge {
+    let bridge = BRIDGE.get_or_init(BrowserBridge::new);
+    bridge.commands.attach_sink();
+    bridge
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
