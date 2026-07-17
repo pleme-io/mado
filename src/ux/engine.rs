@@ -212,6 +212,12 @@ pub struct InputEngine {
     >,
     /// The next browser id to mint.
     next_browser_id: mado::float::BrowserId,
+    /// The surface currently being title-bar-dragged + the grab offset from its
+    /// rect origin. `None` ⇒ no drag in flight (the common case).
+    active_drag: Option<(mado::float::BrowserId, (f32, f32))>,
+    /// The last terminal-surface rect (px), refreshed each frame — the viewport
+    /// the snap system + drag-clamp resolve against.
+    last_viewport: egaku::Rect,
     /// The renderer's SINGLE source of truth for which overlay to draw
     /// — a faithful 1:1 mirror of [`Self::overlay`], written on the SAME
     /// line the FSM state changes ([`Self::apply_overlay_step`]) and
@@ -346,6 +352,8 @@ impl InputEngine {
             snap: mado::float::SnapSystem::new(mado::float::SnapConfig::default()),
             browsers: std::collections::HashMap::new(),
             next_browser_id: mado::float::BrowserId(0),
+            active_drag: None,
+            last_viewport: egaku::Rect::new(0.0, 0.0, 0.0, 0.0),
             overlay_focus,
             float_panels,
             last_mods: Modifiers::default(),
@@ -1416,6 +1424,41 @@ impl InputEngine {
     ) -> EventOutcome {
         self.last_mouse_pos = (x, y);
         self.last_mods = modifiers;
+
+        // ── Floating browser surfaces claim the Left pointer before the grid.
+        // Guarded: hit_test on an empty stack is None, so the terminal path is
+        // untouched until a surface exists. ──
+        if button == MouseButton::Left {
+            #[allow(clippy::cast_possible_truncation)]
+            let (fx, fy) = (x as f32, y as f32);
+            if pressed {
+                if let Some(id) = self.float.hit_test(fx, fy) {
+                    self.float.raise(id);
+                    if let Some(surf) = self.float.get(id) {
+                        // Title-bar band → begin a drag; body → focus/raise only.
+                        if fy <= surf.rect.y + Self::FLOAT_TITLE_BAR_PX {
+                            self.active_drag = Some((id, (fx - surf.rect.x, fy - surf.rect.y)));
+                        }
+                    }
+                    self.publish_float_panels();
+                    return EventOutcome::consumed();
+                }
+            } else if let Some((id, _)) = self.active_drag.take() {
+                // Release over a snap zone commits the snap; else the free
+                // position set during the drag stands.
+                if let mado::float::SnapAction::Commit(rect) = self.snap.resolve(
+                    (fx, fy),
+                    self.last_viewport,
+                    self.last_viewport,
+                    mado::float::DragPhase::Released,
+                ) {
+                    self.float.set_rect(id, rect, mado::float::RectProvenance::Snapped);
+                }
+                self.publish_float_panels();
+                return EventOutcome::consumed();
+            }
+        }
+
         let (col, row, mouse_mode, sgr) = self.mouse_cell(x, y, metrics);
         let tracking_on = mouse_mode != MouseMode::Off;
         let shift_local = modifiers.shift && !self.behavior.mouse_shift_capture;
@@ -1777,6 +1820,22 @@ impl InputEngine {
     /// `mouse_hide_while_typing`.
     pub fn on_mouse_moved(&mut self, x: f64, y: f64, metrics: &dyn FontZoomTarget) -> EventOutcome {
         self.last_mouse_pos = (x, y);
+
+        // ── Drag a floating browser surface. Guarded: no active drag ⇒ the
+        // terminal motion path runs unchanged. ──
+        if let Some((id, offset)) = self.active_drag {
+            #[allow(clippy::cast_possible_truncation)]
+            let (fx, fy) = (x as f32, y as f32);
+            if let Some(surf) = self.float.get(id) {
+                use mado::float::RectExt;
+                let r = egaku::Rect::new(fx - offset.0, fy - offset.1, surf.rect.width, surf.rect.height)
+                    .clamp_within(self.last_viewport);
+                self.float.set_rect(id, r, mado::float::RectProvenance::FreeDragged);
+            }
+            self.publish_float_panels();
+            return EventOutcome::consumed();
+        }
+
         let was_hidden = !self.mouse_visible;
         self.mouse_visible = true;
         let show_cursor = self.behavior.mouse_hide_while_typing && was_hidden;
@@ -2014,6 +2073,10 @@ impl InputEngine {
     /// DisplayList is the named follow-up (`pending-browser-async-fetch`).
     const BROWSER_PLACEHOLDER_HTML: &'static str = "<style>div{background-color:#2e3440;width:520px;height:140px} p{color:#88c0d0;height:28px}</style><div><p>floating browser</p></div>";
 
+    /// Title-bar band height (px) — a Left press in the top band of a surface
+    /// starts a drag; elsewhere in the panel it only focuses/raises.
+    const FLOAT_TITLE_BAR_PX: f32 = 28.0;
+
     /// Whether any floating browser surface is open.
     #[must_use]
     pub(crate) fn has_browsers(&self) -> bool {
@@ -2177,6 +2240,10 @@ impl InputEngine {
         self.drain_browser_commands(renderer);
         self.publish_float_panels();
         if let Some((w, h)) = renderer.last_surface_size() {
+            #[allow(clippy::cast_precision_loss)]
+            {
+                self.last_viewport = egaku::Rect::new(0.0, 0.0, w as f32, h as f32);
+            }
             let cw = renderer.cell_width();
             let ch = renderer.cell_height();
             let sig = (w, h, cw.to_bits(), ch.to_bits());
