@@ -1491,8 +1491,8 @@ dependencies = [
 
 [[package]]
 name = "engawa"
-version = "0.1.3"
-source = "git+https://github.com/pleme-io/engawa#bda639d5d9bd3ec2dd59ff84b2925ae278f24c52"
+version = "0.1.4"
+source = "git+https://github.com/pleme-io/engawa#6adb58cf67c65de94284766f4fd66c65d2f51709"
 dependencies = [
  "pleme-allvariants-derive",
  "serde",
@@ -1937,8 +1937,8 @@ dependencies = [
 
 [[package]]
 name = "gen-macros"
-version = "0.1.19"
-source = "git+https://github.com/pleme-io/gen#2e575c5b50d39ec1060239f65280fab674673aa3"
+version = "0.1.20"
+source = "git+https://github.com/pleme-io/gen#19d9a04e930fd7101df3a3b3967d8d72b1b9f99c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1947,8 +1947,8 @@ dependencies = [
 
 [[package]]
 name = "gen-platform"
-version = "0.1.19"
-source = "git+https://github.com/pleme-io/gen#2e575c5b50d39ec1060239f65280fab674673aa3"
+version = "0.1.20"
+source = "git+https://github.com/pleme-io/gen#19d9a04e930fd7101df3a3b3967d8d72b1b9f99c"
 dependencies = [
  "gen-macros",
  "gen-types",
@@ -1960,8 +1960,8 @@ dependencies = [
 
 [[package]]
 name = "gen-types"
-version = "0.1.19"
-source = "git+https://github.com/pleme-io/gen#2e575c5b50d39ec1060239f65280fab674673aa3"
+version = "0.1.20"
+source = "git+https://github.com/pleme-io/gen#19d9a04e930fd7101df3a3b3967d8d72b1b9f99c"
 dependencies = [
  "blake3",
  "chrono",
@@ -2185,7 +2185,7 @@ dependencies = [
 [[package]]
 name = "hasami"
 version = "0.1.2"
-source = "git+https://github.com/pleme-io/hasami#c20b0112c09fccae2a9f51260c83fb711f7512d5"
+source = "git+https://github.com/pleme-io/hasami#9ac5d963d7fc786d0144968f3de78bc044839813"
 dependencies = [
  "arboard",
  "thiserror 2.0.18",
@@ -2801,8 +2801,8 @@ checksum = "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695"
 
 [[package]]
 name = "ishou-tokens"
-version = "0.1.3"
-source = "git+https://github.com/pleme-io/ishou#90485056d461bc04b243ccccad3cdf34e7c7bb0c"
+version = "0.1.4"
+source = "git+https://github.com/pleme-io/ishou#cd8f18dc87449817d43a93cbab1667d8257a59dd"
 dependencies = [
  "irodori",
  "serde",
@@ -2991,7 +2991,7 @@ dependencies = [
 [[package]]
 name = "kaname"
 version = "0.1.1"
-source = "git+https://github.com/pleme-io/kaname#0570e7ec566b60444307fe5873f80f5beda8fe6c"
+source = "git+https://github.com/pleme-io/kaname#288a975b205614c0a838a5e0572632ef704afd47"
 dependencies = [
  "rmcp",
  "schemars 1.2.1",
@@ -3366,7 +3366,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.81"
+version = "0.1.82"
 dependencies = [
  "anyhow",
  "awase",
@@ -6271,8 +6271,8 @@ checksum = "dc6fe69c597f9c37bfeeeeeb33da3530379845f10be461a66d16d03eca2ded77"
 
 [[package]]
 name = "shidou"
-version = "0.1.8"
-source = "git+https://github.com/pleme-io/shidou#527c3ce244c44b4bb581168ae8429e5dbcee6507"
+version = "0.1.9"
+source = "git+https://github.com/pleme-io/shidou#35c12221ac8622d90e03e21d5fec30ac329547e7"
 dependencies = [
  "anyhow",
  "clap",
@@ -6304,8 +6304,8 @@ dependencies = [
 
 [[package]]
 name = "shikumi"
-version = "0.1.318"
-source = "git+https://github.com/pleme-io/shikumi?branch=main#0802c4d8b7b16c8e435eed546edb011206c8ba50"
+version = "0.1.319"
+source = "git+https://github.com/pleme-io/shikumi?branch=main#13af7e69f28abb0eb207594b7162ecce41cd49ec"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -7046,7 +7046,7 @@ dependencies = [
  "once_cell",
  "serde",
  "serde_yaml_ng",
- "shikumi 0.1.318",
+ "shikumi 0.1.319",
  "tear-types",
  "thiserror 2.0.18",
  "tracing",
@@ -7298,7 +7298,7 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 [[package]]
 name = "todoku"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/todoku#0f2dc32405f9da2ccebac7f11c8c54f96131a12f"
+source = "git+https://github.com/pleme-io/todoku#f0a67611b5514424117496f470a9f88688f55ddb"
 dependencies = [
  "async-trait",
  "reqwest",
@@ -7602,7 +7602,7 @@ checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 [[package]]
 name = "tsuuchi"
 version = "0.1.2"
-source = "git+https://github.com/pleme-io/tsuuchi#8721c64f1b678dc68d30435c82117e5a1f1538cb"
+source = "git+https://github.com/pleme-io/tsuuchi#70a216829e4bbf45e4a241b6284a0c113d069bad"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -7859,7 +7859,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 [[package]]
 name = "vigy"
 version = "0.1.4"
-source = "git+https://github.com/pleme-io/vigy#c491b9edcc25eca9dfc08fc3d654103232971ee0"
+source = "git+https://github.com/pleme-io/vigy#e7b26465297507d76da4dfc043bb3c494422b2e6"
 dependencies = [
  "vigy-eval",
  "vigy-mcp",
@@ -7871,7 +7871,7 @@ dependencies = [
 [[package]]
 name = "vigy-eval"
 version = "0.1.4"
-source = "git+https://github.com/pleme-io/vigy#c491b9edcc25eca9dfc08fc3d654103232971ee0"
+source = "git+https://github.com/pleme-io/vigy#e7b26465297507d76da4dfc043bb3c494422b2e6"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7889,7 +7889,7 @@ dependencies = [
 [[package]]
 name = "vigy-mcp"
 version = "0.1.4"
-source = "git+https://github.com/pleme-io/vigy#c491b9edcc25eca9dfc08fc3d654103232971ee0"
+source = "git+https://github.com/pleme-io/vigy#e7b26465297507d76da4dfc043bb3c494422b2e6"
 dependencies = [
  "anyhow",
  "serde",
@@ -7903,7 +7903,7 @@ dependencies = [
 [[package]]
 name = "vigy-runtime"
 version = "0.1.4"
-source = "git+https://github.com/pleme-io/vigy#c491b9edcc25eca9dfc08fc3d654103232971ee0"
+source = "git+https://github.com/pleme-io/vigy#e7b26465297507d76da4dfc043bb3c494422b2e6"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7921,7 +7921,7 @@ dependencies = [
 [[package]]
 name = "vigy-store"
 version = "0.1.4"
-source = "git+https://github.com/pleme-io/vigy#c491b9edcc25eca9dfc08fc3d654103232971ee0"
+source = "git+https://github.com/pleme-io/vigy#e7b26465297507d76da4dfc043bb3c494422b2e6"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7941,7 +7941,7 @@ dependencies = [
 [[package]]
 name = "vigy-types"
 version = "0.1.4"
-source = "git+https://github.com/pleme-io/vigy#c491b9edcc25eca9dfc08fc3d654103232971ee0"
+source = "git+https://github.com/pleme-io/vigy#e7b26465297507d76da4dfc043bb3c494422b2e6"
 dependencies = [
  "blake3",
  "serde",

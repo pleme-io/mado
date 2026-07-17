@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "f0e35dc0665e58ba32df0bfa1753585dbf87d0978d490a9fdc449c5df84c989c",
+  "cargo_lock_sha256": "c37b9b38b8d81d4a2f3f6b4eddf58b498f9a251af472ccefe5504eb293b799f0",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -3554,7 +3554,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "engawa-0.1.3-bda639d5d9bd3ec2dd59ff84b2925ae278f24c52": {
+      "engawa-0.1.4-6adb58cf67c65de94284766f4fd66c65d2f51709": {
         "runtime_dependencies": [
           {
             "name": "pleme_allvariants_derive",
@@ -3608,7 +3608,7 @@
           },
           {
             "name": "engawa",
-            "package_key": "engawa-0.1.3-bda639d5d9bd3ec2dd59ff84b2925ae278f24c52",
+            "package_key": "engawa-0.1.4-6adb58cf67c65de94284766f4fd66c65d2f51709",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4719,7 +4719,7 @@
           "default"
         ]
       },
-      "gen-macros-0.1.19-2e575c5b50d39ec1060239f65280fab674673aa3": {
+      "gen-macros-0.1.20-19d9a04e930fd7101df3a3b3967d8d72b1b9f99c": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -4758,11 +4758,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "gen-platform-0.1.19-2e575c5b50d39ec1060239f65280fab674673aa3": {
+      "gen-platform-0.1.20-19d9a04e930fd7101df3a3b3967d8d72b1b9f99c": {
         "runtime_dependencies": [
           {
             "name": "gen_macros",
-            "package_key": "gen-macros-0.1.19-2e575c5b50d39ec1060239f65280fab674673aa3",
+            "package_key": "gen-macros-0.1.20-19d9a04e930fd7101df3a3b3967d8d72b1b9f99c",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4772,7 +4772,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.19-2e575c5b50d39ec1060239f65280fab674673aa3",
+            "package_key": "gen-types-0.1.20-19d9a04e930fd7101df3a3b3967d8d72b1b9f99c",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4826,7 +4826,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "gen-types-0.1.19-2e575c5b50d39ec1060239f65280fab674673aa3": {
+      "gen-types-0.1.20-19d9a04e930fd7101df3a3b3967d8d72b1b9f99c": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -5524,7 +5524,7 @@
           "std"
         ]
       },
-      "hasami-0.1.2-c20b0112c09fccae2a9f51260c83fb711f7512d5": {
+      "hasami-0.1.2-9ac5d963d7fc786d0144968f3de78bc044839813": {
         "runtime_dependencies": [
           {
             "name": "arboard",
@@ -7412,7 +7412,7 @@
           "default"
         ]
       },
-      "ishou-tokens-0.1.3-90485056d461bc04b243ccccad3cdf34e7c7bb0c": {
+      "ishou-tokens-0.1.4-cd8f18dc87449817d43a93cbab1667d8257a59dd": {
         "runtime_dependencies": [
           {
             "name": "irodori",
@@ -7896,7 +7896,7 @@
           "v1_32"
         ]
       },
-      "kaname-0.1.1-0570e7ec566b60444307fe5873f80f5beda8fe6c": {
+      "kaname-0.1.1-288a975b205614c0a838a5e0572632ef704afd47": {
         "runtime_dependencies": [
           {
             "name": "rmcp",
@@ -10173,7 +10173,7 @@
           },
           {
             "name": "todoku",
-            "package_key": "todoku-0.1.0-0f2dc32405f9da2ccebac7f11c8c54f96131a12f",
+            "package_key": "todoku-0.1.0-f0a67611b5514424117496f470a9f88688f55ddb",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12414,7 +12414,7 @@
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.3-90485056d461bc04b243ccccad3cdf34e7c7bb0c",
+            "package_key": "ishou-tokens-0.1.4-cd8f18dc87449817d43a93cbab1667d8257a59dd",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17307,7 +17307,7 @@
           "std"
         ]
       },
-      "shidou-0.1.8-527c3ce244c44b4bb581168ae8429e5dbcee6507": {
+      "shidou-0.1.9-35c12221ac8622d90e03e21d5fec30ac329547e7": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -17392,7 +17392,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.318-0802c4d8b7b16c8e435eed546edb011206c8ba50": {
+      "shikumi-0.1.319-13af7e69f28abb0eb207594b7162ecce41cd49ec": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -17442,7 +17442,7 @@
           },
           {
             "name": "gen_platform",
-            "package_key": "gen-platform-0.1.19-2e575c5b50d39ec1060239f65280fab674673aa3",
+            "package_key": "gen-platform-0.1.20-19d9a04e930fd7101df3a3b3967d8d72b1b9f99c",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17452,7 +17452,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.19-2e575c5b50d39ec1060239f65280fab674673aa3",
+            "package_key": "gen-types-0.1.20-19d9a04e930fd7101df3a3b3967d8d72b1b9f99c",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17591,7 +17591,7 @@
           },
           {
             "name": "gen_platform",
-            "package_key": "gen-platform-0.1.19-2e575c5b50d39ec1060239f65280fab674673aa3",
+            "package_key": "gen-platform-0.1.20-19d9a04e930fd7101df3a3b3967d8d72b1b9f99c",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17601,7 +17601,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.19-2e575c5b50d39ec1060239f65280fab674673aa3",
+            "package_key": "gen-types-0.1.20-19d9a04e930fd7101df3a3b3967d8d72b1b9f99c",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21055,7 +21055,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.3-90485056d461bc04b243ccccad3cdf34e7c7bb0c",
+            "package_key": "ishou-tokens-0.1.4-cd8f18dc87449817d43a93cbab1667d8257a59dd",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21109,7 +21109,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.318-0802c4d8b7b16c8e435eed546edb011206c8ba50",
+            "package_key": "shikumi-0.1.319-13af7e69f28abb0eb207594b7162ecce41cd49ec",
             "kind": "normal",
             "features": [
               "cli"
@@ -21197,7 +21197,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.3-90485056d461bc04b243ccccad3cdf34e7c7bb0c",
+            "package_key": "ishou-tokens-0.1.4-cd8f18dc87449817d43a93cbab1667d8257a59dd",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21504,7 +21504,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.3-90485056d461bc04b243ccccad3cdf34e7c7bb0c",
+            "package_key": "ishou-tokens-0.1.4-cd8f18dc87449817d43a93cbab1667d8257a59dd",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22028,7 +22028,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "todoku-0.1.0-0f2dc32405f9da2ccebac7f11c8c54f96131a12f": {
+      "todoku-0.1.0-f0a67611b5514424117496f470a9f88688f55ddb": {
         "runtime_dependencies": [
           {
             "name": "async_trait",
@@ -23415,7 +23415,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tsuuchi-0.1.2-8721c64f1b678dc68d30435c82117e5a1f1538cb": {
+      "tsuuchi-0.1.2-70a216829e4bbf45e4a241b6284a0c113d069bad": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -23933,11 +23933,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": {
+      "vigy-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": {
         "runtime_dependencies": [
           {
             "name": "vigy_eval",
-            "package_key": "vigy-eval-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
+            "package_key": "vigy-eval-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23947,7 +23947,7 @@
           },
           {
             "name": "vigy_mcp",
-            "package_key": "vigy-mcp-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
+            "package_key": "vigy-mcp-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23957,7 +23957,7 @@
           },
           {
             "name": "vigy_runtime",
-            "package_key": "vigy-runtime-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
+            "package_key": "vigy-runtime-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23967,7 +23967,7 @@
           },
           {
             "name": "vigy_store",
-            "package_key": "vigy-store-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
+            "package_key": "vigy-store-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23977,7 +23977,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
+            "package_key": "vigy-types-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23991,7 +23991,7 @@
           "mcp"
         ]
       },
-      "vigy-eval-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": {
+      "vigy-eval-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -24111,7 +24111,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
+            "package_key": "vigy-types-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24123,7 +24123,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-mcp-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": {
+      "vigy-mcp-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -24188,7 +24188,7 @@
           },
           {
             "name": "vigy_runtime",
-            "package_key": "vigy-runtime-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
+            "package_key": "vigy-runtime-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24198,7 +24198,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
+            "package_key": "vigy-types-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24210,7 +24210,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-runtime-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": {
+      "vigy-runtime-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -24308,7 +24308,7 @@
           },
           {
             "name": "vigy_eval",
-            "package_key": "vigy-eval-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
+            "package_key": "vigy-eval-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24318,7 +24318,7 @@
           },
           {
             "name": "vigy_store",
-            "package_key": "vigy-store-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
+            "package_key": "vigy-store-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24328,7 +24328,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
+            "package_key": "vigy-types-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24340,7 +24340,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-store-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": {
+      "vigy-store-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -24492,7 +24492,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
+            "package_key": "vigy-types-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24504,7 +24504,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-types-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": {
+      "vigy-types-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -26578,7 +26578,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.81": {
+          "mado-0.1.82": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26709,7 +26709,7 @@
               },
               {
                 "name": "engawa",
-                "package_key": "engawa-0.1.3-bda639d5d9bd3ec2dd59ff84b2925ae278f24c52",
+                "package_key": "engawa-0.1.4-6adb58cf67c65de94284766f4fd66c65d2f51709",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26749,7 +26749,7 @@
               },
               {
                 "name": "hasami",
-                "package_key": "hasami-0.1.2-c20b0112c09fccae2a9f51260c83fb711f7512d5",
+                "package_key": "hasami-0.1.2-9ac5d963d7fc786d0144968f3de78bc044839813",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26791,7 +26791,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-90485056d461bc04b243ccccad3cdf34e7c7bb0c",
+                "package_key": "ishou-tokens-0.1.4-cd8f18dc87449817d43a93cbab1667d8257a59dd",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -26833,7 +26833,7 @@
               },
               {
                 "name": "kaname",
-                "package_key": "kaname-0.1.1-0570e7ec566b60444307fe5873f80f5beda8fe6c",
+                "package_key": "kaname-0.1.1-288a975b205614c0a838a5e0572632ef704afd47",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27138,7 +27138,7 @@
               },
               {
                 "name": "shidou",
-                "package_key": "shidou-0.1.8-527c3ce244c44b4bb581168ae8429e5dbcee6507",
+                "package_key": "shidou-0.1.9-35c12221ac8622d90e03e21d5fec30ac329547e7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27254,7 +27254,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.2-8721c64f1b678dc68d30435c82117e5a1f1538cb",
+                "package_key": "tsuuchi-0.1.2-70a216829e4bbf45e4a241b6284a0c113d069bad",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27284,7 +27284,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
+                "package_key": "vigy-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -31539,7 +31539,7 @@
               "system"
             ]
           },
-          "mado-0.1.81": {
+          "mado-0.1.82": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31660,7 +31660,7 @@
               },
               {
                 "name": "engawa",
-                "package_key": "engawa-0.1.3-bda639d5d9bd3ec2dd59ff84b2925ae278f24c52",
+                "package_key": "engawa-0.1.4-6adb58cf67c65de94284766f4fd66c65d2f51709",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31700,7 +31700,7 @@
               },
               {
                 "name": "hasami",
-                "package_key": "hasami-0.1.2-c20b0112c09fccae2a9f51260c83fb711f7512d5",
+                "package_key": "hasami-0.1.2-9ac5d963d7fc786d0144968f3de78bc044839813",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31742,7 +31742,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-90485056d461bc04b243ccccad3cdf34e7c7bb0c",
+                "package_key": "ishou-tokens-0.1.4-cd8f18dc87449817d43a93cbab1667d8257a59dd",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -31784,7 +31784,7 @@
               },
               {
                 "name": "kaname",
-                "package_key": "kaname-0.1.1-0570e7ec566b60444307fe5873f80f5beda8fe6c",
+                "package_key": "kaname-0.1.1-288a975b205614c0a838a5e0572632ef704afd47",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32024,7 +32024,7 @@
               },
               {
                 "name": "shidou",
-                "package_key": "shidou-0.1.8-527c3ce244c44b4bb581168ae8429e5dbcee6507",
+                "package_key": "shidou-0.1.9-35c12221ac8622d90e03e21d5fec30ac329547e7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32140,7 +32140,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.2-8721c64f1b678dc68d30435c82117e5a1f1538cb",
+                "package_key": "tsuuchi-0.1.2-70a216829e4bbf45e4a241b6284a0c113d069bad",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32170,7 +32170,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
+                "package_key": "vigy-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -35712,7 +35712,7 @@
               "system"
             ]
           },
-          "mado-0.1.81": {
+          "mado-0.1.82": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35833,7 +35833,7 @@
               },
               {
                 "name": "engawa",
-                "package_key": "engawa-0.1.3-bda639d5d9bd3ec2dd59ff84b2925ae278f24c52",
+                "package_key": "engawa-0.1.4-6adb58cf67c65de94284766f4fd66c65d2f51709",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35873,7 +35873,7 @@
               },
               {
                 "name": "hasami",
-                "package_key": "hasami-0.1.2-c20b0112c09fccae2a9f51260c83fb711f7512d5",
+                "package_key": "hasami-0.1.2-9ac5d963d7fc786d0144968f3de78bc044839813",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35915,7 +35915,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-90485056d461bc04b243ccccad3cdf34e7c7bb0c",
+                "package_key": "ishou-tokens-0.1.4-cd8f18dc87449817d43a93cbab1667d8257a59dd",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -35957,7 +35957,7 @@
               },
               {
                 "name": "kaname",
-                "package_key": "kaname-0.1.1-0570e7ec566b60444307fe5873f80f5beda8fe6c",
+                "package_key": "kaname-0.1.1-288a975b205614c0a838a5e0572632ef704afd47",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36197,7 +36197,7 @@
               },
               {
                 "name": "shidou",
-                "package_key": "shidou-0.1.8-527c3ce244c44b4bb581168ae8429e5dbcee6507",
+                "package_key": "shidou-0.1.9-35c12221ac8622d90e03e21d5fec30ac329547e7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36313,7 +36313,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.2-8721c64f1b678dc68d30435c82117e5a1f1538cb",
+                "package_key": "tsuuchi-0.1.2-70a216829e4bbf45e4a241b6284a0c113d069bad",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36343,7 +36343,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
+                "package_key": "vigy-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -40034,7 +40034,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.81": {
+          "mado-0.1.82": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -40165,7 +40165,7 @@
               },
               {
                 "name": "engawa",
-                "package_key": "engawa-0.1.3-bda639d5d9bd3ec2dd59ff84b2925ae278f24c52",
+                "package_key": "engawa-0.1.4-6adb58cf67c65de94284766f4fd66c65d2f51709",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40205,7 +40205,7 @@
               },
               {
                 "name": "hasami",
-                "package_key": "hasami-0.1.2-c20b0112c09fccae2a9f51260c83fb711f7512d5",
+                "package_key": "hasami-0.1.2-9ac5d963d7fc786d0144968f3de78bc044839813",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40247,7 +40247,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-90485056d461bc04b243ccccad3cdf34e7c7bb0c",
+                "package_key": "ishou-tokens-0.1.4-cd8f18dc87449817d43a93cbab1667d8257a59dd",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -40289,7 +40289,7 @@
               },
               {
                 "name": "kaname",
-                "package_key": "kaname-0.1.1-0570e7ec566b60444307fe5873f80f5beda8fe6c",
+                "package_key": "kaname-0.1.1-288a975b205614c0a838a5e0572632ef704afd47",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40594,7 +40594,7 @@
               },
               {
                 "name": "shidou",
-                "package_key": "shidou-0.1.8-527c3ce244c44b4bb581168ae8429e5dbcee6507",
+                "package_key": "shidou-0.1.9-35c12221ac8622d90e03e21d5fec30ac329547e7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40710,7 +40710,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.2-8721c64f1b678dc68d30435c82117e5a1f1538cb",
+                "package_key": "tsuuchi-0.1.2-70a216829e4bbf45e4a241b6284a0c113d069bad",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40740,7 +40740,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
+                "package_key": "vigy-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -44959,7 +44959,7 @@
               "system"
             ]
           },
-          "mado-0.1.81": {
+          "mado-0.1.82": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -45080,7 +45080,7 @@
               },
               {
                 "name": "engawa",
-                "package_key": "engawa-0.1.3-bda639d5d9bd3ec2dd59ff84b2925ae278f24c52",
+                "package_key": "engawa-0.1.4-6adb58cf67c65de94284766f4fd66c65d2f51709",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45120,7 +45120,7 @@
               },
               {
                 "name": "hasami",
-                "package_key": "hasami-0.1.2-c20b0112c09fccae2a9f51260c83fb711f7512d5",
+                "package_key": "hasami-0.1.2-9ac5d963d7fc786d0144968f3de78bc044839813",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45162,7 +45162,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-90485056d461bc04b243ccccad3cdf34e7c7bb0c",
+                "package_key": "ishou-tokens-0.1.4-cd8f18dc87449817d43a93cbab1667d8257a59dd",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -45204,7 +45204,7 @@
               },
               {
                 "name": "kaname",
-                "package_key": "kaname-0.1.1-0570e7ec566b60444307fe5873f80f5beda8fe6c",
+                "package_key": "kaname-0.1.1-288a975b205614c0a838a5e0572632ef704afd47",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45444,7 +45444,7 @@
               },
               {
                 "name": "shidou",
-                "package_key": "shidou-0.1.8-527c3ce244c44b4bb581168ae8429e5dbcee6507",
+                "package_key": "shidou-0.1.9-35c12221ac8622d90e03e21d5fec30ac329547e7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45560,7 +45560,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.2-8721c64f1b678dc68d30435c82117e5a1f1538cb",
+                "package_key": "tsuuchi-0.1.2-70a216829e4bbf45e4a241b6284a0c113d069bad",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45590,7 +45590,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
+                "package_key": "vigy-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -49096,7 +49096,7 @@
               "system"
             ]
           },
-          "mado-0.1.81": {
+          "mado-0.1.82": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -49217,7 +49217,7 @@
               },
               {
                 "name": "engawa",
-                "package_key": "engawa-0.1.3-bda639d5d9bd3ec2dd59ff84b2925ae278f24c52",
+                "package_key": "engawa-0.1.4-6adb58cf67c65de94284766f4fd66c65d2f51709",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49257,7 +49257,7 @@
               },
               {
                 "name": "hasami",
-                "package_key": "hasami-0.1.2-c20b0112c09fccae2a9f51260c83fb711f7512d5",
+                "package_key": "hasami-0.1.2-9ac5d963d7fc786d0144968f3de78bc044839813",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49299,7 +49299,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.3-90485056d461bc04b243ccccad3cdf34e7c7bb0c",
+                "package_key": "ishou-tokens-0.1.4-cd8f18dc87449817d43a93cbab1667d8257a59dd",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -49341,7 +49341,7 @@
               },
               {
                 "name": "kaname",
-                "package_key": "kaname-0.1.1-0570e7ec566b60444307fe5873f80f5beda8fe6c",
+                "package_key": "kaname-0.1.1-288a975b205614c0a838a5e0572632ef704afd47",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49581,7 +49581,7 @@
               },
               {
                 "name": "shidou",
-                "package_key": "shidou-0.1.8-527c3ce244c44b4bb581168ae8429e5dbcee6507",
+                "package_key": "shidou-0.1.9-35c12221ac8622d90e03e21d5fec30ac329547e7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49697,7 +49697,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.2-8721c64f1b678dc68d30435c82117e5a1f1538cb",
+                "package_key": "tsuuchi-0.1.2-70a216829e4bbf45e4a241b6284a0c113d069bad",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49727,7 +49727,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0",
+                "package_key": "vigy-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -52882,7 +52882,7 @@
     "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": {
       "edition": "2024"
     },
-    "engawa-0.1.3-bda639d5d9bd3ec2dd59ff84b2925ae278f24c52": {
+    "engawa-0.1.4-6adb58cf67c65de94284766f4fd66c65d2f51709": {
       "edition": "2024"
     },
     "engawa-wgpu-0.1.8-acc2b02d46322077861c9e74c6d2e5cb15cb1e5f": {
@@ -53029,14 +53029,14 @@
       "edition": "2024",
       "build_script": "build.rs"
     },
-    "gen-macros-0.1.19-2e575c5b50d39ec1060239f65280fab674673aa3": {
+    "gen-macros-0.1.20-19d9a04e930fd7101df3a3b3967d8d72b1b9f99c": {
       "edition": "2024",
       "proc_macro": true
     },
-    "gen-platform-0.1.19-2e575c5b50d39ec1060239f65280fab674673aa3": {
+    "gen-platform-0.1.20-19d9a04e930fd7101df3a3b3967d8d72b1b9f99c": {
       "edition": "2024"
     },
-    "gen-types-0.1.19-2e575c5b50d39ec1060239f65280fab674673aa3": {
+    "gen-types-0.1.20-19d9a04e930fd7101df3a3b3967d8d72b1b9f99c": {
       "edition": "2024"
     },
     "generic-array-0.14.7": {
@@ -53087,7 +53087,7 @@
     "half-2.7.1": {
       "edition": "2021"
     },
-    "hasami-0.1.2-c20b0112c09fccae2a9f51260c83fb711f7512d5": {
+    "hasami-0.1.2-9ac5d963d7fc786d0144968f3de78bc044839813": {
       "edition": "2024"
     },
     "hashbrown-0.12.3": {
@@ -53260,7 +53260,7 @@
     "is_terminal_polyfill-1.70.2": {
       "edition": "2021"
     },
-    "ishou-tokens-0.1.3-90485056d461bc04b243ccccad3cdf34e7c7bb0c": {
+    "ishou-tokens-0.1.4-cd8f18dc87449817d43a93cbab1667d8257a59dd": {
       "edition": "2024"
     },
     "itertools-0.10.5": {
@@ -53295,7 +53295,7 @@
       "build_script": "build.rs",
       "links": "k8s-openapi-0.24.0"
     },
-    "kaname-0.1.1-0570e7ec566b60444307fe5873f80f5beda8fe6c": {
+    "kaname-0.1.1-288a975b205614c0a838a5e0572632ef704afd47": {
       "edition": "2024"
     },
     "kanchi-0.1.2-09d1ad4c33f8adbff438f0ce8b47b21b15544251": {
@@ -53404,7 +53404,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.81": {
+    "mado-0.1.82": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -54233,10 +54233,10 @@
     "shell-words-1.1.1": {
       "edition": "2015"
     },
-    "shidou-0.1.8-527c3ce244c44b4bb581168ae8429e5dbcee6507": {
+    "shidou-0.1.9-35c12221ac8622d90e03e21d5fec30ac329547e7": {
       "edition": "2024"
     },
-    "shikumi-0.1.318-0802c4d8b7b16c8e435eed546edb011206c8ba50": {
+    "shikumi-0.1.319-13af7e69f28abb0eb207594b7162ecce41cd49ec": {
       "edition": "2024"
     },
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": {
@@ -54500,7 +54500,7 @@
     "tinyvec_macros-0.1.1": {
       "edition": "2018"
     },
-    "todoku-0.1.0-0f2dc32405f9da2ccebac7f11c8c54f96131a12f": {
+    "todoku-0.1.0-f0a67611b5514424117496f470a9f88688f55ddb": {
       "edition": "2024"
     },
     "tokio-1.53.0": {
@@ -54580,7 +54580,7 @@
     "try-lock-0.2.5": {
       "edition": "2015"
     },
-    "tsuuchi-0.1.2-8721c64f1b678dc68d30435c82117e5a1f1538cb": {
+    "tsuuchi-0.1.2-70a216829e4bbf45e4a241b6284a0c113d069bad": {
       "edition": "2024"
     },
     "ttf-parser-0.20.0": {
@@ -54699,22 +54699,22 @@
     "version_check-0.9.5": {
       "edition": "2015"
     },
-    "vigy-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": {
+    "vigy-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": {
       "edition": "2021"
     },
-    "vigy-eval-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": {
+    "vigy-eval-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": {
       "edition": "2021"
     },
-    "vigy-mcp-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": {
+    "vigy-mcp-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": {
       "edition": "2021"
     },
-    "vigy-runtime-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": {
+    "vigy-runtime-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": {
       "edition": "2021"
     },
-    "vigy-store-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": {
+    "vigy-store-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": {
       "edition": "2021"
     },
-    "vigy-types-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": {
+    "vigy-types-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": {
       "edition": "2021"
     },
     "vte-0.15.0": {
@@ -54954,20 +54954,20 @@
     "egaku-0.1.3-81d168190061c452d115f58f186429b84f489be8": "sha256-sNTpm8OD42MDucjVuV5ag1xcoMZatDk4GVIuRFRLa4c=",
     "engate-attach-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": "sha256-7dqrUg3KMEKH5ac5RuK7EJRogt4H3xtv6nDrM0jpccM=",
     "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": "sha256-7dqrUg3KMEKH5ac5RuK7EJRogt4H3xtv6nDrM0jpccM=",
-    "engawa-0.1.3-bda639d5d9bd3ec2dd59ff84b2925ae278f24c52": "sha256-Z9exdzhmkz90dNCArTnVC69CxLZDnC1ShRTFvDHE2JA=",
+    "engawa-0.1.4-6adb58cf67c65de94284766f4fd66c65d2f51709": "sha256-6KgjV+OlpnaIIVUAMvD/CfCfjjroj8cxjxpx8Pko8AI=",
     "engawa-wgpu-0.1.8-acc2b02d46322077861c9e74c6d2e5cb15cb1e5f": "sha256-sE/Qeve2DJY8NVMxAzjRbeZWIUmmWoF6hUAUusSJ4So=",
     "garasu-0.1.4-a2afc2ad6530ed096ab26f5d92bd4e1d348253ee": "sha256-//cvGAyxRVhcwHD56yf9M5SPn63GiwP+y06b8OlVfvs=",
-    "gen-macros-0.1.19-2e575c5b50d39ec1060239f65280fab674673aa3": "sha256-n3VgNtGxxQMe/Ec/90FlXG3cG5GpgcvtTkgS2G9t/WM=",
-    "gen-platform-0.1.19-2e575c5b50d39ec1060239f65280fab674673aa3": "sha256-n3VgNtGxxQMe/Ec/90FlXG3cG5GpgcvtTkgS2G9t/WM=",
-    "gen-types-0.1.19-2e575c5b50d39ec1060239f65280fab674673aa3": "sha256-n3VgNtGxxQMe/Ec/90FlXG3cG5GpgcvtTkgS2G9t/WM=",
-    "hasami-0.1.2-c20b0112c09fccae2a9f51260c83fb711f7512d5": "sha256-jumH5OHgIV872elIb65ABgspnrfsA3rkeJyW5SIP6bo=",
+    "gen-macros-0.1.20-19d9a04e930fd7101df3a3b3967d8d72b1b9f99c": "sha256-WnAD2a879t7v5C4pVS8AI97gzECkZTEQSR6UL4MZaKo=",
+    "gen-platform-0.1.20-19d9a04e930fd7101df3a3b3967d8d72b1b9f99c": "sha256-WnAD2a879t7v5C4pVS8AI97gzECkZTEQSR6UL4MZaKo=",
+    "gen-types-0.1.20-19d9a04e930fd7101df3a3b3967d8d72b1b9f99c": "sha256-WnAD2a879t7v5C4pVS8AI97gzECkZTEQSR6UL4MZaKo=",
+    "hasami-0.1.2-9ac5d963d7fc786d0144968f3de78bc044839813": "sha256-GguTYXyHpiiXASD8fcLunSaKueunYXUF10FeB8FRTE8=",
     "hayai-0.1.1-0aa8014aa7ca0d4723e5b46a3dd68daa21dec7b3": "sha256-5Tt5kEJclnNn07QvwVQhf7uFCiElFi86xegaPs1GArw=",
     "irodzuki-0.1.7-d3bfe781e9c813164a37a0e0a1eeef16f5be9515": "sha256-7iA13F9fE1MktjUB89kQIiVY6TB0wTNHmHNGSJcj9Lg=",
-    "ishou-tokens-0.1.3-90485056d461bc04b243ccccad3cdf34e7c7bb0c": "sha256-/JSI6iU8elFbkRNaSFXj84KkjTdyNwAs9PiYcnUNo98=",
+    "ishou-tokens-0.1.4-cd8f18dc87449817d43a93cbab1667d8257a59dd": "sha256-uvXLcSXjfitmZlkSSz+Y12Y9jubvTv3RGbxW6s62tPI=",
     "izumi-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513": "sha256-nuR1nT8ljhe3ybKYVLBnH6CBzDdrPFQ/tM0/ovvQuSA=",
     "izumi-config-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513": "sha256-nuR1nT8ljhe3ybKYVLBnH6CBzDdrPFQ/tM0/ovvQuSA=",
     "izumi-sources-0.1.3-c23c71bc48d29dd1461e3c13375b99f70e513513": "sha256-nuR1nT8ljhe3ybKYVLBnH6CBzDdrPFQ/tM0/ovvQuSA=",
-    "kaname-0.1.1-0570e7ec566b60444307fe5873f80f5beda8fe6c": "sha256-ue2v9p/Eq+z3hmCaL63toSyjpDY6s3H1gGBUFBOX3ek=",
+    "kaname-0.1.1-288a975b205614c0a838a5e0572632ef704afd47": "sha256-hUT1hJkJFtC6YlAYEFSmI9Oxftp2W0edSSj4qJAaMg8=",
     "kanchi-0.1.2-09d1ad4c33f8adbff438f0ce8b47b21b15544251": "sha256-D44OuJAAPaQD+m/MOEw7xXAapoWmPVb/ZdqMn3IUs+c=",
     "kanshou-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
     "kanshou-derive-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
@@ -54979,8 +54979,8 @@
     "pleme-kindbyte-derive-0.1.0-f0922edec7e5d4ab6606c3e9057c94aa69c3d62f": "sha256-y8TLCtWL46lZXpA3/s5VTbGfS4rsaxI2E4JxlA66Lgo=",
     "pleme-kindstr-derive-0.1.0-d287f915e9bb8837a443f6238ee900e81318ce89": "sha256-5XDr9kPiT0doWBOOk9yXjxdTCpRgaqWWJCpsc1f+tdw=",
     "praca-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",
-    "shidou-0.1.8-527c3ce244c44b4bb581168ae8429e5dbcee6507": "sha256-7UDp5qpjhQHI2p6uh1pRN5V/qzv4lTqqI3wjwJZqfME=",
-    "shikumi-0.1.318-0802c4d8b7b16c8e435eed546edb011206c8ba50": "sha256-1we4pE+XQRRrjqjledOtzABriKSqYpEw4PbG5HQUbGA=",
+    "shidou-0.1.9-35c12221ac8622d90e03e21d5fec30ac329547e7": "sha256-rjs+1FgZD/d2rqK7EXglvJI0IlziAYLwLOiQAJOE7PQ=",
+    "shikumi-0.1.319-13af7e69f28abb0eb207594b7162ecce41cd49ec": "sha256-OZbyTWkaBPcCJ/iUPpvqzbDrmgY4fpYMJt2WTM2yumo=",
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": "sha256-Jd6fUoNSdzk+I5iu7FbAg9F9gbc7oU9jdPnnaTIxL6w=",
     "tatara-core-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
     "tatara-eval-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
@@ -54997,14 +54997,14 @@
     "tear-core-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",
     "tear-daemon-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",
     "tear-types-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",
-    "todoku-0.1.0-0f2dc32405f9da2ccebac7f11c8c54f96131a12f": "sha256-FAF0jUlsEj1zQeWiYTMGK9vHwIcEtOL0gv9fkQbg8U4=",
-    "tsuuchi-0.1.2-8721c64f1b678dc68d30435c82117e5a1f1538cb": "sha256-1JmvpbujDYjffWbeXpA3ACJrg5X3mbHheadFo3ZsqbM=",
-    "vigy-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": "sha256-5/ZkxqorxVqbJdxV75GxgS8YcvOz4YOxFPMybHgAFsc=",
-    "vigy-eval-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": "sha256-5/ZkxqorxVqbJdxV75GxgS8YcvOz4YOxFPMybHgAFsc=",
-    "vigy-mcp-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": "sha256-5/ZkxqorxVqbJdxV75GxgS8YcvOz4YOxFPMybHgAFsc=",
-    "vigy-runtime-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": "sha256-5/ZkxqorxVqbJdxV75GxgS8YcvOz4YOxFPMybHgAFsc=",
-    "vigy-store-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": "sha256-5/ZkxqorxVqbJdxV75GxgS8YcvOz4YOxFPMybHgAFsc=",
-    "vigy-types-0.1.4-c491b9edcc25eca9dfc08fc3d654103232971ee0": "sha256-5/ZkxqorxVqbJdxV75GxgS8YcvOz4YOxFPMybHgAFsc="
+    "todoku-0.1.0-f0a67611b5514424117496f470a9f88688f55ddb": "sha256-OO7J7EXr0KczG/kCcyHsLlI1T7DmfLKjltS3IutHzi0=",
+    "tsuuchi-0.1.2-70a216829e4bbf45e4a241b6284a0c113d069bad": "sha256-OLIvIr/+xDYtoE5E0Lcc3yTLJ0f7IMXGh8/3oEPSRHM=",
+    "vigy-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": "sha256-d+y5fOJZs+vPLSGjDC2VRQYjEBjm5PVaYQnIszaKYtc=",
+    "vigy-eval-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": "sha256-d+y5fOJZs+vPLSGjDC2VRQYjEBjm5PVaYQnIszaKYtc=",
+    "vigy-mcp-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": "sha256-d+y5fOJZs+vPLSGjDC2VRQYjEBjm5PVaYQnIszaKYtc=",
+    "vigy-runtime-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": "sha256-d+y5fOJZs+vPLSGjDC2VRQYjEBjm5PVaYQnIszaKYtc=",
+    "vigy-store-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": "sha256-d+y5fOJZs+vPLSGjDC2VRQYjEBjm5PVaYQnIszaKYtc=",
+    "vigy-types-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": "sha256-d+y5fOJZs+vPLSGjDC2VRQYjEBjm5PVaYQnIszaKYtc="
   },
   "flake_metadata": {}
 }
