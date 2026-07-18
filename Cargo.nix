@@ -681,7 +681,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.52.0";
+            packageId = "windows-sys 0.59.0";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Storage_FileSystem" "Win32_System_DataExchange" "Win32_System_Memory" "Win32_System_Ole" "Win32_UI_Shell" ];
           }
@@ -4624,7 +4624,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.52.0";
+            packageId = "windows-sys 0.59.0";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_System_Diagnostics_Debug" ];
           }
@@ -8463,7 +8463,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.52.0";
+            packageId = "windows-sys 0.59.0";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Storage_FileSystem" "Win32_System_Console" ];
           }
@@ -10436,7 +10436,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.85";
+        version = "0.1.86";
         edition = "2024";
         crateBin = [
           {
@@ -10587,7 +10587,7 @@ rec {
             name = "nami-core";
             packageId = "nami-core";
             usesDefaultFeatures = false;
-            features = [ "network" "eval" ];
+            features = [ "network" "eval" "gpu" ];
           }
           {
             name = "objc2";
@@ -11359,19 +11359,29 @@ rec {
       };
       "nami-core" = rec {
         crateName = "nami-core";
-        version = "0.1.8";
+        version = "0.1.9";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/nami-core";
-          rev = "b271c62203024263e7e06da1fb3f443e0fa1d7b5";
-          sha256 = "1g02dvmpnl3jdy7q1m1y4fazl7mdajbadlcmpnydffa5dfrfa4ip";
+          rev = "9a6aced4a4f205ea9fdcd4d5e0862a97903e0919";
+          sha256 = "1a8ryvqlkhvwnsvyg5a8ajgpfl9p0z98ki67iya2yib8plwhhzjk";
         };
         libName = "nami_core";
         dependencies = [
           {
             name = "blake3";
             packageId = "blake3";
+          }
+          {
+            name = "garasu";
+            packageId = "garasu";
+            optional = true;
+          }
+          {
+            name = "glyphon";
+            packageId = "glyphon";
+            optional = true;
           }
           {
             name = "hayai";
@@ -11384,6 +11394,12 @@ rec {
           {
             name = "html5ever";
             packageId = "html5ever";
+          }
+          {
+            name = "ishou-tokens";
+            packageId = "ishou-tokens";
+            optional = true;
+            features = [ "wgpu" ];
           }
           {
             name = "lightningcss";
@@ -11448,18 +11464,24 @@ rec {
             packageId = "url";
             features = [ "serde" ];
           }
+          {
+            name = "wgpu";
+            packageId = "wgpu";
+            optional = true;
+          }
         ];
         features = {
           "config" = [ "dep:shikumi" ];
           "default" = [ "lisp" ];
           "eval" = [ "lisp" "dep:tatara-eval" ];
+          "gpu" = [ "dep:garasu" "dep:glyphon" "dep:wgpu" "dep:ishou-tokens" ];
           "lisp" = [ "dep:tatara-lisp" ];
           "network" = [ "dep:todoku" ];
           "signatures" = [ "dep:ed25519-dalek" "dep:base64" "dep:curve25519-dalek" ];
           "ts" = [ "dep:tree-sitter" "dep:tree-sitter-typescript" "dep:tree-sitter-svelte-next" ];
           "wasm" = [ "dep:wasmtime" "dep:wasmtime-wasi" "dep:wasi-common" ];
         };
-        resolvedDefaultFeatures = [ "eval" "lisp" "network" ];
+        resolvedDefaultFeatures = [ "eval" "gpu" "lisp" "network" ];
       };
       "native-tls" = rec {
         crateName = "native-tls";
@@ -17969,7 +17991,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.52.0";
+            packageId = "windows-sys 0.59.0";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_System_IO" "Win32_Networking_WinSock" ];
           }
@@ -19976,7 +19998,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.52.0";
+            packageId = "windows-sys 0.59.0";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Networking_WinSock" ];
           }
@@ -25211,7 +25233,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.52.0";
+            packageId = "windows-sys 0.59.0";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Storage_FileSystem" "Win32_Foundation" ];
           }
@@ -30014,7 +30036,7 @@ rec {
         dependencies = [
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.52.0";
+            packageId = "windows-sys 0.59.0";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Storage_FileSystem" "Win32_System_Console" "Win32_System_SystemInformation" ];
           }
@@ -32359,7 +32381,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Win32" "Win32_Devices" "Win32_Devices_HumanInterfaceDevice" "Win32_Foundation" "Win32_Globalization" "Win32_Graphics" "Win32_Graphics_Dwm" "Win32_Graphics_Gdi" "Win32_Media" "Win32_Networking" "Win32_Networking_WinSock" "Win32_Security" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Com_StructuredStorage" "Win32_System_Console" "Win32_System_DataExchange" "Win32_System_Diagnostics" "Win32_System_Diagnostics_Debug" "Win32_System_IO" "Win32_System_LibraryLoader" "Win32_System_Memory" "Win32_System_Ole" "Win32_System_SystemInformation" "Win32_System_SystemServices" "Win32_System_Threading" "Win32_System_WindowsProgramming" "Win32_UI" "Win32_UI_Accessibility" "Win32_UI_Controls" "Win32_UI_HiDpi" "Win32_UI_Input" "Win32_UI_Input_Ime" "Win32_UI_Input_KeyboardAndMouse" "Win32_UI_Input_Pointer" "Win32_UI_Input_Touch" "Win32_UI_Shell" "Win32_UI_TextServices" "Win32_UI_WindowsAndMessaging" "default" ];
+        resolvedDefaultFeatures = [ "Win32" "Win32_Devices" "Win32_Devices_HumanInterfaceDevice" "Win32_Foundation" "Win32_Globalization" "Win32_Graphics" "Win32_Graphics_Dwm" "Win32_Graphics_Gdi" "Win32_Media" "Win32_Security" "Win32_System" "Win32_System_Com" "Win32_System_Com_StructuredStorage" "Win32_System_LibraryLoader" "Win32_System_Ole" "Win32_System_SystemInformation" "Win32_System_SystemServices" "Win32_System_Threading" "Win32_System_WindowsProgramming" "Win32_UI" "Win32_UI_Accessibility" "Win32_UI_Controls" "Win32_UI_HiDpi" "Win32_UI_Input" "Win32_UI_Input_Ime" "Win32_UI_Input_KeyboardAndMouse" "Win32_UI_Input_Pointer" "Win32_UI_Input_Touch" "Win32_UI_Shell" "Win32_UI_TextServices" "Win32_UI_WindowsAndMessaging" "default" ];
       };
       "windows-sys 0.59.0" = rec {
         crateName = "windows-sys";
@@ -32618,7 +32640,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Globalization" "Win32_NetworkManagement" "Win32_NetworkManagement_IpHelper" "Win32_Networking" "Win32_Networking_WinSock" "Win32_Security" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Console" "Win32_System_Threading" "Win32_UI" "Win32_UI_Shell" "default" ];
+        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Globalization" "Win32_Graphics" "Win32_Graphics_Gdi" "Win32_NetworkManagement" "Win32_NetworkManagement_IpHelper" "Win32_Networking" "Win32_Networking_WinSock" "Win32_Security" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Console" "Win32_System_DataExchange" "Win32_System_Diagnostics" "Win32_System_Diagnostics_Debug" "Win32_System_IO" "Win32_System_Memory" "Win32_System_Ole" "Win32_System_SystemInformation" "Win32_System_Threading" "Win32_UI" "Win32_UI_Shell" "default" ];
       };
       "windows-sys 0.60.2" = rec {
         crateName = "windows-sys";

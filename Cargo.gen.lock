@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "bee4306215f78ca4816f8b4a7fe8d6db65c6f9ee58d342ec91c3dc5674c05e93",
+  "cargo_lock_sha256": "65e3282cdaf86f59b87cd02eb5f5f66e8cd188004de13365c058049f91a8c0e9",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -7412,7 +7412,7 @@
           "default"
         ]
       },
-      "ishou-tokens-0.1.4-78ff2170984dc247f13c6786cea68a640b2e3d2f": {
+      "ishou-tokens-0.1.4-914d337b1a9b8e99be67bb813b9e9f4bc56eff6d": {
         "runtime_dependencies": [
           {
             "name": "irodori",
@@ -10079,7 +10079,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.4-78ff2170984dc247f13c6786cea68a640b2e3d2f",
+            "package_key": "ishou-tokens-0.1.4-914d337b1a9b8e99be67bb813b9e9f4bc56eff6d",
             "kind": "normal",
             "features": [
               "wgpu"
@@ -12457,7 +12457,7 @@
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.4-78ff2170984dc247f13c6786cea68a640b2e3d2f",
+            "package_key": "ishou-tokens-0.1.4-914d337b1a9b8e99be67bb813b9e9f4bc56eff6d",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20577,7 +20577,7 @@
           "default"
         ]
       },
-      "tatara-lisp-0.2.5-45534e162951cb5ec009372c1508185b71ac1510": {
+      "tatara-lisp-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -20613,7 +20613,7 @@
           },
           {
             "name": "tatara_lisp_derive",
-            "package_key": "tatara-lisp-derive-0.2.5-45534e162951cb5ec009372c1508185b71ac1510",
+            "package_key": "tatara-lisp-derive-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20675,7 +20675,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-derive-0.2.5-45534e162951cb5ec009372c1508185b71ac1510": {
+      "tatara-lisp-derive-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -20713,11 +20713,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-eval-0.2.5-45534e162951cb5ec009372c1508185b71ac1510": {
+      "tatara-lisp-eval-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33": {
         "runtime_dependencies": [
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.2.5-45534e162951cb5ec009372c1508185b71ac1510",
+            "package_key": "tatara-lisp-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21098,7 +21098,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.4-78ff2170984dc247f13c6786cea68a640b2e3d2f",
+            "package_key": "ishou-tokens-0.1.4-914d337b1a9b8e99be67bb813b9e9f4bc56eff6d",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21240,7 +21240,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.4-78ff2170984dc247f13c6786cea68a640b2e3d2f",
+            "package_key": "ishou-tokens-0.1.4-914d337b1a9b8e99be67bb813b9e9f4bc56eff6d",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21547,7 +21547,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.4-78ff2170984dc247f13c6786cea68a640b2e3d2f",
+            "package_key": "ishou-tokens-0.1.4-914d337b1a9b8e99be67bb813b9e9f4bc56eff6d",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24080,7 +24080,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.2.5-45534e162951cb5ec009372c1508185b71ac1510",
+            "package_key": "tatara-lisp-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24090,7 +24090,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.2.5-45534e162951cb5ec009372c1508185b71ac1510",
+            "package_key": "tatara-lisp-eval-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -26621,7 +26621,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.85": {
+          "mado-0.1.86": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26834,7 +26834,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.4-78ff2170984dc247f13c6786cea68a640b2e3d2f",
+                "package_key": "ishou-tokens-0.1.4-914d337b1a9b8e99be67bb813b9e9f4bc56eff6d",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -27204,7 +27204,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.2.5-45534e162951cb5ec009372c1508185b71ac1510",
+                "package_key": "tatara-lisp-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31583,7 +31583,7 @@
               "system"
             ]
           },
-          "mado-0.1.85": {
+          "mado-0.1.86": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31786,7 +31786,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.4-78ff2170984dc247f13c6786cea68a640b2e3d2f",
+                "package_key": "ishou-tokens-0.1.4-914d337b1a9b8e99be67bb813b9e9f4bc56eff6d",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -32091,7 +32091,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.2.5-45534e162951cb5ec009372c1508185b71ac1510",
+                "package_key": "tatara-lisp-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35757,7 +35757,7 @@
               "system"
             ]
           },
-          "mado-0.1.85": {
+          "mado-0.1.86": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35960,7 +35960,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.4-78ff2170984dc247f13c6786cea68a640b2e3d2f",
+                "package_key": "ishou-tokens-0.1.4-914d337b1a9b8e99be67bb813b9e9f4bc56eff6d",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -36265,7 +36265,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.2.5-45534e162951cb5ec009372c1508185b71ac1510",
+                "package_key": "tatara-lisp-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40080,7 +40080,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.85": {
+          "mado-0.1.86": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -40293,7 +40293,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.4-78ff2170984dc247f13c6786cea68a640b2e3d2f",
+                "package_key": "ishou-tokens-0.1.4-914d337b1a9b8e99be67bb813b9e9f4bc56eff6d",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -40663,7 +40663,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.2.5-45534e162951cb5ec009372c1508185b71ac1510",
+                "package_key": "tatara-lisp-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45006,7 +45006,7 @@
               "system"
             ]
           },
-          "mado-0.1.85": {
+          "mado-0.1.86": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -45209,7 +45209,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.4-78ff2170984dc247f13c6786cea68a640b2e3d2f",
+                "package_key": "ishou-tokens-0.1.4-914d337b1a9b8e99be67bb813b9e9f4bc56eff6d",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -45514,7 +45514,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.2.5-45534e162951cb5ec009372c1508185b71ac1510",
+                "package_key": "tatara-lisp-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49144,7 +49144,7 @@
               "system"
             ]
           },
-          "mado-0.1.85": {
+          "mado-0.1.86": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -49347,7 +49347,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.4-78ff2170984dc247f13c6786cea68a640b2e3d2f",
+                "package_key": "ishou-tokens-0.1.4-914d337b1a9b8e99be67bb813b9e9f4bc56eff6d",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -49652,7 +49652,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.2.5-45534e162951cb5ec009372c1508185b71ac1510",
+                "package_key": "tatara-lisp-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -53309,7 +53309,7 @@
     "is_terminal_polyfill-1.70.2": {
       "edition": "2021"
     },
-    "ishou-tokens-0.1.4-78ff2170984dc247f13c6786cea68a640b2e3d2f": {
+    "ishou-tokens-0.1.4-914d337b1a9b8e99be67bb813b9e9f4bc56eff6d": {
       "edition": "2024"
     },
     "itertools-0.10.5": {
@@ -53453,7 +53453,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.85": {
+    "mado-0.1.86": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -54449,18 +54449,18 @@
     "tatara-lisp-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
       "edition": "2021"
     },
-    "tatara-lisp-0.2.5-45534e162951cb5ec009372c1508185b71ac1510": {
+    "tatara-lisp-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33": {
       "edition": "2021"
     },
     "tatara-lisp-derive-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-lisp-derive-0.2.5-45534e162951cb5ec009372c1508185b71ac1510": {
+    "tatara-lisp-derive-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-lisp-eval-0.2.5-45534e162951cb5ec009372c1508185b71ac1510": {
+    "tatara-lisp-eval-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33": {
       "edition": "2021"
     },
     "tatara-nix-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
@@ -55012,7 +55012,7 @@
     "hasami-0.1.2-9ac5d963d7fc786d0144968f3de78bc044839813": "sha256-GguTYXyHpiiXASD8fcLunSaKueunYXUF10FeB8FRTE8=",
     "hayai-0.1.1-0aa8014aa7ca0d4723e5b46a3dd68daa21dec7b3": "sha256-5Tt5kEJclnNn07QvwVQhf7uFCiElFi86xegaPs1GArw=",
     "irodzuki-0.1.7-d3bfe781e9c813164a37a0e0a1eeef16f5be9515": "sha256-7iA13F9fE1MktjUB89kQIiVY6TB0wTNHmHNGSJcj9Lg=",
-    "ishou-tokens-0.1.4-78ff2170984dc247f13c6786cea68a640b2e3d2f": "sha256-Puk2QNEr1/jRnxBNzzZoOC34SzDnuLAovROSxlHi06M=",
+    "ishou-tokens-0.1.4-914d337b1a9b8e99be67bb813b9e9f4bc56eff6d": "sha256-Z3nxaNxujVcMnJoflOTHE8/TH38DT5ImI9ksPKlZ6jQ=",
     "izumi-0.1.5-56babeeab1c8ecdf9e0724b7cfd4557ad5225e70": "sha256-lME8GZOH6uDC16KfnY5TXEt/dFAWSum7Z89bwj+G+ac=",
     "izumi-config-0.1.5-56babeeab1c8ecdf9e0724b7cfd4557ad5225e70": "sha256-lME8GZOH6uDC16KfnY5TXEt/dFAWSum7Z89bwj+G+ac=",
     "izumi-sources-0.1.5-56babeeab1c8ecdf9e0724b7cfd4557ad5225e70": "sha256-lME8GZOH6uDC16KfnY5TXEt/dFAWSum7Z89bwj+G+ac=",
@@ -55035,10 +55035,10 @@
     "tatara-eval-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
     "tatara-lattice-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
     "tatara-lisp-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
-    "tatara-lisp-0.2.5-45534e162951cb5ec009372c1508185b71ac1510": "sha256-YIGLYFnd0mv/cNWp7Zr86Dl9whnufxANycNGi//6cBc=",
+    "tatara-lisp-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33": "sha256-NdHyv6hHK8yc4fXHcwZ9a6gRixASjjj3yGNsmk2t6ug=",
     "tatara-lisp-derive-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
-    "tatara-lisp-derive-0.2.5-45534e162951cb5ec009372c1508185b71ac1510": "sha256-YIGLYFnd0mv/cNWp7Zr86Dl9whnufxANycNGi//6cBc=",
-    "tatara-lisp-eval-0.2.5-45534e162951cb5ec009372c1508185b71ac1510": "sha256-YIGLYFnd0mv/cNWp7Zr86Dl9whnufxANycNGi//6cBc=",
+    "tatara-lisp-derive-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33": "sha256-NdHyv6hHK8yc4fXHcwZ9a6gRixASjjj3yGNsmk2t6ug=",
+    "tatara-lisp-eval-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33": "sha256-NdHyv6hHK8yc4fXHcwZ9a6gRixASjjj3yGNsmk2t6ug=",
     "tatara-nix-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
     "tatara-process-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
     "tear-client-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",
