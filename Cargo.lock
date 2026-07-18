@@ -3366,7 +3366,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.86"
+version = "0.1.87"
 dependencies = [
  "anyhow",
  "awase",
@@ -7862,8 +7862,8 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "vigy"
-version = "0.1.4"
-source = "git+https://github.com/pleme-io/vigy#e7b26465297507d76da4dfc043bb3c494422b2e6"
+version = "0.1.5"
+source = "git+https://github.com/pleme-io/vigy#264cad151dc0ff2ac37312ff1b1b58a2375ae01c"
 dependencies = [
  "vigy-eval",
  "vigy-mcp",
@@ -7874,8 +7874,8 @@ dependencies = [
 
 [[package]]
 name = "vigy-eval"
-version = "0.1.4"
-source = "git+https://github.com/pleme-io/vigy#e7b26465297507d76da4dfc043bb3c494422b2e6"
+version = "0.1.5"
+source = "git+https://github.com/pleme-io/vigy#264cad151dc0ff2ac37312ff1b1b58a2375ae01c"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7892,8 +7892,8 @@ dependencies = [
 
 [[package]]
 name = "vigy-mcp"
-version = "0.1.4"
-source = "git+https://github.com/pleme-io/vigy#e7b26465297507d76da4dfc043bb3c494422b2e6"
+version = "0.1.5"
+source = "git+https://github.com/pleme-io/vigy#264cad151dc0ff2ac37312ff1b1b58a2375ae01c"
 dependencies = [
  "anyhow",
  "serde",
@@ -7906,8 +7906,8 @@ dependencies = [
 
 [[package]]
 name = "vigy-runtime"
-version = "0.1.4"
-source = "git+https://github.com/pleme-io/vigy#e7b26465297507d76da4dfc043bb3c494422b2e6"
+version = "0.1.5"
+source = "git+https://github.com/pleme-io/vigy#264cad151dc0ff2ac37312ff1b1b58a2375ae01c"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7924,8 +7924,8 @@ dependencies = [
 
 [[package]]
 name = "vigy-store"
-version = "0.1.4"
-source = "git+https://github.com/pleme-io/vigy#e7b26465297507d76da4dfc043bb3c494422b2e6"
+version = "0.1.5"
+source = "git+https://github.com/pleme-io/vigy#264cad151dc0ff2ac37312ff1b1b58a2375ae01c"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -7944,8 +7944,8 @@ dependencies = [
 
 [[package]]
 name = "vigy-types"
-version = "0.1.4"
-source = "git+https://github.com/pleme-io/vigy#e7b26465297507d76da4dfc043bb3c494422b2e6"
+version = "0.1.5"
+source = "git+https://github.com/pleme-io/vigy#264cad151dc0ff2ac37312ff1b1b58a2375ae01c"
 dependencies = [
  "blake3",
  "serde",
@@ -8425,7 +8425,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

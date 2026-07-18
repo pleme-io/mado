@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "9a97ffcac189848cc839d65d83408585fc7c68e44c8636979465aaa65c690aef",
+  "cargo_lock_sha256": "b61fadc9a89c1a565f1a6cf889b2da42ccb641406cfb3e68f70fec18a0dba6aa",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -23976,11 +23976,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": {
+      "vigy-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": {
         "runtime_dependencies": [
           {
             "name": "vigy_eval",
-            "package_key": "vigy-eval-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
+            "package_key": "vigy-eval-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23990,7 +23990,7 @@
           },
           {
             "name": "vigy_mcp",
-            "package_key": "vigy-mcp-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
+            "package_key": "vigy-mcp-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24000,7 +24000,7 @@
           },
           {
             "name": "vigy_runtime",
-            "package_key": "vigy-runtime-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
+            "package_key": "vigy-runtime-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24010,7 +24010,7 @@
           },
           {
             "name": "vigy_store",
-            "package_key": "vigy-store-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
+            "package_key": "vigy-store-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24020,7 +24020,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
+            "package_key": "vigy-types-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24034,7 +24034,7 @@
           "mcp"
         ]
       },
-      "vigy-eval-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": {
+      "vigy-eval-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -24154,7 +24154,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
+            "package_key": "vigy-types-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24166,7 +24166,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-mcp-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": {
+      "vigy-mcp-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -24231,7 +24231,7 @@
           },
           {
             "name": "vigy_runtime",
-            "package_key": "vigy-runtime-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
+            "package_key": "vigy-runtime-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24241,7 +24241,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
+            "package_key": "vigy-types-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24253,7 +24253,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-runtime-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": {
+      "vigy-runtime-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -24351,7 +24351,7 @@
           },
           {
             "name": "vigy_eval",
-            "package_key": "vigy-eval-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
+            "package_key": "vigy-eval-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24361,7 +24361,7 @@
           },
           {
             "name": "vigy_store",
-            "package_key": "vigy-store-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
+            "package_key": "vigy-store-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24371,7 +24371,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
+            "package_key": "vigy-types-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24383,7 +24383,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-store-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": {
+      "vigy-store-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -24535,7 +24535,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
+            "package_key": "vigy-types-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24547,7 +24547,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-types-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": {
+      "vigy-types-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -26621,7 +26621,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.86": {
+          "mado-0.1.87": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -27328,7 +27328,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
+                "package_key": "vigy-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -31583,7 +31583,7 @@
               "system"
             ]
           },
-          "mado-0.1.86": {
+          "mado-0.1.87": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -32215,7 +32215,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
+                "package_key": "vigy-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -35757,7 +35757,7 @@
               "system"
             ]
           },
-          "mado-0.1.86": {
+          "mado-0.1.87": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -36389,7 +36389,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
+                "package_key": "vigy-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -40080,7 +40080,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.86": {
+          "mado-0.1.87": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -40787,7 +40787,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
+                "package_key": "vigy-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -45006,7 +45006,7 @@
               "system"
             ]
           },
-          "mado-0.1.86": {
+          "mado-0.1.87": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -45638,7 +45638,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
+                "package_key": "vigy-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -49144,7 +49144,7 @@
               "system"
             ]
           },
-          "mado-0.1.86": {
+          "mado-0.1.87": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -49776,7 +49776,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6",
+                "package_key": "vigy-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -53453,7 +53453,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.86": {
+    "mado-0.1.87": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -54748,22 +54748,22 @@
     "version_check-0.9.5": {
       "edition": "2015"
     },
-    "vigy-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": {
+    "vigy-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": {
       "edition": "2021"
     },
-    "vigy-eval-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": {
+    "vigy-eval-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": {
       "edition": "2021"
     },
-    "vigy-mcp-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": {
+    "vigy-mcp-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": {
       "edition": "2021"
     },
-    "vigy-runtime-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": {
+    "vigy-runtime-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": {
       "edition": "2021"
     },
-    "vigy-store-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": {
+    "vigy-store-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": {
       "edition": "2021"
     },
-    "vigy-types-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": {
+    "vigy-types-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": {
       "edition": "2021"
     },
     "vte-0.15.0": {
@@ -55048,12 +55048,12 @@
     "tear-types-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",
     "todoku-0.1.0-f0a67611b5514424117496f470a9f88688f55ddb": "sha256-OO7J7EXr0KczG/kCcyHsLlI1T7DmfLKjltS3IutHzi0=",
     "tsuuchi-0.1.2-70a216829e4bbf45e4a241b6284a0c113d069bad": "sha256-OLIvIr/+xDYtoE5E0Lcc3yTLJ0f7IMXGh8/3oEPSRHM=",
-    "vigy-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": "sha256-d+y5fOJZs+vPLSGjDC2VRQYjEBjm5PVaYQnIszaKYtc=",
-    "vigy-eval-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": "sha256-d+y5fOJZs+vPLSGjDC2VRQYjEBjm5PVaYQnIszaKYtc=",
-    "vigy-mcp-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": "sha256-d+y5fOJZs+vPLSGjDC2VRQYjEBjm5PVaYQnIszaKYtc=",
-    "vigy-runtime-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": "sha256-d+y5fOJZs+vPLSGjDC2VRQYjEBjm5PVaYQnIszaKYtc=",
-    "vigy-store-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": "sha256-d+y5fOJZs+vPLSGjDC2VRQYjEBjm5PVaYQnIszaKYtc=",
-    "vigy-types-0.1.4-e7b26465297507d76da4dfc043bb3c494422b2e6": "sha256-d+y5fOJZs+vPLSGjDC2VRQYjEBjm5PVaYQnIszaKYtc="
+    "vigy-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": "sha256-kJQtOuwvc2DNae8djKYX86Ixw4pH/2sfKttmk4A/k5E=",
+    "vigy-eval-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": "sha256-kJQtOuwvc2DNae8djKYX86Ixw4pH/2sfKttmk4A/k5E=",
+    "vigy-mcp-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": "sha256-kJQtOuwvc2DNae8djKYX86Ixw4pH/2sfKttmk4A/k5E=",
+    "vigy-runtime-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": "sha256-kJQtOuwvc2DNae8djKYX86Ixw4pH/2sfKttmk4A/k5E=",
+    "vigy-store-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": "sha256-kJQtOuwvc2DNae8djKYX86Ixw4pH/2sfKttmk4A/k5E=",
+    "vigy-types-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": "sha256-kJQtOuwvc2DNae8djKYX86Ixw4pH/2sfKttmk4A/k5E="
   },
   "flake_metadata": {}
 }
