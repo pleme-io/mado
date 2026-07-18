@@ -8514,8 +8514,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/ishou";
-          rev = "cd8f18dc87449817d43a93cbab1667d8257a59dd";
-          sha256 = "1wmlnv7flmmw378zskpgws73srnpk0zln4jrcrk2nzp34mqwpxds";
+          rev = "78ff2170984dc247f13c6786cea68a640b2e3d2f";
+          sha256 = "18ykw98wd4hkpllb1f77615zhb9qd0vcyk8hkz8zimrbs503ds9y";
         };
         libName = "ishou_tokens";
         dependencies = [
@@ -8578,13 +8578,13 @@ rec {
       };
       "izumi" = rec {
         crateName = "izumi";
-        version = "0.1.4";
+        version = "0.1.5";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/izumi";
-          rev = "89b7e37b83a243205a04fc67b6d15ff6a4f357cf";
-          sha256 = "03ywbv4vfdp8h9kpq242q70shbn3jnshqd9j2grzxrxgbv1k8l1j";
+          rev = "56babeeab1c8ecdf9e0724b7cfd4557ad5225e70";
+          sha256 = "19zrhqzw4nygcyxyjjhna1s7yjswaf79v7x2sz1f1sl7jcckrhcl";
         };
         authors = [
           "pleme-io"
@@ -8642,13 +8642,13 @@ rec {
       };
       "izumi-config" = rec {
         crateName = "izumi-config";
-        version = "0.1.4";
+        version = "0.1.5";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/izumi";
-          rev = "89b7e37b83a243205a04fc67b6d15ff6a4f357cf";
-          sha256 = "03ywbv4vfdp8h9kpq242q70shbn3jnshqd9j2grzxrxgbv1k8l1j";
+          rev = "56babeeab1c8ecdf9e0724b7cfd4557ad5225e70";
+          sha256 = "19zrhqzw4nygcyxyjjhna1s7yjswaf79v7x2sz1f1sl7jcckrhcl";
         };
         libName = "izumi_config";
         authors = [
@@ -8673,13 +8673,13 @@ rec {
       };
       "izumi-sources" = rec {
         crateName = "izumi-sources";
-        version = "0.1.4";
+        version = "0.1.5";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/izumi";
-          rev = "89b7e37b83a243205a04fc67b6d15ff6a4f357cf";
-          sha256 = "03ywbv4vfdp8h9kpq242q70shbn3jnshqd9j2grzxrxgbv1k8l1j";
+          rev = "56babeeab1c8ecdf9e0724b7cfd4557ad5225e70";
+          sha256 = "19zrhqzw4nygcyxyjjhna1s7yjswaf79v7x2sz1f1sl7jcckrhcl";
         };
         libName = "izumi_sources";
         authors = [
@@ -10436,7 +10436,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.84";
+        version = "0.1.85";
         edition = "2024";
         crateBin = [
           {
@@ -22151,15 +22151,15 @@ rec {
         ];
 
       };
-      "shikumi 0.1.320" = rec {
+      "shikumi 0.1.321" = rec {
         crateName = "shikumi";
-        version = "0.1.320";
+        version = "0.1.321";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
-          rev = "e8a1f924d61f8f23834343ec719ceba9f9b2db3a";
-          sha256 = "1abfwj6pdg8rz6d57m0a25r933x6aiqdvq3rbd98045v49prs9fb";
+          rev = "cbe9cd5e14cbf69e38788b5c4c57d5177e10fa1b";
+          sha256 = "01ii8rh7p5hfsf7ddckgnkj0vjz5jc3bys59yf9v6q8g9a9dh7cw";
         };
         dependencies = [
           {
@@ -24941,7 +24941,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "shikumi 0.1.320";
+            packageId = "shikumi 0.1.321";
             features = [ "cli" ];
           }
           {
