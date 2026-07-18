@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "aa89fbb29a3f1d853f61293f7fcb5460efbfe8267abc48a7c5a9e4a38902f014",
+  "cargo_lock_sha256": "bee4306215f78ca4816f8b4a7fe8d6db65c6f9ee58d342ec91c3dc5674c05e93",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -10015,7 +10015,7 @@
           "wgsl-out"
         ]
       },
-      "nami-core-0.1.8-b271c62203024263e7e06da1fb3f443e0fa1d7b5": {
+      "nami-core-0.1.9-9a6aced4a4f205ea9fdcd4d5e0862a97903e0919": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -10024,6 +10024,26 @@
             "features": [],
             "uses_default_features": true,
             "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "garasu",
+            "package_key": "garasu-0.1.4-a2afc2ad6530ed096ab26f5d92bd4e1d348253ee",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "glyphon",
+            "package_key": "glyphon-0.9.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
             "target": null,
             "tree": "target"
           },
@@ -10054,6 +10074,18 @@
             "features": [],
             "uses_default_features": true,
             "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "ishou_tokens",
+            "package_key": "ishou-tokens-0.1.4-78ff2170984dc247f13c6786cea68a640b2e3d2f",
+            "kind": "normal",
+            "features": [
+              "wgpu"
+            ],
+            "uses_default_features": true,
+            "optional": true,
             "target": null,
             "tree": "target"
           },
@@ -10202,11 +10234,22 @@
             "optional": false,
             "target": null,
             "tree": "target"
+          },
+          {
+            "name": "wgpu",
+            "package_key": "wgpu-25.0.2",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
           }
         ],
         "build_dependencies": [],
         "features": [
           "eval",
+          "gpu",
           "lisp",
           "network"
         ]
@@ -26913,10 +26956,11 @@
               },
               {
                 "name": "nami_core",
-                "package_key": "nami-core-0.1.8-b271c62203024263e7e06da1fb3f443e0fa1d7b5",
+                "package_key": "nami-core-0.1.9-9a6aced4a4f205ea9fdcd4d5e0862a97903e0919",
                 "kind": "normal",
                 "features": [
                   "eval",
+                  "gpu",
                   "network"
                 ],
                 "uses_default_features": false,
@@ -31864,10 +31908,11 @@
               },
               {
                 "name": "nami_core",
-                "package_key": "nami-core-0.1.8-b271c62203024263e7e06da1fb3f443e0fa1d7b5",
+                "package_key": "nami-core-0.1.9-9a6aced4a4f205ea9fdcd4d5e0862a97903e0919",
                 "kind": "normal",
                 "features": [
                   "eval",
+                  "gpu",
                   "network"
                 ],
                 "uses_default_features": false,
@@ -36037,10 +36082,11 @@
               },
               {
                 "name": "nami_core",
-                "package_key": "nami-core-0.1.8-b271c62203024263e7e06da1fb3f443e0fa1d7b5",
+                "package_key": "nami-core-0.1.9-9a6aced4a4f205ea9fdcd4d5e0862a97903e0919",
                 "kind": "normal",
                 "features": [
                   "eval",
+                  "gpu",
                   "network"
                 ],
                 "uses_default_features": false,
@@ -40369,10 +40415,11 @@
               },
               {
                 "name": "nami_core",
-                "package_key": "nami-core-0.1.8-b271c62203024263e7e06da1fb3f443e0fa1d7b5",
+                "package_key": "nami-core-0.1.9-9a6aced4a4f205ea9fdcd4d5e0862a97903e0919",
                 "kind": "normal",
                 "features": [
                   "eval",
+                  "gpu",
                   "network"
                 ],
                 "uses_default_features": false,
@@ -45284,10 +45331,11 @@
               },
               {
                 "name": "nami_core",
-                "package_key": "nami-core-0.1.8-b271c62203024263e7e06da1fb3f443e0fa1d7b5",
+                "package_key": "nami-core-0.1.9-9a6aced4a4f205ea9fdcd4d5e0862a97903e0919",
                 "kind": "normal",
                 "features": [
                   "eval",
+                  "gpu",
                   "network"
                 ],
                 "uses_default_features": false,
@@ -49421,10 +49469,11 @@
               },
               {
                 "name": "nami_core",
-                "package_key": "nami-core-0.1.8-b271c62203024263e7e06da1fb3f443e0fa1d7b5",
+                "package_key": "nami-core-0.1.9-9a6aced4a4f205ea9fdcd4d5e0862a97903e0919",
                 "kind": "normal",
                 "features": [
                   "eval",
+                  "gpu",
                   "network"
                 ],
                 "uses_default_features": false,
@@ -53480,7 +53529,7 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "nami-core-0.1.8-b271c62203024263e7e06da1fb3f443e0fa1d7b5": {
+    "nami-core-0.1.9-9a6aced4a4f205ea9fdcd4d5e0862a97903e0919": {
       "edition": "2024"
     },
     "native-tls-0.2.18": {
@@ -54972,7 +55021,7 @@
     "kanshou-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
     "kanshou-derive-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
     "madori-0.1.5-79b33a4811853f1a8153735a69fb58bde894c2d9": "sha256-35DB90eBg+O8Ie2w8R4sfZr4B4NG+FPbUfwePl0x9qw=",
-    "nami-core-0.1.8-b271c62203024263e7e06da1fb3f443e0fa1d7b5": "sha256-NxLlsmtFOde8vZXRppZUrR76lSM+1ICPb3JQe+tuArw=",
+    "nami-core-0.1.9-9a6aced4a4f205ea9fdcd4d5e0862a97903e0919": "sha256-U34IOb1oRS+Uj8fEidIHN1F3n1RIlee3tnzDSfH2Gak=",
     "pleme-allvariants-derive-0.1.0-c66f20d1dc5727cfa0d1f83a02a28609a13387ec": "sha256-XiO3eXRNjEzczetYv1+AYnyPrIuGpA/FYfRHD47QQYY=",
     "pleme-fleet-themed-derive-0.1.1-a03a411857a340c89a0eefcb25b00ce6586abe30": "sha256-exAgNUG4ApPkxvK/DCKRqeGQzO0fAdDC4Rc8lzegQKs=",
     "pleme-invalidating-setter-derive-0.1.0-ba2492fe88b02e0bc2d6057121e99888766a8d49": "sha256-CQG8YvxrlXPuMS0LI1snvTPA0BiFkLkvK0uTfAVbRBc=",
