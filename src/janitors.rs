@@ -643,7 +643,7 @@ impl Janitor for SuggestHealthJanitor {
                 track.last_poll_ms = health.last_poll_ms;
                 let bad = matches!(
                     health.status,
-                    SourceStatus::Error | SourceStatus::AuthMissing
+                    SourceStatus::Error | SourceStatus::AuthMissing | SourceStatus::TimedOut
                 );
                 track.consecutive_bad = if bad {
                     track.consecutive_bad.saturating_add(1)
@@ -666,7 +666,10 @@ impl Janitor for SuggestHealthJanitor {
             let urgency = if health.status == SourceStatus::Error {
                 Urgency::Normal
             } else {
-                Urgency::Low // AuthMissing: chronic until a token lands
+                // AuthMissing (chronic until a token lands) + TimedOut (slow, not
+                // broken — raise the budget): lower than a real Error. The
+                // "timed out" label already tells the operator which it is.
+                Urgency::Low
             };
             out.push(JanitorFinding::observation(
                 JanitorKind::SuggestHealth,
