@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "65e3282cdaf86f59b87cd02eb5f5f66e8cd188004de13365c058049f91a8c0e9",
+  "cargo_lock_sha256": "9a97ffcac189848cc839d65d83408585fc7c68e44c8636979465aaa65c690aef",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -4719,7 +4719,7 @@
           "default"
         ]
       },
-      "gen-macros-0.1.20-19d9a04e930fd7101df3a3b3967d8d72b1b9f99c": {
+      "gen-macros-0.1.22-27231a64b77655fe89f42048a8264f72fa02f7f4": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -4758,11 +4758,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "gen-platform-0.1.20-19d9a04e930fd7101df3a3b3967d8d72b1b9f99c": {
+      "gen-platform-0.1.22-27231a64b77655fe89f42048a8264f72fa02f7f4": {
         "runtime_dependencies": [
           {
             "name": "gen_macros",
-            "package_key": "gen-macros-0.1.20-19d9a04e930fd7101df3a3b3967d8d72b1b9f99c",
+            "package_key": "gen-macros-0.1.22-27231a64b77655fe89f42048a8264f72fa02f7f4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4772,7 +4772,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.20-19d9a04e930fd7101df3a3b3967d8d72b1b9f99c",
+            "package_key": "gen-types-0.1.22-27231a64b77655fe89f42048a8264f72fa02f7f4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4826,7 +4826,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "gen-types-0.1.20-19d9a04e930fd7101df3a3b3967d8d72b1b9f99c": {
+      "gen-types-0.1.22-27231a64b77655fe89f42048a8264f72fa02f7f4": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -17485,7 +17485,7 @@
           },
           {
             "name": "gen_platform",
-            "package_key": "gen-platform-0.1.20-19d9a04e930fd7101df3a3b3967d8d72b1b9f99c",
+            "package_key": "gen-platform-0.1.22-27231a64b77655fe89f42048a8264f72fa02f7f4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17495,7 +17495,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.20-19d9a04e930fd7101df3a3b3967d8d72b1b9f99c",
+            "package_key": "gen-types-0.1.22-27231a64b77655fe89f42048a8264f72fa02f7f4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17634,7 +17634,7 @@
           },
           {
             "name": "gen_platform",
-            "package_key": "gen-platform-0.1.20-19d9a04e930fd7101df3a3b3967d8d72b1b9f99c",
+            "package_key": "gen-platform-0.1.22-27231a64b77655fe89f42048a8264f72fa02f7f4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17644,7 +17644,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.20-19d9a04e930fd7101df3a3b3967d8d72b1b9f99c",
+            "package_key": "gen-types-0.1.22-27231a64b77655fe89f42048a8264f72fa02f7f4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -53078,14 +53078,14 @@
       "edition": "2024",
       "build_script": "build.rs"
     },
-    "gen-macros-0.1.20-19d9a04e930fd7101df3a3b3967d8d72b1b9f99c": {
+    "gen-macros-0.1.22-27231a64b77655fe89f42048a8264f72fa02f7f4": {
       "edition": "2024",
       "proc_macro": true
     },
-    "gen-platform-0.1.20-19d9a04e930fd7101df3a3b3967d8d72b1b9f99c": {
+    "gen-platform-0.1.22-27231a64b77655fe89f42048a8264f72fa02f7f4": {
       "edition": "2024"
     },
-    "gen-types-0.1.20-19d9a04e930fd7101df3a3b3967d8d72b1b9f99c": {
+    "gen-types-0.1.22-27231a64b77655fe89f42048a8264f72fa02f7f4": {
       "edition": "2024"
     },
     "generic-array-0.14.7": {
@@ -55006,9 +55006,9 @@
     "engawa-0.1.4-6adb58cf67c65de94284766f4fd66c65d2f51709": "sha256-6KgjV+OlpnaIIVUAMvD/CfCfjjroj8cxjxpx8Pko8AI=",
     "engawa-wgpu-0.1.8-acc2b02d46322077861c9e74c6d2e5cb15cb1e5f": "sha256-sE/Qeve2DJY8NVMxAzjRbeZWIUmmWoF6hUAUusSJ4So=",
     "garasu-0.1.4-a2afc2ad6530ed096ab26f5d92bd4e1d348253ee": "sha256-//cvGAyxRVhcwHD56yf9M5SPn63GiwP+y06b8OlVfvs=",
-    "gen-macros-0.1.20-19d9a04e930fd7101df3a3b3967d8d72b1b9f99c": "sha256-WnAD2a879t7v5C4pVS8AI97gzECkZTEQSR6UL4MZaKo=",
-    "gen-platform-0.1.20-19d9a04e930fd7101df3a3b3967d8d72b1b9f99c": "sha256-WnAD2a879t7v5C4pVS8AI97gzECkZTEQSR6UL4MZaKo=",
-    "gen-types-0.1.20-19d9a04e930fd7101df3a3b3967d8d72b1b9f99c": "sha256-WnAD2a879t7v5C4pVS8AI97gzECkZTEQSR6UL4MZaKo=",
+    "gen-macros-0.1.22-27231a64b77655fe89f42048a8264f72fa02f7f4": "sha256-UgV+9HdfAJj1QHlehxfvUx7IFzmXict0X7Xp16wkMx8=",
+    "gen-platform-0.1.22-27231a64b77655fe89f42048a8264f72fa02f7f4": "sha256-UgV+9HdfAJj1QHlehxfvUx7IFzmXict0X7Xp16wkMx8=",
+    "gen-types-0.1.22-27231a64b77655fe89f42048a8264f72fa02f7f4": "sha256-UgV+9HdfAJj1QHlehxfvUx7IFzmXict0X7Xp16wkMx8=",
     "hasami-0.1.2-9ac5d963d7fc786d0144968f3de78bc044839813": "sha256-GguTYXyHpiiXASD8fcLunSaKueunYXUF10FeB8FRTE8=",
     "hayai-0.1.1-0aa8014aa7ca0d4723e5b46a3dd68daa21dec7b3": "sha256-5Tt5kEJclnNn07QvwVQhf7uFCiElFi86xegaPs1GArw=",
     "irodzuki-0.1.7-d3bfe781e9c813164a37a0e0a1eeef16f5be9515": "sha256-7iA13F9fE1MktjUB89kQIiVY6TB0wTNHmHNGSJcj9Lg=",

@@ -1937,8 +1937,8 @@ dependencies = [
 
 [[package]]
 name = "gen-macros"
-version = "0.1.20"
-source = "git+https://github.com/pleme-io/gen#19d9a04e930fd7101df3a3b3967d8d72b1b9f99c"
+version = "0.1.22"
+source = "git+https://github.com/pleme-io/gen#27231a64b77655fe89f42048a8264f72fa02f7f4"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1947,8 +1947,8 @@ dependencies = [
 
 [[package]]
 name = "gen-platform"
-version = "0.1.20"
-source = "git+https://github.com/pleme-io/gen#19d9a04e930fd7101df3a3b3967d8d72b1b9f99c"
+version = "0.1.22"
+source = "git+https://github.com/pleme-io/gen#27231a64b77655fe89f42048a8264f72fa02f7f4"
 dependencies = [
  "gen-macros",
  "gen-types",
@@ -1960,8 +1960,8 @@ dependencies = [
 
 [[package]]
 name = "gen-types"
-version = "0.1.20"
-source = "git+https://github.com/pleme-io/gen#19d9a04e930fd7101df3a3b3967d8d72b1b9f99c"
+version = "0.1.22"
+source = "git+https://github.com/pleme-io/gen#27231a64b77655fe89f42048a8264f72fa02f7f4"
 dependencies = [
  "blake3",
  "chrono",
@@ -8425,7 +8425,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]

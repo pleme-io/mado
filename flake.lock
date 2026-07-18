@@ -2419,11 +2419,11 @@
         "nixpkgs": "nixpkgs_13"
       },
       "locked": {
-        "lastModified": 1784227437,
-        "narHash": "sha256-hY3dFzZ5+E+cAIU6dnYdqqZtZOr0UvQQ8rvTzFvt6VI=",
+        "lastModified": 1784349997,
+        "narHash": "sha256-7j7ut5bcbgT7h8kkV8hUB6kzDR7UMKA0JwrW5zypaj4=",
         "owner": "pleme-io",
         "repo": "substrate",
-        "rev": "3d59aac13c1af1b823a71d9b1225ce5ef049a3f1",
+        "rev": "7db0a2fc9255e716458116568680495ac188d66b",
         "type": "github"
       },
       "original": {
