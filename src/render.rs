@@ -336,6 +336,38 @@ fn centered_panel_geom(
     (px, py, pw, ph)
 }
 
+/// The horizontal analog of `draw_overlay`'s vertical `max_lines` fit: how
+/// wide a single overlay line's shaped text may be before the panel (content
+/// + the card's own `2*pad_x` horizontal padding, inset `pad` from the window
+/// edge on each side) would overflow the live window `width`. Pure/testable
+/// so the invariant it seals — a rendered overlay line's width is always
+/// `<= this` — has a unit test independent of GPU text shaping.
+fn max_overlay_content_w(width: u32, pad: f32, pad_x: f32) -> f32 {
+    (width as f32 - 2.0 * pad - 2.0 * pad_x).max(pad_x * 4.0)
+}
+
+/// Truncate `text` (with its CHAR-position `highlights`, per
+/// [`crate::picker::component::OverlayLine::highlights`]) to at most
+/// `max_chars` characters, char-boundary-safe. Truncated text gets a
+/// trailing ellipsis (counted against the budget) so a long board/picker row
+/// is visibly shortened rather than silently clipped by the GPU scissor —
+/// the Ctrl-S "text runs off the edge" report. `highlights` beyond the kept
+/// prefix are dropped (nothing left to point at). A no-op when `text`
+/// already fits.
+fn truncate_overlay_text(text: &str, highlights: &[usize], max_chars: usize) -> (String, Vec<usize>) {
+    let char_count = text.chars().count();
+    if char_count <= max_chars {
+        return (text.to_string(), highlights.to_vec());
+    }
+    if max_chars == 0 {
+        return (String::new(), Vec::new());
+    }
+    let keep = max_chars.saturating_sub(1);
+    let truncated: String = text.chars().take(keep).chain(std::iter::once('…')).collect();
+    let kept_highlights = highlights.iter().copied().filter(|&p| p < keep).collect();
+    (truncated, kept_highlights)
+}
+
 /// language (the operator's "flush and consistent together"). Fakes a
 /// blurred shadow with the solid rect pipeline: `layers` concentric rounded
 /// rects growing outward from `[x,y,w,h]` by `spread`, each fainter than the
@@ -2553,27 +2585,43 @@ impl TerminalRenderer {
         // Cell the render loop set (draw_overlay takes no `elapsed`).
         let progress = self.overlay_progress.get();
 
+        let pad = self.padding_px();
+        let pad_x = self.cell_width * 2.0;
+        // Cap each line's WIDTH to fit the viewport — the horizontal analog
+        // of the row-count budget below. Before this, a line's shaped width
+        // fed straight into `content_w`/`vis_max_w` uncapped, so a long board
+        // row (e.g. a suggestion-stream alert line) could size the card wider
+        // than the window and render truncated/clipped by the GPU scissor
+        // with no visible ellipsis — the "Ctrl-S doesn't resize appropriately"
+        // report. Truncating the STRING up front (not just clamping the
+        // panel rect) means `vis_max_w()` below can never exceed this ceiling
+        // in the first place — sealed the same way `max_lines` seals height.
+        let max_chars = (max_overlay_content_w(width, pad, pad_x) / self.cell_width.max(1.0))
+            .floor()
+            .max(0.0) as usize;
+
         // Shape every line first (the centred anchor needs the shaped
         // widths to centre the block; the TextAreas borrow the buffers
         // through prepare, so they're kept alive in `buffers`).
         let mut buffers: Vec<glyphon::Buffer> = Vec::with_capacity(spec.lines.len());
         for line in &spec.lines {
+            let (text, highlights) = truncate_overlay_text(&line.text, &line.highlights, max_chars);
             let base = Attrs::new().family(Family::Name(&self.font_family));
-            let mut buf = if line.highlights.is_empty() {
+            let mut buf = if highlights.is_empty() {
                 // Common path (no query / no match): one run, unchanged. The
                 // line's colour comes from the TextArea default_color below.
-                frame.create_rich_buffer(&[(line.text.as_str(), base)], fs, line_h)
+                frame.create_rich_buffer(&[(text.as_str(), base)], fs, line_h)
             } else {
                 // Matched chars glow in the Nord frost accent (alpha-matched to
                 // the row's shade-in); unmatched runs carry no colour so they
                 // fall back to default_color (the role / urgency tint). This is
                 // the fzf-style "here's why this row matched" highlight.
                 let accent = GlyphonColor::rgba(0x88, 0xC0, 0xD0, line.alpha);
-                let runs = crate::picker::component::highlight_runs(&line.text, &line.highlights);
+                let runs = crate::picker::component::highlight_runs(&text, &highlights);
                 let spans: Vec<(&str, Attrs)> = runs
                     .iter()
                     .map(|(r, hl)| {
-                        let seg = &line.text[r.clone()];
+                        let seg = &text[r.clone()];
                         if *hl {
                             (seg, base.clone().color(accent))
                         } else {
@@ -2587,7 +2635,6 @@ impl TerminalRenderer {
             buffers.push(buf);
         }
 
-        let pad = self.padding_px();
         let pad_y = line_h * 0.5;
         // Cap the rendered lines to those that fit the viewport (panel height
         // = block_h + 2*pad_y must fit within `height - 2*pad`), so the popup
@@ -2604,7 +2651,7 @@ impl TerminalRenderer {
                 .fold(0.0_f32, |m, run| m.max(run.line_w))
         };
         let block_h = vis.len() as f32 * line_h;
-        let edge_left = pad + self.cell_width * 2.0;
+        let edge_left = pad + pad_x;
         let (left, top0) = match spec.anchor {
             PickerAnchor::Top => (edge_left, pad + self.cell_height),
             PickerAnchor::Bottom => (
@@ -2629,7 +2676,6 @@ impl TerminalRenderer {
         // pass below lands on top. Top/Bottom stay text-only (unchanged).
         if matches!(spec.anchor, PickerAnchor::Center) {
             let content_w = vis_max_w();
-            let pad_x = self.cell_width * 2.0;
             let (px, py, pw, ph) =
                 centered_panel_geom(left, top0, content_w, block_h, pad, pad_x, pad_y);
             let radius = (line_h * 0.55).min(pw.min(ph) / 2.0);
@@ -9878,5 +9924,65 @@ mod tests {
         assert!((renderer.cursor_color[1] - 0.937).abs() < 0.01);
         assert!((renderer.cursor_color[2] - 0.957).abs() < 0.01);
         assert!((renderer.cursor_color[3] - 0.85).abs() < 0.01);
+    }
+
+    // ---- overlay width budget (Ctrl-S "doesn't resize appropriately") ----
+
+    #[test]
+    fn overlay_content_w_shrinks_with_window_width() {
+        let wide = max_overlay_content_w(2000, 20.0, 16.0);
+        let narrow = max_overlay_content_w(600, 20.0, 16.0);
+        assert!(narrow < wide, "the ceiling must track the live window width");
+        assert!((wide - (2000.0 - 2.0 * 20.0 - 2.0 * 16.0)).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn overlay_content_w_never_goes_negative_on_a_tiny_window() {
+        // A window narrower than the insets must still yield a usable floor,
+        // never a negative/zero budget that truncates every line to nothing.
+        let ceiling = max_overlay_content_w(10, 20.0, 16.0);
+        assert!(ceiling > 0.0);
+        assert!((ceiling - 16.0 * 4.0).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn truncate_overlay_text_is_a_noop_when_it_already_fits() {
+        let (text, hl) = truncate_overlay_text("short row", &[0, 2], 80);
+        assert_eq!(text, "short row");
+        assert_eq!(hl, vec![0, 2]);
+    }
+
+    #[test]
+    fn truncate_overlay_text_shortens_and_ellipsizes() {
+        let long = "12 lanes blind: cargo-warnings needs config · flux-failing erroring";
+        let (text, _hl) = truncate_overlay_text(long, &[], 20);
+        assert_eq!(text.chars().count(), 20, "budget is honoured exactly");
+        assert!(text.ends_with('…'), "truncation is visible, never silent");
+        assert!(long.starts_with(&text[..text.len() - '…'.len_utf8()]));
+    }
+
+    #[test]
+    fn truncate_overlay_text_drops_highlights_past_the_cut() {
+        // "abcdefgh" matched at 0,3,6 — truncating to 4 chars (3 kept + …)
+        // must keep the highlight at 0 and drop 3/6 (no longer in the text).
+        let (text, hl) = truncate_overlay_text("abcdefgh", &[0, 3, 6], 4);
+        assert_eq!(text, "abc…");
+        assert_eq!(hl, vec![0]);
+    }
+
+    #[test]
+    fn truncate_overlay_text_handles_zero_budget_without_panic() {
+        let (text, hl) = truncate_overlay_text("anything", &[0], 0);
+        assert_eq!(text, "");
+        assert!(hl.is_empty());
+    }
+
+    #[test]
+    fn truncate_overlay_text_is_multibyte_safe() {
+        // Every char in "🌊wave" is a valid boundary; a naive byte-slice
+        // truncation would panic mid-codepoint on the wave emoji.
+        let (text, _hl) = truncate_overlay_text("🌊wave board", &[], 5);
+        assert_eq!(text.chars().count(), 5);
+        assert!(text.ends_with('…'));
     }
 }

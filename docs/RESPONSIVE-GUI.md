@@ -55,6 +55,7 @@ Also **stale org model to fix** (models-stay-current): org CLAUDE.md's
 | M | What | Risk | Status |
 |---|---|---|---|
 | **M0** | Responsive Ctrl-S board + Ctrl-T picker in mado — delete the fixed `WINDOW_ROWS=12`, derive the visible cap from the live surface as a typed `VisibleRows`; seal it as an invariant | low | **✓ shipped** |
+| **M0.1** | Horizontal analog of M0: cap each overlay LINE's width to the live window (`max_overlay_content_w`), truncating the string with a visible ellipsis before shaping rather than letting the panel/GPU scissor clip it silently — the "Ctrl-S doesn't resize appropriately" report (long suggestion-stream rows ran off the right edge). No config surface existed for this at all before; the fix is unconditional (same posture as M0: a sealed invariant, not an opt-in) | low | **✓ shipped** |
 | **M1** | madori `Viewport { physical, scale, logical }` on `AppEvent::Resized` + re-emit the swallowed `ScaleFactorChanged` (mirror `ScrollDelta::{Lines,Pixels}`) | low | queued |
 | **M2** | ishou `Breakpoint`/`Fluid { min, preferred, max }` token tier → `resolve(viewport) -> Refined<T,B>` | low | queued |
 | **M3** | A new leaf layout crate (consumes ishou tokens + a madori Viewport) — pure `LayoutSolve → RectTree` + a cross-face `MinSize` gate; widgets take a resolved `Layout`, never raw pixels (responsive becomes structurally unrepresentable-to-omit) | med | queued |
@@ -77,6 +78,26 @@ screen-less union-ordering policy, not a viewport-fit concern (smallest change
 that closes the *real* gap; no hot-path/memo risk). Tests: `budget_grows_with_
 height`, `budget_is_refined_clamped_at_the_floor`, `budget_saturates_at_the_
 ceiling`, `matches_draw_overlay_max_lines_formula`.
+
+## M0.1 — shipped (the horizontal half)
+
+`render.rs`'s `draw_overlay` computed `content_w`/`vis_max_w()` straight from
+each line's *shaped* text width, uncapped against the live window — a long
+board row (a suggestion-stream alert, a long path) could size the panel wider
+than the window, and the excess just ran off-screen with no ellipsis, clipped
+by whatever bounds the GPU pass. `max_overlay_content_w(width, pad, pad_x)` is
+the width analog of `max_lines`'s height clamp; `truncate_overlay_text(text,
+highlights, max_chars)` truncates char-boundary-safe (multibyte-safe, drops
+highlight positions past the cut) and appends a visible ellipsis before the
+line is ever shaped, so `vis_max_w()` can no longer exceed the ceiling — the
+panel is sealed to the window on both axes now, unconditionally (no config
+toggle; every overlay through `draw_overlay` gets it, Ctrl-S and Ctrl-T
+alike). Tests: `overlay_content_w_shrinks_with_window_width`, `overlay_
+content_w_never_goes_negative_on_a_tiny_window`, `truncate_overlay_text_is_a_
+noop_when_it_already_fits`, `truncate_overlay_text_shortens_and_ellipsizes`,
+`truncate_overlay_text_drops_highlights_past_the_cut`, `truncate_overlay_
+text_handles_zero_budget_without_panic`, `truncate_overlay_text_is_multibyte_
+safe`.
 
 ## Reuse map (extend, never rebuild)
 
