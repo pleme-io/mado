@@ -602,8 +602,15 @@ impl Introspect for MadoAppState {
                         "rows": snap.rows,
                         "cursor_row": snap.cursor_row,
                         "cursor_col": snap.cursor_col,
+                        "cursor_visible": snap.cursor_visible,
                         "alt_screen_active": snap.alt_screen_active,
                         "text_rows": snap.to_text_rows(),
+                        // Full per-cell grid (char/fg/bg/attrs), so the MCP
+                        // `snapshot_grid` tool's embedded-world routing can
+                        // build the same structured response it gives for
+                        // headless sessions — not just plain text. tear_types
+                        // ::Cell/Color/CellAttrs are already Serialize.
+                        "cells": snap.cells,
                     })),
                     Err(e) => Ok(serde_json::json!({
                         "found": false,

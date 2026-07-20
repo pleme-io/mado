@@ -775,12 +775,7 @@ impl MadoMcp {
             // Embedded-world routing — read-side twin of send_keys'
             // forward: 16-hex tear ids live in the GUI's registry.
             // Same shape gate, so headless ids and test fakes stay local.
-            let looks_embedded = input.session_id.len() == 16
-                && input
-                    .session_id
-                    .bytes()
-                    .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase());
-            if looks_embedded {
+            if looks_like_embedded_session_id(&input.session_id) {
                 let fwd = kanshou::mcp::forward(
                     "mado",
                     &kanshou::Query {
@@ -843,17 +838,61 @@ impl MadoMcp {
         .to_string()
     }
 
-    #[tool(description = "Take a full structured snapshot of a session's terminal grid — every cell (char + fg + bg + attrs + width) plus cursor row/col/visibility. The load-bearing introspection tool: any visual rendering bug can be triaged by diffing two snapshots or comparing against the on-screen pixels. Set `pretty: true` to also include a human-readable text grid where cells with empty bg become `·` and the cursor cell becomes `▓`. Default `cells_filter: runs` (RLE same-attrs contiguous cells into one entry — ~10–50× smaller payload than `non_default` on typical interactive grids). Alternatives: `non_default` (per-cell sparse), `non_blank` (looser sparse), `all` (full row-major grid — caller owns the size implications).")]
+    #[tool(description = "Take a full structured snapshot of a session's terminal grid — every cell (char + fg + bg + attrs + width) plus cursor row/col/visibility. The load-bearing introspection tool: any visual rendering bug can be triaged by diffing two snapshots or comparing against the on-screen pixels. Set `pretty: true` to also include a human-readable text grid where cells with empty bg become `·` and the cursor cell becomes `▓`. Default `cells_filter: runs` (RLE same-attrs contiguous cells into one entry — ~10–50× smaller payload than `non_default` on typical interactive grids). Alternatives: `non_default` (per-cell sparse), `non_blank` (looser sparse), `all` (full row-major grid — caller owns the size implications). Works for both headless sessions AND live-GUI embedded panes (16-hex-char ids) — the embedded path was previously missing entirely (`no-such-session` for every live pane; `get_output` worked, this didn't).")]
     async fn snapshot_grid(&self, Parameters(input): Parameters<SnapshotGridInput>) -> String {
-        let Some(session) = self.state.sessions.get(&input.session_id) else {
-            return serde_json::json!({
-                "ok": false,
-                "error": "no-such-session",
-                "session_id": input.session_id,
-            })
-            .to_string();
+        let snap = if let Some(session) = self.state.sessions.get(&input.session_id) {
+            session.snapshot_grid()
+        } else {
+            // Embedded-world routing — same shape gate + forward as
+            // `get_output`'s fallback. Without this leg `snapshot_grid`
+            // returned `no-such-session` for every live-GUI pane (the
+            // common case an operator actually wants to inspect), while
+            // the plain-text `get_output` sibling worked fine — found
+            // live 2026-07-19 while triaging a reported rendering glitch:
+            // the tool the fix advice pointed at didn't actually work.
+            if !looks_like_embedded_session_id(&input.session_id) {
+                return serde_json::json!({
+                    "ok": false,
+                    "error": "no-such-session",
+                    "session_id": input.session_id,
+                })
+                .to_string();
+            }
+            let fwd = kanshou::mcp::forward(
+                "mado",
+                &kanshou::Query {
+                    path: vec![String::from("pane_snapshot_embedded")],
+                    args: vec![serde_json::json!(input.session_id)],
+                },
+                || Err(kanshou::QueryError::internal("no live GUI reachable")),
+            )
+            .await;
+            let Ok(v) = fwd else {
+                return serde_json::json!({
+                    "ok": false,
+                    "error": "no-such-session",
+                    "session_id": input.session_id,
+                })
+                .to_string();
+            };
+            if v.get("found").and_then(serde_json::Value::as_bool) != Some(true) {
+                return serde_json::json!({
+                    "ok": false,
+                    "error": "no-such-session",
+                    "session_id": input.session_id,
+                })
+                .to_string();
+            }
+            let Some(snap) = embedded_pane_snapshot_json_to_grid_snapshot(&v) else {
+                return serde_json::json!({
+                    "ok": false,
+                    "error": "embedded-pane-cells-undecodable",
+                    "session_id": input.session_id,
+                })
+                .to_string();
+            };
+            snap
         };
-        let snap = session.snapshot_grid();
         let mut payload = serde_json::json!({
             "ok": true,
             "session_id": input.session_id,
@@ -2530,6 +2569,65 @@ struct CellRun {
 /// Cell::default semantics: `ch == ' ' && fg == WHITE && bg == BLACK
 /// && attrs == 0 && width == 1` (the post-reset terminal cell
 /// before any SGR has been applied).
+/// Does `id` have the 16-lowercase-hex shape of an embedded tear pane id?
+/// The one gate every embedded-world MCP fallback (`get_output`,
+/// `snapshot_grid`) uses to decide whether a local-registry miss should
+/// forward to the live GUI, vs. genuinely being an unknown/headless id.
+fn looks_like_embedded_session_id(id: &str) -> bool {
+    id.len() == 16 && id.bytes().all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+}
+
+/// Convert `pane_snapshot_embedded`'s JSON response (a `tear_types::Cell`
+/// grid, no `width`/underline concept) into mado's own `GridSnapshot`
+/// shape, so `snapshot_grid` can run the SAME `filtered_cells`/`to_pretty`
+/// logic for an embedded pane as for a headless session. Pure + directly
+/// testable — the network/forward side stays in `snapshot_grid` itself.
+/// Returns `None` only when `cells` is present but not decodable as
+/// `Vec<Vec<tear_types::Cell>>`; missing numeric fields default to 0 (an
+/// empty/degenerate grid, not a decode failure) so a partially-answering
+/// GUI still yields a `GridSnapshot` rather than an opaque error.
+fn embedded_pane_snapshot_json_to_grid_snapshot(
+    v: &serde_json::Value,
+) -> Option<crate::session::GridSnapshot> {
+    let tear_cells = v
+        .get("cells")
+        .and_then(|c| serde_json::from_value::<Vec<Vec<tear_types::Cell>>>(c.clone()).ok())?;
+    // tear's Cell carries no `width`/continuation-slot concept (mado's own
+    // grid reserves a following width==0 blank cell after a wide char;
+    // tear's does not) — derive width per-cell via unicode_width for
+    // accurate labelling, but this is a straight index-for-index
+    // conversion with no synthetic continuation cells inserted, so a row
+    // containing wide glyphs won't column-align identically to a
+    // headless-session snapshot of the same content. Fine for the
+    // diagnostic use this tool exists for (spotting a stray/duplicate
+    // row); not claimed as full wide-char parity with the native path.
+    let cells: Vec<Vec<crate::session::CellSnapshot>> = tear_cells
+        .iter()
+        .map(|row| {
+            row.iter()
+                .map(|c| {
+                    let width = unicode_width::UnicodeWidthChar::width(c.ch).unwrap_or(1) as u8;
+                    crate::session::CellSnapshot::legacy(
+                        c.ch,
+                        width,
+                        [c.fg.r, c.fg.g, c.fg.b],
+                        [c.bg.r, c.bg.g, c.bg.b],
+                        c.attrs.bits(),
+                    )
+                })
+                .collect()
+        })
+        .collect();
+    Some(crate::session::GridSnapshot {
+        cols: v.get("cols").and_then(serde_json::Value::as_u64).unwrap_or_default() as usize,
+        rows: v.get("rows").and_then(serde_json::Value::as_u64).unwrap_or_default() as usize,
+        cursor_row: v.get("cursor_row").and_then(serde_json::Value::as_u64).unwrap_or_default() as usize,
+        cursor_col: v.get("cursor_col").and_then(serde_json::Value::as_u64).unwrap_or_default() as usize,
+        cursor_visible: v.get("cursor_visible").and_then(serde_json::Value::as_bool).unwrap_or(true),
+        cells,
+    })
+}
+
 fn filtered_cells(snap: &crate::session::GridSnapshot, mode: &str) -> serde_json::Value {
     let blank_ch = ' ';
     let blank_bg = [0u8, 0u8, 0u8];
@@ -5237,6 +5335,89 @@ mod tests {
             failures.len(),
             failures.join("\n  - ")
         );
+    }
+
+    // ---- embedded-pane snapshot_grid routing (2026-07-19: get_output
+    // worked for a live-GUI pane id, snapshot_grid returned no-such-session
+    // for the SAME id — this closes that gap) ----
+
+    #[test]
+    fn embedded_session_id_shape_gate() {
+        assert!(looks_like_embedded_session_id("d8127857ae2682e8"));
+        assert!(looks_like_embedded_session_id("0000000000000000"));
+        assert!(!looks_like_embedded_session_id("D8127857AE2682E8"), "uppercase hex is not the tear id shape");
+        assert!(!looks_like_embedded_session_id("d8127857ae2682"), "too short");
+        assert!(!looks_like_embedded_session_id("d8127857ae2682e8a"), "too long");
+        assert!(!looks_like_embedded_session_id("not-a-hex-idxxxx"), "non-hex chars");
+        assert!(!looks_like_embedded_session_id(""));
+    }
+
+    #[test]
+    fn embedded_pane_snapshot_conversion_round_trips_a_simple_grid() {
+        let v = serde_json::json!({
+            "found": true,
+            "pane_id": "d8127857ae2682e8",
+            "cols": 3,
+            "rows": 1,
+            "cursor_row": 0,
+            "cursor_col": 2,
+            "cursor_visible": true,
+            "cells": [[
+                {"ch": "a", "fg": {"r": 255, "g": 255, "b": 255}, "bg": {"r": 0, "g": 0, "b": 0}, "attrs": 1},
+                {"ch": "b", "fg": {"r": 1, "g": 2, "b": 3}, "bg": {"r": 4, "g": 5, "b": 6}, "attrs": 0},
+                {"ch": "c", "fg": {"r": 255, "g": 255, "b": 255}, "bg": {"r": 0, "g": 0, "b": 0}, "attrs": 0},
+            ]],
+        });
+        let snap = embedded_pane_snapshot_json_to_grid_snapshot(&v)
+            .expect("well-formed embedded snapshot JSON must convert");
+        assert_eq!(snap.cols, 3);
+        assert_eq!(snap.rows, 1);
+        assert_eq!(snap.cursor_row, 0);
+        assert_eq!(snap.cursor_col, 2);
+        assert!(snap.cursor_visible);
+        assert_eq!(snap.cells.len(), 1);
+        assert_eq!(snap.cells[0].len(), 3);
+        assert_eq!(snap.cells[0][0].ch, 'a');
+        assert_eq!(snap.cells[0][0].fg, [255, 255, 255]);
+        assert_eq!(snap.cells[0][0].bg, [0, 0, 0]);
+        assert_eq!(snap.cells[0][0].attrs, 1, "BOLD bit must survive the CellAttrs -> u8 conversion");
+        assert_eq!(snap.cells[0][1].fg, [1, 2, 3]);
+        assert_eq!(snap.cells[0][1].bg, [4, 5, 6]);
+        assert_eq!(snap.cells[0][2].ch, 'c');
+        // to_text() must reconstruct the row exactly — this is the same
+        // primitive the "confirm the glitch is/isn't really there" workflow
+        // depends on for embedded panes.
+        assert_eq!(snap.to_text(), "abc");
+    }
+
+    #[test]
+    fn embedded_pane_snapshot_conversion_labels_wide_glyphs() {
+        let v = serde_json::json!({
+            "cols": 1, "rows": 1, "cursor_row": 0, "cursor_col": 0,
+            "cells": [[
+                {"ch": "\u{6f22}", "fg": {"r": 255, "g": 255, "b": 255}, "bg": {"r": 0, "g": 0, "b": 0}, "attrs": 0},
+            ]],
+        });
+        let snap = embedded_pane_snapshot_json_to_grid_snapshot(&v).unwrap();
+        assert_eq!(snap.cells[0][0].width, 2, "a CJK glyph must be labelled width 2");
+    }
+
+    #[test]
+    fn embedded_pane_snapshot_conversion_rejects_undecodable_cells() {
+        let v = serde_json::json!({ "cols": 1, "rows": 1, "cells": "not-a-cell-grid" });
+        assert!(embedded_pane_snapshot_json_to_grid_snapshot(&v).is_none());
+    }
+
+    #[test]
+    fn embedded_pane_snapshot_conversion_defaults_missing_numeric_fields_instead_of_failing() {
+        // A GUI answer that has `cells` but is missing/short on the rest
+        // (e.g. an older forward-side version) still yields a GridSnapshot
+        // — only an undecodable `cells` field is a hard failure.
+        let v = serde_json::json!({ "cells": Vec::<Vec<serde_json::Value>>::new() });
+        let snap = embedded_pane_snapshot_json_to_grid_snapshot(&v).unwrap();
+        assert_eq!(snap.cols, 0);
+        assert_eq!(snap.rows, 0);
+        assert!(snap.cursor_visible, "missing cursor_visible defaults to true (xterm semantics)");
     }
 }
 
