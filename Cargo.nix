@@ -10436,7 +10436,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.87";
+        version = "0.1.88";
         edition = "2024";
         crateBin = [
           {
@@ -27631,13 +27631,13 @@ rec {
       };
       "vigy" = rec {
         crateName = "vigy";
-        version = "0.1.4";
+        version = "0.1.5";
         edition = "2021";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/vigy";
-          rev = "e7b26465297507d76da4dfc043bb3c494422b2e6";
-          sha256 = "1mv2i8vb7j09c5dgbr76308261j5jlnhr8r15p7ypcsrw9ybkv3p";
+          rev = "264cad151dc0ff2ac37312ff1b1b58a2375ae01c";
+          sha256 = "14ck7y096rnv58gnpzs7ib1k38pk2yk8q7ggd76n0wrgxhx2v54h";
         };
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -27676,13 +27676,13 @@ rec {
       };
       "vigy-eval" = rec {
         crateName = "vigy-eval";
-        version = "0.1.4";
+        version = "0.1.5";
         edition = "2021";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/vigy";
-          rev = "e7b26465297507d76da4dfc043bb3c494422b2e6";
-          sha256 = "1mv2i8vb7j09c5dgbr76308261j5jlnhr8r15p7ypcsrw9ybkv3p";
+          rev = "264cad151dc0ff2ac37312ff1b1b58a2375ae01c";
+          sha256 = "14ck7y096rnv58gnpzs7ib1k38pk2yk8q7ggd76n0wrgxhx2v54h";
         };
         libName = "vigy_eval";
         authors = [
@@ -27741,13 +27741,13 @@ rec {
       };
       "vigy-mcp" = rec {
         crateName = "vigy-mcp";
-        version = "0.1.4";
+        version = "0.1.5";
         edition = "2021";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/vigy";
-          rev = "e7b26465297507d76da4dfc043bb3c494422b2e6";
-          sha256 = "1mv2i8vb7j09c5dgbr76308261j5jlnhr8r15p7ypcsrw9ybkv3p";
+          rev = "264cad151dc0ff2ac37312ff1b1b58a2375ae01c";
+          sha256 = "14ck7y096rnv58gnpzs7ib1k38pk2yk8q7ggd76n0wrgxhx2v54h";
         };
         libName = "vigy_mcp";
         authors = [
@@ -27789,13 +27789,13 @@ rec {
       };
       "vigy-runtime" = rec {
         crateName = "vigy-runtime";
-        version = "0.1.4";
+        version = "0.1.5";
         edition = "2021";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/vigy";
-          rev = "e7b26465297507d76da4dfc043bb3c494422b2e6";
-          sha256 = "1mv2i8vb7j09c5dgbr76308261j5jlnhr8r15p7ypcsrw9ybkv3p";
+          rev = "264cad151dc0ff2ac37312ff1b1b58a2375ae01c";
+          sha256 = "14ck7y096rnv58gnpzs7ib1k38pk2yk8q7ggd76n0wrgxhx2v54h";
         };
         libName = "vigy_runtime";
         authors = [
@@ -27853,13 +27853,13 @@ rec {
       };
       "vigy-store" = rec {
         crateName = "vigy-store";
-        version = "0.1.4";
+        version = "0.1.5";
         edition = "2021";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/vigy";
-          rev = "e7b26465297507d76da4dfc043bb3c494422b2e6";
-          sha256 = "1mv2i8vb7j09c5dgbr76308261j5jlnhr8r15p7ypcsrw9ybkv3p";
+          rev = "264cad151dc0ff2ac37312ff1b1b58a2375ae01c";
+          sha256 = "14ck7y096rnv58gnpzs7ib1k38pk2yk8q7ggd76n0wrgxhx2v54h";
         };
         libName = "vigy_store";
         authors = [
@@ -27929,13 +27929,13 @@ rec {
       };
       "vigy-types" = rec {
         crateName = "vigy-types";
-        version = "0.1.4";
+        version = "0.1.5";
         edition = "2021";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/vigy";
-          rev = "e7b26465297507d76da4dfc043bb3c494422b2e6";
-          sha256 = "1mv2i8vb7j09c5dgbr76308261j5jlnhr8r15p7ypcsrw9ybkv3p";
+          rev = "264cad151dc0ff2ac37312ff1b1b58a2375ae01c";
+          sha256 = "14ck7y096rnv58gnpzs7ib1k38pk2yk8q7ggd76n0wrgxhx2v54h";
         };
         libName = "vigy_types";
         authors = [
@@ -30036,7 +30036,7 @@ rec {
         dependencies = [
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.48.0";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Storage_FileSystem" "Win32_System_Console" "Win32_System_SystemInformation" ];
           }
@@ -32133,7 +32133,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Globalization" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Console" "Win32_System_SystemInformation" "Win32_UI" "Win32_UI_Shell" "default" ];
+        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Globalization" "Win32_System" "Win32_System_Com" "Win32_UI" "Win32_UI_Shell" "default" ];
       };
       "windows-sys 0.52.0" = rec {
         crateName = "windows-sys";
