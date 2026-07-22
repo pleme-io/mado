@@ -10412,7 +10412,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.91";
+        version = "0.1.92";
         edition = "2024";
         crateBin = [
           {
@@ -16268,9 +16268,9 @@ rec {
       };
       "pest" = rec {
         crateName = "pest";
-        version = "2.8.7";
+        version = "2.8.8";
         edition = "2021";
-        sha256 = "1sc2jzy3hjvj7qqwbygl4psbnzf1lk2j9kbbiin2ssjw63bpsqj7";
+        sha256 = "18jhl2zpxvl6kikc0jgp7gi7i7cy9s634z5bnvx70w1whjz2ixvx";
         authors = [
           "Dragoș Tiselice <dragostiselice@gmail.com>"
         ];
@@ -16297,9 +16297,9 @@ rec {
       };
       "pest_derive" = rec {
         crateName = "pest_derive";
-        version = "2.8.7";
+        version = "2.8.8";
         edition = "2021";
-        sha256 = "0n4xs953qz7yyl4f3iibcflh3fh3v98vl9wyd2midm6abqr58hjb";
+        sha256 = "1zcijlfdf6sk2s6l1qnm3j7kj7d4ymqcial8w4p4dcr67gydcbcy";
         procMacro = true;
         authors = [
           "Dragoș Tiselice <dragostiselice@gmail.com>"
@@ -16325,9 +16325,9 @@ rec {
       };
       "pest_generator" = rec {
         crateName = "pest_generator";
-        version = "2.8.7";
+        version = "2.8.8";
         edition = "2021";
-        sha256 = "19z0jlls9aqn5yfrrpg2vfqq50ifzh1z19mwxjngga6pxa8hwk3c";
+        sha256 = "1dkmk6r6bb2hh5wayymfmwd7mswwbyhw12dnx2lrdxdnrw2r4yka";
         authors = [
           "Dragoș Tiselice <dragostiselice@gmail.com>"
         ];
@@ -16363,9 +16363,9 @@ rec {
       };
       "pest_meta" = rec {
         crateName = "pest_meta";
-        version = "2.8.7";
+        version = "2.8.8";
         edition = "2021";
-        sha256 = "0462h8zrm7vr1fdy49mxi5gfs7nlpbrbajwj6iiy1zhnh724nx7r";
+        sha256 = "0z7m54jc3nj3nxbbk4kyjfa06d8s24vhf6krzj2867nyq18x7aw5";
         authors = [
           "Dragoș Tiselice <dragostiselice@gmail.com>"
         ];
@@ -22157,15 +22157,15 @@ rec {
         ];
 
       };
-      "shikumi 0.1.321" = rec {
+      "shikumi 0.1.337" = rec {
         crateName = "shikumi";
-        version = "0.1.321";
+        version = "0.1.337";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
-          rev = "cbe9cd5e14cbf69e38788b5c4c57d5177e10fa1b";
-          sha256 = "01ii8rh7p5hfsf7ddckgnkj0vjz5jc3bys59yf9v6q8g9a9dh7cw";
+          rev = "37523749fb989d432847cfcb92746465adc0eb80";
+          sha256 = "1sf1fks5381cdd68i6n0w8j6yj4ipq023vp30g4zqmcdvnw87rgw";
         };
         dependencies = [
           {
@@ -24980,7 +24980,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "shikumi 0.1.321";
+            packageId = "shikumi 0.1.337";
             features = [ "cli" ];
           }
           {
@@ -26011,9 +26011,9 @@ rec {
       };
       "tokio-stream" = rec {
         crateName = "tokio-stream";
-        version = "0.1.18";
+        version = "0.1.19";
         edition = "2021";
-        sha256 = "0w3cj33605ab58wqd382gnla5pnd9hnr00xgg333np5bka04knij";
+        sha256 = "02s2ag7j40z8kx3yjy2g28l1wangawp3f1wlnwk7r99b105nzl53";
         libName = "tokio_stream";
         authors = [
           "Tokio Contributors <team@tokio.rs>"
@@ -26043,9 +26043,10 @@ rec {
         features = {
           "default" = [ "time" ];
           "fs" = [ "tokio/fs" ];
-          "full" = [ "time" "net" "io-util" "fs" "sync" "signal" ];
+          "full" = [ "time" "net" "io-util" "fs" "rt" "sync" "signal" ];
           "io-util" = [ "tokio/io-util" ];
           "net" = [ "tokio/net" ];
+          "rt" = [ "tokio/rt" ];
           "signal" = [ "tokio/signal" ];
           "sync" = [ "tokio/sync" "tokio-util" ];
           "time" = [ "tokio/time" ];
