@@ -19,10 +19,14 @@
 //! [`crate::auto_detect::FALLBACK_FONT_SYMBOLS`]) rather than the
 //! primary text family.
 //!
-//! Box-drawing (U+2500–257F) is deliberately NOT classified as a symbol
-//! here — mado renders those via the rect pipeline (`is_box_drawing` in
-//! `render.rs`), never as glyphs, so routing them to a font would be
-//! both wrong and dead.
+//! Box-drawing (U+2500–259F) is deliberately NOT classified as a symbol
+//! here — mado renders those via the rect pipeline ([`is_box_drawing`]),
+//! never as glyphs, so routing them to a font would be both wrong and
+//! dead. [`is_box_drawing`] lives in this module (not `render.rs`, its
+//! only consumer for a long time) so `terminal.rs`'s reflow logic can
+//! also depend on it without the model layer reaching into the
+//! renderer — one classification, two consumers, no layering
+//! violation.
 
 /// Powerline glyph range, including the powerline-extra separators.
 ///
@@ -116,6 +120,27 @@ pub fn run_is_all_symbols(s: &str) -> bool {
     any
 }
 
+/// Box-drawing / block-element range mado renders as GPU rects
+/// (`render.rs::box_drawing_rects`) rather than shaped glyphs, so a
+/// character in this range never goes through the font system at all.
+///
+/// Also consulted by `terminal.rs`'s reflow (`rewrap_to_cols`): a
+/// contiguous run of these is a rigid pre-computed layout (a table
+/// border, a box outline) the writer sized for ONE specific column
+/// count, never prose a reflow can meaningfully re-wrap — splitting one
+/// mid-run relocates every character after the split relative to
+/// whatever alignment the writer intended, which reads as corruption
+/// even though no cell's content actually changed.
+#[must_use]
+pub fn is_box_drawing(c: char) -> bool {
+    in_any(c, BOX_DRAWING_RANGES)
+}
+
+/// U+2500–257F (box-drawing proper: lines, corners, tees, crosses) plus
+/// U+2580–259F (block elements: half/quadrant/shade blocks) — the same
+/// two ranges `render.rs` has always drawn as rects.
+const BOX_DRAWING_RANGES: &[(char, char)] = &[('\u{2500}', '\u{257F}'), ('\u{2580}', '\u{259F}')];
+
 #[inline]
 fn in_any(c: char, ranges: &[(char, char)]) -> bool {
     ranges.iter().any(|&(lo, hi)| c >= lo && c <= hi)
@@ -145,6 +170,33 @@ mod tests {
                 "{c:?} must not be classified as text-presentation emoji"
             );
         }
+    }
+
+    #[test]
+    fn box_drawing_covers_lines_corners_and_blocks() {
+        assert!(is_box_drawing('\u{2500}')); // ─ horizontal
+        assert!(is_box_drawing('\u{2502}')); // │ vertical
+        assert!(is_box_drawing('\u{250C}')); // ┌ corner
+        assert!(is_box_drawing('\u{2501}')); // ━ heavy horizontal
+        assert!(is_box_drawing('\u{2588}')); // █ full block
+        assert!(is_box_drawing('\u{2591}')); // ░ light shade
+    }
+
+    #[test]
+    fn box_drawing_excludes_ordinary_text() {
+        for c in ['A', ' ', '漢'] {
+            assert!(!is_box_drawing(c), "{c:?} must not be box-drawing");
+        }
+    }
+
+    #[test]
+    fn box_drawing_range_boundaries() {
+        assert!(is_box_drawing('\u{2500}'));
+        assert!(!is_box_drawing('\u{24FF}'));
+        assert!(is_box_drawing('\u{257F}'));
+        assert!(is_box_drawing('\u{2580}'));
+        assert!(is_box_drawing('\u{259F}'));
+        assert!(!is_box_drawing('\u{25A0}'));
     }
 
     #[test]

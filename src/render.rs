@@ -3685,7 +3685,7 @@ impl TerminalRenderer {
                 // subsequent cells with the same glyph, just translate
                 // by (bx, by) and apply the current fg color. Drops
                 // the per-cell match-arm dispatch + Vec allocation.
-                if is_box_drawing(cell.ch) {
+                if crate::glyph_class::is_box_drawing(cell.ch) {
                     let bx = origin_x + col_idx.idx() as f32 * self.cell_width;
                     let by = origin_y + row_idx as f32 * self.cell_height;
                     let color = color_to_f32(&fg);
@@ -4124,7 +4124,7 @@ impl TerminalRenderer {
                 // baseline-position them (which would notch the cell
                 // bottom at tall line-heights) and so they act as a run
                 // boundary.
-                if is_box_drawing(cell.ch) || is_powerline_separator(cell.ch) {
+                if crate::glyph_class::is_box_drawing(cell.ch) || is_powerline_separator(cell.ch) {
                     has_content = true;
                     flush_run(&mut run, &mut row_buffers, text);
                     continue;
@@ -4296,11 +4296,6 @@ fn color_to_rgb(c: &Color) -> [f32; 3] {
 fn overlay_rect_color(r: u8, g: u8, b: u8, alpha: f32) -> [f32; 4] {
     let linear = ishou_tokens::Srgb::new(r, g, b).to_linear();
     [linear.r, linear.g, linear.b, alpha]
-}
-
-/// Check if a character is a box drawing character that we render via rects.
-fn is_box_drawing(ch: char) -> bool {
-    matches!(ch, '\u{2500}'..='\u{257F}' | '\u{2580}'..='\u{259F}')
 }
 
 /// Pick the font family name a shaped run should use.
@@ -9663,66 +9658,8 @@ mod tests {
         assert!((result[3] - 1.0).abs() < f32::EPSILON);
     }
 
-    // ---- is_box_drawing ----
-
-    #[test]
-    fn test_is_box_drawing_horizontal() {
-        assert!(is_box_drawing('\u{2500}')); // ─
-    }
-
-    #[test]
-    fn test_is_box_drawing_vertical() {
-        assert!(is_box_drawing('\u{2502}')); // │
-    }
-
-    #[test]
-    fn test_is_box_drawing_corner() {
-        assert!(is_box_drawing('\u{250C}')); // ┌
-    }
-
-    #[test]
-    fn test_is_box_drawing_heavy() {
-        assert!(is_box_drawing('\u{2501}')); // ━
-    }
-
-    #[test]
-    fn test_is_box_drawing_full_block() {
-        assert!(is_box_drawing('\u{2588}')); // █
-    }
-
-    #[test]
-    fn test_is_box_drawing_light_shade() {
-        assert!(is_box_drawing('\u{2591}')); // ░
-    }
-
-    #[test]
-    fn test_is_box_drawing_false_ascii() {
-        assert!(!is_box_drawing('A'));
-    }
-
-    #[test]
-    fn test_is_box_drawing_false_space() {
-        assert!(!is_box_drawing(' '));
-    }
-
-    #[test]
-    fn test_is_box_drawing_false_cjk() {
-        assert!(!is_box_drawing('漢'));
-    }
-
-    #[test]
-    fn test_is_box_drawing_range_boundary_low() {
-        assert!(is_box_drawing('\u{2500}'));
-        assert!(!is_box_drawing('\u{24FF}'));
-    }
-
-    #[test]
-    fn test_is_box_drawing_range_boundary_high() {
-        assert!(is_box_drawing('\u{257F}'));
-        assert!(is_box_drawing('\u{2580}'));
-        assert!(is_box_drawing('\u{259F}'));
-        assert!(!is_box_drawing('\u{25A0}'));
-    }
+    // ---- is_box_drawing ---- moved to glyph_class.rs (its new home,
+    // shared with terminal.rs's reflow) — see its own test module.
 
     // ---- box_drawing_rects ----
 

@@ -1457,15 +1457,76 @@ impl Grid {
     /// append them to `out`. All rows but the last are marked
     /// `wrapped`; every row carries `id`. An empty run still emits
     /// one blank row (a logical line never vanishes in a reflow).
+    ///
+    /// A maximal run of box-drawing cells (table borders, box outlines
+    /// — see [`crate::glyph_class::is_box_drawing`]) is treated as one
+    /// atomic unit, same spirit as the existing wide-char pairing: it
+    /// moves to a fresh row whole rather than splitting mid-run when it
+    /// fits on an empty row but not what's left of the current one. A
+    /// box-drawing run is a rigid layout the writer sized for ONE
+    /// column count; wrapping it at an arbitrary character index
+    /// relocates every character after the split relative to whatever
+    /// alignment the writer intended (the "phantom divider inside a
+    /// table header cell" class of bug) even though no cell's content
+    /// actually changed. A run too long to ever fit whole (rare — the
+    /// terminal would have to be narrower than one border row) falls
+    /// back to the same per-cell wrap every other character gets,
+    /// same escape valve as the wide-char guard below.
     fn push_reflowed_line(
         out: &mut VecDeque<Line>,
         run: Vec<Cell>,
         cols: usize,
         id: LogicalLineId,
     ) {
+        // Precompute box-drawing run starts ONCE, over the whole run,
+        // before any consumption. `run_start_len[i] == Some(len)` only
+        // at the FIRST cell of a maximal contiguous box-drawing run of
+        // `len` cells — never re-derived from "remaining length at i"
+        // partway through a run, which would let a long run's tail
+        // re-qualify as its own atomic unit after the head already
+        // fell back to per-cell wrapping.
+        let n = run.len();
+        let mut run_start_len: Vec<Option<usize>> = vec![None; n];
+        {
+            let mut i = 0;
+            while i < n {
+                if run[i].width != 2 && crate::glyph_class::is_box_drawing(run[i].ch) {
+                    let start = i;
+                    while i < n && run[i].width != 2 && crate::glyph_class::is_box_drawing(run[i].ch)
+                    {
+                        i += 1;
+                    }
+                    run_start_len[start] = Some(i - start);
+                } else {
+                    i += 1;
+                }
+            }
+        }
+
         let mut rows_for_line: Vec<Vec<Cell>> = Vec::new();
         let mut cur: Vec<Cell> = Vec::with_capacity(cols.min(512));
-        for cell in run {
+        let mut atomic_until = 0usize; // exclusive end of an in-flight atomic run
+        for (i, cell) in run.into_iter().enumerate() {
+            if i < atomic_until {
+                // Mid-run cell already accounted for when we hit this
+                // run's start below — just place it, no boundary check.
+                cur.push(cell);
+                continue;
+            }
+            if let Some(len) = run_start_len[i] {
+                if len > 1 && len <= cols {
+                    if cur.len() + len > cols && !cur.is_empty() {
+                        rows_for_line.push(std::mem::take(&mut cur));
+                    }
+                    atomic_until = i + len;
+                    cur.push(cell);
+                    continue;
+                }
+                // len == 1 (nothing to protect) or len > cols (can never
+                // fit whole even on a fresh row): every cell in this run
+                // falls through to the ordinary per-cell wrap below,
+                // same as any other character.
+            }
             // A width-2 lead needs room for itself + its width-0
             // continuation — never split the pair across rows.
             let needed = if cell.width == 2 { 2usize } else { 1 };
@@ -10094,6 +10155,59 @@ mod tests {
         assert!(term.primary.rows[0].wrapped);
         assert!(!term.primary.rows[1].wrapped);
         assert_eq!(term.primary.rows[0].logical_id, id);
+    }
+
+    /// The bug this guards: a box-drawing run (a table border, a box
+    /// outline) that fits whole on a fresh row must move there
+    /// together on reflow, never split at whatever character index
+    /// the naive per-cell wrap lands on. Written at 20 cols (fits on
+    /// one row, no wrap at all), then narrowed to 8 — old behavior
+    /// would fill row 0 to exactly 8 cells ("abc" + 5 of the 6 dashes)
+    /// and strand the 6th dash alone on row 1, landing mid-run.
+    #[test]
+    fn box_drawing_run_moves_atomically_instead_of_splitting_mid_run() {
+        let mut term = Terminal::new(20, 24);
+        term.feed("abc──────".as_bytes()); // 3 text cells + 6× U+2500
+        term.resize(8, 24);
+        let rows = visible_text(&term);
+        assert_eq!(rows[0], "abc", "text cell run stays on row 0, unsplit");
+        assert_eq!(
+            rows[1], "──────",
+            "the whole 6-dash run moved to row 1 together, not mid-run"
+        );
+        assert!(term.primary.rows[0].wrapped);
+    }
+
+    /// A box-drawing run too long to ever fit whole — even on a
+    /// completely empty row — falls back to the ordinary per-cell
+    /// wrap instead of refusing to make progress. Every cell must
+    /// still land somewhere (no silent drop).
+    #[test]
+    fn box_drawing_run_longer_than_cols_falls_back_to_per_cell_wrap() {
+        let mut term = Terminal::new(20, 24);
+        term.feed("──────────".as_bytes()); // 10× U+2500, fits at 20 cols
+        term.resize(4, 24); // run (10) > cols (4): can never fit whole
+        let rows = visible_text(&term);
+        let total: usize = rows.iter().map(|r| r.chars().count()).sum();
+        assert_eq!(total, 10, "every dash is preserved across the wrap");
+        for row in &rows {
+            assert!(row.chars().count() <= 4, "no row exceeds the grid width");
+        }
+    }
+
+    /// A single, isolated box-drawing cell mixed with ordinary text
+    /// (the common case — a `│` column separator between real
+    /// content, exactly what a table's DATA rows look like) is not an
+    /// atomic run (`len == 1`) and reflows exactly as plain text
+    /// always has — this is the regression guard for that.
+    #[test]
+    fn lone_box_drawing_cell_reflows_like_ordinary_text() {
+        let mut term = Terminal::new(20, 24);
+        term.feed("ab│cd".as_bytes()); // 5 cells: a b │ c d
+        term.resize(3, 24);
+        let rows = visible_text(&term);
+        assert_eq!(rows[0], "ab│");
+        assert_eq!(rows[1], "cd");
     }
 
     /// Rewrap treats scrollback + visible rows as ONE continuous
