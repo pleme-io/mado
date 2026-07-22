@@ -1936,6 +1936,47 @@ fn should_reprobe_ratio(
     (settled || never_probed) && last_probe != this
 }
 
+/// How to apply a fresh panel-ratio probe result over the current state.
+/// Returned by [`resolve_ratio_update`]; kept as a typed decision so the
+/// "a transient probe failure never regresses a known-good ratio" invariant
+/// is a pure, unit-tested property (no CoreGraphics needed).
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum RatioUpdate {
+    /// The probe found a real ratio — adopt it and LOCK this surface size
+    /// (stop re-probing until the size settles at a new value).
+    Adopt(f32),
+    /// The probe failed BUT a known-good ratio was already discovered —
+    /// keep the current ratio (never regress to 1.0, which reintroduces the
+    /// seam on a fractionally-scaled display) and lock the size so the probe
+    /// isn't hammered.
+    Retain,
+    /// The probe failed and NO known-good ratio exists yet — fall back to
+    /// `1.0` so rendering proceeds, but do NOT lock the size: keep re-probing
+    /// every settled frame so a transient startup hiccup self-heals within a
+    /// frame or two instead of latching a seam-producing `1.0`.
+    FallbackRetry(f32),
+}
+
+/// Decide how a fresh panel-ratio probe result updates the current state.
+///
+/// The load-bearing invariant (operator report: "we fixed the seam many
+/// times, but every once in a while it's back"): a transient `Unavailable`
+/// probe — a one-frame CoreGraphics hiccup during display churn / wake — must
+/// NOT overwrite an already-discovered fractional ratio with `1.0`. Doing so
+/// re-snaps the grid for integer scale and the row seam returns on a scaled
+/// display until the next resize re-probes. `Retain` closes that recurrence:
+/// once a good ratio is found, no failed probe can discard it.
+#[inline]
+fn resolve_ratio_update(probe: crate::panel_fit::PanelRatio, have_known_ratio: bool) -> RatioUpdate {
+    if probe.is_known() {
+        RatioUpdate::Adopt(probe.ratio())
+    } else if have_known_ratio {
+        RatioUpdate::Retain
+    } else {
+        RatioUpdate::FallbackRetry(probe.ratio())
+    }
+}
+
 impl TerminalRenderer {
     pub fn new(
         terminal: SharedTerminal,
@@ -5214,16 +5255,43 @@ impl RenderCallback for TerminalRenderer {
                 // attributable to "the probe failed", not a mystery.
                 let source =
                     crate::panel_fit::PanelRatio::from_probe(kanchi::probe::display_scaling_ratio());
-                if !source.is_known() {
-                    tracing::warn!(
-                        target: "mado::seam",
-                        "panel-ratio probe unavailable — falling back to 1.0; a fractionally-scaled \
-                         display will show row seams. Run `mado print-posture` to confirm the ratio."
-                    );
+                // A transient `Unavailable` must never regress an already-good
+                // ratio to 1.0 (that reintroduces the seam on a scaled display
+                // — the recurring-seam class). `resolve_ratio_update` seals it.
+                match resolve_ratio_update(source, self.panel_ratio_source.is_known()) {
+                    RatioUpdate::Adopt(ratio) => {
+                        self.set_panel_ratio(ratio);
+                        self.panel_ratio_source = source;
+                        self.last_ratio_probe_wh = this;
+                    }
+                    RatioUpdate::Retain => {
+                        // Keep the known-good ratio + its source; lock the size
+                        // so the probe isn't hammered. The good ratio stays
+                        // correct; a real display-scale change re-settles the
+                        // surface size and re-probes.
+                        self.last_ratio_probe_wh = this;
+                        tracing::debug!(
+                            target: "mado::seam",
+                            panel_ratio = self.panel_ratio,
+                            "panel-ratio probe transiently unavailable — retaining last known-good ratio"
+                        );
+                    }
+                    RatioUpdate::FallbackRetry(ratio) => {
+                        // No good ratio yet. Fall back to 1.0 so rendering
+                        // proceeds, but deliberately do NOT lock `last_ratio_probe_wh`
+                        // → we re-probe next settled frame until a real ratio is
+                        // found, so a startup hiccup self-heals instead of latching
+                        // a seam for this size.
+                        self.set_panel_ratio(ratio);
+                        self.panel_ratio_source = source;
+                        tracing::warn!(
+                            target: "mado::seam",
+                            "panel-ratio probe unavailable — falling back to 1.0 and retrying; a \
+                             fractionally-scaled display will seam until the probe succeeds. Run \
+                             `mado print-posture` to confirm the ratio."
+                        );
+                    }
                 }
-                self.set_panel_ratio(source.ratio());
-                self.panel_ratio_source = source;
-                self.last_ratio_probe_wh = this;
             }
         }
 
@@ -6191,6 +6259,44 @@ mod render_invariants {
             last_surface = moved;
         }
         assert_eq!(probes, 1, "a new settled display size re-probes exactly once");
+    }
+
+    /// The recurring-seam invariant (operator: "we fixed it many times, but
+    /// every once in a while it's back"). A transient `Unavailable` probe — a
+    /// one-frame CoreGraphics hiccup during display churn / wake — must NEVER
+    /// regress an already-discovered fractional ratio to `1.0`; doing so
+    /// re-snaps the grid for integer scale and the seam returns on a scaled
+    /// display until the next resize. `resolve_ratio_update` makes that regression
+    /// unrepresentable: once a good ratio is found, no failed probe discards it.
+    #[test]
+    fn transient_probe_failure_never_regresses_a_known_good_ratio() {
+        use super::{resolve_ratio_update, RatioUpdate};
+        use crate::panel_fit::PanelRatio;
+
+        // A good probe is adopted + locks the size (whether or not one existed).
+        assert_eq!(
+            resolve_ratio_update(PanelRatio::Discovered(0.8405), false),
+            RatioUpdate::Adopt(0.8405)
+        );
+        assert_eq!(
+            resolve_ratio_update(PanelRatio::Discovered(0.8405), true),
+            RatioUpdate::Adopt(0.8405)
+        );
+
+        // THE invariant: probe fails AFTER a known-good ratio → Retain, never a
+        // silent regression to 1.0 (the exact bug behind the recurring seam).
+        assert_eq!(
+            resolve_ratio_update(PanelRatio::Unavailable, true),
+            RatioUpdate::Retain
+        );
+
+        // Probe fails with NO good ratio yet → honest 1.0 fallback, but as
+        // FallbackRetry (unlocked) so a startup hiccup self-heals next frame
+        // instead of latching a seam-producing 1.0 for this size.
+        assert_eq!(
+            resolve_ratio_update(PanelRatio::Unavailable, false),
+            RatioUpdate::FallbackRetry(1.0)
+        );
     }
 
     /// Snapshot + build the rect instances exactly as the live
