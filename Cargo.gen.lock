@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "c091584e48b942582138841bcc6ea8086abb265a14f3ca24e7fa443241365717",
+  "cargo_lock_sha256": "b2eb76384ee4a3b4d31fcced8e0a8fb182eddeecc01db384e6ca93e01e3fe678",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -7699,7 +7699,7 @@
         "runtime_dependencies": [
           {
             "name": "pest",
-            "package_key": "pest-2.8.7",
+            "package_key": "pest-2.8.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7709,7 +7709,7 @@
           },
           {
             "name": "pest_derive",
-            "package_key": "pest_derive-2.8.7",
+            "package_key": "pest_derive-2.8.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11450,7 +11450,7 @@
           "std"
         ]
       },
-      "pest-2.8.7": {
+      "pest-2.8.8": {
         "runtime_dependencies": [
           {
             "name": "memchr",
@@ -11480,11 +11480,11 @@
           "std"
         ]
       },
-      "pest_derive-2.8.7": {
+      "pest_derive-2.8.8": {
         "runtime_dependencies": [
           {
             "name": "pest",
-            "package_key": "pest-2.8.7",
+            "package_key": "pest-2.8.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -11494,7 +11494,7 @@
           },
           {
             "name": "pest_generator",
-            "package_key": "pest_generator-2.8.7",
+            "package_key": "pest_generator-2.8.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -11509,11 +11509,11 @@
           "std"
         ]
       },
-      "pest_generator-2.8.7": {
+      "pest_generator-2.8.8": {
         "runtime_dependencies": [
           {
             "name": "pest",
-            "package_key": "pest-2.8.7",
+            "package_key": "pest-2.8.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -11523,7 +11523,7 @@
           },
           {
             "name": "pest_meta",
-            "package_key": "pest_meta-2.8.7",
+            "package_key": "pest_meta-2.8.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11567,11 +11567,11 @@
           "std"
         ]
       },
-      "pest_meta-2.8.7": {
+      "pest_meta-2.8.8": {
         "runtime_dependencies": [
           {
             "name": "pest",
-            "package_key": "pest-2.8.7",
+            "package_key": "pest-2.8.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14671,7 +14671,7 @@
           },
           {
             "name": "tokio_stream",
-            "package_key": "tokio-stream-0.1.18",
+            "package_key": "tokio-stream-0.1.19",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17372,7 +17372,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.321-cbe9cd5e14cbf69e38788b5c4c57d5177e10fa1b": {
+      "shikumi-0.1.337-37523749fb989d432847cfcb92746465adc0eb80": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -18282,7 +18282,7 @@
           },
           {
             "name": "tokio_stream",
-            "package_key": "tokio-stream-0.1.18",
+            "package_key": "tokio-stream-0.1.19",
             "kind": "normal",
             "features": [
               "fs"
@@ -21134,7 +21134,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.321-cbe9cd5e14cbf69e38788b5c4c57d5177e10fa1b",
+            "package_key": "shikumi-0.1.337-37523749fb989d432847cfcb92746465adc0eb80",
             "kind": "normal",
             "features": [
               "cli"
@@ -22381,7 +22381,7 @@
           "tls12"
         ]
       },
-      "tokio-stream-0.1.18": {
+      "tokio-stream-0.1.19": {
         "runtime_dependencies": [
           {
             "name": "futures_core",
@@ -24324,7 +24324,7 @@
           },
           {
             "name": "tokio_stream",
-            "package_key": "tokio-stream-0.1.18",
+            "package_key": "tokio-stream-0.1.19",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -26614,7 +26614,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.90": {
+          "mado-0.1.91": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31576,7 +31576,7 @@
               "system"
             ]
           },
-          "mado-0.1.90": {
+          "mado-0.1.91": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35750,7 +35750,7 @@
               "system"
             ]
           },
-          "mado-0.1.90": {
+          "mado-0.1.91": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -40073,7 +40073,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.90": {
+          "mado-0.1.91": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44999,7 +44999,7 @@
               "system"
             ]
           },
-          "mado-0.1.90": {
+          "mado-0.1.91": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -49137,7 +49137,7 @@
               "system"
             ]
           },
-          "mado-0.1.90": {
+          "mado-0.1.91": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -53442,7 +53442,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.90": {
+    "mado-0.1.91": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -53777,17 +53777,17 @@
     "percent-encoding-2.3.2": {
       "edition": "2018"
     },
-    "pest-2.8.7": {
+    "pest-2.8.8": {
       "edition": "2021"
     },
-    "pest_derive-2.8.7": {
+    "pest_derive-2.8.8": {
       "edition": "2021",
       "proc_macro": true
     },
-    "pest_generator-2.8.7": {
+    "pest_generator-2.8.8": {
       "edition": "2021"
     },
-    "pest_meta-2.8.7": {
+    "pest_meta-2.8.8": {
       "edition": "2021"
     },
     "pgvector-0.4.2": {
@@ -54282,7 +54282,7 @@
     "shidou-0.1.9-35c12221ac8622d90e03e21d5fec30ac329547e7": {
       "edition": "2024"
     },
-    "shikumi-0.1.321-cbe9cd5e14cbf69e38788b5c4c57d5177e10fa1b": {
+    "shikumi-0.1.337-37523749fb989d432847cfcb92746465adc0eb80": {
       "edition": "2024"
     },
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": {
@@ -54565,7 +54565,7 @@
     "tokio-rustls-0.26.4": {
       "edition": "2021"
     },
-    "tokio-stream-0.1.18": {
+    "tokio-stream-0.1.19": {
       "edition": "2021"
     },
     "tokio-util-0.7.19": {
@@ -55029,7 +55029,7 @@
     "pleme-kindstr-derive-0.1.0-d287f915e9bb8837a443f6238ee900e81318ce89": "sha256-5XDr9kPiT0doWBOOk9yXjxdTCpRgaqWWJCpsc1f+tdw=",
     "praca-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",
     "shidou-0.1.9-35c12221ac8622d90e03e21d5fec30ac329547e7": "sha256-rjs+1FgZD/d2rqK7EXglvJI0IlziAYLwLOiQAJOE7PQ=",
-    "shikumi-0.1.321-cbe9cd5e14cbf69e38788b5c4c57d5177e10fa1b": "sha256-nB3YkkoPYbOT86lovwaT5csN5LRvstaO0w6We2BGMQY=",
+    "shikumi-0.1.337-37523749fb989d432847cfcb92746465adc0eb80": "sha256-/OWDuN2NVfzJA+PuIQC+kUhvJOLAmohMayygUfR0wek=",
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": "sha256-Jd6fUoNSdzk+I5iu7FbAg9F9gbc7oU9jdPnnaTIxL6w=",
     "tatara-core-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
     "tatara-eval-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",

@@ -946,7 +946,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.1";
+            packageId = "syn 3.0.3";
             usesDefaultFeatures = false;
             features = [ "clone-impls" "full" "parsing" "printing" "proc-macro" "visit-mut" ];
           }
@@ -2184,10 +2184,10 @@ rec {
       };
       "clap" = rec {
         crateName = "clap";
-        version = "4.6.2";
+        version = "4.6.4";
         edition = "2024";
         crateBin = [];
-        sha256 = "04ah42lfd7imr2mqj7xh0xgk3k5imb63hpgnhwvnphzmljfry1fx";
+        sha256 = "1dz5brl39xchkml0khm348i87w89misprlinmnk77vwjawa0q7nr";
         dependencies = [
           {
             name = "clap_builder";
@@ -2265,9 +2265,9 @@ rec {
       };
       "clap_derive" = rec {
         crateName = "clap_derive";
-        version = "4.6.1";
+        version = "4.6.4";
         edition = "2024";
-        sha256 = "1acpz49hi00iv9jkapixjzcv7s51x8qkfaqscjm36rqgf428dkpj";
+        sha256 = "0qd0v7pa2arwxjjinmjim6xrjy61bc28m1yryhc7zjjssswx44nh";
         procMacro = true;
         dependencies = [
           {
@@ -2284,7 +2284,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.119";
+            packageId = "syn 3.0.3";
             features = [ "full" ];
           }
         ];
@@ -2520,56 +2520,21 @@ rec {
       };
       "const-str" = rec {
         crateName = "const-str";
-        version = "0.3.2";
-        edition = "2018";
-        sha256 = "1wxay9fr0ydvand3vidzcrhaapvjq4mg8fhw8axh441afrr7f1r1";
+        version = "1.1.0";
+        edition = "2021";
+        sha256 = "0br169v5x31pljc2wg5yrh0r83r7dv4cgpfd61161ncfjk4jrw8q";
         libName = "const_str";
         authors = [
           "Nugine <nugine@foxmail.com>"
         ];
-        dependencies = [
-          {
-            name = "const-str-proc-macro";
-            packageId = "const-str-proc-macro";
-          }
-        ];
         features = {
-          "all" = [ "verify-regex" "verify-http" "case" "std" ];
-          "case" = [ "const-str-proc-macro/heck" ];
-          "verify-http" = [ "const-str-proc-macro/http" ];
-          "verify-regex" = [ "const-str-proc-macro/regex" ];
+          "all" = [ "std" "proc" "regex" "http" "case" ];
+          "case" = [ "proc" "const-str-proc-macro?/heck" "dep:heck" ];
+          "http" = [ "proc" "const-str-proc-macro?/http" "dep:http" ];
+          "proc" = [ "dep:const-str-proc-macro" ];
+          "regex" = [ "proc" "const-str-proc-macro?/regex" "dep:regex" ];
         };
         resolvedDefaultFeatures = [ "default" ];
-      };
-      "const-str-proc-macro" = rec {
-        crateName = "const-str-proc-macro";
-        version = "0.3.2";
-        edition = "2018";
-        sha256 = "0np2206r7w3c7lg5rg06wg8bby7fmrc13cp163jl2c2x5vfhy7jy";
-        procMacro = true;
-        libName = "const_str_proc_macro";
-        authors = [
-          "Nugine <nugine@foxmail.com>"
-        ];
-        dependencies = [
-          {
-            name = "proc-macro2";
-            packageId = "proc-macro2";
-          }
-          {
-            name = "quote";
-            packageId = "quote";
-          }
-          {
-            name = "syn";
-            packageId = "syn 1.0.109";
-          }
-        ];
-        features = {
-          "heck" = [ "dep:heck" ];
-          "http" = [ "dep:http" ];
-          "regex" = [ "dep:regex" ];
-        };
       };
       "constant_time_eq" = rec {
         crateName = "constant_time_eq";
@@ -3318,9 +3283,9 @@ rec {
       };
       "cssparser" = rec {
         crateName = "cssparser";
-        version = "0.33.0";
+        version = "0.37.0";
         edition = "2018";
-        sha256 = "07i8k47fmym7kzs95qfhg6zrh4yyf2vl4460rmdyvyx06vck9scv";
+        sha256 = "165s1d8n9i181ni50fzss99gyiigfmzmwyadn217ivfm06pdm74c";
         authors = [
           "Simon Sapin <simon.sapin@exyr.org>"
         ];
@@ -3328,6 +3293,7 @@ rec {
           {
             name = "cssparser-macros";
             packageId = "cssparser-macros";
+            optional = true;
           }
           {
             name = "dtoa-short";
@@ -3339,7 +3305,8 @@ rec {
           }
           {
             name = "phf";
-            packageId = "phf";
+            packageId = "phf 0.13.1";
+            optional = true;
             features = [ "macros" ];
           }
           {
@@ -3348,14 +3315,19 @@ rec {
           }
         ];
         features = {
+          "default" = [ "fast_match_byte" "fast_match_color" ];
+          "fast_match_byte" = [ "dep:cssparser-macros" ];
+          "fast_match_color" = [ "dep:phf" ];
+          "malloc_size_of" = [ "dep:malloc_size_of" ];
           "serde" = [ "dep:serde" ];
         };
+        resolvedDefaultFeatures = [ "default" "fast_match_byte" "fast_match_color" ];
       };
       "cssparser-color" = rec {
         crateName = "cssparser-color";
-        version = "0.1.0";
+        version = "0.5.0";
         edition = "2021";
-        sha256 = "17qcjsrph1ywcdsx1ipqgmzaas4dbbir5djjmzbqjnfqc6d0jv2m";
+        sha256 = "0sy8xnblbnrirgdlb0rrh31vl9x7yp0a5a73sfji776d3lz27amv";
         libName = "cssparser_color";
         libPath = "lib.rs";
         authors = [
@@ -3365,15 +3337,20 @@ rec {
           {
             name = "cssparser";
             packageId = "cssparser";
+            usesDefaultFeatures = false;
           }
         ];
-
+        features = {
+          "default" = [ "cssparser/default" ];
+          "serde" = [ "cssparser/serde" "dep:serde" ];
+        };
+        resolvedDefaultFeatures = [ "default" ];
       };
       "cssparser-macros" = rec {
         crateName = "cssparser-macros";
-        version = "0.6.1";
+        version = "0.7.0";
         edition = "2018";
-        sha256 = "0cfkzj60avrnskdmaf7f8zw6pp3di4ylplk455zrzaf19ax8id8k";
+        sha256 = "1gsdnj7fz0wclg0cfz4nbwj659ly94321aj58bzsh474ysfsk8hh";
         procMacro = true;
         libName = "cssparser_macros";
         libPath = "lib.rs";
@@ -5724,13 +5701,13 @@ rec {
       };
       "gen-macros" = rec {
         crateName = "gen-macros";
-        version = "0.1.22";
+        version = "0.1.23";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/gen";
-          rev = "27231a64b77655fe89f42048a8264f72fa02f7f4";
-          sha256 = "07rk4jndgsdmbxscp2cp74bwh7jkxwbqfpkr83srh02zfzs7w1aj";
+          rev = "8dd812128473c11ec5d88d8ea2eeb3e1d3d5b9b7";
+          sha256 = "16yynaibsxi5syqz9rc2zallil5mcd0j87zbsc12r0xxq6sx7grg";
         };
         procMacro = true;
         libName = "gen_macros";
@@ -5756,13 +5733,13 @@ rec {
       };
       "gen-platform" = rec {
         crateName = "gen-platform";
-        version = "0.1.22";
+        version = "0.1.23";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/gen";
-          rev = "27231a64b77655fe89f42048a8264f72fa02f7f4";
-          sha256 = "07rk4jndgsdmbxscp2cp74bwh7jkxwbqfpkr83srh02zfzs7w1aj";
+          rev = "8dd812128473c11ec5d88d8ea2eeb3e1d3d5b9b7";
+          sha256 = "16yynaibsxi5syqz9rc2zallil5mcd0j87zbsc12r0xxq6sx7grg";
         };
         libName = "gen_platform";
         authors = [
@@ -5799,13 +5776,13 @@ rec {
       };
       "gen-types" = rec {
         crateName = "gen-types";
-        version = "0.1.22";
+        version = "0.1.23";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/gen";
-          rev = "27231a64b77655fe89f42048a8264f72fa02f7f4";
-          sha256 = "07rk4jndgsdmbxscp2cp74bwh7jkxwbqfpkr83srh02zfzs7w1aj";
+          rev = "8dd812128473c11ec5d88d8ea2eeb3e1d3d5b9b7";
+          sha256 = "16yynaibsxi5syqz9rc2zallil5mcd0j87zbsc12r0xxq6sx7grg";
         };
         libName = "gen_types";
         authors = [
@@ -6149,9 +6126,9 @@ rec {
       };
       "glob" = rec {
         crateName = "glob";
-        version = "0.3.3";
-        edition = "2015";
-        sha256 = "106jpd3syfzjfj2k70mwm0v436qbx96wig98m4q8x071yrq35hhc";
+        version = "0.3.4";
+        edition = "2021";
+        sha256 = "02zby4rsidb2ksrnysyrsaap7rk6wpp7vl5chflndafhl5gaisz4";
         authors = [
           "The Rust Project Developers"
         ];
@@ -7151,9 +7128,9 @@ rec {
       };
       "hyper" = rec {
         crateName = "hyper";
-        version = "1.10.1";
+        version = "1.11.0";
         edition = "2021";
-        sha256 = "1624nwrh1ci34psqcl3q8q266kha8kd6fmqjj14qck49l59iqa2m";
+        sha256 = "0wha96biivgpj0fpf80a2aar5dfbff1lk62i9x9i2bl53wl5686j";
         authors = [
           "Sean McArthur <sean@seanmonstar.com>"
         ];
@@ -7243,7 +7220,7 @@ rec {
           "ffi" = [ "dep:http-body-util" "dep:futures-util" ];
           "full" = [ "client" "http1" "http2" "server" ];
           "http1" = [ "dep:atomic-waker" "dep:futures-channel" "dep:futures-core" "dep:httparse" "dep:itoa" ];
-          "http2" = [ "dep:futures-channel" "dep:futures-core" "dep:h2" ];
+          "http2" = [ "dep:atomic-waker" "dep:futures-channel" "dep:futures-core" "dep:h2" ];
           "server" = [ "dep:httpdate" "dep:pin-project-lite" "dep:smallvec" ];
           "tracing" = [ "dep:tracing" ];
         };
@@ -8259,7 +8236,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.1";
+            packageId = "syn 3.0.3";
             features = [ "full" ];
           }
         ];
@@ -9938,12 +9915,9 @@ rec {
       };
       "libc" = rec {
         crateName = "libc";
-        version = "0.2.186";
+        version = "0.2.189";
         edition = "2021";
-        sha256 = "0rnyhzjyqq9x56skkllbjzzzwym3r61lq3l4hqj64v71gw0r3av8";
-        authors = [
-          "The Rust Project Developers"
-        ];
+        sha256 = "1whjfs375vlng2q6yrbzs73cvp5lm3w1n2gfqajb2vgf7zg3xbry";
         features = {
           "default" = [ "std" ];
           "rustc-dep-of-std" = [ "align" "rustc-std-workspace-core" ];
@@ -10108,10 +10082,10 @@ rec {
       };
       "lightningcss" = rec {
         crateName = "lightningcss";
-        version = "1.0.0-alpha.71";
+        version = "1.0.0-alpha.72";
         edition = "2021";
         crateBin = [];
-        sha256 = "0ds9nlmlf1m9zi7n12gxkdswzax8gfxri6q9hqycj2jry3118qyb";type = [ "rlib" ];
+        sha256 = "0d6rqyl7l7ydv0xxaw6ls8anygahdkvlnpi91hfzxzg8jq7pc6yk";type = [ "rlib" ];
         authors = [
           "Devon Govett <devongovett@gmail.com>"
         ];
@@ -10182,12 +10156,11 @@ rec {
           }
         ];
         features = {
-          "atty" = [ "dep:atty" ];
           "browserslist" = [ "browserslist-rs" ];
           "browserslist-rs" = [ "dep:browserslist-rs" ];
           "bundler" = [ "dashmap" "sourcemap" "rayon" ];
           "clap" = [ "dep:clap" ];
-          "cli" = [ "atty" "clap" "serde_json" "browserslist" "jemallocator" ];
+          "cli" = [ "clap" "serde_json" "browserslist" "jemallocator" ];
           "dashmap" = [ "dep:dashmap" ];
           "default" = [ "bundler" "nodejs" "sourcemap" ];
           "into_owned" = [ "static-self" "static-self/smallvec" "static-self/indexmap" "parcel_selectors/into_owned" ];
@@ -10439,7 +10412,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.90";
+        version = "0.1.91";
         edition = "2024";
         crateBin = [
           {
@@ -10880,7 +10853,7 @@ rec {
           }
           {
             name = "phf";
-            packageId = "phf";
+            packageId = "phf 0.11.3";
           }
           {
             name = "string_cache";
@@ -15990,9 +15963,9 @@ rec {
       };
       "parcel_selectors" = rec {
         crateName = "parcel_selectors";
-        version = "0.28.2";
+        version = "0.28.3";
         edition = "2021";
-        sha256 = "15m1hvl6rj8k0nkb28dlvgkkkmiviaklyhdpq4z6pjr6mpqh7zal";
+        sha256 = "04q9p7k1vcd05fpqzbmakfvwwx592g7ggadhb8j3v86w3vh72pyh";
         libPath = "lib.rs";
         authors = [
           "The Servo Project Developers"
@@ -16012,7 +15985,7 @@ rec {
           }
           {
             name = "phf";
-            packageId = "phf";
+            packageId = "phf 0.11.3";
           }
           {
             name = "precomputed-hash";
@@ -16431,11 +16404,37 @@ rec {
         };
         resolvedDefaultFeatures = [ "serde" ];
       };
-      "phf" = rec {
+      "phf 0.11.3" = rec {
         crateName = "phf";
         version = "0.11.3";
         edition = "2021";
         sha256 = "0y6hxp1d48rx2434wgi5g8j1pr8s5jja29ha2b65435fh057imhz";
+        authors = [
+          "Steven Fackler <sfackler@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "phf_shared";
+            packageId = "phf_shared 0.11.3";
+            usesDefaultFeatures = false;
+          }
+        ];
+        features = {
+          "default" = [ "std" ];
+          "macros" = [ "phf_macros" ];
+          "phf_macros" = [ "dep:phf_macros" ];
+          "serde" = [ "dep:serde" ];
+          "std" = [ "phf_shared/std" ];
+          "uncased" = [ "phf_shared/uncased" ];
+          "unicase" = [ "phf_macros?/unicase" "phf_shared/unicase" ];
+        };
+        resolvedDefaultFeatures = [ "default" "std" ];
+      };
+      "phf 0.13.1" = rec {
+        crateName = "phf";
+        version = "0.13.1";
+        edition = "2021";
+        sha256 = "1pzswx5gdglgjgp4azyzwyr4gh031r0kcnpqq6jblga72z3jsmn1";
         authors = [
           "Steven Fackler <sfackler@gmail.com>"
         ];
@@ -16447,7 +16446,13 @@ rec {
           }
           {
             name = "phf_shared";
-            packageId = "phf_shared";
+            packageId = "phf_shared 0.13.1";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            optional = true;
             usesDefaultFeatures = false;
           }
         ];
@@ -16456,8 +16461,8 @@ rec {
           "macros" = [ "phf_macros" ];
           "phf_macros" = [ "dep:phf_macros" ];
           "serde" = [ "dep:serde" ];
-          "std" = [ "phf_shared/std" ];
-          "uncased" = [ "phf_shared/uncased" ];
+          "std" = [ "phf_shared/std" "serde?/std" ];
+          "uncased" = [ "phf_macros?/uncased" "phf_shared/uncased" ];
           "unicase" = [ "phf_macros?/unicase" "phf_shared/unicase" ];
         };
         resolvedDefaultFeatures = [ "default" "macros" "phf_macros" "std" ];
@@ -16473,16 +16478,16 @@ rec {
         dependencies = [
           {
             name = "phf_generator";
-            packageId = "phf_generator";
+            packageId = "phf_generator 0.11.3";
           }
           {
             name = "phf_shared";
-            packageId = "phf_shared";
+            packageId = "phf_shared 0.11.3";
           }
         ];
 
       };
-      "phf_generator" = rec {
+      "phf_generator 0.11.3" = rec {
         crateName = "phf_generator";
         version = "0.11.3";
         edition = "2021";
@@ -16494,7 +16499,7 @@ rec {
         dependencies = [
           {
             name = "phf_shared";
-            packageId = "phf_shared";
+            packageId = "phf_shared 0.11.3";
             usesDefaultFeatures = false;
           }
           {
@@ -16508,11 +16513,34 @@ rec {
           "criterion" = [ "dep:criterion" ];
         };
       };
+      "phf_generator 0.13.1" = rec {
+        crateName = "phf_generator";
+        version = "0.13.1";
+        edition = "2021";
+        crateBin = [];
+        sha256 = "0dwpp11l41dy9mag4phkyyvhpf66lwbp79q3ik44wmhyfqxcwnhk";
+        authors = [
+          "Steven Fackler <sfackler@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "fastrand";
+            packageId = "fastrand";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "phf_shared";
+            packageId = "phf_shared 0.13.1";
+            usesDefaultFeatures = false;
+          }
+        ];
+
+      };
       "phf_macros" = rec {
         crateName = "phf_macros";
-        version = "0.11.3";
+        version = "0.13.1";
         edition = "2021";
-        sha256 = "05kjfbyb439344rhmlzzw0f9bwk9fp95mmw56zs7yfn1552c0jpq";
+        sha256 = "1vv9h8pr7xh18sigpvq1hxc8q9nmjmv6gdpqsp65krxiahmh6bw1";
         procMacro = true;
         authors = [
           "Steven Fackler <sfackler@gmail.com>"
@@ -16520,11 +16548,11 @@ rec {
         dependencies = [
           {
             name = "phf_generator";
-            packageId = "phf_generator";
+            packageId = "phf_generator 0.13.1";
           }
           {
             name = "phf_shared";
-            packageId = "phf_shared";
+            packageId = "phf_shared 0.13.1";
             usesDefaultFeatures = false;
           }
           {
@@ -16542,11 +16570,13 @@ rec {
           }
         ];
         features = {
+          "uncased" = [ "uncased_" "phf_shared/uncased" ];
+          "uncased_" = [ "dep:uncased_" ];
           "unicase" = [ "unicase_" "phf_shared/unicase" ];
           "unicase_" = [ "dep:unicase_" ];
         };
       };
-      "phf_shared" = rec {
+      "phf_shared 0.11.3" = rec {
         crateName = "phf_shared";
         version = "0.11.3";
         edition = "2021";
@@ -16566,6 +16596,27 @@ rec {
           "unicase" = [ "dep:unicase" ];
         };
         resolvedDefaultFeatures = [ "default" "std" ];
+      };
+      "phf_shared 0.13.1" = rec {
+        crateName = "phf_shared";
+        version = "0.13.1";
+        edition = "2021";
+        sha256 = "0rpjchnswm0x5l4mz9xqfpw0j4w68sjvyqrdrv13h7lqqmmyyzz5";
+        authors = [
+          "Steven Fackler <sfackler@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "siphasher";
+            packageId = "siphasher";
+          }
+        ];
+        features = {
+          "default" = [ "std" ];
+          "uncased" = [ "dep:uncased" ];
+          "unicase" = [ "dep:unicase" ];
+        };
+        resolvedDefaultFeatures = [ "std" ];
       };
       "pin-project" = rec {
         crateName = "pin-project";
@@ -18575,7 +18626,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.1";
+            packageId = "syn 3.0.3";
           }
         ];
 
@@ -21698,7 +21749,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.1";
+            packageId = "syn 3.0.3";
             usesDefaultFeatures = false;
             features = [ "clone-impls" "derive" "parsing" "printing" "proc-macro" ];
           }
@@ -21739,9 +21790,9 @@ rec {
       };
       "serde_json" = rec {
         crateName = "serde_json";
-        version = "1.0.150";
+        version = "1.0.151";
         edition = "2021";
-        sha256 = "1ffgfhy9kndjnrz8lmy95pr758p2zk8dxv6yi99x0vkkni24w0g8";
+        sha256 = "051zww7lvpw147vvwss1ng6w587qyrkzg75fvj08q2dfrmgbahf8";
         authors = [
           "Erick Tryzelaar <erick.tryzelaar@gmail.com>"
           "David Tolnay <dtolnay@gmail.com>"
@@ -23875,7 +23926,7 @@ rec {
           }
           {
             name = "phf_shared";
-            packageId = "phf_shared";
+            packageId = "phf_shared 0.11.3";
           }
           {
             name = "precomputed-hash";
@@ -23907,11 +23958,11 @@ rec {
         dependencies = [
           {
             name = "phf_generator";
-            packageId = "phf_generator";
+            packageId = "phf_generator 0.11.3";
           }
           {
             name = "phf_shared";
-            packageId = "phf_shared";
+            packageId = "phf_shared 0.11.3";
           }
           {
             name = "proc-macro2";
@@ -24148,11 +24199,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "clone-impls" "default" "derive" "extra-traits" "fold" "full" "parsing" "printing" "proc-macro" "visit" "visit-mut" ];
       };
-      "syn 3.0.1" = rec {
+      "syn 3.0.3" = rec {
         crateName = "syn";
-        version = "3.0.1";
+        version = "3.0.3";
         edition = "2021";
-        sha256 = "0bszbh39b1ryqj6wswy9snr0cxnfz0aq40rcq484m5c8s57frnsy";
+        sha256 = "18srnql3cd39j9q6hf1az02p67rlr1rf6njx9zx4vxj9i3jvmsak";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
         ];
@@ -25338,7 +25389,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.1";
+            packageId = "syn 3.0.3";
           }
         ];
 
@@ -25412,9 +25463,9 @@ rec {
       };
       "time" = rec {
         crateName = "time";
-        version = "0.3.53";
+        version = "0.3.54";
         edition = "2024";
-        sha256 = "0l4aans0kv47y53736cjs0pnvdz91iyywrkqbrxk6cmrvknsmpqq";
+        sha256 = "0i12170vw516jprmbv385krw75nyn7kwfp48nqybgfpnkximw79y";
         authors = [
           "Jacob Pratt <open-source@jhpratt.dev>"
           "Time contributors"
@@ -25495,9 +25546,9 @@ rec {
       };
       "time-macros" = rec {
         crateName = "time-macros";
-        version = "0.2.31";
+        version = "0.2.32";
         edition = "2024";
-        sha256 = "0pq8y9bm1zr008dmjs62qdfwsigv2kwkga5sj0d4jvk625qvhcf4";
+        sha256 = "11gdd3b81mj8i0h114qfjjzm8j2rz2mhr9byr0ksjbldli196s3y";
         procMacro = true;
         libName = "time_macros";
         authors = [
@@ -25749,9 +25800,9 @@ rec {
       };
       "tokio" = rec {
         crateName = "tokio";
-        version = "1.53.0";
+        version = "1.53.1";
         edition = "2021";
-        sha256 = "1vpzc93iaiaqk90jh54vqji8fawiiksk4cwh8qyns1xy5pavr26r";
+        sha256 = "1v8b3b45pkpbibls75yniqbvx5dlks2708141ljni5mnf6lawb10";
         authors = [
           "Tokio Contributors <team@tokio.rs>"
         ];
@@ -26004,9 +26055,9 @@ rec {
       };
       "tokio-util" = rec {
         crateName = "tokio-util";
-        version = "0.7.18";
+        version = "0.7.19";
         edition = "2021";
-        sha256 = "1600rd47pylwn7cap1k7s5nvdaa9j7w8kqigzp1qy7mh0p4cxscs";
+        sha256 = "0licqrhrawysjrsr0qw3cgzkkjph7090hlcqcm45aazmkg81aj29";
         libName = "tokio_util";
         authors = [
           "Tokio Contributors <team@tokio.rs>"
@@ -26023,6 +26074,12 @@ rec {
           {
             name = "futures-sink";
             packageId = "futures-sink";
+          }
+          {
+            name = "libc";
+            packageId = "libc";
+            optional = true;
+            target = { target, features }: (target."unix" or false);
           }
           {
             name = "pin-project-lite";
@@ -26048,6 +26105,7 @@ rec {
         ];
         features = {
           "__docs_rs" = [ "futures-util" ];
+          "codec" = [ "libc" ];
           "compat" = [ "futures-io" ];
           "full" = [ "codec" "compat" "io-util" "time" "net" "rt" "join-map" ];
           "futures-io" = [ "dep:futures-io" ];
@@ -26055,13 +26113,14 @@ rec {
           "hashbrown" = [ "dep:hashbrown" ];
           "io-util" = [ "io" "tokio/rt" "tokio/io-util" ];
           "join-map" = [ "rt" "hashbrown" ];
+          "libc" = [ "dep:libc" ];
           "net" = [ "tokio/net" ];
           "rt" = [ "tokio/rt" "tokio/sync" "futures-util" ];
           "slab" = [ "dep:slab" ];
           "time" = [ "tokio/time" "slab" ];
           "tracing" = [ "dep:tracing" ];
         };
-        resolvedDefaultFeatures = [ "codec" "default" "io" "slab" "time" ];
+        resolvedDefaultFeatures = [ "codec" "default" "io" "libc" "slab" "time" ];
       };
       "toml" = rec {
         crateName = "toml";
@@ -34280,9 +34339,9 @@ rec {
       };
       "zerocopy" = rec {
         crateName = "zerocopy";
-        version = "0.8.54";
+        version = "0.8.55";
         edition = "2021";
-        sha256 = "06cxymy8i9q9a93xdins9ayakx9b1nc2arb7qdfd03ssf05brjxp";
+        sha256 = "1swncvj53zi9yr08b9ddhfrcmlrmh6ijxzxcr3p6w3qlgg6hb8dm";
         authors = [
           "Joshua Liebow-Feeser <joshlf@google.com>"
           "Jack Wrenn <jswrenn@amazon.com>"
@@ -34316,9 +34375,9 @@ rec {
       };
       "zerocopy-derive" = rec {
         crateName = "zerocopy-derive";
-        version = "0.8.54";
+        version = "0.8.55";
         edition = "2021";
-        sha256 = "1xb292dhgb0d4fs05cdj2s0v3srmk7bajv94sdc7631dnnvigs72";
+        sha256 = "1sr8w9zc62lxmw7v6n89nxvqlki48b0nyfpyri6dd367f3xpds8g";
         procMacro = true;
         libName = "zerocopy_derive";
         authors = [
