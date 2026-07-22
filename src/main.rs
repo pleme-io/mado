@@ -1077,8 +1077,14 @@ fn main() -> anyhow::Result<()> {
                     // Watched-config edits: poll the dirty flag and
                     // apply the typed setter delta (M4 stage 2) —
                     // BEFORE this frame's render reads the config-
-                    // derived state.
-                    hot_reload.poll_config_reload(renderer);
+                    // derived state. A reload that touched the
+                    // titlebar/appearance chrome also un-latches
+                    // `native_styling`, so the tick above re-applies it
+                    // on the NEXT redraw (a runtime theme switch must
+                    // move the NSWindow backing, not just the canvas).
+                    if let Some(new_config) = hot_reload.poll_config_reload(renderer) {
+                        native_styling.refresh(&new_config);
+                    }
                     // PTY-grid ⇄ display reconciler — engine-owned
                     // latch over the rendered-surface signature (same
                     // contract as the tear path).

@@ -430,18 +430,24 @@ impl ConfigHotReload {
     /// is idempotent at the receiver (unchanged sections are dropped
     /// there), so renderer-only edits and the two render adapters firing
     /// for the same reload are both free.
-    pub fn poll_config_reload<T: ConfigSetters>(&mut self, target: &mut T) {
-        if let Some(new) = self.source.take_if_dirty() {
-            let applied = self.applier.apply_delta(&new, target);
-            tracing::info!(setter_calls = applied, "config reload delta applied");
-            if let Some(ctl) = crate::suggest::engine_control() {
-                ctl.swap(
-                    new.suggestions.clone(),
-                    new.safra.clone(),
-                    new.janitors.clone(),
-                );
-            }
+    ///
+    /// Returns the new config exactly when a reload fired (`None` on an
+    /// untouched frame), so a caller can fan it out to consumers this
+    /// module has no business knowing about — e.g. macOS native window
+    /// chrome, which lives outside `ConfigSetters` entirely (see
+    /// `platform::NativeStylingLatch::refresh`).
+    pub fn poll_config_reload<T: ConfigSetters>(&mut self, target: &mut T) -> Option<MadoConfig> {
+        let new = self.source.take_if_dirty()?;
+        let applied = self.applier.apply_delta(&new, target);
+        tracing::info!(setter_calls = applied, "config reload delta applied");
+        if let Some(ctl) = crate::suggest::engine_control() {
+            ctl.swap(
+                new.suggestions.clone(),
+                new.safra.clone(),
+                new.janitors.clone(),
+            );
         }
+        Some(new)
     }
 }
 

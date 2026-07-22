@@ -988,7 +988,13 @@ where
             // flag → typed SetterCall diff → only the changed
             // renderer setters fire.
             if let Some(hr) = hot_reload.as_mut() {
-                hr.poll_config_reload(renderer);
+                // A reload touching titlebar/appearance chrome
+                // un-latches `native_styling` so the next tick moves
+                // the NSWindow backing too, not just the canvas —
+                // parity with the local-PTY loop (main.rs).
+                if let Some(new_config) = hr.poll_config_reload(renderer) {
+                    native_styling.refresh(&new_config);
+                }
             }
             // ── Terminal side effects (M4 drain) ─────────────────
             // ONE typed drain + ONE shared consumer — parity with

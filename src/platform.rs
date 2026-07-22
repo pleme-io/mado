@@ -9,7 +9,7 @@
 /// mirror `config.window.macos` plus the resolved backing color from
 /// `config.appearance.background`. Every axis here is a shikumi config
 /// value — the operator controls all of it via `~/.config/mado/mado.yaml`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MacOsWindowStyle {
     /// Allow the macOS-native window tab bar (`window.macos.native_tabs`).
     pub native_tabs: bool,
@@ -77,6 +77,28 @@ impl NativeStylingLatch {
     pub fn tick(&mut self) {
         if !self.applied {
             self.applied = apply_native_styling(&self.style);
+        }
+    }
+
+    /// Re-derive the chrome style from a reloaded config and, if it
+    /// actually changed, un-latch so the next [`tick`](Self::tick)
+    /// re-applies it to every live window.
+    ///
+    /// Boot-time resolution only ever runs once (see [`tick`]'s own
+    /// doc), so a runtime theme switch (hot-reload edit, or the
+    /// `set_theme` MCP tool) previously left the NSWindow/titlebar
+    /// backing pinned to whatever `MacOsWindowStyle::from_config`
+    /// resolved at launch while the cell-grid clear color moved live
+    /// — the reported bug: a titlebar strip stuck on the bare-tier
+    /// `#000000` fallback (or whatever theme was active at boot)
+    /// while the canvas below correctly showed the new theme. This
+    /// closes that gap by giving hot-reload the same "state changed →
+    /// re-apply" contract boot already had.
+    pub fn refresh(&mut self, config: &crate::config::MadoConfig) {
+        let new_style = MacOsWindowStyle::from_config(config);
+        if new_style != self.style {
+            self.style = new_style;
+            self.applied = false;
         }
     }
 }
@@ -216,6 +238,34 @@ mod tests {
     #[test]
     fn set_badge_some_does_not_panic() {
         set_badge(Some("test"));
+    }
+
+    #[test]
+    fn refresh_is_a_noop_when_the_resolved_style_is_unchanged() {
+        let config = crate::config::MadoConfig::default();
+        let mut latch = NativeStylingLatch::from_config(&config);
+        latch.applied = true; // simulate boot-time styling having already landed
+        latch.refresh(&config);
+        assert!(latch.applied, "unchanged config must not un-latch");
+    }
+
+    #[test]
+    fn refresh_unlatches_when_the_resolved_style_changes() {
+        let mut config = crate::config::MadoConfig::default();
+        let mut latch = NativeStylingLatch::from_config(&config);
+        latch.applied = true; // simulate boot-time styling having already landed
+        assert_ne!(
+            config.window.macos.titlebar,
+            crate::config::TitlebarStyle::Native,
+            "test needs a change from the actual default, not a no-op"
+        );
+        config.window.macos.titlebar = crate::config::TitlebarStyle::Native;
+        latch.refresh(&config);
+        assert!(
+            !latch.applied,
+            "a chrome-relevant config change must un-latch so tick() re-applies"
+        );
+        assert_eq!(latch.style, MacOsWindowStyle::from_config(&config));
     }
 
     #[test]
