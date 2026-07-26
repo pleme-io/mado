@@ -20,13 +20,21 @@
 //! primary text family.
 //!
 //! Box-drawing (U+2500–259F) is deliberately NOT classified as a symbol
-//! here — mado renders those via the rect pipeline ([`is_box_drawing`]),
-//! never as glyphs, so routing them to a font would be both wrong and
-//! dead. [`is_box_drawing`] lives in this module (not `render.rs`, its
-//! only consumer for a long time) so `terminal.rs`'s reflow logic can
-//! also depend on it without the model layer reaching into the
-//! renderer — one classification, two consumers, no layering
-//! violation.
+//! here. Two DIFFERENT predicates cover that block, and conflating them
+//! is a rendering bug:
+//!
+//! * [`has_box_sprite`] — the 21 chars `render.rs::box_drawing_rects`
+//!   synthesizes as GPU rects. These, and only these, are diverted away
+//!   from the font-glyph path.
+//! * [`is_box_drawing`] — the whole 160-char block. This is a *layout*
+//!   predicate, used by `terminal.rs`'s reflow (`rewrap_to_cols`) to
+//!   treat a run of them as rigid pre-computed layout. It must NOT gate
+//!   glyph diversion: doing so blanked the 139 chars with no geometry
+//!   (`━`, `╌`, `╭╮╰╯`, the heavy family) in every TUI app.
+//!
+//! Both live in this module rather than `render.rs` so `terminal.rs` can
+//! depend on the layout one without the model layer reaching into the
+//! renderer — one home, two consumers, no layering violation.
 
 /// Powerline glyph range, including the powerline-extra separators.
 ///
@@ -134,6 +142,40 @@ pub fn run_is_all_symbols(s: &str) -> bool {
 #[must_use]
 pub fn is_box_drawing(c: char) -> bool {
     in_any(c, BOX_DRAWING_RANGES)
+}
+
+/// Whether `render::box_drawing_rects` can actually synthesize a sprite
+/// for `c` — i.e. whether diverting it away from the font-glyph path is
+/// SAFE.
+///
+/// This is deliberately NOT [`is_box_drawing`]. That predicate answers
+/// "is this codepoint in the box-drawing block?" (160 chars); this one
+/// answers "do we have geometry for it?" (21). Conflating the two made
+/// the other 139 chars render as NOTHING: the glyph path diverted them
+/// because they were in the block, and the rect path drew nothing
+/// because it had no geometry — so `box_drawing_rects`'s own
+/// `_ => {} // fall through to font glyph` fallback could never happen.
+///
+/// Observed live: Claude Code's status bar draws its progress meter with
+/// `━` (U+2501) and `╌` (U+254C), and mado rendered a blank gap. The
+/// rounded corners `╭╮╰╯` (U+256D–2570) and the whole heavy-line family
+/// were invisible the same way — which is why this bit every TUI app,
+/// not one.
+///
+/// Keep this in lockstep with the `match` in `box_drawing_rects`;
+/// `box_sprite_predicate_matches_geometry` fails the build otherwise.
+#[must_use]
+pub fn has_box_sprite(c: char) -> bool {
+    matches!(
+        c,
+        // Box-drawing proper: light lines, corners, tees, cross, double.
+        '\u{2500}' | '\u{2502}' | '\u{250C}' | '\u{2510}' | '\u{2514}' | '\u{2518}'
+        | '\u{251C}' | '\u{2524}' | '\u{252C}' | '\u{2534}' | '\u{253C}'
+        | '\u{2550}' | '\u{2551}'
+        // Block elements: halves, full, shades.
+        | '\u{2580}' | '\u{2584}' | '\u{2588}' | '\u{258C}' | '\u{2590}'
+        | '\u{2591}' | '\u{2592}' | '\u{2593}'
+    )
 }
 
 /// U+2500–257F (box-drawing proper: lines, corners, tees, crosses) plus

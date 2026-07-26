@@ -3685,7 +3685,7 @@ impl TerminalRenderer {
                 // subsequent cells with the same glyph, just translate
                 // by (bx, by) and apply the current fg color. Drops
                 // the per-cell match-arm dispatch + Vec allocation.
-                if crate::glyph_class::is_box_drawing(cell.ch) {
+                if crate::glyph_class::has_box_sprite(cell.ch) {
                     let bx = origin_x + col_idx.idx() as f32 * self.cell_width;
                     let by = origin_y + row_idx as f32 * self.cell_height;
                     let color = color_to_f32(&fg);
@@ -4124,7 +4124,16 @@ impl TerminalRenderer {
                 // baseline-position them (which would notch the cell
                 // bottom at tall line-heights) and so they act as a run
                 // boundary.
-                if crate::glyph_class::is_box_drawing(cell.ch) || is_powerline_separator(cell.ch) {
+                //
+                // The predicate is `has_box_sprite`, NOT `is_box_drawing`:
+                // divert only what the rect pipeline can actually draw.
+                // Gating on the Unicode block instead made every box char
+                // without geometry (`━`, `╌`, the `╭╮╰╯` rounded corners,
+                // the heavy family — 139 of 160) render as NOTHING, since
+                // the glyph path skipped them and the rect path had no
+                // sprite. Now they fall through to the font, which is what
+                // `box_drawing_rects`'s `_ => {}` arm always claimed.
+                if crate::glyph_class::has_box_sprite(cell.ch) || is_powerline_separator(cell.ch) {
                     has_content = true;
                     flush_run(&mut run, &mut row_buffers, text);
                     continue;
@@ -9666,6 +9675,69 @@ mod tests {
     const TEST_CW: f32 = 10.0;
     const TEST_CH: f32 = 20.0;
     const TEST_COLOR: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
+
+    /// The divert predicate and the geometry provider must agree, for
+    /// EVERY codepoint in the box-drawing + block-element ranges.
+    ///
+    /// `build_text_buffers` diverts a cell away from the font-glyph path
+    /// when `has_box_sprite` says the rect pipeline will draw it. If that
+    /// predicate is ever wider than the geometry, the difference renders
+    /// as NOTHING — diverted from the glyphs, drawn by no sprite. That is
+    /// the bug this test exists to prevent: `is_box_drawing` (the whole
+    /// 160-char block) was used as the divert gate while only 21 chars
+    /// had geometry, so `━`/`╌` (Claude Code's progress meter), the
+    /// `╭╮╰╯` rounded corners and the entire heavy-line family were
+    /// invisible in every TUI.
+    ///
+    /// The converse direction matters too: geometry with no predicate
+    /// entry would draw a sprite AND a glyph — a doubled, thickened rule.
+    #[test]
+    fn box_sprite_predicate_matches_geometry() {
+        let mut mismatches: Vec<String> = Vec::new();
+        for cp in 0x2500u32..=0x259Fu32 {
+            let Some(c) = char::from_u32(cp) else { continue };
+            let claims = crate::glyph_class::has_box_sprite(c);
+            let draws =
+                !box_drawing_rects(c, 0.0, 0.0, TEST_CW, TEST_CH, TEST_COLOR).is_empty();
+            if claims != draws {
+                mismatches.push(format!(
+                    "U+{cp:04X} {c:?}: has_box_sprite={claims} but geometry={draws}",
+                ));
+            }
+        }
+        assert!(
+            mismatches.is_empty(),
+            "{} box char(s) disagree between the divert predicate and the \
+             rect geometry — each would render as nothing (or double-draw):\n  - {}",
+            mismatches.len(),
+            mismatches.join("\n  - "),
+        );
+    }
+
+    /// The specific characters the operator saw vanish: they must NOT be
+    /// diverted, because mado has no sprite for them — they belong to the
+    /// font.
+    #[test]
+    fn chars_without_sprites_reach_the_font() {
+        for (c, what) in [
+            ('\u{2501}', "━ heavy horizontal (Claude Code progress meter)"),
+            ('\u{254C}', "╌ light double dash (progress meter remainder)"),
+            ('\u{256D}', "╭ rounded top-left"),
+            ('\u{256E}', "╮ rounded top-right"),
+            ('\u{256F}', "╯ rounded bottom-right"),
+            ('\u{2570}', "╰ rounded bottom-left"),
+            ('\u{2503}', "┃ heavy vertical"),
+        ] {
+            assert!(
+                !crate::glyph_class::has_box_sprite(c),
+                "{what} has no rect geometry, so it must fall through to the font",
+            );
+        }
+        // And the ones we DO synthesize stay diverted.
+        for c in ['\u{2500}', '\u{2502}', '\u{250C}', '\u{2588}'] {
+            assert!(crate::glyph_class::has_box_sprite(c));
+        }
+    }
 
     #[test]
     fn test_box_drawing_horizontal_line() {
