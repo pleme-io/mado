@@ -4968,9 +4968,22 @@ impl Terminal {
                 7 => self.pen_attrs.flags.insert(AttrFlags::INVERSE),
                 8 => self.pen_attrs.flags.insert(AttrFlags::HIDDEN),
                 9 => self.pen_attrs.flags.insert(AttrFlags::STRIKETHROUGH),
-                // SGR 21 — double underline (ECMA-48; kitty wire).
-                // Sibling of the 4:2 sub-param form above.
-                21 => self.pen_attrs.underline = UnderlineStyle::Double,
+                // SGR 21 — a CONTESTED control function. The reading is
+                // not hardcoded here; it is resolved through the kuse
+                // quirk stack (spec → de-facto → emitter), so the
+                // divergence from ECMA-48 carries its provenance instead
+                // of hiding in this `match` arm. See `crate::kuse`.
+                21 => {
+                    let r = crate::kuse::Profile::universal()
+                        .resolve(crate::kuse::ControlFn::Sgr(21));
+                    if let Some(reading) = r.reading {
+                        crate::kuse::apply(
+                            reading,
+                            &mut self.pen_attrs.flags,
+                            &mut self.pen_attrs.underline,
+                        );
+                    }
+                }
                 22 => {
                     // SGR 22 resets both bold and dim
                     self.pen_attrs.flags.remove(AttrFlags::BOLD);
@@ -6484,7 +6497,7 @@ mod tests {
     /// only is caught (the `AttrFlags::ALL` DECRQSS lock, for the underline
     /// table). NO production/hot-path change — the two `match`es stay verbatim.
     /// Only the CANONICAL emitted form must round-trip; input-only aliases
-    /// (`4:1`→Single, `21`→Double, `24`→None) are deliberately NOT asserted.
+    /// (`4:1`→Single, `24`→None) are deliberately NOT asserted.
     #[test]
     fn underline_style_emit_reparse_fixpoint() {
         use UnderlineStyle::{Curly, Dashed, Dotted, Double, None, Single};
@@ -10711,20 +10724,63 @@ mod tests {
         assert_eq!(term.links().len(), 2, "every dead URI was collected");
     }
 
-    /// SGR 21 — double underline (ECMA-48 / kitty wire), the
-    /// semicolon-form sibling of the 4:2 sub-param.
+    /// SGR 21 is BOLD OFF, and must NOT set underline.
+    ///
+    /// REGRESSION: 21 used to map to `UnderlineStyle::Double` (the
+    /// ECMA-48 "doubly underlined" reading). Real apps emit `CSI 21 m`
+    /// to close a bold span, so that mapping turned every bold-off into
+    /// an underline-ON that nothing but 24/0 clears — underline bled
+    /// across the rest of the screen. Double underline lives on `4:2`.
     #[test]
-    fn sgr_21_sets_double_underline() {
+    fn sgr_21_is_bold_off_and_never_sets_underline() {
         let mut term = Terminal::new(80, 24);
-        term.feed(b"\x1b[21mD");
+        term.feed(b"\x1b[1mB\x1b[21mP");
+        let bold = term.cell(0, 0).attrs(term.styles());
+        assert!(bold.flags.contains(AttrFlags::BOLD), "1 sets bold");
+        let after = term.cell(0, 1).attrs(term.styles());
+        assert!(!after.flags.contains(AttrFlags::BOLD), "21 clears bold");
         assert_eq!(
-            term.cell(0, 0).attrs(term.styles()).underline,
+            after.underline,
+            UnderlineStyle::None,
+            "21 must NOT set underline (the screen-wide bleed)"
+        );
+        // The canonical double-underline form still works.
+        let mut t2 = Terminal::new(80, 24);
+        t2.feed(b"\x1b[4:2mD");
+        assert_eq!(
+            t2.cell(0, 0).attrs(t2.styles()).underline,
             UnderlineStyle::Double
         );
-        term.feed(b"\x1b[24mn"); // SGR 24 clears underline
-        assert_eq!(
-            term.cell(0, 1).attrs(term.styles()).underline,
-            UnderlineStyle::None
+    }
+
+    /// CLASS SEAL: no SGR code outside the underline family may leave
+    /// underline set. The pre-existing bleed test only covered RESETS
+    /// after an explicit `4m`; it could not catch a code that wrongly
+    /// SET underline — which is exactly how 21 shipped the bug. This
+    /// sweeps every non-underline SGR parameter mado handles.
+    #[test]
+    fn no_non_underline_sgr_sets_underline() {
+        // Every SGR param mado implements, minus the underline family
+        // (4 / 4:N / 24) whose whole job is to set or clear it.
+        let params: &[u16] = &[
+            0, 1, 2, 3, 5, 7, 8, 9, 21, 22, 23, 25, 27, 28, 29, 39, 49, 53, 55, 59,
+        ];
+        let mut failures = Vec::new();
+        for &p in params {
+            let mut term = Terminal::new(20, 4);
+            let mut seq = Vec::from(&b"\x1b["[..]);
+            seq.extend_from_slice(p.to_string().as_bytes());
+            seq.push(b'm');
+            term.feed(&seq);
+            term.feed(b"X");
+            let u = term.cell(0, 0).attrs(term.styles()).underline;
+            if u != UnderlineStyle::None {
+                failures.push((p, u));
+            }
+        }
+        assert!(
+            failures.is_empty(),
+            "these non-underline SGR codes set underline: {failures:?}"
         );
     }
 

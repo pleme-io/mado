@@ -35,6 +35,7 @@ mod gui_tear_attach;
 mod janitors;
 mod kanshou_state;
 mod keybind;
+mod kuse;
 // L1 integration-test brick (docs/INTEGRATION-TESTING.md §L1): real
 // shell + real TerminalSink + probe counters, headless. Unit-test
 // module (not tests/) because mado is binary-only — only unit tests
