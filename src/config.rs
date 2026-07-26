@@ -4376,10 +4376,24 @@ mod tests {
         // `mado_prescribed_theme()`. ──
         assert_eq!(d.theme, "nord");
         assert_eq!(d.theme, MADO_PRESCRIBED_THEME_NAME);
-        assert_ne!(
+        // CONVERGED 2026-07-26. This was `assert_ne!` with the comment
+        // "mado's prescribed theme is a deliberate divergence from the fleet
+        // default" — and that assertion ENSHRINED the split rather than
+        // catching it: ishou declared Vellum prescribed, mado overrode back
+        // to Nord, and this test guaranteed the two could never agree.
+        // Meanwhile escriba obeyed the declaration into Vellum and
+        // frostmourne rendered a third palette. Four apps, three looks, from
+        // one "prescribed" default nobody prescribed.
+        //
+        // ishou@395c331 flipped `prescribed_default()` to PlemeDark (Nord) —
+        // the look mado and frostmourne actually render — so mado's choice is
+        // now the FLEET's choice. Asserting equality is what keeps them
+        // together: if either side moves, this fails instead of silently
+        // re-opening the divergence.
+        assert_eq!(
             ishou_tokens::FleetDefaults::prescribed().theme,
             mado_prescribed_theme(),
-            "mado's prescribed theme is a deliberate divergence from the fleet default",
+            "mado's prescribed theme must BE the fleet default, not diverge from it",
         );
         let nord = mado_prescribed_theme().resolve();
         assert_eq!(d.appearance.background, nord.background);

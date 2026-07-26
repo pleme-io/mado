@@ -2788,7 +2788,7 @@ checksum = "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695"
 [[package]]
 name = "ishou-tokens"
 version = "0.1.4"
-source = "git+https://github.com/pleme-io/ishou#914d337b1a9b8e99be67bb813b9e9f4bc56eff6d"
+source = "git+https://github.com/pleme-io/ishou#395c331e62af71972056aa7923a044a6951b5df2"
 dependencies = [
  "irodori",
  "serde",
