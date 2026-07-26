@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "417baa09fb1ef75f1de0225820b2ad1b33783bdb234e6d13510a7f8485d21b4f",
+  "cargo_lock_sha256": "927595a11e4f26a86ede02e895d0db63a6dabe377d4c2333cd462d49df9192bd",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -1255,7 +1255,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "cc-1.3.0": {
+      "cc-1.4.0": {
         "runtime_dependencies": [
           {
             "name": "find_msvc_tools",
@@ -3372,7 +3372,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "either-1.16.0": {
+      "either-1.17.0": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -4078,7 +4078,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "font-types-0.12.1": {
+      "font-types-0.12.2": {
         "runtime_dependencies": [
           {
             "name": "bytemuck",
@@ -4678,7 +4678,7 @@
           "default"
         ]
       },
-      "gen-macros-0.1.23-8dd812128473c11ec5d88d8ea2eeb3e1d3d5b9b7": {
+      "gen-macros-0.1.26-0f4db0c195b72239016b96ea306d6a32d26550f9": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -4717,11 +4717,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "gen-platform-0.1.23-8dd812128473c11ec5d88d8ea2eeb3e1d3d5b9b7": {
+      "gen-platform-0.1.26-0f4db0c195b72239016b96ea306d6a32d26550f9": {
         "runtime_dependencies": [
           {
             "name": "gen_macros",
-            "package_key": "gen-macros-0.1.23-8dd812128473c11ec5d88d8ea2eeb3e1d3d5b9b7",
+            "package_key": "gen-macros-0.1.26-0f4db0c195b72239016b96ea306d6a32d26550f9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4731,7 +4731,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.23-8dd812128473c11ec5d88d8ea2eeb3e1d3d5b9b7",
+            "package_key": "gen-types-0.1.26-0f4db0c195b72239016b96ea306d6a32d26550f9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4785,7 +4785,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "gen-types-0.1.23-8dd812128473c11ec5d88d8ea2eeb3e1d3d5b9b7": {
+      "gen-types-0.1.26-0f4db0c195b72239016b96ea306d6a32d26550f9": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -7371,7 +7371,7 @@
           "default"
         ]
       },
-      "ishou-tokens-0.1.4-914d337b1a9b8e99be67bb813b9e9f4bc56eff6d": {
+      "ishou-tokens-0.1.4-395c331e62af71972056aa7923a044a6951b5df2": {
         "runtime_dependencies": [
           {
             "name": "irodori",
@@ -7426,7 +7426,7 @@
         "runtime_dependencies": [
           {
             "name": "either",
-            "package_key": "either-1.16.0",
+            "package_key": "either-1.17.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -8206,7 +8206,7 @@
           },
           {
             "name": "either",
-            "package_key": "either-1.16.0",
+            "package_key": "either-1.17.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8984,7 +8984,7 @@
         "build_dependencies": [
           {
             "name": "cc",
-            "package_key": "cc-1.3.0",
+            "package_key": "cc-1.4.0",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -9000,7 +9000,7 @@
         "build_dependencies": [
           {
             "name": "cc",
-            "package_key": "cc-1.3.0",
+            "package_key": "cc-1.4.0",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -10038,7 +10038,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.4-914d337b1a9b8e99be67bb813b9e9f4bc56eff6d",
+            "package_key": "ishou-tokens-0.1.4-395c331e62af71972056aa7923a044a6951b5df2",
             "kind": "normal",
             "features": [
               "wgpu"
@@ -12479,7 +12479,7 @@
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.4-914d337b1a9b8e99be67bb813b9e9f4bc56eff6d",
+            "package_key": "ishou-tokens-0.1.4-395c331e62af71972056aa7923a044a6951b5df2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13713,7 +13713,7 @@
         "runtime_dependencies": [
           {
             "name": "either",
-            "package_key": "either-1.16.0",
+            "package_key": "either-1.17.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -13775,7 +13775,7 @@
           },
           {
             "name": "font_types",
-            "package_key": "font-types-0.12.1",
+            "package_key": "font-types-0.12.2",
             "kind": "normal",
             "features": [
               "bytemuck"
@@ -14245,7 +14245,7 @@
           },
           {
             "name": "rustls_pki_types",
-            "package_key": "rustls-pki-types-1.15.0",
+            "package_key": "rustls-pki-types-1.15.1",
             "kind": "normal",
             "features": [
               "std"
@@ -15100,7 +15100,7 @@
           },
           {
             "name": "pki_types",
-            "package_key": "rustls-pki-types-1.15.0",
+            "package_key": "rustls-pki-types-1.15.1",
             "kind": "normal",
             "features": [
               "alloc"
@@ -15152,7 +15152,7 @@
           "tls12"
         ]
       },
-      "rustls-pki-types-1.15.0": {
+      "rustls-pki-types-1.15.1": {
         "runtime_dependencies": [
           {
             "name": "zeroize",
@@ -15188,7 +15188,7 @@
           },
           {
             "name": "pki_types",
-            "package_key": "rustls-pki-types-1.15.0",
+            "package_key": "rustls-pki-types-1.15.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -17372,7 +17372,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.338-08d00f9c11e4d74fceae01ce2a437720de90ec19": {
+      "shikumi-0.1.412-0153d97737bca0fa8fca9178f986b3b84f98ba83": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -17422,7 +17422,7 @@
           },
           {
             "name": "gen_platform",
-            "package_key": "gen-platform-0.1.23-8dd812128473c11ec5d88d8ea2eeb3e1d3d5b9b7",
+            "package_key": "gen-platform-0.1.26-0f4db0c195b72239016b96ea306d6a32d26550f9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17432,7 +17432,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.23-8dd812128473c11ec5d88d8ea2eeb3e1d3d5b9b7",
+            "package_key": "gen-types-0.1.26-0f4db0c195b72239016b96ea306d6a32d26550f9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17571,7 +17571,7 @@
           },
           {
             "name": "gen_platform",
-            "package_key": "gen-platform-0.1.23-8dd812128473c11ec5d88d8ea2eeb3e1d3d5b9b7",
+            "package_key": "gen-platform-0.1.26-0f4db0c195b72239016b96ea306d6a32d26550f9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17581,7 +17581,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.23-8dd812128473c11ec5d88d8ea2eeb3e1d3d5b9b7",
+            "package_key": "gen-types-0.1.26-0f4db0c195b72239016b96ea306d6a32d26550f9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18037,7 +18037,7 @@
           },
           {
             "name": "either",
-            "package_key": "either-1.16.0",
+            "package_key": "either-1.17.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18446,7 +18446,7 @@
           },
           {
             "name": "either",
-            "package_key": "either-1.16.0",
+            "package_key": "either-1.17.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18737,7 +18737,7 @@
           },
           {
             "name": "either",
-            "package_key": "either-1.16.0",
+            "package_key": "either-1.17.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21080,7 +21080,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.4-914d337b1a9b8e99be67bb813b9e9f4bc56eff6d",
+            "package_key": "ishou-tokens-0.1.4-395c331e62af71972056aa7923a044a6951b5df2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21134,7 +21134,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.338-08d00f9c11e4d74fceae01ce2a437720de90ec19",
+            "package_key": "shikumi-0.1.412-0153d97737bca0fa8fca9178f986b3b84f98ba83",
             "kind": "normal",
             "features": [
               "cli"
@@ -21222,7 +21222,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.4-914d337b1a9b8e99be67bb813b9e9f4bc56eff6d",
+            "package_key": "ishou-tokens-0.1.4-395c331e62af71972056aa7923a044a6951b5df2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21529,7 +21529,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.4-914d337b1a9b8e99be67bb813b9e9f4bc56eff6d",
+            "package_key": "ishou-tokens-0.1.4-395c331e62af71972056aa7923a044a6951b5df2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24780,7 +24780,7 @@
         "runtime_dependencies": [
           {
             "name": "pki_types",
-            "package_key": "rustls-pki-types-1.15.0",
+            "package_key": "rustls-pki-types-1.15.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -25724,7 +25724,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.3.0",
+                "package_key": "cc-1.4.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -26192,7 +26192,7 @@
             "runtime_dependencies": [
               {
                 "name": "foreign_types_macros",
-                "package_key": "foreign-types-macros-0.2.3",
+                "package_key": "foreign-types-macros-0.2.4",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26217,7 +26217,7 @@
               "std"
             ]
           },
-          "foreign-types-macros-0.2.3": {
+          "foreign-types-macros-0.2.4": {
             "runtime_dependencies": [
               {
                 "name": "proc_macro2",
@@ -26241,7 +26241,7 @@
               },
               {
                 "name": "syn",
-                "package_key": "syn-2.0.119",
+                "package_key": "syn-3.0.3",
                 "kind": "normal",
                 "features": [
                   "full"
@@ -26614,7 +26614,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.92": {
+          "mado-0.1.93": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26827,7 +26827,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.4-914d337b1a9b8e99be67bb813b9e9f4bc56eff6d",
+                "package_key": "ishou-tokens-0.1.4-395c331e62af71972056aa7923a044a6951b5df2",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -29610,7 +29610,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.3.0",
+                "package_key": "cc-1.4.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -29708,7 +29708,7 @@
             "runtime_dependencies": [
               {
                 "name": "pki_types",
-                "package_key": "rustls-pki-types-1.15.0",
+                "package_key": "rustls-pki-types-1.15.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -30870,7 +30870,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.3.0",
+                "package_key": "cc-1.4.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -30981,7 +30981,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30991,7 +30991,7 @@
               },
               {
                 "name": "wayland_client",
-                "package_key": "wayland-client-0.31.14",
+                "package_key": "wayland-client-0.31.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31576,7 +31576,7 @@
               "system"
             ]
           },
-          "mado-0.1.92": {
+          "mado-0.1.93": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31779,7 +31779,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.4-914d337b1a9b8e99be67bb813b9e9f4bc56eff6d",
+                "package_key": "ishou-tokens-0.1.4-395c331e62af71972056aa7923a044a6951b5df2",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -32553,7 +32553,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.3.0",
+                "package_key": "cc-1.4.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -32641,7 +32641,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "quick-xml-0.39.4": {
+          "quick-xml-0.41.0": {
             "runtime_dependencies": [
               {
                 "name": "memchr",
@@ -32715,7 +32715,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.3.0",
+                "package_key": "cc-1.4.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -32972,7 +32972,7 @@
               },
               {
                 "name": "pki_types",
-                "package_key": "rustls-pki-types-1.15.0",
+                "package_key": "rustls-pki-types-1.15.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -33151,7 +33151,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33161,7 +33161,7 @@
               },
               {
                 "name": "wayland_client",
-                "package_key": "wayland-client-0.31.14",
+                "package_key": "wayland-client-0.31.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33217,7 +33217,7 @@
               },
               {
                 "name": "wayland_scanner",
-                "package_key": "wayland-scanner-0.31.10",
+                "package_key": "wayland-scanner-0.31.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33368,7 +33368,7 @@
               "variable-fonts"
             ]
           },
-          "wayland-backend-0.3.15": {
+          "wayland-backend-0.3.16": {
             "runtime_dependencies": [
               {
                 "name": "downcast_rs",
@@ -33433,7 +33433,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.3.0",
+                "package_key": "cc-1.4.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -33447,7 +33447,7 @@
               "dlopen"
             ]
           },
-          "wayland-client-0.31.14": {
+          "wayland-client-0.31.15": {
             "runtime_dependencies": [
               {
                 "name": "bitflags",
@@ -33473,7 +33473,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33483,7 +33483,7 @@
               },
               {
                 "name": "wayland_scanner",
-                "package_key": "wayland-scanner-0.31.10",
+                "package_key": "wayland-scanner-0.31.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33519,7 +33519,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -33547,7 +33547,7 @@
               },
               {
                 "name": "wayland_client",
-                "package_key": "wayland-client-0.31.14",
+                "package_key": "wayland-client-0.31.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33583,7 +33583,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33593,7 +33593,7 @@
               },
               {
                 "name": "wayland_client",
-                "package_key": "wayland-client-0.31.14",
+                "package_key": "wayland-client-0.31.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33603,7 +33603,7 @@
               },
               {
                 "name": "wayland_scanner",
-                "package_key": "wayland-scanner-0.31.10",
+                "package_key": "wayland-scanner-0.31.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33634,7 +33634,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33644,7 +33644,7 @@
               },
               {
                 "name": "wayland_client",
-                "package_key": "wayland-client-0.31.14",
+                "package_key": "wayland-client-0.31.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33664,7 +33664,7 @@
               },
               {
                 "name": "wayland_scanner",
-                "package_key": "wayland-scanner-0.31.10",
+                "package_key": "wayland-scanner-0.31.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33693,7 +33693,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33703,7 +33703,7 @@
               },
               {
                 "name": "wayland_client",
-                "package_key": "wayland-client-0.31.14",
+                "package_key": "wayland-client-0.31.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33723,7 +33723,7 @@
               },
               {
                 "name": "wayland_scanner",
-                "package_key": "wayland-scanner-0.31.10",
+                "package_key": "wayland-scanner-0.31.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33738,7 +33738,7 @@
               "wayland-client"
             ]
           },
-          "wayland-scanner-0.31.10": {
+          "wayland-scanner-0.31.11": {
             "runtime_dependencies": [
               {
                 "name": "proc_macro2",
@@ -33752,7 +33752,7 @@
               },
               {
                 "name": "quick_xml",
-                "package_key": "quick-xml-0.39.4",
+                "package_key": "quick-xml-0.41.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34516,7 +34516,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [
                   "client_system"
@@ -34528,7 +34528,7 @@
               },
               {
                 "name": "wayland_client",
-                "package_key": "wayland-client-0.31.14",
+                "package_key": "wayland-client-0.31.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35044,7 +35044,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.3.0",
+                "package_key": "cc-1.4.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -35155,7 +35155,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35165,7 +35165,7 @@
               },
               {
                 "name": "wayland_client",
-                "package_key": "wayland-client-0.31.14",
+                "package_key": "wayland-client-0.31.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35750,7 +35750,7 @@
               "system"
             ]
           },
-          "mado-0.1.92": {
+          "mado-0.1.93": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35953,7 +35953,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.4-914d337b1a9b8e99be67bb813b9e9f4bc56eff6d",
+                "package_key": "ishou-tokens-0.1.4-395c331e62af71972056aa7923a044a6951b5df2",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -36727,7 +36727,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.3.0",
+                "package_key": "cc-1.4.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -36815,7 +36815,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "quick-xml-0.39.4": {
+          "quick-xml-0.41.0": {
             "runtime_dependencies": [
               {
                 "name": "memchr",
@@ -36889,7 +36889,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.3.0",
+                "package_key": "cc-1.4.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -37146,7 +37146,7 @@
               },
               {
                 "name": "pki_types",
-                "package_key": "rustls-pki-types-1.15.0",
+                "package_key": "rustls-pki-types-1.15.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -37325,7 +37325,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37335,7 +37335,7 @@
               },
               {
                 "name": "wayland_client",
-                "package_key": "wayland-client-0.31.14",
+                "package_key": "wayland-client-0.31.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37391,7 +37391,7 @@
               },
               {
                 "name": "wayland_scanner",
-                "package_key": "wayland-scanner-0.31.10",
+                "package_key": "wayland-scanner-0.31.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37542,7 +37542,7 @@
               "variable-fonts"
             ]
           },
-          "wayland-backend-0.3.15": {
+          "wayland-backend-0.3.16": {
             "runtime_dependencies": [
               {
                 "name": "downcast_rs",
@@ -37607,7 +37607,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.3.0",
+                "package_key": "cc-1.4.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -37621,7 +37621,7 @@
               "dlopen"
             ]
           },
-          "wayland-client-0.31.14": {
+          "wayland-client-0.31.15": {
             "runtime_dependencies": [
               {
                 "name": "bitflags",
@@ -37647,7 +37647,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37657,7 +37657,7 @@
               },
               {
                 "name": "wayland_scanner",
-                "package_key": "wayland-scanner-0.31.10",
+                "package_key": "wayland-scanner-0.31.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37693,7 +37693,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -37721,7 +37721,7 @@
               },
               {
                 "name": "wayland_client",
-                "package_key": "wayland-client-0.31.14",
+                "package_key": "wayland-client-0.31.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37757,7 +37757,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37767,7 +37767,7 @@
               },
               {
                 "name": "wayland_client",
-                "package_key": "wayland-client-0.31.14",
+                "package_key": "wayland-client-0.31.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37777,7 +37777,7 @@
               },
               {
                 "name": "wayland_scanner",
-                "package_key": "wayland-scanner-0.31.10",
+                "package_key": "wayland-scanner-0.31.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37808,7 +37808,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37818,7 +37818,7 @@
               },
               {
                 "name": "wayland_client",
-                "package_key": "wayland-client-0.31.14",
+                "package_key": "wayland-client-0.31.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37838,7 +37838,7 @@
               },
               {
                 "name": "wayland_scanner",
-                "package_key": "wayland-scanner-0.31.10",
+                "package_key": "wayland-scanner-0.31.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37867,7 +37867,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37877,7 +37877,7 @@
               },
               {
                 "name": "wayland_client",
-                "package_key": "wayland-client-0.31.14",
+                "package_key": "wayland-client-0.31.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37897,7 +37897,7 @@
               },
               {
                 "name": "wayland_scanner",
-                "package_key": "wayland-scanner-0.31.10",
+                "package_key": "wayland-scanner-0.31.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37912,7 +37912,7 @@
               "wayland-client"
             ]
           },
-          "wayland-scanner-0.31.10": {
+          "wayland-scanner-0.31.11": {
             "runtime_dependencies": [
               {
                 "name": "proc_macro2",
@@ -37926,7 +37926,7 @@
               },
               {
                 "name": "quick_xml",
-                "package_key": "quick-xml-0.39.4",
+                "package_key": "quick-xml-0.41.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38690,7 +38690,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [
                   "client_system"
@@ -38702,7 +38702,7 @@
               },
               {
                 "name": "wayland_client",
-                "package_key": "wayland-client-0.31.14",
+                "package_key": "wayland-client-0.31.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39209,7 +39209,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.3.0",
+                "package_key": "cc-1.4.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -39651,7 +39651,7 @@
             "runtime_dependencies": [
               {
                 "name": "foreign_types_macros",
-                "package_key": "foreign-types-macros-0.2.3",
+                "package_key": "foreign-types-macros-0.2.4",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39676,7 +39676,7 @@
               "std"
             ]
           },
-          "foreign-types-macros-0.2.3": {
+          "foreign-types-macros-0.2.4": {
             "runtime_dependencies": [
               {
                 "name": "proc_macro2",
@@ -39700,7 +39700,7 @@
               },
               {
                 "name": "syn",
-                "package_key": "syn-2.0.119",
+                "package_key": "syn-3.0.3",
                 "kind": "normal",
                 "features": [
                   "full"
@@ -40073,7 +40073,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.92": {
+          "mado-0.1.93": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -40286,7 +40286,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.4-914d337b1a9b8e99be67bb813b9e9f4bc56eff6d",
+                "package_key": "ishou-tokens-0.1.4-395c331e62af71972056aa7923a044a6951b5df2",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -43049,7 +43049,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.3.0",
+                "package_key": "cc-1.4.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -43147,7 +43147,7 @@
             "runtime_dependencies": [
               {
                 "name": "pki_types",
-                "package_key": "rustls-pki-types-1.15.0",
+                "package_key": "rustls-pki-types-1.15.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -44319,7 +44319,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.3.0",
+                "package_key": "cc-1.4.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -44430,7 +44430,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44440,7 +44440,7 @@
               },
               {
                 "name": "wayland_client",
-                "package_key": "wayland-client-0.31.14",
+                "package_key": "wayland-client-0.31.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44999,7 +44999,7 @@
               "system"
             ]
           },
-          "mado-0.1.92": {
+          "mado-0.1.93": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -45202,7 +45202,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.4-914d337b1a9b8e99be67bb813b9e9f4bc56eff6d",
+                "package_key": "ishou-tokens-0.1.4-395c331e62af71972056aa7923a044a6951b5df2",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -45976,7 +45976,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.3.0",
+                "package_key": "cc-1.4.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -46064,7 +46064,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "quick-xml-0.39.4": {
+          "quick-xml-0.41.0": {
             "runtime_dependencies": [
               {
                 "name": "memchr",
@@ -46118,7 +46118,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.3.0",
+                "package_key": "cc-1.4.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -46375,7 +46375,7 @@
               },
               {
                 "name": "pki_types",
-                "package_key": "rustls-pki-types-1.15.0",
+                "package_key": "rustls-pki-types-1.15.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -46554,7 +46554,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -46564,7 +46564,7 @@
               },
               {
                 "name": "wayland_client",
-                "package_key": "wayland-client-0.31.14",
+                "package_key": "wayland-client-0.31.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -46620,7 +46620,7 @@
               },
               {
                 "name": "wayland_scanner",
-                "package_key": "wayland-scanner-0.31.10",
+                "package_key": "wayland-scanner-0.31.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -46771,7 +46771,7 @@
               "variable-fonts"
             ]
           },
-          "wayland-backend-0.3.15": {
+          "wayland-backend-0.3.16": {
             "runtime_dependencies": [
               {
                 "name": "downcast_rs",
@@ -46836,7 +46836,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.3.0",
+                "package_key": "cc-1.4.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -46850,7 +46850,7 @@
               "dlopen"
             ]
           },
-          "wayland-client-0.31.14": {
+          "wayland-client-0.31.15": {
             "runtime_dependencies": [
               {
                 "name": "bitflags",
@@ -46876,7 +46876,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -46886,7 +46886,7 @@
               },
               {
                 "name": "wayland_scanner",
-                "package_key": "wayland-scanner-0.31.10",
+                "package_key": "wayland-scanner-0.31.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -46922,7 +46922,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -46950,7 +46950,7 @@
               },
               {
                 "name": "wayland_client",
-                "package_key": "wayland-client-0.31.14",
+                "package_key": "wayland-client-0.31.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -46986,7 +46986,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -46996,7 +46996,7 @@
               },
               {
                 "name": "wayland_client",
-                "package_key": "wayland-client-0.31.14",
+                "package_key": "wayland-client-0.31.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47006,7 +47006,7 @@
               },
               {
                 "name": "wayland_scanner",
-                "package_key": "wayland-scanner-0.31.10",
+                "package_key": "wayland-scanner-0.31.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47037,7 +47037,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47047,7 +47047,7 @@
               },
               {
                 "name": "wayland_client",
-                "package_key": "wayland-client-0.31.14",
+                "package_key": "wayland-client-0.31.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47067,7 +47067,7 @@
               },
               {
                 "name": "wayland_scanner",
-                "package_key": "wayland-scanner-0.31.10",
+                "package_key": "wayland-scanner-0.31.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47096,7 +47096,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47106,7 +47106,7 @@
               },
               {
                 "name": "wayland_client",
-                "package_key": "wayland-client-0.31.14",
+                "package_key": "wayland-client-0.31.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47126,7 +47126,7 @@
               },
               {
                 "name": "wayland_scanner",
-                "package_key": "wayland-scanner-0.31.10",
+                "package_key": "wayland-scanner-0.31.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47141,7 +47141,7 @@
               "wayland-client"
             ]
           },
-          "wayland-scanner-0.31.10": {
+          "wayland-scanner-0.31.11": {
             "runtime_dependencies": [
               {
                 "name": "proc_macro2",
@@ -47155,7 +47155,7 @@
               },
               {
                 "name": "quick_xml",
-                "package_key": "quick-xml-0.39.4",
+                "package_key": "quick-xml-0.41.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47919,7 +47919,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [
                   "client_system"
@@ -47931,7 +47931,7 @@
               },
               {
                 "name": "wayland_client",
-                "package_key": "wayland-client-0.31.14",
+                "package_key": "wayland-client-0.31.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48457,7 +48457,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.3.0",
+                "package_key": "cc-1.4.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -48568,7 +48568,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48578,7 +48578,7 @@
               },
               {
                 "name": "wayland_client",
-                "package_key": "wayland-client-0.31.14",
+                "package_key": "wayland-client-0.31.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49137,7 +49137,7 @@
               "system"
             ]
           },
-          "mado-0.1.92": {
+          "mado-0.1.93": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -49340,7 +49340,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.4-914d337b1a9b8e99be67bb813b9e9f4bc56eff6d",
+                "package_key": "ishou-tokens-0.1.4-395c331e62af71972056aa7923a044a6951b5df2",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -50114,7 +50114,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.3.0",
+                "package_key": "cc-1.4.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -50202,7 +50202,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "quick-xml-0.39.4": {
+          "quick-xml-0.41.0": {
             "runtime_dependencies": [
               {
                 "name": "memchr",
@@ -50256,7 +50256,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.3.0",
+                "package_key": "cc-1.4.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -50513,7 +50513,7 @@
               },
               {
                 "name": "pki_types",
-                "package_key": "rustls-pki-types-1.15.0",
+                "package_key": "rustls-pki-types-1.15.1",
                 "kind": "normal",
                 "features": [
                   "std"
@@ -50692,7 +50692,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -50702,7 +50702,7 @@
               },
               {
                 "name": "wayland_client",
-                "package_key": "wayland-client-0.31.14",
+                "package_key": "wayland-client-0.31.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -50758,7 +50758,7 @@
               },
               {
                 "name": "wayland_scanner",
-                "package_key": "wayland-scanner-0.31.10",
+                "package_key": "wayland-scanner-0.31.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -50909,7 +50909,7 @@
               "variable-fonts"
             ]
           },
-          "wayland-backend-0.3.15": {
+          "wayland-backend-0.3.16": {
             "runtime_dependencies": [
               {
                 "name": "downcast_rs",
@@ -50974,7 +50974,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.3.0",
+                "package_key": "cc-1.4.0",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -50988,7 +50988,7 @@
               "dlopen"
             ]
           },
-          "wayland-client-0.31.14": {
+          "wayland-client-0.31.15": {
             "runtime_dependencies": [
               {
                 "name": "bitflags",
@@ -51014,7 +51014,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51024,7 +51024,7 @@
               },
               {
                 "name": "wayland_scanner",
-                "package_key": "wayland-scanner-0.31.10",
+                "package_key": "wayland-scanner-0.31.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51060,7 +51060,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -51088,7 +51088,7 @@
               },
               {
                 "name": "wayland_client",
-                "package_key": "wayland-client-0.31.14",
+                "package_key": "wayland-client-0.31.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51124,7 +51124,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51134,7 +51134,7 @@
               },
               {
                 "name": "wayland_client",
-                "package_key": "wayland-client-0.31.14",
+                "package_key": "wayland-client-0.31.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51144,7 +51144,7 @@
               },
               {
                 "name": "wayland_scanner",
-                "package_key": "wayland-scanner-0.31.10",
+                "package_key": "wayland-scanner-0.31.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51175,7 +51175,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51185,7 +51185,7 @@
               },
               {
                 "name": "wayland_client",
-                "package_key": "wayland-client-0.31.14",
+                "package_key": "wayland-client-0.31.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51205,7 +51205,7 @@
               },
               {
                 "name": "wayland_scanner",
-                "package_key": "wayland-scanner-0.31.10",
+                "package_key": "wayland-scanner-0.31.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51234,7 +51234,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51244,7 +51244,7 @@
               },
               {
                 "name": "wayland_client",
-                "package_key": "wayland-client-0.31.14",
+                "package_key": "wayland-client-0.31.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51264,7 +51264,7 @@
               },
               {
                 "name": "wayland_scanner",
-                "package_key": "wayland-scanner-0.31.10",
+                "package_key": "wayland-scanner-0.31.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51279,7 +51279,7 @@
               "wayland-client"
             ]
           },
-          "wayland-scanner-0.31.10": {
+          "wayland-scanner-0.31.11": {
             "runtime_dependencies": [
               {
                 "name": "proc_macro2",
@@ -51293,7 +51293,7 @@
               },
               {
                 "name": "quick_xml",
-                "package_key": "quick-xml-0.39.4",
+                "package_key": "quick-xml-0.41.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -52057,7 +52057,7 @@
               },
               {
                 "name": "wayland_backend",
-                "package_key": "wayland-backend-0.3.15",
+                "package_key": "wayland-backend-0.3.16",
                 "kind": "normal",
                 "features": [
                   "client_system"
@@ -52069,7 +52069,7 @@
               },
               {
                 "name": "wayland_client",
-                "package_key": "wayland-client-0.31.14",
+                "package_key": "wayland-client-0.31.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -52633,7 +52633,7 @@
     "cast-0.3.0": {
       "edition": "2018"
     },
-    "cc-1.3.0": {
+    "cc-1.4.0": {
       "edition": "2018"
     },
     "cfg-if-1.0.4": {
@@ -52908,7 +52908,7 @@
     "egaku-0.1.3-81d168190061c452d115f58f186429b84f489be8": {
       "edition": "2024"
     },
-    "either-1.16.0": {
+    "either-1.17.0": {
       "edition": "2021"
     },
     "encoding_rs-0.8.35": {
@@ -52995,7 +52995,7 @@
     "foldhash-0.1.5": {
       "edition": "2021"
     },
-    "font-types-0.12.1": {
+    "font-types-0.12.2": {
       "edition": "2021"
     },
     "fontconfig-parser-0.5.8": {
@@ -53010,7 +53010,7 @@
     "foreign-types-0.5.0": {
       "edition": "2018"
     },
-    "foreign-types-macros-0.2.3": {
+    "foreign-types-macros-0.2.4": {
       "edition": "2018",
       "proc_macro": true
     },
@@ -53067,14 +53067,14 @@
       "edition": "2024",
       "build_script": "build.rs"
     },
-    "gen-macros-0.1.23-8dd812128473c11ec5d88d8ea2eeb3e1d3d5b9b7": {
+    "gen-macros-0.1.26-0f4db0c195b72239016b96ea306d6a32d26550f9": {
       "edition": "2024",
       "proc_macro": true
     },
-    "gen-platform-0.1.23-8dd812128473c11ec5d88d8ea2eeb3e1d3d5b9b7": {
+    "gen-platform-0.1.26-0f4db0c195b72239016b96ea306d6a32d26550f9": {
       "edition": "2024"
     },
-    "gen-types-0.1.23-8dd812128473c11ec5d88d8ea2eeb3e1d3d5b9b7": {
+    "gen-types-0.1.26-0f4db0c195b72239016b96ea306d6a32d26550f9": {
       "edition": "2024"
     },
     "generic-array-0.14.7": {
@@ -53298,7 +53298,7 @@
     "is_terminal_polyfill-1.70.2": {
       "edition": "2021"
     },
-    "ishou-tokens-0.1.4-914d337b1a9b8e99be67bb813b9e9f4bc56eff6d": {
+    "ishou-tokens-0.1.4-395c331e62af71972056aa7923a044a6951b5df2": {
       "edition": "2024"
     },
     "itertools-0.10.5": {
@@ -53442,7 +53442,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.92": {
+    "mado-0.1.93": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -53950,7 +53950,7 @@
     "quick-error-2.0.1": {
       "edition": "2018"
     },
-    "quick-xml-0.39.4": {
+    "quick-xml-0.41.0": {
       "edition": "2021"
     },
     "quinn-0.11.11": {
@@ -54107,7 +54107,7 @@
     "rustls-native-certs-0.8.4": {
       "edition": "2021"
     },
-    "rustls-pki-types-1.15.0": {
+    "rustls-pki-types-1.15.1": {
       "edition": "2021"
     },
     "rustls-webpki-0.103.13": {
@@ -54282,7 +54282,7 @@
     "shidou-0.1.9-35c12221ac8622d90e03e21d5fec30ac329547e7": {
       "edition": "2024"
     },
-    "shikumi-0.1.338-08d00f9c11e4d74fceae01ce2a437720de90ec19": {
+    "shikumi-0.1.412-0153d97737bca0fa8fca9178f986b3b84f98ba83": {
       "edition": "2024"
     },
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": {
@@ -54795,11 +54795,11 @@
     "want-0.3.1": {
       "edition": "2018"
     },
-    "wayland-backend-0.3.15": {
+    "wayland-backend-0.3.16": {
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "wayland-client-0.31.14": {
+    "wayland-client-0.31.15": {
       "edition": "2021",
       "build_script": "build.rs"
     },
@@ -54818,7 +54818,7 @@
     "wayland-protocols-wlr-0.3.12": {
       "edition": "2021"
     },
-    "wayland-scanner-0.31.10": {
+    "wayland-scanner-0.31.11": {
       "edition": "2021",
       "proc_macro": true
     },
@@ -55006,13 +55006,13 @@
     "engawa-0.1.4-6adb58cf67c65de94284766f4fd66c65d2f51709": "sha256-6KgjV+OlpnaIIVUAMvD/CfCfjjroj8cxjxpx8Pko8AI=",
     "engawa-wgpu-0.1.8-acc2b02d46322077861c9e74c6d2e5cb15cb1e5f": "sha256-sE/Qeve2DJY8NVMxAzjRbeZWIUmmWoF6hUAUusSJ4So=",
     "garasu-0.1.4-a2afc2ad6530ed096ab26f5d92bd4e1d348253ee": "sha256-//cvGAyxRVhcwHD56yf9M5SPn63GiwP+y06b8OlVfvs=",
-    "gen-macros-0.1.23-8dd812128473c11ec5d88d8ea2eeb3e1d3d5b9b7": "sha256-L7/TtcG9gywC0+sfJEFjtdBIqfqC5fSx1yV2vaKy3ps=",
-    "gen-platform-0.1.23-8dd812128473c11ec5d88d8ea2eeb3e1d3d5b9b7": "sha256-L7/TtcG9gywC0+sfJEFjtdBIqfqC5fSx1yV2vaKy3ps=",
-    "gen-types-0.1.23-8dd812128473c11ec5d88d8ea2eeb3e1d3d5b9b7": "sha256-L7/TtcG9gywC0+sfJEFjtdBIqfqC5fSx1yV2vaKy3ps=",
+    "gen-macros-0.1.26-0f4db0c195b72239016b96ea306d6a32d26550f9": "sha256-j2mej+GpGvW8qv9z3R39TuZqjfLoIL/jH3HEacxD8Ps=",
+    "gen-platform-0.1.26-0f4db0c195b72239016b96ea306d6a32d26550f9": "sha256-j2mej+GpGvW8qv9z3R39TuZqjfLoIL/jH3HEacxD8Ps=",
+    "gen-types-0.1.26-0f4db0c195b72239016b96ea306d6a32d26550f9": "sha256-j2mej+GpGvW8qv9z3R39TuZqjfLoIL/jH3HEacxD8Ps=",
     "hasami-0.1.2-9ac5d963d7fc786d0144968f3de78bc044839813": "sha256-GguTYXyHpiiXASD8fcLunSaKueunYXUF10FeB8FRTE8=",
     "hayai-0.1.1-0aa8014aa7ca0d4723e5b46a3dd68daa21dec7b3": "sha256-5Tt5kEJclnNn07QvwVQhf7uFCiElFi86xegaPs1GArw=",
     "irodzuki-0.1.7-d3bfe781e9c813164a37a0e0a1eeef16f5be9515": "sha256-7iA13F9fE1MktjUB89kQIiVY6TB0wTNHmHNGSJcj9Lg=",
-    "ishou-tokens-0.1.4-914d337b1a9b8e99be67bb813b9e9f4bc56eff6d": "sha256-Z3nxaNxujVcMnJoflOTHE8/TH38DT5ImI9ksPKlZ6jQ=",
+    "ishou-tokens-0.1.4-395c331e62af71972056aa7923a044a6951b5df2": "sha256-SM+MCVVGr5VqkD38kC6Ds11pHoUU79LdBlZZMNXmSHc=",
     "izumi-0.1.5-56babeeab1c8ecdf9e0724b7cfd4557ad5225e70": "sha256-lME8GZOH6uDC16KfnY5TXEt/dFAWSum7Z89bwj+G+ac=",
     "izumi-config-0.1.5-56babeeab1c8ecdf9e0724b7cfd4557ad5225e70": "sha256-lME8GZOH6uDC16KfnY5TXEt/dFAWSum7Z89bwj+G+ac=",
     "izumi-sources-0.1.5-56babeeab1c8ecdf9e0724b7cfd4557ad5225e70": "sha256-lME8GZOH6uDC16KfnY5TXEt/dFAWSum7Z89bwj+G+ac=",
@@ -55029,7 +55029,7 @@
     "pleme-kindstr-derive-0.1.0-d287f915e9bb8837a443f6238ee900e81318ce89": "sha256-5XDr9kPiT0doWBOOk9yXjxdTCpRgaqWWJCpsc1f+tdw=",
     "praca-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",
     "shidou-0.1.9-35c12221ac8622d90e03e21d5fec30ac329547e7": "sha256-rjs+1FgZD/d2rqK7EXglvJI0IlziAYLwLOiQAJOE7PQ=",
-    "shikumi-0.1.338-08d00f9c11e4d74fceae01ce2a437720de90ec19": "sha256-srd4kLhnsNaDdNd7K07l0D7i3JGVlCVA0Ld2KVz9TH8=",
+    "shikumi-0.1.412-0153d97737bca0fa8fca9178f986b3b84f98ba83": "sha256-hRnHZa99PX+bf1FHqBObX/4CGDQaoSZHu21hZOW+das=",
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": "sha256-Jd6fUoNSdzk+I5iu7FbAg9F9gbc7oU9jdPnnaTIxL6w=",
     "tatara-core-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
     "tatara-eval-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
