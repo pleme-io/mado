@@ -3357,7 +3357,6 @@ dependencies = [
  "anyhow",
  "awase",
  "blake3",
- "block2 0.6.2",
  "bytemuck",
  "clap",
  "criterion",
@@ -3391,7 +3390,6 @@ dependencies = [
  "objc2 0.6.4",
  "objc2-app-kit 0.3.2",
  "objc2-foundation 0.3.2",
- "objc2-user-notifications 0.3.2",
  "open",
  "parking_lot",
  "pleme-allvariants-derive",
@@ -7610,8 +7608,12 @@ checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 [[package]]
 name = "tsuuchi"
 version = "0.1.2"
-source = "git+https://github.com/pleme-io/tsuuchi#70a216829e4bbf45e4a241b6284a0c113d069bad"
+source = "git+https://github.com/pleme-io/tsuuchi#b892ba598156c783aa87c103bf0dbad8409b0972"
 dependencies = [
+ "block2 0.6.2",
+ "objc2 0.6.4",
+ "objc2-foundation 0.3.2",
+ "objc2-user-notifications 0.3.2",
  "serde",
  "thiserror 2.0.19",
  "tracing",

@@ -188,7 +188,7 @@ pub fn notification_dispatcher(
             }
             NotifyBackend::Log => D::new(Box::new(tsuuchi::LogBackend::new())),
             NotifyBackend::Auto | NotifyBackend::Native => {
-                if let Some(un) = crate::notify_mac::UnBackend::try_new() {
+                if let Some(un) = tsuuchi::UnBackend::try_new() {
                     tracing::info!("notifications: native UNUserNotificationCenter backend");
                     D::new(Box::new(un))
                 } else {

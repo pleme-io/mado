@@ -358,11 +358,6 @@ objc2-app-kit = { version = "0.3", features = ["NSApplication", "NSWindow", "NSD
 # rich path that replaces the osascript/Script-Editor shell-out. See
 # src/notify_mac.rs + docs/NOTIFICATIONS.md. Actions/attachments (the
 # delegate-routed tier) land in M1 with more features.
-objc2-user-notifications = { version = "0.3", features = [
-    "UNUserNotificationCenter", "UNNotificationContent", "UNNotificationRequest",
-    "UNNotificationSound", "UNNotificationTrigger", "UNError", "block2",
-] }
-block2 = "0.6"
 
 [dev-dependencies]
 tempfile = "3"

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "11ec59fe153b26f9b28c151f4591ead81fb5a0b4a31a51619d89008bc6650acb",
+  "cargo_lock_sha256": "2b7795c5c658719fa46f5aeecab8b2358f1d60f2426b7c55b485d385b8b3551f",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -23451,44 +23451,6 @@
         "build_dependencies": [],
         "features": []
       },
-      "tsuuchi-0.1.2-70a216829e4bbf45e4a241b6284a0c113d069bad": {
-        "runtime_dependencies": [
-          {
-            "name": "serde",
-            "package_key": "serde-1.0.229",
-            "kind": "normal",
-            "features": [
-              "derive"
-            ],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "tracing",
-            "package_key": "tracing-0.1.44",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          }
-        ],
-        "build_dependencies": [],
-        "features": []
-      },
       "ttf-parser-0.20.0": {
         "runtime_dependencies": [],
         "build_dependencies": [],
@@ -26647,16 +26609,6 @@
                 "tree": "target"
               },
               {
-                "name": "block2",
-                "package_key": "block2-0.6.2",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": "cfg(target_os = \"macos\")",
-                "tree": "target"
-              },
-              {
                 "name": "bytemuck",
                 "package_key": "bytemuck-1.25.2",
                 "kind": "normal",
@@ -27009,24 +26961,6 @@
                 "tree": "target"
               },
               {
-                "name": "objc2_user_notifications",
-                "package_key": "objc2-user-notifications-0.3.2",
-                "kind": "normal",
-                "features": [
-                  "UNError",
-                  "UNNotificationContent",
-                  "UNNotificationRequest",
-                  "UNNotificationSound",
-                  "UNNotificationTrigger",
-                  "UNUserNotificationCenter",
-                  "block2"
-                ],
-                "uses_default_features": true,
-                "optional": false,
-                "target": "cfg(target_os = \"macos\")",
-                "tree": "target"
-              },
-              {
                 "name": "open",
                 "package_key": "open-5.4.0",
                 "kind": "normal",
@@ -27291,7 +27225,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.2-70a216829e4bbf45e4a241b6284a0c113d069bad",
+                "package_key": "tsuuchi-0.1.2-b892ba598156c783aa87c103bf0dbad8409b0972",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -29884,6 +29818,98 @@
             "build_dependencies": [],
             "features": []
           },
+          "tsuuchi-0.1.2-b892ba598156c783aa87c103bf0dbad8409b0972": {
+            "runtime_dependencies": [
+              {
+                "name": "block2",
+                "package_key": "block2-0.6.2",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(target_os = \"macos\")",
+                "tree": "target"
+              },
+              {
+                "name": "objc2",
+                "package_key": "objc2-0.6.4",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(target_os = \"macos\")",
+                "tree": "target"
+              },
+              {
+                "name": "objc2_foundation",
+                "package_key": "objc2-foundation-0.3.2",
+                "kind": "normal",
+                "features": [
+                  "NSBundle",
+                  "NSError",
+                  "NSProcessInfo",
+                  "NSString",
+                  "NSUUID"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(target_os = \"macos\")",
+                "tree": "target"
+              },
+              {
+                "name": "objc2_user_notifications",
+                "package_key": "objc2-user-notifications-0.3.2",
+                "kind": "normal",
+                "features": [
+                  "UNError",
+                  "UNNotificationContent",
+                  "UNNotificationRequest",
+                  "UNNotificationSound",
+                  "UNNotificationTrigger",
+                  "UNUserNotificationCenter",
+                  "block2"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(target_os = \"macos\")",
+                "tree": "target"
+              },
+              {
+                "name": "serde",
+                "package_key": "serde-1.0.229",
+                "kind": "normal",
+                "features": [
+                  "derive"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "thiserror",
+                "package_key": "thiserror-2.0.19",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "tracing",
+                "package_key": "tracing-0.1.44",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": []
+          },
           "wgpu-core-25.0.2": {
             "runtime_dependencies": [
               {
@@ -32178,7 +32204,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.2-70a216829e4bbf45e4a241b6284a0c113d069bad",
+                "package_key": "tsuuchi-0.1.2-b892ba598156c783aa87c103bf0dbad8409b0972",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33355,6 +33381,44 @@
             "features": [
               "std"
             ]
+          },
+          "tsuuchi-0.1.2-b892ba598156c783aa87c103bf0dbad8409b0972": {
+            "runtime_dependencies": [
+              {
+                "name": "serde",
+                "package_key": "serde-1.0.229",
+                "kind": "normal",
+                "features": [
+                  "derive"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "thiserror",
+                "package_key": "thiserror-2.0.19",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "tracing",
+                "package_key": "tracing-0.1.44",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": []
           },
           "ttf-parser-0.25.1": {
             "runtime_dependencies": [],
@@ -36352,7 +36416,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.2-70a216829e4bbf45e4a241b6284a0c113d069bad",
+                "package_key": "tsuuchi-0.1.2-b892ba598156c783aa87c103bf0dbad8409b0972",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37529,6 +37593,44 @@
             "features": [
               "std"
             ]
+          },
+          "tsuuchi-0.1.2-b892ba598156c783aa87c103bf0dbad8409b0972": {
+            "runtime_dependencies": [
+              {
+                "name": "serde",
+                "package_key": "serde-1.0.229",
+                "kind": "normal",
+                "features": [
+                  "derive"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "thiserror",
+                "package_key": "thiserror-2.0.19",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "tracing",
+                "package_key": "tracing-0.1.44",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": []
           },
           "ttf-parser-0.25.1": {
             "runtime_dependencies": [],
@@ -40106,16 +40208,6 @@
                 "tree": "target"
               },
               {
-                "name": "block2",
-                "package_key": "block2-0.6.2",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": "cfg(target_os = \"macos\")",
-                "tree": "target"
-              },
-              {
                 "name": "bytemuck",
                 "package_key": "bytemuck-1.25.2",
                 "kind": "normal",
@@ -40468,24 +40560,6 @@
                 "tree": "target"
               },
               {
-                "name": "objc2_user_notifications",
-                "package_key": "objc2-user-notifications-0.3.2",
-                "kind": "normal",
-                "features": [
-                  "UNError",
-                  "UNNotificationContent",
-                  "UNNotificationRequest",
-                  "UNNotificationSound",
-                  "UNNotificationTrigger",
-                  "UNUserNotificationCenter",
-                  "block2"
-                ],
-                "uses_default_features": true,
-                "optional": false,
-                "target": "cfg(target_os = \"macos\")",
-                "tree": "target"
-              },
-              {
                 "name": "open",
                 "package_key": "open-5.4.0",
                 "kind": "normal",
@@ -40750,7 +40824,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.2-70a216829e4bbf45e4a241b6284a0c113d069bad",
+                "package_key": "tsuuchi-0.1.2-b892ba598156c783aa87c103bf0dbad8409b0972",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -43323,6 +43397,98 @@
             "build_dependencies": [],
             "features": []
           },
+          "tsuuchi-0.1.2-b892ba598156c783aa87c103bf0dbad8409b0972": {
+            "runtime_dependencies": [
+              {
+                "name": "block2",
+                "package_key": "block2-0.6.2",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(target_os = \"macos\")",
+                "tree": "target"
+              },
+              {
+                "name": "objc2",
+                "package_key": "objc2-0.6.4",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(target_os = \"macos\")",
+                "tree": "target"
+              },
+              {
+                "name": "objc2_foundation",
+                "package_key": "objc2-foundation-0.3.2",
+                "kind": "normal",
+                "features": [
+                  "NSBundle",
+                  "NSError",
+                  "NSProcessInfo",
+                  "NSString",
+                  "NSUUID"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(target_os = \"macos\")",
+                "tree": "target"
+              },
+              {
+                "name": "objc2_user_notifications",
+                "package_key": "objc2-user-notifications-0.3.2",
+                "kind": "normal",
+                "features": [
+                  "UNError",
+                  "UNNotificationContent",
+                  "UNNotificationRequest",
+                  "UNNotificationSound",
+                  "UNNotificationTrigger",
+                  "UNUserNotificationCenter",
+                  "block2"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(target_os = \"macos\")",
+                "tree": "target"
+              },
+              {
+                "name": "serde",
+                "package_key": "serde-1.0.229",
+                "kind": "normal",
+                "features": [
+                  "derive"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "thiserror",
+                "package_key": "thiserror-2.0.19",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "tracing",
+                "package_key": "tracing-0.1.44",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": []
+          },
           "wgpu-core-25.0.2": {
             "runtime_dependencies": [
               {
@@ -45601,7 +45767,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.2-70a216829e4bbf45e4a241b6284a0c113d069bad",
+                "package_key": "tsuuchi-0.1.2-b892ba598156c783aa87c103bf0dbad8409b0972",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -46758,6 +46924,44 @@
             "features": [
               "std"
             ]
+          },
+          "tsuuchi-0.1.2-b892ba598156c783aa87c103bf0dbad8409b0972": {
+            "runtime_dependencies": [
+              {
+                "name": "serde",
+                "package_key": "serde-1.0.229",
+                "kind": "normal",
+                "features": [
+                  "derive"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "thiserror",
+                "package_key": "thiserror-2.0.19",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "tracing",
+                "package_key": "tracing-0.1.44",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": []
           },
           "ttf-parser-0.25.1": {
             "runtime_dependencies": [],
@@ -49739,7 +49943,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.2-70a216829e4bbf45e4a241b6284a0c113d069bad",
+                "package_key": "tsuuchi-0.1.2-b892ba598156c783aa87c103bf0dbad8409b0972",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -50896,6 +51100,44 @@
             "features": [
               "std"
             ]
+          },
+          "tsuuchi-0.1.2-b892ba598156c783aa87c103bf0dbad8409b0972": {
+            "runtime_dependencies": [
+              {
+                "name": "serde",
+                "package_key": "serde-1.0.229",
+                "kind": "normal",
+                "features": [
+                  "derive"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "thiserror",
+                "package_key": "thiserror-2.0.19",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "tracing",
+                "package_key": "tracing-0.1.44",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": []
           },
           "ttf-parser-0.25.1": {
             "runtime_dependencies": [],
@@ -54629,7 +54871,7 @@
     "try-lock-0.2.5": {
       "edition": "2015"
     },
-    "tsuuchi-0.1.2-70a216829e4bbf45e4a241b6284a0c113d069bad": {
+    "tsuuchi-0.1.2-b892ba598156c783aa87c103bf0dbad8409b0972": {
       "edition": "2024"
     },
     "ttf-parser-0.20.0": {
@@ -55047,7 +55289,7 @@
     "tear-daemon-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",
     "tear-types-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",
     "todoku-0.1.0-f0a67611b5514424117496f470a9f88688f55ddb": "sha256-OO7J7EXr0KczG/kCcyHsLlI1T7DmfLKjltS3IutHzi0=",
-    "tsuuchi-0.1.2-70a216829e4bbf45e4a241b6284a0c113d069bad": "sha256-OLIvIr/+xDYtoE5E0Lcc3yTLJ0f7IMXGh8/3oEPSRHM=",
+    "tsuuchi-0.1.2-b892ba598156c783aa87c103bf0dbad8409b0972": "sha256-dpbU65sSQXaycAooUlo6hvMrw9JlRx3fedvRxuX45e0=",
     "vigy-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": "sha256-kJQtOuwvc2DNae8djKYX86Ixw4pH/2sfKttmk4A/k5E=",
     "vigy-eval-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": "sha256-kJQtOuwvc2DNae8djKYX86Ixw4pH/2sfKttmk4A/k5E=",
     "vigy-mcp-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": "sha256-kJQtOuwvc2DNae8djKYX86Ixw4pH/2sfKttmk4A/k5E=",

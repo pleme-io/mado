@@ -54,7 +54,6 @@ mod mcp;
 use mado::motion;
 mod notify_center;
 #[cfg(target_os = "macos")]
-mod notify_mac;
 mod osc_1337;
 mod panel_fit;
 mod platform;
