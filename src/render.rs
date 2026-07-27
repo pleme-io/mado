@@ -4133,6 +4133,24 @@ impl TerminalRenderer {
                 // the glyph path skipped them and the rect path had no
                 // sprite. Now they fall through to the font, which is what
                 // `box_drawing_rects`'s `_ => {}` arm always claimed.
+                //
+                // INVARIANT for anything added to this condition: a char
+                // diverted here is drawn by NEITHER path unless the rect
+                // pass has a handler for it. The two halves stay safe by
+                // different means, and the difference matters:
+                //
+                //   * `is_powerline_separator` is SAFE BY CONSTRUCTION —
+                //     it is `PowerlineSep::from_char(..).is_some()`, the
+                //     handler's own parser, and `powerline_rect` returns a
+                //     non-optional rect. The predicate cannot outgrow the
+                //     handler because it IS the handler's admission test.
+                //   * `has_box_sprite` is a HAND-LISTED set, so it can
+                //     drift from `box_drawing_rects` — which is exactly how
+                //     the bug above happened. It is held in lockstep by
+                //     `box_sprite_predicate_matches_geometry`.
+                //
+                // Prefer the derived form. If you must hand-list, add the
+                // matching lockstep test in the same commit.
                 if crate::glyph_class::has_box_sprite(cell.ch) || is_powerline_separator(cell.ch) {
                     has_content = true;
                     flush_run(&mut run, &mut row_buffers, text);
