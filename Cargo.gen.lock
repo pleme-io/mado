@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "2b7795c5c658719fa46f5aeecab8b2358f1d60f2426b7c55b485d385b8b3551f",
+  "cargo_lock_sha256": "464df9767cd3ba007aab8b07441e859c2c84d6eed647bd7fde0718bf4ea310b0",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -26576,7 +26576,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.94": {
+          "mado-0.1.95": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -27225,7 +27225,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.2-b892ba598156c783aa87c103bf0dbad8409b0972",
+                "package_key": "tsuuchi-0.1.3-7b30b3f69715488294d8afbab8c154e1e86a14e1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -29818,7 +29818,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "tsuuchi-0.1.2-b892ba598156c783aa87c103bf0dbad8409b0972": {
+          "tsuuchi-0.1.3-7b30b3f69715488294d8afbab8c154e1e86a14e1": {
             "runtime_dependencies": [
               {
                 "name": "block2",
@@ -31602,7 +31602,7 @@
               "system"
             ]
           },
-          "mado-0.1.94": {
+          "mado-0.1.95": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -32204,7 +32204,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.2-b892ba598156c783aa87c103bf0dbad8409b0972",
+                "package_key": "tsuuchi-0.1.3-7b30b3f69715488294d8afbab8c154e1e86a14e1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33382,7 +33382,7 @@
               "std"
             ]
           },
-          "tsuuchi-0.1.2-b892ba598156c783aa87c103bf0dbad8409b0972": {
+          "tsuuchi-0.1.3-7b30b3f69715488294d8afbab8c154e1e86a14e1": {
             "runtime_dependencies": [
               {
                 "name": "serde",
@@ -35814,7 +35814,7 @@
               "system"
             ]
           },
-          "mado-0.1.94": {
+          "mado-0.1.95": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -36416,7 +36416,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.2-b892ba598156c783aa87c103bf0dbad8409b0972",
+                "package_key": "tsuuchi-0.1.3-7b30b3f69715488294d8afbab8c154e1e86a14e1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37594,7 +37594,7 @@
               "std"
             ]
           },
-          "tsuuchi-0.1.2-b892ba598156c783aa87c103bf0dbad8409b0972": {
+          "tsuuchi-0.1.3-7b30b3f69715488294d8afbab8c154e1e86a14e1": {
             "runtime_dependencies": [
               {
                 "name": "serde",
@@ -40175,7 +40175,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.94": {
+          "mado-0.1.95": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -40824,7 +40824,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.2-b892ba598156c783aa87c103bf0dbad8409b0972",
+                "package_key": "tsuuchi-0.1.3-7b30b3f69715488294d8afbab8c154e1e86a14e1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -43397,7 +43397,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "tsuuchi-0.1.2-b892ba598156c783aa87c103bf0dbad8409b0972": {
+          "tsuuchi-0.1.3-7b30b3f69715488294d8afbab8c154e1e86a14e1": {
             "runtime_dependencies": [
               {
                 "name": "block2",
@@ -45165,7 +45165,7 @@
               "system"
             ]
           },
-          "mado-0.1.94": {
+          "mado-0.1.95": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -45767,7 +45767,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.2-b892ba598156c783aa87c103bf0dbad8409b0972",
+                "package_key": "tsuuchi-0.1.3-7b30b3f69715488294d8afbab8c154e1e86a14e1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -46925,7 +46925,7 @@
               "std"
             ]
           },
-          "tsuuchi-0.1.2-b892ba598156c783aa87c103bf0dbad8409b0972": {
+          "tsuuchi-0.1.3-7b30b3f69715488294d8afbab8c154e1e86a14e1": {
             "runtime_dependencies": [
               {
                 "name": "serde",
@@ -49341,7 +49341,7 @@
               "system"
             ]
           },
-          "mado-0.1.94": {
+          "mado-0.1.95": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -49943,7 +49943,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.2-b892ba598156c783aa87c103bf0dbad8409b0972",
+                "package_key": "tsuuchi-0.1.3-7b30b3f69715488294d8afbab8c154e1e86a14e1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51101,7 +51101,7 @@
               "std"
             ]
           },
-          "tsuuchi-0.1.2-b892ba598156c783aa87c103bf0dbad8409b0972": {
+          "tsuuchi-0.1.3-7b30b3f69715488294d8afbab8c154e1e86a14e1": {
             "runtime_dependencies": [
               {
                 "name": "serde",
@@ -53684,7 +53684,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.94": {
+    "mado-0.1.95": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -54871,7 +54871,7 @@
     "try-lock-0.2.5": {
       "edition": "2015"
     },
-    "tsuuchi-0.1.2-b892ba598156c783aa87c103bf0dbad8409b0972": {
+    "tsuuchi-0.1.3-7b30b3f69715488294d8afbab8c154e1e86a14e1": {
       "edition": "2024"
     },
     "ttf-parser-0.20.0": {
@@ -55289,7 +55289,7 @@
     "tear-daemon-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",
     "tear-types-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",
     "todoku-0.1.0-f0a67611b5514424117496f470a9f88688f55ddb": "sha256-OO7J7EXr0KczG/kCcyHsLlI1T7DmfLKjltS3IutHzi0=",
-    "tsuuchi-0.1.2-b892ba598156c783aa87c103bf0dbad8409b0972": "sha256-dpbU65sSQXaycAooUlo6hvMrw9JlRx3fedvRxuX45e0=",
+    "tsuuchi-0.1.3-7b30b3f69715488294d8afbab8c154e1e86a14e1": "sha256-OOZH3YWgSr4S9wAXX44DLzHYO/lZXliyr5TsCX/C91E=",
     "vigy-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": "sha256-kJQtOuwvc2DNae8djKYX86Ixw4pH/2sfKttmk4A/k5E=",
     "vigy-eval-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": "sha256-kJQtOuwvc2DNae8djKYX86Ixw4pH/2sfKttmk4A/k5E=",
     "vigy-mcp-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": "sha256-kJQtOuwvc2DNae8djKYX86Ixw4pH/2sfKttmk4A/k5E=",

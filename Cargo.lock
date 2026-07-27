@@ -3352,7 +3352,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.94"
+version = "0.1.95"
 dependencies = [
  "anyhow",
  "awase",
@@ -7607,8 +7607,8 @@ checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 
 [[package]]
 name = "tsuuchi"
-version = "0.1.2"
-source = "git+https://github.com/pleme-io/tsuuchi#b892ba598156c783aa87c103bf0dbad8409b0972"
+version = "0.1.3"
+source = "git+https://github.com/pleme-io/tsuuchi#7b30b3f69715488294d8afbab8c154e1e86a14e1"
 dependencies = [
  "block2 0.6.2",
  "objc2 0.6.4",
