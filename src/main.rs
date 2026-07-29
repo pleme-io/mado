@@ -53,7 +53,14 @@ mod mcp;
 // site (render.rs / config.rs) and the module compiles exactly once.
 use mado::motion;
 mod notify_center;
-#[cfg(target_os = "macos")]
+// NOT macOS-gated: osc_1337 is a pure VT-parameter parser + two typed
+// histories, with no platform code in it, and BOTH its consumers
+// (terminal.rs's OSC dispatch, mcp.rs's UserMarkHistory) are unconditional.
+// It carried a `#[cfg(target_os = "macos")]` from 279ab7e to 0.1.96: that
+// commit deleted the `mod notify_mac;` line the attribute belonged to and
+// left the attribute behind, so it re-bound to the next item down. Every
+// non-macOS build broke (E0432/E0433 ×8) and nothing caught it, because
+// mado is only ever built for Linux on one fleet node.
 mod osc_1337;
 mod panel_fit;
 mod platform;
