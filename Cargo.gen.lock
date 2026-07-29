@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cargo_lock_sha256": "d17a1837ab2475000f2d7113d7b4db1f965cabdf4e203f47932eb93a6320328a",
+  "cargo_lock_sha256": "27ab9f26b1b23b39d18d43a41fd31d08c3a3475766ce4596788958e959238107",
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
@@ -360,7 +360,7 @@
         "runtime_dependencies": [
           {
             "name": "event_listener",
-            "package_key": "event-listener-5.4.1",
+            "package_key": "event-listener-5.4.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1682,25 +1682,6 @@
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
-      },
-      "concurrent-queue-2.5.0": {
-        "runtime_dependencies": [
-          {
-            "name": "crossbeam_utils",
-            "package_key": "crossbeam-utils-0.8.22",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": false,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          }
-        ],
-        "build_dependencies": [],
-        "features": [
-          "default",
-          "std"
-        ]
       },
       "const-oid-0.9.6": {
         "runtime_dependencies": [],
@@ -3155,7 +3136,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "displaydoc-0.2.6": {
+      "displaydoc-0.2.7": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -3179,7 +3160,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.119",
+            "package_key": "syn-3.0.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3754,18 +3735,8 @@
           "std"
         ]
       },
-      "event-listener-5.4.1": {
+      "event-listener-5.4.2": {
         "runtime_dependencies": [
-          {
-            "name": "concurrent_queue",
-            "package_key": "concurrent-queue-2.5.0",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": false,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
           {
             "name": "parking",
             "package_key": "parking-2.2.1",
@@ -3798,7 +3769,7 @@
         "runtime_dependencies": [
           {
             "name": "event_listener",
-            "package_key": "event-listener-5.4.1",
+            "package_key": "event-listener-5.4.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -4678,7 +4649,7 @@
           "default"
         ]
       },
-      "gen-macros-0.1.26-0f4db0c195b72239016b96ea306d6a32d26550f9": {
+      "gen-macros-0.1.28-2e55ccccce7332086c95fe0bede28949f8f2326a": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -4717,11 +4688,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "gen-platform-0.1.26-0f4db0c195b72239016b96ea306d6a32d26550f9": {
+      "gen-platform-0.1.28-2e55ccccce7332086c95fe0bede28949f8f2326a": {
         "runtime_dependencies": [
           {
             "name": "gen_macros",
-            "package_key": "gen-macros-0.1.26-0f4db0c195b72239016b96ea306d6a32d26550f9",
+            "package_key": "gen-macros-0.1.28-2e55ccccce7332086c95fe0bede28949f8f2326a",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4731,7 +4702,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.26-0f4db0c195b72239016b96ea306d6a32d26550f9",
+            "package_key": "gen-types-0.1.28-2e55ccccce7332086c95fe0bede28949f8f2326a",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4785,7 +4756,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "gen-types-0.1.26-0f4db0c195b72239016b96ea306d6a32d26550f9": {
+      "gen-types-0.1.28-2e55ccccce7332086c95fe0bede28949f8f2326a": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -6613,7 +6584,7 @@
         "runtime_dependencies": [
           {
             "name": "displaydoc",
-            "package_key": "displaydoc-0.2.6",
+            "package_key": "displaydoc-0.2.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -6688,7 +6659,7 @@
         "runtime_dependencies": [
           {
             "name": "displaydoc",
-            "package_key": "displaydoc-0.2.6",
+            "package_key": "displaydoc-0.2.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -6890,7 +6861,7 @@
         "runtime_dependencies": [
           {
             "name": "displaydoc",
-            "package_key": "displaydoc-0.2.6",
+            "package_key": "displaydoc-0.2.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -7872,7 +7843,7 @@
           },
           {
             "name": "schemars",
-            "package_key": "schemars-1.2.1",
+            "package_key": "schemars-1.2.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -10647,7 +10618,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "openraft-0.9.24": {
+      "openraft-0.9.25": {
         "runtime_dependencies": [
           {
             "name": "anyerror",
@@ -10729,7 +10700,7 @@
           },
           {
             "name": "openraft_macros",
-            "package_key": "openraft-macros-0.9.24",
+            "package_key": "openraft-macros-0.9.25",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -10824,7 +10795,7 @@
           "storage-v2"
         ]
       },
-      "openraft-macros-0.9.24": {
+      "openraft-macros-0.9.25": {
         "runtime_dependencies": [
           {
             "name": "chrono",
@@ -14611,7 +14582,7 @@
           },
           {
             "name": "schemars",
-            "package_key": "schemars-1.2.1",
+            "package_key": "schemars-1.2.2",
             "kind": "normal",
             "features": [
               "chrono04"
@@ -15530,7 +15501,7 @@
           "schemars_derive"
         ]
       },
-      "schemars-1.2.1": {
+      "schemars-1.2.2": {
         "runtime_dependencies": [
           {
             "name": "chrono04",
@@ -15564,7 +15535,7 @@
           },
           {
             "name": "schemars_derive",
-            "package_key": "schemars_derive-1.2.1",
+            "package_key": "schemars_derive-1.2.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15654,7 +15625,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "schemars_derive-1.2.1": {
+      "schemars_derive-1.2.2": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -15678,7 +15649,7 @@
           },
           {
             "name": "serde_derive_internals",
-            "package_key": "serde_derive_internals-0.29.1",
+            "package_key": "serde_derive_internals-0.30.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15688,7 +15659,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.119",
+            "package_key": "syn-3.0.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16932,6 +16903,47 @@
         "build_dependencies": [],
         "features": []
       },
+      "serde_derive_internals-0.30.0": {
+        "runtime_dependencies": [
+          {
+            "name": "proc_macro2",
+            "package_key": "proc-macro2-1.0.107",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "quote",
+            "package_key": "quote-1.0.47",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "syn",
+            "package_key": "syn-3.0.3",
+            "kind": "normal",
+            "features": [
+              "clone-impls",
+              "derive",
+              "parsing",
+              "printing"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
       "serde_json-1.0.151": {
         "runtime_dependencies": [
           {
@@ -17372,7 +17384,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.413-d494cec1f2a4be881371d593c6b018ef44221378": {
+      "shikumi-0.1.414-f861496b189fda0d7c51f50fd1fb2bf3df2a5599": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -17422,7 +17434,7 @@
           },
           {
             "name": "gen_platform",
-            "package_key": "gen-platform-0.1.26-0f4db0c195b72239016b96ea306d6a32d26550f9",
+            "package_key": "gen-platform-0.1.28-2e55ccccce7332086c95fe0bede28949f8f2326a",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17432,7 +17444,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.26-0f4db0c195b72239016b96ea306d6a32d26550f9",
+            "package_key": "gen-types-0.1.28-2e55ccccce7332086c95fe0bede28949f8f2326a",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17571,7 +17583,7 @@
           },
           {
             "name": "gen_platform",
-            "package_key": "gen-platform-0.1.26-0f4db0c195b72239016b96ea306d6a32d26550f9",
+            "package_key": "gen-platform-0.1.28-2e55ccccce7332086c95fe0bede28949f8f2326a",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17581,7 +17593,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.26-0f4db0c195b72239016b96ea306d6a32d26550f9",
+            "package_key": "gen-types-0.1.28-2e55ccccce7332086c95fe0bede28949f8f2326a",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18047,7 +18059,7 @@
           },
           {
             "name": "event_listener",
-            "package_key": "event-listener-5.4.1",
+            "package_key": "event-listener-5.4.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20289,7 +20301,7 @@
           },
           {
             "name": "openraft",
-            "package_key": "openraft-0.9.24",
+            "package_key": "openraft-0.9.25",
             "kind": "normal",
             "features": [
               "serde",
@@ -21134,7 +21146,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.413-d494cec1f2a4be881371d593c6b018ef44221378",
+            "package_key": "shikumi-0.1.414-f861496b189fda0d7c51f50fd1fb2bf3df2a5599",
             "kind": "normal",
             "features": [
               "cli"
@@ -21978,7 +21990,7 @@
         "runtime_dependencies": [
           {
             "name": "displaydoc",
-            "package_key": "displaydoc-0.2.6",
+            "package_key": "displaydoc-0.2.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -22691,7 +22703,7 @@
           },
           {
             "name": "toml_parser",
-            "package_key": "toml_parser-1.1.2+spec-1.1.0",
+            "package_key": "toml_parser-1.1.3+spec-1.1.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22715,7 +22727,7 @@
           "parse"
         ]
       },
-      "toml_parser-1.1.2+spec-1.1.0": {
+      "toml_parser-1.1.3+spec-1.1.0": {
         "runtime_dependencies": [
           {
             "name": "winnow",
@@ -23931,11 +23943,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": {
+      "vigy-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": {
         "runtime_dependencies": [
           {
             "name": "vigy_eval",
-            "package_key": "vigy-eval-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
+            "package_key": "vigy-eval-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23945,7 +23957,7 @@
           },
           {
             "name": "vigy_mcp",
-            "package_key": "vigy-mcp-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
+            "package_key": "vigy-mcp-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23955,7 +23967,7 @@
           },
           {
             "name": "vigy_runtime",
-            "package_key": "vigy-runtime-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
+            "package_key": "vigy-runtime-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23965,7 +23977,7 @@
           },
           {
             "name": "vigy_store",
-            "package_key": "vigy-store-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
+            "package_key": "vigy-store-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23975,7 +23987,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
+            "package_key": "vigy-types-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23989,7 +24001,7 @@
           "mcp"
         ]
       },
-      "vigy-eval-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": {
+      "vigy-eval-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -24109,7 +24121,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
+            "package_key": "vigy-types-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24121,7 +24133,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-mcp-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": {
+      "vigy-mcp-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -24186,7 +24198,7 @@
           },
           {
             "name": "vigy_runtime",
-            "package_key": "vigy-runtime-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
+            "package_key": "vigy-runtime-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24196,7 +24208,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
+            "package_key": "vigy-types-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24208,7 +24220,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-runtime-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": {
+      "vigy-runtime-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -24306,7 +24318,7 @@
           },
           {
             "name": "vigy_eval",
-            "package_key": "vigy-eval-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
+            "package_key": "vigy-eval-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24316,7 +24328,7 @@
           },
           {
             "name": "vigy_store",
-            "package_key": "vigy-store-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
+            "package_key": "vigy-store-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24326,7 +24338,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
+            "package_key": "vigy-types-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24338,7 +24350,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-store-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": {
+      "vigy-store-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -24490,7 +24502,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
+            "package_key": "vigy-types-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24502,7 +24514,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-types-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": {
+      "vigy-types-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -25362,7 +25374,7 @@
         "runtime_dependencies": [
           {
             "name": "displaydoc",
-            "package_key": "displaydoc-0.2.6",
+            "package_key": "displaydoc-0.2.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -26576,7 +26588,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.96": {
+          "mado-0.1.97": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -27255,7 +27267,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
+                "package_key": "vigy-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -31612,7 +31624,7 @@
               "system"
             ]
           },
-          "mado-0.1.96": {
+          "mado-0.1.97": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -32244,7 +32256,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
+                "package_key": "vigy-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -35834,7 +35846,7 @@
               "system"
             ]
           },
-          "mado-0.1.96": {
+          "mado-0.1.97": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -36466,7 +36478,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
+                "package_key": "vigy-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -40205,7 +40217,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.96": {
+          "mado-0.1.97": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -40884,7 +40896,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
+                "package_key": "vigy-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -45205,7 +45217,7 @@
               "system"
             ]
           },
-          "mado-0.1.96": {
+          "mado-0.1.97": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -45837,7 +45849,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
+                "package_key": "vigy-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -49391,7 +49403,7 @@
               "system"
             ]
           },
-          "mado-0.1.96": {
+          "mado-0.1.97": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -50023,7 +50035,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c",
+                "package_key": "vigy-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -52993,9 +53005,6 @@
     "compression-core-0.4.32": {
       "edition": "2018"
     },
-    "concurrent-queue-2.5.0": {
-      "edition": "2021"
-    },
     "const-oid-0.9.6": {
       "edition": "2021"
     },
@@ -53161,7 +53170,7 @@
     "dispatch2-0.3.1": {
       "edition": "2021"
     },
-    "displaydoc-0.2.6": {
+    "displaydoc-0.2.7": {
       "edition": "2021",
       "proc_macro": true
     },
@@ -53247,7 +53256,7 @@
     "euclid-0.22.14": {
       "edition": "2021"
     },
-    "event-listener-5.4.1": {
+    "event-listener-5.4.2": {
       "edition": "2021"
     },
     "event-listener-strategy-0.5.4": {
@@ -53369,14 +53378,14 @@
       "edition": "2024",
       "build_script": "build.rs"
     },
-    "gen-macros-0.1.26-0f4db0c195b72239016b96ea306d6a32d26550f9": {
+    "gen-macros-0.1.28-2e55ccccce7332086c95fe0bede28949f8f2326a": {
       "edition": "2024",
       "proc_macro": true
     },
-    "gen-platform-0.1.26-0f4db0c195b72239016b96ea306d6a32d26550f9": {
+    "gen-platform-0.1.28-2e55ccccce7332086c95fe0bede28949f8f2326a": {
       "edition": "2024"
     },
-    "gen-types-0.1.26-0f4db0c195b72239016b96ea306d6a32d26550f9": {
+    "gen-types-0.1.28-2e55ccccce7332086c95fe0bede28949f8f2326a": {
       "edition": "2024"
     },
     "generic-array-0.14.7": {
@@ -53744,7 +53753,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.96": {
+    "mado-0.1.97": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -53968,7 +53977,7 @@
         }
       ]
     },
-    "openraft-0.9.24": {
+    "openraft-0.9.25": {
       "edition": "2021",
       "quirks": [
         {
@@ -53979,7 +53988,7 @@
         }
       ]
     },
-    "openraft-macros-0.9.24": {
+    "openraft-macros-0.9.25": {
       "edition": "2021",
       "proc_macro": true
     },
@@ -54446,14 +54455,14 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "schemars-1.2.1": {
+    "schemars-1.2.2": {
       "edition": "2021"
     },
     "schemars_derive-0.8.22": {
       "edition": "2021",
       "proc_macro": true
     },
-    "schemars_derive-1.2.1": {
+    "schemars_derive-1.2.2": {
       "edition": "2021",
       "proc_macro": true
     },
@@ -54550,6 +54559,13 @@
         "path": "lib.rs"
       }
     },
+    "serde_derive_internals-0.30.0": {
+      "edition": "2021",
+      "lib_target": {
+        "name": "serde_derive_internals",
+        "path": "lib.rs"
+      }
+    },
     "serde_json-1.0.151": {
       "edition": "2021",
       "build_script": "build.rs"
@@ -54584,7 +54600,7 @@
     "shidou-0.1.9-35c12221ac8622d90e03e21d5fec30ac329547e7": {
       "edition": "2024"
     },
-    "shikumi-0.1.413-d494cec1f2a4be881371d593c6b018ef44221378": {
+    "shikumi-0.1.414-f861496b189fda0d7c51f50fd1fb2bf3df2a5599": {
       "edition": "2024"
     },
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": {
@@ -54888,7 +54904,7 @@
     "toml_edit-0.25.13+spec-1.1.0": {
       "edition": "2024"
     },
-    "toml_parser-1.1.2+spec-1.1.0": {
+    "toml_parser-1.1.3+spec-1.1.0": {
       "edition": "2024"
     },
     "toml_write-0.1.2": {
@@ -55050,22 +55066,22 @@
     "version_check-0.9.5": {
       "edition": "2015"
     },
-    "vigy-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": {
+    "vigy-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": {
       "edition": "2021"
     },
-    "vigy-eval-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": {
+    "vigy-eval-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": {
       "edition": "2021"
     },
-    "vigy-mcp-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": {
+    "vigy-mcp-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": {
       "edition": "2021"
     },
-    "vigy-runtime-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": {
+    "vigy-runtime-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": {
       "edition": "2021"
     },
-    "vigy-store-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": {
+    "vigy-store-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": {
       "edition": "2021"
     },
-    "vigy-types-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": {
+    "vigy-types-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": {
       "edition": "2021"
     },
     "vte-0.15.0": {
@@ -55308,9 +55324,9 @@
     "engawa-0.1.4-6adb58cf67c65de94284766f4fd66c65d2f51709": "sha256-6KgjV+OlpnaIIVUAMvD/CfCfjjroj8cxjxpx8Pko8AI=",
     "engawa-wgpu-0.1.8-acc2b02d46322077861c9e74c6d2e5cb15cb1e5f": "sha256-sE/Qeve2DJY8NVMxAzjRbeZWIUmmWoF6hUAUusSJ4So=",
     "garasu-0.1.4-a2afc2ad6530ed096ab26f5d92bd4e1d348253ee": "sha256-//cvGAyxRVhcwHD56yf9M5SPn63GiwP+y06b8OlVfvs=",
-    "gen-macros-0.1.26-0f4db0c195b72239016b96ea306d6a32d26550f9": "sha256-j2mej+GpGvW8qv9z3R39TuZqjfLoIL/jH3HEacxD8Ps=",
-    "gen-platform-0.1.26-0f4db0c195b72239016b96ea306d6a32d26550f9": "sha256-j2mej+GpGvW8qv9z3R39TuZqjfLoIL/jH3HEacxD8Ps=",
-    "gen-types-0.1.26-0f4db0c195b72239016b96ea306d6a32d26550f9": "sha256-j2mej+GpGvW8qv9z3R39TuZqjfLoIL/jH3HEacxD8Ps=",
+    "gen-macros-0.1.28-2e55ccccce7332086c95fe0bede28949f8f2326a": "sha256-zv0Y30JJUIQE3Ve0/TSaselO9XYzUY0LGxEf+zbW37s=",
+    "gen-platform-0.1.28-2e55ccccce7332086c95fe0bede28949f8f2326a": "sha256-zv0Y30JJUIQE3Ve0/TSaselO9XYzUY0LGxEf+zbW37s=",
+    "gen-types-0.1.28-2e55ccccce7332086c95fe0bede28949f8f2326a": "sha256-zv0Y30JJUIQE3Ve0/TSaselO9XYzUY0LGxEf+zbW37s=",
     "hasami-0.1.2-9ac5d963d7fc786d0144968f3de78bc044839813": "sha256-GguTYXyHpiiXASD8fcLunSaKueunYXUF10FeB8FRTE8=",
     "hayai-0.1.1-0aa8014aa7ca0d4723e5b46a3dd68daa21dec7b3": "sha256-5Tt5kEJclnNn07QvwVQhf7uFCiElFi86xegaPs1GArw=",
     "irodzuki-0.1.7-d3bfe781e9c813164a37a0e0a1eeef16f5be9515": "sha256-7iA13F9fE1MktjUB89kQIiVY6TB0wTNHmHNGSJcj9Lg=",
@@ -55331,7 +55347,7 @@
     "pleme-kindstr-derive-0.1.0-d287f915e9bb8837a443f6238ee900e81318ce89": "sha256-5XDr9kPiT0doWBOOk9yXjxdTCpRgaqWWJCpsc1f+tdw=",
     "praca-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",
     "shidou-0.1.9-35c12221ac8622d90e03e21d5fec30ac329547e7": "sha256-rjs+1FgZD/d2rqK7EXglvJI0IlziAYLwLOiQAJOE7PQ=",
-    "shikumi-0.1.413-d494cec1f2a4be881371d593c6b018ef44221378": "sha256-ebiNl52TWuEFhVshLql7PnuScFeFMlG2UggVjywjSSw=",
+    "shikumi-0.1.414-f861496b189fda0d7c51f50fd1fb2bf3df2a5599": "sha256-82RShYLQ0QsAskhepDL9m3Onjxt6/qRs02XunPZSqGs=",
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": "sha256-Jd6fUoNSdzk+I5iu7FbAg9F9gbc7oU9jdPnnaTIxL6w=",
     "tatara-core-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
     "tatara-eval-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
@@ -55350,12 +55366,12 @@
     "tear-types-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",
     "todoku-0.1.0-f0a67611b5514424117496f470a9f88688f55ddb": "sha256-OO7J7EXr0KczG/kCcyHsLlI1T7DmfLKjltS3IutHzi0=",
     "tsuuchi-0.1.5-86539e03f9e90334afa02284ebb8e6e7806c8a39": "sha256-O0xC2BNJp+R7Xwso9c0RFGfSHwRqieCRWZHTzqKWbu8=",
-    "vigy-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": "sha256-kJQtOuwvc2DNae8djKYX86Ixw4pH/2sfKttmk4A/k5E=",
-    "vigy-eval-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": "sha256-kJQtOuwvc2DNae8djKYX86Ixw4pH/2sfKttmk4A/k5E=",
-    "vigy-mcp-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": "sha256-kJQtOuwvc2DNae8djKYX86Ixw4pH/2sfKttmk4A/k5E=",
-    "vigy-runtime-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": "sha256-kJQtOuwvc2DNae8djKYX86Ixw4pH/2sfKttmk4A/k5E=",
-    "vigy-store-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": "sha256-kJQtOuwvc2DNae8djKYX86Ixw4pH/2sfKttmk4A/k5E=",
-    "vigy-types-0.1.5-264cad151dc0ff2ac37312ff1b1b58a2375ae01c": "sha256-kJQtOuwvc2DNae8djKYX86Ixw4pH/2sfKttmk4A/k5E="
+    "vigy-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": "sha256-0o5lGx2VvOrULFiaS5Vt2nyQkH3z+6PIERSxJai8gHU=",
+    "vigy-eval-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": "sha256-0o5lGx2VvOrULFiaS5Vt2nyQkH3z+6PIERSxJai8gHU=",
+    "vigy-mcp-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": "sha256-0o5lGx2VvOrULFiaS5Vt2nyQkH3z+6PIERSxJai8gHU=",
+    "vigy-runtime-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": "sha256-0o5lGx2VvOrULFiaS5Vt2nyQkH3z+6PIERSxJai8gHU=",
+    "vigy-store-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": "sha256-0o5lGx2VvOrULFiaS5Vt2nyQkH3z+6PIERSxJai8gHU=",
+    "vigy-types-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": "sha256-0o5lGx2VvOrULFiaS5Vt2nyQkH3z+6PIERSxJai8gHU="
   },
   "flake_metadata": {}
 }
