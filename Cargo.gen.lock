@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "585d082fd45e36bb39a2bf43b4c70a7b987ee95375612e757f3ed149465a2b84",
+  "cargo_lock_sha256": "2c73b5027b689609305e1390e82a587ed05be5444a8fbdd1932cf2763d05f96b",
   "manifest_sha256": {
-    "Cargo.toml": "0867de6c245bc169eb95f8295b151e4256638ff53a38a617a9b9aaec13a38bf3"
+    "Cargo.toml": "aea93f55918950447b7f48857831c5263f8003ffd9ddd115bf9c0a09fefc648e"
   },
   "target_resolves": {
     "base": {
@@ -8026,6 +8026,11 @@
             "tree": "target"
           }
         ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "katsuji-0.1.0-5da7b57bfe3e4470cd9ff5d5bf26df06491a80e8": {
+        "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
       },
@@ -26929,6 +26934,16 @@
                 "tree": "target"
               },
               {
+                "name": "katsuji",
+                "package_key": "katsuji-0.1.0-5da7b57bfe3e4470cd9ff5d5bf26df06491a80e8",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "libc",
                 "package_key": "libc-0.2.189",
                 "kind": "normal",
@@ -31965,6 +31980,16 @@
                 "tree": "target"
               },
               {
+                "name": "katsuji",
+                "package_key": "katsuji-0.1.0-5da7b57bfe3e4470cd9ff5d5bf26df06491a80e8",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "libc",
                 "package_key": "libc-0.2.189",
                 "kind": "normal",
@@ -36179,6 +36204,16 @@
               {
                 "name": "kanshou",
                 "package_key": "kanshou-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "katsuji",
+                "package_key": "katsuji-0.1.0-5da7b57bfe3e4470cd9ff5d5bf26df06491a80e8",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40550,6 +40585,16 @@
               {
                 "name": "kanshou",
                 "package_key": "kanshou-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "katsuji",
+                "package_key": "katsuji-0.1.0-5da7b57bfe3e4470cd9ff5d5bf26df06491a80e8",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45558,6 +45603,16 @@
                 "tree": "target"
               },
               {
+                "name": "katsuji",
+                "package_key": "katsuji-0.1.0-5da7b57bfe3e4470cd9ff5d5bf26df06491a80e8",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "libc",
                 "package_key": "libc-0.2.189",
                 "kind": "normal",
@@ -49744,6 +49799,16 @@
                 "tree": "target"
               },
               {
+                "name": "katsuji",
+                "package_key": "katsuji-0.1.0-5da7b57bfe3e4470cd9ff5d5bf26df06491a80e8",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "libc",
                 "package_key": "libc-0.2.189",
                 "kind": "normal",
@@ -53724,6 +53789,9 @@
       "edition": "2024",
       "proc_macro": true
     },
+    "katsuji-0.1.0-5da7b57bfe3e4470cd9ff5d5bf26df06491a80e8": {
+      "edition": "2024"
+    },
     "khronos-egl-6.0.0": {
       "edition": "2021",
       "build_script": "build.rs"
@@ -55412,6 +55480,7 @@
     "kanchi-0.1.3-59d1fcbfa26929fec78a0f90cdc2e6f6ba3e5058": "sha256-luuB/jT+tQuFzLQNjqhBEYGozJZrJ87ad//hWXuCYfc=",
     "kanshou-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
     "kanshou-derive-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
+    "katsuji-0.1.0-5da7b57bfe3e4470cd9ff5d5bf26df06491a80e8": "sha256-W1p5bFxS5R0Kb8DAE39v7KaJjPKitL+084DnZLN++hM=",
     "madori-0.1.5-79b33a4811853f1a8153735a69fb58bde894c2d9": "sha256-35DB90eBg+O8Ie2w8R4sfZr4B4NG+FPbUfwePl0x9qw=",
     "nami-core-0.1.9-9a6aced4a4f205ea9fdcd4d5e0862a97903e0919": "sha256-U34IOb1oRS+Uj8fEidIHN1F3n1RIlee3tnzDSfH2Gak=",
     "pleme-allvariants-derive-0.1.0-142b74f58ef31231d6f11ad572c9485156640d06": "sha256-UccPQkeqdS3+pY/6ZUO+KzAA7c6UkfYPkcHx8rldiuA=",
