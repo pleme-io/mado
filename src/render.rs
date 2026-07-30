@@ -6732,6 +6732,41 @@ mod render_invariants {
         }
     }
 
+    /// Every cell of a box-drawing run gets its own sprite — a long rule is
+    /// not thinned, batched away, or truncated at any length. Pins the
+    /// per-cell emission the operator's "the line renders partially" report
+    /// put under suspicion (2026-07-30); the rect path was measured correct
+    /// (40/40 and 30/30 cells covered), so this locks that in while the
+    /// visible artifact is chased elsewhere.
+    #[test]
+    fn box_drawing_run_emits_one_sprite_per_cell() {
+        for (label, feed, expect) in [
+            ("full-width", "─".repeat(40), 40usize),
+            ("partial-then-text", format!("{}{}", "─".repeat(30), " label"), 30),
+        ] {
+            let (r, t) = harness(40, 3);
+            {
+                let mut t = t.write();
+                t.feed(feed.as_bytes());
+            }
+            let cw = r.cell_width;
+            let mut sprite_cols = std::collections::BTreeSet::new();
+            for rc in &compute_rects(&r) {
+                // A `─` sprite is a thin horizontal bar: far shorter than a
+                // cell, and at least half a cell wide.
+                if rc.size[1] < r.cell_height * 0.5 && rc.size[0] > cw * 0.5 {
+                    sprite_cols.insert((rc.pos[0] / cw).round() as i32);
+                }
+            }
+            assert_eq!(
+                sprite_cols.len(),
+                expect,
+                "{label}: expected one box sprite per `─` cell, got {:?}",
+                sprite_cols
+            );
+        }
+    }
+
     // ── Scrolled-cursor visibility invariant ─────────────────────────
     //
     // ONE rule governs whether the live cursor is drawn while the
