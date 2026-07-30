@@ -58,6 +58,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # mado depends on ~20 PRIVATE pleme-io repos by git (nami-core, kanshou,
+      # madori, izumi, the derive family…), so an unauthenticated cargo cannot
+      # resolve them: the build died on the first one with
+      #   failed to load source for dependency `nami-core`
+      #   failed to authenticate when downloading repository
+      # This job never had a credential step, so it has been red on every run —
+      # failing at 2a90f46 and 4b7271a well before any of today's mado work.
+      # BOT_PAT is an org secret with ALL-repo visibility.
+      - uses: pleme-io/actions/git-credentials@main
+        with:
+          bot-pat: ${{ secrets.BOT_PAT }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
