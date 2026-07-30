@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "8d602be8fab4db5b1ac8342b1ae6c45fda3deef8a4f4e69b9d870e86061255f5",
+  "cargo_lock_sha256": "2be16d02c9da877554e4078aa34df67e49cbb6762b462c447c20b79701a2635e",
   "manifest_sha256": {
-    "Cargo.toml": "38c1bb02976b3106357158a3292043a6beb4064b1141bacc7aaa55be0535c398"
+    "Cargo.toml": "07ad7bd6e500b7a13ac28929ee6162e6c21983477efab34ea8bf21c7bf67248a"
   },
   "target_resolves": {
     "base": {
@@ -405,7 +405,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "async-compression-0.4.42": {
+      "async-compression-0.4.43": {
         "runtime_dependencies": [
           {
             "name": "compression_codecs",
@@ -3249,7 +3249,7 @@
         "runtime_dependencies": [
           {
             "name": "enum_ordinalize",
-            "package_key": "enum-ordinalize-4.4.1",
+            "package_key": "enum-ordinalize-4.4.2",
             "kind": "normal",
             "features": [
               "derive"
@@ -3497,11 +3497,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "engawa-0.1.4-6adb58cf67c65de94284766f4fd66c65d2f51709": {
+      "engawa-0.1.4-dd79e87f6282822e7fe4eaae5a676a1c49767013": {
         "runtime_dependencies": [
           {
             "name": "pleme_allvariants_derive",
-            "package_key": "pleme-allvariants-derive-0.1.0-c66f20d1dc5727cfa0d1f83a02a28609a13387ec",
+            "package_key": "pleme-allvariants-derive-0.1.0-142b74f58ef31231d6f11ad572c9485156640d06",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3551,7 +3551,7 @@
           },
           {
             "name": "engawa",
-            "package_key": "engawa-0.1.4-6adb58cf67c65de94284766f4fd66c65d2f51709",
+            "package_key": "engawa-0.1.4-dd79e87f6282822e7fe4eaae5a676a1c49767013",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3561,7 +3561,7 @@
           },
           {
             "name": "pleme_allvariants_derive",
-            "package_key": "pleme-allvariants-derive-0.1.0-c66f20d1dc5727cfa0d1f83a02a28609a13387ec",
+            "package_key": "pleme-allvariants-derive-0.1.0-142b74f58ef31231d6f11ad572c9485156640d06",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3595,7 +3595,7 @@
           "default"
         ]
       },
-      "enum-ordinalize-4.4.1": {
+      "enum-ordinalize-4.4.2": {
         "runtime_dependencies": [
           {
             "name": "enum_ordinalize_derive",
@@ -4652,7 +4652,7 @@
           "default"
         ]
       },
-      "gen-macros-0.1.28-2e55ccccce7332086c95fe0bede28949f8f2326a": {
+      "gen-macros-0.1.30-52883694820f96fc8822bd9d0dc187e3e95c71f9": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -4691,11 +4691,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "gen-platform-0.1.28-2e55ccccce7332086c95fe0bede28949f8f2326a": {
+      "gen-platform-0.1.30-52883694820f96fc8822bd9d0dc187e3e95c71f9": {
         "runtime_dependencies": [
           {
             "name": "gen_macros",
-            "package_key": "gen-macros-0.1.28-2e55ccccce7332086c95fe0bede28949f8f2326a",
+            "package_key": "gen-macros-0.1.30-52883694820f96fc8822bd9d0dc187e3e95c71f9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4705,7 +4705,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.28-2e55ccccce7332086c95fe0bede28949f8f2326a",
+            "package_key": "gen-types-0.1.30-52883694820f96fc8822bd9d0dc187e3e95c71f9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4759,7 +4759,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "gen-types-0.1.28-2e55ccccce7332086c95fe0bede28949f8f2326a": {
+      "gen-types-0.1.30-52883694820f96fc8822bd9d0dc187e3e95c71f9": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -5340,7 +5340,7 @@
           },
           {
             "name": "http",
-            "package_key": "http-1.4.2",
+            "package_key": "http-1.5.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5715,7 +5715,7 @@
           },
           {
             "name": "http",
-            "package_key": "http-1.4.2",
+            "package_key": "http-1.5.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5761,7 +5761,7 @@
         "runtime_dependencies": [
           {
             "name": "http",
-            "package_key": "http-1.4.2",
+            "package_key": "http-1.5.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5914,7 +5914,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "http-1.4.2": {
+      "http-1.5.0": {
         "runtime_dependencies": [
           {
             "name": "bytes",
@@ -5957,7 +5957,7 @@
           },
           {
             "name": "http",
-            "package_key": "http-1.4.2",
+            "package_key": "http-1.5.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5993,7 +5993,7 @@
           },
           {
             "name": "http",
-            "package_key": "http-1.4.2",
+            "package_key": "http-1.5.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -6094,7 +6094,7 @@
           },
           {
             "name": "http",
-            "package_key": "http-1.4.2",
+            "package_key": "http-1.5.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -6220,7 +6220,7 @@
           },
           {
             "name": "http",
-            "package_key": "http-1.4.2",
+            "package_key": "http-1.5.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -6319,7 +6319,7 @@
         "runtime_dependencies": [
           {
             "name": "http",
-            "package_key": "http-1.4.2",
+            "package_key": "http-1.5.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -6362,7 +6362,7 @@
           },
           {
             "name": "rustls",
-            "package_key": "rustls-0.23.42",
+            "package_key": "rustls-0.23.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -7345,7 +7345,7 @@
           "default"
         ]
       },
-      "ishou-tokens-0.1.4-395c331e62af71972056aa7923a044a6951b5df2": {
+      "ishou-tokens-0.1.4-817527c47bf8f36a6390c82ae1511f676bbc47f0": {
         "runtime_dependencies": [
           {
             "name": "irodori",
@@ -8212,7 +8212,7 @@
           },
           {
             "name": "http",
-            "package_key": "http-1.4.2",
+            "package_key": "http-1.5.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8335,7 +8335,7 @@
           },
           {
             "name": "rustls",
-            "package_key": "rustls-0.23.42",
+            "package_key": "rustls-0.23.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -8520,7 +8520,7 @@
           },
           {
             "name": "http",
-            "package_key": "http-1.4.2",
+            "package_key": "http-1.5.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -10012,7 +10012,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.4-395c331e62af71972056aa7923a044a6951b5df2",
+            "package_key": "ishou-tokens-0.1.4-817527c47bf8f36a6390c82ae1511f676bbc47f0",
             "kind": "normal",
             "features": [
               "wgpu"
@@ -11949,7 +11949,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "pleme-allvariants-derive-0.1.0-c66f20d1dc5727cfa0d1f83a02a28609a13387ec": {
+      "pleme-allvariants-derive-0.1.0-142b74f58ef31231d6f11ad572c9485156640d06": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -11988,7 +11988,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "pleme-fleet-themed-derive-0.1.1-a03a411857a340c89a0eefcb25b00ce6586abe30": {
+      "pleme-fleet-themed-derive-0.1.1-160b9757a9427c89095acf174665219cf917d627": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -12027,7 +12027,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "pleme-invalidating-setter-derive-0.1.0-ba2492fe88b02e0bc2d6057121e99888766a8d49": {
+      "pleme-invalidating-setter-derive-0.1.0-8df3b1bc76dbd92aa3fcd2fb9213adb5ef7f0b7c": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -12173,7 +12173,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "pleme-kindbyte-derive-0.1.0-f0922edec7e5d4ab6606c3e9057c94aa69c3d62f": {
+      "pleme-kindbyte-derive-0.1.0-f149963e6cab8b8c0e9bd0a23ed41efd3dfcdbd6": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -12212,7 +12212,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "pleme-kindstr-derive-0.1.0-d287f915e9bb8837a443f6238ee900e81318ce89": {
+      "pleme-kindstr-derive-0.1.0-9fde4c145f7ff57acd88275f74511e422d407f94": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -12453,7 +12453,7 @@
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.4-395c331e62af71972056aa7923a044a6951b5df2",
+            "package_key": "ishou-tokens-0.1.4-817527c47bf8f36a6390c82ae1511f676bbc47f0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13107,7 +13107,7 @@
           },
           {
             "name": "rustls",
-            "package_key": "rustls-0.23.42",
+            "package_key": "rustls-0.23.43",
             "kind": "normal",
             "features": [
               "std"
@@ -13257,7 +13257,7 @@
           },
           {
             "name": "rustls",
-            "package_key": "rustls-0.23.42",
+            "package_key": "rustls-0.23.43",
             "kind": "normal",
             "features": [
               "std"
@@ -14074,7 +14074,7 @@
           },
           {
             "name": "http",
-            "package_key": "http-1.4.2",
+            "package_key": "http-1.5.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14206,7 +14206,7 @@
           },
           {
             "name": "rustls",
-            "package_key": "rustls-0.23.42",
+            "package_key": "rustls-0.23.43",
             "kind": "normal",
             "features": [
               "std",
@@ -15037,7 +15037,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "rustls-0.23.42": {
+      "rustls-0.23.43": {
         "runtime_dependencies": [
           {
             "name": "log",
@@ -17387,7 +17387,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.414-f861496b189fda0d7c51f50fd1fb2bf3df2a5599": {
+      "shikumi-0.1.434-a478f47474c34c05593ccc09e55c58bea9df531a": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -17437,7 +17437,7 @@
           },
           {
             "name": "gen_platform",
-            "package_key": "gen-platform-0.1.28-2e55ccccce7332086c95fe0bede28949f8f2326a",
+            "package_key": "gen-platform-0.1.30-52883694820f96fc8822bd9d0dc187e3e95c71f9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17447,7 +17447,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.28-2e55ccccce7332086c95fe0bede28949f8f2326a",
+            "package_key": "gen-types-0.1.30-52883694820f96fc8822bd9d0dc187e3e95c71f9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17586,7 +17586,7 @@
           },
           {
             "name": "gen_platform",
-            "package_key": "gen-platform-0.1.28-2e55ccccce7332086c95fe0bede28949f8f2326a",
+            "package_key": "gen-platform-0.1.30-52883694820f96fc8822bd9d0dc187e3e95c71f9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17596,7 +17596,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.28-2e55ccccce7332086c95fe0bede28949f8f2326a",
+            "package_key": "gen-types-0.1.30-52883694820f96fc8822bd9d0dc187e3e95c71f9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18198,7 +18198,7 @@
           },
           {
             "name": "rustls",
-            "package_key": "rustls-0.23.42",
+            "package_key": "rustls-0.23.43",
             "kind": "normal",
             "features": [
               "std",
@@ -20574,66 +20574,6 @@
           "default"
         ]
       },
-      "tatara-lisp-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33": {
-        "runtime_dependencies": [
-          {
-            "name": "blake3",
-            "package_key": "blake3-1.8.5",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "serde",
-            "package_key": "serde-1.0.229",
-            "kind": "normal",
-            "features": [
-              "derive"
-            ],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "tatara_lisp_derive",
-            "package_key": "tatara-lisp-derive-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "host"
-          },
-          {
-            "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          }
-        ],
-        "build_dependencies": [],
-        "features": [
-          "default"
-        ]
-      },
       "tatara-lisp-0.3.4": {
         "runtime_dependencies": [
           {
@@ -20732,44 +20672,6 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-derive-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33": {
-        "runtime_dependencies": [
-          {
-            "name": "proc_macro2",
-            "package_key": "proc-macro2-1.0.107",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "quote",
-            "package_key": "quote-1.0.47",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "syn",
-            "package_key": "syn-2.0.119",
-            "kind": "normal",
-            "features": [
-              "full"
-            ],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          }
-        ],
-        "build_dependencies": [],
-        "features": []
-      },
       "tatara-lisp-derive-0.3.4": {
         "runtime_dependencies": [
           {
@@ -20808,11 +20710,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-eval-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33": {
+      "tatara-lisp-eval-0.3.4": {
         "runtime_dependencies": [
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33",
+            "package_key": "tatara-lisp-0.3.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21193,7 +21095,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.4-395c331e62af71972056aa7923a044a6951b5df2",
+            "package_key": "ishou-tokens-0.1.4-817527c47bf8f36a6390c82ae1511f676bbc47f0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21247,7 +21149,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.414-f861496b189fda0d7c51f50fd1fb2bf3df2a5599",
+            "package_key": "shikumi-0.1.434-a478f47474c34c05593ccc09e55c58bea9df531a",
             "kind": "normal",
             "features": [
               "cli"
@@ -21335,7 +21237,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.4-395c331e62af71972056aa7923a044a6951b5df2",
+            "package_key": "ishou-tokens-0.1.4-817527c47bf8f36a6390c82ae1511f676bbc47f0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21642,7 +21544,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.4-395c331e62af71972056aa7923a044a6951b5df2",
+            "package_key": "ishou-tokens-0.1.4-817527c47bf8f36a6390c82ae1511f676bbc47f0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22365,7 +22267,7 @@
           },
           {
             "name": "tokio_macros",
-            "package_key": "tokio-macros-2.7.1",
+            "package_key": "tokio-macros-2.7.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22398,7 +22300,7 @@
           "windows-sys"
         ]
       },
-      "tokio-macros-2.7.1": {
+      "tokio-macros-2.7.2": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -22422,7 +22324,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.119",
+            "package_key": "syn-3.0.3",
             "kind": "normal",
             "features": [
               "full"
@@ -22466,7 +22368,7 @@
         "runtime_dependencies": [
           {
             "name": "rustls",
-            "package_key": "rustls-0.23.42",
+            "package_key": "rustls-0.23.43",
             "kind": "normal",
             "features": [
               "std"
@@ -22974,7 +22876,7 @@
         "runtime_dependencies": [
           {
             "name": "async_compression",
-            "package_key": "async-compression-0.4.42",
+            "package_key": "async-compression-0.4.43",
             "kind": "normal",
             "features": [
               "tokio"
@@ -23036,7 +22938,7 @@
           },
           {
             "name": "http",
-            "package_key": "http-1.4.2",
+            "package_key": "http-1.5.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24044,11 +23946,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": {
+      "vigy-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": {
         "runtime_dependencies": [
           {
             "name": "vigy_eval",
-            "package_key": "vigy-eval-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
+            "package_key": "vigy-eval-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24058,7 +23960,7 @@
           },
           {
             "name": "vigy_mcp",
-            "package_key": "vigy-mcp-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
+            "package_key": "vigy-mcp-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24068,7 +23970,7 @@
           },
           {
             "name": "vigy_runtime",
-            "package_key": "vigy-runtime-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
+            "package_key": "vigy-runtime-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24078,7 +23980,7 @@
           },
           {
             "name": "vigy_store",
-            "package_key": "vigy-store-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
+            "package_key": "vigy-store-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24088,7 +23990,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
+            "package_key": "vigy-types-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24102,7 +24004,7 @@
           "mcp"
         ]
       },
-      "vigy-eval-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": {
+      "vigy-eval-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -24148,7 +24050,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33",
+            "package_key": "tatara-lisp-0.3.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24158,7 +24060,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33",
+            "package_key": "tatara-lisp-eval-0.3.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24222,7 +24124,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
+            "package_key": "vigy-types-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24234,7 +24136,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-mcp-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": {
+      "vigy-mcp-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -24299,7 +24201,7 @@
           },
           {
             "name": "vigy_runtime",
-            "package_key": "vigy-runtime-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
+            "package_key": "vigy-runtime-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24309,7 +24211,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
+            "package_key": "vigy-types-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24321,7 +24223,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-runtime-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": {
+      "vigy-runtime-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -24419,7 +24321,7 @@
           },
           {
             "name": "vigy_eval",
-            "package_key": "vigy-eval-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
+            "package_key": "vigy-eval-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24429,7 +24331,7 @@
           },
           {
             "name": "vigy_store",
-            "package_key": "vigy-store-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
+            "package_key": "vigy-store-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24439,7 +24341,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
+            "package_key": "vigy-types-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24451,7 +24353,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-store-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": {
+      "vigy-store-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -24603,7 +24505,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
+            "package_key": "vigy-types-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24615,7 +24517,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-types-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": {
+      "vigy-types-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -26397,7 +26299,7 @@
               },
               {
                 "name": "http",
-                "package_key": "http-1.4.2",
+                "package_key": "http-1.5.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26689,7 +26591,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.97": {
+          "mado-0.1.98": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26810,7 +26712,7 @@
               },
               {
                 "name": "engawa",
-                "package_key": "engawa-0.1.4-6adb58cf67c65de94284766f4fd66c65d2f51709",
+                "package_key": "engawa-0.1.4-dd79e87f6282822e7fe4eaae5a676a1c49767013",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26892,7 +26794,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.4-395c331e62af71972056aa7923a044a6951b5df2",
+                "package_key": "ishou-tokens-0.1.4-817527c47bf8f36a6390c82ae1511f676bbc47f0",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -27095,7 +26997,7 @@
               },
               {
                 "name": "pleme_allvariants_derive",
-                "package_key": "pleme-allvariants-derive-0.1.0-c66f20d1dc5727cfa0d1f83a02a28609a13387ec",
+                "package_key": "pleme-allvariants-derive-0.1.0-142b74f58ef31231d6f11ad572c9485156640d06",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27105,7 +27007,7 @@
               },
               {
                 "name": "pleme_fleet_themed_derive",
-                "package_key": "pleme-fleet-themed-derive-0.1.1-a03a411857a340c89a0eefcb25b00ce6586abe30",
+                "package_key": "pleme-fleet-themed-derive-0.1.1-160b9757a9427c89095acf174665219cf917d627",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27115,7 +27017,7 @@
               },
               {
                 "name": "pleme_invalidating_setter_derive",
-                "package_key": "pleme-invalidating-setter-derive-0.1.0-ba2492fe88b02e0bc2d6057121e99888766a8d49",
+                "package_key": "pleme-invalidating-setter-derive-0.1.0-8df3b1bc76dbd92aa3fcd2fb9213adb5ef7f0b7c",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27135,7 +27037,7 @@
               },
               {
                 "name": "pleme_kindbyte_derive",
-                "package_key": "pleme-kindbyte-derive-0.1.0-f0922edec7e5d4ab6606c3e9057c94aa69c3d62f",
+                "package_key": "pleme-kindbyte-derive-0.1.0-f149963e6cab8b8c0e9bd0a23ed41efd3dfcdbd6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27145,7 +27047,7 @@
               },
               {
                 "name": "pleme_kindstr_derive",
-                "package_key": "pleme-kindstr-derive-0.1.0-d287f915e9bb8837a443f6238ee900e81318ce89",
+                "package_key": "pleme-kindstr-derive-0.1.0-9fde4c145f7ff57acd88275f74511e422d407f94",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27368,7 +27270,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
+                "package_key": "vigy-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -31442,7 +31344,7 @@
               },
               {
                 "name": "http",
-                "package_key": "http-1.4.2",
+                "package_key": "http-1.5.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31725,7 +31627,7 @@
               "system"
             ]
           },
-          "mado-0.1.97": {
+          "mado-0.1.98": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31846,7 +31748,7 @@
               },
               {
                 "name": "engawa",
-                "package_key": "engawa-0.1.4-6adb58cf67c65de94284766f4fd66c65d2f51709",
+                "package_key": "engawa-0.1.4-dd79e87f6282822e7fe4eaae5a676a1c49767013",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31928,7 +31830,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.4-395c331e62af71972056aa7923a044a6951b5df2",
+                "package_key": "ishou-tokens-0.1.4-817527c47bf8f36a6390c82ae1511f676bbc47f0",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -32084,7 +31986,7 @@
               },
               {
                 "name": "pleme_allvariants_derive",
-                "package_key": "pleme-allvariants-derive-0.1.0-c66f20d1dc5727cfa0d1f83a02a28609a13387ec",
+                "package_key": "pleme-allvariants-derive-0.1.0-142b74f58ef31231d6f11ad572c9485156640d06",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32094,7 +31996,7 @@
               },
               {
                 "name": "pleme_fleet_themed_derive",
-                "package_key": "pleme-fleet-themed-derive-0.1.1-a03a411857a340c89a0eefcb25b00ce6586abe30",
+                "package_key": "pleme-fleet-themed-derive-0.1.1-160b9757a9427c89095acf174665219cf917d627",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32104,7 +32006,7 @@
               },
               {
                 "name": "pleme_invalidating_setter_derive",
-                "package_key": "pleme-invalidating-setter-derive-0.1.0-ba2492fe88b02e0bc2d6057121e99888766a8d49",
+                "package_key": "pleme-invalidating-setter-derive-0.1.0-8df3b1bc76dbd92aa3fcd2fb9213adb5ef7f0b7c",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32124,7 +32026,7 @@
               },
               {
                 "name": "pleme_kindbyte_derive",
-                "package_key": "pleme-kindbyte-derive-0.1.0-f0922edec7e5d4ab6606c3e9057c94aa69c3d62f",
+                "package_key": "pleme-kindbyte-derive-0.1.0-f149963e6cab8b8c0e9bd0a23ed41efd3dfcdbd6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32134,7 +32036,7 @@
               },
               {
                 "name": "pleme_kindstr_derive",
-                "package_key": "pleme-kindstr-derive-0.1.0-d287f915e9bb8837a443f6238ee900e81318ce89",
+                "package_key": "pleme-kindstr-derive-0.1.0-9fde4c145f7ff57acd88275f74511e422d407f94",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32357,7 +32259,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
+                "package_key": "vigy-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -35664,7 +35566,7 @@
               },
               {
                 "name": "http",
-                "package_key": "http-1.4.2",
+                "package_key": "http-1.5.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35947,7 +35849,7 @@
               "system"
             ]
           },
-          "mado-0.1.97": {
+          "mado-0.1.98": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -36068,7 +35970,7 @@
               },
               {
                 "name": "engawa",
-                "package_key": "engawa-0.1.4-6adb58cf67c65de94284766f4fd66c65d2f51709",
+                "package_key": "engawa-0.1.4-dd79e87f6282822e7fe4eaae5a676a1c49767013",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36150,7 +36052,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.4-395c331e62af71972056aa7923a044a6951b5df2",
+                "package_key": "ishou-tokens-0.1.4-817527c47bf8f36a6390c82ae1511f676bbc47f0",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -36306,7 +36208,7 @@
               },
               {
                 "name": "pleme_allvariants_derive",
-                "package_key": "pleme-allvariants-derive-0.1.0-c66f20d1dc5727cfa0d1f83a02a28609a13387ec",
+                "package_key": "pleme-allvariants-derive-0.1.0-142b74f58ef31231d6f11ad572c9485156640d06",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36316,7 +36218,7 @@
               },
               {
                 "name": "pleme_fleet_themed_derive",
-                "package_key": "pleme-fleet-themed-derive-0.1.1-a03a411857a340c89a0eefcb25b00ce6586abe30",
+                "package_key": "pleme-fleet-themed-derive-0.1.1-160b9757a9427c89095acf174665219cf917d627",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36326,7 +36228,7 @@
               },
               {
                 "name": "pleme_invalidating_setter_derive",
-                "package_key": "pleme-invalidating-setter-derive-0.1.0-ba2492fe88b02e0bc2d6057121e99888766a8d49",
+                "package_key": "pleme-invalidating-setter-derive-0.1.0-8df3b1bc76dbd92aa3fcd2fb9213adb5ef7f0b7c",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36346,7 +36248,7 @@
               },
               {
                 "name": "pleme_kindbyte_derive",
-                "package_key": "pleme-kindbyte-derive-0.1.0-f0922edec7e5d4ab6606c3e9057c94aa69c3d62f",
+                "package_key": "pleme-kindbyte-derive-0.1.0-f149963e6cab8b8c0e9bd0a23ed41efd3dfcdbd6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36356,7 +36258,7 @@
               },
               {
                 "name": "pleme_kindstr_derive",
-                "package_key": "pleme-kindstr-derive-0.1.0-d287f915e9bb8837a443f6238ee900e81318ce89",
+                "package_key": "pleme-kindstr-derive-0.1.0-9fde4c145f7ff57acd88275f74511e422d407f94",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36579,7 +36481,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
+                "package_key": "vigy-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -40026,7 +39928,7 @@
               },
               {
                 "name": "http",
-                "package_key": "http-1.4.2",
+                "package_key": "http-1.5.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40318,7 +40220,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.97": {
+          "mado-0.1.98": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -40439,7 +40341,7 @@
               },
               {
                 "name": "engawa",
-                "package_key": "engawa-0.1.4-6adb58cf67c65de94284766f4fd66c65d2f51709",
+                "package_key": "engawa-0.1.4-dd79e87f6282822e7fe4eaae5a676a1c49767013",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40521,7 +40423,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.4-395c331e62af71972056aa7923a044a6951b5df2",
+                "package_key": "ishou-tokens-0.1.4-817527c47bf8f36a6390c82ae1511f676bbc47f0",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -40724,7 +40626,7 @@
               },
               {
                 "name": "pleme_allvariants_derive",
-                "package_key": "pleme-allvariants-derive-0.1.0-c66f20d1dc5727cfa0d1f83a02a28609a13387ec",
+                "package_key": "pleme-allvariants-derive-0.1.0-142b74f58ef31231d6f11ad572c9485156640d06",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40734,7 +40636,7 @@
               },
               {
                 "name": "pleme_fleet_themed_derive",
-                "package_key": "pleme-fleet-themed-derive-0.1.1-a03a411857a340c89a0eefcb25b00ce6586abe30",
+                "package_key": "pleme-fleet-themed-derive-0.1.1-160b9757a9427c89095acf174665219cf917d627",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40744,7 +40646,7 @@
               },
               {
                 "name": "pleme_invalidating_setter_derive",
-                "package_key": "pleme-invalidating-setter-derive-0.1.0-ba2492fe88b02e0bc2d6057121e99888766a8d49",
+                "package_key": "pleme-invalidating-setter-derive-0.1.0-8df3b1bc76dbd92aa3fcd2fb9213adb5ef7f0b7c",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40764,7 +40666,7 @@
               },
               {
                 "name": "pleme_kindbyte_derive",
-                "package_key": "pleme-kindbyte-derive-0.1.0-f0922edec7e5d4ab6606c3e9057c94aa69c3d62f",
+                "package_key": "pleme-kindbyte-derive-0.1.0-f149963e6cab8b8c0e9bd0a23ed41efd3dfcdbd6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40774,7 +40676,7 @@
               },
               {
                 "name": "pleme_kindstr_derive",
-                "package_key": "pleme-kindstr-derive-0.1.0-d287f915e9bb8837a443f6238ee900e81318ce89",
+                "package_key": "pleme-kindstr-derive-0.1.0-9fde4c145f7ff57acd88275f74511e422d407f94",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40997,7 +40899,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
+                "package_key": "vigy-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -45035,7 +44937,7 @@
               },
               {
                 "name": "http",
-                "package_key": "http-1.4.2",
+                "package_key": "http-1.5.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45318,7 +45220,7 @@
               "system"
             ]
           },
-          "mado-0.1.97": {
+          "mado-0.1.98": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -45439,7 +45341,7 @@
               },
               {
                 "name": "engawa",
-                "package_key": "engawa-0.1.4-6adb58cf67c65de94284766f4fd66c65d2f51709",
+                "package_key": "engawa-0.1.4-dd79e87f6282822e7fe4eaae5a676a1c49767013",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45521,7 +45423,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.4-395c331e62af71972056aa7923a044a6951b5df2",
+                "package_key": "ishou-tokens-0.1.4-817527c47bf8f36a6390c82ae1511f676bbc47f0",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -45677,7 +45579,7 @@
               },
               {
                 "name": "pleme_allvariants_derive",
-                "package_key": "pleme-allvariants-derive-0.1.0-c66f20d1dc5727cfa0d1f83a02a28609a13387ec",
+                "package_key": "pleme-allvariants-derive-0.1.0-142b74f58ef31231d6f11ad572c9485156640d06",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45687,7 +45589,7 @@
               },
               {
                 "name": "pleme_fleet_themed_derive",
-                "package_key": "pleme-fleet-themed-derive-0.1.1-a03a411857a340c89a0eefcb25b00ce6586abe30",
+                "package_key": "pleme-fleet-themed-derive-0.1.1-160b9757a9427c89095acf174665219cf917d627",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45697,7 +45599,7 @@
               },
               {
                 "name": "pleme_invalidating_setter_derive",
-                "package_key": "pleme-invalidating-setter-derive-0.1.0-ba2492fe88b02e0bc2d6057121e99888766a8d49",
+                "package_key": "pleme-invalidating-setter-derive-0.1.0-8df3b1bc76dbd92aa3fcd2fb9213adb5ef7f0b7c",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45717,7 +45619,7 @@
               },
               {
                 "name": "pleme_kindbyte_derive",
-                "package_key": "pleme-kindbyte-derive-0.1.0-f0922edec7e5d4ab6606c3e9057c94aa69c3d62f",
+                "package_key": "pleme-kindbyte-derive-0.1.0-f149963e6cab8b8c0e9bd0a23ed41efd3dfcdbd6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45727,7 +45629,7 @@
               },
               {
                 "name": "pleme_kindstr_derive",
-                "package_key": "pleme-kindstr-derive-0.1.0-d287f915e9bb8837a443f6238ee900e81318ce89",
+                "package_key": "pleme-kindstr-derive-0.1.0-9fde4c145f7ff57acd88275f74511e422d407f94",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45950,7 +45852,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
+                "package_key": "vigy-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -49221,7 +49123,7 @@
               },
               {
                 "name": "http",
-                "package_key": "http-1.4.2",
+                "package_key": "http-1.5.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49504,7 +49406,7 @@
               "system"
             ]
           },
-          "mado-0.1.97": {
+          "mado-0.1.98": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -49625,7 +49527,7 @@
               },
               {
                 "name": "engawa",
-                "package_key": "engawa-0.1.4-6adb58cf67c65de94284766f4fd66c65d2f51709",
+                "package_key": "engawa-0.1.4-dd79e87f6282822e7fe4eaae5a676a1c49767013",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49707,7 +49609,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.4-395c331e62af71972056aa7923a044a6951b5df2",
+                "package_key": "ishou-tokens-0.1.4-817527c47bf8f36a6390c82ae1511f676bbc47f0",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -49863,7 +49765,7 @@
               },
               {
                 "name": "pleme_allvariants_derive",
-                "package_key": "pleme-allvariants-derive-0.1.0-c66f20d1dc5727cfa0d1f83a02a28609a13387ec",
+                "package_key": "pleme-allvariants-derive-0.1.0-142b74f58ef31231d6f11ad572c9485156640d06",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49873,7 +49775,7 @@
               },
               {
                 "name": "pleme_fleet_themed_derive",
-                "package_key": "pleme-fleet-themed-derive-0.1.1-a03a411857a340c89a0eefcb25b00ce6586abe30",
+                "package_key": "pleme-fleet-themed-derive-0.1.1-160b9757a9427c89095acf174665219cf917d627",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49883,7 +49785,7 @@
               },
               {
                 "name": "pleme_invalidating_setter_derive",
-                "package_key": "pleme-invalidating-setter-derive-0.1.0-ba2492fe88b02e0bc2d6057121e99888766a8d49",
+                "package_key": "pleme-invalidating-setter-derive-0.1.0-8df3b1bc76dbd92aa3fcd2fb9213adb5ef7f0b7c",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49903,7 +49805,7 @@
               },
               {
                 "name": "pleme_kindbyte_derive",
-                "package_key": "pleme-kindbyte-derive-0.1.0-f0922edec7e5d4ab6606c3e9057c94aa69c3d62f",
+                "package_key": "pleme-kindbyte-derive-0.1.0-f149963e6cab8b8c0e9bd0a23ed41efd3dfcdbd6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49913,7 +49815,7 @@
               },
               {
                 "name": "pleme_kindstr_derive",
-                "package_key": "pleme-kindstr-derive-0.1.0-d287f915e9bb8837a443f6238ee900e81318ce89",
+                "package_key": "pleme-kindstr-derive-0.1.0-9fde4c145f7ff57acd88275f74511e422d407f94",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -50136,7 +50038,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe",
+                "package_key": "vigy-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -52897,7 +52799,7 @@
     "async-broadcast-0.7.2": {
       "edition": "2021"
     },
-    "async-compression-0.4.42": {
+    "async-compression-0.4.43": {
       "edition": "2018"
     },
     "async-stream-0.3.6": {
@@ -53332,13 +53234,13 @@
     "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": {
       "edition": "2024"
     },
-    "engawa-0.1.4-6adb58cf67c65de94284766f4fd66c65d2f51709": {
+    "engawa-0.1.4-dd79e87f6282822e7fe4eaae5a676a1c49767013": {
       "edition": "2024"
     },
     "engawa-wgpu-0.1.8-acc2b02d46322077861c9e74c6d2e5cb15cb1e5f": {
       "edition": "2024"
     },
-    "enum-ordinalize-4.4.1": {
+    "enum-ordinalize-4.4.2": {
       "edition": "2024"
     },
     "enum-ordinalize-derive-4.4.1": {
@@ -53479,14 +53381,14 @@
       "edition": "2024",
       "build_script": "build.rs"
     },
-    "gen-macros-0.1.28-2e55ccccce7332086c95fe0bede28949f8f2326a": {
+    "gen-macros-0.1.30-52883694820f96fc8822bd9d0dc187e3e95c71f9": {
       "edition": "2024",
       "proc_macro": true
     },
-    "gen-platform-0.1.28-2e55ccccce7332086c95fe0bede28949f8f2326a": {
+    "gen-platform-0.1.30-52883694820f96fc8822bd9d0dc187e3e95c71f9": {
       "edition": "2024"
     },
-    "gen-types-0.1.28-2e55ccccce7332086c95fe0bede28949f8f2326a": {
+    "gen-types-0.1.30-52883694820f96fc8822bd9d0dc187e3e95c71f9": {
       "edition": "2024"
     },
     "generic-array-0.14.7": {
@@ -53594,7 +53496,7 @@
     "html5ever-0.29.1": {
       "edition": "2021"
     },
-    "http-1.4.2": {
+    "http-1.5.0": {
       "edition": "2021"
     },
     "http-body-1.1.0": {
@@ -53710,7 +53612,7 @@
     "is_terminal_polyfill-1.70.2": {
       "edition": "2021"
     },
-    "ishou-tokens-0.1.4-395c331e62af71972056aa7923a044a6951b5df2": {
+    "ishou-tokens-0.1.4-817527c47bf8f36a6390c82ae1511f676bbc47f0": {
       "edition": "2024"
     },
     "itertools-0.10.5": {
@@ -53854,7 +53756,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.97": {
+    "mado-0.1.98": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -54261,15 +54163,15 @@
     "pkg-config-0.3.33": {
       "edition": "2018"
     },
-    "pleme-allvariants-derive-0.1.0-c66f20d1dc5727cfa0d1f83a02a28609a13387ec": {
+    "pleme-allvariants-derive-0.1.0-142b74f58ef31231d6f11ad572c9485156640d06": {
       "edition": "2024",
       "proc_macro": true
     },
-    "pleme-fleet-themed-derive-0.1.1-a03a411857a340c89a0eefcb25b00ce6586abe30": {
+    "pleme-fleet-themed-derive-0.1.1-160b9757a9427c89095acf174665219cf917d627": {
       "edition": "2024",
       "proc_macro": true
     },
-    "pleme-invalidating-setter-derive-0.1.0-ba2492fe88b02e0bc2d6057121e99888766a8d49": {
+    "pleme-invalidating-setter-derive-0.1.0-8df3b1bc76dbd92aa3fcd2fb9213adb5ef7f0b7c": {
       "edition": "2024",
       "proc_macro": true
     },
@@ -54282,11 +54184,11 @@
         }
       ]
     },
-    "pleme-kindbyte-derive-0.1.0-f0922edec7e5d4ab6606c3e9057c94aa69c3d62f": {
+    "pleme-kindbyte-derive-0.1.0-f149963e6cab8b8c0e9bd0a23ed41efd3dfcdbd6": {
       "edition": "2024",
       "proc_macro": true
     },
-    "pleme-kindstr-derive-0.1.0-d287f915e9bb8837a443f6238ee900e81318ce89": {
+    "pleme-kindstr-derive-0.1.0-9fde4c145f7ff57acd88275f74511e422d407f94": {
       "edition": "2024",
       "proc_macro": true
     },
@@ -54512,7 +54414,7 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "rustls-0.23.42": {
+    "rustls-0.23.43": {
       "edition": "2021",
       "build_script": "build.rs"
     },
@@ -54701,7 +54603,7 @@
     "shidou-0.1.9-35c12221ac8622d90e03e21d5fec30ac329547e7": {
       "edition": "2024"
     },
-    "shikumi-0.1.414-f861496b189fda0d7c51f50fd1fb2bf3df2a5599": {
+    "shikumi-0.1.434-a478f47474c34c05593ccc09e55c58bea9df531a": {
       "edition": "2024"
     },
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": {
@@ -54868,9 +54770,6 @@
     "tatara-lisp-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
       "edition": "2021"
     },
-    "tatara-lisp-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33": {
-      "edition": "2021"
-    },
     "tatara-lisp-0.3.4": {
       "edition": "2021"
     },
@@ -54878,15 +54777,11 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-lisp-derive-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33": {
-      "edition": "2021",
-      "proc_macro": true
-    },
     "tatara-lisp-derive-0.3.4": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-lisp-eval-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33": {
+    "tatara-lisp-eval-0.3.4": {
       "edition": "2021"
     },
     "tatara-nix-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
@@ -54981,7 +54876,7 @@
     "tokio-1.53.1": {
       "edition": "2021"
     },
-    "tokio-macros-2.7.1": {
+    "tokio-macros-2.7.2": {
       "edition": "2021",
       "proc_macro": true
     },
@@ -55174,22 +55069,22 @@
     "version_check-0.9.5": {
       "edition": "2015"
     },
-    "vigy-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": {
+    "vigy-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": {
       "edition": "2021"
     },
-    "vigy-eval-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": {
+    "vigy-eval-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": {
       "edition": "2021"
     },
-    "vigy-mcp-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": {
+    "vigy-mcp-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": {
       "edition": "2021"
     },
-    "vigy-runtime-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": {
+    "vigy-runtime-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": {
       "edition": "2021"
     },
-    "vigy-store-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": {
+    "vigy-store-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": {
       "edition": "2021"
     },
-    "vigy-types-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": {
+    "vigy-types-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": {
       "edition": "2021"
     },
     "vte-0.15.0": {
@@ -55429,16 +55324,16 @@
     "egaku-0.1.3-81d168190061c452d115f58f186429b84f489be8": "sha256-sNTpm8OD42MDucjVuV5ag1xcoMZatDk4GVIuRFRLa4c=",
     "engate-attach-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": "sha256-7dqrUg3KMEKH5ac5RuK7EJRogt4H3xtv6nDrM0jpccM=",
     "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": "sha256-7dqrUg3KMEKH5ac5RuK7EJRogt4H3xtv6nDrM0jpccM=",
-    "engawa-0.1.4-6adb58cf67c65de94284766f4fd66c65d2f51709": "sha256-6KgjV+OlpnaIIVUAMvD/CfCfjjroj8cxjxpx8Pko8AI=",
+    "engawa-0.1.4-dd79e87f6282822e7fe4eaae5a676a1c49767013": "sha256-M86ijOVbV64ioLLQiM4TcGIvwTGlG2LABf5ntIMMIIA=",
     "engawa-wgpu-0.1.8-acc2b02d46322077861c9e74c6d2e5cb15cb1e5f": "sha256-sE/Qeve2DJY8NVMxAzjRbeZWIUmmWoF6hUAUusSJ4So=",
     "garasu-0.1.4-a2afc2ad6530ed096ab26f5d92bd4e1d348253ee": "sha256-//cvGAyxRVhcwHD56yf9M5SPn63GiwP+y06b8OlVfvs=",
-    "gen-macros-0.1.28-2e55ccccce7332086c95fe0bede28949f8f2326a": "sha256-zv0Y30JJUIQE3Ve0/TSaselO9XYzUY0LGxEf+zbW37s=",
-    "gen-platform-0.1.28-2e55ccccce7332086c95fe0bede28949f8f2326a": "sha256-zv0Y30JJUIQE3Ve0/TSaselO9XYzUY0LGxEf+zbW37s=",
-    "gen-types-0.1.28-2e55ccccce7332086c95fe0bede28949f8f2326a": "sha256-zv0Y30JJUIQE3Ve0/TSaselO9XYzUY0LGxEf+zbW37s=",
+    "gen-macros-0.1.30-52883694820f96fc8822bd9d0dc187e3e95c71f9": "sha256-GPE/+Jr6MghHHigYM+vLNSfCa6X5P52lsn4JblgnzSM=",
+    "gen-platform-0.1.30-52883694820f96fc8822bd9d0dc187e3e95c71f9": "sha256-GPE/+Jr6MghHHigYM+vLNSfCa6X5P52lsn4JblgnzSM=",
+    "gen-types-0.1.30-52883694820f96fc8822bd9d0dc187e3e95c71f9": "sha256-GPE/+Jr6MghHHigYM+vLNSfCa6X5P52lsn4JblgnzSM=",
     "hasami-0.1.2-9ac5d963d7fc786d0144968f3de78bc044839813": "sha256-GguTYXyHpiiXASD8fcLunSaKueunYXUF10FeB8FRTE8=",
     "hayai-0.1.1-0aa8014aa7ca0d4723e5b46a3dd68daa21dec7b3": "sha256-5Tt5kEJclnNn07QvwVQhf7uFCiElFi86xegaPs1GArw=",
     "irodzuki-0.1.7-d3bfe781e9c813164a37a0e0a1eeef16f5be9515": "sha256-7iA13F9fE1MktjUB89kQIiVY6TB0wTNHmHNGSJcj9Lg=",
-    "ishou-tokens-0.1.4-395c331e62af71972056aa7923a044a6951b5df2": "sha256-SM+MCVVGr5VqkD38kC6Ds11pHoUU79LdBlZZMNXmSHc=",
+    "ishou-tokens-0.1.4-817527c47bf8f36a6390c82ae1511f676bbc47f0": "sha256-GY/N8QJDP4wswUFn42xDykXsSjzpK8WYLtug64EIZBg=",
     "izumi-0.1.5-56babeeab1c8ecdf9e0724b7cfd4557ad5225e70": "sha256-lME8GZOH6uDC16KfnY5TXEt/dFAWSum7Z89bwj+G+ac=",
     "izumi-config-0.1.5-56babeeab1c8ecdf9e0724b7cfd4557ad5225e70": "sha256-lME8GZOH6uDC16KfnY5TXEt/dFAWSum7Z89bwj+G+ac=",
     "izumi-sources-0.1.5-56babeeab1c8ecdf9e0724b7cfd4557ad5225e70": "sha256-lME8GZOH6uDC16KfnY5TXEt/dFAWSum7Z89bwj+G+ac=",
@@ -55448,23 +55343,20 @@
     "kanshou-derive-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
     "madori-0.1.5-79b33a4811853f1a8153735a69fb58bde894c2d9": "sha256-35DB90eBg+O8Ie2w8R4sfZr4B4NG+FPbUfwePl0x9qw=",
     "nami-core-0.1.9-9a6aced4a4f205ea9fdcd4d5e0862a97903e0919": "sha256-U34IOb1oRS+Uj8fEidIHN1F3n1RIlee3tnzDSfH2Gak=",
-    "pleme-allvariants-derive-0.1.0-c66f20d1dc5727cfa0d1f83a02a28609a13387ec": "sha256-XiO3eXRNjEzczetYv1+AYnyPrIuGpA/FYfRHD47QQYY=",
-    "pleme-fleet-themed-derive-0.1.1-a03a411857a340c89a0eefcb25b00ce6586abe30": "sha256-exAgNUG4ApPkxvK/DCKRqeGQzO0fAdDC4Rc8lzegQKs=",
-    "pleme-invalidating-setter-derive-0.1.0-ba2492fe88b02e0bc2d6057121e99888766a8d49": "sha256-CQG8YvxrlXPuMS0LI1snvTPA0BiFkLkvK0uTfAVbRBc=",
-    "pleme-kindbyte-derive-0.1.0-f0922edec7e5d4ab6606c3e9057c94aa69c3d62f": "sha256-y8TLCtWL46lZXpA3/s5VTbGfS4rsaxI2E4JxlA66Lgo=",
-    "pleme-kindstr-derive-0.1.0-d287f915e9bb8837a443f6238ee900e81318ce89": "sha256-5XDr9kPiT0doWBOOk9yXjxdTCpRgaqWWJCpsc1f+tdw=",
+    "pleme-allvariants-derive-0.1.0-142b74f58ef31231d6f11ad572c9485156640d06": "sha256-UccPQkeqdS3+pY/6ZUO+KzAA7c6UkfYPkcHx8rldiuA=",
+    "pleme-fleet-themed-derive-0.1.1-160b9757a9427c89095acf174665219cf917d627": "sha256-owcgPlHScG8e3ensxvLdsQDqoelLhJHlzzZBBSEfk5g=",
+    "pleme-invalidating-setter-derive-0.1.0-8df3b1bc76dbd92aa3fcd2fb9213adb5ef7f0b7c": "sha256-V57vmtWy8SI6IqsAtz5c4lNC0LDCRiRxA8tg0UJWXg8=",
+    "pleme-kindbyte-derive-0.1.0-f149963e6cab8b8c0e9bd0a23ed41efd3dfcdbd6": "sha256-TCiyRkxGuJRjXv7xkNtPuUCHRpgyY8qrf978ug5gSn0=",
+    "pleme-kindstr-derive-0.1.0-9fde4c145f7ff57acd88275f74511e422d407f94": "sha256-MjK6VPYt1inzElKtmBQF8piLCsOPFGqEYBilWiXYnLQ=",
     "praca-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",
     "shidou-0.1.9-35c12221ac8622d90e03e21d5fec30ac329547e7": "sha256-rjs+1FgZD/d2rqK7EXglvJI0IlziAYLwLOiQAJOE7PQ=",
-    "shikumi-0.1.414-f861496b189fda0d7c51f50fd1fb2bf3df2a5599": "sha256-82RShYLQ0QsAskhepDL9m3Onjxt6/qRs02XunPZSqGs=",
+    "shikumi-0.1.434-a478f47474c34c05593ccc09e55c58bea9df531a": "sha256-qYmk8ttgPoCyCk8IZqiI02cIJ+gQKuLQUPR+fgzoIos=",
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": "sha256-Jd6fUoNSdzk+I5iu7FbAg9F9gbc7oU9jdPnnaTIxL6w=",
     "tatara-core-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
     "tatara-eval-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
     "tatara-lattice-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
     "tatara-lisp-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
-    "tatara-lisp-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33": "sha256-NdHyv6hHK8yc4fXHcwZ9a6gRixASjjj3yGNsmk2t6ug=",
     "tatara-lisp-derive-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
-    "tatara-lisp-derive-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33": "sha256-NdHyv6hHK8yc4fXHcwZ9a6gRixASjjj3yGNsmk2t6ug=",
-    "tatara-lisp-eval-0.2.5-6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33": "sha256-NdHyv6hHK8yc4fXHcwZ9a6gRixASjjj3yGNsmk2t6ug=",
     "tatara-nix-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
     "tatara-process-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
     "tear-client-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",
@@ -55474,12 +55366,12 @@
     "tear-types-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",
     "todoku-0.1.0-f0a67611b5514424117496f470a9f88688f55ddb": "sha256-OO7J7EXr0KczG/kCcyHsLlI1T7DmfLKjltS3IutHzi0=",
     "tsuuchi-0.1.5-86539e03f9e90334afa02284ebb8e6e7806c8a39": "sha256-O0xC2BNJp+R7Xwso9c0RFGfSHwRqieCRWZHTzqKWbu8=",
-    "vigy-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": "sha256-0o5lGx2VvOrULFiaS5Vt2nyQkH3z+6PIERSxJai8gHU=",
-    "vigy-eval-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": "sha256-0o5lGx2VvOrULFiaS5Vt2nyQkH3z+6PIERSxJai8gHU=",
-    "vigy-mcp-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": "sha256-0o5lGx2VvOrULFiaS5Vt2nyQkH3z+6PIERSxJai8gHU=",
-    "vigy-runtime-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": "sha256-0o5lGx2VvOrULFiaS5Vt2nyQkH3z+6PIERSxJai8gHU=",
-    "vigy-store-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": "sha256-0o5lGx2VvOrULFiaS5Vt2nyQkH3z+6PIERSxJai8gHU=",
-    "vigy-types-0.1.5-ba2b9c8d49e0e149bd9a29454d13c5ba1c7c44fe": "sha256-0o5lGx2VvOrULFiaS5Vt2nyQkH3z+6PIERSxJai8gHU="
+    "vigy-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": "sha256-ymhdL2olSMNDqc4i2Ez5IJjXLJWJfOmSNlLkw+izXOE=",
+    "vigy-eval-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": "sha256-ymhdL2olSMNDqc4i2Ez5IJjXLJWJfOmSNlLkw+izXOE=",
+    "vigy-mcp-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": "sha256-ymhdL2olSMNDqc4i2Ez5IJjXLJWJfOmSNlLkw+izXOE=",
+    "vigy-runtime-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": "sha256-ymhdL2olSMNDqc4i2Ez5IJjXLJWJfOmSNlLkw+izXOE=",
+    "vigy-store-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": "sha256-ymhdL2olSMNDqc4i2Ez5IJjXLJWJfOmSNlLkw+izXOE=",
+    "vigy-types-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": "sha256-ymhdL2olSMNDqc4i2Ez5IJjXLJWJfOmSNlLkw+izXOE="
   },
   "flake_metadata": {}
 }
