@@ -92,6 +92,13 @@ shidou = { git = "https://github.com/pleme-io/shidou" , version = "0.1" }
 # while GUI renders 120 fps" class. See pleme-io/kanshou.
 kanshou = { git = "https://github.com/pleme-io/kanshou" , version = "0.1" }
 
+# Katsuji (活字) — typed terminal emission. `mado banner` composes its wordmark
+# from typed pieces rather than concatenating escapes, and the glyph set is the
+# 21 chars render.rs synthesises as GPU rects; the other 139 in the same Unicode
+# block have no geometry and render as tofu. `Crisp` has no variant for one, so
+# the banner cannot name a glyph mado itself cannot draw.
+katsuji = { git = "https://github.com/pleme-io/katsuji" , version = "0.1" }
+
 # Macro-farm-emitted derive — `#[derive(InvalidatingSetter)]` with
 # `#[invalidating_setter]` field opt-in. Replaces the hand-written
 # cache-invalidating setters on TerminalRenderer (selection_bg,

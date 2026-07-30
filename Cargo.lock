@@ -3025,6 +3025,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "katsuji"
+version = "0.1.0"
+source = "git+https://github.com/pleme-io/katsuji#5da7b57bfe3e4470cd9ff5d5bf26df06491a80e8"
+
+[[package]]
 name = "khronos-egl"
 version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3380,6 +3385,7 @@ dependencies = [
  "kaname",
  "kanchi",
  "kanshou",
+ "katsuji",
  "libc",
  "linkify",
  "lru",

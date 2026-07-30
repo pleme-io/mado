@@ -17,6 +17,7 @@ mod action_injection;
 mod ambience;
 mod auto_attach;
 mod auto_detect;
+mod banner;
 mod browser_bridge;
 mod browser_engine;
 mod browser_fetch;
@@ -145,6 +146,13 @@ enum SubCmd {
     /// mado see on this machine" + fleet-wide auditing via
     /// `tend` / scripted queries.
     PrintPosture,
+    /// Print the mado wordmark and the running version.
+    ///
+    /// Composed from katsuji's typed pieces, so every decorative glyph is one
+    /// of the 21 mado synthesises as GPU rects — the banner cannot name a
+    /// character it would render as tofu. Styling is dropped automatically
+    /// when stdout is not a terminal, so piping it yields clean text.
+    Banner,
     /// Emit sample desktop-notification escapes to stdout. Run this
     /// **inside a Mado.app window** — the hosting mado parses the OSC
     /// 9 / 777 / 99 sequences and BEL and fires the whole notification
@@ -461,6 +469,20 @@ fn main() -> anyhow::Result<()> {
                 panel_ratio.is_known(),
                 panel_ratio.is_downscaled()
             );
+            return Ok(());
+        }
+        Some(SubCmd::Banner) => {
+            // Styled to a terminal, plain to a pipe or a file. Both come from
+            // the SAME typed composition, so there is no second code path to
+            // keep in sync — which is the point of `plain()` existing beside
+            // `render()` rather than a strip-the-escapes pass.
+            use std::io::IsTerminal;
+            let version = env!("CARGO_PKG_VERSION");
+            if std::io::stdout().is_terminal() {
+                print!("{}", crate::banner::render(version));
+            } else {
+                print!("{}", crate::banner::plain(version));
+            }
             return Ok(());
         }
         Some(SubCmd::NotifyTest) => {
