@@ -196,9 +196,15 @@ nami-core = { git = "https://github.com/pleme-io/nami-core", rev = "9a6aced4a4f2
 # module's `spec` border: `#[derive(DeriveTataraDomain)]` turns
 # `(deffloatingbrowser …)` / `(defsnapzone …)` forms into typed specs
 # (org Pillar 1: Rust owns types, tatara-lisp owns declarative authoring).
-# SAME git source as vigy's tatara-lisp dep so cargo unifies ONE tatara-lisp
-# crate identity (vigy already locks it at 0.2.5 — one git source rule).
-tatara-lisp = { git = "https://github.com/pleme-io/tatara-lisp" , version = "0.2" }
+# Plain crates.io dep on the CANONICAL published tatara-lisp (0.3.3, published
+# 2026-07-30 from pleme-io/tatara-lisp). The retired pleme-io/tatara sibling
+# published the same crate names at 0.2.154 and is now `publish = false` —
+# nothing here may resolve through it. mado's tatara-lisp surface is confined to
+# `float::spec` (derive + `compile_typed`); no tatara-lisp TYPE crosses the vigy
+# or nami-core boundary (mado touches `vigy::eval::*` through vigy's own paths
+# and nami-core's `lisp` API is string-in/string-out), so those crates keeping
+# their own tatara-lisp source is not an identity split mado can observe.
+tatara-lisp = { version = "0.3.3" }
 
 # Vigy — always-on tatara-lisp reconciler runtime, embedded in-process.
 # Hosts small reconcilers ("vigies") that tick continuously to keep
