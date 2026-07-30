@@ -11,7 +11,15 @@ license = "MIT"
 documentation = "https://docs.rs/mado"
 categories = ["command-line-utilities"]
 keywords = ["terminal", "emulator", "gpu", "wgpu", "vte"]
-publish = true
+# The crates.io name `mado` is owned by another publisher (bennobuilder,
+# v0.0.15), so `publish = true` could never succeed — every release run took
+# the 403 not-an-owner arm. False makes the manifest honest and the run a
+# clean skip. If mado should reach crates.io, the remedy is a rename of the
+# PACKAGE to `pleme-io-mado` (fleet precedent: pleme-dojo, pleme-tear) with
+# `[[bin]] name = "mado"` keeping the binary name; that is a deliberate
+# decision about the crate's public identity, not a mechanical fix, so it is
+# left open rather than taken here.
+publish = false
 
 # The pure `motion` animation algebra is exposed as a library target so
 # `benches/*.rs` (separate crates) can link + bench it. The application
