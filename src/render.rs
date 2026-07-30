@@ -3845,17 +3845,42 @@ impl TerminalRenderer {
             || !self.cursor_blink
             || crate::motion::blink_on(elapsed, self.cursor_blink_rate_ms as f32 / 1000.0 * 2.0);
 
-        // While scrolled into history the live-grid cursor position
-        // is meaningless for the rows on screen — drawing it painted
-        // a phantom insertion point over history text (2026-06-11).
+        // Where the live cursor actually lands on screen. `scroll_offset`
+        // counts rows BELOW the viewport's bottom edge (see the scrollbar
+        // math further down), and the viewport starts at
+        // `scrollback_total - scroll_offset` (snapshot(), `viewport_top_abs`),
+        // so an absolute row maps to `abs - viewport_top_abs` and the
+        // cursor's absolute row is `scrollback_total + cursor.row`. The two
+        // `scrollback_total` terms cancel:
+        //
+        //     cursor_screen_row = cursor.row + scroll_offset
+        //
+        // i.e. scrolling back through history pushes the live cursor DOWN
+        // and eventually off the bottom — it does not simply vanish.
+        //
+        // This guard used to be `scroll_offset == 0`, which suppressed the
+        // cursor for ANY scroll at all. That was the 2026-06-11 fix for a
+        // phantom insertion point painted over history text, but it is far
+        // broader than that bug requires: it also deletes the cursor while
+        // it is still plainly inside the viewport. With a prompt near the
+        // TOP of a tall window (a fresh shell, most of the screen empty)
+        // the cursor is ~40 rows clear of the bottom, so a one-notch scroll
+        // erased it — and because a keystroke's snap-to-bottom could be
+        // undone a frame later by an in-flight momentum glide (see
+        // `ux::engine::write_key_input`), it went missing WHILE TYPING.
+        // Operator report 2026-07-30: "the cursor is at the wrong place".
+        //
+        // Bounding on the REAL screen row keeps the phantom fixed — an
+        // off-viewport cursor is still not drawn — while restoring it
+        // whenever it is genuinely on screen.
+        let cursor_screen_row = snap.cursor.row + snap.scroll_offset;
         if snap.cursor.visible
             && cursor_on
-            && snap.scroll_offset == 0
-            && snap.cursor.row < snap.num_rows
+            && cursor_screen_row < snap.num_rows
             && snap.cursor.col < snap.cols
         {
             let cx = origin_x + snap.cursor.col as f32 * self.cell_width;
-            let cy = origin_y + snap.cursor.row as f32 * self.cell_height;
+            let cy = origin_y + cursor_screen_row as f32 * self.cell_height;
 
             let effective_style = if self.focused {
                 self.cursor_style
@@ -6705,6 +6730,106 @@ mod render_invariants {
             assert!(rect.size[0] > 0.0, "zero/neg rect width: {rect:?}");
             assert!(rect.size[1] > 0.0, "zero/neg rect height: {rect:?}");
         }
+    }
+
+    // ── Scrolled-cursor visibility invariant ─────────────────────────
+    //
+    // ONE rule governs whether the live cursor is drawn while the
+    // operator is scrolled back:
+    //
+    //     draw  ⟺  cursor.row + scroll_offset  <  num_rows
+    //
+    // i.e. draw it exactly when it is genuinely inside the viewport.
+    // The draw pass used to test `scroll_offset == 0` instead, which
+    // implies the rule but is strictly stronger — it also erased a
+    // cursor that was still plainly on screen (operator report
+    // 2026-07-30, "the cursor is at the wrong place"). Nothing pinned
+    // the relationship, which is why the over-broad guard survived:
+    // `cursor_rect_disappears_when_outside_viewport` above never
+    // scrolls, and `snapshot_carries_scroll_state` only checks that the
+    // snapshot carries the field. These three tests pin both
+    // directions, so neither the phantom nor the erasure can come back.
+
+    /// Scrolled back, but the cursor's row is STILL inside the viewport
+    /// (a prompt near the top of a mostly-empty window — the reported
+    /// case): it must be drawn, at its scrolled position.
+    #[test]
+    fn cursor_stays_drawn_while_scrolled_if_its_row_is_still_on_screen() {
+        let (r, t) = harness(20, 10);
+        {
+            let mut t = t.write();
+            for _ in 0..40 {
+                t.feed(b"line\r\n"); // build scrollback
+            }
+            // Home + erase screen, then a short prompt: the cursor sits
+            // on row 0 of an otherwise empty viewport, exactly like a
+            // fresh shell prompt with history behind it.
+            t.feed(b"\x1b[H\x1b[2J$ ");
+            t.scroll_up(3); // operator scrolls back three rows
+        }
+        let (snap, _) = r.snapshot();
+        assert_eq!(snap.scroll_offset, 3, "test premise: scrolled back 3");
+        assert_eq!(snap.cursor.row, 0, "test premise: prompt on the top row");
+
+        let rects = compute_rects(&r);
+        let cur = cursor_rects(&rects, r.cursor_color);
+        assert_eq!(
+            cur.len(),
+            1,
+            "cursor row 0 + offset 3 = screen row 3, inside a 10-row \
+             viewport — it must still be drawn"
+        );
+        // Drawn at the SCROLLED row, not the live-grid row.
+        assert!(
+            (cur[0].pos[1] - 3.0 * r.cell_height).abs() < 0.01,
+            "cursor must be drawn at screen row 3 (y = 3*cell_height = {}), got y = {}",
+            3.0 * r.cell_height,
+            cur[0].pos[1]
+        );
+    }
+
+    /// Scrolled far enough that the live cursor has been pushed off the
+    /// bottom: it must NOT be drawn (the 2026-06-11 phantom-insertion-
+    /// point guard, preserved).
+    #[test]
+    fn cursor_is_not_drawn_once_scrolling_pushes_it_off_the_viewport() {
+        let (r, t) = harness(20, 10);
+        {
+            let mut t = t.write();
+            for _ in 0..40 {
+                t.feed(b"line\r\n");
+            }
+            t.feed(b"\x1b[H\x1b[2J$ ");
+            t.scroll_up(20); // 0 + 20 >= 10 rows → off the bottom
+        }
+        let rects = compute_rects(&r);
+        assert!(
+            cursor_rects(&rects, r.cursor_color).is_empty(),
+            "a cursor scrolled off the viewport must not be painted over \
+             history rows"
+        );
+    }
+
+    /// The everyday case the original guard was written for: with the
+    /// cursor on the LAST row, even a one-row scroll moves it off the
+    /// bottom, so it correctly disappears. Same rule, no special case.
+    #[test]
+    fn cursor_on_last_row_disappears_after_a_single_row_scroll() {
+        let (r, t) = harness(20, 10);
+        {
+            let mut t = t.write();
+            for _ in 0..40 {
+                t.feed(b"line\r\n");
+            }
+            let row = t.cursor().row;
+            assert_eq!(row, 9, "test premise: cursor rests on the last row");
+            t.scroll_up(1);
+        }
+        let rects = compute_rects(&r);
+        assert!(
+            cursor_rects(&rects, r.cursor_color).is_empty(),
+            "row 9 + offset 1 = screen row 10, past a 10-row viewport"
+        );
     }
 
     #[test]

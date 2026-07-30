@@ -4736,13 +4736,61 @@ impl Terminal {
 
         let advance = char_width.max(1);
         if self.cursor.col + advance >= self.cols {
-            if self.auto_wrap {
-                self.wrap_pending = true;
-            }
+            self.park_at_right_margin();
         } else {
             self.cursor.col += advance;
         }
         self.dirty();
+    }
+
+    /// Park the cursor ON the last column and raise the deferred-wrap
+    /// (`xenl`) flag when DECAWM is on. **The single writer of
+    /// `wrap_pending = true`**, which is what makes the invariant
+    ///
+    /// > `wrap_pending` ⇒ `cursor.col == cols - 1`
+    ///
+    /// hold *by construction* rather than by convention — every reader
+    /// of `wrap_pending` (today: `put_char`'s wrap trigger and
+    /// `print`'s combining-mark path) may rely on it.
+    ///
+    /// Why the clamp is load-bearing (fixed 2026-07-30, operator report
+    /// "the cursor ends up in the wrong place"): the old code raised the
+    /// flag but left `cursor.col` untouched. For a width-1 glyph that is
+    /// already the last column, so it was invisible. For a width-2 glyph
+    /// landing FLUSH against the margin — lead at `cols-2`, continuation
+    /// at `cols-1` — the cursor was left on the LEAD, one column short of
+    /// where xterm parks it (xterm advances by the glyph width, then
+    /// clamps to `max_col` and sets its wrap flag). Two observable
+    /// divergences followed from that one column:
+    ///
+    ///   * every subsequent RELATIVE motion was off by one — `BS` after a
+    ///     margin-flush CJK glyph moved to `cols-3` instead of `cols-2`,
+    ///     so the next typed character overwrote the character BEFORE the
+    ///     wide glyph instead of the glyph itself;
+    ///   * `CSI 6n` (CPR) under-reported the column by one, lying to any
+    ///     program that probes cursor position.
+    fn park_at_right_margin(&mut self) {
+        self.cursor.col = self.cols.saturating_sub(1);
+        if self.auto_wrap {
+            self.wrap_pending = true;
+        }
+    }
+
+    /// The column of the LEAD cell of the glyph occupying `col`: `col`
+    /// itself when that cell is a normal or lead cell, and the lead's
+    /// column when `col` is the width-0 CONTINUATION of a wide glyph.
+    ///
+    /// Solve-once for "which glyph does this column actually belong to".
+    /// Two copies of this walk existed and had already drifted apart —
+    /// one of them skipped the walk entirely — so any site that needs to
+    /// resolve a column to its glyph calls this instead of re-rolling the
+    /// loop.
+    fn lead_col_at(&self, row: usize, col: usize) -> usize {
+        let mut c = col.min(self.cols.saturating_sub(1));
+        while c > 0 && self.grid().cell(row, c).width == 0 {
+            c -= 1;
+        }
+        c
     }
 
     /// The background-color-erase (BCE) fill cell: a blank space
@@ -5506,18 +5554,24 @@ impl vte::Perform for Terminal {
 
         // Combining characters (zero-width) append to the previous cell
         if UnicodeWidthChar::width(ch) == Some(0) {
-            let prev_col = if self.wrap_pending {
+            // Both cases below want the SAME thing — the LEAD cell of the
+            // glyph most recently written — so both run the same walk-back
+            // over width-0 continuation cells. They used to differ: the
+            // `wrap_pending` branch took `cols - 1` verbatim, skipping the
+            // walk. That is only the lead when the margin-filling glyph was
+            // width-1; a width-2 glyph landing flush against the margin has
+            // its lead at `cols - 2` and its CONTINUATION at `cols - 1`, so
+            // marks were attached to the continuation — a width-0 cell the
+            // renderer skips, silently dropping the accent (verified
+            // 2026-07-30: `A`×18 + `你` + U+0301 at cols=20 lost the acute).
+            let start = if self.wrap_pending {
                 self.cols.saturating_sub(1)
             } else if self.cursor.col > 0 {
-                // Walk back past any continuation cells (wide char tails)
-                let mut c = self.cursor.col - 1;
-                while c > 0 && self.grid().cell(self.cursor.row, c).width == 0 {
-                    c -= 1;
-                }
-                c
+                self.cursor.col - 1
             } else {
                 return; // No previous cell to combine with
             };
+            let prev_col = self.lead_col_at(self.cursor.row, start);
             let row = self.cursor.row;
             if prev_col < self.cols && row < self.rows {
                 self.grid_mut().cell_mut(row, prev_col).push_combining(ch);
@@ -6989,6 +7043,118 @@ mod tests {
         assert_eq!(term.cell(1, 0).ch, '中');
         assert_eq!(term.cell(1, 0).width, 2);
         assert_eq!(term.cursor().row, 1);
+    }
+
+    /// **Invariant: a width-2 glyph landing FLUSH against the right margin
+    /// parks the cursor on the LAST column, never on the glyph's lead**
+    /// (pinned 2026-07-30, operator report "the cursor ends up in the
+    /// wrong place").
+    ///
+    /// Note this is a DIFFERENT case from `wide_char_wraps_at_edge` above,
+    /// which covers a wide glyph that does NOT fit. Here it fits exactly,
+    /// so no wrap happens and the deferred-wrap (`xenl`) flag is raised
+    /// instead — the case that was untested and wrong.
+    #[test]
+    fn wide_char_flush_at_right_margin_parks_cursor_on_last_column() {
+        let mut term = Terminal::new(20, 3);
+        // 18 narrow glyphs fill cols 0..=17, leaving EXACTLY two columns.
+        term.feed(&b"A".repeat(18));
+        assert_eq!(term.cursor().col, 18, "18 narrow glyphs end at col 18");
+        // 你 is East-Asian-Wide — it fits exactly in cols 18..=19.
+        term.feed("你".as_bytes());
+        assert_eq!(term.cell(0, 18).ch, '你', "lead at 18");
+        assert_eq!(term.cell(0, 18).width, 2);
+        assert_eq!(term.cell(0, 19).width, 0, "continuation at 19");
+        // It filled the margin exactly, so the wrap is DEFERRED, not taken.
+        assert_eq!(term.cursor().row, 0, "deferred wrap: still on row 0");
+        assert!(term.wrap_pending, "deferred-wrap flag must be raised");
+        // And the cursor parks on the last column — xterm advances by the
+        // glyph width then clamps to max_col. Was 18 (the lead) before.
+        assert_eq!(
+            term.cursor().col,
+            19,
+            "cursor must park on the LAST column, not the glyph's lead"
+        );
+    }
+
+    /// A relative motion after a margin-flush wide glyph must be measured
+    /// from the parked column. With the cursor left on the lead, `BS`
+    /// landed a column too far left and the next typed character clobbered
+    /// the character BEFORE the wide glyph instead of the glyph itself.
+    #[test]
+    fn backspace_after_margin_flush_wide_char_lands_on_its_lead() {
+        let mut term = Terminal::new(20, 3);
+        term.feed(&b"A".repeat(18));
+        term.feed("你".as_bytes());
+        term.feed(&[0x08]); // BS
+        assert!(!term.wrap_pending, "BS clears the deferred-wrap flag");
+        assert_eq!(term.cursor().col, 18, "BS lands on the wide glyph's lead");
+        // Typing replaces the wide glyph (and the orphan-clear drops its
+        // continuation) rather than the innocent 'A' before it.
+        term.feed(b"Z");
+        assert_eq!(term.cell(0, 18).ch, 'Z');
+        assert_eq!(
+            term.cell(0, 17).ch,
+            'A',
+            "the character BEFORE the wide glyph must survive"
+        );
+    }
+
+    /// A width-0 combining mark attaches to the LEAD of the glyph just
+    /// written. When that glyph was a wide one flush against the margin,
+    /// the old code attached the mark to the parked column — which is the
+    /// width-0 CONTINUATION cell. The renderer skips width-0 cells, so the
+    /// accent silently vanished (reproduced live 2026-07-30 with
+    /// `A`×18 + `你` + U+0301 on a 20-column grid).
+    #[test]
+    fn combining_mark_after_margin_flush_wide_char_attaches_to_lead() {
+        let mut term = Terminal::new(20, 3);
+        term.feed(&b"A".repeat(18));
+        term.feed("你".as_bytes());
+        term.feed("\u{0301}".as_bytes()); // COMBINING ACUTE ACCENT
+        assert_eq!(
+            term.cell(0, 18).extra.as_ref().map(|v| v.as_slice()),
+            Some(&['\u{0301}'][..]),
+            "the mark must land on the wide glyph's LEAD cell"
+        );
+        assert!(
+            term.cell(0, 19).extra.is_none(),
+            "the continuation cell must never carry the mark"
+        );
+    }
+
+    /// The `park_at_right_margin` contract, swept across grid widths and
+    /// both glyph widths: whenever the deferred-wrap flag is up, the cursor
+    /// is on the last column. Every reader of `wrap_pending` relies on
+    /// this; before the fix the width-2 rows of this sweep all failed.
+    #[test]
+    fn wrap_pending_always_implies_cursor_on_last_column() {
+        for cols in 2usize..12 {
+            for wide in [false, true] {
+                let mut term = Terminal::new(cols, 3);
+                for _ in 0..cols {
+                    if term.wrap_pending {
+                        break;
+                    }
+                    if wide {
+                        term.feed("你".as_bytes());
+                    } else {
+                        term.feed(b"A");
+                    }
+                }
+                // Odd widths never let a run of wide glyphs land flush, so
+                // the flag legitimately stays down there — only assert the
+                // implication, never that the flag must be up.
+                if term.wrap_pending {
+                    assert_eq!(
+                        term.cursor().col,
+                        cols - 1,
+                        "cols={cols} wide={wide}: wrap_pending must imply \
+                         the cursor is parked on the last column"
+                    );
+                }
+            }
+        }
     }
 
     /// **Invariant: overwriting a wide char's LEAD cell clears the

@@ -1344,6 +1344,15 @@ impl InputEngine {
         self.pointer = step.state;
         self.selection.lock().unwrap().clear();
         if !self.terminal.read().is_alternate_screen() {
+            // Cancel any in-flight kinetic glide FIRST. `scroll_to_bottom`
+            // only zeroes the offset; a coasting wheel/precise glide would
+            // re-raise it on the very next `tick`, undoing the snap a frame
+            // later — the view drifts back off the prompt the operator is
+            // typing at. The snap and the glide encode the SAME intent
+            // ("put me at the live tail"), so they are settled together;
+            // zeroing the offset while leaving the driver running is the
+            // contradiction that produced the drift.
+            self.scroll.stop();
             self.terminal.write().scroll_to_bottom();
         }
         self.pty.write(bytes);
