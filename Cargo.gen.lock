@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "ebdfd1fa2a1010f17d839c5f6a9046f449e32f24d34aa3be3bde9c83c5a262b8",
+  "cargo_lock_sha256": "585d082fd45e36bb39a2bf43b4c70a7b987ee95375612e757f3ed149465a2b84",
   "manifest_sha256": {
-    "Cargo.toml": "789c9880aa3d8147d0e835312dfa7bd80f4c7a2c8f2d1780559676845cef003b"
+    "Cargo.toml": "0867de6c245bc169eb95f8295b151e4256638ff53a38a617a9b9aaec13a38bf3"
   },
   "target_resolves": {
     "base": {
@@ -20238,11 +20238,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-0.3.7": {
+      "tatara-closed-set-0.3.8": {
         "runtime_dependencies": [
           {
             "name": "tatara_closed_set_derive",
-            "package_key": "tatara-closed-set-derive-0.3.7",
+            "package_key": "tatara-closed-set-derive-0.3.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20254,7 +20254,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-derive-0.3.7": {
+      "tatara-closed-set-derive-0.3.8": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -20628,7 +20628,7 @@
           "default"
         ]
       },
-      "tatara-lisp-0.3.7": {
+      "tatara-lisp-0.3.8": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -20664,7 +20664,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.3.7",
+            "package_key": "tatara-closed-set-0.3.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20674,7 +20674,7 @@
           },
           {
             "name": "tatara_lisp_derive",
-            "package_key": "tatara-lisp-derive-0.3.7",
+            "package_key": "tatara-lisp-derive-0.3.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20736,7 +20736,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-derive-0.3.7": {
+      "tatara-lisp-derive-0.3.8": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -20774,11 +20774,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-eval-0.3.7": {
+      "tatara-lisp-eval-0.3.8": {
         "runtime_dependencies": [
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.7",
+            "package_key": "tatara-lisp-0.3.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24114,7 +24114,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.7",
+            "package_key": "tatara-lisp-0.3.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24124,7 +24124,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.3.7",
+            "package_key": "tatara-lisp-eval-0.3.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -26655,7 +26655,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.101": {
+          "mado-0.1.102": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -27210,7 +27210,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.7",
+                "package_key": "tatara-lisp-0.3.8",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31691,7 +31691,7 @@
               "system"
             ]
           },
-          "mado-0.1.101": {
+          "mado-0.1.102": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -32199,7 +32199,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.7",
+                "package_key": "tatara-lisp-0.3.8",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35913,7 +35913,7 @@
               "system"
             ]
           },
-          "mado-0.1.101": {
+          "mado-0.1.102": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -36421,7 +36421,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.7",
+                "package_key": "tatara-lisp-0.3.8",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40284,7 +40284,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.101": {
+          "mado-0.1.102": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -40839,7 +40839,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.7",
+                "package_key": "tatara-lisp-0.3.8",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45284,7 +45284,7 @@
               "system"
             ]
           },
-          "mado-0.1.101": {
+          "mado-0.1.102": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -45792,7 +45792,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.7",
+                "package_key": "tatara-lisp-0.3.8",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49470,7 +49470,7 @@
               "system"
             ]
           },
-          "mado-0.1.101": {
+          "mado-0.1.102": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -49978,7 +49978,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.7",
+                "package_key": "tatara-lisp-0.3.8",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -53820,7 +53820,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.101": {
+    "mado-0.1.102": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -54822,10 +54822,10 @@
     "tap-1.0.1": {
       "edition": "2015"
     },
-    "tatara-closed-set-0.3.7": {
+    "tatara-closed-set-0.3.8": {
       "edition": "2021"
     },
-    "tatara-closed-set-derive-0.3.7": {
+    "tatara-closed-set-derive-0.3.8": {
       "edition": "2021",
       "proc_macro": true
     },
@@ -54841,18 +54841,18 @@
     "tatara-lisp-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
       "edition": "2021"
     },
-    "tatara-lisp-0.3.7": {
+    "tatara-lisp-0.3.8": {
       "edition": "2021"
     },
     "tatara-lisp-derive-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-lisp-derive-0.3.7": {
+    "tatara-lisp-derive-0.3.8": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-lisp-eval-0.3.7": {
+    "tatara-lisp-eval-0.3.8": {
       "edition": "2021"
     },
     "tatara-nix-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
