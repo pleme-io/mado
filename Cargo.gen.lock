@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "2be16d02c9da877554e4078aa34df67e49cbb6762b462c447c20b79701a2635e",
+  "cargo_lock_sha256": "d408771ba151f17a9b8f49548e0fb440232f2bebcb24a1025495328b0ab369d7",
   "manifest_sha256": {
-    "Cargo.toml": "07ad7bd6e500b7a13ac28929ee6162e6c21983477efab34ea8bf21c7bf67248a"
+    "Cargo.toml": "55f26cdcee517671a92574e6d326e2d261a2b4d6f17361d903c4d5b08178ace7"
   },
   "target_resolves": {
     "base": {
@@ -17387,7 +17387,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.434-a478f47474c34c05593ccc09e55c58bea9df531a": {
+      "shikumi-0.1.437-a635f6108930c8501fe7a4f795e32dbfb0dbff69": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -20238,6 +20238,60 @@
         "build_dependencies": [],
         "features": []
       },
+      "tatara-closed-set-0.3.7": {
+        "runtime_dependencies": [
+          {
+            "name": "tatara_closed_set_derive",
+            "package_key": "tatara-closed-set-derive-0.3.7",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "host"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "tatara-closed-set-derive-0.3.7": {
+        "runtime_dependencies": [
+          {
+            "name": "proc_macro2",
+            "package_key": "proc-macro2-1.0.107",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "quote",
+            "package_key": "quote-1.0.47",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "syn",
+            "package_key": "syn-2.0.119",
+            "kind": "normal",
+            "features": [
+              "full"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
       "tatara-core-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
         "runtime_dependencies": [
           {
@@ -20574,7 +20628,7 @@
           "default"
         ]
       },
-      "tatara-lisp-0.3.4": {
+      "tatara-lisp-0.3.7": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -20609,8 +20663,18 @@
             "tree": "target"
           },
           {
+            "name": "tatara_closed_set",
+            "package_key": "tatara-closed-set-0.3.7",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
             "name": "tatara_lisp_derive",
-            "package_key": "tatara-lisp-derive-0.3.4",
+            "package_key": "tatara-lisp-derive-0.3.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20672,7 +20736,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-derive-0.3.4": {
+      "tatara-lisp-derive-0.3.7": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -20710,11 +20774,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-eval-0.3.4": {
+      "tatara-lisp-eval-0.3.7": {
         "runtime_dependencies": [
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.4",
+            "package_key": "tatara-lisp-0.3.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21149,7 +21213,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.434-a478f47474c34c05593ccc09e55c58bea9df531a",
+            "package_key": "shikumi-0.1.437-a635f6108930c8501fe7a4f795e32dbfb0dbff69",
             "kind": "normal",
             "features": [
               "cli"
@@ -23946,11 +24010,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": {
+      "vigy-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf": {
         "runtime_dependencies": [
           {
             "name": "vigy_eval",
-            "package_key": "vigy-eval-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
+            "package_key": "vigy-eval-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23960,7 +24024,7 @@
           },
           {
             "name": "vigy_mcp",
-            "package_key": "vigy-mcp-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
+            "package_key": "vigy-mcp-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23970,7 +24034,7 @@
           },
           {
             "name": "vigy_runtime",
-            "package_key": "vigy-runtime-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
+            "package_key": "vigy-runtime-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23980,7 +24044,7 @@
           },
           {
             "name": "vigy_store",
-            "package_key": "vigy-store-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
+            "package_key": "vigy-store-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23990,7 +24054,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
+            "package_key": "vigy-types-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24004,7 +24068,7 @@
           "mcp"
         ]
       },
-      "vigy-eval-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": {
+      "vigy-eval-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -24050,7 +24114,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.4",
+            "package_key": "tatara-lisp-0.3.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24060,7 +24124,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.3.4",
+            "package_key": "tatara-lisp-eval-0.3.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24124,7 +24188,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
+            "package_key": "vigy-types-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24136,7 +24200,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-mcp-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": {
+      "vigy-mcp-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -24201,7 +24265,7 @@
           },
           {
             "name": "vigy_runtime",
-            "package_key": "vigy-runtime-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
+            "package_key": "vigy-runtime-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24211,7 +24275,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
+            "package_key": "vigy-types-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24223,7 +24287,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-runtime-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": {
+      "vigy-runtime-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -24321,7 +24385,7 @@
           },
           {
             "name": "vigy_eval",
-            "package_key": "vigy-eval-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
+            "package_key": "vigy-eval-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24331,7 +24395,7 @@
           },
           {
             "name": "vigy_store",
-            "package_key": "vigy-store-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
+            "package_key": "vigy-store-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24341,7 +24405,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
+            "package_key": "vigy-types-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24353,7 +24417,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-store-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": {
+      "vigy-store-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -24505,7 +24569,7 @@
           },
           {
             "name": "vigy_types",
-            "package_key": "vigy-types-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
+            "package_key": "vigy-types-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24517,7 +24581,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "vigy-types-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": {
+      "vigy-types-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -26591,7 +26655,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.98": {
+          "mado-0.1.99": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -27146,7 +27210,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.4",
+                "package_key": "tatara-lisp-0.3.7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27270,7 +27334,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
+                "package_key": "vigy-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -31627,7 +31691,7 @@
               "system"
             ]
           },
-          "mado-0.1.98": {
+          "mado-0.1.99": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -32135,7 +32199,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.4",
+                "package_key": "tatara-lisp-0.3.7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32259,7 +32323,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
+                "package_key": "vigy-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -35849,7 +35913,7 @@
               "system"
             ]
           },
-          "mado-0.1.98": {
+          "mado-0.1.99": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -36357,7 +36421,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.4",
+                "package_key": "tatara-lisp-0.3.7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36481,7 +36545,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
+                "package_key": "vigy-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -40220,7 +40284,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.98": {
+          "mado-0.1.99": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -40775,7 +40839,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.4",
+                "package_key": "tatara-lisp-0.3.7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40899,7 +40963,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
+                "package_key": "vigy-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -45220,7 +45284,7 @@
               "system"
             ]
           },
-          "mado-0.1.98": {
+          "mado-0.1.99": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -45728,7 +45792,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.4",
+                "package_key": "tatara-lisp-0.3.7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45852,7 +45916,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
+                "package_key": "vigy-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -49406,7 +49470,7 @@
               "system"
             ]
           },
-          "mado-0.1.98": {
+          "mado-0.1.99": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -49914,7 +49978,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.4",
+                "package_key": "tatara-lisp-0.3.7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -50038,7 +50102,7 @@
               },
               {
                 "name": "vigy",
-                "package_key": "vigy-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523",
+                "package_key": "vigy-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf",
                 "kind": "normal",
                 "features": [
                   "mcp"
@@ -53756,7 +53820,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.98": {
+    "mado-0.1.99": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -54603,7 +54667,7 @@
     "shidou-0.1.9-35c12221ac8622d90e03e21d5fec30ac329547e7": {
       "edition": "2024"
     },
-    "shikumi-0.1.434-a478f47474c34c05593ccc09e55c58bea9df531a": {
+    "shikumi-0.1.437-a635f6108930c8501fe7a4f795e32dbfb0dbff69": {
       "edition": "2024"
     },
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": {
@@ -54758,6 +54822,13 @@
     "tap-1.0.1": {
       "edition": "2015"
     },
+    "tatara-closed-set-0.3.7": {
+      "edition": "2021"
+    },
+    "tatara-closed-set-derive-0.3.7": {
+      "edition": "2021",
+      "proc_macro": true
+    },
     "tatara-core-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
       "edition": "2021"
     },
@@ -54770,18 +54841,18 @@
     "tatara-lisp-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
       "edition": "2021"
     },
-    "tatara-lisp-0.3.4": {
+    "tatara-lisp-0.3.7": {
       "edition": "2021"
     },
     "tatara-lisp-derive-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-lisp-derive-0.3.4": {
+    "tatara-lisp-derive-0.3.7": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-lisp-eval-0.3.4": {
+    "tatara-lisp-eval-0.3.7": {
       "edition": "2021"
     },
     "tatara-nix-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
@@ -55069,22 +55140,22 @@
     "version_check-0.9.5": {
       "edition": "2015"
     },
-    "vigy-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": {
+    "vigy-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf": {
       "edition": "2021"
     },
-    "vigy-eval-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": {
+    "vigy-eval-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf": {
       "edition": "2021"
     },
-    "vigy-mcp-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": {
+    "vigy-mcp-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf": {
       "edition": "2021"
     },
-    "vigy-runtime-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": {
+    "vigy-runtime-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf": {
       "edition": "2021"
     },
-    "vigy-store-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": {
+    "vigy-store-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf": {
       "edition": "2021"
     },
-    "vigy-types-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": {
+    "vigy-types-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf": {
       "edition": "2021"
     },
     "vte-0.15.0": {
@@ -55350,7 +55421,7 @@
     "pleme-kindstr-derive-0.1.0-9fde4c145f7ff57acd88275f74511e422d407f94": "sha256-MjK6VPYt1inzElKtmBQF8piLCsOPFGqEYBilWiXYnLQ=",
     "praca-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",
     "shidou-0.1.9-35c12221ac8622d90e03e21d5fec30ac329547e7": "sha256-rjs+1FgZD/d2rqK7EXglvJI0IlziAYLwLOiQAJOE7PQ=",
-    "shikumi-0.1.434-a478f47474c34c05593ccc09e55c58bea9df531a": "sha256-qYmk8ttgPoCyCk8IZqiI02cIJ+gQKuLQUPR+fgzoIos=",
+    "shikumi-0.1.437-a635f6108930c8501fe7a4f795e32dbfb0dbff69": "sha256-bHm0MrqunAaM3Dyd4+Mhf0K/wPI5Yup7FZJlkahwdEo=",
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": "sha256-Jd6fUoNSdzk+I5iu7FbAg9F9gbc7oU9jdPnnaTIxL6w=",
     "tatara-core-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
     "tatara-eval-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
@@ -55366,12 +55437,12 @@
     "tear-types-0.1.7-f9b1f394fa0ee5367b2e8d14c601fe1202707501": "sha256-A8uhx/C9UtT+HspWBTkNL/uiXwcTR0nDoy5K8EJndOE=",
     "todoku-0.1.0-f0a67611b5514424117496f470a9f88688f55ddb": "sha256-OO7J7EXr0KczG/kCcyHsLlI1T7DmfLKjltS3IutHzi0=",
     "tsuuchi-0.1.5-86539e03f9e90334afa02284ebb8e6e7806c8a39": "sha256-O0xC2BNJp+R7Xwso9c0RFGfSHwRqieCRWZHTzqKWbu8=",
-    "vigy-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": "sha256-ymhdL2olSMNDqc4i2Ez5IJjXLJWJfOmSNlLkw+izXOE=",
-    "vigy-eval-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": "sha256-ymhdL2olSMNDqc4i2Ez5IJjXLJWJfOmSNlLkw+izXOE=",
-    "vigy-mcp-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": "sha256-ymhdL2olSMNDqc4i2Ez5IJjXLJWJfOmSNlLkw+izXOE=",
-    "vigy-runtime-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": "sha256-ymhdL2olSMNDqc4i2Ez5IJjXLJWJfOmSNlLkw+izXOE=",
-    "vigy-store-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": "sha256-ymhdL2olSMNDqc4i2Ez5IJjXLJWJfOmSNlLkw+izXOE=",
-    "vigy-types-0.1.5-e80b33ec2ffdbc3e9c7d472abe91917a917f6523": "sha256-ymhdL2olSMNDqc4i2Ez5IJjXLJWJfOmSNlLkw+izXOE="
+    "vigy-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf": "sha256-x6QaZl0BhCKV6W9+yZ8qQ+e/TjtIstD4J/oyVZCACNY=",
+    "vigy-eval-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf": "sha256-x6QaZl0BhCKV6W9+yZ8qQ+e/TjtIstD4J/oyVZCACNY=",
+    "vigy-mcp-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf": "sha256-x6QaZl0BhCKV6W9+yZ8qQ+e/TjtIstD4J/oyVZCACNY=",
+    "vigy-runtime-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf": "sha256-x6QaZl0BhCKV6W9+yZ8qQ+e/TjtIstD4J/oyVZCACNY=",
+    "vigy-store-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf": "sha256-x6QaZl0BhCKV6W9+yZ8qQ+e/TjtIstD4J/oyVZCACNY=",
+    "vigy-types-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf": "sha256-x6QaZl0BhCKV6W9+yZ8qQ+e/TjtIstD4J/oyVZCACNY="
   },
   "flake_metadata": {}
 }
