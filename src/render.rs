@@ -3424,6 +3424,27 @@ impl TerminalRenderer {
         // Deferring keeps them above their own cell bg, which is exactly
         // what a powerline pill on a colored section needs.
         let mut glyph_fill_instances: Vec<RectInstance> = Vec::new();
+        // Decoration runs (underline / strikethrough / overline) are deferred
+        // for EXACTLY the reason stated above for glyph fills — they were not,
+        // and that was the bug (operator report 2026-07-30, "those lines on
+        // the screen").
+        //
+        // A decoration's colour is the cell's fg, so syntax highlighting
+        // breaks one logical underline into a fragment per colour change,
+        // while a coloured block (a diff hunk) keeps ONE background run open
+        // across the whole block. Every decoration fragment that closed
+        // before that background flushed was pushed at a LOWER index than the
+        // background rect — and the background is opaque and full-cell-height,
+        // so it painted over them. The single fragment still open when the
+        // background closed survived, because it flushes after it.
+        //
+        // Visible result: instead of a continuous underline, exactly one bar
+        // appeared, running from wherever the decoration run last re-opened to
+        // the end of the block. On a diff row the trailing padding is one
+        // uniform colour, so that bar started precisely where the text ended
+        // and ran to the block's right edge — reading as a spurious "rule"
+        // rather than as the mangled underline it actually was.
+        let mut decoration_instances: Vec<RectInstance> = Vec::new();
         let default_bg = Color::BLACK;
 
         // P11 — run-length batch every per-row "single-row, same-color
@@ -3616,13 +3637,13 @@ impl TerminalRenderer {
                             *cells += width_cells;
                         }
                         _ => {
-                            push_underline(&mut instances, &mut underline_run, row_idx);
+                            push_underline(&mut decoration_instances, &mut underline_run, row_idx);
                             underline_run =
                                 Some((col_idx.idx(), width_cells, color, attrs.underline));
                         }
                     }
                 } else {
-                    push_underline(&mut instances, &mut underline_run, row_idx);
+                    push_underline(&mut decoration_instances, &mut underline_run, row_idx);
                 }
 
                 // ── Strikethrough span ──────────────────────────────
@@ -3634,7 +3655,7 @@ impl TerminalRenderer {
                         }
                         _ => {
                             push_run(
-                                &mut instances,
+                                &mut decoration_instances,
                                 &mut strike_run,
                                 row_idx,
                                 RectKindForRle::Strikethrough,
@@ -3644,7 +3665,7 @@ impl TerminalRenderer {
                     }
                 } else {
                     push_run(
-                        &mut instances,
+                        &mut decoration_instances,
                         &mut strike_run,
                         row_idx,
                         RectKindForRle::Strikethrough,
@@ -3660,7 +3681,7 @@ impl TerminalRenderer {
                         }
                         _ => {
                             push_run(
-                                &mut instances,
+                                &mut decoration_instances,
                                 &mut overline_run,
                                 row_idx,
                                 RectKindForRle::Overline,
@@ -3670,7 +3691,7 @@ impl TerminalRenderer {
                     }
                 } else {
                     push_run(
-                        &mut instances,
+                        &mut decoration_instances,
                         &mut overline_run,
                         row_idx,
                         RectKindForRle::Overline,
@@ -3738,14 +3759,17 @@ impl TerminalRenderer {
 
             // Row end — flush every open run.
             push_run(&mut instances, &mut bg_run, row_idx, RectKindForRle::Background);
-            push_underline(&mut instances, &mut underline_run, row_idx);
-            push_run(&mut instances, &mut strike_run, row_idx, RectKindForRle::Strikethrough);
-            push_run(&mut instances, &mut overline_run, row_idx, RectKindForRle::Overline);
+            push_underline(&mut decoration_instances, &mut underline_run, row_idx);
+            push_run(&mut decoration_instances, &mut strike_run, row_idx, RectKindForRle::Strikethrough);
+            push_run(&mut decoration_instances, &mut overline_run, row_idx, RectKindForRle::Overline);
         }
 
-        // Synthesized glyph fills (box-drawing + powerline separators)
-        // paint ON TOP of every cell background, never under it. See the
-        // `glyph_fill_instances` declaration for why this is deferred.
+        // Deferred layers, in paint order. Both sit ON TOP of every cell
+        // background, never under it — see their declarations for why.
+        // Decorations first, then synthesized glyph fills (box-drawing +
+        // powerline separators), so a box rule stays legible over an
+        // underlined span rather than being cut by it.
+        instances.append(&mut decoration_instances);
         instances.append(&mut glyph_fill_instances);
 
         // Selection highlight — one rect per visible row of the
@@ -6765,6 +6789,58 @@ mod render_invariants {
                 sprite_cols
             );
         }
+    }
+
+    /// **Invariant: every decoration rect is emitted AFTER every background
+    /// rect** (operator report 2026-07-30, "those lines on the screen").
+    ///
+    /// Backgrounds are opaque and full-cell-height, so a decoration sharing
+    /// the instance vec at a lower index is painted over and disappears. The
+    /// failure is not uniform, which is what made it read as a rendering
+    /// mystery rather than a Z-order bug: a decoration is coloured by the
+    /// cell fg, so syntax highlighting splits it into a fragment per colour
+    /// change, while a coloured block keeps ONE background run open across
+    /// the block. Every fragment that closed early was erased; the one still
+    /// open when the background flushed survived — producing a single bar
+    /// from the last colour change to the block's edge.
+    ///
+    /// This test builds exactly that shape: an underlined row whose fg
+    /// changes mid-line, over a continuous non-default background.
+    #[test]
+    fn decoration_rects_are_emitted_after_every_background_rect() {
+        let (r, t) = harness(20, 3);
+        {
+            let mut t = t.write();
+            // Coloured background + underline for the whole row, with a fg
+            // change partway so the underline run is forced to split.
+            t.feed(b"\x1b[48;5;22m\x1b[4m\x1b[31mAAAA\x1b[32mBBBB\x1b[0m");
+        }
+        let rects = compute_rects(&r);
+        let ch = r.cell_height;
+        let cw = r.cell_width;
+        // A background RUN is full cell height AND spans several cells. The
+        // width test matters: the block cursor is also full-cell-height, but
+        // it is one cell wide and is drawn last by design — without this it
+        // masquerades as the last background and the check passes vacuously.
+        let last_bg = rects
+            .iter()
+            .rposition(|x| x.size[1] >= ch * 0.9 && x.size[0] > cw * 1.5);
+        let first_dec = rects.iter().position(|x| x.size[1] < ch * 0.5);
+        if let (Some(bg), Some(dec)) = (last_bg, first_dec) {
+            assert!(
+                dec > bg,
+                "a decoration rect at index {dec} is painted UNDER the \
+                 background run at index {bg} — it will be erased"
+            );
+        }
+        // And the split must survive as TWO bars, not one: the bug collapsed
+        // an 8-cell underline into a single trailing fragment.
+        let bars = rects.iter().filter(|x| x.size[1] < ch * 0.5).count();
+        assert!(
+            bars >= 2,
+            "expected the fg change to yield >=2 underline fragments, got {bars} \
+             — an early fragment was dropped"
+        );
     }
 
     // ── Scrolled-cursor visibility invariant ─────────────────────────
