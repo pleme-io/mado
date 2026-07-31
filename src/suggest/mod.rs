@@ -270,10 +270,96 @@ pub mod store {
     }
 }
 
+/// The **health verdict** — the question `status` alone cannot answer.
+///
+/// `status` answers "is this source erroring *right now*". That is the
+/// question that let seven sources sit dead for 118+ consecutive polls: a
+/// lane misconfigured the day it was wired reads `erroring`, which is
+/// exactly what a healthy lane reads during a transient upstream blip. Same
+/// word, opposite meaning — one is weather, the other is a build defect.
+///
+/// The second axis was always in the data and nothing ever rendered it:
+/// [`SourceHealth::last_ok_ms`] — has this source EVER observed its
+/// upstream? Mado carried it to exactly one place ([`board_json`]'s
+/// `ever_ok`), an agent-only surface, so agents could see a dead lane and
+/// the operator could not.
+///
+/// Semantics mirror izumi `ea94a08` (`izumi_board::protocol::HealthVerdict`)
+/// deliberately. They are NOT imported: that type lives in `izumi-board`, a
+/// crate mado does not depend on, at a rev newer than mado's pin — and it is
+/// derived from the *JSON wire* view (`status: String`, `ever_ok: bool`),
+/// whereas this one is derived from the *typed live store* record. Same rule,
+/// two borders. **Destination:** one `verdict()` on `izumi::SourceHealth` in
+/// the izumi core crate, read by both borders, so the rule has a single home.
+pub mod health {
+    use super::core::SourceStatus;
+    use super::store::SourceHealth;
+
+    /// Whether a source is reporting, failing, or has never worked at all.
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+    pub enum HealthVerdict {
+        /// Reporting normally.
+        Ok,
+        /// Has observed its upstream before and is failing now — weather.
+        /// Usually resolves itself; worth an ambient note, never a row.
+        Degraded,
+        /// Has NEVER observed its upstream. Not weather: a wrong context, a
+        /// dead URL, a malformed credential — something that was never
+        /// right, and that no amount of waiting will fix.
+        Blind,
+    }
+
+    impl HealthVerdict {
+        /// Operator-facing label.
+        #[must_use]
+        pub fn label(self) -> &'static str {
+            match self {
+                HealthVerdict::Ok => "ok",
+                HealthVerdict::Degraded => "degraded",
+                HealthVerdict::Blind => "blind",
+            }
+        }
+
+        /// Whether this verdict means someone must go fix a *declaration*.
+        /// True for [`HealthVerdict::Blind`] and nothing else — the gate the
+        /// board row hangs on, so weather can never earn a row.
+        #[must_use]
+        pub fn needs_intervention(self) -> bool {
+            matches!(self, HealthVerdict::Blind)
+        }
+    }
+
+    /// Classify one live health record.
+    ///
+    /// **Tier-honest — this is `only-mitigated`, not unrepresentable.**
+    /// `last_ok_ms` is per-PROCESS: [`izumi::StoreSnapshot`] persists
+    /// `entries` + `saved_at_ms` and *not* `health`, so every mado restart
+    /// resets the latch and a merely-degraded source reads `Blind` until its
+    /// next success. What bounds that is the janitor's
+    /// `min_consecutive_polls` bar: a source that is genuinely fine succeeds
+    /// within those polls, sets `last_ok_ms`, and reclassifies — so only a
+    /// sustained outage spanning a restart can still mis-read, and only
+    /// until the first good poll. The real fix is upstream (persist
+    /// `last_ok_ms` in the snapshot); until then the bar is the mitigation,
+    /// which is why it is load-bearing and not a tuning knob.
+    #[must_use]
+    pub fn verdict(h: &SourceHealth) -> HealthVerdict {
+        if h.status == SourceStatus::Ok {
+            HealthVerdict::Ok
+        } else if h.last_ok_ms > 0 {
+            HealthVerdict::Degraded
+        } else {
+            HealthVerdict::Blind
+        }
+    }
+}
+
 // The suggest-plane facade. These are the module's public API; not every name
 // is consumed by the binary itself (several are used cross-module only under
 // cfg(test) or by providers via their full paths), so the unused-import lint
 // for the re-export surface is intentionally allowed.
+#[allow(unused_imports)]
+pub use health::{verdict, HealthVerdict};
 #[allow(unused_imports)]
 pub use core::{CorrKey, SourceKind, SourceStatus, SpawnSpec, Suggestion, SuggestionId, Urgency};
 #[allow(unused_imports)]
@@ -428,11 +514,19 @@ pub fn board_json(max: usize) -> serde_json::Value {
         .health()
         .into_iter()
         .map(|(kind, h)| {
+            // `ever_ok` stays (wire compat), but it is no longer the only
+            // carrier of the fact: the VERDICT ships alongside it, from the
+            // same definition the picker footer and the janitor row read —
+            // so the agent face and the operator face can never disagree
+            // about which lanes have never once succeeded.
+            let v = health::verdict(&h);
             serde_json::json!({
                 "source": kind.slug(),
                 "status": h.status.label(),
                 "last_poll_secs_ago": now_ms.saturating_sub(h.last_poll_ms) / 1000,
                 "ever_ok": h.last_ok_ms > 0,
+                "verdict": v.label(),
+                "needs_intervention": v.needs_intervention(),
             })
         })
         .collect();
@@ -886,6 +980,72 @@ mod tests {
 
             std::env::remove_var("MADO_STATE_DIR");
         }
+    }
+
+    /// The verdict truth table — the whole rule, on one screen. `status`
+    /// alone cannot separate "failing right now" from "never worked", which
+    /// is the confusion that let dead lanes read as quiet ones.
+    #[test]
+    fn verdict_separates_never_worked_from_failing_now() {
+        let row = |status: SourceStatus, last_ok_ms: u64| SourceHealth {
+            status,
+            last_poll_ms: 10_000,
+            last_ok_ms,
+        };
+        // Ok is Ok regardless of history.
+        assert_eq!(health::verdict(&row(SourceStatus::Ok, 0)), HealthVerdict::Ok);
+        assert_eq!(health::verdict(&row(SourceStatus::Ok, 500)), HealthVerdict::Ok);
+        // The SAME status splits on one bit: has it ever succeeded?
+        for status in [
+            SourceStatus::Error,
+            SourceStatus::AuthMissing,
+            SourceStatus::TimedOut,
+            SourceStatus::Unconfigured,
+        ] {
+            assert_eq!(
+                health::verdict(&row(status, 0)),
+                HealthVerdict::Blind,
+                "{status:?} with no success on record is blind"
+            );
+            assert_eq!(
+                health::verdict(&row(status, 500)),
+                HealthVerdict::Degraded,
+                "{status:?} with a success on record is weather"
+            );
+        }
+        // Intervention is exactly Blind — the gate the board row hangs on.
+        assert!(HealthVerdict::Blind.needs_intervention());
+        assert!(!HealthVerdict::Degraded.needs_intervention());
+        assert!(!HealthVerdict::Ok.needs_intervention());
+    }
+
+    /// The agent face carries the verdict too, from the same definition —
+    /// so `board_json` and the operator's footer can never disagree about
+    /// which lanes have never once succeeded.
+    #[test]
+    fn board_json_health_carries_the_verdict_beside_ever_ok() {
+        let store = store();
+        store.record_poll(SourceKind::TendRepos, SourceStatus::Ok, 1_000);
+        store.record_poll(SourceKind::GrafanaAlerts, SourceStatus::Error, 2_000);
+        let json = board_json(10);
+        let health = json["health"].as_array().expect("health block");
+        let find = |slug: &str| {
+            health
+                .iter()
+                .find(|h| h["source"] == slug)
+                .unwrap_or_else(|| panic!("{slug} missing from health"))
+                .clone()
+        };
+        let ok = find("tend-repos");
+        assert_eq!(ok["verdict"], "ok");
+        assert_eq!(ok["needs_intervention"], false);
+        let blind = find("grafana-alerts");
+        assert_eq!(blind["verdict"], "blind");
+        assert_eq!(blind["needs_intervention"], true);
+        // `ever_ok` stays on the wire — the verdict is additive, not a
+        // replacement, so existing agent consumers keep parsing.
+        assert_eq!(blind["ever_ok"], false);
+        assert_eq!(ok["ever_ok"], true);
     }
 
     /// The wire-compat anchors the extraction must never move: the catalog's

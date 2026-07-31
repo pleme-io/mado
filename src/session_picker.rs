@@ -180,11 +180,14 @@ pub trait SessionPickerBridge: Send {
         None
     }
 
-    /// One dim footer line summarizing BLIND lanes (armed sources whose last
-    /// poll was not Ok — needs config / needs auth / erroring), so a board
-    /// that cannot see reads as blind instead of calm. `None` = all healthy
-    /// (or no store). Read at list() time (the store lock is legal here,
-    /// never in the frame loop); the engine carries it on the picker state.
+    /// One dim footer line summarizing lanes that are not reporting, split
+    /// by VERDICT: blind lanes (never once succeeded) are NAMED, because
+    /// each one is a declaration to go fix; degraded lanes (worked before,
+    /// failing now) are a bare COUNT, because they are weather. A board
+    /// that cannot see then reads as blind instead of calm — and "blind"
+    /// keeps meaning blind. `None` = all healthy (or no store). Read at
+    /// `list()` time (the store lock is legal here, never in the frame
+    /// loop); the engine carries it on the picker state.
     fn health_footer(&self) -> Option<String> {
         None
     }
@@ -894,30 +897,56 @@ impl SessionPickerBridge for PracaPickerBridge {
         if self.suggest_max == 0 {
             return None;
         }
-        // Non-Ok lanes among the armed set (only armed sources ever record a
-        // poll). BTreeMap keeps this catalog-ordered and stable.
-        let blind: Vec<(crate::suggest::SourceKind, crate::suggest::SourceHealth)> = store
-            .health()
-            .into_iter()
-            .filter(|(_, h)| h.status != crate::suggest::SourceStatus::Ok)
-            .collect();
-        if blind.is_empty() {
+        // Split the non-Ok lanes by VERDICT, not by status. This line used
+        // to call EVERY non-Ok lane "blind", which spent the one word that
+        // should mean "has never worked" on lanes that were merely having a
+        // bad minute — so when a genuinely blind lane appeared, the footer
+        // had no stronger thing left to say. Only armed sources ever record
+        // a poll; BTreeMap keeps this catalog-ordered and stable.
+        let mut blind: Vec<(crate::suggest::SourceKind, crate::suggest::SourceHealth)> = Vec::new();
+        let mut degraded = 0usize;
+        for (kind, h) in store.health() {
+            match crate::suggest::verdict(&h) {
+                crate::suggest::HealthVerdict::Ok => {}
+                crate::suggest::HealthVerdict::Degraded => degraded += 1,
+                crate::suggest::HealthVerdict::Blind => blind.push((kind, h)),
+            }
+        }
+        if blind.is_empty() && degraded == 0 {
             return None;
         }
         let mut line = String::from("\u{26a0} "); // warning sign
-        line.push_str(&blind.len().to_string());
-        line.push_str(if blind.len() == 1 { " lane blind: " } else { " lanes blind: " });
-        for (i, (kind, health)) in blind.iter().take(3).enumerate() {
-            if i > 0 {
+        if !blind.is_empty() {
+            line.push_str(&blind.len().to_string());
+            line.push_str(if blind.len() == 1 {
+                " lane blind (never once succeeded): "
+            } else {
+                " lanes blind (never once succeeded): "
+            });
+            // Blind lanes are named individually — they are the actionable
+            // ones, and the name IS the thing to go fix.
+            for (i, (kind, health)) in blind.iter().take(3).enumerate() {
+                if i > 0 {
+                    line.push_str(" \u{00B7} "); // middle dot
+                }
+                line.push_str(kind.slug());
+                line.push(' ');
+                line.push_str(health.status.label());
+            }
+            if blind.len() > 3 {
+                line.push_str(" +");
+                line.push_str(&(blind.len() - 3).to_string());
+            }
+        }
+        if degraded > 0 {
+            if !blind.is_empty() {
                 line.push_str(" \u{00B7} "); // middle dot
             }
-            line.push_str(kind.slug());
-            line.push(' ');
-            line.push_str(health.status.label());
-        }
-        if blind.len() > 3 {
-            line.push_str(" +");
-            line.push_str(&(blind.len() - 3).to_string());
+            // Degraded lanes get a bare COUNT: they have worked before and
+            // are expected to work again, so naming each one every frame is
+            // noise that would crowd out the names that matter.
+            line.push_str(&degraded.to_string());
+            line.push_str(" degraded");
         }
         Some(line)
     }
@@ -1570,6 +1599,50 @@ mod tests {
         assert!(footer.contains("2 lanes blind"), "{footer}");
         assert!(footer.contains("grafana-alerts erroring"), "{footer}");
         assert!(footer.contains("datadog-monitors needs auth"), "{footer}");
+    }
+
+    /// The footer must spend the word "blind" only on lanes that have never
+    /// once succeeded. A lane that worked and is failing now is weather: it
+    /// contributes a bare count, never a name, so the names on the line are
+    /// always the ones worth acting on.
+    #[test]
+    fn health_footer_separates_blind_lanes_from_merely_degraded_ones() {
+        let (inproc, _live) = live_inproc();
+        let store = Arc::new(SuggestionStore::new());
+        let bridge = bridge_with_suggestions(praca::Praca::new(), inproc, Arc::clone(&store), 6);
+
+        // jira-sprint succeeds once, THEN starts failing → degraded.
+        store.record_poll(
+            crate::suggest::SourceKind::JiraSprint,
+            crate::suggest::SourceStatus::Ok,
+            1000,
+        );
+        store.record_poll(
+            crate::suggest::SourceKind::JiraSprint,
+            crate::suggest::SourceStatus::Error,
+            2000,
+        );
+        let footer = bridge.health_footer().expect("a degraded lane still surfaces");
+        assert!(footer.contains("1 degraded"), "{footer}");
+        assert!(
+            !footer.contains("blind"),
+            "a lane that worked before is NOT blind: {footer}"
+        );
+        assert!(
+            !footer.contains("jira-sprint"),
+            "weather is a count, not a name: {footer}"
+        );
+
+        // grafana-alerts has never once succeeded → blind, and gets named.
+        store.record_poll(
+            crate::suggest::SourceKind::GrafanaAlerts,
+            crate::suggest::SourceStatus::AuthMissing,
+            2000,
+        );
+        let footer = bridge.health_footer().expect("blind lanes surface");
+        assert!(footer.contains("1 lane blind (never once succeeded)"), "{footer}");
+        assert!(footer.contains("grafana-alerts needs auth"), "{footer}");
+        assert!(footer.contains("1 degraded"), "both halves coexist: {footer}");
     }
 
     #[test]

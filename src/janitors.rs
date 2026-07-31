@@ -45,10 +45,13 @@
 //!   — an attached or operator-owned session is refused by construction,
 //!   never force-killed.
 //! - [`SuggestHealthJanitor`] — watches the izumi store's per-source poll
-//!   health for sources stuck in `Error` / `AuthMissing` beyond N
-//!   consecutive completed polls. Observe-only in M0 (`remediable = false`);
-//!   the finding surfaces the broken source on the board instead of letting
-//!   it rot silently.
+//!   health and files a row for every lane that has **never once
+//!   succeeded** (verdict [`Blind`](crate::suggest::HealthVerdict::Blind))
+//!   beyond N consecutive completed polls. A merely-`Degraded` lane files
+//!   nothing — weather belongs in the ambient footer, and a row per blip is
+//!   what teaches an operator to stop reading the rows. Observe-only in M0
+//!   (`remediable = false`); the finding surfaces the broken *declaration*
+//!   instead of letting it rot silently.
 //!
 //! ## Tier-honest ledger (a `Result::Err` is mitigation — never round up)
 //!
@@ -149,7 +152,11 @@ impl JanitorKind {
 pub enum FindingKind {
     /// A fully-exited, unwatched, agent-owned session lingering past grace.
     GhostSession,
-    /// A suggestion source stuck unhealthy beyond the consecutive-poll bar.
+    /// A suggestion source that has never once observed its upstream,
+    /// beyond the consecutive-poll bar. (Kept under its historical name —
+    /// the finding CLASS is still "a source is not reporting"; whether it
+    /// is blind or merely degraded is the verdict carried in the row's
+    /// title/detail/urgency, not a second catalog entry.)
     SourceUnhealthy,
 }
 
@@ -599,13 +606,33 @@ struct PollTrack {
     consecutive_bad: u32,
 }
 
-/// Watches the izumi store's per-source health for sources stuck in
-/// `Error` / `AuthMissing` across N consecutive completed polls. Counts
-/// POLLS, not janitor ticks: an observation only advances the counter when
-/// the source's `last_poll_ms` moved, so a slow source isn't condemned by a
-/// fast janitor. Observe-only in M0 — re-arming a source is an operator
-/// move (fix the token / config), so the janitor surfaces it rather than
-/// pretending to fix it.
+/// Watches the izumi store's per-source health and files a board row for
+/// every lane that has **never once succeeded**.
+///
+/// Two independent bars, both of which must be cleared:
+///
+/// 1. **N consecutive completed polls** in `Error` / `AuthMissing` /
+///    `TimedOut`. Counts POLLS, not janitor ticks: an observation only
+///    advances the counter when the source's `last_poll_ms` moved, so a
+///    slow source isn't condemned by a fast janitor. This bar is also what
+///    makes bar 2 safe across restarts — see
+///    [`crate::suggest::health::verdict`].
+/// 2. **The verdict is [`Blind`](crate::suggest::HealthVerdict::Blind)** —
+///    the source has no successful poll on record. A `Degraded` lane (it
+///    worked before, it is failing now) is weather and files NOTHING; it
+///    surfaces only in the picker's ambient health footer.
+///
+/// `Unconfigured` is deliberately NOT in bar 1's status set, so an
+/// armed-but-unparameterized lane never files a row. That is a *chosen*
+/// state, not a surprising one: `SuggestionsConfig::prescribed()` arms 26
+/// sources on purpose and lets each degrade to "needs config", so the
+/// operator who never set a `base_url` already knows. The row is reserved
+/// for the surprising case — a lane you believed was working. Unconfigured
+/// lanes still appear in the footer.
+///
+/// Observe-only in M0 — re-arming a source is an operator move (fix the
+/// token / config), so the janitor surfaces it rather than pretending to
+/// fix it.
 pub struct SuggestHealthJanitor {
     min_consecutive: u32,
     seen: BTreeMap<SourceKind, PollTrack>,
@@ -654,30 +681,58 @@ impl Janitor for SuggestHealthJanitor {
             if track.consecutive_bad < self.min_consecutive {
                 continue;
             }
+            // ── THE GATE: only a BLIND lane earns a row ──────────────
+            //
+            // A Degraded lane (one that HAS observed its upstream and is
+            // failing now) is weather. It gets the ambient footer and
+            // nothing else. Filing a row per blip is precisely how a
+            // health mechanism trains its reader to ignore it — which is
+            // how this class stayed invisible in the first place: the row
+            // that fired said "erroring", the same word a healthy lane
+            // says during a thirty-second blip, so the rows that mattered
+            // were indistinguishable from the ones that didn't.
+            //
+            // The verdict is read from ONE definition
+            // (`crate::suggest::verdict`) shared with the picker footer
+            // and `board_json`, so the operator face and the agent face
+            // cannot drift apart about which lanes are dead.
+            if !crate::suggest::verdict(&health).needs_intervention() {
+                continue;
+            }
             let mut key = String::from("janitor:suggest-health:");
             key.push_str(kind.slug());
-            let mut title = String::from("suggestion source unhealthy: ");
+            // Say it in WORDS, on the row. The operator must not have to
+            // decode a status label to learn that this lane has never
+            // worked — that inference is the thing nobody made.
+            let mut title = String::from("blind source: ");
             title.push_str(kind.slug());
+            title.push_str(" has never once succeeded");
             let mut detail = String::from("status \u{201C}");
             detail.push_str(health.status.label());
             detail.push_str("\u{201D} for ");
             detail.push_str(&track.consecutive_bad.to_string());
-            detail.push_str(" consecutive polls");
-            let urgency = if health.status == SourceStatus::Error {
-                Urgency::Normal
+            detail.push_str(if track.consecutive_bad == 1 {
+                " poll"
             } else {
-                // AuthMissing (chronic until a token lands) + TimedOut (slow, not
-                // broken — raise the budget): lower than a real Error. The
-                // "timed out" label already tells the operator which it is.
-                Urgency::Low
-            };
+                " consecutive polls"
+            });
+            detail.push_str(
+                " and not one success \u{2014} a declaration to fix, \
+                 not an outage to wait out",
+            );
+            // Blind ALWAYS outranks the old status-derived scale. The
+            // previous mapping was inverted for the worst case: it sent
+            // AuthMissing (the likeliest never-once-worked cause — a
+            // credential that was never right) to Urgency::Low, BELOW a
+            // transient Error. Needing intervention is the whole signal,
+            // so it sets the urgency by itself.
             out.push(JanitorFinding::observation(
                 JanitorKind::SuggestHealth,
                 FindingKind::SourceUnhealthy,
                 key,
                 title,
                 detail,
-                urgency,
+                Urgency::High,
                 now_ms,
             ));
         }
@@ -904,11 +959,24 @@ mod tests {
         }
     }
 
+    /// A lane with NO successful poll on record — the `Blind` verdict.
     fn health_row(status: SourceStatus, last_poll_ms: u64) -> SourceHealth {
         SourceHealth {
             status,
             last_poll_ms,
             last_ok_ms: 0,
+        }
+    }
+
+    /// A lane that HAS observed its upstream before and is failing now —
+    /// the `Degraded` verdict. Note the original helper could not express
+    /// this at all (it hardcodes `last_ok_ms: 0`), which is a small piece
+    /// of why the two cases went unseparated for so long.
+    fn degraded_row(status: SourceStatus, last_poll_ms: u64, last_ok_ms: u64) -> SourceHealth {
+        SourceHealth {
+            status,
+            last_poll_ms,
+            last_ok_ms,
         }
     }
 
@@ -1044,6 +1112,119 @@ mod tests {
                 assert!(f.detail.contains('3'));
             }
         }
+    }
+
+    /// THE distinction this janitor exists for. Two lanes, identical
+    /// `status`, identical failing-poll streak — one has never once
+    /// succeeded, the other worked five minutes ago. Only the first earns a
+    /// row.
+    ///
+    /// The second half is the load-bearing half: it flips the SAME source
+    /// from Degraded to Blind with its streak already past the bar, and the
+    /// row appears. That proves the gate is the VERDICT and not the streak
+    /// — a test that only checked "blind fires" would still pass if the
+    /// verdict check were deleted.
+    #[test]
+    fn only_a_blind_source_files_a_row_never_a_degraded_one() {
+        let env = MockJanitorEnv::default();
+        let mut j = SuggestHealthJanitor::new(3);
+        for poll_ms in [10_000_u64, 20_000, 30_000] {
+            *env.health.lock().unwrap() = vec![
+                // Never once succeeded → BLIND.
+                (SourceKind::GrafanaAlerts, health_row(SourceStatus::Error, poll_ms)),
+                // Observed its upstream at t=500, failing since → DEGRADED.
+                (
+                    SourceKind::JiraSprint,
+                    degraded_row(SourceStatus::Error, poll_ms, 500),
+                ),
+            ];
+            let findings = j.observe(&env, poll_ms + 500);
+            if poll_ms < 30_000 {
+                assert!(findings.is_empty(), "below the bar, both stay silent");
+                continue;
+            }
+            // At the bar: exactly ONE row, and it is the blind lane.
+            assert_eq!(findings.len(), 1, "a degraded lane must not file a row");
+            let f = &findings[0];
+            assert_eq!(f.key, "janitor:suggest-health:grafana-alerts");
+            // The row says it in words, not as a status label to decode.
+            assert!(
+                f.title.contains("never once succeeded"),
+                "title must name the fact plainly: {}",
+                f.title
+            );
+            assert!(
+                f.detail.contains("a declaration to fix, not an outage to wait out"),
+                "detail must say it is not weather: {}",
+                f.detail
+            );
+            // Blind needs intervention — it outranks the old status scale,
+            // which sent this case (AuthMissing/Error, never-ok) to Low.
+            assert_eq!(f.urgency, Urgency::High);
+            assert!(!f.remediable, "observe-only in M0");
+        }
+        // Same jira lane, streak already well past the bar, now flipped to
+        // "never succeeded": the row appears purely because the VERDICT
+        // changed.
+        *env.health.lock().unwrap() =
+            vec![(SourceKind::JiraSprint, health_row(SourceStatus::Error, 40_000))];
+        let findings = j.observe(&env, 40_500);
+        assert_eq!(findings.len(), 1, "verdict flip alone must produce the row");
+        assert_eq!(findings[0].key, "janitor:suggest-health:jira-sprint");
+    }
+
+    /// The literal line the operator reads on Ctrl-S. Pinned, because the
+    /// whole point of this janitor is the WORDING: a row that said
+    /// "erroring" is what hid the class, and a future edit that quietly
+    /// reverts to a status label would restore the bug with every test
+    /// still green.
+    #[test]
+    fn the_blind_row_renders_the_fact_in_words_on_the_board() {
+        let env = MockJanitorEnv::default();
+        let mut j = SuggestHealthJanitor::new(1);
+        *env.health.lock().unwrap() =
+            vec![(SourceKind::GrafanaAlerts, health_row(SourceStatus::Error, 10_000))];
+        let findings = j.observe(&env, 10_500);
+        let f = &findings[0];
+        // Render exactly as the picker does: the ○ latent badge, then the
+        // izumi board-row label of the agent-lane row `project_to_board`
+        // injects (`<emoji> <title>  <detail>`).
+        let spawn = crate::suggest::SpawnSpec::new("/x", "n").expect("spawn");
+        let row = crate::suggest::Suggestion::new(
+            crate::suggest::SourceKind::Agent,
+            &f.key,
+            &f.title,
+            spawn,
+        )
+        .detail(f.detail.clone());
+        let mut label = String::from("\u{25cb} ");
+        label.push_str(&row.picker_label().to_string());
+        assert_eq!(
+            label,
+            "\u{25cb} \u{1F91D} blind source: grafana-alerts has never once succeeded  \
+             status \u{201C}erroring\u{201D} for 1 poll and not one success \
+             \u{2014} a declaration to fix, not an outage to wait out"
+        );
+    }
+
+    /// At most ONE row per blind source, however long it stays blind: the
+    /// key is stable, so re-projection is an idempotent upsert rather than
+    /// a growing pile.
+    #[test]
+    fn a_blind_source_files_one_row_not_one_per_poll() {
+        let env = MockJanitorEnv::default();
+        let mut j = SuggestHealthJanitor::new(1);
+        let mut keys: Vec<String> = Vec::new();
+        for poll_ms in [10_000_u64, 20_000, 30_000, 40_000] {
+            *env.health.lock().unwrap() =
+                vec![(SourceKind::GrafanaAlerts, health_row(SourceStatus::Error, poll_ms))];
+            for f in j.observe(&env, poll_ms + 500) {
+                keys.push(f.key);
+            }
+        }
+        assert_eq!(keys.len(), 4, "one finding per poll…");
+        keys.dedup();
+        assert_eq!(keys.len(), 1, "…all carrying ONE stable board-row identity");
     }
 
     #[test]
