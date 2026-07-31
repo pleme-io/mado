@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "c927f74476ecad9b96dc0db82f629a95260cbc1ebc2d3b7a59105863f1c27078",
+  "cargo_lock_sha256": "ce8a4c621291f54f4f27aff1aa3b7f775119453b200e3b0aabde13ea9d9eca77",
   "manifest_sha256": {
-    "Cargo.toml": "1d867f246af0467f4f4e4a9034767d2254c6844ad7f7cd3cc05c4c5a3d8d5c51"
+    "Cargo.toml": "8b8a63407343287e204f9bb717904ea3845088e10380252fcf1d0a29660beff8"
   },
   "target_resolves": {
     "base": {
@@ -17392,7 +17392,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.448-003b8af298a8425411f61c7cdc6bf8daaebac162": {
+      "shikumi-0.1.449-db0ca01419aadbac1867b3f65ffe963b880559c3": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -21218,7 +21218,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.448-003b8af298a8425411f61c7cdc6bf8daaebac162",
+            "package_key": "shikumi-0.1.449-db0ca01419aadbac1867b3f65ffe963b880559c3",
             "kind": "normal",
             "features": [
               "cli"
@@ -26660,7 +26660,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.103": {
+          "mado-0.1.104": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31706,7 +31706,7 @@
               "system"
             ]
           },
-          "mado-0.1.103": {
+          "mado-0.1.104": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35938,7 +35938,7 @@
               "system"
             ]
           },
-          "mado-0.1.103": {
+          "mado-0.1.104": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -40319,7 +40319,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.103": {
+          "mado-0.1.104": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -45329,7 +45329,7 @@
               "system"
             ]
           },
-          "mado-0.1.103": {
+          "mado-0.1.104": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -49525,7 +49525,7 @@
               "system"
             ]
           },
-          "mado-0.1.103": {
+          "mado-0.1.104": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -53888,7 +53888,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.103": {
+    "mado-0.1.104": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -54735,7 +54735,7 @@
     "shidou-0.1.9-35c12221ac8622d90e03e21d5fec30ac329547e7": {
       "edition": "2024"
     },
-    "shikumi-0.1.448-003b8af298a8425411f61c7cdc6bf8daaebac162": {
+    "shikumi-0.1.449-db0ca01419aadbac1867b3f65ffe963b880559c3": {
       "edition": "2024"
     },
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": {
@@ -55490,7 +55490,7 @@
     "pleme-kindstr-derive-0.1.0-9fde4c145f7ff57acd88275f74511e422d407f94": "sha256-MjK6VPYt1inzElKtmBQF8piLCsOPFGqEYBilWiXYnLQ=",
     "praca-0.1.8-4e3c98556d3125b87d7bd2bc5a3f614b30b638a4": "sha256-zuDhr3wUieYecBD8uR5TXlRXdvtaccoraTlpJCd/G90=",
     "shidou-0.1.9-35c12221ac8622d90e03e21d5fec30ac329547e7": "sha256-rjs+1FgZD/d2rqK7EXglvJI0IlziAYLwLOiQAJOE7PQ=",
-    "shikumi-0.1.448-003b8af298a8425411f61c7cdc6bf8daaebac162": "sha256-iTVwOCujl1RGy8si9i6L2wbW7hD7A0aZrEv8F1QGjGQ=",
+    "shikumi-0.1.449-db0ca01419aadbac1867b3f65ffe963b880559c3": "sha256-PDw50wGv6Y7C4vcpNQ1Hf8ObbnkHQ5MAcfViJ/WPN94=",
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": "sha256-Jd6fUoNSdzk+I5iu7FbAg9F9gbc7oU9jdPnnaTIxL6w=",
     "tatara-core-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
     "tatara-eval-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
