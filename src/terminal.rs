@@ -1051,6 +1051,33 @@ impl Grid {
         self.rows.len().saturating_sub(self.visible_rows)
     }
 
+    /// The last VISIBLE row (0-based, viewport-relative) holding any
+    /// non-blank cell — `None` when the viewport is entirely blank.
+    ///
+    /// The `Option` is load-bearing, not decoration. "Content ends at
+    /// row 0" and "there is no content" demand OPPOSITE answers from the
+    /// one caller below, and a `usize` cannot tell them apart: returning
+    /// 0 for an empty viewport silently broke `resize_clamps_cursor`,
+    /// which parks the cursor at row 20 of an EMPTY grid and shrinks —
+    /// where clamping to the last row is correct xterm behaviour,
+    /// because there is nothing to follow.
+    ///
+    /// Exists for exactly one caller: the resize re-anchor's failure
+    /// path. When a shrink pops the cursor's logical line, its anchor no
+    /// longer resolves and the old `cursor.row` is a number from a
+    /// geometry that no longer exists. Clamping THAT to `rows - 1` is
+    /// how a prompt on row 0 ended up with its cursor pinned to the
+    /// bottom of the window. Where content survives, the cursor should
+    /// follow it rather than the frame it happens to sit in.
+    fn last_content_row(&self) -> Option<usize> {
+        let sb = self.scrollback_len();
+        (0..self.visible_rows).rev().find(|&i| {
+            self.rows
+                .get(sb + i)
+                .is_some_and(|l| l.cells.iter().any(|c| c.ch != ' ' && c.ch != '\0'))
+        })
+    }
+
     /// Access a visible row (0 = top of visible area).
     fn visible_row(&self, idx: usize) -> &[Cell] {
         let offset = self.scrollback_len();
@@ -2730,6 +2757,37 @@ impl Terminal {
             {
                 self.cursor.row = abs_row.saturating_sub(sb);
                 self.cursor.col = col;
+            } else if cursor_anchor.is_some() {
+                // The anchor existed but its logical line is GONE —
+                // `resolve_cell_anchor` returns None only when
+                // `line_runs(id)` is empty, i.e. a shrink popped the
+                // cursor's line from the bottom.
+                //
+                // Falling through here used to leave `self.cursor.row`
+                // holding its value from the OLD geometry, which the
+                // clamp below (`min(rows - 1)`) then turned into "the
+                // bottom row" — a meaningless number laundered into a
+                // plausible-looking one. With the surviving content
+                // being the old TOP of the viewport, that is exactly
+                // the reported "prompt on row 0, cursor at the bottom
+                // of the window", and the shell was never told, so zle
+                // then edited against a position the emulator no longer
+                // agreed with ("typing bounces").
+                //
+                // The cursor follows its content. This mirrors what
+                // `resolve_cell_anchor` already does one level down
+                // when an offset overruns its run: clamp to the end of
+                // what survived, rather than keep a stale coordinate.
+                //
+                // ONLY when content survived. On a blank viewport there
+                // is nothing to follow and the plain clamp below is the
+                // correct xterm answer — `resize_clamps_cursor` pins
+                // exactly that case (cursor parked at row 20 of an empty
+                // grid, shrunk to 10 rows, expects row 9).
+                if let Some(row) = grid.last_content_row() {
+                    self.cursor.row = row;
+                    self.cursor.col = 0;
+                }
             }
             if let Some((abs_row, col)) =
                 saved_cursor_anchor.and_then(|a| grid.resolve_cell_anchor(a))
@@ -2782,6 +2840,29 @@ impl Terminal {
             self.tab_stops[i] = true;
         }
 
+        // A rows-only shrink never enters the re-anchor block above —
+        // `rewrap` gates on `cols != self.cols`, so changing only the
+        // height skips the whole CellAnchor bridge and lands here with
+        // `cursor.row` still holding its pre-resize value. Clamping that
+        // pins the cursor to the bottom of the frame while the surviving
+        // content (Grid::resize pops from the BOTTOM) sits at the top.
+        //
+        // That is the boot case: mado sizes the PTY from a guessed cell
+        // metric, the shell prints its prompt at row 0, and the first
+        // measured frame resizes the height — prompt at top, cursor at
+        // the bottom, and the shell never told, so zle then edits
+        // against a position the emulator no longer agrees with.
+        //
+        // Follow the content when any survived. On a blank viewport
+        // `last_content_row` is None and the plain clamp is the correct
+        // xterm answer (`resize_clamps_cursor` pins that case). The alt
+        // screen keeps the numeric clamp: it truncates rather than
+        // reflowing and owns its own row numbering.
+        if self.cursor.row >= rows && !self.use_alternate {
+            if let Some(row) = self.primary.last_content_row() {
+                self.cursor.row = row;
+            }
+        }
         // Clamp cursor (bounds the re-anchored values too)
         self.cursor.row = self.cursor.row.min(rows.saturating_sub(1));
         self.cursor.col = self.cursor.col.min(cols.saturating_sub(1));
@@ -6862,6 +6943,40 @@ mod tests {
         term.resize(40, 10);
         assert_eq!(term.cursor().row, 9);
         assert_eq!(term.cursor().col, 39);
+    }
+
+    /// B0 — a shrink that pops the cursor's line must not park the
+    /// cursor on the bottom row while the surviving content sits at the
+    /// top.
+    ///
+    /// This is the reported "prompt on row 0, cursor at the bottom of the
+    /// window". `Grid::resize` pops shrunk rows from the BOTTOM, so the
+    /// survivors are the old TOP; the cursor's anchor then fails to
+    /// resolve (its logical line is gone) and the old absolute row —
+    /// meaningless in the new geometry — was clamped to `rows - 1`. A
+    /// number from a dead geometry laundered into a plausible one.
+    ///
+    /// Boot hits this without any user resize: mado sizes the PTY from a
+    /// guessed cell metric, the shell prints its prompt, and the first
+    /// measured frame resizes to the real dims.
+    #[test]
+    fn shrink_that_pops_the_cursor_line_keeps_the_cursor_with_its_content() {
+        let mut term = Terminal::new(80, 24);
+        // Content at the TOP (a prompt), cursor parked far below it —
+        // the shape a boot-time re-size lands in.
+        term.feed(b"prompt$ ");
+        term.feed(b"\x1b[20;1H");
+        assert_eq!(term.cursor().row, 19, "precondition: cursor is low");
+
+        term.resize(80, 10);
+
+        assert!(
+            term.cursor().row < 9,
+            "cursor parked on the bottom row ({}) while the content it \
+             belongs to survived at the top — the B0 signature",
+            term.cursor().row
+        );
+        assert_eq!(term.cursor().row, 0, "it belongs on the prompt's row");
     }
 
     #[test]
