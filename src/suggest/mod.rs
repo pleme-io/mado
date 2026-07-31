@@ -270,96 +270,77 @@ pub mod store {
     }
 }
 
-/// The **health verdict** — the question `status` alone cannot answer.
+// ─────────────────────────────────────────────────────────────────
+// The health verdict — imported, no longer mirrored
+// ─────────────────────────────────────────────────────────────────
+//
+// `status` answers "is this source erroring *right now*". That is the
+// question that let seven sources sit dead for 118+ consecutive polls: a lane
+// misconfigured the day it was wired reads `erroring`, which is exactly what a
+// healthy lane reads during a transient upstream blip. Same word, opposite
+// meaning — one is weather, the other is a build defect. The second axis was
+// always in the data: has this source EVER observed its upstream?
+//
+// Mado used to answer that with its OWN `mod health` — a `HealthVerdict` enum
+// plus a `verdict(&SourceHealth)` free function whose doc comment named
+// `izumi_board::protocol::HealthVerdict` as a known duplicate and called one
+// `verdict()` on `izumi::SourceHealth` the destination. izumi `c2b48c0` built
+// that destination, so the copy is deleted rather than kept in sync: two
+// copies of one rule WILL drift, and the drift is silent because each side
+// looks locally correct. The rule now has exactly one home
+// ([`izumi::HealthVerdict::of`]), and mado reads it through
+// `SourceHealth::verdict()` like every other border.
+
+/// The typed success history behind a verdict — `Succeeded` / `NeverSucceeded`
+/// / `Unobserved`. Re-exported so a mado-side border that DECIDES something
+/// can read the evidence directly instead of collapsing it to a boolean;
+/// `ever_ok()` cannot tell "we looked and it never worked" from "we never
+/// looked", and a gate that cannot tell those apart fires on the wrong one.
+#[allow(unused_imports)]
+pub use izumi::OkEvidence;
+
+/// Whether a source is reporting, failing, has never worked at all, or has
+/// never been looked at — **izumi's definition, not a mado copy**.
 ///
-/// `status` answers "is this source erroring *right now*". That is the
-/// question that let seven sources sit dead for 118+ consecutive polls: a
-/// lane misconfigured the day it was wired reads `erroring`, which is
-/// exactly what a healthy lane reads during a transient upstream blip. Same
-/// word, opposite meaning — one is weather, the other is a build defect.
+/// **The fourth variant is the point.** [`HealthVerdict::Unknown`] (no poll
+/// has ever completed) is NOT [`HealthVerdict::Blind`] (polled, never once
+/// observed to succeed). Blind is a finding; unknown is the absence of one,
+/// and only a finding may gate — [`HealthVerdict::needs_intervention`] is
+/// true for Blind and nothing else. Every mado consumer matches all four
+/// arms explicitly, so folding Unknown back into Blind has to be typed out
+/// on purpose rather than happening by default.
 ///
-/// The second axis was always in the data and nothing ever rendered it:
-/// [`SourceHealth::last_ok_ms`] — has this source EVER observed its
-/// upstream? Mado carried it to exactly one place ([`board_json`]'s
-/// `ever_ok`), an agent-only surface, so agents could see a dead lane and
-/// the operator could not.
+/// **Tier-honest — what `min_consecutive_polls` is now for.** The old note
+/// here said this classification was `only-mitigated` because `last_ok_ms`
+/// was per-PROCESS: `StoreSnapshot` persisted `entries` + `saved_at_ms` and
+/// dropped `health`, so every mado restart reset the success latch and a
+/// merely-degraded source read `Blind` until its next good poll. The janitor's
+/// `min_consecutive_polls` bar was the mitigation for exactly that, which is
+/// why it was documented as load-bearing rather than as a tuning knob.
 ///
-/// Semantics mirror izumi `ea94a08` (`izumi_board::protocol::HealthVerdict`)
-/// deliberately. They are NOT imported: that type lives in `izumi-board`, a
-/// crate mado does not depend on, at a rev newer than mado's pin — and it is
-/// derived from the *JSON wire* view (`status: String`, `ever_ok: bool`),
-/// whereas this one is derived from the *typed live store* record. Same rule,
-/// two borders. **Destination:** one `verdict()` on `izumi::SourceHealth` in
-/// the izumi core crate, read by both borders, so the rule has a single home.
-pub mod health {
-    use super::core::SourceStatus;
-    use super::store::SourceHealth;
-
-    /// Whether a source is reporting, failing, or has never worked at all.
-    #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-    pub enum HealthVerdict {
-        /// Reporting normally.
-        Ok,
-        /// Has observed its upstream before and is failing now — weather.
-        /// Usually resolves itself; worth an ambient note, never a row.
-        Degraded,
-        /// Has NEVER observed its upstream. Not weather: a wrong context, a
-        /// dead URL, a malformed credential — something that was never
-        /// right, and that no amount of waiting will fix.
-        Blind,
-    }
-
-    impl HealthVerdict {
-        /// Operator-facing label.
-        #[must_use]
-        pub fn label(self) -> &'static str {
-            match self {
-                HealthVerdict::Ok => "ok",
-                HealthVerdict::Degraded => "degraded",
-                HealthVerdict::Blind => "blind",
-            }
-        }
-
-        /// Whether this verdict means someone must go fix a *declaration*.
-        /// True for [`HealthVerdict::Blind`] and nothing else — the gate the
-        /// board row hangs on, so weather can never earn a row.
-        #[must_use]
-        pub fn needs_intervention(self) -> bool {
-            matches!(self, HealthVerdict::Blind)
-        }
-    }
-
-    /// Classify one live health record.
-    ///
-    /// **Tier-honest — this is `only-mitigated`, not unrepresentable.**
-    /// `last_ok_ms` is per-PROCESS: [`izumi::StoreSnapshot`] persists
-    /// `entries` + `saved_at_ms` and *not* `health`, so every mado restart
-    /// resets the latch and a merely-degraded source reads `Blind` until its
-    /// next success. What bounds that is the janitor's
-    /// `min_consecutive_polls` bar: a source that is genuinely fine succeeds
-    /// within those polls, sets `last_ok_ms`, and reclassifies — so only a
-    /// sustained outage spanning a restart can still mis-read, and only
-    /// until the first good poll. The real fix is upstream (persist
-    /// `last_ok_ms` in the snapshot); until then the bar is the mitigation,
-    /// which is why it is load-bearing and not a tuning knob.
-    #[must_use]
-    pub fn verdict(h: &SourceHealth) -> HealthVerdict {
-        if h.status == SourceStatus::Ok {
-            HealthVerdict::Ok
-        } else if h.last_ok_ms > 0 {
-            HealthVerdict::Degraded
-        } else {
-            HealthVerdict::Blind
-        }
-    }
-}
+/// izumi `c2b48c0` fixed it at the cause: the snapshot carries the health
+/// plane (slug-keyed, `#[serde(default)]`, merged monotonically), so the latch
+/// and the observation window are facts about the SOURCE, not about this
+/// process. `min_consecutive_polls` therefore reverts to what its name always
+/// said — debouncing a flapping upstream so one bad poll cannot file a row.
+/// Setting it to 1 is now a noise choice, not a correctness risk.
+///
+/// **The honest residue is the one-time transition, and only that.** A
+/// snapshot written before the health plane existed carries none, so the first
+/// process after the upgrade starts with no record for any source. That state
+/// is typed [`OkEvidence::Unobserved`] → [`HealthVerdict::Unknown`], never a
+/// false `NeverSucceeded`, so it reads as *unknown* and files nothing; from
+/// the second run on there is nothing left to narrow. The verdict is an
+/// eval-time derived value, not a compile error — what IS unrepresentable is
+/// the FORK: a border cannot re-decide the rule without deleting
+/// `HealthVerdict::of`, and a new `SourceStatus` or `OkEvidence` variant is a
+/// compile error at that one site.
+pub use izumi::HealthVerdict;
 
 // The suggest-plane facade. These are the module's public API; not every name
 // is consumed by the binary itself (several are used cross-module only under
 // cfg(test) or by providers via their full paths), so the unused-import lint
 // for the re-export surface is intentionally allowed.
-#[allow(unused_imports)]
-pub use health::{verdict, HealthVerdict};
 #[allow(unused_imports)]
 pub use core::{CorrKey, SourceKind, SourceStatus, SpawnSpec, Suggestion, SuggestionId, Urgency};
 #[allow(unused_imports)]
@@ -518,14 +499,24 @@ pub fn board_json(max: usize) -> serde_json::Value {
             // carrier of the fact: the VERDICT ships alongside it, from the
             // same definition the picker footer and the janitor row read —
             // so the agent face and the operator face can never disagree
-            // about which lanes have never once succeeded.
-            let v = health::verdict(&h);
+            // about which lanes have never once succeeded. It is a DISPLAY
+            // field now; anything deciding reads `ok_evidence()`, which can
+            // say "never looked" where a boolean can only say `false`.
+            let v = h.verdict();
             serde_json::json!({
                 "source": kind.slug(),
                 "status": h.status.label(),
                 "last_poll_secs_ago": now_ms.saturating_sub(h.last_poll_ms) / 1000,
-                "ever_ok": h.last_ok_ms > 0,
-                "verdict": v.label(),
+                "ever_ok": h.ever_ok(),
+                // `.slug()`, NOT `.label()`. izumi's `label()` is the
+                // fixed-width board form (`"BLIND   "`) built to scan
+                // preattentively in a column; the wire wants the compact
+                // machine token, which is what mado's own retired `label()`
+                // happened to emit. Same four strings as before —
+                // `ok`/`degraded`/`blind` — plus `unknown`, newly reachable
+                // for a lane whose instrument has not run (it used to
+                // mis-report as `blind`).
+                "verdict": v.slug(),
                 "needs_intervention": v.needs_intervention(),
             })
         })
@@ -982,41 +973,89 @@ mod tests {
         }
     }
 
-    /// The verdict truth table — the whole rule, on one screen. `status`
-    /// alone cannot separate "failing right now" from "never worked", which
-    /// is the confusion that let dead lanes read as quiet ones.
+    /// The verdict truth table as mado's borders see it — `status` alone
+    /// cannot separate "failing right now" from "never worked" from "never
+    /// looked", which is the confusion that let dead lanes read as quiet ones.
+    ///
+    /// izumi owns the exhaustive `(status × evidence)` table; this asserts the
+    /// three rows mado's own gates hang on, and — the load-bearing row — that
+    /// **Unknown is not a finding**. A never-polled lane is evidence in
+    /// neither direction, so it must not answer `needs_intervention`; the day
+    /// it does, every board row and footer in this crate starts firing on
+    /// nothing.
     #[test]
-    fn verdict_separates_never_worked_from_failing_now() {
-        let row = |status: SourceStatus, last_ok_ms: u64| SourceHealth {
+    fn verdict_separates_never_worked_from_failing_now_and_from_never_looked() {
+        // A lane under observation since t=1_000, polled at t=10_000.
+        let polled = |status: SourceStatus, last_ok_ms: u64| SourceHealth {
             status,
             last_poll_ms: 10_000,
             last_ok_ms,
+            first_poll_ms: 1_000,
+        };
+        // A lane whose instrument has never run — no poll, no success.
+        let never_polled = |status: SourceStatus| SourceHealth {
+            status,
+            last_poll_ms: 0,
+            last_ok_ms: 0,
+            first_poll_ms: 0,
         };
         // Ok is Ok regardless of history.
-        assert_eq!(health::verdict(&row(SourceStatus::Ok, 0)), HealthVerdict::Ok);
-        assert_eq!(health::verdict(&row(SourceStatus::Ok, 500)), HealthVerdict::Ok);
-        // The SAME status splits on one bit: has it ever succeeded?
+        assert_eq!(polled(SourceStatus::Ok, 0).verdict(), HealthVerdict::Ok);
+        assert_eq!(polled(SourceStatus::Ok, 500).verdict(), HealthVerdict::Ok);
         for status in [
             SourceStatus::Error,
             SourceStatus::AuthMissing,
             SourceStatus::TimedOut,
             SourceStatus::Unconfigured,
         ] {
+            // The SAME status splits three ways on the EVIDENCE.
             assert_eq!(
-                health::verdict(&row(status, 0)),
-                HealthVerdict::Blind,
-                "{status:?} with no success on record is blind"
+                polled(status, 0).ok_evidence(),
+                OkEvidence::NeverSucceeded { since_ms: 1_000 },
+                "{status:?} polled with no success is a finding about the source"
             );
             assert_eq!(
-                health::verdict(&row(status, 500)),
+                polled(status, 0).verdict(),
+                HealthVerdict::Blind,
+                "{status:?} polled with no success on record is blind"
+            );
+            assert_eq!(
+                polled(status, 500).verdict(),
                 HealthVerdict::Degraded,
                 "{status:?} with a success on record is weather"
             );
+            assert_eq!(
+                never_polled(status).ok_evidence(),
+                OkEvidence::Unobserved,
+                "{status:?} never polled is NO evidence, not bad evidence"
+            );
+            assert_eq!(
+                never_polled(status).verdict(),
+                HealthVerdict::Unknown,
+                "{status:?} never polled is unknown, NEVER blind"
+            );
         }
+        // `first_seen_at` reproduces a source's first recorded poll: the
+        // window starts now, and only an Ok sets the latch.
+        let fresh_ok = SourceHealth::first_seen_at(SourceStatus::Ok, 7_000);
+        assert_eq!(fresh_ok.verdict(), HealthVerdict::Ok);
+        assert_eq!(fresh_ok.ok_evidence(), OkEvidence::Succeeded { at_ms: 7_000 });
+        let fresh_bad = SourceHealth::first_seen_at(SourceStatus::Error, 7_000);
+        assert_eq!(fresh_bad.verdict(), HealthVerdict::Blind);
+        assert_eq!(
+            fresh_bad.ok_evidence(),
+            OkEvidence::NeverSucceeded { since_ms: 7_000 },
+            "the claim rests on the window it can actually point at"
+        );
         // Intervention is exactly Blind — the gate the board row hangs on.
+        // Unknown sits with Ok and Degraded on the "files nothing" side.
         assert!(HealthVerdict::Blind.needs_intervention());
         assert!(!HealthVerdict::Degraded.needs_intervention());
         assert!(!HealthVerdict::Ok.needs_intervention());
+        assert!(
+            !HealthVerdict::Unknown.needs_intervention(),
+            "gating on 'we have not looked' is gating on nothing"
+        );
     }
 
     /// The agent face carries the verdict too, from the same definition —
@@ -1040,7 +1079,12 @@ mod tests {
         assert_eq!(ok["verdict"], "ok");
         assert_eq!(ok["needs_intervention"], false);
         let blind = find("grafana-alerts");
+        // The compact machine token, byte-identical to what mado's retired
+        // `HealthVerdict::label()` emitted. izumi's `label()` is the
+        // fixed-width board form (`"BLIND   "`), so shipping it here would
+        // have silently changed the wire under every agent consumer.
         assert_eq!(blind["verdict"], "blind");
+        assert_ne!(blind["verdict"], izumi::HealthVerdict::Blind.label());
         assert_eq!(blind["needs_intervention"], true);
         // `ever_ok` stays on the wire — the verdict is additive, not a
         // replacement, so existing agent consumers keep parsing.

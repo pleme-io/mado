@@ -1,6 +1,7 @@
 # Mado (窓) — GPU-Rendered Terminal Emulator
 
 `pending-tear-bump: source absorbed, pin NOT moved — tear@5974375 is unpushed`
+`pending-izumi-bump: source absorbed, pin NOT moved — izumi@c2b48c0 is unpushed`
 
 > **★★ The tear pin is one commit behind on purpose. Read this before you
 > touch it (2026-07-31).** tear grew an `args: &[String]` parameter on three
@@ -78,6 +79,74 @@
 > practice a preset captured from a mado-spawned pane still replays with empty
 > argv — the newly-carried argv is real only for panes an agent spawned through
 > `spawn_term` with `args`.
+
+> **★★ The izumi pin is one commit behind on purpose — same shape as the tear
+> note above, same reason (2026-07-31).** izumi `c2b48c0` moved the health
+> verdict into the core crate: `OkEvidence` (`Succeeded`/`NeverSucceeded`/
+> `Unobserved`), `HealthVerdict` (`Ok`/`Degraded`/`Blind`/**`Unknown`**),
+> `HealthVerdict::of`, `SourceHealth::{first_seen_at, ok_evidence, verdict,
+> observed_for_ms, ever_polled}`, a new persisted `first_poll_ms` field, and
+> `SourceStatus::from_label` — and it PERSISTS the health plane in
+> `StoreSnapshot`. **mado's source is already absorbed against it**: the
+> mirrored `mado::suggest::health` module is deleted and `HealthVerdict` /
+> `OkEvidence` are re-exported straight from `izumi`. **`Cargo.toml`'s three
+> izumi `rev`s and `Cargo.lock` are deliberately untouched** — `c2b48c0` exists
+> only in the local sibling checkout, and a lock naming an unpushed rev
+> resolves for exactly one machine and 404s for CI, nix, and every other clone.
+> Strictly worse than a lock naming a stale-but-real rev, which is what is
+> committed.
+>
+> **Consequence, stated plainly: `cargo test` with no override does NOT build
+> this tree.** It has not since `99d5f0e` (tear) and now also fails on izumi.
+> That is the accepted cost of absorbing ahead of two pins; it is a bump away,
+> not a rewrite.
+>
+> **How this was verified without a push.** Same patch-override technique as
+> the tear note — add the three izumi crates to the same invocation:
+>
+> ```
+> cargo test \
+>   --config 'patch."https://github.com/pleme-io/izumi".izumi.path="../izumi/izumi"' \
+>   --config 'patch."https://github.com/pleme-io/izumi".izumi-sources.path="../izumi/izumi-sources"' \
+>   --config 'patch."https://github.com/pleme-io/izumi".izumi-config.path="../izumi/izumi-config"' \
+>   <the six tear --config lines from the note above>
+> ```
+>
+> All three izumi crates must be listed together, for the same reason all six
+> tear crates must: cargo unifies a git source per crate, and a half-patched
+> set splits `izumi`'s identity. Run `cargo update -p izumi -p izumi-sources
+> -p izumi-config` (plus the tear crates) under the **same** `--config` first,
+> or cargo keeps the pinned rev and prints `Patch … was not used` — **treat
+> that line as a failed test run, not as noise.** Two further traps measured
+> here: (a) the tend daemon's 5-minute pull can restore `Cargo.lock` from HEAD
+> mid-session, which silently un-applies the patch and returns `no method
+> named 'verdict' found` — re-run the `cargo update` and continue; (b) the live
+> `../tear` checkout may be mid-edit by another owner and fail to compile, in
+> which case resolve tear against a read-only export of the exact rev
+> (`git -C ../tear archive 5974375 | tar -x -C <tmpdir>`) instead of the
+> working tree. `cargo update` rewrites `Cargo.lock` to path deps —
+> `git checkout -- Cargo.lock` afterwards, every time.
+>
+> **The chain to clear this note, in order:**
+>
+> 1. `git -C ../izumi push` — land `c2b48c0` on `pleme-io/izumi` `main`.
+> 2. Set that rev on all three izumi entries in `Cargo.toml` (`izumi`,
+>    `izumi-sources`, `izumi-config`). They must move together — a divergent
+>    rev splits the crate identity.
+> 3. `cargo update -p izumi -p izumi-sources -p izumi-config` — no `--config`,
+>    resolving the real rev.
+> 4. `nix run .#lock` — regenerate `Cargo.gen.lock` **in the same commit**. It
+>    pins `cargo_lock_sha256` + `manifest_sha256["Cargo.toml"]`, and steps 2–3
+>    change both; a commit that moves the rev without this is a guaranteed nix
+>    eval failure (the gen delta-only gate). Re-run
+>    `nix run .#regenerate-cargo-nix` if `Cargo.nix` also drifts.
+> 5. `cargo test` with no override — same green as under the patch.
+> 6. Delete this note.
+>
+> **It can be cleared in the same pass as the tear bump** (steps 1–5 interleave
+> cleanly), and probably should be: while either is outstanding, plain
+> `cargo test` is red for a reason that has nothing to do with the change in
+> front of you.
 
 > **★★★ CSE / Knowable Construction.** This repo operates under
 > **Constructive Substrate Engineering** — canonical specification at

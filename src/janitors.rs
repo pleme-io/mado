@@ -49,9 +49,11 @@
 //!   succeeded** (verdict [`Blind`](crate::suggest::HealthVerdict::Blind))
 //!   beyond N consecutive completed polls. A merely-`Degraded` lane files
 //!   nothing — weather belongs in the ambient footer, and a row per blip is
-//!   what teaches an operator to stop reading the rows. Observe-only in M0
-//!   (`remediable = false`); the finding surfaces the broken *declaration*
-//!   instead of letting it rot silently.
+//!   what teaches an operator to stop reading the rows. A lane whose
+//!   instrument has never run ([`Unknown`](crate::suggest::HealthVerdict::Unknown))
+//!   files nothing either, and for a different reason: there is no evidence
+//!   to file. Observe-only in M0 (`remediable = false`); the finding surfaces
+//!   the broken *declaration* instead of letting it rot silently.
 //!
 //! ## Tier-honest ledger (a `Result::Err` is mitigation — never round up)
 //!
@@ -69,7 +71,7 @@ use std::collections::BTreeMap;
 use std::sync::{Arc, OnceLock};
 
 use crate::fibers::{BoardEvent, FiberBus, FiberEvent, SessionEvent, Subject};
-use crate::suggest::{SourceHealth, SourceKind, SourceStatus, Urgency};
+use crate::suggest::{HealthVerdict, SourceHealth, SourceKind, SourceStatus, Urgency};
 
 // ─────────────────────────────────────────────────────────────────
 // Authority — the shadow-first remediation gate
@@ -600,8 +602,22 @@ impl Janitor for GhostSessionJanitor {
 #[derive(Default, Clone, Copy)]
 struct PollTrack {
     /// `last_poll_ms` at our previous observation — a change means at
-    /// least one NEW poll completed since we last looked.
-    last_poll_ms: u64,
+    /// least one NEW poll completed since we last looked. `None` = this
+    /// janitor has not observed this source at all yet.
+    ///
+    /// `Option`, not a bare `0` sentinel. `0` is itself a meaningful
+    /// `last_poll_ms` — it is what
+    /// [`HealthVerdict::Unknown`](crate::suggest::HealthVerdict::Unknown)
+    /// rests on, "the instrument never ran" — so a `0` default made
+    /// *never-observed-by-this-janitor* and *never-polled-at-all* the same
+    /// value, and the streak bar therefore doubled, silently, as the
+    /// never-polled guard. That is the same collapse-two-cases-into-one-slot
+    /// bug this whole health plane exists to undo, one level down, and it
+    /// had a concrete cost: with the sentinel, deleting the `Unknown` arm in
+    /// [`SuggestHealthJanitor::observe`] changed no observable behaviour, so
+    /// the carve-out was untestable and free to rot. Typed, the verdict is
+    /// the only thing keeping a no-evidence lane off the board.
+    last_poll_ms: Option<u64>,
     /// Consecutive completed polls observed unhealthy.
     consecutive_bad: u32,
 }
@@ -614,13 +630,20 @@ struct PollTrack {
 /// 1. **N consecutive completed polls** in `Error` / `AuthMissing` /
 ///    `TimedOut`. Counts POLLS, not janitor ticks: an observation only
 ///    advances the counter when the source's `last_poll_ms` moved, so a
-///    slow source isn't condemned by a fast janitor. This bar is also what
-///    makes bar 2 safe across restarts — see
-///    [`crate::suggest::health::verdict`].
+///    slow source isn't condemned by a fast janitor. **This bar is no longer
+///    load-bearing.** It used to be the mitigation for a per-process success
+///    latch — izumi persisted `entries` and dropped `health`, so a restart
+///    made every degraded lane read `Blind` until its next good poll, and
+///    the streak was what bounded the mis-read. izumi `c2b48c0` persists the
+///    health plane, so the latch is a fact about the SOURCE and this bar
+///    reverts to what its name always said: debouncing a flapping upstream.
 /// 2. **The verdict is [`Blind`](crate::suggest::HealthVerdict::Blind)** —
-///    the source has no successful poll on record. A `Degraded` lane (it
-///    worked before, it is failing now) is weather and files NOTHING; it
-///    surfaces only in the picker's ambient health footer.
+///    the source has been polled and has no successful poll on record. A
+///    `Degraded` lane (it worked before, it is failing now) is weather and
+///    files NOTHING; it surfaces only in the picker's ambient health footer.
+///    An [`Unknown`](crate::suggest::HealthVerdict::Unknown) lane — no poll
+///    has ever completed — files nothing either: it is the absence of a
+///    finding, not a quiet one, and a gate that fires on it fires on nothing.
 ///
 /// `Unconfigured` is deliberately NOT in bar 1's status set, so an
 /// armed-but-unparameterized lane never files a row. That is a *chosen*
@@ -640,7 +663,8 @@ pub struct SuggestHealthJanitor {
 
 impl SuggestHealthJanitor {
     /// A watcher reporting a source after `min_consecutive_polls` bad polls
-    /// in a row (floored at 1).
+    /// in a row (floored at 1) — a flap debounce, not a correctness bar; see
+    /// the type's doc for why that changed.
     #[must_use]
     pub fn new(min_consecutive_polls: u32) -> Self {
         Self {
@@ -662,12 +686,9 @@ impl Janitor for SuggestHealthJanitor {
     fn observe(&mut self, env: &dyn JanitorEnv, now_ms: u64) -> Vec<JanitorFinding> {
         let mut out = Vec::new();
         for (kind, health) in env.suggest_health() {
-            if health.last_poll_ms == 0 {
-                continue; // never polled this process lifetime
-            }
             let track = self.seen.entry(kind).or_default();
-            if health.last_poll_ms != track.last_poll_ms {
-                track.last_poll_ms = health.last_poll_ms;
+            if track.last_poll_ms != Some(health.last_poll_ms) {
+                track.last_poll_ms = Some(health.last_poll_ms);
                 let bad = matches!(
                     health.status,
                     SourceStatus::Error | SourceStatus::AuthMissing | SourceStatus::TimedOut
@@ -678,25 +699,56 @@ impl Janitor for SuggestHealthJanitor {
                     0
                 };
             }
-            if track.consecutive_bad < self.min_consecutive {
-                continue;
-            }
             // ── THE GATE: only a BLIND lane earns a row ──────────────
             //
-            // A Degraded lane (one that HAS observed its upstream and is
-            // failing now) is weather. It gets the ambient footer and
-            // nothing else. Filing a row per blip is precisely how a
-            // health mechanism trains its reader to ignore it — which is
-            // how this class stayed invisible in the first place: the row
-            // that fired said "erroring", the same word a healthy lane
-            // says during a thirty-second blip, so the rows that mattered
-            // were indistinguishable from the ones that didn't.
-            //
-            // The verdict is read from ONE definition
-            // (`crate::suggest::verdict`) shared with the picker footer
-            // and `board_json`, so the operator face and the agent face
-            // cannot drift apart about which lanes are dead.
-            if !crate::suggest::verdict(&health).needs_intervention() {
+            // One EXHAUSTIVE match, so a fifth verdict is a compile error
+            // here rather than a silent default. The verdict itself comes
+            // from ONE definition (`izumi::HealthVerdict::of`, reached via
+            // `SourceHealth::verdict()`) shared with the picker footer and
+            // `board_json`, so the operator face and the agent face cannot
+            // drift apart about which lanes are dead.
+            match health.verdict() {
+                // Polled, and never once observed to succeed. A finding
+                // about the SOURCE — a wrong context, a dead URL, a
+                // credential that was never right. This is the row.
+                HealthVerdict::Blind => {}
+                // No poll has ever completed. THIS ARM IS THE CARVE-OUT,
+                // and it must never be merged into `Blind`.
+                //
+                // It is the same skip this loop always had — it used to be
+                // a bare `if health.last_poll_ms == 0 { continue }` at the
+                // top, an incidental guard with a comment ("never polled
+                // this process lifetime") and no type behind it. izumi
+                // `c2b48c0` gave the case a name: `OkEvidence::Unobserved`
+                // → `HealthVerdict::Unknown`, evidence in NEITHER
+                // direction. Condemning on it is condemning on nothing,
+                // which is exactly the gate-on-no-evidence bug that commit
+                // fixed upstream; reintroducing the fold here would import
+                // it straight back. Blind is a finding, unknown is the
+                // absence of one, and only a finding may gate.
+                //
+                // Measured, not asserted: folding this arm into `Blind`
+                // above turns
+                // `a_never_polled_lane_is_unknown_and_files_nothing_while_a_blind_one_files`
+                // red with
+                // `left: ["janitor:suggest-health:grafana-alerts",
+                // "janitor:suggest-health:jira-sprint"]` against
+                // `right: ["janitor:suggest-health:grafana-alerts"]` — the
+                // never-polled lane files a High-urgency row claiming it
+                // "has never once succeeded".
+                HealthVerdict::Unknown => continue,
+                // Reporting normally, or weather: a Degraded lane HAS
+                // observed its upstream and is failing now. It gets the
+                // ambient footer and nothing else. Filing a row per blip is
+                // precisely how a health mechanism trains its reader to
+                // ignore it — which is how this class stayed invisible in
+                // the first place: the row that fired said "erroring", the
+                // same word a healthy lane says during a thirty-second
+                // blip, so the rows that mattered were indistinguishable
+                // from the ones that didn't.
+                HealthVerdict::Ok | HealthVerdict::Degraded => continue,
+            }
+            if track.consecutive_bad < self.min_consecutive {
                 continue;
             }
             let mut key = String::from("janitor:suggest-health:");
@@ -959,12 +1011,18 @@ mod tests {
         }
     }
 
-    /// A lane with NO successful poll on record — the `Blind` verdict.
+    /// A lane with NO successful poll on record. `last_poll_ms > 0` ⇒ the
+    /// `Blind` verdict (polled, never succeeded); `last_poll_ms == 0` ⇒
+    /// `Unknown` (the instrument never ran) — the two the janitor must keep
+    /// apart. `first_poll_ms == last_poll_ms` reproduces a source seen for
+    /// the first time at that stamp, which is the weakest window the claim
+    /// can rest on.
     fn health_row(status: SourceStatus, last_poll_ms: u64) -> SourceHealth {
         SourceHealth {
             status,
             last_poll_ms,
             last_ok_ms: 0,
+            first_poll_ms: last_poll_ms,
         }
     }
 
@@ -977,6 +1035,7 @@ mod tests {
             status,
             last_poll_ms,
             last_ok_ms,
+            first_poll_ms: last_ok_ms.min(last_poll_ms),
         }
     }
 
@@ -1091,6 +1150,54 @@ mod tests {
         let mut j = SuggestHealthJanitor::new(3);
         assert!(j.observe(&env, 20_000).is_empty());
         assert!(j.observe(&env, 30_000).is_empty());
+    }
+
+    /// **The carve-out, and the one that must not be folded away.** Two lanes
+    /// with the SAME status and the SAME (zero) success history, separated by
+    /// one fact: one has been polled and one never has.
+    ///
+    /// * polled + never once succeeded → `Blind` → a finding → **files a row**;
+    /// * never polled → `Unknown` → no evidence → **files nothing**.
+    ///
+    /// The debounce is set to 1 on purpose so it cannot be what keeps the
+    /// second lane quiet: both lanes clear the streak bar on their first
+    /// observation (see [`PollTrack::last_poll_ms`] — that is precisely why it
+    /// is an `Option`). The ONLY thing standing between a never-polled lane
+    /// and a High-urgency board row saying it "has never once succeeded" is
+    /// the `HealthVerdict::Unknown` arm in `observe`. Fold that arm into
+    /// `Blind` and this test goes red on the extra finding — which is the
+    /// gate-on-no-evidence bug izumi `c2b48c0` fixed upstream, re-imported.
+    #[test]
+    fn a_never_polled_lane_is_unknown_and_files_nothing_while_a_blind_one_files() {
+        let env = MockJanitorEnv::default();
+        let polled = health_row(SourceStatus::Error, 10_000);
+        let never_polled = health_row(SourceStatus::Error, 0);
+        // The verdicts the rows carry — izumi's rule, asserted here so a
+        // failure names WHICH half broke.
+        assert_eq!(polled.verdict(), crate::suggest::HealthVerdict::Blind);
+        assert_eq!(
+            never_polled.verdict(),
+            crate::suggest::HealthVerdict::Unknown,
+            "a lane whose instrument never ran is unknown, never blind"
+        );
+        assert!(!never_polled.ever_polled());
+        *env.health.lock().unwrap() = vec![
+            (SourceKind::GrafanaAlerts, polled),
+            (SourceKind::JiraSprint, never_polled),
+        ];
+        // Debounce of 1: the streak bar is cleared by BOTH lanes.
+        let mut j = SuggestHealthJanitor::new(1);
+        let findings = j.observe(&env, 10_500);
+        let keys: Vec<&str> = findings.iter().map(|f| f.key.as_str()).collect();
+        assert_eq!(
+            keys,
+            vec!["janitor:suggest-health:grafana-alerts"],
+            "exactly the blind lane files; the never-polled lane must not"
+        );
+        assert!(
+            !keys.contains(&"janitor:suggest-health:jira-sprint"),
+            "a row condemning a lane nobody has looked at is a row about nothing"
+        );
     }
 
     #[test]

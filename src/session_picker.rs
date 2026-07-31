@@ -918,10 +918,24 @@ impl SessionPickerBridge for PracaPickerBridge {
         let mut blind: Vec<(crate::suggest::SourceKind, crate::suggest::SourceHealth)> = Vec::new();
         let mut degraded = 0usize;
         for (kind, h) in store.health() {
-            match crate::suggest::verdict(&h) {
+            match h.verdict() {
                 crate::suggest::HealthVerdict::Ok => {}
                 crate::suggest::HealthVerdict::Degraded => degraded += 1,
                 crate::suggest::HealthVerdict::Blind => blind.push((kind, h)),
+                // The instrument has never run: no evidence in either
+                // direction, so the footer says NOTHING about this lane.
+                // Deliberately its own arm and deliberately NOT folded into
+                // `blind` — that fold is what let "never once succeeded"
+                // get spent on a lane nobody had looked at yet, and it is
+                // the same gate-on-no-evidence bug izumi `c2b48c0` fixed
+                // upstream. An empty footer is the honest answer to a
+                // question that has not been asked.
+                //
+                // Measured, not asserted: folding this arm into `blind`
+                // turns `health_footer_says_nothing_about_a_lane_that_was_never_polled`
+                // red at `src/session_picker.rs:1701` — *"no evidence is not
+                // a finding — the footer must stay silent"*.
+                crate::suggest::HealthVerdict::Unknown => {}
             }
         }
         if blind.is_empty() && degraded == 0 {
@@ -1658,6 +1672,51 @@ mod tests {
         assert!(footer.contains("1 lane blind (never once succeeded)"), "{footer}");
         assert!(footer.contains("grafana-alerts needs auth"), "{footer}");
         assert!(footer.contains("1 degraded"), "both halves coexist: {footer}");
+    }
+
+    /// A lane whose instrument has never run is `Unknown`, and the footer
+    /// must say NOTHING about it — not name it blind, not count it degraded.
+    ///
+    /// Blind is a finding ("polled, never once succeeded"); unknown is the
+    /// absence of one. Folding the two is what would let the strongest word
+    /// the footer owns get spent on a lane nobody has looked at yet, and it
+    /// is the gate-on-no-evidence bug izumi `c2b48c0` fixed upstream.
+    ///
+    /// Tier-honest about the seeding: a health record with `last_poll_ms == 0`
+    /// is the *shape* `SourceHealth` admits for "no poll completed", and a
+    /// wall-clock poll can never stamp 0, so this is the border's arm being
+    /// exercised rather than a route the live store takes today. The arm still
+    /// has to exist and has to be the right one — `store.health()` is a
+    /// `BTreeMap<K, SourceHealth>`, not a set of guaranteed-polled rows.
+    #[test]
+    fn health_footer_says_nothing_about_a_lane_that_was_never_polled() {
+        let (inproc, _live) = live_inproc();
+        let store = Arc::new(SuggestionStore::new());
+        let bridge = bridge_with_suggestions(praca::Praca::new(), inproc, Arc::clone(&store), 6);
+
+        // A record exists, but no poll ever completed against it.
+        store.record_poll(
+            crate::suggest::SourceKind::GrafanaAlerts,
+            crate::suggest::SourceStatus::Error,
+            0,
+        );
+        let h = store.health();
+        let (_, unknown) = h.first().expect("one health row");
+        assert_eq!(unknown.verdict(), crate::suggest::HealthVerdict::Unknown);
+        assert!(
+            bridge.health_footer().is_none(),
+            "no evidence is not a finding — the footer must stay silent"
+        );
+
+        // The SAME lane, once actually polled and still failing, IS blind.
+        store.record_poll(
+            crate::suggest::SourceKind::GrafanaAlerts,
+            crate::suggest::SourceStatus::Error,
+            2000,
+        );
+        let footer = bridge.health_footer().expect("a polled-never-ok lane surfaces");
+        assert!(footer.contains("1 lane blind (never once succeeded)"), "{footer}");
+        assert!(footer.contains("grafana-alerts erroring"), "{footer}");
     }
 
     #[test]

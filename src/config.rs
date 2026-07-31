@@ -1022,6 +1022,14 @@ pub struct SuggestHealthJanitorConfig {
     pub interval_secs: u64,
     /// Consecutive COMPLETED bad polls (`Error`/`AuthMissing`) before a
     /// source is reported (floored at 1 by the janitor).
+    ///
+    /// A **flap debounce**, and only that. It used to be load-bearing for
+    /// correctness — izumi persisted the board but not the health plane, so
+    /// every restart reset the success latch and a merely-degraded source
+    /// read `Blind` until its next good poll, with this bar bounding the
+    /// mis-read. izumi `c2b48c0` persists the plane, so the latch is a fact
+    /// about the SOURCE and lowering this to 1 is now a noise choice, not a
+    /// correctness risk. See `crate::janitors::SuggestHealthJanitor`.
     pub min_consecutive_polls: u32,
     /// Per-janitor authority override; `None` inherits the global.
     pub authority: Option<crate::janitors::Authority>,
