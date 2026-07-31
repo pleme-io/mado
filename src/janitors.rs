@@ -707,6 +707,14 @@ impl Janitor for SuggestHealthJanitor {
             // `SourceHealth::verdict()`) shared with the picker footer and
             // `board_json`, so the operator face and the agent face cannot
             // drift apart about which lanes are dead.
+            //
+            // `Unknown` and `Ok | Degraded` both `continue`, so they are
+            // mergeable on shape and `clippy::match_same_arms` (pedantic)
+            // would say so. They stay apart because they skip for opposite
+            // REASONS — one has evidence that says "no row", the other has
+            // no evidence at all — and merging them is precisely the fold
+            // this arm exists to prevent. Not a lint to satisfy later.
+            #[allow(clippy::match_same_arms)]
             match health.verdict() {
                 // Polled, and never once observed to succeed. A finding
                 // about the SOURCE — a wrong context, a dead URL, a

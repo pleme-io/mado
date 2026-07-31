@@ -918,6 +918,13 @@ impl SessionPickerBridge for PracaPickerBridge {
         let mut blind: Vec<(crate::suggest::SourceKind, crate::suggest::SourceHealth)> = Vec::new();
         let mut degraded = 0usize;
         for (kind, h) in store.health() {
+            // `Ok` and `Unknown` are both no-ops, so they are mergeable on
+            // shape and `clippy::match_same_arms` (pedantic) would say so.
+            // They stay apart because they mean opposite things — "we
+            // looked and it is fine" vs "we never looked" — and collapsing
+            // them is the first step back toward spending the word "blind"
+            // on a lane nobody has polled.
+            #[allow(clippy::match_same_arms)]
             match h.verdict() {
                 crate::suggest::HealthVerdict::Ok => {}
                 crate::suggest::HealthVerdict::Degraded => degraded += 1,
