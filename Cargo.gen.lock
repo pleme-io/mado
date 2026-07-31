@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "6064a0351280ea7df72cc42fbd6a60417d60f3a798ee4a9be98dca70f2696a7d",
+  "cargo_lock_sha256": "c927f74476ecad9b96dc0db82f629a95260cbc1ebc2d3b7a59105863f1c27078",
   "manifest_sha256": {
-    "Cargo.toml": "d8560ea89e4971517d3896277f0467ddcf339e16d02b86c66a48aba221309531"
+    "Cargo.toml": "1d867f246af0467f4f4e4a9034767d2254c6844ad7f7cd3cc05c4c5a3d8d5c51"
   },
   "target_resolves": {
     "base": {
@@ -8029,7 +8029,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "katsuji-0.1.0-5da7b57bfe3e4470cd9ff5d5bf26df06491a80e8": {
+      "katsuji-0.1.1-d6b3ad8f0e69898497475128bd1f7faebe14f334": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
@@ -20243,11 +20243,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-0.3.8": {
+      "tatara-closed-set-0.3.12": {
         "runtime_dependencies": [
           {
             "name": "tatara_closed_set_derive",
-            "package_key": "tatara-closed-set-derive-0.3.8",
+            "package_key": "tatara-closed-set-derive-0.3.12",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20259,7 +20259,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-derive-0.3.8": {
+      "tatara-closed-set-derive-0.3.12": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -20633,7 +20633,7 @@
           "default"
         ]
       },
-      "tatara-lisp-0.3.8": {
+      "tatara-lisp-0.3.12": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -20669,7 +20669,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.3.8",
+            "package_key": "tatara-closed-set-0.3.12",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20679,7 +20679,7 @@
           },
           {
             "name": "tatara_lisp_derive",
-            "package_key": "tatara-lisp-derive-0.3.8",
+            "package_key": "tatara-lisp-derive-0.3.12",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20741,7 +20741,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-derive-0.3.8": {
+      "tatara-lisp-derive-0.3.12": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -20779,11 +20779,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-eval-0.3.8": {
+      "tatara-lisp-eval-0.3.12": {
         "runtime_dependencies": [
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.8",
+            "package_key": "tatara-lisp-0.3.12",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21674,7 +21674,7 @@
           },
           {
             "name": "getrandom",
-            "package_key": "getrandom-0.3.4",
+            "package_key": "getrandom-0.4.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -24119,7 +24119,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.8",
+            "package_key": "tatara-lisp-0.3.12",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24129,7 +24129,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.3.8",
+            "package_key": "tatara-lisp-eval-0.3.12",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -26660,7 +26660,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.102": {
+          "mado-0.1.103": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26935,7 +26935,7 @@
               },
               {
                 "name": "katsuji",
-                "package_key": "katsuji-0.1.0-5da7b57bfe3e4470cd9ff5d5bf26df06491a80e8",
+                "package_key": "katsuji-0.1.1-d6b3ad8f0e69898497475128bd1f7faebe14f334",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27225,7 +27225,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.8",
+                "package_key": "tatara-lisp-0.3.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31706,7 +31706,7 @@
               "system"
             ]
           },
-          "mado-0.1.102": {
+          "mado-0.1.103": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31981,7 +31981,7 @@
               },
               {
                 "name": "katsuji",
-                "package_key": "katsuji-0.1.0-5da7b57bfe3e4470cd9ff5d5bf26df06491a80e8",
+                "package_key": "katsuji-0.1.1-d6b3ad8f0e69898497475128bd1f7faebe14f334",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32224,7 +32224,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.8",
+                "package_key": "tatara-lisp-0.3.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35938,7 +35938,7 @@
               "system"
             ]
           },
-          "mado-0.1.102": {
+          "mado-0.1.103": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -36213,7 +36213,7 @@
               },
               {
                 "name": "katsuji",
-                "package_key": "katsuji-0.1.0-5da7b57bfe3e4470cd9ff5d5bf26df06491a80e8",
+                "package_key": "katsuji-0.1.1-d6b3ad8f0e69898497475128bd1f7faebe14f334",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36456,7 +36456,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.8",
+                "package_key": "tatara-lisp-0.3.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40319,7 +40319,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.102": {
+          "mado-0.1.103": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -40594,7 +40594,7 @@
               },
               {
                 "name": "katsuji",
-                "package_key": "katsuji-0.1.0-5da7b57bfe3e4470cd9ff5d5bf26df06491a80e8",
+                "package_key": "katsuji-0.1.1-d6b3ad8f0e69898497475128bd1f7faebe14f334",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40884,7 +40884,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.8",
+                "package_key": "tatara-lisp-0.3.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45329,7 +45329,7 @@
               "system"
             ]
           },
-          "mado-0.1.102": {
+          "mado-0.1.103": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -45604,7 +45604,7 @@
               },
               {
                 "name": "katsuji",
-                "package_key": "katsuji-0.1.0-5da7b57bfe3e4470cd9ff5d5bf26df06491a80e8",
+                "package_key": "katsuji-0.1.1-d6b3ad8f0e69898497475128bd1f7faebe14f334",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45847,7 +45847,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.8",
+                "package_key": "tatara-lisp-0.3.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49525,7 +49525,7 @@
               "system"
             ]
           },
-          "mado-0.1.102": {
+          "mado-0.1.103": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -49800,7 +49800,7 @@
               },
               {
                 "name": "katsuji",
-                "package_key": "katsuji-0.1.0-5da7b57bfe3e4470cd9ff5d5bf26df06491a80e8",
+                "package_key": "katsuji-0.1.1-d6b3ad8f0e69898497475128bd1f7faebe14f334",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -50043,7 +50043,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.8",
+                "package_key": "tatara-lisp-0.3.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -53789,7 +53789,7 @@
       "edition": "2024",
       "proc_macro": true
     },
-    "katsuji-0.1.0-5da7b57bfe3e4470cd9ff5d5bf26df06491a80e8": {
+    "katsuji-0.1.1-d6b3ad8f0e69898497475128bd1f7faebe14f334": {
       "edition": "2024"
     },
     "khronos-egl-6.0.0": {
@@ -53888,7 +53888,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.102": {
+    "mado-0.1.103": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -54890,10 +54890,10 @@
     "tap-1.0.1": {
       "edition": "2015"
     },
-    "tatara-closed-set-0.3.8": {
+    "tatara-closed-set-0.3.12": {
       "edition": "2021"
     },
-    "tatara-closed-set-derive-0.3.8": {
+    "tatara-closed-set-derive-0.3.12": {
       "edition": "2021",
       "proc_macro": true
     },
@@ -54909,18 +54909,18 @@
     "tatara-lisp-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
       "edition": "2021"
     },
-    "tatara-lisp-0.3.8": {
+    "tatara-lisp-0.3.12": {
       "edition": "2021"
     },
     "tatara-lisp-derive-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-lisp-derive-0.3.8": {
+    "tatara-lisp-derive-0.3.12": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-lisp-eval-0.3.8": {
+    "tatara-lisp-eval-0.3.12": {
       "edition": "2021"
     },
     "tatara-nix-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
@@ -55480,7 +55480,7 @@
     "kanchi-0.1.3-59d1fcbfa26929fec78a0f90cdc2e6f6ba3e5058": "sha256-luuB/jT+tQuFzLQNjqhBEYGozJZrJ87ad//hWXuCYfc=",
     "kanshou-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
     "kanshou-derive-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
-    "katsuji-0.1.0-5da7b57bfe3e4470cd9ff5d5bf26df06491a80e8": "sha256-W1p5bFxS5R0Kb8DAE39v7KaJjPKitL+084DnZLN++hM=",
+    "katsuji-0.1.1-d6b3ad8f0e69898497475128bd1f7faebe14f334": "sha256-z3VrmvBNotClRYGVa/3usnsN3KIA+9nQDzM0dmSzpn8=",
     "madori-0.1.5-79b33a4811853f1a8153735a69fb58bde894c2d9": "sha256-35DB90eBg+O8Ie2w8R4sfZr4B4NG+FPbUfwePl0x9qw=",
     "nami-core-0.1.9-9a6aced4a4f205ea9fdcd4d5e0862a97903e0919": "sha256-U34IOb1oRS+Uj8fEidIHN1F3n1RIlee3tnzDSfH2Gak=",
     "pleme-allvariants-derive-0.1.0-142b74f58ef31231d6f11ad572c9485156640d06": "sha256-UccPQkeqdS3+pY/6ZUO+KzAA7c6UkfYPkcHx8rldiuA=",
