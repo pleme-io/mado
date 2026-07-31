@@ -175,10 +175,10 @@ tsuuchi = { git = "https://github.com/pleme-io/tsuuchi" , version = "0.1" }
 # `from_overrides` / `with_cwd` / `inproc.set_spawn_env` for the
 # env-projection + PWD cwd-handshake). Rev is on tear main, so it
 # resolves on CI + for downstream consumers.
-tear-types = { git = "https://github.com/pleme-io/tear", rev = "f9b1f394fa0ee5367b2e8d14c601fe1202707501", features = ["engate"] , version = "0.1" }
-tear-core = { git = "https://github.com/pleme-io/tear", rev = "f9b1f394fa0ee5367b2e8d14c601fe1202707501", features = ["engate"] , version = "0.1" }
-tear-client = { git = "https://github.com/pleme-io/tear", rev = "f9b1f394fa0ee5367b2e8d14c601fe1202707501", features = ["engate"] , version = "0.1" }
-tear-config = { git = "https://github.com/pleme-io/tear", rev = "f9b1f394fa0ee5367b2e8d14c601fe1202707501" , version = "0.1" }
+tear-types = { git = "https://github.com/pleme-io/tear", rev = "4e3c98556d3125b87d7bd2bc5a3f614b30b638a4", features = ["engate"] , version = "0.1" }
+tear-core = { git = "https://github.com/pleme-io/tear", rev = "4e3c98556d3125b87d7bd2bc5a3f614b30b638a4", features = ["engate"] , version = "0.1" }
+tear-client = { git = "https://github.com/pleme-io/tear", rev = "4e3c98556d3125b87d7bd2bc5a3f614b30b638a4", features = ["engate"] , version = "0.1" }
+tear-config = { git = "https://github.com/pleme-io/tear", rev = "4e3c98556d3125b87d7bd2bc5a3f614b30b638a4" , version = "0.1" }
 
 # praça (praca) — typed session-orchestration substrate (project-root
 # detection, frecency, project↔session bindings, cd-driven attach
@@ -187,7 +187,7 @@ tear-config = { git = "https://github.com/pleme-io/tear", rev = "f9b1f394fa0ee53
 # project root at spawn. Auto-attach-on-cd + the picker land in later
 # phases. Same tear git source + rev as the tear-* crates above so cargo
 # unifies the shared tear-types crate identity (one git source rule).
-praca = { git = "https://github.com/pleme-io/tear", rev = "f9b1f394fa0ee5367b2e8d14c601fe1202707501" , version = "0.1" }
+praca = { git = "https://github.com/pleme-io/tear", rev = "4e3c98556d3125b87d7bd2bc5a3f614b30b638a4" , version = "0.1" }
 
 # egaku — the fleet widget-geometry + widget typescape. Consumed today ONLY
 # for `egaku::Rect` (the geometry type the `float` floating-browser module
@@ -401,8 +401,8 @@ tokio = { version = "1", features = ["test-util", "macros", "rt-multi-thread", "
 # Same SpawnEnv-seam rev as the runtime deps above — a single tear
 # git source so cargo unifies the crate identities (a divergent rev
 # would split tear-types into two crates and break the trait unify).
-tear-core = { git = "https://github.com/pleme-io/tear", rev = "f9b1f394fa0ee5367b2e8d14c601fe1202707501" }
-tear-daemon = { git = "https://github.com/pleme-io/tear", rev = "f9b1f394fa0ee5367b2e8d14c601fe1202707501" }
+tear-core = { git = "https://github.com/pleme-io/tear", rev = "4e3c98556d3125b87d7bd2bc5a3f614b30b638a4" }
+tear-daemon = { git = "https://github.com/pleme-io/tear", rev = "4e3c98556d3125b87d7bd2bc5a3f614b30b638a4" }
 # Cross-process MCP integration test (tests/mcp_cross_process.rs)
 # uses the rmcp client + child-process transport. Those features now
 # ship in the main dependency (the `mado e2e` subcommand is a typed
