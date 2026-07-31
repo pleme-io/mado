@@ -1,163 +1,25 @@
 # Mado (窓) — GPU-Rendered Terminal Emulator
 
-`pending-tear-bump: source absorbed, pin NOT moved — tear@5974375 is unpushed`
-`pending-izumi-bump: source absorbed, pin NOT moved — izumi@c2b48c0 is unpushed`
 
-> **★★ The tear pin is one commit behind on purpose. Read this before you
-> touch it (2026-07-31).** tear grew an `args: &[String]` parameter on three
-> `MultiplexerControl` methods — `new_session_with_source_and_size`,
-> `new_window`, `split_pane` — so a spawned pane can carry argv instead of
-> only a program name. **mado's source is already absorbed against it**: all
-> 19 call sites and the `RecordingControl` mock in `src/ux/engine.rs` pass the
-> new parameter, and `spawn_term`'s long-advertised `args` field now reaches
-> execvp. **The `rev` in `Cargo.toml` and `Cargo.lock` are deliberately
-> untouched.**
+> **Both sibling pins are current as of 2026-07-31** — `tear@1c1007d` and
+> `izumi@c2b48c0`. For one session each pin lagged its own absorbed source
+> on purpose, because committing a lock that names an unfetchable rev is
+> worse than one naming a stale rev; verification ran under a `--config
+> patch` override until the siblings were pushed.
 >
-> **Why the pin did not move.** tear@`5974375` exists only in the local
-> sibling checkout; it is not on `github.com/pleme-io/tear`. A lock naming an
-> unpushed rev resolves for exactly one machine and 404s for CI, for nix, and
-> for every other clone — strictly worse than a lock naming a stale-but-real
-> rev, which is what is committed. So mado still builds against `4e3c9855`
-> today; the working tree simply also compiles against the newer trait.
+> Two things learned there, kept because they will recur:
 >
-> **How this was verified without a push** — the technique, because you will
-> need it again. Point cargo at the local sibling with a patch override
-> instead of bumping the rev:
+> **A `--config patch` override is not sticky.** Any plain `cargo`
+> invocation interleaved with the patched ones re-resolves against the
+> pinned rev and silently rewrites `Cargo.lock` back. It surfaces as a
+> genuine `no method named …` against the old crate, NOT as
+> `Patch … was not used` — so the obvious check does not catch it.
 >
-> ```
-> cargo test \
->   --config 'patch."https://github.com/pleme-io/tear".tear-types.path="../tear/tear-types"' \
->   --config 'patch."https://github.com/pleme-io/tear".tear-core.path="../tear/tear-core"' \
->   --config 'patch."https://github.com/pleme-io/tear".tear-client.path="../tear/tear-client"' \
->   --config 'patch."https://github.com/pleme-io/tear".tear-config.path="../tear/tear-config"' \
->   --config 'patch."https://github.com/pleme-io/tear".tear-daemon.path="../tear/tear-daemon"' \
->   --config 'patch."https://github.com/pleme-io/tear".praca.path="../tear/praca"'
-> ```
->
-> All six crates must be listed — cargo unifies a git source per crate, and a
-> half-patched set splits `tear-types`' identity and breaks the trait unify.
-> Run `cargo update -p tear-types -p tear-core …` under the SAME `--config`
-> first, or cargo keeps the pinned rev and prints `Patch … was not used`;
-> **treat that line as a failed test run, not as noise.** `cargo update` also
-> rewrites `Cargo.lock` to path deps — `git checkout -- Cargo.lock` afterwards,
-> every time.
->
-> **The chain to clear this note, in order:**
->
-> 1. `git -C ../tear push` — land `5974375` on `pleme-io/tear` `main`.
-> 2. Set that rev on all five tear entries in `Cargo.toml` (`tear-types`,
->    `tear-core`, `tear-client`, `tear-config`, `praca`) **and** the two
->    `[dev-dependencies]` entries (`tear-core`, `tear-daemon`). They must move
->    together — a divergent rev splits the crate identity (E0463).
-> 3. `cargo update -p tear-types -p tear-core -p tear-client -p tear-config
->    -p tear-daemon -p praca` — with no `--config`, resolving the real rev.
-> 4. `nix run .#lock` — regenerate `Cargo.gen.lock` **in the same commit**.
->    It pins `cargo_lock_sha256` + `manifest_sha256["Cargo.toml"]`, and step 2
->    and step 3 change both; a commit that moves the rev without this is a
->    guaranteed nix eval failure (the gen delta-only gate). Re-run
->    `nix run .#regenerate-cargo-nix` if `Cargo.nix` also drifts.
-> 5. `cargo test` with no override — same green as under the patch.
-> 6. Delete this note.
->
-> **Restart the tear daemon after step 1 if you run daemon mode.** There is no
-> protocol version negotiation: a stale daemon does not reject a new client, it
-> silently spawns without the arguments.
->
-> **praça: nothing to fix on mado's side, and it is not a faithful replay.**
-> mado owns neither half of capture→replay. Capture is
-> `praca::SessionDefinition::from_live` (`session_picker.rs:687`), replay is
-> `praca::instantiate` (`session_picker.rs:332`) — both upstream, both changed
-> in that tear commit, so mado inherits the improvement on the bump with zero
-> mado code. `praca_store.rs` only persists the snapshot.
->
-> Two limits to state plainly rather than round up. **(a) Only `args` was
-> threaded** — `cwd` and `env` did NOT reach `MultiplexerControl`, so a
-> replayed pane still inherits the session's cwd/env instead of carrying its
-> own. Replay is *closer to* faithful, not faithful; do not describe it as
-> restoring a session. **(b) A replay can only return what capture recorded**,
-> and every mado spawn site passes `&[]` except MCP `spawn_term`. So in
-> practice a preset captured from a mado-spawned pane still replays with empty
-> argv — the newly-carried argv is real only for panes an agent spawned through
-> `spawn_term` with `args`.
-
-> **★★ The izumi pin is one commit behind on purpose — same shape as the tear
-> note above, same reason (2026-07-31).** izumi `c2b48c0` moved the health
-> verdict into the core crate: `OkEvidence` (`Succeeded`/`NeverSucceeded`/
-> `Unobserved`), `HealthVerdict` (`Ok`/`Degraded`/`Blind`/**`Unknown`**),
-> `HealthVerdict::of`, `SourceHealth::{first_seen_at, ok_evidence, verdict,
-> observed_for_ms, ever_polled}`, a new persisted `first_poll_ms` field, and
-> `SourceStatus::from_label` — and it PERSISTS the health plane in
-> `StoreSnapshot`. **mado's source is already absorbed against it**: the
-> mirrored `mado::suggest::health` module is deleted and `HealthVerdict` /
-> `OkEvidence` are re-exported straight from `izumi`. **`Cargo.toml`'s three
-> izumi `rev`s and `Cargo.lock` are deliberately untouched** — `c2b48c0` exists
-> only in the local sibling checkout, and a lock naming an unpushed rev
-> resolves for exactly one machine and 404s for CI, nix, and every other clone.
-> Strictly worse than a lock naming a stale-but-real rev, which is what is
-> committed.
->
-> **Consequence, stated plainly: `cargo test` with no override does NOT build
-> this tree.** It has not since `99d5f0e` (tear) and now also fails on izumi.
-> That is the accepted cost of absorbing ahead of two pins; it is a bump away,
-> not a rewrite.
->
-> **How this was verified without a push.** Same patch-override technique as
-> the tear note — add the three izumi crates to the same invocation:
->
-> ```
-> cargo test \
->   --config 'patch."https://github.com/pleme-io/izumi".izumi.path="../izumi/izumi"' \
->   --config 'patch."https://github.com/pleme-io/izumi".izumi-sources.path="../izumi/izumi-sources"' \
->   --config 'patch."https://github.com/pleme-io/izumi".izumi-config.path="../izumi/izumi-config"' \
->   <the six tear --config lines from the note above>
-> ```
->
-> All three izumi crates must be listed together, for the same reason all six
-> tear crates must: cargo unifies a git source per crate, and a half-patched
-> set splits `izumi`'s identity. Run `cargo update -p izumi -p izumi-sources
-> -p izumi-config` (plus the tear crates) under the **same** `--config` first,
-> or cargo keeps the pinned rev and prints `Patch … was not used` — **treat
-> that line as a failed test run, not as noise.** Two further traps measured
-> here: (a) the tend daemon's 5-minute pull can restore `Cargo.lock` from HEAD
-> mid-session, which silently un-applies the patch and returns `no method
-> named 'verdict' found` — re-run the `cargo update` and continue; (b) the live
-> `../tear` checkout may be mid-edit by another owner and fail to compile, in
-> which case resolve tear against a read-only export of the exact rev
-> (`git -C ../tear archive 5974375 | tar -x -C <tmpdir>`) instead of the
-> working tree. `cargo update` rewrites `Cargo.lock` to path deps —
-> `git checkout -- Cargo.lock` afterwards, every time.
->
-> **The chain to clear this note, in order:**
->
-> 1. `git -C ../izumi push` — land `c2b48c0` on `pleme-io/izumi` `main`.
-> 2. Set that rev on all three izumi entries in `Cargo.toml` (`izumi`,
->    `izumi-sources`, `izumi-config`). They must move together — a divergent
->    rev splits the crate identity.
-> 3. `cargo update -p izumi -p izumi-sources -p izumi-config` — no `--config`,
->    resolving the real rev.
-> 4. `nix run .#lock` — regenerate `Cargo.gen.lock` **in the same commit**. It
->    pins `cargo_lock_sha256` + `manifest_sha256["Cargo.toml"]`, and steps 2–3
->    change both; a commit that moves the rev without this is a guaranteed nix
->    eval failure (the gen delta-only gate). Re-run
->    `nix run .#regenerate-cargo-nix` if `Cargo.nix` also drifts.
-> 5. `cargo test` with no override — same green as under the patch.
-> 6. Delete this note.
->
-> **It can be cleared in the same pass as the tear bump** (steps 1–5 interleave
-> cleanly), and probably should be: while either is outstanding, plain
-> `cargo test` is red for a reason that has nothing to do with the change in
-> front of you.
-
-> **★★★ CSE / Knowable Construction.** This repo operates under
-> **Constructive Substrate Engineering** — canonical specification at
-> [`pleme-io/theory/CONSTRUCTIVE-SUBSTRATE-ENGINEERING.md`](https://github.com/pleme-io/theory/blob/main/CONSTRUCTIVE-SUBSTRATE-ENGINEERING.md).
-> The Compounding Directive (operational rules: solve once, load-bearing
-> fixes only, idiom-first, models stay current, direction beats velocity)
-> is in the org-level pleme-io/CLAUDE.md ★★★ section. Read both before
-> non-trivial changes. GPU terminal emulator built on the typed
-> garasu/madori/shikumi/hasami primitive set; pure-safe Rust via objc2,
-> a 5-pass render pipeline, and a vt100/xterm/Kitty surface authored once.
-
+> **Absorbing a signature ahead of its pin makes the tree red in exactly one
+> direction.** Bumping izumi alone still failed with `this method takes 4
+> arguments but 5 arguments were supplied`, because the tear pin had not
+> moved yet. Both halves have to land together; the compiler is what
+> enforces it, not the note.
 A GPU-accelerated terminal emulator built in pure Rust. Follows Ghostty's philosophy
 of speed + features + native UI without compromise, plus an embedded MCP server,
 an embedded vigy reconciler, and deep Nix integration that no competitor offers.
