@@ -1,5 +1,84 @@
 # Mado (窓) — GPU-Rendered Terminal Emulator
 
+`pending-tear-bump: source absorbed, pin NOT moved — tear@5974375 is unpushed`
+
+> **★★ The tear pin is one commit behind on purpose. Read this before you
+> touch it (2026-07-31).** tear grew an `args: &[String]` parameter on three
+> `MultiplexerControl` methods — `new_session_with_source_and_size`,
+> `new_window`, `split_pane` — so a spawned pane can carry argv instead of
+> only a program name. **mado's source is already absorbed against it**: all
+> 19 call sites and the `RecordingControl` mock in `src/ux/engine.rs` pass the
+> new parameter, and `spawn_term`'s long-advertised `args` field now reaches
+> execvp. **The `rev` in `Cargo.toml` and `Cargo.lock` are deliberately
+> untouched.**
+>
+> **Why the pin did not move.** tear@`5974375` exists only in the local
+> sibling checkout; it is not on `github.com/pleme-io/tear`. A lock naming an
+> unpushed rev resolves for exactly one machine and 404s for CI, for nix, and
+> for every other clone — strictly worse than a lock naming a stale-but-real
+> rev, which is what is committed. So mado still builds against `4e3c9855`
+> today; the working tree simply also compiles against the newer trait.
+>
+> **How this was verified without a push** — the technique, because you will
+> need it again. Point cargo at the local sibling with a patch override
+> instead of bumping the rev:
+>
+> ```
+> cargo test \
+>   --config 'patch."https://github.com/pleme-io/tear".tear-types.path="../tear/tear-types"' \
+>   --config 'patch."https://github.com/pleme-io/tear".tear-core.path="../tear/tear-core"' \
+>   --config 'patch."https://github.com/pleme-io/tear".tear-client.path="../tear/tear-client"' \
+>   --config 'patch."https://github.com/pleme-io/tear".tear-config.path="../tear/tear-config"' \
+>   --config 'patch."https://github.com/pleme-io/tear".tear-daemon.path="../tear/tear-daemon"' \
+>   --config 'patch."https://github.com/pleme-io/tear".praca.path="../tear/praca"'
+> ```
+>
+> All six crates must be listed — cargo unifies a git source per crate, and a
+> half-patched set splits `tear-types`' identity and breaks the trait unify.
+> Run `cargo update -p tear-types -p tear-core …` under the SAME `--config`
+> first, or cargo keeps the pinned rev and prints `Patch … was not used`;
+> **treat that line as a failed test run, not as noise.** `cargo update` also
+> rewrites `Cargo.lock` to path deps — `git checkout -- Cargo.lock` afterwards,
+> every time.
+>
+> **The chain to clear this note, in order:**
+>
+> 1. `git -C ../tear push` — land `5974375` on `pleme-io/tear` `main`.
+> 2. Set that rev on all five tear entries in `Cargo.toml` (`tear-types`,
+>    `tear-core`, `tear-client`, `tear-config`, `praca`) **and** the two
+>    `[dev-dependencies]` entries (`tear-core`, `tear-daemon`). They must move
+>    together — a divergent rev splits the crate identity (E0463).
+> 3. `cargo update -p tear-types -p tear-core -p tear-client -p tear-config
+>    -p tear-daemon -p praca` — with no `--config`, resolving the real rev.
+> 4. `nix run .#lock` — regenerate `Cargo.gen.lock` **in the same commit**.
+>    It pins `cargo_lock_sha256` + `manifest_sha256["Cargo.toml"]`, and step 2
+>    and step 3 change both; a commit that moves the rev without this is a
+>    guaranteed nix eval failure (the gen delta-only gate). Re-run
+>    `nix run .#regenerate-cargo-nix` if `Cargo.nix` also drifts.
+> 5. `cargo test` with no override — same green as under the patch.
+> 6. Delete this note.
+>
+> **Restart the tear daemon after step 1 if you run daemon mode.** There is no
+> protocol version negotiation: a stale daemon does not reject a new client, it
+> silently spawns without the arguments.
+>
+> **praça: nothing to fix on mado's side, and it is not a faithful replay.**
+> mado owns neither half of capture→replay. Capture is
+> `praca::SessionDefinition::from_live` (`session_picker.rs:687`), replay is
+> `praca::instantiate` (`session_picker.rs:332`) — both upstream, both changed
+> in that tear commit, so mado inherits the improvement on the bump with zero
+> mado code. `praca_store.rs` only persists the snapshot.
+>
+> Two limits to state plainly rather than round up. **(a) Only `args` was
+> threaded** — `cwd` and `env` did NOT reach `MultiplexerControl`, so a
+> replayed pane still inherits the session's cwd/env instead of carrying its
+> own. Replay is *closer to* faithful, not faithful; do not describe it as
+> restoring a session. **(b) A replay can only return what capture recorded**,
+> and every mado spawn site passes `&[]` except MCP `spawn_term`. So in
+> practice a preset captured from a mado-spawned pane still replays with empty
+> argv — the newly-carried argv is real only for panes an agent spawned through
+> `spawn_term` with `args`.
+
 > **★★★ CSE / Knowable Construction.** This repo operates under
 > **Constructive Substrate Engineering** — canonical specification at
 > [`pleme-io/theory/CONSTRUCTIVE-SUBSTRATE-ENGINEERING.md`](https://github.com/pleme-io/theory/blob/main/CONSTRUCTIVE-SUBSTRATE-ENGINEERING.md).

@@ -336,6 +336,10 @@ impl AutoAttachDriver {
         let session = match self.inproc.new_session_with_source_and_size(
             &name,
             &self.shell,
+            // `&[]`: a cd-driven auto-attach spawns a bare interactive shell at
+            // the project root. The project is expressed as the spawn env's
+            // cwd (above), never as argv.
+            &[],
             SessionSource::Named("mado-auto-attach".into()),
             (80, 24),
         ) {
@@ -455,6 +459,7 @@ mod tests {
             .new_session_with_source_and_size(
                 "boot",
                 "/bin/sh",
+                &[],
                 SessionSource::Named("boot".into()),
                 (80, 24),
             )

@@ -2647,6 +2647,7 @@ mod tests {
             &self,
             _name: &str,
             _shell: &str,
+            _args: &[String],
             _source: SessionSource,
             _size_cells: (u16, u16),
         ) -> ControlResult<SessionId> {
@@ -2663,6 +2664,7 @@ mod tests {
             _session: SessionId,
             _name: &str,
             _shell: &str,
+            _args: &[String],
         ) -> ControlResult<WindowId> {
             Err(ControlError::Rejected("mock".into()))
         }
@@ -2677,6 +2679,7 @@ mod tests {
             _origin: PaneId,
             _direction: Direction,
             _shell: &str,
+            _args: &[String],
         ) -> ControlResult<PaneId> {
             Err(ControlError::Rejected("mock".into()))
         }

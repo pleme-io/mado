@@ -241,6 +241,12 @@ pub fn try_run_default(
     let session_id = match client.new_session_with_source_and_size(
         &session_name,
         &shell,
+        // `&[]`: mado's boot session is a bare interactive shell. The
+        // operator's `shell.args` config field is still unconsumed (it has
+        // never had a consumer on ANY path — see the `pending-tear-bump:` note
+        // in this repo's CLAUDE.md); wiring it is a decision about the
+        // local-PTY path too, not a mechanical insertion here.
+        &[],
         SessionSource::Named("mado".into()),
         (init_cols, init_rows),
     ) {
@@ -1261,6 +1267,10 @@ fn try_run_default_embedded(
     let session_id = match inproc.new_session_with_source_and_size(
         &session_name,
         &shell,
+        // `&[]`: same as the daemon path above — the boot session is a bare
+        // interactive shell, and `shell.args` stays unconsumed pending a
+        // decision that covers the local-PTY path too.
+        &[],
         SessionSource::Named("mado-embedded".into()),
         (init_cols, init_rows),
     ) {

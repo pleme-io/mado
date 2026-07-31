@@ -112,6 +112,7 @@ mod tests {
             .new_session_with_source_and_size(
                 name,
                 "/bin/sh",
+                &[],
                 SessionSource::Named("test".into()),
                 (80, 24),
             )

@@ -1036,7 +1036,7 @@ impl MadoMcp {
             self.state.sessions.focused_cwd(),
         )
     }
-    #[tool(description = "Spawn a terminal session from a typed TermSpec. `world` selects the session world (session-world union): ''/'auto' spawns into the live GUI's embedded tear registry when reachable — the session appears as a ● row in the operator's Ctrl-S picker and anchors live-dedup — falling back to this process's headless registry; 'embedded' is GUI-only (typed error when unreachable); 'headless' is the legacy process-local registry. Fields: shell (default: GUI's configured shell / $SHELL → /bin/sh), args, cwd (~/ expands; headless-only for now), env, title, placement (advisory), attach (existing session id), effects, cols/rows (default 80/24). Returns `{ok, world, session_id, ...}` — NOTE: embedded sessions use tear SessionId hex ids and are NOT addressable by the headless send_keys/get_output tools (interact via the GUI, switch_session, or the tear_* tools when in daemon mode); headless sessions keep the mado-session-N contract.")]
+    #[tool(description = "Spawn a terminal session from a typed TermSpec. `world` selects the session world (session-world union): ''/'auto' spawns into the live GUI's embedded tear registry when reachable — the session appears as a ● row in the operator's Ctrl-S picker and anchors live-dedup — falling back to this process's headless registry; 'embedded' is GUI-only (typed error when unreachable); 'headless' is the legacy process-local registry. Fields: shell (default: GUI's configured shell / $SHELL → /bin/sh), args (argv[1..], passed as a vector — never through a shell; EMBEDDED WORLD ONLY, the headless registry still drops them), cwd (~/ expands; headless-only for now), env, title, placement (advisory), attach (existing session id), effects, cols/rows (default 80/24). Returns `{ok, world, session_id, ...}` — NOTE: embedded sessions use tear SessionId hex ids and are NOT addressable by the headless send_keys/get_output tools (interact via the GUI, switch_session, or the tear_* tools when in daemon mode); headless sessions keep the mado-session-N contract.")]
     async fn spawn_term(&self, Parameters(spec): Parameters<TermSpec>) -> String {
         let spec = self.spec_with_inherited_cwd(spec);
         // Session-world union phase 1: land the session in the world the
@@ -1049,6 +1049,12 @@ impl MadoMcp {
             let params = crate::kanshou_state::SpawnTermParams {
                 name: spec.display_title(),
                 shell: (!spec.shell.is_empty()).then(|| spec.shell.clone()),
+                // The schema has advertised `args` since this tool was
+                // written; until tear's `MultiplexerControl` grew an `args`
+                // parameter there was nowhere downstream to put it, so it was
+                // read off the wire and dropped. Now it reaches execvp as a
+                // vector — no shell, no re-quoting, no word-splitting.
+                args: spec.args.clone(),
                 cols: Some(cols),
                 rows: Some(rows),
             };
@@ -1079,6 +1085,7 @@ impl MadoMcp {
                         "session_id": v.get("session_id"),
                         "title": v.get("name"),
                         "shell": v.get("shell"),
+                        "args": v.get("args"),
                         "cols": cols,
                         "rows": rows,
                         "note": "spawned into the live GUI's embedded tear registry — visible as a ● row in Ctrl-S. Not addressable by headless send_keys/get_output.",

@@ -362,6 +362,12 @@ impl PracaPickerBridge {
             .new_session_with_source_and_size(
                 tear_name,
                 &self.shell,
+                // `&[]`: the picker spawns a bare interactive login shell —
+                // there is no per-session argv here. The operator's
+                // `shell.args` knob is still unwired everywhere (see this
+                // repo's CLAUDE.md `pending-tear-bump:` note); wiring it is a
+                // decision about the local-PTY path too, not an insertion.
+                &[],
                 SessionSource::Named("mado-session-picker".into()),
                 (80, 24),
             )
@@ -549,6 +555,12 @@ impl PracaPickerBridge {
         let Ok(sid) = self.inproc.new_session_with_source_and_size(
             sug.spawn.name(),
             &self.shell,
+            // `&[]` deliberately: a suggestion's payload is NOT argv. It is a
+            // prewarm program — `SetEnv` steps folded into the spawn env above,
+            // then `RunCommand`/`KubeContext` steps delivered as KEYSTROKES to
+            // the live interactive shell below. Passing them as argv would
+            // replace the shell instead of driving it.
+            &[],
             SessionSource::Named("mado-suggestion".into()),
             (80, 24),
         ) else {
@@ -1060,6 +1072,7 @@ mod tests {
             .new_session_with_source_and_size(
                 "live",
                 "/bin/sh",
+                &[],
                 SessionSource::Named("test".into()),
                 (80, 24),
             )
@@ -1116,6 +1129,7 @@ mod tests {
                 .new_session_with_source_and_size(
                     name,
                     "/bin/sh",
+                    &[],
                     SessionSource::Named("test".into()),
                     (80, 24),
                 )
@@ -1500,6 +1514,7 @@ mod tests {
                 .new_session_with_source_and_size(
                     &name,
                     "/bin/sh",
+                    &[],
                     SessionSource::Named("test".into()),
                     (80, 24),
                 )

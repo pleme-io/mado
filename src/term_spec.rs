@@ -26,7 +26,19 @@ pub struct TermSpec {
     /// full path. Empty = use the user's `$SHELL`.
     #[serde(default)]
     pub shell: String,
-    /// Extra args passed to the shell.
+    /// `shell`'s argv[1..], handed to the child **as a vector** — never
+    /// joined, quoted, or run through `sh -c`. `["-u", "NONE", "f.rs"]`
+    /// is three arguments no matter what characters they contain.
+    ///
+    /// **Honest scope: the EMBEDDED world consumes this; the headless
+    /// registry still drops it.** The field was in the advertised schema
+    /// from the start, but nothing downstream could carry argv until
+    /// tear's `MultiplexerControl` grew an `args` parameter — so both
+    /// worlds silently discarded it. The embedded path now carries it
+    /// through to execvp; the headless path spawns through mado's own
+    /// `Pty::spawn`, whose signature takes a shell + an optional
+    /// `sh -c` string and has no argv slot, so closing that half is a
+    /// change to the local-PTY spawn contract rather than a wire-up.
     #[serde(default)]
     pub args: Vec<String>,
     /// Working directory. `~` expands to `$HOME`. Empty = inherit

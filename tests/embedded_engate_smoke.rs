@@ -53,6 +53,7 @@ fn embedded_engate_attach_drains_snapshot_and_live() {
         .new_session_with_source_and_size(
             "embedded-smoke",
             "/bin/sh",
+            &[],
             SessionSource::Named("mado-embedded-smoke".into()),
             (80, 24),
         )
@@ -115,6 +116,7 @@ fn embedded_engate_producer_snapshot_then_subscribe_ordering() {
         .new_session_with_source_and_size(
             "embedded-ordering",
             "/bin/sh",
+            &[],
             SessionSource::Named("mado-embedded-ordering".into()),
             (40, 10),
         )

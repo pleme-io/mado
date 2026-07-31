@@ -379,9 +379,14 @@ impl Introspect for MadoAppState {
                     .unwrap_or_else(|| "/bin/sh".to_string());
                 use tear_types::{MultiplexerControl, SessionSource};
                 let size = (params.cols.unwrap_or(80), params.rows.unwrap_or(24));
+                // `args` reaches execvp as a vector, with no shell in between.
+                // A caller asking for `nvim -u NONE file.rs` sends three
+                // elements rather than smuggling them into `shell`; nothing on
+                // this path re-quotes or word-splits them.
                 match inproc.new_session_with_source_and_size(
                     &params.name,
                     &shell,
+                    &params.args,
                     SessionSource::Agent,
                     size,
                 ) {
@@ -390,6 +395,7 @@ impl Introspect for MadoAppState {
                         "session_id": sid.to_string(),
                         "name": params.name,
                         "shell": shell,
+                        "args": params.args,
                         "world": "embedded",
                     })),
                     Err(e) => Ok(serde_json::json!({
@@ -1051,11 +1057,23 @@ fn browser_id_arg(v: &serde_json::Value) -> Option<u32> {
 /// call so the two sides can't drift. `shell = None/""` resolves to
 /// the GUI's configured shell (then `$SHELL`, then `/bin/sh`); size
 /// defaults to 80×24 (the picker's own spawn size).
+///
+/// `args` is `shell`'s argv[1..], carried as a vector all the way to
+/// execvp — never joined into a command string, never re-quoted. It
+/// exists because [`TermSpec::args`](crate::term_spec::TermSpec) has
+/// been part of the advertised `spawn_term` schema since the tool was
+/// written while having no field here to land in, so the embedded
+/// world silently dropped it: `{"shell":"nvim","args":["-u","NONE"]}`
+/// spawned a bare `nvim`. `#[serde(default)]` keeps an older peer's
+/// frame (no `args` key) decoding to the empty vector, which is the
+/// pre-existing behaviour exactly.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SpawnTermParams {
     pub name: String,
     #[serde(default)]
     pub shell: Option<String>,
+    #[serde(default)]
+    pub args: Vec<String>,
     #[serde(default)]
     pub cols: Option<u16>,
     #[serde(default)]
@@ -1230,6 +1248,85 @@ mod tests {
     #[test]
     fn schema_advertises_spawn_term() {
         assert!(state().schema().contains(&"spawn_term"));
+    }
+
+    /// `args` reaches the spawned pane as a VECTOR. The leaf advertised
+    /// `args` long before anything downstream could carry argv, so the
+    /// embedded world read the field off the wire and dropped it —
+    /// `{"shell":"/bin/sh","args":["-c","sleep 30"]}` spawned a bare
+    /// `/bin/sh`, with no error anywhere on the path.
+    ///
+    /// Fail-once: reverting the leaf's `&params.args` to `&[]` turns this
+    /// red with `left: [] / right: ["-c", "sleep 30"]` — the same shape
+    /// tear's own `instantiate_carries_each_slots_args_onto_the_live_panes`
+    /// records.
+    #[test]
+    fn spawn_term_leaf_carries_args_onto_the_pane() {
+        let s = state();
+        let inproc = Arc::new(tear_core::InProcess::new());
+        inproc.set_spawn_env(tear_types::SpawnEnv::none());
+        s.set_tear_inproc(Arc::clone(&inproc));
+        let v = s
+            .query(&Query::call(
+                ["spawn_term"],
+                [serde_json::json!({
+                    "name": "args-leaf-test",
+                    "shell": "/bin/sh",
+                    "args": ["-c", "sleep 30"],
+                    "cols": 40,
+                    "rows": 8
+                })],
+            ))
+            .expect("spawn query ok");
+        assert_eq!(v["spawned"], true, "got {v}");
+        // Echoed back on the response so an agent can see what it got.
+        assert_eq!(v["args"], serde_json::json!(["-c", "sleep 30"]));
+
+        let sid = v["session_id"].as_str().expect("session id").to_string();
+        let args = inproc
+            .with_registry(|r| {
+                r.sessions
+                    .values()
+                    .find(|sess| sess.id.to_string() == sid)
+                    .and_then(|sess| sess.panes.values().next())
+                    .map(|p| p.args.clone())
+            })
+            .expect("spawned session has a pane");
+        assert_eq!(
+            args,
+            vec![String::from("-c"), String::from("sleep 30")],
+            "the pane records the argv it was spawned with"
+        );
+    }
+
+    /// Absent `args` still decodes to the empty vector — the pre-existing
+    /// behaviour, unchanged. Pins the `#[serde(default)]` so an older peer's
+    /// frame (no `args` key) keeps working rather than becoming a decode
+    /// error.
+    #[test]
+    fn spawn_term_leaf_without_args_spawns_a_bare_shell() {
+        let s = state();
+        let inproc = Arc::new(tear_core::InProcess::new());
+        inproc.set_spawn_env(tear_types::SpawnEnv::none());
+        s.set_tear_inproc(Arc::clone(&inproc));
+        let v = s
+            .query(&Query::call(
+                ["spawn_term"],
+                [serde_json::json!({ "name": "no-args-leaf-test", "shell": "/bin/sh" })],
+            ))
+            .expect("spawn query ok");
+        assert_eq!(v["spawned"], true, "got {v}");
+        let sid = v["session_id"].as_str().expect("session id").to_string();
+        let args = inproc
+            .with_registry(|r| {
+                r.sessions
+                    .values()
+                    .find(|sess| sess.id.to_string() == sid)
+                    .and_then(|sess| sess.panes.values().next())
+                    .map(|p| p.args.clone())
+            })
+            .expect("spawned session has a pane");
+        assert!(args.is_empty(), "no args key ⇒ bare shell, got {args:?}");
     }
 
     // ── close_session leaf (session-world union teardown) ─────────
@@ -1471,6 +1568,7 @@ mod tests {
             .new_session_with_source_and_size(
                 "switch-leaf-test",
                 "/bin/sh",
+                &[],
                 SessionSource::Named("switch-leaf-test".into()),
                 (80, 24),
             )
@@ -1565,6 +1663,7 @@ mod tests {
             .new_session_with_source_and_size(
                 "save-test",
                 "/bin/sh",
+                &[],
                 SessionSource::Named("save-test".into()),
                 (80, 24),
             )

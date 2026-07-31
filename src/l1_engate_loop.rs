@@ -102,6 +102,7 @@ fn l1_real_shell_queries_answered_and_command_round_trips() {
         .new_session_with_source_and_size(
             "mado-l1-engate-loop",
             &shell,
+            &[],
             SessionSource::Named("mado-l1".into()),
             (80, 24),
         )

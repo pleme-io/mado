@@ -126,6 +126,7 @@ mod tests {
             .new_session_with_source_and_size(
                 "x",
                 "/bin/sh",
+                &[],
                 tear_types::SessionSource::Named("praca-store-test".into()),
                 (80, 24),
             )

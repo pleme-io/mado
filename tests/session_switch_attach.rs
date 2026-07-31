@@ -74,6 +74,7 @@ fn spawn_pane(inproc: &Arc<InProcess>, name: &str) -> PaneId {
         .new_session_with_source_and_size(
             name,
             "/bin/sh",
+            &[],
             SessionSource::Named(name.into()),
             (80, 24),
         )

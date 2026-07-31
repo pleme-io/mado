@@ -111,6 +111,7 @@ fn spawn_session_at(inproc: &Arc<InProcess>, name: &str, cwd: &Path) -> SessionI
         .new_session_with_source_and_size(
             name,
             "/bin/sh",
+            &[],
             SessionSource::Named(name.into()),
             (80, 24),
         )
