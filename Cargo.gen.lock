@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "02b0e95e7f6eba9da595fcaf24e5c4f1eb91b1558053a60d5bb77b8d3b88d0df",
+  "cargo_lock_sha256": "72bd0eff81b62af9bd900b3f0422e169bbd55c8f94e87d642eb7c4a36fb102cd",
   "manifest_sha256": {
-    "Cargo.toml": "de43a9a2bcaf15bef036c0a77a7524107bebe310874095b88a427f1089b84c00"
+    "Cargo.toml": "7063680b4d0340065b08853f41109c31deab276651a9d672ece7e8aeef30f5c4"
   },
   "target_resolves": {
     "base": {
@@ -10143,7 +10143,7 @@
           },
           {
             "name": "todoku",
-            "package_key": "todoku-0.1.0-f0a67611b5514424117496f470a9f88688f55ddb",
+            "package_key": "todoku-0.1.0-12f5e493ccfb4eace9b46705fc5e2d405392dfd1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20243,11 +20243,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-0.3.12": {
+      "tatara-closed-set-0.3.13": {
         "runtime_dependencies": [
           {
             "name": "tatara_closed_set_derive",
-            "package_key": "tatara-closed-set-derive-0.3.12",
+            "package_key": "tatara-closed-set-derive-0.3.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20259,7 +20259,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-derive-0.3.12": {
+      "tatara-closed-set-derive-0.3.13": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -20633,7 +20633,7 @@
           "default"
         ]
       },
-      "tatara-lisp-0.3.12": {
+      "tatara-lisp-0.3.13": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -20669,7 +20669,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.3.12",
+            "package_key": "tatara-closed-set-0.3.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20679,7 +20679,7 @@
           },
           {
             "name": "tatara_lisp_derive",
-            "package_key": "tatara-lisp-derive-0.3.12",
+            "package_key": "tatara-lisp-derive-0.3.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20741,7 +20741,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-derive-0.3.12": {
+      "tatara-lisp-derive-0.3.13": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -20779,11 +20779,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-eval-0.3.12": {
+      "tatara-lisp-eval-0.3.13": {
         "runtime_dependencies": [
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.12",
+            "package_key": "tatara-lisp-0.3.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21674,7 +21674,7 @@
           },
           {
             "name": "getrandom",
-            "package_key": "getrandom-0.3.4",
+            "package_key": "getrandom-0.4.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -22137,7 +22137,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "todoku-0.1.0-f0a67611b5514424117496f470a9f88688f55ddb": {
+      "todoku-0.1.0-12f5e493ccfb4eace9b46705fc5e2d405392dfd1": {
         "runtime_dependencies": [
           {
             "name": "async_trait",
@@ -24119,7 +24119,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.12",
+            "package_key": "tatara-lisp-0.3.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24129,7 +24129,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.3.12",
+            "package_key": "tatara-lisp-eval-0.3.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -26660,7 +26660,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.104": {
+          "mado-0.1.105": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -27225,7 +27225,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.12",
+                "package_key": "tatara-lisp-0.3.13",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31706,7 +31706,7 @@
               "system"
             ]
           },
-          "mado-0.1.104": {
+          "mado-0.1.105": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -32224,7 +32224,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.12",
+                "package_key": "tatara-lisp-0.3.13",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35938,7 +35938,7 @@
               "system"
             ]
           },
-          "mado-0.1.104": {
+          "mado-0.1.105": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -36456,7 +36456,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.12",
+                "package_key": "tatara-lisp-0.3.13",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40319,7 +40319,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.104": {
+          "mado-0.1.105": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -40884,7 +40884,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.12",
+                "package_key": "tatara-lisp-0.3.13",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45329,7 +45329,7 @@
               "system"
             ]
           },
-          "mado-0.1.104": {
+          "mado-0.1.105": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -45847,7 +45847,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.12",
+                "package_key": "tatara-lisp-0.3.13",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49525,7 +49525,7 @@
               "system"
             ]
           },
-          "mado-0.1.104": {
+          "mado-0.1.105": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -50043,7 +50043,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.12",
+                "package_key": "tatara-lisp-0.3.13",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -53888,7 +53888,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.104": {
+    "mado-0.1.105": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -54890,10 +54890,10 @@
     "tap-1.0.1": {
       "edition": "2015"
     },
-    "tatara-closed-set-0.3.12": {
+    "tatara-closed-set-0.3.13": {
       "edition": "2021"
     },
-    "tatara-closed-set-derive-0.3.12": {
+    "tatara-closed-set-derive-0.3.13": {
       "edition": "2021",
       "proc_macro": true
     },
@@ -54909,18 +54909,18 @@
     "tatara-lisp-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
       "edition": "2021"
     },
-    "tatara-lisp-0.3.12": {
+    "tatara-lisp-0.3.13": {
       "edition": "2021"
     },
     "tatara-lisp-derive-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-lisp-derive-0.3.12": {
+    "tatara-lisp-derive-0.3.13": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-lisp-eval-0.3.12": {
+    "tatara-lisp-eval-0.3.13": {
       "edition": "2021"
     },
     "tatara-nix-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
@@ -55009,7 +55009,7 @@
     "tinyvec_macros-0.1.1": {
       "edition": "2018"
     },
-    "todoku-0.1.0-f0a67611b5514424117496f470a9f88688f55ddb": {
+    "todoku-0.1.0-12f5e493ccfb4eace9b46705fc5e2d405392dfd1": {
       "edition": "2024"
     },
     "tokio-1.53.1": {
@@ -55504,7 +55504,7 @@
     "tear-core-0.1.8-1c1007de850eb5935067de2b87041b953323a59c": "sha256-MQYNZz4BlCObmxkKW/KBg4Ut7QJJ9ohzm2EjwdBsEes=",
     "tear-daemon-0.1.8-1c1007de850eb5935067de2b87041b953323a59c": "sha256-MQYNZz4BlCObmxkKW/KBg4Ut7QJJ9ohzm2EjwdBsEes=",
     "tear-types-0.1.8-1c1007de850eb5935067de2b87041b953323a59c": "sha256-MQYNZz4BlCObmxkKW/KBg4Ut7QJJ9ohzm2EjwdBsEes=",
-    "todoku-0.1.0-f0a67611b5514424117496f470a9f88688f55ddb": "sha256-OO7J7EXr0KczG/kCcyHsLlI1T7DmfLKjltS3IutHzi0=",
+    "todoku-0.1.0-12f5e493ccfb4eace9b46705fc5e2d405392dfd1": "sha256-tJ7QiBYn+r7ri33SkAsHWSSp4xgXXSdZbv91C8+NfEE=",
     "tsuuchi-0.1.5-86539e03f9e90334afa02284ebb8e6e7806c8a39": "sha256-O0xC2BNJp+R7Xwso9c0RFGfSHwRqieCRWZHTzqKWbu8=",
     "vigy-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf": "sha256-x6QaZl0BhCKV6W9+yZ8qQ+e/TjtIstD4J/oyVZCACNY=",
     "vigy-eval-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf": "sha256-x6QaZl0BhCKV6W9+yZ8qQ+e/TjtIstD4J/oyVZCACNY=",

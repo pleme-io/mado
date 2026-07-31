@@ -205,7 +205,7 @@ dependencies = [
  "objc2-foundation 0.3.2",
  "parking_lot",
  "percent-encoding",
- "windows-sys 0.59.0",
+ "windows-sys 0.60.2",
  "x11rb",
 ]
 
@@ -1316,7 +1316,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users 0.5.2",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1530,7 +1530,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2765,7 +2765,7 @@ checksum = "3640c1c38b8e4e43584d8df18be5fc6b0aa314ce6ebf51b53313d4306cca8e46"
 dependencies = [
  "hermit-abi",
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3356,7 +3356,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.104"
+version = "0.1.105"
 dependencies = [
  "anyhow",
  "awase",
@@ -3413,7 +3413,7 @@ dependencies = [
  "serde_yaml_ng",
  "shidou",
  "shikumi 0.1.80",
- "tatara-lisp 0.3.12",
+ "tatara-lisp 0.3.13",
  "tear-client",
  "tear-config",
  "tear-core",
@@ -3779,7 +3779,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5155,7 +5155,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5677,7 +5677,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.12.1",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -6908,18 +6908,18 @@ checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 
 [[package]]
 name = "tatara-closed-set"
-version = "0.3.12"
+version = "0.3.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "364be0a5d6bfd14d92794c9ef42e6b41dd9acb13a23d35eec7ceeda9c90b0b46"
+checksum = "8071a458775382fb26c50d886d1b71be3e41b80f640e1d53223b6fa4f8e99640"
 dependencies = [
  "tatara-closed-set-derive",
 ]
 
 [[package]]
 name = "tatara-closed-set-derive"
-version = "0.3.12"
+version = "0.3.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a5c7130f57d1260a2edd9b48d31bf4d0976ce82266a5a453fb55d907f2d3a59d"
+checksum = "debd7b40c0a092bb46c0d284480ca41ec9ae51741c7e3cd3f981063c71262e2b"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6985,15 +6985,15 @@ dependencies = [
 
 [[package]]
 name = "tatara-lisp"
-version = "0.3.12"
+version = "0.3.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fea77b78f7bbed09f86971c2157a5f5adb4e61be30399f2bf887ecb08dfec60a"
+checksum = "343ed89bd59da5a31ac36e953f5c9a40b2277c8d637c01145687642217887dba"
 dependencies = [
  "blake3",
  "serde",
  "serde_json",
  "tatara-closed-set",
- "tatara-lisp-derive 0.3.12",
+ "tatara-lisp-derive 0.3.13",
  "thiserror 2.0.19",
 ]
 
@@ -7009,9 +7009,9 @@ dependencies = [
 
 [[package]]
 name = "tatara-lisp-derive"
-version = "0.3.12"
+version = "0.3.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c090e870921b2b5ac5d2aaa3632772ebc4cc00829da56ab90cc3d8da49768210"
+checksum = "158fd07c7e05865c7aa436478c7ca6eb7c470880a11e93939b07cc7718af8cfa"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7020,11 +7020,11 @@ dependencies = [
 
 [[package]]
 name = "tatara-lisp-eval"
-version = "0.3.12"
+version = "0.3.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75ac0412e69bcca3f96d023942e7415c59e75e6fba4bd03537fe3565d3ad0427"
+checksum = "5e6c1f9c506da5aa050d79688154a089301c9817a6492252745178f36adf0e15"
 dependencies = [
- "tatara-lisp 0.3.12",
+ "tatara-lisp 0.3.13",
  "thiserror 2.0.19",
 ]
 
@@ -7161,10 +7161,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.3.4",
+ "getrandom 0.4.3",
  "once_cell",
  "rustix 1.1.4",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -7343,7 +7343,7 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 [[package]]
 name = "todoku"
 version = "0.1.0"
-source = "git+https://github.com/pleme-io/todoku#f0a67611b5514424117496f470a9f88688f55ddb"
+source = "git+https://github.com/pleme-io/todoku#12f5e493ccfb4eace9b46705fc5e2d405392dfd1"
 dependencies = [
  "async-trait",
  "reqwest",
@@ -7928,7 +7928,7 @@ dependencies = [
  "async-trait",
  "serde",
  "serde_json",
- "tatara-lisp 0.3.12",
+ "tatara-lisp 0.3.13",
  "tatara-lisp-eval",
  "thiserror 2.0.19",
  "time",
@@ -8472,7 +8472,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
