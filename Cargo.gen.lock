@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "6c40cb7c11171520be6b96539f6b1cc38f90705fc2da20c0576fd01432ec2d00",
+  "cargo_lock_sha256": "5978ebc611566f203eecb3981cd6f192cc5ca7f28f257d81b301a72f0ecd9978",
   "manifest_sha256": {
-    "Cargo.toml": "a3de021508b41613af6143827a85abae90c16f785b5ba139ea6ef91d56d89a41"
+    "Cargo.toml": "96ebaa59f2fdf497fbc95901e4b8c505b24b722dc7837f480437dcb486a6403e"
   },
   "target_resolves": {
     "base": {
@@ -3599,7 +3599,7 @@
         "runtime_dependencies": [
           {
             "name": "enum_ordinalize_derive",
-            "package_key": "enum-ordinalize-derive-4.4.1",
+            "package_key": "enum-ordinalize-derive-4.4.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -3613,7 +3613,7 @@
           "derive"
         ]
       },
-      "enum-ordinalize-derive-4.4.1": {
+      "enum-ordinalize-derive-4.4.2": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -3637,7 +3637,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.119",
+            "package_key": "syn-3.0.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -26517,7 +26517,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.106": {
+          "mado-0.1.107": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31491,7 +31491,7 @@
               "system"
             ]
           },
-          "mado-0.1.106": {
+          "mado-0.1.107": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35501,7 +35501,7 @@
               "system"
             ]
           },
-          "mado-0.1.106": {
+          "mado-0.1.107": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39681,7 +39681,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.106": {
+          "mado-0.1.107": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44619,7 +44619,7 @@
               "system"
             ]
           },
-          "mado-0.1.106": {
+          "mado-0.1.107": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48593,7 +48593,7 @@
               "system"
             ]
           },
-          "mado-0.1.106": {
+          "mado-0.1.107": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -52239,7 +52239,7 @@
     "enum-ordinalize-4.4.2": {
       "edition": "2024"
     },
-    "enum-ordinalize-derive-4.4.1": {
+    "enum-ordinalize-derive-4.4.2": {
       "edition": "2024",
       "proc_macro": true
     },
@@ -52746,7 +52746,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.106": {
+    "mado-0.1.107": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
