@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "5978ebc611566f203eecb3981cd6f192cc5ca7f28f257d81b301a72f0ecd9978",
+  "cargo_lock_sha256": "2972078c71bf65d39a27111b9f70559d71ebb1dfc7731bf751e82080c57ad4d8",
   "manifest_sha256": {
-    "Cargo.toml": "96ebaa59f2fdf497fbc95901e4b8c505b24b722dc7837f480437dcb486a6403e"
+    "Cargo.toml": "d5a4d061ef7e5fc3714855f028acd60e635b2037963771c771da891da759136e"
   },
   "target_resolves": {
     "base": {
@@ -10225,6 +10225,70 @@
           "socket"
         ]
       },
+      "nix-0.30.1": {
+        "runtime_dependencies": [
+          {
+            "name": "bitflags",
+            "package_key": "bitflags-2.13.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "cfg_if",
+            "package_key": "cfg-if-1.0.4",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "libc",
+            "package_key": "libc-0.2.189",
+            "kind": "normal",
+            "features": [
+              "extra_traits"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "memoffset",
+            "package_key": "memoffset-0.9.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [
+          {
+            "name": "cfg_aliases",
+            "package_key": "cfg_aliases-0.2.2",
+            "kind": "build",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "host"
+          }
+        ],
+        "features": [
+          "default",
+          "memoffset",
+          "socket",
+          "term"
+        ]
+      },
       "nix-0.31.3": {
         "runtime_dependencies": [
           {
@@ -12365,7 +12429,7 @@
           "std"
         ]
       },
-      "praca-0.1.8-1c1007de850eb5935067de2b87041b953323a59c": {
+      "praca-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": {
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
@@ -12391,7 +12455,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+            "package_key": "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20951,7 +21015,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-client-0.1.8-1c1007de850eb5935067de2b87041b953323a59c": {
+      "tear-client-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": {
         "runtime_dependencies": [
           {
             "name": "engate_attach",
@@ -20995,7 +21059,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+            "package_key": "tear-config-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21005,7 +21069,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+            "package_key": "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21020,7 +21084,7 @@
           "engate"
         ]
       },
-      "tear-config-0.1.8-1c1007de850eb5935067de2b87041b953323a59c": {
+      "tear-config-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21110,7 +21174,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+            "package_key": "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21142,7 +21206,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-core-0.1.8-1c1007de850eb5935067de2b87041b953323a59c": {
+      "tear-core-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21248,7 +21312,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+            "package_key": "tear-config-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21258,7 +21322,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+            "package_key": "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21287,6 +21351,16 @@
             "tree": "target"
           },
           {
+            "name": "unicode_width",
+            "package_key": "unicode-width-0.2.2",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
             "name": "vte",
             "package_key": "vte-0.15.0",
             "kind": "normal",
@@ -21303,7 +21377,7 @@
           "engate"
         ]
       },
-      "tear-daemon-0.1.8-1c1007de850eb5935067de2b87041b953323a59c": {
+      "tear-daemon-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21336,6 +21410,19 @@
             "tree": "target"
           },
           {
+            "name": "nix",
+            "package_key": "nix-0.30.1",
+            "kind": "normal",
+            "features": [
+              "socket",
+              "term"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
             "name": "notify",
             "package_key": "notify-8.2.0",
             "kind": "normal",
@@ -21349,7 +21436,7 @@
           },
           {
             "name": "praca",
-            "package_key": "praca-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+            "package_key": "praca-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21391,7 +21478,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+            "package_key": "tear-config-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21401,7 +21488,7 @@
           },
           {
             "name": "tear_core",
-            "package_key": "tear-core-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+            "package_key": "tear-core-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21411,7 +21498,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+            "package_key": "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21449,7 +21536,7 @@
           "default"
         ]
       },
-      "tear-types-0.1.8-1c1007de850eb5935067de2b87041b953323a59c": {
+      "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -26993,7 +27080,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+                "package_key": "praca-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27092,7 +27179,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+                "package_key": "tear-client-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -27104,7 +27191,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+                "package_key": "tear-config-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27114,7 +27201,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+                "package_key": "tear-core-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -27126,7 +27213,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+                "package_key": "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -31920,7 +32007,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+                "package_key": "praca-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32019,7 +32106,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+                "package_key": "tear-client-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -32031,7 +32118,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+                "package_key": "tear-config-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32041,7 +32128,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+                "package_key": "tear-core-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -32053,7 +32140,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+                "package_key": "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -35930,7 +36017,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+                "package_key": "praca-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36029,7 +36116,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+                "package_key": "tear-client-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -36041,7 +36128,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+                "package_key": "tear-config-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36051,7 +36138,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+                "package_key": "tear-core-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -36063,7 +36150,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+                "package_key": "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -40157,7 +40244,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+                "package_key": "praca-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40256,7 +40343,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+                "package_key": "tear-client-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -40268,7 +40355,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+                "package_key": "tear-config-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40278,7 +40365,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+                "package_key": "tear-core-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -40290,7 +40377,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+                "package_key": "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -45048,7 +45135,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+                "package_key": "praca-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45147,7 +45234,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+                "package_key": "tear-client-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -45159,7 +45246,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+                "package_key": "tear-config-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45169,7 +45256,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+                "package_key": "tear-core-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -45181,7 +45268,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+                "package_key": "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -49022,7 +49109,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+                "package_key": "praca-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49121,7 +49208,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+                "package_key": "tear-client-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -49133,7 +49220,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+                "package_key": "tear-config-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49143,7 +49230,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+                "package_key": "tear-core-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -49155,7 +49242,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.8-1c1007de850eb5935067de2b87041b953323a59c",
+                "package_key": "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -52840,6 +52927,10 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
+    "nix-0.30.1": {
+      "edition": "2021",
+      "build_script": "build.rs"
+    },
     "nix-0.31.3": {
       "edition": "2021",
       "build_script": "build.rs"
@@ -53186,7 +53277,7 @@
     "ppv-lite86-0.2.21": {
       "edition": "2021"
     },
-    "praca-0.1.8-1c1007de850eb5935067de2b87041b953323a59c": {
+    "praca-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": {
       "edition": "2024"
     },
     "precomputed-hash-0.1.1": {
@@ -53776,19 +53867,19 @@
         }
       ]
     },
-    "tear-client-0.1.8-1c1007de850eb5935067de2b87041b953323a59c": {
+    "tear-client-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": {
       "edition": "2024"
     },
-    "tear-config-0.1.8-1c1007de850eb5935067de2b87041b953323a59c": {
+    "tear-config-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": {
       "edition": "2024"
     },
-    "tear-core-0.1.8-1c1007de850eb5935067de2b87041b953323a59c": {
+    "tear-core-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": {
       "edition": "2024"
     },
-    "tear-daemon-0.1.8-1c1007de850eb5935067de2b87041b953323a59c": {
+    "tear-daemon-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": {
       "edition": "2024"
     },
-    "tear-types-0.1.8-1c1007de850eb5935067de2b87041b953323a59c": {
+    "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": {
       "edition": "2024"
     },
     "tempfile-3.27.0": {
@@ -54325,7 +54416,7 @@
     "pleme-invalidating-setter-derive-0.1.0-8df3b1bc76dbd92aa3fcd2fb9213adb5ef7f0b7c": "sha256-V57vmtWy8SI6IqsAtz5c4lNC0LDCRiRxA8tg0UJWXg8=",
     "pleme-kindbyte-derive-0.1.0-f149963e6cab8b8c0e9bd0a23ed41efd3dfcdbd6": "sha256-TCiyRkxGuJRjXv7xkNtPuUCHRpgyY8qrf978ug5gSn0=",
     "pleme-kindstr-derive-0.1.0-9fde4c145f7ff57acd88275f74511e422d407f94": "sha256-MjK6VPYt1inzElKtmBQF8piLCsOPFGqEYBilWiXYnLQ=",
-    "praca-0.1.8-1c1007de850eb5935067de2b87041b953323a59c": "sha256-MQYNZz4BlCObmxkKW/KBg4Ut7QJJ9ohzm2EjwdBsEes=",
+    "praca-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": "sha256-DiTdK4gw+G6St4vEY9xqQZEyY1e1ebKtK0J0bzVh0iY=",
     "shidou-0.1.9-35c12221ac8622d90e03e21d5fec30ac329547e7": "sha256-rjs+1FgZD/d2rqK7EXglvJI0IlziAYLwLOiQAJOE7PQ=",
     "shikumi-0.1.452-56adc8828ccb5f4f66258ca66ba402b92ae01dbb": "sha256-SaqMDamyz34cOstgYT1Iy4+ZbsnGgKXvRHF25DfcRqM=",
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": "sha256-Jd6fUoNSdzk+I5iu7FbAg9F9gbc7oU9jdPnnaTIxL6w=",
@@ -54336,11 +54427,11 @@
     "tatara-lisp-derive-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
     "tatara-nix-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
     "tatara-process-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
-    "tear-client-0.1.8-1c1007de850eb5935067de2b87041b953323a59c": "sha256-MQYNZz4BlCObmxkKW/KBg4Ut7QJJ9ohzm2EjwdBsEes=",
-    "tear-config-0.1.8-1c1007de850eb5935067de2b87041b953323a59c": "sha256-MQYNZz4BlCObmxkKW/KBg4Ut7QJJ9ohzm2EjwdBsEes=",
-    "tear-core-0.1.8-1c1007de850eb5935067de2b87041b953323a59c": "sha256-MQYNZz4BlCObmxkKW/KBg4Ut7QJJ9ohzm2EjwdBsEes=",
-    "tear-daemon-0.1.8-1c1007de850eb5935067de2b87041b953323a59c": "sha256-MQYNZz4BlCObmxkKW/KBg4Ut7QJJ9ohzm2EjwdBsEes=",
-    "tear-types-0.1.8-1c1007de850eb5935067de2b87041b953323a59c": "sha256-MQYNZz4BlCObmxkKW/KBg4Ut7QJJ9ohzm2EjwdBsEes=",
+    "tear-client-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": "sha256-DiTdK4gw+G6St4vEY9xqQZEyY1e1ebKtK0J0bzVh0iY=",
+    "tear-config-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": "sha256-DiTdK4gw+G6St4vEY9xqQZEyY1e1ebKtK0J0bzVh0iY=",
+    "tear-core-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": "sha256-DiTdK4gw+G6St4vEY9xqQZEyY1e1ebKtK0J0bzVh0iY=",
+    "tear-daemon-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": "sha256-DiTdK4gw+G6St4vEY9xqQZEyY1e1ebKtK0J0bzVh0iY=",
+    "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": "sha256-DiTdK4gw+G6St4vEY9xqQZEyY1e1ebKtK0J0bzVh0iY=",
     "todoku-0.1.0-dc91b831664833a7bfddff896f344e06c7b6ea95": "sha256-571QupxoFgaa9MCggseRANEk/6UhRE2O+gRmW/VJAIY=",
     "tsuuchi-0.1.5-86539e03f9e90334afa02284ebb8e6e7806c8a39": "sha256-O0xC2BNJp+R7Xwso9c0RFGfSHwRqieCRWZHTzqKWbu8=",
     "vigy-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf": "sha256-x6QaZl0BhCKV6W9+yZ8qQ+e/TjtIstD4J/oyVZCACNY=",

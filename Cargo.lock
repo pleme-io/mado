@@ -3689,6 +3689,19 @@ dependencies = [
 
 [[package]]
 name = "nix"
+version = "0.30.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "74523f3a35e05aba87a1d978330aef40f67b0304ac79c1c00b294c9830543db6"
+dependencies = [
+ "bitflags 2.13.1",
+ "cfg-if",
+ "cfg_aliases 0.2.2",
+ "libc",
+ "memoffset",
+]
+
+[[package]]
+name = "nix"
 version = "0.31.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf20d2fde8ff38632c426f1165ed7436270b44f199fc55284c38276f9db47c3d"
@@ -4846,7 +4859,7 @@ dependencies = [
 [[package]]
 name = "praca"
 version = "0.1.8"
-source = "git+https://github.com/pleme-io/tear?rev=1c1007de850eb5935067de2b87041b953323a59c#1c1007de850eb5935067de2b87041b953323a59c"
+source = "git+https://github.com/pleme-io/tear?rev=a6041abc1d14fb93424738909e1db769c22bdb65#a6041abc1d14fb93424738909e1db769c22bdb65"
 dependencies = [
  "ishou-tokens",
  "serde",
@@ -6982,7 +6995,7 @@ dependencies = [
 [[package]]
 name = "tear-client"
 version = "0.1.8"
-source = "git+https://github.com/pleme-io/tear?rev=1c1007de850eb5935067de2b87041b953323a59c#1c1007de850eb5935067de2b87041b953323a59c"
+source = "git+https://github.com/pleme-io/tear?rev=a6041abc1d14fb93424738909e1db769c22bdb65#a6041abc1d14fb93424738909e1db769c22bdb65"
 dependencies = [
  "engate-attach",
  "engate-types",
@@ -6995,7 +7008,7 @@ dependencies = [
 [[package]]
 name = "tear-config"
 version = "0.1.8"
-source = "git+https://github.com/pleme-io/tear?rev=1c1007de850eb5935067de2b87041b953323a59c#1c1007de850eb5935067de2b87041b953323a59c"
+source = "git+https://github.com/pleme-io/tear?rev=a6041abc1d14fb93424738909e1db769c22bdb65#a6041abc1d14fb93424738909e1db769c22bdb65"
 dependencies = [
  "anyhow",
  "arc-swap",
@@ -7013,7 +7026,7 @@ dependencies = [
 [[package]]
 name = "tear-core"
 version = "0.1.8"
-source = "git+https://github.com/pleme-io/tear?rev=1c1007de850eb5935067de2b87041b953323a59c#1c1007de850eb5935067de2b87041b953323a59c"
+source = "git+https://github.com/pleme-io/tear?rev=a6041abc1d14fb93424738909e1db769c22bdb65#a6041abc1d14fb93424738909e1db769c22bdb65"
 dependencies = [
  "anyhow",
  "blake3",
@@ -7029,17 +7042,19 @@ dependencies = [
  "tear-types",
  "thiserror 2.0.19",
  "tracing",
+ "unicode-width",
  "vte",
 ]
 
 [[package]]
 name = "tear-daemon"
 version = "0.1.8"
-source = "git+https://github.com/pleme-io/tear?rev=1c1007de850eb5935067de2b87041b953323a59c#1c1007de850eb5935067de2b87041b953323a59c"
+source = "git+https://github.com/pleme-io/tear?rev=a6041abc1d14fb93424738909e1db769c22bdb65#a6041abc1d14fb93424738909e1db769c22bdb65"
 dependencies = [
  "anyhow",
  "blake3",
  "kanshou",
+ "nix 0.30.1",
  "notify",
  "praca",
  "serde",
@@ -7055,7 +7070,7 @@ dependencies = [
 [[package]]
 name = "tear-types"
 version = "0.1.8"
-source = "git+https://github.com/pleme-io/tear?rev=1c1007de850eb5935067de2b87041b953323a59c#1c1007de850eb5935067de2b87041b953323a59c"
+source = "git+https://github.com/pleme-io/tear?rev=a6041abc1d14fb93424738909e1db769c22bdb65#a6041abc1d14fb93424738909e1db769c22bdb65"
 dependencies = [
  "anyhow",
  "blake3",
