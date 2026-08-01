@@ -1,0 +1,7 @@
+# Renders a "Sponsor" button on this repo's GitHub page. That is the whole
+# mechanism: passive, no announcement, no expectations. It is here because
+# money is welcome and never solicited — the work happens either way.
+#
+# Inert until GitHub Sponsors is enabled on the account (github.com/sponsors
+# signup: bank details + tax form). Until then GitHub simply shows nothing.
+github: [drzln]
