@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "2972078c71bf65d39a27111b9f70559d71ebb1dfc7731bf751e82080c57ad4d8",
+  "cargo_lock_sha256": "c22d521a2692907141ed771e2036d7c0416ce18be183365dcda0fd5bb5ad8141",
   "manifest_sha256": {
-    "Cargo.toml": "d5a4d061ef7e5fc3714855f028acd60e635b2037963771c771da891da759136e"
+    "Cargo.toml": "0106ce20ed487f3554397e760593f60651fa37f427f5447fe4a9191396e7849a"
   },
   "target_resolves": {
     "base": {
@@ -602,7 +602,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "awase-0.1.1-7286b3bc2a1bc4c63929cc60b9d6d1ca2d82616f": {
+      "awase-0.1.1-250b84c4da8c122af8d4db0253c813a4965ff354": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -1735,7 +1735,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.54",
+            "package_key": "time-0.3.55",
             "kind": "normal",
             "features": [
               "formatting",
@@ -1852,7 +1852,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.54",
+            "package_key": "time-0.3.55",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -10054,7 +10054,7 @@
           },
           {
             "name": "todoku",
-            "package_key": "todoku-0.1.0-dc91b831664833a7bfddff896f344e06c7b6ea95",
+            "package_key": "todoku-0.1.0-8fdd99f0ea10e32c38cb6e544c2da923a761f686",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15863,7 +15863,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.54",
+            "package_key": "time-0.3.55",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -16304,7 +16304,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.54",
+            "package_key": "time-0.3.55",
             "kind": "normal",
             "features": [
               "formatting",
@@ -16420,7 +16420,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.54",
+            "package_key": "time-0.3.55",
             "kind": "normal",
             "features": [
               "formatting",
@@ -18215,7 +18215,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.54",
+            "package_key": "time-0.3.55",
             "kind": "normal",
             "features": [
               "formatting",
@@ -18964,7 +18964,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.54",
+            "package_key": "time-0.3.55",
             "kind": "normal",
             "features": [
               "formatting",
@@ -19356,7 +19356,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.54",
+            "package_key": "time-0.3.55",
             "kind": "normal",
             "features": [
               "formatting",
@@ -19585,7 +19585,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.54",
+            "package_key": "time-0.3.55",
             "kind": "normal",
             "features": [
               "formatting",
@@ -21916,7 +21916,7 @@
           "lzw"
         ]
       },
-      "time-0.3.54": {
+      "time-0.3.55": {
         "runtime_dependencies": [
           {
             "name": "deranged",
@@ -22104,7 +22104,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "todoku-0.1.0-dc91b831664833a7bfddff896f344e06c7b6ea95": {
+      "todoku-0.1.0-8fdd99f0ea10e32c38cb6e544c2da923a761f686": {
         "runtime_dependencies": [
           {
             "name": "async_trait",
@@ -24093,7 +24093,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.54",
+            "package_key": "time-0.3.55",
             "kind": "normal",
             "features": [
               "formatting",
@@ -24280,7 +24280,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.54",
+            "package_key": "time-0.3.55",
             "kind": "normal",
             "features": [
               "formatting",
@@ -24461,7 +24461,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.54",
+            "package_key": "time-0.3.55",
             "kind": "normal",
             "features": [
               "formatting",
@@ -24576,7 +24576,7 @@
           },
           {
             "name": "time",
-            "package_key": "time-0.3.54",
+            "package_key": "time-0.3.55",
             "kind": "normal",
             "features": [
               "formatting",
@@ -26465,7 +26465,7 @@
               "fallback"
             ]
           },
-          "kanchi-0.1.3-59d1fcbfa26929fec78a0f90cdc2e6f6ba3e5058": {
+          "kanchi-0.1.3-1ba82571a3e3b061d4cb4509f88ca0bf0a54b00c": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -26604,7 +26604,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.107": {
+          "mado-0.1.108": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26618,7 +26618,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.1-7286b3bc2a1bc4c63929cc60b9d6d1ca2d82616f",
+                "package_key": "awase-0.1.1-250b84c4da8c122af8d4db0253c813a4965ff354",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26859,7 +26859,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.3-59d1fcbfa26929fec78a0f90cdc2e6f6ba3e5058",
+                "package_key": "kanchi-0.1.3-1ba82571a3e3b061d4cb4509f88ca0bf0a54b00c",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31521,7 +31521,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "kanchi-0.1.3-59d1fcbfa26929fec78a0f90cdc2e6f6ba3e5058": {
+          "kanchi-0.1.3-1ba82571a3e3b061d4cb4509f88ca0bf0a54b00c": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -31578,7 +31578,7 @@
               "system"
             ]
           },
-          "mado-0.1.107": {
+          "mado-0.1.108": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31592,7 +31592,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.1-7286b3bc2a1bc4c63929cc60b9d6d1ca2d82616f",
+                "package_key": "awase-0.1.1-250b84c4da8c122af8d4db0253c813a4965ff354",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31833,7 +31833,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.3-59d1fcbfa26929fec78a0f90cdc2e6f6ba3e5058",
+                "package_key": "kanchi-0.1.3-1ba82571a3e3b061d4cb4509f88ca0bf0a54b00c",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35531,7 +35531,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "kanchi-0.1.3-59d1fcbfa26929fec78a0f90cdc2e6f6ba3e5058": {
+          "kanchi-0.1.3-1ba82571a3e3b061d4cb4509f88ca0bf0a54b00c": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -35588,7 +35588,7 @@
               "system"
             ]
           },
-          "mado-0.1.107": {
+          "mado-0.1.108": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35602,7 +35602,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.1-7286b3bc2a1bc4c63929cc60b9d6d1ca2d82616f",
+                "package_key": "awase-0.1.1-250b84c4da8c122af8d4db0253c813a4965ff354",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35843,7 +35843,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.3-59d1fcbfa26929fec78a0f90cdc2e6f6ba3e5058",
+                "package_key": "kanchi-0.1.3-1ba82571a3e3b061d4cb4509f88ca0bf0a54b00c",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39629,7 +39629,7 @@
               "fallback"
             ]
           },
-          "kanchi-0.1.3-59d1fcbfa26929fec78a0f90cdc2e6f6ba3e5058": {
+          "kanchi-0.1.3-1ba82571a3e3b061d4cb4509f88ca0bf0a54b00c": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -39768,7 +39768,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.107": {
+          "mado-0.1.108": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39782,7 +39782,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.1-7286b3bc2a1bc4c63929cc60b9d6d1ca2d82616f",
+                "package_key": "awase-0.1.1-250b84c4da8c122af8d4db0253c813a4965ff354",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40023,7 +40023,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.3-59d1fcbfa26929fec78a0f90cdc2e6f6ba3e5058",
+                "package_key": "kanchi-0.1.3-1ba82571a3e3b061d4cb4509f88ca0bf0a54b00c",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44649,7 +44649,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "kanchi-0.1.3-59d1fcbfa26929fec78a0f90cdc2e6f6ba3e5058": {
+          "kanchi-0.1.3-1ba82571a3e3b061d4cb4509f88ca0bf0a54b00c": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -44706,7 +44706,7 @@
               "system"
             ]
           },
-          "mado-0.1.107": {
+          "mado-0.1.108": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44720,7 +44720,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.1-7286b3bc2a1bc4c63929cc60b9d6d1ca2d82616f",
+                "package_key": "awase-0.1.1-250b84c4da8c122af8d4db0253c813a4965ff354",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44961,7 +44961,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.3-59d1fcbfa26929fec78a0f90cdc2e6f6ba3e5058",
+                "package_key": "kanchi-0.1.3-1ba82571a3e3b061d4cb4509f88ca0bf0a54b00c",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48623,7 +48623,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "kanchi-0.1.3-59d1fcbfa26929fec78a0f90cdc2e6f6ba3e5058": {
+          "kanchi-0.1.3-1ba82571a3e3b061d4cb4509f88ca0bf0a54b00c": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -48680,7 +48680,7 @@
               "system"
             ]
           },
-          "mado-0.1.107": {
+          "mado-0.1.108": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48694,7 +48694,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.1-7286b3bc2a1bc4c63929cc60b9d6d1ca2d82616f",
+                "package_key": "awase-0.1.1-250b84c4da8c122af8d4db0253c813a4965ff354",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48935,7 +48935,7 @@
               },
               {
                 "name": "kanchi",
-                "package_key": "kanchi-0.1.3-59d1fcbfa26929fec78a0f90cdc2e6f6ba3e5058",
+                "package_key": "kanchi-0.1.3-1ba82571a3e3b061d4cb4509f88ca0bf0a54b00c",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51905,7 +51905,7 @@
     "autocfg-1.5.1": {
       "edition": "2015"
     },
-    "awase-0.1.1-7286b3bc2a1bc4c63929cc60b9d6d1ca2d82616f": {
+    "awase-0.1.1-250b84c4da8c122af8d4db0253c813a4965ff354": {
       "edition": "2024"
     },
     "backon-1.6.0": {
@@ -52724,7 +52724,7 @@
     "kaname-0.1.1-288a975b205614c0a838a5e0572632ef704afd47": {
       "edition": "2024"
     },
-    "kanchi-0.1.3-59d1fcbfa26929fec78a0f90cdc2e6f6ba3e5058": {
+    "kanchi-0.1.3-1ba82571a3e3b061d4cb4509f88ca0bf0a54b00c": {
       "edition": "2024"
     },
     "kanshou-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": {
@@ -52833,7 +52833,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.107": {
+    "mado-0.1.108": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -53913,7 +53913,7 @@
     "tiff-0.11.3": {
       "edition": "2021"
     },
-    "time-0.3.54": {
+    "time-0.3.55": {
       "edition": "2024"
     },
     "time-core-0.1.9": {
@@ -53941,7 +53941,7 @@
     "tinyvec_macros-0.1.1": {
       "edition": "2018"
     },
-    "todoku-0.1.0-dc91b831664833a7bfddff896f344e06c7b6ea95": {
+    "todoku-0.1.0-8fdd99f0ea10e32c38cb6e544c2da923a761f686": {
       "edition": "2024"
     },
     "tokio-1.53.1": {
@@ -54388,7 +54388,7 @@
     }
   },
   "git_nar_sha256": {
-    "awase-0.1.1-7286b3bc2a1bc4c63929cc60b9d6d1ca2d82616f": "sha256-mtrSTNN3fPcYZy4ky2o328paZtGhkCNpGcd1MfOm6uo=",
+    "awase-0.1.1-250b84c4da8c122af8d4db0253c813a4965ff354": "sha256-7944TrD2RJLoqKcGD2Y4wxMTmsjX7EcOX1KBS45d+/U=",
     "egaku-0.1.3-81d168190061c452d115f58f186429b84f489be8": "sha256-sNTpm8OD42MDucjVuV5ag1xcoMZatDk4GVIuRFRLa4c=",
     "engate-attach-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": "sha256-7dqrUg3KMEKH5ac5RuK7EJRogt4H3xtv6nDrM0jpccM=",
     "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": "sha256-7dqrUg3KMEKH5ac5RuK7EJRogt4H3xtv6nDrM0jpccM=",
@@ -54405,7 +54405,7 @@
     "izumi-config-0.1.10-c2b48c018b595af0a78f48e75b253064d5b13084": "sha256-mhgKXk3VW0a6etUV/P3FhN2dEhpDqoL6CIx1ZzLuASI=",
     "izumi-sources-0.1.10-c2b48c018b595af0a78f48e75b253064d5b13084": "sha256-mhgKXk3VW0a6etUV/P3FhN2dEhpDqoL6CIx1ZzLuASI=",
     "kaname-0.1.1-288a975b205614c0a838a5e0572632ef704afd47": "sha256-hUT1hJkJFtC6YlAYEFSmI9Oxftp2W0edSSj4qJAaMg8=",
-    "kanchi-0.1.3-59d1fcbfa26929fec78a0f90cdc2e6f6ba3e5058": "sha256-luuB/jT+tQuFzLQNjqhBEYGozJZrJ87ad//hWXuCYfc=",
+    "kanchi-0.1.3-1ba82571a3e3b061d4cb4509f88ca0bf0a54b00c": "sha256-pQuPMse9iY4kMjvRwNkzph7gfBzOjgh+/c8AIHImqWA=",
     "kanshou-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
     "kanshou-derive-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
     "katsuji-0.1.1-d6b3ad8f0e69898497475128bd1f7faebe14f334": "sha256-z3VrmvBNotClRYGVa/3usnsN3KIA+9nQDzM0dmSzpn8=",
@@ -54432,7 +54432,7 @@
     "tear-core-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": "sha256-DiTdK4gw+G6St4vEY9xqQZEyY1e1ebKtK0J0bzVh0iY=",
     "tear-daemon-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": "sha256-DiTdK4gw+G6St4vEY9xqQZEyY1e1ebKtK0J0bzVh0iY=",
     "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": "sha256-DiTdK4gw+G6St4vEY9xqQZEyY1e1ebKtK0J0bzVh0iY=",
-    "todoku-0.1.0-dc91b831664833a7bfddff896f344e06c7b6ea95": "sha256-571QupxoFgaa9MCggseRANEk/6UhRE2O+gRmW/VJAIY=",
+    "todoku-0.1.0-8fdd99f0ea10e32c38cb6e544c2da923a761f686": "sha256-WIs5eVzzRDsLkUNXLu9rEYSt4XJhyF2pBBrR7l2yH4E=",
     "tsuuchi-0.1.5-86539e03f9e90334afa02284ebb8e6e7806c8a39": "sha256-O0xC2BNJp+R7Xwso9c0RFGfSHwRqieCRWZHTzqKWbu8=",
     "vigy-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf": "sha256-x6QaZl0BhCKV6W9+yZ8qQ+e/TjtIstD4J/oyVZCACNY=",
     "vigy-eval-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf": "sha256-x6QaZl0BhCKV6W9+yZ8qQ+e/TjtIstD4J/oyVZCACNY=",
