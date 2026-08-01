@@ -39,7 +39,16 @@ use pleme_kindstr_derive::KindStr;
 /// per-variant `#[kind(name = "...")]` attrs — one authored CSS-name table
 /// instead of two hand-kept inverse match arms. CSS keywords are
 /// case-sensitive, so unknown / wrong-case names return `None`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, KindStr)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Default,
+    KindStr,
+    pleme_allvariants_derive::AllVariants,
+)]
 pub enum PointerShape {
     /// Platform default pointer (typically an arrow).
     #[default]
@@ -101,35 +110,19 @@ pub enum PointerShape {
     ZoomOut,
 }
 
-impl PointerShape {
-    /// Every recognized variant. Useful for round-trip tests + the
-    /// MCP tool that exposes the valid shape vocabulary to clients.
-    #[must_use]
-    #[allow(dead_code)] // Consumed by round-trip tests + pending MCP surface.
-    pub fn all() -> &'static [PointerShape] {
-        &[
-            Self::Default,
-            Self::Text,
-            Self::Pointer,
-            Self::Wait,
-            Self::Progress,
-            Self::Crosshair,
-            Self::ColResize,
-            Self::RowResize,
-            Self::Move,
-            Self::Grab,
-            Self::Grabbing,
-            Self::NotAllowed,
-            Self::Help,
-            Self::NwseResize,
-            Self::NeswResize,
-            Self::EwResize,
-            Self::NsResize,
-            Self::ZoomIn,
-            Self::ZoomOut,
-        ]
-    }
-}
+// `all()` and `ALL` are DERIVED by `#[derive(AllVariants)]` — there is
+// deliberately no hand-written impl here.
+//
+// This module used to carry a hand-enumerated `all()` listing all 19
+// variants. Nothing tied that list to the enum, so a new variant could be
+// added and silently skipped by every test that iterates it — including
+// `round_trip_via_name_preserves_every_variant`, whose name promises
+// coverage its input could not deliver. It had not drifted yet (19 = 19),
+// but that is luck, not a guarantee; the identical shape in `keybind.rs`
+// HAD drifted, to 28 of 29.
+//
+// Deleting the list rather than guarding it is the point: a derived
+// enumeration cannot fall behind the enum it is derived from.
 
 #[cfg(test)]
 mod tests {
