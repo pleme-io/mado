@@ -205,11 +205,10 @@ egaku = { git = "https://github.com/pleme-io/egaku", rev = "81d168190061c452d115
 # the `lisp` default (tatara-lisp) + never pulls the optional `config` (shikumi)
 # feature — so NO shikumi-family rev to split (no E0463). `network` enables the
 # todoku fetch client for navigate(). Rev-pinned to namimado's locked rev.
-# ★ nami-core's rev moves IN LOCKSTEP with garasu's above. nami-core takes
-# garasu by GIT, so `[patch.crates-io]` cannot unify it — bumping garasu
-# alone puts two garasu in the graph and every cross-crate `GpuContext`
-# becomes a type mismatch. Bumped together 2026-07-31 (garasu 4883ee7).
-nami-core = { git = "https://github.com/pleme-io/nami-core", rev = "a5b87d612c8435c10705d45102c1a74a5b4500e8", default-features = false, features = ["network", "eval", "gpu"] , version = "0.1" }
+# nami-core no longer needs to move in lockstep with garasu: it takes
+# garasu from crates.io now, as mado does, so cargo unifies them by semver
+# instead of either crate having to know the other's pin.
+nami-core = { git = "https://github.com/pleme-io/nami-core", rev = "7d9df98be462bb417da51b512c3a55d6eca82837", default-features = false, features = ["network", "eval", "gpu"] , version = "0.1" }
 
 # tatara-lisp — the Four-Lisps authoring engine. Consumed by the `float`
 # module's `spec` border: `#[derive(DeriveTataraDomain)]` turns
@@ -433,16 +432,22 @@ gpu_tests = ["dep:pollster"]
 # then advanced garasu/egaku to HEADs needing that newer shikumi, desyncing the
 # family. Pin ALL of them (madori too, below) to the last mutually-green rev set.
 # REMOVE these pins once shikumi main is fixed upstream — the real load-bearing fix.
-# garasu advanced a2afc2a -> 4883ee7 (2026-07-31) for `garasu::pane`
-# (PaneRect / LayeredPass / PanePass — the containment primitive).
+# ★ garasu is NO LONGER PATCHED — it resolves from crates.io via the plain
+# `garasu = "0.1"` dependency above, and that is the point.
 #
-# Safe to move ALONE despite the family-pin note above, and the reason is
-# specific: **garasu has no `shikumi` dependency at all**, and `git diff
-# a2afc2a..4883ee7 -- Cargo.toml` shows a version bump and NOTHING else —
-# no dependency changed across those 5 commits. The desync the note
-# describes ("advanced garasu/egaku to HEADs needing that newer shikumi")
-# is real for egaku, which does depend on shikumi; it is not for garasu.
-# egaku and shikumi stay exactly where they are.
-garasu = { git = "https://github.com/pleme-io/garasu", rev = "4883ee7e0a124eb95d841c6655d05b7c68fb3cb0" }
+# A git rev pin cannot be unified by cargo: nami-core also depends on
+# garasu, so mado's pin and nami-core's pin were two separate sources and
+# the graph carried TWO garasu whenever they disagreed — every cross-crate
+# `GpuContext` an "expected garasu::context::GpuContext, found GpuContext"
+# mismatch. Measured 2026-07-31 by bumping one and not the other.
+#
+# A semver range has no such failure mode: cargo unifies compatible
+# versions from one registry automatically, so neither crate needs to know
+# what the other pinned and there is no lockstep bump to forget. The pin
+# was only ever a workaround for garasu being unpublished; auto-release
+# publishes it (0.1.7 carries `garasu::pane`), so the workaround is gone.
+#
+# shikumi and egaku stay pinned below — shikumi main is genuinely broken
+# upstream, which is a different problem from this one.
 shikumi = { git = "https://github.com/pleme-io/shikumi", rev = "b41d01e453b2c2505941ba02003f48721ca02b17" }
 egaku = { git = "https://github.com/pleme-io/egaku", rev = "81d168190061c452d115f58f186429b84f489be8" }
