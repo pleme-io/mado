@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "8e570335950809f04b117ee1e2a63827367f09d8b0d46421d81f9ab43b0fb15c",
+  "cargo_lock_sha256": "6b85fb5cbe8af32a5b26438d2a3112bb03ff39a1430453bbf8beb1113fba4526",
   "manifest_sha256": {
-    "Cargo.toml": "0d8e305fae8663a1048c87546c236e1c0e03e2f1eb7a45ab2c53fbfb9b650b25"
+    "Cargo.toml": "a3de021508b41613af6143827a85abae90c16f785b5ba139ea6ef91d56d89a41"
   },
   "target_resolves": {
     "base": {
@@ -4510,7 +4510,7 @@
           "std"
         ]
       },
-      "garasu-0.1.6-4883ee7e0a124eb95d841c6655d05b7c68fb3cb0": {
+      "garasu-0.1.7": {
         "runtime_dependencies": [
           {
             "name": "bincode",
@@ -9346,7 +9346,7 @@
           },
           {
             "name": "garasu",
-            "package_key": "garasu-0.1.6-4883ee7e0a124eb95d841c6655d05b7c68fb3cb0",
+            "package_key": "garasu-0.1.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9953,7 +9953,7 @@
           "wgsl-out"
         ]
       },
-      "nami-core-0.1.9-a5b87d612c8435c10705d45102c1a74a5b4500e8": {
+      "nami-core-0.1.9-7d9df98be462bb417da51b512c3a55d6eca82837": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -9967,7 +9967,7 @@
           },
           {
             "name": "garasu",
-            "package_key": "garasu-0.1.6-4883ee7e0a124eb95d841c6655d05b7c68fb3cb0",
+            "package_key": "garasu-0.1.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -26801,7 +26801,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.6-4883ee7e0a124eb95d841c6655d05b7c68fb3cb0",
+                "package_key": "garasu-0.1.7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26995,7 +26995,7 @@
               },
               {
                 "name": "nami_core",
-                "package_key": "nami-core-0.1.9-a5b87d612c8435c10705d45102c1a74a5b4500e8",
+                "package_key": "nami-core-0.1.9-7d9df98be462bb417da51b512c3a55d6eca82837",
                 "kind": "normal",
                 "features": [
                   "eval",
@@ -31847,7 +31847,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.6-4883ee7e0a124eb95d841c6655d05b7c68fb3cb0",
+                "package_key": "garasu-0.1.7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32041,7 +32041,7 @@
               },
               {
                 "name": "nami_core",
-                "package_key": "nami-core-0.1.9-a5b87d612c8435c10705d45102c1a74a5b4500e8",
+                "package_key": "nami-core-0.1.9-7d9df98be462bb417da51b512c3a55d6eca82837",
                 "kind": "normal",
                 "features": [
                   "eval",
@@ -36079,7 +36079,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.6-4883ee7e0a124eb95d841c6655d05b7c68fb3cb0",
+                "package_key": "garasu-0.1.7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36273,7 +36273,7 @@
               },
               {
                 "name": "nami_core",
-                "package_key": "nami-core-0.1.9-a5b87d612c8435c10705d45102c1a74a5b4500e8",
+                "package_key": "nami-core-0.1.9-7d9df98be462bb417da51b512c3a55d6eca82837",
                 "kind": "normal",
                 "features": [
                   "eval",
@@ -40460,7 +40460,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.6-4883ee7e0a124eb95d841c6655d05b7c68fb3cb0",
+                "package_key": "garasu-0.1.7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40654,7 +40654,7 @@
               },
               {
                 "name": "nami_core",
-                "package_key": "nami-core-0.1.9-a5b87d612c8435c10705d45102c1a74a5b4500e8",
+                "package_key": "nami-core-0.1.9-7d9df98be462bb417da51b512c3a55d6eca82837",
                 "kind": "normal",
                 "features": [
                   "eval",
@@ -45470,7 +45470,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.6-4883ee7e0a124eb95d841c6655d05b7c68fb3cb0",
+                "package_key": "garasu-0.1.7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45664,7 +45664,7 @@
               },
               {
                 "name": "nami_core",
-                "package_key": "nami-core-0.1.9-a5b87d612c8435c10705d45102c1a74a5b4500e8",
+                "package_key": "nami-core-0.1.9-7d9df98be462bb417da51b512c3a55d6eca82837",
                 "kind": "normal",
                 "features": [
                   "eval",
@@ -49666,7 +49666,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.6-4883ee7e0a124eb95d841c6655d05b7c68fb3cb0",
+                "package_key": "garasu-0.1.7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49860,7 +49860,7 @@
               },
               {
                 "name": "nami_core",
-                "package_key": "nami-core-0.1.9-a5b87d612c8435c10705d45102c1a74a5b4500e8",
+                "package_key": "nami-core-0.1.9-7d9df98be462bb417da51b512c3a55d6eca82837",
                 "kind": "normal",
                 "features": [
                   "eval",
@@ -53506,7 +53506,7 @@
     "futures-util-0.3.33": {
       "edition": "2018"
     },
-    "garasu-0.1.6-4883ee7e0a124eb95d841c6655d05b7c68fb3cb0": {
+    "garasu-0.1.7": {
       "edition": "2024",
       "build_script": "build.rs"
     },
@@ -53964,7 +53964,7 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "nami-core-0.1.9-a5b87d612c8435c10705d45102c1a74a5b4500e8": {
+    "nami-core-0.1.9-7d9df98be462bb417da51b512c3a55d6eca82837": {
       "edition": "2024"
     },
     "native-tls-0.2.18": {
@@ -55465,7 +55465,6 @@
     "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": "sha256-7dqrUg3KMEKH5ac5RuK7EJRogt4H3xtv6nDrM0jpccM=",
     "engawa-0.1.4-dd79e87f6282822e7fe4eaae5a676a1c49767013": "sha256-M86ijOVbV64ioLLQiM4TcGIvwTGlG2LABf5ntIMMIIA=",
     "engawa-wgpu-0.1.8-acc2b02d46322077861c9e74c6d2e5cb15cb1e5f": "sha256-sE/Qeve2DJY8NVMxAzjRbeZWIUmmWoF6hUAUusSJ4So=",
-    "garasu-0.1.6-4883ee7e0a124eb95d841c6655d05b7c68fb3cb0": "sha256-l1ic/YahMqWdz4ohGHyq+HPUDNwIEZswn93fU7fhZ6E=",
     "gen-macros-0.1.32-e174470020226ca8e46a798210a59aba6088a953": "sha256-VmlO7fCgYj1O8XIcm+goVpIQEuikKx27JVyxxXiKlG4=",
     "gen-platform-0.1.32-e174470020226ca8e46a798210a59aba6088a953": "sha256-VmlO7fCgYj1O8XIcm+goVpIQEuikKx27JVyxxXiKlG4=",
     "gen-types-0.1.32-e174470020226ca8e46a798210a59aba6088a953": "sha256-VmlO7fCgYj1O8XIcm+goVpIQEuikKx27JVyxxXiKlG4=",
@@ -55482,7 +55481,7 @@
     "kanshou-derive-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
     "katsuji-0.1.1-d6b3ad8f0e69898497475128bd1f7faebe14f334": "sha256-z3VrmvBNotClRYGVa/3usnsN3KIA+9nQDzM0dmSzpn8=",
     "madori-0.1.5-79b33a4811853f1a8153735a69fb58bde894c2d9": "sha256-35DB90eBg+O8Ie2w8R4sfZr4B4NG+FPbUfwePl0x9qw=",
-    "nami-core-0.1.9-a5b87d612c8435c10705d45102c1a74a5b4500e8": "sha256-2HsHcUQ83Pf1h7lbwHKFruAlFZAFSO7FjiqVzFQlFik=",
+    "nami-core-0.1.9-7d9df98be462bb417da51b512c3a55d6eca82837": "sha256-P9atmbU/SpKChJdLjty9k60AHopPw1OhsOpFFlS9RpU=",
     "pleme-allvariants-derive-0.1.0-142b74f58ef31231d6f11ad572c9485156640d06": "sha256-UccPQkeqdS3+pY/6ZUO+KzAA7c6UkfYPkcHx8rldiuA=",
     "pleme-fleet-themed-derive-0.1.1-160b9757a9427c89095acf174665219cf917d627": "sha256-owcgPlHScG8e3ensxvLdsQDqoelLhJHlzzZBBSEfk5g=",
     "pleme-invalidating-setter-derive-0.1.0-8df3b1bc76dbd92aa3fcd2fb9213adb5ef7f0b7c": "sha256-V57vmtWy8SI6IqsAtz5c4lNC0LDCRiRxA8tg0UJWXg8=",
