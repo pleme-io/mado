@@ -19,7 +19,7 @@ steps:
   - kind: send
     # Clear, home, then for each of the first 3 rows: write some
     # text then jump to col 80 and emit a U+2588 FULL BLOCK.
-    text: "printf '\\e[2J\\e[H\\e[1;1Hgit·status\\e[1;80H\\xe2\\x96\\x88\\e[2;1Hecho·hi\\e[2;80H\\xe2\\x96\\x88\\e[3;1Hls\\e[3;80H\\xe2\\x96\\x88'\n"
+    text: "printf '\\e[2J\\e[H\\e[1;1Hgit·status\\e[1;80H\\342\\226\\210\\e[2;1Hecho·hi\\e[2;80H\\342\\226\\210\\e[3;1Hls\\e[3;80H\\342\\226\\210'\n"
   - kind: wait_for_text
     text: "git"
     timeout_ms: 500

@@ -14,7 +14,7 @@ steps:
     ms: 50
   - kind: send
     # Clear, home, then write ▌█▐ at row 0 col 0.
-    text: "printf '\\e[2J\\e[H\\xe2\\x96\\x8c\\xe2\\x96\\x88\\xe2\\x96\\x90'\n"
+    text: "printf '\\e[2J\\e[H\\342\\226\\214\\342\\226\\210\\342\\226\\220'\n"
   - kind: wait_for_text
     text: "▌"
     timeout_ms: 500

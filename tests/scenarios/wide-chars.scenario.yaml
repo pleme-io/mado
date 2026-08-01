@@ -15,7 +15,7 @@ steps:
     ms: 50
   - kind: send
     # Clear, home, then write 日本語 — three CJK wide chars at row 0.
-    text: "printf '\\e[2J\\e[H\\xe6\\x97\\xa5\\xe6\\x9c\\xac\\xe8\\xaa\\x9e'\n"
+    text: "printf '\\e[2J\\e[H\\346\\227\\245\\346\\234\\254\\350\\252\\236'\n"
   - kind: wait_for_text
     text: "日"
     timeout_ms: 500

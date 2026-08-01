@@ -81,6 +81,72 @@ fn every_scenario_yaml_runs_green() {
     );
 }
 
+/// A scenario's `printf` may not use `\xNN` — it is not POSIX, and the
+/// scenarios run under `/bin/sh`, which is a DIFFERENT SHELL per platform.
+///
+/// This is a forcing function, not a style rule. It exists because four
+/// scenarios shipped with `\xe2\x96\x88`-style escapes, passed on every
+/// developer machine for as long as they existed, and failed the first time
+/// CI ever ran them (2026-08-01, run 30687417194) — the exact four, while the
+/// other six were green. `/bin/sh` is bash on macOS, which implements the
+/// `\xNN` bash extension; on Linux it is dash, which does not, and the bytes
+/// arrive mangled. Measured, both directions:
+///
+///   dash  printf '\xe2\x96\x88'   ->  c3 a2 c2 96 c2 88   (latin1 mojibake)
+///   dash  printf '\342\226\210'   ->  e2 96 88            (correct U+2588)
+///   bash  printf '\342\226\210'   ->  e2 96 88            (correct, unchanged)
+///
+/// Ubuntu's dash is worse still — it emits the escape literally, which is why
+/// CI reported `want '█', got '\'` and the leading backslash is the tell.
+///
+/// `\ooo` octal IS POSIX and was verified byte-identical across dash, bash,
+/// `bash --posix` and zsh, so the fix costs no portability.
+///
+/// Tier-honest: this is **CI-caught**, not unrepresentable. A scenario can
+/// still be WRITTEN with `\xNN`; it just cannot pass. Making it truly
+/// unrepresentable would mean scenarios stopped carrying raw shell strings and
+/// declared bytes in a typed form instead — the right destination, and a
+/// larger change than this repair.
+#[test]
+fn no_scenario_uses_non_posix_hex_escapes() {
+    let dir = scenarios_dir();
+    if !dir.exists() {
+        return;
+    }
+    let mut offenders: Vec<String> = Vec::new();
+    let entries = std::fs::read_dir(&dir)
+        .unwrap_or_else(|e| panic!("read scenarios dir {}: {e}", dir.display()));
+    for entry in entries.filter_map(|e| e.ok()) {
+        let path = entry.path();
+        let is_scenario = path
+            .file_name()
+            .and_then(|s| s.to_str())
+            .is_some_and(|s| s.ends_with(".scenario.yaml"));
+        if !is_scenario {
+            continue;
+        }
+        let body = std::fs::read_to_string(&path)
+            .unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
+        // The YAML source spells one backslash as two, so a `\xNN` escape
+        // destined for the shell appears here literally as `\\x`.
+        for (lineno, line) in body.lines().enumerate() {
+            if line.contains("\\\\x") {
+                let name = path.file_name().and_then(|s| s.to_str()).unwrap_or("?");
+                offenders.push(format!("{name}:{}", lineno + 1));
+            }
+        }
+    }
+    let n = offenders.len();
+    assert!(
+        offenders.is_empty(),
+        "non-POSIX `\\xNN` printf escape in {n} scenario line(s): {offenders:?}\n\
+         `/bin/sh` is bash on macOS but dash on Linux, and dash does not \
+         implement `\\xNN` — such a scenario passes locally and fails in CI.\n\
+         Use `\\ooo` octal instead (POSIX; identical bytes in dash, bash, \
+         bash --posix and zsh). U+2588 `█` is `\\342\\226\\210`.",
+    );
+}
+
 /// Tiny adapter — `mado::scenario::run_sync` lives in the binary
 /// crate, not a library, so we reach it through the same path the
 /// `#[path = "..."]` integration tests use. Integration tests in
