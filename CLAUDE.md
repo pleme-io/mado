@@ -85,7 +85,7 @@ an embedded vigy reconciler, and deep Nix integration that no competitor offers.
 ```bash
 cargo build
 cargo run
-cargo test                    # 114+ tests
+cargo test                    # ~1,406 #[test] + 65 #[tokio::test] + 12 proptest!
 RUST_LOG=debug cargo run      # with tracing
 nix build                     # Nix package
 nix run .#rebuild             # rebuild HM module (from nix repo)
@@ -95,7 +95,7 @@ nix run .#rebuild             # rebuild HM module (from nix repo)
 
 | vs | Mado advantage |
 |----|----------------|
-| **Ghostty** | embedded MCP automation (~42 typed tools), tatara-lisp scripting via the embedded vigy reconciler, Nix-native typed config (shikumi) |
+| **Ghostty** | embedded MCP automation (63 typed tools), tatara-lisp scripting via the embedded vigy reconciler (**default OFF** — `vigy.enabled = true` to use it), Nix-native typed config (shikumi) |
 | **WezTerm** | wgpu not OpenGL, pure-safe Rust (no C deps), tatara-lisp scripting (vigy) not Lua, Nix-managed config via shikumi, MCP |
 | **Kitty** | Modal vim-style hotkeys (awase), MCP + tatara-lisp scripting (vigy) instead of Python kittens |
 | **Alacritty** | Embedded tear multiplexer (panes/tabs/sessions), MCP automation (Alacritty is intentionally minimal) |
@@ -248,7 +248,20 @@ and alternate screen buffers. Configurable scrollback (default 10,000 lines).
 - DECKPAM/DECKPNM keypad modes
 
 **Missing sequences** (ordered by priority):
-1. SIXEL -- legacy inline image protocol
+1. G2/G3 + LS2/LS3 and UTF-8 DOCS charset designation
+2. Full blink-attribute rendering (partial)
+3. Complete colour-emoji coverage: COLR/CBDT (partial)
+4. DECOM origin-mode constraint (partial)
+
+> **Corrected 2026-07-31.** SIXEL used to head this list and is **SHIPPED** —
+> `DCS q` payload → `icy_sixel::DcsSettings` → `decode_and_place_sixel`
+> (terminal.rs:4394-4403), sharing the same `store_rgba_image` texture path as
+> Kitty graphics, bounded by `SIXEL_DCS_MAX` (8 MiB) with a poison-past-cap
+> guard and two pinning tests. Items 1-4 come from docs/GAP-ANALYSIS.md
+> (2026-05-31) and are **not re-verified since** — treat as likely-still-open,
+> not confirmed. That doc's headline complaint (no copy/paste/select/search in
+> the default mode) is CLOSED by the M1 `ux::InputEngine` unification; do not
+> cite it as current.
 
 ### Font System
 
@@ -318,21 +331,31 @@ Key font features to implement:
 | **hasami** | `Clipboard`, `ClipboardProvider` for copy/paste |
 
 All deps via path references in Cargo.toml with `[patch]` sections to unify
-transitive git deps. Published to crates.io as `mado`.
+transitive git deps.
+
+> **NOT published to crates.io, and cannot be.** `Cargo.toml` carries
+> `publish = false`: the `mado` name on crates.io is owned by another
+> publisher, so a publish could never succeed. The remedy (rename the package
+> to `pleme-io-mado`, keep `[[bin]] name = "mado"`) is a decision about the
+> crate's public identity and is deliberately left open. Distribution is the
+> DMG / Homebrew cask / `nix run` paths in the README, not crates.io.
 
 ### Libraries to integrate (not yet wired)
 
-| Library | Role in Mado |
-|---------|-------------|
-| **egaku** | Tab bar, pane split handles, command palette, search overlay widgets |
-| **irodori** | Color palette for themes (replace hardcoded Nord values) |
-| **irodzuki** | GPU theming: base16 to wgpu uniforms, ANSI color table generation |
-| **kaname** | Embedded MCP server (stdio transport) |
-| **awase** | Modal hotkey system (Normal/Insert/Command modes) |
-| **mojiban** | Rich text in command palette and help overlays |
-| **tsunagu** | Daemon mode (background multiplexer with IPC) |
-| **tsuuchi** | Desktop notifications — native `UNUserNotificationCenter` backend (bundled), focus-aware center. See `docs/NOTIFICATIONS.md` |
-| **todoku** | HTTP client for update checks, plugin registry |
+**Read the tier column before citing this table** — "not yet wired" spans
+three genuinely different states, and they were previously indistinguishable.
+
+| Library | Role in Mado | State (2026-07-31) |
+|---------|-------------|--------------------|
+| **egaku** | Tab bar, pane split handles, command palette, search overlay widgets | **PARTIAL — geometry only.** Consumed for `egaku::Rect` (17 refs); Cargo.toml says so explicitly. The widget chrome lands at QUADRO T1. |
+| **irodori** | Color palette for themes (replace hardcoded Nord values) | not a dependency; zero call sites |
+| **irodzuki** | GPU theming: base16 to wgpu uniforms, ANSI color table generation | wired |
+| **kaname** | Embedded MCP server (stdio transport) | **DEAD DEP — declared at Cargo.toml:241, ZERO `kaname::` call sites.** It is compiled and linked and costs build time + closure for nothing. The MCP server is **rmcp 0.15 directly** (63 tools, src/mcp.rs). Either wire it or drop the dependency. |
+| **awase** | Modal hotkey system (Normal/Insert/Command modes) | wired (`KeyRepeatGate`, keybinds) |
+| **mojiban** | Rich text in command palette and help overlays | not a dependency; zero call sites |
+| **tsunagu** | Daemon mode (background multiplexer with IPC) | **SUPERSEDED by tear.** Not a dependency. Multiplexing left mado at Phase 4; do not re-introduce this edge. |
+| **tsuuchi** | Desktop notifications — native `UNUserNotificationCenter` backend (bundled), focus-aware center. See `docs/NOTIFICATIONS.md` | wired (backend select at platform.rs:169-192; center at notify_center.rs) |
+| **todoku** | HTTP client for update checks, plugin registry | not a dependency; zero call sites |
 
 ---
 
@@ -366,9 +389,13 @@ Target config features:
 
 ---
 
-## MCP Server (kaname)
+## MCP Server (rmcp)
 
 Embedded MCP server via stdio transport, discoverable at `~/.config/mado/mcp.json`.
+
+> **Corrected 2026-07-31: this is `rmcp` 0.15 directly, not kaname.** The
+> section was titled "MCP Server (kaname)" and kaname has **zero call sites**
+> in `src/` — see the dead-dep row in the shared-library table above.
 
 **Standard tools**: `status`, `config_get`, `config_set`, `version`
 
@@ -397,9 +424,10 @@ summary and exiting nonzero on any failure.
 
 mado exposes two typed automation primitives — **no third scripting engine**:
 
-- **kaname MCP server** (~42 typed tools — session/grid snapshots, send-keys,
-  clipboard history, prompt/command blocks, asciinema recording; see the MCP
-  Server section below) for agent / external drive.
+- **rmcp MCP server** (**63** typed tools — session/grid snapshots, send-keys,
+  clipboard history, prompt/command blocks, asciinema recording, 18 `tear_*`,
+  11 `browser_*`, 5 `vigy_*`, 3 `suggest_*`; see the MCP Server section below)
+  for agent / external drive.
 - **embedded vigy reconciler** running **tatara-lisp** in-process (see
   `vigy_host.rs`). Scripting IS tatara-lisp: user automation is authored as
   `(def…)` forms over mado intrinsics registered through vigy's `register_fn`
@@ -491,12 +519,30 @@ Dual texture atlas, HarfBuzz shaping, font fallback, synthetic italic,
 sRGB-correct linear blending, subpixel text, custom shader chain.
 
 ### Phase 3 -- Features [DONE]
-Split panes, tabs, themes, keybindings, search, URL detection, bell,
-Kitty graphics, Kitty keyboard, shell integration, profile system.
+Themes, keybindings, search, URL detection, bell, Kitty graphics, sixel,
+Kitty keyboard, shell integration, profile system.
+
+> **Corrected 2026-07-31: "Split panes, tabs" used to head this DONE list and
+> is FALSE — they were DELETED, not shipped.** Commits `bdb8721` + `f26bb00`
+> ("Phase 4") removed `pane.rs`/`tab.rs`/`window.rs`, `render_multi_pane` and
+> `snapshot_pane`, because tear already owned sessions/windows/panes/layouts
+> correctly and mado's copy was duplication that drifted. **mado is
+> single-pane by design.** Multi-pane returns by rendering tear's
+> `LayoutNode`/`compute_rects` — tracked as M5 in
+> `tear/docs/SESSION-TYPESCAPE.md`, and it is NOT a restore: there is no
+> clipping primitive anywhere in the GPU stack to turn on (measured: zero
+> `set_scissor_rect`, zero `set_viewport` across mado/garasu/engawa/madori).
 
 ### Phase 4 -- Architecture [NEXT]
 Four-thread model, paged memory (mmap, CoW, style dedup), terminal inspector,
-daemon mode (tsunagu), MCP server (kaname), Quick Terminal, native menus.
+Quick Terminal, native menus.
+
+> Two items were struck 2026-07-31: **daemon mode (tsunagu)** is SUPERSEDED by
+> tear — do not re-introduce that edge — and the **MCP server SHIPPED** (rmcp,
+> 63 tools), so it is not a future phase. The four-thread model remains a
+> genuine target; today the VT/render data path is two threads, and
+> `src/grid_damage.rs`'s `DirtyRegion` types are built but deliberately
+> unwired pending it.
 
 ### Phase 5 -- Polish
 Variable fonts, Nerd Font embedding, vttest full pass, Ghostty-level throughput,
