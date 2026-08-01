@@ -205,7 +205,11 @@ egaku = { git = "https://github.com/pleme-io/egaku", rev = "81d168190061c452d115
 # the `lisp` default (tatara-lisp) + never pulls the optional `config` (shikumi)
 # feature — so NO shikumi-family rev to split (no E0463). `network` enables the
 # todoku fetch client for navigate(). Rev-pinned to namimado's locked rev.
-nami-core = { git = "https://github.com/pleme-io/nami-core", rev = "9a6aced4a4f205ea9fdcd4d5e0862a97903e0919", default-features = false, features = ["network", "eval", "gpu"] , version = "0.1" }
+# ★ nami-core's rev moves IN LOCKSTEP with garasu's above. nami-core takes
+# garasu by GIT, so `[patch.crates-io]` cannot unify it — bumping garasu
+# alone puts two garasu in the graph and every cross-crate `GpuContext`
+# becomes a type mismatch. Bumped together 2026-07-31 (garasu 4883ee7).
+nami-core = { git = "https://github.com/pleme-io/nami-core", rev = "a5b87d612c8435c10705d45102c1a74a5b4500e8", default-features = false, features = ["network", "eval", "gpu"] , version = "0.1" }
 
 # tatara-lisp — the Four-Lisps authoring engine. Consumed by the `float`
 # module's `spec` border: `#[derive(DeriveTataraDomain)]` turns
@@ -429,6 +433,16 @@ gpu_tests = ["dep:pollster"]
 # then advanced garasu/egaku to HEADs needing that newer shikumi, desyncing the
 # family. Pin ALL of them (madori too, below) to the last mutually-green rev set.
 # REMOVE these pins once shikumi main is fixed upstream — the real load-bearing fix.
-garasu = { git = "https://github.com/pleme-io/garasu", rev = "a2afc2ad6530ed096ab26f5d92bd4e1d348253ee" }
+# garasu advanced a2afc2a -> 4883ee7 (2026-07-31) for `garasu::pane`
+# (PaneRect / LayeredPass / PanePass — the containment primitive).
+#
+# Safe to move ALONE despite the family-pin note above, and the reason is
+# specific: **garasu has no `shikumi` dependency at all**, and `git diff
+# a2afc2a..4883ee7 -- Cargo.toml` shows a version bump and NOTHING else —
+# no dependency changed across those 5 commits. The desync the note
+# describes ("advanced garasu/egaku to HEADs needing that newer shikumi")
+# is real for egaku, which does depend on shikumi; it is not for garasu.
+# egaku and shikumi stay exactly where they are.
+garasu = { git = "https://github.com/pleme-io/garasu", rev = "4883ee7e0a124eb95d841c6655d05b7c68fb3cb0" }
 shikumi = { git = "https://github.com/pleme-io/shikumi", rev = "b41d01e453b2c2505941ba02003f48721ca02b17" }
 egaku = { git = "https://github.com/pleme-io/egaku", rev = "81d168190061c452d115f58f186429b84f489be8" }

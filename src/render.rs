@@ -2526,12 +2526,7 @@ impl TerminalRenderer {
             left,
             top,
             scale: 1.0,
-            bounds: glyphon::TextBounds {
-                left: 0,
-                top: 0,
-                right: width as i32,
-                bottom: height as i32,
-            },
+            bounds: garasu::PaneRect::root(width, height).text_bounds(),
             default_color: agent,
             custom_glyphs: &[],
         }];
@@ -2827,12 +2822,7 @@ impl TerminalRenderer {
                 left,
                 top: top0 + (row as f32) * line_h,
                 scale: 1.0,
-                bounds: glyphon::TextBounds {
-                    left: 0,
-                    top: 0,
-                    right: width as i32,
-                    bottom: height as i32,
-                },
+                bounds: garasu::PaneRect::root(width, height).text_bounds(),
                 default_color: color_for(line),
                 custom_glyphs: &[],
             });
@@ -5762,12 +5752,17 @@ impl RenderCallback for TerminalRenderer {
                 left: x,
                 top: y,
                 scale: 1.0,
-                bounds: glyphon::TextBounds {
-                    left: 0,
-                    top: 0,
-                    right: ctx.width as i32,
-                    bottom: ctx.height as i32,
-                },
+                // The terminal's text clip, expressed through the same type
+                // that will express a PANE's clip. Identical pixels today —
+                // mado is single-pane, so the pane IS the window — but it
+                // makes multi-pane a variable swap here rather than a
+                // rewrite: `pane.text_bounds()` instead of `root(..)`.
+                //
+                // This is the ONLY clip in the whole pipeline. glyphon
+                // clips per-glyph on the CPU at prepare time and calls
+                // `set_scissor_rect` zero times, so text containment is
+                // entirely a matter of handing it the right rectangle.
+                bounds: garasu::PaneRect::root(ctx.width, ctx.height).text_bounds(),
                 default_color: GlyphonColor::rgba(
                     self.fg_color.r,
                     self.fg_color.g,
