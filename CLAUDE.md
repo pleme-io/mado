@@ -342,20 +342,31 @@ transitive git deps.
 
 ### Libraries to integrate (not yet wired)
 
-**Read the tier column before citing this table** — "not yet wired" spans
-three genuinely different states, and they were previously indistinguishable.
+**Read the state column before citing this table** — "not yet wired" spans
+several genuinely different states that were previously indistinguishable:
+*partial* (declared and used for a subset), *transitive* (compiled into the
+build, absent from the source), *dead dep* (declared, zero call sites), and
+*genuinely absent* (not even in the lockfile).
 
-| Library | Role in Mado | State (2026-07-31) |
+**The distinction that bites is source-vs-build**, and it cost a CI diagnosis
+on 2026-08-01: two rows here read "not a dependency" while the crates were in
+`Cargo.lock` and compiling on every build, which is exactly how a *transitive*
+crate's TLS misconfiguration surfaced as mado's red `cargo-test`. So the
+standing rule for maintaining this table: **grep the source to judge whether
+mado USES a crate; read `Cargo.lock` to judge whether mado BUILDS it.** They
+answer different questions, and only the second one explains a build failure.
+
+| Library | Role in Mado | State (2026-08-01) |
 |---------|-------------|--------------------|
 | **egaku** | Tab bar, pane split handles, command palette, search overlay widgets | **PARTIAL — geometry only.** Consumed for `egaku::Rect` (17 refs); Cargo.toml says so explicitly. The widget chrome lands at QUADRO T1. |
-| **irodori** | Color palette for themes (replace hardcoded Nord values) | not a dependency; zero call sites |
+| **irodori** | Color palette for themes (replace hardcoded Nord values) | **TRANSITIVE — in the build, not in the source.** Corrected 2026-08-01 alongside the todoku row below, by re-checking every "not a dependency" claim in this table against `Cargo.lock` rather than trusting the audit that wrote them. Zero direct `irodori::` call sites and no `Cargo.toml` declaration, but it arrives via `ishou-tokens → irodori` and compiles on every build. So the palette IS linked; what's missing is mado *using* it in place of the hardcoded Nord values, which is the actual open work this row is tracking. |
 | **irodzuki** | GPU theming: base16 to wgpu uniforms, ANSI color table generation | wired |
 | **kaname** | Embedded MCP server (stdio transport) | **DEAD DEP — declared at Cargo.toml:241, ZERO `kaname::` call sites.** It is compiled and linked and costs build time + closure for nothing. The MCP server is **rmcp 0.15 directly** (63 tools, src/mcp.rs). Either wire it or drop the dependency. |
 | **awase** | Modal hotkey system (Normal/Insert/Command modes) | wired (`KeyRepeatGate`, keybinds) |
-| **mojiban** | Rich text in command palette and help overlays | not a dependency; zero call sites |
+| **mojiban** | Rich text in command palette and help overlays | genuinely absent — zero call sites, undeclared, **and absent from `Cargo.lock`** (re-verified 2026-08-01, the check that caught the two rows above). |
 | **tsunagu** | Daemon mode (background multiplexer with IPC) | **SUPERSEDED by tear.** Not a dependency. Multiplexing left mado at Phase 4; do not re-introduce this edge. |
 | **tsuuchi** | Desktop notifications — native `UNUserNotificationCenter` backend (bundled), focus-aware center. See `docs/NOTIFICATIONS.md` | wired (backend select at platform.rs:169-192; center at notify_center.rs) |
-| **todoku** | HTTP client for update checks, plugin registry | not a dependency; zero call sites |
+| **todoku** | HTTP client for update checks, plugin registry | **TRANSITIVE — in the build, not in the source.** Corrected 2026-08-01: this row read "not a dependency", which was false and cost a CI diagnosis. Zero direct `todoku::` call sites and no `Cargo.toml` declaration (both still true), but it IS in `Cargo.lock` via `mado → nami-core (feature "network") → todoku`, so it compiles on every build. That is how todoku's TLS misconfiguration became mado's red `cargo-test`: todoku asked for `rustls-tls` without `default-features = false`, Cargo features being additive kept `default-tls` on, and `native-tls → openssl-sys` failed in a devShell with no openssl. **The lesson generalizes past this row: "zero call sites" is a statement about the SOURCE and says nothing about the BUILD.** Read `Cargo.lock`, not `Cargo.toml`, before calling anything absent. |
 
 ---
 
