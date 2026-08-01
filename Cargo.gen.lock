@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "72bd0eff81b62af9bd900b3f0422e169bbd55c8f94e87d642eb7c4a36fb102cd",
+  "cargo_lock_sha256": "8e570335950809f04b117ee1e2a63827367f09d8b0d46421d81f9ab43b0fb15c",
   "manifest_sha256": {
-    "Cargo.toml": "7063680b4d0340065b08853f41109c31deab276651a9d672ece7e8aeef30f5c4"
+    "Cargo.toml": "0d8e305fae8663a1048c87546c236e1c0e03e2f1eb7a45ab2c53fbfb9b650b25"
   },
   "target_resolves": {
     "base": {
@@ -1451,11 +1451,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "clap-4.6.4": {
+      "clap-4.6.5": {
         "runtime_dependencies": [
           {
             "name": "clap_builder",
-            "package_key": "clap_builder-4.6.2",
+            "package_key": "clap_builder-4.6.5",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -1487,7 +1487,7 @@
           "usage"
         ]
       },
-      "clap_builder-4.6.2": {
+      "clap_builder-4.6.5": {
         "runtime_dependencies": [
           {
             "name": "anstream",
@@ -2122,7 +2122,7 @@
           },
           {
             "name": "clap",
-            "package_key": "clap-4.6.4",
+            "package_key": "clap-4.6.5",
             "kind": "normal",
             "features": [
               "std"
@@ -4510,7 +4510,7 @@
           "std"
         ]
       },
-      "garasu-0.1.4-a2afc2ad6530ed096ab26f5d92bd4e1d348253ee": {
+      "garasu-0.1.6-4883ee7e0a124eb95d841c6655d05b7c68fb3cb0": {
         "runtime_dependencies": [
           {
             "name": "bincode",
@@ -7345,7 +7345,7 @@
           "default"
         ]
       },
-      "ishou-tokens-0.1.4-8f14a59d04042370897874f5d259b26a8837a696": {
+      "ishou-tokens-0.1.4-4104e9b0d9736d067f6eee26561a1f70b9370031": {
         "runtime_dependencies": [
           {
             "name": "irodori",
@@ -9346,7 +9346,7 @@
           },
           {
             "name": "garasu",
-            "package_key": "garasu-0.1.4-a2afc2ad6530ed096ab26f5d92bd4e1d348253ee",
+            "package_key": "garasu-0.1.6-4883ee7e0a124eb95d841c6655d05b7c68fb3cb0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9953,7 +9953,7 @@
           "wgsl-out"
         ]
       },
-      "nami-core-0.1.9-9a6aced4a4f205ea9fdcd4d5e0862a97903e0919": {
+      "nami-core-0.1.9-a5b87d612c8435c10705d45102c1a74a5b4500e8": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -9967,7 +9967,7 @@
           },
           {
             "name": "garasu",
-            "package_key": "garasu-0.1.4-a2afc2ad6530ed096ab26f5d92bd4e1d348253ee",
+            "package_key": "garasu-0.1.6-4883ee7e0a124eb95d841c6655d05b7c68fb3cb0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -10017,7 +10017,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.4-8f14a59d04042370897874f5d259b26a8837a696",
+            "package_key": "ishou-tokens-0.1.4-4104e9b0d9736d067f6eee26561a1f70b9370031",
             "kind": "normal",
             "features": [
               "wgpu"
@@ -10123,7 +10123,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234",
+            "package_key": "tatara-lisp-0.3.14",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -10660,7 +10660,7 @@
           },
           {
             "name": "clap",
-            "package_key": "clap-4.6.4",
+            "package_key": "clap-4.6.5",
             "kind": "normal",
             "features": [
               "derive",
@@ -12098,7 +12098,7 @@
           },
           {
             "name": "clap",
-            "package_key": "clap-4.6.4",
+            "package_key": "clap-4.6.5",
             "kind": "normal",
             "features": [
               "derive"
@@ -12386,7 +12386,7 @@
           },
           {
             "name": "serial2",
-            "package_key": "serial2-0.2.37",
+            "package_key": "serial2-0.2.38",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12458,7 +12458,7 @@
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.4-8f14a59d04042370897874f5d259b26a8837a696",
+            "package_key": "ishou-tokens-0.1.4-4104e9b0d9736d067f6eee26561a1f70b9370031",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16001,7 +16001,7 @@
           },
           {
             "name": "clap",
-            "package_key": "clap-4.6.4",
+            "package_key": "clap-4.6.5",
             "kind": "normal",
             "features": [
               "derive",
@@ -16188,7 +16188,7 @@
           },
           {
             "name": "clap",
-            "package_key": "clap-4.6.4",
+            "package_key": "clap-4.6.5",
             "kind": "normal",
             "features": [
               "derive",
@@ -17179,7 +17179,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "serial2-0.2.37": {
+      "serial2-0.2.38": {
         "runtime_dependencies": [
           {
             "name": "cfg_if",
@@ -17321,7 +17321,7 @@
           },
           {
             "name": "clap",
-            "package_key": "clap-4.6.4",
+            "package_key": "clap-4.6.5",
             "kind": "normal",
             "features": [
               "derive"
@@ -17416,7 +17416,7 @@
           },
           {
             "name": "clap",
-            "package_key": "clap-4.6.4",
+            "package_key": "clap-4.6.5",
             "kind": "normal",
             "features": [
               "derive"
@@ -17565,7 +17565,7 @@
           },
           {
             "name": "clap",
-            "package_key": "clap-4.6.4",
+            "package_key": "clap-4.6.5",
             "kind": "normal",
             "features": [
               "derive"
@@ -20243,11 +20243,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-0.3.13": {
+      "tatara-closed-set-0.3.14": {
         "runtime_dependencies": [
           {
             "name": "tatara_closed_set_derive",
-            "package_key": "tatara-closed-set-derive-0.3.13",
+            "package_key": "tatara-closed-set-derive-0.3.14",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20259,7 +20259,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-derive-0.3.13": {
+      "tatara-closed-set-derive-0.3.14": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -20633,7 +20633,7 @@
           "default"
         ]
       },
-      "tatara-lisp-0.3.13": {
+      "tatara-lisp-0.3.14": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -20669,7 +20669,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.3.13",
+            "package_key": "tatara-closed-set-0.3.14",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20679,7 +20679,7 @@
           },
           {
             "name": "tatara_lisp_derive",
-            "package_key": "tatara-lisp-derive-0.3.13",
+            "package_key": "tatara-lisp-derive-0.3.14",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20741,7 +20741,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-derive-0.3.13": {
+      "tatara-lisp-derive-0.3.14": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -20779,11 +20779,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-eval-0.3.13": {
+      "tatara-lisp-eval-0.3.14": {
         "runtime_dependencies": [
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.13",
+            "package_key": "tatara-lisp-0.3.14",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21164,7 +21164,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.4-8f14a59d04042370897874f5d259b26a8837a696",
+            "package_key": "ishou-tokens-0.1.4-4104e9b0d9736d067f6eee26561a1f70b9370031",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21306,7 +21306,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.4-8f14a59d04042370897874f5d259b26a8837a696",
+            "package_key": "ishou-tokens-0.1.4-4104e9b0d9736d067f6eee26561a1f70b9370031",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21613,7 +21613,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.4-8f14a59d04042370897874f5d259b26a8837a696",
+            "package_key": "ishou-tokens-0.1.4-4104e9b0d9736d067f6eee26561a1f70b9370031",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24119,7 +24119,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.13",
+            "package_key": "tatara-lisp-0.3.14",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24129,7 +24129,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.3.13",
+            "package_key": "tatara-lisp-eval-0.3.14",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -26660,7 +26660,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.105": {
+          "mado-0.1.106": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26706,7 +26706,7 @@
               },
               {
                 "name": "clap",
-                "package_key": "clap-4.6.4",
+                "package_key": "clap-4.6.5",
                 "kind": "normal",
                 "features": [
                   "derive",
@@ -26801,7 +26801,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.4-a2afc2ad6530ed096ab26f5d92bd4e1d348253ee",
+                "package_key": "garasu-0.1.6-4883ee7e0a124eb95d841c6655d05b7c68fb3cb0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26863,7 +26863,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.4-8f14a59d04042370897874f5d259b26a8837a696",
+                "package_key": "ishou-tokens-0.1.4-4104e9b0d9736d067f6eee26561a1f70b9370031",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -26995,7 +26995,7 @@
               },
               {
                 "name": "nami_core",
-                "package_key": "nami-core-0.1.9-9a6aced4a4f205ea9fdcd4d5e0862a97903e0919",
+                "package_key": "nami-core-0.1.9-a5b87d612c8435c10705d45102c1a74a5b4500e8",
                 "kind": "normal",
                 "features": [
                   "eval",
@@ -27225,7 +27225,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.13",
+                "package_key": "tatara-lisp-0.3.14",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31706,7 +31706,7 @@
               "system"
             ]
           },
-          "mado-0.1.105": {
+          "mado-0.1.106": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31752,7 +31752,7 @@
               },
               {
                 "name": "clap",
-                "package_key": "clap-4.6.4",
+                "package_key": "clap-4.6.5",
                 "kind": "normal",
                 "features": [
                   "derive",
@@ -31847,7 +31847,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.4-a2afc2ad6530ed096ab26f5d92bd4e1d348253ee",
+                "package_key": "garasu-0.1.6-4883ee7e0a124eb95d841c6655d05b7c68fb3cb0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31909,7 +31909,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.4-8f14a59d04042370897874f5d259b26a8837a696",
+                "package_key": "ishou-tokens-0.1.4-4104e9b0d9736d067f6eee26561a1f70b9370031",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -32041,7 +32041,7 @@
               },
               {
                 "name": "nami_core",
-                "package_key": "nami-core-0.1.9-9a6aced4a4f205ea9fdcd4d5e0862a97903e0919",
+                "package_key": "nami-core-0.1.9-a5b87d612c8435c10705d45102c1a74a5b4500e8",
                 "kind": "normal",
                 "features": [
                   "eval",
@@ -32224,7 +32224,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.13",
+                "package_key": "tatara-lisp-0.3.14",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33745,7 +33745,7 @@
               },
               {
                 "name": "xcursor",
-                "package_key": "xcursor-0.3.10",
+                "package_key": "xcursor-0.3.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34968,7 +34968,7 @@
               "xkb"
             ]
           },
-          "xcursor-0.3.10": {
+          "xcursor-0.3.11": {
             "runtime_dependencies": [],
             "build_dependencies": [],
             "features": []
@@ -35938,7 +35938,7 @@
               "system"
             ]
           },
-          "mado-0.1.105": {
+          "mado-0.1.106": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35984,7 +35984,7 @@
               },
               {
                 "name": "clap",
-                "package_key": "clap-4.6.4",
+                "package_key": "clap-4.6.5",
                 "kind": "normal",
                 "features": [
                   "derive",
@@ -36079,7 +36079,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.4-a2afc2ad6530ed096ab26f5d92bd4e1d348253ee",
+                "package_key": "garasu-0.1.6-4883ee7e0a124eb95d841c6655d05b7c68fb3cb0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36141,7 +36141,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.4-8f14a59d04042370897874f5d259b26a8837a696",
+                "package_key": "ishou-tokens-0.1.4-4104e9b0d9736d067f6eee26561a1f70b9370031",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -36273,7 +36273,7 @@
               },
               {
                 "name": "nami_core",
-                "package_key": "nami-core-0.1.9-9a6aced4a4f205ea9fdcd4d5e0862a97903e0919",
+                "package_key": "nami-core-0.1.9-a5b87d612c8435c10705d45102c1a74a5b4500e8",
                 "kind": "normal",
                 "features": [
                   "eval",
@@ -36456,7 +36456,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.13",
+                "package_key": "tatara-lisp-0.3.14",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37977,7 +37977,7 @@
               },
               {
                 "name": "xcursor",
-                "package_key": "xcursor-0.3.10",
+                "package_key": "xcursor-0.3.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39200,7 +39200,7 @@
               "xkb"
             ]
           },
-          "xcursor-0.3.10": {
+          "xcursor-0.3.11": {
             "runtime_dependencies": [],
             "build_dependencies": [],
             "features": []
@@ -40319,7 +40319,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.105": {
+          "mado-0.1.106": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -40365,7 +40365,7 @@
               },
               {
                 "name": "clap",
-                "package_key": "clap-4.6.4",
+                "package_key": "clap-4.6.5",
                 "kind": "normal",
                 "features": [
                   "derive",
@@ -40460,7 +40460,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.4-a2afc2ad6530ed096ab26f5d92bd4e1d348253ee",
+                "package_key": "garasu-0.1.6-4883ee7e0a124eb95d841c6655d05b7c68fb3cb0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40522,7 +40522,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.4-8f14a59d04042370897874f5d259b26a8837a696",
+                "package_key": "ishou-tokens-0.1.4-4104e9b0d9736d067f6eee26561a1f70b9370031",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -40654,7 +40654,7 @@
               },
               {
                 "name": "nami_core",
-                "package_key": "nami-core-0.1.9-9a6aced4a4f205ea9fdcd4d5e0862a97903e0919",
+                "package_key": "nami-core-0.1.9-a5b87d612c8435c10705d45102c1a74a5b4500e8",
                 "kind": "normal",
                 "features": [
                   "eval",
@@ -40884,7 +40884,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.13",
+                "package_key": "tatara-lisp-0.3.14",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45329,7 +45329,7 @@
               "system"
             ]
           },
-          "mado-0.1.105": {
+          "mado-0.1.106": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -45375,7 +45375,7 @@
               },
               {
                 "name": "clap",
-                "package_key": "clap-4.6.4",
+                "package_key": "clap-4.6.5",
                 "kind": "normal",
                 "features": [
                   "derive",
@@ -45470,7 +45470,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.4-a2afc2ad6530ed096ab26f5d92bd4e1d348253ee",
+                "package_key": "garasu-0.1.6-4883ee7e0a124eb95d841c6655d05b7c68fb3cb0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45532,7 +45532,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.4-8f14a59d04042370897874f5d259b26a8837a696",
+                "package_key": "ishou-tokens-0.1.4-4104e9b0d9736d067f6eee26561a1f70b9370031",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -45664,7 +45664,7 @@
               },
               {
                 "name": "nami_core",
-                "package_key": "nami-core-0.1.9-9a6aced4a4f205ea9fdcd4d5e0862a97903e0919",
+                "package_key": "nami-core-0.1.9-a5b87d612c8435c10705d45102c1a74a5b4500e8",
                 "kind": "normal",
                 "features": [
                   "eval",
@@ -45847,7 +45847,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.13",
+                "package_key": "tatara-lisp-0.3.14",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47348,7 +47348,7 @@
               },
               {
                 "name": "xcursor",
-                "package_key": "xcursor-0.3.10",
+                "package_key": "xcursor-0.3.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48571,7 +48571,7 @@
               "xkb"
             ]
           },
-          "xcursor-0.3.10": {
+          "xcursor-0.3.11": {
             "runtime_dependencies": [],
             "build_dependencies": [],
             "features": []
@@ -49525,7 +49525,7 @@
               "system"
             ]
           },
-          "mado-0.1.105": {
+          "mado-0.1.106": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -49571,7 +49571,7 @@
               },
               {
                 "name": "clap",
-                "package_key": "clap-4.6.4",
+                "package_key": "clap-4.6.5",
                 "kind": "normal",
                 "features": [
                   "derive",
@@ -49666,7 +49666,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.4-a2afc2ad6530ed096ab26f5d92bd4e1d348253ee",
+                "package_key": "garasu-0.1.6-4883ee7e0a124eb95d841c6655d05b7c68fb3cb0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49728,7 +49728,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.4-8f14a59d04042370897874f5d259b26a8837a696",
+                "package_key": "ishou-tokens-0.1.4-4104e9b0d9736d067f6eee26561a1f70b9370031",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -49860,7 +49860,7 @@
               },
               {
                 "name": "nami_core",
-                "package_key": "nami-core-0.1.9-9a6aced4a4f205ea9fdcd4d5e0862a97903e0919",
+                "package_key": "nami-core-0.1.9-a5b87d612c8435c10705d45102c1a74a5b4500e8",
                 "kind": "normal",
                 "features": [
                   "eval",
@@ -50043,7 +50043,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.13",
+                "package_key": "tatara-lisp-0.3.14",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51544,7 +51544,7 @@
               },
               {
                 "name": "xcursor",
-                "package_key": "xcursor-0.3.10",
+                "package_key": "xcursor-0.3.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -52767,7 +52767,7 @@
               "xkb"
             ]
           },
-          "xcursor-0.3.10": {
+          "xcursor-0.3.11": {
             "runtime_dependencies": [],
             "build_dependencies": [],
             "features": []
@@ -53106,7 +53106,7 @@
     "ciborium-ll-0.2.2": {
       "edition": "2021"
     },
-    "clap-4.6.4": {
+    "clap-4.6.5": {
       "edition": "2024",
       "binaries": [
         {
@@ -53115,7 +53115,7 @@
         }
       ]
     },
-    "clap_builder-4.6.2": {
+    "clap_builder-4.6.5": {
       "edition": "2024"
     },
     "clap_derive-4.6.4": {
@@ -53506,7 +53506,7 @@
     "futures-util-0.3.33": {
       "edition": "2018"
     },
-    "garasu-0.1.4-a2afc2ad6530ed096ab26f5d92bd4e1d348253ee": {
+    "garasu-0.1.6-4883ee7e0a124eb95d841c6655d05b7c68fb3cb0": {
       "edition": "2024",
       "build_script": "build.rs"
     },
@@ -53741,7 +53741,7 @@
     "is_terminal_polyfill-1.70.2": {
       "edition": "2021"
     },
-    "ishou-tokens-0.1.4-8f14a59d04042370897874f5d259b26a8837a696": {
+    "ishou-tokens-0.1.4-4104e9b0d9736d067f6eee26561a1f70b9370031": {
       "edition": "2024"
     },
     "itertools-0.10.5": {
@@ -53888,7 +53888,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.105": {
+    "mado-0.1.106": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -53964,7 +53964,7 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "nami-core-0.1.9-9a6aced4a4f205ea9fdcd4d5e0862a97903e0919": {
+    "nami-core-0.1.9-a5b87d612c8435c10705d45102c1a74a5b4500e8": {
       "edition": "2024"
     },
     "native-tls-0.2.18": {
@@ -54717,7 +54717,7 @@
     "serde_yaml_ng-0.10.0": {
       "edition": "2021"
     },
-    "serial2-0.2.37": {
+    "serial2-0.2.38": {
       "edition": "2021"
     },
     "sha1-0.10.7": {
@@ -54890,10 +54890,10 @@
     "tap-1.0.1": {
       "edition": "2015"
     },
-    "tatara-closed-set-0.3.13": {
+    "tatara-closed-set-0.3.14": {
       "edition": "2021"
     },
-    "tatara-closed-set-derive-0.3.13": {
+    "tatara-closed-set-derive-0.3.14": {
       "edition": "2021",
       "proc_macro": true
     },
@@ -54909,18 +54909,18 @@
     "tatara-lisp-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
       "edition": "2021"
     },
-    "tatara-lisp-0.3.13": {
+    "tatara-lisp-0.3.14": {
       "edition": "2021"
     },
     "tatara-lisp-derive-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-lisp-derive-0.3.13": {
+    "tatara-lisp-derive-0.3.14": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-lisp-eval-0.3.13": {
+    "tatara-lisp-eval-0.3.14": {
       "edition": "2021"
     },
     "tatara-nix-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
@@ -55394,7 +55394,7 @@
     "x11rb-protocol-0.13.2": {
       "edition": "2021"
     },
-    "xcursor-0.3.10": {
+    "xcursor-0.3.11": {
       "edition": "2018"
     },
     "xkbcommon-dl-0.4.2": {
@@ -55465,14 +55465,14 @@
     "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": "sha256-7dqrUg3KMEKH5ac5RuK7EJRogt4H3xtv6nDrM0jpccM=",
     "engawa-0.1.4-dd79e87f6282822e7fe4eaae5a676a1c49767013": "sha256-M86ijOVbV64ioLLQiM4TcGIvwTGlG2LABf5ntIMMIIA=",
     "engawa-wgpu-0.1.8-acc2b02d46322077861c9e74c6d2e5cb15cb1e5f": "sha256-sE/Qeve2DJY8NVMxAzjRbeZWIUmmWoF6hUAUusSJ4So=",
-    "garasu-0.1.4-a2afc2ad6530ed096ab26f5d92bd4e1d348253ee": "sha256-//cvGAyxRVhcwHD56yf9M5SPn63GiwP+y06b8OlVfvs=",
+    "garasu-0.1.6-4883ee7e0a124eb95d841c6655d05b7c68fb3cb0": "sha256-l1ic/YahMqWdz4ohGHyq+HPUDNwIEZswn93fU7fhZ6E=",
     "gen-macros-0.1.32-e174470020226ca8e46a798210a59aba6088a953": "sha256-VmlO7fCgYj1O8XIcm+goVpIQEuikKx27JVyxxXiKlG4=",
     "gen-platform-0.1.32-e174470020226ca8e46a798210a59aba6088a953": "sha256-VmlO7fCgYj1O8XIcm+goVpIQEuikKx27JVyxxXiKlG4=",
     "gen-types-0.1.32-e174470020226ca8e46a798210a59aba6088a953": "sha256-VmlO7fCgYj1O8XIcm+goVpIQEuikKx27JVyxxXiKlG4=",
     "hasami-0.1.2-9ac5d963d7fc786d0144968f3de78bc044839813": "sha256-GguTYXyHpiiXASD8fcLunSaKueunYXUF10FeB8FRTE8=",
     "hayai-0.1.1-0aa8014aa7ca0d4723e5b46a3dd68daa21dec7b3": "sha256-5Tt5kEJclnNn07QvwVQhf7uFCiElFi86xegaPs1GArw=",
     "irodzuki-0.1.7-d3bfe781e9c813164a37a0e0a1eeef16f5be9515": "sha256-7iA13F9fE1MktjUB89kQIiVY6TB0wTNHmHNGSJcj9Lg=",
-    "ishou-tokens-0.1.4-8f14a59d04042370897874f5d259b26a8837a696": "sha256-oMMhWvzctVk2LqWRWEDJkH+G1hQw33uGJxdJQPM4OWE=",
+    "ishou-tokens-0.1.4-4104e9b0d9736d067f6eee26561a1f70b9370031": "sha256-OCde6s8vfcHoa8ZKwLH4b0tYrz0C4OvqdP4u4gy1oHw=",
     "izumi-0.1.10-c2b48c018b595af0a78f48e75b253064d5b13084": "sha256-mhgKXk3VW0a6etUV/P3FhN2dEhpDqoL6CIx1ZzLuASI=",
     "izumi-config-0.1.10-c2b48c018b595af0a78f48e75b253064d5b13084": "sha256-mhgKXk3VW0a6etUV/P3FhN2dEhpDqoL6CIx1ZzLuASI=",
     "izumi-sources-0.1.10-c2b48c018b595af0a78f48e75b253064d5b13084": "sha256-mhgKXk3VW0a6etUV/P3FhN2dEhpDqoL6CIx1ZzLuASI=",
@@ -55482,7 +55482,7 @@
     "kanshou-derive-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
     "katsuji-0.1.1-d6b3ad8f0e69898497475128bd1f7faebe14f334": "sha256-z3VrmvBNotClRYGVa/3usnsN3KIA+9nQDzM0dmSzpn8=",
     "madori-0.1.5-79b33a4811853f1a8153735a69fb58bde894c2d9": "sha256-35DB90eBg+O8Ie2w8R4sfZr4B4NG+FPbUfwePl0x9qw=",
-    "nami-core-0.1.9-9a6aced4a4f205ea9fdcd4d5e0862a97903e0919": "sha256-U34IOb1oRS+Uj8fEidIHN1F3n1RIlee3tnzDSfH2Gak=",
+    "nami-core-0.1.9-a5b87d612c8435c10705d45102c1a74a5b4500e8": "sha256-2HsHcUQ83Pf1h7lbwHKFruAlFZAFSO7FjiqVzFQlFik=",
     "pleme-allvariants-derive-0.1.0-142b74f58ef31231d6f11ad572c9485156640d06": "sha256-UccPQkeqdS3+pY/6ZUO+KzAA7c6UkfYPkcHx8rldiuA=",
     "pleme-fleet-themed-derive-0.1.1-160b9757a9427c89095acf174665219cf917d627": "sha256-owcgPlHScG8e3ensxvLdsQDqoelLhJHlzzZBBSEfk5g=",
     "pleme-invalidating-setter-derive-0.1.0-8df3b1bc76dbd92aa3fcd2fb9213adb5ef7f0b7c": "sha256-V57vmtWy8SI6IqsAtz5c4lNC0LDCRiRxA8tg0UJWXg8=",
