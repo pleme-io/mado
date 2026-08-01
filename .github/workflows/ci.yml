@@ -1,0 +1,84 @@
+name: ci
+
+# The test gate mado has never had.
+#
+# Until this file, .github/workflows/ held ONLY auto-release.yml and
+# release-binaries.yml — both release paths. mado's ~1,406 `#[test]`s, its 12
+# proptest blocks, its 14 committed *.scenario.yaml replay regressions, and
+# its two STRUCTURAL forcing-function scans (tests/ux_unification.rs, which
+# bans UX tokens from the adapter event loops, and tests/unrep_ledger.rs,
+# which fails if docs/UNREPRESENTABILITY-VERIFICATION.md names a test that
+# does not exist) were enforced by local discipline alone. A forcing function
+# nobody runs is a comment.
+#
+# This matters beyond hygiene: tear/docs/SHUKEN.md grades "mado grows a
+# second VT parser deliberately" as only-mitigated (C4) and names its ceiling
+# as "requires a CI gate mado does not yet have". This file is that gate.
+#
+# ── TWO MEASUREMENTS TAKEN BEFORE WIRING THIS (do not undo them blindly) ──
+#
+# 1. `devshell` stays "default" because it was MEASURED, not assumed.
+#    substrate's cargo-ci.yml header records that its cargo-test leg once
+#    "reached" three consumers and ran the tests of ZERO of them: all three
+#    resolved `devShells.<sys>.default` to a devenv shell, and `nix develop`
+#    cannot enter one non-interactively. That is vacuity-by-breakage, and it
+#    turns a working pipeline red while verifying nothing.
+#      Measured 2026-07-31: `nix eval --raw .#devShells.aarch64-darwin.default.name`
+#      -> "nix-shell"  (a plain mkShell, NOT devenv-shell)
+#    So mado's shell IS enterable non-interactively and this leg genuinely
+#    executes. Re-measure if the flake's builder ever changes; do not assume.
+#
+# 2. `test-args` deliberately DROPS the reusable's default `--all-features`.
+#    That default exists for a good reason (on forge it caught 263 tests that
+#    a feature gate was hiding), so narrowing it needs a stated one:
+#    mado's ONLY non-default feature is `gpu_tests`, whose own Cargo.toml
+#    comment reads "needs a real GPU adapter. cid + dev workstations have one;
+#    CI runners typically don't, so default is off." Enabling it here would
+#    fail on the absence of hardware, not on a defect — a red gate that
+#    teaches nothing and gets muted. `default = []` and `gpu_tests` is the
+#    only member, so default-features covers the entire suite except the
+#    pixel-readback tests, which stay a workstation concern.
+#
+# ── THE VERDICT THIS GATE WILL RENDER, MEASURED BEFORE COMMITTING IT ────
+#
+# These tests had never run in CI, so "does it even pass" was a live
+# question. Measured locally 2026-07-31, aarch64-darwin, at dac27d7:
+#
+#   cargo test --workspace --no-fail-fast   ->  exit 0
+#   1,437 passed / 0 failed  across 13 suites (largest: 1,353)
+#
+# Recorded because the FIRST attempt at this measurement was wrong and the
+# error is worth naming: `cargo test ... | tail -45` reports *tail's* exit
+# status, not cargo's, and truncates away the main suite's result line. It
+# printed a confident green built from 10 visible tests. If you re-measure,
+# redirect to a file and read `$?` before any pipe.
+#
+# This is a local run on one platform. It is NOT evidence about the Linux
+# runner this workflow targets — first CI run may still surface
+# platform-specific failures, and that is the gate doing its job.
+#
+# Consumers of this repo's CI contract: none. This gate is for mado itself.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A second push to the same branch/PR supersedes the first — mado merges to
+# main frequently (180 commits in the 30 days to 2026-07-31) and a queue of
+# superseded runs on a GPU-sized dependency graph is pure runner waste.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    uses: pleme-io/substrate/.github/workflows/cargo-ci.yml@main
+    with:
+      # See measurement (2) in the header before touching this.
+      test-args: "--workspace --no-fail-fast"
+    # Private git deps: the reusable already carries git-credentials. A
+    # HAND-WRITTEN cargo job here would fail with "failed to authenticate" —
+    # which is precisely why this is a shim and not a job.
+    secrets: inherit
