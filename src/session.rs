@@ -182,19 +182,43 @@ pub struct CellSnapshot {
 
 impl CellSnapshot {
     /// Legacy-shaped constructor — a cell carrying only the u8 attrs
-    /// bitfield, with no typed underline refinement (`underline:
-    /// "none"`, `underline_color: None`). Used by tests and by any
-    /// caller synthesizing snapshots that predate the M2 wide attrs.
+    /// bitfield. `underline_color` has no u8 representation and stays
+    /// `None`; `underline` is DERIVED from bit 2 of `attrs`.
+    ///
+    /// It used to be hardcoded to `"none"`, and that made this
+    /// constructor lie about its own input: the legacy u8 layout
+    /// carries underline at bit 2 (`CellAttrs::UNDERLINE`), so an
+    /// underlined cell came back as `attrs: 4, underline: "none"` — two
+    /// fields of one snapshot flatly contradicting each other.
+    ///
+    /// Not cosmetic, and not hypothetical. `snapshot_grid` is the tool
+    /// whose whole job is triaging "the screen renders wrong", and the
+    /// live embedded-pane path below is its ONLY non-zero-attrs caller.
+    /// So while every cell in a tear pane was wrongly underlined (tear
+    /// latched UNDERLINE on the pen from `CSI > 4 ; 2 m`, fixed in tear
+    /// 3a94f7a/d117fa6), the one diagnostic built to see that reported
+    /// `underline: "none"` for all of them. The bug was legible in the
+    /// raw bitfield and invisible in the field named after it.
+    ///
+    /// The u8 can only say underlined-or-not, so `Single` is the honest
+    /// projection — a `4:3` curly cell reports `"single"` here. Callers
+    /// wanting the true style use [`Self::from_cell`], which reads the
+    /// typed [`UnderlineStyle`] directly.
     #[must_use]
     #[allow(dead_code)] // Test-fixture surface across modules (mcp/scenario/session tests).
     pub fn legacy(ch: char, width: u8, fg: [u8; 3], bg: [u8; 3], attrs: u8) -> Self {
+        let underline = if attrs & crate::terminal::CellAttrs::UNDERLINE.bits() == 0 {
+            UnderlineStyle::None
+        } else {
+            UnderlineStyle::Single
+        };
         Self {
             ch,
             width,
             fg,
             bg,
             attrs,
-            underline: UnderlineStyle::None.to_string(),
+            underline: underline.to_string(),
             underline_color: None,
         }
     }
@@ -756,6 +780,36 @@ mod tests {
         let closed = registry.close(&id).unwrap();
         assert!(closed);
         assert!(registry.get(&id).is_none());
+    }
+
+    /// `CellSnapshot::legacy` must DERIVE `underline` from bit 2 of the
+    /// legacy u8, never hardcode `"none"`.
+    ///
+    /// The regression this pins is a diagnostic that contradicted
+    /// itself: a live tear pane had `CellAttrs::UNDERLINE` latched on
+    /// every cell (tear's `CSI > 4 ; 2 m` leak), and `snapshot_grid` —
+    /// the tool for triaging exactly that — reported `attrs: 4` beside
+    /// `underline: "none"` for all of them. A snapshot field may be
+    /// lossy; it may not disagree with the bitfield it is projected
+    /// from. Asserted BOTH directions so hardcoding either constant
+    /// fails.
+    #[test]
+    fn legacy_derives_underline_from_the_attrs_bit() {
+        let underline_bit = crate::terminal::CellAttrs::UNDERLINE.bits();
+        let plain = CellSnapshot::legacy('x', 1, [255; 3], [0; 3], 0);
+        assert_eq!(plain.underline, "none", "no bit set must report none");
+
+        let underlined = CellSnapshot::legacy('x', 1, [255; 3], [0; 3], underline_bit);
+        assert_ne!(
+            underlined.underline, "none",
+            "attrs carries UNDERLINE ({underline_bit:#04b}) — the underline \
+             field must not report none; that contradiction is the bug"
+        );
+
+        // The bit must be read positionally, not "any non-zero attrs".
+        // BOLD alone shares the field and must NOT read as underlined.
+        let bold = CellSnapshot::legacy('x', 1, [255; 3], [0; 3], crate::terminal::CellAttrs::BOLD.bits());
+        assert_eq!(bold.underline, "none", "BOLD must not read as underline");
     }
 
     #[test]
