@@ -3326,7 +3326,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.113"
+version = "0.1.114"
 dependencies = [
  "anyhow",
  "awase",
@@ -4738,9 +4738,9 @@ dependencies = [
 
 [[package]]
 name = "pleme-io-wadachi"
-version = "0.1.5"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8cdb29b2e89a293a8616bb9cca9315a97d7499ed5e4189e3cfdf2819f6645191"
+checksum = "58dc4b3e4ab0f50f021a463f2648923dfb753a72c7e17c21e7659e70ca5d77f2"
 dependencies = [
  "anyhow",
  "chrono",
@@ -7933,9 +7933,9 @@ dependencies = [
 
 [[package]]
 name = "wadachi-spec"
-version = "0.1.5"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b5af569014bdd16e62d09b3bacbfd9d5d4f81046900be9a642abde07182bcbc"
+checksum = "508b34e9c125801c21187336cd4a18f88f2ec9a34513b1d408dceef2dae3ffb7"
 dependencies = [
  "chrono",
  "serde",

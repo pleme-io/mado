@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "61bc7acfe7cbc80a3a9d00e0a87050032eb8f02087f7f69412166ba61b50aa1a",
+  "cargo_lock_sha256": "923ee1e26d47352b8127ca6a03324daaf75c49edc348670d0227623b3fa2f078",
   "manifest_sha256": {
-    "Cargo.toml": "aa75c1cd068420cdf558eced0fb6735657fb05b80b5f4a0804dd4661c516b53e"
+    "Cargo.toml": "de519474b8369ebabcfa69b5712aa13228922c7e3243cc4d5b940e4761c254ce"
   },
   "target_resolves": {
     "base": {
@@ -12046,7 +12046,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "pleme-io-wadachi-0.1.5": {
+      "pleme-io-wadachi-0.1.6": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -12141,7 +12141,7 @@
           },
           {
             "name": "wadachi_spec",
-            "package_key": "wadachi-spec-0.1.5",
+            "package_key": "wadachi-spec-0.1.6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24651,7 +24651,7 @@
           "std"
         ]
       },
-      "wadachi-spec-0.1.5": {
+      "wadachi-spec-0.1.6": {
         "runtime_dependencies": [
           {
             "name": "chrono",
@@ -26604,7 +26604,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.113": {
+          "mado-0.1.114": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -27050,7 +27050,7 @@
               },
               {
                 "name": "pleme_io_wadachi",
-                "package_key": "pleme-io-wadachi-0.1.5",
+                "package_key": "pleme-io-wadachi-0.1.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31578,7 +31578,7 @@
               "system"
             ]
           },
-          "mado-0.1.113": {
+          "mado-0.1.114": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31977,7 +31977,7 @@
               },
               {
                 "name": "pleme_io_wadachi",
-                "package_key": "pleme-io-wadachi-0.1.5",
+                "package_key": "pleme-io-wadachi-0.1.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35588,7 +35588,7 @@
               "system"
             ]
           },
-          "mado-0.1.113": {
+          "mado-0.1.114": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35987,7 +35987,7 @@
               },
               {
                 "name": "pleme_io_wadachi",
-                "package_key": "pleme-io-wadachi-0.1.5",
+                "package_key": "pleme-io-wadachi-0.1.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39768,7 +39768,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.113": {
+          "mado-0.1.114": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -40214,7 +40214,7 @@
               },
               {
                 "name": "pleme_io_wadachi",
-                "package_key": "pleme-io-wadachi-0.1.5",
+                "package_key": "pleme-io-wadachi-0.1.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44706,7 +44706,7 @@
               "system"
             ]
           },
-          "mado-0.1.113": {
+          "mado-0.1.114": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -45105,7 +45105,7 @@
               },
               {
                 "name": "pleme_io_wadachi",
-                "package_key": "pleme-io-wadachi-0.1.5",
+                "package_key": "pleme-io-wadachi-0.1.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48680,7 +48680,7 @@
               "system"
             ]
           },
-          "mado-0.1.113": {
+          "mado-0.1.114": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -49079,7 +49079,7 @@
               },
               {
                 "name": "pleme_io_wadachi",
-                "package_key": "pleme-io-wadachi-0.1.5",
+                "package_key": "pleme-io-wadachi-0.1.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -52833,7 +52833,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.113": {
+    "mado-0.1.114": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -53239,7 +53239,7 @@
       "edition": "2024",
       "proc_macro": true
     },
-    "pleme-io-wadachi-0.1.5": {
+    "pleme-io-wadachi-0.1.6": {
       "edition": "2024",
       "binaries": [
         {
@@ -54158,7 +54158,7 @@
     "vte-0.15.0": {
       "edition": "2021"
     },
-    "wadachi-spec-0.1.5": {
+    "wadachi-spec-0.1.6": {
       "edition": "2024"
     },
     "wait-timeout-0.2.1": {
