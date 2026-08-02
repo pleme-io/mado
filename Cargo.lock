@@ -2782,8 +2782,8 @@ checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 
 [[package]]
 name = "izumi"
-version = "0.1.10"
-source = "git+https://github.com/pleme-io/izumi?rev=c2b48c018b595af0a78f48e75b253064d5b13084#c2b48c018b595af0a78f48e75b253064d5b13084"
+version = "0.1.11"
+source = "git+https://github.com/pleme-io/izumi?rev=ac2fc04a6717cf0600311f13d7065a099072d94f#ac2fc04a6717cf0600311f13d7065a099072d94f"
 dependencies = [
  "blake3",
  "dirs 5.0.1",
@@ -2798,8 +2798,8 @@ dependencies = [
 
 [[package]]
 name = "izumi-config"
-version = "0.1.10"
-source = "git+https://github.com/pleme-io/izumi?rev=c2b48c018b595af0a78f48e75b253064d5b13084#c2b48c018b595af0a78f48e75b253064d5b13084"
+version = "0.1.11"
+source = "git+https://github.com/pleme-io/izumi?rev=ac2fc04a6717cf0600311f13d7065a099072d94f#ac2fc04a6717cf0600311f13d7065a099072d94f"
 dependencies = [
  "izumi",
  "serde",
@@ -2808,8 +2808,8 @@ dependencies = [
 
 [[package]]
 name = "izumi-sources"
-version = "0.1.10"
-source = "git+https://github.com/pleme-io/izumi?rev=c2b48c018b595af0a78f48e75b253064d5b13084#c2b48c018b595af0a78f48e75b253064d5b13084"
+version = "0.1.11"
+source = "git+https://github.com/pleme-io/izumi?rev=ac2fc04a6717cf0600311f13d7065a099072d94f#ac2fc04a6717cf0600311f13d7065a099072d94f"
 dependencies = [
  "izumi",
  "serde",
