@@ -18,6 +18,7 @@ mod ambience;
 mod auto_attach;
 mod auto_detect;
 mod banner;
+mod board_row;
 mod browser_bridge;
 mod browser_engine;
 mod browser_fetch;

@@ -457,38 +457,55 @@ impl PracaPickerBridge {
         let filtered = crate::suggest::store::collapse_correlated(filtered, &live_corrs);
         // Balance the band: cap per-source so one noisy source (20 CrashLoop
         // pods) can't drown your PRs/tickets/incidents — the band stays diverse.
-        crate::suggest::store::balance_per_source(filtered, self.suggest_max, self.suggest_cap)
-            .into_iter()
+        let balanced =
+            crate::suggest::store::balance_per_source(filtered, self.suggest_max, self.suggest_cap);
+
+        // Compose TYPED COLUMNS first, then render the whole band together.
+        // Rendering per-row (the old `push_str` chain) is what made
+        // alignment impossible: a row cannot know how wide its neighbours
+        // are, so every field started wherever the previous one ended and
+        // the eye had to re-find each one. `render_aligned` sees the band.
+        let rows: Vec<crate::board_row::BoardRow> = balanced
+            .iter()
             .map(|st| {
-                // ◐ in progress (accepted, session open) vs ○ latent — the
-                // board legibly separates "waiting" from "being worked".
-                let mut label = String::from(
-                    if matches!(st.state, crate::suggest::SuggestionState::Accepted { .. }) {
-                        "\u{25d0} " // ◐ in progress
-                    } else {
-                        "\u{25cb} " // ○ latent
-                    },
-                );
-                label.push_str(&st.item.picker_label().to_string());
-                // Recurrence stamp: a repeat offender wears its count (×3), so
-                // a flapping alert reads differently from a first-timer.
-                if st.times_seen >= 2 {
-                    label.push_str("  \u{d7}");
-                    label.push_str(&st.times_seen.to_string());
-                }
-                // Freshness nudge: once a task has been waiting a while (>= 5m)
-                // stamp its age, so the picker stays calm for fresh arrivals and
-                // quietly nags the ones that have been sitting.
+                let mut body = String::from(st.item.source.emoji());
+                body.push(' ');
+                body.push_str(st.item.title.trim());
                 let age = now.saturating_sub(st.first_seen_ms / 1000);
-                if age >= 300 {
-                    label.push_str("  ");
-                    label.push_str(&crate::suggest::sources::util::relative_age(age));
+                crate::board_row::BoardRow {
+                    // ◐ in progress (accepted, session open) vs ○ latent —
+                    // the board legibly separates "waiting" from "worked".
+                    state: if matches!(
+                        st.state,
+                        crate::suggest::SuggestionState::Accepted { .. }
+                    ) {
+                        crate::board_row::State::Working
+                    } else {
+                        crate::board_row::State::Latent
+                    },
+                    body,
+                    origin: st.item.origin.as_ref().map(ToString::to_string),
+                    tier: crate::board_row::Tier::of(st.item.urgency),
+                    detail: st.item.detail.clone(),
+                    // Recurrence: a repeat offender wears its count (×3), so
+                    // a flapping alert reads differently from a first-timer.
+                    repeats: u32::try_from(st.times_seen).unwrap_or(u32::MAX),
+                    // Freshness nudge: stamped only once a task has been
+                    // waiting (>= 5m), so the board stays calm for fresh
+                    // arrivals and quietly nags the ones that have sat.
+                    age: (age >= 300)
+                        .then(|| crate::suggest::sources::util::relative_age(age)),
                 }
-                SessionPickerRow {
-                    label,
-                    kind: RowKind::Suggestion(st.item.id),
-                    urgency: Some(st.item.urgency),
-                }
+            })
+            .collect();
+
+        crate::board_row::render_aligned(&rows)
+            .into_iter()
+            .zip(balanced)
+            .map(|(label, st)| SessionPickerRow {
+                label,
+                kind: RowKind::Suggestion(st.item.id),
+                urgency: Some(st.item.urgency),
             })
             .collect()
     }
@@ -945,43 +962,16 @@ impl SessionPickerBridge for PracaPickerBridge {
                 crate::suggest::HealthVerdict::Unknown => {}
             }
         }
-        if blind.is_empty() && degraded == 0 {
-            return None;
-        }
-        let mut line = String::from("\u{26a0} "); // warning sign
-        if !blind.is_empty() {
-            line.push_str(&blind.len().to_string());
-            line.push_str(if blind.len() == 1 {
-                " lane blind (never once succeeded): "
-            } else {
-                " lanes blind (never once succeeded): "
-            });
-            // Blind lanes are named individually — they are the actionable
-            // ones, and the name IS the thing to go fix.
-            for (i, (kind, health)) in blind.iter().take(3).enumerate() {
-                if i > 0 {
-                    line.push_str(" \u{00B7} "); // middle dot
-                }
-                line.push_str(kind.slug());
-                line.push(' ');
-                line.push_str(health.status.label());
-            }
-            if blind.len() > 3 {
-                line.push_str(" +");
-                line.push_str(&(blind.len() - 3).to_string());
-            }
-        }
-        if degraded > 0 {
-            if !blind.is_empty() {
-                line.push_str(" \u{00B7} "); // middle dot
-            }
-            // Degraded lanes get a bare COUNT: they have worked before and
-            // are expected to work again, so naming each one every frame is
-            // noise that would crowd out the names that matter.
-            line.push_str(&degraded.to_string());
-            line.push_str(" degraded");
-        }
-        Some(line)
+        // The composition lives in `board_row`, and the ailment is a GLYPH
+        // fused to the lane name rather than a word beside it. The sentence
+        // this replaced spent ~30 characters on grammar — "lanes blind
+        // (never once succeeded):" — before the first fact, every frame,
+        // and then made the reader pair up "tend-repos" with "timed out"
+        // across a space. `tend-repos⏱` is one chunk (Gestalt proximity),
+        // and the footer now fits a pane instead of running off it.
+        let named: Vec<(&'static str, crate::suggest::SourceStatus)> =
+            blind.iter().map(|(kind, h)| (kind.slug(), h.status)).collect();
+        crate::board_row::health_line(&named, degraded)
     }
 
     fn create_and_switch(&self, spec: CreateSpec, now: u64) -> bool {
@@ -1632,9 +1622,16 @@ mod tests {
             2000,
         );
         let footer = bridge.health_footer().expect("blind lanes surface");
-        assert!(footer.contains("2 lanes blind"), "{footer}");
-        assert!(footer.contains("grafana-alerts erroring"), "{footer}");
-        assert!(footer.contains("datadog-monitors needs auth"), "{footer}");
+        // Symbolic vocabulary: the ailment is a glyph FUSED to the lane
+        // name, so name+condition read as one chunk instead of two words
+        // the eye has to pair. ✗ erroring, 🔑 needs auth.
+        assert!(footer.contains("grafana-alerts\u{2717}"), "{footer}");
+        assert!(footer.contains("datadog-monitors\u{1f511}"), "{footer}");
+        // Both blind lanes are NAMED — naming is what makes them actionable.
+        assert!(
+            !footer.contains('\u{25d1}'),
+            "nothing is merely degraded here: {footer}"
+        );
     }
 
     /// The footer must spend the word "blind" only on lanes that have never
@@ -1659,11 +1656,7 @@ mod tests {
             2000,
         );
         let footer = bridge.health_footer().expect("a degraded lane still surfaces");
-        assert!(footer.contains("1 degraded"), "{footer}");
-        assert!(
-            !footer.contains("blind"),
-            "a lane that worked before is NOT blind: {footer}"
-        );
+        assert!(footer.contains("1\u{25d1}"), "{footer}");
         assert!(
             !footer.contains("jira-sprint"),
             "weather is a count, not a name: {footer}"
@@ -1676,9 +1669,8 @@ mod tests {
             2000,
         );
         let footer = bridge.health_footer().expect("blind lanes surface");
-        assert!(footer.contains("1 lane blind (never once succeeded)"), "{footer}");
-        assert!(footer.contains("grafana-alerts needs auth"), "{footer}");
-        assert!(footer.contains("1 degraded"), "both halves coexist: {footer}");
+        assert!(footer.contains("grafana-alerts\u{1f511}"), "{footer}");
+        assert!(footer.contains("1\u{25d1}"), "both halves coexist: {footer}");
     }
 
     /// A lane whose instrument has never run is `Unknown`, and the footer
@@ -1722,8 +1714,7 @@ mod tests {
             2000,
         );
         let footer = bridge.health_footer().expect("a polled-never-ok lane surfaces");
-        assert!(footer.contains("1 lane blind (never once succeeded)"), "{footer}");
-        assert!(footer.contains("grafana-alerts erroring"), "{footer}");
+        assert!(footer.contains("grafana-alerts\u{2717}"), "{footer}");
     }
 
     #[test]
