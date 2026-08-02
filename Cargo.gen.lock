@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "94a9d4f710628cca943eed1918ed47db90bd0f799ed84c6f05a0b350e795e8bb",
+  "cargo_lock_sha256": "0165f6af473e2e44a838625218997e1cf44a5e98a850fbeec20ee62d7d105655",
   "manifest_sha256": {
-    "Cargo.toml": "b2284013e9c1c7ac35d9e744422452a7f4731bac3819b42afb2fced7ffb4945a"
+    "Cargo.toml": "98fb39aee8dd0edb162a16bbf406974cf436efc70a9f5c01ac38a33187ae8e0a"
   },
   "target_resolves": {
     "base": {
@@ -7117,7 +7117,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "ipnet-2.12.0": {
+      "ipnet-2.12.1": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": [
@@ -10034,7 +10034,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.20",
+            "package_key": "tatara-lisp-0.3.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17336,7 +17336,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.452-56adc8828ccb5f4f66258ca66ba402b92ae01dbb": {
+      "shikumi-0.1.452-a1fec80e342b705f48dce559850a5497e3c1ea81": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -20187,11 +20187,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-0.3.20": {
+      "tatara-closed-set-0.3.22": {
         "runtime_dependencies": [
           {
             "name": "tatara_closed_set_derive",
-            "package_key": "tatara-closed-set-derive-0.3.20",
+            "package_key": "tatara-closed-set-derive-0.3.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20203,7 +20203,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-derive-0.3.20": {
+      "tatara-closed-set-derive-0.3.22": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -20577,7 +20577,7 @@
           "default"
         ]
       },
-      "tatara-lisp-0.3.20": {
+      "tatara-lisp-0.3.22": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -20613,7 +20613,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.3.20",
+            "package_key": "tatara-closed-set-0.3.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20623,7 +20623,7 @@
           },
           {
             "name": "tatara_lisp_derive",
-            "package_key": "tatara-lisp-derive-0.3.20",
+            "package_key": "tatara-lisp-derive-0.3.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20685,7 +20685,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-derive-0.3.20": {
+      "tatara-lisp-derive-0.3.22": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -20723,11 +20723,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-eval-0.3.20": {
+      "tatara-lisp-eval-0.3.22": {
         "runtime_dependencies": [
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.20",
+            "package_key": "tatara-lisp-0.3.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21162,7 +21162,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.452-56adc8828ccb5f4f66258ca66ba402b92ae01dbb",
+            "package_key": "shikumi-0.1.452-a1fec80e342b705f48dce559850a5497e3c1ea81",
             "kind": "normal",
             "features": [
               "cli"
@@ -24063,7 +24063,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.20",
+            "package_key": "tatara-lisp-0.3.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24073,7 +24073,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.3.20",
+            "package_key": "tatara-lisp-eval-0.3.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -26342,7 +26342,7 @@
               },
               {
                 "name": "ipnet",
-                "package_key": "ipnet-2.12.0",
+                "package_key": "ipnet-2.12.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26604,7 +26604,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.110": {
+          "mado-0.1.111": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -27169,7 +27169,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.20",
+                "package_key": "tatara-lisp-0.3.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31325,7 +31325,7 @@
               },
               {
                 "name": "ipnet",
-                "package_key": "ipnet-2.12.0",
+                "package_key": "ipnet-2.12.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31578,7 +31578,7 @@
               "system"
             ]
           },
-          "mado-0.1.110": {
+          "mado-0.1.111": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -32096,7 +32096,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.20",
+                "package_key": "tatara-lisp-0.3.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35335,7 +35335,7 @@
               },
               {
                 "name": "ipnet",
-                "package_key": "ipnet-2.12.0",
+                "package_key": "ipnet-2.12.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35588,7 +35588,7 @@
               "system"
             ]
           },
-          "mado-0.1.110": {
+          "mado-0.1.111": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -36106,7 +36106,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.20",
+                "package_key": "tatara-lisp-0.3.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39506,7 +39506,7 @@
               },
               {
                 "name": "ipnet",
-                "package_key": "ipnet-2.12.0",
+                "package_key": "ipnet-2.12.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39768,7 +39768,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.110": {
+          "mado-0.1.111": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -40333,7 +40333,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.20",
+                "package_key": "tatara-lisp-0.3.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44453,7 +44453,7 @@
               },
               {
                 "name": "ipnet",
-                "package_key": "ipnet-2.12.0",
+                "package_key": "ipnet-2.12.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44706,7 +44706,7 @@
               "system"
             ]
           },
-          "mado-0.1.110": {
+          "mado-0.1.111": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -45224,7 +45224,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.20",
+                "package_key": "tatara-lisp-0.3.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48427,7 +48427,7 @@
               },
               {
                 "name": "ipnet",
-                "package_key": "ipnet-2.12.0",
+                "package_key": "ipnet-2.12.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48680,7 +48680,7 @@
               "system"
             ]
           },
-          "mado-0.1.110": {
+          "mado-0.1.111": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -49198,7 +49198,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.20",
+                "package_key": "tatara-lisp-0.3.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -52665,7 +52665,7 @@
     "inventory-0.3.24": {
       "edition": "2021"
     },
-    "ipnet-2.12.0": {
+    "ipnet-2.12.1": {
       "edition": "2018"
     },
     "irodori-0.1.1": {
@@ -52833,7 +52833,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.110": {
+    "mado-0.1.111": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -53667,7 +53667,7 @@
     "shidou-0.1.9-35c12221ac8622d90e03e21d5fec30ac329547e7": {
       "edition": "2024"
     },
-    "shikumi-0.1.452-56adc8828ccb5f4f66258ca66ba402b92ae01dbb": {
+    "shikumi-0.1.452-a1fec80e342b705f48dce559850a5497e3c1ea81": {
       "edition": "2024"
     },
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": {
@@ -53822,10 +53822,10 @@
     "tap-1.0.1": {
       "edition": "2015"
     },
-    "tatara-closed-set-0.3.20": {
+    "tatara-closed-set-0.3.22": {
       "edition": "2021"
     },
-    "tatara-closed-set-derive-0.3.20": {
+    "tatara-closed-set-derive-0.3.22": {
       "edition": "2021",
       "proc_macro": true
     },
@@ -53841,18 +53841,18 @@
     "tatara-lisp-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
       "edition": "2021"
     },
-    "tatara-lisp-0.3.20": {
+    "tatara-lisp-0.3.22": {
       "edition": "2021"
     },
     "tatara-lisp-derive-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-lisp-derive-0.3.20": {
+    "tatara-lisp-derive-0.3.22": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-lisp-eval-0.3.20": {
+    "tatara-lisp-eval-0.3.22": {
       "edition": "2021"
     },
     "tatara-nix-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": {
@@ -54418,7 +54418,7 @@
     "pleme-kindstr-derive-0.1.0-9fde4c145f7ff57acd88275f74511e422d407f94": "sha256-MjK6VPYt1inzElKtmBQF8piLCsOPFGqEYBilWiXYnLQ=",
     "praca-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": "sha256-DiTdK4gw+G6St4vEY9xqQZEyY1e1ebKtK0J0bzVh0iY=",
     "shidou-0.1.9-35c12221ac8622d90e03e21d5fec30ac329547e7": "sha256-rjs+1FgZD/d2rqK7EXglvJI0IlziAYLwLOiQAJOE7PQ=",
-    "shikumi-0.1.452-56adc8828ccb5f4f66258ca66ba402b92ae01dbb": "sha256-SaqMDamyz34cOstgYT1Iy4+ZbsnGgKXvRHF25DfcRqM=",
+    "shikumi-0.1.452-a1fec80e342b705f48dce559850a5497e3c1ea81": "sha256-GcVV6futJ6NlWmE5cuEYSvUjwepjy4/STG/0TzNP9DI=",
     "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": "sha256-Jd6fUoNSdzk+I5iu7FbAg9F9gbc7oU9jdPnnaTIxL6w=",
     "tatara-core-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
     "tatara-eval-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
