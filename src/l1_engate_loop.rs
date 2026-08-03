@@ -85,6 +85,169 @@ fn visible_text(term: &Arc<RwLock<Terminal>>) -> String {
     out
 }
 
+/// The 2026-08-02 operator report: "see where my cursor is landing by
+/// default". Every prompt cycle burned TWO rows and the caret sat at
+/// column 0 on the row BELOW the prompt instead of just past its last
+/// character.
+///
+/// **The reported symptom did not reproduce here** — this row is green as
+/// written, and every layer under it (the VT engine, DECSC/DECRC, the CPR
+/// answer, the engate sink's writeback) was checked and found correct on
+/// 2026-08-02. So do NOT read this test as guarding a fix; read it as the
+/// hole that let the symptom go unnoticed. The pre-existing corpus row
+/// `cpr_liveness_for_every_prefix_of_a_real_shell_stream` only ever asked
+/// whether an answer came BACK, never whether it was RIGHT, and nothing
+/// anywhere asserted the resulting prompt geometry.
+///
+/// Why this needs a REAL shell and not a byte fixture: frostmourne keeps
+/// no cursor model of its own. It asks `ESC[6n`, then repaints at
+/// `ESC[<answered row>;1H`. The row it draws on is literally the row mado
+/// reported one moment earlier, so an off-by-one answer FEEDS BACK — each
+/// prompt lands one lower than the last and the drift compounds for as
+/// long as the session lives. A fixture replays a stream whose replies
+/// were already decided; only a live shell closes that loop. Verified by
+/// deliberately answering CPR one row low: this row goes red, and its
+/// dump shows exactly the screenshot's shape.
+///
+/// The two assertions are the two halves of the screenshot:
+///   * consecutive prompts occupy CONSECUTIVE rows (one Enter, one row),
+///   * the caret rests on the last prompt's own row, at its end column.
+///
+/// Local-only, same gate as the row below it.
+#[test]
+fn l1_prompt_cycle_consumes_exactly_one_row_and_parks_the_caret_after_it() {
+    let Some(shell) = resolve_l1_shell() else {
+        eprintln!(
+            "SKIP: l1_prompt_cycle_consumes_exactly_one_row_and_parks_the_caret_after_it \
+             — no MADO_L1_SHELL set and no per-user frostmourne profile binary"
+        );
+        return;
+    };
+
+    const COLS: usize = 100;
+    const ROWS: usize = 20;
+    // Enters to press. Three is enough for a per-cycle drift to be
+    // unambiguous while leaving headroom under ROWS.
+    const ENTERS: usize = 3;
+
+    let inproc = Arc::new(InProcess::new());
+    let sid = inproc
+        .new_session_with_source_and_size(
+            "mado-l1-prompt-row",
+            &shell,
+            &[],
+            SessionSource::Named("mado-l1-prompt-row".into()),
+            (COLS as u16, ROWS as u16),
+        )
+        .expect("spawn real shell session");
+    let pane = inproc
+        .with_registry(|r| {
+            r.sessions
+                .get(&sid)
+                .and_then(|s| s.windows.values().next().map(|w| w.active_pane))
+        })
+        .expect("session must have a pane");
+
+    let terminal: Arc<RwLock<Terminal>> =
+        Arc::new(RwLock::new(Terminal::with_scrollback(COLS, ROWS, 10_000)));
+    let control_for_response_writer = Arc::clone(&inproc);
+    let response_writer: ResponseWriter = Arc::new(move |bytes: &[u8]| {
+        if let Err(e) = control_for_response_writer.send_keys(pane, bytes) {
+            eprintln!("L1: VT query response write-back FAILED: {e}");
+        }
+    });
+    let probes = Arc::new(ProbeCounters::default());
+    let consumer = TerminalSink::new_with_probes(
+        Arc::clone(&terminal),
+        response_writer,
+        Arc::clone(&probes),
+    );
+    let attach = Attach::builder()
+        .producer(PaneProducer::new(Arc::clone(&inproc), pane))
+        .consumer(consumer)
+        .build();
+    let (attach, history) = attach.subscribe().expect("engate.subscribe");
+    let attach = attach.replay(history).expect("engate.replay");
+    let attach_live = attach.start_live();
+    let attach_thread = std::thread::Builder::new()
+        .name("mado-l1-prompt-row".into())
+        .spawn(move || {
+            let _consumer = attach_live.run();
+        })
+        .expect("spawn engate live thread");
+
+    // Rows carrying a prompt, paired with each one's trimmed width. A
+    // prompt row is any non-blank row — the `clear` below guarantees the
+    // only thing on screen is prompts.
+    let prompt_rows = |term: &Arc<RwLock<Terminal>>| -> Vec<(usize, usize)> {
+        visible_text(term)
+            .lines()
+            .enumerate()
+            .filter(|(_, l)| !l.trim().is_empty())
+            .map(|(i, l)| (i, l.trim_end().chars().count()))
+            .collect()
+    };
+
+    // Settle the first prompt, then `clear` so row 0 is a known origin.
+    assert!(
+        wait_until(PHASE_DEADLINE, || probes.queries_seen() >= 1),
+        "startup CPR never answered — the loop is dead before the real assertion"
+    );
+    inproc.send_keys(pane, b"clear\r").expect("send clear");
+    assert!(
+        wait_until(PHASE_DEADLINE, || {
+            let rows = prompt_rows(&terminal);
+            rows.len() == 1 && rows[0].0 == 0
+        }),
+        "`clear` never left a single prompt on row 0:\n{}",
+        visible_text(&terminal)
+    );
+
+    for n in 1..=ENTERS {
+        inproc.send_keys(pane, b"\r").expect("send Enter");
+        let landed = wait_until(PHASE_DEADLINE, || prompt_rows(&terminal).len() == n + 1);
+        assert!(
+            landed,
+            "after Enter #{n} the screen does not hold {} prompts:\n{}",
+            n + 1,
+            visible_text(&terminal)
+        );
+    }
+
+    let rows = prompt_rows(&terminal);
+    let occupied: Vec<usize> = rows.iter().map(|(r, _)| *r).collect();
+    let expected: Vec<usize> = (0..=ENTERS).collect();
+    assert_eq!(
+        occupied, expected,
+        "each Enter must consume exactly ONE row. Two-row spacing is the \
+         2026-08-02 drift shape: frostmourne repaints wherever CPR says it \
+         is, so a row-low answer compounds one blank row per cycle.\n{}",
+        visible_text(&terminal)
+    );
+
+    // The caret: on the last prompt's row, just past its glyphs. seki
+    // ends the prompt with one space, so the resting column is the row's
+    // trimmed width + 1. Derived from the grid at assert time rather than
+    // captured earlier — the prompt's own width is not the invariant under
+    // test and varies with cwd, git state, and the abbreviated hash.
+    let last_prompt_width = rows.last().expect("at least one prompt").1;
+    let cursor = {
+        let t = terminal.read();
+        let c = t.cursor();
+        (c.row, c.col)
+    };
+    assert_eq!(
+        cursor,
+        (ENTERS, last_prompt_width + 1),
+        "caret must rest just past the last prompt, on the prompt's OWN row \
+         — column 0 of the row below is the reported bug.\n{}",
+        visible_text(&terminal)
+    );
+
+    let _ = inproc.send_keys(pane, b"exit\r");
+    let _ = wait_until(PHASE_DEADLINE, || attach_thread.is_finished());
+}
+
 #[test]
 fn l1_real_shell_queries_answered_and_command_round_trips() {
     let Some(shell) = resolve_l1_shell() else {

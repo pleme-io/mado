@@ -7337,6 +7337,105 @@ mod tests {
         assert_eq!(term.cell(0, 3).ch, ' ', "second continuation orphaned");
     }
 
+    /// The CPR *content* invariant — the half `cpr_liveness_for_every_prefix…`
+    /// above does NOT cover. Liveness only proves an answer came back; the
+    /// operator-visible bug is an answer that comes back WRONG.
+    ///
+    /// frostmourne does not track the cursor itself: it asks `ESC[6n`, then
+    /// repaints at `ESC[<answered row>;1H`. So the answer's row IS where the
+    /// next prompt gets drawn, and its column decides whether the shell first
+    /// emits a fresh-line `\r\n`. An answer one row low makes every prompt
+    /// cycle consume two rows instead of one and leaves the caret stranded at
+    /// column 0 below the prompt — the shape of the 2026-08-02 operator
+    /// screenshot. That report did not reproduce: this row closes the content
+    /// gap the liveness row left open, it does not guard a landed fix.
+    ///
+    /// Pinned against the real captured stream, so the numbers are the
+    /// shell's own arithmetic and not a hand-derived guess.
+    #[test]
+    fn frostmourne_prompt_repaint_answers_cpr_with_the_prompt_end_cell() {
+        let corpus: &[u8] =
+            include_bytes!("../tests/fixtures/frostmourne-enter-cycle.bin");
+        // Cut before the first `\r\n`: everything after it is the fatal
+        // "cursor position could not be read" line the capture ends on.
+        // What precedes it is one steady-state prompt repaint cycle.
+        let cut = corpus
+            .windows(2)
+            .position(|w| w == b"\r\n")
+            .expect("corpus contains the post-prompt newline");
+        let mut term = Terminal::new(80, 24);
+        term.feed(&corpus[..cut]);
+
+        // The prompt is 33 cells wide (`cid · github/pleme-io/nix main ❄ `,
+        // trailing space included) and the shell painted it on the last row.
+        let cursor = term.cursor();
+        assert_eq!(
+            (cursor.row, cursor.col),
+            (23, 33),
+            "caret must rest one cell past the prompt's trailing space, on \
+             the prompt's OWN row — not at column 0 of the row below"
+        );
+        assert!(
+            !term.wrap_pending,
+            "prompt is 33 of 80 columns: nothing may arm deferred wrap"
+        );
+
+        // …and the answer mado hands back must say exactly that (1-based).
+        term.feed(b"\x1b[6n");
+        let resp = term.take_response().expect("CPR answered");
+        assert!(
+            resp.ends_with(b"\x1b[24;34R"),
+            "CPR must report the prompt-end cell as 24;34; got {:?}",
+            String::from_utf8_lossy(&resp)
+        );
+    }
+
+    /// frostmourne's right-prompt probe: `ESC7` `CSI <row>;<cols+1> H` `ESC8`
+    /// — a jump one column PAST the right margin, wrapped in save/restore. It
+    /// rides every prompt repaint (visible in the corpus above as
+    /// `ESC7 CSI 24;81H ESC8` on an 80-column grid), so any leak makes the
+    /// caret drift one cell — or one row — on every single prompt.
+    ///
+    /// Two ways to leak, both covered: the clamped jump must not survive the
+    /// restore, and it must not leave deferred wrap armed behind it (which
+    /// would fling the next glyph onto the following row).
+    #[test]
+    fn right_prompt_margin_probe_is_a_no_op() {
+        for cols in [40usize, 80, 165] {
+            let mut term = Terminal::new(cols, 6);
+            let prompt = "x".repeat(cols - 6);
+            term.feed(prompt.as_bytes());
+            let before = {
+                let c = term.cursor();
+                (c.row, c.col)
+            };
+
+            // CUP to cols+1 (1-based) = one past the margin, save/restored.
+            let probe = crate::vt::csi(false, &[1, (cols + 1) as u32], "", b'H');
+            term.feed(b"\x1b7");
+            term.feed(&probe);
+            term.feed(b"\x1b8");
+
+            let after = {
+                let c = term.cursor();
+                (c.row, c.col)
+            };
+            assert_eq!(before, after, "cols={cols}: probe must restore the caret");
+            assert!(!term.wrap_pending, "cols={cols}: probe must not arm wrap");
+
+            // The proof that matters: the next glyph the shell paints (the
+            // first character the operator types) lands on the prompt's row.
+            term.feed(b"g");
+            let typed = term.cursor();
+            assert_eq!(
+                (typed.row, typed.col),
+                (before.0, before.1 + 1),
+                "cols={cols}: typed character must land on the prompt's own row"
+            );
+            assert_eq!(term.cell(before.0, before.1).ch, 'g');
+        }
+    }
+
     #[test]
     fn dsr_cursor_position_report() {
         let mut term = Terminal::new(80, 24);
