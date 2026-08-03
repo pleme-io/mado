@@ -4787,17 +4787,6 @@ rec {
         features = {
         };
       };
-      "fast-srgb8" = rec {
-        crateName = "fast-srgb8";
-        version = "1.0.0";
-        edition = "2018";
-        sha256 = "18g6xwwh4gnkyx1352hnvwagpv0n4y98yp2llm8vyvwxh487abnx";
-        libName = "fast_srgb8";
-        authors = [
-          "Thom Chiovoloni <chiovolonit@gmail.com>"
-        ];
-
-      };
       "fastrand" = rec {
         crateName = "fastrand";
         version = "2.5.0";
@@ -5668,8 +5657,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/gen";
-          rev = "e174470020226ca8e46a798210a59aba6088a953";
-          sha256 = "0vlli9wcbcaw4nxisax4x09114jn53l9n73jy573sqm0y3nlwsan";
+          rev = "4727c4758a5fa3b4d7d885966c254ea120e7f90a";
+          sha256 = "1h77d9ixnqzbwfxfxikrka2hk7s8gl890d8k2r7wwvlrbass02n7";
         };
         procMacro = true;
         libName = "gen_macros";
@@ -5700,8 +5689,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/gen";
-          rev = "e174470020226ca8e46a798210a59aba6088a953";
-          sha256 = "0vlli9wcbcaw4nxisax4x09114jn53l9n73jy573sqm0y3nlwsan";
+          rev = "4727c4758a5fa3b4d7d885966c254ea120e7f90a";
+          sha256 = "1h77d9ixnqzbwfxfxikrka2hk7s8gl890d8k2r7wwvlrbass02n7";
         };
         libName = "gen_platform";
         authors = [
@@ -5743,8 +5732,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/gen";
-          rev = "e174470020226ca8e46a798210a59aba6088a953";
-          sha256 = "0vlli9wcbcaw4nxisax4x09114jn53l9n73jy573sqm0y3nlwsan";
+          rev = "4727c4758a5fa3b4d7d885966c254ea120e7f90a";
+          sha256 = "1h77d9ixnqzbwfxfxikrka2hk7s8gl890d8k2r7wwvlrbass02n7";
         };
         libName = "gen_types";
         authors = [
@@ -6710,13 +6699,13 @@ rec {
       };
       "hayai" = rec {
         crateName = "hayai";
-        version = "0.1.1";
+        version = "0.1.2";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/hayai";
-          rev = "0aa8014aa7ca0d4723e5b46a3dd68daa21dec7b3";
-          sha256 = "1g028v6kw6p8qlx2y5i54458bfvz45ac2bxlsdkp75jw8a87jfz5";
+          rev = "4f5239c021bd154fcf5afbb4c8cf61332781dbd1";
+          sha256 = "169s1ryrd4w0xzacrdbfw4qm5jh27v97kryqlnhapzx2jjnmpg4m";
         };
         dependencies = [
           {
@@ -9904,9 +9893,9 @@ rec {
       };
       "libredox" = rec {
         crateName = "libredox";
-        version = "0.1.18";
+        version = "0.1.19";
         edition = "2021";
-        sha256 = "0lj6dqz0pzwm32zqss320bhjryg7vymkxa575pzhc7ig6jg2ahy9";
+        sha256 = "1yl5s2g4s072829l4sis97shg98dlk5qhr6mylmhp8b4cw2sa9i0";
         authors = [
           "4lDO2 <4lDO2@protonmail.com>"
         ];
@@ -10328,7 +10317,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.115";
+        version = "0.1.116";
         edition = "2024";
         crateBin = [
           {
@@ -15667,10 +15656,9 @@ rec {
       };
       "palette" = rec {
         crateName = "palette";
-        version = "0.7.6";
-        edition = "2018";
-        sha256 = "1rmn02mv6cb112504qyg7pyfa83c08hxpk5sw7jc5v659hc73gsc";
-        build = "build/main.rs";
+        version = "0.7.7";
+        edition = "2021";
+        sha256 = "0r7wf2529m3whivv49l56dc040nwngqaa1ng7nzjlz9l1mcdivnx";
         authors = [
           "Erik Hedvall <hello@erikhedvall.nu>"
         ];
@@ -15679,10 +15667,6 @@ rec {
             name = "bytemuck";
             packageId = "bytemuck";
             optional = true;
-          }
-          {
-            name = "fast-srgb8";
-            packageId = "fast-srgb8";
           }
           {
             name = "libm";
@@ -15694,29 +15678,36 @@ rec {
             name = "palette_derive";
             packageId = "palette_derive";
           }
+          {
+            name = "palette_math";
+            packageId = "palette_math";
+            usesDefaultFeatures = false;
+          }
         ];
         features = {
+          "alloc" = [ "palette_math/alloc" ];
           "approx" = [ "dep:approx" ];
           "bytemuck" = [ "dep:bytemuck" ];
           "default" = [ "named_from_str" "std" "approx" ];
           "find-crate" = [ "palette_derive/find-crate" ];
-          "libm" = [ "dep:libm" ];
-          "named_from_str" = [ "named" "phf" ];
+          "libm" = [ "dep:libm" "palette_math/libm" ];
+          "named" = [ "phf" ];
+          "named_from_str" = [ "named" ];
           "phf" = [ "dep:phf" ];
           "rand" = [ "dep:rand" ];
           "random" = [ "rand" ];
           "serde" = [ "dep:serde" ];
           "serializing" = [ "serde" "std" ];
-          "std" = [ "alloc" "approx?/std" ];
-          "wide" = [ "dep:wide" ];
+          "std" = [ "alloc" "approx?/std" "palette_math/std" ];
+          "wide" = [ "dep:wide" "palette_math/wide" ];
         };
         resolvedDefaultFeatures = [ "alloc" "bytemuck" "libm" ];
       };
       "palette_derive" = rec {
         crateName = "palette_derive";
-        version = "0.7.6";
-        edition = "2018";
-        sha256 = "0c0xhpk1nqyq4jr2m8xnka7w47vqzc7m2vq9ih8wxyjv02phs0zm";
+        version = "0.7.7";
+        edition = "2021";
+        sha256 = "1gjn5sh46pz4wcpyb7pnw9vz9429pwdwyk4rps0rswcv50h70lw8";
         procMacro = true;
         authors = [
           "Erik Hedvall <hello@erikhedvall.nu>"
@@ -15744,6 +15735,30 @@ rec {
         features = {
           "find-crate" = [ "dep:find-crate" ];
         };
+      };
+      "palette_math" = rec {
+        crateName = "palette_math";
+        version = "0.7.7";
+        edition = "2021";
+        sha256 = "04mgvcld8krwgnfpwc4c8gyddv6jxawwaig3n1gk6r4djm1b2vkf";
+        authors = [
+          "Erik Hedvall <hello@erikhedvall.nu>"
+        ];
+        dependencies = [
+          {
+            name = "libm";
+            packageId = "libm";
+            optional = true;
+            usesDefaultFeatures = false;
+          }
+        ];
+        features = {
+          "default" = [ "std" ];
+          "libm" = [ "dep:libm" ];
+          "std" = [ "alloc" ];
+          "wide" = [ "dep:wide" ];
+        };
+        resolvedDefaultFeatures = [ "alloc" "libm" ];
       };
       "parcel_selectors" = rec {
         crateName = "parcel_selectors";
@@ -25581,13 +25596,13 @@ rec {
       };
       "todoku" = rec {
         crateName = "todoku";
-        version = "0.1.0";
+        version = "0.1.1";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/todoku";
-          rev = "8fdd99f0ea10e32c38cb6e544c2da923a761f686";
-          sha256 = "108zn9fyxl8s0jlmvj31fbhsv10idgpjwms3j45kni7kbiwkk2sq";
+          rev = "4079f9bbbe455457d17198a66d56bd224cb0b21b";
+          sha256 = "14zr2irl4i2wxdk0xkhw6wbff1l47d698dvwg33lcaamakbzj1g7";
         };
         dependencies = [
           {
@@ -26779,8 +26794,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tsuuchi";
-          rev = "86539e03f9e90334afa02284ebb8e6e7806c8a39";
-          sha256 = "1vvfjsicxlwib68y12ba0hgx4rql276zaa0bbxxy99s92gc44k1v";
+          rev = "3a26bae14780f29127d506c11ee6b52c50b4f31d";
+          sha256 = "0dx1d3w3gmhx2gdpfl7vzqmrb78prjq8ng1s7n5093ds76jps3zq";
         };
         dependencies = [
           {

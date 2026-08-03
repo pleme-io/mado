@@ -3320,7 +3320,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.115"
+version = "0.1.116"
 dependencies = [
  "anyhow",
  "awase",
@@ -7274,7 +7274,7 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 [[package]]
 name = "todoku"
 version = "0.1.1"
-source = "git+https://github.com/pleme-io/todoku#4079f9bbbe455457d17198a66d56bd224cb0b21b"
+source = "git+https://github.com/pleme-io/todoku#6fd4bab4fb048c84571ffcb31b2b81b9b6a2ba8f"
 dependencies = [
  "async-trait",
  "reqwest",

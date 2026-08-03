@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "5f1de1fff56b9a5314b101509a57f9cb969961a746e9f10f4c6917008e147778",
+  "cargo_lock_sha256": "0bc4dd8fddb8221f89a80393d748d17fbff559ddb594e3d013a4e5be6806dff6",
   "manifest_sha256": {
-    "Cargo.toml": "21ea182e58d70d398dba74443188cbc185ab8ff3d0af95606718476ff8ce93cb"
+    "Cargo.toml": "7843b79510d418ee72fe03f0e37774fbd9187b197a02ed09b68c21d5604cf81f"
   },
   "target_resolves": {
     "base": {
@@ -10049,7 +10049,7 @@
           },
           {
             "name": "todoku",
-            "package_key": "todoku-0.1.1-4079f9bbbe455457d17198a66d56bd224cb0b21b",
+            "package_key": "todoku-0.1.1-6fd4bab4fb048c84571ffcb31b2b81b9b6a2ba8f",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22118,7 +22118,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "todoku-0.1.1-4079f9bbbe455457d17198a66d56bd224cb0b21b": {
+      "todoku-0.1.1-6fd4bab4fb048c84571ffcb31b2b81b9b6a2ba8f": {
         "runtime_dependencies": [
           {
             "name": "async_trait",
@@ -26618,7 +26618,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.115": {
+          "mado-0.1.116": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31592,7 +31592,7 @@
               "system"
             ]
           },
-          "mado-0.1.115": {
+          "mado-0.1.116": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35602,7 +35602,7 @@
               "system"
             ]
           },
-          "mado-0.1.115": {
+          "mado-0.1.116": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39782,7 +39782,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.115": {
+          "mado-0.1.116": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44720,7 +44720,7 @@
               "system"
             ]
           },
-          "mado-0.1.115": {
+          "mado-0.1.116": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48694,7 +48694,7 @@
               "system"
             ]
           },
-          "mado-0.1.115": {
+          "mado-0.1.116": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -52844,7 +52844,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.115": {
+    "mado-0.1.116": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -53954,7 +53954,7 @@
     "tinyvec_macros-0.1.1": {
       "edition": "2018"
     },
-    "todoku-0.1.1-4079f9bbbe455457d17198a66d56bd224cb0b21b": {
+    "todoku-0.1.1-6fd4bab4fb048c84571ffcb31b2b81b9b6a2ba8f": {
       "edition": "2024"
     },
     "tokio-1.53.1": {
@@ -54445,7 +54445,7 @@
     "tear-core-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": "sha256-DiTdK4gw+G6St4vEY9xqQZEyY1e1ebKtK0J0bzVh0iY=",
     "tear-daemon-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": "sha256-DiTdK4gw+G6St4vEY9xqQZEyY1e1ebKtK0J0bzVh0iY=",
     "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": "sha256-DiTdK4gw+G6St4vEY9xqQZEyY1e1ebKtK0J0bzVh0iY=",
-    "todoku-0.1.1-4079f9bbbe455457d17198a66d56bd224cb0b21b": "sha256-5wX511RVKUbHeHw3lEw7hAbnFjcczg5m61xEQnMU+ZM=",
+    "todoku-0.1.1-6fd4bab4fb048c84571ffcb31b2b81b9b6a2ba8f": "sha256-qtsSwBKWn9b1qFpCKlGDA0WbMye48yRmh+wINLqgT04=",
     "tsuuchi-0.1.5-3a26bae14780f29127d506c11ee6b52c50b4f31d": "sha256-+A99pTm6jQSKPTo8i7DMF52VK/77UHfbEx3WN/hooTc=",
     "vigy-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf": "sha256-x6QaZl0BhCKV6W9+yZ8qQ+e/TjtIstD4J/oyVZCACNY=",
     "vigy-eval-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf": "sha256-x6QaZl0BhCKV6W9+yZ8qQ+e/TjtIstD4J/oyVZCACNY=",
