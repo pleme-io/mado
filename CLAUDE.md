@@ -569,9 +569,29 @@ Kitty keyboard, shell integration, profile system.
 > correctly and mado's copy was duplication that drifted. **mado is
 > single-pane by design.** Multi-pane returns by rendering tear's
 > `LayoutNode`/`compute_rects` — tracked as M5 in
-> `tear/docs/SESSION-TYPESCAPE.md`, and it is NOT a restore: there is no
-> clipping primitive anywhere in the GPU stack to turn on (measured: zero
-> `set_scissor_rect`, zero `set_viewport` across mado/garasu/engawa/madori).
+> `tear/docs/SESSION-TYPESCAPE.md`, and it is NOT a restore.
+>
+> **Corrected 2026-08-03 — the clipping half of that note has EXPIRED.** It
+> read "there is no clipping primitive anywhere in the GPU stack to turn on
+> (measured: zero `set_scissor_rect`, zero `set_viewport` across
+> mado/garasu/engawa/madori)". True when measured; false the same day it was
+> written. garasu commits `51db8ce` ("pane: bounded drawing — a rect a caller
+> cannot paint outside of") and `4883ee7` ("pane: `text_bounds()` — the
+> cheapest fix for text bleed") landed `garasu/src/pane.rs`: `PaneRect`
+> (private fields, constructible only via `root`/`split_x`/`split_y`/`inset`,
+> so containment is closed under construction), `LayeredPass::in_pane` (issues
+> the single `set_scissor_rect` BEFORE the closure can record a draw),
+> `PanePass` (exposes no `set_scissor_rect`, no `set_viewport`, no `Deref`),
+> and `PaneRect::text_bounds()` for glyphon's CPU-side per-glyph clip.
+>
+> **The honest state is SHIPPED-in-garasu, UNWIRED-in-mado.** Verified
+> 2026-08-03: zero references to `in_pane`/`LayeredPass`/`PanePass` in mado,
+> and all three `PaneRect::root(width, height)` call sites
+> (`render.rs:2549`, `:2842`, `:5975`) still pass the whole window.
+> `render.rs:5965` already states the intent — swapping `root(..)` for a real
+> pane rect makes M5 "a variable swap here rather than a rewrite". So the M5
+> cost is per-pane `Terminal`s + an input-routing loop, NOT a missing GPU
+> primitive. Do not re-quote the deleted sentence as a blocker.
 
 ### Phase 4 -- Architecture [NEXT]
 Four-thread model, paged memory (mmap, CoW, style dedup), terminal inspector,
