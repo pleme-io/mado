@@ -815,9 +815,9 @@ rec {
       };
       "async-compression" = rec {
         crateName = "async-compression";
-        version = "0.4.42";
+        version = "0.4.43";
         edition = "2018";
-        sha256 = "1b59jb3y26pmxdshyjb7slxrp184ydlzq80ryfc2ik6cg653z6z7";
+        sha256 = "1s2bzig7pq5x4g967lhr2czbrxdx5baay16k8cyi7lg7izfanxir";
         libName = "async_compression";
         authors = [
           "Wim Looman <wim@nemo157.com>"
@@ -1027,13 +1027,13 @@ rec {
       };
       "awase" = rec {
         crateName = "awase";
-        version = "0.1.1";
+        version = "0.1.2";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/awase";
-          rev = "7286b3bc2a1bc4c63929cc60b9d6d1ca2d82616f";
-          sha256 = "1spalvrk2xf735lj7451s5k5mjnv6xmcn91fcwcgfz3psd6d5nls";
+          rev = "d1ff4287e46342375d9c3a3426777f2e3fba30bb";
+          sha256 = "1zis6dwr6myl223zdgjdzl6d7f8s6xdc5sm684lhvy0siymkf1wj";
         };
         dependencies = [
           {
@@ -1662,7 +1662,7 @@ rec {
           }
           {
             name = "schemars";
-            packageId = "schemars 1.2.1";
+            packageId = "schemars 1.2.2";
             optional = true;
             usesDefaultFeatures = false;
           }
@@ -1943,9 +1943,9 @@ rec {
       };
       "cc" = rec {
         crateName = "cc";
-        version = "1.3.0";
+        version = "1.4.0";
         edition = "2018";
-        sha256 = "1f27b93qhs65bjq04ljwgwxf8xq2qbba4j1k99cv9d9qav88i5f8";
+        sha256 = "1fc26n76n7gr37m2q0xw5l8jpn4sd33hvyppmwhv6v4fcyxq3pas";
         authors = [
           "Alex Crichton <alex@alexcrichton.com>"
         ];
@@ -2184,10 +2184,10 @@ rec {
       };
       "clap" = rec {
         crateName = "clap";
-        version = "4.6.4";
+        version = "4.6.5";
         edition = "2024";
         crateBin = [];
-        sha256 = "1dz5brl39xchkml0khm348i87w89misprlinmnk77vwjawa0q7nr";
+        sha256 = "1pyaq1cfrwzwcfdlxynxiq8fgrvvi3yccyk490v8zr4qhmjmc6rh";
         dependencies = [
           {
             name = "clap_builder";
@@ -2226,9 +2226,9 @@ rec {
       };
       "clap_builder" = rec {
         crateName = "clap_builder";
-        version = "4.6.2";
+        version = "4.6.5";
         edition = "2024";
-        sha256 = "12sl6fyj6w2djxj0lsc1lkj1h3wpx74fjhb37izvaf65vjpji5ph";
+        sha256 = "0y500wa2x3jqvsc95dgcbvp0hj47x038bsv8vkvjigd1s41m99ll";
         dependencies = [
           {
             name = "anstream";
@@ -2780,7 +2780,7 @@ rec {
           }
           {
             name = "foreign-types";
-            packageId = "foreign-types 0.5.0";
+            packageId = "foreign-types";
           }
           {
             name = "libc";
@@ -4093,9 +4093,9 @@ rec {
       };
       "displaydoc" = rec {
         crateName = "displaydoc";
-        version = "0.2.6";
+        version = "0.2.7";
         edition = "2021";
-        sha256 = "0kyxwfbdmagd8afzb2pzja7wj8dhah7smxdsgw00iq8pa2jhmiqs";
+        sha256 = "1a42mwpgpwcqq2qqgkcc630wvsc2p2dkmgacjnclginwfz9js8y6";
         procMacro = true;
         authors = [
           "Jane Lusby <jlusby@yaah.dev>"
@@ -4111,7 +4111,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.119";
+            packageId = "syn 3.0.3";
           }
         ];
         features = {
@@ -4332,9 +4332,9 @@ rec {
       };
       "either" = rec {
         crateName = "either";
-        version = "1.16.0";
+        version = "1.17.0";
         edition = "2021";
-        sha256 = "17k7jfbdz7k440h6lws9baz8p9zlxgb41sig3w81h80nwzsjyqli";
+        sha256 = "07dagpwcfdzpkb1n7fxkx0q3nv80rnf81v7gwlz9ljx22mn8yply";
         dependencies = [
           {
             name = "serde";
@@ -4453,8 +4453,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/engawa";
-          rev = "6adb58cf67c65de94284766f4fd66c65d2f51709";
-          sha256 = "00ph53wz0w8siwqwg3z87a79zw09zzq3402m4647d9m5wdbj7a78";
+          rev = "dd79e87f6282822e7fe4eaae5a676a1c49767013";
+          sha256 = "10101j1v8rzy0p0646x5670jyqkh2g78il5jl0iawmsvwn6a5kik";
         };
         authors = [
           "pleme-io"
@@ -4475,7 +4475,7 @@ rec {
           }
         ];
         features = {
-          "lisp" = [ "dep:tatara-lisp" "dep:tatara-lisp-derive" "dep:serde_json" ];
+          "lisp" = [ "dep:tatara-lisp" "dep:serde_json" ];
         };
       };
       "engawa-wgpu" = rec {
@@ -4521,9 +4521,9 @@ rec {
       };
       "enum-ordinalize" = rec {
         crateName = "enum-ordinalize";
-        version = "4.4.1";
+        version = "4.4.2";
         edition = "2024";
-        sha256 = "1sxkclnqr0k11x307hda1bryyj80a3nymlzplr74c3n1i3ahiy07";
+        sha256 = "0xvnafjy52n9fmf0zmw6cm2p286ifm84fiq6rw89an09kda03pc9";
         libName = "enum_ordinalize";
         dependencies = [
           {
@@ -4542,9 +4542,9 @@ rec {
       };
       "enum-ordinalize-derive" = rec {
         crateName = "enum-ordinalize-derive";
-        version = "4.4.1";
+        version = "4.4.2";
         edition = "2024";
-        sha256 = "0ch4b4k355vb71ph2f5nzp2rzxlfmsz8c2v539xada2bsgi2ira2";
+        sha256 = "05f87ad4f78lyr1yxj12l31pjf1xjv647xghsa5qiqjcbb8n6n56";
         procMacro = true;
         libName = "enum_ordinalize_derive";
         dependencies = [
@@ -4558,7 +4558,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.119";
+            packageId = "syn 3.0.3";
           }
         ];
         features = {
@@ -4700,20 +4700,15 @@ rec {
       };
       "event-listener" = rec {
         crateName = "event-listener";
-        version = "5.4.1";
+        version = "5.4.2";
         edition = "2021";
-        sha256 = "1asnp3agbr8shcl001yd935m167ammyi8hnvl0q1ycajryn6cfz1";
+        sha256 = "1lk9sv7r07l58jk263s18896l55mx9jv0g1rm4hj2mpi3paas8ss";
         libName = "event_listener";
         authors = [
           "Stjepan Glavina <stjepang@gmail.com>"
           "John Nunley <dev@notgull.net>"
         ];
         dependencies = [
-          {
-            name = "concurrent-queue";
-            packageId = "concurrent-queue";
-            usesDefaultFeatures = false;
-          }
           {
             name = "parking";
             packageId = "parking";
@@ -4728,12 +4723,12 @@ rec {
         features = {
           "critical-section" = [ "dep:critical-section" ];
           "default" = [ "std" ];
-          "loom" = [ "concurrent-queue/loom" "parking?/loom" "dep:loom" ];
+          "loom" = [ "parking?/loom" "dep:loom" ];
           "parking" = [ "dep:parking" ];
-          "portable-atomic" = [ "portable-atomic-util" "portable_atomic_crate" "concurrent-queue/portable-atomic" ];
+          "portable-atomic" = [ "portable-atomic-util" "portable_atomic_crate" ];
           "portable-atomic-util" = [ "dep:portable-atomic-util" ];
           "portable_atomic_crate" = [ "dep:portable_atomic_crate" ];
-          "std" = [ "concurrent-queue/std" "parking" ];
+          "std" = [ "parking" ];
         };
         resolvedDefaultFeatures = [ "default" "parking" "std" ];
       };
@@ -5063,9 +5058,9 @@ rec {
       };
       "font-types" = rec {
         crateName = "font-types";
-        version = "0.12.1";
+        version = "0.12.2";
         edition = "2021";
-        sha256 = "049lf3xha6xjdqf3d56pbx74vidmb1crp1rspnf4sl7m0gnyqrxd";
+        sha256 = "007imxz417xximmgvnsrnmqq8dn9462irbp23cwnsjl5h2krjwha";
         libName = "font_types";
         dependencies = [
           {
@@ -5152,24 +5147,7 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "fontconfig" "fontconfig-parser" "fs" "memmap" "memmap2" "std" ];
       };
-      "foreign-types 0.3.2" = rec {
-        crateName = "foreign-types";
-        version = "0.3.2";
-        edition = "2015";
-        sha256 = "1cgk0vyd7r45cj769jym4a6s7vwshvd0z4bqrb92q1fwibmkkwzn";
-        libName = "foreign_types";
-        authors = [
-          "Steven Fackler <sfackler@gmail.com>"
-        ];
-        dependencies = [
-          {
-            name = "foreign-types-shared";
-            packageId = "foreign-types-shared 0.1.1";
-          }
-        ];
-
-      };
-      "foreign-types 0.5.0" = rec {
+      "foreign-types" = rec {
         crateName = "foreign-types";
         version = "0.5.0";
         edition = "2018";
@@ -5185,7 +5163,7 @@ rec {
           }
           {
             name = "foreign-types-shared";
-            packageId = "foreign-types-shared 0.3.1";
+            packageId = "foreign-types-shared";
           }
         ];
         features = {
@@ -5196,9 +5174,9 @@ rec {
       };
       "foreign-types-macros" = rec {
         crateName = "foreign-types-macros";
-        version = "0.2.3";
+        version = "0.2.4";
         edition = "2018";
-        sha256 = "0hjpii8ny6l7h7jpns2cp9589016l8mlrpaigcnayjn9bdc6qp0s";
+        sha256 = "09aj8wl64pqvm6ix1800khgypdhinwinxhfv7n3yn5b95qc90lga";
         procMacro = true;
         libName = "foreign_types_macros";
         authors = [
@@ -5215,7 +5193,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.119";
+            packageId = "syn 3.0.3";
             features = [ "full" ];
           }
         ];
@@ -5223,18 +5201,7 @@ rec {
         };
         resolvedDefaultFeatures = [ "std" ];
       };
-      "foreign-types-shared 0.1.1" = rec {
-        crateName = "foreign-types-shared";
-        version = "0.1.1";
-        edition = "2015";
-        sha256 = "0jxgzd04ra4imjv8jgkmdq59kj8fsz6w4zxsbmlai34h26225c00";
-        libName = "foreign_types_shared";
-        authors = [
-          "Steven Fackler <sfackler@gmail.com>"
-        ];
-
-      };
-      "foreign-types-shared 0.3.1" = rec {
+      "foreign-types-shared" = rec {
         crateName = "foreign-types-shared";
         version = "0.3.1";
         edition = "2018";
@@ -5631,14 +5598,9 @@ rec {
       };
       "garasu" = rec {
         crateName = "garasu";
-        version = "0.1.4";
+        version = "0.1.7";
         edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/garasu";
-          rev = "a2afc2ad6530ed096ab26f5d92bd4e1d348253ee";
-          sha256 = "1yvyaplz16sfrgz072y6mngqz51kzlkypybhq1f5hidi1hc2zxzz";
-        };
+        sha256 = "19k8a6aq10w3pklh8nchs574rvfahl49l14j0qmxad17qq8zgran";
         dependencies = [
           {
             name = "bincode";
@@ -5701,13 +5663,13 @@ rec {
       };
       "gen-macros" = rec {
         crateName = "gen-macros";
-        version = "0.1.23";
+        version = "0.1.32";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/gen";
-          rev = "8dd812128473c11ec5d88d8ea2eeb3e1d3d5b9b7";
-          sha256 = "16yynaibsxi5syqz9rc2zallil5mcd0j87zbsc12r0xxq6sx7grg";
+          rev = "e174470020226ca8e46a798210a59aba6088a953";
+          sha256 = "0vlli9wcbcaw4nxisax4x09114jn53l9n73jy573sqm0y3nlwsan";
         };
         procMacro = true;
         libName = "gen_macros";
@@ -5733,13 +5695,13 @@ rec {
       };
       "gen-platform" = rec {
         crateName = "gen-platform";
-        version = "0.1.23";
+        version = "0.1.32";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/gen";
-          rev = "8dd812128473c11ec5d88d8ea2eeb3e1d3d5b9b7";
-          sha256 = "16yynaibsxi5syqz9rc2zallil5mcd0j87zbsc12r0xxq6sx7grg";
+          rev = "e174470020226ca8e46a798210a59aba6088a953";
+          sha256 = "0vlli9wcbcaw4nxisax4x09114jn53l9n73jy573sqm0y3nlwsan";
         };
         libName = "gen_platform";
         authors = [
@@ -5776,13 +5738,13 @@ rec {
       };
       "gen-types" = rec {
         crateName = "gen-types";
-        version = "0.1.23";
+        version = "0.1.32";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/gen";
-          rev = "8dd812128473c11ec5d88d8ea2eeb3e1d3d5b9b7";
-          sha256 = "16yynaibsxi5syqz9rc2zallil5mcd0j87zbsc12r0xxq6sx7grg";
+          rev = "e174470020226ca8e46a798210a59aba6088a953";
+          sha256 = "0vlli9wcbcaw4nxisax4x09114jn53l9n73jy573sqm0y3nlwsan";
         };
         libName = "gen_types";
         authors = [
@@ -7017,9 +6979,9 @@ rec {
       };
       "http" = rec {
         crateName = "http";
-        version = "1.4.2";
+        version = "1.5.0";
         edition = "2021";
-        sha256 = "09b4p8fiivkg7wm0b59fyrn1jkm7px298ci7zb9igz6n647gaw39";
+        sha256 = "1q4wpz5hb4cf37g3jrdyffrpa6ngidmd9wrfph92fddzprl3b3ci";
         authors = [
           "Alex Crichton <alex@alexcrichton.com>"
           "Carl Lerche <me@carllerche.com>"
@@ -7462,67 +7424,6 @@ rec {
           }
         ];
 
-      };
-      "hyper-tls" = rec {
-        crateName = "hyper-tls";
-        version = "0.6.0";
-        edition = "2018";
-        sha256 = "1q36x2yps6hhvxq5r7mc8ph9zz6xlb573gx0x3yskb0fi736y83h";
-        libName = "hyper_tls";
-        authors = [
-          "Sean McArthur <sean@seanmonstar.com>"
-        ];
-        dependencies = [
-          {
-            name = "bytes";
-            packageId = "bytes";
-          }
-          {
-            name = "http-body-util";
-            packageId = "http-body-util";
-          }
-          {
-            name = "hyper";
-            packageId = "hyper";
-          }
-          {
-            name = "hyper-util";
-            packageId = "hyper-util";
-            features = [ "client-legacy" "tokio" ];
-          }
-          {
-            name = "native-tls";
-            packageId = "native-tls";
-          }
-          {
-            name = "tokio";
-            packageId = "tokio";
-          }
-          {
-            name = "tokio-native-tls";
-            packageId = "tokio-native-tls";
-          }
-          {
-            name = "tower-service";
-            packageId = "tower-service";
-          }
-        ];
-        devDependencies = [
-          {
-            name = "hyper-util";
-            packageId = "hyper-util";
-            features = [ "http1" ];
-          }
-          {
-            name = "tokio";
-            packageId = "tokio";
-            features = [ "io-std" "macros" "io-util" ];
-          }
-        ];
-        features = {
-          "alpn" = [ "native-tls/alpn" ];
-          "vendored" = [ "native-tls/vendored" ];
-        };
       };
       "hyper-util" = rec {
         crateName = "hyper-util";
@@ -8323,9 +8224,9 @@ rec {
       };
       "ipnet" = rec {
         crateName = "ipnet";
-        version = "2.12.0";
+        version = "2.12.1";
         edition = "2018";
-        sha256 = "1qpq2y0asyv0jppw7zww9y96fpnpinwap8a0phhqqgyy3znnz3yr";
+        sha256 = "0y6xssyvfy85k90pnnanxv9phayxalhp8bacy61rw4vkmhznqxba";
         authors = [
           "Kris Price <kris@krisprice.nz>"
         ];
@@ -8494,8 +8395,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/ishou";
-          rev = "914d337b1a9b8e99be67bb813b9e9f4bc56eff6d";
-          sha256 = "0d7ab6lkqb6r4ck94kq3gwgx7kqkqzj987wskh65g3bfvilg2yb7";
+          rev = "f1246193782313d1e0f1917d7b27566387bdca96";
+          sha256 = "0a97ld02zbnp3r6dj6lqyxgn59pcv2a4aza3hqp2ylrbs377ijjd";
         };
         libName = "ishou_tokens";
         dependencies = [
@@ -8558,13 +8459,13 @@ rec {
       };
       "izumi" = rec {
         crateName = "izumi";
-        version = "0.1.5";
+        version = "0.1.12";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/izumi";
-          rev = "56babeeab1c8ecdf9e0724b7cfd4557ad5225e70";
-          sha256 = "19zrhqzw4nygcyxyjjhna1s7yjswaf79v7x2sz1f1sl7jcckrhcl";
+          rev = "ab4706f8cf53086d67225abc62ac2031628cdccc";
+          sha256 = "0631sd8zvb7bcx2sjjkck8c838ffd91mrjnakjlp48am4m55lfhk";
         };
         authors = [
           "pleme-io"
@@ -8622,13 +8523,13 @@ rec {
       };
       "izumi-config" = rec {
         crateName = "izumi-config";
-        version = "0.1.5";
+        version = "0.1.12";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/izumi";
-          rev = "56babeeab1c8ecdf9e0724b7cfd4557ad5225e70";
-          sha256 = "19zrhqzw4nygcyxyjjhna1s7yjswaf79v7x2sz1f1sl7jcckrhcl";
+          rev = "ab4706f8cf53086d67225abc62ac2031628cdccc";
+          sha256 = "0631sd8zvb7bcx2sjjkck8c838ffd91mrjnakjlp48am4m55lfhk";
         };
         libName = "izumi_config";
         authors = [
@@ -8653,13 +8554,13 @@ rec {
       };
       "izumi-sources" = rec {
         crateName = "izumi-sources";
-        version = "0.1.5";
+        version = "0.1.12";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/izumi";
-          rev = "56babeeab1c8ecdf9e0724b7cfd4557ad5225e70";
-          sha256 = "19zrhqzw4nygcyxyjjhna1s7yjswaf79v7x2sz1f1sl7jcckrhcl";
+          rev = "ab4706f8cf53086d67225abc62ac2031628cdccc";
+          sha256 = "0631sd8zvb7bcx2sjjkck8c838ffd91mrjnakjlp48am4m55lfhk";
         };
         libName = "izumi_sources";
         authors = [
@@ -9064,7 +8965,7 @@ rec {
           }
           {
             name = "schemars";
-            packageId = "schemars 1.2.1";
+            packageId = "schemars 1.2.2";
           }
           {
             name = "serde";
@@ -9093,13 +8994,13 @@ rec {
       };
       "kanchi" = rec {
         crateName = "kanchi";
-        version = "0.1.2";
+        version = "0.1.3";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/kanchi";
-          rev = "09d1ad4c33f8adbff438f0ce8b47b21b15544251";
-          sha256 = "1rxk2ir9z36scpzmcgd6hnk1lw657d63ik3gz81s8g80j2w0x3hg";
+          rev = "1ba82571a3e3b061d4cb4509f88ca0bf0a54b00c";
+          sha256 = "0q594rr2006gzmz0i3nf3iyf07m66gcw1l9v68j8x2dxqwr8y2x5";
         };
         dependencies = [
           {
@@ -9226,6 +9127,21 @@ rec {
             packageId = "syn 2.0.119";
             features = [ "full" ];
           }
+        ];
+
+      };
+      "katsuji" = rec {
+        crateName = "katsuji";
+        version = "0.1.1";
+        edition = "2024";
+        workspace_member = null;
+        src = pkgs.fetchgit {
+          url = "https://github.com/pleme-io/katsuji";
+          rev = "d6b3ad8f0e69898497475128bd1f7faebe14f334";
+          sha256 = "0zx6ndj7cd1k1z8dkyq0lbf0syxjxvynp5c18njx18jdy2d6nxfg";
+        };
+        authors = [
+          "pleme-io"
         ];
 
       };
@@ -10012,7 +9928,7 @@ rec {
           }
           {
             name = "redox_syscall";
-            packageId = "redox_syscall 0.9.0";
+            packageId = "redox_syscall 0.9.1";
             optional = true;
           }
         ];
@@ -10412,7 +10328,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.92";
+        version = "0.1.115";
         edition = "2024";
         crateBin = [
           {
@@ -10434,11 +10350,6 @@ rec {
           {
             name = "blake3";
             packageId = "blake3";
-          }
-          {
-            name = "block2";
-            packageId = "block2 0.6.2";
-            target = { target, features }: ("macos" == target."os" or null);
           }
           {
             name = "bytemuck";
@@ -10539,6 +10450,10 @@ rec {
             packageId = "kanshou";
           }
           {
+            name = "katsuji";
+            packageId = "katsuji";
+          }
+          {
             name = "libc";
             packageId = "libc";
           }
@@ -10581,12 +10496,6 @@ rec {
             packageId = "objc2-foundation 0.3.2";
             target = { target, features }: ("macos" == target."os" or null);
             features = [ "NSString" "NSUserDefaults" "NSBundle" "NSError" "NSUUID" "NSProcessInfo" ];
-          }
-          {
-            name = "objc2-user-notifications";
-            packageId = "objc2-user-notifications 0.3.2";
-            target = { target, features }: ("macos" == target."os" or null);
-            features = [ "UNUserNotificationCenter" "UNNotificationContent" "UNNotificationRequest" "UNNotificationSound" "UNNotificationTrigger" "UNError" "block2" ];
           }
           {
             name = "open";
@@ -10662,7 +10571,7 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.2.5";
+            packageId = "tatara-lisp 0.3.22";
           }
           {
             name = "tear-client";
@@ -11035,7 +10944,7 @@ rec {
           }
           {
             name = "foreign-types";
-            packageId = "foreign-types 0.5.0";
+            packageId = "foreign-types";
           }
           {
             name = "log";
@@ -11340,8 +11249,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/nami-core";
-          rev = "9a6aced4a4f205ea9fdcd4d5e0862a97903e0919";
-          sha256 = "1a8ryvqlkhvwnsvyg5a8ajgpfl9p0z98ki67iya2yib8plwhhzjk";
+          rev = "7d9df98be462bb417da51b512c3a55d6eca82837";
+          sha256 = "15a6pma1cigan2hm7hsgi8g01bckppf8wjwphj194jiznncsvmiz";
         };
         libName = "nami_core";
         dependencies = [
@@ -11419,7 +11328,7 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.2.0";
+            packageId = "tatara-lisp 0.3.22";
             optional = true;
           }
           {
@@ -11458,74 +11367,6 @@ rec {
           "wasm" = [ "dep:wasmtime" "dep:wasmtime-wasi" "dep:wasi-common" ];
         };
         resolvedDefaultFeatures = [ "eval" "gpu" "lisp" "network" ];
-      };
-      "native-tls" = rec {
-        crateName = "native-tls";
-        version = "0.2.18";
-        edition = "2021";
-        sha256 = "1wmv0g5p6jwyyslyw88w5fv9kc9qvjd1hi2d4sfl4qm19vhh0ma6";
-        libName = "native_tls";
-        authors = [
-          "Steven Fackler <sfackler@gmail.com>"
-        ];
-        dependencies = [
-          {
-            name = "libc";
-            packageId = "libc";
-            target = { target, features }: ("apple" == target."vendor" or null);
-          }
-          {
-            name = "log";
-            packageId = "log";
-            target = { target, features }: (!(("windows" == target."os" or null) || ("apple" == target."vendor" or null)));
-          }
-          {
-            name = "openssl";
-            packageId = "openssl";
-            target = { target, features }: (!(("windows" == target."os" or null) || ("apple" == target."vendor" or null)));
-          }
-          {
-            name = "openssl-probe";
-            packageId = "openssl-probe";
-            target = { target, features }: (!(("windows" == target."os" or null) || ("apple" == target."vendor" or null)));
-          }
-          {
-            name = "openssl-sys";
-            packageId = "openssl-sys";
-            target = { target, features }: (!(("windows" == target."os" or null) || ("apple" == target."vendor" or null)));
-          }
-          {
-            name = "schannel";
-            packageId = "schannel";
-            target = { target, features }: ("windows" == target."os" or null);
-          }
-          {
-            name = "security-framework";
-            packageId = "security-framework";
-            target = { target, features }: ("apple" == target."vendor" or null);
-          }
-          {
-            name = "security-framework-sys";
-            packageId = "security-framework-sys";
-            target = { target, features }: ("apple" == target."vendor" or null);
-          }
-          {
-            name = "tempfile";
-            packageId = "tempfile";
-            target = { target, features }: ("macos" == target."os" or null);
-          }
-        ];
-        devDependencies = [
-          {
-            name = "tempfile";
-            packageId = "tempfile";
-          }
-        ];
-        features = {
-          "alpn" = [ "security-framework/alpn" ];
-          "vendored" = [ "openssl/vendored" ];
-        };
-        resolvedDefaultFeatures = [ "default" ];
       };
       "ndk" = rec {
         crateName = "ndk";
@@ -11751,6 +11592,59 @@ rec {
           "zerocopy" = [ "fs" "uio" ];
         };
         resolvedDefaultFeatures = [ "default" "memoffset" "net" "socket" ];
+      };
+      "nix 0.30.1" = rec {
+        crateName = "nix";
+        version = "0.30.1";
+        edition = "2021";
+        sha256 = "1dixahq9hk191g0c2ydc0h1ppxj0xw536y6rl63vlnp06lx3ylkl";
+        authors = [
+          "The nix-rust Project Developers"
+        ];
+        dependencies = [
+          {
+            name = "bitflags";
+            packageId = "bitflags 2.13.1";
+          }
+          {
+            name = "cfg-if";
+            packageId = "cfg-if";
+          }
+          {
+            name = "libc";
+            packageId = "libc";
+            features = [ "extra_traits" ];
+          }
+          {
+            name = "memoffset";
+            packageId = "memoffset";
+            optional = true;
+          }
+        ];
+        buildDependencies = [
+          {
+            name = "cfg_aliases";
+            packageId = "cfg_aliases 0.2.2";
+          }
+        ];
+        features = {
+          "aio" = [ "pin-utils" ];
+          "dir" = [ "fs" ];
+          "event" = [ "poll" ];
+          "memoffset" = [ "dep:memoffset" ];
+          "mount" = [ "uio" ];
+          "mqueue" = [ "fs" ];
+          "net" = [ "socket" ];
+          "pin-utils" = [ "dep:pin-utils" ];
+          "ptrace" = [ "process" ];
+          "sched" = [ "process" ];
+          "signal" = [ "process" ];
+          "socket" = [ "memoffset" ];
+          "ucontext" = [ "signal" ];
+          "user" = [ "feature" ];
+          "zerocopy" = [ "fs" "uio" ];
+        };
+        resolvedDefaultFeatures = [ "default" "memoffset" "socket" "term" ];
       };
       "nix 0.31.3" = rec {
         crateName = "nix";
@@ -15397,9 +15291,9 @@ rec {
       };
       "openraft" = rec {
         crateName = "openraft";
-        version = "0.9.24";
+        version = "0.9.25";
         edition = "2021";
-        sha256 = "02jadw87cgna49d3afxllk16sz01j5h9c85077ybryfdc0pmxlw0";
+        sha256 = "1zda5sbv6abxx2n0iagk8fradlvdbwqdmhhalkippdxcg3xi8w59";
         authors = [
           "Databend Authors <opensource@datafuselabs.com>"
           "Anthony Dodd <Dodd.AnthonyJosiah@gmail.com>"
@@ -15484,9 +15378,9 @@ rec {
       };
       "openraft-macros" = rec {
         crateName = "openraft-macros";
-        version = "0.9.24";
+        version = "0.9.25";
         edition = "2021";
-        sha256 = "0l8jjc2r4h29njnal4llcrk0j448yyl3q7cfkhhdma27sx107gxv";
+        sha256 = "03r56z245k2ivvwja6cxqvvi61vsicfq6g84ikc7sy3ayiwpsham";
         procMacro = true;
         libName = "openraft_macros";
         authors = [
@@ -15519,74 +15413,6 @@ rec {
         features = {
         };
       };
-      "openssl" = rec {
-        crateName = "openssl";
-        version = "0.10.81";
-        edition = "2021";
-        sha256 = "0ibsv2ppsjrp62jqyzprhay9vczk1bw9xvdr3h4h7fxsy0kkm0kp";
-        authors = [
-          "Steven Fackler <sfackler@gmail.com>"
-        ];
-        dependencies = [
-          {
-            name = "bitflags";
-            packageId = "bitflags 2.13.1";
-          }
-          {
-            name = "cfg-if";
-            packageId = "cfg-if";
-          }
-          {
-            name = "foreign-types";
-            packageId = "foreign-types 0.3.2";
-          }
-          {
-            name = "libc";
-            packageId = "libc";
-          }
-          {
-            name = "openssl-macros";
-            packageId = "openssl-macros";
-          }
-          {
-            name = "openssl-sys";
-            packageId = "openssl-sys";
-            rename = "ffi";
-          }
-        ];
-        features = {
-          "aws-lc" = [ "ffi/aws-lc" ];
-          "aws-lc-fips" = [ "ffi/aws-lc-fips" ];
-          "bindgen" = [ "ffi/bindgen" ];
-          "unstable_boringssl" = [ "ffi/unstable_boringssl" ];
-          "vendored" = [ "ffi/vendored" ];
-        };
-        resolvedDefaultFeatures = [ "default" ];
-      };
-      "openssl-macros" = rec {
-        crateName = "openssl-macros";
-        version = "0.1.1";
-        edition = "2018";
-        sha256 = "173xxvfc63rr5ybwqwylsir0vq6xsj4kxiv4hmg4c3vscdmncj59";
-        procMacro = true;
-        libName = "openssl_macros";
-        dependencies = [
-          {
-            name = "proc-macro2";
-            packageId = "proc-macro2";
-          }
-          {
-            name = "quote";
-            packageId = "quote";
-          }
-          {
-            name = "syn";
-            packageId = "syn 2.0.119";
-            features = [ "full" ];
-          }
-        ];
-
-      };
       "openssl-probe" = rec {
         crateName = "openssl-probe";
         version = "0.2.1";
@@ -15597,48 +15423,6 @@ rec {
           "Alex Crichton <alex@alexcrichton.com>"
         ];
 
-      };
-      "openssl-sys" = rec {
-        crateName = "openssl-sys";
-        version = "0.9.117";
-        edition = "2021";
-        links = "openssl";
-        sha256 = "159nf6jsqnmsynkh6gjzx088q1ifll7v88sss8qdk363n9mpwzml";
-        build = "build/main.rs";
-        libName = "openssl_sys";
-        authors = [
-          "Alex Crichton <alex@alexcrichton.com>"
-          "Steven Fackler <sfackler@gmail.com>"
-        ];
-        dependencies = [
-          {
-            name = "libc";
-            packageId = "libc";
-          }
-        ];
-        buildDependencies = [
-          {
-            name = "cc";
-            packageId = "cc";
-          }
-          {
-            name = "pkg-config";
-            packageId = "pkg-config";
-          }
-          {
-            name = "vcpkg";
-            packageId = "vcpkg";
-          }
-        ];
-        features = {
-          "aws-lc" = [ "dep:aws-lc-sys" ];
-          "aws-lc-fips" = [ "dep:aws-lc-fips-sys" ];
-          "bindgen" = [ "dep:bindgen" ];
-          "bssl-sys" = [ "dep:bssl-sys" ];
-          "openssl-src" = [ "dep:openssl-src" ];
-          "unstable_boringssl" = [ "bssl-sys" ];
-          "vendored" = [ "openssl-src" ];
-        };
       };
       "option-ext" = rec {
         crateName = "option-ext";
@@ -16761,8 +16545,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/pleme-allvariants-derive";
-          rev = "c66f20d1dc5727cfa0d1f83a02a28609a13387ec";
-          sha256 = "11j1s270yizlc72hz946ifn8yz32h1gvyn7brpf4r32dfiwvf8sy";
+          rev = "142b74f58ef31231d6f11ad572c9485156640d06";
+          sha256 = "1q4abnwz5wf1j47zd4clrvnh0c1bpr1nbylglpz2sxda8x10zisi";
         };
         procMacro = true;
         libName = "pleme_allvariants_derive";
@@ -16790,8 +16574,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/pleme-fleet-themed-derive";
-          rev = "a03a411857a340c89a0eefcb25b00ce6586abe30";
-          sha256 = "1as0l0vrfg0pw71d008zxp691qd9j4i0rgzjqvj960mq84sj043v";
+          rev = "160b9757a9427c89095acf174665219cf917d627";
+          sha256 = "164k3whhah9nrzjr312bx6hyl05ivprcdv79vlg6yw6ja4z201x3";
         };
         procMacro = true;
         libName = "pleme_fleet_themed_derive";
@@ -16819,8 +16603,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/pleme-invalidating-setter-derive";
-          rev = "ba2492fe88b02e0bc2d6057121e99888766a8d49";
-          sha256 = "05s4bc2pr4sb5cpvk445338c0cxx4xdj62rd67p775bbziibq089";
+          rev = "8df3b1bc76dbd92aa3fcd2fb9213adb5ef7f0b7c";
+          sha256 = "03syar1d2q6b0dqj8in2n3844lz2bhzbf05b48x25wdjsndfz7jp";
         };
         procMacro = true;
         libName = "pleme_invalidating_setter_derive";
@@ -16843,10 +16627,10 @@ rec {
       };
       "pleme-io-wadachi" = rec {
         crateName = "pleme-io-wadachi";
-        version = "0.1.5";
+        version = "0.1.6";
         edition = "2024";
         crateBin = [];
-        sha256 = "14aickv1ja6zrziqjhayxncp8zd92n9wm75v2s33lacsx2r2knwc";
+        sha256 = "1wkpbp5717k5wwhprqf7f8x7byrxj942cgs63810zxdh98z4pp2q";
         libName = "pleme_io_wadachi";
         dependencies = [
           {
@@ -16904,8 +16688,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/pleme-kindbyte-derive";
-          rev = "f0922edec7e5d4ab6606c3e9057c94aa69c3d62f";
-          sha256 = "02ifp8798wc22cv14szci95rzcadap7gwdwhbrcskqwbsl5cpi6b";
+          rev = "f149963e6cab8b8c0e9bd0a23ed41efd3dfcdbd6";
+          sha256 = "0zaac07bmz6ygymwlqrjk138fh5r9zdr1wgybrir9f269i3b4a2c";
         };
         procMacro = true;
         libName = "pleme_kindbyte_derive";
@@ -16933,8 +16717,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/pleme-kindstr-derive";
-          rev = "d287f915e9bb8837a443f6238ee900e81318ce89";
-          sha256 = "1p5mzrbp6v1a4jbaask0jh5565wgjzf973hkb1l4fkz28gvfnw75";
+          rev = "9fde4c145f7ff57acd88275f74511e422d407f94";
+          sha256 = "1d4wv0jmm98qc226l54gqc58p67j0la9ibaj2brjkmidyrablcij";
         };
         procMacro = true;
         libName = "pleme_kindstr_derive";
@@ -17204,13 +16988,13 @@ rec {
       };
       "praca" = rec {
         crateName = "praca";
-        version = "0.1.7";
+        version = "0.1.8";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
-          rev = "f9b1f394fa0ee5367b2e8d14c601fe1202707501";
-          sha256 = "1qblcx1g0jiflg1ljiqk0xgs5yrg1lwhamna3vzd8lmxy33s3jq3";
+          rev = "a6041abc1d14fb93424738909e1db769c22bdb65";
+          sha256 = "09njc4snyx225fnv4ydmaxik54a1dbf67i4bny96xy1hi0mxs90f";
         };
         authors = [
           "pleme-io"
@@ -17723,9 +17507,9 @@ rec {
       };
       "quick-xml" = rec {
         crateName = "quick-xml";
-        version = "0.39.4";
+        version = "0.41.0";
         edition = "2021";
-        sha256 = "0plfhnna58ad2hlym3q02zrmmh7xdpikzs7hll4x6w7nwba8vk6d";
+        sha256 = "1h9y8zry34r3mxfd5vqfj50vvvzvri4kzbx5d657jkqjalg4aq76";
         libName = "quick_xml";
         dependencies = [
           {
@@ -18500,11 +18284,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "userspace" ];
       };
-      "redox_syscall 0.9.0" = rec {
+      "redox_syscall 0.9.1" = rec {
         crateName = "redox_syscall";
-        version = "0.9.0";
+        version = "0.9.1";
         edition = "2021";
-        sha256 = "0nbpw2kbrxc0rcvnsn4zzibcpll6r9mqw5wf4cd03ah5m9m2l465";
+        sha256 = "07n2265vyd8xqan9ywr9zffz4zss3yxsxvj1xdpg5yd5nkkpnl07";
         libName = "syscall";
         authors = [
           "Jeremy Soller <jackpot51@gmail.com>"
@@ -18879,12 +18663,6 @@ rec {
             features = [ "http1" "tls12" ];
           }
           {
-            name = "hyper-tls";
-            packageId = "hyper-tls";
-            optional = true;
-            target = { target, features }: (!("wasm32" == target."arch" or null));
-          }
-          {
             name = "hyper-util";
             packageId = "hyper-util";
             target = { target, features }: (!("wasm32" == target."arch" or null));
@@ -18903,13 +18681,6 @@ rec {
           {
             name = "mime";
             packageId = "mime";
-            optional = true;
-            target = { target, features }: (!("wasm32" == target."arch" or null));
-          }
-          {
-            name = "native-tls";
-            packageId = "native-tls";
-            rename = "native-tls-crate";
             optional = true;
             target = { target, features }: (!("wasm32" == target."arch" or null));
           }
@@ -18975,12 +18746,6 @@ rec {
             usesDefaultFeatures = false;
             target = { target, features }: (!("wasm32" == target."arch" or null));
             features = [ "net" "time" ];
-          }
-          {
-            name = "tokio-native-tls";
-            packageId = "tokio-native-tls";
-            optional = true;
-            target = { target, features }: (!("wasm32" == target."arch" or null));
           }
           {
             name = "tokio-rustls";
@@ -19110,7 +18875,7 @@ rec {
           "system-proxy" = [ "hyper-util/client-proxy-system" ];
           "zstd" = [ "tower-http/decompression-zstd" ];
         };
-        resolvedDefaultFeatures = [ "__rustls" "__rustls-ring" "__tls" "brotli" "charset" "cookies" "default" "default-tls" "gzip" "h2" "http2" "json" "rustls-tls" "rustls-tls-webpki-roots" "rustls-tls-webpki-roots-no-provider" "system-proxy" ];
+        resolvedDefaultFeatures = [ "__rustls" "__rustls-ring" "__tls" "brotli" "charset" "cookies" "gzip" "h2" "http2" "json" "macos-system-configuration" "rustls-tls" "rustls-tls-webpki-roots" "rustls-tls-webpki-roots-no-provider" "system-proxy" ];
       };
       "ring" = rec {
         crateName = "ring";
@@ -19342,7 +19107,7 @@ rec {
           }
           {
             name = "schemars";
-            packageId = "schemars 1.2.1";
+            packageId = "schemars 1.2.2";
             optional = true;
             features = [ "chrono04" ];
           }
@@ -19385,7 +19150,7 @@ rec {
           }
           {
             name = "schemars";
-            packageId = "schemars 1.2.1";
+            packageId = "schemars 1.2.2";
             features = [ "chrono04" ];
           }
           {
@@ -20029,9 +19794,9 @@ rec {
       };
       "rustls" = rec {
         crateName = "rustls";
-        version = "0.23.42";
+        version = "0.23.43";
         edition = "2021";
-        sha256 = "0f619dq1izpl40glcqgfjbqzpmwg8g5iffjx4429sh4v06mzqm1w";
+        sha256 = "01nsagj78r88pifaz55ln1rw31py5n00h7bnw58h3g1aw1n3i0q2";
         dependencies = [
           {
             name = "log";
@@ -20129,9 +19894,9 @@ rec {
       };
       "rustls-pki-types" = rec {
         crateName = "rustls-pki-types";
-        version = "1.15.0";
+        version = "1.15.1";
         edition = "2021";
-        sha256 = "0imhb5d0m4hinavcgqxzmqpb55zjahv19g0lxrkh167k9ai9jj3n";
+        sha256 = "15hakk4pcvr5278cazgw9qf2r7gdg09rg5pivbyd3dbyih12aj9g";
         libName = "rustls_pki_types";
         dependencies = [
           {
@@ -20476,11 +20241,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "chrono" "default" "derive" "schemars_derive" ];
       };
-      "schemars 1.2.1" = rec {
+      "schemars 1.2.2" = rec {
         crateName = "schemars";
-        version = "1.2.1";
+        version = "1.2.2";
         edition = "2021";
-        sha256 = "1k16qzpdpy6p9hrh18q2l6cwawxzyqi25f8masa13l0wm8v2zd52";
+        sha256 = "0jng632s64njf9vghr3i1l4m15h4y85m5vhg7vkwdkdnjg978wk8";
         authors = [
           "Graham Esau <gesau@hotmail.co.uk>"
         ];
@@ -20502,7 +20267,7 @@ rec {
           }
           {
             name = "schemars_derive";
-            packageId = "schemars_derive 1.2.1";
+            packageId = "schemars_derive 1.2.2";
             optional = true;
           }
           {
@@ -20575,7 +20340,7 @@ rec {
           }
           {
             name = "serde_derive_internals";
-            packageId = "serde_derive_internals";
+            packageId = "serde_derive_internals 0.29.1";
           }
           {
             name = "syn";
@@ -20585,11 +20350,11 @@ rec {
         ];
 
       };
-      "schemars_derive 1.2.1" = rec {
+      "schemars_derive 1.2.2" = rec {
         crateName = "schemars_derive";
-        version = "1.2.1";
+        version = "1.2.2";
         edition = "2021";
-        sha256 = "0zrh1ckcc63sqy5hyhnh2lbxh4vmbij2z4f1g5za1vmayi85n4bx";
+        sha256 = "1fp2wkdk32nv66swy7k7pz7sxygn634snlppih5jzbs6ddqng36r";
         procMacro = true;
         authors = [
           "Graham Esau <gesau@hotmail.co.uk>"
@@ -20605,17 +20370,17 @@ rec {
           }
           {
             name = "serde_derive_internals";
-            packageId = "serde_derive_internals";
+            packageId = "serde_derive_internals 0.30.0";
           }
           {
             name = "syn";
-            packageId = "syn 2.0.119";
+            packageId = "syn 3.0.3";
           }
         ];
         devDependencies = [
           {
             name = "syn";
-            packageId = "syn 2.0.119";
+            packageId = "syn 3.0.3";
             features = [ "extra-traits" ];
           }
         ];
@@ -21614,7 +21379,6 @@ rec {
         features = {
           "default" = [ "OSX_10_13" ];
         };
-        resolvedDefaultFeatures = [ "OSX_10_13" "default" ];
       };
       "self_cell" = rec {
         crateName = "self_cell";
@@ -21758,7 +21522,7 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" ];
       };
-      "serde_derive_internals" = rec {
+      "serde_derive_internals 0.29.1" = rec {
         crateName = "serde_derive_internals";
         version = "0.29.1";
         edition = "2015";
@@ -21782,6 +21546,36 @@ rec {
           {
             name = "syn";
             packageId = "syn 2.0.119";
+            usesDefaultFeatures = false;
+            features = [ "clone-impls" "derive" "parsing" "printing" ];
+          }
+        ];
+
+      };
+      "serde_derive_internals 0.30.0" = rec {
+        crateName = "serde_derive_internals";
+        version = "0.30.0";
+        edition = "2021";
+        sha256 = "1gd9n45na7n79nr54ghfl79rygkbzw2ybk3wyr6nlp83rry16lpq";
+        libPath = "lib.rs";
+        authors = [
+          "Erick Tryzelaar <erick.tryzelaar@gmail.com>"
+          "David Tolnay <dtolnay@gmail.com>"
+        ];
+        dependencies = [
+          {
+            name = "proc-macro2";
+            packageId = "proc-macro2";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "quote";
+            packageId = "quote";
+            usesDefaultFeatures = false;
+          }
+          {
+            name = "syn";
+            packageId = "syn 3.0.3";
             usesDefaultFeatures = false;
             features = [ "clone-impls" "derive" "parsing" "printing" ];
           }
@@ -21956,9 +21750,9 @@ rec {
       };
       "serial2" = rec {
         crateName = "serial2";
-        version = "0.2.37";
+        version = "0.2.38";
         edition = "2021";
-        sha256 = "1cc527x1j9cf0gmmpx5yn7jvk20gma3f0m4bdf9xdbpfc9aymdly";
+        sha256 = "0c07302614zdvb7rfya82mzr7qywq15r4lqc9v71jfvr6ny0js5i";
         dependencies = [
           {
             name = "cfg-if";
@@ -22157,15 +21951,15 @@ rec {
         ];
 
       };
-      "shikumi 0.1.337" = rec {
+      "shikumi 0.1.452" = rec {
         crateName = "shikumi";
-        version = "0.1.337";
+        version = "0.1.452";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
-          rev = "37523749fb989d432847cfcb92746465adc0eb80";
-          sha256 = "1sf1fks5381cdd68i6n0w8j6yj4ipq023vp30g4zqmcdvnw87rgw";
+          rev = "a1fec80e342b705f48dce559850a5497e3c1ea81";
+          sha256 = "0cpl9wrlzx3g9k98zjv3xb0j7xaa33hp4fb1b9js69xdzglmbi8r";
         };
         dependencies = [
           {
@@ -22205,7 +21999,7 @@ rec {
             packageId = "notify";
             usesDefaultFeatures = false;
             target = { target, features }: ("macos" == target."os" or null);
-            features = [ "macos_kqueue" ];
+            features = [ "macos_fsevent" ];
           }
           {
             name = "serde";
@@ -22242,8 +22036,12 @@ rec {
         features = {
           "akeyless-native" = [ "dep:akeyless-api" "dep:tokio" ];
           "aws-native" = [ "dep:aws-sdk-secretsmanager" "dep:aws-config" "dep:tokio" ];
+          "blue" = [ "dep:blue-lang-syntax" "lisp" ];
           "cli" = [ "dep:clap" ];
           "gcp-native" = [ "dep:reqwest" "dep:tokio" ];
+          "hotswap" = [ "dep:pleme-hotswap" "dep:blake3" ];
+          "kube" = [ "kube-discovery" "dep:reqwest" "reqwest/blocking" "dep:base64" ];
+          "kube-discovery" = [ "dep:kanchi" ];
           "lisp" = [ "dep:tatara-lisp" ];
           "op-native" = [ "dep:reqwest" "dep:tokio" ];
           "vault-native" = [ "dep:reqwest" "dep:tokio" ];
@@ -24415,6 +24213,50 @@ rec {
         ];
 
       };
+      "tatara-closed-set" = rec {
+        crateName = "tatara-closed-set";
+        version = "0.3.22";
+        edition = "2021";
+        sha256 = "0w0qxyqsdg8wnn198dknng2mympxxikriiprb7kv78y0mfvy5lxi";
+        libName = "tatara_closed_set";
+        authors = [
+          "Pleme.io <engineering@pleme.io>"
+        ];
+        dependencies = [
+          {
+            name = "tatara-closed-set-derive";
+            packageId = "tatara-closed-set-derive";
+          }
+        ];
+
+      };
+      "tatara-closed-set-derive" = rec {
+        crateName = "tatara-closed-set-derive";
+        version = "0.3.22";
+        edition = "2021";
+        sha256 = "1k3zwf7gb85px7j8n7xrgh2fhl7yavcqna1sqiw4scp2lk57vc8c";
+        procMacro = true;
+        libName = "tatara_closed_set_derive";
+        authors = [
+          "Pleme.io <engineering@pleme.io>"
+        ];
+        dependencies = [
+          {
+            name = "proc-macro2";
+            packageId = "proc-macro2";
+          }
+          {
+            name = "quote";
+            packageId = "quote";
+          }
+          {
+            name = "syn";
+            packageId = "syn 2.0.119";
+            features = [ "full" ];
+          }
+        ];
+
+      };
       "tatara-core" = rec {
         crateName = "tatara-core";
         version = "0.2.0";
@@ -24615,16 +24457,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" ];
       };
-      "tatara-lisp 0.2.5" = rec {
+      "tatara-lisp 0.3.22" = rec {
         crateName = "tatara-lisp";
-        version = "0.2.5";
+        version = "0.3.22";
         edition = "2021";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/tatara-lisp";
-          rev = "6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33";
-          sha256 = "1s7amm6rlv33r3vki3hj225i3a3bgl377izmw6fcqas7m2zz5l9m";
-        };
+        sha256 = "0c2yg4diahb2a8n0ww3iaxvxyaagksj1ilxl9gd8i75xm1yy31c4";
         libName = "tatara_lisp";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24644,8 +24481,12 @@ rec {
             packageId = "serde_json";
           }
           {
+            name = "tatara-closed-set";
+            packageId = "tatara-closed-set";
+          }
+          {
             name = "tatara-lisp-derive";
-            packageId = "tatara-lisp-derive 0.2.5";
+            packageId = "tatara-lisp-derive 0.3.22";
           }
           {
             name = "thiserror";
@@ -24688,16 +24529,11 @@ rec {
         ];
 
       };
-      "tatara-lisp-derive 0.2.5" = rec {
+      "tatara-lisp-derive 0.3.22" = rec {
         crateName = "tatara-lisp-derive";
-        version = "0.2.5";
+        version = "0.3.22";
         edition = "2021";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/tatara-lisp";
-          rev = "6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33";
-          sha256 = "1s7amm6rlv33r3vki3hj225i3a3bgl377izmw6fcqas7m2zz5l9m";
-        };
+        sha256 = "1cf8x525s198kzdk7bff24x6k748jw4szwlnmdggjl04dva2z9q9";
         procMacro = true;
         libName = "tatara_lisp_derive";
         authors = [
@@ -24722,14 +24558,9 @@ rec {
       };
       "tatara-lisp-eval" = rec {
         crateName = "tatara-lisp-eval";
-        version = "0.2.5";
+        version = "0.3.22";
         edition = "2021";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/tatara-lisp";
-          rev = "6f5349f2f66dd20a872c54e75d3d2ddb5e1d5f33";
-          sha256 = "1s7amm6rlv33r3vki3hj225i3a3bgl377izmw6fcqas7m2zz5l9m";
-        };
+        sha256 = "02jc12fzqn0v1rn3pgmrkqsv1py2f00bvjfqr3wgqniynsql47ia";
         libName = "tatara_lisp_eval";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24737,7 +24568,7 @@ rec {
         dependencies = [
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.2.5";
+            packageId = "tatara-lisp 0.3.22";
           }
           {
             name = "thiserror";
@@ -24887,13 +24718,13 @@ rec {
       };
       "tear-client" = rec {
         crateName = "tear-client";
-        version = "0.1.7";
+        version = "0.1.8";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
-          rev = "f9b1f394fa0ee5367b2e8d14c601fe1202707501";
-          sha256 = "1qblcx1g0jiflg1ljiqk0xgs5yrg1lwhamna3vzd8lmxy33s3jq3";
+          rev = "a6041abc1d14fb93424738909e1db769c22bdb65";
+          sha256 = "09njc4snyx225fnv4ydmaxik54a1dbf67i4bny96xy1hi0mxs90f";
         };
         libName = "tear_client";
         authors = [
@@ -24934,13 +24765,13 @@ rec {
       };
       "tear-config" = rec {
         crateName = "tear-config";
-        version = "0.1.7";
+        version = "0.1.8";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
-          rev = "f9b1f394fa0ee5367b2e8d14c601fe1202707501";
-          sha256 = "1qblcx1g0jiflg1ljiqk0xgs5yrg1lwhamna3vzd8lmxy33s3jq3";
+          rev = "a6041abc1d14fb93424738909e1db769c22bdb65";
+          sha256 = "09njc4snyx225fnv4ydmaxik54a1dbf67i4bny96xy1hi0mxs90f";
         };
         libName = "tear_config";
         authors = [
@@ -24963,7 +24794,7 @@ rec {
             name = "notify";
             packageId = "notify";
             usesDefaultFeatures = false;
-            features = [ "macos_kqueue" ];
+            features = [ "macos_fsevent" ];
           }
           {
             name = "once_cell";
@@ -24980,7 +24811,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "shikumi 0.1.337";
+            packageId = "shikumi 0.1.452";
             features = [ "cli" ];
           }
           {
@@ -25000,13 +24831,13 @@ rec {
       };
       "tear-core" = rec {
         crateName = "tear-core";
-        version = "0.1.7";
+        version = "0.1.8";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
-          rev = "f9b1f394fa0ee5367b2e8d14c601fe1202707501";
-          sha256 = "1qblcx1g0jiflg1ljiqk0xgs5yrg1lwhamna3vzd8lmxy33s3jq3";
+          rev = "a6041abc1d14fb93424738909e1db769c22bdb65";
+          sha256 = "09njc4snyx225fnv4ydmaxik54a1dbf67i4bny96xy1hi0mxs90f";
         };
         libName = "tear_core";
         authors = [
@@ -25073,6 +24904,10 @@ rec {
             packageId = "tracing";
           }
           {
+            name = "unicode-width";
+            packageId = "unicode-width";
+          }
+          {
             name = "vte";
             packageId = "vte";
           }
@@ -25084,13 +24919,13 @@ rec {
       };
       "tear-daemon" = rec {
         crateName = "tear-daemon";
-        version = "0.1.7";
+        version = "0.1.8";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
-          rev = "f9b1f394fa0ee5367b2e8d14c601fe1202707501";
-          sha256 = "1qblcx1g0jiflg1ljiqk0xgs5yrg1lwhamna3vzd8lmxy33s3jq3";
+          rev = "a6041abc1d14fb93424738909e1db769c22bdb65";
+          sha256 = "09njc4snyx225fnv4ydmaxik54a1dbf67i4bny96xy1hi0mxs90f";
         };
         libName = "tear_daemon";
         authors = [
@@ -25110,10 +24945,15 @@ rec {
             packageId = "kanshou";
           }
           {
+            name = "nix";
+            packageId = "nix 0.30.1";
+            features = [ "term" "socket" ];
+          }
+          {
             name = "notify";
             packageId = "notify";
             usesDefaultFeatures = false;
-            features = [ "macos_kqueue" ];
+            features = [ "macos_fsevent" ];
           }
           {
             name = "praca";
@@ -25160,13 +25000,13 @@ rec {
       };
       "tear-types" = rec {
         crateName = "tear-types";
-        version = "0.1.7";
+        version = "0.1.8";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
-          rev = "f9b1f394fa0ee5367b2e8d14c601fe1202707501";
-          sha256 = "1qblcx1g0jiflg1ljiqk0xgs5yrg1lwhamna3vzd8lmxy33s3jq3";
+          rev = "a6041abc1d14fb93424738909e1db769c22bdb65";
+          sha256 = "09njc4snyx225fnv4ydmaxik54a1dbf67i4bny96xy1hi0mxs90f";
         };
         libName = "tear_types";
         authors = [
@@ -25463,9 +25303,9 @@ rec {
       };
       "time" = rec {
         crateName = "time";
-        version = "0.3.54";
+        version = "0.3.55";
         edition = "2024";
-        sha256 = "0i12170vw516jprmbv385krw75nyn7kwfp48nqybgfpnkximw79y";
+        sha256 = "0d6iyws47z50zlksf5m3cflxvjrcgfhjglhn112gmpahxjappf6d";
         authors = [
           "Jacob Pratt <open-source@jhpratt.dev>"
           "Time contributors"
@@ -25746,8 +25586,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/todoku";
-          rev = "f0a67611b5514424117496f470a9f88688f55ddb";
-          sha256 = "0bff8zmj5dyljsiv4z76n17kalifxhhp60pr3crsgl7b8pnckviq";
+          rev = "8fdd99f0ea10e32c38cb6e544c2da923a761f686";
+          sha256 = "108zn9fyxl8s0jlmvj31fbhsv10idgpjwms3j45kni7kbiwkk2sq";
         };
         dependencies = [
           {
@@ -25757,7 +25597,8 @@ rec {
           {
             name = "reqwest";
             packageId = "reqwest";
-            features = [ "json" "rustls-tls" "cookies" "gzip" "brotli" ];
+            usesDefaultFeatures = false;
+            features = [ "charset" "http2" "macos-system-configuration" "json" "rustls-tls" "cookies" "gzip" "brotli" ];
           }
           {
             name = "serde";
@@ -25916,9 +25757,9 @@ rec {
       };
       "tokio-macros" = rec {
         crateName = "tokio-macros";
-        version = "2.7.1";
+        version = "2.7.2";
         edition = "2021";
-        sha256 = "1fj2h3gysqzwqchyhcyyvslwdj7qjgyzlc20d6sajwqf949sya33";
+        sha256 = "03kvy2r5gr4zccm4vdx8vvv3q69kbjc1b006rs11aibz74m3lxvq";
         procMacro = true;
         libName = "tokio_macros";
         authors = [
@@ -25935,41 +25776,11 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.119";
+            packageId = "syn 3.0.3";
             features = [ "full" ];
           }
         ];
 
-      };
-      "tokio-native-tls" = rec {
-        crateName = "tokio-native-tls";
-        version = "0.3.1";
-        edition = "2018";
-        sha256 = "1wkfg6zn85zckmv4im7mv20ca6b1vmlib5xwz9p7g19wjfmpdbmv";
-        libName = "tokio_native_tls";
-        authors = [
-          "Tokio Contributors <team@tokio.rs>"
-        ];
-        dependencies = [
-          {
-            name = "native-tls";
-            packageId = "native-tls";
-          }
-          {
-            name = "tokio";
-            packageId = "tokio";
-          }
-        ];
-        devDependencies = [
-          {
-            name = "tokio";
-            packageId = "tokio";
-            features = [ "macros" "rt" "rt-multi-thread" "io-util" "net" ];
-          }
-        ];
-        features = {
-          "vendored" = [ "native-tls/vendored" ];
-        };
       };
       "tokio-rustls" = rec {
         crateName = "tokio-rustls";
@@ -26297,9 +26108,9 @@ rec {
       };
       "toml_parser" = rec {
         crateName = "toml_parser";
-        version = "1.1.2+spec-1.1.0";
+        version = "1.1.3+spec-1.1.0";
         edition = "2024";
-        sha256 = "09kmzc55a0j21whm290wlf5a8b18a0qc87a1s8sncrckc6wfkax2";
+        sha256 = "0mjdvihdkmjd4ykh574xgii71hpxw7ns7h4n4bisqpxrz4faqf0x";
         dependencies = [
           {
             name = "winnow";
@@ -26963,19 +26774,45 @@ rec {
       };
       "tsuuchi" = rec {
         crateName = "tsuuchi";
-        version = "0.1.2";
+        version = "0.1.5";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tsuuchi";
-          rev = "70a216829e4bbf45e4a241b6284a0c113d069bad";
-          sha256 = "0ws4s91s1xyghz3ca87v8wkwn96z3jvx0i2fl0nkdi7ypwi2zciq";
+          rev = "86539e03f9e90334afa02284ebb8e6e7806c8a39";
+          sha256 = "1vvfjsicxlwib68y12ba0hgx4rql276zaa0bbxxy99s92gc44k1v";
         };
         dependencies = [
+          {
+            name = "block2";
+            packageId = "block2 0.6.2";
+            target = { target, features }: ("macos" == target."os" or null);
+          }
+          {
+            name = "objc2";
+            packageId = "objc2 0.6.4";
+            target = { target, features }: ("macos" == target."os" or null);
+          }
+          {
+            name = "objc2-foundation";
+            packageId = "objc2-foundation 0.3.2";
+            target = { target, features }: ("macos" == target."os" or null);
+            features = [ "NSString" "NSBundle" "NSError" "NSUUID" "NSProcessInfo" ];
+          }
+          {
+            name = "objc2-user-notifications";
+            packageId = "objc2-user-notifications 0.3.2";
+            target = { target, features }: ("macos" == target."os" or null);
+            features = [ "UNUserNotificationCenter" "UNNotificationContent" "UNNotificationRequest" "UNNotificationSound" "UNNotificationTrigger" "UNError" "block2" ];
+          }
           {
             name = "serde";
             packageId = "serde";
             features = [ "derive" ];
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
           }
           {
             name = "thiserror";
@@ -26984,6 +26821,12 @@ rec {
           {
             name = "tracing";
             packageId = "tracing";
+          }
+        ];
+        devDependencies = [
+          {
+            name = "serde_json";
+            packageId = "serde_json";
           }
         ];
 
@@ -27657,13 +27500,13 @@ rec {
       };
       "vigy" = rec {
         crateName = "vigy";
-        version = "0.1.5";
+        version = "0.1.6";
         edition = "2021";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/vigy";
-          rev = "264cad151dc0ff2ac37312ff1b1b58a2375ae01c";
-          sha256 = "14ck7y096rnv58gnpzs7ib1k38pk2yk8q7ggd76n0wrgxhx2v54h";
+          rev = "2955f4d841f2f901e0a2af278e08fb5e7fa345cf";
+          sha256 = "1mh8h285acps4zwd1cj87d7bzrs35agwjzkgx6aj5101bmk1m967";
         };
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -27702,13 +27545,13 @@ rec {
       };
       "vigy-eval" = rec {
         crateName = "vigy-eval";
-        version = "0.1.5";
+        version = "0.1.6";
         edition = "2021";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/vigy";
-          rev = "264cad151dc0ff2ac37312ff1b1b58a2375ae01c";
-          sha256 = "14ck7y096rnv58gnpzs7ib1k38pk2yk8q7ggd76n0wrgxhx2v54h";
+          rev = "2955f4d841f2f901e0a2af278e08fb5e7fa345cf";
+          sha256 = "1mh8h285acps4zwd1cj87d7bzrs35agwjzkgx6aj5101bmk1m967";
         };
         libName = "vigy_eval";
         authors = [
@@ -27734,7 +27577,7 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.2.5";
+            packageId = "tatara-lisp 0.3.22";
           }
           {
             name = "tatara-lisp-eval";
@@ -27767,13 +27610,13 @@ rec {
       };
       "vigy-mcp" = rec {
         crateName = "vigy-mcp";
-        version = "0.1.5";
+        version = "0.1.6";
         edition = "2021";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/vigy";
-          rev = "264cad151dc0ff2ac37312ff1b1b58a2375ae01c";
-          sha256 = "14ck7y096rnv58gnpzs7ib1k38pk2yk8q7ggd76n0wrgxhx2v54h";
+          rev = "2955f4d841f2f901e0a2af278e08fb5e7fa345cf";
+          sha256 = "1mh8h285acps4zwd1cj87d7bzrs35agwjzkgx6aj5101bmk1m967";
         };
         libName = "vigy_mcp";
         authors = [
@@ -27815,13 +27658,13 @@ rec {
       };
       "vigy-runtime" = rec {
         crateName = "vigy-runtime";
-        version = "0.1.5";
+        version = "0.1.6";
         edition = "2021";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/vigy";
-          rev = "264cad151dc0ff2ac37312ff1b1b58a2375ae01c";
-          sha256 = "14ck7y096rnv58gnpzs7ib1k38pk2yk8q7ggd76n0wrgxhx2v54h";
+          rev = "2955f4d841f2f901e0a2af278e08fb5e7fa345cf";
+          sha256 = "1mh8h285acps4zwd1cj87d7bzrs35agwjzkgx6aj5101bmk1m967";
         };
         libName = "vigy_runtime";
         authors = [
@@ -27879,13 +27722,13 @@ rec {
       };
       "vigy-store" = rec {
         crateName = "vigy-store";
-        version = "0.1.5";
+        version = "0.1.6";
         edition = "2021";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/vigy";
-          rev = "264cad151dc0ff2ac37312ff1b1b58a2375ae01c";
-          sha256 = "14ck7y096rnv58gnpzs7ib1k38pk2yk8q7ggd76n0wrgxhx2v54h";
+          rev = "2955f4d841f2f901e0a2af278e08fb5e7fa345cf";
+          sha256 = "1mh8h285acps4zwd1cj87d7bzrs35agwjzkgx6aj5101bmk1m967";
         };
         libName = "vigy_store";
         authors = [
@@ -27955,13 +27798,13 @@ rec {
       };
       "vigy-types" = rec {
         crateName = "vigy-types";
-        version = "0.1.5";
+        version = "0.1.6";
         edition = "2021";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/vigy";
-          rev = "264cad151dc0ff2ac37312ff1b1b58a2375ae01c";
-          sha256 = "14ck7y096rnv58gnpzs7ib1k38pk2yk8q7ggd76n0wrgxhx2v54h";
+          rev = "2955f4d841f2f901e0a2af278e08fb5e7fa345cf";
+          sha256 = "1mh8h285acps4zwd1cj87d7bzrs35agwjzkgx6aj5101bmk1m967";
         };
         libName = "vigy_types";
         authors = [
@@ -28040,9 +27883,9 @@ rec {
       };
       "wadachi-spec" = rec {
         crateName = "wadachi-spec";
-        version = "0.1.5";
+        version = "0.1.6";
         edition = "2024";
-        sha256 = "1g5wh9qy1g9acjdbw0390j0lypcxzp5vmcq95pk1dpab05lzanhv";
+        sha256 = "1dzzwgdg5vnw13ab24s5lg4jx3zq315csdkk30hir015q7lk92sh";
         libName = "wadachi_spec";
         dependencies = [
           {
@@ -28330,9 +28173,9 @@ rec {
       };
       "wayland-backend" = rec {
         crateName = "wayland-backend";
-        version = "0.3.15";
+        version = "0.3.16";
         edition = "2021";
-        sha256 = "0pbm8j3vv6baqz312biwqfi4qzadbi6nng9v4p3nx4afnlhdsmr8";
+        sha256 = "1f2l7zw10cwid6444w86szvr08wvgkhi6a31k64nz2y5s40wyv01";
         libName = "wayland_backend";
         authors = [
           "Elinor Berger <elinor@safaradeg.net>"
@@ -28389,9 +28232,9 @@ rec {
       };
       "wayland-client" = rec {
         crateName = "wayland-client";
-        version = "0.31.14";
+        version = "0.31.15";
         edition = "2021";
-        sha256 = "0i014rcfjgccknnlyfk94fxn4w32l56cpjdmi4qhqsblpfb7qp34";
+        sha256 = "0ww0d0r6rn2h0sn8ma1f7zvxj40l6930p07j044nvmqshq7nmhz3";
         libName = "wayland_client";
         authors = [
           "Elinor Berger <elinor@safaradeg.net>"
@@ -28592,9 +28435,9 @@ rec {
       };
       "wayland-scanner" = rec {
         crateName = "wayland-scanner";
-        version = "0.31.10";
+        version = "0.31.11";
         edition = "2021";
-        sha256 = "0jjbsb04pzz8kqiw0wy2ssqx6dqpy70ixrm3ck1vsvnq1y8llclw";
+        sha256 = "1h0al3271l2w124sxlh77s1kmjg0z24ns2mk1vbnfars3d3313ik";
         procMacro = true;
         libName = "wayland_scanner";
         authors = [
@@ -34159,9 +34002,9 @@ rec {
       };
       "xcursor" = rec {
         crateName = "xcursor";
-        version = "0.3.10";
+        version = "0.3.11";
         edition = "2018";
-        sha256 = "0awgy98awg4ydcfmynqfcwvl4bnnfcm4i2vvnk2n926a02jy9jdy";
+        sha256 = "08wfv0wrij9rrmbgfd2l8a132gyfax05abypllpmwic6hznk6fqn";
         authors = [
           "Samuele Esposito"
         ];

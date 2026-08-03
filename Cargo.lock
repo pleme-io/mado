@@ -1602,12 +1602,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7360491ce676a36bf9bb3c56c1aa791658183a54d2744120f27285738d90465a"
 
 [[package]]
-name = "fast-srgb8"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd2e7510819d6fbf51a5545c8f922716ecfb14df168a3242f7d33e0239efe6a1"
-
-[[package]]
 name = "fastrand"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1909,7 +1903,7 @@ dependencies = [
 [[package]]
 name = "gen-macros"
 version = "0.1.32"
-source = "git+https://github.com/pleme-io/gen#e174470020226ca8e46a798210a59aba6088a953"
+source = "git+https://github.com/pleme-io/gen#4727c4758a5fa3b4d7d885966c254ea120e7f90a"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1919,7 +1913,7 @@ dependencies = [
 [[package]]
 name = "gen-platform"
 version = "0.1.32"
-source = "git+https://github.com/pleme-io/gen#e174470020226ca8e46a798210a59aba6088a953"
+source = "git+https://github.com/pleme-io/gen#4727c4758a5fa3b4d7d885966c254ea120e7f90a"
 dependencies = [
  "gen-macros",
  "gen-types",
@@ -1932,7 +1926,7 @@ dependencies = [
 [[package]]
 name = "gen-types"
 version = "0.1.32"
-source = "git+https://github.com/pleme-io/gen#e174470020226ca8e46a798210a59aba6088a953"
+source = "git+https://github.com/pleme-io/gen#4727c4758a5fa3b4d7d885966c254ea120e7f90a"
 dependencies = [
  "blake3",
  "chrono",
@@ -2219,8 +2213,8 @@ dependencies = [
 
 [[package]]
 name = "hayai"
-version = "0.1.1"
-source = "git+https://github.com/pleme-io/hayai#0aa8014aa7ca0d4723e5b46a3dd68daa21dec7b3"
+version = "0.1.2"
+source = "git+https://github.com/pleme-io/hayai#4f5239c021bd154fcf5afbb4c8cf61332781dbd1"
 dependencies = [
  "regex",
  "serde",
@@ -3188,9 +3182,9 @@ dependencies = [
 
 [[package]]
 name = "libredox"
-version = "0.1.18"
+version = "0.1.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c943259e342f1e06ff2da7a83eabdfe7f92ce10262688dbf1895ff0b3e6e4652"
+checksum = "2026a5056764a10b2bf5d56488cba40da507f5493a6a429340e2004d9ed085fa"
 dependencies = [
  "bitflags 2.13.1",
  "libc",
@@ -3326,7 +3320,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.114"
+version = "0.1.115"
 dependencies = [
  "anyhow",
  "awase",
@@ -4376,26 +4370,35 @@ dependencies = [
 
 [[package]]
 name = "palette"
-version = "0.7.6"
+version = "0.7.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4cbf71184cc5ecc2e4e1baccdb21026c20e5fc3dcf63028a086131b3ab00b6e6"
+checksum = "ddeed8580d347d2abf3dcf06a5f0b3dc020258338526b277847cd4248a70fc64"
 dependencies = [
  "bytemuck",
- "fast-srgb8",
  "libm",
  "palette_derive",
+ "palette_math",
 ]
 
 [[package]]
 name = "palette_derive"
-version = "0.7.6"
+version = "0.7.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5030daf005bface118c096f510ffb781fc28f9ab6a32ab224d8631be6851d30"
+checksum = "88537020289b719d81be994ccf1bbf4990f477e2f69ee52fe3e45f43a02e56be"
 dependencies = [
  "by_address",
  "proc-macro2",
  "quote",
  "syn 2.0.119",
+]
+
+[[package]]
+name = "palette_math"
+version = "0.7.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e6eb142958d64335fb0e345c5b9ead2ecd6fc438c307e9d7d3c4fd428dbaf12"
+dependencies = [
+ "libm",
 ]
 
 [[package]]
@@ -7270,8 +7273,8 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "todoku"
-version = "0.1.0"
-source = "git+https://github.com/pleme-io/todoku#8fdd99f0ea10e32c38cb6e544c2da923a761f686"
+version = "0.1.1"
+source = "git+https://github.com/pleme-io/todoku#4079f9bbbe455457d17198a66d56bd224cb0b21b"
 dependencies = [
  "async-trait",
  "reqwest",
@@ -7566,7 +7569,7 @@ checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 [[package]]
 name = "tsuuchi"
 version = "0.1.5"
-source = "git+https://github.com/pleme-io/tsuuchi#86539e03f9e90334afa02284ebb8e6e7806c8a39"
+source = "git+https://github.com/pleme-io/tsuuchi#3a26bae14780f29127d506c11ee6b52c50b4f31d"
 dependencies = [
  "block2 0.6.2",
  "objc2 0.6.4",

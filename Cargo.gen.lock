@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "923ee1e26d47352b8127ca6a03324daaf75c49edc348670d0227623b3fa2f078",
+  "cargo_lock_sha256": "5f1de1fff56b9a5314b101509a57f9cb969961a746e9f10f4c6917008e147778",
   "manifest_sha256": {
-    "Cargo.toml": "de519474b8369ebabcfa69b5712aa13228922c7e3243cc4d5b940e4761c254ce"
+    "Cargo.toml": "21ea182e58d70d398dba74443188cbc185ab8ff3d0af95606718476ff8ce93cb"
   },
   "target_resolves": {
     "base": {
@@ -3810,11 +3810,6 @@
         "build_dependencies": [],
         "features": []
       },
-      "fast-srgb8-1.0.0": {
-        "runtime_dependencies": [],
-        "build_dependencies": [],
-        "features": []
-      },
       "fastrand-2.5.0": {
         "runtime_dependencies": [],
         "build_dependencies": [],
@@ -4652,7 +4647,7 @@
           "default"
         ]
       },
-      "gen-macros-0.1.32-e174470020226ca8e46a798210a59aba6088a953": {
+      "gen-macros-0.1.32-4727c4758a5fa3b4d7d885966c254ea120e7f90a": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -4691,11 +4686,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "gen-platform-0.1.32-e174470020226ca8e46a798210a59aba6088a953": {
+      "gen-platform-0.1.32-4727c4758a5fa3b4d7d885966c254ea120e7f90a": {
         "runtime_dependencies": [
           {
             "name": "gen_macros",
-            "package_key": "gen-macros-0.1.32-e174470020226ca8e46a798210a59aba6088a953",
+            "package_key": "gen-macros-0.1.32-4727c4758a5fa3b4d7d885966c254ea120e7f90a",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4705,7 +4700,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.32-e174470020226ca8e46a798210a59aba6088a953",
+            "package_key": "gen-types-0.1.32-4727c4758a5fa3b4d7d885966c254ea120e7f90a",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4759,7 +4754,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "gen-types-0.1.32-e174470020226ca8e46a798210a59aba6088a953": {
+      "gen-types-0.1.32-4727c4758a5fa3b4d7d885966c254ea120e7f90a": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -5633,7 +5628,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "hayai-0.1.1-0aa8014aa7ca0d4723e5b46a3dd68daa21dec7b3": {
+      "hayai-0.1.2-4f5239c021bd154fcf5afbb4c8cf61332781dbd1": {
         "runtime_dependencies": [
           {
             "name": "regex",
@@ -9898,7 +9893,7 @@
           },
           {
             "name": "hayai",
-            "package_key": "hayai-0.1.1-0aa8014aa7ca0d4723e5b46a3dd68daa21dec7b3",
+            "package_key": "hayai-0.1.2-4f5239c021bd154fcf5afbb4c8cf61332781dbd1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -10054,7 +10049,7 @@
           },
           {
             "name": "todoku",
-            "package_key": "todoku-0.1.0-8fdd99f0ea10e32c38cb6e544c2da923a761f686",
+            "package_key": "todoku-0.1.1-4079f9bbbe455457d17198a66d56bd224cb0b21b",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -10987,7 +10982,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "palette-0.7.6": {
+      "palette-0.7.7": {
         "runtime_dependencies": [
           {
             "name": "bytemuck",
@@ -10996,16 +10991,6 @@
             "features": [],
             "uses_default_features": true,
             "optional": true,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "fast_srgb8",
-            "package_key": "fast-srgb8-1.0.0",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
             "target": null,
             "tree": "target"
           },
@@ -11021,13 +11006,23 @@
           },
           {
             "name": "palette_derive",
-            "package_key": "palette_derive-0.7.6",
+            "package_key": "palette_derive-0.7.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
             "optional": false,
             "target": null,
             "tree": "host"
+          },
+          {
+            "name": "palette_math",
+            "package_key": "palette_math-0.7.7",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
           }
         ],
         "build_dependencies": [],
@@ -11037,7 +11032,7 @@
           "libm"
         ]
       },
-      "palette_derive-0.7.6": {
+      "palette_derive-0.7.7": {
         "runtime_dependencies": [
           {
             "name": "by_address",
@@ -11089,6 +11084,25 @@
         ],
         "build_dependencies": [],
         "features": []
+      },
+      "palette_math-0.7.7": {
+        "runtime_dependencies": [
+          {
+            "name": "libm",
+            "package_key": "libm-0.2.16",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "alloc",
+          "libm"
+        ]
       },
       "parcel_selectors-0.28.3": {
         "runtime_dependencies": [
@@ -12944,7 +12958,7 @@
           },
           {
             "name": "palette",
-            "package_key": "palette-0.7.6",
+            "package_key": "palette-0.7.7",
             "kind": "normal",
             "features": [
               "alloc",
@@ -17386,7 +17400,7 @@
           },
           {
             "name": "gen_platform",
-            "package_key": "gen-platform-0.1.32-e174470020226ca8e46a798210a59aba6088a953",
+            "package_key": "gen-platform-0.1.32-4727c4758a5fa3b4d7d885966c254ea120e7f90a",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17396,7 +17410,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.32-e174470020226ca8e46a798210a59aba6088a953",
+            "package_key": "gen-types-0.1.32-4727c4758a5fa3b4d7d885966c254ea120e7f90a",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17535,7 +17549,7 @@
           },
           {
             "name": "gen_platform",
-            "package_key": "gen-platform-0.1.32-e174470020226ca8e46a798210a59aba6088a953",
+            "package_key": "gen-platform-0.1.32-4727c4758a5fa3b4d7d885966c254ea120e7f90a",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17545,7 +17559,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.32-e174470020226ca8e46a798210a59aba6088a953",
+            "package_key": "gen-types-0.1.32-4727c4758a5fa3b4d7d885966c254ea120e7f90a",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22104,7 +22118,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "todoku-0.1.0-8fdd99f0ea10e32c38cb6e544c2da923a761f686": {
+      "todoku-0.1.1-4079f9bbbe455457d17198a66d56bd224cb0b21b": {
         "runtime_dependencies": [
           {
             "name": "async_trait",
@@ -26604,7 +26618,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.114": {
+          "mado-0.1.115": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -27263,7 +27277,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.5-86539e03f9e90334afa02284ebb8e6e7806c8a39",
+                "package_key": "tsuuchi-0.1.5-3a26bae14780f29127d506c11ee6b52c50b4f31d",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -29805,7 +29819,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "tsuuchi-0.1.5-86539e03f9e90334afa02284ebb8e6e7806c8a39": {
+          "tsuuchi-0.1.5-3a26bae14780f29127d506c11ee6b52c50b4f31d": {
             "runtime_dependencies": [
               {
                 "name": "block2",
@@ -31578,7 +31592,7 @@
               "system"
             ]
           },
-          "mado-0.1.114": {
+          "mado-0.1.115": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -32190,7 +32204,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.5-86539e03f9e90334afa02284ebb8e6e7806c8a39",
+                "package_key": "tsuuchi-0.1.5-3a26bae14780f29127d506c11ee6b52c50b4f31d",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33167,7 +33181,7 @@
               "std"
             ]
           },
-          "tsuuchi-0.1.5-86539e03f9e90334afa02284ebb8e6e7806c8a39": {
+          "tsuuchi-0.1.5-3a26bae14780f29127d506c11ee6b52c50b4f31d": {
             "runtime_dependencies": [
               {
                 "name": "serde",
@@ -35588,7 +35602,7 @@
               "system"
             ]
           },
-          "mado-0.1.114": {
+          "mado-0.1.115": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -36200,7 +36214,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.5-86539e03f9e90334afa02284ebb8e6e7806c8a39",
+                "package_key": "tsuuchi-0.1.5-3a26bae14780f29127d506c11ee6b52c50b4f31d",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37177,7 +37191,7 @@
               "std"
             ]
           },
-          "tsuuchi-0.1.5-86539e03f9e90334afa02284ebb8e6e7806c8a39": {
+          "tsuuchi-0.1.5-3a26bae14780f29127d506c11ee6b52c50b4f31d": {
             "runtime_dependencies": [
               {
                 "name": "serde",
@@ -39768,7 +39782,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.114": {
+          "mado-0.1.115": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -40427,7 +40441,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.5-86539e03f9e90334afa02284ebb8e6e7806c8a39",
+                "package_key": "tsuuchi-0.1.5-3a26bae14780f29127d506c11ee6b52c50b4f31d",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -42949,7 +42963,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "tsuuchi-0.1.5-86539e03f9e90334afa02284ebb8e6e7806c8a39": {
+          "tsuuchi-0.1.5-3a26bae14780f29127d506c11ee6b52c50b4f31d": {
             "runtime_dependencies": [
               {
                 "name": "block2",
@@ -44706,7 +44720,7 @@
               "system"
             ]
           },
-          "mado-0.1.114": {
+          "mado-0.1.115": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -45318,7 +45332,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.5-86539e03f9e90334afa02284ebb8e6e7806c8a39",
+                "package_key": "tsuuchi-0.1.5-3a26bae14780f29127d506c11ee6b52c50b4f31d",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -46275,7 +46289,7 @@
               "std"
             ]
           },
-          "tsuuchi-0.1.5-86539e03f9e90334afa02284ebb8e6e7806c8a39": {
+          "tsuuchi-0.1.5-3a26bae14780f29127d506c11ee6b52c50b4f31d": {
             "runtime_dependencies": [
               {
                 "name": "serde",
@@ -48680,7 +48694,7 @@
               "system"
             ]
           },
-          "mado-0.1.114": {
+          "mado-0.1.115": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -49292,7 +49306,7 @@
               },
               {
                 "name": "tsuuchi",
-                "package_key": "tsuuchi-0.1.5-86539e03f9e90334afa02284ebb8e6e7806c8a39",
+                "package_key": "tsuuchi-0.1.5-3a26bae14780f29127d506c11ee6b52c50b4f31d",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -50249,7 +50263,7 @@
               "std"
             ]
           },
-          "tsuuchi-0.1.5-86539e03f9e90334afa02284ebb8e6e7806c8a39": {
+          "tsuuchi-0.1.5-3a26bae14780f29127d506c11ee6b52c50b4f31d": {
             "runtime_dependencies": [
               {
                 "name": "serde",
@@ -52354,9 +52368,6 @@
     "fallible-streaming-iterator-0.1.9": {
       "edition": "2015"
     },
-    "fast-srgb8-1.0.0": {
-      "edition": "2018"
-    },
     "fastrand-2.5.0": {
       "edition": "2018"
     },
@@ -52458,14 +52469,14 @@
       "edition": "2024",
       "build_script": "build.rs"
     },
-    "gen-macros-0.1.32-e174470020226ca8e46a798210a59aba6088a953": {
+    "gen-macros-0.1.32-4727c4758a5fa3b4d7d885966c254ea120e7f90a": {
       "edition": "2024",
       "proc_macro": true
     },
-    "gen-platform-0.1.32-e174470020226ca8e46a798210a59aba6088a953": {
+    "gen-platform-0.1.32-4727c4758a5fa3b4d7d885966c254ea120e7f90a": {
       "edition": "2024"
     },
-    "gen-types-0.1.32-e174470020226ca8e46a798210a59aba6088a953": {
+    "gen-types-0.1.32-4727c4758a5fa3b4d7d885966c254ea120e7f90a": {
       "edition": "2024"
     },
     "generic-array-0.14.7": {
@@ -52537,7 +52548,7 @@
     "hashlink-0.9.1": {
       "edition": "2018"
     },
-    "hayai-0.1.1-0aa8014aa7ca0d4723e5b46a3dd68daa21dec7b3": {
+    "hayai-0.1.2-4f5239c021bd154fcf5afbb4c8cf61332781dbd1": {
       "edition": "2024"
     },
     "headers-0.4.1": {
@@ -52833,7 +52844,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.114": {
+    "mado-0.1.115": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -53097,13 +53108,15 @@
     "owned_ttf_parser-0.25.1": {
       "edition": "2021"
     },
-    "palette-0.7.6": {
-      "edition": "2018",
-      "build_script": "build/main.rs"
+    "palette-0.7.7": {
+      "edition": "2021"
     },
-    "palette_derive-0.7.6": {
-      "edition": "2018",
+    "palette_derive-0.7.7": {
+      "edition": "2021",
       "proc_macro": true
+    },
+    "palette_math-0.7.7": {
+      "edition": "2021"
     },
     "parcel_selectors-0.28.3": {
       "edition": "2021",
@@ -53941,7 +53954,7 @@
     "tinyvec_macros-0.1.1": {
       "edition": "2018"
     },
-    "todoku-0.1.0-8fdd99f0ea10e32c38cb6e544c2da923a761f686": {
+    "todoku-0.1.1-4079f9bbbe455457d17198a66d56bd224cb0b21b": {
       "edition": "2024"
     },
     "tokio-1.53.1": {
@@ -54018,7 +54031,7 @@
     "try-lock-0.2.5": {
       "edition": "2015"
     },
-    "tsuuchi-0.1.5-86539e03f9e90334afa02284ebb8e6e7806c8a39": {
+    "tsuuchi-0.1.5-3a26bae14780f29127d506c11ee6b52c50b4f31d": {
       "edition": "2024"
     },
     "ttf-parser-0.20.0": {
@@ -54394,11 +54407,11 @@
     "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": "sha256-7dqrUg3KMEKH5ac5RuK7EJRogt4H3xtv6nDrM0jpccM=",
     "engawa-0.1.4-dd79e87f6282822e7fe4eaae5a676a1c49767013": "sha256-M86ijOVbV64ioLLQiM4TcGIvwTGlG2LABf5ntIMMIIA=",
     "engawa-wgpu-0.1.8-acc2b02d46322077861c9e74c6d2e5cb15cb1e5f": "sha256-sE/Qeve2DJY8NVMxAzjRbeZWIUmmWoF6hUAUusSJ4So=",
-    "gen-macros-0.1.32-e174470020226ca8e46a798210a59aba6088a953": "sha256-VmlO7fCgYj1O8XIcm+goVpIQEuikKx27JVyxxXiKlG4=",
-    "gen-platform-0.1.32-e174470020226ca8e46a798210a59aba6088a953": "sha256-VmlO7fCgYj1O8XIcm+goVpIQEuikKx27JVyxxXiKlG4=",
-    "gen-types-0.1.32-e174470020226ca8e46a798210a59aba6088a953": "sha256-VmlO7fCgYj1O8XIcm+goVpIQEuikKx27JVyxxXiKlG4=",
+    "gen-macros-0.1.32-4727c4758a5fa3b4d7d885966c254ea120e7f90a": "sha256-xwqgtVqZbs5PFhM1kBB9SJ8JhZp5xu664+tj22Nq58A=",
+    "gen-platform-0.1.32-4727c4758a5fa3b4d7d885966c254ea120e7f90a": "sha256-xwqgtVqZbs5PFhM1kBB9SJ8JhZp5xu664+tj22Nq58A=",
+    "gen-types-0.1.32-4727c4758a5fa3b4d7d885966c254ea120e7f90a": "sha256-xwqgtVqZbs5PFhM1kBB9SJ8JhZp5xu664+tj22Nq58A=",
     "hasami-0.1.2-9ac5d963d7fc786d0144968f3de78bc044839813": "sha256-GguTYXyHpiiXASD8fcLunSaKueunYXUF10FeB8FRTE8=",
-    "hayai-0.1.1-0aa8014aa7ca0d4723e5b46a3dd68daa21dec7b3": "sha256-5Tt5kEJclnNn07QvwVQhf7uFCiElFi86xegaPs1GArw=",
+    "hayai-0.1.2-4f5239c021bd154fcf5afbb4c8cf61332781dbd1": "sha256-lbxbrZSi/6ugpdjnedI+AspSMeFutczU74CTln0OOpk=",
     "irodzuki-0.1.7-d3bfe781e9c813164a37a0e0a1eeef16f5be9515": "sha256-7iA13F9fE1MktjUB89kQIiVY6TB0wTNHmHNGSJcj9Lg=",
     "ishou-tokens-0.1.4-f1246193782313d1e0f1917d7b27566387bdca96": "sha256-Tcp4ztArUy8uhkN9RZTY7KZiX/eYGtlMHteuL0CjJyk=",
     "izumi-0.1.12-ab4706f8cf53086d67225abc62ac2031628cdccc": "sha256-EzpaSiVVIXKpnMrKXENqzqGBGJpsSqlFZ+us/VHTYRg=",
@@ -54432,8 +54445,8 @@
     "tear-core-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": "sha256-DiTdK4gw+G6St4vEY9xqQZEyY1e1ebKtK0J0bzVh0iY=",
     "tear-daemon-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": "sha256-DiTdK4gw+G6St4vEY9xqQZEyY1e1ebKtK0J0bzVh0iY=",
     "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": "sha256-DiTdK4gw+G6St4vEY9xqQZEyY1e1ebKtK0J0bzVh0iY=",
-    "todoku-0.1.0-8fdd99f0ea10e32c38cb6e544c2da923a761f686": "sha256-WIs5eVzzRDsLkUNXLu9rEYSt4XJhyF2pBBrR7l2yH4E=",
-    "tsuuchi-0.1.5-86539e03f9e90334afa02284ebb8e6e7806c8a39": "sha256-O0xC2BNJp+R7Xwso9c0RFGfSHwRqieCRWZHTzqKWbu8=",
+    "todoku-0.1.1-4079f9bbbe455457d17198a66d56bd224cb0b21b": "sha256-5wX511RVKUbHeHw3lEw7hAbnFjcczg5m61xEQnMU+ZM=",
+    "tsuuchi-0.1.5-3a26bae14780f29127d506c11ee6b52c50b4f31d": "sha256-+A99pTm6jQSKPTo8i7DMF52VK/77UHfbEx3WN/hooTc=",
     "vigy-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf": "sha256-x6QaZl0BhCKV6W9+yZ8qQ+e/TjtIstD4J/oyVZCACNY=",
     "vigy-eval-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf": "sha256-x6QaZl0BhCKV6W9+yZ8qQ+e/TjtIstD4J/oyVZCACNY=",
     "vigy-mcp-0.1.6-2955f4d841f2f901e0a2af278e08fb5e7fa345cf": "sha256-x6QaZl0BhCKV6W9+yZ8qQ+e/TjtIstD4J/oyVZCACNY=",
