@@ -75,7 +75,10 @@ mod tests {
         };
         assert_eq!(out.len(), 2);
         let mado = out.iter().find(|s| s.title == "mado").unwrap();
-        assert_eq!(mado.spawn.cwd().to_str().unwrap(), "/code/github/pleme-io/mado");
+        assert_eq!(
+            mado.spawn.cwd().to_str().unwrap(),
+            "/code/github/pleme-io/mado"
+        );
         assert_eq!(mado.detail.as_deref(), Some("/code/github/pleme-io/mado"));
         assert_eq!(mado.urgency, Urgency::Idle);
         assert!(out.iter().any(|s| s.title == "tear"));

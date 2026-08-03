@@ -12,11 +12,11 @@
 //! only the wrapping (single pane, not a tab/pane tree) differs.
 
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
-use std::sync::Mutex;
 use std::os::fd::RawFd;
+use std::sync::Mutex;
 use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
 
 use crate::render::SharedTerminal;
@@ -85,14 +85,7 @@ impl SinglePane {
     /// reconciler (M1) — retained for the WindowState-compat unit
     /// tests below until tear absorbs SinglePane (Phase 5+).
     #[allow(dead_code)]
-    pub fn resize_panes(
-        &self,
-        width: f32,
-        height: f32,
-        padding: f32,
-        cell_w: f32,
-        cell_h: f32,
-    ) {
+    pub fn resize_panes(&self, width: f32, height: f32, padding: f32, cell_w: f32, cell_h: f32) {
         if cell_w <= 0.0 || cell_h <= 0.0 {
             return;
         }
@@ -251,8 +244,9 @@ mod tests {
     /// The input_tx / resize_tx receivers are dropped so any sends
     /// silently fail (matches the post-PTY-exit shape exactly).
     fn for_test(cols: usize, rows: usize) -> SinglePane {
-        let terminal: SharedTerminal =
-            Arc::new(parking_lot::RwLock::new(Terminal::with_scrollback(cols, rows, 100)));
+        let terminal: SharedTerminal = Arc::new(parking_lot::RwLock::new(
+            Terminal::with_scrollback(cols, rows, 100),
+        ));
         let (input_tx, _input_rx) = unbounded_channel::<Vec<u8>>();
         let (resize_tx, _resize_rx) = unbounded_channel::<(u16, u16)>();
         // Drop the receivers so subsequent sends return Err — exactly

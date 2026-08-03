@@ -297,7 +297,11 @@ impl PracaPickerBridge {
     /// running session gets a `● ` live badge; a not-running preset gets a
     /// `○ ` latent badge — so the union picker reads at a glance which rows
     /// are alive vs launchable. The renderer draws it verbatim.
-    fn row_label(display_name: &str, project_root: &std::path::Path, badge: Option<bool>) -> String {
+    fn row_label(
+        display_name: &str,
+        project_root: &std::path::Path,
+        badge: Option<bool>,
+    ) -> String {
         let mut label = String::new();
         match badge {
             Some(true) => label.push_str("\u{25cb} "),  // ○ latent
@@ -475,10 +479,7 @@ impl PracaPickerBridge {
                 crate::board_row::BoardRow {
                     // ◐ in progress (accepted, session open) vs ○ latent —
                     // the board legibly separates "waiting" from "worked".
-                    state: if matches!(
-                        st.state,
-                        crate::suggest::SuggestionState::Accepted { .. }
-                    ) {
+                    state: if matches!(st.state, crate::suggest::SuggestionState::Accepted { .. }) {
                         crate::board_row::State::Working
                     } else {
                         crate::board_row::State::Latent
@@ -493,8 +494,7 @@ impl PracaPickerBridge {
                     // Freshness nudge: stamped only once a task has been
                     // waiting (>= 5m), so the board stays calm for fresh
                     // arrivals and quietly nags the ones that have sat.
-                    age: (age >= 300)
-                        .then(|| crate::suggest::sources::util::relative_age(age)),
+                    age: (age >= 300).then(|| crate::suggest::sources::util::relative_age(age)),
                 }
             })
             .collect();
@@ -529,7 +529,9 @@ impl PracaPickerBridge {
                 .map(|rec| rec.id)
                 .collect()
         };
-        candidates.into_iter().find(|id| self.first_pane_of(*id).is_some())
+        candidates
+            .into_iter()
+            .find(|id| self.first_pane_of(*id).is_some())
     }
 
     /// Spawn a session aimed at a suggestion + switch — the
@@ -606,7 +608,10 @@ impl PracaPickerBridge {
         // post-spawn steps in order through the typed `PrewarmEnv` seam. No-op
         // for a bare suggestion.
         if !prewarm.is_empty() {
-            let mut penv = SessionPrewarmEnv { inproc: self.inproc.as_ref(), pane };
+            let mut penv = SessionPrewarmEnv {
+                inproc: self.inproc.as_ref(),
+                pane,
+            };
             let _ = crate::prewarm::apply(&prewarm, &mut penv);
         }
         // Soft-ack: the row is now IN PROGRESS — demoted below fresh work and
@@ -697,7 +702,11 @@ pub(crate) fn capture_preset(
     let Ok(tear_session) = inproc.get_session(session) else {
         return false;
     };
-    let lock = || praca.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    let lock = || {
+        praca
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    };
     let Some(project_root) = lock().index.get(session).map(|r| r.project_root.clone()) else {
         return false;
     };
@@ -969,8 +978,10 @@ impl SessionPickerBridge for PracaPickerBridge {
         // and then made the reader pair up "tend-repos" with "timed out"
         // across a space. `tend-repos⏱` is one chunk (Gestalt proximity),
         // and the footer now fits a pane instead of running off it.
-        let named: Vec<(&'static str, crate::suggest::SourceStatus)> =
-            blind.iter().map(|(kind, h)| (kind.slug(), h.status)).collect();
+        let named: Vec<(&'static str, crate::suggest::SourceStatus)> = blind
+            .iter()
+            .map(|(kind, h)| (kind.slug(), h.status))
+            .collect();
         crate::board_row::health_line(&named, degraded)
     }
 
@@ -1202,7 +1213,11 @@ mod tests {
             .find(|r| matches!(r.kind, RowKind::Instantiate(_)))
             .expect("latent preset surfaces as an Instantiate row");
         assert_eq!(inst.kind, RowKind::Instantiate(def_id));
-        assert!(inst.label.starts_with('\u{25cb}'), "○ latent badge: {}", inst.label);
+        assert!(
+            inst.label.starts_with('\u{25cb}'),
+            "○ latent badge: {}",
+            inst.label
+        );
 
         // Accepting it instantiates the preset + switches (spawns a live pane).
         assert!(
@@ -1223,11 +1238,17 @@ mod tests {
             SessionNameStyle::Emoji,
             1000,
         ));
-        let bridge = bridge_with_cfg(praca, Arc::clone(&inproc), true, crate::config::BadgeMode::Auto);
+        let bridge = bridge_with_cfg(
+            praca,
+            Arc::clone(&inproc),
+            true,
+            crate::config::BadgeMode::Auto,
+        );
         let rows = bridge.list("", 1000);
         assert!(!rows.is_empty());
         assert!(
-            rows.iter().all(|r| !r.label.starts_with('\u{25cf}') && !r.label.starts_with('\u{25cb}')),
+            rows.iter()
+                .all(|r| !r.label.starts_with('\u{25cf}') && !r.label.starts_with('\u{25cb}')),
             "all-live + Auto must NOT badge (byte-identical legacy): {:?}",
             rows.iter().map(|r| &r.label).collect::<Vec<_>>()
         );
@@ -1238,17 +1259,24 @@ mod tests {
         // The bare/stripped tier: a saved preset must NOT appear.
         let (inproc, _live) = live_inproc();
         let mut praca = praca::Praca::new();
-        praca.definitions.upsert(praca::SessionDefinition::single_pane(
-            "/code/pleme-io/substrate",
-            "/bin/sh",
-            praca::NameStyle::Emoji,
-            1000,
-        ));
-        let bridge =
-            bridge_with_cfg(praca, Arc::clone(&inproc), false, crate::config::BadgeMode::Auto);
+        praca
+            .definitions
+            .upsert(praca::SessionDefinition::single_pane(
+                "/code/pleme-io/substrate",
+                "/bin/sh",
+                praca::NameStyle::Emoji,
+                1000,
+            ));
+        let bridge = bridge_with_cfg(
+            praca,
+            Arc::clone(&inproc),
+            false,
+            crate::config::BadgeMode::Auto,
+        );
         let rows = bridge.list("", 1000);
         assert!(
-            rows.iter().all(|r| !matches!(r.kind, RowKind::Instantiate(_))),
+            rows.iter()
+                .all(|r| !matches!(r.kind, RowKind::Instantiate(_))),
             "surface_presets=false must surface NO latent rows"
         );
     }
@@ -1264,18 +1292,23 @@ mod tests {
             SessionNameStyle::Emoji,
             1000,
         ));
-        praca.binding.bind(PathBuf::from("/code/pleme-io/mado"), live);
+        praca
+            .binding
+            .bind(PathBuf::from("/code/pleme-io/mado"), live);
         // A preset for the SAME project must NOT appear as a duplicate latent row.
-        praca.definitions.upsert(praca::SessionDefinition::single_pane(
-            "/code/pleme-io/mado",
-            "/bin/sh",
-            praca::NameStyle::Emoji,
-            1000,
-        ));
+        praca
+            .definitions
+            .upsert(praca::SessionDefinition::single_pane(
+                "/code/pleme-io/mado",
+                "/bin/sh",
+                praca::NameStyle::Emoji,
+                1000,
+            ));
         let bridge = bridge_with(praca, Arc::clone(&inproc));
         let rows = bridge.list("", 1000);
         assert!(
-            rows.iter().all(|r| !matches!(r.kind, RowKind::Instantiate(_))),
+            rows.iter()
+                .all(|r| !matches!(r.kind, RowKind::Instantiate(_))),
             "a running preset is its Switch row, not a duplicate latent row"
         );
     }
@@ -1294,10 +1327,14 @@ mod tests {
         let bridge = bridge_with(praca, Arc::clone(&inproc));
 
         // Save it as a preset → into the latent catalog.
-        assert!(bridge.save_as_preset(live, 1000), "captures the live session");
+        assert!(
+            bridge.save_as_preset(live, 1000),
+            "captures the live session"
+        );
         // The preset is now in the catalog: instantiating its def (keyed on
         // the same project root) spawns a fresh session + posts a pane.
-        let def_id = tear_types::DefinitionId::from_project(std::path::Path::new("/code/pleme-io/mado"));
+        let def_id =
+            tear_types::DefinitionId::from_project(std::path::Path::new("/code/pleme-io/mado"));
         assert!(
             bridge.instantiate_and_switch(def_id, 1000),
             "the saved preset is in the catalog + instantiable"
@@ -1326,7 +1363,10 @@ mod tests {
             FleetSessionNames::POOL.len(),
             "an empty index lists one preset per emoji"
         );
-        assert!(matches!(rows[0].kind, RowKind::Create(CreateSpec::Preset { .. })));
+        assert!(matches!(
+            rows[0].kind,
+            RowKind::Create(CreateSpec::Preset { .. })
+        ));
     }
 
     #[test]
@@ -1334,10 +1374,10 @@ mod tests {
         let bridge = bridge_with(praca::Praca::new(), live_inproc().0);
         // "wave" matches the tide preset by keyword → a preset create row.
         let wave = bridge.list("wave", 1000);
-        assert!(wave.iter().any(|r| matches!(
-            &r.kind,
-            RowKind::Create(CreateSpec::Preset { .. })
-        ) && r.label.contains("tide")));
+        assert!(wave.iter().any(
+            |r| matches!(&r.kind, RowKind::Create(CreateSpec::Preset { .. }))
+                && r.label.contains("tide")
+        ));
 
         // A query matching no session and no emoji → a named create row.
         let named = bridge.list("zzqq-not-an-emoji", 1000);
@@ -1356,14 +1396,23 @@ mod tests {
         let before = inproc.with_registry(|r| r.sessions.len());
 
         assert!(
-            bridge.create_and_switch(CreateSpec::Named { name: "billing".into() }, 1000),
+            bridge.create_and_switch(
+                CreateSpec::Named {
+                    name: "billing".into()
+                },
+                1000
+            ),
             "create succeeds"
         );
         let after = inproc.with_registry(|r| r.sessions.len());
         assert_eq!(after, before + 1, "a session was spawned");
         // The new session is indexed + labelled by the typed name.
         let listed = bridge.list("billing", 1001);
-        assert!(listed.iter().any(|r| matches!(r.kind, RowKind::Switch(_)) && r.label.contains("billing")));
+        assert!(
+            listed
+                .iter()
+                .any(|r| matches!(r.kind, RowKind::Switch(_)) && r.label.contains("billing"))
+        );
     }
 
     #[test]
@@ -1375,16 +1424,27 @@ mod tests {
             .iter()
             .position(|i| i.word == "frost")
             .expect("frost in pool");
-        assert!(bridge.create_and_switch(CreateSpec::Preset { pool_index: frost_idx }, 1000));
+        assert!(bridge.create_and_switch(
+            CreateSpec::Preset {
+                pool_index: frost_idx
+            },
+            1000
+        ));
         // The created session is indexed with the frost identity.
         let rows = bridge.list("frost", 1001);
         assert!(
-            rows.iter().any(|r| matches!(r.kind, RowKind::Switch(_)) && r.label.contains("frost")),
+            rows.iter()
+                .any(|r| matches!(r.kind, RowKind::Switch(_)) && r.label.contains("frost")),
             "the preset session is named frost, got {rows:?}"
         );
     }
 
-    fn sug(source: crate::suggest::SourceKind, key: &str, title: &str, cwd: &str) -> crate::suggest::Suggestion {
+    fn sug(
+        source: crate::suggest::SourceKind,
+        key: &str,
+        title: &str,
+        cwd: &str,
+    ) -> crate::suggest::Suggestion {
         crate::suggest::Suggestion::new(
             source,
             key,
@@ -1418,10 +1478,20 @@ mod tests {
         let (inproc, _live) = live_inproc();
         let store = Arc::new(SuggestionStore::new());
         // A high-priority (Critical) Jira ticket + an ordinary github issue.
-        let hi = sug(SourceKind::JiraAssigned, "PLEME-1", "PLEME-1 urgent fix", "/code/a")
-            .urgent(Urgency::Critical)
-            .scored(1000);
-        let lo = sug(SourceKind::GithubAssignedIssues, "gh-2", "gh issue", "/code/b");
+        let hi = sug(
+            SourceKind::JiraAssigned,
+            "PLEME-1",
+            "PLEME-1 urgent fix",
+            "/code/a",
+        )
+        .urgent(Urgency::Critical)
+        .scored(1000);
+        let lo = sug(
+            SourceKind::GithubAssignedIssues,
+            "gh-2",
+            "gh issue",
+            "/code/b",
+        );
         store.ingest(SourceKind::JiraAssigned, vec![hi], 1000);
         store.ingest(SourceKind::GithubAssignedIssues, vec![lo], 1000);
         let bridge = bridge_with_suggestions(praca::Praca::new(), inproc, store, 6);
@@ -1455,13 +1525,28 @@ mod tests {
         use crate::suggest::SourceKind;
         let (inproc, _live) = live_inproc();
         let store = Arc::new(SuggestionStore::new());
-        let a = sug(SourceKind::GitBranchPr, "pr7", "pr#7 fix mado", "/code/mado");
-        let b = sug(SourceKind::GitBranchPr, "pr8", "pr#8 fix tear", "/code/tear");
+        let a = sug(
+            SourceKind::GitBranchPr,
+            "pr7",
+            "pr#7 fix mado",
+            "/code/mado",
+        );
+        let b = sug(
+            SourceKind::GitBranchPr,
+            "pr8",
+            "pr#8 fix tear",
+            "/code/tear",
+        );
         store.ingest(SourceKind::GitBranchPr, vec![a, b], 1000);
         let bridge = bridge_with_suggestions(praca::Praca::new(), inproc, store, 6);
         // "mado pr" — both terms must match; only the mado PR carries both.
         let rows = bridge.suggestion_rows("mado pr", 1000);
-        assert_eq!(rows.len(), 1, "{:?}", rows.iter().map(|r| &r.label).collect::<Vec<_>>());
+        assert_eq!(
+            rows.len(),
+            1,
+            "{:?}",
+            rows.iter().map(|r| &r.label).collect::<Vec<_>>()
+        );
         assert!(rows[0].label.contains("mado"));
     }
 
@@ -1493,19 +1578,36 @@ mod tests {
             .find(|r| matches!(r.kind, RowKind::Suggestion(_)))
             .expect("a suggestion row is shaded in");
         assert_eq!(sgrow.kind, RowKind::Suggestion(id));
-        assert!(sgrow.label.starts_with('\u{25cb}'), "○ latent badge: {}", sgrow.label);
+        assert!(
+            sgrow.label.starts_with('\u{25cb}'),
+            "○ latent badge: {}",
+            sgrow.label
+        );
         assert!(sgrow.label.contains("pr#7 fix tear"));
 
         // Suggestions shade in BELOW the live session.
-        let live_pos = rows.iter().position(|r| matches!(r.kind, RowKind::Switch(_))).unwrap();
-        let sug_pos = rows.iter().position(|r| matches!(r.kind, RowKind::Suggestion(_))).unwrap();
+        let live_pos = rows
+            .iter()
+            .position(|r| matches!(r.kind, RowKind::Switch(_)))
+            .unwrap();
+        let sug_pos = rows
+            .iter()
+            .position(|r| matches!(r.kind, RowKind::Suggestion(_)))
+            .unwrap();
         assert!(live_pos < sug_pos, "suggestions shade in below sessions");
 
         // Accept spawns a session aimed at the task.
         let before = inproc.with_registry(|r| r.sessions.len());
-        assert!(bridge.spawn_suggestion(id, 1000), "accept spawns the suggestion");
+        assert!(
+            bridge.spawn_suggestion(id, 1000),
+            "accept spawns the suggestion"
+        );
         let after = inproc.with_registry(|r| r.sessions.len());
-        assert_eq!(after, before + 1, "a session was spawned for the suggestion");
+        assert_eq!(
+            after,
+            before + 1,
+            "a session was spawned for the suggestion"
+        );
     }
 
     /// The reserved band quota: with more sessions than the render window,
@@ -1532,9 +1634,12 @@ mod tests {
                 .expect("spawn");
             let mut root = String::from("/code/p/");
             root.push_str(&name);
-            praca
-                .index
-                .upsert(praca::SessionRecord::for_project(sid, PathBuf::from(root), SessionNameStyle::Emoji, now));
+            praca.index.upsert(praca::SessionRecord::for_project(
+                sid,
+                PathBuf::from(root),
+                SessionNameStyle::Emoji,
+                now,
+            ));
         }
         let store = Arc::new(SuggestionStore::new());
         let items: Vec<crate::suggest::Suggestion> = (0..4)
@@ -1586,8 +1691,13 @@ mod tests {
         // Non-empty query: plain append (fuzzy rank rules) — band after
         // every matching session row.
         let rows = bridge.list("sess", now);
-        let last_switch = rows.iter().rposition(|r| matches!(r.kind, RowKind::Switch(_))).unwrap();
-        let first_sug = rows.iter().position(|r| matches!(r.kind, RowKind::Suggestion(_)));
+        let last_switch = rows
+            .iter()
+            .rposition(|r| matches!(r.kind, RowKind::Switch(_)))
+            .unwrap();
+        let first_sug = rows
+            .iter()
+            .position(|r| matches!(r.kind, RowKind::Suggestion(_)));
         if let Some(fs) = first_sug {
             assert!(last_switch < fs, "with a query the band appends below");
         }
@@ -1608,7 +1718,11 @@ mod tests {
         let bridge = bridge_with_suggestions(praca, inproc, Arc::clone(&store), 6);
         assert!(bridge.health_footer().is_none(), "no polls yet → quiet");
 
-        store.record_poll(crate::suggest::SourceKind::TendRepos, crate::suggest::SourceStatus::Ok, 1000);
+        store.record_poll(
+            crate::suggest::SourceKind::TendRepos,
+            crate::suggest::SourceStatus::Ok,
+            1000,
+        );
         assert!(bridge.health_footer().is_none(), "all-Ok → quiet");
 
         store.record_poll(
@@ -1655,7 +1769,9 @@ mod tests {
             crate::suggest::SourceStatus::Error,
             2000,
         );
-        let footer = bridge.health_footer().expect("a degraded lane still surfaces");
+        let footer = bridge
+            .health_footer()
+            .expect("a degraded lane still surfaces");
         assert!(footer.contains("1\u{25d1}"), "{footer}");
         assert!(
             !footer.contains("jira-sprint"),
@@ -1670,7 +1786,10 @@ mod tests {
         );
         let footer = bridge.health_footer().expect("blind lanes surface");
         assert!(footer.contains("grafana-alerts\u{1f511}"), "{footer}");
-        assert!(footer.contains("1\u{25d1}"), "both halves coexist: {footer}");
+        assert!(
+            footer.contains("1\u{25d1}"),
+            "both halves coexist: {footer}"
+        );
     }
 
     /// A lane whose instrument has never run is `Unknown`, and the footer
@@ -1713,7 +1832,9 @@ mod tests {
             crate::suggest::SourceStatus::Error,
             2000,
         );
-        let footer = bridge.health_footer().expect("a polled-never-ok lane surfaces");
+        let footer = bridge
+            .health_footer()
+            .expect("a polled-never-ok lane surfaces");
         assert!(footer.contains("grafana-alerts\u{2717}"), "{footer}");
     }
 
@@ -1728,7 +1849,10 @@ mod tests {
         );
         let bridge = bridge_with_suggestions(praca::Praca::new(), inproc, store, 0);
         let rows = bridge.list("", 1000);
-        assert!(rows.iter().all(|r| !matches!(r.kind, RowKind::Suggestion(_))));
+        assert!(
+            rows.iter()
+                .all(|r| !matches!(r.kind, RowKind::Suggestion(_)))
+        );
     }
 
     #[test]
@@ -1738,8 +1862,18 @@ mod tests {
         store.ingest(
             crate::suggest::SourceKind::GitBranchPr,
             vec![
-                sug(crate::suggest::SourceKind::GitBranchPr, "1", "alpha task", "/x"),
-                sug(crate::suggest::SourceKind::GitBranchPr, "2", "beta task", "/y"),
+                sug(
+                    crate::suggest::SourceKind::GitBranchPr,
+                    "1",
+                    "alpha task",
+                    "/x",
+                ),
+                sug(
+                    crate::suggest::SourceKind::GitBranchPr,
+                    "2",
+                    "beta task",
+                    "/y",
+                ),
             ],
             1000,
         );
@@ -1755,7 +1889,10 @@ mod tests {
 
     #[test]
     fn kickoff_keystrokes_trims_and_appends_enter() {
-        assert_eq!(kickoff_keystrokes("gh pr checkout 7"), b"gh pr checkout 7\n");
+        assert_eq!(
+            kickoff_keystrokes("gh pr checkout 7"),
+            b"gh pr checkout 7\n"
+        );
         assert_eq!(kickoff_keystrokes("  spaced  "), b"spaced\n");
     }
 
@@ -1800,7 +1937,10 @@ mod tests {
         let bridge = bridge_with_suggestions(praca::Praca::new(), Arc::clone(&inproc), store, 6);
 
         let before = inproc.with_registry(|r| r.sessions.len());
-        assert!(bridge.spawn_suggestion(id, 1000), "first accept spawns the task session");
+        assert!(
+            bridge.spawn_suggestion(id, 1000),
+            "first accept spawns the task session"
+        );
         let after_first = inproc.with_registry(|r| r.sessions.len());
         assert_eq!(after_first, before + 1);
 
@@ -1842,7 +1982,9 @@ mod tests {
         // After: it's a live ● Switch row, and its ○ suggestion twin is gone.
         let rows = bridge.list("", 1001);
         assert!(
-            !rows.iter().any(|r| matches!(r.kind, RowKind::Suggestion(_))),
+            !rows
+                .iter()
+                .any(|r| matches!(r.kind, RowKind::Suggestion(_))),
             "no duplicate ○ suggestion row once the task is live"
         );
         assert!(
@@ -1855,7 +1997,12 @@ mod tests {
     fn stale_suggestion_shows_a_freshness_age_fresh_stays_calm() {
         let (inproc, _live) = live_inproc();
         let store = Arc::new(SuggestionStore::new());
-        let s = sug(crate::suggest::SourceKind::GitBranchPr, "x#1", "review parser", "/code/x");
+        let s = sug(
+            crate::suggest::SourceKind::GitBranchPr,
+            "x#1",
+            "review parser",
+            "/code/x",
+        );
         let id = s.id;
         // first_seen_ms = 1_000_000 → first_seen at unix-second 1000.
         store.ingest(crate::suggest::SourceKind::GitBranchPr, vec![s], 1_000_000);
@@ -1867,7 +2014,11 @@ mod tests {
             .iter()
             .find(|r| matches!(r.kind, RowKind::Suggestion(i) if i == id))
             .unwrap();
-        assert!(row.label.contains("10m"), "stale row shows its age: {}", row.label);
+        assert!(
+            row.label.contains("10m"),
+            "stale row shows its age: {}",
+            row.label
+        );
 
         // 1 minute later → fresh, no stamp (the title has no 'm', so this is clean).
         let fresh = bridge.list("", 1000 + 60);
@@ -1888,14 +2039,22 @@ mod tests {
         let store = Arc::new(SuggestionStore::new());
         store.ingest(
             crate::suggest::SourceKind::GitBranchPr,
-            vec![sug(crate::suggest::SourceKind::GitBranchPr, "1", "alpha", "/x")],
+            vec![sug(
+                crate::suggest::SourceKind::GitBranchPr,
+                "1",
+                "alpha",
+                "/x",
+            )],
             1000,
         );
         let bridge = bridge_with_suggestions(praca::Praca::new(), inproc, Arc::clone(&store), 6);
 
         let first = bridge.list("", 1000);
         assert_eq!(
-            first.iter().filter(|r| matches!(r.kind, RowKind::Suggestion(_))).count(),
+            first
+                .iter()
+                .filter(|r| matches!(r.kind, RowKind::Suggestion(_)))
+                .count(),
             1,
             "first list memoizes one suggestion"
         );
@@ -1911,7 +2070,10 @@ mod tests {
         );
         let second = bridge.list("", 1100);
         assert_eq!(
-            second.iter().filter(|r| matches!(r.kind, RowKind::Suggestion(_))).count(),
+            second
+                .iter()
+                .filter(|r| matches!(r.kind, RowKind::Suggestion(_)))
+                .count(),
             2,
             "the cache invalidated on the generation change"
         );

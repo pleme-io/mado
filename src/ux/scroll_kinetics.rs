@@ -121,7 +121,11 @@ impl ScrollKinetics {
         // window.
         let same_dir =
             lines != 0.0 && self.velocity != 0.0 && lines.signum() == self.velocity.signum();
-        self.streak = if same_dir { self.streak.saturating_add(1) } else { 0 };
+        self.streak = if same_dir {
+            self.streak.saturating_add(1)
+        } else {
+            0
+        };
 
         let accel = (1.0 + self.streak as f32 * ACCEL_STEP).min(ACCEL_MAX);
         self.sustained = false;
@@ -319,7 +323,10 @@ mod tests {
             k.tick(DT, FRICTION);
         }
         assert!(k.is_sustained());
-        assert_eq!(k.velocity, -500.0, "sustained velocity is held, not decayed");
+        assert_eq!(
+            k.velocity, -500.0,
+            "sustained velocity is held, not decayed"
+        );
         k.stop();
         assert!(!k.is_active());
         assert!(!k.is_sustained());
@@ -345,7 +352,10 @@ mod tests {
         );
         // A frantic burst still saturates at the velocity cap.
         k.add_impulse(5000.0, 1000.0);
-        assert_eq!(k.velocity, 1000.0, "acceleration still saturates at the cap");
+        assert_eq!(
+            k.velocity, 1000.0,
+            "acceleration still saturates at the cap"
+        );
         // Opposite direction is also clamped.
         k.add_impulse(-9000.0, 1000.0);
         assert_eq!(k.velocity, -1000.0);

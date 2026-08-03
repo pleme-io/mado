@@ -265,10 +265,18 @@ pub struct MadoAuroraConfig {
     pub horizon: f32,
 }
 
-pub(crate) fn default_aurora_intensity() -> f32 { 0.35 }
-pub(crate) fn default_aurora_drift() -> f32 { 1.0 }
-pub(crate) fn default_aurora_shimmer() -> f32 { 0.5 }
-pub(crate) fn default_aurora_horizon() -> f32 { 0.62 }
+pub(crate) fn default_aurora_intensity() -> f32 {
+    0.35
+}
+pub(crate) fn default_aurora_drift() -> f32 {
+    1.0
+}
+pub(crate) fn default_aurora_shimmer() -> f32 {
+    0.5
+}
+pub(crate) fn default_aurora_horizon() -> f32 {
+    0.62
+}
 
 impl Default for MadoAuroraConfig {
     fn default() -> Self {
@@ -312,9 +320,15 @@ pub struct MadoCrtConfig {
     pub aberration: f32,
 }
 
-fn default_crt_curvature() -> f32 { 0.08 }
-fn default_crt_vignette() -> f32 { 0.25 }
-fn default_crt_aberration() -> f32 { 0.6 }
+fn default_crt_curvature() -> f32 {
+    0.08
+}
+fn default_crt_vignette() -> f32 {
+    0.25
+}
+fn default_crt_aberration() -> f32 {
+    0.6
+}
 
 impl Default for MadoCrtConfig {
     fn default() -> Self {
@@ -341,8 +355,12 @@ pub struct MadoScanlinesConfig {
     pub intensity: f32,
 }
 
-fn default_scanlines_period_px() -> f32 { 3.0 }
-fn default_scanlines_intensity() -> f32 { 0.25 }
+fn default_scanlines_period_px() -> f32 {
+    3.0
+}
+fn default_scanlines_intensity() -> f32 {
+    0.25
+}
 
 impl Default for MadoScanlinesConfig {
     fn default() -> Self {
@@ -371,9 +389,15 @@ pub struct MadoBloomConfig {
     pub radius_px: f32,
 }
 
-fn default_bloom_threshold() -> f32 { 0.75 }
-fn default_bloom_intensity() -> f32 { 0.6 }
-fn default_bloom_radius_px() -> f32 { 2.5 }
+fn default_bloom_threshold() -> f32 {
+    0.75
+}
+fn default_bloom_intensity() -> f32 {
+    0.6
+}
+fn default_bloom_radius_px() -> f32 {
+    2.5
+}
 
 impl Default for MadoBloomConfig {
     fn default() -> Self {
@@ -403,8 +427,12 @@ pub struct MadoGlowOnBellConfig {
     pub glow_retain: f32,
 }
 
-fn default_glow_radius_px() -> f32 { 240.0 }
-fn default_glow_retain() -> f32 { 0.92 }
+fn default_glow_radius_px() -> f32 {
+    240.0
+}
+fn default_glow_retain() -> f32 {
+    0.92
+}
 
 impl Default for MadoGlowOnBellConfig {
     fn default() -> Self {
@@ -432,11 +460,16 @@ pub struct MadoGrainConfig {
     pub opacity: f32,
 }
 
-fn default_grain_opacity() -> f32 { 0.015 }
+fn default_grain_opacity() -> f32 {
+    0.015
+}
 
 impl Default for MadoGrainConfig {
     fn default() -> Self {
-        Self { enabled: false, opacity: default_grain_opacity() }
+        Self {
+            enabled: false,
+            opacity: default_grain_opacity(),
+        }
     }
 }
 
@@ -461,9 +494,15 @@ pub struct MadoWindowDepthConfig {
     pub softness: f32,
 }
 
-fn default_window_depth_depth() -> f32 { 0.08 }
-fn default_window_depth_intensity() -> f32 { 0.22 }
-fn default_window_depth_softness() -> f32 { 1.6 }
+fn default_window_depth_depth() -> f32 {
+    0.08
+}
+fn default_window_depth_intensity() -> f32 {
+    0.22
+}
+fn default_window_depth_softness() -> f32 {
+    1.6
+}
 
 impl Default for MadoWindowDepthConfig {
     fn default() -> Self {
@@ -550,16 +589,30 @@ pub struct MadoSnowConfig {
 // aesthetic of escriba / tear / frost / frostmourne). Operators
 // who want snow opt in via `effects.snow.enabled = true` in
 // mado.yaml — every snow param remains tuned + ready for them.
-fn default_snow_enabled() -> bool { false }
+fn default_snow_enabled() -> bool {
+    false
+}
 // Subtle by default — the shader's MAX_ALPHA cap (0.35) keeps
 // text readable, but a lower intensity makes the snow feel like
 // a gentle backdrop rather than a foreground effect.
-fn default_snow_intensity() -> f32 { 0.30 }
-fn default_snow_layer_count() -> f32 { 2.0 }
-fn default_snow_temperature() -> f32 { 0.20 }
-fn default_snow_pile_rate() -> f32 { 0.04 }
-fn default_snow_melt_rate() -> f32 { 0.06 }
-fn default_snow_pulse_retain() -> f32 { 0.92 }
+fn default_snow_intensity() -> f32 {
+    0.30
+}
+fn default_snow_layer_count() -> f32 {
+    2.0
+}
+fn default_snow_temperature() -> f32 {
+    0.20
+}
+fn default_snow_pile_rate() -> f32 {
+    0.04
+}
+fn default_snow_melt_rate() -> f32 {
+    0.06
+}
+fn default_snow_pulse_retain() -> f32 {
+    0.92
+}
 
 impl Default for MadoSnowConfig {
     fn default() -> Self {
@@ -1374,14 +1427,24 @@ impl BellNotifyConfig {
     /// Bare tier — no bell audio, no bell notifications.
     #[must_use]
     pub fn bare() -> Self {
-        Self { audible: false, sound: BellSound::Beep, notify: false, urgency: NotifyUrgency::Normal }
+        Self {
+            audible: false,
+            sound: BellSound::Beep,
+            notify: false,
+            urgency: NotifyUrgency::Normal,
+        }
     }
 
     /// Prescribed tier — bell audio + notifications off (the visual bell
     /// suffices; audio/banner are opt-in because bells are frequent).
     #[must_use]
     pub fn prescribed() -> Self {
-        Self { audible: false, sound: BellSound::Beep, notify: false, urgency: NotifyUrgency::Normal }
+        Self {
+            audible: false,
+            sound: BellSound::Beep,
+            notify: false,
+            urgency: NotifyUrgency::Normal,
+        }
     }
 }
 
@@ -1491,7 +1554,11 @@ impl CommandCompletionConfig {
         self.enabled
             && !(self.respect_alt_screen && c.used_alt_screen)
             && c.duration_ms >= self.min_duration_ms
-            && (if c.succeeded() { self.notify_on_success } else { self.notify_on_failure })
+            && (if c.succeeded() {
+                self.notify_on_success
+            } else {
+                self.notify_on_failure
+            })
             && !(self.only_when_unfocused && focused)
     }
 }
@@ -1518,13 +1585,21 @@ impl OscNotifyConfig {
     /// Bare tier — all OSC notification protocols off.
     #[must_use]
     pub fn bare() -> Self {
-        Self { osc9: false, osc777: false, osc99: false }
+        Self {
+            osc9: false,
+            osc777: false,
+            osc99: false,
+        }
     }
 
     /// Prescribed tier — all OSC notification protocols on.
     #[must_use]
     pub fn prescribed() -> Self {
-        Self { osc9: true, osc777: true, osc99: true }
+        Self {
+            osc9: true,
+            osc777: true,
+            osc99: true,
+        }
     }
 }
 
@@ -1698,7 +1773,11 @@ impl BellFlashConfig {
     /// Prescribed tier — mado's opinion: a subtle 200 ms linear fade.
     #[must_use]
     pub fn prescribed() -> Self {
-        Self { duration_ms: 200, peak_alpha: 0.10, easing: EasingConfig::Linear }
+        Self {
+            duration_ms: 200,
+            peak_alpha: 0.10,
+            easing: EasingConfig::Linear,
+        }
     }
 }
 
@@ -1862,12 +1941,24 @@ impl MadoTearScrollbackImpose {
     }
 
     pub fn apply_to(&self, cfg: &mut tear_config::ScrollbackConfig) {
-        if let Some(v) = self.rows { cfg.rows = v; }
-        if let Some(v) = self.max_bytes { cfg.max_bytes = v; }
-        if let Some(v) = self.keep_on_clear { cfg.keep_on_clear = v; }
-        if let Some(v) = self.on_alt_screen { cfg.on_alt_screen = v; }
-        if let Some(v) = self.skip_blank_rows { cfg.skip_blank_rows = v; }
-        if let Some(v) = self.reflow_on_resize { cfg.reflow_on_resize = v; }
+        if let Some(v) = self.rows {
+            cfg.rows = v;
+        }
+        if let Some(v) = self.max_bytes {
+            cfg.max_bytes = v;
+        }
+        if let Some(v) = self.keep_on_clear {
+            cfg.keep_on_clear = v;
+        }
+        if let Some(v) = self.on_alt_screen {
+            cfg.on_alt_screen = v;
+        }
+        if let Some(v) = self.skip_blank_rows {
+            cfg.skip_blank_rows = v;
+        }
+        if let Some(v) = self.reflow_on_resize {
+            cfg.reflow_on_resize = v;
+        }
     }
 }
 
@@ -1879,7 +1970,10 @@ impl MadoTearImpose {
         self.prefix.is_some()
             || self.default_shell.is_some()
             || self.status_visible.is_some()
-            || self.scrollback.as_ref().is_some_and(|s| s.has_any_override())
+            || self
+                .scrollback
+                .as_ref()
+                .is_some_and(|s| s.has_any_override())
     }
 
     /// Apply overrides in-place onto a TearConfig snapshot. Each
@@ -2751,9 +2845,7 @@ impl QuickTerminalConfig {
             QuickTerminalEdge::Left | QuickTerminalEdge::Right => {
                 (axis(screen_w, fraction), screen_h)
             }
-            QuickTerminalEdge::Center => {
-                (axis(screen_w, fraction), axis(screen_h, fraction))
-            }
+            QuickTerminalEdge::Center => (axis(screen_w, fraction), axis(screen_h, fraction)),
         }
     }
 
@@ -2770,9 +2862,7 @@ impl QuickTerminalConfig {
             QuickTerminalEdge::Top | QuickTerminalEdge::Left => (0, 0),
             QuickTerminalEdge::Bottom => (0, sh.saturating_sub(h)),
             QuickTerminalEdge::Right => (sw.saturating_sub(w), 0),
-            QuickTerminalEdge::Center => {
-                ((sw.saturating_sub(w)) / 2, (sh.saturating_sub(h)) / 2)
-            }
+            QuickTerminalEdge::Center => ((sw.saturating_sub(w)) / 2, (sh.saturating_sub(h)) / 2),
         }
     }
 }
@@ -3027,10 +3117,10 @@ impl MadoConfig {
             },
             // ── Cursor ───────────────────────────────────────────
             cursor: CursorConfig {
-                style: CursorStyle::Block,    // most universal
-                blink: false,                  // no animation in bare
-                blink_rate_ms: 0,              // moot since blink=false
-                color: String::new(),          // empty = use foreground
+                style: CursorStyle::Block, // most universal
+                blink: false,              // no animation in bare
+                blink_rate_ms: 0,          // moot since blink=false
+                color: String::new(),      // empty = use foreground
                 opacity: 1.0,
                 text_color: None,
                 click_to_move: false,
@@ -3117,9 +3207,7 @@ impl MadoConfig {
             // dispatch) also constructs via ::new() (zero bindings)
             // in bare contexts. Per operator principle:
             // nothing bound until explicitly opted in.
-            keybinds: KeybindConfig {
-                custom: Vec::new(),
-            },
+            keybinds: KeybindConfig { custom: Vec::new() },
             // ── Quick Terminal ───────────────────────────────────
             quick_terminal: QuickTerminalConfig {
                 enabled: false,
@@ -3944,7 +4032,9 @@ impose:
         let cfg: MadoTearConfig = serde_yaml_ng::from_str(yaml).unwrap();
         assert_eq!(cfg.mode, TearMode::Always);
         assert_eq!(
-            cfg.socket.as_deref().map(|p| p.to_string_lossy().to_string()),
+            cfg.socket
+                .as_deref()
+                .map(|p| p.to_string_lossy().to_string()),
             Some("/tmp/managed-tear.sock".to_string())
         );
         assert!(!cfg.auto_spawn);
@@ -4338,7 +4428,11 @@ mod tests {
             !b.tear.session_picker_surface_presets,
             "bare must NOT surface latent presets"
         );
-        assert_eq!(b.tear.session_picker_badges, BadgeMode::Off, "bare = no badges");
+        assert_eq!(
+            b.tear.session_picker_badges,
+            BadgeMode::Off,
+            "bare = no badges"
+        );
         // PRESCRIBED: features on, but with REASONABLE defaults — presets
         // surface (empty until saved) + Auto badges (only when mixed), so the
         // common all-live picker stays byte-identical to legacy.
@@ -4527,7 +4621,7 @@ mod tests {
             janitors: JanitorsConfig::default(),
             links: MadoLinksConfig::default(),
             feedback: FeedbackConfig::default(),
-        display: DisplayConfig::default(),
+            display: DisplayConfig::default(),
             notifications: NotificationsConfig::default(),
             motion: MotionConfig::default(),
             browser: BrowserConfig::default(),
@@ -4710,8 +4804,7 @@ mod tests {
             bell_flash: BellFlashConfig::prescribed(),
         };
         let yaml = serde_yaml_ng::to_string(&mo).expect("serialize motion config");
-        let back: MotionConfig =
-            serde_yaml_ng::from_str(&yaml).expect("round-trip motion config");
+        let back: MotionConfig = serde_yaml_ng::from_str(&yaml).expect("round-trip motion config");
         assert_eq!(mo, back);
     }
 
@@ -4734,12 +4827,19 @@ mod tests {
         // the tiered fold). Set only the duration; peak + easing stay ours.
         let cfg: BellFlashConfig =
             serde_yaml_ng::from_str("duration_ms: 400\n").expect("partial bell_flash YAML");
-        assert_eq!(cfg.duration_ms, 400, "the overridden knob takes the user's value");
+        assert_eq!(
+            cfg.duration_ms, 400,
+            "the overridden knob takes the user's value"
+        );
         assert!(
             (cfg.peak_alpha - 0.10).abs() < 1e-6,
             "the un-set peak_alpha inherits our opinion"
         );
-        assert_eq!(cfg.easing, EasingConfig::Linear, "the un-set easing inherits our opinion");
+        assert_eq!(
+            cfg.easing,
+            EasingConfig::Linear,
+            "the un-set easing inherits our opinion"
+        );
 
         // …and a fully-custom shape morphs completely.
         let cfg2: BellFlashConfig =
@@ -4793,12 +4893,18 @@ mod tests {
         assert!((MadoSnowConfig::default().snow_pulse_retain - 0.92).abs() < 1e-6);
         let glow: MadoGlowOnBellConfig =
             serde_yaml_ng::from_str("glow_retain: 0.5\n").expect("partial glow YAML");
-        assert!((glow.glow_retain - 0.5).abs() < 1e-6, "the overridden knob takes the value");
+        assert!(
+            (glow.glow_retain - 0.5).abs() < 1e-6,
+            "the overridden knob takes the value"
+        );
         assert!(!glow.enabled, "un-set `enabled` inherits its default");
         let snow: MadoSnowConfig =
             serde_yaml_ng::from_str("snow_pulse_retain: 0.8\n").expect("partial snow YAML");
         assert!((snow.snow_pulse_retain - 0.8).abs() < 1e-6);
-        assert!((snow.intensity - 0.30).abs() < 1e-6, "un-set intensity inherits our opinion");
+        assert!(
+            (snow.intensity - 0.30).abs() < 1e-6,
+            "un-set intensity inherits our opinion"
+        );
     }
 
     #[test]
@@ -4942,7 +5048,11 @@ mod tests {
             sources_replace: true,
             ..SuggestionsConfig::prescribed()
         };
-        assert_eq!(cfg4.effective_sources().len(), 1, "replace mode is an allow-list");
+        assert_eq!(
+            cfg4.effective_sources().len(),
+            1,
+            "replace mode is an allow-list"
+        );
     }
 
     /// PARITY GATE against the extracted substrate: mado's local
@@ -5018,7 +5128,11 @@ mod tests {
             assert_eq!(ours.len(), theirs.len(), "case {i}: merged length diverged");
             for (m, z) in ours.iter().zip(theirs.iter()) {
                 assert_eq!(m.kind, z.kind, "case {i}: kind order diverged");
-                assert_eq!(m.enabled, z.enabled, "case {i}: enabled diverged for {}", m.kind);
+                assert_eq!(
+                    m.enabled, z.enabled,
+                    "case {i}: enabled diverged for {}",
+                    m.kind
+                );
                 assert_eq!(
                     m.interval_secs, z.interval_secs,
                     "case {i}: interval diverged for {}",
@@ -5029,7 +5143,11 @@ mod tests {
                     "case {i}: max_items diverged for {}",
                     m.kind
                 );
-                assert_eq!(m.params, z.params, "case {i}: params diverged for {}", m.kind);
+                assert_eq!(
+                    m.params, z.params,
+                    "case {i}: params diverged for {}",
+                    m.kind
+                );
             }
         }
     }
@@ -5065,7 +5183,11 @@ mod tests {
             ("bloom.threshold", e.bloom.threshold, bloom.threshold),
             ("bloom.intensity", e.bloom.intensity, bloom.intensity),
             ("bloom.radius_px", e.bloom.radius_px, bloom.radius_px),
-            ("glow_on_bell.radius_px", e.glow_on_bell.radius_px, glow.radius_px),
+            (
+                "glow_on_bell.radius_px",
+                e.glow_on_bell.radius_px,
+                glow.radius_px,
+            ),
             ("grain.opacity", e.grain.opacity, grain.opacity),
         ];
         let mut failures = Vec::new();
@@ -5104,7 +5226,10 @@ mod tests {
         // the Nord content. Holds in BOTH the prescribed-default and the
         // chromeless bare tier.
         let d = MadoConfig::default().window.macos;
-        assert!(!d.native_tabs, "native macOS tab bar must be OFF by default");
+        assert!(
+            !d.native_tabs,
+            "native macOS tab bar must be OFF by default"
+        );
         assert_eq!(d.titlebar, TitlebarStyle::Flush);
         assert_eq!(d.appearance, WindowAppearance::Dark);
 
@@ -5250,12 +5375,18 @@ window:
         assert!(!config.behavior.wait_after_command);
         assert!(config.behavior.link_url);
         assert!(config.behavior.mouse_reporting);
-        assert_eq!(config.behavior.mouse_shift_capture, MouseShiftCapture::False);
+        assert_eq!(
+            config.behavior.mouse_shift_capture,
+            MouseShiftCapture::False
+        );
         // The kitty/ghostty default: column resizes REWRAP the
         // primary grid (M2).
         assert!(config.behavior.reflow_on_resize);
         assert!(config.shell_integration.enabled);
-        assert_eq!(config.shell_integration.features, ["cursor", "sudo", "title"]);
+        assert_eq!(
+            config.shell_integration.features,
+            ["cursor", "sudo", "title"]
+        );
         assert!(config.performance.vsync);
         assert_eq!(config.performance.target_fps, None);
         assert_eq!(config.performance.fps_cap, None);
@@ -5411,7 +5542,12 @@ window:
 
     #[test]
     fn test_cursor_style_variants() {
-        for style in [CursorStyle::Block, CursorStyle::BlockHollow, CursorStyle::Bar, CursorStyle::Underline] {
+        for style in [
+            CursorStyle::Block,
+            CursorStyle::BlockHollow,
+            CursorStyle::Bar,
+            CursorStyle::Underline,
+        ] {
             let json = serde_json::to_string(&style).unwrap();
             let restored: CursorStyle = serde_json::from_str(&json).unwrap();
             assert_eq!(style, restored);
@@ -5964,10 +6100,30 @@ active_profile: "dark"
         let pin = PathBuf::from("/pinned/workdir");
         let mut failures = Vec::new();
         let rows: &[(bool, Option<PathBuf>, Option<PathBuf>, &str)] = &[
-            (true, None, None, "knob on → None (inherit mado's process cwd)"),
-            (false, None, home.clone(), "knob off → $HOME neutral default"),
-            (true, Some(pin.clone()), Some(pin.clone()), "explicit wd beats knob on"),
-            (false, Some(pin.clone()), Some(pin.clone()), "explicit wd beats knob off"),
+            (
+                true,
+                None,
+                None,
+                "knob on → None (inherit mado's process cwd)",
+            ),
+            (
+                false,
+                None,
+                home.clone(),
+                "knob off → $HOME neutral default",
+            ),
+            (
+                true,
+                Some(pin.clone()),
+                Some(pin.clone()),
+                "explicit wd beats knob on",
+            ),
+            (
+                false,
+                Some(pin.clone()),
+                Some(pin.clone()),
+                "explicit wd beats knob off",
+            ),
         ];
         for (knob, wd, expected, why) in rows {
             let mut config = MadoConfig::default();
@@ -6037,7 +6193,10 @@ active_profile: "dark"
         let e: EnvironmentConfig = serde_yaml_ng::from_str(yaml).unwrap();
         assert_eq!(e.vars.get("EDITOR").unwrap(), "nvim");
         assert_eq!(e.vars.get("MY_VAR").unwrap(), "hello");
-        assert_eq!(e.working_directory.as_ref().unwrap().to_str().unwrap(), "/tmp/test");
+        assert_eq!(
+            e.working_directory.as_ref().unwrap().to_str().unwrap(),
+            "/tmp/test"
+        );
         assert_eq!(e.initial_command.as_deref(), Some("nvim"));
     }
 
@@ -6106,7 +6265,10 @@ active_profile: "dark"
                 ..ProfileConfig::default()
             },
         );
-        let config = MadoConfig { profiles, ..MadoConfig::default() };
+        let config = MadoConfig {
+            profiles,
+            ..MadoConfig::default()
+        };
         let applied = config.with_profile("highlight");
         assert_eq!(applied.selection.foreground.as_deref(), Some("#ffffff"));
         assert_eq!(applied.selection.background.as_deref(), Some("#ff0000"));
@@ -6127,7 +6289,10 @@ active_profile: "dark"
                 ..ProfileConfig::default()
             },
         );
-        let config = MadoConfig { profiles, ..MadoConfig::default() };
+        let config = MadoConfig {
+            profiles,
+            ..MadoConfig::default()
+        };
         let applied = config.with_profile("fullscreen");
         assert!(applied.window.fullscreen);
         assert!(applied.window.maximize);

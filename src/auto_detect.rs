@@ -54,7 +54,11 @@ const FONT_FAMILY_LADDER: &[&str] = &[
 /// Preferred-fallback ladder for the symbol/icon family (ends at the primary
 /// Nerd font, which patches the same ranges). Consumed when wired.
 #[allow(dead_code)]
-const FONT_SYMBOLS_LADDER: &[&str] = &["Symbols Nerd Font Mono", "Symbols Nerd Font", "JetBrainsMono Nerd Font"];
+const FONT_SYMBOLS_LADDER: &[&str] = &[
+    "Symbols Nerd Font Mono",
+    "Symbols Nerd Font",
+    "JetBrainsMono Nerd Font",
+];
 
 kanchi::defaxes! {
     /// Window dimensions — 60% of the focused display's visible area,
@@ -141,7 +145,9 @@ mod tests {
         assert_eq!(FALLBACK_THEME, "nord");
         assert_ne!(
             FALLBACK_THEME,
-            ishou_tokens::FleetTheme::prescribed_default().resolve().name,
+            ishou_tokens::FleetTheme::prescribed_default()
+                .resolve()
+                .name,
             "mado's fallback theme is a deliberate divergence from the fleet default",
         );
     }

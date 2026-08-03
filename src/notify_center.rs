@@ -389,7 +389,10 @@ mod tests {
         c.coalesce_window_ms = 1000;
         let mut g = NotificationGate::new(&c);
         let t0 = Instant::now();
-        assert_eq!(g.admit(&note("bell"), NotifyWhen::Always, false, t0), GateDecision::Deliver);
+        assert_eq!(
+            g.admit(&note("bell"), NotifyWhen::Always, false, t0),
+            GateDecision::Deliver
+        );
         // 500ms later — within window → coalesced.
         let t1 = t0 + Duration::from_millis(500);
         assert_eq!(
@@ -398,7 +401,10 @@ mod tests {
         );
         // 1200ms after the *first* delivery → outside window → delivered.
         let t2 = t0 + Duration::from_millis(1200);
-        assert_eq!(g.admit(&note("bell"), NotifyWhen::Always, false, t2), GateDecision::Deliver);
+        assert_eq!(
+            g.admit(&note("bell"), NotifyWhen::Always, false, t2),
+            GateDecision::Deliver
+        );
     }
 
     #[test]
@@ -407,8 +413,14 @@ mod tests {
         c.coalesce_window_ms = 5000;
         let mut g = NotificationGate::new(&c);
         let t = Instant::now();
-        assert_eq!(g.admit(&note("a"), NotifyWhen::Always, false, t), GateDecision::Deliver);
-        assert_eq!(g.admit(&note("b"), NotifyWhen::Always, false, t), GateDecision::Deliver);
+        assert_eq!(
+            g.admit(&note("a"), NotifyWhen::Always, false, t),
+            GateDecision::Deliver
+        );
+        assert_eq!(
+            g.admit(&note("b"), NotifyWhen::Always, false, t),
+            GateDecision::Deliver
+        );
     }
 
     #[test]
@@ -433,7 +445,10 @@ mod tests {
         );
         // 61s later the window has slid → delivered again.
         let t1 = t0 + Duration::from_secs(61);
-        assert_eq!(g.admit(&note("y"), NotifyWhen::Always, false, t1), GateDecision::Deliver);
+        assert_eq!(
+            g.admit(&note("y"), NotifyWhen::Always, false, t1),
+            GateDecision::Deliver
+        );
     }
 
     #[test]

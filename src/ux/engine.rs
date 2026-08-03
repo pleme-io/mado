@@ -28,8 +28,8 @@ use madori::event::{KeyEvent, Modifiers, MouseButton, ScrollDelta};
 
 use crate::dir_picker::DirPickerState;
 use crate::font_size::{BoundedFontSize, FontSizeSteps};
-use crate::picker::state::PickerSource;
 use crate::keybind::{Action, KeybindManager};
+use crate::picker::state::PickerSource;
 use crate::render::{SharedTerminal, TerminalRenderer};
 use crate::search::SearchState;
 use crate::selection::{CellPos, Selection};
@@ -202,10 +202,8 @@ pub struct InputEngine {
     snap: mado::float::SnapSystem,
     /// Per-surface browser state (FSM + engine + url + fetch epoch), keyed by
     /// browser id. See [`crate::browser_engine::BrowserSurface`].
-    browsers: std::collections::HashMap<
-        mado::float::BrowserId,
-        crate::browser_engine::BrowserSurface,
-    >,
+    browsers:
+        std::collections::HashMap<mado::float::BrowserId, crate::browser_engine::BrowserSurface>,
     /// The next browser id to mint.
     next_browser_id: mado::float::BrowserId,
     /// Completed off-thread page fetches (the sender is cloned into each worker).
@@ -299,10 +297,7 @@ impl InputEngine {
     /// mutated but never handed to the renderer → silent invisible
     /// highlight) is unwritable by construction.
     #[must_use]
-    pub fn attach_to_renderer(
-        renderer: &mut TerminalRenderer,
-        params: InputEngineParams,
-    ) -> Self {
+    pub fn attach_to_renderer(renderer: &mut TerminalRenderer, params: InputEngineParams) -> Self {
         renderer.set_selection(Arc::clone(&params.shared.selection));
         renderer.set_search(Arc::clone(&params.shared.search));
         renderer.set_dir_picker(Arc::clone(&params.shared.dir_picker));
@@ -622,9 +617,9 @@ impl InputEngine {
                         RowKind::Switch(id) => Some(id),
                         // Latent presets, suggestions, and create rows are not
                         // live sessions — nothing to save as a preset.
-                        RowKind::Instantiate(_)
-                        | RowKind::Suggestion(_)
-                        | RowKind::Create(_) => None,
+                        RowKind::Instantiate(_) | RowKind::Suggestion(_) | RowKind::Create(_) => {
+                            None
+                        }
                     })
                 };
                 let saved = match (self.session_picker_bridge.as_ref(), session) {
@@ -822,8 +817,9 @@ impl InputEngine {
                     let term = self.terminal.read();
                     let cols = term.cols();
                     let cursor_row = term.cursor().row;
-                    let row_cells: Vec<_> =
-                        (0..cols).map(|c| term.cell(cursor_row, c).clone()).collect();
+                    let row_cells: Vec<_> = (0..cols)
+                        .map(|c| term.cell(cursor_row, c).clone())
+                        .collect();
                     (row_cells, cols, cursor_row)
                 };
                 let urls = crate::url::detect_urls_in_row(&row_cells, cols, cursor_row);
@@ -1278,8 +1274,9 @@ impl InputEngine {
                 }
                 let mut sp = self.session_picker.lock().unwrap();
                 if sp.open {
-                    sp.notice =
-                        Some(String::from("could not start that — it may have just resolved"));
+                    sp.notice = Some(String::from(
+                        "could not start that — it may have just resolved",
+                    ));
                 }
                 return;
             }
@@ -1340,7 +1337,10 @@ impl InputEngine {
         // must not resurrect the dead selection. (Machine contract:
         // `TypedInput` is effect-free; the matrix test pins it.)
         let step = self.pointer.on_event(PointerEvent::TypedInput);
-        debug_assert!(step.effects.is_empty(), "TypedInput is effect-free by contract");
+        debug_assert!(
+            step.effects.is_empty(),
+            "TypedInput is effect-free by contract"
+        );
         self.pointer = step.state;
         self.selection.lock().unwrap().clear();
         if !self.terminal.read().is_alternate_screen() {
@@ -1402,7 +1402,12 @@ impl InputEngine {
         let row = ((y as f32 - pad_phys) / ch).max(0.0) as usize;
         let (mouse_mode, sgr, term_cols, term_rows) = {
             let term = self.terminal.read();
-            (term.mouse_mode(), term.sgr_mouse(), term.cols(), term.rows())
+            (
+                term.mouse_mode(),
+                term.sgr_mouse(),
+                term.cols(),
+                term.rows(),
+            )
         };
         (
             col.min(term_cols.saturating_sub(1)),
@@ -1465,7 +1470,8 @@ impl InputEngine {
                     self.last_viewport,
                     mado::float::DragPhase::Released,
                 ) {
-                    self.float.set_rect(id, rect, mado::float::RectProvenance::Snapped);
+                    self.float
+                        .set_rect(id, rect, mado::float::RectProvenance::Snapped);
                 }
                 self.publish_float_panels();
                 return EventOutcome::consumed();
@@ -1745,11 +1751,7 @@ impl InputEngine {
     }
 
     /// The anchored span of the word under a viewport cell.
-    fn word_span_at(
-        &self,
-        row: usize,
-        col: usize,
-    ) -> Option<(SelectionAnchor, SelectionAnchor)> {
+    fn word_span_at(&self, row: usize, col: usize) -> Option<(SelectionAnchor, SelectionAnchor)> {
         let (rows, cols_count) = self.rows_snapshot();
         let (c0, c1) = crate::selection::word_bounds_in_row(
             CellPos { row, col },
@@ -1823,8 +1825,16 @@ impl InputEngine {
                 .collect::<Option<Vec<_>>>()
         };
         let Some(cands) = resolved else { return };
-        let start = cands.iter().min_by_key(|(pos, _)| *pos).expect("4 candidates").1;
-        let end = cands.iter().max_by_key(|(pos, _)| *pos).expect("4 candidates").1;
+        let start = cands
+            .iter()
+            .min_by_key(|(pos, _)| *pos)
+            .expect("4 candidates")
+            .1;
+        let end = cands
+            .iter()
+            .max_by_key(|(pos, _)| *pos)
+            .expect("4 candidates")
+            .1;
         self.selection.lock().unwrap().set_span(start, end);
     }
 
@@ -1841,9 +1851,15 @@ impl InputEngine {
             let (fx, fy) = (x as f32, y as f32);
             if let Some(surf) = self.float.get(id) {
                 use mado::float::RectExt;
-                let r = egaku::Rect::new(fx - offset.0, fy - offset.1, surf.rect.width, surf.rect.height)
-                    .clamp_within(self.last_viewport);
-                self.float.set_rect(id, r, mado::float::RectProvenance::FreeDragged);
+                let r = egaku::Rect::new(
+                    fx - offset.0,
+                    fy - offset.1,
+                    surf.rect.width,
+                    surf.rect.height,
+                )
+                .clamp_within(self.last_viewport);
+                self.float
+                    .set_rect(id, r, mado::float::RectProvenance::FreeDragged);
             }
             self.publish_float_panels();
             return EventOutcome::consumed();
@@ -2060,7 +2076,12 @@ impl InputEngine {
     /// Terminal::resize used to reset the app's scroll region;
     /// Terminal::resize is also same-dims-no-op now as the deeper
     /// guard).
-    pub fn on_resize(&mut self, _width: u32, _height: u32, _renderer: &TerminalRenderer) -> EventOutcome {
+    pub fn on_resize(
+        &mut self,
+        _width: u32,
+        _height: u32,
+        _renderer: &TerminalRenderer,
+    ) -> EventOutcome {
         // No push here: the reconciler (on_redraw_tick) converges on
         // RENDERED truth one frame later. madori dispatches events
         // BEFORE rendering, so the renderer's surface dims lag the
@@ -2121,12 +2142,7 @@ impl InputEngine {
                 match url::Url::parse(&url) {
                     Ok(parsed) => {
                         backend.set_loading();
-                        crate::browser_fetch::spawn_fetch(
-                            self.fetch_tx.clone(),
-                            id,
-                            parsed,
-                            epoch,
-                        );
+                        crate::browser_fetch::spawn_fetch(self.fetch_tx.clone(), id, parsed, epoch);
                     }
                     Err(e) => backend.render_error(&e.to_string()),
                 }
@@ -2212,10 +2228,7 @@ impl InputEngine {
 
     /// Publish the live float z-stack as a snapshot the read-only `browser_list`
     /// verb (MCP + vigy) consumes.
-    pub(crate) fn publish_browser_snapshot(
-        &self,
-        bridge: &crate::browser_bridge::BrowserBridge,
-    ) {
+    pub(crate) fn publish_browser_snapshot(&self, bridge: &crate::browser_bridge::BrowserBridge) {
         use mado::float::BrowserBackend;
         let rows = self
             .float
@@ -2296,7 +2309,12 @@ impl InputEngine {
             .map(|s| {
                 let (content, content_seqno) = self.browsers.get(&s.id).map_or_else(
                     || (None, 0),
-                    |bs| (Some(bs.backend.current_display_list()), bs.backend.content_seqno()),
+                    |bs| {
+                        (
+                            Some(bs.backend.current_display_list()),
+                            bs.backend.content_seqno(),
+                        )
+                    },
                 );
                 crate::render::FloatPanel {
                     id: s.id.0,
@@ -2532,7 +2550,10 @@ impl InputEngine {
             // Machine contract: `SelectionDangled` is effect-free;
             // the matrix test pins it.
             let step = self.pointer.on_event(PointerEvent::SelectionDangled);
-            debug_assert!(step.effects.is_empty(), "SelectionDangled is effect-free by contract");
+            debug_assert!(
+                step.effects.is_empty(),
+                "SelectionDangled is effect-free by contract"
+            );
             self.pointer = step.state;
         }
     }
@@ -2604,8 +2625,8 @@ mod tests {
     use madori::event::KeyCode;
     use parking_lot::RwLock;
     use tear_types::{
-        ControlError, ControlResult, Direction, InputPolicy, MultiplexerControl, PaneId,
-        SessionId, SessionSource, TearPane, TearSession, TearWindow, WindowId,
+        ControlError, ControlResult, Direction, InputPolicy, MultiplexerControl, PaneId, SessionId,
+        SessionSource, TearPane, TearSession, TearWindow, WindowId,
     };
 
     use super::*;
@@ -2752,8 +2773,7 @@ mod tests {
             kind: SinkKind,
             bridge: Option<Box<dyn crate::session_picker::SessionPickerBridge>>,
         ) -> Self {
-            let terminal: SharedTerminal =
-                Arc::new(RwLock::new(Terminal::new(80, 24)));
+            let terminal: SharedTerminal = Arc::new(RwLock::new(Terminal::new(80, 24)));
             let mut renderer = TerminalRenderer::new(
                 Arc::clone(&terminal),
                 14.0,
@@ -2774,8 +2794,7 @@ mod tests {
                 TermColor::WHITE,
             );
             let sent: Arc<StdMutex<Vec<Vec<u8>>>> = Arc::new(StdMutex::new(Vec::new()));
-            let resized: Arc<StdMutex<Vec<(u16, u16)>>> =
-                Arc::new(StdMutex::new(Vec::new()));
+            let resized: Arc<StdMutex<Vec<(u16, u16)>>> = Arc::new(StdMutex::new(Vec::new()));
             let clipboard = Arc::new(MockClipboard::new());
             let control = Arc::new(RecordingControl::new());
             let pane = PaneId::from_seed("input-engine-test");
@@ -2890,7 +2909,14 @@ mod tests {
             ((col as f64 + 0.5) * cw, (row as f64 + 0.5) * ch)
         }
 
-        fn button(&mut self, button: MouseButton, pressed: bool, col: usize, row: usize, modifiers: Modifiers) {
+        fn button(
+            &mut self,
+            button: MouseButton,
+            pressed: bool,
+            col: usize,
+            row: usize,
+            modifiers: Modifiers,
+        ) {
             let (x, y) = self.cell_px(col, row);
             self.engine
                 .on_mouse_button(button, pressed, x, y, modifiers, &self.renderer);
@@ -3016,7 +3042,11 @@ mod tests {
         assert_eq!(h.terminal.read().scroll_offset(), 0);
         h.engine.apply_action(Action::SearchOpen, &mut h.renderer);
         for ch in ["n", "e", "e", "d", "l", "e"] {
-            h.key(KeyCode::Char(ch.chars().next().unwrap()), Some(ch), no_mods());
+            h.key(
+                KeyCode::Char(ch.chars().next().unwrap()),
+                Some(ch),
+                no_mods(),
+            );
         }
         let (count, target_abs) = {
             let st = h.engine.search.lock().unwrap();
@@ -3049,7 +3079,11 @@ mod tests {
         }
         h.engine.apply_action(Action::SearchOpen, &mut h.renderer);
         for ch in ["n", "e", "e", "d", "l", "e"] {
-            h.key(KeyCode::Char(ch.chars().next().unwrap()), Some(ch), no_mods());
+            h.key(
+                KeyCode::Char(ch.chars().next().unwrap()),
+                Some(ch),
+                no_mods(),
+            );
         }
         let before: Vec<usize> = h
             .engine
@@ -3070,7 +3104,10 @@ mod tests {
             .iter()
             .map(|m| m.row)
             .collect();
-        assert_eq!(before, after, "absolute rows must not shift with the viewport");
+        assert_eq!(
+            before, after,
+            "absolute rows must not shift with the viewport"
+        );
     }
 
     /// Search matches re-anchor across a grid resize (M2 review
@@ -3090,7 +3127,11 @@ mod tests {
         h.feed(b"\r\nneedle\r\n");
         h.engine.apply_action(Action::SearchOpen, &mut h.renderer);
         for ch in ["n", "e", "e", "d", "l", "e"] {
-            h.key(KeyCode::Char(ch.chars().next().unwrap()), Some(ch), no_mods());
+            h.key(
+                KeyCode::Char(ch.chars().next().unwrap()),
+                Some(ch),
+                no_mods(),
+            );
         }
         let rows = |h: &Harness| -> Vec<usize> {
             h.engine
@@ -3308,13 +3349,8 @@ mod tests {
         h.feed(b"\x1b[>1u");
         let out = h.key(KeyCode::Escape, None, no_mods());
         assert!(out.consumed);
-        let expected = crate::keybind::kitty_encode_key(
-            &KeyCode::Escape,
-            &None,
-            &no_mods(),
-            1,
-        )
-        .expect("escape must kitty-encode under flags=1");
+        let expected = crate::keybind::kitty_encode_key(&KeyCode::Escape, &None, &no_mods(), 1)
+            .expect("escape must kitty-encode under flags=1");
         assert_eq!(h.sent_bytes(), vec![expected]);
     }
 
@@ -3637,9 +3673,7 @@ mod tests {
             h.feed(b"\x1b[?2004h");
             // Clipboard payload embeds the bracketed-paste terminator
             // — the classic paste-injection vector.
-            h.clipboard
-                .copy_text("echo hi\x1b[201~rm -rf /")
-                .unwrap();
+            h.clipboard.copy_text("echo hi\x1b[201~rm -rf /").unwrap();
             let out = h.engine.apply_action(Action::Paste, &mut h.renderer);
             assert!(matches!(out, ActionOutcome::Consumed(_)));
             assert_eq!(
@@ -3662,8 +3696,11 @@ mod tests {
             h.feed(b"\x1b[?2004h"); // arm bracketed paste
             // A 1×1 opaque-red image on the clipboard, no text — the
             // copied-screenshot shape.
-            h.clipboard
-                .set_image(ClipboardImage { width: 1, height: 1, rgba: vec![255, 0, 0, 255] });
+            h.clipboard.set_image(ClipboardImage {
+                width: 1,
+                height: 1,
+                rgba: vec![255, 0, 0, 255],
+            });
             let out = h.engine.apply_action(Action::Paste, &mut h.renderer);
             assert!(matches!(out, ActionOutcome::Consumed(_)));
             let sent = h.sent_bytes();
@@ -3695,7 +3732,11 @@ mod tests {
         h.engine.apply_action(Action::Paste, &mut h.renderer);
         assert_eq!(
             h.sent_bytes(),
-            vec![b"\x1b[200~".to_vec(), b"plain text".to_vec(), b"\x1b[201~".to_vec()],
+            vec![
+                b"\x1b[200~".to_vec(),
+                b"plain text".to_vec(),
+                b"\x1b[201~".to_vec()
+            ],
             "no image ⇒ ordinary bracketed text paste"
         );
     }
@@ -3770,12 +3811,18 @@ mod tests {
         check(&h, Overlay::Search, "after SearchOpen");
         // Injected switch: the single-enum machine closes the search
         // bar when the picker opens over it (decision 2026-06-12).
-        h.engine.apply_action(Action::DirPickerOpen, &mut h.renderer);
+        h.engine
+            .apply_action(Action::DirPickerOpen, &mut h.renderer);
         check(&h, Overlay::DirPicker, "after DirPickerOpen over Search");
         // Session picker switches over the dir picker (same single-enum
         // switch semantics — dir picker closes, session picker opens).
-        h.engine.apply_action(Action::SessionPickerOpen, &mut h.renderer);
-        check(&h, Overlay::SessionPicker, "after SessionPickerOpen over DirPicker");
+        h.engine
+            .apply_action(Action::SessionPickerOpen, &mut h.renderer);
+        check(
+            &h,
+            Overlay::SessionPicker,
+            "after SessionPickerOpen over DirPicker",
+        );
         // Raw Esc closes the picker (raw-key class, not the atlas).
         h.key(KeyCode::Escape, None, no_mods());
         check(&h, Overlay::None, "after Esc closed the picker");
@@ -3886,7 +3933,11 @@ mod tests {
             assert!(!sp.disabled, "a bridge means switching is enabled");
             // Frecency order is the bridge's roster order, verbatim.
             assert_eq!(sp.results.len(), 3);
-            assert_eq!(row_switch_id(&sp.results[0]), Some(sid("tide")), "first roster row first");
+            assert_eq!(
+                row_switch_id(&sp.results[0]),
+                Some(sid("tide")),
+                "first roster row first"
+            );
             assert_eq!(row_switch_id(&sp.results[2]), Some(sid("flow")));
             assert_eq!(sp.selected, 0, "top row highlighted on open");
         }
@@ -4008,10 +4059,18 @@ mod tests {
         // The next tick observes the broadcast → re-lists once → the new row
         // appears on the OPEN board without reopening.
         h.engine.on_redraw_tick(&h.renderer);
-        assert_eq!(list_count.load(SeqCst), 2, "the broadcast drove exactly one re-list");
+        assert_eq!(
+            list_count.load(SeqCst),
+            2,
+            "the broadcast drove exactly one re-list"
+        );
         {
             let sp = h.engine.session_picker.lock().unwrap();
-            assert_eq!(sp.results.len(), 1, "the newly-streamed row is on the open board");
+            assert_eq!(
+                sp.results.len(),
+                1,
+                "the newly-streamed row is on the open board"
+            );
             assert_eq!(row_switch_id(&sp.results[0]), Some(sid("task")));
         }
 
@@ -4108,7 +4167,11 @@ mod tests {
         // Enter on row 1 → switch fails → board stays open with the notice,
         // cursor teleported to row 0 by the autorefresh re-list.
         h.key(KeyCode::Enter, None, no_mods());
-        assert_eq!(*attempts.lock().unwrap(), 1, "the failed switch was attempted");
+        assert_eq!(
+            *attempts.lock().unwrap(),
+            1,
+            "the failed switch was attempted"
+        );
         {
             let sp = h.engine.session_picker.lock().unwrap();
             assert!(sp.open, "failed accept keeps the board open");
@@ -4197,9 +4260,21 @@ mod tests {
         // coords 41;13. Left → 16, Right → 18.
         let mut failures: Vec<String> = Vec::new();
         for (button, press, release) in [
-            (MouseButton::Left, &b"\x1b[<16;41;13M"[..], &b"\x1b[<16;41;13m"[..]),
-            (MouseButton::Middle, &b"\x1b[<17;41;13M"[..], &b"\x1b[<17;41;13m"[..]),
-            (MouseButton::Right, &b"\x1b[<18;41;13M"[..], &b"\x1b[<18;41;13m"[..]),
+            (
+                MouseButton::Left,
+                &b"\x1b[<16;41;13M"[..],
+                &b"\x1b[<16;41;13m"[..],
+            ),
+            (
+                MouseButton::Middle,
+                &b"\x1b[<17;41;13M"[..],
+                &b"\x1b[<17;41;13m"[..],
+            ),
+            (
+                MouseButton::Right,
+                &b"\x1b[<18;41;13M"[..],
+                &b"\x1b[<18;41;13m"[..],
+            ),
         ] {
             h.drain_sent();
             h.button(button, true, 40, 12, mods);
@@ -4312,7 +4387,12 @@ mod tests {
         let out = h.key(
             KeyCode::Char('s'),
             None,
-            Modifiers { ctrl: true, alt: false, shift: false, meta: false },
+            Modifiers {
+                ctrl: true,
+                alt: false,
+                shift: false,
+                meta: false,
+            },
         );
         // Routed to session management (the picker opened)…
         assert!(
@@ -4334,7 +4414,12 @@ mod tests {
         let out = h.key(
             KeyCode::Char('s'),
             None,
-            Modifiers { ctrl: true, alt: false, shift: false, meta: false },
+            Modifiers {
+                ctrl: true,
+                alt: false,
+                shift: false,
+                meta: false,
+            },
         );
         assert!(out.consumed, "Ctrl-S is consumed, not forwarded");
         assert!(
@@ -4527,7 +4612,11 @@ mod tests {
             h.scroll_offset() > before,
             "momentum off scrolls immediately (behavior-preserving)"
         );
-        assert_eq!(h.velocity(), 0.0, "no velocity injected when momentum is off");
+        assert_eq!(
+            h.velocity(),
+            0.0,
+            "no velocity injected when momentum is off"
+        );
     }
 
     /// `dt == 0.0` ticks move nothing even with velocity pending — the

@@ -6,8 +6,14 @@
 /// An observability service an environment exposes. Each maps to a concrete
 /// source implementation (M2) speaking the right query dialect.
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash,
-    serde::Serialize, serde::Deserialize,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
     pleme_kindstr_derive::KindStr,
 )]
 #[serde(rename_all = "kebab-case")]
@@ -170,8 +176,14 @@ mod tests {
         assert_eq!(ServiceKind::Kubernetes.slug(), "kubernetes");
         assert_eq!(ServiceKind::GitHubActions.slug(), "github-actions");
         // The derived paired inverse round-trips every slug.
-        assert_eq!(ServiceKind::from_str_kind("github-actions"), Some(ServiceKind::GitHubActions));
-        assert_eq!(ServiceKind::from_str_kind("victoria-logs"), Some(ServiceKind::VictoriaLogs));
+        assert_eq!(
+            ServiceKind::from_str_kind("github-actions"),
+            Some(ServiceKind::GitHubActions)
+        );
+        assert_eq!(
+            ServiceKind::from_str_kind("victoria-logs"),
+            Some(ServiceKind::VictoriaLogs)
+        );
         assert_eq!(ServiceKind::from_str_kind("nope"), None);
     }
 

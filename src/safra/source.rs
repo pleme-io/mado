@@ -40,8 +40,8 @@ pub trait CellSource: Send + Sync {
 
 #[cfg(test)]
 pub(crate) mod mock {
-    use super::*;
     use super::super::schema::ServiceKind;
+    use super::*;
 
     /// A canned source that returns a fixed batch — the test seam for the cell +
     /// engine reconcile loops. Records whether it saw the materialized secret so

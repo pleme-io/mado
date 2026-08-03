@@ -105,13 +105,28 @@ pub struct RowResult {
 
 impl RowResult {
     fn passed(name: &'static str, detail: String) -> Self {
-        Self { name, pass: true, skipped: false, detail }
+        Self {
+            name,
+            pass: true,
+            skipped: false,
+            detail,
+        }
     }
     fn failed(name: &'static str, detail: String) -> Self {
-        Self { name, pass: false, skipped: false, detail }
+        Self {
+            name,
+            pass: false,
+            skipped: false,
+            detail,
+        }
     }
     fn env_skipped(name: &'static str, detail: String) -> Self {
-        Self { name, pass: false, skipped: true, detail }
+        Self {
+            name,
+            pass: false,
+            skipped: true,
+            detail,
+        }
     }
 }
 
@@ -148,10 +163,7 @@ pub async fn run(shell: &str) -> Result<E2eSummary> {
     // frostmourne session.
     cmd.kill_on_drop(true);
     let transport = TokioChildProcess::new(cmd).context("spawn `mado mcp` child")?;
-    let client = ()
-        .serve(transport)
-        .await
-        .context("rmcp client handshake with `mado mcp` child")?;
+    let client = ().serve(transport).await.context("rmcp client handshake with `mado mcp` child")?;
 
     let mut rows: Vec<RowResult> = Vec::new();
 
@@ -189,7 +201,10 @@ pub async fn run(shell: &str) -> Result<E2eSummary> {
                 }
                 Err(e) => rows.push(RowResult::failed(
                     "prompt_visible",
-                    format!("no non-blank grid content within {:?}: {e:#}", row_timeout()),
+                    format!(
+                        "no non-blank grid content within {:?}: {e:#}",
+                        row_timeout()
+                    ),
                 )),
             }
         }
@@ -230,12 +245,7 @@ pub async fn run(shell: &str) -> Result<E2eSummary> {
     // ── row 4: echo_marker round-trip ────────────────────────────
     match &session_id {
         Some(id) if enter_ok => {
-            let keys = [
-                "echo ",
-                E2E_MARKER,
-                "\n",
-            ]
-            .concat();
+            let keys = ["echo ", E2E_MARKER, "\n"].concat();
             match send_keys(&client, id, &keys).await {
                 Ok(()) => {
                     match wait_for_output(&client, id, |text| {
@@ -465,9 +475,7 @@ fn visits_for(db: &std::path::Path, dir: &str) -> Result<usize> {
         .entries()
         .context("read hermetic wadachi entries")?
         .iter()
-        .filter(|e| {
-            e.path.file_name().and_then(|n| n.to_str()) == Some(basename.as_str())
-        })
+        .filter(|e| e.path.file_name().and_then(|n| n.to_str()) == Some(basename.as_str()))
         .map(|e| e.visits.len())
         .sum())
 }
@@ -539,7 +547,12 @@ fn hermetic_shell_env(extra: &[(&str, String)]) -> serde_json::Value {
         "HISTFILE".into(),
         serde_json::Value::String(format!("{h}/.zsh_history")),
     );
-    for k in ["XDG_STATE_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME", "XDG_CONFIG_HOME"] {
+    for k in [
+        "XDG_STATE_HOME",
+        "XDG_DATA_HOME",
+        "XDG_CACHE_HOME",
+        "XDG_CONFIG_HOME",
+    ] {
         map.insert(
             k.into(),
             serde_json::Value::String(format!("{h}/{}", k.to_lowercase())),
@@ -632,7 +645,9 @@ where
     }
     anyhow::bail!(
         "condition not met before deadline; last grid (non-blank lines only): {:?}",
-        last.lines().filter(|l| !l.trim().is_empty()).collect::<Vec<_>>(),
+        last.lines()
+            .filter(|l| !l.trim().is_empty())
+            .collect::<Vec<_>>(),
     )
 }
 
@@ -689,14 +704,35 @@ mod tests {
         let env = super::hermetic_shell_env(&[("WADACHI_DB", "/tmp/x.db".into())]);
         let map = env.as_object().expect("object env");
         let home = map["HOME"].as_str().expect("HOME set");
-        assert!(!home.is_empty() && home != real_home, "hermetic HOME must differ from real");
-        assert!(std::path::Path::new(home).is_dir(), "hermetic HOME is created");
+        assert!(
+            !home.is_empty() && home != real_home,
+            "hermetic HOME must differ from real"
+        );
+        assert!(
+            std::path::Path::new(home).is_dir(),
+            "hermetic HOME is created"
+        );
         let hist = map["HISTFILE"].as_str().expect("HISTFILE set");
-        assert!(hist.starts_with(home), "HISTFILE lives under the hermetic HOME");
-        for k in ["XDG_STATE_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME", "XDG_CONFIG_HOME"] {
-            assert!(map[k].as_str().unwrap().starts_with(home), "{k} under hermetic HOME");
+        assert!(
+            hist.starts_with(home),
+            "HISTFILE lives under the hermetic HOME"
+        );
+        for k in [
+            "XDG_STATE_HOME",
+            "XDG_DATA_HOME",
+            "XDG_CACHE_HOME",
+            "XDG_CONFIG_HOME",
+        ] {
+            assert!(
+                map[k].as_str().unwrap().starts_with(home),
+                "{k} under hermetic HOME"
+            );
         }
-        assert_eq!(map["WADACHI_DB"].as_str().unwrap(), "/tmp/x.db", "extras merge");
+        assert_eq!(
+            map["WADACHI_DB"].as_str().unwrap(),
+            "/tmp/x.db",
+            "extras merge"
+        );
     }
 
     /// Two calls must not share a HOME (parallel rows stay isolated).

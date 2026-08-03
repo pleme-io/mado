@@ -39,9 +39,15 @@ pub const ROWS_DEFAULT: usize = 12;
 pub struct RowBudgetBounds;
 
 impl Bounds<usize> for RowBudgetBounds {
-    fn min() -> usize { ROWS_MIN }
-    fn max() -> usize { ROWS_MAX }
-    fn default() -> usize { ROWS_DEFAULT }
+    fn min() -> usize {
+        ROWS_MIN
+    }
+    fn max() -> usize {
+        ROWS_MAX
+    }
+    fn default() -> usize {
+        ROWS_DEFAULT
+    }
 }
 
 /// A visible-row count proven (by type) to satisfy `ROWS_MIN <= n <= ROWS_MAX`.
@@ -98,14 +104,23 @@ mod tests {
     fn budget_is_refined_clamped_at_the_floor() {
         // A viewport with no usable height still yields the typed MIN (1),
         // never 0 — a picker always shows the selected row.
-        assert_eq!(RowBudget::for_viewport(0.0, 20.0, 8.0, 10.0).get(), ROWS_MIN);
-        assert_eq!(RowBudget::for_viewport(120.0, 0.0, 8.0, 10.0).get(), ROWS_MIN);
+        assert_eq!(
+            RowBudget::for_viewport(0.0, 20.0, 8.0, 10.0).get(),
+            ROWS_MIN
+        );
+        assert_eq!(
+            RowBudget::for_viewport(120.0, 0.0, 8.0, 10.0).get(),
+            ROWS_MIN
+        );
     }
 
     #[test]
     fn budget_saturates_at_the_ceiling() {
         // A pathologically tall viewport clamps to the typed MAX, not usize::MAX.
-        assert_eq!(RowBudget::for_viewport(1_000_000.0, 1.0, 0.0, 0.0).get(), ROWS_MAX);
+        assert_eq!(
+            RowBudget::for_viewport(1_000_000.0, 1.0, 0.0, 0.0).get(),
+            ROWS_MAX
+        );
     }
 
     #[test]
@@ -115,7 +130,11 @@ mod tests {
         // renderer's window-cap can never diverge.
         let (height, line_h, pad) = (800.0_f32, 24.0_f32, 12.0_f32);
         let pad_y = line_h * 0.5;
-        let expected = (((height - 2.0 * pad - 2.0 * pad_y) / line_h).floor() as i64).max(1) as usize;
-        assert_eq!(RowBudget::for_viewport(height, line_h, pad, pad_y).get(), expected);
+        let expected =
+            (((height - 2.0 * pad - 2.0 * pad_y) / line_h).floor() as i64).max(1) as usize;
+        assert_eq!(
+            RowBudget::for_viewport(height, line_h, pad, pad_y).get(),
+            expected
+        );
     }
 }

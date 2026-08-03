@@ -237,7 +237,10 @@ mod tests {
         assert_eq!(s.source, SourceKind::Safra);
         assert!(s.title.contains("OOMKilled"));
         assert_eq!(s.urgency, crate::suggest::core::Urgency::Critical);
-        assert!(s.spawn.name().starts_with("rio"), "session scoped to the env");
+        assert!(
+            s.spawn.name().starts_with("rio"),
+            "session scoped to the env"
+        );
         // The projected id is stable across polls (dedup + shade continuity).
         let PollOutcome::Fetched(again) = a.poll(&env, &scfg) else {
             panic!("second poll fetches");

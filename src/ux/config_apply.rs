@@ -17,8 +17,8 @@
 //! always read back from the shikumi store, never smuggled through
 //! the callback.
 
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::config::{CursorStyle, MadoConfig, MadoEffectsConfig};
 use crate::render::TerminalRenderer;
@@ -115,22 +115,54 @@ impl ConfigSetters for TerminalRenderer {
     // Inherent methods win name resolution over trait methods, so
     // each line delegates to the real (derive-generated or
     // hand-written) setter — no recursion is expressible here.
-    fn set_ansi_colors(&mut self, v: [Color; 16]) { TerminalRenderer::set_ansi_colors(self, v); }
-    fn set_selection_bg(&mut self, v: [f32; 4]) { TerminalRenderer::set_selection_bg(self, v); }
-    fn set_cursor_color(&mut self, v: [f32; 4]) { TerminalRenderer::set_cursor_color(self, v); }
-    fn set_search_status_color(&mut self, v: Color) { TerminalRenderer::set_search_status_color(self, v); }
-    fn set_search_current_color(&mut self, v: Color) { TerminalRenderer::set_search_current_color(self, v); }
-    fn set_search_other_color(&mut self, v: Color) { TerminalRenderer::set_search_other_color(self, v); }
-    fn set_bg_fg(&mut self, bg: wgpu::Color, fg: Color) { TerminalRenderer::set_bg_fg(self, bg, fg); }
-    fn set_font_size(&mut self, v: f32) { TerminalRenderer::set_font_size(self, v); }
-    fn set_cursor_style(&mut self, v: CursorStyle) { TerminalRenderer::set_cursor_style(self, v); }
-    fn set_cursor_blink(&mut self, v: bool) { TerminalRenderer::set_cursor_blink(self, v); }
-    fn set_cursor_blink_rate_ms(&mut self, v: u32) { TerminalRenderer::set_cursor_blink_rate_ms(self, v); }
-    fn set_padding(&mut self, v: f32) { TerminalRenderer::set_padding(self, v); }
-    fn set_bold_is_bright(&mut self, v: bool) { TerminalRenderer::set_bold_is_bright(self, v); }
-    fn set_reduce_motion(&mut self, v: bool) { TerminalRenderer::set_reduce_motion(self, v); }
-    fn set_effects_config(&mut self, v: MadoEffectsConfig) { TerminalRenderer::set_effects_config(self, v); }
-    fn set_ambience_budget_fps(&mut self, v: u32) { TerminalRenderer::set_ambience_budget_fps(self, v); }
+    fn set_ansi_colors(&mut self, v: [Color; 16]) {
+        TerminalRenderer::set_ansi_colors(self, v);
+    }
+    fn set_selection_bg(&mut self, v: [f32; 4]) {
+        TerminalRenderer::set_selection_bg(self, v);
+    }
+    fn set_cursor_color(&mut self, v: [f32; 4]) {
+        TerminalRenderer::set_cursor_color(self, v);
+    }
+    fn set_search_status_color(&mut self, v: Color) {
+        TerminalRenderer::set_search_status_color(self, v);
+    }
+    fn set_search_current_color(&mut self, v: Color) {
+        TerminalRenderer::set_search_current_color(self, v);
+    }
+    fn set_search_other_color(&mut self, v: Color) {
+        TerminalRenderer::set_search_other_color(self, v);
+    }
+    fn set_bg_fg(&mut self, bg: wgpu::Color, fg: Color) {
+        TerminalRenderer::set_bg_fg(self, bg, fg);
+    }
+    fn set_font_size(&mut self, v: f32) {
+        TerminalRenderer::set_font_size(self, v);
+    }
+    fn set_cursor_style(&mut self, v: CursorStyle) {
+        TerminalRenderer::set_cursor_style(self, v);
+    }
+    fn set_cursor_blink(&mut self, v: bool) {
+        TerminalRenderer::set_cursor_blink(self, v);
+    }
+    fn set_cursor_blink_rate_ms(&mut self, v: u32) {
+        TerminalRenderer::set_cursor_blink_rate_ms(self, v);
+    }
+    fn set_padding(&mut self, v: f32) {
+        TerminalRenderer::set_padding(self, v);
+    }
+    fn set_bold_is_bright(&mut self, v: bool) {
+        TerminalRenderer::set_bold_is_bright(self, v);
+    }
+    fn set_reduce_motion(&mut self, v: bool) {
+        TerminalRenderer::set_reduce_motion(self, v);
+    }
+    fn set_effects_config(&mut self, v: MadoEffectsConfig) {
+        TerminalRenderer::set_effects_config(self, v);
+    }
+    fn set_ambience_budget_fps(&mut self, v: u32) {
+        TerminalRenderer::set_ambience_budget_fps(self, v);
+    }
 }
 
 /// The render-facing values a config resolves to — the same
@@ -464,22 +496,54 @@ mod tests {
     }
 
     impl ConfigSetters for CountingSetters {
-        fn set_ansi_colors(&mut self, _: [Color; 16]) { self.calls.push("set_ansi_colors"); }
-        fn set_selection_bg(&mut self, _: [f32; 4]) { self.calls.push("set_selection_bg"); }
-        fn set_cursor_color(&mut self, _: [f32; 4]) { self.calls.push("set_cursor_color"); }
-        fn set_search_status_color(&mut self, _: Color) { self.calls.push("set_search_status_color"); }
-        fn set_search_current_color(&mut self, _: Color) { self.calls.push("set_search_current_color"); }
-        fn set_search_other_color(&mut self, _: Color) { self.calls.push("set_search_other_color"); }
-        fn set_bg_fg(&mut self, _: wgpu::Color, _: Color) { self.calls.push("set_bg_fg"); }
-        fn set_font_size(&mut self, _: f32) { self.calls.push("set_font_size"); }
-        fn set_cursor_style(&mut self, _: CursorStyle) { self.calls.push("set_cursor_style"); }
-        fn set_cursor_blink(&mut self, _: bool) { self.calls.push("set_cursor_blink"); }
-        fn set_cursor_blink_rate_ms(&mut self, _: u32) { self.calls.push("set_cursor_blink_rate_ms"); }
-        fn set_padding(&mut self, _: f32) { self.calls.push("set_padding"); }
-        fn set_bold_is_bright(&mut self, _: bool) { self.calls.push("set_bold_is_bright"); }
-        fn set_reduce_motion(&mut self, _: bool) { self.calls.push("set_reduce_motion"); }
-        fn set_effects_config(&mut self, _: MadoEffectsConfig) { self.calls.push("set_effects_config"); }
-        fn set_ambience_budget_fps(&mut self, _: u32) { self.calls.push("set_ambience_budget_fps"); }
+        fn set_ansi_colors(&mut self, _: [Color; 16]) {
+            self.calls.push("set_ansi_colors");
+        }
+        fn set_selection_bg(&mut self, _: [f32; 4]) {
+            self.calls.push("set_selection_bg");
+        }
+        fn set_cursor_color(&mut self, _: [f32; 4]) {
+            self.calls.push("set_cursor_color");
+        }
+        fn set_search_status_color(&mut self, _: Color) {
+            self.calls.push("set_search_status_color");
+        }
+        fn set_search_current_color(&mut self, _: Color) {
+            self.calls.push("set_search_current_color");
+        }
+        fn set_search_other_color(&mut self, _: Color) {
+            self.calls.push("set_search_other_color");
+        }
+        fn set_bg_fg(&mut self, _: wgpu::Color, _: Color) {
+            self.calls.push("set_bg_fg");
+        }
+        fn set_font_size(&mut self, _: f32) {
+            self.calls.push("set_font_size");
+        }
+        fn set_cursor_style(&mut self, _: CursorStyle) {
+            self.calls.push("set_cursor_style");
+        }
+        fn set_cursor_blink(&mut self, _: bool) {
+            self.calls.push("set_cursor_blink");
+        }
+        fn set_cursor_blink_rate_ms(&mut self, _: u32) {
+            self.calls.push("set_cursor_blink_rate_ms");
+        }
+        fn set_padding(&mut self, _: f32) {
+            self.calls.push("set_padding");
+        }
+        fn set_bold_is_bright(&mut self, _: bool) {
+            self.calls.push("set_bold_is_bright");
+        }
+        fn set_reduce_motion(&mut self, _: bool) {
+            self.calls.push("set_reduce_motion");
+        }
+        fn set_effects_config(&mut self, _: MadoEffectsConfig) {
+            self.calls.push("set_effects_config");
+        }
+        fn set_ambience_budget_fps(&mut self, _: u32) {
+            self.calls.push("set_ambience_budget_fps");
+        }
     }
 
     fn call_kind(c: &SetterCall) -> &'static str {
@@ -677,7 +741,11 @@ mod tests {
 
         let calls = diff(&old, &new);
         let kinds: Vec<&str> = calls.iter().map(call_kind).collect();
-        for required in ["SearchStatusColor", "SearchCurrentColor", "SearchOtherColor"] {
+        for required in [
+            "SearchStatusColor",
+            "SearchCurrentColor",
+            "SearchOtherColor",
+        ] {
             assert!(
                 kinds.contains(&required),
                 "vellum hot-reload must emit {required}, got {kinds:?}"
@@ -688,10 +756,19 @@ mod tests {
         assert!(calls.contains(&SetterCall::SearchCurrentColor(vellum.search_current)));
         assert!(calls.contains(&SetterCall::SearchOtherColor(vellum.search_others)));
         // The three fire in palette order: after CursorColor, before BgFg.
-        let cur = kinds.iter().position(|k| *k == "CursorColor").expect("CursorColor");
-        let status = kinds.iter().position(|k| *k == "SearchStatusColor").expect("SearchStatusColor");
+        let cur = kinds
+            .iter()
+            .position(|k| *k == "CursorColor")
+            .expect("CursorColor");
+        let status = kinds
+            .iter()
+            .position(|k| *k == "SearchStatusColor")
+            .expect("SearchStatusColor");
         let bgfg = kinds.iter().position(|k| *k == "BgFg").expect("BgFg");
-        assert!(cur < status && status < bgfg, "search surfaces ordered in the palette group: {kinds:?}");
+        assert!(
+            cur < status && status < bgfg,
+            "search surfaces ordered in the palette group: {kinds:?}"
+        );
     }
 
     #[test]
@@ -705,7 +782,12 @@ mod tests {
         let kinds: Vec<&str> = diff(&old, &new).iter().map(call_kind).collect();
         assert_eq!(
             kinds,
-            vec!["CursorStyle", "CursorBlinkRateMs", "Padding", "BoldIsBright"]
+            vec![
+                "CursorStyle",
+                "CursorBlinkRateMs",
+                "Padding",
+                "BoldIsBright"
+            ]
         );
     }
 
@@ -719,7 +801,11 @@ mod tests {
         new.performance.target_fps = Some(120);
         let calls = diff(&old, &new);
         let kinds: Vec<&str> = calls.iter().map(call_kind).collect();
-        assert_eq!(kinds, vec!["AmbienceBudgetFps"], "only the fps budget moves; got {calls:?}");
+        assert_eq!(
+            kinds,
+            vec!["AmbienceBudgetFps"],
+            "only the fps budget moves; got {calls:?}"
+        );
         assert!(calls.contains(&SetterCall::AmbienceBudgetFps(120)));
         // Through the executor: exactly one setter fires.
         let mut applier = ConfigApplier::new(old);

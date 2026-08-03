@@ -71,8 +71,7 @@ mod tests {
     use crate::suggest::env::MockEnvironment;
     use izumi::Source as _;
 
-    const FIXTURE: &str =
-        "nexus\t/code/github/pleme-io/nexus\n/code/github/pleme-io/mado\n\n";
+    const FIXTURE: &str = "nexus\t/code/github/pleme-io/nexus\n/code/github/pleme-io/mado\n\n";
 
     const MARKS_PATH: &str = "/home/op/.local/share/mado/marks";
 

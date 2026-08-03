@@ -14,5 +14,5 @@
 // keep the whole re-export shape without per-item allows.
 #[allow(unused_imports)]
 pub use izumi::refresh::{
-    spawn_interval_refresh, spawn_interval_refresh_nudged, LiveStore, Reactive, StopFlag,
+    LiveStore, Reactive, StopFlag, spawn_interval_refresh, spawn_interval_refresh_nudged,
 };

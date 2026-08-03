@@ -213,7 +213,10 @@ mod tests {
         // Empty text → no runs.
         assert_eq!(highlight_runs("", &[5]), Vec::new());
         // A leading match → first run is matched.
-        assert_eq!(highlight_runs("xy", &[0]), vec![(0..1, true), (1..2, false)]);
+        assert_eq!(
+            highlight_runs("xy", &[0]),
+            vec![(0..1, true), (1..2, false)]
+        );
         // Concatenating the run slices reconstructs the text exactly.
         let text = "pr#7 mado";
         let reconstructed: String = highlight_runs(text, &[0, 1, 5, 6, 7, 8])
@@ -241,7 +244,8 @@ mod tests {
         assert_eq!(plain.color, None, "lines use the role colour unless tinted");
         let faint = OverlayLine::new("row", LineRole::Row).with_alpha(64);
         assert_eq!(faint.alpha, 64);
-        let hot = OverlayLine::new("row", LineRole::Row).with_color(Some(Color::new(0xBF, 0x61, 0x6A)));
+        let hot =
+            OverlayLine::new("row", LineRole::Row).with_color(Some(Color::new(0xBF, 0x61, 0x6A)));
         assert_eq!(hot.color, Some(Color::new(0xBF, 0x61, 0x6A)));
         // builders leave text + role untouched (only opacity / colour).
         assert_eq!(faint.text, plain.text);

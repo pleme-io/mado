@@ -122,9 +122,7 @@ impl Selection {
     pub fn anchors(&self) -> Option<(SelectionAnchor, SelectionAnchor)> {
         match self.state {
             State::None => None,
-            State::Selecting { start, end } | State::Selected { start, end } => {
-                Some((start, end))
-            }
+            State::Selecting { start, end } | State::Selected { start, end } => Some((start, end)),
         }
     }
 }
@@ -357,12 +355,7 @@ mod tests {
         for r in &rows {
             let grid = vec![make_row(r.text)];
             let cols = r.text.len();
-            let got = word_bounds_in_row(
-                CellPos { row: 0, col: r.col },
-                &grid,
-                cols,
-                r.boundary,
-            );
+            let got = word_bounds_in_row(CellPos { row: 0, col: r.col }, &grid, cols, r.boundary);
             if got != r.want {
                 let mut msg = String::new();
                 let _ = write!(msg, "{}: want {:?}, got {got:?}", r.name, r.want);

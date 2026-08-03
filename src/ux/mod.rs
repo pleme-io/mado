@@ -42,5 +42,5 @@ pub use scroll::{
     ScrollGesture, ScrollSystem, WheelMode,
 };
 pub use scroll_kinetics::ScrollKinetics;
-pub use side_effects::{apply_side_effects, CommandCompletion, TerminalSideEffects};
+pub use side_effects::{CommandCompletion, TerminalSideEffects, apply_side_effects};
 pub use sinks::{PtySink, ResizeSink, ResponseWriter};

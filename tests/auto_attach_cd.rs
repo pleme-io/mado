@@ -32,8 +32,8 @@ use std::time::{Duration, Instant};
 
 use engate_attach::{Attach, Consumer};
 use praca::{AttachDecision, AttachPolicy, Praca, ProjectBinding, SessionIndex, SessionRecord};
-use tear_core::engate_producer::PaneProducer;
 use tear_core::InProcess;
+use tear_core::engate_producer::PaneProducer;
 use tear_types::engate_wrap::PaneSnapshotWrap;
 use tear_types::{MultiplexerControl, PaneId, SessionId, SessionSource};
 
@@ -67,15 +67,11 @@ impl Consumer for RecordingConsumer {
 }
 
 /// A live attach against `pane`, drained until quiescent.
-type LiveAttach =
-    Attach<engate_types::Live, PaneProducer, RecordingConsumer>;
+type LiveAttach = Attach<engate_types::Live, PaneProducer, RecordingConsumer>;
 
 fn attach_to(inproc: &Arc<InProcess>, pane: PaneId, model: RecordingConsumer) -> LiveAttach {
     let producer = PaneProducer::new(Arc::clone(inproc), pane);
-    let attach = Attach::builder()
-        .producer(producer)
-        .consumer(model)
-        .build();
+    let attach = Attach::builder().producer(producer).consumer(model).build();
     let (attach, history) = attach.subscribe().expect("subscribe");
     let attach = attach.replay(history).expect("replay");
     let mut attach = attach.start_live();

@@ -37,7 +37,13 @@ impl SafraCell {
         tuning: ResolvedTuning,
     ) -> Self {
         let ttl = kind.ttl_secs;
-        Self { kind, env, source, curated: CuratedSet::new(ttl), tuning }
+        Self {
+            kind,
+            env,
+            source,
+            curated: CuratedSet::new(ttl),
+            tuning,
+        }
     }
 
     /// The cadence (seconds) this cell's vigy agent should re-reconcile at.
@@ -57,10 +63,19 @@ impl SafraCell {
         let Some(endpoint) = self.env.endpoint(self.kind.service) else {
             // No endpoint for this kind on this environment — nothing to observe;
             // still age out anything stale.
-            return Delta { added: 0, updated: 0, expired: self.curated.decay(now) };
+            return Delta {
+                added: 0,
+                updated: 0,
+                expired: self.curated.decay(now),
+            };
         };
         let secret = endpoint.secret_ref.as_deref().and_then(|r| env.secret(r));
-        let ctx = ObserveCtx { env: &self.env, kind: &self.kind, endpoint, secret };
+        let ctx = ObserveCtx {
+            env: &self.env,
+            kind: &self.kind,
+            endpoint,
+            secret,
+        };
         let observed = self.source.observe(env, &ctx);
         let delta = self.curated.converge(observed, now);
         // Keep the backlog under control: evict the lowest-ranked beyond the cap
@@ -84,10 +99,10 @@ impl SafraCell {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::curated::Severity;
     use super::super::schema::{Endpoint, ServiceKind};
     use super::super::source::mock::MockSource;
+    use super::*;
     use crate::suggest::env::MockEnvironment;
 
     fn kind() -> TrackedDataKind {
@@ -112,7 +127,12 @@ mod tests {
     }
 
     fn tuning() -> ResolvedTuning {
-        ResolvedTuning { cadence_secs: 60, max_items: 50, enabled: true, quota_pct: 1.0 }
+        ResolvedTuning {
+            cadence_secs: 60,
+            max_items: 50,
+            enabled: true,
+            quota_pct: 1.0,
+        }
     }
 
     fn sig(id: &str, sev: Severity) -> Signal {
@@ -141,18 +161,36 @@ mod tests {
         let mut cell = SafraCell::new(kind(), env_rio(), src, tuning());
         cell.reconcile(&MockEnvironment::new());
         let d = cell.reconcile(&MockEnvironment::new());
-        assert_eq!(d, Delta { added: 0, updated: 1, expired: 0 }, "unchanged upstream = no churn");
+        assert_eq!(
+            d,
+            Delta {
+                added: 0,
+                updated: 1,
+                expired: 0
+            },
+            "unchanged upstream = no churn"
+        );
         assert_eq!(cell.ranked()[0].recurrence, 2);
     }
 
     #[test]
     fn missing_endpoint_is_a_noop_not_a_panic() {
         // A kind whose service the environment doesn't expose → decay-only no-op.
-        let datadog_kind = TrackedDataKind { service: ServiceKind::Datadog, ..kind() };
-        let src = Arc::new(MockSource { service: ServiceKind::Datadog, batch: vec![sig("x", Severity::Info)] });
+        let datadog_kind = TrackedDataKind {
+            service: ServiceKind::Datadog,
+            ..kind()
+        };
+        let src = Arc::new(MockSource {
+            service: ServiceKind::Datadog,
+            batch: vec![sig("x", Severity::Info)],
+        });
         let mut cell = SafraCell::new(datadog_kind, env_rio(), src, tuning());
         let d = cell.reconcile(&MockEnvironment::new());
-        assert_eq!(d, Delta::default(), "no rio Datadog endpoint → nothing observed");
+        assert_eq!(
+            d,
+            Delta::default(),
+            "no rio Datadog endpoint → nothing observed"
+        );
         assert_eq!(cell.len(), 0);
     }
 }

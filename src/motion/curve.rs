@@ -47,9 +47,7 @@ impl PartialEq for Curve {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Curve::Linear, Curve::Linear) => true,
-            (Curve::Bezier(a), Curve::Bezier(b)) => {
-                (a.0, a.1, a.2, a.3) == (b.0, b.1, b.2, b.3)
-            }
+            (Curve::Bezier(a), Curve::Bezier(b)) => (a.0, a.1, a.2, a.3) == (b.0, b.1, b.2, b.3),
             _ => false,
         }
     }
@@ -130,7 +128,14 @@ impl UnitBezier {
         let cy = 3.0 * y1;
         let by = 3.0 * (y2 - y1) - cy;
         let ay = 1.0 - cy - by;
-        Self { ax, bx, cx, ay, by, cy }
+        Self {
+            ax,
+            bx,
+            cx,
+            ay,
+            by,
+            cy,
+        }
     }
 
     fn sample_x(&self, s: f32) -> f32 {
@@ -215,7 +220,10 @@ mod tests {
         for kind in all_named() {
             let c = Curve::named(kind);
             assert!(c.ease(0.0).abs() < 1e-4, "{kind:?}: ease(0) must be 0");
-            assert!((c.ease(1.0) - 1.0).abs() < 1e-4, "{kind:?}: ease(1) must be 1");
+            assert!(
+                (c.ease(1.0) - 1.0).abs() < 1e-4,
+                "{kind:?}: ease(1) must be 1"
+            );
         }
     }
 
@@ -233,9 +241,15 @@ mod tests {
         // one ishou declares (no duplicated tuple in mado).
         let ishou = Motion::default().easing;
         if let Curve::Bezier(c) = Curve::named(EasingKind::SonicBoom) {
-            assert_eq!((c.0, c.1, c.2, c.3), (
-                ishou.sonic_boom.0, ishou.sonic_boom.1, ishou.sonic_boom.2, ishou.sonic_boom.3,
-            ));
+            assert_eq!(
+                (c.0, c.1, c.2, c.3),
+                (
+                    ishou.sonic_boom.0,
+                    ishou.sonic_boom.1,
+                    ishou.sonic_boom.2,
+                    ishou.sonic_boom.3,
+                )
+            );
         } else {
             panic!("named() must produce a Bezier");
         }

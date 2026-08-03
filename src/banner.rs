@@ -131,7 +131,10 @@ mod tests {
             .iter()
             .map(|l| l.plain().chars().take(9).count())
             .collect();
-        assert!(widths.iter().all(|&w| w == 9), "frame rows disagree: {widths:?}");
+        assert!(
+            widths.iter().all(|&w| w == 9),
+            "frame rows disagree: {widths:?}"
+        );
     }
 
     /// No styled piece may leave its attribute open — a bleed would follow the
@@ -156,7 +159,10 @@ mod tests {
     #[test]
     fn plain_is_pipe_safe_and_render_is_styled() {
         assert!(!plain("1.2.3").contains('\u{1b}'), "plain leaked an escape");
-        assert!(render("1.2.3").contains('\u{1b}'), "render lost its styling");
+        assert!(
+            render("1.2.3").contains('\u{1b}'),
+            "render lost its styling"
+        );
         assert!(plain("1.2.3").contains("mado"));
     }
 }

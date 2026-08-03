@@ -79,8 +79,8 @@ pub mod oscillator;
 pub mod tween;
 
 pub use curve::{Curve, EasingKind};
-pub use decay::{frame_decay, Decay};
-pub use oscillator::{blink_on, Oscillator};
+pub use decay::{Decay, frame_decay};
+pub use oscillator::{Oscillator, blink_on};
 pub use tween::Tween;
 
 /// The one contract every CPU motion arm satisfies: a pure step of an

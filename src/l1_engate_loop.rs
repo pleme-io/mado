@@ -27,8 +27,8 @@ use std::time::{Duration, Instant};
 
 use engate_attach::Attach;
 use parking_lot::RwLock;
-use tear_core::engate_producer::PaneProducer;
 use tear_core::InProcess;
+use tear_core::engate_producer::PaneProducer;
 use tear_types::{MultiplexerControl, SessionSource};
 
 use crate::engate_consumer::{ProbeCounters, ResponseWriter, TerminalSink};
@@ -157,11 +157,8 @@ fn l1_prompt_cycle_consumes_exactly_one_row_and_parks_the_caret_after_it() {
         }
     });
     let probes = Arc::new(ProbeCounters::default());
-    let consumer = TerminalSink::new_with_probes(
-        Arc::clone(&terminal),
-        response_writer,
-        Arc::clone(&probes),
-    );
+    let consumer =
+        TerminalSink::new_with_probes(Arc::clone(&terminal), response_writer, Arc::clone(&probes));
     let attach = Attach::builder()
         .producer(PaneProducer::new(Arc::clone(&inproc), pane))
         .consumer(consumer)
@@ -218,7 +215,8 @@ fn l1_prompt_cycle_consumes_exactly_one_row_and_parks_the_caret_after_it() {
     let occupied: Vec<usize> = rows.iter().map(|(r, _)| *r).collect();
     let expected: Vec<usize> = (0..=ENTERS).collect();
     assert_eq!(
-        occupied, expected,
+        occupied,
+        expected,
         "each Enter must consume exactly ONE row. Two-row spacing is the \
          2026-08-02 drift shape: frostmourne repaints wherever CPR says it \
          is, so a row-low answer compounds one blank row per cycle.\n{}",
@@ -295,11 +293,8 @@ fn l1_real_shell_queries_answered_and_command_round_trips() {
         }
     });
     let probes = Arc::new(ProbeCounters::default());
-    let consumer = TerminalSink::new_with_probes(
-        Arc::clone(&terminal),
-        response_writer,
-        Arc::clone(&probes),
-    );
+    let consumer =
+        TerminalSink::new_with_probes(Arc::clone(&terminal), response_writer, Arc::clone(&probes));
 
     // ── engate typed Attach lifecycle + live pump thread ──
     // Identical shape to production: subscribe → replay → start_live,
@@ -341,8 +336,7 @@ fn l1_real_shell_queries_answered_and_command_round_trips() {
     let baseline = probes.queries_seen();
     inproc.send_keys(pane, b"\r").expect("send Enter");
     let post_enter = wait_until(PHASE_DEADLINE, || {
-        probes.queries_seen() > baseline
-            && probes.responses_written() == probes.queries_seen()
+        probes.queries_seen() > baseline && probes.responses_written() == probes.queries_seen()
     });
     assert!(
         post_enter,

@@ -229,10 +229,10 @@ impl Ailment {
     #[must_use]
     pub fn glyph(self) -> &'static str {
         match self.0 {
-            crate::suggest::SourceStatus::TimedOut => "\u{23f1}",     // ⏱
+            crate::suggest::SourceStatus::TimedOut => "\u{23f1}", // ⏱
             crate::suggest::SourceStatus::AuthMissing => "\u{1f511}", // 🔑
             crate::suggest::SourceStatus::Unconfigured => "\u{1f527}", // 🔧
-            crate::suggest::SourceStatus::Error => "\u{2717}",        // ✗
+            crate::suggest::SourceStatus::Error => "\u{2717}",    // ✗
             // A healthy lane is never in this footer; render nothing
             // rather than inventing a mark for it.
             crate::suggest::SourceStatus::Ok => "",
@@ -377,9 +377,15 @@ mod tests {
 
         let mut r = row("t", None);
         r.repeats = 1;
-        assert!(!render_aligned(&[r.clone()])[0].contains('\u{d7}'), "×1 is noise");
+        assert!(
+            !render_aligned(&[r.clone()])[0].contains('\u{d7}'),
+            "×1 is noise"
+        );
         r.repeats = 6;
-        assert!(render_aligned(&[r])[0].contains("\u{d7}6"), "a repeat offender wears its count");
+        assert!(
+            render_aligned(&[r])[0].contains("\u{d7}6"),
+            "a repeat offender wears its count"
+        );
     }
 
     /// A row with nothing to its right gets no trailing padding — invisible
@@ -413,8 +419,14 @@ mod tests {
         assert!(line.contains("tend-repos\u{23f1}"), "{line}");
         assert!(line.contains("cargo-warnings\u{1f527}"), "{line}");
         assert!(line.contains("flux-failing\u{2717}"), "{line}");
-        assert!(line.contains("+2"), "un-named blind lanes are counted: {line}");
-        assert!(line.contains("4\u{25d1}"), "degraded collapse to a count: {line}");
+        assert!(
+            line.contains("+2"),
+            "un-named blind lanes are counted: {line}"
+        );
+        assert!(
+            line.contains("4\u{25d1}"),
+            "degraded collapse to a count: {line}"
+        );
         // The prose is gone.
         assert!(!line.contains("lanes"), "{line}");
         assert!(!line.contains("never once succeeded"), "{line}");

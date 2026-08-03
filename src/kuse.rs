@@ -203,7 +203,10 @@ const _: () = {
         }
         let mut j = i + 1;
         while j < ALL.len() {
-            assert!(!str_eq(ALL[i].id, ALL[j].id), "kuse: quirk ids must be unique");
+            assert!(
+                !str_eq(ALL[i].id, ALL[j].id),
+                "kuse: quirk ids must be unique"
+            );
             j += 1;
         }
         i += 1;
@@ -308,7 +311,9 @@ impl Profile {
 
     #[must_use]
     pub const fn for_emitter(name: &'static str) -> Self {
-        Self { emitter: Some(name) }
+        Self {
+            emitter: Some(name),
+        }
     }
 
     /// PURE STACKED FOLD — the whole resolution algebra.
@@ -331,7 +336,10 @@ impl Profile {
     #[must_use]
     pub fn resolve_in(self, catalog: &[Quirk], function: ControlFn) -> Resolution {
         STACK.iter().fold(
-            Resolution { reading: spec_reading(function), trace: Vec::new() },
+            Resolution {
+                reading: spec_reading(function),
+                trace: Vec::new(),
+            },
             |acc, &layer| {
                 catalog
                     .iter()
@@ -498,7 +506,11 @@ mod tests {
         let mut u = UnderlineStyle::None;
         apply(Reading::BoldOff, &mut flags, &mut u);
         assert!(!flags.contains(AttrFlags::BOLD));
-        assert_eq!(u, UnderlineStyle::None, "bold-off must never touch underline");
+        assert_eq!(
+            u,
+            UnderlineStyle::None,
+            "bold-off must never touch underline"
+        );
     }
 
     /// DRIFT GATE: every contested function the catalog names must be a

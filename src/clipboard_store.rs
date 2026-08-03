@@ -201,10 +201,7 @@ impl ClipboardStore {
     /// Entries in most-recent-first order. The contract MCP tools
     /// that surface "clipboard history" consume.
     pub fn entries_recent_first(&self) -> impl Iterator<Item = &ClipboardEntry> {
-        self.order
-            .iter()
-            .rev()
-            .filter_map(|h| self.entries.get(h))
+        self.order.iter().rev().filter_map(|h| self.entries.get(h))
     }
 
     /// Count currently stored entries.
@@ -512,7 +509,10 @@ mod tests {
     fn kind_decoder_handles_canonical_bytes() {
         assert_eq!(ClipboardKind::from_osc52_byte(b"c"), ClipboardKind::System);
         assert_eq!(ClipboardKind::from_osc52_byte(b"p"), ClipboardKind::Primary);
-        assert_eq!(ClipboardKind::from_osc52_byte(b"s"), ClipboardKind::Secondary);
+        assert_eq!(
+            ClipboardKind::from_osc52_byte(b"s"),
+            ClipboardKind::Secondary
+        );
         // Unknown → fallback to System (matches ghostty's permissive
         // parse; users who care about precision set `c` explicitly).
         assert_eq!(ClipboardKind::from_osc52_byte(b""), ClipboardKind::System);
@@ -622,7 +622,11 @@ mod tests {
         let path = write_clipboard_png(2, 2, &rgba).expect("write temp png");
         assert!(path.exists(), "temp png materialized");
         assert!(
-            path.file_name().unwrap().to_str().unwrap().starts_with("mado-clip-"),
+            path.file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .starts_with("mado-clip-"),
             "owned prefix so the reaper only touches mado's files"
         );
         // It is a real, decodable PNG of the right size — the file a
@@ -639,12 +643,22 @@ mod tests {
         // 2×2 needs 16 RGBA bytes; 8 is short → typed SizeMismatch, not
         // a panic or a corrupt file.
         let err = write_clipboard_png(2, 2, &[0u8; 8]).unwrap_err();
-        assert!(matches!(err, ClipboardImageError::SizeMismatch { expected: 16, got: 8, .. }));
+        assert!(matches!(
+            err,
+            ClipboardImageError::SizeMismatch {
+                expected: 16,
+                got: 8,
+                ..
+            }
+        ));
     }
 
     #[test]
     fn write_clipboard_png_rejects_empty() {
-        assert!(matches!(write_clipboard_png(0, 0, &[]).unwrap_err(), ClipboardImageError::Empty));
+        assert!(matches!(
+            write_clipboard_png(0, 0, &[]).unwrap_err(),
+            ClipboardImageError::Empty
+        ));
     }
 
     #[test]
@@ -653,7 +667,8 @@ mod tests {
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_nanos())
             .unwrap_or(0);
-        let dir = std::env::temp_dir().join(format!("mado-reap-test-{}-{nanos}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("mado-reap-test-{}-{nanos}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let mine = dir.join("mado-clip-1-2.png");
         let foreign = dir.join("clipboard-other.png"); // ghostty's prefix
@@ -665,7 +680,10 @@ mod tests {
         // *.png is eligible. Proves the prefix+extension filter.
         reap_stale_clipboard_pngs(&dir, std::time::Duration::ZERO);
         assert!(!mine.exists(), "mado's own stale png reaped");
-        assert!(foreign.exists(), "a sibling terminal's png is never touched");
+        assert!(
+            foreign.exists(),
+            "a sibling terminal's png is never touched"
+        );
         assert!(nonpng.exists(), "a non-png mado file is never touched");
         let _ = std::fs::remove_dir_all(&dir);
     }

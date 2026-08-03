@@ -69,7 +69,8 @@ impl CuratedItem for Signal {
     fn signature(&self) -> String {
         // `<env>:<kind>:<identity>` — built with push_str (internal identity,
         // not emitted output; no `format!`, per TYPED EMISSION).
-        let mut s = String::with_capacity(self.env.len() + self.kind.len() + self.identity.len() + 2);
+        let mut s =
+            String::with_capacity(self.env.len() + self.kind.len() + self.identity.len() + 2);
         s.push_str(&self.env);
         s.push(':');
         s.push_str(&self.kind);
@@ -96,7 +97,11 @@ mod tests {
     fn signature_scopes_by_env_kind_identity() {
         let a = Signal::new("rio", "alerts", "OOMKilled/api", Severity::Critical, "x");
         let b = Signal::new("prod", "alerts", "OOMKilled/api", Severity::Critical, "x");
-        assert_ne!(a.signature(), b.signature(), "same incident, different env = distinct");
+        assert_ne!(
+            a.signature(),
+            b.signature(),
+            "same incident, different env = distinct"
+        );
         assert_eq!(a.signature(), "rio:alerts:OOMKilled/api");
     }
 

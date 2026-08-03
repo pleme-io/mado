@@ -275,7 +275,11 @@ pub struct Color {
 }
 
 impl Color {
-    pub const WHITE: Self = Self { r: 255, g: 255, b: 255 };
+    pub const WHITE: Self = Self {
+        r: 255,
+        g: 255,
+        b: 255,
+    };
     pub const BLACK: Self = Self { r: 0, g: 0, b: 0 };
 
     #[must_use]
@@ -339,9 +343,7 @@ pub fn default_palette_256() -> [Color; 256] {
         let r_idx = i / 36;
         let g_idx = (i % 36) / 6;
         let b_idx = i % 6;
-        let to_byte = |v: u16| -> u8 {
-            if v == 0 { 0 } else { (55 + 40 * v) as u8 }
-        };
+        let to_byte = |v: u16| -> u8 { if v == 0 { 0 } else { (55 + 40 * v) as u8 } };
         palette[idx as usize] = Color::new(to_byte(r_idx), to_byte(g_idx), to_byte(b_idx));
     }
     for idx in 232u16..=255 {
@@ -635,10 +637,7 @@ impl StyleTable {
     /// IDs allocated by this table).
     #[must_use]
     pub fn lookup(&self, id: u16) -> Style {
-        self.styles
-            .get(id as usize)
-            .copied()
-            .unwrap_or_default()
+        self.styles.get(id as usize).copied().unwrap_or_default()
     }
 
     /// Number of distinct interned styles (≥ 1 — the default style
@@ -690,10 +689,7 @@ pub struct StyleSnapshot {
 
 impl StyleLookup for StyleSnapshot {
     fn lookup(&self, id: u16) -> Style {
-        self.styles
-            .get(id as usize)
-            .copied()
-            .unwrap_or_default()
+        self.styles.get(id as usize).copied().unwrap_or_default()
     }
 }
 
@@ -828,7 +824,11 @@ pub struct Cursor {
 
 impl Default for Cursor {
     fn default() -> Self {
-        Self { row: 0, col: 0, visible: true }
+        Self {
+            row: 0,
+            col: 0,
+            visible: true,
+        }
     }
 }
 
@@ -1016,8 +1016,7 @@ impl Grid {
         // Capacity is a hint only — clamp the scrollback term so an
         // "unlimited" (usize::MAX) cap cannot overflow the addition
         // or demand an absurd up-front allocation.
-        let mut rows =
-            VecDeque::with_capacity(visible_rows + max_scrollback.min(4096));
+        let mut rows = VecDeque::with_capacity(visible_rows + max_scrollback.min(4096));
         let mut next_logical_id = 0u64;
         for _ in 0..visible_rows {
             let id = LogicalLineId(next_logical_id);
@@ -1253,7 +1252,8 @@ impl Grid {
             let insert_idx = sb_offset + bottom;
             // After removal, indexes shifted down, so insert at the same logical position
             let id = self.fresh_id();
-            self.rows.insert(insert_idx, Line::filled(self.cols, id, fill));
+            self.rows
+                .insert(insert_idx, Line::filled(self.cols, id, fill));
         }
         evicted
     }
@@ -1267,7 +1267,8 @@ impl Grid {
             self.rows.remove(remove_idx);
         }
         let id = self.fresh_id();
-        self.rows.insert(sb_offset + top, Line::filled(self.cols, id, fill));
+        self.rows
+            .insert(sb_offset + top, Line::filled(self.cols, id, fill));
     }
 
     /// Clear a range of cells in a visible row, filling with `fill` —
@@ -1519,7 +1520,9 @@ impl Grid {
             while i < n {
                 if run[i].width != 2 && crate::glyph_class::is_box_drawing(run[i].ch) {
                     let start = i;
-                    while i < n && run[i].width != 2 && crate::glyph_class::is_box_drawing(run[i].ch)
+                    while i < n
+                        && run[i].width != 2
+                        && crate::glyph_class::is_box_drawing(run[i].ch)
                     {
                         i += 1;
                     }
@@ -1981,7 +1984,6 @@ pub struct Terminal {
     // Synchronized output (CSI ? 2026) — batch drawing
     synchronized_output: bool,
 
-
     /// P32 + M2 — style ID interning table. Maps (fg, bg, attrs)
     /// triples to a u16 tag stored on every Cell. Post-shrink this is
     /// the ONLY styling storage: every Cell read resolves through it
@@ -2311,13 +2313,9 @@ impl Terminal {
             pending_osc99: None,
             clock_unix_ms: wall_clock_unix_ms,
             clipboard_store: crate::clipboard_store::ClipboardStore::new(128),
-            prompt_marks: crate::prompt_mark::PromptHistory::with_capacity(
-                max_scrollback.max(256),
-            ),
+            prompt_marks: crate::prompt_mark::PromptHistory::with_capacity(max_scrollback.max(256)),
             pointer_shape: crate::pointer_shape::PointerShape::default(),
-            user_marks: crate::osc_1337::UserMarkHistory::with_capacity(
-                max_scrollback.max(256),
-            ),
+            user_marks: crate::osc_1337::UserMarkHistory::with_capacity(max_scrollback.max(256)),
             attention_requested: false,
             attention_edge: false,
             command_start_ms: None,
@@ -2394,8 +2392,7 @@ impl Terminal {
     /// and remap every cell's `style_id` accordingly. The single-slot
     /// pen cache is invalidated (its id may have been remapped).
     fn gc_style_table(&mut self) {
-        let mut live: std::collections::HashSet<u16> =
-            std::collections::HashSet::new();
+        let mut live: std::collections::HashSet<u16> = std::collections::HashSet::new();
         for grid in [&self.primary, &self.alternate] {
             for row in &grid.rows {
                 for cell in &row.cells {
@@ -2442,8 +2439,7 @@ impl Terminal {
     /// (plus the active pen link) and remap every cell's `link_id`
     /// accordingly.
     fn gc_link_table(&mut self) {
-        let mut live: std::collections::HashSet<u16> =
-            std::collections::HashSet::new();
+        let mut live: std::collections::HashSet<u16> = std::collections::HashSet::new();
         for grid in [&self.primary, &self.alternate] {
             for row in &grid.rows {
                 for cell in &row.cells {
@@ -2461,10 +2457,7 @@ impl Terminal {
             for row in &mut grid.rows {
                 for cell in row.cells.iter_mut() {
                     if cell.link_id != NO_LINK_ID {
-                        cell.link_id = remap
-                            .get(&cell.link_id)
-                            .copied()
-                            .unwrap_or(NO_LINK_ID);
+                        cell.link_id = remap.get(&cell.link_id).copied().unwrap_or(NO_LINK_ID);
                     }
                 }
             }
@@ -2500,7 +2493,11 @@ impl Terminal {
         let bytes: &[u8] = if self.utf8_tail.is_empty() {
             input
         } else {
-            combined = self.utf8_tail.drain(..).chain(input.iter().copied()).collect();
+            combined = self
+                .utf8_tail
+                .drain(..)
+                .chain(input.iter().copied())
+                .collect();
             &combined
         };
 
@@ -2600,7 +2597,10 @@ impl Terminal {
                 // but chunked; 8 MiB is far beyond any legitimate chunk).
                 const APC_MAX: usize = 8 * 1024 * 1024;
                 if buf.len() >= APC_MAX {
-                    tracing::warn!(len = buf.len(), "APC payload exceeded bound — aborting sequence");
+                    tracing::warn!(
+                        len = buf.len(),
+                        "APC payload exceeded bound — aborting sequence"
+                    );
                     self.apc_buf = None;
                     continue;
                 }
@@ -2665,7 +2665,8 @@ impl Terminal {
             if i == bytes.len() {
                 let tail = incomplete_utf8_tail_len(&bytes[start..run_end]);
                 if tail > 0 {
-                    self.utf8_tail.extend_from_slice(&bytes[run_end - tail..run_end]);
+                    self.utf8_tail
+                        .extend_from_slice(&bytes[run_end - tail..run_end]);
                     run_end -= tail;
                 }
             }
@@ -2714,8 +2715,8 @@ impl Terminal {
             // grid (which truncates, keeping its row numbering) and
             // keep the numeric clamp below.
             if !self.use_alternate {
-                cursor_anchor = grid
-                    .cell_anchor_at(grid.scrollback_len() + self.cursor.row, self.cursor.col);
+                cursor_anchor =
+                    grid.cell_anchor_at(grid.scrollback_len() + self.cursor.row, self.cursor.col);
                 placement_anchors = Some(
                     self.image_placements
                         .iter()
@@ -2727,9 +2728,10 @@ impl Terminal {
             // primary-screen state even while the alt screen shows);
             // the alt's saved cursor never does — the alt grid
             // truncates.
-            saved_cursor_anchor = self.saved_cursor.as_ref().and_then(|s| {
-                grid.cell_anchor_at(grid.scrollback_len() + s.row, s.col)
-            });
+            saved_cursor_anchor = self
+                .saved_cursor
+                .as_ref()
+                .and_then(|s| grid.cell_anchor_at(grid.scrollback_len() + s.row, s.col));
             // Content-pin a scrolled-up viewport: anchor the viewport
             // TOP row so the operator keeps reading the same content
             // after the reflow renumbers every physical row (same
@@ -2752,9 +2754,7 @@ impl Terminal {
             self.prompt_marks.reanchor(|a| grid.physical_row_of(a));
             self.user_marks.reanchor(|a| grid.physical_row_of(a));
             let sb = grid.scrollback_len();
-            if let Some((abs_row, col)) =
-                cursor_anchor.and_then(|a| grid.resolve_cell_anchor(a))
-            {
+            if let Some((abs_row, col)) = cursor_anchor.and_then(|a| grid.resolve_cell_anchor(a)) {
                 self.cursor.row = abs_row.saturating_sub(sb);
                 self.cursor.col = col;
             } else if cursor_anchor.is_some() {
@@ -3009,10 +3009,7 @@ impl Terminal {
         let grid = self.grid();
         let sb_len = grid.scrollback_len();
         let first_abs = sb_len.saturating_sub(cap);
-        let rows: Vec<Vec<Cell>> = grid
-            .rows_from(first_abs)
-            .map(<[Cell]>::to_vec)
-            .collect();
+        let rows: Vec<Vec<Cell>> = grid.rows_from(first_abs).map(<[Cell]>::to_vec).collect();
         (rows, first_abs)
     }
 
@@ -3083,7 +3080,10 @@ impl Terminal {
         // The renderer snapshot resolves the live span every vsync
         // and the engine reconciler every redraw tick; without the
         // memo each resolve was an O(rows) deque scan per anchor.
-        if let Some(m) = *self.selection_span_memo.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
+        if let Some(m) = *self
+            .selection_span_memo
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
             && m.seqno == self.seqno
             && m.a == a
             && m.b == b
@@ -3095,7 +3095,10 @@ impl Terminal {
             let pb = self.resolve_selection_anchor(b)?;
             Some(if pb < pa { (pb, pa) } else { (pa, pb) })
         })();
-        *self.selection_span_memo.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = Some(SelectionSpanMemo {
+        *self
+            .selection_span_memo
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(SelectionSpanMemo {
             seqno: self.seqno,
             a,
             b,
@@ -3117,11 +3120,7 @@ impl Terminal {
     /// `None` when the anchors no longer resolve or the selected
     /// region holds only whitespace.
     #[must_use]
-    pub fn extract_selection_text(
-        &self,
-        a: SelectionAnchor,
-        b: SelectionAnchor,
-    ) -> Option<String> {
+    pub fn extract_selection_text(&self, a: SelectionAnchor, b: SelectionAnchor) -> Option<String> {
         let (start, end) = self.resolve_selection_span(a, b)?;
         let grid = self.grid();
         let mut out = String::new();
@@ -3513,7 +3512,9 @@ impl Terminal {
             .map(|v| u8::try_from(v.min(100)).unwrap_or(100));
         let state = match rest.first().copied() {
             Some(b"0") => ProgressState::Remove,
-            Some(b"1") => ProgressState::Set { pct: pct.unwrap_or(0) },
+            Some(b"1") => ProgressState::Set {
+                pct: pct.unwrap_or(0),
+            },
             Some(b"2") => ProgressState::Error { pct },
             Some(b"3") => ProgressState::Indeterminate,
             Some(b"4") => ProgressState::Paused { pct },
@@ -3617,9 +3618,15 @@ impl Terminal {
             Some(p) if p.id == id => p,
             Some(p) => {
                 tracing::trace!(dropped_id = ?p.id, new_id = ?id, "OSC 99: chain interrupted by new id, dropping old chain");
-                Osc99Pending { id, ..Osc99Pending::default() }
+                Osc99Pending {
+                    id,
+                    ..Osc99Pending::default()
+                }
             }
-            None => Osc99Pending { id, ..Osc99Pending::default() },
+            None => Osc99Pending {
+                id,
+                ..Osc99Pending::default()
+            },
         };
         if let Some(u) = urgency {
             pending.urgency = Some(pending.urgency.map_or(u, |cur| cur.max(u)));
@@ -3629,7 +3636,11 @@ impl Terminal {
         let append_capped = |field: &mut Option<String>, frag: &str, which: &str| {
             let cur = field.get_or_insert_with(String::new);
             if cur.len() >= MAX_OSC99_FIELD {
-                tracing::warn!(cap = MAX_OSC99_FIELD, which, "OSC 99 chain field at cap — dropping fragment");
+                tracing::warn!(
+                    cap = MAX_OSC99_FIELD,
+                    which,
+                    "OSC 99 chain field at cap — dropping fragment"
+                );
             } else {
                 cur.push_str(frag);
             }
@@ -4297,11 +4308,7 @@ impl Terminal {
                 match image::load_from_memory_with_format(data, image::ImageFormat::Png) {
                     Ok(img) => {
                         let rgba_img = img.to_rgba8();
-                        Some((
-                            rgba_img.to_vec(),
-                            rgba_img.width(),
-                            rgba_img.height(),
-                        ))
+                        Some((rgba_img.to_vec(), rgba_img.width(), rgba_img.height()))
                     }
                     Err(e) => {
                         tracing::warn!("Kitty graphics: PNG decode error: {e}");
@@ -4592,11 +4599,19 @@ impl Terminal {
     // ── Internal helpers ────────────────────────────────────────────
 
     fn grid(&self) -> &Grid {
-        if self.use_alternate { &self.alternate } else { &self.primary }
+        if self.use_alternate {
+            &self.alternate
+        } else {
+            &self.primary
+        }
     }
 
     fn grid_mut(&mut self) -> &mut Grid {
-        if self.use_alternate { &mut self.alternate } else { &mut self.primary }
+        if self.use_alternate {
+            &mut self.alternate
+        } else {
+            &mut self.primary
+        }
     }
 
     fn dirty(&mut self) {
@@ -4699,8 +4714,7 @@ impl Terminal {
         let row_before = self.cursor.row;
         self.newline();
         let advanced = self.cursor.row == row_before + 1;
-        let scrolled_at_bottom =
-            self.cursor.row == row_before && row_before == self.scroll_bottom;
+        let scrolled_at_bottom = self.cursor.row == row_before && row_before == self.scroll_bottom;
         if advanced || scrolled_at_bottom {
             self.stamp_soft_wrap();
         }
@@ -5103,8 +5117,8 @@ impl Terminal {
                 // divergence from ECMA-48 carries its provenance instead
                 // of hiding in this `match` arm. See `crate::kuse`.
                 21 => {
-                    let r = crate::kuse::Profile::universal()
-                        .resolve(crate::kuse::ControlFn::Sgr(21));
+                    let r =
+                        crate::kuse::Profile::universal().resolve(crate::kuse::ControlFn::Sgr(21));
                     if let Some(reading) = r.reading {
                         crate::kuse::apply(
                             reading,
@@ -5136,8 +5150,7 @@ impl Terminal {
                     // SGR 58 — underline colour (mirrors 38/48's
                     // colour grammar). Malformed payloads degrade to
                     // UnderlineColor::Default, never corrupt the pen.
-                    self.pen_attrs.underline_color =
-                        parse_underline_color(slice, &mut iter);
+                    self.pen_attrs.underline_color = parse_underline_color(slice, &mut iter);
                 }
                 59 => self.pen_attrs.underline_color = UnderlineColor::Default,
                 90..=97 => self.pen_fg = self.ansi_colors[(param - 90 + 8) as usize],
@@ -5160,12 +5173,7 @@ impl Terminal {
     ///     channels arrive as the FOLLOWING params, consumed from `iter`.
     ///
     /// Malformed payloads leave the pen colour unchanged.
-    fn parse_extended_color(
-        &mut self,
-        slice: &[u16],
-        iter: &mut vte::ParamsIter<'_>,
-        is_fg: bool,
-    ) {
+    fn parse_extended_color(&mut self, slice: &[u16], iter: &mut vte::ParamsIter<'_>, is_fg: bool) {
         let set = |term: &mut Self, color: Color| {
             if is_fg {
                 term.pen_fg = color;
@@ -5233,32 +5241,21 @@ impl Terminal {
 /// Malformed payloads degrade to [`UnderlineColor::Default`] (the
 /// `map_or`-style defensiveness of `parse_extended_color`): the pen
 /// keeps rendering, just without the colour refinement.
-fn parse_underline_color(
-    slice: &[u16],
-    iter: &mut vte::ParamsIter<'_>,
-) -> UnderlineColor {
+fn parse_underline_color(slice: &[u16], iter: &mut vte::ParamsIter<'_>) -> UnderlineColor {
     if slice.len() >= 2 {
         // Colon sub-param form — everything is in `slice`.
         match slice[1] {
-            5 => slice
-                .get(2)
-                .map_or(UnderlineColor::Default, |&n| UnderlineColor::Indexed(n as u8)),
+            5 => slice.get(2).map_or(UnderlineColor::Default, |&n| {
+                UnderlineColor::Indexed(n as u8)
+            }),
             2 => {
                 let rgb = &slice[2..];
                 match rgb.len() {
                     // `58:2::r:g:b` — leading colorspace-id sub-param
                     // (empty → 0). Skip it.
-                    4.. => UnderlineColor::Rgb(Rgb::new(
-                        rgb[1] as u8,
-                        rgb[2] as u8,
-                        rgb[3] as u8,
-                    )),
+                    4.. => UnderlineColor::Rgb(Rgb::new(rgb[1] as u8, rgb[2] as u8, rgb[3] as u8)),
                     // `58:2:r:g:b` — no colorspace id.
-                    3 => UnderlineColor::Rgb(Rgb::new(
-                        rgb[0] as u8,
-                        rgb[1] as u8,
-                        rgb[2] as u8,
-                    )),
+                    3 => UnderlineColor::Rgb(Rgb::new(rgb[0] as u8, rgb[1] as u8, rgb[2] as u8)),
                     _ => UnderlineColor::Default,
                 }
             }
@@ -5267,9 +5264,9 @@ fn parse_underline_color(
     } else {
         // Semicolon form — mode + channels are the following params.
         match iter.next().map(|s| s[0]) {
-            Some(5) => iter
-                .next()
-                .map_or(UnderlineColor::Default, |s| UnderlineColor::Indexed(s[0] as u8)),
+            Some(5) => iter.next().map_or(UnderlineColor::Default, |s| {
+                UnderlineColor::Indexed(s[0] as u8)
+            }),
             Some(2) => {
                 let r = iter.next().map_or(0, |s| s[0] as u8);
                 let g = iter.next().map_or(0, |s| s[0] as u8);
@@ -5337,29 +5334,75 @@ impl fmt::Display for SgrReport {
 // ---------------------------------------------------------------------------
 
 impl TerminalOps for Terminal {
-    fn cols(&self) -> usize { self.cols() }
-    fn rows(&self) -> usize { self.rows() }
-    fn cursor(&self) -> &Cursor { Terminal::cursor(self) }
-    fn cell(&self, row: usize, col: usize) -> &Cell { self.cell(row, col) }
-    fn feed(&mut self, data: &[u8]) { self.feed(data) }
-    fn resize(&mut self, cols: usize, rows: usize) { self.resize(cols, rows) }
-    fn reset(&mut self) { self.reset() }
-    fn scroll_up(&mut self, lines: usize) { self.scroll_up(lines) }
-    fn scroll_down(&mut self, lines: usize) { self.scroll_down(lines) }
-    fn scroll_to_top(&mut self) { self.scroll_to_top() }
-    fn scroll_to_bottom(&mut self) { self.scroll_to_bottom() }
-    fn scroll_offset(&self) -> usize { self.scroll_offset() }
-    fn seqno(&self) -> u64 { self.seqno() }
-    fn take_response(&mut self) -> Option<Vec<u8>> { self.take_response() }
-    fn title(&self) -> Option<&str> { self.title() }
-    fn mouse_mode(&self) -> MouseMode { self.mouse_mode() }
-    fn take_bell(&mut self) -> bool { self.take_bell() }
-    fn kitty_keyboard_flags(&self) -> u32 { self.kitty_keyboard_flags() }
-    fn cursor_keys_mode(&self) -> bool { self.cursor_keys_mode() }
-    fn keypad_app_mode(&self) -> bool { self.keypad_app_mode() }
-    fn bracketed_paste(&self) -> bool { self.bracketed_paste() }
-    fn sgr_mouse(&self) -> bool { self.sgr_mouse() }
-    fn focus_reporting(&self) -> bool { self.focus_reporting() }
+    fn cols(&self) -> usize {
+        self.cols()
+    }
+    fn rows(&self) -> usize {
+        self.rows()
+    }
+    fn cursor(&self) -> &Cursor {
+        Terminal::cursor(self)
+    }
+    fn cell(&self, row: usize, col: usize) -> &Cell {
+        self.cell(row, col)
+    }
+    fn feed(&mut self, data: &[u8]) {
+        self.feed(data)
+    }
+    fn resize(&mut self, cols: usize, rows: usize) {
+        self.resize(cols, rows)
+    }
+    fn reset(&mut self) {
+        self.reset()
+    }
+    fn scroll_up(&mut self, lines: usize) {
+        self.scroll_up(lines)
+    }
+    fn scroll_down(&mut self, lines: usize) {
+        self.scroll_down(lines)
+    }
+    fn scroll_to_top(&mut self) {
+        self.scroll_to_top()
+    }
+    fn scroll_to_bottom(&mut self) {
+        self.scroll_to_bottom()
+    }
+    fn scroll_offset(&self) -> usize {
+        self.scroll_offset()
+    }
+    fn seqno(&self) -> u64 {
+        self.seqno()
+    }
+    fn take_response(&mut self) -> Option<Vec<u8>> {
+        self.take_response()
+    }
+    fn title(&self) -> Option<&str> {
+        self.title()
+    }
+    fn mouse_mode(&self) -> MouseMode {
+        self.mouse_mode()
+    }
+    fn take_bell(&mut self) -> bool {
+        self.take_bell()
+    }
+    fn kitty_keyboard_flags(&self) -> u32 {
+        self.kitty_keyboard_flags()
+    }
+    fn cursor_keys_mode(&self) -> bool {
+        self.cursor_keys_mode()
+    }
+    fn keypad_app_mode(&self) -> bool {
+        self.keypad_app_mode()
+    }
+    fn bracketed_paste(&self) -> bool {
+        self.bracketed_paste()
+    }
+    fn sgr_mouse(&self) -> bool {
+        self.sgr_mouse()
+    }
+    fn focus_reporting(&self) -> bool {
+        self.focus_reporting()
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -5455,7 +5498,8 @@ impl Terminal {
                 let bottom = self.scroll_bottom;
                 let fill = self.bce_fill_cell();
                 for _ in 0..n.min(bottom - cursor_row + 1) {
-                    self.grid_mut().scroll_region_down(cursor_row, bottom, &fill);
+                    self.grid_mut()
+                        .scroll_region_down(cursor_row, bottom, &fill);
                 }
                 self.dirty();
             }
@@ -5531,8 +5575,12 @@ impl Terminal {
                 6 => {
                     let row = u32::try_from(self.cursor.row + 1).unwrap_or(u32::MAX);
                     let col = u32::try_from(self.cursor.col + 1).unwrap_or(u32::MAX);
-                    self.response_bytes
-                        .extend_from_slice(&crate::vt::csi(false, &[row, col], "", b'R'));
+                    self.response_bytes.extend_from_slice(&crate::vt::csi(
+                        false,
+                        &[row, col],
+                        "",
+                        b'R',
+                    ));
                 }
                 _ => tracing::trace!(mode, "unhandled DSR"),
             },
@@ -5560,7 +5608,11 @@ impl Terminal {
                     }
                     self.cursor.col -= 1;
                     while self.cursor.col > 0
-                        && !self.tab_stops.get(self.cursor.col).copied().unwrap_or(false)
+                        && !self
+                            .tab_stops
+                            .get(self.cursor.col)
+                            .copied()
+                            .unwrap_or(false)
                     {
                         self.cursor.col -= 1;
                     }
@@ -5823,7 +5875,6 @@ impl vte::Perform for Terminal {
         self.dcs_handler = None;
     }
 
-
     fn osc_dispatch(&mut self, params: &[&[u8]], _bell_terminated: bool) {
         if params.is_empty() {
             return;
@@ -5834,24 +5885,24 @@ impl vte::Perform for Terminal {
         // method plus one line here.
         match params[0] {
             b"0" | b"2" => self.handle_osc_0_2_title(params),
-            b"4"       => self.handle_osc_4_palette(params),
-            b"7"       => self.handle_osc_7_cwd(params),
-            b"8"       => self.handle_osc_8_hyperlink(params),
-            b"9"       => self.handle_osc_9_notification(params),
-            b"10"      => self.handle_osc_10_foreground(params),
-            b"11"      => self.handle_osc_11_background(params),
-            b"12"      => self.handle_osc_12_cursor(params),
-            b"22"      => self.handle_osc_22_pointer_shape(params),
-            b"52"      => self.handle_osc_52_clipboard(params),
-            b"99"      => self.handle_osc_99_kitty(params),
-            b"104"     => self.handle_osc_104_palette_reset(params),
-            b"110"     => self.handle_osc_110_fg_reset(),
-            b"111"     => self.handle_osc_111_bg_reset(),
-            b"112"     => self.handle_osc_112_cursor_reset(),
-            b"133"     => self.handle_osc_133_shell_integration(params),
-            b"777"     => self.handle_osc_777_notify(params),
-            b"1337"    => self.handle_osc_1337_iterm2(params),
-            _          => tracing::trace!(?params, "unhandled OSC sequence"),
+            b"4" => self.handle_osc_4_palette(params),
+            b"7" => self.handle_osc_7_cwd(params),
+            b"8" => self.handle_osc_8_hyperlink(params),
+            b"9" => self.handle_osc_9_notification(params),
+            b"10" => self.handle_osc_10_foreground(params),
+            b"11" => self.handle_osc_11_background(params),
+            b"12" => self.handle_osc_12_cursor(params),
+            b"22" => self.handle_osc_22_pointer_shape(params),
+            b"52" => self.handle_osc_52_clipboard(params),
+            b"99" => self.handle_osc_99_kitty(params),
+            b"104" => self.handle_osc_104_palette_reset(params),
+            b"110" => self.handle_osc_110_fg_reset(),
+            b"111" => self.handle_osc_111_bg_reset(),
+            b"112" => self.handle_osc_112_cursor_reset(),
+            b"133" => self.handle_osc_133_shell_integration(params),
+            b"777" => self.handle_osc_777_notify(params),
+            b"1337" => self.handle_osc_1337_iterm2(params),
+            _ => tracing::trace!(?params, "unhandled OSC sequence"),
         }
     }
 
@@ -5880,8 +5931,12 @@ impl vte::Perform for Terminal {
                 'u' => {
                     // Kitty keyboard protocol: query current flags
                     let flags = self.kitty_keyboard_flags();
-                    self.response_bytes
-                        .extend_from_slice(&crate::vt::csi(true, &[flags], "", b'u'));
+                    self.response_bytes.extend_from_slice(&crate::vt::csi(
+                        true,
+                        &[flags],
+                        "",
+                        b'u',
+                    ));
                     return;
                 }
                 _ => {
@@ -5904,7 +5959,11 @@ impl vte::Perform for Terminal {
                     // Kitty keyboard protocol: push flags onto stack
                     let flags = params.iter().next().map_or(0, |p| p[0] as u32);
                     self.kitty_keyboard_stack.push(flags);
-                    tracing::debug!(flags, depth = self.kitty_keyboard_stack.len(), "kitty keyboard push");
+                    tracing::debug!(
+                        flags,
+                        depth = self.kitty_keyboard_stack.len(),
+                        "kitty keyboard push"
+                    );
                 }
                 _ => {
                     tracing::trace!(action = %action, "unhandled CSI > sequence");
@@ -5920,7 +5979,10 @@ impl vte::Perform for Terminal {
                 for _ in 0..count.min(self.kitty_keyboard_stack.len()) {
                     self.kitty_keyboard_stack.pop();
                 }
-                tracing::debug!(depth = self.kitty_keyboard_stack.len(), "kitty keyboard pop");
+                tracing::debug!(
+                    depth = self.kitty_keyboard_stack.len(),
+                    "kitty keyboard pop"
+                );
             } else {
                 tracing::trace!(action = %action, "unhandled CSI < sequence");
             }
@@ -5939,12 +6001,22 @@ impl vte::Perform for Terminal {
             let mode = params.iter().next().map_or(0, |p| p[0]);
             // Pm: 1=set, 2=reset, 0=not recognized
             let state: u32 = match mode {
-                4 => if self.insert_mode { 1 } else { 2 },  // IRM
-                20 => 2,  // LNM — always reset
+                4 => {
+                    if self.insert_mode {
+                        1
+                    } else {
+                        2
+                    }
+                } // IRM
+                20 => 2, // LNM — always reset
                 _ => 0,
             };
-            self.response_bytes
-                .extend_from_slice(&crate::vt::csi(false, &[u32::from(mode), state], "$", b'y'));
+            self.response_bytes.extend_from_slice(&crate::vt::csi(
+                false,
+                &[u32::from(mode), state],
+                "$",
+                b'y',
+            ));
             return;
         }
 
@@ -5958,22 +6030,57 @@ impl vte::Perform for Terminal {
             // `cursor_blink`) instead of a fixed `2` — the M4 caps-honesty fix
             // that closed the DECRQM-only drift.
             let state: u32 = self.dec_mode_report(mode).unwrap_or_else(|| match mode {
-                6 => if self.origin_mode { 1 } else { 2 },         // DECOM
-                47 | 1047 | 1049 => if self.use_alternate { 1 } else { 2 }, // Alt screen
-                1000 => if self.mouse_mode == MouseMode::Normal { 1 } else { 2 },
-                1002 => if self.mouse_mode == MouseMode::ButtonEvent { 1 } else { 2 },
-                1003 => if self.mouse_mode == MouseMode::AnyEvent { 1 } else { 2 },
+                6 => {
+                    if self.origin_mode {
+                        1
+                    } else {
+                        2
+                    }
+                } // DECOM
+                47 | 1047 | 1049 => {
+                    if self.use_alternate {
+                        1
+                    } else {
+                        2
+                    }
+                } // Alt screen
+                1000 => {
+                    if self.mouse_mode == MouseMode::Normal {
+                        1
+                    } else {
+                        2
+                    }
+                }
+                1002 => {
+                    if self.mouse_mode == MouseMode::ButtonEvent {
+                        1
+                    } else {
+                        2
+                    }
+                }
+                1003 => {
+                    if self.mouse_mode == MouseMode::AnyEvent {
+                        1
+                    } else {
+                        2
+                    }
+                }
                 _ => 0,
             });
-            self.response_bytes
-                .extend_from_slice(&crate::vt::csi(true, &[u32::from(mode), state], "$", b'y'));
+            self.response_bytes.extend_from_slice(&crate::vt::csi(
+                true,
+                &[u32::from(mode), state],
+                "$",
+                b'y',
+            ));
             return;
         }
 
         // CSI = c — Tertiary Device Attributes (DA3)
         if intermediates == [b'='] && action == 'c' {
             // Report unit ID: DCS ! | XXXXXXXX ST
-            self.response_bytes.extend_from_slice(b"\x1bP!|6D61646F\x1b\\");
+            self.response_bytes
+                .extend_from_slice(b"\x1bP!|6D61646F\x1b\\");
             return;
         }
 
@@ -5981,12 +6088,30 @@ impl vte::Perform for Terminal {
         if intermediates == [b' '] && action == 'q' {
             let ps = params.iter().next().map_or(0, |p| p[0]);
             match ps {
-                0 | 1 => { self.cursor_style = CursorStyle::Block; self.cursor_blink = true; }
-                2 => { self.cursor_style = CursorStyle::Block; self.cursor_blink = false; }
-                3 => { self.cursor_style = CursorStyle::Underline; self.cursor_blink = true; }
-                4 => { self.cursor_style = CursorStyle::Underline; self.cursor_blink = false; }
-                5 => { self.cursor_style = CursorStyle::Bar; self.cursor_blink = true; }
-                6 => { self.cursor_style = CursorStyle::Bar; self.cursor_blink = false; }
+                0 | 1 => {
+                    self.cursor_style = CursorStyle::Block;
+                    self.cursor_blink = true;
+                }
+                2 => {
+                    self.cursor_style = CursorStyle::Block;
+                    self.cursor_blink = false;
+                }
+                3 => {
+                    self.cursor_style = CursorStyle::Underline;
+                    self.cursor_blink = true;
+                }
+                4 => {
+                    self.cursor_style = CursorStyle::Underline;
+                    self.cursor_blink = false;
+                }
+                5 => {
+                    self.cursor_style = CursorStyle::Bar;
+                    self.cursor_blink = true;
+                }
+                6 => {
+                    self.cursor_style = CursorStyle::Bar;
+                    self.cursor_blink = false;
+                }
                 _ => {}
             }
             self.seqno += 1;
@@ -6061,11 +6186,11 @@ impl vte::Perform for Terminal {
             // DECALN — Screen Alignment Display (ESC # 8)
             ([b'#'], b'8') => self.fill_screen_with_e(),
             // Character Set Designation — G0 set
-            ([b'('], b'0') => self.charset_g0_graphics = true,  // DEC Special Graphics
+            ([b'('], b'0') => self.charset_g0_graphics = true, // DEC Special Graphics
             ([b'('], b'B') => self.charset_g0_graphics = false, // US ASCII
             ([b'('], b'A') => self.charset_g0_graphics = false, // UK ASCII (treat as US)
             // Character Set Designation — G1 set
-            ([b')'], b'0') => self.charset_g1_graphics = true,  // DEC Special Graphics
+            ([b')'], b'0') => self.charset_g1_graphics = true, // DEC Special Graphics
             ([b')'], b'B') => self.charset_g1_graphics = false, // US ASCII
             ([b')'], b'A') => self.charset_g1_graphics = false, // UK ASCII (treat as US)
             // DECKPAM — Keypad Application Mode
@@ -6168,9 +6293,17 @@ mod tests {
         let mut t = Terminal::new(80, 24);
         for &mode in &[1u16, 7, 1004, 1006, 2004, 2026] {
             t.dec_set(mode);
-            assert_eq!(t.dec_mode_report(mode), Some(1), "DECSET {mode} → DECRQM set");
+            assert_eq!(
+                t.dec_mode_report(mode),
+                Some(1),
+                "DECSET {mode} → DECRQM set"
+            );
             t.dec_reset(mode);
-            assert_eq!(t.dec_mode_report(mode), Some(2), "DECRST {mode} → DECRQM reset");
+            assert_eq!(
+                t.dec_mode_report(mode),
+                Some(2),
+                "DECRST {mode} → DECRQM reset"
+            );
         }
         // DECTCEM (25) is a `dirty:` mode — same set/reset/report contract.
         t.dec_set(25);
@@ -6192,7 +6325,11 @@ mod tests {
     fn dec_mode_12_no_longer_drifts_and_is_caps_honest() {
         let mut t = Terminal::new(80, 24);
         assert!(t.cursor_blink, "cursor blinks by default");
-        assert_eq!(t.dec_mode_report(12), Some(1), "DECRQM 12 honestly reports blink-on");
+        assert_eq!(
+            t.dec_mode_report(12),
+            Some(1),
+            "DECRQM 12 honestly reports blink-on"
+        );
         t.dec_reset(12);
         assert!(!t.cursor_blink);
         assert_eq!(t.dec_mode_report(12), Some(2));
@@ -6230,11 +6367,18 @@ mod tests {
         term.feed(b"\x1b[3mitalic run\x1b[23m\r\n");
         term.feed(b"\x1b[38;5;42mcolored-not-italic\x1b[0m");
         let italic_at = |t: &Terminal, row: usize, col: usize| {
-            t.cell(row, col).style(t.styles()).attrs.flags.contains(AttrFlags::ITALIC)
+            t.cell(row, col)
+                .style(t.styles())
+                .attrs
+                .flags
+                .contains(AttrFlags::ITALIC)
         };
         assert!(!italic_at(&term, 0, 0), "plain run must NOT be italic");
         assert!(italic_at(&term, 1, 0), "SGR-3 run must be italic");
-        assert!(!italic_at(&term, 2, 0), "colored-but-non-italic run must NOT be italic");
+        assert!(
+            !italic_at(&term, 2, 0),
+            "colored-but-non-italic run must NOT be italic"
+        );
     }
 
     /// **Invariant: `grid_epoch` bumps on every full reset.** The
@@ -6251,12 +6395,24 @@ mod tests {
         let mut term = Terminal::new(40, 4);
         let e0 = term.grid_epoch();
         term.feed(b"some ordinary streamed output\r\n");
-        assert_eq!(term.grid_epoch(), e0, "streaming output must not bump grid_epoch");
+        assert_eq!(
+            term.grid_epoch(),
+            e0,
+            "streaming output must not bump grid_epoch"
+        );
         term.reset();
-        assert_ne!(term.grid_epoch(), e0, "reset (RIS / config-reload / switch) must bump grid_epoch");
+        assert_ne!(
+            term.grid_epoch(),
+            e0,
+            "reset (RIS / config-reload / switch) must bump grid_epoch"
+        );
         let e1 = term.grid_epoch();
         term.reset();
-        assert_ne!(term.grid_epoch(), e1, "a second reset bumps again (monotone per reset)");
+        assert_ne!(
+            term.grid_epoch(),
+            e1,
+            "a second reset bumps again (monotone per reset)"
+        );
     }
 
     /// **Invariant: output never moves the operator's view**
@@ -6386,8 +6542,7 @@ mod tests {
     /// queries), so those are drained before the probe.
     #[test]
     fn cpr_liveness_for_every_prefix_of_a_real_shell_stream() {
-        let corpus: &[u8] =
-            include_bytes!("../tests/fixtures/frostmourne-enter-cycle.bin");
+        let corpus: &[u8] = include_bytes!("../tests/fixtures/frostmourne-enter-cycle.bin");
         let mut failures = Vec::new();
         for cut in 0..=corpus.len() {
             let mut term = Terminal::new(80, 24);
@@ -6412,12 +6567,12 @@ mod tests {
     #[test]
     fn cpr_liveness_survives_adversarial_apc_prefixes() {
         let cases: &[&[u8]] = &[
-            b"\x1b_",                  // bare APC introducer, never terminated
-            b"\x1b_G",                 // kitty graphics opener, unterminated
-            b"\x1b_Gf=100,a=T;QUJD",   // kitty payload, no ST
-            b"\x1b_G;x\x1b",           // unterminated + trailing ESC carried
-            b"\x1b",                   // lone trailing ESC in ground
-            b"\x1b_x\x1b[31m",         // APC aborted mid-payload by a CSI
+            b"\x1b_",                // bare APC introducer, never terminated
+            b"\x1b_G",               // kitty graphics opener, unterminated
+            b"\x1b_Gf=100,a=T;QUJD", // kitty payload, no ST
+            b"\x1b_G;x\x1b",         // unterminated + trailing ESC carried
+            b"\x1b",                 // lone trailing ESC in ground
+            b"\x1b_x\x1b[31m",       // APC aborted mid-payload by a CSI
         ];
         let mut failures = Vec::new();
         for (idx, prefix) in cases.iter().enumerate() {
@@ -6602,7 +6757,10 @@ mod tests {
         // OSC 22 pointer-shape query → `ESC ] 22 ; <name> ST` (default shape).
         let mut term = Terminal::new(80, 24);
         term.feed(b"\x1b]22;?\x1b\\");
-        assert_eq!(term.take_response().as_deref(), Some(&b"\x1b]22;default\x1b\\"[..]));
+        assert_eq!(
+            term.take_response().as_deref(),
+            Some(&b"\x1b]22;default\x1b\\"[..])
+        );
 
         // XTWINOPS report text-area size (CSI 18 t) → `CSI 8 ; rows ; cols t`.
         let mut term = Terminal::new(80, 24);
@@ -6612,18 +6770,30 @@ mod tests {
         // DECRQSS fixed replies through vt::dcs (DECSCL / DECSCA / invalid).
         let mut term = Terminal::new(80, 24);
         term.feed(b"\x1bP$q\"p\x1b\\");
-        assert_eq!(term.take_response().as_deref(), Some(&b"\x1bP1$r62;1\"p\x1b\\"[..]));
+        assert_eq!(
+            term.take_response().as_deref(),
+            Some(&b"\x1bP1$r62;1\"p\x1b\\"[..])
+        );
         term.feed(b"\x1bP$q\"q\x1b\\");
-        assert_eq!(term.take_response().as_deref(), Some(&b"\x1bP1$r0\"q\x1b\\"[..]));
+        assert_eq!(
+            term.take_response().as_deref(),
+            Some(&b"\x1bP1$r0\"q\x1b\\"[..])
+        );
         term.feed(b"\x1bP$qZ\x1b\\");
-        assert_eq!(term.take_response().as_deref(), Some(&b"\x1bP0$r\x1b\\"[..]));
+        assert_eq!(
+            term.take_response().as_deref(),
+            Some(&b"\x1bP0$r\x1b\\"[..])
+        );
 
         // DECRQSS SGR (`m`) routes through vt::dcs too — pin the envelope
         // (the `1$r<sgr>` body is SgrReport's contract, tested separately).
         let mut term = Terminal::new(80, 24);
         term.feed(b"\x1bP$qm\x1b\\");
         let reply = term.take_response().expect("DECRQSS m answers");
-        assert!(reply.starts_with(b"\x1bP1$r") && reply.ends_with(b"\x1b\\"), "reply={reply:?}");
+        assert!(
+            reply.starts_with(b"\x1bP1$r") && reply.ends_with(b"\x1b\\"),
+            "reply={reply:?}"
+        );
     }
 
     /// M7 (underline half): emit⇆reparse FIXPOINT for `UnderlineStyle` — the
@@ -6647,7 +6817,12 @@ mod tests {
         for style in [Single, Double, Curly, Dotted, Dashed] {
             let mut attrs = Attrs::NONE;
             attrs.underline = style;
-            let emitted = SgrReport { fg: Option::None, bg: Option::None, attrs }.to_string();
+            let emitted = SgrReport {
+                fg: Option::None,
+                bg: Option::None,
+                attrs,
+            }
+            .to_string();
             let mut seq = Vec::with_capacity(emitted.len() + 2);
             seq.extend_from_slice(b"\x1b[");
             seq.extend_from_slice(emitted.as_bytes());
@@ -6660,7 +6835,11 @@ mod tests {
                 ));
             }
         }
-        assert!(failures.is_empty(), "underline-style fixpoint broke:\n  {}", failures.join("\n  "));
+        assert!(
+            failures.is_empty(),
+            "underline-style fixpoint broke:\n  {}",
+            failures.join("\n  ")
+        );
     }
 
     /// M7 (underline half): emit⇆reparse FIXPOINT for `UnderlineColor` (SGR 58).
@@ -6679,7 +6858,12 @@ mod tests {
         for uc in [Default, Indexed(9), UcRgb(Rgb::new(10, 20, 30))] {
             let mut attrs = Attrs::NONE;
             attrs.underline_color = uc;
-            let emitted = SgrReport { fg: Option::None, bg: Option::None, attrs }.to_string();
+            let emitted = SgrReport {
+                fg: Option::None,
+                bg: Option::None,
+                attrs,
+            }
+            .to_string();
             let mut seq = Vec::with_capacity(emitted.len() + 2);
             seq.extend_from_slice(b"\x1b[");
             seq.extend_from_slice(emitted.as_bytes());
@@ -6692,7 +6876,11 @@ mod tests {
                 ));
             }
         }
-        assert!(failures.is_empty(), "underline-color fixpoint broke:\n  {}", failures.join("\n  "));
+        assert!(
+            failures.is_empty(),
+            "underline-color fixpoint broke:\n  {}",
+            failures.join("\n  ")
+        );
     }
 
     #[test]
@@ -6856,7 +7044,11 @@ mod tests {
             term.feed(b"line\r\n");
         }
         term.scroll_up(5);
-        assert_eq!(term.scroll_offset(), 5, "precondition: scrolled into history");
+        assert_eq!(
+            term.scroll_offset(),
+            5,
+            "precondition: scrolled into history"
+        );
         term.feed(b"\n"); // output → view stays pinned to content
         assert_eq!(
             term.scroll_offset(),
@@ -7103,10 +7295,10 @@ mod tests {
     fn save_restore_cursor() {
         let mut term = Terminal::new(80, 24);
         term.feed(b"\x1b[5;10H"); // Move to row 4, col 9
-        term.feed(b"\x1b7");      // Save cursor (ESC 7)
-        term.feed(b"\x1b[1;1H");  // Move to home
+        term.feed(b"\x1b7"); // Save cursor (ESC 7)
+        term.feed(b"\x1b[1;1H"); // Move to home
         assert_eq!(term.cursor().row, 0);
-        term.feed(b"\x1b8");      // Restore cursor (ESC 8)
+        term.feed(b"\x1b8"); // Restore cursor (ESC 8)
         assert_eq!(term.cursor().row, 4);
         assert_eq!(term.cursor().col, 9);
     }
@@ -7354,8 +7546,7 @@ mod tests {
     /// shell's own arithmetic and not a hand-derived guess.
     #[test]
     fn frostmourne_prompt_repaint_answers_cpr_with_the_prompt_end_cell() {
-        let corpus: &[u8] =
-            include_bytes!("../tests/fixtures/frostmourne-enter-cycle.bin");
+        let corpus: &[u8] = include_bytes!("../tests/fixtures/frostmourne-enter-cycle.bin");
         // Cut before the first `\r\n`: everything after it is the fatal
         // "cursor position could not be read" line the capture ends on.
         // What precedes it is one steady-state prompt repaint cycle.
@@ -7464,10 +7655,7 @@ mod tests {
         let response = term.take_response().unwrap();
         // Single source of truth: caps::TerminalCaps::PRIMARY_DA, now
         // ?62;4;22c — the `4` advertises sixel since the decode path landed.
-        assert_eq!(
-            response.as_slice(),
-            crate::caps::TerminalCaps::PRIMARY_DA
-        );
+        assert_eq!(response.as_slice(), crate::caps::TerminalCaps::PRIMARY_DA);
     }
 
     /// XTWINOPS `CSI 18 t` — report text-area size in characters. The
@@ -7751,16 +7939,26 @@ mod tests {
         // Two prompt-start marks at row 0 and row 2 (advance
         // cursor between them).
         term.feed(b"\x1b]133;A\x1b\\");
-        term.feed(b"$ ls\r\n");          // row 0 → row 1
-        term.feed(b"file1 file2\r\n");   // row 1 → row 2
+        term.feed(b"$ ls\r\n"); // row 0 → row 1
+        term.feed(b"file1 file2\r\n"); // row 1 → row 2
         term.feed(b"\x1b]133;A\x1b\\");
 
         let seps = term.block_separator_viewport_rows();
-        assert_eq!(seps.len(), 2, "expected two viewport-visible separators, got {seps:?}");
+        assert_eq!(
+            seps.len(),
+            2,
+            "expected two viewport-visible separators, got {seps:?}"
+        );
         // First mark at the top (row 0), second after the 2
         // lines of output (row 2).
-        assert!(seps.contains(&0), "first separator should land at row 0: {seps:?}");
-        assert!(seps.contains(&2), "second separator should land at row 2: {seps:?}");
+        assert!(
+            seps.contains(&0),
+            "first separator should land at row 0: {seps:?}"
+        );
+        assert!(
+            seps.contains(&2),
+            "second separator should land at row 2: {seps:?}"
+        );
     }
 
     #[test]
@@ -8061,7 +8259,7 @@ mod tests {
     fn kitty_keyboard_query() {
         let mut term = Terminal::new(80, 24);
         term.feed(b"\x1b[>5u"); // push flags=5
-        term.feed(b"\x1b[?u");  // query
+        term.feed(b"\x1b[?u"); // query
         let response = term.take_response().unwrap();
         assert_eq!(response, b"\x1b[?5u");
     }
@@ -8085,8 +8283,7 @@ mod tests {
         // 2x2 red RGBA image, direct transmission + display
         // 4 pixels * 4 bytes = 16 bytes of RGBA data
         let rgba = [
-            255, 0, 0, 255, 255, 0, 0, 255,
-            255, 0, 0, 255, 255, 0, 0, 255,
+            255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255,
         ];
         // Base64 encode the RGBA data
         let b64 = base64_encode(&rgba);
@@ -8153,7 +8350,10 @@ mod tests {
         let mut term = Terminal::new(80, 24);
         term.feed(b"\x1b_Ga=q,i=99;\x1b\\");
         let response = term.take_response().unwrap();
-        assert_eq!(std::str::from_utf8(&response).unwrap(), "\x1b_Gi=99;OK\x1b\\");
+        assert_eq!(
+            std::str::from_utf8(&response).unwrap(),
+            "\x1b_Gi=99;OK\x1b\\"
+        );
     }
 
     /// Construct a placement carrying just the fields the z-band split
@@ -8202,11 +8402,11 @@ mod tests {
     fn z_band_split_orders_within_band_by_z_then_transmission() {
         // z=0 is ABOVE (>= 0 boundary); equal-z keeps transmission order.
         let placements = vec![
-            placement_with_z(1, 5),   // above, higher z
-            placement_with_z(2, 0),   // above, lower z
-            placement_with_z(3, -3),  // below, lower z
-            placement_with_z(4, -1),  // below, higher z
-            placement_with_z(5, 0),   // above, same z as id=2 — drawn AFTER it
+            placement_with_z(1, 5),  // above, higher z
+            placement_with_z(2, 0),  // above, lower z
+            placement_with_z(3, -3), // below, lower z
+            placement_with_z(4, -1), // below, higher z
+            placement_with_z(5, 0),  // above, same z as id=2 — drawn AFTER it
         ];
         let (below, above) = partition_placements_by_z(&placements);
 
@@ -8288,7 +8488,10 @@ mod tests {
     fn test_ansi_256_bright() {
         let p = default_palette_256();
         for idx in 8..16u16 {
-            assert_eq!(ansi_256_color(idx, &p), ANSI_BRIGHT_COLORS[(idx - 8) as usize]);
+            assert_eq!(
+                ansi_256_color(idx, &p),
+                ANSI_BRIGHT_COLORS[(idx - 8) as usize]
+            );
         }
     }
 
@@ -8427,11 +8630,21 @@ mod tests {
     }
 
     impl TerminalOps for MockTerminal {
-        fn cols(&self) -> usize { self.cols }
-        fn rows(&self) -> usize { self.rows }
-        fn cursor(&self) -> &Cursor { &self.cur }
-        fn cell(&self, row: usize, col: usize) -> &Cell { &self.cells[row][col] }
-        fn feed(&mut self, _data: &[u8]) { self.seqno_val += 1; }
+        fn cols(&self) -> usize {
+            self.cols
+        }
+        fn rows(&self) -> usize {
+            self.rows
+        }
+        fn cursor(&self) -> &Cursor {
+            &self.cur
+        }
+        fn cell(&self, row: usize, col: usize) -> &Cell {
+            &self.cells[row][col]
+        }
+        fn feed(&mut self, _data: &[u8]) {
+            self.seqno_val += 1;
+        }
         fn resize(&mut self, cols: usize, rows: usize) {
             self.cols = cols;
             self.rows = rows;
@@ -8443,22 +8656,50 @@ mod tests {
             self.cur = Cursor::default();
             self.seqno_val += 1;
         }
-        fn scroll_up(&mut self, _lines: usize) { self.seqno_val += 1; }
-        fn scroll_down(&mut self, _lines: usize) { self.seqno_val += 1; }
+        fn scroll_up(&mut self, _lines: usize) {
+            self.seqno_val += 1;
+        }
+        fn scroll_down(&mut self, _lines: usize) {
+            self.seqno_val += 1;
+        }
         fn scroll_to_top(&mut self) {}
         fn scroll_to_bottom(&mut self) {}
-        fn scroll_offset(&self) -> usize { 0 }
-        fn seqno(&self) -> u64 { self.seqno_val }
-        fn take_response(&mut self) -> Option<Vec<u8>> { self.response.take() }
-        fn title(&self) -> Option<&str> { self.title_str.as_deref() }
-        fn mouse_mode(&self) -> MouseMode { self.mouse }
-        fn take_bell(&mut self) -> bool { std::mem::replace(&mut self.bell_flag, false) }
-        fn kitty_keyboard_flags(&self) -> u32 { 0 }
-        fn cursor_keys_mode(&self) -> bool { false }
-        fn keypad_app_mode(&self) -> bool { false }
-        fn bracketed_paste(&self) -> bool { false }
-        fn sgr_mouse(&self) -> bool { false }
-        fn focus_reporting(&self) -> bool { false }
+        fn scroll_offset(&self) -> usize {
+            0
+        }
+        fn seqno(&self) -> u64 {
+            self.seqno_val
+        }
+        fn take_response(&mut self) -> Option<Vec<u8>> {
+            self.response.take()
+        }
+        fn title(&self) -> Option<&str> {
+            self.title_str.as_deref()
+        }
+        fn mouse_mode(&self) -> MouseMode {
+            self.mouse
+        }
+        fn take_bell(&mut self) -> bool {
+            std::mem::replace(&mut self.bell_flag, false)
+        }
+        fn kitty_keyboard_flags(&self) -> u32 {
+            0
+        }
+        fn cursor_keys_mode(&self) -> bool {
+            false
+        }
+        fn keypad_app_mode(&self) -> bool {
+            false
+        }
+        fn bracketed_paste(&self) -> bool {
+            false
+        }
+        fn sgr_mouse(&self) -> bool {
+            false
+        }
+        fn focus_reporting(&self) -> bool {
+            false
+        }
     }
 
     #[test]
@@ -8613,7 +8854,9 @@ mod tests {
         for i in 0..5 {
             let line = format!("LINE{i}");
             term.feed(line.as_bytes());
-            if i < 4 { term.feed(b"\r\n"); }
+            if i < 4 {
+                term.feed(b"\r\n");
+            }
         }
         // Set scroll region to rows 2-4 (1-based)
         term.feed(b"\x1b[2;4r");
@@ -8694,7 +8937,7 @@ mod tests {
         let mut term = Terminal::new(80, 24);
         term.feed(b"\x1b[?2004h"); // bracketed paste
         term.feed(b"\x1b[?1004h"); // focus reporting
-        term.feed(b"\x1b[?1h");    // cursor keys mode
+        term.feed(b"\x1b[?1h"); // cursor keys mode
         term.feed(b"\x1b[?1006h"); // SGR mouse
         assert!(term.bracketed_paste());
         assert!(term.focus_reporting());
@@ -8824,15 +9067,19 @@ mod tests {
         let mut term = Terminal::new(80, 24);
         term.feed(b"\x1b[c");
         let response = term.take_response().unwrap();
-        assert_eq!(
-            response.as_slice(),
-            crate::caps::TerminalCaps::PRIMARY_DA
-        );
+        assert_eq!(response.as_slice(), crate::caps::TerminalCaps::PRIMARY_DA);
     }
 
     #[test]
     fn test_color_from_ansi() {
-        assert_eq!(Color::WHITE, Color { r: 255, g: 255, b: 255 });
+        assert_eq!(
+            Color::WHITE,
+            Color {
+                r: 255,
+                g: 255,
+                b: 255
+            }
+        );
         assert_eq!(Color::BLACK, Color { r: 0, g: 0, b: 0 });
         let c = Color::new(128, 64, 32);
         assert_eq!(c.r, 128);
@@ -8959,7 +9206,10 @@ mod tests {
         // SGR 41 = red background; the pen bg is now red.
         term.feed(b"\x1b[41m");
         let red = term.pen_bg;
-        assert_ne!(red, term.default_bg, "test premise: red bg differs from default");
+        assert_ne!(
+            red, term.default_bg,
+            "test premise: red bg differs from default"
+        );
         term.feed(b"ABCDE");
         // EL mode 0: erase from cursor to end of line.
         term.feed(b"\x1b[1;3H\x1b[0K");
@@ -9028,7 +9278,9 @@ mod tests {
         for i in 0..5 {
             let line = format!("LINE{i}");
             term.feed(line.as_bytes());
-            if i < 4 { term.feed(b"\r\n"); }
+            if i < 4 {
+                term.feed(b"\r\n");
+            }
         }
         // Set scroll region rows 2-4 (1-based)
         term.feed(b"\x1b[2;4r");
@@ -9274,7 +9526,10 @@ mod tests {
             before,
             "a rejected oversized sixel must not place an image"
         );
-        assert!(!term.sixel_buffer_overflow, "overflow flag clears at unhook");
+        assert!(
+            !term.sixel_buffer_overflow,
+            "overflow flag clears at unhook"
+        );
     }
 
     #[test]
@@ -9503,7 +9758,10 @@ mod tests {
         term.feed(b"\x1b]9;two\x07");
         term.feed(b"\x1b]9;three\x07");
         let bodies: Vec<String> = term.drain_notifications().map(|n| n.body).collect();
-        assert_eq!(bodies, vec!["one".to_string(), "two".into(), "three".into()]);
+        assert_eq!(
+            bodies,
+            vec!["one".to_string(), "two".into(), "three".into()]
+        );
     }
 
     /// Matrix over every notification-bearing OSC dialect: each
@@ -9595,9 +9853,7 @@ mod tests {
             if got[0] != row.expect {
                 failures.push(format!(
                     "{}: expected {:?}, got {:?}",
-                    row.name,
-                    row.expect,
-                    got[0]
+                    row.name, row.expect, got[0]
                 ));
             }
         }
@@ -9654,7 +9910,11 @@ mod tests {
             term.feed(esc.as_bytes());
         }
         let got: Vec<PendingNotification> = term.drain_notifications().collect();
-        assert_eq!(got.len(), CAP, "queue must be bounded at the cap, not grow with input");
+        assert_eq!(
+            got.len(),
+            CAP,
+            "queue must be bounded at the cap, not grow with input"
+        );
         // Drop-oldest keeps the NEWEST entries: the last body must be
         // the final index fed, the first the (total - cap)-th.
         let total = CAP * 10;
@@ -9698,10 +9958,26 @@ mod tests {
         // notifications: the `9;4` namespace can never leak a banner.
         let matrix: [(&str, &[u8], Option<ProgressState>); 7] = [
             ("remove", b"\x1b]9;4;0\x07", Some(ProgressState::Remove)),
-            ("set 50%", b"\x1b]9;4;1;50\x07", Some(ProgressState::Set { pct: 50 })),
-            ("error with pct", b"\x1b]9;4;2;30\x07", Some(ProgressState::Error { pct: Some(30) })),
-            ("indeterminate", b"\x1b]9;4;3\x07", Some(ProgressState::Indeterminate)),
-            ("paused bare", b"\x1b]9;4;4\x07", Some(ProgressState::Paused { pct: None })),
+            (
+                "set 50%",
+                b"\x1b]9;4;1;50\x07",
+                Some(ProgressState::Set { pct: 50 }),
+            ),
+            (
+                "error with pct",
+                b"\x1b]9;4;2;30\x07",
+                Some(ProgressState::Error { pct: Some(30) }),
+            ),
+            (
+                "indeterminate",
+                b"\x1b]9;4;3\x07",
+                Some(ProgressState::Indeterminate),
+            ),
+            (
+                "paused bare",
+                b"\x1b]9;4;4\x07",
+                Some(ProgressState::Paused { pct: None }),
+            ),
             // Truncated `ESC]9;4 ST` — no state byte. Routes to the
             // progress handler's `other` arm: trace-drop, NOT a "4"
             // notification (review 2026-06-12, determinism-unrep-0).
@@ -9762,7 +10038,10 @@ mod tests {
         feed_all(&mut b);
         let drained_a = a.drain_side_effects();
         let drained_b = b.drain_side_effects();
-        assert_eq!(drained_a, drained_b, "same pre-state must drain the same value");
+        assert_eq!(
+            drained_a, drained_b,
+            "same pre-state must drain the same value"
+        );
         assert_eq!(drained_a.title.as_deref(), Some("build shell"));
         assert!(drained_a.bell);
         assert_eq!(drained_a.clipboard.as_deref(), Some("hello"));
@@ -9771,7 +10050,10 @@ mod tests {
         assert_eq!(drained_a.cwd.as_deref(), Some("/tmp"));
         assert!(drained_a.attention);
         // Second immediate drain: nothing accumulated since.
-        assert_eq!(a.drain_side_effects(), crate::ux::TerminalSideEffects::default());
+        assert_eq!(
+            a.drain_side_effects(),
+            crate::ux::TerminalSideEffects::default()
+        );
         // The attention LEVEL survives the drain (MCP attention_get
         // reads it); only the edge was consumed.
         assert!(a.attention_requested());
@@ -9808,10 +10090,18 @@ mod tests {
         };
         let c = by_kind(crate::prompt_mark::PromptKind::CommandOutput);
         let d = by_kind(crate::prompt_mark::PromptKind::CommandEnd);
-        assert_eq!(c.exit_status, Some(1), "C mark back-filled with exit status");
+        assert_eq!(
+            c.exit_status,
+            Some(1),
+            "C mark back-filled with exit status"
+        );
         assert_eq!(d.exit_status, Some(1), "D mark stamped with exit status");
         for m in &marks {
-            assert_eq!(m.at_unix_ms, 42_000, "{:?} stamped via the clock seam", m.kind);
+            assert_eq!(
+                m.at_unix_ms, 42_000,
+                "{:?} stamped via the clock seam",
+                m.kind
+            );
         }
         // The zone read composes the two: span + status in one value.
         let zone = term
@@ -9952,13 +10242,20 @@ mod tests {
             a
         }
         fn with_underline(style: UnderlineStyle) -> Attrs {
-            Attrs { underline: style, ..Attrs::NONE }
+            Attrs {
+                underline: style,
+                ..Attrs::NONE
+            }
         }
         let cases: &[(&[u8], Attrs, &str)] = &[
             (b"\x1b[1m", with_flag(AttrFlags::BOLD), "1 bold"),
             (b"\x1b[2m", with_flag(AttrFlags::DIM), "2 dim"),
             (b"\x1b[3m", with_flag(AttrFlags::ITALIC), "3 italic"),
-            (b"\x1b[4m", with_underline(UnderlineStyle::Single), "4 underline"),
+            (
+                b"\x1b[4m",
+                with_underline(UnderlineStyle::Single),
+                "4 underline",
+            ),
             (b"\x1b[5m", with_flag(AttrFlags::BLINK), "5 blink"),
             (b"\x1b[7m", with_flag(AttrFlags::INVERSE), "7 inverse"),
             (b"\x1b[8m", with_flag(AttrFlags::HIDDEN), "8 hidden"),
@@ -9966,7 +10263,10 @@ mod tests {
             (b"\x1b[53m", with_flag(AttrFlags::OVERLINE), "53 overline"),
             (
                 b"\x1b[58:5:9m",
-                Attrs { underline_color: UnderlineColor::Indexed(9), ..Attrs::NONE },
+                Attrs {
+                    underline_color: UnderlineColor::Indexed(9),
+                    ..Attrs::NONE
+                },
                 "58:5:9 underline color",
             ),
         ];
@@ -9981,7 +10281,11 @@ mod tests {
             }
             // Round trip the same Attrs through a fresh table directly.
             let mut table = StyleTable::new();
-            let style = Style { fg: Color::WHITE, bg: Color::BLACK, attrs: *want };
+            let style = Style {
+                fg: Color::WHITE,
+                bg: Color::BLACK,
+                attrs: *want,
+            };
             let id = table.intern(style);
             if table.lookup(id) != style {
                 failures.push(format!("{name}: intern/lookup mangled {style:?}"));
@@ -10030,7 +10334,10 @@ mod tests {
             UnderlineStyle::Dotted,
             UnderlineStyle::Dashed,
         ] {
-            let a = Attrs { underline: style, ..Attrs::NONE };
+            let a = Attrs {
+                underline: style,
+                ..Attrs::NONE
+            };
             if a.to_legacy_bits() != CellAttrs::UNDERLINE.bits() {
                 failures.push(format!("underline {style}: missing legacy bit"));
             }
@@ -10119,21 +10426,53 @@ mod tests {
             name: &'static str,
         }
         let rows: &[Row] = &[
-            Row { setup: b"", expect: &["\x1bP1$r0m\x1b\\"], name: "default pen" },
-            Row { setup: b"\x1b[1;3m", expect: &[";1", ";3"], name: "bold+italic" },
-            Row { setup: b"\x1b[4:3m", expect: &["4:3"], name: "undercurl probe" },
-            Row { setup: b"\x1b[4:5m", expect: &["4:5"], name: "dashed" },
-            Row { setup: b"\x1b[4m", expect: &[";4m", ";4"], name: "single underline" },
+            Row {
+                setup: b"",
+                expect: &["\x1bP1$r0m\x1b\\"],
+                name: "default pen",
+            },
+            Row {
+                setup: b"\x1b[1;3m",
+                expect: &[";1", ";3"],
+                name: "bold+italic",
+            },
+            Row {
+                setup: b"\x1b[4:3m",
+                expect: &["4:3"],
+                name: "undercurl probe",
+            },
+            Row {
+                setup: b"\x1b[4:5m",
+                expect: &["4:5"],
+                name: "dashed",
+            },
+            Row {
+                setup: b"\x1b[4m",
+                expect: &[";4m", ";4"],
+                name: "single underline",
+            },
             Row {
                 setup: b"\x1b[58:2::240:100:30m\x1b[4m",
                 expect: &["58:2::240:100:30"],
                 name: "underline colour rgb",
             },
-            Row { setup: b"\x1b[58:5:9m", expect: &["58:5:9"], name: "underline colour indexed" },
-            Row { setup: b"\x1b[53m", expect: &[";53"], name: "overline" },
+            Row {
+                setup: b"\x1b[58:5:9m",
+                expect: &["58:5:9"],
+                name: "underline colour indexed",
+            },
+            Row {
+                setup: b"\x1b[53m",
+                expect: &[";53"],
+                name: "overline",
+            },
             // Semicolon form — the pen resolves it to RGB; the report
             // re-emits the colon sub-param shape (the pen's truth).
-            Row { setup: b"\x1b[38;2;10;20;30m", expect: &["38:2::10:20:30"], name: "rgb fg" },
+            Row {
+                setup: b"\x1b[38;2;10;20;30m",
+                expect: &["38:2::10:20:30"],
+                name: "rgb fg",
+            },
             Row {
                 setup: b"\x1b[4:3m\x1b[0m",
                 expect: &["\x1bP1$r0m\x1b\\"],
@@ -10211,16 +10550,28 @@ mod tests {
                 "58:2:r:g:b colon",
             ),
             (b"\x1b[58:5:9m", UnderlineColor::Indexed(9), "58:5:N colon"),
-            (b"\x1b[58;5;9m", UnderlineColor::Indexed(9), "58;5;N semicolon"),
+            (
+                b"\x1b[58;5;9m",
+                UnderlineColor::Indexed(9),
+                "58;5;N semicolon",
+            ),
             (
                 b"\x1b[58;2;10;20;30m",
                 UnderlineColor::Rgb(Rgb::new(10, 20, 30)),
                 "58;2;r;g;b semicolon",
             ),
             // Malformed: unknown colour mode degrades to Default.
-            (b"\x1b[58:9:9m", UnderlineColor::Default, "58:9:9 malformed mode"),
+            (
+                b"\x1b[58:9:9m",
+                UnderlineColor::Default,
+                "58:9:9 malformed mode",
+            ),
             // Malformed: truncated RGB degrades to Default.
-            (b"\x1b[58:2:10m", UnderlineColor::Default, "58:2:r truncated"),
+            (
+                b"\x1b[58:2:10m",
+                UnderlineColor::Default,
+                "58:2:r truncated",
+            ),
         ];
         let mut failures = Vec::new();
         for (esc, want, name) in cases {
@@ -10297,14 +10648,14 @@ mod tests {
             }
         }
         let mut table = StyleTable::new();
-        let ids: Vec<u16> = (1..=1000u32).map(|i| table.intern(color_style(i))).collect();
+        let ids: Vec<u16> = (1..=1000u32)
+            .map(|i| table.intern(color_style(i)))
+            .collect();
         assert_eq!(table.len(), 1001);
 
         // Keep every 100th id live.
-        let live: std::collections::HashSet<u16> =
-            ids.iter().step_by(100).copied().collect();
-        let before: Vec<(u16, Style)> =
-            live.iter().map(|&id| (id, table.lookup(id))).collect();
+        let live: std::collections::HashSet<u16> = ids.iter().step_by(100).copied().collect();
+        let before: Vec<(u16, Style)> = live.iter().map(|&id| (id, table.lookup(id))).collect();
 
         let remap = table.gc(&live);
 
@@ -10335,7 +10686,11 @@ mod tests {
         // Default stays pinned at id 0.
         assert_eq!(
             table.lookup(DEFAULT_STYLE_ID),
-            Style { fg: Color::WHITE, bg: Color::BLACK, attrs: Attrs::NONE }
+            Style {
+                fg: Color::WHITE,
+                bg: Color::BLACK,
+                attrs: Attrs::NONE
+            }
         );
     }
 
@@ -10500,8 +10855,7 @@ mod tests {
     fn scrolled_in_blank_rows_get_fresh_logical_ids() {
         let mut term = Terminal::new(10, 3);
         term.feed(b"a\r\nb\r\nc\r\nd"); // last \r\n scrolls once
-        let ids: Vec<LogicalLineId> =
-            term.primary.rows.iter().map(|l| l.logical_id).collect();
+        let ids: Vec<LogicalLineId> = term.primary.rows.iter().map(|l| l.logical_id).collect();
         assert_eq!(term.primary.rows.len(), 4, "one row entered scrollback");
         for (i, a) in ids.iter().enumerate() {
             for (j, b) in ids.iter().enumerate().skip(i + 1) {
@@ -10711,15 +11065,13 @@ mod tests {
         term.feed(b"second prompt");
 
         let id_long = term.primary.rows[1].logical_id;
-        let marks: Vec<usize> =
-            term.prompt_marks().iter().map(|m| m.grid_row).collect();
+        let marks: Vec<usize> = term.prompt_marks().iter().map(|m| m.grid_row).collect();
         assert_eq!(marks, vec![1, 3]);
 
         term.resize(40, 24);
         // The long line now occupies rows 1..=3, pushing the second
         // prompt to row 4.
-        let marks: Vec<usize> =
-            term.prompt_marks().iter().map(|m| m.grid_row).collect();
+        let marks: Vec<usize> = term.prompt_marks().iter().map(|m| m.grid_row).collect();
         assert_eq!(
             marks,
             vec![1, 4],
@@ -10738,8 +11090,7 @@ mod tests {
 
         // Widen back — both marks return to their original rows.
         term.resize(80, 24);
-        let marks: Vec<usize> =
-            term.prompt_marks().iter().map(|m| m.grid_row).collect();
+        let marks: Vec<usize> = term.prompt_marks().iter().map(|m| m.grid_row).collect();
         assert_eq!(marks, vec![1, 3], "round trip restores mark rows");
     }
 
@@ -10754,13 +11105,11 @@ mod tests {
         term.feed(b"\x1b]1337;SetMark\x07"); // mark at row 2
         term.feed(b"marked line");
 
-        let marks: Vec<usize> =
-            term.user_marks().iter().map(|m| m.grid_row).collect();
+        let marks: Vec<usize> = term.user_marks().iter().map(|m| m.grid_row).collect();
         assert_eq!(marks, vec![2]);
 
         term.resize(40, 24); // long line grows to 3 rows
-        let marks: Vec<usize> =
-            term.user_marks().iter().map(|m| m.grid_row).collect();
+        let marks: Vec<usize> = term.user_marks().iter().map(|m| m.grid_row).collect();
         assert_eq!(marks, vec![3], "user mark shifted by the reflow delta");
         assert!(visible_text(&term)[marks[0]].starts_with("marked line"));
     }
@@ -10961,8 +11310,7 @@ mod tests {
             "the row above the cursor keeps its own logical id"
         );
         assert_ne!(
-            term.primary.rows[17].logical_id,
-            term.primary.rows[18].logical_id,
+            term.primary.rows[17].logical_id, term.primary.rows[18].logical_id,
             "the cursor row does not get joined to the row above"
         );
     }
@@ -11001,7 +11349,10 @@ mod tests {
             .collect();
         term.feed(prefix.as_bytes());
         term.feed("你".as_bytes()); // width 2 at col 79 → early wrap
-        assert!(term.primary.rows[0].wrapped, "early wrap stamped the marker");
+        assert!(
+            term.primary.rows[0].wrapped,
+            "early wrap stamped the marker"
+        );
 
         term.resize(100, 24); // whole line fits on one row now
         assert_eq!(
@@ -11024,21 +11375,21 @@ mod tests {
         term.feed(text.as_bytes()); // rows 0-1, one logical line
         // Erase row 0 from col 5 to the EOL — breaks the marker.
         term.feed(b"\x1b[1;6H\x1b[K");
-        assert!(!term.primary.rows[0].wrapped, "erase to EOL breaks the marker");
+        assert!(
+            !term.primary.rows[0].wrapped,
+            "erase to EOL breaks the marker"
+        );
         assert_eq!(
-            term.primary.rows[0].logical_id,
-            term.primary.rows[1].logical_id,
+            term.primary.rows[0].logical_id, term.primary.rows[1].logical_id,
             "both halves keep the shared id"
         );
         // Mark the SECOND half (row 1).
         term.feed(b"\x1b[2;1H\x1b]1337;SetMark\x07");
-        let marks: Vec<usize> =
-            term.user_marks().iter().map(|m| m.grid_row).collect();
+        let marks: Vec<usize> = term.user_marks().iter().map(|m| m.grid_row).collect();
         assert_eq!(marks, vec![1]);
 
         term.resize(40, 24);
-        let marks: Vec<usize> =
-            term.user_marks().iter().map(|m| m.grid_row).collect();
+        let marks: Vec<usize> = term.user_marks().iter().map(|m| m.grid_row).collect();
         assert_eq!(
             visible_text(&term)[marks[0]],
             text[80..].to_string(),
@@ -11086,7 +11437,9 @@ mod tests {
             term.link_table.intern(&format!("file:///dead/{i}"));
         }
         assert!(
-            term.link_table.try_intern("https://fresh.example").is_none(),
+            term.link_table
+                .try_intern("https://fresh.example")
+                .is_none(),
             "table saturated"
         );
         // A fresh OSC 8 link forces the gc-then-retry path.
@@ -11181,10 +11534,10 @@ mod tests {
             t.cell(0, 2).attrs(t.styles()).underline
         };
         for reset in [
-            &b"\x1b[0m"[..],  // SGR 0 — full reset
-            &b"\x1b[24m"[..], // SGR 24 — underline off
-            &b"\x1b[4:0m"[..],// colon 4:0 — underline none
-            &b"\x1b[m"[..],   // bare CSI m — empty params, ≡ SGR 0
+            &b"\x1b[0m"[..],   // SGR 0 — full reset
+            &b"\x1b[24m"[..],  // SGR 24 — underline off
+            &b"\x1b[4:0m"[..], // colon 4:0 — underline none
+            &b"\x1b[m"[..],    // bare CSI m — empty params, ≡ SGR 0
         ] {
             assert_eq!(
                 after_reset(reset),
@@ -11452,8 +11805,8 @@ mod tests {
         term.feed(b"\r\n1\r\n2\r\n3\r\n4");
         let shifted = term.resolve_selection_span(a, b).expect("still resolvable");
         assert_eq!(
-            (shifted.0 .0, shifted.1 .0),
-            (first.0 .0, first.1 .0),
+            (shifted.0.0, shifted.1.0),
+            (first.0.0, first.1.0),
             "absolute rows are scrollback-origin-stable while content survives"
         );
         // Different anchors immediately after a memoized pair must

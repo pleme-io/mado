@@ -38,8 +38,7 @@ fn mado_tear_attach_streams_pane_output_to_stdout() {
 
     // 1 — daemon
     let inproc = Arc::new(tear_core::InProcess::new());
-    let daemon = tear_daemon::start(socket.clone(), inproc)
-        .expect("tear-daemon should start");
+    let daemon = tear_daemon::start(socket.clone(), inproc).expect("tear-daemon should start");
     std::thread::sleep(Duration::from_millis(50));
 
     // 2 — control client + session
@@ -68,8 +67,7 @@ fn mado_tear_attach_streams_pane_output_to_stdout() {
     // 4 — send a known marker
     let marker = "MADO_TEAR_INTEGRATION_MARK_71309";
     let cmd = format!("printf '{marker}\\n'\n");
-    ctrl.send_keys(pane_id, cmd.as_bytes())
-        .expect("send_keys");
+    ctrl.send_keys(pane_id, cmd.as_bytes()).expect("send_keys");
 
     // 5 — poll mado's stdout for the marker
     let mut stdout = child.stdout.take().expect("stdout pipe");

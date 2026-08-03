@@ -41,8 +41,8 @@ use crate::config::{ColorblindMode, CursorStyle};
 use crate::search::SearchState;
 use crate::selection::{CellPos, Selection};
 use crate::terminal::{
-    bold_bright_color, default_ansi_palette, AttrFlags, Cell, Color, Cursor, ImagePlacement,
-    StyleSnapshot, Terminal, UnderlineColor, UnderlineStyle,
+    AttrFlags, Cell, Color, Cursor, ImagePlacement, StyleSnapshot, Terminal, UnderlineColor,
+    UnderlineStyle, bold_bright_color, default_ansi_palette,
 };
 use crate::url::{self, DetectedUrl};
 
@@ -354,7 +354,11 @@ fn max_overlay_content_w(width: u32, pad: f32, pad_x: f32) -> f32 {
 /// the Ctrl-S "text runs off the edge" report. `highlights` beyond the kept
 /// prefix are dropped (nothing left to point at). A no-op when `text`
 /// already fits.
-fn truncate_overlay_text(text: &str, highlights: &[usize], max_chars: usize) -> (String, Vec<usize>) {
+fn truncate_overlay_text(
+    text: &str,
+    highlights: &[usize],
+    max_chars: usize,
+) -> (String, Vec<usize>) {
     let char_count = text.chars().count();
     if char_count <= max_chars {
         return (text.to_string(), highlights.to_vec());
@@ -363,7 +367,11 @@ fn truncate_overlay_text(text: &str, highlights: &[usize], max_chars: usize) -> 
         return (String::new(), Vec::new());
     }
     let keep = max_chars.saturating_sub(1);
-    let truncated: String = text.chars().take(keep).chain(std::iter::once('…')).collect();
+    let truncated: String = text
+        .chars()
+        .take(keep)
+        .chain(std::iter::once('…'))
+        .collect();
     let kept_highlights = highlights.iter().copied().filter(|&p| p < keep).collect();
     (truncated, kept_highlights)
 }
@@ -601,20 +609,19 @@ impl RectPipeline {
             source: wgpu::ShaderSource::Wgsl(RECT_SHADER.into()),
         });
 
-        let bind_group_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("rect_bgl"),
-                entries: &[wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                }],
-            });
+        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("rect_bgl"),
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            }],
+        });
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("rect_pl"),
@@ -1700,7 +1707,9 @@ struct SnowState {
 
 impl SnowState {
     fn new() -> Self {
-        Self { params: engawa_wgpu::catalog::snow::SnowParams::default() }
+        Self {
+            params: engawa_wgpu::catalog::snow::SnowParams::default(),
+        }
     }
 
     /// Re-seed the operator knobs (intensity / wind / layers /
@@ -1726,7 +1735,8 @@ impl SnowState {
         // The frame-rate-independent 0.92^(dt·60) decay, shared with the
         // bell glow below — collapsed into `motion::frame_decay` (the 2nd
         // copy is the extract trigger; byte-identical to the old inline).
-        let decay = crate::motion::frame_decay(dt, cfg.snow_pulse_retain.clamp(f32::MIN_POSITIVE, 1.0));
+        let decay =
+            crate::motion::frame_decay(dt, cfg.snow_pulse_retain.clamp(f32::MIN_POSITIVE, 1.0));
         self.params.set_typing_pulse(self.params.frame[3] * decay);
         let temp = cfg.temperature.clamp(0.0, 1.0);
         let pile_delta = if temp < 0.5 {
@@ -1747,12 +1757,16 @@ struct GlowState {
 
 impl GlowState {
     fn new() -> Self {
-        Self { params: engawa_wgpu::catalog::glow_on_bell::GlowOnBellParams::default() }
+        Self {
+            params: engawa_wgpu::catalog::glow_on_bell::GlowOnBellParams::default(),
+        }
     }
 
     fn tick(&mut self, dt: f32, retain: f32) {
-        self.params
-            .decay(crate::motion::frame_decay(dt, retain.clamp(f32::MIN_POSITIVE, 1.0)));
+        self.params.decay(crate::motion::frame_decay(
+            dt,
+            retain.clamp(f32::MIN_POSITIVE, 1.0),
+        ));
     }
 }
 
@@ -1806,7 +1820,7 @@ const EPOCH_FORCE_PAINT_FRAMES: u8 = 3;
 // crate's single source of column truth — see `crate::grid_col`. The
 // text + rect/decoration pipelines below and URL detection all consume
 // the same sealed mint, so their columns cannot diverge.
-use crate::grid_col::{glyph_columns, GridCol};
+use crate::grid_col::{GridCol, glyph_columns};
 
 /// The named text surfaces this renderer draws, each on its OWN isolated
 /// layer of the shared `garasu::TextLayerStack` (own vertex buffer). The
@@ -1967,7 +1981,10 @@ enum RatioUpdate {
 /// display until the next resize re-probes. `Retain` closes that recurrence:
 /// once a good ratio is found, no failed probe can discard it.
 #[inline]
-fn resolve_ratio_update(probe: crate::panel_fit::PanelRatio, have_known_ratio: bool) -> RatioUpdate {
+fn resolve_ratio_update(
+    probe: crate::panel_fit::PanelRatio,
+    have_known_ratio: bool,
+) -> RatioUpdate {
     if probe.is_known() {
         RatioUpdate::Adopt(probe.ratio())
     } else if have_known_ratio {
@@ -2003,9 +2020,7 @@ impl TerminalRenderer {
             selection: Arc::new(Mutex::new(Selection::new())),
             search: Arc::new(Mutex::new(SearchState::new())),
             dir_picker: Arc::new(Mutex::new(crate::dir_picker::DirPickerState::new())),
-            session_picker: Arc::new(Mutex::new(
-                crate::session_picker::SessionPickerState::new(),
-            )),
+            session_picker: Arc::new(Mutex::new(crate::session_picker::SessionPickerState::new())),
             // Born `None`; the engine rewires this to its shared cell via
             // `set_overlay_focus` in `attach_to_renderer`.
             overlay_focus: Arc::new(Mutex::new(crate::ux::modes::Overlay::None)),
@@ -2129,7 +2144,9 @@ impl TerminalRenderer {
             last_grid_epoch: 0,
             force_paint_frames: 0,
             effects_config: crate::config::MadoEffectsConfig::default(),
-            ambience: crate::config::MadoEffectsConfig::default().ambience.compose(),
+            ambience: crate::config::MadoEffectsConfig::default()
+                .ambience
+                .compose(),
             snow_state: SnowState::new(),
             glow_state: GlowState::new(),
             aurora_state: AuroraState::new(),
@@ -2175,7 +2192,10 @@ impl TerminalRenderer {
         self.bell_flash_curve = config.motion.bell_flash.easing.curve();
         self.session_picker_anchor = config.tear.session_picker_anchor;
         self.suggestion_shade_in_ms = config.suggestions.shade_in_ms;
-        self.set_seam_config(config.display.seam_auto_tune, config.display.downscale_ratio);
+        self.set_seam_config(
+            config.display.seam_auto_tune,
+            config.display.downscale_ratio,
+        );
         self.set_effects_config(config.resolved_effects());
     }
 
@@ -2677,8 +2697,8 @@ impl TerminalRenderer {
         // is always a centred, viewport-bounded card — never an oversized
         // panel pinned to a corner and clipped (the Ctrl-S "sized for full
         // screen" report). Keeps the title + the selected row visible.
-        let max_lines = (((height as f32 - 2.0 * pad - 2.0 * pad_y) / line_h).floor() as i64)
-            .max(1) as usize;
+        let max_lines =
+            (((height as f32 - 2.0 * pad - 2.0 * pad_y) / line_h).floor() as i64).max(1) as usize;
         let sel_idx = spec.lines.iter().position(|l| l.role == LineRole::Selected);
         let vis = viewport_line_window(spec.lines.len(), sel_idx, max_lines);
         let vis_max_w = || {
@@ -2690,10 +2710,7 @@ impl TerminalRenderer {
         let edge_left = pad + pad_x;
         let (left, top0) = match spec.anchor {
             PickerAnchor::Top => (edge_left, pad + self.cell_height),
-            PickerAnchor::Bottom => (
-                edge_left,
-                (height as f32 - block_h - pad).max(pad),
-            ),
+            PickerAnchor::Bottom => (edge_left, (height as f32 - block_h - pad).max(pad)),
             PickerAnchor::Center => {
                 let max_w = vis_max_w();
                 (
@@ -2889,7 +2906,10 @@ impl TerminalRenderer {
             LineRole::Title,
         ));
         if results.is_empty() {
-            lines.push(OverlayLine::new("  (no matching directories)", LineRole::Hint));
+            lines.push(OverlayLine::new(
+                "  (no matching directories)",
+                LineRole::Hint,
+            ));
         } else {
             for (i, (path, _score)) in results.iter().take(max_rows).enumerate() {
                 let (marker, role) = if i == selected {
@@ -2897,7 +2917,10 @@ impl TerminalRenderer {
                 } else {
                     ("  ", LineRole::Row)
                 };
-                lines.push(OverlayLine::new(format!("{marker}{}", path.display()), role));
+                lines.push(OverlayLine::new(
+                    format!("{marker}{}", path.display()),
+                    role,
+                ));
             }
         }
         // The dir picker keeps the legacy top-drop anchor.
@@ -2960,7 +2983,10 @@ impl TerminalRenderer {
                 LineRole::Hint,
             ));
         } else if results.is_empty() {
-            lines.push(OverlayLine::new("  (type a name to create a session)", LineRole::Hint));
+            lines.push(OverlayLine::new(
+                "  (type a name to create a session)",
+                LineRole::Hint,
+            ));
         } else {
             // Shade-in: ramp each suggestion row's alpha from when it first
             // appeared on screen, so it dissolves in from the panel rather than
@@ -3124,7 +3150,11 @@ impl TerminalRenderer {
         }
         // The additive glow tint tracks the theme's exit accents (ANSI
         // green/red), normalized u8→0..1 — never a hardcoded colour.
-        let c = if exit_code == 0 { self.exit_ok_color } else { self.exit_err_color };
+        let c = if exit_code == 0 {
+            self.exit_ok_color
+        } else {
+            self.exit_err_color
+        };
         self.glow_state.params.ring_tinted(color_to_rgb(&c));
     }
 
@@ -3338,7 +3368,10 @@ impl TerminalRenderer {
                 let start = if s.0 < viewport_top_abs {
                     CellPos { row: 0, col: 0 }
                 } else {
-                    CellPos { row: s.0 - viewport_top_abs, col: s.1 }
+                    CellPos {
+                        row: s.0 - viewport_top_abs,
+                        col: s.1,
+                    }
                 };
                 let end = if e.0 >= viewport_top_abs + num_rows {
                     CellPos {
@@ -3346,7 +3379,10 @@ impl TerminalRenderer {
                         col: cols.saturating_sub(1),
                     }
                 } else {
-                    CellPos { row: e.0 - viewport_top_abs, col: e.1 }
+                    CellPos {
+                        row: e.0 - viewport_top_abs,
+                        col: e.1,
+                    }
                 };
                 Some((start, end))
             });
@@ -3459,35 +3495,30 @@ impl TerminalRenderer {
         // painted rect ends up `run_width_cells × cell_width` wide.
         type RowRun = Option<(usize, usize, [f32; 4])>;
         type UnderlineRun = Option<(usize, usize, [f32; 4], UnderlineStyle)>;
-        let push_run =
-            |instances: &mut Vec<RectInstance>,
-             run: &mut RowRun,
-             row_idx: usize,
-             kind: RectKindForRle| {
-                if let Some((start_col, cells, color)) = run.take() {
-                    let x = origin_x + start_col as f32 * self.cell_width;
-                    let w = cells as f32 * self.cell_width;
-                    let (y, h) = match kind {
-                        RectKindForRle::Background => (
-                            origin_y + row_idx as f32 * self.cell_height,
-                            self.cell_height,
-                        ),
-                        RectKindForRle::Strikethrough => (
-                            origin_y + row_idx as f32 * self.cell_height
-                                + self.cell_height * 0.5,
-                            1.0,
-                        ),
-                        RectKindForRle::Overline => {
-                            let r = engawa::overline_rect(self.underline_metrics());
-                            (
-                                origin_y + row_idx as f32 * self.cell_height + r.y,
-                                r.height,
-                            )
-                        }
-                    };
-                    instances.push(RectInstance::solid([x, y], [w, h], color));
-                }
-            };
+        let push_run = |instances: &mut Vec<RectInstance>,
+                        run: &mut RowRun,
+                        row_idx: usize,
+                        kind: RectKindForRle| {
+            if let Some((start_col, cells, color)) = run.take() {
+                let x = origin_x + start_col as f32 * self.cell_width;
+                let w = cells as f32 * self.cell_width;
+                let (y, h) = match kind {
+                    RectKindForRle::Background => (
+                        origin_y + row_idx as f32 * self.cell_height,
+                        self.cell_height,
+                    ),
+                    RectKindForRle::Strikethrough => (
+                        origin_y + row_idx as f32 * self.cell_height + self.cell_height * 0.5,
+                        1.0,
+                    ),
+                    RectKindForRle::Overline => {
+                        let r = engawa::overline_rect(self.underline_metrics());
+                        (origin_y + row_idx as f32 * self.cell_height + r.y, r.height)
+                    }
+                };
+                instances.push(RectInstance::solid([x, y], [w, h], color));
+            }
+        };
 
         // M3-C2 — style-dispatched underline geometry through the
         // engawa decoration emitters. The emitter runs on single-cell
@@ -3498,53 +3529,52 @@ impl TerminalRenderer {
         // adjacent cells' bands into one run" the engawa module
         // documents.
         let metrics = self.underline_metrics();
-        let push_underline = |instances: &mut Vec<RectInstance>,
-                              run: &mut UnderlineRun,
-                              row_idx: usize| {
-            if let Some((start_col, cells, color, style)) = run.take() {
-                let x = origin_x + start_col as f32 * self.cell_width;
-                let y0 = origin_y + row_idx as f32 * self.cell_height;
-                let run_w = cells as f32 * self.cell_width;
-                match engawa::emit_underline_rects(style, metrics) {
-                    engawa::UnderlineGeometry::None => {}
-                    engawa::UnderlineGeometry::Single(r) => {
-                        instances.push(RectInstance::solid(
-                            [x + r.x, y0 + r.y],
-                            [run_w, r.height],
-                            color,
-                        ));
-                    }
-                    engawa::UnderlineGeometry::Double { upper, lower } => {
-                        for r in [upper, lower] {
+        let push_underline =
+            |instances: &mut Vec<RectInstance>, run: &mut UnderlineRun, row_idx: usize| {
+                if let Some((start_col, cells, color, style)) = run.take() {
+                    let x = origin_x + start_col as f32 * self.cell_width;
+                    let y0 = origin_y + row_idx as f32 * self.cell_height;
+                    let run_w = cells as f32 * self.cell_width;
+                    match engawa::emit_underline_rects(style, metrics) {
+                        engawa::UnderlineGeometry::None => {}
+                        engawa::UnderlineGeometry::Single(r) => {
                             instances.push(RectInstance::solid(
                                 [x + r.x, y0 + r.y],
                                 [run_w, r.height],
                                 color,
                             ));
                         }
-                    }
-                    engawa::UnderlineGeometry::Run(seg) => {
-                        instances.push(RectInstance::run(
-                            [x + seg.band.x, y0 + seg.band.y],
-                            [run_w, seg.band.height],
-                            color,
-                            seg.period,
-                            seg.duty,
-                        ));
-                    }
-                    engawa::UnderlineGeometry::Curly(band) => {
-                        instances.push(RectInstance::curly(
-                            [x + band.rect.x, y0 + band.rect.y],
-                            [run_w, band.rect.height],
-                            color,
-                            band.period,
-                            band.amplitude,
-                            band.thickness,
-                        ));
+                        engawa::UnderlineGeometry::Double { upper, lower } => {
+                            for r in [upper, lower] {
+                                instances.push(RectInstance::solid(
+                                    [x + r.x, y0 + r.y],
+                                    [run_w, r.height],
+                                    color,
+                                ));
+                            }
+                        }
+                        engawa::UnderlineGeometry::Run(seg) => {
+                            instances.push(RectInstance::run(
+                                [x + seg.band.x, y0 + seg.band.y],
+                                [run_w, seg.band.height],
+                                color,
+                                seg.period,
+                                seg.duty,
+                            ));
+                        }
+                        engawa::UnderlineGeometry::Curly(band) => {
+                            instances.push(RectInstance::curly(
+                                [x + band.rect.x, y0 + band.rect.y],
+                                [run_w, band.rect.height],
+                                color,
+                                band.period,
+                                band.amplitude,
+                                band.thickness,
+                            ));
+                        }
                     }
                 }
-            }
-        };
+            };
 
         // BLINK (SGR 5) animation phase — keyed on the cursor-blink
         // clock so the two blink families breathe together. Off-phase
@@ -3578,8 +3608,7 @@ impl TerminalRenderer {
                     base_fg
                 };
                 let width_cells = cell.width.max(1) as usize;
-                let blink_hidden =
-                    !blink_on && attrs.flags.contains(AttrFlags::BLINK);
+                let blink_hidden = !blink_on && attrs.flags.contains(AttrFlags::BLINK);
 
                 // ── Background span ─────────────────────────────────
                 if bg != default_bg {
@@ -3621,9 +3650,7 @@ impl TerminalRenderer {
                     };
                     let color = color_to_f32(&resolved);
                     match &mut underline_run {
-                        Some((_, cells, c, s))
-                            if *c == color && *s == attrs.underline =>
-                        {
+                        Some((_, cells, c, s)) if *c == color && *s == attrs.underline => {
                             *cells += width_cells;
                         }
                         _ => {
@@ -3720,7 +3747,11 @@ impl TerminalRenderer {
                             .clone()
                     };
                     for (rx, ry, rw, rh) in template {
-                        glyph_fill_instances.push(RectInstance::solid([bx + rx, by + ry], [rw, rh], color));
+                        glyph_fill_instances.push(RectInstance::solid(
+                            [bx + rx, by + ry],
+                            [rw, rh],
+                            color,
+                        ));
                     }
                 }
 
@@ -3748,10 +3779,25 @@ impl TerminalRenderer {
             }
 
             // Row end — flush every open run.
-            push_run(&mut instances, &mut bg_run, row_idx, RectKindForRle::Background);
+            push_run(
+                &mut instances,
+                &mut bg_run,
+                row_idx,
+                RectKindForRle::Background,
+            );
             push_underline(&mut decoration_instances, &mut underline_run, row_idx);
-            push_run(&mut decoration_instances, &mut strike_run, row_idx, RectKindForRle::Strikethrough);
-            push_run(&mut decoration_instances, &mut overline_run, row_idx, RectKindForRle::Overline);
+            push_run(
+                &mut decoration_instances,
+                &mut strike_run,
+                row_idx,
+                RectKindForRle::Strikethrough,
+            );
+            push_run(
+                &mut decoration_instances,
+                &mut overline_run,
+                row_idx,
+                RectKindForRle::Overline,
+            );
         }
 
         // Deferred layers, in paint order. Both sit ON TOP of every cell
@@ -3770,7 +3816,11 @@ impl TerminalRenderer {
         if let Some((sel_start, sel_end)) = snap.selection_span {
             let last_row = sel_end.row.min(snap.rows.len().saturating_sub(1));
             for row_idx in sel_start.row..=last_row {
-                let c0 = if row_idx == sel_start.row { sel_start.col } else { 0 };
+                let c0 = if row_idx == sel_start.row {
+                    sel_start.col
+                } else {
+                    0
+                };
                 let c1 = if row_idx == sel_end.row {
                     sel_end.col.min(snap.cols.saturating_sub(1))
                 } else {
@@ -3779,13 +3829,14 @@ impl TerminalRenderer {
                 if c0 > c1 {
                     continue;
                 }
-                instances.push(RectInstance::solid([
+                instances.push(RectInstance::solid(
+                    [
                         origin_x + c0 as f32 * self.cell_width,
                         origin_y + row_idx as f32 * self.cell_height,
-                    ], [
-                        (c1 - c0 + 1) as f32 * self.cell_width,
-                        self.cell_height,
-                    ], self.selection_bg));
+                    ],
+                    [(c1 - c0 + 1) as f32 * self.cell_width, self.cell_height],
+                    self.selection_bg,
+                ));
             }
         }
 
@@ -3817,13 +3868,17 @@ impl TerminalRenderer {
                     let c = self.search_other_color;
                     overlay_rect_color(c.r, c.g, c.b, 0.2)
                 };
-                instances.push(RectInstance::solid([
+                instances.push(RectInstance::solid(
+                    [
                         origin_x + m.col_start as f32 * self.cell_width,
                         origin_y + vp_row as f32 * self.cell_height,
-                    ], [
+                    ],
+                    [
                         (m.col_end + 1 - m.col_start) as f32 * self.cell_width,
                         self.cell_height,
-                    ], color));
+                    ],
+                    color,
+                ));
             }
         }
 
@@ -3835,9 +3890,7 @@ impl TerminalRenderer {
                 instances.push(RectInstance::solid(
                     [
                         origin_x + detected_url.col_start as f32 * self.cell_width,
-                        origin_y
-                            + (detected_url.row as f32 + 1.0) * self.cell_height
-                            - 1.5,
+                        origin_y + (detected_url.row as f32 + 1.0) * self.cell_height - 1.5,
                     ],
                     [
                         (detected_url.col_end + 1 - detected_url.col_start) as f32
@@ -3905,18 +3958,33 @@ impl TerminalRenderer {
                 CursorStyle::Block => ([cx, cy], [self.cell_width, self.cell_height]),
                 CursorStyle::BlockHollow => ([cx, cy], [self.cell_width, self.cell_height]),
                 CursorStyle::Bar => ([cx, cy], [2.0, self.cell_height]),
-                CursorStyle::Underline => (
-                    [cx, cy + self.cell_height - 2.0],
-                    [self.cell_width, 2.0],
-                ),
+                CursorStyle::Underline => {
+                    ([cx, cy + self.cell_height - 2.0], [self.cell_width, 2.0])
+                }
             };
 
             if effective_style == CursorStyle::BlockHollow {
                 let thickness = 2.0_f32;
-                instances.push(RectInstance::solid([cx, cy], [self.cell_width, thickness], self.cursor_color));
-                instances.push(RectInstance::solid([cx, cy + self.cell_height - thickness], [self.cell_width, thickness], self.cursor_color));
-                instances.push(RectInstance::solid([cx, cy], [thickness, self.cell_height], self.cursor_color));
-                instances.push(RectInstance::solid([cx + self.cell_width - thickness, cy], [thickness, self.cell_height], self.cursor_color));
+                instances.push(RectInstance::solid(
+                    [cx, cy],
+                    [self.cell_width, thickness],
+                    self.cursor_color,
+                ));
+                instances.push(RectInstance::solid(
+                    [cx, cy + self.cell_height - thickness],
+                    [self.cell_width, thickness],
+                    self.cursor_color,
+                ));
+                instances.push(RectInstance::solid(
+                    [cx, cy],
+                    [thickness, self.cell_height],
+                    self.cursor_color,
+                ));
+                instances.push(RectInstance::solid(
+                    [cx + self.cell_width - thickness, cy],
+                    [thickness, self.cell_height],
+                    self.cursor_color,
+                ));
             } else {
                 instances.push(RectInstance::solid(pos, size, self.cursor_color));
             }
@@ -4037,11 +4105,7 @@ impl TerminalRenderer {
     /// on the cache lets `build_text_buffers` stay `&self` so it
     /// composes with those borrows cleanly. The render thread is
     /// single-threaded so the borrow is always uncontested.
-    fn shape_run(
-        &self,
-        text: &mut garasu::TextLayerStack,
-        key: ShapeKey,
-    ) -> Arc<Buffer> {
+    fn shape_run(&self, text: &mut garasu::TextLayerStack, key: ShapeKey) -> Arc<Buffer> {
         if let Some(arc) = self.shape_cache.borrow_mut().get(&key) {
             return Arc::clone(arc);
         }
@@ -4057,14 +4121,12 @@ impl TerminalRenderer {
             &self.font_italic,
             &self.font_symbols,
         ));
-        let mut attrs = Attrs::new()
-            .family(family)
-            .color(GlyphonColor::rgba(
-                key.attrs.fg_r,
-                key.attrs.fg_g,
-                key.attrs.fg_b,
-                255,
-            ));
+        let mut attrs = Attrs::new().family(family).color(GlyphonColor::rgba(
+            key.attrs.fg_r,
+            key.attrs.fg_g,
+            key.attrs.fg_b,
+            255,
+        ));
         if key.attrs.bold {
             attrs = attrs.weight(Weight::BOLD);
         }
@@ -4077,9 +4139,7 @@ impl TerminalRenderer {
             self.cell_height,
         );
         let arc = Arc::new(buf);
-        self.shape_cache
-            .borrow_mut()
-            .put(key, Arc::clone(&arc));
+        self.shape_cache.borrow_mut().put(key, Arc::clone(&arc));
         arc
     }
 
@@ -4120,8 +4180,7 @@ impl TerminalRenderer {
         // upper bound; the Vec will grow if needed (mimalloc + amortized
         // doubling makes this cheap) but pre-sizing eliminates the
         // first ~4 reallocations on each frame.
-        let mut buffers: Vec<(usize, GridCol, Arc<Buffer>)> =
-            Vec::with_capacity(snap.num_rows * 8);
+        let mut buffers: Vec<(usize, GridCol, Arc<Buffer>)> = Vec::with_capacity(snap.num_rows * 8);
         let font_size_bits = self.font_size_px().to_bits();
 
         for (row_idx, row) in snap.rows.iter().enumerate() {
@@ -4235,18 +4294,15 @@ impl TerminalRenderer {
                     // colour). Gated on the links-highlight config.
                     if self.links_highlight
                         && (cell.link_id != crate::terminal::NO_LINK_ID
-                            || crate::url::url_at(&snap.urls, row_idx, col_here.idx())
-                                .is_some())
+                            || crate::url::url_at(&snap.urls, row_idx, col_here.idx()).is_some())
                     {
                         fg = self.link_color;
                     }
                     fg
                 };
 
-                let is_simple_for_batch = cell.width == 1
-                    && cell.extra.is_none()
-                    && cell.ch.is_ascii()
-                    && !hidden;
+                let is_simple_for_batch =
+                    cell.width == 1 && cell.extra.is_none() && cell.ch.is_ascii() && !hidden;
 
                 if !is_simple_for_batch {
                     flush_run(&mut run, &mut row_buffers, text);
@@ -4410,68 +4466,160 @@ fn box_drawing_rects(
     match ch {
         // ─ horizontal line
         '\u{2500}' => {
-            rects.push(RectInstance::solid([x, cy - thick / 2.0], [cw, thick], color));
+            rects.push(RectInstance::solid(
+                [x, cy - thick / 2.0],
+                [cw, thick],
+                color,
+            ));
         }
         // │ vertical line
         '\u{2502}' => {
-            rects.push(RectInstance::solid([cx - thick / 2.0, y], [thick, ch_h], color));
+            rects.push(RectInstance::solid(
+                [cx - thick / 2.0, y],
+                [thick, ch_h],
+                color,
+            ));
         }
         // ┌ top-left corner
         '\u{250C}' => {
-            rects.push(RectInstance::solid([cx - thick / 2.0, cy - thick / 2.0], [cw - (cx - x) + thick / 2.0, thick], color));
-            rects.push(RectInstance::solid([cx - thick / 2.0, cy - thick / 2.0], [thick, ch_h - (cy - y) + thick / 2.0], color));
+            rects.push(RectInstance::solid(
+                [cx - thick / 2.0, cy - thick / 2.0],
+                [cw - (cx - x) + thick / 2.0, thick],
+                color,
+            ));
+            rects.push(RectInstance::solid(
+                [cx - thick / 2.0, cy - thick / 2.0],
+                [thick, ch_h - (cy - y) + thick / 2.0],
+                color,
+            ));
         }
         // ┐ top-right corner
         '\u{2510}' => {
-            rects.push(RectInstance::solid([x, cy - thick / 2.0], [cx - x + thick / 2.0, thick], color));
-            rects.push(RectInstance::solid([cx - thick / 2.0, cy - thick / 2.0], [thick, ch_h - (cy - y) + thick / 2.0], color));
+            rects.push(RectInstance::solid(
+                [x, cy - thick / 2.0],
+                [cx - x + thick / 2.0, thick],
+                color,
+            ));
+            rects.push(RectInstance::solid(
+                [cx - thick / 2.0, cy - thick / 2.0],
+                [thick, ch_h - (cy - y) + thick / 2.0],
+                color,
+            ));
         }
         // └ bottom-left corner
         '\u{2514}' => {
-            rects.push(RectInstance::solid([cx - thick / 2.0, cy - thick / 2.0], [cw - (cx - x) + thick / 2.0, thick], color));
-            rects.push(RectInstance::solid([cx - thick / 2.0, y], [thick, cy - y + thick / 2.0], color));
+            rects.push(RectInstance::solid(
+                [cx - thick / 2.0, cy - thick / 2.0],
+                [cw - (cx - x) + thick / 2.0, thick],
+                color,
+            ));
+            rects.push(RectInstance::solid(
+                [cx - thick / 2.0, y],
+                [thick, cy - y + thick / 2.0],
+                color,
+            ));
         }
         // ┘ bottom-right corner
         '\u{2518}' => {
-            rects.push(RectInstance::solid([x, cy - thick / 2.0], [cx - x + thick / 2.0, thick], color));
-            rects.push(RectInstance::solid([cx - thick / 2.0, y], [thick, cy - y + thick / 2.0], color));
+            rects.push(RectInstance::solid(
+                [x, cy - thick / 2.0],
+                [cx - x + thick / 2.0, thick],
+                color,
+            ));
+            rects.push(RectInstance::solid(
+                [cx - thick / 2.0, y],
+                [thick, cy - y + thick / 2.0],
+                color,
+            ));
         }
         // ├ left tee
         '\u{251C}' => {
-            rects.push(RectInstance::solid([cx - thick / 2.0, y], [thick, ch_h], color));
-            rects.push(RectInstance::solid([cx - thick / 2.0, cy - thick / 2.0], [cw - (cx - x) + thick / 2.0, thick], color));
+            rects.push(RectInstance::solid(
+                [cx - thick / 2.0, y],
+                [thick, ch_h],
+                color,
+            ));
+            rects.push(RectInstance::solid(
+                [cx - thick / 2.0, cy - thick / 2.0],
+                [cw - (cx - x) + thick / 2.0, thick],
+                color,
+            ));
         }
         // ┤ right tee
         '\u{2524}' => {
-            rects.push(RectInstance::solid([cx - thick / 2.0, y], [thick, ch_h], color));
-            rects.push(RectInstance::solid([x, cy - thick / 2.0], [cx - x + thick / 2.0, thick], color));
+            rects.push(RectInstance::solid(
+                [cx - thick / 2.0, y],
+                [thick, ch_h],
+                color,
+            ));
+            rects.push(RectInstance::solid(
+                [x, cy - thick / 2.0],
+                [cx - x + thick / 2.0, thick],
+                color,
+            ));
         }
         // ┬ top tee
         '\u{252C}' => {
-            rects.push(RectInstance::solid([x, cy - thick / 2.0], [cw, thick], color));
-            rects.push(RectInstance::solid([cx - thick / 2.0, cy - thick / 2.0], [thick, ch_h - (cy - y) + thick / 2.0], color));
+            rects.push(RectInstance::solid(
+                [x, cy - thick / 2.0],
+                [cw, thick],
+                color,
+            ));
+            rects.push(RectInstance::solid(
+                [cx - thick / 2.0, cy - thick / 2.0],
+                [thick, ch_h - (cy - y) + thick / 2.0],
+                color,
+            ));
         }
         // ┴ bottom tee
         '\u{2534}' => {
-            rects.push(RectInstance::solid([x, cy - thick / 2.0], [cw, thick], color));
-            rects.push(RectInstance::solid([cx - thick / 2.0, y], [thick, cy - y + thick / 2.0], color));
+            rects.push(RectInstance::solid(
+                [x, cy - thick / 2.0],
+                [cw, thick],
+                color,
+            ));
+            rects.push(RectInstance::solid(
+                [cx - thick / 2.0, y],
+                [thick, cy - y + thick / 2.0],
+                color,
+            ));
         }
         // ┼ cross
         '\u{253C}' => {
-            rects.push(RectInstance::solid([x, cy - thick / 2.0], [cw, thick], color));
-            rects.push(RectInstance::solid([cx - thick / 2.0, y], [thick, ch_h], color));
+            rects.push(RectInstance::solid(
+                [x, cy - thick / 2.0],
+                [cw, thick],
+                color,
+            ));
+            rects.push(RectInstance::solid(
+                [cx - thick / 2.0, y],
+                [thick, ch_h],
+                color,
+            ));
         }
         // ═ double horizontal
         '\u{2550}' => {
             let gap = thick;
-            rects.push(RectInstance::solid([x, cy - thick - gap / 2.0], [cw, thick], color));
+            rects.push(RectInstance::solid(
+                [x, cy - thick - gap / 2.0],
+                [cw, thick],
+                color,
+            ));
             rects.push(RectInstance::solid([x, cy + gap / 2.0], [cw, thick], color));
         }
         // ║ double vertical
         '\u{2551}' => {
             let gap = thick;
-            rects.push(RectInstance::solid([cx - thick - gap / 2.0, y], [thick, ch_h], color));
-            rects.push(RectInstance::solid([cx + gap / 2.0, y], [thick, ch_h], color));
+            rects.push(RectInstance::solid(
+                [cx - thick - gap / 2.0, y],
+                [thick, ch_h],
+                color,
+            ));
+            rects.push(RectInstance::solid(
+                [cx + gap / 2.0, y],
+                [thick, ch_h],
+                color,
+            ));
         }
         // Block elements
         // ▀ upper half block
@@ -4480,7 +4628,11 @@ fn box_drawing_rects(
         }
         // ▄ lower half block
         '\u{2584}' => {
-            rects.push(RectInstance::solid([x, y + ch_h / 2.0], [cw, ch_h / 2.0], color));
+            rects.push(RectInstance::solid(
+                [x, y + ch_h / 2.0],
+                [cw, ch_h / 2.0],
+                color,
+            ));
         }
         // █ full block
         '\u{2588}' => {
@@ -4492,7 +4644,11 @@ fn box_drawing_rects(
         }
         // ▐ right half block
         '\u{2590}' => {
-            rects.push(RectInstance::solid([x + cw / 2.0, y], [cw / 2.0, ch_h], color));
+            rects.push(RectInstance::solid(
+                [x + cw / 2.0, y],
+                [cw / 2.0, ch_h],
+                color,
+            ));
         }
         // ░ light shade
         '\u{2591}' => {
@@ -4601,8 +4757,7 @@ impl TerminalRenderer {
             let pw = disp_cols * self.cell_width;
             let ph = disp_rows * self.cell_height;
 
-            let (uv_x, uv_y, uv_w, uv_h) = if placement.src_width > 0 && placement.src_height > 0
-            {
+            let (uv_x, uv_y, uv_w, uv_h) = if placement.src_width > 0 && placement.src_height > 0 {
                 (
                     placement.src_x as f32 / img_w,
                     placement.src_y as f32 / img_h,
@@ -4636,8 +4791,11 @@ impl TerminalRenderer {
             resolution: [width as f32, height as f32],
             _padding: [0.0; 2],
         };
-        gpu.queue
-            .write_buffer(&image_pipeline.uniform_buffer, 0, bytemuck::bytes_of(&uniforms));
+        gpu.queue.write_buffer(
+            &image_pipeline.uniform_buffer,
+            0,
+            bytemuck::bytes_of(&uniforms),
+        );
 
         // NO sort-by-id here. `placements` arrives in z-then-transmission
         // order (partition_placements_by_z); re-sorting by texture id would
@@ -4736,8 +4894,18 @@ impl TerminalRenderer {
         // The Nord page bg/fg (linear), shared by the pre-rasterize + the
         // snapshot renders below.
         use ishou_tokens::space::srgb_channel_to_linear as lin;
-        let page_bg = [lin(0x2e as f32 / 255.0), lin(0x34 as f32 / 255.0), lin(0x40 as f32 / 255.0), 1.0];
-        let page_fg = [lin(0xd8 as f32 / 255.0), lin(0xde as f32 / 255.0), lin(0xe9 as f32 / 255.0), 1.0];
+        let page_bg = [
+            lin(0x2e as f32 / 255.0),
+            lin(0x34 as f32 / 255.0),
+            lin(0x40 as f32 / 255.0),
+            1.0,
+        ];
+        let page_fg = [
+            lin(0xd8 as f32 / 255.0),
+            lin(0xde as f32 / 255.0),
+            lin(0xe9 as f32 / 255.0),
+            1.0,
+        ];
 
         // ── Pre-rasterize each surface's page into its cached texture, only
         // when the content seqno moved (navigate/resize) — never per frame. GC
@@ -4748,12 +4916,23 @@ impl TerminalRenderer {
             cache.retain(|id, _| live.contains(id));
             for p in &panels {
                 let Some(dl) = &p.content else { continue };
-                let stale = cache.get(&p.id).is_none_or(|(seq, _)| *seq != p.content_seqno);
+                let stale = cache
+                    .get(&p.id)
+                    .is_none_or(|(seq, _)| *seq != p.content_seqno);
                 if stale && !dl.is_empty() {
                     #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
                     let (pw, ph) = (p.w.max(1.0) as u32, p.h.max(1.0) as u32);
-                    let rgba = crate::browser_engine::render_display_list_to_rgba(gpu, dl, pw, ph, page_bg, page_fg);
-                    let img = image_pipeline.create_gpu_image(&gpu.device, &gpu.queue, &rgba, pw, ph, p.content_seqno);
+                    let rgba = crate::browser_engine::render_display_list_to_rgba(
+                        gpu, dl, pw, ph, page_bg, page_fg,
+                    );
+                    let img = image_pipeline.create_gpu_image(
+                        &gpu.device,
+                        &gpu.queue,
+                        &rgba,
+                        pw,
+                        ph,
+                        p.content_seqno,
+                    );
                     cache.insert(p.id, (p.content_seqno, img));
                 }
             }
@@ -4772,8 +4951,9 @@ impl TerminalRenderer {
                 let Some(dl) = &p.content else { continue };
                 #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
                 let (pw, ph) = (p.w.max(1.0) as u32, p.h.max(1.0) as u32);
-                let rgba =
-                    crate::browser_engine::render_display_list_to_rgba(gpu, dl, pw, ph, page_bg, page_fg);
+                let rgba = crate::browser_engine::render_display_list_to_rgba(
+                    gpu, dl, pw, ph, page_bg, page_fg,
+                );
                 if let Some(b64) = crate::browser_snapshot::encode_png_base64(&rgba, pw, ph) {
                     bridge.put_snapshot(id, b64);
                 }
@@ -4796,8 +4976,11 @@ impl TerminalRenderer {
             resolution: [width as f32, height as f32],
             _padding: [0.0; 2],
         };
-        gpu.queue
-            .write_buffer(&image_pipeline.uniform_buffer, 0, bytemuck::bytes_of(&uniforms));
+        gpu.queue.write_buffer(
+            &image_pipeline.uniform_buffer,
+            0,
+            bytemuck::bytes_of(&uniforms),
+        );
 
         // One ImageInstance per panel (same shape; the texture varies per draw).
         let instances: Vec<ImageInstance> = panels
@@ -5059,9 +5242,7 @@ impl TerminalRenderer {
             match effect {
                 CatalogEffect::Colorblind => frame.set(
                     catalog::colorblind::PARAMS_RESOURCE,
-                    &catalog::colorblind::ColorblindParams::new(
-                        self.catalog_colorblind_mode(),
-                    ),
+                    &catalog::colorblind::ColorblindParams::new(self.catalog_colorblind_mode()),
                 ),
                 CatalogEffect::Crt => {
                     let mut p = catalog::crt::CrtParams::new(res);
@@ -5099,7 +5280,10 @@ impl TerminalRenderer {
                     frame.set(catalog::glow_on_bell::PARAMS_RESOURCE, &p);
                 }
                 CatalogEffect::Aurora => {
-                    frame.set(catalog::aurora::PARAMS_RESOURCE, &self.aurora_params_for(res));
+                    frame.set(
+                        catalog::aurora::PARAMS_RESOURCE,
+                        &self.aurora_params_for(res),
+                    );
                 }
                 CatalogEffect::Snow => {
                     let mut p = self.snow_state.params;
@@ -5191,7 +5375,10 @@ impl TerminalRenderer {
             .with(SCENE, scene.bound_resource())
             .with(
                 OUT,
-                engawa_wgpu::BoundResource::Texture { view: surface_view.clone(), format },
+                engawa_wgpu::BoundResource::Texture {
+                    view: surface_view.clone(),
+                    format,
+                },
             );
         leases_out.push(scene);
         let (Some(sampler), Some(dispatcher)) =
@@ -5206,7 +5393,10 @@ impl TerminalRenderer {
                 })
                 .finish());
         };
-        bound.insert(CATALOG_SAMPLER, engawa_wgpu::BoundResource::Sampler(sampler.clone()));
+        bound.insert(
+            CATALOG_SAMPLER,
+            engawa_wgpu::BoundResource::Sampler(sampler.clone()),
+        );
         for effect in effects.iter_render_order() {
             if let Some(buf) = self.effect_params.get(effect.params_resource()) {
                 bound.insert(
@@ -5216,7 +5406,11 @@ impl TerminalRenderer {
             }
         }
 
-        let key = crate::render_graph::GraphKey { effects, width, height };
+        let key = crate::render_graph::GraphKey {
+            effects,
+            width,
+            height,
+        };
         let Some(compiled) = self.frame_graph.ensure(key) else {
             // Empty set never reaches here (callers gate on
             // non-empty) — total-function fallback again.
@@ -5227,9 +5421,10 @@ impl TerminalRenderer {
                 .finish());
         };
         for id in &compiled.intermediates {
-            let lease = self
-                .texture_pool
-                .lease(device, engawa_wgpu::TextureKey::offscreen(width, height, format));
+            let lease = self.texture_pool.lease(
+                device,
+                engawa_wgpu::TextureKey::offscreen(width, height, format),
+            );
             bound.insert(id.clone(), lease.bound_resource());
             leases_out.push(lease);
         }
@@ -5314,8 +5509,9 @@ impl RenderCallback for TerminalRenderer {
                 // recorded `Unavailable`, distinct from a genuine 1.0, and
                 // it is SURFACED (warn + print-posture) — so a seam here is
                 // attributable to "the probe failed", not a mystery.
-                let source =
-                    crate::panel_fit::PanelRatio::from_probe(kanchi::probe::display_scaling_ratio());
+                let source = crate::panel_fit::PanelRatio::from_probe(
+                    kanchi::probe::display_scaling_ratio(),
+                );
                 // A transient `Unavailable` must never regress an already-good
                 // ratio to 1.0 (that reintroduces the seam on a scaled display
                 // — the recurring-seam class). `resolve_ratio_update` seals it.
@@ -5470,7 +5666,10 @@ impl RenderCallback for TerminalRenderer {
         // cursor state, which was the case before this change (idle
         // render rate stuck at 60 Hz instead of 4 Hz).
         let cursor_on_now = !self.cursor_blink
-            || crate::motion::blink_on(ctx.elapsed, self.cursor_blink_rate_ms as f32 / 1000.0 * 2.0);
+            || crate::motion::blink_on(
+                ctx.elapsed,
+                self.cursor_blink_rate_ms as f32 / 1000.0 * 2.0,
+            );
         let blink_flip =
             self.cursor_blink && peek_cursor_visible && cursor_on_now != self.last_cursor_on;
         // The bell flash reads through the motion algebra's `Advance`
@@ -5625,8 +5824,10 @@ impl RenderCallback for TerminalRenderer {
         // clock (elapsed/dt) — at elapsed=0/dt=0 (the headless
         // ladders) every tick is the identity, keeping the route
         // byte-deterministic.
-        self.snow_state.tick(ctx.elapsed, ctx.dt, &self.effects_config.snow);
-        self.glow_state.tick(ctx.dt, self.effects_config.glow_on_bell.glow_retain);
+        self.snow_state
+            .tick(ctx.elapsed, ctx.dt, &self.effects_config.snow);
+        self.glow_state
+            .tick(ctx.dt, self.effects_config.glow_on_bell.glow_retain);
         self.aurora_state.tick(ctx.elapsed);
         // Ambience perf governor (2026-06-13): classify the PREVIOUS
         // frame's measured time against the budget and advance the
@@ -5727,7 +5928,16 @@ impl RenderCallback for TerminalRenderer {
         // Pass 2.5: Kitty graphics images BELOW the text scene.
         if !images_below.is_empty() {
             let view = scene_view;
-            self.draw_kitty_images(ctx.gpu, ctx.width, ctx.height, &mut encoder, view, &images_below, self.padding_px(), self.padding_px());
+            self.draw_kitty_images(
+                ctx.gpu,
+                ctx.width,
+                ctx.height,
+                &mut encoder,
+                view,
+                &images_below,
+                self.padding_px(),
+                self.padding_px(),
+            );
         }
 
         // Open the one text frame for this whole render. It borrows the shared
@@ -5823,7 +6033,16 @@ impl RenderCallback for TerminalRenderer {
         // chain at Pass 4 still sees these pixels.
         if !images_above.is_empty() {
             let view = scene_view;
-            self.draw_kitty_images(ctx.gpu, ctx.width, ctx.height, &mut encoder, view, &images_above, self.padding_px(), self.padding_px());
+            self.draw_kitty_images(
+                ctx.gpu,
+                ctx.width,
+                ctx.height,
+                &mut encoder,
+                view,
+                &images_above,
+                self.padding_px(),
+                self.padding_px(),
+            );
         }
 
         // Pass 4: engawa catalog dispatch — SCENE → enabled effect
@@ -5860,12 +6079,12 @@ impl RenderCallback for TerminalRenderer {
         // Pass 5: chrome overlays. Snow now lives INSIDE the effect
         // chain (catalog priority 500) — only the reader-only chrome
         // (dir picker, search status) draws after the chain.
-        let mut overlay_encoder = ctx
-            .gpu
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("mado_overlays"),
-            });
+        let mut overlay_encoder =
+            ctx.gpu
+                .device
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("mado_overlays"),
+                });
 
         // Floating browser panels — composited post-effect on the surface via
         // the overlay encoder, BELOW the modal pickers (a modal picker floats
@@ -5903,7 +6122,8 @@ impl RenderCallback for TerminalRenderer {
         } else if self.overlay_open_at.get().is_none() {
             self.overlay_open_at.set(Some(ctx.elapsed));
         }
-        self.overlay_progress.set(self.overlay_fade_progress(ctx.elapsed));
+        self.overlay_progress
+            .set(self.overlay_fade_progress(ctx.elapsed));
         match focus {
             Overlay::None => {}
             // The rename sub-mode keeps the picker board visible underneath;
@@ -6061,17 +6281,22 @@ mod render_invariants {
         let term = Arc::new(parking_lot::RwLock::new(Terminal::new(cols, rows)));
         let renderer = TerminalRenderer::new(
             term.clone(),
-            14.0,                  // font_size
-            1.4,                   // line_height (legacy test cell)
-            "monospace".into(),    // font_family
-            "monospace".into(),    // font_italic
-            "monospace".into(),    // font_symbols
-            0.0,                   // padding (simplifies coordinate math)
+            14.0,               // font_size
+            1.4,                // line_height (legacy test cell)
+            "monospace".into(), // font_family
+            "monospace".into(), // font_italic
+            "monospace".into(), // font_symbols
+            0.0,                // padding (simplifies coordinate math)
             CursorStyle::Block,
-            false,                 // cursor_blink off so a single frame
-                                   // is deterministic
+            false, // cursor_blink off so a single frame
+            // is deterministic
             500,
-            wgpu::Color { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+            wgpu::Color {
+                r: 0.0,
+                g: 0.0,
+                b: 0.0,
+                a: 1.0,
+            },
             Color::WHITE,
         );
         (renderer, term)
@@ -6267,7 +6492,8 @@ mod render_invariants {
         // The generated powerline constructor is byte-identical to the typed
         // powerline_rect wrapper (proves the wrapper didn't drift).
         let via_wrapper = powerline_rect(PowerlineSep::RightHalfDisk, 3.0, 5.0, 40.0, 12.0, color);
-        let via_ctor = RectInstance::powerline(pos, size, color, PowerlineSep::RightHalfDisk.kind());
+        let via_ctor =
+            RectInstance::powerline(pos, size, color, PowerlineSep::RightHalfDisk.kind());
         assert_eq!(via_wrapper.pos, via_ctor.pos);
         assert_eq!(via_wrapper.size, via_ctor.size);
         assert_eq!(via_wrapper.mode, via_ctor.mode);
@@ -6311,7 +6537,10 @@ mod render_invariants {
             }
             last_surface = settled;
         }
-        assert_eq!(probes, 1, "a settled size probes exactly once, then never again");
+        assert_eq!(
+            probes, 1,
+            "a settled size probes exactly once, then never again"
+        );
 
         // A move to a differently-sized display lands as a new settled size →
         // one more probe (re-discovery still happens).
@@ -6324,7 +6553,10 @@ mod render_invariants {
             }
             last_surface = moved;
         }
-        assert_eq!(probes, 1, "a new settled display size re-probes exactly once");
+        assert_eq!(
+            probes, 1,
+            "a new settled display size re-probes exactly once"
+        );
     }
 
     /// The recurring-seam invariant (operator: "we fixed it many times, but
@@ -6336,7 +6568,7 @@ mod render_invariants {
     /// unrepresentable: once a good ratio is found, no failed probe discards it.
     #[test]
     fn transient_probe_failure_never_regresses_a_known_good_ratio() {
-        use super::{resolve_ratio_update, RatioUpdate};
+        use super::{RatioUpdate, resolve_ratio_update};
         use crate::panel_fit::PanelRatio;
 
         // A good probe is adopted + locks the size (whether or not one existed).
@@ -6391,7 +6623,11 @@ mod render_invariants {
     /// `width == 2` lead followed by a `width == 0` continuation.
     fn dense_row(spec: &[(char, u8)]) -> Vec<Cell> {
         spec.iter()
-            .map(|&(ch, width)| Cell { ch, width, ..Default::default() })
+            .map(|&(ch, width)| Cell {
+                ch,
+                width,
+                ..Default::default()
+            })
             .collect()
     }
 
@@ -6411,16 +6647,28 @@ mod render_invariants {
         let top0 = ((height - block_h) / 2.0).max(pad);
         let (px, py, pw, ph) =
             centered_panel_geom(left, top0, content_w, block_h, pad, pad_x, pad_y);
-        assert!(px > width * 0.2, "panel left {px} must be central, not top-left");
-        assert!(py > height * 0.2, "panel top {py} must be central, not top-left");
-        assert!(pw >= content_w && ph >= block_h, "panel must contain its content");
+        assert!(
+            px > width * 0.2,
+            "panel left {px} must be central, not top-left"
+        );
+        assert!(
+            py > height * 0.2,
+            "panel top {py} must be central, not top-left"
+        );
+        assert!(
+            pw >= content_w && ph >= block_h,
+            "panel must contain its content"
+        );
 
         // Degenerate oversize list (wider + taller than the viewport): the
         // origin must still clamp to >= pad — NEVER (0,0) blanking the
         // top-left cells.
         let (dx, dy, _, _) =
             centered_panel_geom(pad, pad, width * 2.0, height * 2.0, pad, pad_x, pad_y);
-        assert!(dx >= pad && dy >= pad, "oversize panel must clamp to >= pad, got ({dx},{dy})");
+        assert!(
+            dx >= pad && dy >= pad,
+            "oversize panel must clamp to >= pad, got ({dx},{dy})"
+        );
     }
 
     #[test]
@@ -6440,8 +6688,14 @@ mod render_invariants {
         let w = viewport_line_window(30, Some(25), 6);
         assert_eq!(w.len(), 6);
         assert_eq!(w[0], 0, "title stays pinned even when scrolled");
-        assert!(w.contains(&25), "deep selection must remain visible, got {w:?}");
-        assert!(!w.contains(&29) || w.contains(&25), "must not scroll past selection");
+        assert!(
+            w.contains(&25),
+            "deep selection must remain visible, got {w:?}"
+        );
+        assert!(
+            !w.contains(&29) || w.contains(&25),
+            "must not scroll past selection"
+        );
 
         // Degenerate max_lines: never panics, never empty.
         assert_eq!(viewport_line_window(0, None, 0), Vec::<usize>::new());
@@ -6456,12 +6710,7 @@ mod render_invariants {
         // continuation) yielded 0, 3, 4, 6 — text drifting one column
         // right per wide char. The hand-computed ground truth is the
         // dense index: 0, 2, 3, 5.
-        let row = dense_row(&[
-            ('🦀', 2), (' ', 0),
-            ('a', 1),
-            ('中', 2), (' ', 0),
-            ('b', 1),
-        ]);
+        let row = dense_row(&[('🦀', 2), (' ', 0), ('a', 1), ('中', 2), (' ', 0), ('b', 1)]);
         let got: Vec<(usize, char)> = glyph_columns(&row, row.len())
             .map(|(c, cell)| (c.idx(), cell.ch))
             .collect();
@@ -6487,7 +6736,14 @@ mod render_invariants {
             .collect();
         assert_eq!(
             cols,
-            vec![(0, '🦀'), (2, '🦀'), (4, '🦀'), (6, 'a'), (7, 'b'), (8, 'c')],
+            vec![
+                (0, '🦀'),
+                (2, '🦀'),
+                (4, '🦀'),
+                (6, 'a'),
+                (7, 'b'),
+                (8, 'c')
+            ],
             "text glyphs drifted off their true grid columns",
         );
 
@@ -6671,11 +6927,18 @@ mod render_invariants {
         t.write().feed(b"hello world");
         let a = compute_rects(&r);
         let b = compute_rects(&r);
-        assert_eq!(a.len(), b.len(), "frame rect count diverged: {a:?} vs {b:?}");
+        assert_eq!(
+            a.len(),
+            b.len(),
+            "frame rect count diverged: {a:?} vs {b:?}"
+        );
         for (i, (ra, rb)) in a.iter().zip(b.iter()).enumerate() {
             assert_eq!(ra.pos, rb.pos, "rect[{i}].pos diverged: {ra:?} vs {rb:?}");
             assert_eq!(ra.size, rb.size, "rect[{i}].size diverged");
-            assert!(colors_approx_eq(ra.color, rb.color), "rect[{i}].color diverged");
+            assert!(
+                colors_approx_eq(ra.color, rb.color),
+                "rect[{i}].color diverged"
+            );
         }
     }
 
@@ -6689,7 +6952,8 @@ mod render_invariants {
         let cols = 40;
         let rows = 12;
         let (r, t) = harness(cols, rows);
-        t.write().feed(b"the quick brown fox jumps over the lazy dog");
+        t.write()
+            .feed(b"the quick brown fox jumps over the lazy dog");
         let rects = compute_rects(&r);
         let max_x = r.padding_px() + cols as f32 * r.cell_width + 1.0; // +1 epsilon
         let max_y = r.padding_px() + rows as f32 * r.cell_height + 1.0;
@@ -6761,7 +7025,11 @@ mod render_invariants {
     fn box_drawing_run_emits_one_sprite_per_cell() {
         for (label, feed, expect) in [
             ("full-width", "─".repeat(40), 40usize),
-            ("partial-then-text", format!("{}{}", "─".repeat(30), " label"), 30),
+            (
+                "partial-then-text",
+                format!("{}{}", "─".repeat(30), " label"),
+                30,
+            ),
         ] {
             let (r, t) = harness(40, 3);
             {
@@ -6969,7 +7237,11 @@ mod render_invariants {
 
     /// Build the harness with a specific cursor style. Saves
     /// repeating the constructor each variant.
-    fn harness_with_style(cols: usize, rows: usize, style: CursorStyle) -> (TerminalRenderer, SharedTerminal) {
+    fn harness_with_style(
+        cols: usize,
+        rows: usize,
+        style: CursorStyle,
+    ) -> (TerminalRenderer, SharedTerminal) {
         let term = Arc::new(parking_lot::RwLock::new(Terminal::new(cols, rows)));
         let renderer = TerminalRenderer::new(
             term.clone(),
@@ -6982,7 +7254,12 @@ mod render_invariants {
             style,
             false,
             500,
-            wgpu::Color { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+            wgpu::Color {
+                r: 0.0,
+                g: 0.0,
+                b: 0.0,
+                a: 1.0,
+            },
             Color::WHITE,
         );
         (renderer, term)
@@ -7005,7 +7282,11 @@ mod render_invariants {
         let cur = cursor_rects(&rects, r.cursor_color);
         assert_eq!(cur.len(), 1);
         // Bar = 2px wide × cell_height.
-        assert!((cur[0].size[0] - 2.0).abs() < 0.01, "bar width: {}", cur[0].size[0]);
+        assert!(
+            (cur[0].size[0] - 2.0).abs() < 0.01,
+            "bar width: {}",
+            cur[0].size[0]
+        );
         assert!((cur[0].size[1] - r.cell_height).abs() < 0.01);
     }
 
@@ -7029,7 +7310,11 @@ mod render_invariants {
         let rects = compute_rects(&r);
         let cur = cursor_rects(&rects, r.cursor_color);
         // Block-hollow = top + bottom + left + right edges = 4 rects.
-        assert_eq!(cur.len(), 4, "block-hollow should emit 4 edge rects: {cur:?}");
+        assert_eq!(
+            cur.len(),
+            4,
+            "block-hollow should emit 4 edge rects: {cur:?}"
+        );
     }
 
     // ── selection invariants ──────────────────────────────────────
@@ -7192,9 +7477,21 @@ mod render_invariants {
             let mut s = r.search.lock().unwrap();
             s.active = true;
             s.matches = vec![
-                crate::search::SearchMatch { row: 0, col_start: 0, col_end: 4 },
-                crate::search::SearchMatch { row: 0, col_start: 12, col_end: 16 },
-                crate::search::SearchMatch { row: 0, col_start: 24, col_end: 28 },
+                crate::search::SearchMatch {
+                    row: 0,
+                    col_start: 0,
+                    col_end: 4,
+                },
+                crate::search::SearchMatch {
+                    row: 0,
+                    col_start: 12,
+                    col_end: 16,
+                },
+                crate::search::SearchMatch {
+                    row: 0,
+                    col_start: 24,
+                    col_end: 28,
+                },
             ];
             s.current = 1;
         }
@@ -7257,8 +7554,16 @@ mod render_invariants {
             let mut s = r.search.lock().unwrap();
             s.active = true;
             s.matches = vec![
-                crate::search::SearchMatch { row: 0, col_start: 0, col_end: 4 },
-                crate::search::SearchMatch { row: 0, col_start: 12, col_end: 16 },
+                crate::search::SearchMatch {
+                    row: 0,
+                    col_start: 0,
+                    col_end: 4,
+                },
+                crate::search::SearchMatch {
+                    row: 0,
+                    col_start: 12,
+                    col_end: 16,
+                },
             ];
             s.current = 0;
         }
@@ -7334,7 +7639,9 @@ mod render_invariants {
         let (mut r2, _t2) = harness(20, 4);
         let plain = compute_rects(&r2);
         assert!(
-            !plain.iter().any(|rt| rt.mode == RectMode::RoundedSolid.word()),
+            !plain
+                .iter()
+                .any(|rt| rt.mode == RectMode::RoundedSolid.word()),
             "a live (non-scrolled) frame must emit no rounded chrome"
         );
         let _ = &mut r;
@@ -7465,7 +7772,10 @@ mod render_invariants {
         let mut cfg_hold = crate::config::MadoSnowConfig::default();
         cfg_hold.snow_pulse_retain = 1.0;
         held.tick(0.0, dt, &cfg_hold);
-        assert!((held.params.frame[3] - 1.0).abs() < 1e-6, "retain=1.0 holds the pulse");
+        assert!(
+            (held.params.frame[3] - 1.0).abs() < 1e-6,
+            "retain=1.0 holds the pulse"
+        );
 
         let mut faded = SnowState::new();
         faded.params.set_typing_pulse(1.0);
@@ -7515,10 +7825,17 @@ mod render_invariants {
             crate::suggest::shade_ramp(0, a0, shade_in_ms),
             "same elapsed → identical alpha (pure)"
         );
-        assert_eq!(crate::suggest::shade_ramp(0, a0, shade_in_ms), 0, "elapsed=0 = transparent");
+        assert_eq!(
+            crate::suggest::shade_ramp(0, a0, shade_in_ms),
+            0,
+            "elapsed=0 = transparent"
+        );
         // A fixed later elapsed: reproducible + monotone toward opaque.
         let mid = crate::suggest::shade_ramp(0, age_at(0.3, 0.0), shade_in_ms);
-        assert!((120..=140).contains(&mid), "300ms of a 600ms ramp is ~half (got {mid})");
+        assert!(
+            (120..=140).contains(&mid),
+            "300ms of a 600ms ramp is ~half (got {mid})"
+        );
         assert_eq!(
             crate::suggest::shade_ramp(0, age_at(1.0, 0.0), shade_in_ms),
             255,
@@ -7613,9 +7930,7 @@ mod render_invariants {
         // both substantially lower — that's a "this is a red rect"
         // heuristic that survives palette tweaks within reason.
         let red_rect = rects.iter().find(|rt| {
-            rt.color[0] > 0.3
-                && rt.color[1] < rt.color[0] * 0.7
-                && rt.color[2] < rt.color[0] * 0.7
+            rt.color[0] > 0.3 && rt.color[1] < rt.color[0] * 0.7 && rt.color[2] < rt.color[0] * 0.7
         });
         assert!(
             red_rect.is_some(),
@@ -7651,7 +7966,11 @@ mod render_invariants {
 
     /// Sentinel SGR-58 RGB underline colour — unique in the frame, so
     /// decoration rects are identified by exact colour match.
-    const UL_SENTINEL: Color = Color { r: 201, g: 31, b: 47 };
+    const UL_SENTINEL: Color = Color {
+        r: 201,
+        g: 31,
+        b: 47,
+    };
 
     /// REGRESSION (URL underline bleed): on the MAIN screen, fed REAL bytes
     /// (the path the unit tests in url.rs can't exercise — they hand-build
@@ -7722,12 +8041,30 @@ mod render_invariants {
             sgr: &'static [u8],
         }
         let matrix: &[Row] = &[
-            Row { style: UnderlineStyle::None, sgr: b"\x1b[4:0m" },
-            Row { style: UnderlineStyle::Single, sgr: b"\x1b[4:1m" },
-            Row { style: UnderlineStyle::Double, sgr: b"\x1b[4:2m" },
-            Row { style: UnderlineStyle::Curly, sgr: b"\x1b[4:3m" },
-            Row { style: UnderlineStyle::Dotted, sgr: b"\x1b[4:4m" },
-            Row { style: UnderlineStyle::Dashed, sgr: b"\x1b[4:5m" },
+            Row {
+                style: UnderlineStyle::None,
+                sgr: b"\x1b[4:0m",
+            },
+            Row {
+                style: UnderlineStyle::Single,
+                sgr: b"\x1b[4:1m",
+            },
+            Row {
+                style: UnderlineStyle::Double,
+                sgr: b"\x1b[4:2m",
+            },
+            Row {
+                style: UnderlineStyle::Curly,
+                sgr: b"\x1b[4:3m",
+            },
+            Row {
+                style: UnderlineStyle::Dotted,
+                sgr: b"\x1b[4:4m",
+            },
+            Row {
+                style: UnderlineStyle::Dashed,
+                sgr: b"\x1b[4:5m",
+            },
         ];
         assert_eq!(
             matrix.len(),
@@ -7780,8 +8117,7 @@ mod render_invariants {
                     }
                 }
                 UnderlineStyle::Double => {
-                    if rects.len() != 2
-                        || rects.iter().any(|rt| rt.mode != RectMode::Solid.word())
+                    if rects.len() != 2 || rects.iter().any(|rt| rt.mode != RectMode::Solid.word())
                     {
                         failures.push(format!("Double: expected 2 solid rects, got {rects:?}"));
                     } else if (rects[0].pos[1] - rects[1].pos[1]).abs() < 0.01 {
@@ -7882,8 +8218,9 @@ mod render_invariants {
         let fg = color_to_f32(&Color::WHITE);
         let underline_y = r.underline_metrics().underline_y;
         assert!(
-            rects.iter().any(|rt| colors_approx_eq(rt.color, fg)
-                && (rt.pos[1] - underline_y).abs() < 0.01),
+            rects
+                .iter()
+                .any(|rt| colors_approx_eq(rt.color, fg) && (rt.pos[1] - underline_y).abs() < 0.01),
             "Default underline colour must fall back to the cell fg"
         );
     }
@@ -7939,10 +8276,16 @@ mod render_invariants {
         let (snap, _) = r.snapshot();
         // Visible phase (elapsed = 0; period = 2 × 500 ms).
         let on = r.build_rect_instances(&snap, 0.0, 0.0, 0.0);
-        assert!(has_underline(&on), "blink on-phase must paint the underline");
+        assert!(
+            has_underline(&on),
+            "blink on-phase must paint the underline"
+        );
         // Off phase (elapsed = 0.6 s — second half of the 1 s period).
         let off = r.build_rect_instances(&snap, 0.6, 0.0, 0.0);
-        assert!(!has_underline(&off), "blink off-phase must hide the underline");
+        assert!(
+            !has_underline(&off),
+            "blink off-phase must hide the underline"
+        );
 
         // reduce_motion pins the foreground visible at every phase.
         let (mut r, t) = harness(20, 3);
@@ -7996,8 +8339,11 @@ mod render_invariants {
             }
             r.set_effects_config(e);
         };
-        const ANIMATED: [CatalogEffect; 3] =
-            [CatalogEffect::GlowOnBell, CatalogEffect::Snow, CatalogEffect::Aurora];
+        const ANIMATED: [CatalogEffect; 3] = [
+            CatalogEffect::GlowOnBell,
+            CatalogEffect::Snow,
+            CatalogEffect::Aurora,
+        ];
 
         let mut failures: Vec<String> = Vec::new();
         let mut rows = 0usize;
@@ -8177,7 +8523,11 @@ mod render_invariants {
         assert!(effects.contains(CatalogEffect::GlowOnBell));
 
         let mut cache = FrameGraphCache::new();
-        let key = GraphKey { effects, width: 640, height: 480 };
+        let key = GraphKey {
+            effects,
+            width: 640,
+            height: 480,
+        };
         for _ in 0..64 {
             assert!(cache.ensure(key).is_some(), "composed set must compile");
         }
@@ -8258,7 +8608,10 @@ mod render_invariants {
         assert!(applier.apply_delta(&edited, &mut r) > 0);
 
         let set = r.enabled_effect_set();
-        assert!(set.contains(CatalogEffect::Crt), "reloaded crt toggle must apply");
+        assert!(
+            set.contains(CatalogEffect::Crt),
+            "reloaded crt toggle must apply"
+        );
         assert!(
             set.contains(CatalogEffect::Colorblind),
             "legacy accessibility.colorblind alias must resolve on reload"
@@ -8445,7 +8798,12 @@ mod render_gpu_invariants {
             CursorStyle::Block,
             false,
             500,
-            wgpu::Color { r: 0.180, g: 0.204, b: 0.251, a: 1.0 },
+            wgpu::Color {
+                r: 0.180,
+                g: 0.204,
+                b: 0.251,
+                a: 1.0,
+            },
             Color::WHITE,
         );
         // Bring up rect_pipeline / image_pipeline / post_pipeline
@@ -8463,11 +8821,7 @@ mod render_gpu_invariants {
         // never downscales. (Pre-existing display-dependence surfaced
         // 2026-07-11 while overhauling the seam path.)
         renderer.set_seam_config(false, None);
-        let text = TextLayerStack::new(
-            &gpu.device,
-            &gpu.queue,
-            SURFACE_FORMAT,
-        );
+        let text = TextLayerStack::new(&gpu.device, &gpu.queue, SURFACE_FORMAT);
         (renderer, term, text)
     }
 
@@ -8524,8 +8878,7 @@ mod render_gpu_invariants {
         // properly. Renders against Bgra8UnormSrgb (mado's wire
         // format).
         let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
-        let target =
-            HeadlessTarget::new(&gpu, 128, 64, SURFACE_FORMAT);
+        let target = HeadlessTarget::new(&gpu, 128, 64, SURFACE_FORMAT);
         let (mut r, _t, mut text) = build_gpu_renderer(&gpu, 40, 8);
         let pixels = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
         // The read-back format is BGRA but the magenta heuristic
@@ -8545,10 +8898,10 @@ mod render_gpu_invariants {
         // path so we're testing the GPU pipeline, not just the
         // CPU snapshot.
         let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
-        let target =
-            HeadlessTarget::new(&gpu, 128, 64, SURFACE_FORMAT);
+        let target = HeadlessTarget::new(&gpu, 128, 64, SURFACE_FORMAT);
         let (mut r, t, mut text) = build_gpu_renderer(&gpu, 40, 8);
-        t.write().feed(b"some text first\nthen more text\n\x1b[2J\x1b[H");
+        t.write()
+            .feed(b"some text first\nthen more text\n\x1b[2J\x1b[H");
         let pixels = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
         assert!(
             assert_no_magenta_pixels(&pixels, 128, 64).is_ok(),
@@ -8564,11 +8917,12 @@ mod render_gpu_invariants {
         // bg paint, every pixel would be 0 (texture initial
         // state) and this fails.
         let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
-        let target =
-            HeadlessTarget::new(&gpu, 64, 32, SURFACE_FORMAT);
+        let target = HeadlessTarget::new(&gpu, 64, 32, SURFACE_FORMAT);
         let (mut r, _t, mut text) = build_gpu_renderer(&gpu, 20, 4);
         let pixels = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
-        let any_nonzero = pixels.chunks_exact(4).any(|p| p[0] > 0 || p[1] > 0 || p[2] > 0);
+        let any_nonzero = pixels
+            .chunks_exact(4)
+            .any(|p| p[0] > 0 || p[1] > 0 || p[2] > 0);
         assert!(
             any_nonzero,
             "every pixel is (0, 0, 0) — looks like the pipeline didn't paint"
@@ -8602,7 +8956,10 @@ mod render_gpu_invariants {
         // ---- effects-OFF direct path: pure-red truecolor background ----
         let (mut r, t, mut text) = build_gpu_renderer(&gpu, cols as usize, rows as usize);
         r.ambience.members.clear();
-        assert!(r.enabled_effect_set().is_empty(), "must run the direct path");
+        assert!(
+            r.enabled_effect_set().is_empty(),
+            "must run the direct path"
+        );
         let (sw, sh) = surface_dims(&r);
         let target = HeadlessTarget::new(&gpu, sw, sh, SURFACE_FORMAT);
         t.write().feed(b"\x1b[H\x1b[48;2;255;0;0m        \x1b[0m");
@@ -8618,7 +8975,8 @@ mod render_gpu_invariants {
         // ---- glyphon foreground path: pure-green truecolor glyph ----
         let (mut r2, t2, mut text2) = build_gpu_renderer(&gpu, cols as usize, rows as usize);
         r2.ambience.members.clear();
-        t2.write().feed(b"\x1b[H\x1b[2J\x1b[38;2;0;255;0mWWWWWWWW\x1b[0m");
+        t2.write()
+            .feed(b"\x1b[H\x1b[2J\x1b[38;2;0;255;0mWWWWWWWW\x1b[0m");
         let target2 = HeadlessTarget::new(&gpu, sw, sh, SURFACE_FORMAT);
         let px2 = render_one_frame_headless(&gpu, &mut r2, &mut text2, &target2);
         let mut best = [0u8; 4];
@@ -8707,7 +9065,12 @@ mod render_gpu_invariants {
                 500,
                 // #2E3440 — must match the SGR bg below so the whole
                 // cell that ISN'T the glyph reads as this bg.
-                wgpu::Color { r: 0.180, g: 0.204, b: 0.251, a: 1.0 },
+                wgpu::Color {
+                    r: 0.180,
+                    g: 0.204,
+                    b: 0.251,
+                    a: 1.0,
+                },
                 Color::WHITE,
             );
             r.init(&gpu);
@@ -8866,8 +9229,9 @@ mod render_gpu_invariants {
             let grid_bottom = (chh * rows as f32).floor() as u32;
             let mut seams: Vec<(u32, usize)> = Vec::new();
             for y in 0..grid_bottom.saturating_sub(1).min(sh) {
-                let clear_count =
-                    (0..sw).filter(|&x| is_clear(pixel_at(&px, sw, x, y))).count();
+                let clear_count = (0..sw)
+                    .filter(|&x| is_clear(pixel_at(&px, sw, x, y)))
+                    .count();
                 if clear_count * 2 > sw as usize {
                     seams.push((y, clear_count));
                 }
@@ -8897,8 +9261,7 @@ mod render_gpu_invariants {
         // even at elapsed=0), the two hashes diverge.
         use garasu::headless::frame_hash;
         let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
-        let target =
-            HeadlessTarget::new(&gpu, 64, 32, SURFACE_FORMAT);
+        let target = HeadlessTarget::new(&gpu, 64, 32, SURFACE_FORMAT);
         let (mut r, t, mut text) = build_gpu_renderer(&gpu, 20, 4);
         t.write().feed(b"deterministic");
 
@@ -8929,17 +9292,17 @@ mod render_gpu_invariants {
         // Surface sized to fit the full grid (no padding).
         let surface_w = (r.cell_width * cols as f32).ceil() as u32;
         let surface_h = (r.cell_height * rows as f32).ceil() as u32;
-        let target = HeadlessTarget::new(
-            &gpu,
-            surface_w,
-            surface_h,
-            SURFACE_FORMAT,
-        );
+        let target = HeadlessTarget::new(&gpu, surface_w, surface_h, SURFACE_FORMAT);
 
         let pixels = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
         // Cursor lives at (0, 0). Find its center pixel.
         let (cx, cy) = cell_center_pixel(0, 0, r.cell_width, r.cell_height, 0.0, 0.0);
-        let px = pixel_at(&pixels, surface_w, cx.min(surface_w - 1), cy.min(surface_h - 1));
+        let px = pixel_at(
+            &pixels,
+            surface_w,
+            cx.min(surface_w - 1),
+            cy.min(surface_h - 1),
+        );
         // Surface is BGRA; channels in order are B, G, R, A.
         // Background is Nord polar-night dark (~46, 52, 64 in
         // sRGB) — the cursor rect overpaints it with the
@@ -8962,8 +9325,7 @@ mod render_gpu_invariants {
         use std::collections::HashSet;
 
         let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
-        let target =
-            HeadlessTarget::new(&gpu, 96, 48, SURFACE_FORMAT);
+        let target = HeadlessTarget::new(&gpu, 96, 48, SURFACE_FORMAT);
         let (mut r, t, mut text) = build_gpu_renderer(&gpu, 30, 6);
         t.write().feed(b"stress-32");
 
@@ -8992,8 +9354,7 @@ mod render_gpu_invariants {
 
         let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
         let (w, h) = (128u32, 64u32);
-        let target =
-            HeadlessTarget::new(&gpu, w, h, SURFACE_FORMAT);
+        let target = HeadlessTarget::new(&gpu, w, h, SURFACE_FORMAT);
         let (mut r, t, mut text) = build_gpu_renderer(&gpu, 40, 8);
         t.write()
             .feed(b"golden \x1b[31mred\x1b[0m \x1b[42mgreen-bg\x1b[0m \x1b[4munder\x1b[0m");
@@ -9028,8 +9389,7 @@ mod render_gpu_invariants {
 
         let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
         let (w, h) = (96u32, 48u32);
-        let target =
-            HeadlessTarget::new(&gpu, w, h, SURFACE_FORMAT);
+        let target = HeadlessTarget::new(&gpu, w, h, SURFACE_FORMAT);
         let (mut r, t, mut text) = build_gpu_renderer(&gpu, 30, 6);
         let mut effects = crate::config::MadoEffectsConfig::default();
         effects.snow.enabled = true;
@@ -9076,8 +9436,7 @@ mod render_gpu_invariants {
         use std::collections::HashSet;
 
         let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
-        let target =
-            HeadlessTarget::new(&gpu, 96, 48, SURFACE_FORMAT);
+        let target = HeadlessTarget::new(&gpu, 96, 48, SURFACE_FORMAT);
         let (mut r, t, mut text) = build_gpu_renderer(&gpu, 30, 6);
         let mut effects = crate::config::MadoEffectsConfig::default();
         effects.colorblind.mode = ColorblindMode::Deuteranopia;
@@ -9169,13 +9528,7 @@ mod render_gpu_invariants {
         use madori::RenderContext;
 
         let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
-        let mut chain = HeadlessSwapchain::new(
-            &gpu,
-            3,
-            128,
-            64,
-            SURFACE_FORMAT,
-        );
+        let mut chain = HeadlessSwapchain::new(&gpu, 3, 128, 64, SURFACE_FORMAT);
         let (mut r, t, _) = build_gpu_renderer(&gpu, 40, 8);
         t.write().feed(b"shadow-regression");
 
@@ -9225,13 +9578,7 @@ mod render_gpu_invariants {
         use std::collections::HashSet;
 
         let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
-        let mut chain = HeadlessSwapchain::new(
-            &gpu,
-            3,
-            96,
-            48,
-            SURFACE_FORMAT,
-        );
+        let mut chain = HeadlessSwapchain::new(&gpu, 3, 96, 48, SURFACE_FORMAT);
         let (mut r, t, _) = build_gpu_renderer(&gpu, 30, 6);
         t.write().feed(b"swapchain-stress");
 
@@ -9274,12 +9621,7 @@ mod render_gpu_invariants {
         use std::sync::atomic::Ordering;
 
         let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
-        let target = HeadlessTarget::new(
-            &gpu,
-            96,
-            32,
-            SURFACE_FORMAT,
-        );
+        let target = HeadlessTarget::new(&gpu, 96, 32, SURFACE_FORMAT);
         let (mut r, t, mut text) = build_gpu_renderer(&gpu, 30, 4);
 
         // Snapshot the counters before driving any renders — the
@@ -9345,8 +9687,7 @@ mod render_gpu_invariants {
         use garasu::headless::frame_hash;
 
         let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
-        let target =
-            HeadlessTarget::new(&gpu, 256, 96, SURFACE_FORMAT);
+        let target = HeadlessTarget::new(&gpu, 256, 96, SURFACE_FORMAT);
         let (mut r, t, mut text) = build_gpu_renderer(&gpu, 40, 6);
         // Isolate the clean scene: pin ambience Off so the default-on
         // Matte paper-grain tooth doesn't contaminate this golden (the
@@ -9420,8 +9761,9 @@ mod render_gpu_invariants {
         r.set_effects_config(effects);
         // Same canonical scene as the ungraded golden, plus color so
         // the grade has chroma to transform.
-        t.write()
-            .feed(b"$ echo hello\n\x1b[31mred\x1b[0m \x1b[32mgreen\x1b[0m \x1b[44mblue-bg\x1b[0m\n$ ");
+        t.write().feed(
+            b"$ echo hello\n\x1b[31mred\x1b[0m \x1b[32mgreen\x1b[0m \x1b[44mblue-bg\x1b[0m\n$ ",
+        );
 
         let pixels = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
         let hex = frame_hash(&pixels).to_hex().to_string();
@@ -9457,8 +9799,7 @@ mod render_gpu_invariants {
         use garasu::headless::{HeadlessHarness, assert_no_magenta_pixels};
         use madori::RenderContext;
         let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
-        let mut harness =
-            HeadlessHarness::new(&gpu, 128, 64, SURFACE_FORMAT);
+        let mut harness = HeadlessHarness::new(&gpu, 128, 64, SURFACE_FORMAT);
         let (mut r, _t, _drop_text) = build_gpu_renderer(&gpu, 40, 8);
 
         let pixels = harness.render_one_frame(&gpu, |text, view, w, h| {
@@ -9491,10 +9832,20 @@ mod render_gpu_invariants {
         let mut harness = HeadlessHarness::new(gpu, w, h, SURFACE_FORMAT);
         let (mut r, _t, _drop) = build_gpu_renderer(gpu, 80, 24);
 
-        let mut lines = vec![OverlayLine::new("\u{25b6} session  \u{2588}", LineRole::Title)];
+        let mut lines = vec![OverlayLine::new(
+            "\u{25b6} session  \u{2588}",
+            LineRole::Title,
+        )];
         for i in 0..n_rows {
-            let role = if i == 3 { LineRole::Selected } else { LineRole::Row };
-            lines.push(OverlayLine::new(format!("  \u{203a} suggestion row {i}"), role));
+            let role = if i == 3 {
+                LineRole::Selected
+            } else {
+                LineRole::Row
+            };
+            lines.push(OverlayLine::new(
+                format!("  \u{203a} suggestion row {i}"),
+                role,
+            ));
         }
         lines.push(OverlayLine::new("  blind lanes: none", LineRole::Hint));
         let spec = OverlaySpec::new(PickerAnchor::Center, lines);
@@ -9503,9 +9854,11 @@ mod render_gpu_invariants {
             r.measure_cell_metrics(text);
             r.ensure_layers(text, &gpu.device);
             let mut frame = text.begin_frame(fw, fh);
-            let mut enc = gpu.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("test_center_overlay"),
-            });
+            let mut enc = gpu
+                .device
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("test_center_overlay"),
+                });
             r.draw_overlay(&spec, &mut frame, gpu, view, fw, fh, &mut enc);
             drop(frame);
             gpu.queue.submit(std::iter::once(enc.finish()));
@@ -9543,7 +9896,10 @@ mod render_gpu_invariants {
         // Case A — fitting content in a non-square, non-fullscreen window.
         let (w, h) = (900u32, 560u32);
         let (x0, y0, x1, y1, n) = center_overlay_border_bbox(&gpu, w, h, 10);
-        assert!(n > 100, "case A: expected a frost-bordered card, found {n} px");
+        assert!(
+            n > 100,
+            "case A: expected a frost-bordered card, found {n} px"
+        );
         let (cx, cy) = ((x0 + x1) as f32 / 2.0, (y0 + y1) as f32 / 2.0);
         assert!(
             (cx - w as f32 / 2.0).abs() < w as f32 * 0.08,
@@ -9560,7 +9916,10 @@ mod render_gpu_invariants {
         // popup must still be centered (never corner-pinned + overflowing).
         let (w, h) = (900u32, 300u32);
         let (bx0, by0, bx1, by1, bn) = center_overlay_border_bbox(&gpu, w, h, 24);
-        assert!(bn > 100, "case B: expected a frost-bordered card, found {bn} px");
+        assert!(
+            bn > 100,
+            "case B: expected a frost-bordered card, found {bn} px"
+        );
         let (bcx, bcy) = ((bx0 + bx1) as f32 / 2.0, (by0 + by1) as f32 / 2.0);
         // The card must fit inside the window (top and bottom borders visible).
         assert!(
@@ -9803,30 +10162,58 @@ mod tests {
         // configured symbols family, not the primary — even when the
         // cell is marked italic (icons have no italic face).
         let fam = select_run_family(
-            "\u{E0B0}", false, "JetBrains Mono", "Iosevka", "Symbols Nerd Font Mono",
+            "\u{E0B0}",
+            false,
+            "JetBrains Mono",
+            "Iosevka",
+            "Symbols Nerd Font Mono",
         );
         assert_eq!(fam, "Symbols Nerd Font Mono");
         let fam_icon = select_run_family(
-            "\u{F300}", true, "JetBrains Mono", "Iosevka", "Symbols Nerd Font Mono",
+            "\u{F300}",
+            true,
+            "JetBrains Mono",
+            "Iosevka",
+            "Symbols Nerd Font Mono",
         );
-        assert_eq!(fam_icon, "Symbols Nerd Font Mono",
-            "icon runs ignore italic and route to the symbols family");
+        assert_eq!(
+            fam_icon, "Symbols Nerd Font Mono",
+            "icon runs ignore italic and route to the symbols family"
+        );
     }
 
     #[test]
     fn text_run_routes_to_primary_or_italic() {
         // Ordinary text uses primary; italic text uses the italic face.
         assert_eq!(
-            select_run_family("abc", false, "JetBrains Mono", "Iosevka", "Symbols Nerd Font Mono"),
+            select_run_family(
+                "abc",
+                false,
+                "JetBrains Mono",
+                "Iosevka",
+                "Symbols Nerd Font Mono"
+            ),
             "JetBrains Mono",
         );
         assert_eq!(
-            select_run_family("abc", true, "JetBrains Mono", "Iosevka", "Symbols Nerd Font Mono"),
+            select_run_family(
+                "abc",
+                true,
+                "JetBrains Mono",
+                "Iosevka",
+                "Symbols Nerd Font Mono"
+            ),
             "Iosevka",
         );
         // A mixed run (icon + letter) is NOT all-symbols → primary/italic.
         assert_eq!(
-            select_run_family("\u{E0B0}a", false, "JetBrains Mono", "Iosevka", "Symbols Nerd Font Mono"),
+            select_run_family(
+                "\u{E0B0}a",
+                false,
+                "JetBrains Mono",
+                "Iosevka",
+                "Symbols Nerd Font Mono"
+            ),
             "JetBrains Mono",
         );
     }
@@ -9837,7 +10224,13 @@ mod tests {
         // shape against the primary family (which on the default Nerd
         // font already carries the ranges), never against an empty name.
         assert_eq!(
-            select_run_family("\u{E0B0}", false, "JetBrainsMono Nerd Font Mono", "Iosevka", ""),
+            select_run_family(
+                "\u{E0B0}",
+                false,
+                "JetBrainsMono Nerd Font Mono",
+                "Iosevka",
+                ""
+            ),
             "JetBrainsMono Nerd Font Mono",
         );
     }
@@ -9860,7 +10253,13 @@ mod tests {
 
         // 1. The icon is symbol-classified → routes to the symbols family.
         assert_eq!(
-            select_run_family(icon, false, "JetBrains Mono", "Iosevka", "Symbols Nerd Font Mono"),
+            select_run_family(
+                icon,
+                false,
+                "JetBrains Mono",
+                "Iosevka",
+                "Symbols Nerd Font Mono"
+            ),
             "Symbols Nerd Font Mono",
             "nf-dev-ruby must route to the symbols family",
         );
@@ -9883,7 +10282,13 @@ mod tests {
         //    while the icon routes to symbols, yet both would carry the
         //    same `RunAttrsKey` fg. Routing and colour are orthogonal.
         assert_eq!(
-            select_run_family("a", false, "JetBrains Mono", "Iosevka", "Symbols Nerd Font Mono"),
+            select_run_family(
+                "a",
+                false,
+                "JetBrains Mono",
+                "Iosevka",
+                "Symbols Nerd Font Mono"
+            ),
             "JetBrains Mono",
         );
     }
@@ -9907,7 +10312,10 @@ mod tests {
         assert!((b - expected.b).abs() < 1e-6);
         assert!((a - 1.0).abs() < f32::EPSILON);
         // Cross-pin: linear value is markedly darker than raw byte/255.
-        assert!(r < 128.0 / 255.0, "linear must be darker than sRGB byte/255");
+        assert!(
+            r < 128.0 / 255.0,
+            "linear must be darker than sRGB byte/255"
+        );
     }
 
     #[test]
@@ -9944,10 +10352,11 @@ mod tests {
     fn box_sprite_predicate_matches_geometry() {
         let mut mismatches: Vec<String> = Vec::new();
         for cp in 0x2500u32..=0x259Fu32 {
-            let Some(c) = char::from_u32(cp) else { continue };
+            let Some(c) = char::from_u32(cp) else {
+                continue;
+            };
             let claims = crate::glyph_class::has_box_sprite(c);
-            let draws =
-                !box_drawing_rects(c, 0.0, 0.0, TEST_CW, TEST_CH, TEST_COLOR).is_empty();
+            let draws = !box_drawing_rects(c, 0.0, 0.0, TEST_CW, TEST_CH, TEST_COLOR).is_empty();
             if claims != draws {
                 mismatches.push(format!(
                     "U+{cp:04X} {c:?}: has_box_sprite={claims} but geometry={draws}",
@@ -9969,7 +10378,10 @@ mod tests {
     #[test]
     fn chars_without_sprites_reach_the_font() {
         for (c, what) in [
-            ('\u{2501}', "━ heavy horizontal (Claude Code progress meter)"),
+            (
+                '\u{2501}',
+                "━ heavy horizontal (Claude Code progress meter)",
+            ),
             ('\u{254C}', "╌ light double dash (progress meter remainder)"),
             ('\u{256D}', "╭ rounded top-left"),
             ('\u{256E}', "╮ rounded top-right"),
@@ -10000,19 +10412,30 @@ mod tests {
     fn test_box_drawing_vertical_line() {
         let rects = box_drawing_rects('\u{2502}', 0.0, 0.0, TEST_CW, TEST_CH, TEST_COLOR);
         assert_eq!(rects.len(), 1, "vertical line should produce one rect");
-        assert_eq!(rects[0].size[1], TEST_CH, "height should be full cell height");
+        assert_eq!(
+            rects[0].size[1], TEST_CH,
+            "height should be full cell height"
+        );
     }
 
     #[test]
     fn test_box_drawing_corner_top_left() {
         let rects = box_drawing_rects('\u{250C}', 0.0, 0.0, TEST_CW, TEST_CH, TEST_COLOR);
-        assert_eq!(rects.len(), 2, "corner should produce horizontal + vertical rects");
+        assert_eq!(
+            rects.len(),
+            2,
+            "corner should produce horizontal + vertical rects"
+        );
     }
 
     #[test]
     fn test_box_drawing_cross() {
         let rects = box_drawing_rects('\u{253C}', 0.0, 0.0, TEST_CW, TEST_CH, TEST_COLOR);
-        assert_eq!(rects.len(), 2, "cross should produce horizontal + vertical rects");
+        assert_eq!(
+            rects.len(),
+            2,
+            "cross should produce horizontal + vertical rects"
+        );
         assert_eq!(rects[0].size[0], TEST_CW, "horizontal bar is full width");
         assert_eq!(rects[1].size[1], TEST_CH, "vertical bar is full height");
     }
@@ -10076,21 +10499,30 @@ mod tests {
     fn test_box_drawing_light_shade_alpha() {
         let rects = box_drawing_rects('\u{2591}', 0.0, 0.0, TEST_CW, TEST_CH, TEST_COLOR);
         assert_eq!(rects.len(), 1);
-        assert!((rects[0].color[3] - 0.25).abs() < f32::EPSILON, "light shade alpha = 0.25");
+        assert!(
+            (rects[0].color[3] - 0.25).abs() < f32::EPSILON,
+            "light shade alpha = 0.25"
+        );
     }
 
     #[test]
     fn test_box_drawing_medium_shade_alpha() {
         let rects = box_drawing_rects('\u{2592}', 0.0, 0.0, TEST_CW, TEST_CH, TEST_COLOR);
         assert_eq!(rects.len(), 1);
-        assert!((rects[0].color[3] - 0.5).abs() < f32::EPSILON, "medium shade alpha = 0.5");
+        assert!(
+            (rects[0].color[3] - 0.5).abs() < f32::EPSILON,
+            "medium shade alpha = 0.5"
+        );
     }
 
     #[test]
     fn test_box_drawing_dark_shade_alpha() {
         let rects = box_drawing_rects('\u{2593}', 0.0, 0.0, TEST_CW, TEST_CH, TEST_COLOR);
         assert_eq!(rects.len(), 1);
-        assert!((rects[0].color[3] - 0.75).abs() < f32::EPSILON, "dark shade alpha = 0.75");
+        assert!(
+            (rects[0].color[3] - 0.75).abs() < f32::EPSILON,
+            "dark shade alpha = 0.75"
+        );
     }
 
     #[test]
@@ -10117,7 +10549,11 @@ mod tests {
     #[test]
     fn test_box_drawing_tee_right() {
         let rects = box_drawing_rects('\u{2524}', 0.0, 0.0, TEST_CW, TEST_CH, TEST_COLOR);
-        assert_eq!(rects.len(), 2, "right tee should have vertical + horizontal");
+        assert_eq!(
+            rects.len(),
+            2,
+            "right tee should have vertical + horizontal"
+        );
     }
 
     #[test]
@@ -10129,7 +10565,11 @@ mod tests {
     #[test]
     fn test_box_drawing_tee_bottom() {
         let rects = box_drawing_rects('\u{2534}', 0.0, 0.0, TEST_CW, TEST_CH, TEST_COLOR);
-        assert_eq!(rects.len(), 2, "bottom tee should have horizontal + vertical");
+        assert_eq!(
+            rects.len(),
+            2,
+            "bottom tee should have horizontal + vertical"
+        );
     }
 
     // ---- color_to_f32 with RGBA ----
@@ -10153,9 +10593,9 @@ mod tests {
 
     #[test]
     fn test_selection_bg_default() {
-        let term = std::sync::Arc::new(parking_lot::RwLock::new(
-            crate::terminal::Terminal::new(80, 24),
-        ));
+        let term = std::sync::Arc::new(parking_lot::RwLock::new(crate::terminal::Terminal::new(
+            80, 24,
+        )));
         let renderer = TerminalRenderer::new(
             term,
             14.0,
@@ -10167,7 +10607,12 @@ mod tests {
             CursorStyle::Block,
             true,
             530,
-            wgpu::Color { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+            wgpu::Color {
+                r: 0.0,
+                g: 0.0,
+                b: 0.0,
+                a: 1.0,
+            },
             Color::WHITE,
         );
         // Default selection_bg is Nord frost #88C0D0 at 0.3 alpha,
@@ -10233,7 +10678,11 @@ mod tests {
         assert!((url[3] - 0.6).abs() < 1e-6);
 
         // Cross-pin: aurora linear strictly darker than raw byte/255.
-        let aurora_raw = [0xEB as f32 / 255.0, 0xCB as f32 / 255.0, 0x8B as f32 / 255.0];
+        let aurora_raw = [
+            0xEB as f32 / 255.0,
+            0xCB as f32 / 255.0,
+            0x8B as f32 / 255.0,
+        ];
         assert!(aurora.r < aurora_raw[0] && aurora.g < aurora_raw[1] && aurora.b < aurora_raw[2]);
     }
 
@@ -10267,9 +10716,9 @@ mod tests {
 
     #[test]
     fn test_cursor_color_default() {
-        let term = std::sync::Arc::new(parking_lot::RwLock::new(
-            crate::terminal::Terminal::new(80, 24),
-        ));
+        let term = std::sync::Arc::new(parking_lot::RwLock::new(crate::terminal::Terminal::new(
+            80, 24,
+        )));
         let renderer = TerminalRenderer::new(
             term,
             14.0,
@@ -10281,7 +10730,12 @@ mod tests {
             CursorStyle::Block,
             true,
             530,
-            wgpu::Color { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+            wgpu::Color {
+                r: 0.0,
+                g: 0.0,
+                b: 0.0,
+                a: 1.0,
+            },
             Color::WHITE,
         );
         assert!((renderer.cursor_color[0] - 0.925).abs() < 0.01);
@@ -10296,7 +10750,10 @@ mod tests {
     fn overlay_content_w_shrinks_with_window_width() {
         let wide = max_overlay_content_w(2000, 20.0, 16.0);
         let narrow = max_overlay_content_w(600, 20.0, 16.0);
-        assert!(narrow < wide, "the ceiling must track the live window width");
+        assert!(
+            narrow < wide,
+            "the ceiling must track the live window width"
+        );
         assert!((wide - (2000.0 - 2.0 * 20.0 - 2.0 * 16.0)).abs() < f32::EPSILON);
     }
 

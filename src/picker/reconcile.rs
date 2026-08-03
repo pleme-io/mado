@@ -66,7 +66,8 @@ impl InProcessSessionReconciler {
 impl IndexReconciler for InProcessSessionReconciler {
     fn reconcile(&self, praca: &mut praca::Praca, now: u64) -> bool {
         let live = self.live_sessions();
-        let live_ids: std::collections::HashSet<SessionId> = live.iter().map(|(id, _)| *id).collect();
+        let live_ids: std::collections::HashSet<SessionId> =
+            live.iter().map(|(id, _)| *id).collect();
         let style = praca.name_style;
         let mut changed = false;
 
@@ -75,8 +76,12 @@ impl IndexReconciler for InProcessSessionReconciler {
         // label is just the name (no "name  basename" doubling).
         for (id, name) in &live {
             if praca.index.get(*id).is_none() {
-                let mut rec =
-                    praca::SessionRecord::for_project(*id, std::path::PathBuf::from("/"), style, now);
+                let mut rec = praca::SessionRecord::for_project(
+                    *id,
+                    std::path::PathBuf::from("/"),
+                    style,
+                    now,
+                );
                 rec.rename(name.clone());
                 praca.index.upsert(rec);
                 changed = true;
@@ -127,7 +132,10 @@ mod tests {
         let sid = spawn(&inproc, "scratch");
 
         let mut praca = praca::Praca::new();
-        assert!(praca.index.get(sid).is_none(), "not indexed before reconcile");
+        assert!(
+            praca.index.get(sid).is_none(),
+            "not indexed before reconcile"
+        );
 
         let rec = InProcessSessionReconciler::new(Arc::clone(&inproc));
         assert!(rec.reconcile(&mut praca, 1000), "first reconcile adds it");

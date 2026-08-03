@@ -79,9 +79,17 @@ const DEFAULT_CAPACITY: usize = 64;
 /// the `#[derive(AllVariants)]` reflection const — always complete by
 /// construction, so a new variant can no longer be omitted from it.
 #[derive(
-    Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug,
-    serde::Serialize, serde::Deserialize,
-    pleme_kindstr_derive::KindStr, pleme_allvariants_derive::AllVariants,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Debug,
+    serde::Serialize,
+    serde::Deserialize,
+    pleme_kindstr_derive::KindStr,
+    pleme_allvariants_derive::AllVariants,
 )]
 #[serde(rename_all = "kebab-case")]
 pub enum Subject {
@@ -290,7 +298,10 @@ mod tests {
         // slug() delegates to the derived as_str() — they are the same bytes.
         assert_eq!(Subject::Sessions.as_str(), "sessions");
         // ALL is the derived reflection const, complete + in declaration order.
-        assert_eq!(Subject::ALL, &[Subject::Sessions, Subject::Janitors, Subject::Board]);
+        assert_eq!(
+            Subject::ALL,
+            &[Subject::Sessions, Subject::Janitors, Subject::Board]
+        );
     }
 
     /// Every payload family maps onto its declared subject (the typed

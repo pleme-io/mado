@@ -29,8 +29,8 @@ use std::sync::Arc;
 use anyhow::Context;
 use tokio::sync::OnceCell;
 use vigy::eval::{
-    closure_extension, standard_extensions, ExtArity, ExtEvalError, ExtInterpreter, ExtValue,
-    ExtensionHandle, VigyHost,
+    ExtArity, ExtEvalError, ExtInterpreter, ExtValue, ExtensionHandle, VigyHost, closure_extension,
+    standard_extensions,
 };
 use vigy::{RuntimeHandle, TickInterval, Vigy};
 
@@ -78,11 +78,7 @@ impl MadoVigyHost {
         // unless the operator deleted it).
         let interval = TickInterval::from_millis(DEFAULT_HEARTBEAT_INTERVAL_MS)
             .expect("heartbeat interval is in range");
-        let mut v = Vigy::new(
-            DEFAULT_HEARTBEAT_NAME,
-            DEFAULT_HEARTBEAT_PROGRAM,
-            interval,
-        )?;
+        let mut v = Vigy::new(DEFAULT_HEARTBEAT_NAME, DEFAULT_HEARTBEAT_PROGRAM, interval)?;
         v.labels.insert("host", "mado")?;
         v.labels.insert("kind", "heartbeat")?;
         if let Err(e) = rt.register_or_update(v).await {
@@ -189,7 +185,9 @@ fn mado_intrinsics_extension() -> ExtensionHandle {
             "mado-version",
             ExtArity::Exact(0),
             |_args: &[ExtValue], _host: &mut VigyHost, _sp| {
-                Ok(ExtValue::Str(std::sync::Arc::from(env!("CARGO_PKG_VERSION"))))
+                Ok(ExtValue::Str(std::sync::Arc::from(env!(
+                    "CARGO_PKG_VERSION"
+                ))))
             },
         );
 
@@ -365,8 +363,7 @@ fn mado_intrinsics_extension() -> ExtensionHandle {
                 let surfaces = crate::browser_bridge::get()
                     .map(crate::browser_bridge::BrowserBridge::surfaces)
                     .unwrap_or_default();
-                let json = serde_json::to_string(&surfaces)
-                    .unwrap_or_else(|_| String::from("[]"));
+                let json = serde_json::to_string(&surfaces).unwrap_or_else(|_| String::from("[]"));
                 Ok(ExtValue::Str(std::sync::Arc::from(json.as_str())))
             },
         );

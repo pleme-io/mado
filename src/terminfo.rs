@@ -22,8 +22,7 @@ use std::path::PathBuf;
 
 /// Compiled `xterm-ghostty` terminfo (ncurses legacy format,
 /// magic 0o432). Vendored from Ghostty 1.3.1 (MIT).
-pub const XTERM_GHOSTTY_COMPILED: &[u8] =
-    include_bytes!("../assets/terminfo/xterm-ghostty");
+pub const XTERM_GHOSTTY_COMPILED: &[u8] = include_bytes!("../assets/terminfo/xterm-ghostty");
 
 /// The `(subdir, filename)` layout terminfo resolvers expect:
 /// Linux ncurses uses first-letter dirs (`x/`, `g/`), macOS ncurses
@@ -70,7 +69,10 @@ mod tests {
     /// or source-format file.
     #[test]
     fn vendored_blob_is_compiled_terminfo() {
-        assert!(XTERM_GHOSTTY_COMPILED.len() > 1024, "blob suspiciously small");
+        assert!(
+            XTERM_GHOSTTY_COMPILED.len() > 1024,
+            "blob suspiciously small"
+        );
         assert_eq!(
             &XTERM_GHOSTTY_COMPILED[..2],
             &[0x1a, 0x01],

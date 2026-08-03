@@ -27,7 +27,11 @@ use crate::prewarm::{PrewarmSpec, PrewarmStep};
 /// pod OOMKilled{…}`).
 #[must_use]
 fn pod_from_identity(identity: &str) -> Option<&str> {
-    let inner = identity.split_once('{')?.1.strip_suffix('}').unwrap_or_default();
+    let inner = identity
+        .split_once('{')?
+        .1
+        .strip_suffix('}')
+        .unwrap_or_default();
     inner
         .split(',')
         .filter_map(|kv| kv.split_once('='))
@@ -95,8 +99,14 @@ mod tests {
 
     #[test]
     fn pod_extraction_from_the_real_identity_shape() {
-        assert_eq!(pod_from_identity("OOMKilled{pod=api-1,severity=critical}"), Some("api-1"));
-        assert_eq!(pod_from_identity("HighLatency{service=gw,pod=gw-7}"), Some("gw-7"));
+        assert_eq!(
+            pod_from_identity("OOMKilled{pod=api-1,severity=critical}"),
+            Some("api-1")
+        );
+        assert_eq!(
+            pod_from_identity("HighLatency{service=gw,pod=gw-7}"),
+            Some("gw-7")
+        );
         // No pod label → None (no nonsense describe step).
         assert_eq!(pod_from_identity("DiskFull{node=n1}"), None);
         assert_eq!(pod_from_identity("bareIdentity"), None);
@@ -108,7 +118,10 @@ mod tests {
         let steps = spec.steps();
         assert_eq!(steps.len(), 3, "context + describe + open");
         assert_eq!(steps[0], PrewarmStep::KubeContext("rio".into()));
-        assert_eq!(steps[1].shell_command().as_deref(), Some("kubectl describe pod api-1"));
+        assert_eq!(
+            steps[1].shell_command().as_deref(),
+            Some("kubectl describe pod api-1")
+        );
         assert!(matches!(&steps[2], PrewarmStep::OpenUrl(u) if u.as_str().contains("grafana.rio")));
     }
 
@@ -116,7 +129,13 @@ mod tests {
     fn degrades_gracefully_without_pod_or_link() {
         // A signal with an env but no extractable pod + no link → just the
         // kube-context step (never a nonsense describe, never a broken URL).
-        let sig = Signal::new("rio", "firing-alerts", "DiskFull{node=n1}", Severity::Warning, "disk full");
+        let sig = Signal::new(
+            "rio",
+            "firing-alerts",
+            "DiskFull{node=n1}",
+            Severity::Warning,
+            "disk full",
+        );
         let spec = prewarm_for_signal(&sig);
         assert_eq!(spec.steps(), &[PrewarmStep::KubeContext("rio".into())]);
     }

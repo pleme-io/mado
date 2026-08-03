@@ -346,7 +346,11 @@ mod tests {
     fn matte_composes_only_the_grain_member() {
         use engawa_wgpu::catalog::CatalogEffect;
         let comp = AmbiencePreset::Matte.compose();
-        assert_eq!(comp.members.len(), 1, "Matte must compose exactly one member");
+        assert_eq!(
+            comp.members.len(),
+            1,
+            "Matte must compose exactly one member"
+        );
         assert!(
             comp.contains(CatalogEffect::Grain),
             "Matte must compose the paper-grain tooth"
@@ -417,9 +421,14 @@ mod tests {
             ));
         }
         if aurora.horizon != AMBIENCE_HORIZON {
-            failures.push(std::format!("aurora horizon {} != {AMBIENCE_HORIZON}", aurora.horizon));
+            failures.push(std::format!(
+                "aurora horizon {} != {AMBIENCE_HORIZON}",
+                aurora.horizon
+            ));
         }
-        let bloom = comp.member(CatalogEffect::Bloom).expect("Whisper has bloom");
+        let bloom = comp
+            .member(CatalogEffect::Bloom)
+            .expect("Whisper has bloom");
         if bloom.bloom_threshold != AMBIENCE_BLOOM_THRESHOLD {
             failures.push(std::format!(
                 "bloom threshold {} != {AMBIENCE_BLOOM_THRESHOLD}",
@@ -463,10 +472,8 @@ mod tests {
             ));
         }
         // Same composition shape — only intensities change.
-        let we: std::collections::BTreeSet<_> =
-            w.members.iter().map(|m| m.effect.name()).collect();
-        let pe: std::collections::BTreeSet<_> =
-            p.members.iter().map(|m| m.effect.name()).collect();
+        let we: std::collections::BTreeSet<_> = w.members.iter().map(|m| m.effect.name()).collect();
+        let pe: std::collections::BTreeSet<_> = p.members.iter().map(|m| m.effect.name()).collect();
         if we != pe {
             failures.push("Present and Whisper differ in WHICH effects compose".to_owned());
         }

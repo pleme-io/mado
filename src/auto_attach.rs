@@ -259,11 +259,7 @@ impl AutoAttachDriver {
     /// returns the typed [`AutoAttachOutcome`].
     ///
     /// `now` is the caller's injected unix-seconds clock.
-    pub fn on_displayed_cwd(
-        &mut self,
-        cwd: Option<&str>,
-        now: u64,
-    ) -> Option<AutoAttachOutcome> {
+    pub fn on_displayed_cwd(&mut self, cwd: Option<&str>, now: u64) -> Option<AutoAttachOutcome> {
         let cwd = cwd?;
         // Only an ACTUAL change triggers work — the common idle tick
         // (cwd unchanged) costs one string compare and returns.
@@ -278,9 +274,9 @@ impl AutoAttachDriver {
     /// change. Split from [`Self::on_displayed_cwd`] so the change-gate
     /// is separate from the decision logic.
     fn act_on_cwd(&mut self, new_cwd: &Path, now: u64) -> AutoAttachOutcome {
-        let decision =
-            self.praca()
-                .on_cwd_change(Some(self.current_session), new_cwd, now);
+        let decision = self
+            .praca()
+            .on_cwd_change(Some(self.current_session), new_cwd, now);
         match decision {
             praca::AttachDecision::Stay => AutoAttachOutcome::Stay,
             praca::AttachDecision::SwitchTo(session) => self.perform_switch(session, now),
@@ -318,12 +314,7 @@ impl AutoAttachDriver {
     /// Realize a `SpawnNew`: spawn an auto-named session at the project
     /// root, bind + index it, post its first pane to the switch
     /// channel, and advance the seat.
-    fn perform_spawn(
-        &mut self,
-        root: PathBuf,
-        name: String,
-        now: u64,
-    ) -> AutoAttachOutcome {
+    fn perform_spawn(&mut self, root: PathBuf, name: String, now: u64) -> AutoAttachOutcome {
         // Spawn with mado's capability env + the project root as cwd, so
         // the new session's shell starts in the project (and inherits
         // truecolor/terminfo) just like the boot session did.
@@ -545,7 +536,10 @@ mod tests {
 
     #[test]
     fn config_mode_maps_to_policy() {
-        assert_eq!(AutoAttachMode::Off.policy(), praca::AttachPolicy::PickerOnly);
+        assert_eq!(
+            AutoAttachMode::Off.policy(),
+            praca::AttachPolicy::PickerOnly
+        );
         assert_eq!(
             AutoAttachMode::AutoSwitch.policy(),
             praca::AttachPolicy::AutoSwitch
@@ -712,10 +706,7 @@ mod tests {
             }
             other => panic!("expected Suggested, got {other:?}"),
         }
-        assert!(
-            switch.take().is_none(),
-            "Suggest must never post a switch"
-        );
+        assert!(switch.take().is_none(), "Suggest must never post a switch");
         // The seat did NOT advance — the operator is still on A, so a
         // later actual decision still treats A as current.
         assert_eq!(

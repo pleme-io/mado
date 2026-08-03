@@ -65,9 +65,14 @@ pub fn project_signal(sig: &Signal, source: SourceKind, cwd: &Path) -> Option<Su
     // pod-describe + open the deep-link) so choosing this alert's session lands
     // the operator already-in-the-issue. Empty for a signal that yields no
     // steps — then it's a bare scoped session, as before.
-    let spawn = SpawnSpec::new(cwd, session_name(sig))?.with_prewarm(super::prewarm::prewarm_for_signal(sig));
+    let spawn = SpawnSpec::new(cwd, session_name(sig))?
+        .with_prewarm(super::prewarm::prewarm_for_signal(sig));
     let key = sig.signature();
-    let title = if sig.label.is_empty() { sig.env.clone() } else { sig.label.clone() };
+    let title = if sig.label.is_empty() {
+        sig.env.clone()
+    } else {
+        sig.label.clone()
+    };
 
     let mut detail = String::from("env ");
     detail.push_str(&sig.env);
@@ -97,34 +102,63 @@ mod tests {
     const STUB: SourceKind = SourceKind::Safra;
 
     fn sig() -> Signal {
-        Signal::new("mte_production", "deploy-flows", "o/r#42", Severity::Critical, "Deploy auth → mte production")
-            .with_link("https://github.com/o/r/actions/runs/42")
+        Signal::new(
+            "mte_production",
+            "deploy-flows",
+            "o/r#42",
+            Severity::Critical,
+            "Deploy auth → mte production",
+        )
+        .with_link("https://github.com/o/r/actions/runs/42")
     }
 
     #[test]
     fn projects_a_clickable_scoped_suggestion() {
         let s = project_signal(&sig(), STUB, Path::new("/code")).expect("projected");
         assert_eq!(s.title, "Deploy auth → mte production");
-        assert_eq!(s.urgency, Urgency::Critical, "critical severity → critical urgency");
-        assert!(s.spawn.name().starts_with("mte_production"), "session scoped to the env");
+        assert_eq!(
+            s.urgency,
+            Urgency::Critical,
+            "critical severity → critical urgency"
+        );
+        assert!(
+            s.spawn.name().starts_with("mte_production"),
+            "session scoped to the env"
+        );
         assert_eq!(s.spawn.cwd(), Path::new("/code"));
         assert!(s.detail.as_deref().unwrap().contains("env mte_production"));
-        assert!(s.detail.as_deref().unwrap().contains("actions/runs/42"), "deep-link in detail");
+        assert!(
+            s.detail.as_deref().unwrap().contains("actions/runs/42"),
+            "deep-link in detail"
+        );
     }
 
     #[test]
     fn id_is_stable_across_refreshes() {
         let a = project_signal(&sig(), STUB, Path::new("/code")).unwrap();
         let b = project_signal(&sig(), STUB, Path::new("/code")).unwrap();
-        assert_eq!(a.id, b.id, "same signal signature → same suggestion id across refreshes");
+        assert_eq!(
+            a.id, b.id,
+            "same signal signature → same suggestion id across refreshes"
+        );
     }
 
     #[test]
     fn severity_maps_to_board_rank() {
         let warn = Signal::new("e", "k", "i", Severity::Warning, "x");
         let info = Signal::new("e", "k", "i", Severity::Info, "x");
-        assert_eq!(project_signal(&warn, STUB, Path::new("/c")).unwrap().urgency, Urgency::High);
-        assert_eq!(project_signal(&info, STUB, Path::new("/c")).unwrap().urgency, Urgency::Low);
+        assert_eq!(
+            project_signal(&warn, STUB, Path::new("/c"))
+                .unwrap()
+                .urgency,
+            Urgency::High
+        );
+        assert_eq!(
+            project_signal(&info, STUB, Path::new("/c"))
+                .unwrap()
+                .urgency,
+            Urgency::Low
+        );
     }
 
     #[test]

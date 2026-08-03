@@ -126,7 +126,11 @@ mod tests {
     fn probe_failure_is_a_distinct_recorded_state_not_a_silent_one() {
         let failed = PanelRatio::from_probe(None);
         assert_eq!(failed, PanelRatio::Unavailable);
-        assert_eq!(failed.ratio(), 1.0, "falls back to 1.0 so rendering proceeds");
+        assert_eq!(
+            failed.ratio(),
+            1.0,
+            "falls back to 1.0 so rendering proceeds"
+        );
         assert!(!failed.is_known(), "but it is RECORDED unknown, not silent");
         assert!(!failed.is_downscaled());
     }
@@ -135,8 +139,14 @@ mod tests {
     fn a_nonsense_probe_is_a_failed_probe_never_snapped_on() {
         // > 1.0, non-finite, or non-positive is not a real downscale.
         assert_eq!(PanelRatio::from_probe(Some(1.5)), PanelRatio::Unavailable);
-        assert_eq!(PanelRatio::from_probe(Some(f32::NAN)), PanelRatio::Unavailable);
-        assert_eq!(PanelRatio::from_probe(Some(f32::INFINITY)), PanelRatio::Unavailable);
+        assert_eq!(
+            PanelRatio::from_probe(Some(f32::NAN)),
+            PanelRatio::Unavailable
+        );
+        assert_eq!(
+            PanelRatio::from_probe(Some(f32::INFINITY)),
+            PanelRatio::Unavailable
+        );
         assert_eq!(PanelRatio::from_probe(Some(0.0)), PanelRatio::Unavailable);
         assert_eq!(PanelRatio::from_probe(Some(-0.8)), PanelRatio::Unavailable);
     }
@@ -147,7 +157,10 @@ mod tests {
         let r = PanelRatio::from_probe(Some(0.8405));
         assert_eq!(r, PanelRatio::Discovered(0.8405));
         assert!(r.is_known());
-        assert!(r.is_downscaled(), "0.84 is a real downscale — the snap does work");
+        assert!(
+            r.is_downscaled(),
+            "0.84 is a real downscale — the snap does work"
+        );
         assert!((r.ratio() - 0.8405).abs() < 1e-6);
     }
 
@@ -161,7 +174,10 @@ mod tests {
         let failed = PanelRatio::from_probe(None);
         assert_eq!(genuine.ratio(), failed.ratio(), "both are 1.0 numerically");
         assert_ne!(genuine, failed, "…but they are DIFFERENT states");
-        assert!(genuine.is_known(), "a probed 1.0 is genuine, snapping needs nothing");
+        assert!(
+            genuine.is_known(),
+            "a probed 1.0 is genuine, snapping needs nothing"
+        );
         assert!(!failed.is_known(), "a fallback 1.0 is a recorded unknown");
     }
 
@@ -179,7 +195,11 @@ mod tests {
 
     #[test]
     fn display_surfaces_the_provenance() {
-        assert!(PanelRatio::Discovered(0.84).to_string().contains("discovered"));
+        assert!(
+            PanelRatio::Discovered(0.84)
+                .to_string()
+                .contains("discovered")
+        );
         assert!(PanelRatio::Unavailable.to_string().contains("probe failed"));
     }
 }

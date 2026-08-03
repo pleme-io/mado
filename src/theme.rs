@@ -96,7 +96,9 @@ impl Theme {
         } else {
             name
         };
-        all().iter().find(|t| t.name.eq_ignore_ascii_case(canonical))
+        all()
+            .iter()
+            .find(|t| t.name.eq_ignore_ascii_case(canonical))
     }
 
     #[must_use]
@@ -132,9 +134,7 @@ impl Theme {
 #[must_use]
 fn blend(a: Color, b: Color, t: f32) -> Color {
     let t = t.clamp(0.0, 1.0);
-    let mix = |x: u8, y: u8| -> u8 {
-        (f32::from(x) * (1.0 - t) + f32::from(y) * t).round() as u8
-    };
+    let mix = |x: u8, y: u8| -> u8 { (f32::from(x) * (1.0 - t) + f32::from(y) * t).round() as u8 };
     Color::new(mix(a.r, b.r), mix(a.g, b.g), mix(a.b, b.b))
 }
 
@@ -167,7 +167,8 @@ pub fn apply_config_theme(
     renderer.set_ansi_colors(theme.ansi);
     renderer.set_selection_bg(theme.selection_bg);
     // Cursor overlay colour at 0.85 alpha — same as the local-PTY path.
-    let cursor = ishou_tokens::Srgb::new(theme.cursor.r, theme.cursor.g, theme.cursor.b).to_linear();
+    let cursor =
+        ishou_tokens::Srgb::new(theme.cursor.r, theme.cursor.g, theme.cursor.b).to_linear();
     renderer.set_cursor_color([cursor.r, cursor.g, cursor.b, 0.85]);
     // AGENT-RESERVED chrome accent: the search-status line (and any
     // future agent / MCP-activity surface) paints with the theme's
@@ -232,14 +233,11 @@ pub fn apply_config_theme(
         selected_bg,
     });
     // Theme bg through the typed Srgb → Linear path (no gamma confusion).
-    let theme_bg: wgpu::Color = ishou_tokens::Srgb::new(
-        theme.background.r,
-        theme.background.g,
-        theme.background.b,
-    )
-    .to_linear()
-    .with_alpha(opacity)
-    .into();
+    let theme_bg: wgpu::Color =
+        ishou_tokens::Srgb::new(theme.background.r, theme.background.g, theme.background.b)
+            .to_linear()
+            .with_alpha(opacity)
+            .into();
     renderer.set_bg_fg(theme_bg, theme.foreground);
     // The mirror Terminal half — palette + OSC 11 background-query
     // answer. This is the call the tear path was MISSING.
@@ -368,7 +366,8 @@ fn vellum_theme() -> Theme {
     // The CHROME below (bg/fg/cursor/selection/search/agent) still derives
     // from the BORN Vellum surfaces + semantic roles.
     let content = ishou_tokens::VellumPalette::vellum().content_ansi_16();
-    let ansi: [Color; 16] = core::array::from_fn(|i| Color::new(content[i].r, content[i].g, content[i].b));
+    let ansi: [Color; 16] =
+        core::array::from_fn(|i| Color::new(content[i].r, content[i].g, content[i].b));
 
     // The agent accent via the SEMANTIC role, resolved through the
     // palette's own `get` (the role key is `"fable_violet"`).
@@ -378,8 +377,16 @@ fn vellum_theme() -> Theme {
 
     Theme {
         name: "vellum",
-        background: Color::new(surfaces.background.r, surfaces.background.g, surfaces.background.b),
-        foreground: Color::new(surfaces.foreground.r, surfaces.foreground.g, surfaces.foreground.b),
+        background: Color::new(
+            surfaces.background.r,
+            surfaces.background.g,
+            surfaces.background.b,
+        ),
+        foreground: Color::new(
+            surfaces.foreground.r,
+            surfaces.foreground.g,
+            surfaces.foreground.b,
+        ),
         // §5 — block cursor is `green_bright` (an inverse pair ≥7.0).
         cursor: Color::new(surfaces.cursor.r, surfaces.cursor.g, surfaces.cursor.b),
         // The byte-exact violet-glass blend product, linearized for the
@@ -388,7 +395,9 @@ fn vellum_theme() -> Theme {
         // surface, so the value handed to it must already be linear).
         selection_bg: {
             let s = surfaces.selection_background;
-            let lin = ishou_tokens::Srgb::new(s.r, s.g, s.b).with_alpha(0xFF).to_linear();
+            let lin = ishou_tokens::Srgb::new(s.r, s.g, s.b)
+                .with_alpha(0xFF)
+                .to_linear();
             [lin.r, lin.g, lin.b, lin.a]
         },
         ansi,
@@ -418,7 +427,11 @@ fn vellum_theme() -> Theme {
         scrollbar: ansi[6],
         // Bell flash = the BORN Vellum foreground (warm parchment white)
         // straight from the ishou surfaces — never a hardcoded white.
-        bell_flash: Color::new(surfaces.foreground.r, surfaces.foreground.g, surfaces.foreground.b),
+        bell_flash: Color::new(
+            surfaces.foreground.r,
+            surfaces.foreground.g,
+            surfaces.foreground.b,
+        ),
         // Exit-status accents = ANSI green / red (`ansi[2]` / `ansi[1]`).
         exit_ok: ansi[2],
         exit_err: ansi[1],
@@ -598,7 +611,11 @@ mod tests {
         assert_eq!(b.scrollbar, b.ansi[6], "scrollbar = ANSI cyan-frost");
         assert_eq!(
             b.bell_flash,
-            Color::new(surfaces.foreground.r, surfaces.foreground.g, surfaces.foreground.b),
+            Color::new(
+                surfaces.foreground.r,
+                surfaces.foreground.g,
+                surfaces.foreground.b
+            ),
             "bell_flash = the BORN Vellum foreground",
         );
         assert_eq!(b.exit_ok, b.ansi[2], "exit_ok = ANSI green");

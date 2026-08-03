@@ -109,9 +109,15 @@ pub enum Runner {
     Direct,
 }
 
-const fn default_cols() -> u16 { 80 }
-const fn default_rows() -> u16 { 24 }
-fn default_shell() -> String { "/bin/sh".to_string() }
+const fn default_cols() -> u16 {
+    80
+}
+const fn default_rows() -> u16 {
+    24
+}
+fn default_shell() -> String {
+    "/bin/sh".to_string()
+}
 
 /// One step in a scenario. Internally tagged on `kind` so the YAML
 /// stays unambiguous and serde_yaml_ng deserializes consistently
@@ -156,7 +162,9 @@ pub enum Step {
     Reset,
 }
 
-const fn default_wait_ms() -> u64 { 1000 }
+const fn default_wait_ms() -> u64 {
+    1000
+}
 
 /// Assertions checked after every step completes.
 ///
@@ -210,8 +218,12 @@ pub struct Expect {
     pub frame_height: u32,
 }
 
-const fn default_frame_width() -> u32 { 800 }
-const fn default_frame_height() -> u32 { 600 }
+const fn default_frame_width() -> u32 {
+    800
+}
+const fn default_frame_height() -> u32 {
+    600
+}
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -245,10 +257,9 @@ pub struct CellAssert {
 
 /// Load a scenario from a YAML file.
 pub fn load(path: &Path) -> Result<Scenario> {
-    let raw = std::fs::read_to_string(path)
-        .with_context(|| format!("read {}", path.display()))?;
-    let scenario: Scenario = serde_yaml_ng::from_str(&raw)
-        .with_context(|| format!("parse {}", path.display()))?;
+    let raw = std::fs::read_to_string(path).with_context(|| format!("read {}", path.display()))?;
+    let scenario: Scenario =
+        serde_yaml_ng::from_str(&raw).with_context(|| format!("parse {}", path.display()))?;
     Ok(scenario)
 }
 
@@ -308,10 +319,10 @@ fn check_frame_hash_golden(
         None if updating => String::new(),
         None => return Ok(()),
     };
-    use garasu::headless::{HeadlessTarget, frame_hash};
     use crate::config::CursorStyle;
     use crate::render::TerminalRenderer;
     use crate::terminal::Color;
+    use garasu::headless::{HeadlessTarget, frame_hash};
     use madori::{RenderCallback, RenderContext};
     use std::sync::Arc;
 
@@ -320,8 +331,8 @@ fn check_frame_hash_golden(
         FinalState::Shared(t) => t,
         FinalState::_Phantom(_) => unreachable!(),
     };
-    let gpu = pollster::block_on(garasu::GpuContext::new())
-        .context("scenario L3 golden: gpu init")?;
+    let gpu =
+        pollster::block_on(garasu::GpuContext::new()).context("scenario L3 golden: gpu init")?;
     let target = HeadlessTarget::new(
         &gpu,
         scenario.expect.frame_width,
@@ -342,15 +353,17 @@ fn check_frame_hash_golden(
         CursorStyle::Block,
         false, // no blink — deterministic
         500,
-        wgpu::Color { r: 0.180, g: 0.204, b: 0.251, a: 1.0 },
+        wgpu::Color {
+            r: 0.180,
+            g: 0.204,
+            b: 0.251,
+            a: 1.0,
+        },
         Color::WHITE,
     );
     renderer.init(&gpu);
-    let mut text = garasu::TextLayerStack::new(
-        &gpu.device,
-        &gpu.queue,
-        wgpu::TextureFormat::Bgra8UnormSrgb,
-    );
+    let mut text =
+        garasu::TextLayerStack::new(&gpu.device, &gpu.queue, wgpu::TextureFormat::Bgra8UnormSrgb);
     let mut ctx = RenderContext {
         gpu: &gpu,
         text: &mut text,
@@ -380,7 +393,9 @@ fn check_frame_hash_golden(
                     eprintln!(
                         "scenario {:?}: MADO_GOLDEN_UPDATE — rewrote {} \
                          with new frame_hash {}",
-                        scenario.name, p.display(), got
+                        scenario.name,
+                        p.display(),
+                        got
                     );
                     return Ok(());
                 }
@@ -388,7 +403,8 @@ fn check_frame_hash_golden(
                     bail!(
                         "scenario {:?}: MADO_GOLDEN_UPDATE failed to rewrite \
                          {}: {e}\n  (would-be hash: {got})",
-                        scenario.name, p.display()
+                        scenario.name,
+                        p.display()
                     );
                 }
             }
@@ -399,7 +415,9 @@ fn check_frame_hash_golden(
          To accept the new hash: re-run with MADO_GOLDEN_UPDATE=1 in the env. \
          Otherwise the rendered output regressed pixel-exactly relative to the \
          locked baseline.",
-        scenario.name, want, got
+        scenario.name,
+        want,
+        got
     );
 }
 
@@ -414,8 +432,7 @@ fn check_frame_hash_golden(
 /// inserts it as the first child of the `expect:` block.
 #[cfg(feature = "gpu_tests")]
 fn rewrite_frame_hash_in_yaml(path: &Path, new_hash: &str) -> Result<()> {
-    let raw = std::fs::read_to_string(path)
-        .with_context(|| format!("read {}", path.display()))?;
+    let raw = std::fs::read_to_string(path).with_context(|| format!("read {}", path.display()))?;
     let mut out = String::with_capacity(raw.len() + 80);
     let mut hash_replaced = false;
     let mut expect_seen = false;
@@ -454,8 +471,7 @@ fn rewrite_frame_hash_in_yaml(path: &Path, new_hash: &str) -> Result<()> {
             out.insert_str(pos + needle.len(), &inject);
         }
     }
-    std::fs::write(path, out)
-        .with_context(|| format!("write {}", path.display()))?;
+    std::fs::write(path, out).with_context(|| format!("write {}", path.display()))?;
     Ok(())
 }
 
@@ -491,9 +507,13 @@ async fn run_pty(scenario: &Scenario, yaml_path: Option<&Path>) -> Result<()> {
         rows: scenario.rows,
         ..TermSpec::default()
     };
-    let id = registry.spawn(&spec).await
+    let id = registry
+        .spawn(&spec)
+        .await
         .with_context(|| format!("spawn scenario {:?}", scenario.name))?;
-    let session = registry.get(&id).ok_or_else(|| anyhow!("session vanished after spawn"))?;
+    let session = registry
+        .get(&id)
+        .ok_or_else(|| anyhow!("session vanished after spawn"))?;
 
     // Give the shell ~100ms to print its initial prompt — most
     // scenarios reference the prompt in `text_contains`. Scenarios
@@ -502,7 +522,8 @@ async fn run_pty(scenario: &Scenario, yaml_path: Option<&Path>) -> Result<()> {
     tokio::time::sleep(Duration::from_millis(100)).await;
 
     for (idx, step) in scenario.steps.iter().enumerate() {
-        run_step(&session, step, idx).await
+        run_step(&session, step, idx)
+            .await
             .with_context(|| format!("scenario {:?} step #{idx}", scenario.name))?;
     }
 
@@ -514,8 +535,12 @@ async fn run_pty(scenario: &Scenario, yaml_path: Option<&Path>) -> Result<()> {
     check_expectations(&scenario.expect, &snap)
         .with_context(|| format!("scenario {:?} assertions", scenario.name))?;
     // L3 visual-golden check (no-op without --features gpu_tests).
-    check_frame_hash_golden(scenario, FinalState::Shared(session.terminal_arc()), yaml_path)
-        .with_context(|| format!("scenario {:?} L3 golden", scenario.name))?;
+    check_frame_hash_golden(
+        scenario,
+        FinalState::Shared(session.terminal_arc()),
+        yaml_path,
+    )
+    .with_context(|| format!("scenario {:?} L3 golden", scenario.name))?;
     Ok(())
 }
 
@@ -609,11 +634,7 @@ fn snapshot_from_terminal(term: &crate::terminal::Terminal) -> GridSnapshot {
     }
 }
 
-async fn run_step(
-    session: &Arc<crate::session::Session>,
-    step: &Step,
-    _idx: usize,
-) -> Result<()> {
+async fn run_step(session: &Arc<crate::session::Session>, step: &Step, _idx: usize) -> Result<()> {
     match step {
         Step::Send { text } => {
             // YAML's native double-quoted string escapes already
@@ -725,14 +746,18 @@ fn check_cell(assert: &CellAssert, snap: &GridSnapshot, failures: &mut Vec<Strin
     let Some(row) = snap.cells.get(assert.row) else {
         failures.push(format!(
             "cell[{},{}]: row out of bounds (grid has {} rows)",
-            assert.row, assert.col, snap.cells.len()
+            assert.row,
+            assert.col,
+            snap.cells.len()
         ));
         return;
     };
     let Some(cell) = row.get(assert.col) else {
         failures.push(format!(
             "cell[{},{}]: col out of bounds (row has {} cols)",
-            assert.row, assert.col, row.len()
+            assert.row,
+            assert.col,
+            row.len()
         ));
         return;
     };
@@ -855,9 +880,7 @@ pub async fn record_session(opts: RecordOpts) -> Result<()> {
                 let take = (MAX_BYTES.saturating_sub(captured.len())).min(n);
                 captured.extend_from_slice(&buf[..take]);
                 if captured.len() >= MAX_BYTES {
-                    tracing::warn!(
-                        "record: captured byte cap ({MAX_BYTES}) reached — truncating"
-                    );
+                    tracing::warn!("record: captured byte cap ({MAX_BYTES}) reached — truncating");
                     break;
                 }
             }
@@ -870,22 +893,14 @@ pub async fn record_session(opts: RecordOpts) -> Result<()> {
 
     drop(pty); // ensure child is reaped before writing the file
 
-    let scenario_text = render_scenario_yaml(
-        &name,
-        &description,
-        program,
-        &joined,
-        cols,
-        rows,
-        &captured,
-    );
+    let scenario_text =
+        render_scenario_yaml(&name, &description, program, &joined, cols, rows, &captured);
     if let Some(parent) = output.parent()
         && !parent.as_os_str().is_empty()
     {
         std::fs::create_dir_all(parent).with_context(|| format!("mkdir {parent:?}"))?;
     }
-    std::fs::write(&output, scenario_text)
-        .with_context(|| format!("write {output:?}"))?;
+    std::fs::write(&output, scenario_text).with_context(|| format!("write {output:?}"))?;
     eprintln!(
         "mado record: wrote {} bytes of capture to {} ({} bytes captured from {})",
         std::fs::metadata(&output).map(|m| m.len()).unwrap_or(0),
@@ -1006,7 +1021,11 @@ typo_field: 42
     fn empty_expectations_pass() {
         // No assertions = trivially passes — a "didn't panic" test.
         let snap = GridSnapshot {
-            cols: 4, rows: 2, cursor_row: 0, cursor_col: 0, cursor_visible: true,
+            cols: 4,
+            rows: 2,
+            cursor_row: 0,
+            cursor_col: 0,
+            cursor_visible: true,
             cells: vec![vec![]; 2],
         };
         let res = check_expectations(&Expect::default(), &snap);
@@ -1016,12 +1035,16 @@ typo_field: 42
     #[test]
     fn missing_text_contains_fails_with_diff() {
         let snap = GridSnapshot {
-            cols: 4, rows: 1, cursor_row: 0, cursor_col: 0, cursor_visible: true,
+            cols: 4,
+            rows: 1,
+            cursor_row: 0,
+            cursor_col: 0,
+            cursor_visible: true,
             cells: vec![vec![
-                crate::session::CellSnapshot::legacy('a', 1, [255;3], [0;3], 0),
-                crate::session::CellSnapshot::legacy('b', 1, [255;3], [0;3], 0),
-                crate::session::CellSnapshot::legacy('c', 1, [255;3], [0;3], 0),
-                crate::session::CellSnapshot::legacy('d', 1, [255;3], [0;3], 0),
+                crate::session::CellSnapshot::legacy('a', 1, [255; 3], [0; 3], 0),
+                crate::session::CellSnapshot::legacy('b', 1, [255; 3], [0; 3], 0),
+                crate::session::CellSnapshot::legacy('c', 1, [255; 3], [0; 3], 0),
+                crate::session::CellSnapshot::legacy('d', 1, [255; 3], [0; 3], 0),
             ]],
         };
         let exp = Expect {

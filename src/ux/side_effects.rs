@@ -245,7 +245,11 @@ pub fn apply_side_effects(
         // already applied the focus gate (`only_when_unfocused`), so the
         // dispatch uses `Always` — double-gating here would silently drop it.
         if notify.command_completion().should_notify(&cc, focused) {
-            notify.notify_with(&completion_notification(&cc), crate::config::NotifyWhen::Always, focused);
+            notify.notify_with(
+                &completion_notification(&cc),
+                crate::config::NotifyWhen::Always,
+                focused,
+            );
         }
     }
     effects.title
@@ -274,9 +278,14 @@ fn completion_notification(cc: &CommandCompletion) -> tsuuchi::Notification {
     let (title, body) = if cc.succeeded() {
         ("✓ Command finished".to_owned(), format!("Done in {dur}"))
     } else {
-        ("✗ Command failed".to_owned(), format!("Exit {} after {dur}", cc.exit_code))
+        (
+            "✗ Command failed".to_owned(),
+            format!("Exit {} after {dur}", cc.exit_code),
+        )
     };
-    tsuuchi::Notification::new(title, body).urgency(Urgency::Normal).group("command")
+    tsuuchi::Notification::new(title, body)
+        .urgency(Urgency::Normal)
+        .group("command")
 }
 
 /// Humanize a millisecond duration into a compact, glanceable string:
@@ -306,7 +315,11 @@ mod completion_tests {
     use super::*;
 
     fn cc(exit_code: i32, duration_ms: u64, used_alt_screen: bool) -> CommandCompletion {
-        CommandCompletion { exit_code, duration_ms, used_alt_screen }
+        CommandCompletion {
+            exit_code,
+            duration_ms,
+            used_alt_screen,
+        }
     }
 
     #[test]
@@ -337,8 +350,14 @@ mod completion_tests {
 
     #[test]
     fn fast_success_stays_quiet_slow_success_glows() {
-        assert!(!should_exit_glow(&cc(0, 500, false)), "a quick `ls` must not strobe");
-        assert!(should_exit_glow(&cc(0, 5_000, false)), "a 5s job earns a done-pulse");
+        assert!(
+            !should_exit_glow(&cc(0, 500, false)),
+            "a quick `ls` must not strobe"
+        );
+        assert!(
+            should_exit_glow(&cc(0, 5_000, false)),
+            "a 5s job earns a done-pulse"
+        );
     }
 
     #[test]

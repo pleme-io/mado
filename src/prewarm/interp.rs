@@ -101,7 +101,10 @@ mod tests {
         assert_eq!(n, 3);
         assert_eq!(
             env.commands,
-            vec!["kubectl config use-context rio", "kubectl describe pod api-0"]
+            vec![
+                "kubectl config use-context rio",
+                "kubectl describe pod api-0"
+            ]
         );
         assert_eq!(env.urls, vec!["https://grafana.example/d/abc"]);
     }

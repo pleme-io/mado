@@ -52,7 +52,9 @@ pub fn load_and_register(praca: &std::sync::Arc<Mutex<praca::Praca>>) {
         let restored = praca::Praca::from_snapshot(snap);
         let n = restored.definitions.all().len();
         if n > 0 {
-            let mut g = praca.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+            let mut g = praca
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
             g.definitions = restored.definitions;
             tracing::info!(presets = n, "praça preset catalog restored");
         }
@@ -77,7 +79,10 @@ pub fn maintenance_tick() {
         return;
     }
     let snap = {
-        let g = reg.praca.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let g = reg
+            .praca
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         g.to_snapshot()
     };
     let Ok(json) = serde_json::to_vec(&snap) else {
@@ -132,12 +137,15 @@ mod tests {
             )
             .expect("spawn");
         let old = std::sync::Mutex::new(praca::Praca::new());
-        old.lock().unwrap().index.upsert(praca::SessionRecord::for_project(
-            live,
-            std::path::PathBuf::from("/code/x"),
-            ishou_tokens::SessionNameStyle::Emoji,
-            100,
-        ));
+        old.lock()
+            .unwrap()
+            .index
+            .upsert(praca::SessionRecord::for_project(
+                live,
+                std::path::PathBuf::from("/code/x"),
+                ishou_tokens::SessionNameStyle::Emoji,
+                100,
+            ));
         assert!(
             crate::session_picker::capture_preset(&inproc, &old, live, 100),
             "preset captured from the live session"
@@ -160,8 +168,14 @@ mod tests {
             g.definitions = restored.definitions;
         }
         let g = fresh.lock().unwrap();
-        assert!(g.definitions.get(def_id).is_some(), "preset survived the restart");
-        assert!(g.index.all().is_empty(), "dead session records are NOT restored");
+        assert!(
+            g.definitions.get(def_id).is_some(),
+            "preset survived the restart"
+        );
+        assert!(
+            g.index.all().is_empty(),
+            "dead session records are NOT restored"
+        );
         drop(g);
 
         // A torn file restores nothing (framed-verify catches it).

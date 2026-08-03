@@ -143,9 +143,8 @@ impl Introspect for MadoAppState {
                     }))
                 }
             }
-            "config" => serde_json::to_value(&*self.config).map_err(|e| {
-                QueryError::internal(format!("serialize MadoConfig: {e}"))
-            }),
+            "config" => serde_json::to_value(&*self.config)
+                .map_err(|e| QueryError::internal(format!("serialize MadoConfig: {e}"))),
             "process" => Ok(serde_json::json!({
                 "pid": std::process::id(),
                 "binary": std::env::current_exe()
@@ -263,7 +262,9 @@ impl Introspect for MadoAppState {
                     .tear_inproc
                     .get()
                     .map(|inproc| {
-                        inproc.with_registry(|r| r.sessions.values().any(|s| s.panes.contains_key(&pane)))
+                        inproc.with_registry(|r| {
+                            r.sessions.values().any(|s| s.panes.contains_key(&pane))
+                        })
                     })
                     .unwrap_or(false);
                 if !known {
@@ -503,8 +504,7 @@ impl Introspect for MadoAppState {
                         actual: q.args.len(),
                     });
                 }
-                let (Some(target), Some(text)) = (q.args[0].as_str(), q.args[1].as_str())
-                else {
+                let (Some(target), Some(text)) = (q.args[0].as_str(), q.args[1].as_str()) else {
                     return Err(QueryError::TypeMismatch {
                         path: "send_keys_embedded".to_string(),
                         expected: "[string, string]".to_string(),
@@ -648,9 +648,8 @@ impl Introspect for MadoAppState {
                     });
                 }
                 let params: crate::suggest::InjectParams =
-                    serde_json::from_value(q.args[0].clone()).map_err(|e| {
-                        QueryError::internal(format!("invalid inject params: {e}"))
-                    })?;
+                    serde_json::from_value(q.args[0].clone())
+                        .map_err(|e| QueryError::internal(format!("invalid inject params: {e}")))?;
                 crate::suggest::inject(params).map_err(QueryError::internal)
             }
             // Method-call leaf — args: [id: String, snooze_secs: u64|null].
@@ -1167,13 +1166,22 @@ mod tests {
             .query(&Query::call(["simulate_chord"], []))
             .expect_err("zero args must be BadArity");
         assert!(
-            matches!(err, QueryError::BadArity { expected: 1, actual: 0 }),
+            matches!(
+                err,
+                QueryError::BadArity {
+                    expected: 1,
+                    actual: 0
+                }
+            ),
             "got {err:?}"
         );
         let err = s
             .query(&Query::call(["simulate_chord"], [serde_json::json!(42)]))
             .expect_err("non-string arg must be TypeMismatch");
-        assert!(matches!(err, QueryError::TypeMismatch { .. }), "got {err:?}");
+        assert!(
+            matches!(err, QueryError::TypeMismatch { .. }),
+            "got {err:?}"
+        );
     }
 
     #[test]
@@ -1233,7 +1241,13 @@ mod tests {
             .query(&Query::call(["spawn_term"], []))
             .expect_err("zero args must be BadArity");
         assert!(
-            matches!(err, QueryError::BadArity { expected: 1, actual: 0 }),
+            matches!(
+                err,
+                QueryError::BadArity {
+                    expected: 1,
+                    actual: 0
+                }
+            ),
             "got {err:?}"
         );
         let err = s
@@ -1485,7 +1499,10 @@ mod tests {
         let v = s
             .query(&Query::call(
                 ["send_keys_embedded"],
-                [serde_json::json!("feedfacefeedface"), serde_json::json!("x")],
+                [
+                    serde_json::json!("feedfacefeedface"),
+                    serde_json::json!("x"),
+                ],
             ))
             .expect("query ok");
         assert_eq!(v["sent"], false);
@@ -1640,13 +1657,22 @@ mod tests {
             .query(&Query::call(["switch_session"], []))
             .expect_err("zero args must be BadArity");
         assert!(
-            matches!(err, QueryError::BadArity { expected: 1, actual: 0 }),
+            matches!(
+                err,
+                QueryError::BadArity {
+                    expected: 1,
+                    actual: 0
+                }
+            ),
             "got {err:?}"
         );
         let err = s
             .query(&Query::call(["switch_session"], [serde_json::json!(42)]))
             .expect_err("non-string arg must be TypeMismatch");
-        assert!(matches!(err, QueryError::TypeMismatch { .. }), "got {err:?}");
+        assert!(
+            matches!(err, QueryError::TypeMismatch { .. }),
+            "got {err:?}"
+        );
     }
 
     #[test]
@@ -1752,13 +1778,22 @@ mod tests {
             .query(&Query::call(["browser_open"], []))
             .expect_err("zero args must be BadArity");
         assert!(
-            matches!(err, QueryError::BadArity { expected: 1, actual: 0 }),
+            matches!(
+                err,
+                QueryError::BadArity {
+                    expected: 1,
+                    actual: 0
+                }
+            ),
             "got {err:?}"
         );
         let err = s
             .query(&Query::call(["browser_open"], [serde_json::json!(42)]))
             .expect_err("non-string url must be TypeMismatch");
-        assert!(matches!(err, QueryError::TypeMismatch { .. }), "got {err:?}");
+        assert!(
+            matches!(err, QueryError::TypeMismatch { .. }),
+            "got {err:?}"
+        );
     }
 
     #[test]
@@ -1768,7 +1803,13 @@ mod tests {
             .query(&Query::call(["browser_navigate"], [serde_json::json!(0)]))
             .expect_err("one arg must be BadArity");
         assert!(
-            matches!(err, QueryError::BadArity { expected: 2, actual: 1 }),
+            matches!(
+                err,
+                QueryError::BadArity {
+                    expected: 2,
+                    actual: 1
+                }
+            ),
             "got {err:?}"
         );
         // Non-integer id.
@@ -1778,7 +1819,10 @@ mod tests {
                 [serde_json::json!("x"), serde_json::json!("https://a.test/")],
             ))
             .expect_err("non-int id must be TypeMismatch");
-        assert!(matches!(err, QueryError::TypeMismatch { .. }), "got {err:?}");
+        assert!(
+            matches!(err, QueryError::TypeMismatch { .. }),
+            "got {err:?}"
+        );
         // Non-string url.
         let err = s
             .query(&Query::call(
@@ -1786,7 +1830,10 @@ mod tests {
                 [serde_json::json!(1), serde_json::json!(42)],
             ))
             .expect_err("non-string url must be TypeMismatch");
-        assert!(matches!(err, QueryError::TypeMismatch { .. }), "got {err:?}");
+        assert!(
+            matches!(err, QueryError::TypeMismatch { .. }),
+            "got {err:?}"
+        );
     }
 
     #[test]
@@ -1812,7 +1859,13 @@ mod tests {
             .query(&Query::call(["browser_snap"], [serde_json::json!(1)]))
             .expect_err("one arg must be BadArity");
         assert!(
-            matches!(err, QueryError::BadArity { expected: 2, actual: 1 }),
+            matches!(
+                err,
+                QueryError::BadArity {
+                    expected: 2,
+                    actual: 1
+                }
+            ),
             "got {err:?}"
         );
         let err = s
@@ -1821,7 +1874,10 @@ mod tests {
                 [serde_json::json!("x"), serde_json::json!("left-half")],
             ))
             .expect_err("non-int id must be TypeMismatch");
-        assert!(matches!(err, QueryError::TypeMismatch { .. }), "got {err:?}");
+        assert!(
+            matches!(err, QueryError::TypeMismatch { .. }),
+            "got {err:?}"
+        );
     }
 
     #[test]
@@ -1832,7 +1888,13 @@ mod tests {
                 .query(&Query::call([leaf], []))
                 .expect_err("zero args must be BadArity");
             assert!(
-                matches!(err, QueryError::BadArity { expected: 1, actual: 0 }),
+                matches!(
+                    err,
+                    QueryError::BadArity {
+                        expected: 1,
+                        actual: 0
+                    }
+                ),
                 "{leaf}: got {err:?}"
             );
             let err = s
@@ -1854,7 +1916,13 @@ mod tests {
                 .query(&Query::call([leaf], []))
                 .expect_err("zero args must be BadArity");
             assert!(
-                matches!(err, QueryError::BadArity { expected: 3, actual: 0 }),
+                matches!(
+                    err,
+                    QueryError::BadArity {
+                        expected: 3,
+                        actual: 0
+                    }
+                ),
                 "{leaf}: got {err:?}"
             );
             // Non-int id → TypeMismatch.
@@ -1898,7 +1966,13 @@ mod tests {
             .query(&Query::call(["browser_set_dom"], [serde_json::json!(1)]))
             .expect_err("one arg must be BadArity");
         assert!(
-            matches!(err, QueryError::BadArity { expected: 2, actual: 1 }),
+            matches!(
+                err,
+                QueryError::BadArity {
+                    expected: 2,
+                    actual: 1
+                }
+            ),
             "got {err:?}"
         );
         // Non-int id → TypeMismatch.
@@ -1917,7 +1991,10 @@ mod tests {
         let v = s
             .query(&Query::call(
                 ["browser_set_dom"],
-                [serde_json::json!(1), serde_json::json!("not an s-expression")],
+                [
+                    serde_json::json!(1),
+                    serde_json::json!("not an s-expression"),
+                ],
             ))
             .expect("invalid sexp returns an envelope, not an Err");
         assert_eq!(v["ok"], serde_json::json!(false));

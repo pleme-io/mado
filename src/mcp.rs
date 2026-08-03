@@ -30,9 +30,13 @@ struct SessionIdInput {
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 struct SendKeysInput {
-    #[schemars(description = "Session identifier (pane or tab ID). Use 'active' for the focused session.")]
+    #[schemars(
+        description = "Session identifier (pane or tab ID). Use 'active' for the focused session."
+    )]
     session_id: String,
-    #[schemars(description = "Keystrokes to send to the session. Supports escape sequences (e.g., '\\n' for Enter).")]
+    #[schemars(
+        description = "Keystrokes to send to the session. Supports escape sequences (e.g., '\\n' for Enter)."
+    )]
     keys: String,
 }
 
@@ -54,7 +58,9 @@ struct JumpToRecentDirInput {
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 struct GetOutputInput {
-    #[schemars(description = "Session identifier (pane or tab ID). Use 'active' for the focused session.")]
+    #[schemars(
+        description = "Session identifier (pane or tab ID). Use 'active' for the focused session."
+    )]
     session_id: String,
     #[schemars(description = "Number of recent lines to retrieve (default: 50).")]
     lines: Option<u32>,
@@ -119,7 +125,9 @@ struct TearPaneBlocksListInput {
 struct TearPaneBlockAtInput {
     #[schemars(description = "16-char lowercase-hex tear pane id.")]
     pane_id: String,
-    #[schemars(description = "Per-pane block index (0-based, stable across eviction). Use tear_pane_blocks_status to get the latest index.")]
+    #[schemars(
+        description = "Per-pane block index (0-based, stable across eviction). Use tear_pane_blocks_status to get the latest index."
+    )]
     index: u64,
 }
 
@@ -129,13 +137,17 @@ struct TearPaneBlockAtInput {
 struct TearSetInputPolicyInput {
     #[schemars(description = "16-char lowercase-hex tear pane id.")]
     pane_id: String,
-    #[schemars(description = "Either \"free\" (default; accepts every send_keys) or \"locked\" (rejects send_keys with WireError::Rejected).")]
+    #[schemars(
+        description = "Either \"free\" (default; accepts every send_keys) or \"locked\" (rejects send_keys with WireError::Rejected)."
+    )]
     policy: String,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 struct ConfigGetInput {
-    #[schemars(description = "Config key to retrieve (e.g., 'font_size', 'theme'). Omit for full config.")]
+    #[schemars(
+        description = "Config key to retrieve (e.g., 'font_size', 'theme'). Omit for full config."
+    )]
     key: Option<String>,
 }
 
@@ -149,55 +161,77 @@ struct ConfigSetInput {
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 struct SimulateChordInput {
-    #[schemars(description = "Keybind chord in awase grammar — e.g. 'cmd+g', 'cmd+shift+r', 'ctrl+alt+f'. Resolved against the live GUI's keybinding table (mado defaults + the operator's keybinds.custom).")]
+    #[schemars(
+        description = "Keybind chord in awase grammar — e.g. 'cmd+g', 'cmd+shift+r', 'ctrl+alt+f'. Resolved against the live GUI's keybinding table (mado defaults + the operator's keybinds.custom)."
+    )]
     chord: String,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 struct SwitchSessionInput {
-    #[schemars(description = "16-char lowercase-hex tear pane id to re-attach the displayed pane to. Must be a live in-process tear pane (create one with tear_new_session, list with tear_list_sessions). Only effective when the GUI ran with tear.session_switching = true.")]
+    #[schemars(
+        description = "16-char lowercase-hex tear pane id to re-attach the displayed pane to. Must be a live in-process tear pane (create one with tear_new_session, list with tear_list_sessions). Only effective when the GUI ran with tear.session_switching = true."
+    )]
     pane_id: String,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 struct ClipboardGetInput {
-    #[schemars(description = "32-char lowercase BLAKE3-128 hex hash (matches the token escriba's `defsnippet :hash \"…\"` uses).")]
+    #[schemars(
+        description = "32-char lowercase BLAKE3-128 hex hash (matches the token escriba's `defsnippet :hash \"…\"` uses)."
+    )]
     hash: String,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 struct ClipboardListInput {
-    #[schemars(description = "Maximum number of entries to return — most recent first. Omit for the full list.")]
+    #[schemars(
+        description = "Maximum number of entries to return — most recent first. Omit for the full list."
+    )]
     limit: Option<u32>,
-    #[schemars(description = "If true, include the full payload `content` in each entry. Defaults to false — only preview + hash are returned so the response stays compact.")]
+    #[schemars(
+        description = "If true, include the full payload `content` in each entry. Defaults to false — only preview + hash are returned so the response stays compact."
+    )]
     include_content: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 struct ClipboardPutInput {
-    #[schemars(description = "Payload to store. UTF-8 text. Hashed under BLAKE3-128 and indexed by the resulting token.")]
+    #[schemars(
+        description = "Payload to store. UTF-8 text. Hashed under BLAKE3-128 and indexed by the resulting token."
+    )]
     content: String,
-    #[schemars(description = "OSC 52 selection kind — `c` (system, default), `p` (primary), `s` (secondary). Persisted with the entry so callers can distinguish \"give me the last primary\" later.")]
+    #[schemars(
+        description = "OSC 52 selection kind — `c` (system, default), `p` (primary), `s` (secondary). Persisted with the entry so callers can distinguish \"give me the last primary\" later."
+    )]
     kind: Option<String>,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 struct PromptMarksListInput {
-    #[schemars(description = "Maximum number of marks to return, most-recent-first. Omit for the full history.")]
+    #[schemars(
+        description = "Maximum number of marks to return, most-recent-first. Omit for the full history."
+    )]
     limit: Option<u32>,
-    #[schemars(description = "If true, include non-Start kinds (CommandStart/Output/End) in the result. Default false — jump-capable Start marks only.")]
+    #[schemars(
+        description = "If true, include non-Start kinds (CommandStart/Output/End) in the result. Default false — jump-capable Start marks only."
+    )]
     include_all_kinds: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 struct UserMarksListInput {
-    #[schemars(description = "Maximum number of user marks to return, most-recent-first. Omit for the full history.")]
+    #[schemars(
+        description = "Maximum number of user marks to return, most-recent-first. Omit for the full history."
+    )]
     limit: Option<u32>,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 struct AttentionSetInput {
-    #[schemars(description = "True to request user attention (bounce dock / flash titlebar); false to cancel any pending request.")]
+    #[schemars(
+        description = "True to request user attention (bounce dock / flash titlebar); false to cancel any pending request."
+    )]
     requested: bool,
 }
 
@@ -205,11 +239,17 @@ struct AttentionSetInput {
 struct SnapshotGridInput {
     #[schemars(description = "Session identifier (returned by `spawn_term`).")]
     session_id: String,
-    #[schemars(description = "Include the `cells[][]` array in the response. Default true. Set false when you only need cursor + dimensions (much smaller payload for repeated polling).")]
+    #[schemars(
+        description = "Include the `cells[][]` array in the response. Default true. Set false when you only need cursor + dimensions (much smaller payload for repeated polling)."
+    )]
     include_cells: Option<bool>,
-    #[schemars(description = "How to filter cells in the response. `non_default` (default) emits only cells with non-default content — shrinks an 80×24 grid response from ~50KB to ~2KB. `non_blank` emits cells whose char isn't space OR whose bg isn't black. `all` emits every cell (use sparingly; can exceed MCP token limits).")]
+    #[schemars(
+        description = "How to filter cells in the response. `non_default` (default) emits only cells with non-default content — shrinks an 80×24 grid response from ~50KB to ~2KB. `non_blank` emits cells whose char isn't space OR whose bg isn't black. `all` emits every cell (use sparingly; can exceed MCP token limits)."
+    )]
     cells_filter: Option<String>,
-    #[schemars(description = "If true, include a human-readable `pretty` string field — one row per line, cursor cell marked `▓`, empty cells `·`. Useful for quick visual scans in chat without parsing the cell array.")]
+    #[schemars(
+        description = "If true, include a human-readable `pretty` string field — one row per line, cursor cell marked `▓`, empty cells `·`. Useful for quick visual scans in chat without parsing the cell array."
+    )]
     pretty: Option<bool>,
 }
 
@@ -325,7 +365,9 @@ impl MadoMcp {
 
     // ── Standard tools ──────────────────────────────────────────────────────
 
-    #[tool(description = "Get mado application status and health information. When a GUI mado is running, this forwards via kanshou to that process's live AppState; when no GUI is reachable, falls back to the MCP server's process-local count.")]
+    #[tool(
+        description = "Get mado application status and health information. When a GUI mado is running, this forwards via kanshou to that process's live AppState; when no GUI is reachable, falls back to the MCP server's process-local count."
+    )]
     async fn status(&self) -> String {
         match kanshou::mcp::forward_status(
             "mado",
@@ -364,7 +406,9 @@ impl MadoMcp {
         }
     }
 
-    #[tool(description = "Get the most recent render-loop frame timing snapshot from the LIVE GUI mado. When a GUI is running, this forwards via kanshou to the GUI's render atomics (last_frame_us, last_frame_rects, last_frame_text, last_frame_shape_cache, total_frames, total_frames_skipped). When no GUI is reachable, returns zeros from the MCP server's process-local atomics (which are never updated by the MCP-only process).")]
+    #[tool(
+        description = "Get the most recent render-loop frame timing snapshot from the LIVE GUI mado. When a GUI is running, this forwards via kanshou to the GUI's render atomics (last_frame_us, last_frame_rects, last_frame_text, last_frame_shape_cache, total_frames, total_frames_skipped). When no GUI is reachable, returns zeros from the MCP server's process-local atomics (which are never updated by the MCP-only process)."
+    )]
     async fn frame_perf(&self) -> String {
         let value = kanshou::mcp::forward(
             "mado",
@@ -393,7 +437,9 @@ impl MadoMcp {
         merged.to_string()
     }
 
-    #[tool(description = "Get mado version information. Returns JSON with version, build, and feature details.")]
+    #[tool(
+        description = "Get mado version information. Returns JSON with version, build, and feature details."
+    )]
     async fn version(&self) -> String {
         serde_json::json!({
             "name": "mado",
@@ -405,7 +451,9 @@ impl MadoMcp {
         .to_string()
     }
 
-    #[tool(description = "Get a mado configuration value. Forwards through kanshou to the LIVE GUI mado's MadoConfig snapshot. Pass a key for nested access (e.g. 'shell.command', 'tear.runtime') or omit for the full config.")]
+    #[tool(
+        description = "Get a mado configuration value. Forwards through kanshou to the LIVE GUI mado's MadoConfig snapshot. Pass a key for nested access (e.g. 'shell.command', 'tear.runtime') or omit for the full config."
+    )]
     async fn config_get(&self, Parameters(input): Parameters<ConfigGetInput>) -> String {
         let path: Vec<String> = match &input.key {
             Some(k) => std::iter::once("config".to_string())
@@ -413,28 +461,26 @@ impl MadoMcp {
                 .collect(),
             None => vec!["config".into()],
         };
-        let value = kanshou::mcp::forward(
-            "mado",
-            &kanshou::Query { path, args: vec![] },
-            || {
-                // No live GUI mado reachable — fall back to the
-                // windowed-required stub shape (the same contract
-                // config_set uses), echoing the requested key or the
-                // config path so the caller knows which slot stayed
-                // unresolved.
-                let extra = match &input.key {
-                    Some(key) => serde_json::json!({ "key": key, "value": null }),
-                    None => serde_json::json!({ "config_path": "~/.config/mado/mado.yaml" }),
-                };
-                Ok(stub_value("config_get", extra))
-            },
-        )
+        let value = kanshou::mcp::forward("mado", &kanshou::Query { path, args: vec![] }, || {
+            // No live GUI mado reachable — fall back to the
+            // windowed-required stub shape (the same contract
+            // config_set uses), echoing the requested key or the
+            // config path so the caller knows which slot stayed
+            // unresolved.
+            let extra = match &input.key {
+                Some(key) => serde_json::json!({ "key": key, "value": null }),
+                None => serde_json::json!({ "config_path": "~/.config/mado/mado.yaml" }),
+            };
+            Ok(stub_value("config_get", extra))
+        })
         .await
         .unwrap_or_else(|e| serde_json::json!({ "error": e.to_string() }));
         value.to_string()
     }
 
-    #[tool(description = "Set a mado configuration value by editing the discovered mado.yaml — a typed read-modify-write: the patched document must deserialize into MadoConfig (unknown keys rejected) BEFORE anything is written, and the write is atomic (tmp + rename). The live GUI's config watcher then applies it within a frame: renderer setter delta + suggestion-engine hot-swap — one mutation ingress (the file), identical for operator and agent edits. Dotted keys navigate/create nested sections (e.g. 'tear.auto_attach', 'suggestions.enabled', 'behavior.scrollback_lines'). Value is parsed as JSON (numbers/bools/objects); bare words pass as strings. Fails typed when the config is nix-managed (a home-manager symlink) — declare those changes in the nix profile instead.")]
+    #[tool(
+        description = "Set a mado configuration value by editing the discovered mado.yaml — a typed read-modify-write: the patched document must deserialize into MadoConfig (unknown keys rejected) BEFORE anything is written, and the write is atomic (tmp + rename). The live GUI's config watcher then applies it within a frame: renderer setter delta + suggestion-engine hot-swap — one mutation ingress (the file), identical for operator and agent edits. Dotted keys navigate/create nested sections (e.g. 'tear.auto_attach', 'suggestions.enabled', 'behavior.scrollback_lines'). Value is parsed as JSON (numbers/bools/objects); bare words pass as strings. Fails typed when the config is nix-managed (a home-manager symlink) — declare those changes in the nix profile instead."
+    )]
     async fn config_set(&self, Parameters(input): Parameters<ConfigSetInput>) -> String {
         let resp = match shikumi::ConfigDiscovery::new("mado")
             .env_override("MADO_CONFIG")
@@ -469,7 +515,9 @@ impl MadoMcp {
         resp.to_string()
     }
 
-    #[tool(description = "Simulate a keybind chord against the LIVE GUI mado. Parses `chord` (awase grammar, e.g. 'cmd+g'), forwards it via kanshou to the GUI process, where it is resolved against the keybinding table that window actually loaded and queued for dispatch on the GUI event loop — exactly the code path a physical keypress takes after key→action resolution. Unlike `send_keys` (which only reaches the PTY), this drives GUI-side actions (font zoom today; dir-picker/search/etc. as the tear-mode dispatch grows). Returns `{ok, queued, action, chord, live_gui_pid}` on success; `{ok: false, error: 'no-binding'}` for an unbound chord; `{ok: false, error: 'no-injection-sink'}` when the GUI isn't running the tear-attached event loop; `{ok: false, error: 'not-forwardable', resolved_action}` when no GUI mado is reachable (the chord is still resolved process-locally so bindings can be verified headlessly).")]
+    #[tool(
+        description = "Simulate a keybind chord against the LIVE GUI mado. Parses `chord` (awase grammar, e.g. 'cmd+g'), forwards it via kanshou to the GUI process, where it is resolved against the keybinding table that window actually loaded and queued for dispatch on the GUI event loop — exactly the code path a physical keypress takes after key→action resolution. Unlike `send_keys` (which only reaches the PTY), this drives GUI-side actions (font zoom today; dir-picker/search/etc. as the tear-mode dispatch grows). Returns `{ok, queued, action, chord, live_gui_pid}` on success; `{ok: false, error: 'no-binding'}` for an unbound chord; `{ok: false, error: 'no-injection-sink'}` when the GUI isn't running the tear-attached event loop; `{ok: false, error: 'not-forwardable', resolved_action}` when no GUI mado is reachable (the chord is still resolved process-locally so bindings can be verified headlessly)."
+    )]
     async fn simulate_chord(&self, Parameters(input): Parameters<SimulateChordInput>) -> String {
         // Validate the chord grammar process-locally FIRST so a
         // malformed chord is the same typed error whether or not a
@@ -549,7 +597,9 @@ impl MadoMcp {
         }
     }
 
-    #[tool(description = "Re-attach the LIVE GUI mado's single displayed pane to a DIFFERENT live in-process tear session, at runtime, WITHOUT tabs or splits — same window, same renderer, fresh terminal. Forwards `pane_id` via kanshou to the GUI process, where (when it ran with tear.session_switching = true) the switchable event loop tears down the current engate attach and rebuilds it against the requested pane, clearing the grid and replaying the new pane's content. Returns `{ok, switched_to}` on success; `{ok: false, error: 'switching-disabled'}` when the GUI did NOT enable tear.session_switching (the default — behavior is then byte-identical to a one-shot binding); `{ok: false, error: 'no-such-pane'}` when no live in-process pane has that id; `{ok: false, error: 'not-forwardable'}` when no GUI mado is reachable. Create + list switch targets with tear_new_session / tear_list_sessions.")]
+    #[tool(
+        description = "Re-attach the LIVE GUI mado's single displayed pane to a DIFFERENT live in-process tear session, at runtime, WITHOUT tabs or splits — same window, same renderer, fresh terminal. Forwards `pane_id` via kanshou to the GUI process, where (when it ran with tear.session_switching = true) the switchable event loop tears down the current engate attach and rebuilds it against the requested pane, clearing the grid and replaying the new pane's content. Returns `{ok, switched_to}` on success; `{ok: false, error: 'switching-disabled'}` when the GUI did NOT enable tear.session_switching (the default — behavior is then byte-identical to a one-shot binding); `{ok: false, error: 'no-such-pane'}` when no live in-process pane has that id; `{ok: false, error: 'not-forwardable'}` when no GUI mado is reachable. Create + list switch targets with tear_new_session / tear_list_sessions."
+    )]
     async fn switch_session(&self, Parameters(input): Parameters<SwitchSessionInput>) -> String {
         // Validate the pane-id grammar process-locally FIRST so a
         // malformed id is the same typed error whether or not a GUI is
@@ -635,22 +685,22 @@ impl MadoMcp {
     // The `--mcp` mado process owns the registry; `spawn_term` opens
     // sessions inside it, every subsequent tool refers to them by id.
 
-    #[tool(description = "List every live headless terminal session. When a GUI mado is running, forwards through kanshou to the live SessionRegistry; when not, falls back to the MCP-server-local registry (sessions spawn_term created here).")]
+    #[tool(
+        description = "List every live headless terminal session. When a GUI mado is running, forwards through kanshou to the live SessionRegistry; when not, falls back to the MCP-server-local registry (sessions spawn_term created here)."
+    )]
     async fn list_sessions(&self) -> String {
-        let live = kanshou::mcp::forward(
-            "mado",
-            &kanshou::Query::field(["sessions"]),
-            || {
-                let summaries = self.state.sessions.list();
-                Ok(serde_json::json!({ "sessions": summaries, "count": summaries.len() }))
-            },
-        )
+        let live = kanshou::mcp::forward("mado", &kanshou::Query::field(["sessions"]), || {
+            let summaries = self.state.sessions.list();
+            Ok(serde_json::json!({ "sessions": summaries, "count": summaries.len() }))
+        })
         .await
         .unwrap_or_else(|e| serde_json::json!({ "error": e.to_string() }));
         live.to_string()
     }
 
-    #[tool(description = "Send keystrokes / raw bytes to a terminal session. The string is sent as UTF-8 bytes to the PTY master — the child's read() advances. Use `\\n` for Enter, `\\x1b` for ESC, `\\x03` for Ctrl-C, etc.")]
+    #[tool(
+        description = "Send keystrokes / raw bytes to a terminal session. The string is sent as UTF-8 bytes to the PTY master — the child's read() advances. Use `\\n` for Enter, `\\x1b` for ESC, `\\x03` for Ctrl-C, etc."
+    )]
     async fn send_keys(&self, Parameters(input): Parameters<SendKeysInput>) -> String {
         let Some(session) = self.state.sessions.get(&input.session_id) else {
             // Embedded-world routing (session-world union): ids minted by
@@ -671,10 +721,7 @@ impl MadoMcp {
                     "mado",
                     &kanshou::Query {
                         path: vec![String::from("send_keys_embedded")],
-                        args: vec![
-                            serde_json::json!(input.session_id),
-                            serde_json::json!(text),
-                        ],
+                        args: vec![serde_json::json!(input.session_id), serde_json::json!(text)],
                     },
                     || Err(kanshou::QueryError::internal("no live GUI reachable")),
                 )
@@ -716,7 +763,9 @@ impl MadoMcp {
         }
     }
 
-    #[tool(description = "List recently-accessed directories ranked by frecency (轍 wadachi). Returns `{ok, count, dirs:[{path, score}]}`. `needle` filters (substring); `limit` defaults 20. In-process wadachi READER — no recording.")]
+    #[tool(
+        description = "List recently-accessed directories ranked by frecency (轍 wadachi). Returns `{ok, count, dirs:[{path, score}]}`. `needle` filters (substring); `limit` defaults 20. In-process wadachi READER — no recording."
+    )]
     async fn recent_dirs_list(&self, Parameters(input): Parameters<RecentDirsListInput>) -> String {
         let needle = input.needle.as_deref().unwrap_or("");
         let limit = input.limit.map_or(20, |n| n as usize);
@@ -732,8 +781,13 @@ impl MadoMcp {
         }
     }
 
-    #[tool(description = "Resolve a frecency needle via in-process wadachi and send `cd <path>\\n` to the session. Returns `{ok, resolved_path, session_id, bytes_written}`; `{ok:false, error:'no-such-dir'}` on miss. READER-only — no recording (the shell records the resulting cd).")]
-    async fn jump_to_recent_dir(&self, Parameters(input): Parameters<JumpToRecentDirInput>) -> String {
+    #[tool(
+        description = "Resolve a frecency needle via in-process wadachi and send `cd <path>\\n` to the session. Returns `{ok, resolved_path, session_id, bytes_written}`; `{ok:false, error:'no-such-dir'}` on miss. READER-only — no recording (the shell records the resulting cd)."
+    )]
+    async fn jump_to_recent_dir(
+        &self,
+        Parameters(input): Parameters<JumpToRecentDirInput>,
+    ) -> String {
         let Some(session) = self.state.sessions.get(&input.session_id) else {
             return serde_json::json!({
                 "ok": false,
@@ -748,9 +802,14 @@ impl MadoMcp {
                 return serde_json::json!({ "ok": false, "error": "no-such-dir", "needle": input.needle })
                     .to_string();
             }
-            Err(e) => return serde_json::json!({ "ok": false, "error": e.to_string() }).to_string(),
+            Err(e) => {
+                return serde_json::json!({ "ok": false, "error": e.to_string() }).to_string();
+            }
         };
-        let cmd = format!("cd {}\n", crate::dir_picker::shell_quote_path(&path.to_string_lossy()));
+        let cmd = format!(
+            "cd {}\n",
+            crate::dir_picker::shell_quote_path(&path.to_string_lossy())
+        );
         let bytes = cmd.into_bytes();
         match session.send_input(&bytes).await {
             Ok(()) => serde_json::json!({
@@ -769,7 +828,9 @@ impl MadoMcp {
         }
     }
 
-    #[tool(description = "Get the visible terminal output as plain text (trailing whitespace stripped per row). Lighter than `snapshot_grid` when the agent only needs to grep / match output. `lines` clips to the most recent N rows; omit for the full grid.")]
+    #[tool(
+        description = "Get the visible terminal output as plain text (trailing whitespace stripped per row). Lighter than `snapshot_grid` when the agent only needs to grep / match output. `lines` clips to the most recent N rows; omit for the full grid."
+    )]
     async fn get_output(&self, Parameters(input): Parameters<GetOutputInput>) -> String {
         let Some(session) = self.state.sessions.get(&input.session_id) else {
             // Embedded-world routing — read-side twin of send_keys'
@@ -789,9 +850,7 @@ impl MadoMcp {
                     if v.get("found").and_then(serde_json::Value::as_bool) == Some(true) {
                         let rows: Vec<String> = v
                             .get("text_rows")
-                            .and_then(|r| {
-                                serde_json::from_value::<Vec<String>>(r.clone()).ok()
-                            })
+                            .and_then(|r| serde_json::from_value::<Vec<String>>(r.clone()).ok())
                             .unwrap_or_default();
                         let output = if let Some(n) = input.lines {
                             let start = rows.len().saturating_sub(n as usize);
@@ -838,7 +897,9 @@ impl MadoMcp {
         .to_string()
     }
 
-    #[tool(description = "Take a full structured snapshot of a session's terminal grid — every cell (char + fg + bg + attrs + width) plus cursor row/col/visibility. The load-bearing introspection tool: any visual rendering bug can be triaged by diffing two snapshots or comparing against the on-screen pixels. Set `pretty: true` to also include a human-readable text grid where cells with empty bg become `·` and the cursor cell becomes `▓`. Default `cells_filter: runs` (RLE same-attrs contiguous cells into one entry — ~10–50× smaller payload than `non_default` on typical interactive grids). Alternatives: `non_default` (per-cell sparse), `non_blank` (looser sparse), `all` (full row-major grid — caller owns the size implications). Works for both headless sessions AND live-GUI embedded panes (16-hex-char ids) — the embedded path was previously missing entirely (`no-such-session` for every live pane; `get_output` worked, this didn't).")]
+    #[tool(
+        description = "Take a full structured snapshot of a session's terminal grid — every cell (char + fg + bg + attrs + width) plus cursor row/col/visibility. The load-bearing introspection tool: any visual rendering bug can be triaged by diffing two snapshots or comparing against the on-screen pixels. Set `pretty: true` to also include a human-readable text grid where cells with empty bg become `·` and the cursor cell becomes `▓`. Default `cells_filter: runs` (RLE same-attrs contiguous cells into one entry — ~10–50× smaller payload than `non_default` on typical interactive grids). Alternatives: `non_default` (per-cell sparse), `non_blank` (looser sparse), `all` (full row-major grid — caller owns the size implications). Works for both headless sessions AND live-GUI embedded panes (16-hex-char ids) — the embedded path was previously missing entirely (`no-such-session` for every live pane; `get_output` worked, this didn't)."
+    )]
     async fn snapshot_grid(&self, Parameters(input): Parameters<SnapshotGridInput>) -> String {
         let snap = if let Some(session) = self.state.sessions.get(&input.session_id) {
             session.snapshot_grid()
@@ -920,7 +981,9 @@ impl MadoMcp {
         payload.to_string()
     }
 
-    #[tool(description = "Resize a session's PTY + terminal grid together. Both the kernel winsize (so the child gets SIGWINCH) and the in-memory grid are updated. Use to reproduce layout-sensitive bugs at specific widths.")]
+    #[tool(
+        description = "Resize a session's PTY + terminal grid together. Both the kernel winsize (so the child gets SIGWINCH) and the in-memory grid are updated. Use to reproduce layout-sensitive bugs at specific widths."
+    )]
     async fn resize_session(&self, Parameters(input): Parameters<ResizeSessionInput>) -> String {
         let Some(session) = self.state.sessions.get(&input.session_id) else {
             return serde_json::json!({
@@ -947,7 +1010,9 @@ impl MadoMcp {
         }
     }
 
-    #[tool(description = "Close a terminal session. Headless sessions close in this process (PTY dropped, killing the child if still alive; reader task aborted). When the id isn't a headless session, the close forwards to the live GUI's embedded tear registry (session-world union — the teardown half of `spawn_term`'s embedded default) where only SessionSource::Agent sessions with no attached subscribers are closable. Returns `{ok, closed, world?}` — `closed: false` with an `error` field explains an embedded refusal (not-agent-owned / attached / no-such-session); without one the id was simply already gone.")]
+    #[tool(
+        description = "Close a terminal session. Headless sessions close in this process (PTY dropped, killing the child if still alive; reader task aborted). When the id isn't a headless session, the close forwards to the live GUI's embedded tear registry (session-world union — the teardown half of `spawn_term`'s embedded default) where only SessionSource::Agent sessions with no attached subscribers are closable. Returns `{ok, closed, world?}` — `closed: false` with an `error` field explains an embedded refusal (not-agent-owned / attached / no-such-session); without one the id was simply already gone."
+    )]
     async fn close_session(&self, Parameters(input): Parameters<SessionIdInput>) -> String {
         match self.state.sessions.close(&input.session_id) {
             Ok(true) => serde_json::json!({
@@ -1036,7 +1101,9 @@ impl MadoMcp {
             self.state.sessions.focused_cwd(),
         )
     }
-    #[tool(description = "Spawn a terminal session from a typed TermSpec. `world` selects the session world (session-world union): ''/'auto' spawns into the live GUI's embedded tear registry when reachable — the session appears as a ● row in the operator's Ctrl-S picker and anchors live-dedup — falling back to this process's headless registry; 'embedded' is GUI-only (typed error when unreachable); 'headless' is the legacy process-local registry. Fields: shell (default: GUI's configured shell / $SHELL → /bin/sh), args (argv[1..], passed as a vector — never through a shell; EMBEDDED WORLD ONLY, the headless registry still drops them), cwd (~/ expands; headless-only for now), env, title, placement (advisory), attach (existing session id), effects, cols/rows (default 80/24). Returns `{ok, world, session_id, ...}` — NOTE: embedded sessions use tear SessionId hex ids and are NOT addressable by the headless send_keys/get_output tools (interact via the GUI, switch_session, or the tear_* tools when in daemon mode); headless sessions keep the mado-session-N contract.")]
+    #[tool(
+        description = "Spawn a terminal session from a typed TermSpec. `world` selects the session world (session-world union): ''/'auto' spawns into the live GUI's embedded tear registry when reachable — the session appears as a ● row in the operator's Ctrl-S picker and anchors live-dedup — falling back to this process's headless registry; 'embedded' is GUI-only (typed error when unreachable); 'headless' is the legacy process-local registry. Fields: shell (default: GUI's configured shell / $SHELL → /bin/sh), args (argv[1..], passed as a vector — never through a shell; EMBEDDED WORLD ONLY, the headless registry still drops them), cwd (~/ expands; headless-only for now), env, title, placement (advisory), attach (existing session id), effects, cols/rows (default 80/24). Returns `{ok, world, session_id, ...}` — NOTE: embedded sessions use tear SessionId hex ids and are NOT addressable by the headless send_keys/get_output tools (interact via the GUI, switch_session, or the tear_* tools when in daemon mode); headless sessions keep the mado-session-N contract."
+    )]
     async fn spawn_term(&self, Parameters(spec): Parameters<TermSpec>) -> String {
         let spec = self.spec_with_inherited_cwd(spec);
         // Session-world union phase 1: land the session in the world the
@@ -1153,7 +1220,9 @@ impl MadoMcp {
     // associated with the hash. No editor / terminal pair in the
     // category ships this: the hash is the API.
 
-    #[tool(description = "Fetch a clipboard payload by its 32-char BLAKE3-128 hash. Returns `{found, hash, content, kind, set_at}` on hit; `{found: false, hash}` when the hash isn't in the session store. Used by escriba's `defsnippet :hash \"…\"` to resolve snippet bodies without copying bytes across the socket.")]
+    #[tool(
+        description = "Fetch a clipboard payload by its 32-char BLAKE3-128 hash. Returns `{found, hash, content, kind, set_at}` on hit; `{found: false, hash}` when the hash isn't in the session store. Used by escriba's `defsnippet :hash \"…\"` to resolve snippet bodies without copying bytes across the socket."
+    )]
     async fn clipboard_get(&self, Parameters(input): Parameters<ClipboardGetInput>) -> String {
         let Some(hash) = ClipboardHash::from_hex(&input.hash) else {
             return serde_json::json!({
@@ -1164,7 +1233,11 @@ impl MadoMcp {
             })
             .to_string();
         };
-        let guard = self.state.clipboard.lock().expect("clipboard lock poisoned");
+        let guard = self
+            .state
+            .clipboard
+            .lock()
+            .expect("clipboard lock poisoned");
         match guard.get(hash) {
             Some(entry) => serde_json::json!({
                 "found": true,
@@ -1182,7 +1255,9 @@ impl MadoMcp {
         }
     }
 
-    #[tool(description = "Publish a payload into the session's content-addressed clipboard store. Returns `{ok, hash, bytes, kind, duplicate}` — `duplicate: true` when the content was already indexed (the hash is stable across calls, so this is idempotent). Used by escriba workflows that yank text in the editor and want the mado side to resolve the same payload by hash later.")]
+    #[tool(
+        description = "Publish a payload into the session's content-addressed clipboard store. Returns `{ok, hash, bytes, kind, duplicate}` — `duplicate: true` when the content was already indexed (the hash is stable across calls, so this is idempotent). Used by escriba workflows that yank text in the editor and want the mado side to resolve the same payload by hash later."
+    )]
     async fn clipboard_put(&self, Parameters(input): Parameters<ClipboardPutInput>) -> String {
         let kind = input
             .kind
@@ -1190,7 +1265,11 @@ impl MadoMcp {
             .map(|s| crate::clipboard_store::ClipboardKind::from_osc52_byte(s.as_bytes()))
             .unwrap_or(crate::clipboard_store::ClipboardKind::System);
         let bytes = input.content.len();
-        let mut guard = self.state.clipboard.lock().expect("clipboard lock poisoned");
+        let mut guard = self
+            .state
+            .clipboard
+            .lock()
+            .expect("clipboard lock poisoned");
         let pre_hash = ClipboardHash::of(&input.content);
         let duplicate = guard.contains(pre_hash);
         let hash = guard.store(input.content, kind);
@@ -1204,9 +1283,15 @@ impl MadoMcp {
         .to_string()
     }
 
-    #[tool(description = "Wipe every entry in the session's clipboard store. Returns `{ok, cleared}` with the count of entries that were removed. Used when a workflow touches sensitive content and wants the session's copy history scrubbed.")]
+    #[tool(
+        description = "Wipe every entry in the session's clipboard store. Returns `{ok, cleared}` with the count of entries that were removed. Used when a workflow touches sensitive content and wants the session's copy history scrubbed."
+    )]
     async fn clipboard_clear(&self) -> String {
-        let mut guard = self.state.clipboard.lock().expect("clipboard lock poisoned");
+        let mut guard = self
+            .state
+            .clipboard
+            .lock()
+            .expect("clipboard lock poisoned");
         let cleared = guard.clear();
         serde_json::json!({
             "ok": true,
@@ -1224,7 +1309,9 @@ impl MadoMcp {
     // access to. No editor / terminal pair exposes this: ghostty +
     // kitty + iterm2 keep prompt-jump internal.
 
-    #[tool(description = "List OSC 133 prompt marks the session has seen, most-recent-first. Returns `{count, total, marks: [{grid_row, kind, exit_status, at_unix_ms}]}` — `exit_status` is the OSC 133;D-reported command exit code (null until reported; back-filled onto the zone-opening CommandOutput mark), `at_unix_ms` the wall-clock stamp at mark creation. Default filters to `Start` kind only — the jump-capable marker. Set `include_all_kinds: true` to also surface CommandStart / CommandOutput / CommandEnd marks for finer-grained replays.")]
+    #[tool(
+        description = "List OSC 133 prompt marks the session has seen, most-recent-first. Returns `{count, total, marks: [{grid_row, kind, exit_status, at_unix_ms}]}` — `exit_status` is the OSC 133;D-reported command exit code (null until reported; back-filled onto the zone-opening CommandOutput mark), `at_unix_ms` the wall-clock stamp at mark creation. Default filters to `Start` kind only — the jump-capable marker. Set `include_all_kinds: true` to also surface CommandStart / CommandOutput / CommandEnd marks for finer-grained replays."
+    )]
     async fn prompt_marks_list(
         &self,
         Parameters(input): Parameters<PromptMarksListInput>,
@@ -1232,7 +1319,11 @@ impl MadoMcp {
         use crate::prompt_mark::PromptKind;
         let include_all = input.include_all_kinds.unwrap_or(false);
         let limit = input.limit.map(|n| n as usize);
-        let guard = self.state.prompt_marks.lock().expect("prompt_marks lock poisoned");
+        let guard = self
+            .state
+            .prompt_marks
+            .lock()
+            .expect("prompt_marks lock poisoned");
         // Most-recent-first: walk the underlying VecDeque in reverse.
         let filtered: Vec<serde_json::Value> = guard
             .iter()
@@ -1261,9 +1352,15 @@ impl MadoMcp {
         .to_string()
     }
 
-    #[tool(description = "Clear the OSC 133 prompt-mark history. Returns `{ok, cleared}`. Used when a session needs a fresh jump surface (e.g. after `reset`) or when sensitive shell output should no longer be jumpable-to.")]
+    #[tool(
+        description = "Clear the OSC 133 prompt-mark history. Returns `{ok, cleared}`. Used when a session needs a fresh jump surface (e.g. after `reset`) or when sensitive shell output should no longer be jumpable-to."
+    )]
     async fn prompt_marks_clear(&self) -> String {
-        let mut guard = self.state.prompt_marks.lock().expect("prompt_marks lock poisoned");
+        let mut guard = self
+            .state
+            .prompt_marks
+            .lock()
+            .expect("prompt_marks lock poisoned");
         let cleared = guard.len();
         guard.clear();
         serde_json::json!({
@@ -1281,13 +1378,16 @@ impl MadoMcp {
     // both surface over MCP so escriba's picker exposes each as a
     // separate jump surface without cross-contamination.
 
-    #[tool(description = "List OSC 1337 SetMark user marks the session has seen, most-recent-first. Returns `{count, total, marks: [{grid_row}]}`. Unlike prompt_marks_list, no kind filter — user marks are a flat history of explicit script-echoed markers.")]
-    async fn user_marks_list(
-        &self,
-        Parameters(input): Parameters<UserMarksListInput>,
-    ) -> String {
+    #[tool(
+        description = "List OSC 1337 SetMark user marks the session has seen, most-recent-first. Returns `{count, total, marks: [{grid_row}]}`. Unlike prompt_marks_list, no kind filter — user marks are a flat history of explicit script-echoed markers."
+    )]
+    async fn user_marks_list(&self, Parameters(input): Parameters<UserMarksListInput>) -> String {
         let limit = input.limit.map(|n| n as usize);
-        let guard = self.state.user_marks.lock().expect("user_marks lock poisoned");
+        let guard = self
+            .state
+            .user_marks
+            .lock()
+            .expect("user_marks lock poisoned");
         let iter = guard.iter().rev().map(|m| {
             serde_json::json!({
                 "grid_row": m.grid_row,
@@ -1305,9 +1405,15 @@ impl MadoMcp {
         .to_string()
     }
 
-    #[tool(description = "Clear the OSC 1337 user-mark history. Returns `{ok, cleared}`. Paired with prompt_marks_clear for a full mark-history reset.")]
+    #[tool(
+        description = "Clear the OSC 1337 user-mark history. Returns `{ok, cleared}`. Paired with prompt_marks_clear for a full mark-history reset."
+    )]
     async fn user_marks_clear(&self) -> String {
-        let mut guard = self.state.user_marks.lock().expect("user_marks lock poisoned");
+        let mut guard = self
+            .state
+            .user_marks
+            .lock()
+            .expect("user_marks lock poisoned");
         let cleared = guard.len();
         guard.clear();
         serde_json::json!({
@@ -1317,21 +1423,30 @@ impl MadoMcp {
         .to_string()
     }
 
-    #[tool(description = "Read the current OSC 1337 RequestAttention flag. Returns `{attention_requested}`. Used by escriba workflows that want to know whether a terminal is currently asking for user attention (e.g., long-running test signals completion).")]
+    #[tool(
+        description = "Read the current OSC 1337 RequestAttention flag. Returns `{attention_requested}`. Used by escriba workflows that want to know whether a terminal is currently asking for user attention (e.g., long-running test signals completion)."
+    )]
     async fn attention_get(&self) -> String {
-        let guard = self.state.attention.lock().expect("attention lock poisoned");
+        let guard = self
+            .state
+            .attention
+            .lock()
+            .expect("attention lock poisoned");
         serde_json::json!({
             "attention_requested": *guard,
         })
         .to_string()
     }
 
-    #[tool(description = "Set the OSC 1337 RequestAttention flag. Returns `{ok, attention_requested}`. Lets escriba workflows drive the dock-bounce / titlebar-flash signal without emitting an ANSI sequence through a shell — e.g., a `defworkflow` can flash the dock when tests pass or a deployment completes.")]
-    async fn attention_set(
-        &self,
-        Parameters(input): Parameters<AttentionSetInput>,
-    ) -> String {
-        let mut guard = self.state.attention.lock().expect("attention lock poisoned");
+    #[tool(
+        description = "Set the OSC 1337 RequestAttention flag. Returns `{ok, attention_requested}`. Lets escriba workflows drive the dock-bounce / titlebar-flash signal without emitting an ANSI sequence through a shell — e.g., a `defworkflow` can flash the dock when tests pass or a deployment completes."
+    )]
+    async fn attention_set(&self, Parameters(input): Parameters<AttentionSetInput>) -> String {
+        let mut guard = self
+            .state
+            .attention
+            .lock()
+            .expect("attention lock poisoned");
         *guard = input.requested;
         serde_json::json!({
             "ok": true,
@@ -1340,14 +1455,23 @@ impl MadoMcp {
         .to_string()
     }
 
-    #[tool(description = "List clipboard payloads the session has seen, most-recent-first. Returns `{count, entries: [{hash, preview, bytes, kind, set_at}]}`. Set `include_content: true` to also pull the full payload (for scripted pipelines); default is preview-only to keep the response compact.")]
+    #[tool(
+        description = "List clipboard payloads the session has seen, most-recent-first. Returns `{count, entries: [{hash, preview, bytes, kind, set_at}]}`. Set `include_content: true` to also pull the full payload (for scripted pipelines); default is preview-only to keep the response compact."
+    )]
     async fn clipboard_list(&self, Parameters(input): Parameters<ClipboardListInput>) -> String {
         let include_content = input.include_content.unwrap_or(false);
         let limit = input.limit.map(|n| n as usize);
-        let guard = self.state.clipboard.lock().expect("clipboard lock poisoned");
+        let guard = self
+            .state
+            .clipboard
+            .lock()
+            .expect("clipboard lock poisoned");
         let iter = guard.entries_recent_first();
         let entries: Vec<serde_json::Value> = match limit {
-            Some(n) => iter.take(n).map(|e| entry_json(e, include_content)).collect(),
+            Some(n) => iter
+                .take(n)
+                .map(|e| entry_json(e, include_content))
+                .collect(),
             None => iter.map(|e| entry_json(e, include_content)).collect(),
         };
         serde_json::json!({
@@ -1367,7 +1491,9 @@ impl MadoMcp {
     // mado MCP against an in-process daemon without ever wiring a
     // singleton.
 
-    #[tool(description = "Probe tear-daemon reachability. Returns {reachable: bool, socket_path, daemon_pid?, sessions?}. Honours [tear] config from MADO_CONFIG / ~/.config/mado/mado.yaml — auto-spawns if tear.auto_spawn=true and no daemon answers.")]
+    #[tool(
+        description = "Probe tear-daemon reachability. Returns {reachable: bool, socket_path, daemon_pid?, sessions?}. Honours [tear] config from MADO_CONFIG / ~/.config/mado/mado.yaml — auto-spawns if tear.auto_spawn=true and no daemon answers."
+    )]
     async fn tear_status(&self) -> String {
         let cfg = crate::config::load(&None).unwrap_or_default().tear;
         match crate::tear_discovery::discover(&cfg) {
@@ -1398,7 +1524,9 @@ impl MadoMcp {
         }
     }
 
-    #[tool(description = "Fetch the tear-daemon's current TearConfig as YAML. Returns {ok, yaml} on success or {ok: false, error}.")]
+    #[tool(
+        description = "Fetch the tear-daemon's current TearConfig as YAML. Returns {ok, yaml} on success or {ok: false, error}."
+    )]
     async fn tear_get_config(&self) -> String {
         with_tear_client(|client| match client.get_config_yaml() {
             Ok(yaml) => ok_json(serde_json::json!({ "yaml": yaml })),
@@ -1406,15 +1534,22 @@ impl MadoMcp {
         })
     }
 
-    #[tool(description = "Push a TearConfig YAML payload to the daemon — replaces the live config in-place via the same path tear.impose uses at attach. Returns {ok} or {ok: false, error}. Daemon-on-disk file is NOT touched; the next ReloadConfig reverts.")]
-    async fn tear_set_config_yaml(&self, Parameters(input): Parameters<TearSetConfigYamlInput>) -> String {
+    #[tool(
+        description = "Push a TearConfig YAML payload to the daemon — replaces the live config in-place via the same path tear.impose uses at attach. Returns {ok} or {ok: false, error}. Daemon-on-disk file is NOT touched; the next ReloadConfig reverts."
+    )]
+    async fn tear_set_config_yaml(
+        &self,
+        Parameters(input): Parameters<TearSetConfigYamlInput>,
+    ) -> String {
         with_tear_client(|client| match client.set_config_yaml(input.yaml) {
             Ok(()) => ok_json(serde_json::Value::Null),
             Err(e) => err_json(e),
         })
     }
 
-    #[tool(description = "Force the daemon to re-read its config file from disk. Reverts any prior SetConfig overrides. Returns {ok}.")]
+    #[tool(
+        description = "Force the daemon to re-read its config file from disk. Reverts any prior SetConfig overrides. Returns {ok}."
+    )]
     async fn tear_reload_config(&self) -> String {
         with_tear_client(|client| match client.reload_config() {
             Ok(()) => ok_json(serde_json::Value::Null),
@@ -1422,7 +1557,9 @@ impl MadoMcp {
         })
     }
 
-    #[tool(description = "List every tear session. Returns {ok, sessions: [{id, name, windows, panes, state}]}.")]
+    #[tool(
+        description = "List every tear session. Returns {ok, sessions: [{id, name, windows, panes, state}]}."
+    )]
     async fn tear_list_sessions(&self) -> String {
         use tear_types::MultiplexerControl;
         with_tear_client(|client| match client.list_sessions() {
@@ -1445,7 +1582,9 @@ impl MadoMcp {
         })
     }
 
-    #[tool(description = "Create a new tear session running `shell` (default /bin/sh). Session is tagged with SessionSource::Agent so `tear list --source agent` can audit MCP-created sessions. Returns {ok, session_id, first_pane_id}.")]
+    #[tool(
+        description = "Create a new tear session running `shell` (default /bin/sh). Session is tagged with SessionSource::Agent so `tear list --source agent` can audit MCP-created sessions. Returns {ok, session_id, first_pane_id}."
+    )]
     async fn tear_new_session(&self, Parameters(input): Parameters<TearNewSessionInput>) -> String {
         use tear_types::MultiplexerControl;
         with_tear_client(|client| {
@@ -1454,11 +1593,7 @@ impl MadoMcp {
             // Every mado-MCP-created session is provenance-tagged
             // as `Agent` so operators can `tear list --source agent`
             // to triage what an agent has spawned behind their back.
-            match client.new_session_with_source(
-                &name,
-                &shell,
-                tear_types::SessionSource::Agent,
-            ) {
+            match client.new_session_with_source(&name, &shell, tear_types::SessionSource::Agent) {
                 Ok(sid) => {
                     let first_pane = client
                         .get_session(sid)
@@ -1477,184 +1612,213 @@ impl MadoMcp {
     #[tool(description = "Kill a tear session by id. Returns {ok}.")]
     async fn tear_kill_session(&self, Parameters(input): Parameters<TearSessionIdInput>) -> String {
         use tear_types::MultiplexerControl;
-        with_tear_id::<tear_types::SessionId, _>(
-            "session_id",
-            &input.session_id,
-            |client, id| match client.kill_session(id) {
+        with_tear_id::<tear_types::SessionId, _>("session_id", &input.session_id, |client, id| {
+            match client.kill_session(id) {
                 Ok(()) => ok_json(serde_json::Value::Null),
                 Err(e) => err_json(e),
-            },
-        )
+            }
+        })
     }
 
-    #[tool(description = "Snapshot a tear pane's rendered cell grid. Returns {ok, cols, rows, cursor_row, cursor_col, alt_screen_active, text_rows}.")]
+    #[tool(
+        description = "Snapshot a tear pane's rendered cell grid. Returns {ok, cols, rows, cursor_row, cursor_col, alt_screen_active, text_rows}."
+    )]
     async fn tear_pane_snapshot(&self, Parameters(input): Parameters<TearPaneIdInput>) -> String {
         use tear_types::MultiplexerControl;
-        with_tear_id::<tear_types::PaneId, _>(
-            "pane_id",
-            &input.pane_id,
-            |client, id| match client.pane_snapshot(id) {
-                Ok(snap) => ok_json(serde_json::json!({
-                    "cols": snap.cols,
-                    "rows": snap.rows,
-                    "cursor_row": snap.cursor_row,
-                    "cursor_col": snap.cursor_col,
-                    "alt_screen_active": snap.alt_screen_active,
-                    "text_rows": snap.to_text_rows(),
-                })),
-                Err(e) => err_json(e),
-            },
-        )
+        with_tear_id::<tear_types::PaneId, _>("pane_id", &input.pane_id, |client, id| match client
+            .pane_snapshot(id)
+        {
+            Ok(snap) => ok_json(serde_json::json!({
+                "cols": snap.cols,
+                "rows": snap.rows,
+                "cursor_row": snap.cursor_row,
+                "cursor_col": snap.cursor_col,
+                "alt_screen_active": snap.alt_screen_active,
+                "text_rows": snap.to_text_rows(),
+            })),
+            Err(e) => err_json(e),
+        })
     }
 
     // ── #2 input policy ───────────────────────────────────────
 
-    #[tool(description = "Set a tear pane's typed InputPolicy. `policy = free` (default, accepts send_keys) or `locked` (rejects send_keys; useful for observer / demo / agent-only panes). Returns {ok} or {ok: false, error}.")]
-    async fn tear_set_input_policy(&self, Parameters(input): Parameters<TearSetInputPolicyInput>) -> String {
+    #[tool(
+        description = "Set a tear pane's typed InputPolicy. `policy = free` (default, accepts send_keys) or `locked` (rejects send_keys; useful for observer / demo / agent-only panes). Returns {ok} or {ok: false, error}."
+    )]
+    async fn tear_set_input_policy(
+        &self,
+        Parameters(input): Parameters<TearSetInputPolicyInput>,
+    ) -> String {
         use tear_types::MultiplexerControl;
         let policy = match input.policy.as_str() {
             "free" => tear_types::InputPolicy::Free,
             "locked" => tear_types::InputPolicy::Locked,
-            other => return err_json(format!("invalid policy `{other}` — accepted: free | locked")),
+            other => {
+                return err_json(format!(
+                    "invalid policy `{other}` — accepted: free | locked"
+                ));
+            }
         };
-        with_tear_id::<tear_types::PaneId, _>(
-            "pane_id",
-            &input.pane_id,
-            move |client, id| match client.set_input_policy(id, policy) {
+        with_tear_id::<tear_types::PaneId, _>("pane_id", &input.pane_id, move |client, id| {
+            match client.set_input_policy(id, policy) {
                 Ok(()) => ok_json(serde_json::json!({ "policy": match policy {
                     tear_types::InputPolicy::Free => "free",
                     tear_types::InputPolicy::Locked => "locked",
                     tear_types::InputPolicy::Leader { .. } => "leader",
                 }})),
                 Err(e) => err_json(e),
-            },
-        )
+            }
+        })
     }
 
     // ── #3 migration ergonomic ────────────────────────────────
 
-    #[tool(description = "Subscriber count for a tear pane. Tells you whether the pane is already attached elsewhere before you open a second renderer. Returns {ok, subscribers}.")]
-    async fn tear_pane_subscriber_count(&self, Parameters(input): Parameters<TearPaneIdInput>) -> String {
+    #[tool(
+        description = "Subscriber count for a tear pane. Tells you whether the pane is already attached elsewhere before you open a second renderer. Returns {ok, subscribers}."
+    )]
+    async fn tear_pane_subscriber_count(
+        &self,
+        Parameters(input): Parameters<TearPaneIdInput>,
+    ) -> String {
         use tear_types::MultiplexerControl;
-        with_tear_id::<tear_types::PaneId, _>(
-            "pane_id",
-            &input.pane_id,
-            |client, id| match client.pane_subscriber_count(id) {
-                Ok(n) => ok_json(serde_json::json!({ "subscribers": n })),
-                Err(e) => err_json(e),
-            },
-        )
+        with_tear_id::<tear_types::PaneId, _>("pane_id", &input.pane_id, |client, id| match client
+            .pane_subscriber_count(id)
+        {
+            Ok(n) => ok_json(serde_json::json!({ "subscribers": n })),
+            Err(e) => err_json(e),
+        })
     }
 
     // ── #4 recording ──────────────────────────────────────────
 
-    #[tool(description = "Start daemon-native recording on a tear pane. Captures every PTY byte with a relative timestamp; export via `tear_pane_record_export` as asciinema v2 .cast. Returns {ok}.")]
-    async fn tear_pane_record_start(&self, Parameters(input): Parameters<TearPaneIdInput>) -> String {
-        with_tear_id::<tear_types::PaneId, _>(
-            "pane_id",
-            &input.pane_id,
-            |client, id| match client.start_pane_recording(id) {
-                Ok(()) => ok_json(serde_json::Value::Null),
-                Err(e) => err_json(e),
-            },
-        )
+    #[tool(
+        description = "Start daemon-native recording on a tear pane. Captures every PTY byte with a relative timestamp; export via `tear_pane_record_export` as asciinema v2 .cast. Returns {ok}."
+    )]
+    async fn tear_pane_record_start(
+        &self,
+        Parameters(input): Parameters<TearPaneIdInput>,
+    ) -> String {
+        with_tear_id::<tear_types::PaneId, _>("pane_id", &input.pane_id, |client, id| match client
+            .start_pane_recording(id)
+        {
+            Ok(()) => ok_json(serde_json::Value::Null),
+            Err(e) => err_json(e),
+        })
     }
 
-    #[tool(description = "Stop recording on a tear pane. Captured buffer is retained for export. Returns {ok}.")]
-    async fn tear_pane_record_stop(&self, Parameters(input): Parameters<TearPaneIdInput>) -> String {
-        with_tear_id::<tear_types::PaneId, _>(
-            "pane_id",
-            &input.pane_id,
-            |client, id| match client.stop_pane_recording(id) {
-                Ok(()) => ok_json(serde_json::Value::Null),
-                Err(e) => err_json(e),
-            },
-        )
+    #[tool(
+        description = "Stop recording on a tear pane. Captured buffer is retained for export. Returns {ok}."
+    )]
+    async fn tear_pane_record_stop(
+        &self,
+        Parameters(input): Parameters<TearPaneIdInput>,
+    ) -> String {
+        with_tear_id::<tear_types::PaneId, _>("pane_id", &input.pane_id, |client, id| match client
+            .stop_pane_recording(id)
+        {
+            Ok(()) => ok_json(serde_json::Value::Null),
+            Err(e) => err_json(e),
+        })
     }
 
-    #[tool(description = "Export the captured asciinema v2 .cast (JSON-lines string) of a recorded pane. Returns {ok, cast}.")]
-    async fn tear_pane_record_export(&self, Parameters(input): Parameters<TearPaneIdInput>) -> String {
-        with_tear_id::<tear_types::PaneId, _>(
-            "pane_id",
-            &input.pane_id,
-            |client, id| match client.export_pane_recording(id) {
-                Ok(cast) => ok_json(serde_json::json!({ "cast": cast })),
-                Err(e) => err_json(e),
-            },
-        )
+    #[tool(
+        description = "Export the captured asciinema v2 .cast (JSON-lines string) of a recorded pane. Returns {ok, cast}."
+    )]
+    async fn tear_pane_record_export(
+        &self,
+        Parameters(input): Parameters<TearPaneIdInput>,
+    ) -> String {
+        with_tear_id::<tear_types::PaneId, _>("pane_id", &input.pane_id, |client, id| match client
+            .export_pane_recording(id)
+        {
+            Ok(cast) => ok_json(serde_json::json!({ "cast": cast })),
+            Err(e) => err_json(e),
+        })
     }
 
     // ── Pane-as-block (OSC 133 prompt-mark capture) ──────────
 
-    #[tool(description = "List captured prompt+command+output blocks for a tear pane. Blocks are extracted from OSC 133 prompt marks (powerlevel10k / starship / VS Code shell-integration emit these). Each block has {index, prompt, command, output, exit_code, started_at_unix_ms, ended_at_unix_ms}. Returns {ok, blocks: [...]}.")]
-    async fn tear_pane_blocks_list(&self, Parameters(input): Parameters<TearPaneBlocksListInput>) -> String {
+    #[tool(
+        description = "List captured prompt+command+output blocks for a tear pane. Blocks are extracted from OSC 133 prompt marks (powerlevel10k / starship / VS Code shell-integration emit these). Each block has {index, prompt, command, output, exit_code, started_at_unix_ms, ended_at_unix_ms}. Returns {ok, blocks: [...]}."
+    )]
+    async fn tear_pane_blocks_list(
+        &self,
+        Parameters(input): Parameters<TearPaneBlocksListInput>,
+    ) -> String {
         let since = input.since.unwrap_or(0);
         let limit = input.limit.unwrap_or(50);
-        with_tear_id::<tear_types::PaneId, _>(
-            "pane_id",
-            &input.pane_id,
-            move |client, id| match client.pane_blocks_list(id, since, limit) {
+        with_tear_id::<tear_types::PaneId, _>("pane_id", &input.pane_id, move |client, id| {
+            match client.pane_blocks_list(id, since, limit) {
                 Ok(blocks) => ok_json(serde_json::json!({ "blocks": blocks })),
                 Err(e) => err_json(e),
-            },
-        )
+            }
+        })
     }
 
-    #[tool(description = "Fetch one block by per-pane index. Use tear_pane_blocks_status first to get the current total. Returns {ok, block: {...}} or {ok: false, error} if the block has been evicted or never existed.")]
-    async fn tear_pane_block_at(&self, Parameters(input): Parameters<TearPaneBlockAtInput>) -> String {
+    #[tool(
+        description = "Fetch one block by per-pane index. Use tear_pane_blocks_status first to get the current total. Returns {ok, block: {...}} or {ok: false, error} if the block has been evicted or never existed."
+    )]
+    async fn tear_pane_block_at(
+        &self,
+        Parameters(input): Parameters<TearPaneBlockAtInput>,
+    ) -> String {
         let index = input.index;
-        with_tear_id::<tear_types::PaneId, _>(
-            "pane_id",
-            &input.pane_id,
-            move |client, id| match client.pane_block_at(id, index) {
+        with_tear_id::<tear_types::PaneId, _>("pane_id", &input.pane_id, move |client, id| {
+            match client.pane_block_at(id, index) {
                 Ok(block) => ok_json(serde_json::json!({ "block": block })),
                 Err(e) => err_json(e),
-            },
-        )
+            }
+        })
     }
 
-    #[tool(description = "Pane block summary — {total_completed, in_progress}. `tear top` polls this each refresh.")]
-    async fn tear_pane_blocks_status(&self, Parameters(input): Parameters<TearPaneIdInput>) -> String {
-        with_tear_id::<tear_types::PaneId, _>(
-            "pane_id",
-            &input.pane_id,
-            |client, id| match client.pane_blocks_status(id) {
-                Ok((total, in_progress)) => ok_json(serde_json::json!({
-                    "total_completed": total,
-                    "in_progress": in_progress,
-                })),
-                Err(e) => err_json(e),
-            },
-        )
+    #[tool(
+        description = "Pane block summary — {total_completed, in_progress}. `tear top` polls this each refresh."
+    )]
+    async fn tear_pane_blocks_status(
+        &self,
+        Parameters(input): Parameters<TearPaneIdInput>,
+    ) -> String {
+        with_tear_id::<tear_types::PaneId, _>("pane_id", &input.pane_id, |client, id| match client
+            .pane_blocks_status(id)
+        {
+            Ok((total, in_progress)) => ok_json(serde_json::json!({
+                "total_completed": total,
+                "in_progress": in_progress,
+            })),
+            Err(e) => err_json(e),
+        })
     }
 
-    #[tool(description = "Recording status for a tear pane. Returns {ok, recording: bool, events: number}.")]
-    async fn tear_pane_record_status(&self, Parameters(input): Parameters<TearPaneIdInput>) -> String {
-        with_tear_id::<tear_types::PaneId, _>(
-            "pane_id",
-            &input.pane_id,
-            |client, id| match client.pane_recording_status(id) {
-                Ok((enabled, events)) => ok_json(serde_json::json!({
-                    "recording": enabled,
-                    "events": events,
-                })),
-                Err(e) => err_json(e),
-            },
-        )
+    #[tool(
+        description = "Recording status for a tear pane. Returns {ok, recording: bool, events: number}."
+    )]
+    async fn tear_pane_record_status(
+        &self,
+        Parameters(input): Parameters<TearPaneIdInput>,
+    ) -> String {
+        with_tear_id::<tear_types::PaneId, _>("pane_id", &input.pane_id, |client, id| match client
+            .pane_recording_status(id)
+        {
+            Ok((enabled, events)) => ok_json(serde_json::json!({
+                "recording": enabled,
+                "events": events,
+            })),
+            Err(e) => err_json(e),
+        })
     }
 
-    #[tool(description = "Send keystrokes to a tear pane's PTY. `keys` is decoded via the same escape grammar as mado's `send_keys` tool (\\n = Enter, \\x03 = Ctrl-C, etc.). Returns {ok}.")]
+    #[tool(
+        description = "Send keystrokes to a tear pane's PTY. `keys` is decoded via the same escape grammar as mado's `send_keys` tool (\\n = Enter, \\x03 = Ctrl-C, etc.). Returns {ok}."
+    )]
     async fn tear_send_keys(&self, Parameters(input): Parameters<TearSendKeysInput>) -> String {
         use tear_types::MultiplexerControl;
         let bytes = decode_send_keys(&input.keys);
-        with_tear_id::<tear_types::PaneId, _>(
-            "pane_id",
-            &input.pane_id,
-            move |client, id| match client.send_keys(id, &bytes) {
+        with_tear_id::<tear_types::PaneId, _>("pane_id", &input.pane_id, move |client, id| {
+            match client.send_keys(id, &bytes) {
                 Ok(()) => ok_json(serde_json::Value::Null),
                 Err(e) => err_json(e),
-            },
-        )
+            }
+        })
     }
 
     // ─────────────────────────────────────────────────────────────────
@@ -1666,7 +1830,9 @@ impl MadoMcp {
     // failed to start (rare — disk full / sqlite open error), the
     // tools return {ok: false, error: ...} rather than panicking.
 
-    #[tool(description = "Register a new tatara-lisp reconciler (vigy) in mado's embedded vigy runtime. Vigies tick continuously inside mado; their tatara-lisp programs emit ReconcileActions via (vigy-emit / vigy-pull / vigy-push / vigy-noop). Idempotent: same name+program yields the same id.")]
+    #[tool(
+        description = "Register a new tatara-lisp reconciler (vigy) in mado's embedded vigy runtime. Vigies tick continuously inside mado; their tatara-lisp programs emit ReconcileActions via (vigy-emit / vigy-pull / vigy-push / vigy-noop). Idempotent: same name+program yields the same id."
+    )]
     async fn vigy_register(&self, Parameters(input): Parameters<VigyRegisterInput>) -> String {
         vigy_dispatch(
             "vigy_register",
@@ -1681,7 +1847,9 @@ impl MadoMcp {
         .await
     }
 
-    #[tool(description = "List registered vigies. Optional kubernetes-style label selector (k=v,k=v).")]
+    #[tool(
+        description = "List registered vigies. Optional kubernetes-style label selector (k=v,k=v)."
+    )]
     async fn vigy_list(&self, Parameters(input): Parameters<VigyListInput>) -> String {
         vigy_dispatch(
             "vigy_list",
@@ -1693,17 +1861,23 @@ impl MadoMcp {
         .await
     }
 
-    #[tool(description = "Inspect a single vigy + its 5 most-recent runs (id + result + actions emitted).")]
+    #[tool(
+        description = "Inspect a single vigy + its 5 most-recent runs (id + result + actions emitted)."
+    )]
     async fn vigy_inspect(&self, Parameters(input): Parameters<VigyIdInput>) -> String {
         vigy_dispatch("vigy_inspect", serde_json::json!({ "id": input.id })).await
     }
 
-    #[tool(description = "Force-tick a vigy now. Returns the resulting VigyRun (actions, result, error if any).")]
+    #[tool(
+        description = "Force-tick a vigy now. Returns the resulting VigyRun (actions, result, error if any)."
+    )]
     async fn vigy_tick(&self, Parameters(input): Parameters<VigyIdInput>) -> String {
         vigy_dispatch("vigy_tick", serde_json::json!({ "id": input.id })).await
     }
 
-    #[tool(description = "Delete a vigy permanently. Recorded VigyRuns remain in the SQLite store for audit.")]
+    #[tool(
+        description = "Delete a vigy permanently. Recorded VigyRuns remain in the SQLite store for audit."
+    )]
     async fn vigy_delete(&self, Parameters(input): Parameters<VigyIdInput>) -> String {
         vigy_dispatch("vigy_delete", serde_json::json!({ "id": input.id })).await
     }
@@ -1719,7 +1893,9 @@ impl MadoMcp {
     // through kanshou to the live GUI (the `list_sessions` idiom) and
     // falls back to this process's own store only when no GUI runs.
 
-    #[tool(description = "Read the Ctrl-S living board: ranked task suggestions (id, source, title, urgency, lifecycle state, recurrence, spawn target) plus per-source poll health (ok / needs config / needs auth / erroring). Forwards to the live GUI board when one is running. `max` defaults 20 (cap 200).")]
+    #[tool(
+        description = "Read the Ctrl-S living board: ranked task suggestions (id, source, title, urgency, lifecycle state, recurrence, spawn target) plus per-source poll health (ok / needs config / needs auth / erroring). Forwards to the live GUI board when one is running. `max` defaults 20 (cap 200)."
+    )]
     async fn suggest_list(&self, Parameters(input): Parameters<SuggestListInput>) -> String {
         let max = input.max.unwrap_or(20).min(200);
         let value = kanshou::mcp::forward(
@@ -1737,7 +1913,9 @@ impl MadoMcp {
         }
     }
 
-    #[tool(description = "Push a task onto the Ctrl-S living board (the 🤝 agent lane): Enter on the row spawns a session at `cwd` (named `session_name`) and types `command`. Re-injecting the same `key` updates the row; rows decay by the stream TTL unless re-injected, or are dismissed. Lands on the live GUI board when one is running. Returns {ok, id}.")]
+    #[tool(
+        description = "Push a task onto the Ctrl-S living board (the 🤝 agent lane): Enter on the row spawns a session at `cwd` (named `session_name`) and types `command`. Re-injecting the same `key` updates the row; rows decay by the stream TTL unless re-injected, or are dismissed. Lands on the live GUI board when one is running. Returns {ok, id}."
+    )]
     async fn suggest_inject(&self, Parameters(input): Parameters<SuggestInjectInput>) -> String {
         let params = crate::suggest::InjectParams {
             title: input.title,
@@ -1766,7 +1944,9 @@ impl MadoMcp {
         }
     }
 
-    #[tool(description = "Dismiss (or snooze) a Ctrl-S board suggestion by the decimal id from suggest_list. With `snooze_secs` the row hides until the deadline, then re-offers; without it the row never surfaces again (survives re-ingest and the recurrence window). Acts on the live GUI board when one is running. Returns {ok}.")]
+    #[tool(
+        description = "Dismiss (or snooze) a Ctrl-S board suggestion by the decimal id from suggest_list. With `snooze_secs` the row hides until the deadline, then re-offers; without it the row never surfaces again (survives re-ingest and the recurrence window). Acts on the live GUI board when one is running. Returns {ok}."
+    )]
     async fn suggest_dismiss(&self, Parameters(input): Parameters<SuggestDismissInput>) -> String {
         let mut args = vec![serde_json::json!(input.id)];
         if let Some(s) = input.snooze_secs {
@@ -1806,7 +1986,9 @@ impl MadoMcp {
     // returns a rendered PNG of a surface needs a GPU readback path that
     // is not yet available — left unimplemented rather than stubbed.
 
-    #[tool(description = "Open a new floating browser surface in the LIVE GUI mado and navigate it to `url`. Validates `url` as an absolute URL process-locally first. Forwards via kanshou to the GUI, which mints the surface + navigates. Returns `{ok, opened, url, live_gui_pid}`; `{ok:false, error:'invalid-url'}` for a malformed url; `{ok:false, error:'no-injection-sink'}` when the GUI isn't draining the browser sink; `{ok:false, error:'not-forwardable'}` when no GUI mado is reachable.")]
+    #[tool(
+        description = "Open a new floating browser surface in the LIVE GUI mado and navigate it to `url`. Validates `url` as an absolute URL process-locally first. Forwards via kanshou to the GUI, which mints the surface + navigates. Returns `{ok, opened, url, live_gui_pid}`; `{ok:false, error:'invalid-url'}` for a malformed url; `{ok:false, error:'no-injection-sink'}` when the GUI isn't draining the browser sink; `{ok:false, error:'not-forwardable'}` when no GUI mado is reachable."
+    )]
     async fn browser_open(&self, Parameters(input): Parameters<BrowserOpenInput>) -> String {
         // Validate the url process-locally FIRST so a malformed url is the
         // same typed error whether or not a GUI is running.
@@ -1824,14 +2006,23 @@ impl MadoMcp {
         let outcome = kanshou::mcp::forward_status(
             "mado",
             &kanshou::Query::call(["browser_open"], [serde_json::Value::String(input.url)]),
-            move || Ok(browser_not_forwardable(serde_json::json!({ "url": url_for_fallback }))),
+            move || {
+                Ok(browser_not_forwardable(
+                    serde_json::json!({ "url": url_for_fallback }),
+                ))
+            },
         )
         .await;
         merge_browser_outcome(outcome, "opened", serde_json::json!({ "url": url }))
     }
 
-    #[tool(description = "Navigate an existing floating browser surface (by numeric `id`, from browser_list) to `url` in the LIVE GUI mado. Validates `url` first. Returns `{ok, navigated, id, url, live_gui_pid}`, or the typed error envelope (invalid-url / no-injection-sink / not-forwardable).")]
-    async fn browser_navigate(&self, Parameters(input): Parameters<BrowserNavigateInput>) -> String {
+    #[tool(
+        description = "Navigate an existing floating browser surface (by numeric `id`, from browser_list) to `url` in the LIVE GUI mado. Validates `url` first. Returns `{ok, navigated, id, url, live_gui_pid}`, or the typed error envelope (invalid-url / no-injection-sink / not-forwardable)."
+    )]
+    async fn browser_navigate(
+        &self,
+        Parameters(input): Parameters<BrowserNavigateInput>,
+    ) -> String {
         if url::Url::parse(&input.url).is_err() {
             return serde_json::json!({
                 "ok": false,
@@ -1864,7 +2055,9 @@ impl MadoMcp {
         )
     }
 
-    #[tool(description = "Snap a floating browser surface (numeric `id`) to a named built-in zone in the LIVE GUI mado. Valid zones: top-left, top-right, bottom-left, bottom-right, left-half, right-half, top-half, bottom-half, maximize. Validates `zone` process-locally first. Returns `{ok, snapped, id, zone, live_gui_pid}`, or the typed error envelope (invalid-zone / no-injection-sink / not-forwardable).")]
+    #[tool(
+        description = "Snap a floating browser surface (numeric `id`) to a named built-in zone in the LIVE GUI mado. Valid zones: top-left, top-right, bottom-left, bottom-right, left-half, right-half, top-half, bottom-half, maximize. Validates `zone` process-locally first. Returns `{ok, snapped, id, zone, live_gui_pid}`, or the typed error envelope (invalid-zone / no-injection-sink / not-forwardable)."
+    )]
     async fn browser_snap(&self, Parameters(input): Parameters<BrowserSnapInput>) -> String {
         // Validate the zone process-locally FIRST so a bad zone is the same
         // typed error whether or not a GUI is running.
@@ -1900,7 +2093,9 @@ impl MadoMcp {
         )
     }
 
-    #[tool(description = "Raise + focus a floating browser surface (numeric `id`) in the LIVE GUI mado. Returns `{ok, focused, id, live_gui_pid}`, or the typed error envelope (no-injection-sink / not-forwardable).")]
+    #[tool(
+        description = "Raise + focus a floating browser surface (numeric `id`) in the LIVE GUI mado. Returns `{ok, focused, id, live_gui_pid}`, or the typed error envelope (no-injection-sink / not-forwardable)."
+    )]
     async fn browser_focus(&self, Parameters(input): Parameters<BrowserIdInput>) -> String {
         let id = input.id;
         let outcome = kanshou::mcp::forward_status(
@@ -1912,7 +2107,9 @@ impl MadoMcp {
         merge_browser_outcome(outcome, "focused", serde_json::json!({ "id": id }))
     }
 
-    #[tool(description = "Close a floating browser surface (numeric `id`) in the LIVE GUI mado — also tears down its bound tear session GUI-side. Returns `{ok, closed, id, live_gui_pid}`, or the typed error envelope (no-injection-sink / not-forwardable).")]
+    #[tool(
+        description = "Close a floating browser surface (numeric `id`) in the LIVE GUI mado — also tears down its bound tear session GUI-side. Returns `{ok, closed, id, live_gui_pid}`, or the typed error envelope (no-injection-sink / not-forwardable)."
+    )]
     async fn browser_close(&self, Parameters(input): Parameters<BrowserIdInput>) -> String {
         let id = input.id;
         let outcome = kanshou::mcp::forward_status(
@@ -1924,14 +2121,20 @@ impl MadoMcp {
         merge_browser_outcome(outcome, "closed", serde_json::json!({ "id": id }))
     }
 
-    #[tool(description = "Free-float a browser surface (numeric `id`) to an absolute top-left (`x`,`y` in logical px) in the LIVE GUI mado; clamped to the viewport (use browser_snap for named half/quadrant zones). Returns `{ok, moved, id, x, y, live_gui_pid}`, or the typed error envelope (no-injection-sink / not-forwardable).")]
+    #[tool(
+        description = "Free-float a browser surface (numeric `id`) to an absolute top-left (`x`,`y` in logical px) in the LIVE GUI mado; clamped to the viewport (use browser_snap for named half/quadrant zones). Returns `{ok, moved, id, x, y, live_gui_pid}`, or the typed error envelope (no-injection-sink / not-forwardable)."
+    )]
     async fn browser_move(&self, Parameters(input): Parameters<BrowserMoveInput>) -> String {
         let (id, x, y) = (input.id, input.x, input.y);
         let outcome = kanshou::mcp::forward_status(
             "mado",
             &kanshou::Query::call(
                 ["browser_move"],
-                [serde_json::json!(id), serde_json::json!(x), serde_json::json!(y)],
+                [
+                    serde_json::json!(id),
+                    serde_json::json!(x),
+                    serde_json::json!(y),
+                ],
             ),
             move || {
                 Ok(browser_not_forwardable(
@@ -1947,14 +2150,20 @@ impl MadoMcp {
         )
     }
 
-    #[tool(description = "Resize a browser surface (numeric `id`) to absolute `w`×`h` (logical px) in the LIVE GUI mado; clamped to the viewport. Returns `{ok, resized, id, w, h, live_gui_pid}`, or the typed error envelope (no-injection-sink / not-forwardable).")]
+    #[tool(
+        description = "Resize a browser surface (numeric `id`) to absolute `w`×`h` (logical px) in the LIVE GUI mado; clamped to the viewport. Returns `{ok, resized, id, w, h, live_gui_pid}`, or the typed error envelope (no-injection-sink / not-forwardable)."
+    )]
     async fn browser_resize(&self, Parameters(input): Parameters<BrowserResizeInput>) -> String {
         let (id, w, h) = (input.id, input.w, input.h);
         let outcome = kanshou::mcp::forward_status(
             "mado",
             &kanshou::Query::call(
                 ["browser_resize"],
-                [serde_json::json!(id), serde_json::json!(w), serde_json::json!(h)],
+                [
+                    serde_json::json!(id),
+                    serde_json::json!(w),
+                    serde_json::json!(h),
+                ],
             ),
             move || {
                 Ok(browser_not_forwardable(
@@ -1970,7 +2179,9 @@ impl MadoMcp {
         )
     }
 
-    #[tool(description = "Replace a floating browser surface's DOM (numeric `id`) from a tatara-lisp S-expression in the LIVE GUI mado — the write side of the DOM-Way loop: read the DOM via browser_list's dom_sexp, rewrite it, push it back live. Inline `<lisp>` in the sexp is expanded. The sexp is parse-validated first. Returns `{ok, set, id, live_gui_pid}`, or the typed error envelope (invalid-dom-sexp / no-injection-sink / not-forwardable).")]
+    #[tool(
+        description = "Replace a floating browser surface's DOM (numeric `id`) from a tatara-lisp S-expression in the LIVE GUI mado — the write side of the DOM-Way loop: read the DOM via browser_list's dom_sexp, rewrite it, push it back live. Inline `<lisp>` in the sexp is expanded. The sexp is parse-validated first. Returns `{ok, set, id, live_gui_pid}`, or the typed error envelope (invalid-dom-sexp / no-injection-sink / not-forwardable)."
+    )]
     async fn browser_set_dom(&self, Parameters(input): Parameters<BrowserSetDomInput>) -> String {
         // Validate the sexp process-locally FIRST so a bad sexp is the same
         // typed error whether or not a GUI is running (mirrors browser_navigate's
@@ -1996,7 +2207,9 @@ impl MadoMcp {
         merge_browser_outcome(outcome, "set", serde_json::json!({ "id": id }))
     }
 
-    #[tool(description = "Request a PNG snapshot of a floating browser surface (numeric `id`, from browser_list) in the LIVE GUI mado. The page renders on the next GUI tick; then poll `browser_snapshot_get` for the base64 PNG. Returns `{ok, requested, id, live_gui_pid}`, or the typed error envelope (no-injection-sink / not-forwardable).")]
+    #[tool(
+        description = "Request a PNG snapshot of a floating browser surface (numeric `id`, from browser_list) in the LIVE GUI mado. The page renders on the next GUI tick; then poll `browser_snapshot_get` for the base64 PNG. Returns `{ok, requested, id, live_gui_pid}`, or the typed error envelope (no-injection-sink / not-forwardable)."
+    )]
     async fn browser_snapshot(&self, Parameters(input): Parameters<BrowserIdInput>) -> String {
         let id = input.id;
         let outcome = kanshou::mcp::forward_status(
@@ -2008,7 +2221,9 @@ impl MadoMcp {
         merge_browser_outcome(outcome, "requested", serde_json::json!({ "id": id }))
     }
 
-    #[tool(description = "Poll for a completed browser snapshot (requested via browser_snapshot) of surface `id` in the LIVE GUI mado. Take-on-read: returns each render exactly once. Returns `{ok, ready:true, id, png_base64}` (a base64 PNG) once rendered, else `{ok, ready:false, id}` until the render lands (a tick after browser_snapshot).")]
+    #[tool(
+        description = "Poll for a completed browser snapshot (requested via browser_snapshot) of surface `id` in the LIVE GUI mado. Take-on-read: returns each render exactly once. Returns `{ok, ready:true, id, png_base64}` (a base64 PNG) once rendered, else `{ok, ready:false, id}` until the render lands (a tick after browser_snapshot)."
+    )]
     async fn browser_snapshot_get(&self, Parameters(input): Parameters<BrowserIdInput>) -> String {
         let id = input.id;
         let value = kanshou::mcp::forward(
@@ -2026,12 +2241,12 @@ impl MadoMcp {
         }
     }
 
-    #[tool(description = "List every live floating browser surface in the GUI mado's float z-stack: id, url, on-screen rect (x/y/w/h), stacking order (z), focus, coarse mode, and page load_state. Forwards to the live GUI's published snapshot; returns an empty list when no GUI is running or nothing is open. Returns `{ok, count, surfaces}`.")]
+    #[tool(
+        description = "List every live floating browser surface in the GUI mado's float z-stack: id, url, on-screen rect (x/y/w/h), stacking order (z), focus, coarse mode, and page load_state. Forwards to the live GUI's published snapshot; returns an empty list when no GUI is running or nothing is open. Returns `{ok, count, surfaces}`."
+    )]
     async fn browser_list(&self) -> String {
-        let value = kanshou::mcp::forward(
-            "mado",
-            &kanshou::Query::field(["browser_surfaces"]),
-            || {
+        let value =
+            kanshou::mcp::forward("mado", &kanshou::Query::field(["browser_surfaces"]), || {
                 let surfaces = crate::browser_bridge::get()
                     .map(crate::browser_bridge::BrowserBridge::surfaces)
                     .unwrap_or_default();
@@ -2039,9 +2254,8 @@ impl MadoMcp {
                     "count": surfaces.len(),
                     "surfaces": surfaces,
                 }))
-            },
-        )
-        .await;
+            })
+            .await;
         match value {
             Ok(v) => ok_json(v),
             Err(e) => err_json(e),
@@ -2055,7 +2269,9 @@ impl MadoMcp {
 struct VigyRegisterInput {
     #[schemars(description = "Human-readable name. Combined with program to derive a stable id.")]
     name: String,
-    #[schemars(description = "tatara-lisp source. See pleme-io/vigy README for the intrinsic surface (vigy-emit / vigy-pull / vigy-push / vigy-noop / vigy-log / vigy-tick).")]
+    #[schemars(
+        description = "tatara-lisp source. See pleme-io/vigy README for the intrinsic surface (vigy-emit / vigy-pull / vigy-push / vigy-noop / vigy-log / vigy-tick)."
+    )]
     program: String,
     #[schemars(description = "Tick interval in milliseconds (≥ 100). Default 1000.")]
     tick_interval_ms: Option<u64>,
@@ -2091,17 +2307,23 @@ struct SuggestListInput {
 struct SuggestInjectInput {
     #[schemars(description = "The task line the board shows (required).")]
     title: String,
-    #[schemars(description = "Stable dedup key — re-injecting the same key updates the row instead of duplicating. Defaults to the title.")]
+    #[schemars(
+        description = "Stable dedup key — re-injecting the same key updates the row instead of duplicating. Defaults to the title."
+    )]
     key: Option<String>,
     #[schemars(description = "Secondary context shown dimmer (repo, agent id, age).")]
     detail: Option<String>,
     #[schemars(description = "idle | low | normal | high | critical. Default normal.")]
     urgency: Option<String>,
-    #[schemars(description = "Working directory the accepted session spawns into. Defaults to the operator's code root.")]
+    #[schemars(
+        description = "Working directory the accepted session spawns into. Defaults to the operator's code root."
+    )]
     cwd: Option<String>,
     #[schemars(description = "Session name for the accepted row. Defaults to '🤝 <title…>'.")]
     session_name: Option<String>,
-    #[schemars(description = "Kickoff command typed into the fresh session (control bytes are rejected at the typed border).")]
+    #[schemars(
+        description = "Kickoff command typed into the fresh session (control bytes are rejected at the typed border)."
+    )]
     command: Option<String>,
 }
 
@@ -2117,7 +2339,9 @@ struct SuggestDismissInput {
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 struct BrowserOpenInput {
-    #[schemars(description = "Absolute URL to open (e.g. https://example.com/). Rejected at the typed border if not parseable.")]
+    #[schemars(
+        description = "Absolute URL to open (e.g. https://example.com/). Rejected at the typed border if not parseable."
+    )]
     url: String,
 }
 
@@ -2125,7 +2349,9 @@ struct BrowserOpenInput {
 struct BrowserNavigateInput {
     #[schemars(description = "The numeric surface id (from browser_list).")]
     id: u32,
-    #[schemars(description = "Absolute URL to navigate to. Rejected at the typed border if not parseable.")]
+    #[schemars(
+        description = "Absolute URL to navigate to. Rejected at the typed border if not parseable."
+    )]
     url: String,
 }
 
@@ -2133,7 +2359,9 @@ struct BrowserNavigateInput {
 struct BrowserSnapInput {
     #[schemars(description = "The numeric surface id (from browser_list).")]
     id: u32,
-    #[schemars(description = "Built-in zone name: top-left, top-right, bottom-left, bottom-right, left-half, right-half, top-half, bottom-half, maximize.")]
+    #[schemars(
+        description = "Built-in zone name: top-left, top-right, bottom-left, bottom-right, left-half, right-half, top-half, bottom-half, maximize."
+    )]
     zone: String,
 }
 
@@ -2167,10 +2395,11 @@ struct BrowserResizeInput {
 struct BrowserSetDomInput {
     #[schemars(description = "The numeric surface id (from browser_list).")]
     id: u32,
-    #[schemars(description = "The new DOM as a tatara-lisp S-expression (the same shape browser_list's dom_sexp returns). Rejected at the typed border if it doesn't parse.")]
+    #[schemars(
+        description = "The new DOM as a tatara-lisp S-expression (the same shape browser_list's dom_sexp returns). Rejected at the typed border if it doesn't parse."
+    )]
     sexp: String,
 }
-
 
 async fn vigy_dispatch(tool: &str, args: serde_json::Value) -> String {
     let host = match crate::vigy_host::get() {
@@ -2358,9 +2587,7 @@ fn stub_value(tool: &str, extra: serde_json::Value) -> serde_json::Value {
     obj.insert("tool".into(), serde_json::Value::String(tool.to_string()));
     obj.insert(
         "note".into(),
-        serde_json::Value::String(format!(
-            "{tool} requires IPC to a running mado instance."
-        )),
+        serde_json::Value::String(format!("{tool} requires IPC to a running mado instance.")),
     );
     if let serde_json::Value::Object(fields) = extra {
         obj.extend(fields);
@@ -2581,7 +2808,10 @@ struct CellRun {
 /// `snapshot_grid`) uses to decide whether a local-registry miss should
 /// forward to the live GUI, vs. genuinely being an unknown/headless id.
 fn looks_like_embedded_session_id(id: &str) -> bool {
-    id.len() == 16 && id.bytes().all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+    id.len() == 16
+        && id
+            .bytes()
+            .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
 }
 
 /// Convert `pane_snapshot_embedded`'s JSON response (a `tear_types::Cell`
@@ -2626,11 +2856,26 @@ fn embedded_pane_snapshot_json_to_grid_snapshot(
         })
         .collect();
     Some(crate::session::GridSnapshot {
-        cols: v.get("cols").and_then(serde_json::Value::as_u64).unwrap_or_default() as usize,
-        rows: v.get("rows").and_then(serde_json::Value::as_u64).unwrap_or_default() as usize,
-        cursor_row: v.get("cursor_row").and_then(serde_json::Value::as_u64).unwrap_or_default() as usize,
-        cursor_col: v.get("cursor_col").and_then(serde_json::Value::as_u64).unwrap_or_default() as usize,
-        cursor_visible: v.get("cursor_visible").and_then(serde_json::Value::as_bool).unwrap_or(true),
+        cols: v
+            .get("cols")
+            .and_then(serde_json::Value::as_u64)
+            .unwrap_or_default() as usize,
+        rows: v
+            .get("rows")
+            .and_then(serde_json::Value::as_u64)
+            .unwrap_or_default() as usize,
+        cursor_row: v
+            .get("cursor_row")
+            .and_then(serde_json::Value::as_u64)
+            .unwrap_or_default() as usize,
+        cursor_col: v
+            .get("cursor_col")
+            .and_then(serde_json::Value::as_u64)
+            .unwrap_or_default() as usize,
+        cursor_visible: v
+            .get("cursor_visible")
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or(true),
         cells,
     })
 }
@@ -2839,7 +3084,8 @@ mod tests {
         // fallback/stub path always runs. set_var is process-global —
         // fine here because every test goes through new_server() and
         // the value is identical for all of them.
-        let dir = std::env::temp_dir().join(format!("mado-mcp-test-kanshou-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("mado-mcp-test-kanshou-{}", std::process::id()));
         let _ = std::fs::create_dir_all(&dir);
         unsafe { std::env::set_var("KANSHOU_SOCKET_DIR", &dir) };
         MadoMcp::with_state(SharedState::default())
@@ -2954,8 +3200,7 @@ mod tests {
         // print, so the dir must survive the macOS /tmp →
         // /private/tmp symlink. canonicalize() gives the physical
         // form the shell reports.
-        let dir = std::fs::canonicalize(std::env::temp_dir())
-            .expect("canonical temp dir");
+        let dir = std::fs::canonicalize(std::env::temp_dir()).expect("canonical temp dir");
         let dir_str = dir.to_str().expect("utf8 temp dir").to_owned();
 
         let server = new_server_with_inherit_cwd(true);
@@ -3054,7 +3299,9 @@ mod tests {
     #[tokio::test]
     async fn mcp_config_get_with_key() {
         let server = new_server();
-        let input = ConfigGetInput { key: Some("font_size".to_string()) };
+        let input = ConfigGetInput {
+            key: Some("font_size".to_string()),
+        };
         let result = server.config_get(Parameters(input)).await;
         let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
         assert_eq!(parsed["key"], "font_size");
@@ -3130,12 +3377,17 @@ mod tests {
             }))
             .await;
         let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
-        assert_eq!(parsed["ok"], false, "unbound chord must not be ok: {parsed}");
+        assert_eq!(
+            parsed["ok"], false,
+            "unbound chord must not be ok: {parsed}"
+        );
         let error = parsed["error"].as_str();
         let kanshou_error = parsed["kanshou_error"].as_str();
         assert!(
-            matches!(error, Some("no-binding" | "no-injection-sink" | "not-forwardable"))
-                || kanshou_error.is_some(),
+            matches!(
+                error,
+                Some("no-binding" | "no-injection-sink" | "not-forwardable")
+            ) || kanshou_error.is_some(),
             "unexpected simulate_chord shape: {parsed}",
         );
     }
@@ -3442,7 +3694,9 @@ mod tests {
     #[tokio::test]
     async fn clipboard_get_rejects_malformed_hash() {
         let (server, _) = server_with_seeded_clipboard(&[]);
-        let input = ClipboardGetInput { hash: "too-short".into() };
+        let input = ClipboardGetInput {
+            hash: "too-short".into(),
+        };
         let result = server.clipboard_get(Parameters(input)).await;
         let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
         assert_eq!(parsed["found"], false);
@@ -3516,7 +3770,10 @@ mod tests {
             let parsed: serde_json::Value = serde_json::from_str(&raw)
                 .unwrap_or_else(|e| panic!("{tool_name} returned non-JSON: {e} in {raw:?}"));
             assert_eq!(parsed["ok"], false, "{tool_name}: ok should be false");
-            assert_eq!(parsed["tool"], tool_name, "{tool_name}: tool field mismatch");
+            assert_eq!(
+                parsed["tool"], tool_name,
+                "{tool_name}: tool field mismatch"
+            );
             let note = parsed["note"]
                 .as_str()
                 .unwrap_or_else(|| panic!("{tool_name}: note missing / non-string"));
@@ -3550,8 +3807,14 @@ mod tests {
         let doc: serde_yaml_ng::Value =
             serde_yaml_ng::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
         assert_eq!(doc["font_size"], serde_yaml_ng::Value::from(14));
-        assert_eq!(doc["tear"]["auto_attach"], serde_yaml_ng::Value::from("auto_switch"));
-        assert_eq!(doc["behavior"]["copy_on_select"], serde_yaml_ng::Value::from(false));
+        assert_eq!(
+            doc["tear"]["auto_attach"],
+            serde_yaml_ng::Value::from("auto_switch")
+        );
+        assert_eq!(
+            doc["behavior"]["copy_on_select"],
+            serde_yaml_ng::Value::from(false)
+        );
         // And the whole file still IS a MadoConfig.
         let _typed: crate::config::MadoConfig = serde_yaml_ng::from_value(doc).unwrap();
 
@@ -3560,13 +3823,24 @@ mod tests {
         // deserialization would have accepted this as silently dead).
         let before = std::fs::read_to_string(&path).unwrap();
         let err = config_set_rmw(&path, "no_such_option", "1").unwrap_err();
-        assert!(err.to_string().contains("not a known MadoConfig option"), "{err}");
-        assert_eq!(std::fs::read_to_string(&path).unwrap(), before, "file mutated on reject");
+        assert!(
+            err.to_string().contains("not a known MadoConfig option"),
+            "{err}"
+        );
+        assert_eq!(
+            std::fs::read_to_string(&path).unwrap(),
+            before,
+            "file mutated on reject"
+        );
 
         // Ill-typed value → refused, file untouched.
         let err = config_set_rmw(&path, "font_size", "\"not-a-number\"").unwrap_err();
         assert!(err.to_string().contains("not a valid MadoConfig"), "{err}");
-        assert_eq!(std::fs::read_to_string(&path).unwrap(), before, "file mutated on reject");
+        assert_eq!(
+            std::fs::read_to_string(&path).unwrap(),
+            before,
+            "file mutated on reject"
+        );
     }
 
     /// A symlinked config is the home-manager deployment shape;
@@ -3583,7 +3857,12 @@ mod tests {
         let err = config_set_rmw(&link, "font_size", "14").unwrap_err();
         assert!(err.to_string().contains("symlink"), "{err}");
         // Neither the link nor its target changed.
-        assert!(std::fs::symlink_metadata(&link).unwrap().file_type().is_symlink());
+        assert!(
+            std::fs::symlink_metadata(&link)
+                .unwrap()
+                .file_type()
+                .is_symlink()
+        );
         assert_eq!(std::fs::read_to_string(&real).unwrap(), "font_size: 12\n");
     }
 
@@ -3592,10 +3871,7 @@ mod tests {
         // The helper must merge the `extra` object's fields into the
         // top-level response — callers should be able to add
         // tool-specific context without wrapping it.
-        let raw = stub_response(
-            "probe",
-            serde_json::json!({ "hello": "world", "count": 3 }),
-        );
+        let raw = stub_response("probe", serde_json::json!({ "hello": "world", "count": 3 }));
         let parsed: serde_json::Value = serde_json::from_str(&raw).unwrap();
         assert_eq!(parsed["ok"], false);
         assert_eq!(parsed["tool"], "probe");
@@ -4189,12 +4465,8 @@ mod tests {
             socket.push(format!("mado-mcp-h-{pid}-{seq}.sock"));
             let inproc = Arc::new(InProcess::new());
             let live = Arc::new(LiveConfig::default());
-            let daemon = tear_daemon::start_with_config(
-                socket.clone(),
-                inproc,
-                live.clone(),
-            )
-            .expect("daemon");
+            let daemon = tear_daemon::start_with_config(socket.clone(), inproc, live.clone())
+                .expect("daemon");
             std::thread::sleep(Duration::from_millis(50));
             let cfg_file = write_temp_mado_config(&socket);
             let guard = MadoConfigGuard::set(cfg_file.path());
@@ -4211,8 +4483,7 @@ mod tests {
         /// JSON — every tool is contracted to emit `Value::Object`,
         /// so a parse failure is a real bug worth panicking on.
         fn parse(raw: &str) -> Value {
-            serde_json::from_str(raw)
-                .unwrap_or_else(|e| panic!("malformed JSON: {e}\nraw: {raw}"))
+            serde_json::from_str(raw).unwrap_or_else(|e| panic!("malformed JSON: {e}\nraw: {raw}"))
         }
     }
 
@@ -4427,11 +4698,13 @@ mod tests {
         );
         assert_eq!(v["ok"], true);
         let v2 = TearMcpHarness::parse(&h.server.tear_list_sessions().await);
-        assert!(v2["sessions"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .all(|s| s["id"] != sid));
+        assert!(
+            v2["sessions"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|s| s["id"] != sid)
+        );
     }
 
     #[tokio::test(flavor = "current_thread")]
@@ -4445,10 +4718,7 @@ mod tests {
                 .await,
         );
         assert_eq!(v["ok"], false);
-        assert!(v["error"]
-            .as_str()
-            .unwrap()
-            .contains("invalid session_id"));
+        assert!(v["error"].as_str().unwrap().contains("invalid session_id"));
     }
 
     // ── pane snapshot + send_keys ──────────────────────────────────
@@ -4547,13 +4817,13 @@ mod tests {
                 .tear_new_session(Parameters(TearNewSessionInput::default()))
                 .await,
         );
-        let pid_str = new["first_pane_id"].as_str().unwrap_or_else(|| {
-            panic!("first_pane_id missing from new_session response: {new}")
-        }).to_owned();
-        let raw = h.server
-            .tear_pane_snapshot(Parameters(TearPaneIdInput {
-                pane_id: pid_str,
-            }))
+        let pid_str = new["first_pane_id"]
+            .as_str()
+            .unwrap_or_else(|| panic!("first_pane_id missing from new_session response: {new}"))
+            .to_owned();
+        let raw = h
+            .server
+            .tear_pane_snapshot(Parameters(TearPaneIdInput { pane_id: pid_str }))
             .await;
         let v = TearMcpHarness::parse(&raw);
         assert_eq!(v["ok"], true, "snapshot returned ok=false: {raw}");
@@ -4711,8 +4981,7 @@ mod tests {
         // (tool, raw response, status-marker keys — ≥1 must appear;
         // empty slice = object-shape only, marker is environment-
         // dependent and pinned by a dedicated test instead).
-        let mut rows: Vec<(&'static str, String, &'static [&'static str])> =
-            Vec::new();
+        let mut rows: Vec<(&'static str, String, &'static [&'static str])> = Vec::new();
 
         // ── standard tools ──────────────────────────────────────
         rows.push(("status", server.status().await, &["status"]));
@@ -4720,7 +4989,9 @@ mod tests {
         rows.push(("version", server.version().await, &["name"]));
         rows.push((
             "config_get",
-            server.config_get(Parameters(ConfigGetInput { key: None })).await,
+            server
+                .config_get(Parameters(ConfigGetInput { key: None }))
+                .await,
             // Live-GUI forwarding returns the raw config object; the
             // no-GUI stub shape is pinned by
             // `every_stubbed_tool_follows_uniform_shape`.
@@ -5266,11 +5537,7 @@ mod tests {
                 .await,
             &["ok"],
         ));
-        rows.push((
-            "browser_list",
-            server.browser_list().await,
-            &["ok"],
-        ));
+        rows.push(("browser_list", server.browser_list().await, &["ok"]));
 
         // ── coverage gate + per-row shape contract ──────────────
         let registered: std::collections::BTreeSet<String> = MadoMcp::tool_router()
@@ -5278,8 +5545,10 @@ mod tests {
             .iter()
             .map(|t| t.name.to_string())
             .collect();
-        let covered: std::collections::BTreeSet<String> =
-            rows.iter().map(|(name, _, _)| (*name).to_string()).collect();
+        let covered: std::collections::BTreeSet<String> = rows
+            .iter()
+            .map(|(name, _, _)| (*name).to_string())
+            .collect();
 
         let mut failures: Vec<String> = Vec::new();
         for name in registered.difference(&covered) {
@@ -5311,9 +5580,7 @@ mod tests {
                 }
             };
             let Some(obj) = parsed.as_object() else {
-                failures.push(format!(
-                    "{name}: response is not a JSON object: {raw:?}"
-                ));
+                failures.push(format!("{name}: response is not a JSON object: {raw:?}"));
                 continue;
             };
             if obj.is_empty() {
@@ -5322,13 +5589,9 @@ mod tests {
             if let Some(ok) = obj.get("ok")
                 && !ok.is_boolean()
             {
-                failures.push(format!(
-                    "{name}: `ok` must be a boolean, got {ok:?}"
-                ));
+                failures.push(format!("{name}: `ok` must be a boolean, got {ok:?}"));
             }
-            if !markers.is_empty()
-                && !markers.iter().any(|m| obj.contains_key(*m))
-            {
+            if !markers.is_empty() && !markers.iter().any(|m| obj.contains_key(*m)) {
                 failures.push(format!(
                     "{name}: none of the status markers {markers:?} present \
                      in {raw:?}"
@@ -5352,10 +5615,22 @@ mod tests {
     fn embedded_session_id_shape_gate() {
         assert!(looks_like_embedded_session_id("d8127857ae2682e8"));
         assert!(looks_like_embedded_session_id("0000000000000000"));
-        assert!(!looks_like_embedded_session_id("D8127857AE2682E8"), "uppercase hex is not the tear id shape");
-        assert!(!looks_like_embedded_session_id("d8127857ae2682"), "too short");
-        assert!(!looks_like_embedded_session_id("d8127857ae2682e8a"), "too long");
-        assert!(!looks_like_embedded_session_id("not-a-hex-idxxxx"), "non-hex chars");
+        assert!(
+            !looks_like_embedded_session_id("D8127857AE2682E8"),
+            "uppercase hex is not the tear id shape"
+        );
+        assert!(
+            !looks_like_embedded_session_id("d8127857ae2682"),
+            "too short"
+        );
+        assert!(
+            !looks_like_embedded_session_id("d8127857ae2682e8a"),
+            "too long"
+        );
+        assert!(
+            !looks_like_embedded_session_id("not-a-hex-idxxxx"),
+            "non-hex chars"
+        );
         assert!(!looks_like_embedded_session_id(""));
     }
 
@@ -5387,7 +5662,10 @@ mod tests {
         assert_eq!(snap.cells[0][0].ch, 'a');
         assert_eq!(snap.cells[0][0].fg, [255, 255, 255]);
         assert_eq!(snap.cells[0][0].bg, [0, 0, 0]);
-        assert_eq!(snap.cells[0][0].attrs, 1, "BOLD bit must survive the CellAttrs -> u8 conversion");
+        assert_eq!(
+            snap.cells[0][0].attrs, 1,
+            "BOLD bit must survive the CellAttrs -> u8 conversion"
+        );
         assert_eq!(snap.cells[0][1].fg, [1, 2, 3]);
         assert_eq!(snap.cells[0][1].bg, [4, 5, 6]);
         assert_eq!(snap.cells[0][2].ch, 'c');
@@ -5406,7 +5684,10 @@ mod tests {
             ]],
         });
         let snap = embedded_pane_snapshot_json_to_grid_snapshot(&v).unwrap();
-        assert_eq!(snap.cells[0][0].width, 2, "a CJK glyph must be labelled width 2");
+        assert_eq!(
+            snap.cells[0][0].width, 2,
+            "a CJK glyph must be labelled width 2"
+        );
     }
 
     #[test]
@@ -5424,7 +5705,10 @@ mod tests {
         let snap = embedded_pane_snapshot_json_to_grid_snapshot(&v).unwrap();
         assert_eq!(snap.cols, 0);
         assert_eq!(snap.rows, 0);
-        assert!(snap.cursor_visible, "missing cursor_visible defaults to true (xterm semantics)");
+        assert!(
+            snap.cursor_visible,
+            "missing cursor_visible defaults to true (xterm semantics)"
+        );
     }
 }
 

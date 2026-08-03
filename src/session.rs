@@ -28,9 +28,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
-use anyhow::{Context, Result};
 #[cfg(test)]
 use anyhow::anyhow;
+use anyhow::{Context, Result};
 use serde::Serialize;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::Mutex as AsyncMutex;
@@ -365,7 +365,10 @@ impl SessionRegistry {
     /// (default 80×24 for headless). Returns the new session id;
     /// callers refer to the session by id thereafter.
     pub async fn spawn(self: &Arc<Self>, spec: &TermSpec) -> Result<String> {
-        let id = format!("mado-session-{}", self.next_id.fetch_add(1, Ordering::SeqCst));
+        let id = format!(
+            "mado-session-{}",
+            self.next_id.fetch_add(1, Ordering::SeqCst)
+        );
         let shell = if spec.shell.is_empty() {
             std::env::var("SHELL").unwrap_or_else(|_| DEFAULT_SHELL.to_string())
         } else {
@@ -375,7 +378,9 @@ impl SessionRegistry {
         let working_directory: Option<PathBuf> = if spec.cwd.is_empty() {
             None
         } else if let Some(stripped) = spec.cwd.strip_prefix("~/") {
-            std::env::var("HOME").ok().map(|h| PathBuf::from(h).join(stripped))
+            std::env::var("HOME")
+                .ok()
+                .map(|h| PathBuf::from(h).join(stripped))
         } else if spec.cwd == "~" {
             std::env::var("HOME").ok().map(PathBuf::from)
         } else {
@@ -398,7 +403,10 @@ impl SessionRegistry {
         let pty = Arc::new(AsyncMutex::new(pty));
         let writer = Arc::new(AsyncMutex::new(writer));
 
-        let terminal = Arc::new(parking_lot::RwLock::new(Terminal::new(cols as usize, rows as usize)));
+        let terminal = Arc::new(parking_lot::RwLock::new(Terminal::new(
+            cols as usize,
+            rows as usize,
+        )));
         let terminal_for_pump = Arc::clone(&terminal);
         let writer_for_pump = Arc::clone(&writer);
 
@@ -553,9 +561,15 @@ impl SessionRegistry {
     /// Used in tests and quick agent-driven flows where the full
     /// spawn → write → snapshot loop is one step.
     #[cfg(test)]
-    pub async fn spawn_and_input(self: &Arc<Self>, spec: &TermSpec, input: &[u8]) -> Result<String> {
+    pub async fn spawn_and_input(
+        self: &Arc<Self>,
+        spec: &TermSpec,
+        input: &[u8],
+    ) -> Result<String> {
         let id = self.spawn(spec).await?;
-        let s = self.get(&id).ok_or_else(|| anyhow!("session vanished after spawn"))?;
+        let s = self
+            .get(&id)
+            .ok_or_else(|| anyhow!("session vanished after spawn"))?;
         s.send_input(input).await?;
         Ok(id)
     }
@@ -808,7 +822,13 @@ mod tests {
 
         // The bit must be read positionally, not "any non-zero attrs".
         // BOLD alone shares the field and must NOT read as underlined.
-        let bold = CellSnapshot::legacy('x', 1, [255; 3], [0; 3], crate::terminal::CellAttrs::BOLD.bits());
+        let bold = CellSnapshot::legacy(
+            'x',
+            1,
+            [255; 3],
+            [0; 3],
+            crate::terminal::CellAttrs::BOLD.bits(),
+        );
         assert_eq!(bold.underline, "none", "BOLD must not read as underline");
     }
 
@@ -872,5 +892,4 @@ mod tests {
         let text = snap.to_text();
         assert_eq!(text, "hi\nbye");
     }
-
 }

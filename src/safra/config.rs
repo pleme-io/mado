@@ -147,7 +147,10 @@ mod tests {
     use super::*;
 
     fn t(cadence: Option<u64>) -> CellTuning {
-        CellTuning { cadence_secs: cadence, ..Default::default() }
+        CellTuning {
+            cadence_secs: cadence,
+            ..Default::default()
+        }
     }
 
     #[test]
@@ -158,7 +161,10 @@ mod tests {
 
     #[test]
     fn global_applies_when_no_group_or_cell() {
-        let mut c = SafraConfig { enabled: true, ..Default::default() };
+        let mut c = SafraConfig {
+            enabled: true,
+            ..Default::default()
+        };
         c.global = t(Some(300));
         let r = c.resolve("alerts", &[], "rio", &[]);
         assert_eq!(r.cadence_secs, 300);
@@ -166,10 +172,14 @@ mod tests {
 
     #[test]
     fn group_overrides_global_specific_overrides_group() {
-        let mut c = SafraConfig { enabled: true, ..Default::default() };
+        let mut c = SafraConfig {
+            enabled: true,
+            ..Default::default()
+        };
         c.global = t(Some(300));
         c.groups.insert("prod".into(), t(Some(60)));
-        c.cells.insert(SafraConfig::cell_key("oom", "prod-euw1"), t(Some(30)));
+        c.cells
+            .insert(SafraConfig::cell_key("oom", "prod-euw1"), t(Some(30)));
 
         // env in group "prod", no specific cell → group wins over global.
         let g = c.resolve("oom", &[], "prod-use2", &["prod".into()]);
@@ -183,8 +193,15 @@ mod tests {
     #[test]
     fn unset_fields_fall_through_per_field() {
         // group sets cadence only; max_items must still come from global.
-        let mut c = SafraConfig { enabled: true, ..Default::default() };
-        c.global = CellTuning { cadence_secs: Some(300), max_items: Some(99), ..Default::default() };
+        let mut c = SafraConfig {
+            enabled: true,
+            ..Default::default()
+        };
+        c.global = CellTuning {
+            cadence_secs: Some(300),
+            max_items: Some(99),
+            ..Default::default()
+        };
         c.groups.insert("prod".into(), t(Some(60)));
         let r = c.resolve("oom", &[], "p1", &["prod".into()]);
         assert_eq!(r.cadence_secs, 60, "group's cadence");
@@ -193,26 +210,50 @@ mod tests {
 
     #[test]
     fn kind_group_and_env_group_both_apply() {
-        let mut c = SafraConfig { enabled: true, ..Default::default() };
-        c.groups.insert("critical".into(), CellTuning { quota_pct: Some(1.0), ..Default::default() });
+        let mut c = SafraConfig {
+            enabled: true,
+            ..Default::default()
+        };
+        c.groups.insert(
+            "critical".into(),
+            CellTuning {
+                quota_pct: Some(1.0),
+                ..Default::default()
+            },
+        );
         c.groups.insert("prod".into(), t(Some(45)));
         let r = c.resolve("oom", &["critical".into()], "p1", &["prod".into()]);
         assert_eq!(r.cadence_secs, 45, "env-group cadence applied");
-        assert!((r.quota_pct - 1.0).abs() < f64::EPSILON, "kind-group quota applied");
+        assert!(
+            (r.quota_pct - 1.0).abs() < f64::EPSILON,
+            "kind-group quota applied"
+        );
     }
 
     #[test]
     fn cell_enabled_gated_on_master_switch() {
-        let mut c = SafraConfig { enabled: false, ..Default::default() };
-        c.global = CellTuning { enabled: Some(true), ..Default::default() };
+        let mut c = SafraConfig {
+            enabled: false,
+            ..Default::default()
+        };
+        c.global = CellTuning {
+            enabled: Some(true),
+            ..Default::default()
+        };
         assert!(!c.cell_enabled("a", &[], "e", &[]), "master off → cell off");
         c.enabled = true;
-        assert!(c.cell_enabled("a", &[], "e", &[]), "master on + cell on → runs");
+        assert!(
+            c.cell_enabled("a", &[], "e", &[]),
+            "master on + cell on → runs"
+        );
     }
 
     #[test]
     fn config_round_trips_through_yaml() {
-        let mut c = SafraConfig { enabled: true, ..Default::default() };
+        let mut c = SafraConfig {
+            enabled: true,
+            ..Default::default()
+        };
         c.global = t(Some(120));
         c.groups.insert("prod".into(), t(Some(60)));
         let y = serde_yaml_ng::to_string(&c).unwrap();

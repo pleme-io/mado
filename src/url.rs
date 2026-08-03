@@ -29,7 +29,11 @@ pub struct DetectedUrl {
 /// (`crate::grid_col`) — so a URL's columns can never diverge from where
 /// the renderer paints the glyph.
 pub fn detect_urls_in_row(row: &[Cell], cols: usize, row_idx: usize) -> Vec<DetectedUrl> {
-    let RowColumns { text, start_col, end_col } = row_text_and_columns(row, cols);
+    let RowColumns {
+        text,
+        start_col,
+        end_col,
+    } = row_text_and_columns(row, cols);
 
     let mut finder = linkify::LinkFinder::new();
     finder.kinds(&[linkify::LinkKind::Url]);
@@ -399,8 +403,14 @@ mod tests {
         // old code put col_start at the byte offset (10), so the URL's
         // TRUE start column (4) would not hit; the fix makes it hit, and
         // the blank column before the URL (3) stays a miss.
-        assert!(url_at(&urls, 0, 4).is_some(), "the URL's true start column must hit");
-        assert!(url_at(&urls, 0, 3).is_none(), "the space before the URL must not hit");
+        assert!(
+            url_at(&urls, 0, 4).is_some(),
+            "the URL's true start column must hit"
+        );
+        assert!(
+            url_at(&urls, 0, 3).is_none(),
+            "the space before the URL must not hit"
+        );
     }
 
     /// The click hit-test must hit columns strictly INSIDE the URL span
@@ -460,11 +470,27 @@ mod tests {
     fn url_columns_account_for_wide_cells_before_the_url() {
         let url = "https://a.co";
         let mut row = vec![
-            Cell { ch: '🚀', width: 2, ..Cell::default() }, // cols 0..=1
-            Cell { ch: ' ', width: 0, ..Cell::default() },  // wide continuation — no column
-            Cell { ch: ' ', width: 1, ..Cell::default() },  // col 2
+            Cell {
+                ch: '🚀',
+                width: 2,
+                ..Cell::default()
+            }, // cols 0..=1
+            Cell {
+                ch: ' ',
+                width: 0,
+                ..Cell::default()
+            }, // wide continuation — no column
+            Cell {
+                ch: ' ',
+                width: 1,
+                ..Cell::default()
+            }, // col 2
         ];
-        row.extend(url.chars().map(|ch| Cell { ch, width: 1, ..Cell::default() }));
+        row.extend(url.chars().map(|ch| Cell {
+            ch,
+            width: 1,
+            ..Cell::default()
+        }));
         let cols = row.len();
 
         let urls = detect_urls_in_row(&row, cols, 0);

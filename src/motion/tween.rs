@@ -29,7 +29,13 @@ impl Tween {
     /// starting at `elapsed = 0`.
     #[must_use]
     pub fn new(from: f32, to: f32, duration: Seconds, curve: Curve) -> Self {
-        Self { from, to, duration, elapsed: Seconds::new(0.0), curve }
+        Self {
+            from,
+            to,
+            duration,
+            elapsed: Seconds::new(0.0),
+            curve,
+        }
     }
 
     /// A linear tween `from → to` over `duration`.

@@ -49,7 +49,10 @@ fn severity_of(labels: &std::collections::BTreeMap<String, String>) -> Severity 
 /// Stable identity: `alertname{k=v,…}` over the sorted non-name labels (the
 /// BTreeMap iterates sorted, so the identity is deterministic).
 fn identity_of(labels: &std::collections::BTreeMap<String, String>) -> String {
-    let name = labels.get("alertname").map(String::as_str).unwrap_or("alert");
+    let name = labels
+        .get("alertname")
+        .map(String::as_str)
+        .unwrap_or("alert");
     let mut id = String::from(name);
     id.push('{');
     let mut first = true;
@@ -111,7 +114,11 @@ fn parse(json: &str, env_name: &str, kind_name: &str) -> Vec<Signal> {
                 .map(String::as_str)
                 .unwrap_or("alert");
             let mut label = String::from(name);
-            if let Some(s) = a.annotations.get("summary").filter(|s| !s.trim().is_empty()) {
+            if let Some(s) = a
+                .annotations
+                .get("summary")
+                .filter(|s| !s.trim().is_empty())
+            {
                 label.push_str(" — ");
                 label.push_str(s.trim());
             }
@@ -167,7 +174,10 @@ mod tests {
     #[test]
     fn observes_firing_alerts_only_with_stable_identity() {
         let (env_decl, kind) = ctx_parts();
-        let endpoint = env_decl.endpoint(ServiceKind::VictoriaMetrics).unwrap().clone();
+        let endpoint = env_decl
+            .endpoint(ServiceKind::VictoriaMetrics)
+            .unwrap()
+            .clone();
         let ctx = ObserveCtx {
             env: &env_decl,
             kind: &kind,
@@ -182,21 +192,31 @@ mod tests {
         assert_eq!(oom.identity, "OOMKilled{pod=api-1,severity=critical}");
         assert!(oom.label.contains("api-1 OOM"), "summary joins the label");
         assert_eq!(oom.detail.as_deref(), Some("value 3"));
-        let lat = out.iter().find(|s| s.label.contains("HighLatency")).unwrap();
+        let lat = out
+            .iter()
+            .find(|s| s.label.contains("HighLatency"))
+            .unwrap();
         assert_eq!(lat.severity, Severity::Warning);
     }
 
     #[test]
     fn unreachable_endpoint_and_garbage_are_observed_empty() {
         let (env_decl, kind) = ctx_parts();
-        let endpoint = env_decl.endpoint(ServiceKind::VictoriaMetrics).unwrap().clone();
+        let endpoint = env_decl
+            .endpoint(ServiceKind::VictoriaMetrics)
+            .unwrap()
+            .clone();
         let ctx = ObserveCtx {
             env: &env_decl,
             kind: &kind,
             endpoint: &endpoint,
             secret: None,
         };
-        assert!(VmAlertsSource.observe(&MockEnvironment::new(), &ctx).is_empty());
+        assert!(
+            VmAlertsSource
+                .observe(&MockEnvironment::new(), &ctx)
+                .is_empty()
+        );
         assert!(parse("not json", "rio", "k").is_empty());
     }
 }

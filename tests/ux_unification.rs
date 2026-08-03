@@ -32,27 +32,69 @@ fn strip_line_comments(src: &str) -> String {
 /// checked brace-insensitively below) so type names in adapter
 /// signatures don't false-positive.
 const BANNED: &[(&str, &str)] = &[
-    ("selection.lock(", "selection mutation belongs to ux::InputEngine"),
-    ("clipboard.lock(", "clipboard locking belongs to ux::InputEngine"),
-    ("dir_picker.lock(", "dir-picker routing belongs to ux::InputEngine"),
-    ("search.lock(", "search-overlay state belongs to ux::InputEngine"),
-    ("extract_text(", "Selection::extract_text consumption is engine-only"),
+    (
+        "selection.lock(",
+        "selection mutation belongs to ux::InputEngine",
+    ),
+    (
+        "clipboard.lock(",
+        "clipboard locking belongs to ux::InputEngine",
+    ),
+    (
+        "dir_picker.lock(",
+        "dir-picker routing belongs to ux::InputEngine",
+    ),
+    (
+        "search.lock(",
+        "search-overlay state belongs to ux::InputEngine",
+    ),
+    (
+        "extract_text(",
+        "Selection::extract_text consumption is engine-only",
+    ),
     ("detect_urls(", "URL detection / click-open is engine-only"),
     ("detect_urls_in_row(", "URL detection is engine-only"),
-    ("madori_key_to_pty_bytes(", "key→PTY translation is engine-only"),
+    (
+        "madori_key_to_pty_bytes(",
+        "key→PTY translation is engine-only",
+    ),
     ("kitty_encode_key(", "kitty CSI-u encoding is engine-only"),
     ("sanitize_paste(", "PasteGuard consumption is engine-only"),
-    ("append_query(", "search-overlay query editing is engine-only"),
-    ("backspace_query(", "search-overlay query editing is engine-only"),
-    ("BoundedFontSize::new(", "font zoom flows through the engine's FontZoomTarget path"),
+    (
+        "append_query(",
+        "search-overlay query editing is engine-only",
+    ),
+    (
+        "backspace_query(",
+        "search-overlay query editing is engine-only",
+    ),
+    (
+        "BoundedFontSize::new(",
+        "font zoom flows through the engine's FontZoomTarget path",
+    ),
     // M4 drain markers — per-loop side-effect polling is the seam the
     // unified Terminal::drain_side_effects() closed; any take_* call
     // in an adapter is a second drifting copy being reborn.
-    ("take_bell(", "bell polling flows through Terminal::drain_side_effects"),
-    ("take_clipboard(", "OSC 52 polling flows through Terminal::drain_side_effects"),
-    ("drain_notifications(", "notification polling flows through Terminal::drain_side_effects"),
-    ("take_progress(", "progress polling flows through Terminal::drain_side_effects"),
-    (".title()", "title diffing flows through Terminal::drain_side_effects change-edges"),
+    (
+        "take_bell(",
+        "bell polling flows through Terminal::drain_side_effects",
+    ),
+    (
+        "take_clipboard(",
+        "OSC 52 polling flows through Terminal::drain_side_effects",
+    ),
+    (
+        "drain_notifications(",
+        "notification polling flows through Terminal::drain_side_effects",
+    ),
+    (
+        "take_progress(",
+        "progress polling flows through Terminal::drain_side_effects",
+    ),
+    (
+        ".title()",
+        "title diffing flows through Terminal::drain_side_effects change-edges",
+    ),
 ];
 
 /// Engine calls every adapter must make — the allow-listed seam. The
@@ -80,7 +122,10 @@ const REQUIRED_BOTH: &[&str] = &[
 #[test]
 fn neither_event_loop_contains_direct_ux_logic() {
     let mut failures: Vec<String> = Vec::new();
-    for (name, raw) in [("src/main.rs", MAIN_RS), ("src/gui_tear_attach.rs", TEAR_RS)] {
+    for (name, raw) in [
+        ("src/main.rs", MAIN_RS),
+        ("src/gui_tear_attach.rs", TEAR_RS),
+    ] {
         let src = strip_line_comments(raw);
         for (token, why) in BANNED {
             if src.contains(token) {
@@ -170,7 +215,10 @@ fn tear_adapter_drain_never_short_circuits_the_event() {
 #[test]
 fn both_call_sites_drive_the_engine() {
     let mut failures: Vec<String> = Vec::new();
-    for (name, raw) in [("src/main.rs", MAIN_RS), ("src/gui_tear_attach.rs", TEAR_RS)] {
+    for (name, raw) in [
+        ("src/main.rs", MAIN_RS),
+        ("src/gui_tear_attach.rs", TEAR_RS),
+    ] {
         let src = strip_line_comments(raw);
         for marker in REQUIRED_BOTH {
             if !src.contains(marker) {

@@ -27,8 +27,8 @@
 //! concrete impl is here.
 
 use nami_core::css::{StyleResolver, StyleSheet};
-use nami_core::dom::{Node, NodeData};
 use nami_core::dom::Document;
+use nami_core::dom::{Node, NodeData};
 use nami_core::engine::{BrowserEngine, ContentRect};
 use nami_core::layout::{LayoutEngine, Size};
 use nami_core::net::FetchClient;
@@ -409,19 +409,28 @@ mod tests {
     fn content_seqno_bumps_on_each_render() {
         let mut b = backend();
         let s0 = b.content_seqno();
-        b.render_html("<style>div{background-color:#112233;width:50px;height:50px}</style><div></div>");
+        b.render_html(
+            "<style>div{background-color:#112233;width:50px;height:50px}</style><div></div>",
+        );
         let s1 = b.content_seqno();
         assert_ne!(s0, s1, "seqno must bump on render");
         // The cached list is stable (not consumed) across reads.
         assert!(!b.current_display_list().is_empty());
         assert!(!b.current_display_list().is_empty());
-        assert_eq!(b.content_seqno(), s1, "reading the list must not bump the seqno");
+        assert_eq!(
+            b.content_seqno(),
+            s1,
+            "reading the list must not bump the seqno"
+        );
     }
 
     #[test]
     fn eval_is_unsupported_never_silent() {
         let mut b = backend();
-        assert_eq!(b.eval("1+1"), Err(BackendError::Unsupported("javascript eval")));
+        assert_eq!(
+            b.eval("1+1"),
+            Err(BackendError::Unsupported("javascript eval"))
+        );
     }
 
     #[test]
@@ -440,7 +449,9 @@ mod tests {
     #[test]
     fn resize_relays_out_from_cached_html() {
         let mut b = backend();
-        b.render_html("<style>div{background-color:#00ff00;width:100px;height:40px}</style><div></div>");
+        b.render_html(
+            "<style>div{background-color:#00ff00;width:100px;height:40px}</style><div></div>",
+        );
         assert!(!b.current_display_list().is_empty());
         // A resize re-lays out from the cached HTML (no re-render_html call).
         b.resize(400, 300);
@@ -456,7 +467,9 @@ mod tests {
         // The DOM-Way read↔write loop: render → read the DOM as a tatara-lisp
         // sexp → push it back via set_dom_sexp → still a live, non-empty page.
         let mut b = backend();
-        b.render_html("<style>div{background-color:#00ff00;width:120px;height:40px}</style><div></div>");
+        b.render_html(
+            "<style>div{background-color:#00ff00;width:120px;height:40px}</style><div></div>",
+        );
         let sexp = b.dom_sexp().to_owned();
         assert!(
             sexp.starts_with("(document"),
@@ -508,7 +521,10 @@ mod tests {
             let has_blue = rgba
                 .chunks_exact(4)
                 .any(|px| px[2] > 180 && px[0] < 120 && px[1] < 120);
-            assert!(has_blue, "expected a blue div pixel — real page pixels reached the texture");
+            assert!(
+                has_blue,
+                "expected a blue div pixel — real page pixels reached the texture"
+            );
             // The page is NOT a uniform fill (something painted over the clear).
             let first = &rgba[0..4];
             let uniform = rgba.chunks_exact(4).all(|px| px == first);

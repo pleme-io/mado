@@ -316,7 +316,10 @@ mod tests {
     fn resolve_named_produces_the_expected_rects() {
         let s = SnapSystem::default();
         let v = vp();
-        assert_eq!(s.resolve_named("left-half", v), Some(Rect::new(0.0, 0.0, 500.0, 800.0)));
+        assert_eq!(
+            s.resolve_named("left-half", v),
+            Some(Rect::new(0.0, 0.0, 500.0, 800.0))
+        );
         assert_eq!(s.resolve_named("maximize", v), Some(v));
         assert_eq!(
             s.resolve_named("bottom-right", v),
@@ -340,7 +343,10 @@ mod tests {
             other => panic!("expected left-half commit, got {other:?}"),
         }
         // Center: no zone.
-        assert_eq!(s.resolve((500.0, 400.0), v, v, DragPhase::Moving), SnapAction::None);
+        assert_eq!(
+            s.resolve((500.0, 400.0), v, v, DragPhase::Moving),
+            SnapAction::None
+        );
     }
 
     #[test]
@@ -350,7 +356,10 @@ mod tests {
             band: 0.06,
             enabled: false,
         });
-        assert_eq!(s.resolve((5.0, 5.0), vp(), vp(), DragPhase::Released), SnapAction::None);
+        assert_eq!(
+            s.resolve((5.0, 5.0), vp(), vp(), DragPhase::Released),
+            SnapAction::None
+        );
     }
 
     #[test]

@@ -193,9 +193,7 @@ impl UserMarkHistory {
     }
 
     /// Iterator over marks in insertion order.
-    pub fn iter(
-        &self,
-    ) -> std::collections::vec_deque::Iter<'_, UserMark> {
+    pub fn iter(&self) -> std::collections::vec_deque::Iter<'_, UserMark> {
         self.marks.iter()
     }
 }

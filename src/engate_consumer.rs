@@ -26,8 +26,8 @@
 //! (daemon mode) is a one-line config branch in `gui_tear_attach`;
 //! the Consumer impl below is identical for both.
 
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use engate_attach::Consumer;
 use parking_lot::RwLock;
@@ -113,7 +113,11 @@ impl TerminalSink {
         writer: ResponseWriter,
         probes: Arc<ProbeCounters>,
     ) -> Self {
-        Self { inner: terminal, writer, probes }
+        Self {
+            inner: terminal,
+            writer,
+            probes,
+        }
     }
 
     /// The sink's probe counters (clone of the shared handle).
@@ -147,7 +151,9 @@ impl TerminalSink {
             // the counters are diagnostics, not synchronization.
             self.probes.queries_seen.fetch_add(1, Ordering::Relaxed);
             (self.writer)(&resp);
-            self.probes.responses_written.fetch_add(1, Ordering::Relaxed);
+            self.probes
+                .responses_written
+                .fetch_add(1, Ordering::Relaxed);
         }
     }
 }
@@ -221,8 +227,10 @@ mod tests {
         let (writer, collected) = collecting_writer();
         let mut sink = TerminalSink::new(Arc::clone(&term), writer);
         sink.consume(b"hello".to_vec());
-        assert!(collected.lock().unwrap().is_empty(),
-                "plain text should not generate any VT response");
+        assert!(
+            collected.lock().unwrap().is_empty(),
+            "plain text should not generate any VT response"
+        );
     }
 
     #[test]

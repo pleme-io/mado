@@ -6,7 +6,9 @@
 use std::collections::HashMap;
 
 /// Severity of a curated item — drives ranking + the Ctrl-S accent.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
 pub enum Severity {
     /// Informational — surfaced last.
     Info,
@@ -86,7 +88,10 @@ pub struct CuratedSet<I> {
 impl<I: CuratedItem> CuratedSet<I> {
     #[must_use]
     pub fn new(ttl_secs: u64) -> Self {
-        Self { items: HashMap::new(), ttl_secs }
+        Self {
+            items: HashMap::new(),
+            ttl_secs,
+        }
     }
 
     /// Converge the curated set to a freshly-observed BATCH of upstream items at
@@ -112,7 +117,12 @@ impl<I: CuratedItem> CuratedSet<I> {
                 None => {
                     self.items.insert(
                         sig,
-                        Tracked { item, recurrence: 1, first_seen: now, last_seen: now },
+                        Tracked {
+                            item,
+                            recurrence: 1,
+                            first_seen: now,
+                            last_seen: now,
+                        },
                     );
                     delta.added += 1;
                 }
@@ -130,7 +140,8 @@ impl<I: CuratedItem> CuratedSet<I> {
         }
         let ttl = self.ttl_secs;
         let before = self.items.len();
-        self.items.retain(|_, t| now.saturating_sub(t.last_seen) <= ttl);
+        self.items
+            .retain(|_, t| now.saturating_sub(t.last_seen) <= ttl);
         before - self.items.len()
     }
 
@@ -210,8 +221,18 @@ mod tests {
     #[test]
     fn first_batch_all_added() {
         let mut set = CuratedSet::new(300);
-        let d = set.converge(vec![a("x", Severity::Warning), a("y", Severity::Critical)], 1000);
-        assert_eq!(d, Delta { added: 2, updated: 0, expired: 0 });
+        let d = set.converge(
+            vec![a("x", Severity::Warning), a("y", Severity::Critical)],
+            1000,
+        );
+        assert_eq!(
+            d,
+            Delta {
+                added: 2,
+                updated: 0,
+                expired: 0
+            }
+        );
         assert_eq!(set.len(), 2);
     }
 
@@ -220,7 +241,14 @@ mod tests {
         let mut set = CuratedSet::new(300);
         set.converge(vec![a("x", Severity::Warning)], 1000);
         let d = set.converge(vec![a("x", Severity::Warning)], 1060);
-        assert_eq!(d, Delta { added: 0, updated: 1, expired: 0 });
+        assert_eq!(
+            d,
+            Delta {
+                added: 0,
+                updated: 1,
+                expired: 0
+            }
+        );
         assert_eq!(set.len(), 1, "same signature is the same incident");
         assert_eq!(set.ranked()[0].recurrence, 2);
         assert_eq!(set.ranked()[0].first_seen, 1000, "first_seen preserved");
@@ -257,7 +285,11 @@ mod tests {
             set.converge(vec![a("warn", Severity::Warning)], 1000 + t);
         }
         let ranked = set.ranked();
-        assert_eq!(ranked[0].item.title(), "warn", "5×warning (score 20) out-ranks 1×critical (16)");
+        assert_eq!(
+            ranked[0].item.title(),
+            "warn",
+            "5×warning (score 20) out-ranks 1×critical (16)"
+        );
         assert_eq!(ranked[0].recurrence, 5);
     }
 
@@ -266,8 +298,14 @@ mod tests {
         // The efficiency contract: an unchanged upstream produces only `updated`
         // (recurrence bumps), never churn — so the caller can skip re-projection.
         let mut set = CuratedSet::new(0);
-        set.converge(vec![a("x", Severity::Warning), a("y", Severity::Info)], 1000);
-        let d = set.converge(vec![a("x", Severity::Warning), a("y", Severity::Info)], 1060);
+        set.converge(
+            vec![a("x", Severity::Warning), a("y", Severity::Info)],
+            1000,
+        );
+        let d = set.converge(
+            vec![a("x", Severity::Warning), a("y", Severity::Info)],
+            1060,
+        );
         assert_eq!(d.added, 0);
         assert_eq!(d.expired, 0);
         assert_eq!(d.updated, 2);
@@ -278,18 +316,32 @@ mod tests {
         let mut set = CuratedSet::new(0);
         // 1 critical (score 16) + 3 info (score 1 each).
         set.converge(vec![a("crit", Severity::Critical)], 1000);
-        set.converge(vec![a("i1", Severity::Info), a("i2", Severity::Info), a("i3", Severity::Info)], 1000);
+        set.converge(
+            vec![
+                a("i1", Severity::Info),
+                a("i2", Severity::Info),
+                a("i3", Severity::Info),
+            ],
+            1000,
+        );
         assert_eq!(set.len(), 4);
         let evicted = set.cap(2);
         assert_eq!(evicted, 2, "two lowest-ranked evicted to honor cap=2");
         assert_eq!(set.len(), 2);
-        assert_eq!(set.ranked()[0].item.title(), "crit", "the critical is always kept");
+        assert_eq!(
+            set.ranked()[0].item.title(),
+            "crit",
+            "the critical is always kept"
+        );
     }
 
     #[test]
     fn cap_zero_is_unbounded_and_noop_under_cap() {
         let mut set = CuratedSet::new(0);
-        set.converge(vec![a("x", Severity::Warning), a("y", Severity::Info)], 1000);
+        set.converge(
+            vec![a("x", Severity::Warning), a("y", Severity::Info)],
+            1000,
+        );
         assert_eq!(set.cap(0), 0, "cap=0 is unbounded");
         assert_eq!(set.cap(5), 0, "len under cap → no eviction");
         assert_eq!(set.len(), 2);

@@ -22,7 +22,7 @@
 use engawa::{
     CompiledGraph, RenderGraph, ResourceBindings, ResourceHandle, ResourceId, ResourceKind,
 };
-use engawa_wgpu::catalog::{CatalogEffect, CATALOG_SAMPLER, OUT, SCENE};
+use engawa_wgpu::catalog::{CATALOG_SAMPLER, CatalogEffect, OUT, SCENE};
 
 /// Enabled-effect set — one bit per [`CatalogEffect::ALL`] entry (the
 /// mechanical registry position IS the bit index, so the set can never
@@ -172,8 +172,24 @@ fn compile_frame_graph(key: GraphKey) -> CompiledFrameGraph {
     let enabled: Vec<CatalogEffect> = key.effects.iter_render_order().collect();
 
     let mut g = RenderGraph::default()
-        .with_resource(SCENE, ResourceKind::Texture { width: None, height: None, format: None, sample_count: None })
-        .with_resource(OUT, ResourceKind::Texture { width: None, height: None, format: None, sample_count: None })
+        .with_resource(
+            SCENE,
+            ResourceKind::Texture {
+                width: None,
+                height: None,
+                format: None,
+                sample_count: None,
+            },
+        )
+        .with_resource(
+            OUT,
+            ResourceKind::Texture {
+                width: None,
+                height: None,
+                format: None,
+                sample_count: None,
+            },
+        )
         .with_resource(CATALOG_SAMPLER, ResourceKind::Sampler)
         .with_input(SCENE)
         .with_input(CATALOG_SAMPLER)
@@ -184,12 +200,14 @@ fn compile_frame_graph(key: GraphKey) -> CompiledFrameGraph {
     let mut intermediates: Vec<ResourceId> = Vec::new();
 
     for effect in &enabled {
-        let params_size = u32::try_from(effect.params_size())
-            .expect("catalog params structs are tiny");
+        let params_size =
+            u32::try_from(effect.params_size()).expect("catalog params structs are tiny");
         g = g
             .with_resource(
                 effect.params_resource(),
-                ResourceKind::Uniform { size_bytes: params_size },
+                ResourceKind::Uniform {
+                    size_bytes: params_size,
+                },
             )
             .with_input(effect.params_resource());
         for (id, kind) in effect.aux_resources() {
@@ -206,7 +224,15 @@ fn compile_frame_graph(key: GraphKey) -> CompiledFrameGraph {
             OUT.into()
         } else {
             let id = CHAIN_IDS[i];
-            g = g.with_resource(id, ResourceKind::Texture { width: None, height: None, format: None, sample_count: None });
+            g = g.with_resource(
+                id,
+                ResourceKind::Texture {
+                    width: None,
+                    height: None,
+                    format: None,
+                    sample_count: None,
+                },
+            );
             bindings.insert(id, ResourceHandle::Texture(id.into()));
             intermediates.push(id.into());
             id.into()
@@ -220,9 +246,16 @@ fn compile_frame_graph(key: GraphKey) -> CompiledFrameGraph {
     // Compile failure is unreachable for every constructible key: the
     // power-set forcing test below compiles ALL 2^N effect sets, so a
     // topology bug cannot land without that test failing first.
-    let graph = g.compile().expect("frame graph compiles for every effect set");
+    let graph = g
+        .compile()
+        .expect("frame graph compiles for every effect set");
 
-    CompiledFrameGraph { key, graph, bindings, intermediates }
+    CompiledFrameGraph {
+        key,
+        graph,
+        bindings,
+        intermediates,
+    }
 }
 
 #[cfg(test)]
@@ -238,7 +271,11 @@ mod tests {
     }
 
     fn key(effects: EffectSet) -> GraphKey {
-        GraphKey { effects, width: 640, height: 480 }
+        GraphKey {
+            effects,
+            width: 640,
+            height: 480,
+        }
     }
 
     /// FORCING FUNCTION — the bit registry can hold every catalog
@@ -254,7 +291,9 @@ mod tests {
         for effect in CatalogEffect::ALL.iter().copied() {
             let set = EffectSet::EMPTY.with(effect);
             if !set.contains(effect) {
-                failures.push(std::format!("{effect:?}: insert→contains round-trip failed"));
+                failures.push(std::format!(
+                    "{effect:?}: insert→contains round-trip failed"
+                ));
             }
             if !seen.insert(set.0) {
                 failures.push(std::format!("{effect:?}: bit collides with another effect"));
@@ -359,23 +398,39 @@ mod tests {
         for _ in 0..32 {
             assert!(cache.ensure(base).is_some());
         }
-        assert_eq!(cache.compile_count(), 1, "steady state must compile exactly once");
+        assert_eq!(
+            cache.compile_count(),
+            1,
+            "steady state must compile exactly once"
+        );
 
         let toggled = GraphKey {
             effects: base.effects.with(CatalogEffect::Crt),
             ..base
         };
         cache.ensure(toggled);
-        assert_eq!(cache.compile_count(), 2, "effect toggle must recompile once");
+        assert_eq!(
+            cache.compile_count(),
+            2,
+            "effect toggle must recompile once"
+        );
 
-        let resized = GraphKey { width: 800, height: 600, ..toggled };
+        let resized = GraphKey {
+            width: 800,
+            height: 600,
+            ..toggled
+        };
         for _ in 0..8 {
             cache.ensure(resized);
         }
         assert_eq!(cache.compile_count(), 3, "resize must recompile once");
 
         assert!(cache.ensure(key(EffectSet::EMPTY)).is_none());
-        assert_eq!(cache.compile_count(), 3, "empty set must not compile a graph");
+        assert_eq!(
+            cache.compile_count(),
+            3,
+            "empty set must not compile a graph"
+        );
     }
 
     /// Chain wiring is priority-ordered: the rendered order for the
@@ -387,9 +442,15 @@ mod tests {
         for effect in CatalogEffect::ALL.iter().copied() {
             set.insert(effect);
         }
-        let priorities: Vec<u16> = set.iter_render_order().map(CatalogEffect::priority).collect();
+        let priorities: Vec<u16> = set
+            .iter_render_order()
+            .map(CatalogEffect::priority)
+            .collect();
         let mut sorted = priorities.clone();
         sorted.sort_unstable();
-        assert_eq!(priorities, sorted, "chain must follow catalog priority order");
+        assert_eq!(
+            priorities, sorted,
+            "chain must follow catalog priority order"
+        );
     }
 }

@@ -40,14 +40,7 @@ use pleme_kindstr_derive::KindStr;
 /// instead of two hand-kept inverse match arms. CSS keywords are
 /// case-sensitive, so unknown / wrong-case names return `None`.
 #[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Default,
-    KindStr,
-    pleme_allvariants_derive::AllVariants,
+    Debug, Clone, Copy, PartialEq, Eq, Default, KindStr, pleme_allvariants_derive::AllVariants,
 )]
 pub enum PointerShape {
     /// Platform default pointer (typically an arrow).
@@ -157,8 +150,7 @@ mod tests {
         for variant in PointerShape::all() {
             let name = variant.as_str();
             assert!(
-                name.bytes()
-                    .all(|b| b.is_ascii_lowercase() || b == b'-'),
+                name.bytes().all(|b| b.is_ascii_lowercase() || b == b'-'),
                 "{name} contains non-lowercase / non-hyphen chars",
             );
             assert!(!name.starts_with('-'), "{name} starts with hyphen");

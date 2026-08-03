@@ -22,6 +22,6 @@ pub mod interp;
 // doesn't call them directly today (the safra builder + the interpreter use the
 // rest); allow the re-exports.
 #[allow(unused_imports)]
-pub use izumi::{reject_injection, PrewarmSpec, PrewarmStep};
+pub use interp::{PrewarmEnv, PrewarmError, apply};
 #[allow(unused_imports)]
-pub use interp::{apply, PrewarmEnv, PrewarmError};
+pub use izumi::{PrewarmSpec, PrewarmStep, reject_injection};

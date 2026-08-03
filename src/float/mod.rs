@@ -45,14 +45,14 @@ pub mod state;
 pub use engine::{BackendError, BrowserBackend, LoadState, NavControl, RenderedFrame};
 pub use geom::{Corner, Edge, RectExt, RectProvenance};
 pub use snap::{
-    builtin_zone_geom, builtin_zones, classify_builtin, DragPhase, SnapAction, SnapConfig,
-    SnapSystem, SnapZone, Trigger, ZoneGeom, BUILTIN_ZONE_NAMES,
+    BUILTIN_ZONE_NAMES, DragPhase, SnapAction, SnapConfig, SnapSystem, SnapZone, Trigger, ZoneGeom,
+    builtin_zone_geom, builtin_zones, classify_builtin,
 };
 pub use spec::{
-    browsers_from_str, snap_zones_from_str, FloatingBrowserSpec, Placement, ResolvedBrowser,
-    SnapZoneSpec, SpecError,
+    FloatingBrowserSpec, Placement, ResolvedBrowser, SnapZoneSpec, SpecError, browsers_from_str,
+    snap_zones_from_str,
 };
 pub use state::{
-    transition, BrowserId, FloatEffect, FloatEvent, FloatFocus, FloatMode, FloatState, FloatStep,
-    FloatWindowFsm, FloatingSurface,
+    BrowserId, FloatEffect, FloatEvent, FloatFocus, FloatMode, FloatState, FloatStep,
+    FloatWindowFsm, FloatingSurface, transition,
 };

@@ -36,7 +36,7 @@ use tear_types::{MultiplexerControl, PaneId, SessionSource};
 use crate::config::{MadoConfig, MadoTearConfig, TearMode, TearRuntime};
 use crate::render::{SharedTerminal, TerminalRenderer};
 use crate::session_switch::SwitchRequests;
-use crate::tear_discovery::{discover, DiscoveryOutcome};
+use crate::tear_discovery::{DiscoveryOutcome, discover};
 use crate::terminal::{Color as TermColor, Terminal};
 
 /// The pane the per-pane closures (input/resize/response/cursor-keys)
@@ -210,11 +210,10 @@ pub fn try_run_default(
     let cell_w_logical = config.font_size * 0.6;
     let cell_h_logical = config.font_size * config.line_height;
     let pad_logical = config.window.padding as f32;
-    let init_cols = (((config.window.width as f32 - 2.0 * pad_logical) / cell_w_logical)
-        .floor() as u16)
-        .max(1);
-    let init_rows = (((config.window.height as f32 - 2.0 * pad_logical) / cell_h_logical)
-        .floor() as u16)
+    let init_cols =
+        (((config.window.width as f32 - 2.0 * pad_logical) / cell_w_logical).floor() as u16).max(1);
+    let init_rows = (((config.window.height as f32 - 2.0 * pad_logical) / cell_h_logical).floor()
+        as u16)
         .max(1);
 
     // Project the full capability env to the DAEMON before spawning the
@@ -265,12 +264,7 @@ pub fn try_run_default(
         }
     };
 
-    let pane_id = match session
-        .windows
-        .values()
-        .next()
-        .map(|w| w.active_pane)
-    {
+    let pane_id = match session.windows.values().next().map(|w| w.active_pane) {
         Some(id) => id,
         None => {
             tracing::warn!(
@@ -302,11 +296,11 @@ pub fn try_run_default(
         ctrlc::set_handler(move || {
             tracing::info!(session = %sid, "signal received — reaping owned tear session");
             let _ = reap_client.kill_session(sid);
-            std::process::exit(130);  // 128 + SIGINT
+            std::process::exit(130); // 128 + SIGINT
         })
-        .ok();  // ok() — second mado in the same process would
-                // double-register; the first wins. ctrlc::Error
-                // here is non-fatal (reap-on-close still works).
+        .ok(); // ok() — second mado in the same process would
+        // double-register; the first wins. ctrlc::Error
+        // here is non-fatal (reap-on-close still works).
     }
 
     // We own this session — kill it when our window closes so
@@ -411,10 +405,8 @@ fn run_against_pane_unified<P, C>(
     session_picker_bridge: Option<Box<dyn crate::session_picker::SessionPickerBridge>>,
 ) -> Result<()>
 where
-    P: engate_attach::Producer<
-            Item = Vec<u8>,
-            Snap = tear_types::engate_wrap::PaneSnapshotWrap,
-        > + 'static,
+    P: engate_attach::Producer<Item = Vec<u8>, Snap = tear_types::engate_wrap::PaneSnapshotWrap>
+        + 'static,
     C: tear_types::MultiplexerControl + Send + Sync + 'static,
 {
     use madori::{AppConfig, AppEvent, EventResponse, KeyEvent};
@@ -498,8 +490,7 @@ where
     // ux::ConfigHotReload the local-PTY loop polls; None on the CLI
     // `mado tear-attach` path, which loads config one-shot and runs
     // no watcher.
-    let mut hot_reload = reload
-        .map(|src| crate::ux::ConfigHotReload::new(src, config.clone()));
+    let mut hot_reload = reload.map(|src| crate::ux::ConfigHotReload::new(src, config.clone()));
 
     // engate typed Attach lifecycle — same shape both backends.
     // The TerminalSink writeback path closes the DSR/DA/OSC query
@@ -536,7 +527,9 @@ where
     let terminal_for_attach = Arc::clone(&terminal);
     let build_attach_live = move |producer: P,
                                   response_writer: crate::engate_consumer::ResponseWriter|
-          -> Result<engate_attach::Attach<engate_types::Live, P, crate::engate_consumer::TerminalSink>> {
+          -> Result<
+        engate_attach::Attach<engate_types::Live, P, crate::engate_consumer::TerminalSink>,
+    > {
         let consumer = crate::engate_consumer::TerminalSink::new(
             Arc::clone(&terminal_for_attach),
             response_writer,
@@ -545,9 +538,8 @@ where
             .producer(producer)
             .consumer(consumer)
             .build();
-        let (attach_subscribed, history) = attach_builder
-            .subscribe()
-            .context("engate.subscribe")?;
+        let (attach_subscribed, history) =
+            attach_builder.subscribe().context("engate.subscribe")?;
         let attach_synced = attach_subscribed.replay(history).context("engate.replay")?;
         Ok(attach_synced.start_live())
     };
@@ -606,10 +598,8 @@ where
         let pad = padding;
         let cell_w_logical = effective_font_size * 0.6;
         let cell_h_logical = effective_font_size * config.line_height;
-        let init_cols: u16 =
-            (((logical_w - 2.0 * pad) / cell_w_logical).floor() as u16).max(1);
-        let init_rows: u16 =
-            (((logical_h - 2.0 * pad) / cell_h_logical).floor() as u16).max(1);
+        let init_cols: u16 = (((logical_w - 2.0 * pad) / cell_w_logical).floor() as u16).max(1);
+        let init_rows: u16 = (((logical_h - 2.0 * pad) / cell_h_logical).floor() as u16).max(1);
         if init_cols as usize != cols || init_rows as usize != rows {
             // Both halves move together — a mirror left at snapshot
             // size answers CPR/XTWINOPS for a grid the PTY no longer
@@ -709,15 +699,18 @@ where
     let cursor_keys_mode: Box<dyn Fn() -> bool + Send + Sync> = {
         let control = Arc::clone(&control);
         let current = current_pane.clone();
-        Box::new(move || control.pane_cursor_keys_mode(current.get()).unwrap_or(false))
+        Box::new(move || {
+            control
+                .pane_cursor_keys_mode(current.get())
+                .unwrap_or(false)
+        })
     };
     // Adapter-side clipboard handle for OSC 52 sync (same precedent
     // as main.rs; the M4 drain consumer reads it). Shared with the
     // engine so terminal-driven copies and operator copies land in
     // one place.
-    let side_effect_clipboard: Arc<hasami::Clipboard> = Arc::new(
-        hasami::Clipboard::new().expect("failed to initialize clipboard"),
-    );
+    let side_effect_clipboard: Arc<hasami::Clipboard> =
+        Arc::new(hasami::Clipboard::new().expect("failed to initialize clipboard"));
     // Boot-time notification center (M4 drain consumer): focus-aware,
     // coalescing, rate-limiting orchestrator over the chosen backend. See
     // docs/NOTIFICATIONS.md.
@@ -733,7 +726,8 @@ where
             pty: pty_sink,
             resize: resize_sink,
             shared: crate::ux::SharedUxState::fresh(),
-            clipboard: Arc::clone(&side_effect_clipboard) as Arc<dyn hasami::ClipboardProvider + Send + Sync>,
+            clipboard: Arc::clone(&side_effect_clipboard)
+                as Arc<dyn hasami::ClipboardProvider + Send + Sync>,
             // Curated default baseline + operator `keybinds.custom`
             // overrides via keybind::manager_from_config — the same
             // assembly as the local-PTY path and the kanshou
@@ -760,7 +754,10 @@ where
     // `None` on the legacy path — the closure branches on nothing.
     let switch_requests = switch.as_ref().map(|sw| sw.requests.clone());
     let (current_pane_for_switch, build_producer) = match switch {
-        Some(sw) => (Some(CurrentPane::Shared(sw.current)), Some(sw.build_producer)),
+        Some(sw) => (
+            Some(CurrentPane::Shared(sw.current)),
+            Some(sw.build_producer),
+        ),
         None => (None, None),
     };
     // Register THIS loop as the switch drainer iff switching is on, so
@@ -1245,11 +1242,10 @@ fn try_run_default_embedded(
     let cell_w_logical = config.font_size * 0.6;
     let cell_h_logical = config.font_size * config.line_height;
     let pad_logical = config.window.padding as f32;
-    let init_cols = (((config.window.width as f32 - 2.0 * pad_logical) / cell_w_logical)
-        .floor() as u16)
-        .max(1);
-    let init_rows = (((config.window.height as f32 - 2.0 * pad_logical) / cell_h_logical)
-        .floor() as u16)
+    let init_cols =
+        (((config.window.width as f32 - 2.0 * pad_logical) / cell_w_logical).floor() as u16).max(1);
+    let init_rows = (((config.window.height as f32 - 2.0 * pad_logical) / cell_h_logical).floor()
+        as u16)
         .max(1);
 
     // window.inherit_working_directory threading (M4 stage 2). LAW:
@@ -1324,46 +1320,43 @@ fn try_run_default_embedded(
     let picker_spawn_env = spawn_env.clone();
     let picker_shell = shell.clone();
 
-    let auto_attach: Option<crate::auto_attach::AutoAttachDriver> = if config
-        .tear
-        .auto_attach
-        .is_active()
-    {
-        if config.tear.session_switching {
-            let now = crate::auto_attach::now_unix_seconds();
-            let boot_root = praca::project::project_root(
-                config
-                    .boot_spawn_cwd()
-                    .as_deref()
-                    .unwrap_or_else(|| std::path::Path::new(".")),
-            );
-            Some(crate::auto_attach::AutoAttachDriver::new(
-                Arc::clone(&inproc),
-                kanshou_state.switch.clone(),
-                config.tear.auto_attach.policy(),
-                ishou_tokens::SessionNameStyle::Emoji,
-                session_id,
-                pane_id,
-                boot_root,
-                // The EMOJI projection of the ONE minted identity — the
-                // picker label, matching the glyph form the prompt shows.
-                boot_name.render(ishou_tokens::SessionNameStyle::Emoji),
-                shell.clone(),
-                spawn_env,
-                now,
-            ))
+    let auto_attach: Option<crate::auto_attach::AutoAttachDriver> =
+        if config.tear.auto_attach.is_active() {
+            if config.tear.session_switching {
+                let now = crate::auto_attach::now_unix_seconds();
+                let boot_root = praca::project::project_root(
+                    config
+                        .boot_spawn_cwd()
+                        .as_deref()
+                        .unwrap_or_else(|| std::path::Path::new(".")),
+                );
+                Some(crate::auto_attach::AutoAttachDriver::new(
+                    Arc::clone(&inproc),
+                    kanshou_state.switch.clone(),
+                    config.tear.auto_attach.policy(),
+                    ishou_tokens::SessionNameStyle::Emoji,
+                    session_id,
+                    pane_id,
+                    boot_root,
+                    // The EMOJI projection of the ONE minted identity — the
+                    // picker label, matching the glyph form the prompt shows.
+                    boot_name.render(ishou_tokens::SessionNameStyle::Emoji),
+                    shell.clone(),
+                    spawn_env,
+                    now,
+                ))
+            } else {
+                tracing::warn!(
+                    auto_attach = ?config.tear.auto_attach,
+                    "tear.auto_attach is set but tear.session_switching = false; \
+                     auto-attach drives the switch channel and is INERT without it. \
+                     Set tear.session_switching = true to enable auto-attach-on-cd."
+                );
+                None
+            }
         } else {
-            tracing::warn!(
-                auto_attach = ?config.tear.auto_attach,
-                "tear.auto_attach is set but tear.session_switching = false; \
-                 auto-attach drives the switch channel and is INERT without it. \
-                 Set tear.session_switching = true to enable auto-attach-on-cd."
-            );
             None
-        }
-    } else {
-        None
-    };
+        };
 
     // ── Ctrl-S session picker bridge (praça browse + switch) ──────
     // Built whenever session-switching is on (the picker drives the
@@ -1490,18 +1483,14 @@ fn run_against_embedded_pane(
     let snapshot = inproc
         .pane_snapshot(pane_id)
         .with_context(|| format!("inproc.pane_snapshot({pane_id})"))?;
-    let producer =
-        tear_core::engate_producer::PaneProducer::new(Arc::clone(&inproc), pane_id);
+    let producer = tear_core::engate_producer::PaneProducer::new(Arc::clone(&inproc), pane_id);
     let switch = switch_requests.map(|requests| {
         let inproc_for_factory = Arc::clone(&inproc);
         SwitchDriver {
             requests,
             current: Arc::new(RwLock::new(pane_id)),
             build_producer: Box::new(move |pane| {
-                tear_core::engate_producer::PaneProducer::new(
-                    Arc::clone(&inproc_for_factory),
-                    pane,
-                )
+                tear_core::engate_producer::PaneProducer::new(Arc::clone(&inproc_for_factory), pane)
             }),
         }
     });
@@ -1561,7 +1550,9 @@ fn resolve_boot_name(
 /// the result back via SetConfig. Errors are logged + non-fatal —
 /// failing to impose shouldn't break attach.
 fn impose_if_any(client: &Arc<tear_client::Client>, tear_cfg: &MadoTearConfig) {
-    let Some(impose) = tear_cfg.impose.as_ref() else { return };
+    let Some(impose) = tear_cfg.impose.as_ref() else {
+        return;
+    };
     if !impose.has_any_override() {
         return;
     }
@@ -1602,8 +1593,7 @@ fn run_against_pane(
     let snapshot = client
         .pane_snapshot(pane_id)
         .with_context(|| format!("pane_snapshot({pane_id})"))?;
-    let producer =
-        tear_client::engate_producer::PaneProducer::new(Arc::clone(&client), pane_id);
+    let producer = tear_client::engate_producer::PaneProducer::new(Arc::clone(&client), pane_id);
     run_against_pane_unified(
         producer,
         client,
@@ -1657,11 +1647,22 @@ mod tests {
 
         let a = resolve_boot_name(None, Some(nested.as_path()));
         let b = resolve_boot_name(None, Some(nested.as_path()));
-        assert_eq!(a.render(Emoji), expected_emoji, "emoji form = the project identity");
-        assert_eq!(a.render(Emoji), b.render(Emoji), "same project → same name, always");
+        assert_eq!(
+            a.render(Emoji),
+            expected_emoji,
+            "emoji form = the project identity"
+        );
+        assert_eq!(
+            a.render(Emoji),
+            b.render(Emoji),
+            "same project → same name, always"
+        );
         // Split projection: glyph (prompt) and emoji (picker) share the word.
         assert_eq!(a.word(), b.word());
-        assert!(a.render(Glyph).ends_with(a.word()), "glyph form carries the same word");
+        assert!(
+            a.render(Glyph).ends_with(a.word()),
+            "glyph form carries the same word"
+        );
         assert!(!a.render(Emoji).is_empty());
     }
 
@@ -1683,8 +1684,7 @@ mod tests {
     #[test]
     fn resolve_boot_name_override_wins_verbatim() {
         use ishou_tokens::SessionNameStyle::{Emoji, Glyph};
-        let name =
-            resolve_boot_name(Some("billing-stack"), Some(std::path::Path::new("/code/x")));
+        let name = resolve_boot_name(Some("billing-stack"), Some(std::path::Path::new("/code/x")));
         assert_eq!(name.render(Emoji), "billing-stack");
         assert_eq!(name.render(Glyph), "billing-stack");
     }
@@ -1761,4 +1761,3 @@ mod tests {
         assert_eq!(folded.set_title, None);
     }
 }
-

@@ -300,8 +300,18 @@ pub enum CapProbe {
 /// the gate that makes "ship a new cap unprobed" a build failure.
 #[allow(dead_code)] // Consumed by the honesty tests today (see CapProbe).
 pub const CAP_PROBES: &[(&str, CapProbe)] = &[
-    ("colors_256", CapProbe::RenderVerified { test: "sgr_256color" }),
-    ("truecolor", CapProbe::RenderVerified { test: "sgr_truecolor" }),
+    (
+        "colors_256",
+        CapProbe::RenderVerified {
+            test: "sgr_256color",
+        },
+    ),
+    (
+        "truecolor",
+        CapProbe::RenderVerified {
+            test: "sgr_truecolor",
+        },
+    ),
     (
         "styled_underline",
         // The kitty/neovim undercurl probe, run for real: set SGR
@@ -349,7 +359,9 @@ pub const CAP_PROBES: &[(&str, CapProbe)] = &[
     ),
     (
         "kitty_graphics",
-        CapProbe::RenderVerified { test: "kitty_graphics_direct_rgba" },
+        CapProbe::RenderVerified {
+            test: "kitty_graphics_direct_rgba",
+        },
     ),
     (
         // Sixel support is advertised in the DA1 reply (attribute `4`).
@@ -362,7 +374,12 @@ pub const CAP_PROBES: &[(&str, CapProbe)] = &[
             expect: b";4;",
         },
     ),
-    ("hyperlinks", CapProbe::RenderVerified { test: "osc_8_hyperlink" }),
+    (
+        "hyperlinks",
+        CapProbe::RenderVerified {
+            test: "osc_8_hyperlink",
+        },
+    ),
     (
         "osc52_clipboard",
         CapProbe::Query {
@@ -373,7 +390,9 @@ pub const CAP_PROBES: &[(&str, CapProbe)] = &[
     ("osc7_cwd", CapProbe::RenderVerified { test: "osc_7_cwd" }),
     (
         "shell_integration",
-        CapProbe::RenderVerified { test: "osc_133_prompt_marker" },
+        CapProbe::RenderVerified {
+            test: "osc_133_prompt_marker",
+        },
     ),
 ];
 
@@ -569,9 +588,7 @@ mod tests {
                     let mut term = Terminal::with_scrollback(80, 24, 100);
                     term.feed(feed);
                     let response = term.take_response().unwrap_or_default();
-                    let found = response
-                        .windows(expect.len().max(1))
-                        .any(|w| w == *expect);
+                    let found = response.windows(expect.len().max(1)).any(|w| w == *expect);
                     if !found {
                         failures.push(format!(
                             "{name}: query {:?} answered {:?}, expected it to \

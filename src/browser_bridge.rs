@@ -179,7 +179,9 @@ impl BrowserBridge {
 
     /// Mint + open a surface at `url`.
     pub fn open(&self, url: &str) -> bool {
-        self.commands.push(BrowserVerb::Open { url: url.to_owned() })
+        self.commands.push(BrowserVerb::Open {
+            url: url.to_owned(),
+        })
     }
 
     /// Navigate a surface.

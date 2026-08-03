@@ -227,7 +227,10 @@ pub enum FloatState {
     Dragging { grab_offset: (f32, f32) },
     /// Mid-drag over a snap zone; `target` is the previewed snap rect,
     /// `grab_offset` retained so leaving the zone resumes a free drag.
-    Snapping { target: Rect, grab_offset: (f32, f32) },
+    Snapping {
+        target: Rect,
+        grab_offset: (f32, f32),
+    },
 }
 
 /// An event fed to the interaction FSM.
@@ -311,9 +314,12 @@ pub fn transition(state: FloatState, ev: FloatEvent) -> FloatStep {
         },
         S::Floating => match ev {
             E::Dock => FloatStep::to(S::Docked, &[Fx::Repaint]),
-            E::GrabTitle { offset } => {
-                FloatStep::to(S::Dragging { grab_offset: offset }, &[Fx::BeginDrag])
-            }
+            E::GrabTitle { offset } => FloatStep::to(
+                S::Dragging {
+                    grab_offset: offset,
+                },
+                &[Fx::BeginDrag],
+            ),
             E::Float | E::Move { .. } | E::SnapPreview { .. } | E::Release | E::Cancel => {
                 FloatStep::stay(state)
             }
@@ -321,22 +327,39 @@ pub fn transition(state: FloatState, ev: FloatEvent) -> FloatStep {
         S::Dragging { grab_offset } => match ev {
             E::Move { cursor } => FloatStep::to(
                 S::Dragging { grab_offset },
-                &[Fx::MoveTo(cursor.0 - grab_offset.0, cursor.1 - grab_offset.1)],
+                &[Fx::MoveTo(
+                    cursor.0 - grab_offset.0,
+                    cursor.1 - grab_offset.1,
+                )],
             ),
-            E::SnapPreview { target } => {
-                FloatStep::to(S::Snapping { target, grab_offset }, &[Fx::Repaint])
-            }
+            E::SnapPreview { target } => FloatStep::to(
+                S::Snapping {
+                    target,
+                    grab_offset,
+                },
+                &[Fx::Repaint],
+            ),
             E::Release | E::Cancel => FloatStep::to(S::Floating, &[Fx::EndDrag]),
             E::Float | E::Dock | E::GrabTitle { .. } => FloatStep::stay(state),
         },
-        S::Snapping { target, grab_offset } => match ev {
-            E::SnapPreview { target: t } => {
-                FloatStep::to(S::Snapping { target: t, grab_offset }, &[Fx::Repaint])
-            }
+        S::Snapping {
+            target,
+            grab_offset,
+        } => match ev {
+            E::SnapPreview { target: t } => FloatStep::to(
+                S::Snapping {
+                    target: t,
+                    grab_offset,
+                },
+                &[Fx::Repaint],
+            ),
             // Leaving the zone (a bare move) resumes a free drag.
             E::Move { cursor } => FloatStep::to(
                 S::Dragging { grab_offset },
-                &[Fx::MoveTo(cursor.0 - grab_offset.0, cursor.1 - grab_offset.1)],
+                &[Fx::MoveTo(
+                    cursor.0 - grab_offset.0,
+                    cursor.1 - grab_offset.1,
+                )],
             ),
             E::Release => FloatStep::to(S::Floating, &[Fx::SnapTo(target)]),
             E::Cancel => FloatStep::to(S::Floating, &[Fx::EndDrag]),
@@ -402,21 +425,41 @@ mod tests {
     #[test]
     fn open_focuses_the_new_surface_and_defocuses_others() {
         let mut f = FloatFocus::new();
-        assert!(f.open(BrowserId(1), r(0.0, 0.0, 100.0, 100.0), RectProvenance::Configured));
+        assert!(f.open(
+            BrowserId(1),
+            r(0.0, 0.0, 100.0, 100.0),
+            RectProvenance::Configured
+        ));
         assert_eq!(f.focused(), Some(BrowserId(1)));
-        assert!(f.open(BrowserId(2), r(10.0, 10.0, 100.0, 100.0), RectProvenance::FreeDragged));
+        assert!(f.open(
+            BrowserId(2),
+            r(10.0, 10.0, 100.0, 100.0),
+            RectProvenance::FreeDragged
+        ));
         assert_eq!(f.focused(), Some(BrowserId(2)));
         assert_eq!(f.len(), 2);
         // duplicate id is a no-op
-        assert!(!f.open(BrowserId(2), r(0.0, 0.0, 1.0, 1.0), RectProvenance::Configured));
+        assert!(!f.open(
+            BrowserId(2),
+            r(0.0, 0.0, 1.0, 1.0),
+            RectProvenance::Configured
+        ));
         assert_eq!(f.len(), 2);
     }
 
     #[test]
     fn raise_makes_the_target_top_and_sole_focus() {
         let mut f = FloatFocus::new();
-        f.open(BrowserId(1), r(0.0, 0.0, 10.0, 10.0), RectProvenance::Configured);
-        f.open(BrowserId(2), r(0.0, 0.0, 10.0, 10.0), RectProvenance::Configured);
+        f.open(
+            BrowserId(1),
+            r(0.0, 0.0, 10.0, 10.0),
+            RectProvenance::Configured,
+        );
+        f.open(
+            BrowserId(2),
+            r(0.0, 0.0, 10.0, 10.0),
+            RectProvenance::Configured,
+        );
         assert_eq!(f.focused(), Some(BrowserId(2)));
         assert!(f.raise(BrowserId(1)));
         assert_eq!(f.focused(), Some(BrowserId(1)));
@@ -427,8 +470,16 @@ mod tests {
     #[test]
     fn close_reassigns_focus_to_the_new_top() {
         let mut f = FloatFocus::new();
-        f.open(BrowserId(1), r(0.0, 0.0, 10.0, 10.0), RectProvenance::Configured);
-        f.open(BrowserId(2), r(0.0, 0.0, 10.0, 10.0), RectProvenance::Configured);
+        f.open(
+            BrowserId(1),
+            r(0.0, 0.0, 10.0, 10.0),
+            RectProvenance::Configured,
+        );
+        f.open(
+            BrowserId(2),
+            r(0.0, 0.0, 10.0, 10.0),
+            RectProvenance::Configured,
+        );
         assert!(f.close(BrowserId(2)));
         assert_eq!(f.focused(), Some(BrowserId(1)));
         assert!(f.close(BrowserId(1)));
@@ -440,8 +491,16 @@ mod tests {
     #[test]
     fn hit_test_respects_z_order() {
         let mut f = FloatFocus::new();
-        f.open(BrowserId(1), r(0.0, 0.0, 100.0, 100.0), RectProvenance::Configured);
-        f.open(BrowserId(2), r(50.0, 50.0, 100.0, 100.0), RectProvenance::Configured);
+        f.open(
+            BrowserId(1),
+            r(0.0, 0.0, 100.0, 100.0),
+            RectProvenance::Configured,
+        );
+        f.open(
+            BrowserId(2),
+            r(50.0, 50.0, 100.0, 100.0),
+            RectProvenance::Configured,
+        );
         // (60,60) is under both; the top (id 2, opened last) wins.
         assert_eq!(f.hit_test(60.0, 60.0), Some(BrowserId(2)));
         // (10,10) only under id 1.
@@ -457,7 +516,9 @@ mod tests {
         let fx = fsm.on_event(FloatEvent::GrabTitle { offset: (5.0, 3.0) });
         assert_eq!(fx, vec![FloatEffect::BeginDrag]);
         // move
-        let fx = fsm.on_event(FloatEvent::Move { cursor: (105.0, 203.0) });
+        let fx = fsm.on_event(FloatEvent::Move {
+            cursor: (105.0, 203.0),
+        });
         assert_eq!(fx, vec![FloatEffect::MoveTo(100.0, 200.0)]);
         // enter a snap zone
         let target = r(0.0, 0.0, 500.0, 800.0);
@@ -478,7 +539,9 @@ mod tests {
             target: r(0.0, 0.0, 500.0, 800.0),
         });
         assert!(matches!(fsm.state(), FloatState::Snapping { .. }));
-        let fx = fsm.on_event(FloatEvent::Move { cursor: (300.0, 300.0) });
+        let fx = fsm.on_event(FloatEvent::Move {
+            cursor: (300.0, 300.0),
+        });
         assert_eq!(fx, vec![FloatEffect::MoveTo(300.0, 300.0)]);
         assert!(matches!(fsm.state(), FloatState::Dragging { .. }));
     }
@@ -488,7 +551,9 @@ mod tests {
         let mut v = Vec::new();
         let mut x = seed;
         for _ in 0..24 {
-            x = x.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            x = x
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
             v.push((x >> 33) as u8 % 5);
         }
         v

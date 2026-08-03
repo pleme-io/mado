@@ -77,7 +77,9 @@ pub fn registry() -> Vec<Arc<DynSuggestionSource>> {
             SourceKind::CloudflareDeployments,
         )),
         Arc::new(izumi_sources::GoogleTasks::new(SourceKind::GoogleTasks)),
-        Arc::new(izumi_sources::GoogleCalendar::new(SourceKind::GoogleCalendar)),
+        Arc::new(izumi_sources::GoogleCalendar::new(
+            SourceKind::GoogleCalendar,
+        )),
         Arc::new(izumi_sources::SecretAge::new(SourceKind::SecretAge)),
         // Placeholder adapter (no cells → typed "needs config" health). The
         // engine bootstrap swaps in the config-built adapter when the

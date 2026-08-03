@@ -269,7 +269,10 @@ mod tests {
         assert_eq!(nav.navigate(&mut backend, url.clone()), Ok(true));
         assert_eq!(nav.current().map(Url::as_str), Some("https://example.com/"));
         assert_eq!(nav.state(), LoadState::Loaded);
-        assert_eq!(backend.nav_calls.lock().unwrap().as_slice(), &["https://example.com/".to_owned()]);
+        assert_eq!(
+            backend.nav_calls.lock().unwrap().as_slice(),
+            &["https://example.com/".to_owned()]
+        );
     }
 
     #[test]
@@ -315,7 +318,10 @@ mod tests {
     fn refresh_without_a_current_url_is_a_typed_error() {
         let mut backend = MockBrowserBackend::new();
         let mut nav = NavControl::new();
-        assert!(matches!(nav.refresh(&mut backend), Err(BackendError::Load(_))));
+        assert!(matches!(
+            nav.refresh(&mut backend),
+            Err(BackendError::Load(_))
+        ));
     }
 
     #[test]
@@ -324,6 +330,9 @@ mod tests {
             BackendError::Unsupported("javascript eval").to_string(),
             "backend does not support javascript eval",
         );
-        assert_eq!(BackendError::NoSurface.to_string(), "no render surface available");
+        assert_eq!(
+            BackendError::NoSurface.to_string(),
+            "no render surface available"
+        );
     }
 }

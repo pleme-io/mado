@@ -297,12 +297,42 @@ mod tests {
         // (spec cwd, knob, focused cwd) → resulting cwd. One matrix,
         // every row reported (house aggregation style).
         let rows: &[(&str, bool, Option<&str>, &str, &str)] = &[
-            ("", true, Some("/tmp/proj"), "/tmp/proj", "knob on + focused cwd → inherit"),
-            ("", false, Some("/tmp/proj"), "", "knob off → ignore the focused cwd"),
-            ("", true, None, "", "no focused cwd known → fall back unchanged"),
+            (
+                "",
+                true,
+                Some("/tmp/proj"),
+                "/tmp/proj",
+                "knob on + focused cwd → inherit",
+            ),
+            (
+                "",
+                false,
+                Some("/tmp/proj"),
+                "",
+                "knob off → ignore the focused cwd",
+            ),
+            (
+                "",
+                true,
+                None,
+                "",
+                "no focused cwd known → fall back unchanged",
+            ),
             ("", false, None, "", "knob off + nothing known → unchanged"),
-            ("/explicit", true, Some("/tmp/proj"), "/explicit", "explicit spec cwd beats inheritance"),
-            ("/explicit", false, None, "/explicit", "explicit spec cwd survives knob off"),
+            (
+                "/explicit",
+                true,
+                Some("/tmp/proj"),
+                "/explicit",
+                "explicit spec cwd beats inheritance",
+            ),
+            (
+                "/explicit",
+                false,
+                None,
+                "/explicit",
+                "explicit spec cwd survives knob off",
+            ),
         ];
         let mut failures = Vec::new();
         for (spec_cwd, knob, focused, expected, why) in rows {

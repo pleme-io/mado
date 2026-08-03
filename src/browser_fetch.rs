@@ -156,7 +156,10 @@ mod tests {
                 epoch: 1,
             },
         );
-        assert!(!landed, "a fetch for a closed/unknown surface must be dropped");
+        assert!(
+            !landed,
+            "a fetch for a closed/unknown surface must be dropped"
+        );
     }
 
     #[test]
@@ -172,7 +175,10 @@ mod tests {
                 epoch: 1,
             },
         );
-        assert!(landed, "a failed fetch still lands (renders the error card)");
+        assert!(
+            landed,
+            "a failed fetch still lands (renders the error card)"
+        );
         assert_eq!(m[&BrowserId(2)].backend.load_state().as_str(), "failed");
     }
 }

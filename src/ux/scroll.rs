@@ -284,7 +284,8 @@ impl ScrollSystem {
 
         // ── Forwarding sinks take an IMMEDIATE whole-cell count (apps never
         // want a synthetic glide). Tracking forwarding wins over alt-scroll.
-        let to_app = self.config.forward_to_tracking_apps && ctx.mouse_tracking && !ctx.shift_bypass;
+        let to_app =
+            self.config.forward_to_tracking_apps && ctx.mouse_tracking && !ctx.shift_bypass;
         if to_app {
             let cells = self.direct_cells(gesture, ctx);
             return if cells == 0 {
@@ -404,11 +405,7 @@ impl ScrollSystem {
                 let lines = self.wheel_lines(ticks);
                 #[allow(clippy::cast_possible_truncation)]
                 let signed = lines as i32;
-                if ticks < 0.0 {
-                    -signed
-                } else {
-                    signed
-                }
+                if ticks < 0.0 { -signed } else { signed }
             }
         }
     }
@@ -481,11 +478,7 @@ impl ScrollSystem {
             ScrollGesture::Wheel { ticks } => {
                 #[allow(clippy::cast_precision_loss)]
                 let mag = self.wheel_lines(ticks) as f32 * WHEEL_IMPULSE_GAIN;
-                if ticks < 0.0 {
-                    -mag
-                } else {
-                    mag
-                }
+                if ticks < 0.0 { -mag } else { mag }
             }
             ScrollGesture::Precise { pixels } => {
                 #[allow(clippy::cast_possible_truncation)]
@@ -542,16 +535,29 @@ mod tests {
         let ctx = viewport_ctx();
         // Half a cell up: not enough — no move, remainder carried.
         assert_eq!(
-            s.on_gesture(ScrollGesture::Precise { pixels: CELL_H as f64 / 2.0 }, &ctx),
+            s.on_gesture(
+                ScrollGesture::Precise {
+                    pixels: CELL_H as f64 / 2.0
+                },
+                &ctx
+            ),
             ScrollAction::None
         );
         assert!((s.pixel_remainder() - CELL_H / 2.0).abs() < 1e-3);
         // Another half cell: crosses one cell.
         assert_eq!(
-            s.on_gesture(ScrollGesture::Precise { pixels: CELL_H as f64 / 2.0 }, &ctx),
+            s.on_gesture(
+                ScrollGesture::Precise {
+                    pixels: CELL_H as f64 / 2.0
+                },
+                &ctx
+            ),
             ScrollAction::Viewport { cells: 1 }
         );
-        assert!(s.pixel_remainder().abs() < 1e-3, "remainder nets to ~0 after a clean cell");
+        assert!(
+            s.pixel_remainder().abs() < 1e-3,
+            "remainder nets to ~0 after a clean cell"
+        );
     }
 
     #[test]
@@ -560,7 +566,12 @@ mod tests {
         let mut s = ScrollSystem::new(pixel_cfg(2.0));
         let ctx = viewport_ctx();
         assert_eq!(
-            s.on_gesture(ScrollGesture::Precise { pixels: CELL_H as f64 / 2.0 }, &ctx),
+            s.on_gesture(
+                ScrollGesture::Precise {
+                    pixels: CELL_H as f64 / 2.0
+                },
+                &ctx
+            ),
             ScrollAction::Viewport { cells: 1 }
         );
     }
@@ -571,11 +582,20 @@ mod tests {
         let ctx = viewport_ctx();
         // +0.7 cell up: carried, no move.
         let up = 0.7 * CELL_H as f64;
-        assert_eq!(s.on_gesture(ScrollGesture::Precise { pixels: up }, &ctx), ScrollAction::None);
+        assert_eq!(
+            s.on_gesture(ScrollGesture::Precise { pixels: up }, &ctx),
+            ScrollAction::None
+        );
         // -0.4 cell down: nets to +0.3, still sub-cell, no move — NOT reset.
         let down = -0.4 * CELL_H as f64;
-        assert_eq!(s.on_gesture(ScrollGesture::Precise { pixels: down }, &ctx), ScrollAction::None);
-        assert!((s.pixel_remainder() - 0.3 * CELL_H).abs() < 1e-2, "reversal nets, never resets");
+        assert_eq!(
+            s.on_gesture(ScrollGesture::Precise { pixels: down }, &ctx),
+            ScrollAction::None
+        );
+        assert!(
+            (s.pixel_remainder() - 0.3 * CELL_H).abs() < 1e-2,
+            "reversal nets, never resets"
+        );
     }
 
     #[test]
@@ -586,12 +606,16 @@ mod tests {
         // 10 cells up then 10 cells down, in third-cell dribbles.
         let step = CELL_H as f64 / 3.0;
         for _ in 0..30 {
-            if let ScrollAction::Viewport { cells } = s.on_gesture(ScrollGesture::Precise { pixels: step }, &ctx) {
+            if let ScrollAction::Viewport { cells } =
+                s.on_gesture(ScrollGesture::Precise { pixels: step }, &ctx)
+            {
                 net += i64::from(cells);
             }
         }
         for _ in 0..30 {
-            if let ScrollAction::Viewport { cells } = s.on_gesture(ScrollGesture::Precise { pixels: -step }, &ctx) {
+            if let ScrollAction::Viewport { cells } =
+                s.on_gesture(ScrollGesture::Precise { pixels: -step }, &ctx)
+            {
                 net += i64::from(cells);
             }
         }
@@ -601,12 +625,18 @@ mod tests {
     #[test]
     fn precise_guards_zero_cell_height() {
         let mut s = ScrollSystem::new(pixel_cfg(1.0));
-        let ctx = ScrollContext { cell_height: 0.0, ..viewport_ctx() };
+        let ctx = ScrollContext {
+            cell_height: 0.0,
+            ..viewport_ctx()
+        };
         // A big precise delta with cell_height 0 must not NaN/inf the
         // remainder; cell_height clamps to 1.0 so it peels a bounded count.
         let action = s.on_gesture(ScrollGesture::Precise { pixels: 5.0 }, &ctx);
         assert!(matches!(action, ScrollAction::Viewport { .. }));
-        assert!(s.pixel_remainder().is_finite(), "remainder must stay finite");
+        assert!(
+            s.pixel_remainder().is_finite(),
+            "remainder must stay finite"
+        );
     }
 
     #[test]
@@ -614,11 +644,21 @@ mod tests {
         let mut s = ScrollSystem::new(pixel_cfg(1.0));
         let ctx = viewport_ctx();
         assert_eq!(
-            s.on_gesture(ScrollGesture::Precise { pixels: CELL_H as f64 }, &ctx),
+            s.on_gesture(
+                ScrollGesture::Precise {
+                    pixels: CELL_H as f64
+                },
+                &ctx
+            ),
             ScrollAction::Viewport { cells: 1 }
         );
         assert_eq!(
-            s.on_gesture(ScrollGesture::Precise { pixels: -CELL_H as f64 }, &ctx),
+            s.on_gesture(
+                ScrollGesture::Precise {
+                    pixels: -CELL_H as f64
+                },
+                &ctx
+            ),
             ScrollAction::Viewport { cells: -1 }
         );
     }
@@ -627,8 +667,17 @@ mod tests {
     fn precise_never_drives_synthetic_momentum_in_pixel_mode() {
         let mut s = ScrollSystem::new(pixel_cfg(1.0));
         let ctx = viewport_ctx();
-        s.on_gesture(ScrollGesture::Precise { pixels: 3.0 * CELL_H as f64 }, &ctx);
-        assert_eq!(s.velocity(), 0.0, "PreciseMode::Pixels injects no kinetic velocity");
+        s.on_gesture(
+            ScrollGesture::Precise {
+                pixels: 3.0 * CELL_H as f64,
+            },
+            &ctx,
+        );
+        assert_eq!(
+            s.velocity(),
+            0.0,
+            "PreciseMode::Pixels injects no kinetic velocity"
+        );
         assert!(!s.is_active());
     }
 
@@ -701,7 +750,10 @@ mod tests {
             wheel: WheelMode::Lines { per_notch: 1 },
             ..ScrollConfig::prescribed()
         });
-        let ctx = ScrollContext { mouse_tracking: true, ..viewport_ctx() };
+        let ctx = ScrollContext {
+            mouse_tracking: true,
+            ..viewport_ctx()
+        };
         assert_eq!(
             s.on_gesture(ScrollGesture::Wheel { ticks: 1.0 }, &ctx),
             ScrollAction::ForwardWheel { up: true, count: 1 }
@@ -714,7 +766,11 @@ mod tests {
             wheel: WheelMode::Lines { per_notch: 1 },
             ..ScrollConfig::prescribed()
         });
-        let ctx = ScrollContext { mouse_tracking: true, shift_bypass: true, ..viewport_ctx() };
+        let ctx = ScrollContext {
+            mouse_tracking: true,
+            shift_bypass: true,
+            ..viewport_ctx()
+        };
         assert_eq!(
             s.on_gesture(ScrollGesture::Wheel { ticks: 1.0 }, &ctx),
             ScrollAction::Viewport { cells: 1 }
@@ -728,7 +784,10 @@ mod tests {
             forward_to_tracking_apps: false,
             ..ScrollConfig::prescribed()
         });
-        let ctx = ScrollContext { mouse_tracking: true, ..viewport_ctx() };
+        let ctx = ScrollContext {
+            mouse_tracking: true,
+            ..viewport_ctx()
+        };
         assert_eq!(
             s.on_gesture(ScrollGesture::Wheel { ticks: 1.0 }, &ctx),
             ScrollAction::Viewport { cells: 1 },
@@ -742,7 +801,10 @@ mod tests {
             wheel: WheelMode::Lines { per_notch: 1 },
             ..ScrollConfig::prescribed()
         });
-        let ctx = ScrollContext { alt_screen: true, ..viewport_ctx() };
+        let ctx = ScrollContext {
+            alt_screen: true,
+            ..viewport_ctx()
+        };
         assert_eq!(
             s.on_gesture(ScrollGesture::Wheel { ticks: 1.0 }, &ctx),
             ScrollAction::ForwardArrows { up: true, count: 1 }
@@ -756,7 +818,10 @@ mod tests {
             alt_screen_arrows: false,
             ..ScrollConfig::prescribed()
         });
-        let ctx = ScrollContext { alt_screen: true, ..viewport_ctx() };
+        let ctx = ScrollContext {
+            alt_screen: true,
+            ..viewport_ctx()
+        };
         // No alt-scroll, and no scrollback on the alt screen either → None.
         assert_eq!(
             s.on_gesture(ScrollGesture::Wheel { ticks: 1.0 }, &ctx),
@@ -770,14 +835,27 @@ mod tests {
         // A trackpad in a mouse-tracking app forwards ONE report per peeled
         // cell — the accumulator runs, so a sub-cell event forwards nothing.
         let mut s = ScrollSystem::new(pixel_cfg(1.0));
-        let ctx = ScrollContext { mouse_tracking: true, ..viewport_ctx() };
+        let ctx = ScrollContext {
+            mouse_tracking: true,
+            ..viewport_ctx()
+        };
         assert_eq!(
-            s.on_gesture(ScrollGesture::Precise { pixels: CELL_H as f64 / 4.0 }, &ctx),
+            s.on_gesture(
+                ScrollGesture::Precise {
+                    pixels: CELL_H as f64 / 4.0
+                },
+                &ctx
+            ),
             ScrollAction::None,
             "sub-cell trackpad motion forwards nothing"
         );
         assert_eq!(
-            s.on_gesture(ScrollGesture::Precise { pixels: 2.0 * CELL_H as f64 }, &ctx),
+            s.on_gesture(
+                ScrollGesture::Precise {
+                    pixels: 2.0 * CELL_H as f64
+                },
+                &ctx
+            ),
             ScrollAction::ForwardWheel { up: true, count: 2 }
         );
     }
@@ -800,29 +878,51 @@ mod tests {
     fn autoscroll_speed_and_overshoot_are_live_knobs() {
         // Faster speed → higher sustained velocity for the same overshoot.
         let mut slow = ScrollSystem::new(ScrollConfig {
-            autoscroll: AutoScroll { enabled: true, velocity_per_line: 10.0, max_overshoot: 6.0 },
+            autoscroll: AutoScroll {
+                enabled: true,
+                velocity_per_line: 10.0,
+                max_overshoot: 6.0,
+            },
             ..ScrollConfig::prescribed()
         });
         let mut fast = ScrollSystem::new(ScrollConfig {
-            autoscroll: AutoScroll { enabled: true, velocity_per_line: 40.0, max_overshoot: 6.0 },
+            autoscroll: AutoScroll {
+                enabled: true,
+                velocity_per_line: 40.0,
+                max_overshoot: 6.0,
+            },
             ..ScrollConfig::prescribed()
         });
         slow.update_autoscroll(-3.0, 24.0);
         fast.update_autoscroll(-3.0, 24.0);
-        assert!(fast.velocity() > slow.velocity(), "velocity_per_line is live");
+        assert!(
+            fast.velocity() > slow.velocity(),
+            "velocity_per_line is live"
+        );
         // Overshoot cap bounds the speed: a huge overshoot saturates.
         let mut capped = ScrollSystem::new(ScrollConfig {
-            autoscroll: AutoScroll { enabled: true, velocity_per_line: 10.0, max_overshoot: 2.0 },
+            autoscroll: AutoScroll {
+                enabled: true,
+                velocity_per_line: 10.0,
+                max_overshoot: 2.0,
+            },
             ..ScrollConfig::prescribed()
         });
         capped.update_autoscroll(-100.0, 24.0);
-        assert!((capped.velocity() - 20.0).abs() < 1e-3, "max_overshoot caps the speed");
+        assert!(
+            (capped.velocity() - 20.0).abs() < 1e-3,
+            "max_overshoot caps the speed"
+        );
     }
 
     #[test]
     fn autoscroll_disabled_never_drives() {
         let mut s = ScrollSystem::new(ScrollConfig {
-            autoscroll: AutoScroll { enabled: false, velocity_per_line: 18.0, max_overshoot: 6.0 },
+            autoscroll: AutoScroll {
+                enabled: false,
+                velocity_per_line: 18.0,
+                max_overshoot: 6.0,
+            },
             ..ScrollConfig::prescribed()
         });
         assert!(!s.update_autoscroll(-5.0, 24.0));
@@ -838,7 +938,10 @@ mod tests {
         let travel = |friction: f32| {
             let mut s = ScrollSystem::new(ScrollConfig {
                 wheel: WheelMode::Momentum { per_notch: 3 },
-                momentum: MomentumTuning { friction, max_velocity: 4000.0 },
+                momentum: MomentumTuning {
+                    friction,
+                    max_velocity: 4000.0,
+                },
                 ..ScrollConfig::prescribed()
             });
             s.on_gesture(ScrollGesture::Wheel { ticks: 1.0 }, &viewport_ctx());
@@ -859,7 +962,10 @@ mod tests {
         let peak = |cap: f32| {
             let mut s = ScrollSystem::new(ScrollConfig {
                 wheel: WheelMode::Momentum { per_notch: 100 },
-                momentum: MomentumTuning { friction: 3.0, max_velocity: cap },
+                momentum: MomentumTuning {
+                    friction: 3.0,
+                    max_velocity: cap,
+                },
                 ..ScrollConfig::prescribed()
             });
             // A few hard flicks to saturate.
@@ -892,18 +998,30 @@ mod tests {
 
     #[test]
     fn behavior_matrix_every_mode_combination_is_sane() {
-        let wheels = [WheelMode::Lines { per_notch: 2 }, WheelMode::Momentum { per_notch: 2 }];
-        let precises = [PreciseMode::Pixels { multiplier: 2.0 }, PreciseMode::Momentum { multiplier: 1.0 }];
+        let wheels = [
+            WheelMode::Lines { per_notch: 2 },
+            WheelMode::Momentum { per_notch: 2 },
+        ];
+        let precises = [
+            PreciseMode::Pixels { multiplier: 2.0 },
+            PreciseMode::Momentum { multiplier: 1.0 },
+        ];
         let mut failures = vec![];
         for w in wheels {
             for p in precises {
-                let mut s = ScrollSystem::new(ScrollConfig { wheel: w, precise: p, ..ScrollConfig::prescribed() });
+                let mut s = ScrollSystem::new(ScrollConfig {
+                    wheel: w,
+                    precise: p,
+                    ..ScrollConfig::prescribed()
+                });
                 let ctx = viewport_ctx();
                 // A wheel flick either moves the viewport (Lines) or arms a
                 // glide (Momentum) — never forwards on a plain viewport.
                 let wa = s.on_gesture(ScrollGesture::Wheel { ticks: 1.0 }, &ctx);
                 let wheel_ok = match w {
-                    WheelMode::Lines { .. } => matches!(wa, ScrollAction::Viewport { cells } if cells > 0),
+                    WheelMode::Lines { .. } => {
+                        matches!(wa, ScrollAction::Viewport { cells } if cells > 0)
+                    }
                     WheelMode::Momentum { .. } => wa == ScrollAction::None && s.velocity() > 0.0,
                 };
                 if !wheel_ok {
@@ -911,10 +1029,21 @@ mod tests {
                 }
                 // A precise gesture of several cells either moves (Pixels) or
                 // arms the glide (Momentum).
-                let mut s2 = ScrollSystem::new(ScrollConfig { wheel: w, precise: p, ..ScrollConfig::prescribed() });
-                let pa = s2.on_gesture(ScrollGesture::Precise { pixels: 3.0 * CELL_H as f64 }, &ctx);
+                let mut s2 = ScrollSystem::new(ScrollConfig {
+                    wheel: w,
+                    precise: p,
+                    ..ScrollConfig::prescribed()
+                });
+                let pa = s2.on_gesture(
+                    ScrollGesture::Precise {
+                        pixels: 3.0 * CELL_H as f64,
+                    },
+                    &ctx,
+                );
                 let precise_ok = match p {
-                    PreciseMode::Pixels { .. } => matches!(pa, ScrollAction::Viewport { cells } if cells > 0),
+                    PreciseMode::Pixels { .. } => {
+                        matches!(pa, ScrollAction::Viewport { cells } if cells > 0)
+                    }
                     PreciseMode::Momentum { .. } => pa == ScrollAction::None && s2.velocity() > 0.0,
                 };
                 if !precise_ok {
@@ -922,6 +1051,11 @@ mod tests {
                 }
             }
         }
-        assert!(failures.is_empty(), "{} mode(s) misbehaved:\n  - {}", failures.len(), failures.join("\n  - "));
+        assert!(
+            failures.is_empty(),
+            "{} mode(s) misbehaved:\n  - {}",
+            failures.len(),
+            failures.join("\n  - ")
+        );
     }
 }

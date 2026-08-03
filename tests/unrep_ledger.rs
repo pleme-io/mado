@@ -57,11 +57,7 @@ fn pinned_test_names() -> Vec<String> {
             let after = &rest[start + 1..];
             let Some(end) = after.find('`') else { break };
             let token = &after[..end];
-            if !token.is_empty()
-                && token
-                    .chars()
-                    .all(|c| c.is_ascii_alphanumeric() || c == '_')
-            {
+            if !token.is_empty() && token.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
                 names.push(token.to_owned());
             }
             rest = &after[end + 1..];

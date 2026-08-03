@@ -140,7 +140,12 @@ impl Osc99Part {
 pub fn osc99_notify(id: &str, done: bool, urgency: u8, part: Osc99Part, payload: &str) -> Vec<u8> {
     use std::fmt::Write as _;
     let mut meta = String::with_capacity(id.len() + 20);
-    let _ = write!(meta, "i={id}:d={}:u={urgency}:p={}", u8::from(done), part.as_str());
+    let _ = write!(
+        meta,
+        "i={id}:d={}:u={urgency}:p={}",
+        u8::from(done),
+        part.as_str()
+    );
     osc(99, &[&meta, payload], OscTerminator::St)
 }
 
@@ -149,7 +154,11 @@ pub fn osc99_notify(id: &str, done: bool, urgency: u8, part: Osc99Part, payload:
 /// focus-bypassing notification + dock attention).
 #[must_use]
 pub fn osc1337_request_attention(on: bool) -> Vec<u8> {
-    let param = if on { "RequestAttention=1" } else { "RequestAttention=0" };
+    let param = if on {
+        "RequestAttention=1"
+    } else {
+        "RequestAttention=0"
+    };
     osc(1337, &[param], OscTerminator::Bel)
 }
 
@@ -241,7 +250,10 @@ pub enum CsiCommand {
     CursorNextLine(usize),
     CursorPrevLine(usize),
     CursorColumn(usize),
-    CursorPosition { row: usize, col: usize },
+    CursorPosition {
+        row: usize,
+        col: usize,
+    },
     EraseDisplay(u16),
     EraseLine(u16),
     InsertLines(usize),
@@ -257,7 +269,10 @@ pub enum CsiCommand {
     /// `bottom = None` means "default to the screen's bottom row" (the
     /// legacy `map_or(self.rows, …)` — a state-dependent default the
     /// interpreter fills in).
-    SetScrollRegion { top: usize, bottom: Option<usize> },
+    SetScrollRegion {
+        top: usize,
+        bottom: Option<usize>,
+    },
     PrimaryDeviceAttributes,
     CursorBackwardTab(usize),
     TabClear(u16),
@@ -332,7 +347,10 @@ mod tests {
     fn csi_matches_the_legacy_format_strings_byte_for_byte() {
         // kitty-keyboard flags: ESC [ ? <flags> u
         let flags = 5u32;
-        assert_eq!(csi(true, &[flags], "", b'u'), format!("\x1b[?{flags}u").into_bytes());
+        assert_eq!(
+            csi(true, &[flags], "", b'u'),
+            format!("\x1b[?{flags}u").into_bytes()
+        );
         // DECRQM: ESC [ <mode> ; <state> $ y
         let (mode, state) = (2069u32, 1u32);
         assert_eq!(
@@ -354,7 +372,10 @@ mod tests {
             format!("\x1bP1$r{top};{bottom}r\x1b\\").into_bytes()
         );
         let id = 42u32;
-        assert_eq!(apc(&format!("Gi={id};OK")), format!("\x1b_Gi={id};OK\x1b\\").into_bytes());
+        assert_eq!(
+            apc(&format!("Gi={id};OK")),
+            format!("\x1b_Gi={id};OK\x1b\\").into_bytes()
+        );
     }
 
     #[test]
@@ -366,7 +387,10 @@ mod tests {
     #[test]
     fn osc_envelope_bel_and_st() {
         assert_eq!(osc(9, &["hi"], OscTerminator::Bel), b"\x1b]9;hi\x07");
-        assert_eq!(osc(99, &["m", "p"], OscTerminator::St), b"\x1b]99;m;p\x1b\\");
+        assert_eq!(
+            osc(99, &["m", "p"], OscTerminator::St),
+            b"\x1b]99;m;p\x1b\\"
+        );
         // No params → just introducer + code + terminator.
         assert_eq!(osc(0, &[], OscTerminator::Bel), b"\x1b]0\x07");
     }
@@ -394,8 +418,14 @@ mod tests {
 
     #[test]
     fn osc1337_request_attention_builder() {
-        assert_eq!(osc1337_request_attention(true), b"\x1b]1337;RequestAttention=1\x07");
-        assert_eq!(osc1337_request_attention(false), b"\x1b]1337;RequestAttention=0\x07");
+        assert_eq!(
+            osc1337_request_attention(true),
+            b"\x1b]1337;RequestAttention=1\x07"
+        );
+        assert_eq!(
+            osc1337_request_attention(false),
+            b"\x1b]1337;RequestAttention=0\x07"
+        );
     }
 
     #[test]
@@ -405,31 +435,53 @@ mod tests {
         assert_eq!(osc133(Osc133Mark::CommandStart), b"\x1b]133;B\x1b\\");
         assert_eq!(osc133(Osc133Mark::CommandOutput), b"\x1b]133;C\x1b\\");
         assert_eq!(osc133(Osc133Mark::CommandEnd(None)), b"\x1b]133;D\x1b\\");
-        assert_eq!(osc133(Osc133Mark::CommandEnd(Some(0))), b"\x1b]133;D;0\x1b\\");
-        assert_eq!(osc133(Osc133Mark::CommandEnd(Some(130))), b"\x1b]133;D;130\x1b\\");
+        assert_eq!(
+            osc133(Osc133Mark::CommandEnd(Some(0))),
+            b"\x1b]133;D;0\x1b\\"
+        );
+        assert_eq!(
+            osc133(Osc133Mark::CommandEnd(Some(130))),
+            b"\x1b]133;D;130\x1b\\"
+        );
     }
 
     #[test]
     fn osc_color_reply_matches_the_legacy_format_string() {
         // Byte-for-byte the former terminal.rs `osc_rgb_query_response` output
         // (the M5 typed-emission migration is no-behaviour-change).
-        for (code, r, g, b) in [(10u16, 0x2Eu8, 0x34u8, 0x40u8), (11, 0, 255, 16), (12, 0xD8, 0xDE, 0xE9)] {
+        for (code, r, g, b) in [
+            (10u16, 0x2Eu8, 0x34u8, 0x40u8),
+            (11, 0, 255, 16),
+            (12, 0xD8, 0xDE, 0xE9),
+        ] {
             assert_eq!(
                 osc_color_reply(code, r, g, b),
-                format!("\x1b]{code};rgb:{r:02x}{r:02x}/{g:02x}{g:02x}/{b:02x}{b:02x}\x1b\\").into_bytes()
+                format!("\x1b]{code};rgb:{r:02x}{r:02x}/{g:02x}{g:02x}/{b:02x}{b:02x}\x1b\\")
+                    .into_bytes()
             );
         }
-        assert_eq!(osc_color_reply(11, 0x2E, 0x34, 0x40), b"\x1b]11;rgb:2e2e/3434/4040\x1b\\");
+        assert_eq!(
+            osc_color_reply(11, 0x2E, 0x34, 0x40),
+            b"\x1b]11;rgb:2e2e/3434/4040\x1b\\"
+        );
     }
 
     #[test]
     fn osc4_color_reply_matches_the_legacy_format_string() {
-        for (idx, r, g, b) in [(5usize, 0xBFu8, 0x61u8, 0x6Au8), (0, 0, 0, 0), (255, 255, 255, 255)] {
+        for (idx, r, g, b) in [
+            (5usize, 0xBFu8, 0x61u8, 0x6Au8),
+            (0, 0, 0, 0),
+            (255, 255, 255, 255),
+        ] {
             assert_eq!(
                 osc4_color_reply(idx, r, g, b),
-                format!("\x1b]4;{idx};rgb:{r:02x}{r:02x}/{g:02x}{g:02x}/{b:02x}{b:02x}\x1b\\").into_bytes()
+                format!("\x1b]4;{idx};rgb:{r:02x}{r:02x}/{g:02x}{g:02x}/{b:02x}{b:02x}\x1b\\")
+                    .into_bytes()
             );
         }
-        assert_eq!(osc4_color_reply(5, 0xBF, 0x61, 0x6A), b"\x1b]4;5;rgb:bfbf/6161/6a6a\x1b\\");
+        assert_eq!(
+            osc4_color_reply(5, 0xBF, 0x61, 0x6A),
+            b"\x1b]4;5;rgb:bfbf/6161/6a6a\x1b\\"
+        );
     }
 }

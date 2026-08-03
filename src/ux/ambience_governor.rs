@@ -416,7 +416,10 @@ mod tests {
                 // effect through the sink, never a divergent word).
                 let AmbienceQualityEffect::SetAmbienceQuality(word) = step.effect;
                 if word != step.state {
-                    failures.push(std::format!("{ctx}: effect word {word:?} != state {:?}", step.state));
+                    failures.push(std::format!(
+                        "{ctx}: effect word {word:?} != state {:?}",
+                        step.state
+                    ));
                 }
                 // Never above the ceiling.
                 if rung(step.state) > rung(ceiling) {
@@ -451,17 +454,29 @@ mod tests {
         // N_DOWN-1 over frames hold; the N_DOWN-th steps down.
         for _ in 0..(N_DOWN - 1) {
             g.on_event(GovernorEvent::TickOverBudget);
-            assert_eq!(g.quality(), AuroraQuality::Medium, "must hold before N_DOWN");
+            assert_eq!(
+                g.quality(),
+                AuroraQuality::Medium,
+                "must hold before N_DOWN"
+            );
         }
         g.on_event(GovernorEvent::TickOverBudget);
-        assert_eq!(g.quality(), AuroraQuality::Low, "N_DOWN over frames step down");
+        assert_eq!(
+            g.quality(),
+            AuroraQuality::Low,
+            "N_DOWN over frames step down"
+        );
         // The streak reset: another full N_DOWN run to drop again.
         for _ in 0..(N_DOWN - 1) {
             g.on_event(GovernorEvent::TickOverBudget);
         }
         assert_eq!(g.quality(), AuroraQuality::Low, "streak reset after a step");
         g.on_event(GovernorEvent::TickOverBudget);
-        assert_eq!(g.quality(), AuroraQuality::Off, "second N_DOWN run reaches Off");
+        assert_eq!(
+            g.quality(),
+            AuroraQuality::Off,
+            "second N_DOWN run reaches Off"
+        );
         // Off is the floor — no further drop, ever.
         for _ in 0..(N_DOWN * 3) {
             g.on_event(GovernorEvent::TickOverBudget);
@@ -491,7 +506,11 @@ mod tests {
         for _ in 0..M_UP {
             g.on_event(GovernorEvent::TickCalm);
         }
-        assert_eq!(g.quality(), AuroraQuality::Medium, "climb reaches the ceiling");
+        assert_eq!(
+            g.quality(),
+            AuroraQuality::Medium,
+            "climb reaches the ceiling"
+        );
         // Endless calm cannot climb above the ceiling.
         for _ in 0..(M_UP * 3) {
             g.on_event(GovernorEvent::TickCalm);
@@ -553,7 +572,9 @@ mod tests {
         for (frame, want) in rows {
             let got = classify_frame(frame, budget);
             if got != want {
-                failures.push(std::format!("classify({frame}, {budget}) = {got:?}, want {want:?}"));
+                failures.push(std::format!(
+                    "classify({frame}, {budget}) = {got:?}, want {want:?}"
+                ));
             }
         }
         // Zero budget never panics — always calm.
@@ -574,7 +595,11 @@ mod tests {
     #[test]
     fn default_governor_is_high_ceiling_starting_medium() {
         let g = AmbienceGovernor::default();
-        assert_eq!(g.quality(), AuroraQuality::Medium, "starts at the catalog default tier");
+        assert_eq!(
+            g.quality(),
+            AuroraQuality::Medium,
+            "starts at the catalog default tier"
+        );
         assert_eq!(g.ceiling, AuroraQuality::High, "default ceiling is High");
     }
 
@@ -585,7 +610,11 @@ mod tests {
         assert_eq!(budget_us_for_fps(60), 16_666);
         assert_eq!(budget_us_for_fps(120), 8_333);
         assert_eq!(budget_us_for_fps(30), 33_333);
-        assert_eq!(budget_us_for_fps(0), DEFAULT_BUDGET_US, "zero fps keeps the 60 Hz floor");
+        assert_eq!(
+            budget_us_for_fps(0),
+            DEFAULT_BUDGET_US,
+            "zero fps keeps the 60 Hz floor"
+        );
     }
 
     /// critic-1: on a 120 Hz panel the governor budgets against the 8.3 ms
@@ -615,7 +644,10 @@ mod tests {
         let mut g = AmbienceGovernor::default();
         assert_eq!(g.budget_us, DEFAULT_BUDGET_US, "default is the 60 Hz floor");
         g.set_budget_us(budget_120);
-        assert_eq!(g.budget_us, budget_120, "set_budget_us re-budgets a live governor");
+        assert_eq!(
+            g.budget_us, budget_120,
+            "set_budget_us re-budgets a live governor"
+        );
         assert_eq!(
             classify_frame(frame_us, g.budget_us),
             GovernorEvent::TickOverBudget,

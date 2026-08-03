@@ -19,9 +19,9 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use rmcp::ServiceExt;
 use rmcp::model::CallToolRequestParams;
 use rmcp::transport::TokioChildProcess;
-use rmcp::ServiceExt;
 use tokio::process::Command;
 
 /// Extract the first text-shaped Content payload from a tool result
@@ -48,9 +48,8 @@ async fn mado_mcp_child_exposes_tear_tools_and_drives_a_real_daemon() {
     let _ = std::fs::remove_file(&socket);
     let inproc = Arc::new(tear_core::InProcess::new());
     let live = Arc::new(tear_config::LiveConfig::default());
-    let daemon =
-        tear_daemon::start_with_config(socket.clone(), inproc, live.clone())
-            .expect("tear-daemon should start");
+    let daemon = tear_daemon::start_with_config(socket.clone(), inproc, live.clone())
+        .expect("tear-daemon should start");
     // Tiny settle for the accept loop.
     std::thread::sleep(Duration::from_millis(50));
 

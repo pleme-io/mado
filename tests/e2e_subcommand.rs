@@ -58,15 +58,24 @@ fn mado_e2e_smoke_matrix_passes_with_bin_sh() {
     // single_recorder: /bin/sh never records → honest environment-
     // skip, not a fake pass, not a failure.
     let sr = &rows[4];
-    assert_eq!(sr["pass"], false, "sh must not fake a recording pass:\n{sr}");
+    assert_eq!(
+        sr["pass"], false,
+        "sh must not fake a recording pass:\n{sr}"
+    );
     assert_eq!(sr["skipped"], true, "sh must env-skip, not fail:\n{sr}");
     assert!(
-        sr["detail"].as_str().unwrap_or_default().contains("skipped"),
+        sr["detail"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("skipped"),
         "skip detail must say so:\n{sr}"
     );
 
     // Verdict: env-skip is non-fatal — summary pass + exit 0 agree.
-    assert_eq!(v["pass"], true, "matrix failed:\n{stdout}\nstderr:\n{stderr}");
+    assert_eq!(
+        v["pass"], true,
+        "matrix failed:\n{stdout}\nstderr:\n{stderr}"
+    );
     assert!(
         out.status.success(),
         "exit code must mirror the pass verdict; got {:?}\n{stdout}",

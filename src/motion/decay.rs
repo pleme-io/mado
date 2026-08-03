@@ -63,7 +63,10 @@ impl Decay {
     /// A decay starting at `value` with an explicit per-second rate `λ`.
     #[must_use]
     pub fn new(value: f32, rate: f32) -> Self {
-        Self { value, rate: rate.max(0.0) }
+        Self {
+            value,
+            rate: rate.max(0.0),
+        }
     }
 
     /// A decay whose per-60fps-frame retention is `retain` — i.e. each
@@ -75,7 +78,10 @@ impl Decay {
         let retain = retain.clamp(f32::MIN_POSITIVE, 1.0);
         // 0.92^(dt·60) = e^(dt·60·ln 0.92) = e^(-λ·dt), λ = -60·ln(retain).
         let rate = -60.0 * retain.ln();
-        Self { value, rate: rate.max(0.0) }
+        Self {
+            value,
+            rate: rate.max(0.0),
+        }
     }
 
     /// A decay that halves every `half_life_secs` seconds
@@ -83,9 +89,15 @@ impl Decay {
     #[must_use]
     pub fn with_half_life(value: f32, half_life_secs: f32) -> Self {
         if half_life_secs <= 0.0 {
-            return Self { value: 0.0, rate: f32::INFINITY };
+            return Self {
+                value: 0.0,
+                rate: f32::INFINITY,
+            };
         }
-        Self { value, rate: std::f32::consts::LN_2 / half_life_secs }
+        Self {
+            value,
+            rate: std::f32::consts::LN_2 / half_life_secs,
+        }
     }
 
     /// Reset to a fresh starting value, keeping the rate (e.g. a bell
@@ -130,8 +142,11 @@ mod tests {
         for _ in 0..30 {
             d.advance(dt);
             hand *= 0.92;
-            assert!((d.value() - hand).abs() < 1e-4,
-                "decay {} drifted from hand-rolled 0.92^n {hand}", d.value());
+            assert!(
+                (d.value() - hand).abs() < 1e-4,
+                "decay {} drifted from hand-rolled 0.92^n {hand}",
+                d.value()
+            );
         }
     }
 
@@ -142,7 +157,10 @@ mod tests {
         // in general it equals the inline expression it replaced; at
         // dt = 0 the multiplier is 1.0 (no decay).
         let dt = 1.0 / 60.0;
-        assert!((frame_decay(dt, 0.92) - 0.92).abs() < 1e-6, "one 60fps frame = retain");
+        assert!(
+            (frame_decay(dt, 0.92) - 0.92).abs() < 1e-6,
+            "one 60fps frame = retain"
+        );
         for &(dt, r) in &[(1.0 / 60.0, 0.92_f32), (1.0 / 120.0, 0.85), (0.05, 0.5)] {
             assert!(
                 (frame_decay(dt, r) - r.powf(dt * 60.0)).abs() < 1e-6,
@@ -165,7 +183,10 @@ mod tests {
     fn half_life_halves_on_schedule() {
         let mut d = Decay::with_half_life(1.0, 0.25);
         d.advance(0.25);
-        assert!((d.value() - 0.5).abs() < 1e-3, "one half-life halves the value");
+        assert!(
+            (d.value() - 0.5).abs() < 1e-3,
+            "one half-life halves the value"
+        );
     }
 
     #[test]

@@ -23,8 +23,8 @@ use std::sync::Mutex;
 use std::time::Duration;
 
 use engate_attach::{Attach, Consumer, Producer};
-use tear_core::engate_producer::PaneProducer;
 use tear_core::InProcess;
+use tear_core::engate_producer::PaneProducer;
 use tear_types::engate_wrap::PaneSnapshotWrap;
 use tear_types::{MultiplexerControl, SessionSource};
 
@@ -78,7 +78,10 @@ fn embedded_engate_attach_drains_snapshot_and_live() {
 
     // Full engate typestate transition — the same shape mado runs
     // in embedded mode.
-    let attach = Attach::builder().producer(producer).consumer(consumer).build();
+    let attach = Attach::builder()
+        .producer(producer)
+        .consumer(consumer)
+        .build();
     let (attach, history) = attach.subscribe().expect("subscribe");
     assert!(
         history.size_bytes() > 0,
@@ -133,7 +136,9 @@ fn embedded_engate_producer_snapshot_then_subscribe_ordering() {
     // Per engate contract: subscribe() must succeed even when called
     // before any output has been produced. Returns a fresh receiver
     // that will deliver every byte from now on.
-    let rx = producer.subscribe().expect("subscribe is idempotent + lossless");
+    let rx = producer
+        .subscribe()
+        .expect("subscribe is idempotent + lossless");
     // Snapshot also succeeds — captures whatever happens to be in
     // the grid at this instant (may be empty).
     let snap = producer.snapshot().expect("snapshot succeeds");

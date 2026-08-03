@@ -55,9 +55,17 @@ pub enum Action {
     ScrollToBottom,
     #[kind(name = "jump_to_prompt")]
     JumpToPrompt,
-    #[kind(name = "jump_to_prompt_prev", alias = "jump_to_prompt:prev", alias = "jump_to_previous_prompt")]
+    #[kind(
+        name = "jump_to_prompt_prev",
+        alias = "jump_to_prompt:prev",
+        alias = "jump_to_previous_prompt"
+    )]
     JumpToPromptPrev,
-    #[kind(name = "jump_to_prompt_next", alias = "jump_to_prompt:next", alias = "jump_to_next_prompt")]
+    #[kind(
+        name = "jump_to_prompt_next",
+        alias = "jump_to_prompt:next",
+        alias = "jump_to_next_prompt"
+    )]
     JumpToPromptNext,
     #[kind(name = "search_open", alias = "search")]
     SearchOpen,
@@ -69,7 +77,11 @@ pub enum Action {
     SearchPrev,
     #[kind(name = "dir_picker_open", alias = "dir_picker", alias = "recent_dirs")]
     DirPickerOpen,
-    #[kind(name = "session_picker_open", alias = "session_picker", alias = "session_switcher")]
+    #[kind(
+        name = "session_picker_open",
+        alias = "session_picker",
+        alias = "session_switcher"
+    )]
     SessionPickerOpen,
     /// Save the highlighted session-picker row's live session as a reusable
     /// preset (the keybind companion to the `save_session_as_preset` MCP
@@ -84,7 +96,11 @@ pub enum Action {
     /// to the PTY as `0x0c` (which the shell renders as clear-screen).
     /// The engine dispatch is an intentional consumed no-op until the
     /// layout picker lands — see `ux::engine`'s `LayoutPickerOpen` arm.
-    #[kind(name = "layout_picker_open", alias = "layout_picker", alias = "layout_switcher")]
+    #[kind(
+        name = "layout_picker_open",
+        alias = "layout_picker",
+        alias = "layout_switcher"
+    )]
     LayoutPickerOpen,
     #[kind(name = "font_increase", alias = "increase_font_size")]
     FontIncrease,
@@ -648,9 +664,9 @@ fn hk(modifiers: awase::Modifiers, key: awase::Key) -> awase::Hotkey {
 
 /// Default keybindings (macOS-style: Cmd as primary modifier).
 fn default_bindings() -> Vec<Keybinding> {
-    use awase::atlas_chord;
     use awase::Key;
     use awase::Modifiers;
+    use awase::atlas_chord;
 
     // Atlas-resolved chords — every cross-GUI-terminal binding pulls
     // its chord from `ishou_tokens::FleetKeybinds::prescribed()` via
@@ -670,51 +686,114 @@ fn default_bindings() -> Vec<Keybinding> {
 
     vec![
         // Clipboard — atlas-sourced.
-        Keybinding { hotkey: atlas_chord!(kb.copy),  action: Action::Copy },
-        Keybinding { hotkey: atlas_chord!(kb.paste), action: Action::Paste },
+        Keybinding {
+            hotkey: atlas_chord!(kb.copy),
+            action: Action::Copy,
+        },
+        Keybinding {
+            hotkey: atlas_chord!(kb.paste),
+            action: Action::Paste,
+        },
         // Search — atlas-sourced.
-        Keybinding { hotkey: atlas_chord!(kb.search_open),  action: Action::SearchOpen },
-        Keybinding { hotkey: atlas_chord!(kb.search_close), action: Action::SearchClose },
-        Keybinding { hotkey: atlas_chord!(kb.search_next),  action: Action::SearchNext },
-        Keybinding { hotkey: atlas_chord!(kb.search_prev),  action: Action::SearchPrev },
+        Keybinding {
+            hotkey: atlas_chord!(kb.search_open),
+            action: Action::SearchOpen,
+        },
+        Keybinding {
+            hotkey: atlas_chord!(kb.search_close),
+            action: Action::SearchClose,
+        },
+        Keybinding {
+            hotkey: atlas_chord!(kb.search_next),
+            action: Action::SearchNext,
+        },
+        Keybinding {
+            hotkey: atlas_chord!(kb.search_prev),
+            action: Action::SearchPrev,
+        },
         // Font — atlas-sourced.
-        Keybinding { hotkey: atlas_chord!(kb.font_increase), action: Action::FontIncrease },
-        Keybinding { hotkey: atlas_chord!(kb.font_decrease), action: Action::FontDecrease },
-        Keybinding { hotkey: atlas_chord!(kb.font_reset),    action: Action::FontReset },
+        Keybinding {
+            hotkey: atlas_chord!(kb.font_increase),
+            action: Action::FontIncrease,
+        },
+        Keybinding {
+            hotkey: atlas_chord!(kb.font_decrease),
+            action: Action::FontDecrease,
+        },
+        Keybinding {
+            hotkey: atlas_chord!(kb.font_reset),
+            action: Action::FontReset,
+        },
         // Fullscreen — atlas-sourced.
-        Keybinding { hotkey: atlas_chord!(kb.toggle_fullscreen), action: Action::ToggleFullscreen },
+        Keybinding {
+            hotkey: atlas_chord!(kb.toggle_fullscreen),
+            action: Action::ToggleFullscreen,
+        },
         // Scroll — mado-specific (no atlas intent yet).
-        Keybinding { hotkey: hk(none, Key::PageUp),   action: Action::ScrollPageUp },
-        Keybinding { hotkey: hk(none, Key::PageDown), action: Action::ScrollPageDown },
-        Keybinding { hotkey: hk(cmd,  Key::Home),     action: Action::ScrollToTop },
-        Keybinding { hotkey: hk(cmd,  Key::End),      action: Action::ScrollToBottom },
+        Keybinding {
+            hotkey: hk(none, Key::PageUp),
+            action: Action::ScrollPageUp,
+        },
+        Keybinding {
+            hotkey: hk(none, Key::PageDown),
+            action: Action::ScrollPageDown,
+        },
+        Keybinding {
+            hotkey: hk(cmd, Key::Home),
+            action: Action::ScrollToTop,
+        },
+        Keybinding {
+            hotkey: hk(cmd, Key::End),
+            action: Action::ScrollToBottom,
+        },
         // Prompt navigation — ghostty-canonical Cmd+Up / Cmd+Down on
         // OSC 133 prompt marks. Requires the shell integration scripts
         // (see shell-integration/mado.*) to be sourced. mado-specific.
-        Keybinding { hotkey: hk(cmd, Key::Up),   action: Action::JumpToPromptPrev },
-        Keybinding { hotkey: hk(cmd, Key::Down), action: Action::JumpToPromptNext },
+        Keybinding {
+            hotkey: hk(cmd, Key::Up),
+            action: Action::JumpToPromptPrev,
+        },
+        Keybinding {
+            hotkey: hk(cmd, Key::Down),
+            action: Action::JumpToPromptNext,
+        },
         // Directory frecency overlay (轍 wadachi) — Cmd+G ("go to dir").
         // mado-specific (no atlas intent yet); reader-only picker.
-        Keybinding { hotkey: hk(cmd, Key::G), action: Action::DirPickerOpen },
+        Keybinding {
+            hotkey: hk(cmd, Key::G),
+            action: Action::DirPickerOpen,
+        },
         // Praça session picker — Ctrl-S ("switch session"): fuzzy-browse
         // + switch the frecency-ranked sessions praça tracks. The rare
         // fallback to auto-attach-on-cd (PRACA.md M0). mado-specific
         // (no atlas intent yet). Drives the SAME switch channel as
         // auto-attach + the `switch_session` MCP tool.
-        Keybinding { hotkey: hk(ctrl, Key::S), action: Action::SessionPickerOpen },
+        Keybinding {
+            hotkey: hk(ctrl, Key::S),
+            action: Action::SessionPickerOpen,
+        },
         // Save the highlighted live session-picker row as a preset —
         // Cmd+Shift+S ("save"). The keybind companion to the
         // `save_session_as_preset` MCP verb; a no-op unless Ctrl-S is open
         // with a live row highlighted. mado-specific.
-        Keybinding { hotkey: hk(cmd_shift, Key::S), action: Action::SaveSessionAsPreset },
+        Keybinding {
+            hotkey: hk(cmd_shift, Key::S),
+            action: Action::SaveSessionAsPreset,
+        },
         // Layout picker — Ctrl-L ("switch layout"): RESERVED. The
         // layout analog of Ctrl-S (sessions). Bound today as a consumed
         // no-op (see Action::LayoutPickerOpen + its engine arm) so
         // Ctrl-L stops falling through to the shell as 0x0c
         // (clear-screen); the picker itself lands later. mado-specific.
-        Keybinding { hotkey: hk(ctrl, Key::L), action: Action::LayoutPickerOpen },
+        Keybinding {
+            hotkey: hk(ctrl, Key::L),
+            action: Action::LayoutPickerOpen,
+        },
         // Terminal — mado-specific (no atlas reset intent).
-        Keybinding { hotkey: hk(cmd_shift, Key::R), action: Action::ResetTerminal },
+        Keybinding {
+            hotkey: hk(cmd_shift, Key::R),
+            action: Action::ResetTerminal,
+        },
     ]
 }
 
@@ -765,15 +844,15 @@ mod tests {
         // must return that action when looked up with the
         // atlas-parsed hotkey.
         let atlas_actions: &[(&str, Action)] = &[
-            (kb.copy,              Action::Copy),
-            (kb.paste,             Action::Paste),
-            (kb.search_open,       Action::SearchOpen),
-            (kb.search_close,      Action::SearchClose),
-            (kb.search_next,       Action::SearchNext),
-            (kb.search_prev,       Action::SearchPrev),
-            (kb.font_increase,     Action::FontIncrease),
-            (kb.font_decrease,     Action::FontDecrease),
-            (kb.font_reset,        Action::FontReset),
+            (kb.copy, Action::Copy),
+            (kb.paste, Action::Paste),
+            (kb.search_open, Action::SearchOpen),
+            (kb.search_close, Action::SearchClose),
+            (kb.search_next, Action::SearchNext),
+            (kb.search_prev, Action::SearchPrev),
+            (kb.font_increase, Action::FontIncrease),
+            (kb.font_decrease, Action::FontDecrease),
+            (kb.font_reset, Action::FontReset),
             (kb.toggle_fullscreen, Action::ToggleFullscreen),
         ];
         for (chord, expected) in atlas_actions {
@@ -900,7 +979,10 @@ mod tests {
         // exhaustive by construction — a new variant joins it with no edit
         // here. It replaced a hand-listed array that had already drifted to
         // 28 of 29 (missing `SaveSessionAsPreset`).
-        assert!(!Action::ALL.is_empty(), "the derived catalog must not be empty");
+        assert!(
+            !Action::ALL.is_empty(),
+            "the derived catalog must not be empty"
+        );
         for action in Action::ALL {
             let json = serde_json::to_string(action);
             assert!(json.is_ok(), "Failed to serialize {:?}", action);
@@ -1050,29 +1132,53 @@ mod tests {
 
     #[test]
     fn layout_picker_action_name_round_trips() {
-        assert_eq!(parse_action("layout_picker_open"), Some(Action::LayoutPickerOpen));
-        assert_eq!(parse_action("layout_picker"), Some(Action::LayoutPickerOpen));
-        assert_eq!(parse_action("layout_switcher"), Some(Action::LayoutPickerOpen));
+        assert_eq!(
+            parse_action("layout_picker_open"),
+            Some(Action::LayoutPickerOpen)
+        );
+        assert_eq!(
+            parse_action("layout_picker"),
+            Some(Action::LayoutPickerOpen)
+        );
+        assert_eq!(
+            parse_action("layout_switcher"),
+            Some(Action::LayoutPickerOpen)
+        );
     }
 
     #[test]
     fn test_parse_action_known() {
         assert_eq!(parse_action("copy"), Some(Action::Copy));
         assert_eq!(parse_action("paste"), Some(Action::Paste));
-        assert_eq!(parse_action("paste_from_selection"), Some(Action::PasteFromSelection));
+        assert_eq!(
+            parse_action("paste_from_selection"),
+            Some(Action::PasteFromSelection)
+        );
         assert_eq!(parse_action("scroll_to_top"), Some(Action::ScrollToTop));
         assert_eq!(parse_action("jump_to_prompt"), Some(Action::JumpToPrompt));
         assert_eq!(parse_action("clear_screen"), Some(Action::ClearScreen));
         assert_eq!(parse_action("select_all"), Some(Action::SelectAll));
-        assert_eq!(parse_action("copy_url_to_clipboard"), Some(Action::CopyUrlToClipboard));
-        assert_eq!(parse_action("toggle_mouse_reporting"), Some(Action::ToggleMouseReporting));
+        assert_eq!(
+            parse_action("copy_url_to_clipboard"),
+            Some(Action::CopyUrlToClipboard)
+        );
+        assert_eq!(
+            parse_action("toggle_mouse_reporting"),
+            Some(Action::ToggleMouseReporting)
+        );
     }
 
     #[test]
     fn test_parse_action_aliases() {
         assert_eq!(parse_action("search"), Some(Action::SearchOpen));
-        assert_eq!(parse_action("increase_font_size"), Some(Action::FontIncrease));
-        assert_eq!(parse_action("decrease_font_size"), Some(Action::FontDecrease));
+        assert_eq!(
+            parse_action("increase_font_size"),
+            Some(Action::FontIncrease)
+        );
+        assert_eq!(
+            parse_action("decrease_font_size"),
+            Some(Action::FontDecrease)
+        );
         assert_eq!(parse_action("reset_font_size"), Some(Action::FontReset));
         // Phase 4 — goto_split:* / close_surface resolve to None
         // (multiplexing belongs in tear).
@@ -1095,19 +1201,34 @@ mod tests {
         // drifted #[kind(name = …)] that no longer agrees with the
         // serde snake_case spelling parse_action delegates to.
         let actions = [
-            Action::Copy, Action::Paste, Action::PasteFromSelection,
-            Action::ScrollUp, Action::ScrollDown,
-            Action::ScrollPageUp, Action::ScrollPageDown, Action::ScrollToTop,
-            Action::ScrollToBottom, Action::JumpToPrompt,
-            Action::JumpToPromptPrev, Action::JumpToPromptNext,
-            Action::SearchOpen, Action::SearchClose,
-            Action::SearchNext, Action::SearchPrev, Action::DirPickerOpen,
-            Action::SessionPickerOpen, Action::LayoutPickerOpen,
+            Action::Copy,
+            Action::Paste,
+            Action::PasteFromSelection,
+            Action::ScrollUp,
+            Action::ScrollDown,
+            Action::ScrollPageUp,
+            Action::ScrollPageDown,
+            Action::ScrollToTop,
+            Action::ScrollToBottom,
+            Action::JumpToPrompt,
+            Action::JumpToPromptPrev,
+            Action::JumpToPromptNext,
+            Action::SearchOpen,
+            Action::SearchClose,
+            Action::SearchNext,
+            Action::SearchPrev,
+            Action::DirPickerOpen,
+            Action::SessionPickerOpen,
+            Action::LayoutPickerOpen,
             Action::FontIncrease,
-            Action::FontDecrease, Action::FontReset,
+            Action::FontDecrease,
+            Action::FontReset,
             Action::ResetTerminal,
-            Action::ClearScreen, Action::ToggleFullscreen, Action::SelectAll,
-            Action::CopyUrlToClipboard, Action::ToggleMouseReporting,
+            Action::ClearScreen,
+            Action::ToggleFullscreen,
+            Action::SelectAll,
+            Action::CopyUrlToClipboard,
+            Action::ToggleMouseReporting,
         ];
         for action in actions {
             let name = action.as_str();
@@ -1130,7 +1251,12 @@ mod tests {
     // floor before reaching the PTY.
 
     fn mods(ctrl: bool, alt: bool, shift: bool, meta: bool) -> madori::event::Modifiers {
-        madori::event::Modifiers { ctrl, alt, shift, meta }
+        madori::event::Modifiers {
+            ctrl,
+            alt,
+            shift,
+            meta,
+        }
     }
 
     #[test]
@@ -1145,8 +1271,11 @@ mod tests {
         // assertion at the call site.
         let key = madori::event::KeyCode::Char('r');
         let bytes = madori_key_to_pty_bytes(&key, &None, mods(true, false, false, false), false);
-        assert_eq!(bytes.as_deref(), Some(&[0x12u8][..]),
-            "Ctrl-R must produce 0x12 (DC2 / ^R) — frostmourne's history picker relies on it");
+        assert_eq!(
+            bytes.as_deref(),
+            Some(&[0x12u8][..]),
+            "Ctrl-R must produce 0x12 (DC2 / ^R) — frostmourne's history picker relies on it"
+        );
     }
 
     #[test]
@@ -1156,9 +1285,16 @@ mod tests {
         for (idx, letter) in ('a'..='z').enumerate() {
             let expected = (idx as u8) + 1;
             let key = madori::event::KeyCode::Char(letter);
-            let bytes = madori_key_to_pty_bytes(&key, &None, mods(true, false, false, false), false);
-            assert_eq!(bytes.as_deref(), Some(&[expected][..]),
-                "Ctrl-{} should map to {:#04x} (got {:?})", letter, expected, bytes);
+            let bytes =
+                madori_key_to_pty_bytes(&key, &None, mods(true, false, false, false), false);
+            assert_eq!(
+                bytes.as_deref(),
+                Some(&[expected][..]),
+                "Ctrl-{} should map to {:#04x} (got {:?})",
+                letter,
+                expected,
+                bytes
+            );
         }
     }
 
@@ -1169,7 +1305,10 @@ mod tests {
         // must produce the same control byte.
         let key = madori::event::KeyCode::Char('r');
         let bytes = madori_key_to_pty_bytes(
-            &key, &Some("r".to_string()), mods(true, false, false, false), false,
+            &key,
+            &Some("r".to_string()),
+            mods(true, false, false, false),
+            false,
         );
         assert_eq!(bytes.as_deref(), Some(&[0x12u8][..]));
     }
@@ -1185,7 +1324,10 @@ mod tests {
     fn alt_text_prepends_escape() {
         let key = madori::event::KeyCode::Char('b');
         let bytes = madori_key_to_pty_bytes(
-            &key, &Some("b".to_string()), mods(false, true, false, false), false,
+            &key,
+            &Some("b".to_string()),
+            mods(false, true, false, false),
+            false,
         );
         assert_eq!(bytes.as_deref(), Some(&[0x1b, b'b'][..]));
     }
@@ -1258,7 +1400,10 @@ mod tests {
     fn test_kitty_encode_char_no_modifiers_returns_none() {
         let m = madori::event::Modifiers::default();
         let result = kitty_encode_key(&madori::event::KeyCode::Char('x'), &None, &m, 1);
-        assert!(result.is_none(), "plain char with no modifiers falls through to normal input");
+        assert!(
+            result.is_none(),
+            "plain char with no modifiers falls through to normal input"
+        );
     }
 
     #[test]
@@ -1437,7 +1582,10 @@ mod tests {
         // PTY input. Helper returns None — caller drops.
         let key = madori::event::KeyCode::Char('x');
         let bytes = madori_key_to_pty_bytes(
-            &key, &Some("x".to_string()), mods(false, false, false, true), false,
+            &key,
+            &Some("x".to_string()),
+            mods(false, false, false, true),
+            false,
         );
         assert_eq!(bytes, None);
     }
@@ -1449,9 +1597,7 @@ mod tests {
         // Ctrl byte; the keybinding lookup at the call site is
         // what decides whether to consume vs forward.
         let key = madori::event::KeyCode::Char('r');
-        let bytes = madori_key_to_pty_bytes(
-            &key, &None, mods(true, false, false, true), false,
-        );
+        let bytes = madori_key_to_pty_bytes(&key, &None, mods(true, false, false, true), false);
         assert_eq!(bytes.as_deref(), Some(&[0x12u8][..]));
     }
 
@@ -1459,7 +1605,10 @@ mod tests {
     fn plain_text_passes_through() {
         let key = madori::event::KeyCode::Char('a');
         let bytes = madori_key_to_pty_bytes(
-            &key, &Some("a".to_string()), mods(false, false, false, false), false,
+            &key,
+            &Some("a".to_string()),
+            mods(false, false, false, false),
+            false,
         );
         assert_eq!(bytes.as_deref(), Some(&b"a"[..]));
     }
@@ -1469,7 +1618,10 @@ mod tests {
         // madori does OS-level composition so Shift+r arrives as text="R".
         let key = madori::event::KeyCode::Char('r');
         let bytes = madori_key_to_pty_bytes(
-            &key, &Some("R".to_string()), mods(false, false, true, false), false,
+            &key,
+            &Some("R".to_string()),
+            mods(false, false, true, false),
+            false,
         );
         assert_eq!(bytes.as_deref(), Some(&b"R"[..]));
     }
@@ -1478,19 +1630,24 @@ mod tests {
     fn named_keys_map_to_canonical_bytes() {
         let m = mods(false, false, false, false);
         let cases: &[(madori::event::KeyCode, &[u8])] = &[
-            (madori::event::KeyCode::Enter,     b"\r"),
+            (madori::event::KeyCode::Enter, b"\r"),
             (madori::event::KeyCode::Backspace, b"\x7f"),
-            (madori::event::KeyCode::Tab,       b"\t"),
-            (madori::event::KeyCode::Escape,    b"\x1b"),
-            (madori::event::KeyCode::Space,     b" "),
-            (madori::event::KeyCode::Delete,    b"\x1b[3~"),
-            (madori::event::KeyCode::PageUp,    b"\x1b[5~"),
-            (madori::event::KeyCode::PageDown,  b"\x1b[6~"),
+            (madori::event::KeyCode::Tab, b"\t"),
+            (madori::event::KeyCode::Escape, b"\x1b"),
+            (madori::event::KeyCode::Space, b" "),
+            (madori::event::KeyCode::Delete, b"\x1b[3~"),
+            (madori::event::KeyCode::PageUp, b"\x1b[5~"),
+            (madori::event::KeyCode::PageDown, b"\x1b[6~"),
         ];
         for (key, expected) in cases {
             let bytes = madori_key_to_pty_bytes(key, &None, m, false);
-            assert_eq!(bytes.as_deref(), Some(*expected),
-                "named key {:?} should map to {:?}", key, expected);
+            assert_eq!(
+                bytes.as_deref(),
+                Some(*expected),
+                "named key {:?} should map to {:?}",
+                key,
+                expected
+            );
         }
     }
 
@@ -1499,16 +1656,21 @@ mod tests {
         // DECCKM reset (default) → ESC [ <ch>
         let m = mods(false, false, false, false);
         for (key, ch) in [
-            (madori::event::KeyCode::Up,    b'A'),
-            (madori::event::KeyCode::Down,  b'B'),
+            (madori::event::KeyCode::Up, b'A'),
+            (madori::event::KeyCode::Down, b'B'),
             (madori::event::KeyCode::Right, b'C'),
-            (madori::event::KeyCode::Left,  b'D'),
-            (madori::event::KeyCode::Home,  b'H'),
-            (madori::event::KeyCode::End,   b'F'),
+            (madori::event::KeyCode::Left, b'D'),
+            (madori::event::KeyCode::Home, b'H'),
+            (madori::event::KeyCode::End, b'F'),
         ] {
             let bytes = madori_key_to_pty_bytes(&key, &None, m, false);
-            assert_eq!(bytes.as_deref(), Some(&[0x1b, b'[', ch][..]),
-                "cursor key {:?} in normal mode should emit ESC [ {}", key, ch as char);
+            assert_eq!(
+                bytes.as_deref(),
+                Some(&[0x1b, b'[', ch][..]),
+                "cursor key {:?} in normal mode should emit ESC [ {}",
+                key,
+                ch as char
+            );
         }
     }
 
@@ -1517,14 +1679,19 @@ mod tests {
         // DECCKM set → ESC O <ch>
         let m = mods(false, false, false, false);
         for (key, ch) in [
-            (madori::event::KeyCode::Up,    b'A'),
-            (madori::event::KeyCode::Down,  b'B'),
+            (madori::event::KeyCode::Up, b'A'),
+            (madori::event::KeyCode::Down, b'B'),
             (madori::event::KeyCode::Right, b'C'),
-            (madori::event::KeyCode::Left,  b'D'),
+            (madori::event::KeyCode::Left, b'D'),
         ] {
             let bytes = madori_key_to_pty_bytes(&key, &None, m, true);
-            assert_eq!(bytes.as_deref(), Some(&[0x1b, b'O', ch][..]),
-                "cursor key {:?} in app mode should emit ESC O {}", key, ch as char);
+            assert_eq!(
+                bytes.as_deref(),
+                Some(&[0x1b, b'O', ch][..]),
+                "cursor key {:?} in app mode should emit ESC O {}",
+                key,
+                ch as char
+            );
         }
     }
 
@@ -1532,14 +1699,28 @@ mod tests {
     fn f_keys_map_to_xterm_sequences() {
         let m = mods(false, false, false, false);
         let cases: &[(u8, &[u8])] = &[
-            (1,  b"\x1bOP"),     (2,  b"\x1bOQ"),     (3,  b"\x1bOR"),     (4,  b"\x1bOS"),
-            (5,  b"\x1b[15~"),   (6,  b"\x1b[17~"),   (7,  b"\x1b[18~"),   (8,  b"\x1b[19~"),
-            (9,  b"\x1b[20~"),   (10, b"\x1b[21~"),   (11, b"\x1b[23~"),   (12, b"\x1b[24~"),
+            (1, b"\x1bOP"),
+            (2, b"\x1bOQ"),
+            (3, b"\x1bOR"),
+            (4, b"\x1bOS"),
+            (5, b"\x1b[15~"),
+            (6, b"\x1b[17~"),
+            (7, b"\x1b[18~"),
+            (8, b"\x1b[19~"),
+            (9, b"\x1b[20~"),
+            (10, b"\x1b[21~"),
+            (11, b"\x1b[23~"),
+            (12, b"\x1b[24~"),
         ];
         for (n, expected) in cases {
             let bytes = madori_key_to_pty_bytes(&madori::event::KeyCode::F(*n), &None, m, false);
-            assert_eq!(bytes.as_deref(), Some(*expected),
-                "F{} should map to {:?}", n, expected);
+            assert_eq!(
+                bytes.as_deref(),
+                Some(*expected),
+                "F{} should map to {:?}",
+                n,
+                expected
+            );
         }
     }
 
@@ -1568,7 +1749,10 @@ mod tests {
         // ctrl-symbol handling read raw bytes via termios.
         let key = madori::event::KeyCode::Char(']');
         let bytes = madori_key_to_pty_bytes(
-            &key, &Some("]".to_string()), mods(true, false, false, false), false,
+            &key,
+            &Some("]".to_string()),
+            mods(true, false, false, false),
+            false,
         );
         assert_eq!(bytes.as_deref(), Some(&b"]"[..]));
     }
@@ -1595,16 +1779,19 @@ mod tests {
         // Step 1: keybind lookup. Ctrl-R has no default action —
         // so we MUST fall through to PTY translation.
         let action = manager.lookup_madori(&event);
-        assert!(action.is_none(),
+        assert!(
+            action.is_none(),
             "Ctrl-R must not have a default mado keybinding — \
-             frostmourne owns it via skim+atuin");
+             frostmourne owns it via skim+atuin"
+        );
 
         // Step 2: byte translation. Must produce 0x12 (^R / DC2).
-        let bytes = madori_key_to_pty_bytes(
-            &event.key, &event.text, event.modifiers, false,
+        let bytes = madori_key_to_pty_bytes(&event.key, &event.text, event.modifiers, false);
+        assert_eq!(
+            bytes.as_deref(),
+            Some(&[0x12u8][..]),
+            "Ctrl-R MUST be translated to 0x12 for frostmourne to receive it"
         );
-        assert_eq!(bytes.as_deref(), Some(&[0x12u8][..]),
-            "Ctrl-R MUST be translated to 0x12 for frostmourne to receive it");
     }
 
     #[test]
@@ -1623,11 +1810,11 @@ mod tests {
         let action = manager.lookup_madori(&event);
         assert!(action.is_none(), "Cmd+J has no default binding");
 
-        let bytes = madori_key_to_pty_bytes(
-            &event.key, &event.text, event.modifiers, false,
+        let bytes = madori_key_to_pty_bytes(&event.key, &event.text, event.modifiers, false);
+        assert_eq!(
+            bytes, None,
+            "bare Cmd with no matching binding must NOT leak text to the PTY"
         );
-        assert_eq!(bytes, None,
-            "bare Cmd with no matching binding must NOT leak text to the PTY");
     }
 
     #[test]
@@ -1645,18 +1832,20 @@ mod tests {
         };
 
         // Normal mode (DECCKM reset, shell at the prompt) → ESC [ A.
-        let normal = madori_key_to_pty_bytes(
-            &event.key, &event.text, event.modifiers, false,
+        let normal = madori_key_to_pty_bytes(&event.key, &event.text, event.modifiers, false);
+        assert_eq!(
+            normal.as_deref(),
+            Some(&b"\x1b[A"[..]),
+            "Up in normal mode must emit ESC [ A — bash prompt-history navigation depends on it"
         );
-        assert_eq!(normal.as_deref(), Some(&b"\x1b[A"[..]),
-            "Up in normal mode must emit ESC [ A — bash prompt-history navigation depends on it");
 
         // Application mode (DECCKM set, vim in alt-screen) → ESC O A.
-        let app = madori_key_to_pty_bytes(
-            &event.key, &event.text, event.modifiers, true,
+        let app = madori_key_to_pty_bytes(&event.key, &event.text, event.modifiers, true);
+        assert_eq!(
+            app.as_deref(),
+            Some(&b"\x1bOA"[..]),
+            "Up in application mode must emit ESC O A — vim cursor-key handling depends on it"
         );
-        assert_eq!(app.as_deref(), Some(&b"\x1bOA"[..]),
-            "Up in application mode must emit ESC O A — vim cursor-key handling depends on it");
     }
 
     #[test]
@@ -1687,11 +1876,15 @@ mod tests {
                 modifiers: mods(true, false, false, false),
                 pressed: true,
             };
-            let bytes = madori_key_to_pty_bytes(
-                &event.key, &event.text, event.modifiers, false,
+            let bytes = madori_key_to_pty_bytes(&event.key, &event.text, event.modifiers, false);
+            assert_eq!(
+                bytes.as_deref(),
+                Some(&[*expected][..]),
+                "{} — Ctrl-{} must map to {:#04x}",
+                label,
+                ch,
+                expected
             );
-            assert_eq!(bytes.as_deref(), Some(&[*expected][..]),
-                "{} — Ctrl-{} must map to {:#04x}", label, ch, expected);
         }
     }
 }

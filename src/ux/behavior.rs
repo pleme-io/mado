@@ -125,8 +125,7 @@ impl From<&MadoConfig> for UxBehavior {
             mouse_scroll_multiplier: config.behavior.mouse_scroll_multiplier,
             mouse_shift_capture: matches!(
                 config.behavior.mouse_shift_capture,
-                crate::config::MouseShiftCapture::True
-                    | crate::config::MouseShiftCapture::Always
+                crate::config::MouseShiftCapture::True | crate::config::MouseShiftCapture::Always
             ),
             word_chars: config.selection.word_chars.clone(),
             scroll_momentum: config.behavior.scroll_momentum,
@@ -180,7 +179,11 @@ mod tests {
         config.behavior.selection_autoscroll_max_overshoot = 4.0;
 
         let sc = UxBehavior::from(&config).scroll_config();
-        assert_eq!(sc.wheel, WheelMode::Lines { per_notch: 4 }, "momentum off → Lines");
+        assert_eq!(
+            sc.wheel,
+            WheelMode::Lines { per_notch: 4 },
+            "momentum off → Lines"
+        );
         assert_eq!(sc.precise, PreciseMode::Pixels { multiplier: 3.5 });
         assert!((sc.momentum.friction - 7.0).abs() < 1e-6);
         assert!((sc.momentum.max_velocity - 150.0).abs() < 1e-6);

@@ -42,7 +42,10 @@ impl Oscillator {
     /// An oscillator with the given full on-off period, phase 0.
     #[must_use]
     pub fn new(period: Seconds) -> Self {
-        Self { period, elapsed: Seconds::new(0.0) }
+        Self {
+            period,
+            elapsed: Seconds::new(0.0),
+        }
     }
 
     /// The square-wave blink state (on for the first half of each period).

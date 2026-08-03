@@ -31,8 +31,8 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use engate_attach::{Attach, Consumer};
-use tear_core::engate_producer::PaneProducer;
 use tear_core::InProcess;
+use tear_core::engate_producer::PaneProducer;
 use tear_types::engate_wrap::PaneSnapshotWrap;
 use tear_types::{MultiplexerControl, PaneId, SessionSource};
 

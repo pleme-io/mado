@@ -133,4 +133,3 @@ fn spawn_paths_stamp_pwd_for_the_cwd_handshake() {
         failures.join("\n  - ")
     );
 }
-

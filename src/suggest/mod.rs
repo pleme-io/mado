@@ -45,7 +45,7 @@ pub mod sources;
 /// mado catalog) is authored here via [`izumi::catalog!`].
 pub mod core {
     #[allow(unused_imports)]
-    pub use izumi::{fnv1a, CorrKey, Rank, SourceStatus, SpawnSpec, Urgency};
+    pub use izumi::{CorrKey, Rank, SourceStatus, SpawnSpec, Urgency, fnv1a};
 
     /// Stable identity of a suggestion — izumi's [`izumi::ItemId`] under the
     /// historical mado name (the tuple constructor `SuggestionId(raw)` still
@@ -197,9 +197,9 @@ pub mod core {
 /// `SuggestionEnvironment`; a trait `pub use` rename is impl- and dyn-usable
 /// because [`izumi::Environment`] carries no generic parameters).
 pub mod env {
+    pub use izumi::Environment as SuggestionEnvironment;
     #[allow(unused_imports)]
     pub use izumi::env::{Cmd, HttpReq, MockEnvironment, RealEnvironment};
-    pub use izumi::Environment as SuggestionEnvironment;
 }
 
 /// The provider border + watcher engine — shim over [`izumi::source`] /
@@ -211,12 +211,12 @@ pub mod source {
     pub type PollOutcome = izumi::PollOutcome<SourceKind, SpawnSpec>;
     /// Engine-wide config over the mado catalog.
     pub type EngineConfig = izumi::EngineConfig<SourceKind>;
-    #[allow(unused_imports)]
-    pub use izumi::source::{apply_poll, refresh_once, SourceConfig};
     /// The parallel watcher engine (izumi's [`izumi::Engine`]; `start` now
     /// takes the freshness nudge as a PARAMETER — the facade passes
     /// [`super::board_nudge`]).
     pub use izumi::Engine as SuggestionEngine;
+    #[allow(unused_imports)]
+    pub use izumi::source::{SourceConfig, apply_poll, refresh_once};
 
     /// The object-safe provider type mado registries hold. NOTE: the generic
     /// [`izumi::Source`] trait cannot be `pub use`-renamed into an
@@ -252,7 +252,7 @@ pub mod store {
     pub use izumi::ItemState as SuggestionState;
     #[allow(unused_imports)]
     pub use izumi::store::{
-        balance_per_source, collapse_correlated, effective_rank_key, shade_ramp, SourceHealth,
+        SourceHealth, balance_per_source, collapse_correlated, effective_rank_key, shade_ramp,
     };
 
     /// Frame `json` under the mado magic and atomically write it to `path`
@@ -347,11 +347,11 @@ pub use core::{CorrKey, SourceKind, SourceStatus, SpawnSpec, Suggestion, Suggest
 pub use env::{Cmd, HttpReq, MockEnvironment, RealEnvironment, SuggestionEnvironment};
 #[allow(unused_imports)]
 pub use source::{
-    refresh_once, DynSuggestionSource, EngineConfig, PollOutcome, SourceConfig, SuggestionEngine,
+    DynSuggestionSource, EngineConfig, PollOutcome, SourceConfig, SuggestionEngine, refresh_once,
 };
 #[allow(unused_imports)]
 pub use store::{
-    shade_ramp, SourceHealth, StoreSnapshot, StoredSuggestion, SuggestionState, SuggestionStore,
+    SourceHealth, StoreSnapshot, StoredSuggestion, SuggestionState, SuggestionStore, shade_ramp,
 };
 
 use std::path::PathBuf;
@@ -426,9 +426,11 @@ impl EngineControl {
         safra: crate::safra::SafraConfig,
         janitors: crate::config::JanitorsConfig,
     ) {
-        let _ = self
-            .tx
-            .send(EngineCommand::Swap(Box::new((suggestions, safra, janitors))));
+        let _ = self.tx.send(EngineCommand::Swap(Box::new((
+            suggestions,
+            safra,
+            janitors,
+        ))));
     }
 }
 
@@ -593,7 +595,11 @@ pub fn inject(params: InjectParams) -> Result<serde_json::Value, String> {
     if let Some(u) = params.urgency {
         match serde_json::from_value::<Urgency>(serde_json::Value::String(u)) {
             Ok(parsed) => s = s.urgent(parsed),
-            Err(_) => return Err(String::from("urgency must be idle|low|normal|high|critical")),
+            Err(_) => {
+                return Err(String::from(
+                    "urgency must be idle|low|normal|high|critical",
+                ));
+            }
         }
     }
     let id = s.id;
@@ -605,7 +611,9 @@ pub fn inject(params: InjectParams) -> Result<serde_json::Value, String> {
 /// process's board.
 pub fn dismiss(id_str: &str, snooze_secs: Option<u64>) -> Result<serde_json::Value, String> {
     let Ok(raw) = id_str.parse::<u64>() else {
-        return Err(String::from("id must be the decimal u64 string from the board list"));
+        return Err(String::from(
+            "id must be the decimal u64 string from the board list",
+        ));
     };
     let id = core::SuggestionId(raw);
     let st = store();
@@ -616,7 +624,9 @@ pub fn dismiss(id_str: &str, snooze_secs: Option<u64>) -> Result<serde_json::Val
     if done {
         Ok(serde_json::json!({ "dismissed": true, "id": id_str }))
     } else {
-        Err(String::from("no suggestion with that id (it may have decayed)"))
+        Err(String::from(
+            "no suggestion with that id (it may have decayed)",
+        ))
     }
 }
 
@@ -688,10 +698,7 @@ struct LoopKnobs {
 }
 
 impl LoopKnobs {
-    fn from_config(
-        cfg: &crate::config::SuggestionsConfig,
-        engine_cfg: &EngineConfig,
-    ) -> Self {
+    fn from_config(cfg: &crate::config::SuggestionsConfig, engine_cfg: &EngineConfig) -> Self {
         let global_ttl_ms = cfg.ttl_secs.saturating_mul(1000);
         let mut ttl_map: std::collections::BTreeMap<SourceKind, u64> =
             std::collections::BTreeMap::new();
@@ -1039,7 +1046,10 @@ mod tests {
         // window starts now, and only an Ok sets the latch.
         let fresh_ok = SourceHealth::first_seen_at(SourceStatus::Ok, 7_000);
         assert_eq!(fresh_ok.verdict(), HealthVerdict::Ok);
-        assert_eq!(fresh_ok.ok_evidence(), OkEvidence::Succeeded { at_ms: 7_000 });
+        assert_eq!(
+            fresh_ok.ok_evidence(),
+            OkEvidence::Succeeded { at_ms: 7_000 }
+        );
         let fresh_bad = SourceHealth::first_seen_at(SourceStatus::Error, 7_000);
         assert_eq!(fresh_bad.verdict(), HealthVerdict::Blind);
         assert_eq!(
@@ -1123,6 +1133,9 @@ mod tests {
         assert_eq!(store::SNAPSHOT_MAGIC.last(), Some(&b'\n'));
         // The framed persist pair round-trips under that magic.
         let framed = izumi::persist::frame_snapshot(store::SNAPSHOT_MAGIC, b"{}");
-        assert_eq!(store::unframe_snapshot(&framed).as_deref(), Some(&b"{}"[..]));
+        assert_eq!(
+            store::unframe_snapshot(&framed).as_deref(),
+            Some(&b"{}"[..])
+        );
     }
 }

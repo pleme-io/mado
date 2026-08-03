@@ -46,14 +46,14 @@ mod kuse;
 mod l1_engate_loop;
 // L1b — the same seam widened into a shell × interaction matrix, and the
 // one place the mado-mirror ⇄ tear-PaneGrid agreement is asserted.
+mod caps;
+mod livestream;
+mod mcp;
 #[cfg(test)]
 mod shell_seam;
-mod livestream;
 mod single_pane;
 mod tear_discovery;
-mod caps;
 mod terminfo;
-mod mcp;
 // `motion` lives in the lib target (src/lib.rs) so `benches/*.rs` can link
 // it; re-export it here so `crate::motion::…` still resolves at every call
 // site (render.rs / config.rs) and the module compiles exactly once.
@@ -69,27 +69,27 @@ mod notify_center;
 // mado is only ever built for Linux on one fleet node.
 mod osc_1337;
 mod panel_fit;
+mod perf;
+mod picker;
 mod platform;
 mod pointer_shape;
+mod praca_store;
 mod prewarm;
 mod prompt_mark;
 mod pty;
-mod perf;
-mod picker;
-mod praca_store;
 mod render;
 mod render_graph;
 mod row_budget;
 mod safra;
-mod single_writer;
 mod scenario;
-mod vt;
 mod search;
 mod selection;
 mod session;
 mod session_picker;
 mod session_switch;
+mod single_writer;
 mod suggest;
+mod vt;
 // mod tab removed at Phase 4 — single-pane mado.
 mod term_spec;
 mod terminal;
@@ -99,13 +99,13 @@ mod ux;
 mod vigy_host;
 // mod window removed at Phase 4 — single-pane mado uses single_pane.
 
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use clap::Parser;
 use hasami::{Clipboard, ClipboardProvider};
-use madori::event::{AppEvent, KeyEvent, MouseEvent};
 use madori::EventResponse;
+use madori::event::{AppEvent, KeyEvent, MouseEvent};
 
 // SplitDir removed at Phase 4 — single-pane mado.
 use crate::render::{SharedTerminal, TerminalRenderer};
@@ -269,10 +269,7 @@ enum SubCmd {
 /// against tear-client end-to-end + the cross-app subscription
 /// wire works in real time. Future Phase 3.1 will route the
 /// bytes into mado's own GPU Terminal instead of stdout.
-fn cmd_tear_attach(
-    pane: &str,
-    socket: Option<std::path::PathBuf>,
-) -> anyhow::Result<()> {
+fn cmd_tear_attach(pane: &str, socket: Option<std::path::PathBuf>) -> anyhow::Result<()> {
     // Honour user's mado config but override mode = Never (CLI
     // intent always wins over YAML `tear.mode = "never"` when the
     // user explicitly typed `mado tear-attach`).
@@ -288,7 +285,9 @@ fn cmd_tear_attach(
     let (client, socket_path) = match crate::tear_discovery::discover(&tear_cfg) {
         crate::tear_discovery::DiscoveryOutcome::Attached(c, p) => (c, p),
         crate::tear_discovery::DiscoveryOutcome::Required(msg) => {
-            return Err(anyhow::anyhow!("tear-daemon required but not reachable: {msg}"));
+            return Err(anyhow::anyhow!(
+                "tear-daemon required but not reachable: {msg}"
+            ));
         }
         crate::tear_discovery::DiscoveryOutcome::Fallback => {
             return Err(anyhow::anyhow!(
@@ -318,8 +317,8 @@ fn cmd_tear_attach(
 
     // Signal handler so Ctrl-C cleanly exits the subscribe loop.
     use std::io::Write;
-    use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Arc;
+    use std::sync::atomic::{AtomicBool, Ordering};
     let running = Arc::new(AtomicBool::new(true));
     let r2 = running.clone();
     ctrlc::set_handler(move || r2.store(false, Ordering::SeqCst))
@@ -393,8 +392,7 @@ fn detect_runtime_posture() -> anyhow::Result<garasu::adaptive::RuntimePosture> 
     drop(handler);
 
     Ok(garasu::adaptive::detect_all(
-        monitors,
-        primary,
+        monitors, primary,
         // GPU adapter detection requires a wgpu instance/surface —
         // deferred to M1 when we can hand the existing adapter from
         // garasu's GpuContext into recommend() at hot-reload time.
@@ -498,7 +496,9 @@ fn main() -> anyhow::Result<()> {
             // sequence is built through the typed `vt` OSC emitters (the
             // ★★ TYPED EMISSION surface) — the call site declares intent
             // (code + typed params), never the escape bytes.
-            use crate::vt::{osc1337_request_attention, osc777_notify, osc99_notify, osc9_notify, Osc99Part};
+            use crate::vt::{
+                Osc99Part, osc9_notify, osc99_notify, osc777_notify, osc1337_request_attention,
+            };
             let mut out = std::io::stdout().lock();
             // OSC 9 (iTerm2 simple notification) — focus-gated.
             out.write_all(&osc9_notify("mado notifications are live"))?;
@@ -506,7 +506,13 @@ fn main() -> anyhow::Result<()> {
             out.write_all(&osc777_notify("Mado", "Native banners, sound, urgency"))?;
             // OSC 99 (kitty protocol, Critical urgency=2) — focus-gated,
             // two chunks accumulated until d=1.
-            out.write_all(&osc99_notify("madotest", false, 2, Osc99Part::Title, "Mado OSC 99"))?;
+            out.write_all(&osc99_notify(
+                "madotest",
+                false,
+                2,
+                Osc99Part::Title,
+                "Mado OSC 99",
+            ))?;
             out.write_all(&osc99_notify(
                 "madotest",
                 true,
@@ -528,7 +534,7 @@ fn main() -> anyhow::Result<()> {
             return Ok(());
         }
         Some(SubCmd::FeedbackTest) => {
-            use crate::vt::{osc133, Osc133Mark};
+            use crate::vt::{Osc133Mark, osc133};
             use std::io::Write;
             use std::thread::sleep;
             use std::time::Duration;
@@ -577,12 +583,16 @@ fn main() -> anyhow::Result<()> {
                 .map_err(|e| anyhow::anyhow!("scenario {path:?} failed:\n{e:#}"))?;
             return Ok(());
         }
-        Some(SubCmd::TearAttach { ref pane, ref socket, gpu }) => {
+        Some(SubCmd::TearAttach {
+            ref pane,
+            ref socket,
+            gpu,
+        }) => {
             shidou::init_tracing_to_stderr();
             if gpu {
-                let pane_id: tear_types::PaneId = pane.parse().map_err(
-                    |e: anyhow::Error| anyhow::anyhow!("invalid pane id `{pane}`: {e}"),
-                )?;
+                let pane_id: tear_types::PaneId = pane
+                    .parse()
+                    .map_err(|e: anyhow::Error| anyhow::anyhow!("invalid pane id `{pane}`: {e}"))?;
                 let socket_path = socket
                     .clone()
                     .unwrap_or_else(tear_types::wire::default_socket_path);
@@ -783,7 +793,9 @@ fn main() -> anyhow::Result<()> {
     // typed posture event through madori so the live event loop owns
     // detection and feeds it back to the renderer.
     let runtime_posture: Option<garasu::adaptive::RuntimePosture> = None;
-    let effective_fps = config.performance.resolve_target_fps(runtime_posture.as_ref());
+    let effective_fps = config
+        .performance
+        .resolve_target_fps(runtime_posture.as_ref());
     tracing::debug!(target_fps = effective_fps, "resolved target fps");
 
     // Resolve the shell once, here, so BOTH spawn paths (the embedded /
@@ -941,19 +953,15 @@ fn main() -> anyhow::Result<()> {
     );
 
     let pane_for_events = Arc::clone(&pane);
-    let clipboard: Arc<dyn ClipboardProvider> = Arc::new(
-        Clipboard::new().expect("failed to initialize clipboard"),
-    );
+    let clipboard: Arc<dyn ClipboardProvider> =
+        Arc::new(Clipboard::new().expect("failed to initialize clipboard"));
     // Curated default baseline + operator `keybinds.custom` overrides —
     // the same assembly the kanshou `simulate_chord` resolver uses
     // (keybind::manager_from_config), so chord→Action resolution can't
     // drift between surfaces or render modes. (Pre-M1 this path loaded
     // ONLY the custom binds — doc/code drift the M1 convergence fixed.)
     let keybinds = crate::keybind::manager_from_config(&config);
-    tracing::debug!(
-        bindings = keybinds.bindings().len(),
-        "keybindings loaded"
-    );
+    tracing::debug!(bindings = keybinds.bindings().len(), "keybindings loaded");
     let behavior = crate::ux::UxBehavior::from(&config);
     let confirm_close = behavior.confirm_close;
     let pending_close = Arc::new(AtomicBool::new(false));
@@ -977,8 +985,7 @@ fn main() -> anyhow::Result<()> {
     // boot config so the first reload diffs against what this
     // renderer was actually built from. Polled once per frame in
     // the RedrawRequested arm.
-    let mut hot_reload =
-        crate::ux::ConfigHotReload::new(config_reload_source, config.clone());
+    let mut hot_reload = crate::ux::ConfigHotReload::new(config_reload_source, config.clone());
 
     // ── M1 unified input/UX engine ───────────────────────────────
     // Every UX capability (selection, copy/paste, search + dir-picker
@@ -1065,9 +1072,7 @@ fn main() -> anyhow::Result<()> {
                     engine.on_key(key_event, renderer).into()
                 }
                 // IME commit — forward composed text to PTY
-                AppEvent::Ime(madori::ImeEvent::Commit(text)) => {
-                    engine.on_ime_commit(text).into()
-                }
+                AppEvent::Ime(madori::ImeEvent::Commit(text)) => engine.on_ime_commit(text).into(),
                 // Drag-and-drop — a dropped file's shell-quoted path is
                 // bracket-pasted into the PTY (ghostty parity: a dragged
                 // screenshot becomes a path a TUI / $EDITOR can open).
@@ -1202,10 +1207,7 @@ fn resolve_shell_or_fallback(configured: String) -> String {
 }
 
 /// Build EventResponse for exit request, applying confirm_close logic when enabled.
-fn exit_response(
-    confirm_close: bool,
-    pending_close: &AtomicBool,
-) -> EventResponse {
+fn exit_response(confirm_close: bool, pending_close: &AtomicBool) -> EventResponse {
     if !confirm_close {
         return EventResponse {
             consumed: true,
@@ -1263,8 +1265,14 @@ mod tests {
     #[test]
     fn shell_is_executable_finds_sh_on_path() {
         // /bin/sh is present on every unix that runs these tests.
-        assert!(shell_is_executable("/bin/sh"), "absolute path to a real binary resolves");
-        assert!(shell_is_executable("sh"), "bare name found on $PATH resolves");
+        assert!(
+            shell_is_executable("/bin/sh"),
+            "absolute path to a real binary resolves"
+        );
+        assert!(
+            shell_is_executable("sh"),
+            "bare name found on $PATH resolves"
+        );
     }
 
     #[test]

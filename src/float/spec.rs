@@ -44,7 +44,9 @@ impl std::fmt::Display for SpecError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             SpecError::BadUrl(u) => write!(f, "not a valid url: {u}"),
-            SpecError::UnknownEdge(e) => write!(f, "unknown edge: {e} (want left/right/top/bottom)"),
+            SpecError::UnknownEdge(e) => {
+                write!(f, "unknown edge: {e} (want left/right/top/bottom)")
+            }
         }
     }
 }
@@ -239,7 +241,13 @@ mod tests {
         assert_eq!(specs.len(), 1);
         let zone = specs[0].compile().expect("resolves");
         assert_eq!(zone.name, Cow::Owned::<str>("left-third".to_owned()));
-        assert_eq!(zone.geom, ZoneGeom::EdgeFraction { edge: Edge::Left, frac: 0.33 });
+        assert_eq!(
+            zone.geom,
+            ZoneGeom::EdgeFraction {
+                edge: Edge::Left,
+                frac: 0.33
+            }
+        );
         assert_eq!(zone.trigger, Some(Trigger::Edge(Edge::Left)));
 
         // The resolved zone drives the geometry core: left third of a 900px vp.
@@ -251,14 +259,23 @@ mod tests {
     fn defsnapzone_default_fraction_is_half() {
         let src = r#"(defsnapzone :name "l" :edge "left")"#;
         let zone = snap_zones_from_str(src).unwrap()[0].compile().unwrap();
-        assert_eq!(zone.geom, ZoneGeom::EdgeFraction { edge: Edge::Left, frac: 0.5 });
+        assert_eq!(
+            zone.geom,
+            ZoneGeom::EdgeFraction {
+                edge: Edge::Left,
+                frac: 0.5
+            }
+        );
     }
 
     #[test]
     fn an_unknown_edge_is_a_typed_error() {
         let src = r#"(defsnapzone :name "z" :edge "diagonal")"#;
         let s = &snap_zones_from_str(src).unwrap()[0];
-        assert_eq!(s.compile(), Err(SpecError::UnknownEdge("diagonal".to_owned())));
+        assert_eq!(
+            s.compile(),
+            Err(SpecError::UnknownEdge("diagonal".to_owned()))
+        );
     }
 
     #[test]

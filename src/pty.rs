@@ -4,8 +4,8 @@
 //! Provides async reader/writer interfaces via tokio.
 
 use std::collections::HashMap;
-use std::path::Path;
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd, RawFd};
+use std::path::Path;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
@@ -98,7 +98,15 @@ impl Pty {
         set_nonblocking(&master_fd)?;
 
         // Spawn the child shell with the slave PTY as its controlling terminal.
-        let child = spawn_child(shell, &slave_fd, cols, rows, extra_env, working_directory, command)?;
+        let child = spawn_child(
+            shell,
+            &slave_fd,
+            cols,
+            rows,
+            extra_env,
+            working_directory,
+            command,
+        )?;
 
         // The slave fd is now duplicated into the child process; drop our copy.
         drop(slave_fd);
@@ -183,8 +191,7 @@ impl AsyncRead for PtyReader {
             let unfilled = buf.initialize_unfilled();
 
             // SAFETY: valid fd and buffer.
-            let n =
-                unsafe { libc::read(fd, unfilled.as_mut_ptr().cast(), unfilled.len()) };
+            let n = unsafe { libc::read(fd, unfilled.as_mut_ptr().cast(), unfilled.len()) };
 
             if n >= 0 {
                 buf.advance(n as usize);
@@ -242,17 +249,11 @@ impl AsyncWrite for PtyWriter {
         }
     }
 
-    fn poll_flush(
-        self: Pin<&mut Self>,
-        _cx: &mut Context<'_>,
-    ) -> Poll<std::io::Result<()>> {
+    fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
         Poll::Ready(Ok(()))
     }
 
-    fn poll_shutdown(
-        self: Pin<&mut Self>,
-        _cx: &mut Context<'_>,
-    ) -> Poll<std::io::Result<()>> {
+    fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
         Poll::Ready(Ok(()))
     }
 }
@@ -295,7 +296,10 @@ mod tests {
 
     #[test]
     fn pty_error_display_spawn() {
-        let err = PtyError::Spawn(std::io::Error::new(std::io::ErrorKind::NotFound, "no shell"));
+        let err = PtyError::Spawn(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "no shell",
+        ));
         let msg = format!("{err}");
         assert!(msg.contains("failed to spawn shell process"));
         assert!(msg.contains("no shell"));

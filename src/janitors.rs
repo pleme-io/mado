@@ -80,9 +80,7 @@ use crate::suggest::{HealthVerdict, SourceHealth, SourceKind, SourceStatus, Urge
 /// How much a janitor may DO about a finding. Findings are published in
 /// every mode; this gates only the remediation arm (the breathe
 /// shadow-first promotion posture, in-process).
-#[derive(
-    Clone, Copy, PartialEq, Eq, Debug, Default, serde::Serialize, serde::Deserialize,
-)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Authority {
     /// Observe + publish only — every remediation is held and reported as
@@ -112,7 +110,9 @@ impl Authority {
 /// Every janitor the runner knows — the COMPLETE catalog. A new variant is
 /// a compile error until [`JanitorKind::slug`] / [`JanitorKind::label`] are
 /// extended and a test failure until [`JanitorKind::ALL`] lists it.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, serde::Serialize, serde::Deserialize,
+)]
 #[serde(rename_all = "kebab-case")]
 pub enum JanitorKind {
     /// Ghost-session sweeper over the embedded tear registry.
@@ -125,7 +125,8 @@ impl JanitorKind {
     /// Every janitor, in catalog (declaration) order — the reflection
     /// surface tests + future tooling iterate (test-only consumer today).
     #[allow(dead_code)]
-    pub const ALL: &'static [JanitorKind] = &[JanitorKind::GhostSession, JanitorKind::SuggestHealth];
+    pub const ALL: &'static [JanitorKind] =
+        &[JanitorKind::GhostSession, JanitorKind::SuggestHealth];
 
     /// Kebab slug for logs / config docs.
     #[must_use]
@@ -293,9 +294,12 @@ pub fn guarded_close_agent_session(
 ) -> GuardedClose {
     use tear_types::MultiplexerControl;
     let looked_up = inproc.with_registry(|r| {
-        r.sessions
-            .get(&sid)
-            .map(|s| (s.source.clone(), s.panes.keys().copied().collect::<Vec<_>>()))
+        r.sessions.get(&sid).map(|s| {
+            (
+                s.source.clone(),
+                s.panes.keys().copied().collect::<Vec<_>>(),
+            )
+        })
     });
     let Some((source, panes)) = looked_up else {
         return GuardedClose::NoSuchSession;
@@ -389,9 +393,9 @@ impl JanitorEnv for RealJanitorEnv {
                             s.name.clone(),
                             matches!(s.source, tear_types::SessionSource::Agent),
                             !s.panes.is_empty()
-                                && s.panes
-                                    .values()
-                                    .all(|p| matches!(p.state, tear_types::PaneState::Exited { .. })),
+                                && s.panes.values().all(|p| {
+                                    matches!(p.state, tear_types::PaneState::Exited { .. })
+                                }),
                             s.panes.keys().copied().collect(),
                         )
                     })
@@ -799,7 +803,11 @@ impl Janitor for SuggestHealthJanitor {
         out
     }
 
-    fn remediate(&mut self, _env: &dyn JanitorEnv, _finding: &JanitorFinding) -> RemediationOutcome {
+    fn remediate(
+        &mut self,
+        _env: &dyn JanitorEnv,
+        _finding: &JanitorFinding,
+    ) -> RemediationOutcome {
         // Named honestly: no remediation exists in M0 (the fix is a
         // config/secret change only the operator can make).
         RemediationOutcome::ObserveOnly
@@ -887,9 +895,7 @@ impl JanitorRunner {
         let mut processed = 0_usize;
         let board_rows = self.board_rows;
         for slot in &mut self.slots {
-            if slot.last_run_ms != 0
-                && now_ms.saturating_sub(slot.last_run_ms) < slot.interval_ms
-            {
+            if slot.last_run_ms != 0 && now_ms.saturating_sub(slot.last_run_ms) < slot.interval_ms {
                 continue;
             }
             slot.last_run_ms = now_ms;
@@ -947,9 +953,7 @@ mod tests {
     use tokio::sync::broadcast::error::TryRecvError;
 
     use super::*;
-    use crate::config::{
-        GhostSessionJanitorConfig, JanitorsConfig, SuggestHealthJanitorConfig,
-    };
+    use crate::config::{GhostSessionJanitorConfig, JanitorsConfig, SuggestHealthJanitorConfig};
 
     // ── Mock environment ───────────────────────────────────────────
 
@@ -1062,8 +1066,16 @@ mod tests {
             "\"ghost-session\""
         );
         // Every catalog janitor declares its fiber subjects.
-        assert!(GhostSessionJanitor::new(0).subjects().contains(&Subject::Sessions));
-        assert!(SuggestHealthJanitor::new(1).subjects().contains(&Subject::Janitors));
+        assert!(
+            GhostSessionJanitor::new(0)
+                .subjects()
+                .contains(&Subject::Sessions)
+        );
+        assert!(
+            SuggestHealthJanitor::new(1)
+                .subjects()
+                .contains(&Subject::Janitors)
+        );
     }
 
     // ── GhostSessionJanitor ────────────────────────────────────────
@@ -1130,10 +1142,10 @@ mod tests {
     #[test]
     fn remediate_refuses_when_the_guard_reports_attached() {
         let env = MockJanitorEnv::with_sessions(vec![ghost_view("aaaa")]);
-        env.close_results
-            .lock()
-            .unwrap()
-            .insert(String::from("aaaa"), GuardedClose::Attached { subscribers: 1 });
+        env.close_results.lock().unwrap().insert(
+            String::from("aaaa"),
+            GuardedClose::Attached { subscribers: 1 },
+        );
         let mut j = GhostSessionJanitor::new(0);
         j.observe(&env, 0);
         let findings = j.observe(&env, 1_000);
@@ -1213,8 +1225,10 @@ mod tests {
         let env = MockJanitorEnv::default();
         let mut j = SuggestHealthJanitor::new(3);
         for (i, poll_ms) in [10_000_u64, 20_000, 30_000].iter().enumerate() {
-            *env.health.lock().unwrap() =
-                vec![(SourceKind::GrafanaAlerts, health_row(SourceStatus::Error, *poll_ms))];
+            *env.health.lock().unwrap() = vec![(
+                SourceKind::GrafanaAlerts,
+                health_row(SourceStatus::Error, *poll_ms),
+            )];
             let findings = j.observe(&env, poll_ms + 500);
             if i < 2 {
                 assert!(findings.is_empty(), "poll {i} must stay silent");
@@ -1246,7 +1260,10 @@ mod tests {
         for poll_ms in [10_000_u64, 20_000, 30_000] {
             *env.health.lock().unwrap() = vec![
                 // Never once succeeded → BLIND.
-                (SourceKind::GrafanaAlerts, health_row(SourceStatus::Error, poll_ms)),
+                (
+                    SourceKind::GrafanaAlerts,
+                    health_row(SourceStatus::Error, poll_ms),
+                ),
                 // Observed its upstream at t=500, failing since → DEGRADED.
                 (
                     SourceKind::JiraSprint,
@@ -1269,7 +1286,8 @@ mod tests {
                 f.title
             );
             assert!(
-                f.detail.contains("a declaration to fix, not an outage to wait out"),
+                f.detail
+                    .contains("a declaration to fix, not an outage to wait out"),
                 "detail must say it is not weather: {}",
                 f.detail
             );
@@ -1281,8 +1299,10 @@ mod tests {
         // Same jira lane, streak already well past the bar, now flipped to
         // "never succeeded": the row appears purely because the VERDICT
         // changed.
-        *env.health.lock().unwrap() =
-            vec![(SourceKind::JiraSprint, health_row(SourceStatus::Error, 40_000))];
+        *env.health.lock().unwrap() = vec![(
+            SourceKind::JiraSprint,
+            health_row(SourceStatus::Error, 40_000),
+        )];
         let findings = j.observe(&env, 40_500);
         assert_eq!(findings.len(), 1, "verdict flip alone must produce the row");
         assert_eq!(findings[0].key, "janitor:suggest-health:jira-sprint");
@@ -1297,8 +1317,10 @@ mod tests {
     fn the_blind_row_renders_the_fact_in_words_on_the_board() {
         let env = MockJanitorEnv::default();
         let mut j = SuggestHealthJanitor::new(1);
-        *env.health.lock().unwrap() =
-            vec![(SourceKind::GrafanaAlerts, health_row(SourceStatus::Error, 10_000))];
+        *env.health.lock().unwrap() = vec![(
+            SourceKind::GrafanaAlerts,
+            health_row(SourceStatus::Error, 10_000),
+        )];
         let findings = j.observe(&env, 10_500);
         let f = &findings[0];
         // Render exactly as the picker does: the ○ latent badge, then the
@@ -1331,8 +1353,10 @@ mod tests {
         let mut j = SuggestHealthJanitor::new(1);
         let mut keys: Vec<String> = Vec::new();
         for poll_ms in [10_000_u64, 20_000, 30_000, 40_000] {
-            *env.health.lock().unwrap() =
-                vec![(SourceKind::GrafanaAlerts, health_row(SourceStatus::Error, poll_ms))];
+            *env.health.lock().unwrap() = vec![(
+                SourceKind::GrafanaAlerts,
+                health_row(SourceStatus::Error, poll_ms),
+            )];
             for f in j.observe(&env, poll_ms + 500) {
                 keys.push(f.key);
             }
@@ -1347,16 +1371,23 @@ mod tests {
         let env = MockJanitorEnv::default();
         let mut j = SuggestHealthJanitor::new(2);
         // Two janitor ticks over the SAME poll: counts once, not twice.
-        *env.health.lock().unwrap() =
-            vec![(SourceKind::TendRepos, health_row(SourceStatus::AuthMissing, 10_000))];
+        *env.health.lock().unwrap() = vec![(
+            SourceKind::TendRepos,
+            health_row(SourceStatus::AuthMissing, 10_000),
+        )];
         assert!(j.observe(&env, 11_000).is_empty());
-        assert!(j.observe(&env, 12_000).is_empty(), "same poll must not re-count");
+        assert!(
+            j.observe(&env, 12_000).is_empty(),
+            "same poll must not re-count"
+        );
         // A recovery poll resets the streak entirely.
         *env.health.lock().unwrap() =
             vec![(SourceKind::TendRepos, health_row(SourceStatus::Ok, 20_000))];
         assert!(j.observe(&env, 21_000).is_empty());
-        *env.health.lock().unwrap() =
-            vec![(SourceKind::TendRepos, health_row(SourceStatus::AuthMissing, 30_000))];
+        *env.health.lock().unwrap() = vec![(
+            SourceKind::TendRepos,
+            health_row(SourceStatus::AuthMissing, 30_000),
+        )];
         assert!(j.observe(&env, 31_000).is_empty(), "streak restarted at 1");
     }
 
@@ -1389,13 +1420,17 @@ mod tests {
         let mut findings_rx = bus.subscribe(Subject::Janitors);
         let mut sessions_rx = bus.subscribe(Subject::Sessions);
         let mut runner = JanitorRunner::from_config(&armed_config(Authority::Shadow));
-        runner.tick(&env, &bus, 1_000);       // anchors the grace clock
+        runner.tick(&env, &bus, 1_000); // anchors the grace clock
         runner.tick(&env, &bus, 1_000 + 61_000); // grace 0 ⇒ finding fires
         // The finding was published, disposition ShadowHeld.
         let mut saw_shadow_held = false;
         while let Ok(ev) = findings_rx.try_recv() {
             if let FiberEvent::Janitor(f) = ev {
-                assert_ne!(f.outcome, RemediationOutcome::Applied, "shadow must not apply");
+                assert_ne!(
+                    f.outcome,
+                    RemediationOutcome::Applied,
+                    "shadow must not apply"
+                );
                 if f.outcome == RemediationOutcome::ShadowHeld {
                     saw_shadow_held = true;
                 }
@@ -1407,7 +1442,10 @@ mod tests {
         assert!(matches!(sessions_rx.try_recv(), Err(TryRecvError::Empty)));
         assert_eq!(env.tear_sessions().len(), 1);
         // Board projection still ran (findings surface in every mode).
-        assert!(env.projected().contains(&String::from("janitor:ghost-session:aaaa")));
+        assert!(
+            env.projected()
+                .contains(&String::from("janitor:ghost-session:aaaa"))
+        );
     }
 
     #[test]
@@ -1448,7 +1486,11 @@ mod tests {
         let mut runner = JanitorRunner::from_config(&cfg);
         runner.tick(&env, &bus, 1_000);
         runner.tick(&env, &bus, 1_000 + 61_000);
-        assert_eq!(env.closes(), vec![String::from("aaaa")], "override must win");
+        assert_eq!(
+            env.closes(),
+            vec![String::from("aaaa")],
+            "override must win"
+        );
     }
 
     #[test]
@@ -1482,7 +1524,10 @@ mod tests {
         let mut runner = JanitorRunner::from_config(&cfg);
         runner.tick(&env, &bus, 1_000);
         runner.tick(&env, &bus, 1_000 + 61_000);
-        assert!(env.projected().is_empty(), "board_rows=false must not inject");
+        assert!(
+            env.projected().is_empty(),
+            "board_rows=false must not inject"
+        );
         assert!(matches!(board_rx.try_recv(), Err(TryRecvError::Empty)));
     }
 

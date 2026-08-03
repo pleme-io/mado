@@ -252,8 +252,12 @@ impl CellSource for GhaDeploymentSource {
             if let Some(tok) = ctx.secret.as_deref() {
                 req = req.bearer(tok);
             }
-            let Some(body) = env.http_get(&req) else { continue };
-            let Ok(parsed) = serde_json::from_str::<GhaRunsResponse>(&body) else { continue };
+            let Some(body) = env.http_get(&req) else {
+                continue;
+            };
+            let Ok(parsed) = serde_json::from_str::<GhaRunsResponse>(&body) else {
+                continue;
+            };
             for run in &parsed.workflow_runs {
                 if let Some(sig) = run_to_signal(repo, run, kind, &self.filter) {
                     out.push(sig);
@@ -266,11 +270,17 @@ impl CellSource for GhaDeploymentSource {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::schema::{Endpoint, TrackedDataKind, TrackedEnvironment};
+    use super::*;
     use crate::suggest::env::MockEnvironment;
 
-    fn run(name: &str, status: &str, conclusion: Option<&str>, event: &str, branch: &str) -> GhaRun {
+    fn run(
+        name: &str,
+        status: &str,
+        conclusion: Option<&str>,
+        event: &str,
+        branch: &str,
+    ) -> GhaRun {
         GhaRun {
             id: 42,
             name: name.into(),
@@ -279,7 +289,9 @@ mod tests {
             head_branch: Some(branch.into()),
             event: event.into(),
             html_url: "https://github.com/o/r/actions/runs/42".into(),
-            actor: Some(GhaActor { login: "alice".into() }),
+            actor: Some(GhaActor {
+                login: "alice".into(),
+            }),
         }
     }
 
@@ -290,7 +302,10 @@ mod tests {
             branches: vec!["master".into()],
             workflow_allow: vec![TextMatch::Prefix("Deploy".into())],
             workflow_deny: vec![TextMatch::Contains("Build".into())],
-            env_allow: vec![TextMatch::Suffix("_production".into()), TextMatch::Suffix("_staging".into())],
+            env_allow: vec![
+                TextMatch::Suffix("_production".into()),
+                TextMatch::Suffix("_staging".into()),
+            ],
             surface_success: false,
         }
     }
@@ -309,22 +324,40 @@ mod tests {
         let n = "Deploy Service: auth, tenant: mte, environment: production, version: 1.2.3";
         assert_eq!(extract_env(n).as_deref(), Some("mte_production"));
         assert_eq!(extract_env("no tokens here"), None);
-        assert_eq!(extract_env("tenant: wmt environment: staging").as_deref(), Some("wmt_staging"));
+        assert_eq!(
+            extract_env("tenant: wmt environment: staging").as_deref(),
+            Some("wmt_staging")
+        );
     }
 
     #[test]
     fn failed_prod_deploy_is_critical() {
-        let r = run("Deploy tenant: mte, environment: production", "completed", Some("failure"), "workflow_dispatch", "master");
+        let r = run(
+            "Deploy tenant: mte, environment: production",
+            "completed",
+            Some("failure"),
+            "workflow_dispatch",
+            "master",
+        );
         let s = run_to_signal("o/r", &r, "deploy-flows", &prod_filter()).expect("surfaced");
         assert_eq!(s.severity, Severity::Critical);
         assert_eq!(s.env, "mte_production");
         assert_eq!(s.identity, "o/r#42");
-        assert_eq!(s.link.as_deref(), Some("https://github.com/o/r/actions/runs/42"));
+        assert_eq!(
+            s.link.as_deref(),
+            Some("https://github.com/o/r/actions/runs/42")
+        );
     }
 
     #[test]
     fn in_progress_deploy_is_warning() {
-        let r = run("Deploy tenant: wmt, environment: staging", "in_progress", None, "workflow_dispatch", "master");
+        let r = run(
+            "Deploy tenant: wmt, environment: staging",
+            "in_progress",
+            None,
+            "workflow_dispatch",
+            "master",
+        );
         let s = run_to_signal("o/r", &r, "deploy-flows", &prod_filter()).expect("surfaced");
         assert_eq!(s.severity, Severity::Warning);
         assert_eq!(s.env, "wmt_staging");
@@ -334,13 +367,69 @@ mod tests {
     fn denied_workflow_and_wrong_branch_and_dev_env_are_dropped() {
         let f = prod_filter();
         // denied (Build)
-        assert!(run_to_signal("o/r", &run("Deploy Build tenant: mte, environment: production", "completed", Some("failure"), "workflow_dispatch", "master"), "k", &f).is_none());
+        assert!(
+            run_to_signal(
+                "o/r",
+                &run(
+                    "Deploy Build tenant: mte, environment: production",
+                    "completed",
+                    Some("failure"),
+                    "workflow_dispatch",
+                    "master"
+                ),
+                "k",
+                &f
+            )
+            .is_none()
+        );
         // wrong branch
-        assert!(run_to_signal("o/r", &run("Deploy tenant: mte, environment: production", "in_progress", None, "workflow_dispatch", "feature"), "k", &f).is_none());
+        assert!(
+            run_to_signal(
+                "o/r",
+                &run(
+                    "Deploy tenant: mte, environment: production",
+                    "in_progress",
+                    None,
+                    "workflow_dispatch",
+                    "feature"
+                ),
+                "k",
+                &f
+            )
+            .is_none()
+        );
         // dev env not in env_allow (prod/staging only)
-        assert!(run_to_signal("o/r", &run("Deploy tenant: mte, environment: development", "in_progress", None, "workflow_dispatch", "master"), "k", &f).is_none());
+        assert!(
+            run_to_signal(
+                "o/r",
+                &run(
+                    "Deploy tenant: mte, environment: development",
+                    "in_progress",
+                    None,
+                    "workflow_dispatch",
+                    "master"
+                ),
+                "k",
+                &f
+            )
+            .is_none()
+        );
         // success dropped when surface_success=false
-        assert!(run_to_signal("o/r", &run("Deploy tenant: mte, environment: production", "completed", Some("success"), "workflow_dispatch", "master"), "k", &f).is_none());
+        assert!(
+            run_to_signal(
+                "o/r",
+                &run(
+                    "Deploy tenant: mte, environment: production",
+                    "completed",
+                    Some("success"),
+                    "workflow_dispatch",
+                    "master"
+                ),
+                "k",
+                &f
+            )
+            .is_none()
+        );
     }
 
     #[test]
@@ -350,7 +439,9 @@ mod tests {
             {"id":2,"name":"Build-And-Push tenant: mte, environment: production","status":"in_progress","head_branch":"master","event":"workflow_dispatch","html_url":"https://x/2"}
         ]}"#;
         let url = GhaDeploymentSource::runs_url("https://api.github.com", "o/r");
-        let env = MockEnvironment::new().http(url, body).secret_val("github/x/token", "tok");
+        let env = MockEnvironment::new()
+            .http(url, body)
+            .secret_val("github/x/token", "tok");
         let src = GhaDeploymentSource::new(prod_filter());
         let tracked_env = TrackedEnvironment {
             name: "akeyless-gha".into(),
@@ -361,9 +452,19 @@ mod tests {
                 secret_ref: Some("github/x/token".into()),
             }],
         };
-        let kind = TrackedDataKind { name: "deploy-flows".into(), service: ServiceKind::GitHubActions, groups: vec![], ttl_secs: 600 };
+        let kind = TrackedDataKind {
+            name: "deploy-flows".into(),
+            service: ServiceKind::GitHubActions,
+            groups: vec![],
+            ttl_secs: 600,
+        };
         let endpoint = &tracked_env.endpoints[0];
-        let ctx = ObserveCtx { env: &tracked_env, kind: &kind, endpoint, secret: Some("tok".into()) };
+        let ctx = ObserveCtx {
+            env: &tracked_env,
+            kind: &kind,
+            endpoint,
+            secret: Some("tok".into()),
+        };
         let sigs = src.observe(&env, &ctx);
         // run 1 surfaces (failed prod deploy); run 2 is denied (Build).
         assert_eq!(sigs.len(), 1);

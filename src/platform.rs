@@ -306,7 +306,10 @@ mod tests {
             latch.tick();
             latch.tick();
             #[cfg(target_os = "macos")]
-            assert!(!latch.applied, "off-main-thread ticks must keep the latch armed");
+            assert!(
+                !latch.applied,
+                "off-main-thread ticks must keep the latch armed"
+            );
             #[cfg(not(target_os = "macos"))]
             assert!(latch.applied);
         })
@@ -510,7 +513,10 @@ mod macos {
                         s.play();
                     }
                     None => {
-                        tracing::debug!(sound = name, "bell sound not found — falling back to NSBeep");
+                        tracing::debug!(
+                            sound = name,
+                            "bell sound not found — falling back to NSBeep"
+                        );
                         NSBeep();
                     }
                 }
@@ -542,10 +548,7 @@ mod macos {
     ];
 
     impl tsuuchi::NotificationBackend for OsaScriptBackend {
-        fn send(
-            &self,
-            notification: &tsuuchi::Notification,
-        ) -> Result<(), tsuuchi::TsuuchiError> {
+        fn send(&self, notification: &tsuuchi::Notification) -> Result<(), tsuuchi::TsuuchiError> {
             tracing::debug!(
                 title = %notification.title,
                 urgency = ?notification.urgency,

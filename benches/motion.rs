@@ -4,8 +4,8 @@
 //! fallback) curve solve; `frame_decay` is the shared snow/bell decay factor.
 //! These are CPU-only + GPU-free, so they gate on any runner.
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use mado::motion::{frame_decay, Curve, EasingKind};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use mado::motion::{Curve, EasingKind, frame_decay};
 
 fn bench_curve_ease(c: &mut Criterion) {
     // SonicBoom is the most-curved token — the slowest to converge, so it
@@ -30,7 +30,9 @@ fn bench_curve_ease(c: &mut Criterion) {
 
     // Linear short-circuits the solve — the identity fast-path baseline.
     let linear = Curve::Linear;
-    c.bench_function("curve_ease_linear", |b| b.iter(|| linear.ease(black_box(0.37))));
+    c.bench_function("curve_ease_linear", |b| {
+        b.iter(|| linear.ease(black_box(0.37)))
+    });
 }
 
 fn bench_frame_decay(c: &mut Criterion) {

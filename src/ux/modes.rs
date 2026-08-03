@@ -257,7 +257,11 @@ pub(crate) struct OverlayStep {
     pub effects: Vec<OverlayEffect>,
 }
 
-fn overlay_step(state: Overlay, routing: OverlayRouting, effects: Vec<OverlayEffect>) -> OverlayStep {
+fn overlay_step(
+    state: Overlay,
+    routing: OverlayRouting,
+    effects: Vec<OverlayEffect>,
+) -> OverlayStep {
     OverlayStep {
         state,
         routing,
@@ -405,7 +409,9 @@ impl Overlay {
                         // text-before-backspace mirrors the pre-FSM
                         // routing order. Everything else is consumed
                         // so it cannot leak to the PTY.
-                        if k.plain && let Some(t) = k.text {
+                        if k.plain
+                            && let Some(t) = k.text
+                        {
                             return overlay_step(
                                 Overlay::Search,
                                 Consumed,
@@ -463,9 +469,11 @@ impl Overlay {
                     OverlayKeyClass::Escape => {
                         overlay_step(Overlay::None, Consumed, vec![OverlayEffect::DirPickerClose])
                     }
-                    OverlayKeyClass::Enter => {
-                        overlay_step(Overlay::None, Consumed, vec![OverlayEffect::DirPickerAccept])
-                    }
+                    OverlayKeyClass::Enter => overlay_step(
+                        Overlay::None,
+                        Consumed,
+                        vec![OverlayEffect::DirPickerAccept],
+                    ),
                     OverlayKeyClass::Up | OverlayKeyClass::CtrlP => overlay_step(
                         Overlay::DirPicker,
                         Consumed,
@@ -491,7 +499,9 @@ impl Overlay {
                     // in the dir picker.
                     OverlayKeyClass::CtrlE => overlay_step(Overlay::DirPicker, Consumed, vec![]),
                     OverlayKeyClass::Other => {
-                        if k.plain && let Some(t) = k.text {
+                        if k.plain
+                            && let Some(t) = k.text
+                        {
                             return overlay_step(
                                 Overlay::DirPicker,
                                 Consumed,
@@ -578,7 +588,9 @@ impl Overlay {
                         vec![OverlayEffect::SessionPickerRenameBegin],
                     ),
                     OverlayKeyClass::Other => {
-                        if k.plain && let Some(t) = k.text {
+                        if k.plain
+                            && let Some(t) = k.text
+                        {
                             return overlay_step(
                                 Overlay::SessionPicker,
                                 Consumed,
@@ -651,7 +663,9 @@ impl Overlay {
                         overlay_step(Overlay::SessionRename, Consumed, vec![])
                     }
                     OverlayKeyClass::Other => {
-                        if k.plain && let Some(t) = k.text {
+                        if k.plain
+                            && let Some(t) = k.text
+                        {
                             return overlay_step(
                                 Overlay::SessionRename,
                                 Consumed,
@@ -854,7 +868,9 @@ fn pointer_step(state: Pointer, effects: Vec<PointerEffect>) -> PointerStep {
 /// state's `LeftPress` arm.
 fn enter_press(route: PressRoute) -> PointerStep {
     match route {
-        PressRoute::Forward => pointer_step(Pointer::ForwardedPress, vec![PointerEffect::ForwardPress]),
+        PressRoute::Forward => {
+            pointer_step(Pointer::ForwardedPress, vec![PointerEffect::ForwardPress])
+        }
         PressRoute::Select { bypass, plan } => match plan {
             PressPlan::Extend { start, click } => pointer_step(
                 Pointer::Selecting {
@@ -1330,7 +1346,12 @@ mod tests {
         Overlay::ALL.to_vec()
     }
 
-    fn key(nav: Option<SearchNav>, class: OverlayKeyClass, text: Option<&str>, plain: bool) -> OverlayKey {
+    fn key(
+        nav: Option<SearchNav>,
+        class: OverlayKeyClass,
+        text: Option<&str>,
+        plain: bool,
+    ) -> OverlayKey {
         OverlayKey {
             nav,
             key: class,
@@ -1345,15 +1366,25 @@ mod tests {
     fn ctrl_e_drives_the_session_rename_sub_mode() {
         use OverlayKeyClass as K;
         // Ctrl-E from the picker → SessionRename + begin.
-        let s = Overlay::SessionPicker.on_event(OverlayEvent::Key(key(None, K::CtrlE, None, false)));
+        let s =
+            Overlay::SessionPicker.on_event(OverlayEvent::Key(key(None, K::CtrlE, None, false)));
         assert_eq!(s.state, Overlay::SessionRename);
         assert_eq!(s.effects, vec![OverlayEffect::SessionPickerRenameBegin]);
         // Typing pushes to the rename buffer; stays in rename.
-        let s = Overlay::SessionRename.on_event(OverlayEvent::Key(key(None, K::Other, Some("x"), true)));
+        let s = Overlay::SessionRename.on_event(OverlayEvent::Key(key(
+            None,
+            K::Other,
+            Some("x"),
+            true,
+        )));
         assert_eq!(s.state, Overlay::SessionRename);
-        assert_eq!(s.effects, vec![OverlayEffect::SessionPickerRenamePush("x".to_owned())]);
+        assert_eq!(
+            s.effects,
+            vec![OverlayEffect::SessionPickerRenamePush("x".to_owned())]
+        );
         // Backspace edits the buffer.
-        let s = Overlay::SessionRename.on_event(OverlayEvent::Key(key(None, K::Backspace, None, true)));
+        let s =
+            Overlay::SessionRename.on_event(OverlayEvent::Key(key(None, K::Backspace, None, true)));
         assert_eq!(s.effects, vec![OverlayEffect::SessionPickerRenameBackspace]);
         // Navigation is inert — the rename target stays on the row Ctrl-E hit.
         for nav in [K::Up, K::Down, K::CtrlN, K::CtrlP, K::CtrlE] {
@@ -1362,11 +1393,13 @@ mod tests {
             assert!(s.effects.is_empty(), "nav {nav:?} must be inert in rename");
         }
         // Enter commits → back to the picker.
-        let s = Overlay::SessionRename.on_event(OverlayEvent::Key(key(None, K::Enter, None, false)));
+        let s =
+            Overlay::SessionRename.on_event(OverlayEvent::Key(key(None, K::Enter, None, false)));
         assert_eq!(s.state, Overlay::SessionPicker);
         assert_eq!(s.effects, vec![OverlayEffect::SessionPickerRenameCommit]);
         // Escape cancels → back to the picker.
-        let s = Overlay::SessionRename.on_event(OverlayEvent::Key(key(None, K::Escape, None, false)));
+        let s =
+            Overlay::SessionRename.on_event(OverlayEvent::Key(key(None, K::Escape, None, false)));
         assert_eq!(s.state, Overlay::SessionPicker);
         assert_eq!(s.effects, vec![OverlayEffect::SessionPickerRenameCancel]);
     }
@@ -1376,9 +1409,24 @@ mod tests {
             OverlayEvent::OpenSearch,
             OverlayEvent::OpenDirPicker,
             OverlayEvent::OpenSessionPicker,
-            OverlayEvent::Key(key(Some(SearchNav::Close), OverlayKeyClass::Escape, None, true)),
-            OverlayEvent::Key(key(Some(SearchNav::Next), OverlayKeyClass::Other, None, false)),
-            OverlayEvent::Key(key(Some(SearchNav::Prev), OverlayKeyClass::Other, None, false)),
+            OverlayEvent::Key(key(
+                Some(SearchNav::Close),
+                OverlayKeyClass::Escape,
+                None,
+                true,
+            )),
+            OverlayEvent::Key(key(
+                Some(SearchNav::Next),
+                OverlayKeyClass::Other,
+                None,
+                false,
+            )),
+            OverlayEvent::Key(key(
+                Some(SearchNav::Prev),
+                OverlayKeyClass::Other,
+                None,
+                false,
+            )),
             OverlayEvent::Key(key(None, OverlayKeyClass::Escape, None, true)),
             OverlayEvent::Key(key(None, OverlayKeyClass::Enter, None, true)),
             OverlayEvent::Key(key(None, OverlayKeyClass::Up, None, true)),
@@ -1469,9 +1517,11 @@ mod tests {
                 match event {
                     PointerEvent::Motion { mode, sgr } => {
                         if step.state != state {
-                            failures.push(format!("{ctx}: motion changed state to {:?}", step.state));
+                            failures
+                                .push(format!("{ctx}: motion changed state to {:?}", step.state));
                         }
-                        let reportable = matches!(mode, MouseMode::ButtonEvent | MouseMode::AnyEvent);
+                        let reportable =
+                            matches!(mode, MouseMode::ButtonEvent | MouseMode::AnyEvent);
                         if step
                             .effects
                             .iter()
@@ -1505,9 +1555,8 @@ mod tests {
                                 .iter()
                                 .any(|e| matches!(e, PointerEffect::ForwardMotion { .. }))
                         {
-                            failures.push(format!(
-                                "{ctx}: drag update and motion forward in one tick"
-                            ));
+                            failures
+                                .push(format!("{ctx}: drag update and motion forward in one tick"));
                         }
                     }
                     PointerEvent::LeftRelease => {
@@ -1571,9 +1620,8 @@ mod tests {
                         // orphaned highlight FIRST (a dropped release
                         // left it live), and ONLY that case does — every
                         // other prior state has no live drag to strand.
-                        let completes_orphan = step
-                            .effects
-                            .contains(&PointerEffect::CompleteOrphanedDrag);
+                        let completes_orphan =
+                            step.effects.contains(&PointerEffect::CompleteOrphanedDrag);
                         let pressing_live_drag = matches!(state, Pointer::Selecting { .. });
                         if completes_orphan != pressing_live_drag {
                             failures.push(format!(
@@ -1585,8 +1633,7 @@ mod tests {
                         // orphan copies before the new press's own
                         // selection effects mutate the selection.
                         if completes_orphan
-                            && step.effects.first()
-                                != Some(&PointerEffect::CompleteOrphanedDrag)
+                            && step.effects.first() != Some(&PointerEffect::CompleteOrphanedDrag)
                         {
                             failures.push(format!(
                                 "{ctx}: CompleteOrphanedDrag must precede the new press's effects"
@@ -1729,12 +1776,18 @@ mod tests {
             (
                 OverlayEvent::OpenSearch,
                 OverlayEffect::SearchOpen,
-                [OverlayEffect::DirPickerClose, OverlayEffect::SessionPickerClose],
+                [
+                    OverlayEffect::DirPickerClose,
+                    OverlayEffect::SessionPickerClose,
+                ],
             ),
             (
                 OverlayEvent::OpenDirPicker,
                 OverlayEffect::DirPickerOpen,
-                [OverlayEffect::SearchClose, OverlayEffect::SessionPickerClose],
+                [
+                    OverlayEffect::SearchClose,
+                    OverlayEffect::SessionPickerClose,
+                ],
             ),
             (
                 OverlayEvent::OpenSessionPicker,
@@ -1759,11 +1812,9 @@ mod tests {
                     // closed mirror) is what kills the desync, so every
                     // sibling close must be present and precede the open.
                     match step.effects.iter().position(|e| e == sib) {
-                        None => failures
-                            .push(format!("{ctx}: missing sibling close {sib:?}")),
-                        Some(p) if p > open_pos => failures.push(format!(
-                            "{ctx}: sibling close {sib:?} runs AFTER the open"
-                        )),
+                        None => failures.push(format!("{ctx}: missing sibling close {sib:?}")),
+                        Some(p) if p > open_pos => failures
+                            .push(format!("{ctx}: sibling close {sib:?} runs AFTER the open")),
                         Some(_) => {}
                     }
                 }
@@ -1802,7 +1853,9 @@ mod tests {
                 )
             });
             if dp_search_fx {
-                failures.push(format!("{nav:?}: search effect leaked into DirPicker state"));
+                failures.push(format!(
+                    "{nav:?}: search effect leaked into DirPicker state"
+                ));
             }
             let search_step = Overlay::Search.on_event(ev);
             if search_step.routing != OverlayRouting::Consumed || search_step.effects.is_empty() {

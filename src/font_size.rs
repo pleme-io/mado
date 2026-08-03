@@ -41,9 +41,15 @@ pub const FONT_DEFAULT: f32 = 13.0;
 pub struct FontSizeBounds;
 
 impl Bounds<f32> for FontSizeBounds {
-    fn min() -> f32 { FONT_MIN }
-    fn max() -> f32 { FONT_MAX }
-    fn default() -> f32 { FONT_DEFAULT }
+    fn min() -> f32 {
+        FONT_MIN
+    }
+    fn max() -> f32 {
+        FONT_MAX
+    }
+    fn default() -> f32 {
+        FONT_DEFAULT
+    }
 }
 
 /// A font size proven (by type) to satisfy `FONT_MIN <= v <= FONT_MAX`.
@@ -113,7 +119,8 @@ mod tests {
         assert!(
             (bfs.get() - fd.font_size).abs() < 0.001,
             "BoundedFontSize::default() ({}) drifted from FleetDefaults::prescribed().font_size ({})",
-            bfs.get(), fd.font_size
+            bfs.get(),
+            fd.font_size
         );
     }
 

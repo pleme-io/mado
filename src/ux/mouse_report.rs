@@ -182,7 +182,13 @@ mod tests {
         );
         // SGR keeps the button code on release; only the final flips.
         assert_eq!(
-            enc(MouseReportKind::Release, MouseReportButton::Left, 42, 7, true),
+            enc(
+                MouseReportKind::Release,
+                MouseReportButton::Left,
+                42,
+                7,
+                true
+            ),
             b"\x1b[<0;42;7m"
         );
     }
@@ -205,11 +211,23 @@ mod tests {
     #[test]
     fn sgr_wheel() {
         assert_eq!(
-            enc(MouseReportKind::Press, MouseReportButton::WheelUp, 1, 1, true),
+            enc(
+                MouseReportKind::Press,
+                MouseReportButton::WheelUp,
+                1,
+                1,
+                true
+            ),
             b"\x1b[<64;1;1M"
         );
         assert_eq!(
-            enc(MouseReportKind::Press, MouseReportButton::WheelDown, 1, 1, true),
+            enc(
+                MouseReportKind::Press,
+                MouseReportButton::WheelDown,
+                1,
+                1,
+                true
+            ),
             b"\x1b[<65;1;1M"
         );
     }
@@ -219,7 +237,13 @@ mod tests {
         // The spec row for the closed `1;1` gap: wheel-up at 0-based
         // cell (10,5) → 1-based 11;6.
         assert_eq!(
-            enc(MouseReportKind::Press, MouseReportButton::WheelUp, 11, 6, true),
+            enc(
+                MouseReportKind::Press,
+                MouseReportButton::WheelUp,
+                11,
+                6,
+                true
+            ),
             b"\x1b[<64;11;6M"
         );
     }
@@ -274,12 +298,24 @@ mod tests {
         );
         // Release is always code 3 in X10.
         assert_eq!(
-            enc(MouseReportKind::Release, MouseReportButton::Left, 1, 1, false),
+            enc(
+                MouseReportKind::Release,
+                MouseReportButton::Left,
+                1,
+                1,
+                false
+            ),
             &[0x1b, b'[', b'M', 35, 33, 33]
         );
         // Coordinates clamp at 223 (255 - 32).
         assert_eq!(
-            enc(MouseReportKind::Press, MouseReportButton::Left, 500, 500, false),
+            enc(
+                MouseReportKind::Press,
+                MouseReportButton::Left,
+                500,
+                500,
+                false
+            ),
             &[0x1b, b'[', b'M', 32, 255, 255]
         );
     }
@@ -304,7 +340,13 @@ mod tests {
     #[test]
     fn x10_wheel() {
         assert_eq!(
-            enc(MouseReportKind::Press, MouseReportButton::WheelUp, 1, 1, false),
+            enc(
+                MouseReportKind::Press,
+                MouseReportButton::WheelUp,
+                1,
+                1,
+                false
+            ),
             &[0x1b, b'[', b'M', 96, 33, 33]
         );
     }

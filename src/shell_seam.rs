@@ -41,8 +41,8 @@ use std::time::{Duration, Instant};
 use engate_attach::Attach;
 use parking_lot::RwLock;
 use pleme_allvariants_derive::AllVariants;
-use tear_core::engate_producer::PaneProducer;
 use tear_core::InProcess;
+use tear_core::engate_producer::PaneProducer;
 use tear_types::{MultiplexerControl, PaneId, SessionSource};
 
 use crate::engate_consumer::{ProbeCounters, ResponseWriter, TerminalSink};
@@ -77,8 +77,10 @@ struct ShellUnderTest {
     bin: &'static str,
 }
 
-const SHELLS: &[ShellUnderTest] =
-    &[ShellUnderTest { bin: "frostmourne" }, ShellUnderTest { bin: "frost" }];
+const SHELLS: &[ShellUnderTest] = &[
+    ShellUnderTest { bin: "frostmourne" },
+    ShellUnderTest { bin: "frost" },
+];
 
 impl ShellUnderTest {
     /// Absolute path to this shell, or `None` when it is not deployed
@@ -92,7 +94,9 @@ impl ShellUnderTest {
         }
         let user = std::env::var("USER").ok()?;
         let candidate = format!("/etc/profiles/per-user/{user}/bin/{}", self.bin);
-        std::path::Path::new(&candidate).exists().then_some(candidate)
+        std::path::Path::new(&candidate)
+            .exists()
+            .then_some(candidate)
     }
 }
 
@@ -184,7 +188,13 @@ impl Seam {
             })
             .expect("spawn engate live thread");
 
-        Self { inproc, pane, terminal, probes, thread: Some(thread) }
+        Self {
+            inproc,
+            pane,
+            terminal,
+            probes,
+            thread: Some(thread),
+        }
     }
 
     fn send(&self, bytes: &[u8]) {

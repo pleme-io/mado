@@ -55,7 +55,9 @@ pub fn try_acquire(dir: &Path) -> Option<WriterLock> {
 pub fn is_writer() -> bool {
     static ELECTION: OnceLock<std::sync::Mutex<Option<WriterLock>>> = OnceLock::new();
     let slot = ELECTION.get_or_init(|| std::sync::Mutex::new(None));
-    let mut held = slot.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    let mut held = slot
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     if held.is_some() {
         return true;
     }
@@ -65,7 +67,9 @@ pub fn is_writer() -> bool {
         .unwrap_or_else(std::env::temp_dir);
     match try_acquire(&dir) {
         Some(lock) => {
-            tracing::info!("state-writer role acquired — this process persists the shared snapshots");
+            tracing::info!(
+                "state-writer role acquired — this process persists the shared snapshots"
+            );
             *held = Some(lock);
             true
         }
@@ -86,7 +90,10 @@ mod tests {
         let first = try_acquire(&dir);
         assert!(first.is_some(), "first acquire wins");
         #[cfg(unix)]
-        assert!(try_acquire(&dir).is_none(), "second acquire loses while held");
+        assert!(
+            try_acquire(&dir).is_none(),
+            "second acquire loses while held"
+        );
         drop(first);
         assert!(
             try_acquire(&dir).is_some(),

@@ -44,10 +44,7 @@
 /// modern prompts (starship / seki / oh-my-posh) emit. These live
 /// inside the BMP PUA but are special-cased so the predicate reads as
 /// intent ("powerline") rather than a bare range check.
-const POWERLINE_RANGES: &[(char, char)] = &[
-    ('\u{E0A0}', '\u{E0A2}'),
-    ('\u{E0B0}', '\u{E0D4}'),
-];
+const POWERLINE_RANGES: &[(char, char)] = &[('\u{E0A0}', '\u{E0A2}'), ('\u{E0B0}', '\u{E0D4}')];
 
 /// Nerd-Font icon blocks. The classic patch packs its glyphs across the
 /// BMP Private Use Area (U+E000–F8FF: Seti-UI, Devicons, Font Awesome,
@@ -246,7 +243,11 @@ mod tests {
         // The canonical right-angle and round separators every prompt
         // theme emits.
         for c in ['\u{E0B0}', '\u{E0B1}', '\u{E0B2}', '\u{E0B3}'] {
-            assert!(is_symbol_glyph(c), "{c:?} (U+{:04X}) should be a symbol", c as u32);
+            assert!(
+                is_symbol_glyph(c),
+                "{c:?} (U+{:04X}) should be a symbol",
+                c as u32
+            );
         }
         // powerline-extra (flames / ice / half-circles) up to U+E0D4.
         assert!(is_symbol_glyph('\u{E0C0}'));
@@ -286,7 +287,10 @@ mod tests {
         // classifying it as a symbol would route a glyph that's never
         // emitted. Pin that it stays out of the symbol set.
         for c in ['\u{2500}', '\u{2502}', '\u{250C}', '\u{257F}'] {
-            assert!(!is_symbol_glyph(c), "box-drawing {c:?} is rect-rendered, not a symbol glyph");
+            assert!(
+                !is_symbol_glyph(c),
+                "box-drawing {c:?} is rect-rendered, not a symbol glyph"
+            );
         }
     }
 

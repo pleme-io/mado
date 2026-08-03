@@ -250,18 +250,28 @@ mod tests {
         p.move_down(); // on "b"
         assert_eq!(p.selected, 1);
         let vanished = p.set_results_preserving(
-            vec!["x".to_owned(), "a".to_owned(), "b".to_owned(), "c".to_owned()],
+            vec![
+                "x".to_owned(),
+                "a".to_owned(),
+                "b".to_owned(),
+                "c".to_owned(),
+            ],
             |r: &String| r.clone(),
         );
         assert!(!vanished, "row still present → no vanish");
-        assert_eq!(p.selected_row().map(String::as_str), Some("b"), "cursor followed its row");
+        assert_eq!(
+            p.selected_row().map(String::as_str),
+            Some("b"),
+            "cursor followed its row"
+        );
 
         // When the highlighted row is gone, clamp to the top + report the vanish.
-        let vanished = p.set_results_preserving(
-            vec!["a".to_owned(), "c".to_owned()],
-            |r: &String| r.clone(),
+        let vanished =
+            p.set_results_preserving(vec!["a".to_owned(), "c".to_owned()], |r: &String| r.clone());
+        assert!(
+            vanished,
+            "'b' vanished → caller must stamp the stability window"
         );
-        assert!(vanished, "'b' vanished → caller must stamp the stability window");
         assert_eq!(p.selected, 0);
     }
 

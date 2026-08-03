@@ -233,8 +233,14 @@ mod tests {
     fn quadrants_tile_the_viewport() {
         let v = vp();
         let total: f32 = Corner::ALL.iter().map(|c| v.quadrant(*c).area()).sum();
-        assert!((total - v.area()).abs() < 1.0, "4 quadrants must tile the vp");
-        assert_eq!(v.quadrant(Corner::TopRight), Rect::new(500.0, 0.0, 500.0, 400.0));
+        assert!(
+            (total - v.area()).abs() < 1.0,
+            "4 quadrants must tile the vp"
+        );
+        assert_eq!(
+            v.quadrant(Corner::TopRight),
+            Rect::new(500.0, 0.0, 500.0, 400.0)
+        );
         assert_eq!(
             v.quadrant(Corner::BottomRight),
             Rect::new(500.0, 400.0, 500.0, 400.0),
