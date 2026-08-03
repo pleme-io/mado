@@ -761,6 +761,24 @@ impl RectPipeline {
         }
     }
 
+    /// The three pieces [`draw`](Self::draw) sets, exposed so a caller can
+    /// record the same draw through `garasu`'s contained `PanePass` — which
+    /// deliberately offers no way to reach the raw `RenderPass`.
+    ///
+    /// Borrowed, not cloned: the lifetimes are what let the recorded draw
+    /// outlive this call inside the pass.
+    fn pipeline_ref(&self) -> &wgpu::RenderPipeline {
+        &self.pipeline
+    }
+
+    fn bind_group_ref(&self) -> &wgpu::BindGroup {
+        &self.bind_group
+    }
+
+    fn instance_slice(&self) -> wgpu::BufferSlice<'_> {
+        self.instance_buffer.slice(..)
+    }
+
     fn draw<'pass>(&'pass self, pass: &mut wgpu::RenderPass<'pass>, count: u32) {
         if count == 0 {
             return;
@@ -1281,6 +1299,20 @@ const BASELINE_FRACTION: f32 = 0.8;
 
 #[derive(pleme_invalidating_setter_derive::InvalidatingSetter)]
 pub struct TerminalRenderer {
+    /// The rect the terminal GRID is confined to, or `None` for the whole
+    /// window.
+    ///
+    /// `None` is today's single-pane truth and renders identically to what
+    /// came before. It exists so that multi-pane (tear M5) is a value change
+    /// here rather than a rewrite: set it, and both the glyph clip and the
+    /// GPU scissor follow, because both now read [`Self::grid_pane`].
+    ///
+    /// **Only the grid is pane-confined.** Window-level chrome — the agent
+    /// status line, the session picker, the search bar — clips to the window
+    /// and always will; those sites keep `PaneRect::root(..)` and say so.
+    /// Treating all three clip sites as one swap was the mistake in the M5
+    /// plan: they are two different things that happened to share a spelling.
+    grid_pane: Option<garasu::PaneRect>,
     terminal: SharedTerminal,
     selection: Arc<Mutex<Selection>>,
     search: Arc<Mutex<SearchState>>,
@@ -2019,6 +2051,7 @@ impl TerminalRenderer {
             terminal,
             selection: Arc::new(Mutex::new(Selection::new())),
             search: Arc::new(Mutex::new(SearchState::new())),
+            grid_pane: None,
             dir_picker: Arc::new(Mutex::new(crate::dir_picker::DirPickerState::new())),
             session_picker: Arc::new(Mutex::new(crate::session_picker::SessionPickerState::new())),
             // Born `None`; the engine rewires this to its shared cell via
@@ -2546,6 +2579,9 @@ impl TerminalRenderer {
             left,
             top,
             scale: 1.0,
+            // WINDOW-level chrome, so `root(..)` is correct and PERMANENT —
+            // not an un-migrated call site. This clips to the window because
+            // it IS window furniture; a pane must never crop it.
             bounds: garasu::PaneRect::root(width, height).text_bounds(),
             default_color: agent,
             custom_glyphs: &[],
@@ -2839,6 +2875,8 @@ impl TerminalRenderer {
                 left,
                 top: top0 + (row as f32) * line_h,
                 scale: 1.0,
+                // WINDOW-level chrome — see the note at the sibling site.
+                // `root(..)` here is the answer, not a pending migration.
                 bounds: garasu::PaneRect::root(width, height).text_bounds(),
                 default_color: color_for(line),
                 custom_glyphs: &[],
@@ -4676,6 +4714,38 @@ fn box_drawing_rects(
 
 impl TerminalRenderer {
     /// Upload new/changed Kitty images to GPU. Call before draw passes.
+    /// Resolve the grid's clip: the confining pane, or the whole target.
+    ///
+    /// Takes the pane by argument rather than reading `self`, because this is
+    /// the entire M5 decision and keeping it pure makes it testable without a
+    /// GPU, a window or a PTY. `TerminalRenderer` owns device resources and
+    /// cannot be built in a unit test, and a rule that can only be checked by
+    /// launching the app is a rule that goes unchecked.
+    fn resolve_grid_pane(
+        pane: Option<garasu::PaneRect>,
+        width: u32,
+        height: u32,
+    ) -> garasu::PaneRect {
+        pane.unwrap_or_else(|| garasu::PaneRect::root(width, height))
+    }
+
+    /// The grid's clip rect for a target of `width` x `height`.
+    ///
+    /// The ONE place the grid's bounds are decided. Falls back to the whole
+    /// target when no pane is set, so single-pane is byte-identical.
+    fn grid_pane(&self, width: u32, height: u32) -> garasu::PaneRect {
+        Self::resolve_grid_pane(self.grid_pane, width, height)
+    }
+
+    /// Confine the grid to `pane`, or release it to the whole window.
+    ///
+    /// `PaneRect` has private fields and no free constructor, so a caller
+    /// cannot hand over a rect that escapes the render target — containment
+    /// is closed under construction rather than checked here.
+    pub fn set_grid_pane(&mut self, pane: Option<garasu::PaneRect>) {
+        self.grid_pane = pane;
+    }
+
     fn sync_kitty_images(&mut self, ctx: &mut RenderContext<'_>) {
         let image_pipeline = match self.image_pipeline {
             Some(ref mut p) => p,
@@ -5889,6 +5959,12 @@ impl RenderCallback for TerminalRenderer {
             });
         }
 
+        // The grid's confinement, resolved ONCE for this frame and read by
+        // both consumers below: the GPU scissor on the rect pass and the
+        // glyph bounds on the text pass. Two clips that must agree, so they
+        // read one value rather than two calls that could drift.
+        let grid_pane = self.grid_pane(ctx.width, ctx.height);
+
         // Pass 2: Cell backgrounds + cursor + decorations.
         // P27 — skip the pass entirely when no rect instances would
         // be drawn. The bg-pass-elision case kicks in on monochrome
@@ -5912,7 +5988,35 @@ impl RenderCallback for TerminalRenderer {
                     timestamp_writes: None,
                     occlusion_query_set: None,
                 });
-                pipeline.draw(&mut pass, rect_instances.len() as u32);
+                // The rect pipeline draws cell backgrounds, the cursor,
+                // selection, search highlights and URL underlines — and until
+                // now it issued NO scissor, so in multi-pane every one of them
+                // would bleed across the whole window. garasu's `PanePass`
+                // exposes no `set_scissor_rect` and no `Deref`, so a draw
+                // recorded inside `in_pane` cannot escape the rect; the single
+                // scissor is issued BEFORE the closure can express anything.
+                //
+                // Identical pixels while `grid_pane` is the whole target: a
+                // scissor equal to the attachment clips nothing.
+                let mut layered = garasu::pane::LayeredPass::new(
+                    pass,
+                    garasu::PaneRect::root(ctx.width, ctx.height),
+                );
+                layered.in_pane(grid_pane, |p| {
+                    // `instanced` rather than `RectPipeline::draw`, because
+                    // `PanePass` exposes no `Deref` and no raw pass — that
+                    // absence is what makes an escaping draw unrepresentable
+                    // instead of merely discouraged. The pieces are exactly
+                    // `draw`'s body: same pipeline, same bind group, same
+                    // instance buffer, same `0..6` quad verts.
+                    p.instanced(
+                        pipeline.pipeline_ref(),
+                        &[pipeline.bind_group_ref()],
+                        pipeline.instance_slice(),
+                        0..6,
+                        0..(rect_instances.len() as u32),
+                    );
+                });
             }
         }
 
@@ -5962,17 +6066,20 @@ impl RenderCallback for TerminalRenderer {
                 left: x,
                 top: y,
                 scale: 1.0,
-                // The terminal's text clip, expressed through the same type
-                // that will express a PANE's clip. Identical pixels today —
-                // mado is single-pane, so the pane IS the window — but it
-                // makes multi-pane a variable swap here rather than a
-                // rewrite: `pane.text_bounds()` instead of `root(..)`.
+                // The GRID's text clip, from the one place that decides it.
+                // `grid_pane()` returns the whole target while mado is
+                // single-pane, so this is byte-identical today — and
+                // multi-pane becomes `set_grid_pane(Some(rect))` rather than
+                // an edit here.
                 //
-                // This is the ONLY clip in the whole pipeline. glyphon
-                // clips per-glyph on the CPU at prepare time and calls
-                // `set_scissor_rect` zero times, so text containment is
-                // entirely a matter of handing it the right rectangle.
-                bounds: garasu::PaneRect::root(ctx.width, ctx.height).text_bounds(),
+                // glyphon clips per-glyph on the CPU at prepare time and
+                // calls `set_scissor_rect` zero times, so text containment is
+                // entirely a matter of handing it the right rectangle. The
+                // note that used to sit here called this "the ONLY clip in
+                // the whole pipeline" — true of TEXT, and it read as true of
+                // everything, which is how the rect pass below went unnoticed
+                // with no scissor at all.
+                bounds: grid_pane.text_bounds(),
                 default_color: GlyphonColor::rgba(
                     self.fg_color.r,
                     self.fg_color.g,
@@ -10805,5 +10912,72 @@ mod tests {
         let (text, _hl) = truncate_overlay_text("🌊wave board", &[], 5);
         assert_eq!(text.chars().count(), 5);
         assert!(text.ends_with('…'));
+    }
+}
+
+/// The grid's confinement — tear M5's seam, tested at the one place that
+/// decides it.
+///
+/// These are pure: `grid_pane()` takes a size and returns a rect, so the whole
+/// M5 contract is checkable with no GPU, no window and no PTY.
+#[cfg(test)]
+mod grid_pane_tests {
+    use super::TerminalRenderer;
+    use garasu::PaneRect;
+
+    /// The pure resolver under test, named once.
+    fn resolve_grid_pane(pane: Option<PaneRect>, w: u32, h: u32) -> PaneRect {
+        TerminalRenderer::resolve_grid_pane(pane, w, h)
+    }
+
+    /// Single-pane is unchanged: no pane set means the whole target, which is
+    /// exactly what the `PaneRect::root(..)` call site used to spell inline.
+    /// The "identical pixels today" claim, asserted rather than promised.
+    #[test]
+    fn no_pane_set_is_the_whole_target() {
+        let p = resolve_grid_pane(None, 1920, 1080);
+        assert_eq!((p.x(), p.y()), (0, 0));
+        assert_eq!((p.width(), p.height()), (1920, 1080));
+        assert_eq!(p, PaneRect::root(1920, 1080));
+    }
+
+    /// The variable swap the M5 note promised: a pane moves BOTH the glyph
+    /// bounds and the GPU scissor, because both read this one value.
+    #[test]
+    fn setting_a_pane_moves_the_clip_and_the_text_bounds_agree() {
+        let root = PaneRect::root(1920, 1080);
+        let (left, right) = root.split_x(960).expect("a mid split is legal");
+
+        let p = resolve_grid_pane(Some(right), 1920, 1080);
+        assert_eq!(p, right);
+        assert_eq!(p.x(), 960, "the grid now starts at the split");
+        assert_ne!(p, left, "and is not the other side");
+
+        // The glyph clip derives from the SAME value the scissor does — the
+        // property that keeps text and rects from drifting apart.
+        let b = p.text_bounds();
+        assert_eq!(b.left, 960);
+        assert_eq!(b.right, 1920);
+    }
+
+    /// Releasing the pane restores whole-window, so tearing a pane down cannot
+    /// leave the grid clipped to a rect that no longer exists.
+    #[test]
+    fn releasing_the_pane_restores_the_whole_target() {
+        let root = PaneRect::root(800, 600);
+        let (top, _) = root.split_y(300).unwrap();
+        assert_ne!(resolve_grid_pane(Some(top), 800, 600), root);
+        assert_eq!(resolve_grid_pane(None, 800, 600), root);
+    }
+
+    /// A pane is closed under construction: `split_x` REFUSES a split that
+    /// would empty a side rather than clamping it, so there is no way to hand
+    /// the grid a zero-width rect in the first place.
+    #[test]
+    fn an_empty_split_is_refused_not_clamped() {
+        let root = PaneRect::root(640, 480);
+        assert!(root.split_x(0).is_none(), "a zero-width side is refused");
+        assert!(root.split_x(640).is_none(), "so is a zero-width remainder");
+        assert!(root.split_x(320).is_some());
     }
 }
