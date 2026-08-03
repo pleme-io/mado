@@ -89,7 +89,36 @@ cargo test                    # ~1,406 #[test] + 65 #[tokio::test] + 12 proptest
 RUST_LOG=debug cargo run      # with tracing
 nix build                     # Nix package
 nix run .#rebuild             # rebuild HM module (from nix repo)
+cargo fmt --check             # CI gate — the tree must stay rustfmt-clean
 ```
+
+> **★ The prompt you see is a NEGOTIATION, not a render — check the seam
+> before blaming any one component.** frost and frostmourne keep no cursor
+> model: they ask `ESC[6n`, then repaint at `ESC[<answered row>;1H`. mado's
+> CPR answer therefore *decides* where the next prompt lands, and an
+> off-by-one **feeds back** — one extra blank row per cycle, forever. On top
+> of that, **two independent VT parsers consume the same byte stream**:
+> tear-core's `PaneGrid` and mado's mirror `Terminal`. Only mado's answers
+> the queries, so a wrap/width divergence between them never appears as a
+> rendering artifact — it appears as the shell being steered by a grid nobody
+> renders.
+>
+> The 2026-08-02 cursor-landing hunt is the cautionary tale: **seven
+> unit-level checks were green while the operator's symptom stood**, because
+> each component was individually correct and nothing tested the
+> negotiation. Reach for `src/shell_seam.rs` (L1b) FIRST on any
+> prompt-geometry report — `{frostmourne, frost} × {enter-cycle,
+> type-and-erase, command-round-trip, resize, scroll-at-bottom}`, every cell
+> asserting the query loop is closed AND that the two grids agree on cells
+> *and* caret. `Interaction::ALL` is derived, so an unwired variant is a
+> compile error. Layers + the recorded red run:
+> [`docs/INTEGRATION-TESTING.md`](./docs/INTEGRATION-TESTING.md) §L1b.
+>
+> Two traps that cost real time, kept because they will recur: a test that
+> waits on the **first CPR** rather than on the prompt being ON SCREEN sends
+> keys into a still-initialising reedline and they vanish (~1-in-6 flake);
+> and blasting N Enters at once races the shell's repaint loop, so the
+> harness reads a half-drawn frame. Step, and wait for each repaint.
 
 ## Competitive Position
 
