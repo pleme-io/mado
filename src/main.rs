@@ -44,6 +44,10 @@ mod kuse;
 // can reach crate::engate_consumer::TerminalSink.
 #[cfg(test)]
 mod l1_engate_loop;
+// L1b — the same seam widened into a shell × interaction matrix, and the
+// one place the mado-mirror ⇄ tear-PaneGrid agreement is asserted.
+#[cfg(test)]
+mod shell_seam;
 mod livestream;
 mod single_pane;
 mod tear_discovery;

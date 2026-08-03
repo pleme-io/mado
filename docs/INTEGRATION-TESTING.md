@@ -68,6 +68,47 @@ prefixes: `feed(prefix); feed(b"\x1b[6n")` ⇒ `take_response().is_some()`.
 Shipped together with the anywhere-ESC APC fix + 8 MiB payload bound it
 forces, and the `ResponseWriter` failure logging (the `let _ =` fault-hider).
 
+### L1b — the shell × interaction seam matrix (`src/shell_seam.rs`) — ✅ SHIPPED (2026-08-02)
+
+L1 proves the loop runs for one shell down one path. L1b widens it to the
+surface the 2026-08-02 cursor-landing hunt actually lived on, after that
+hunt showed L1's shape was too narrow to catch what the operator saw.
+
+**What the hunt exposed.** An interactive shell's on-screen geometry is not
+owned by any one component. frost and frostmourne keep no cursor model —
+they ask `ESC[6n` and repaint at whatever row comes back — so the picture is
+a *negotiation* between the shell, tear's PTY + `PaneGrid`, and mado's
+mirror `Terminal`. Seven separate unit-level checks passed while the
+reported symptom stood: the VT engine, DECSC/DECRC, the right-prompt margin
+probe, the CPR answer, the engate writeback, the L1 loop, the headless MCP
+path. Correct components, and no test anywhere asserting the *negotiation*.
+
+**The load-bearing row is `assert_grids_agree`.** Two independent VT parsers
+consume the same byte stream: tear-core feeds `PaneGrid`, mado feeds
+`Terminal` through engate. Nothing in the type system makes them agree, and
+only mado's answers the shell's queries — so a wrap or width divergence does
+not show up as a rendering artifact, it shows up as the SHELL being told the
+wrong thing and painting its next prompt in the wrong place.
+
+Shape: `SHELLS × Interaction::ALL`, every cell asserting the same typed
+invariant set (query loop closed, grids + caret agree) plus its own
+geometry. `Interaction::ALL` is derived, so a variant nobody wired into
+`drive` is a non-exhaustive-match compile error, never a quietly missing
+row (★★ CLOSED-LOOP MASS-SYNTHESIS). The row prints its own cell count so a
+shrinking matrix can't read as a green one.
+
+Two gates keep it honest:
+- `seam_agreement_is_not_vacuous` — writes a glyph into mado's mirror that
+  tear never saw and requires the comparison to notice. Without it,
+  `assert_grids_agree` would rot into a check of nothing the day the two
+  accessors collapse onto one source.
+- Red run recorded: answering CPR one row low turns the matrix red, and the
+  dump reproduces the operator's screenshot exactly (blank leading row,
+  prompt pushed down one per cycle).
+
+Local-only, same gate as L1 — a machine without frost/frostmourne SKIPs
+loudly rather than passing quietly.
+
 ### L2 — GUI E2E via MCP against the BUILT closure — M2
 
 A `mado e2e` clap subcommand (typed rmcp client; smoke matrix in shikumi
