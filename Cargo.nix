@@ -10317,7 +10317,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.116";
+        version = "0.1.117";
         edition = "2024";
         crateBin = [
           {
@@ -25601,8 +25601,8 @@ rec {
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/todoku";
-          rev = "4079f9bbbe455457d17198a66d56bd224cb0b21b";
-          sha256 = "14zr2irl4i2wxdk0xkhw6wbff1l47d698dvwg33lcaamakbzj1g7";
+          rev = "6fd4bab4fb048c84571ffcb31b2b81b9b6a2ba8f";
+          sha256 = "0kjgl2x3827chxk29wxq4wrrni83hd8jlhjsm3sxd7wn2b015nxa";
         };
         dependencies = [
           {
