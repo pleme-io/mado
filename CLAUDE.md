@@ -584,14 +584,30 @@ Kitty keyboard, shell integration, profile system.
 > `PanePass` (exposes no `set_scissor_rect`, no `set_viewport`, no `Deref`),
 > and `PaneRect::text_bounds()` for glyphon's CPU-side per-glyph clip.
 >
-> **The honest state is SHIPPED-in-garasu, UNWIRED-in-mado.** Verified
-> 2026-08-03: zero references to `in_pane`/`LayeredPass`/`PanePass` in mado,
-> and all three `PaneRect::root(width, height)` call sites
-> (`render.rs:2549`, `:2842`, `:5975`) still pass the whole window.
-> `render.rs:5965` already states the intent — swapping `root(..)` for a real
-> pane rect makes M5 "a variable swap here rather than a rewrite". So the M5
-> cost is per-pane `Terminal`s + an input-routing loop, NOT a missing GPU
-> primitive. Do not re-quote the deleted sentence as a blocker.
+> **WIRED 2026-08-03 (`d667540`) — the paragraph above described the state
+> for a few hours.** It read "SHIPPED-in-garasu, UNWIRED-in-mado … zero
+> references to `in_pane`/`LayeredPass`/`PanePass`". Now: `grid_pane:
+> Option<PaneRect>` on `TerminalRenderer`, `None` = whole window (today's
+> single-pane truth, byte-identical — a scissor equal to the attachment
+> clips nothing), and BOTH consumers read that one value: the GPU scissor
+> via `LayeredPass::in_pane` on the rect pass, and glyphon's bounds via
+> `grid_pane.text_bounds()`. Multi-pane is `set_grid_pane(Some(rect))`.
+>
+> **Two corrections that survived the wiring, because both were wrong in the
+> plan.** (1) The rect pass — cell backgrounds, cursor, selection, search
+> highlights, URL underlines — had **no scissor at all**, so every one would
+> have bled across the window in multi-pane. The old note calling the text
+> clip "the ONLY clip in the whole pipeline" was true of TEXT and read as
+> true of everything, which is how that went unnoticed. (2) The three
+> `root(..)` sites were **not** three instances of one swap: two are
+> window-level chrome that clip to the window because they ARE window
+> furniture, and only the grid becomes a pane. Both chrome sites now say so
+> in place, so neither reads as un-migrated work.
+>
+> So the remaining M5 cost is per-pane `Terminal`s + an input-routing loop
+> (`PaneRect::contains`) + the tear `LayoutNode` loop — NOT a missing GPU
+> primitive, and no longer a missing wire either. Four tests pin the seam,
+> including that an emptying split is REFUSED rather than clamped.
 
 ### Phase 4 -- Architecture [NEXT]
 Four-thread model, paged memory (mmap, CoW, style dedup), terminal inspector,
