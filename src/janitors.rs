@@ -693,10 +693,33 @@ impl Janitor for SuggestHealthJanitor {
             let track = self.seen.entry(kind).or_default();
             if track.last_poll_ms != Some(health.last_poll_ms) {
                 track.last_poll_ms = Some(health.last_poll_ms);
-                let bad = matches!(
-                    health.status,
-                    SourceStatus::Error | SourceStatus::AuthMissing | SourceStatus::TimedOut
-                );
+                // Any completed non-Ok poll counts toward the streak.
+                //
+                // This used to name three of the five statuses
+                // (Error | AuthMissing | TimedOut), which silently vetoed
+                // every `Unconfigured` lane: the verdict gate below passes it
+                // as Blind, then `consecutive_bad` — stuck at 0 because the
+                // status was never counted — fails the streak gate forever.
+                // Two ANDed bars disagreeing, with only one of them visible.
+                //
+                // Measured 2026-08-06: 7 lanes were `verdict: blind,
+                // needs_intervention: true`, and exactly 4 janitor rows
+                // existed. The 3 missing were precisely the `needs config`
+                // ones (cargo-warnings, grafana-oncall, safra) — while this
+                // type's own docstring said it "files a board row for every
+                // lane that has never once succeeded". It did not.
+                //
+                // EXHAUSTIVE on purpose: a sixth `SourceStatus` must be a
+                // compile error here, not another silently-uncounted status.
+                // That is the same defect this comment exists to record, and
+                // a `_ =>` arm would re-arm it for the next variant.
+                let bad = match health.status {
+                    SourceStatus::Ok => false,
+                    SourceStatus::Unconfigured
+                    | SourceStatus::AuthMissing
+                    | SourceStatus::TimedOut
+                    | SourceStatus::Error => true,
+                };
                 track.consecutive_bad = if bad {
                     track.consecutive_bad.saturating_add(1)
                 } else {
@@ -1159,6 +1182,48 @@ mod tests {
     }
 
     // ── SuggestHealthJanitor ───────────────────────────────────────
+
+    #[test]
+    fn an_unconfigured_blind_lane_files_a_row_like_any_other_blind_lane() {
+        // The silent AND. `Unconfigured` used to be absent from the `bad`
+        // streak, so a lane could be Blind by verdict and still never file:
+        // gate 1 (verdict) passed it, gate 2 (streak) held it at 0 forever.
+        //
+        // Reverting the `bad` match to the old three-status form turns this
+        // red — the Unconfigured lane files nothing while the Error lane
+        // files — which is the whole point of the test. Measured on the live
+        // board first: 7 blind lanes, 4 rows, and the 3 missing were exactly
+        // the `needs config` ones.
+        let env = MockJanitorEnv::default();
+        *env.health.lock().unwrap() = vec![
+            (
+                SourceKind::CargoWarnings,
+                health_row(SourceStatus::Unconfigured, 10_000),
+            ),
+            (SourceKind::TendRepos, health_row(SourceStatus::Error, 10_000)),
+        ];
+        let mut j = SuggestHealthJanitor::new(2);
+        // Streak of 1 — below `min_consecutive`, so neither files yet.
+        assert!(j.observe(&env, 20_000).is_empty());
+        // Second distinct poll: both reach the bar together.
+        *env.health.lock().unwrap() = vec![
+            (
+                SourceKind::CargoWarnings,
+                health_row(SourceStatus::Unconfigured, 20_000),
+            ),
+            (SourceKind::TendRepos, health_row(SourceStatus::Error, 20_000)),
+        ];
+        let found = j.observe(&env, 30_000);
+        let keys: Vec<&str> = found.iter().map(|f| f.key.as_str()).collect();
+        assert!(
+            keys.contains(&"janitor:suggest-health:cargo-warnings"),
+            "an Unconfigured lane that has never succeeded is blind and must file: {keys:?}"
+        );
+        assert!(
+            keys.contains(&"janitor:suggest-health:tend-repos"),
+            "the Error lane must still file: {keys:?}"
+        );
+    }
 
     #[test]
     fn healthy_and_never_polled_sources_are_silent() {
