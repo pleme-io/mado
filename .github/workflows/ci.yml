@@ -242,13 +242,42 @@ jobs:
         run: cargo build --release --bin mado
 
       # The autobump EXACT release (sortable + immutable): r<run>-<sha>.
+      #
+      # ── `run_id`, NOT `run_number` — the seam this job's own move opened ──
+      #
+      # `github.run_number` is a PER-WORKFLOW-FILE counter. Moving this job out
+      # of release-binaries.yml (which had reached run 397) into ci.yml (then at
+      # run 40) restarted it, so the tag lineage went r397 → r40 and the whole
+      # point of `r<n>` — "numerically orderable so a subscriber can pick
+      # newest" (mac-app-release/src/tag.rs) — inverted.
+      #
+      # Measured against the live releases 2026-08-06, after r40-e4c2b44 shipped:
+      #   gh release list … | max_by(r<n>)  →  macos-arm64-r397-1a85f80
+      # i.e. "newest" resolved to the DMG built from 1a85f80 — the RED-CI commit
+      # whose ungated publish is the reason this job was gated in the first
+      # place — and would have kept resolving there for the ~357 merges it takes
+      # ci.yml's counter to climb back past 397 (~2 months at mado's rate).
+      #
+      # `github.run_id` is repo-global and monotonically increasing (verified on
+      # this repo's own runs: 31072544164 → 31076457408 → 31083216255 →
+      # 31085443094), so it is ordered ACROSS the seam — every id is ~8 orders of
+      # magnitude above the old r388..r397 lineage — and, unlike an offset
+      # constant, it stays monotone if this job is ever moved to a third file. It
+      # is also the run's URL id (/actions/runs/<id>), so it is strictly more
+      # traceable than the ordinal it replaces.
+      #
+      # The explicit flag is load-bearing: `--run-number` also reads
+      # `GITHUB_RUN_NUMBER` from the env (mado-release Args), which the runner
+      # always sets, so DELETING this line does not disable the run ordinal —
+      # it silently reverts to the resetting one. tests/release_tag_monotonic.rs
+      # is the forcing function for that.
       - name: Publish sortable exact DMG release
         run: |
           cargo run --release --manifest-path release/Cargo.toml --bin mado-release -- \
             --repo "$PWD" \
             --gh-repo "${{ github.repository }}" \
             --prebuilt-binary "$PWD/target/release/mado" \
-            --run-number "${{ github.run_number }}" \
+            --run-number "${{ github.run_id }}" \
             --publish
 
       # The moving `macos-<arch>-latest` PRERELEASE so releases/latest is fresh.
