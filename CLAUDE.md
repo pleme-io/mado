@@ -74,9 +74,14 @@ an embedded vigy reconciler, and deep Nix integration that no competitor offers.
 > (DOM manipulation as lisp; no-op for plain HTML) + `dom_to_sexp` is queryable
 > via `(mado-browser-dom-sexp id)`. The pure geometry/snap/state core is in
 > `src/float/` (39 tests); the engine + render port in `src/browser_engine.rs`;
-> the control substrate in `src/browser_bridge.rs`. **Doctrine + phased M0..M4
-> ledger + named debt (`pending-shared-content-translator`,
-> `pending-browser-async-fetch`):**
+> the control substrate in `src/browser_bridge.rs`. **BOTH NAMED DEBTS ARE
+> CLOSED — corrected 2026-08-06.** `pending-shared-content-translator`:
+> `browser_engine.rs:369` is now `pub use nami_core::gpu::render_display_list_to_rgba`
+> and the 163-line local copy is gone, so the "do NOT re-author it a third time"
+> warning below is satisfied rather than pending. `pending-browser-async-fetch`:
+> `src/browser_fetch.rs` fetches on a detached thread and carries an `epoch`
+> stale-guard so a superseded navigate's response is discarded. **Doctrine +
+> phased M0..M4 ledger:**
 > [`theory/DOM-WAY.md`](../theory/DOM-WAY.md). Do NOT re-author the DrawCmd→GPU
 > translator a third time — the Op#1 fix is one shared crate.
 
@@ -231,8 +236,11 @@ Key GPU optimizations to implement:
   for elimination of per-row buffer creation overhead.
 - **Damage tracking**: Already have sequence number tracking to skip unchanged
   frames. Extend to per-region dirty tracking.
-- **Linear blending**: Use `*_srgb` render targets so GPU blends in linear
-  color space (physically correct). Currently blending in sRGB.
+- ~~**Linear blending**~~ — **DONE, corrected 2026-08-06.** This read "Currently
+  blending in sRGB", which is false: `SURFACE_FORMAT` is
+  `wgpu::TextureFormat::Bgra8UnormSrgb` (`render.rs:1288`), so the GPU already
+  blends in linear space, and `Srgb::to_linear` + a parity test pin it. The
+  line survived because nothing re-read it after the format changed.
 
 ### Terminal Emulation
 
@@ -555,8 +563,30 @@ All VT100/xterm sequences, mouse tracking, Kitty keyboard/graphics protocols,
 DCS/DECRQSS, OSC 52/8/133/4/10/11/12, shell integration.
 
 ### Phase 2 -- Rendering Quality [IN PROGRESS]
-Dual texture atlas, HarfBuzz shaping, font fallback, synthetic italic,
-sRGB-correct linear blending, subpixel text, custom shader chain.
+
+> **★ Two of these are DONE and were listed as targets for months — corrected
+> 2026-08-06 after a five-survey audit found 49 of 134 outstanding deliverables
+> already shipped.** A roadmap that lists finished work is not merely untidy: it
+> sends real effort at problems that no longer exist, and it did.
+>
+> **HarfBuzz shaping — SHIPPED.** cosmic-text 0.14.2 shapes through rustybuzz
+> 0.14.1 (both in `Cargo.lock`), reached via `shape_run` (`render.rs:4146`). What
+> is genuinely missing is the *control* surface: `font.features`
+> (`config.rs:5990`) is parse-tested and has zero consumers, so `-calt` and
+> break-ligature-under-cursor are unreachable. That is the remaining work — not
+> the shaper.
+>
+> **sRGB-correct linear blending — SHIPPED.** See the corrected bullet above.
+>
+> **Dual texture atlas — genuinely still open.** Worth stating explicitly because
+> the audit got this one WRONG in the other direction: it reported the atlas as
+> shipped on the grounds that glyphon 0.9 carries `mask_atlas`/`color_atlas`
+> internally. Those names appear nowhere in `src/`, and this repo's own comment
+> at `render.rs:2192` says "the **shared** atlas". An upstream implementation
+> detail is not a mado deliverable. Verify against `src/` before striking an item.
+
+Remaining: dual texture atlas, font fallback, synthetic italic, ligature/feature
+control, subpixel text, custom shader chain.
 
 ### Phase 3 -- Features [DONE]
 Themes, keybindings, search, URL detection, bell, Kitty graphics, sixel,
