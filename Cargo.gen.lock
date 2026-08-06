@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "945a7dc3c83648e99530d65f8e1fe6e17a5e0bf11a221fa2111443a8c63df008",
+  "cargo_lock_sha256": "6b5dc9293949116a5d75363f571d320197887ef11b01d4d14fea0de5885279de",
   "manifest_sha256": {
-    "Cargo.toml": "117a0f99aa12b28f9835b7c47ebdd4333a08afd0f08007e3fe0080dc3f33a0ac"
+    "Cargo.toml": "70891a99619eed46890cd16e9abb5dcf135435c89f7025d5d2131faca7b41eb8"
   },
   "target_resolves": {
     "base": {
@@ -7327,7 +7327,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "izumi-0.1.12-ab4706f8cf53086d67225abc62ac2031628cdccc": {
+      "izumi-0.1.15": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -7432,11 +7432,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "izumi-config-0.1.12-ab4706f8cf53086d67225abc62ac2031628cdccc": {
+      "izumi-config-0.1.15": {
         "runtime_dependencies": [
           {
             "name": "izumi",
-            "package_key": "izumi-0.1.12-ab4706f8cf53086d67225abc62ac2031628cdccc",
+            "package_key": "izumi-0.1.15",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7470,11 +7470,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "izumi-sources-0.1.12-ab4706f8cf53086d67225abc62ac2031628cdccc": {
+      "izumi-sources-0.1.15": {
         "runtime_dependencies": [
           {
             "name": "izumi",
-            "package_key": "izumi-0.1.12-ab4706f8cf53086d67225abc62ac2031628cdccc",
+            "package_key": "izumi-0.1.15",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -26833,7 +26833,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.12-ab4706f8cf53086d67225abc62ac2031628cdccc",
+                "package_key": "izumi-0.1.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26843,7 +26843,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.12-ab4706f8cf53086d67225abc62ac2031628cdccc",
+                "package_key": "izumi-config-0.1.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26853,7 +26853,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.12-ab4706f8cf53086d67225abc62ac2031628cdccc",
+                "package_key": "izumi-sources-0.1.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31807,7 +31807,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.12-ab4706f8cf53086d67225abc62ac2031628cdccc",
+                "package_key": "izumi-0.1.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31817,7 +31817,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.12-ab4706f8cf53086d67225abc62ac2031628cdccc",
+                "package_key": "izumi-config-0.1.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31827,7 +31827,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.12-ab4706f8cf53086d67225abc62ac2031628cdccc",
+                "package_key": "izumi-sources-0.1.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35817,7 +35817,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.12-ab4706f8cf53086d67225abc62ac2031628cdccc",
+                "package_key": "izumi-0.1.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35827,7 +35827,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.12-ab4706f8cf53086d67225abc62ac2031628cdccc",
+                "package_key": "izumi-config-0.1.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35837,7 +35837,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.12-ab4706f8cf53086d67225abc62ac2031628cdccc",
+                "package_key": "izumi-sources-0.1.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39997,7 +39997,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.12-ab4706f8cf53086d67225abc62ac2031628cdccc",
+                "package_key": "izumi-0.1.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40007,7 +40007,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.12-ab4706f8cf53086d67225abc62ac2031628cdccc",
+                "package_key": "izumi-config-0.1.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40017,7 +40017,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.12-ab4706f8cf53086d67225abc62ac2031628cdccc",
+                "package_key": "izumi-sources-0.1.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44935,7 +44935,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.12-ab4706f8cf53086d67225abc62ac2031628cdccc",
+                "package_key": "izumi-0.1.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44945,7 +44945,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.12-ab4706f8cf53086d67225abc62ac2031628cdccc",
+                "package_key": "izumi-config-0.1.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44955,7 +44955,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.12-ab4706f8cf53086d67225abc62ac2031628cdccc",
+                "package_key": "izumi-sources-0.1.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48909,7 +48909,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.12-ab4706f8cf53086d67225abc62ac2031628cdccc",
+                "package_key": "izumi-0.1.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48919,7 +48919,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.12-ab4706f8cf53086d67225abc62ac2031628cdccc",
+                "package_key": "izumi-config-0.1.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48929,7 +48929,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.12-ab4706f8cf53086d67225abc62ac2031628cdccc",
+                "package_key": "izumi-sources-0.1.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -52706,13 +52706,13 @@
     "itoa-1.0.18": {
       "edition": "2021"
     },
-    "izumi-0.1.12-ab4706f8cf53086d67225abc62ac2031628cdccc": {
+    "izumi-0.1.15": {
       "edition": "2024"
     },
-    "izumi-config-0.1.12-ab4706f8cf53086d67225abc62ac2031628cdccc": {
+    "izumi-config-0.1.15": {
       "edition": "2024"
     },
-    "izumi-sources-0.1.12-ab4706f8cf53086d67225abc62ac2031628cdccc": {
+    "izumi-sources-0.1.15": {
       "edition": "2024"
     },
     "jobserver-0.1.35": {
@@ -54414,9 +54414,6 @@
     "hayai-0.1.2-4f5239c021bd154fcf5afbb4c8cf61332781dbd1": "sha256-lbxbrZSi/6ugpdjnedI+AspSMeFutczU74CTln0OOpk=",
     "irodzuki-0.1.7-d3bfe781e9c813164a37a0e0a1eeef16f5be9515": "sha256-7iA13F9fE1MktjUB89kQIiVY6TB0wTNHmHNGSJcj9Lg=",
     "ishou-tokens-0.1.4-f1246193782313d1e0f1917d7b27566387bdca96": "sha256-Tcp4ztArUy8uhkN9RZTY7KZiX/eYGtlMHteuL0CjJyk=",
-    "izumi-0.1.12-ab4706f8cf53086d67225abc62ac2031628cdccc": "sha256-EzpaSiVVIXKpnMrKXENqzqGBGJpsSqlFZ+us/VHTYRg=",
-    "izumi-config-0.1.12-ab4706f8cf53086d67225abc62ac2031628cdccc": "sha256-EzpaSiVVIXKpnMrKXENqzqGBGJpsSqlFZ+us/VHTYRg=",
-    "izumi-sources-0.1.12-ab4706f8cf53086d67225abc62ac2031628cdccc": "sha256-EzpaSiVVIXKpnMrKXENqzqGBGJpsSqlFZ+us/VHTYRg=",
     "kaname-0.1.1-288a975b205614c0a838a5e0572632ef704afd47": "sha256-hUT1hJkJFtC6YlAYEFSmI9Oxftp2W0edSSj4qJAaMg8=",
     "kanchi-0.1.3-1ba82571a3e3b061d4cb4509f88ca0bf0a54b00c": "sha256-pQuPMse9iY4kMjvRwNkzph7gfBzOjgh+/c8AIHImqWA=",
     "kanshou-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
