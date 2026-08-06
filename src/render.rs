@@ -32,6 +32,7 @@ pub(crate) static TOTAL_FRAMES: AtomicU64 = AtomicU64::new(0);
 pub(crate) static TOTAL_FRAMES_SKIPPED: AtomicU64 = AtomicU64::new(0);
 
 use bytemuck::{Pod, Zeroable};
+use glyphon::cosmic_text::{CacheKeyFlags, FeatureTag, FontFeatures};
 use glyphon::{Attrs, Buffer, Color as GlyphonColor, Family, Style, Weight};
 use lru::LruCache;
 use madori::render::{RenderCallback, RenderContext};
@@ -1368,6 +1369,40 @@ pub struct TerminalRenderer {
     /// coverage-walk pick (ghostty's symbols-font model). Empty falls
     /// back to `font_family`.
     font_symbols: String,
+    /// `font.synthetic_style` — when the resolved family ships NO real
+    /// italic face, shape the ROMAN face and let the rasterizer skew it
+    /// 14° (`CacheKeyFlags::FAKE_ITALIC`) instead of silently rendering
+    /// upright. Off ⇒ mado asks cosmic-text for `Style::Italic` and takes
+    /// whatever it resolves (today's behaviour: upright, or another
+    /// family's italic pulled in by the fallback walk).
+    ///
+    /// **Italic only, and that is a property of the shaper, not a
+    /// shortcut.** cosmic-text 0.14.2's `CacheKeyFlags` declares exactly
+    /// one flag (`FAKE_ITALIC = 1`,
+    /// `cosmic-text-0.14.2/src/glyph_cache.rs:9`); there is no
+    /// `FAKE_BOLD`, so synthetic bold (emboldening by dilating the
+    /// outline) has no surface to reach for at this version. A missing
+    /// bold face still resolves by nearest-weight, as before.
+    font_synthetic_style: bool,
+    /// `font.features` — the parsed OpenType feature list handed to
+    /// rustybuzz through `Attrs::font_features`. `-calt` disables
+    /// contextual alternates (which is how a ligature font is turned
+    /// off); `+liga`, `ss01=2` and bare `kern` are the other spellings.
+    /// Empty ⇒ no feature overrides, i.e. the font's own defaults.
+    font_features: Vec<FontFeature>,
+    /// Memoized "does family X ship a real italic face?" answers, so the
+    /// `fontdb` face walk behind [`synthetic_italic_needed`] happens once
+    /// per family rather than once per shape-cache miss. Bounded by the
+    /// number of configured families (three), and only ever consulted for
+    /// italic runs.
+    italic_face_cache: RefCell<HashMap<Box<str>, bool>>,
+    /// Isolate the cell under the cursor into its own shaping run so no
+    /// ligature can form across it — the `!=` problem, where the cursor
+    /// sits inside a `≠` glyph and the operator cannot tell which
+    /// character they are on. Default ON; the setter exists so a future
+    /// `font.disable_ligatures: never|cursor|always` knob (kitty's
+    /// spelling) can gate it without re-touching this file.
+    break_ligature_under_cursor: bool,
     cell_width: f32,
     cell_height: f32,
     // Logical padding — live-reloadable (M4 stage 2). Draw offsets
@@ -2067,6 +2102,13 @@ impl TerminalRenderer {
             font_family,
             font_italic,
             font_symbols,
+            // Mirrors `FontConfig::default().synthetic_style` (true).
+            // `apply_effects_and_accessibility` overwrites it from the
+            // live config on both production entry points.
+            font_synthetic_style: true,
+            font_features: Vec::new(),
+            italic_face_cache: RefCell::new(HashMap::new()),
+            break_ligature_under_cursor: true,
             cell_width,
             cell_height,
             padding,
@@ -2229,7 +2271,53 @@ impl TerminalRenderer {
             config.display.seam_auto_tune,
             config.display.downscale_ratio,
         );
+        // Font styling — `font.synthetic_style` + `font.features`. Both
+        // parsed and declared since the config's inception with nothing
+        // reading them; they reach the shaper here, on the one path both
+        // production entry points AND the hot-reload drain traverse.
+        self.set_font_synthetic_style(config.font.synthetic_style);
+        self.set_font_features(&config.font.features);
         self.set_effects_config(config.resolved_effects());
+    }
+
+    /// `font.synthetic_style` — synthesize italic from the roman face when
+    /// the resolved family ships no italic. See the field docs for why
+    /// this is italic-only at cosmic-text 0.14.2.
+    pub fn set_font_synthetic_style(&mut self, on: bool) {
+        if self.font_synthetic_style != on {
+            self.font_synthetic_style = on;
+            // Every cached `Arc<Buffer>` was shaped under the old answer,
+            // and the flag is NOT part of `ShapeKey` (it is constant for a
+            // cache generation, so paying for it per key would be waste).
+            // Dropping the generation is what keeps that true.
+            self.shape_cache.borrow_mut().clear();
+            self.last_seqno = 0;
+        }
+    }
+
+    /// `font.features` — OpenType feature overrides handed to rustybuzz.
+    /// `["-calt"]` turns a ligature font's contextual alternates off.
+    /// Unparseable entries are dropped (see [`parse_font_feature`]).
+    pub fn set_font_features(&mut self, specs: &[String]) {
+        let parsed = parse_font_features(specs);
+        if self.font_features != parsed {
+            self.font_features = parsed;
+            // Same generation argument as `set_font_synthetic_style`.
+            self.shape_cache.borrow_mut().clear();
+            self.last_seqno = 0;
+        }
+    }
+
+    /// Isolate the cell under the cursor into its own shaping run so no
+    /// ligature spans it. Default ON. Exists so the config knob this
+    /// deserves (`font.disable_ligatures: never|cursor|always`) can gate
+    /// it from `apply_effects_and_accessibility` without another edit
+    /// here.
+    pub fn set_break_ligature_under_cursor(&mut self, on: bool) {
+        if self.break_ligature_under_cursor != on {
+            self.break_ligature_under_cursor = on;
+            self.last_seqno = 0;
+        }
     }
 
     /// Apply the `display.*` seam-auto-tune config. `auto_tune` off pins the
@@ -4152,25 +4240,21 @@ impl TerminalRenderer {
         // arbitrary coverage-walk pick. Selection is a pure function of
         // (run-text, italic, the three configured families) so it's
         // unit-testable without a GPU — see `select_run_family`.
-        let family = Family::Name(select_run_family(
+        let family = select_run_family(
             &key.text,
             key.attrs.italic,
             &self.font_family,
             &self.font_italic,
             &self.font_symbols,
-        ));
-        let mut attrs = Attrs::new().family(family).color(GlyphonColor::rgba(
-            key.attrs.fg_r,
-            key.attrs.fg_g,
-            key.attrs.fg_b,
-            255,
-        ));
-        if key.attrs.bold {
-            attrs = attrs.weight(Weight::BOLD);
-        }
-        if key.attrs.italic {
-            attrs = attrs.style(Style::Italic);
-        }
+        );
+        // Probe ONLY for italic runs. The answer is memoized per family,
+        // but a non-italic run has no question to ask — `key.attrs.italic`
+        // already decides `synthetic_italic_needed`.
+        let has_real_italic =
+            !key.attrs.italic || self.family_has_real_italic(text.font_system.db(), family);
+        let synthetic_italic =
+            synthetic_italic_needed(key.attrs.italic, self.font_synthetic_style, has_real_italic);
+        let attrs = run_attrs(family, &key.attrs, synthetic_italic, &self.font_features);
         let buf = text.create_rich_buffer(
             &[(&*key.text, attrs)],
             self.font_size_px(),
@@ -4179,6 +4263,33 @@ impl TerminalRenderer {
         let arc = Arc::new(buf);
         self.shape_cache.borrow_mut().put(key, Arc::clone(&arc));
         arc
+    }
+
+    /// Memoized `fontdb` adapter for [`family_has_italic_face`] — the
+    /// "does this family ship a real italic?" half of
+    /// [`synthetic_italic_needed`]. One walk of the face table per
+    /// configured family, then a hash lookup.
+    ///
+    /// `db.faces()` yields every registered face; a face can be listed
+    /// under several localized family names, so each `(name, slanted)`
+    /// pair is offered separately. `Style::Oblique` counts as a real
+    /// slant — a font that ships an oblique face does not want a second
+    /// skew stacked on top of it.
+    fn family_has_real_italic(&self, db: &glyphon::fontdb::Database, family: &str) -> bool {
+        if let Some(&hit) = self.italic_face_cache.borrow().get(family) {
+            return hit;
+        }
+        let hit = family_has_italic_face(
+            db.faces().flat_map(|f| {
+                let slanted = f.style != Style::Normal;
+                f.families.iter().map(move |(n, _)| (n.as_str(), slanted))
+            }),
+            family,
+        );
+        self.italic_face_cache
+            .borrow_mut()
+            .insert(family.into(), hit);
+        hit
     }
 
     /// Split each row into runs and emit one glyphon Buffer per run,
@@ -4220,10 +4331,23 @@ impl TerminalRenderer {
         // first ~4 reallocations on each frame.
         let mut buffers: Vec<(usize, GridCol, Arc<Buffer>)> = Vec::with_capacity(snap.num_rows * 8);
         let font_size_bits = self.font_size_px().to_bits();
+        // Where the cursor is actually PAINTED — same expression as the
+        // cursor rect in `build_rect_instances`.
+        let cursor_screen_row = snap.cursor.row + snap.scroll_offset;
 
         for (row_idx, row) in snap.rows.iter().enumerate() {
             let mut has_content = false;
             let mut row_buffers: Vec<(GridCol, Arc<Buffer>)> = Vec::with_capacity(8);
+            // At most one column per row; `None` on every non-cursor row,
+            // so the whole feature costs one `Option` compare per cell.
+            let break_col = ligature_break_col(
+                self.break_ligature_under_cursor,
+                snap.cursor.visible,
+                cursor_screen_row,
+                snap.cursor.col,
+                row_idx,
+                snap.cols,
+            );
 
             // Current open run: (start_col, accumulated text, attrs key).
             // `start_col` is a typed `GridCol` minted by `glyph_columns`,
@@ -4386,6 +4510,24 @@ impl TerminalRenderer {
                     italic,
                 };
 
+                // BREAK LIGATURE UNDER CURSOR. Isolating the cursor cell
+                // into a one-character run breaks the ligature on BOTH
+                // sides in one move: rustybuzz never sees `!` and `=`
+                // adjacent, whichever of the two the cursor is on. Two
+                // extra runs on one row per frame, and single-char runs
+                // are the most cache-friendly key there is.
+                if break_col == Some(col_here.idx()) {
+                    flush_run(&mut run, &mut row_buffers, text);
+                    let key = ShapeKey {
+                        text: String::from(cell.ch).into_boxed_str(),
+                        attrs: cell_key,
+                        font_size_bits,
+                    };
+                    let arc = self.shape_run(text, key);
+                    row_buffers.push((col_here, arc));
+                    continue;
+                }
+
                 match &mut run {
                     Some((_, run_text, key)) if *key == cell_key => {
                         run_text.push(cell.ch);
@@ -4483,6 +4625,187 @@ fn select_run_family<'a>(
         italic_family
     } else {
         primary
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Font styling — synthetic italic + OpenType feature control
+// ---------------------------------------------------------------------------
+
+/// One resolved OpenType feature: a 4-byte tag plus the value rustybuzz
+/// applies (`0` = off, `1` = on, `n` = alternate index for `ssNN`/`cvNN`).
+///
+/// Stored as raw bytes rather than `cosmic_text::FeatureTag` so
+/// [`parse_font_feature`] stays a pure string→data function with no
+/// shaper types in its signature.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+struct FontFeature {
+    tag: [u8; 4],
+    value: u32,
+}
+
+/// Parse ONE `font.features` entry into a typed [`FontFeature`].
+///
+/// The accepted spellings are the ones ghostty/kitty operators already
+/// type, and they are the whole grammar — anything else is rejected
+/// rather than guessed at:
+///
+/// | spec     | meaning                        |
+/// |----------|--------------------------------|
+/// | `-calt`  | contextual alternates OFF (`0`)|
+/// | `+liga`  | standard ligatures ON (`1`)    |
+/// | `kern`   | bare name ⇒ ON (`1`)           |
+/// | `ss01=2` | explicit value                 |
+///
+/// A tag is 1–4 ASCII alphanumerics, right-padded with spaces to the
+/// 4-byte OpenType width. A sign AND an `=value` together is a
+/// contradiction (`-liga=1` asks for off and on at once) and is
+/// rejected. `None` ⇒ the entry is dropped, never coerced.
+fn parse_font_feature(spec: &str) -> Option<FontFeature> {
+    let spec = spec.trim();
+    let mut chars = spec.chars();
+    let (body, signed) = match chars.next()? {
+        '-' => (chars.as_str(), Some(0u32)),
+        '+' => (chars.as_str(), Some(1u32)),
+        _ => (spec, None),
+    };
+
+    let (name, value) = match body.split_once('=') {
+        Some((_, _)) if signed.is_some() => return None,
+        Some((n, v)) => (n.trim(), v.trim().parse::<u32>().ok()?),
+        None => (body.trim(), signed.unwrap_or(1)),
+    };
+
+    if name.is_empty() || name.len() > 4 {
+        return None;
+    }
+    if !name.bytes().all(|b| b.is_ascii_alphanumeric()) {
+        return None;
+    }
+
+    let mut tag = [b' '; 4];
+    tag[..name.len()].copy_from_slice(name.as_bytes());
+    Some(FontFeature { tag, value })
+}
+
+/// Parse the whole `font.features` list, dropping entries that are not
+/// features. Order is preserved: cosmic-text pushes them to rustybuzz in
+/// order, and HarfBuzz lets a later entry win, so `["-liga", "+liga"]`
+/// means ON — same as every other feature-list consumer.
+fn parse_font_features(specs: &[String]) -> Vec<FontFeature> {
+    specs
+        .iter()
+        .map(String::as_str)
+        .filter_map(parse_font_feature)
+        .collect()
+}
+
+/// Does any face registered under `family` declare a REAL slanted style?
+///
+/// Pure over `(face-family-name, face-is-slanted)` pairs so the decision
+/// is testable without a `fontdb` or a font file; the render-side adapter
+/// is [`TerminalRenderer::family_has_real_italic`].
+///
+/// An empty family name is "no preference", not "no italic": it is what
+/// [`select_run_family`] returns at the bare config tier, where
+/// cosmic-text does its own fallback walk and may well land on a genuine
+/// italic face. Answering `false` there would skew a real italic — the
+/// exact false positive this whole path exists to avoid — so an empty
+/// family reports `true` ("assume real") and suppresses synthesis.
+fn family_has_italic_face<'a, I>(faces: I, family: &str) -> bool
+where
+    I: IntoIterator<Item = (&'a str, bool)>,
+{
+    if family.is_empty() {
+        return true;
+    }
+    faces
+        .into_iter()
+        .any(|(name, slanted)| slanted && name.eq_ignore_ascii_case(family))
+}
+
+/// Should this run be drawn as a SYNTHESIZED italic (roman face + skew)
+/// rather than asked of the shaper as a real italic?
+///
+/// The false-positive direction is the one that looks wrong on screen —
+/// skewing a face that is ALREADY italic double-slants it — so every
+/// clause here is a reason NOT to synthesize:
+///   * a non-italic run never synthesizes;
+///   * `font.synthetic_style = false` never synthesizes (the operator
+///     asked for the shaper's own answer);
+///   * a family that ships a real italic never synthesizes.
+fn synthetic_italic_needed(
+    italic: bool,
+    synthetic_style: bool,
+    family_has_real_italic: bool,
+) -> bool {
+    italic && synthetic_style && !family_has_real_italic
+}
+
+/// Build the `Attrs` for one shaped run — the SINGLE place mado decides
+/// what cosmic-text is asked for, factored out of `shape_run` so the
+/// synthetic-italic and feature decisions are assertable without a GPU,
+/// a `FontSystem`, or a font file (`Attrs::new()` allocates nothing and
+/// touches no font database).
+///
+/// **Real italic and synthetic italic are mutually exclusive by
+/// construction.** A synthesized run carries `Style::Normal` — it must,
+/// or cosmic-text's face filter (`Attrs::matches`, which compares
+/// `face.style == self.style`) would reject the family's roman face and
+/// walk off to some other family's italic, which would then ALSO get the
+/// 14° skew. Roman face + skew is what "synthetic italic" means.
+fn run_attrs<'a>(
+    family: &'a str,
+    key: &RunAttrsKey,
+    synthetic_italic: bool,
+    features: &[FontFeature],
+) -> Attrs<'a> {
+    let mut attrs = Attrs::new()
+        .family(Family::Name(family))
+        .color(GlyphonColor::rgba(key.fg_r, key.fg_g, key.fg_b, 255));
+    if key.bold {
+        attrs = attrs.weight(Weight::BOLD);
+    }
+    if key.italic {
+        if synthetic_italic {
+            attrs = attrs.cache_key_flags(CacheKeyFlags::FAKE_ITALIC);
+        } else {
+            attrs = attrs.style(Style::Italic);
+        }
+    }
+    if !features.is_empty() {
+        let mut ff = FontFeatures::new();
+        for f in features {
+            ff.set(FeatureTag::new(&f.tag), f.value);
+        }
+        attrs = attrs.font_features(ff);
+    }
+    attrs
+}
+
+/// The column on viewport row `row_idx` whose cell must be isolated into
+/// its own shaping run so no ligature can form across the cursor.
+///
+/// `cursor_screen_row` is `snap.cursor.row + snap.scroll_offset` — the
+/// SAME expression the cursor rect uses (`build_rect_instances`), because
+/// the break has to land where the cursor is actually painted, not where
+/// an off-viewport model cursor sits.
+///
+/// Deliberately NOT gated on the blink phase: a break that came and went
+/// with the blink would reshape the row 2–8 times a second and make the
+/// text visibly breathe.
+fn ligature_break_col(
+    enabled: bool,
+    cursor_visible: bool,
+    cursor_screen_row: usize,
+    cursor_col: usize,
+    row_idx: usize,
+    cols: usize,
+) -> Option<usize> {
+    if enabled && cursor_visible && cursor_screen_row == row_idx && cursor_col < cols {
+        Some(cursor_col)
+    } else {
+        None
     }
 }
 
@@ -10397,6 +10720,402 @@ mod tests {
                 "Symbols Nerd Font Mono"
             ),
             "JetBrains Mono",
+        );
+    }
+
+    // ---- font.synthetic_style + font.features ----
+
+    fn italic_key() -> RunAttrsKey {
+        RunAttrsKey {
+            fg_r: 0xec,
+            fg_g: 0xef,
+            fg_b: 0xf4,
+            bold: false,
+            italic: true,
+        }
+    }
+
+    fn tag_of(f: &FontFeature) -> &str {
+        std::str::from_utf8(&f.tag).unwrap()
+    }
+
+    /// The whole accepted grammar of one `font.features` entry, and the
+    /// whole rejected one. Anything not listed here is dropped, never
+    /// guessed at — a typo'd feature silently applying the WRONG tag is
+    /// worse than it not applying at all.
+    #[test]
+    fn font_feature_spec_grammar() {
+        let minus = parse_font_feature("-calt").expect("-calt parses");
+        assert_eq!((tag_of(&minus), minus.value), ("calt", 0));
+
+        let plus = parse_font_feature("+liga").expect("+liga parses");
+        assert_eq!((tag_of(&plus), plus.value), ("liga", 1));
+
+        let bare = parse_font_feature("kern").expect("bare name parses");
+        assert_eq!((tag_of(&bare), bare.value), ("kern", 1));
+
+        let valued = parse_font_feature("ss01=2").expect("explicit value parses");
+        assert_eq!((tag_of(&valued), valued.value), ("ss01", 2));
+
+        let zeroed = parse_font_feature("cv01=0").expect("=0 parses");
+        assert_eq!((tag_of(&zeroed), zeroed.value), ("cv01", 0));
+
+        // Whitespace is operator noise, not part of the tag.
+        let spaced = parse_font_feature("  -calt  ").expect("trimmed");
+        assert_eq!(tag_of(&spaced), "calt");
+
+        // Short names right-pad to the 4-byte OpenType tag width.
+        let short = parse_font_feature("aa").expect("short tag pads");
+        assert_eq!(short.tag, *b"aa  ");
+
+        for bad in [
+            "",        // nothing
+            "-",       // sign with no tag
+            "+",       //
+            "toolong", // >4 bytes is not a tag
+            "-liga=1", // sign AND value: asks for off and on at once
+            "+liga=0", //
+            "ss01=x",  // value is not a number
+            "ss01=",   //
+            "ca!t",    // non-alphanumeric
+            "ca t",    // embedded space
+            "cält",    // non-ASCII
+        ] {
+            assert!(
+                parse_font_feature(bad).is_none(),
+                "{bad:?} must be rejected, not coerced"
+            );
+        }
+    }
+
+    /// The list keeps order (HarfBuzz lets a later entry win) and drops
+    /// only the entries that are not features.
+    #[test]
+    fn font_feature_list_keeps_order_and_drops_junk() {
+        let specs = vec![
+            "-calt".to_string(),
+            "nonsense-entry".to_string(),
+            "+liga".to_string(),
+        ];
+        let parsed = parse_font_features(&specs);
+        assert_eq!(parsed.len(), 2, "the junk entry is dropped");
+        assert_eq!((tag_of(&parsed[0]), parsed[0].value), ("calt", 0));
+        assert_eq!((tag_of(&parsed[1]), parsed[1].value), ("liga", 1));
+    }
+
+    /// THE LIGATURE DELIVERABLE: `-calt` in `font.features` reaches the
+    /// shaper as `calt = 0`. cosmic-text 0.14.2 forwards
+    /// `Attrs::font_features` verbatim to `rustybuzz::Feature`
+    /// (`cosmic-text-0.14.2/src/shape.rs:144-160`), so this IS the
+    /// contextual-alternates switch — i.e. ligatures off.
+    #[test]
+    fn calt_off_reaches_the_shaper_attrs() {
+        let features = parse_font_features(&["-calt".to_string()]);
+        let attrs = run_attrs(
+            "JetBrains Mono",
+            &RunAttrsKey {
+                fg_r: 1,
+                fg_g: 2,
+                fg_b: 3,
+                bold: false,
+                italic: false,
+            },
+            false,
+            &features,
+        );
+        assert_eq!(
+            attrs.font_features.features,
+            vec![glyphon::cosmic_text::Feature {
+                tag: FeatureTag::CONTEXTUAL_ALTERNATES,
+                value: 0,
+            }],
+            "`-calt` must arrive as the calt tag with value 0",
+        );
+
+        // And the default (no configured features) must not invent any —
+        // a font's own defaults stay in force.
+        let plain = run_attrs(
+            "JetBrains Mono",
+            &RunAttrsKey {
+                fg_r: 1,
+                fg_g: 2,
+                fg_b: 3,
+                bold: false,
+                italic: false,
+            },
+            false,
+            &[],
+        );
+        assert!(plain.font_features.features.is_empty());
+    }
+
+    /// **The false-positive direction is the one that looks worse on
+    /// screen.** Skewing a face that is ALREADY italic double-slants it,
+    /// so this pins BOTH directions of the synthetic-italic decision, and
+    /// pins them on the `Attrs` actually handed to cosmic-text.
+    ///
+    /// A synthesized run must carry `Style::Normal`: cosmic-text's face
+    /// filter is `face.style == attrs.style` (`attrs.rs:326`), so asking
+    /// for `Style::Italic` would reject the family's roman face and walk
+    /// off to another family's italic — which would then also get the 14°
+    /// skew. Roman face + skew is what synthetic italic means.
+    #[test]
+    fn synthetic_italic_only_when_no_real_italic_face() {
+        // 1. Family HAS a real italic → ask the shaper for it, no skew.
+        let real = run_attrs(
+            "Iosevka",
+            &italic_key(),
+            synthetic_italic_needed(true, true, true),
+            &[],
+        );
+        assert_eq!(real.style, Style::Italic, "a real italic is requested");
+        assert!(
+            !real.cache_key_flags.contains(CacheKeyFlags::FAKE_ITALIC),
+            "a real italic face must NEVER be skewed — that is the \
+             double-slant this whole path exists to avoid",
+        );
+
+        // 2. Family has NO italic → roman face + synthesized skew.
+        let synth = run_attrs(
+            "Some Roman Only",
+            &italic_key(),
+            synthetic_italic_needed(true, true, false),
+            &[],
+        );
+        assert_eq!(
+            synth.style,
+            Style::Normal,
+            "synthesis shapes the ROMAN face, or cosmic-text's style \
+             filter walks off the configured family",
+        );
+        assert!(
+            synth.cache_key_flags.contains(CacheKeyFlags::FAKE_ITALIC),
+            "the 14° skew is what makes it italic",
+        );
+
+        // 3. A non-italic run never synthesizes, whatever the face table
+        //    says.
+        let upright = RunAttrsKey {
+            italic: false,
+            ..italic_key()
+        };
+        let plain = run_attrs(
+            "Some Roman Only",
+            &upright,
+            synthetic_italic_needed(false, true, false),
+            &[],
+        );
+        assert_eq!(plain.style, Style::Normal);
+        assert!(!plain.cache_key_flags.contains(CacheKeyFlags::FAKE_ITALIC));
+
+        // 4. `font.synthetic_style = false` is the operator asking for the
+        //    shaper's own answer — the pre-existing behaviour, unchanged.
+        let opted_out = run_attrs(
+            "Some Roman Only",
+            &italic_key(),
+            synthetic_italic_needed(true, false, false),
+            &[],
+        );
+        assert_eq!(opted_out.style, Style::Italic);
+        assert!(
+            !opted_out
+                .cache_key_flags
+                .contains(CacheKeyFlags::FAKE_ITALIC),
+            "the knob off must leave the old path byte-identical",
+        );
+    }
+
+    /// The face-table predicate behind the decision above.
+    #[test]
+    fn italic_face_detection_over_a_face_table() {
+        // (family name, face declares a slant)
+        let faces = [
+            ("JetBrains Mono", false),
+            ("JetBrains Mono", false), // the bold face
+            ("Iosevka", false),
+            ("Iosevka", true), // Iosevka Italic, registered under the same family
+        ];
+
+        assert!(
+            family_has_italic_face(faces, "Iosevka"),
+            "a family with a slanted face has a real italic",
+        );
+        assert!(
+            !family_has_italic_face(faces, "JetBrains Mono"),
+            "roman + bold only ⇒ no real italic ⇒ eligible for synthesis",
+        );
+        assert!(
+            family_has_italic_face(faces, "iOsEvKa"),
+            "family names match case-insensitively (fontdb stores them \
+             as the font declares them)",
+        );
+        assert!(
+            !family_has_italic_face(faces, "Not Installed"),
+            "an absent family has no italic face",
+        );
+        assert!(
+            family_has_italic_face(faces, ""),
+            "an empty family is the bare tier's 'no preference' — \
+             cosmic-text runs its own fallback and may land on a genuine \
+             italic, so we must NOT skew on top of it",
+        );
+    }
+
+    /// The `fontdb` adapter, against the REAL system font database — the
+    /// half `family_has_italic_face`'s hand-built table cannot prove.
+    /// Self-consistent rather than font-dependent: whatever slanted face
+    /// this machine happens to have, its own family must report `true`.
+    #[test]
+    fn family_has_real_italic_reads_the_font_database() {
+        let renderer = gpu_free_renderer();
+        let fs = glyphon::FontSystem::new();
+        let db = fs.db();
+
+        assert!(
+            !renderer.family_has_real_italic(db, "No Such Family At All 12345"),
+            "an uninstalled family cannot have an italic face",
+        );
+
+        let slanted_family = db.faces().find(|f| f.style != Style::Normal).map(|f| {
+            f.families
+                .first()
+                .map(|(n, _)| n.clone())
+                .unwrap_or_default()
+        });
+        let Some(family) = slanted_family.filter(|n| !n.is_empty()) else {
+            // No slanted face installed — nothing to assert, and that is
+            // a fact about the machine, not a failure.
+            return;
+        };
+        assert!(
+            renderer.family_has_real_italic(db, &family),
+            "family {family:?} owns the slanted face we just read out of \
+             the same database",
+        );
+        // Memoized: the second answer comes from the cache, unchanged.
+        assert!(renderer.family_has_real_italic(db, &family));
+        assert_eq!(
+            renderer.italic_face_cache.borrow().get(family.as_str()),
+            Some(&true),
+        );
+    }
+
+    /// BREAK LIGATURE UNDER CURSOR — which column (if any) gets isolated.
+    #[test]
+    fn ligature_break_targets_only_the_painted_cursor_cell() {
+        // Live tail (scroll_offset 0), cursor at row 3 col 7 of an 80-col
+        // grid: row 3 breaks at 7, every other row breaks nowhere.
+        assert_eq!(ligature_break_col(true, true, 3, 7, 3, 80), Some(7));
+        assert_eq!(ligature_break_col(true, true, 3, 7, 4, 80), None);
+        assert_eq!(ligature_break_col(true, true, 3, 7, 0, 80), None);
+
+        // Scrolled back: the cursor is painted at `cursor.row +
+        // scroll_offset`, so the break follows it there and NOT to the
+        // model row — the same expression the cursor rect uses.
+        assert_eq!(
+            ligature_break_col(true, true, 3 + 5, 7, 8, 80),
+            Some(7),
+            "screen row = cursor.row + scroll_offset",
+        );
+        assert_eq!(ligature_break_col(true, true, 3 + 5, 7, 3, 80), None);
+
+        // A hidden cursor (DECTCEM off) has nothing to disambiguate.
+        assert_eq!(ligature_break_col(true, false, 3, 7, 3, 80), None);
+        // Off-grid column (resize race) never breaks.
+        assert_eq!(ligature_break_col(true, true, 3, 80, 3, 80), None);
+        // Disabled is disabled.
+        assert_eq!(ligature_break_col(false, true, 3, 7, 3, 80), None);
+
+        // The renderer is born with it ON, and the setter is the gate a
+        // future `font.disable_ligatures` knob will drive.
+        let mut renderer = gpu_free_renderer();
+        assert!(renderer.break_ligature_under_cursor);
+        renderer.set_break_ligature_under_cursor(false);
+        assert!(!renderer.break_ligature_under_cursor);
+        assert_eq!(
+            ligature_break_col(renderer.break_ligature_under_cursor, true, 3, 7, 3, 80),
+            None,
+        );
+    }
+
+    /// THE DEAD-KNOB KILL: `font.synthetic_style` and `font.features` are
+    /// read off the live config on the one path both production entry
+    /// points (`main.rs`, `gui_tear_attach.rs`) AND the hot-reload drain
+    /// traverse.
+    #[test]
+    fn font_config_knobs_reach_the_renderer() {
+        let mut renderer = gpu_free_renderer();
+        // Construction mirrors `FontConfig::default()`.
+        assert!(renderer.font_synthetic_style);
+        assert!(renderer.font_features.is_empty());
+
+        let mut config = crate::config::MadoConfig::default();
+        config.font.synthetic_style = false;
+        config.font.features = vec!["-calt".to_string(), "ss01=2".to_string()];
+        renderer.apply_effects_and_accessibility(&config);
+
+        assert!(
+            !renderer.font_synthetic_style,
+            "font.synthetic_style must reach the renderer",
+        );
+        assert_eq!(
+            renderer
+                .font_features
+                .iter()
+                .map(|f| (tag_of(f).to_string(), f.value))
+                .collect::<Vec<_>>(),
+            vec![("calt".to_string(), 0), ("ss01".to_string(), 2)],
+            "font.features must reach the renderer, parsed",
+        );
+    }
+
+    /// Neither knob is part of `ShapeKey` — they are constant for a cache
+    /// generation, so paying for them per key would be waste. That is only
+    /// true while a change DROPS the generation.
+    #[test]
+    fn font_styling_setters_drop_the_shape_generation() {
+        let mut renderer = gpu_free_renderer();
+        let mut fs = glyphon::FontSystem::new();
+
+        let seed = |renderer: &TerminalRenderer, fs: &mut glyphon::FontSystem| {
+            let buf = Buffer::new(fs, glyphon::Metrics::new(14.0, 20.0));
+            renderer.shape_cache.borrow_mut().put(
+                ShapeKey {
+                    text: "!=".into(),
+                    attrs: italic_key(),
+                    font_size_bits: 14.0f32.to_bits(),
+                },
+                Arc::new(buf),
+            );
+        };
+
+        seed(&renderer, &mut fs);
+        assert_eq!(renderer.shape_cache.borrow().len(), 1);
+        renderer.set_font_synthetic_style(false);
+        assert_eq!(
+            renderer.shape_cache.borrow().len(),
+            0,
+            "buffers shaped under the old synthetic-style answer are stale",
+        );
+
+        seed(&renderer, &mut fs);
+        renderer.set_font_features(&["-calt".to_string()]);
+        assert_eq!(
+            renderer.shape_cache.borrow().len(),
+            0,
+            "buffers shaped under the old feature list are stale",
+        );
+
+        // A no-op write keeps the generation — the setters are idempotent,
+        // and the hot-reload drain calls them on EVERY config event.
+        seed(&renderer, &mut fs);
+        renderer.set_font_synthetic_style(false);
+        renderer.set_font_features(&["-calt".to_string()]);
+        assert_eq!(
+            renderer.shape_cache.borrow().len(),
+            1,
+            "an unchanged config must not throw the shape cache away once \
+             per reload",
         );
     }
 
