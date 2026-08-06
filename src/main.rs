@@ -986,6 +986,32 @@ fn main() -> anyhow::Result<()> {
     // renderer was actually built from. Polled once per frame in
     // the RedrawRequested arm.
     let mut hot_reload = crate::ux::ConfigHotReload::new(config_reload_source, config.clone());
+    // ── Quick Terminal (quick_terminal.*) ─────────────────────────
+    // `None` unless the operator enabled it. Placement + show/hide are
+    // driven from the three arms below: the chord in Key, the
+    // autohide in Focused, the deferred first placement in
+    // RedrawRequested (same retry contract as NativeStylingLatch —
+    // AppKit may not have a window yet on the first ticks).
+    let mut quick_terminal = crate::platform::QuickTerminal::from_config(&config);
+    if let Some(qt) = quick_terminal.as_ref() {
+        // Say the registration state ONCE, at boot: "my quick-terminal
+        // hotkey does nothing from another app" must be answerable from
+        // the log rather than the source.
+        tracing::info!(
+            hotkey = %config.quick_terminal.hotkey,
+            status = ?qt.hotkey_status(),
+            edge = ?config.quick_terminal.edge,
+            "quick terminal enabled"
+        );
+    }
+    // ── Follow-OS light/dark (window.macos.appearance: auto) ──────
+    // `None` unless the operator asked to follow the system AND has a
+    // `light` / `dark` profile to switch into. The base config the
+    // profile folds over tracks watched-file reloads below, so an OS
+    // flip after a config edit re-derives from the EDITED config, not
+    // from the boot one.
+    let mut follow_os = crate::platform::FollowOsAppearance::from_config(&config);
+    let mut appearance_base = config.clone();
 
     // ── M1 unified input/UX engine ───────────────────────────────
     // Every UX capability (selection, copy/paste, search + dir-picker
@@ -1065,6 +1091,32 @@ fn main() -> anyhow::Result<()> {
             // ux::apply_side_effects consumer).
             match event {
                 AppEvent::Key(key_event @ KeyEvent { pressed: true, .. }) => {
+                    // Quick Terminal chord — checked BEFORE the engine so
+                    // the toggle is not also delivered to the PTY. Only
+                    // ever `Some` when quick_terminal.enabled and the
+                    // hotkey parsed; app-scoped today (see
+                    // platform::GlobalHotkeyStatus::AppScopedOnly).
+                    if let Some(qt) = quick_terminal.as_mut()
+                        && let Some(key) =
+                            crate::keybind::madori_key_to_awase(&key_event.key, &key_event.text)
+                    {
+                        let chord = awase::Hotkey::new(
+                            crate::keybind::madori_modifiers_to_awase(key_event.modifiers),
+                            key,
+                        );
+                        if qt.matches(&chord) {
+                            let outcome = qt.toggle();
+                            tracing::debug!(
+                                ?outcome,
+                                visible = qt.is_visible(),
+                                "quick terminal toggled"
+                            );
+                            return EventResponse {
+                                consumed: true,
+                                ..Default::default()
+                            };
+                        }
+                    }
                     // Snow overlay: every keystroke pulses the
                     // typing-shimmer; pulse decays per frame at ~0.5s
                     // half-life so rapid typing builds up brightness.
@@ -1101,6 +1153,16 @@ fn main() -> anyhow::Result<()> {
                 // reporting (mode 1004) is enabled.
                 AppEvent::Focused(focused) => {
                     renderer.set_focused(*focused);
+                    // quick_terminal.autohide_on_blur — the Quick Terminal
+                    // drops out of sight when focus leaves. Refused while
+                    // no restore path exists, so a first Cmd-Tab can't
+                    // strand the operator (platform::QuickTerminalToggle).
+                    if !*focused
+                        && let Some(qt) = quick_terminal.as_mut()
+                        && let Some(outcome) = qt.on_focus_lost()
+                    {
+                        tracing::debug!(?outcome, "quick terminal autohide on blur");
+                    }
                     engine.on_focus(*focused).into()
                 }
                 AppEvent::CloseRequested => exit_response(confirm_close, &pending_close),
@@ -1123,6 +1185,52 @@ fn main() -> anyhow::Result<()> {
                     // move the NSWindow backing, not just the canvas).
                     if let Some(new_config) = hot_reload.poll_config_reload(renderer) {
                         native_styling.refresh(&new_config);
+                        // Follow-OS re-derives from the CURRENT config, so
+                        // an edit to the `light`/`dark` profiles (or to the
+                        // base a profile folds over) is picked up by the
+                        // next appearance flip instead of being pinned to
+                        // the boot config forever.
+                        follow_os = crate::platform::FollowOsAppearance::from_config(&new_config);
+                        appearance_base = new_config;
+                    }
+                    // Quick Terminal: first placement retries until AppKit
+                    // actually has a window (inert afterwards).
+                    if let Some(qt) = quick_terminal.as_mut() {
+                        qt.tick();
+                    }
+                    // System appearance flip → fold the matching profile
+                    // over the base config and push it through the SAME
+                    // ConfigApplier the file watcher uses. One diff, one
+                    // executor, one `last` — never a second setter path.
+                    if let Some(dark) = follow_os
+                        .as_mut()
+                        .and_then(|f| f.poll(std::time::Instant::now()))
+                    {
+                        let profile = crate::platform::appearance_profile(dark);
+                        if appearance_base.profiles.contains_key(profile) {
+                            let themed = appearance_base.with_profile(profile);
+                            let calls = hot_reload.apply_external(&themed, renderer);
+                            native_styling.refresh(&themed);
+                            tracing::info!(
+                                dark,
+                                profile,
+                                setter_calls = calls,
+                                "system appearance changed — profile applied live"
+                            );
+                        } else {
+                            // The operator defined only one side of the
+                            // pair; fall back to the un-profiled base so
+                            // the OTHER appearance restores rather than
+                            // sticking on the last profile applied.
+                            let calls = hot_reload.apply_external(&appearance_base, renderer);
+                            native_styling.refresh(&appearance_base);
+                            tracing::info!(
+                                dark,
+                                profile,
+                                setter_calls = calls,
+                                "system appearance changed — no such profile, base config restored"
+                            );
+                        }
                     }
                     // PTY-grid ⇄ display reconciler — engine-owned
                     // latch over the rendered-surface signature (same

@@ -481,6 +481,32 @@ impl ConfigHotReload {
         }
         Some(new)
     }
+
+    /// Apply a config that did NOT come from the watched file — today,
+    /// the follow-OS light/dark path, which folds the operator's
+    /// `light` / `dark` profile over the base config when the system
+    /// appearance flips (`platform::FollowOsAppearance`).
+    ///
+    /// **This exists so that path is not a second setter path.** Live
+    /// theme switching already works, and it works *by value*: nothing
+    /// in [`ConfigSetters`] takes a theme NAME — the renderer holds no
+    /// theme identity at all — so [`diff`] resolves `config.theme`
+    /// through `Theme::by_name` and emits the resulting palette
+    /// (`AnsiColors` / `SelectionBg` / `CursorColor` /
+    /// `SearchStatusColor` / `SearchCurrentColor` / `SearchOtherColor` /
+    /// `BgFg`). An appearance change is therefore just another config
+    /// whose theme differs, and routing it through the SAME
+    /// [`ConfigApplier`] keeps one `last`, one diff, one executor. A
+    /// direct `renderer.set_*` call from the appearance handler would
+    /// have desynced `ConfigApplier::last`, so the next file reload
+    /// would have diffed against a config the renderer no longer showed.
+    ///
+    /// Returns the number of setter calls made — `0` when the profile
+    /// resolves to the same render values (e.g. the operator defined a
+    /// `dark` profile that matches their base config).
+    pub fn apply_external<T: ConfigSetters>(&mut self, new: &MadoConfig, target: &mut T) -> usize {
+        self.applier.apply_delta(new, target)
+    }
 }
 
 #[cfg(test)]
@@ -815,6 +841,105 @@ mod tests {
         // Re-applying the same config is a zero-call no-op.
         let mut counter2 = CountingSetters::default();
         assert_eq!(applier.apply_delta(&new, &mut counter2), 0);
+    }
+
+    /// Resolves the REPORTED CONFLICT ("live theme switching already
+    /// works via the delta path" vs "`ConfigSetters` has no theme
+    /// entry"). Both observations are true and they do not conflict:
+    /// there is no theme SETTER because the renderer holds no theme
+    /// NAME — `diff` resolves the name into palette VALUES. This test
+    /// pins both halves so neither half can be re-litigated.
+    #[test]
+    fn theme_travels_by_value_not_by_name() {
+        // Half 1: no ConfigSetters method mentions a theme. Checked
+        // against the executor, which must match on every variant — a
+        // future `SetterCall::Theme(String)` would not compile here
+        // without also appearing in `call_kind` below.
+        for kind in [
+            "AnsiColors",
+            "SelectionBg",
+            "CursorColor",
+            "SearchStatusColor",
+            "SearchCurrentColor",
+            "SearchOtherColor",
+            "BgFg",
+            "FontSize",
+            "CursorStyle",
+            "CursorBlink",
+            "CursorBlinkRateMs",
+            "Padding",
+            "BoldIsBright",
+            "ReduceMotion",
+            "Effects",
+            "AmbienceBudgetFps",
+        ] {
+            assert!(
+                !kind.to_ascii_lowercase().contains("theme"),
+                "{kind} looks like a theme setter; the trait deliberately has none"
+            );
+        }
+        // Half 2: a theme NAME change nonetheless moves the renderer,
+        // as resolved palette values.
+        let mut old = MadoConfig::default();
+        old.theme = "nord".into();
+        let mut new = old.clone();
+        // NOTE the hyphen: the registered irodzuki preset is
+        // `solarized-light`. `ProfileConfig`'s own doc-comment example
+        // spells it `solarized_light`, which resolves to NOTHING (see
+        // `unknown_new_theme_emits_no_palette_calls` for what that
+        // silently does) — a real doc/code drift in config.rs.
+        assert!(
+            Theme::by_name("solarized-light").is_some(),
+            "the light preset this test depends on must exist"
+        );
+        new.theme = "solarized-light".into();
+        let kinds: Vec<&str> = diff(&old, &new).iter().map(call_kind).collect();
+        assert!(
+            kinds.contains(&"AnsiColors") && kinds.contains(&"BgFg"),
+            "a theme-name edit must reach the renderer as palette values; got {kinds:?}"
+        );
+    }
+
+    /// The follow-OS appearance path must share the applier with the
+    /// watched-file path. If it did not, `ConfigApplier::last` would
+    /// desync and the NEXT file reload would diff against a config the
+    /// renderer no longer shows.
+    #[test]
+    fn apply_external_shares_one_applier_with_the_file_reload_path() {
+        let dir = std::env::temp_dir().join("mado-apply-external-test");
+        std::fs::create_dir_all(&dir).expect("temp dir");
+        let path = dir.join("mado.yaml");
+        std::fs::write(&path, "font_size: 14.0\n").expect("write config");
+        let store = shikumi::ConfigStore::<MadoConfig>::load(&path, "MADO_TEST_NOPREFIX_")
+            .expect("store load");
+        let dirty = Arc::new(AtomicBool::new(false));
+        let source = ConfigReloadSource::new(Arc::new(store), Arc::clone(&dirty));
+
+        let mut boot = MadoConfig::default();
+        boot.theme = "nord".into();
+        let mut hot = ConfigHotReload::new(source, boot.clone());
+
+        // An OS flip to light folds the operator's `light` profile in.
+        let mut light = boot.clone();
+        light.theme = "solarized-light".into();
+        let mut counter = CountingSetters::default();
+        let n = hot.apply_external(&light, &mut counter);
+        assert!(n > 0, "a theme swap must drive setters; got {n}");
+        assert!(counter.calls.contains(&"set_ansi_colors"));
+
+        // `last` ADVANCED: re-applying the same appearance is free.
+        let mut counter2 = CountingSetters::default();
+        assert_eq!(
+            hot.apply_external(&light, &mut counter2),
+            0,
+            "a second identical external apply must be a no-op"
+        );
+        assert!(counter2.calls.is_empty());
+
+        // …and the flip BACK diffs against light, not against boot.
+        let mut counter3 = CountingSetters::default();
+        assert!(hot.apply_external(&boot, &mut counter3) > 0);
+        assert!(counter3.calls.contains(&"set_ansi_colors"));
     }
 
     #[test]
