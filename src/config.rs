@@ -6802,6 +6802,8 @@ mod coverage {
         "environment.working_directory",
         "feedback.exit_code_glow",
         "feedback.visual_bell",
+        "font.features",
+        "font.synthetic_style",
         "font_family",
         "font_italic",
         "font_size",
@@ -6849,6 +6851,12 @@ mod coverage {
         "performance.fps_cap",
         "performance.target_fps",
         "performance.vsync",
+        "quick_terminal.animation_ms",
+        "quick_terminal.autohide_on_blur",
+        "quick_terminal.edge",
+        "quick_terminal.enabled",
+        "quick_terminal.hotkey",
+        "quick_terminal.size_fraction",
         "safra.enabled",
         "safra.environments",
         "safra.gha.branches",
@@ -7014,14 +7022,6 @@ mod coverage {
             "Shadowed by the top-level font_italic knob, which IS consumed. Delete candidate: two knobs, one job.",
         ),
         (
-            "font.features",
-            "The shaper (rustybuzz via cosmic-text) ships, but no OpenType feature string is passed to it, so -calt/-liga are unreachable. Would be consumed by render.rs shape_run.",
-        ),
-        (
-            "font.synthetic_style",
-            "No skew transform for a missing italic face. Would be consumed by render.rs when selecting a synthetic style.",
-        ),
-        (
             "font.thicken",
             "No stem-darkening/thicken pass. Would be consumed by render.rs glyph rasterization.",
         ),
@@ -7048,30 +7048,6 @@ mod coverage {
         (
             "notifications.osc.osc99",
             "See notifications.osc.osc9. terminal.rs handles pending_osc99 unconditionally.",
-        ),
-        (
-            "quick_terminal.animation_ms",
-            "No slide-in animation exists because no Quick Terminal exists; would be consumed by the drop-down show/hide transition alongside motion/curve.rs.",
-        ),
-        (
-            "quick_terminal.autohide_on_blur",
-            "See quick_terminal.enabled. Would be consumed by the madori focus-lost handler.",
-        ),
-        (
-            "quick_terminal.edge",
-            "Consumed only by tests. (float/spec.rs's `self.edge` is the float-surface spec, a different type.)",
-        ),
-        (
-            "quick_terminal.enabled",
-            "The whole Quick Terminal is Phase 4 and unbuilt: no module outside config.rs mentions quick_terminal.",
-        ),
-        (
-            "quick_terminal.hotkey",
-            "QuickTerminalConfig::is_active_hotkey() has zero callers.",
-        ),
-        (
-            "quick_terminal.size_fraction",
-            "QuickTerminalConfig::resolve_size_pixels()/resolve_origin_pixels() have zero callers.",
         ),
         (
             "search.background",
