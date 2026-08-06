@@ -37,13 +37,34 @@ use url::Url;
 
 use mado::float::{BackendError, BrowserBackend, LoadState, RenderedFrame};
 
+/// What the live DOM was authored from — the source a resize re-runs the
+/// pipeline over.
+///
+/// Typed rather than the bare `Option<String>` of HTML this used to be, because
+/// that shape could only describe the HTML half: a DOM pushed in via
+/// [`MadoNamiEngine::set_dom_sexp`] left it `None`, so a later resize had
+/// nothing to re-lay out from and silently kept the old-size layout while the
+/// panel stretched. With the author's own input kept per variant, EVERY way of
+/// authoring a page has a re-layout source, and adding a third author path
+/// means adding a variant here rather than discovering another silent hole.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum PageSource {
+    /// Nothing rendered yet, or the last `navigate` failed — nothing to re-lay out.
+    Empty,
+    /// Authored from HTML (`render_html`, or a `navigate` that fetched a body).
+    Html(String),
+    /// Authored from a tatara-lisp DOM sexp (`set_dom_sexp`).
+    Sexp(String),
+}
+
 /// The pure-Rust pixel-painting engine — mado's port of nami-native over
 /// nami-core's public pipeline. Caches the display list (rebuilt only on
 /// navigate/resize, never per frame).
 pub struct MadoNamiEngine {
     content_rect: ContentRect,
     display_list: DisplayList,
-    last_html: Option<String>,
+    /// The re-layout source — see [`PageSource`].
+    source: PageSource,
     /// Whether the last `navigate` fetched + rendered content (vs failed).
     navigate_ok: bool,
     /// The page's DOM as a homoiconic tatara-lisp S-expression (nami-core
@@ -60,7 +81,7 @@ impl MadoNamiEngine {
         Self {
             content_rect,
             display_list: DisplayList::default(),
-            last_html: None,
+            source: PageSource::Empty,
             navigate_ok: false,
             last_sexp: String::new(),
         }
@@ -81,7 +102,7 @@ impl MadoNamiEngine {
         let mut doc = Document::parse(html);
         expand_inline_lisp(&mut doc);
         self.render_document(&doc);
-        self.last_html = Some(html.to_owned());
+        self.source = PageSource::Html(html.to_owned());
     }
 
     /// Set the DOM from a tatara-lisp S-expression — the write-side inverse of
@@ -94,10 +115,44 @@ impl MadoNamiEngine {
         let mut doc = nami_core::lisp::sexp_to_dom(sexp)?;
         expand_inline_lisp(&mut doc);
         self.render_document(&doc);
-        // Authored from a sexp, not HTML — `last_html` no longer describes the
-        // live DOM, so a later resize re-lays out from the sexp path.
-        self.last_html = None;
+        // Authored from a sexp, not HTML — record the sexp as the re-layout
+        // source so a later resize re-runs the pipeline from it. (This used to
+        // clear an HTML-only field and claim the sexp path existed; it did not,
+        // and a resize after a set_dom silently kept the old-size layout.)
+        self.source = PageSource::Sexp(sexp.to_owned());
         Ok(())
+    }
+
+    /// Re-run the whole pipeline at a new content rect, from whatever the live
+    /// DOM was authored from. Returns `true` when a re-layout actually happened
+    /// — i.e. there WAS a source — which is the caller's staleness signal for
+    /// its cached display list / rasterized texture.
+    ///
+    /// Inherent (and separately named) rather than the `BrowserEngine::resize`
+    /// trait method, because the trait's `-> ()` cannot carry that signal;
+    /// `resize` delegates here and drops it.
+    pub fn relayout_at(&mut self, rect: ContentRect) -> bool {
+        self.content_rect = rect;
+        // Moved out so the re-render can borrow `self` mutably; each arm either
+        // re-authors the source or puts it back.
+        match std::mem::replace(&mut self.source, PageSource::Empty) {
+            PageSource::Empty => false,
+            PageSource::Html(html) => {
+                self.render_html(&html);
+                true
+            }
+            PageSource::Sexp(sexp) => match self.set_dom_sexp(&sexp) {
+                Ok(()) => true,
+                Err(e) => {
+                    // It parsed once already, so this is not expected. Keep the
+                    // prior page + the source (a later resize retries) rather
+                    // than blanking the panel.
+                    tracing::warn!(error = %e, "mado-nami: resize re-layout from the DOM sexp failed");
+                    self.source = PageSource::Sexp(sexp);
+                    false
+                }
+            },
+        }
     }
 
     /// The shared cascade → layout → paint → sexp tail: turn a (post-expansion)
@@ -162,10 +217,9 @@ impl BrowserEngine for MadoNamiEngine {
     }
 
     fn resize(&mut self, rect: ContentRect) {
-        self.content_rect = rect;
-        if let Some(html) = self.last_html.take() {
-            self.render_html(&html);
-        }
+        // The trait returns (); the re-laid-out signal is on `relayout_at`,
+        // which the backend calls directly.
+        let _ = self.relayout_at(rect);
     }
 
     fn renders_pixels(&self) -> bool {
@@ -335,11 +389,23 @@ impl BrowserBackend for RealBrowserBackend {
     }
 
     fn resize(&mut self, width: u32, height: u32) {
+        if (width, height) == (self.width, self.height) {
+            // A no-op resize (e.g. snapping to the zone already occupied) must
+            // not move the seqno — that would re-rasterize an identical page.
+            return;
+        }
         self.width = width;
         self.height = height;
         #[allow(clippy::cast_precision_loss)]
-        self.engine
-            .resize(ContentRect::new(0.0, 0.0, width as f32, height as f32));
+        let rect = ContentRect::new(0.0, 0.0, width as f32, height as f32);
+        // A re-layout invalidates BOTH cached artifacts: the display list the
+        // GPU layer rasterizes, and the seqno it keys that raster on. Refreshing
+        // neither is why a resize used to stretch the old-size bitmap — the
+        // engine re-laid out and nothing downstream was ever told.
+        if self.engine.relayout_at(rect) {
+            self.last_list = std::sync::Arc::new(self.engine.take_display_list());
+            self.content_seqno = self.content_seqno.wrapping_add(1);
+        }
     }
 
     fn load_state(&self) -> LoadState {
@@ -375,6 +441,25 @@ mod tests {
 
     fn backend() -> RealBrowserBackend {
         RealBrowserBackend::nami_native(800, 600)
+    }
+
+    /// A page whose only box is an auto-width block, so its painted width is
+    /// the content width (minus the default body margin) — i.e. the geometry
+    /// MOVES when the surface is re-laid out at a new size, and does not when
+    /// the old-size list is merely re-read.
+    const AUTO_WIDTH_PAGE: &str =
+        "<style>div{background-color:#00ff00;height:40px}</style><div></div>";
+
+    /// The width of the first background `Rect` — the observable "this was laid
+    /// out at that viewport width" signal used by the resize tests.
+    fn first_rect_width(dl: &DisplayList) -> f32 {
+        dl.cmds
+            .iter()
+            .find_map(|c| match c {
+                DrawCmd::Rect { width, .. } => Some(*width),
+                _ => None,
+            })
+            .unwrap_or_else(|| panic!("expected a background Rect: {:?}", dl.cmds))
     }
 
     #[test]
@@ -447,18 +532,84 @@ mod tests {
     }
 
     #[test]
-    fn resize_relays_out_from_cached_html() {
+    fn resize_relays_out_from_cached_html_and_bumps_the_seqno() {
         let mut b = backend();
-        b.render_html(
-            "<style>div{background-color:#00ff00;width:100px;height:40px}</style><div></div>",
-        );
-        assert!(!b.current_display_list().is_empty());
+        b.render_html(AUTO_WIDTH_PAGE);
+        let seq0 = b.content_seqno();
+        let w0 = first_rect_width(&b.current_display_list());
+
         // A resize re-lays out from the cached HTML (no re-render_html call).
         b.resize(400, 300);
-        assert!(
-            !b.current_display_list().is_empty(),
-            "resize should re-layout the cached page"
+
+        // The staleness signal the renderer keys its texture cache on MUST move,
+        // or the panel keeps stretching the old-size bitmap forever.
+        assert_ne!(
+            b.content_seqno(),
+            seq0,
+            "a resize must bump the content seqno — render.rs re-rasterizes only when it moves"
         );
+        // …and the cached list must be the NEW-size layout, not the old one:
+        // the auto-width block narrows by exactly the viewport delta.
+        let w1 = first_rect_width(&b.current_display_list());
+        assert!(
+            w1 < w0,
+            "the block must narrow with the viewport: {w0} -> {w1}"
+        );
+        assert!(
+            (w0 - w1 - 400.0).abs() < 1.0,
+            "the re-layout must track the 800->400 viewport delta: {w0} -> {w1}"
+        );
+        assert_eq!(b.size(), (400, 300));
+    }
+
+    #[test]
+    fn resize_after_set_dom_sexp_still_relays_out() {
+        // The sexp-authored DOM is a first-class page: a resize must re-run the
+        // pipeline from the sexp exactly as it does from HTML. (It could not
+        // before — the only re-layout source was an HTML field that set_dom_sexp
+        // cleared, so this resize was a silent no-op.)
+        let mut b = backend();
+        b.render_html(AUTO_WIDTH_PAGE);
+        let sexp = b.dom_sexp();
+        b.set_dom_sexp(&sexp)
+            .expect("the read-back DOM sexp must set cleanly");
+
+        let seq0 = b.content_seqno();
+        let w0 = first_rect_width(&b.current_display_list());
+
+        b.resize(400, 300);
+
+        assert_ne!(
+            b.content_seqno(),
+            seq0,
+            "a resize after set_dom_sexp must bump the content seqno too"
+        );
+        let w1 = first_rect_width(&b.current_display_list());
+        assert!(
+            (w0 - w1 - 400.0).abs() < 1.0,
+            "the sexp page must re-lay out at the new width: {w0} -> {w1}"
+        );
+    }
+
+    #[test]
+    fn a_no_op_resize_leaves_the_seqno_alone() {
+        // Re-rasterizing an identical page is pure waste, so the signal moves on
+        // a real size change only.
+        let mut b = backend();
+        b.render_html(AUTO_WIDTH_PAGE);
+        let seq0 = b.content_seqno();
+        b.resize(800, 600);
+        assert_eq!(b.content_seqno(), seq0, "same size = no content change");
+    }
+
+    #[test]
+    fn resizing_a_blank_surface_leaves_the_seqno_alone() {
+        // Nothing was ever authored, so there is nothing to re-lay out and no
+        // stale raster to invalidate.
+        let mut b = backend();
+        let seq0 = b.content_seqno();
+        b.resize(400, 300);
+        assert_eq!(b.content_seqno(), seq0, "no page = nothing to invalidate");
         assert_eq!(b.size(), (400, 300));
     }
 
