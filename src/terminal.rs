@@ -5410,6 +5410,41 @@ impl TerminalOps for Terminal {
 // ---------------------------------------------------------------------------
 
 impl Terminal {
+    /// The inclusive row range a cursor-positioning sequence may address:
+    /// the scroll region under DECOM (origin mode), the whole screen
+    /// otherwise. One place, so CUP/HVP/VPA and the CPR report can never
+    /// disagree about where row 1 is.
+    fn addressable_rows(&self) -> (usize, usize) {
+        if self.origin_mode {
+            (self.scroll_top, self.scroll_bottom)
+        } else {
+            (0, self.rows.saturating_sub(1))
+        }
+    }
+
+    /// Resolve the 1-based `row` parameter of a cursor-positioning
+    /// sequence (CUP/HVP/VPA) to an absolute grid row.
+    ///
+    /// Under DECOM row 1 IS the scroll region's top and anything past the
+    /// region's bottom clamps there — that clamp is the whole point: a
+    /// full-screen app that sets a region must not be able to address, and
+    /// therefore paint, outside it. With DECOM off this is screen-absolute
+    /// clamped to the last row, i.e. byte-identical to the pre-DECOM code.
+    fn origin_row(&self, row: usize) -> usize {
+        let (top, bottom) = self.addressable_rows();
+        (top + row.saturating_sub(1)).min(bottom)
+    }
+
+    /// The 1-based row DSR 6 (CPR) reports. Under DECOM xterm answers
+    /// *relative to the scroll region*, which is the inverse of
+    /// [`Self::origin_row`] — the pair has to move together or an app that
+    /// saves its position with CPR and restores it with CUP walks down the
+    /// screen by `scroll_top` rows on every round trip.
+    fn reported_cursor_row(&self) -> usize {
+        let (top, _) = self.addressable_rows();
+        self.cursor.row.saturating_sub(top) + 1
+    }
+
     /// Interpret a parsed [`crate::vt::CsiCommand`] against terminal
     /// state. The parse half ([`crate::vt::parse_csi_action`]) is pure;
     /// this is where the mutation lives. The bodies are the legacy
@@ -5455,8 +5490,11 @@ impl Terminal {
                 self.wrap_pending = false;
                 self.dirty();
             }
+            // CUP (`H`) and HVP (`f`) — both parse to this arm. The row is
+            // DECOM-relative; the column is not (mado has no left/right
+            // margins, so origin mode has nothing to shift a column by).
             C::CursorPosition { row, col } => {
-                self.cursor.row = (row - 1).min(self.rows.saturating_sub(1));
+                self.cursor.row = self.origin_row(row);
                 self.cursor.col = (col - 1).min(self.cols.saturating_sub(1));
                 self.wrap_pending = false;
                 self.dirty();
@@ -5563,8 +5601,10 @@ impl Terminal {
                     self.scroll_grid_down();
                 }
             }
+            // VPA (`d`) — a row-only absolute move, so DECOM applies exactly
+            // as it does to CUP's row.
             C::VerticalPosition(row) => {
-                self.cursor.row = (row - 1).min(self.rows.saturating_sub(1));
+                self.cursor.row = self.origin_row(row);
                 self.wrap_pending = false;
                 self.dirty();
             }
@@ -5573,7 +5613,7 @@ impl Terminal {
                     self.response_bytes.extend_from_slice(b"\x1b[0n");
                 }
                 6 => {
-                    let row = u32::try_from(self.cursor.row + 1).unwrap_or(u32::MAX);
+                    let row = u32::try_from(self.reported_cursor_row()).unwrap_or(u32::MAX);
                     let col = u32::try_from(self.cursor.col + 1).unwrap_or(u32::MAX);
                     self.response_bytes.extend_from_slice(&crate::vt::csi(
                         false,
@@ -7740,6 +7780,161 @@ mod tests {
         // Disable origin mode
         term.feed(b"\x1b[?6l");
         assert_eq!(term.cursor().row, 0);
+    }
+
+    /// A terminal with the scroll region set to 1-based rows 5..=15
+    /// (0-based 4..=14) — the fixture every DECOM addressing test shares.
+    fn term_with_region() -> Terminal {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[5;15r");
+        term
+    }
+
+    /// DECOM ON: CUP's row is measured from the scroll region's top, not
+    /// the screen's. Row 1 is the region top; row N is N-1 rows below it.
+    #[test]
+    fn origin_mode_cup_row_is_region_relative() {
+        let mut term = term_with_region();
+        term.feed(b"\x1b[?6h");
+
+        term.feed(b"\x1b[1;1H");
+        assert_eq!(term.cursor().row, 4, "CUP row 1 must land on region top");
+
+        term.feed(b"\x1b[3;7H");
+        assert_eq!(term.cursor().row, 6, "CUP row 3 = region top + 2");
+        assert_eq!(term.cursor().col, 6, "the column stays screen-absolute");
+    }
+
+    /// DECOM ON: a row past the region's bottom clamps to the region's
+    /// bottom — this is the clamp that stops a full-screen app painting
+    /// outside the region it declared.
+    #[test]
+    fn origin_mode_cup_row_clamps_to_region_bottom() {
+        let mut term = term_with_region();
+        term.feed(b"\x1b[?6h");
+
+        term.feed(b"\x1b[99;1H");
+        assert_eq!(term.cursor().row, 14, "clamp to region bottom, not row 23");
+
+        // Exactly the last addressable row of the region.
+        term.feed(b"\x1b[11;1H");
+        assert_eq!(term.cursor().row, 14);
+    }
+
+    /// DECOM OFF with a scroll region set: rows stay screen-absolute and
+    /// clamp to the screen. A regression here breaks every normal app, so
+    /// it is asserted explicitly rather than assumed.
+    #[test]
+    fn origin_mode_off_cup_row_is_screen_absolute() {
+        let mut term = term_with_region();
+        assert!(!term.origin_mode);
+
+        term.feed(b"\x1b[1;1H");
+        assert_eq!(
+            term.cursor().row,
+            0,
+            "row 1 is the SCREEN top with DECOM off"
+        );
+
+        term.feed(b"\x1b[3;1H");
+        assert_eq!(term.cursor().row, 2);
+
+        term.feed(b"\x1b[20;1H");
+        assert_eq!(term.cursor().row, 19, "addressable outside the region");
+
+        term.feed(b"\x1b[99;1H");
+        assert_eq!(term.cursor().row, 23, "clamp to the last SCREEN row");
+    }
+
+    /// VPA (`CSI d`) is a row-only absolute move, so it follows CUP's row
+    /// exactly — both under DECOM and, unchanged, without it.
+    #[test]
+    fn origin_mode_vpa_row_tracks_cup() {
+        let mut term = term_with_region();
+        term.feed(b"\x1b[?6h");
+
+        term.feed(b"\x1b[1d");
+        assert_eq!(term.cursor().row, 4);
+        term.feed(b"\x1b[3d");
+        assert_eq!(term.cursor().row, 6);
+        term.feed(b"\x1b[99d");
+        assert_eq!(term.cursor().row, 14, "clamp to region bottom");
+
+        term.feed(b"\x1b[?6l");
+        term.feed(b"\x1b[1d");
+        assert_eq!(term.cursor().row, 0, "DECOM off: screen-absolute");
+        term.feed(b"\x1b[99d");
+        assert_eq!(term.cursor().row, 23, "DECOM off: clamp to the screen");
+    }
+
+    /// HVP (`CSI f`) is CUP's alias and parses to the same command, so it
+    /// inherits the same origin. Pinned so a future split of the two arms
+    /// can't leave one of them screen-absolute.
+    #[test]
+    fn origin_mode_hvp_row_tracks_cup() {
+        let mut term = term_with_region();
+        term.feed(b"\x1b[?6h");
+        term.feed(b"\x1b[3;1f");
+        assert_eq!(term.cursor().row, 6);
+
+        term.feed(b"\x1b[?6l");
+        term.feed(b"\x1b[3;1f");
+        assert_eq!(term.cursor().row, 2);
+    }
+
+    /// CHA (`CSI G`) sets the COLUMN. mado has no left/right margins, so
+    /// DECOM has nothing to shift it by — the row must not move either.
+    /// Pinned because the origin-mode work is easy to over-apply here.
+    #[test]
+    fn origin_mode_leaves_cha_column_alone() {
+        let mut term = term_with_region();
+        term.feed(b"\x1b[?6h");
+        term.feed(b"\x1b[3;1H");
+        let row = term.cursor().row;
+
+        term.feed(b"\x1b[10G");
+        assert_eq!(term.cursor().col, 9, "CHA column stays 1-based absolute");
+        assert_eq!(term.cursor().row, row, "CHA must not touch the row");
+    }
+
+    /// CPR (DSR 6) is the inverse of CUP's row, so the two move together:
+    /// under DECOM the reported row is region-relative, and feeding the
+    /// answer straight back as CUP is a fixed point. Without this the
+    /// origin-mode CUP fix would make a CPR→CUP round trip walk the cursor
+    /// down by `scroll_top` rows each time.
+    #[test]
+    fn origin_mode_cpr_round_trips_through_cup() {
+        let mut term = term_with_region();
+        term.feed(b"\x1b[?6h");
+        term.feed(b"\x1b[3;7H");
+        let landed = term.cursor().row;
+        // Pinned independently of the report, so the report's own assertion
+        // below cannot pass by cancelling an error in the positioning half.
+        assert_eq!(landed, 6, "absolute row: region top (4) + 2");
+
+        term.feed(b"\x1b[6n");
+        let answer = term.take_response().expect("DSR 6 answers");
+        assert_eq!(
+            answer,
+            b"\x1b[3;7R".to_vec(),
+            "CPR reports absolute row 6 as region-relative row 3"
+        );
+
+        term.feed(&answer[..answer.len() - 1]);
+        term.feed(b"H");
+        assert_eq!(term.cursor().row, landed, "CPR -> CUP is a fixed point");
+    }
+
+    /// DECOM OFF: CPR stays screen-absolute even with a region set.
+    #[test]
+    fn origin_mode_off_cpr_is_screen_absolute() {
+        let mut term = term_with_region();
+        term.feed(b"\x1b[8;7H");
+        term.feed(b"\x1b[6n");
+        assert_eq!(
+            term.take_response().expect("DSR 6 answers"),
+            b"\x1b[8;7R".to_vec()
+        );
     }
 
     #[test]
