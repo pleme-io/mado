@@ -3831,13 +3831,50 @@ impl Terminal {
     /// `RequestAttention=<0|1>` flips the
     /// [`attention_requested`](Self::attention_requested) flag the
     /// platform layer reads to drive dock / titlebar notifications.
-    /// Unknown parameters log + ignore so a shell speaking a newer
-    /// dialect can't corrupt typed state.
+    /// `File=…:<base64>` (`imgcat`) decodes to an inline image on the
+    /// shared texture path. Unknown parameters log + ignore so a shell
+    /// speaking a newer dialect can't corrupt typed state.
     fn handle_osc_1337_iterm2(&mut self, params: &[&[u8]]) {
         if params.len() < 2 {
             return;
         }
-        match crate::osc_1337::parse_osc_1337(params[1]) {
+        // `File=` is tried FIRST because its argument list is itself
+        // `;`-separated — vte splits the one logical argument across
+        // `params[1..]`, so the single-param `parse_osc_1337` below
+        // structurally cannot read it. `NotFile` falls straight
+        // through, leaving the marker / attention family untouched.
+        match crate::osc_1337::parse_osc_1337_file(&params[1..]) {
+            crate::osc_1337::FileOutcome::Image(file) => {
+                if file.inline {
+                    self.decode_and_place_inline_file(&file);
+                } else {
+                    // iTerm2 defaults `inline` OFF, and OFF means "save
+                    // this to disk", not "paint it". mado has no download
+                    // surface, so the sequence is consumed and dropped —
+                    // never painted, which would be the wrong verb.
+                    tracing::trace!(
+                        name = ?file.name,
+                        bytes = file.payload.len(),
+                        "OSC 1337 File=: inline=0 is a transfer, not a paint"
+                    );
+                }
+            }
+            crate::osc_1337::FileOutcome::Rejected(e) => {
+                // A malformed image costs one trace line: no texture, no
+                // placement, no grid mutation, and the parser keeps going.
+                tracing::warn!(error = %e, "OSC 1337 File= rejected");
+            }
+            crate::osc_1337::FileOutcome::NotFile => {
+                self.dispatch_osc_1337_marker(params[1]);
+            }
+        }
+    }
+
+    /// The marker / attention half of OSC 1337, split out so the
+    /// `File=` pre-branch above reads as one decision rather than an
+    /// early-return maze.
+    fn dispatch_osc_1337_marker(&mut self, arg: &[u8]) {
+        match crate::osc_1337::parse_osc_1337(arg) {
             crate::osc_1337::Osc1337Param::SetMark => {
                 if self.use_alternate {
                     // Don't record marks on the alt screen — same
@@ -4438,6 +4475,42 @@ impl Terminal {
         self.place_decoded_image_at_cursor(id);
         self.dirty();
         tracing::debug!(id, w, h, "sixel decoded + placed");
+    }
+
+    /// Decode an iTerm2 `File=` inline image (`imgcat`) and feed the
+    /// SAME shared upload path sixel and Kitty use — `store_rgba_image`
+    /// → `place_decoded_image_at_cursor`, with an id off
+    /// `next_image_id`. Inline images are a THIRD producer on one
+    /// texture path, never a parallel one, so they inherit the Kitty
+    /// re-anchoring and the orphan GC for free.
+    ///
+    /// A payload the compiled codecs can't read costs one trace line and
+    /// nothing else: no texture, no placement, no grid mutation, no
+    /// panic. `image::load_from_memory` is the only failure surface and
+    /// it is a typed `Result`.
+    ///
+    /// **Geometry is NOT honoured yet.** `file.width` / `file.height` /
+    /// `preserve_aspect_ratio` are parsed and typed but unconsumed — the
+    /// placement below defaults `cols`/`rows` exactly as the sixel path
+    /// does, so display size comes from the texture. Honouring them
+    /// means a placement constructor that takes geometry, which is a
+    /// change to the shared pair, not to this producer.
+    fn decode_and_place_inline_file(&mut self, file: &crate::osc_1337::InlineFile) {
+        let img = match file.decode_rgba() {
+            Ok(img) => img,
+            Err(e) => {
+                tracing::warn!(error = %e, "OSC 1337 File= decode rejected");
+                return;
+            }
+        };
+        let (w, h) = (img.width, img.height);
+        let id = self.next_image_id;
+        self.next_image_id += 1;
+        self.seqno += 1;
+        self.store_rgba_image(id, img.pixels, w, h);
+        self.place_decoded_image_at_cursor(id);
+        self.dirty();
+        tracing::debug!(id, w, h, "OSC 1337 inline image decoded + placed");
     }
 
     /// Push a default placement (cols/rows auto from image, z=0) for a
@@ -8330,6 +8403,194 @@ mod tests {
 
         assert_eq!(term.user_marks().len(), pre_mark_count);
         assert_eq!(term.attention_requested(), pre_attention);
+    }
+
+    // ── OSC 1337 `File=` — iTerm2 inline images (imgcat) ─────────────
+
+    /// A 3×2 RGBA PNG whose first pixel is opaque red and whose rest is
+    /// opaque white. Distinctive dimensions so a passing assertion can't
+    /// be coincidence, and lossless so the decoded bytes are pinnable.
+    fn inline_png_3x2() -> Vec<u8> {
+        use image::ImageEncoder;
+        let mut pixels = vec![255u8; 3 * 2 * 4];
+        pixels[1] = 0; // G
+        pixels[2] = 0; // B  → pixel 0 is red
+        let mut png = Vec::new();
+        image::codecs::png::PngEncoder::new(&mut png)
+            .write_image(&pixels, 3, 2, image::ExtendedColorType::Rgba8)
+            .expect("PNG encodes");
+        png
+    }
+
+    /// Wrap a `File=` argument list + a base64 payload in a full OSC 1337
+    /// sequence. Built from pieces rather than `format!`-ing an escape —
+    /// this crate emits control sequences typed, tests included.
+    fn osc_1337_file_seq(args: &str, payload_b64: &str) -> Vec<u8> {
+        let mut seq = b"\x1b]1337;File=".to_vec();
+        seq.extend_from_slice(args.as_bytes());
+        seq.push(b':');
+        seq.extend_from_slice(payload_b64.as_bytes());
+        seq.extend_from_slice(b"\x1b\\");
+        seq
+    }
+
+    /// The deliverable: a well-formed `inline=1` `File=` lands on the
+    /// SAME shared texture path sixel and Kitty use — one entry in
+    /// `images`, one placement at the cursor in the z=0 band. Asserted
+    /// exactly the way `sixel_payload_decodes_to_expected_dims_and_one_placement`
+    /// asserts its own, because it is the same path.
+    #[test]
+    fn osc_1337_inline_file_decodes_and_places_on_the_shared_image_path() {
+        let mut term = Terminal::new(80, 24);
+        let b64 = base64_encode(&inline_png_3x2());
+        term.feed(&osc_1337_file_seq("inline=1", &b64));
+
+        assert_eq!(term.images().len(), 1, "exactly one decoded image stored");
+        assert_eq!(
+            term.image_placements().len(),
+            1,
+            "exactly one placement landed"
+        );
+        let img = term.images().values().next().unwrap();
+        assert_eq!((img.width, img.height), (3, 2), "decoded to 3×2 px");
+        assert_eq!(img.data.len(), 3 * 2 * 4, "RGBA8, four bytes a pixel");
+        assert_eq!(
+            &img.data[..4],
+            &[255, 0, 0, 255],
+            "pixel 0 round-trips as opaque red — the payload really was decoded"
+        );
+        let p = &term.image_placements()[0];
+        assert_eq!(p.image_id, img.id, "the placement references the texture");
+        assert_eq!((p.col, p.row), (0, 0), "placed at the cursor");
+        assert_eq!(p.z_index, 0, "inline images default to the z=0 band");
+    }
+
+    /// The shape a REAL `imgcat` puts on the wire: the argument list is
+    /// itself `;`-separated, so vte hands the dispatcher ONE logical
+    /// argument as several params. Only the `&params[1..]` rejoin makes
+    /// this parse — a single-param read would see `File=name=…` alone and
+    /// find no payload at all. This is the assertion a parser unit test
+    /// structurally cannot make, because vte is the thing doing the split.
+    #[test]
+    fn osc_1337_inline_file_survives_the_vte_semicolon_split() {
+        let mut term = Terminal::new(80, 24);
+        let b64 = base64_encode(&inline_png_3x2());
+        let png_len = inline_png_3x2().len();
+        let mut args = String::from("name=");
+        args.push_str(&base64_encode(b"cat.png"));
+        args.push_str(";size=");
+        args.push_str(&png_len.to_string());
+        args.push_str(";width=10;height=4;preserveAspectRatio=1;inline=1");
+        term.feed(&osc_1337_file_seq(&args, &b64));
+
+        assert_eq!(
+            term.images().len(),
+            1,
+            "a multi-key imgcat argument list must still place its image"
+        );
+        assert_eq!(term.image_placements().len(), 1);
+        let img = term.images().values().next().unwrap();
+        assert_eq!((img.width, img.height), (3, 2));
+    }
+
+    /// `inline=0` — iTerm2's default — means "save this file", not
+    /// "paint it". mado has no download surface, so the sequence is
+    /// consumed and dropped: no texture, no placement. Painting it would
+    /// be the wrong verb, not a lenient one.
+    #[test]
+    fn osc_1337_file_without_the_inline_flag_is_a_transfer_not_a_paint() {
+        let mut term = Terminal::new(80, 24);
+        let b64 = base64_encode(&inline_png_3x2());
+
+        // Explicit inline=0.
+        term.feed(&osc_1337_file_seq("inline=0", &b64));
+        assert!(term.images().is_empty(), "inline=0 must not paint");
+        assert!(term.image_placements().is_empty());
+
+        // Absent `inline` — the iTerm2 default is OFF.
+        term.feed(&osc_1337_file_seq("name=Zm9vLnBuZw==", &b64));
+        assert!(
+            term.images().is_empty(),
+            "an absent `inline` defaults OFF and must not paint either"
+        );
+        assert!(term.image_placements().is_empty());
+    }
+
+    /// A rejected `File=` leaves EVERY piece of state alone — no
+    /// texture, no placement, no grid write, no cursor move, no image-id
+    /// consumed — and the parser keeps running. Same contract
+    /// `sixel_malformed_payload_is_rejected_without_panic_or_placement`
+    /// pins for the sixel producer.
+    #[test]
+    fn osc_1337_rejected_file_leaves_the_grid_and_image_state_untouched() {
+        let mut term = Terminal::new(80, 24);
+        // Park the cursor somewhere non-trivial so a stray write shows up.
+        term.feed(b"\x1b[3;5H");
+        let (pre_row, pre_col) = (term.cursor.row, term.cursor.col);
+
+        // Every rejection variant reachable from the wire.
+        let rejects: &[&[u8]] = &[
+            b"\x1b]1337;File=inline=1:!!!@@@\x1b\\", // InvalidBase64
+            b"\x1b]1337;File=inline=1:\x1b\\",       // EmptyPayload
+            b"\x1b]1337;File=inline=1\x1b\\",        // MissingPayload
+            b"\x1b]1337;File=size=99999999999;inline=1:aGVsbG8=\x1b\\", // DeclaredSizeTooLarge
+        ];
+        for seq in rejects {
+            term.feed(seq);
+        }
+        // Valid base64 that is not an image — rejected at decode, one
+        // layer deeper than the parse rejections above.
+        term.feed(b"\x1b]1337;File=inline=1:aGVsbG8=\x1b\\");
+
+        assert!(
+            term.images().is_empty(),
+            "a rejected File= must store no texture"
+        );
+        assert!(
+            term.image_placements().is_empty(),
+            "a rejected File= must land no placement"
+        );
+        assert_eq!(
+            (term.cursor.row, term.cursor.col),
+            (pre_row, pre_col),
+            "a rejected File= must not move the cursor"
+        );
+        assert_eq!(
+            term.cell(pre_row, pre_col).ch,
+            ' ',
+            "a rejected File= must not write the grid"
+        );
+        // The engine is still alive and parsing.
+        term.feed(b"X");
+        assert_eq!(term.cell(pre_row, pre_col).ch, 'X');
+    }
+
+    /// The `File=` pre-branch must be transparent to the marker family:
+    /// `NotFile` falls through to exactly the behaviour that shipped
+    /// before, and no marker sequence conjures an image.
+    #[test]
+    fn osc_1337_marker_family_is_unchanged_by_the_file_pre_branch() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b]1337;SetMark\x1b\\");
+        assert_eq!(term.user_marks().len(), 1, "SetMark still records");
+
+        term.feed(b"\x1b]1337;RequestAttention=1\x1b\\");
+        assert!(term.attention_requested(), "RequestAttention still flips");
+        term.feed(b"\x1b]1337;RequestAttention=0\x1b\\");
+        assert!(!term.attention_requested());
+
+        term.feed(b"\x1b]1337;CopyToClipboard=abc\x1b\\");
+        assert_eq!(term.user_marks().len(), 1, "an unknown key still no-ops");
+
+        // `Files=` is prefix-adjacent but is NOT the key — it must reach
+        // the marker arm as an unknown parameter, not the image path.
+        term.feed(b"\x1b]1337;Files=1:AAAA\x1b\\");
+
+        assert!(
+            term.images().is_empty(),
+            "no marker sequence may store a texture"
+        );
+        assert!(term.image_placements().is_empty());
     }
 
     #[test]
