@@ -1816,11 +1816,13 @@ fn parse_kitty_params(payload: &[u8]) -> (HashMap<u8, String>, Vec<u8>) {
         }
     }
 
-    // Decode base64 data
+    // Decode base64 data. An undecodable payload yields an empty body here
+    // (the caller treats a body-less sequence as a no-op) rather than
+    // silently substituting garbage.
     let decoded = if data_part.is_empty() {
         Vec::new()
     } else {
-        base64_decode_bytes(data_part)
+        base64_decode_bytes(data_part).unwrap_or_default()
     };
 
     (params, decoded)
@@ -1875,14 +1877,48 @@ fn incomplete_utf8_tail_len(bytes: &[u8]) -> usize {
     }
 }
 
+/// Whether a raw-format image payload is long enough for the geometry it
+/// declares — `len >= width * height * bytes_per_px`, with a zero dimension
+/// refused outright.
+///
+/// This is a PARSE-BOUNDARY check by necessity, not by taste. The render
+/// path's only guard is `!data.is_empty()`, and immediately after it
+/// `queue.write_texture` runs with `bytes_per_row = 4 * width` and
+/// `rows_per_image = height` over the stored buffer. wgpu validates that
+/// the slice covers the extent; an undersized one raises an uncaptured
+/// device error, which is fatal. By then the sender is long gone, so there
+/// is nothing left to reject — the only place this can be refused is here,
+/// where the claim is made.
+///
+/// `>=` rather than `==`: trailing bytes past the declared extent are
+/// harmless (`write_texture` reads a prefix), and rejecting them would
+/// break senders that pad. Short is the only unsafe direction.
+///
+/// The arithmetic is `u64` so a hostile `s=`/`v=` pair cannot wrap a
+/// `usize` multiply into a small number that then passes.
+fn expect_payload_len(len: usize, width: u32, height: u32, bytes_per_px: u64) -> bool {
+    if width == 0 || height == 0 {
+        return false;
+    }
+    let needed = u64::from(width) * u64::from(height) * bytes_per_px;
+    len as u64 >= needed
+}
+
 /// Base64 decode to raw bytes (not string).
-fn base64_decode_bytes(input: &[u8]) -> Vec<u8> {
+///
+/// Returns `None` on a decode error. It used to end in
+/// `.unwrap_or_default()`, which made a failure return `vec![]` — the
+/// exact value a *successful* decode of the empty string returns. Every
+/// caller's error check was therefore vacuous: a corrupt OSC 52 reached
+/// the clipboard as `""`, and OSC 99's `e=1` rejection arm was
+/// unreachable. Distinguishing the two is what makes those guards real.
+fn base64_decode_bytes(input: &[u8]) -> Option<Vec<u8>> {
     let cleaned: Vec<u8> = input
         .iter()
         .copied()
         .filter(|&b| b != b'\n' && b != b'\r' && b != b' ')
         .collect();
-    data_encoding::BASE64.decode(&cleaned).unwrap_or_default()
+    data_encoding::BASE64.decode(&cleaned).ok()
 }
 
 // ---------------------------------------------------------------------------
@@ -3812,7 +3848,14 @@ impl Terminal {
             return;
         }
         if params[1] == b"?" {
-            let resp = osc_rgb_query_response(10, self.pen_fg);
+            // `default_fg`, NOT `pen_fg` — the pen is whatever the last SGR
+            // left behind, and this query asks for the terminal's DEFAULT.
+            // vim's `background=` probe, delta, bat and neovim all issue it
+            // after the shell has already printed something coloured; reading
+            // the pen handed them that colour and they picked the wrong theme.
+            // The siblings agree: OSC 11 answers `default_bg`, OSC 12
+            // `default_fg`.
+            let resp = osc_rgb_query_response(10, self.default_fg);
             self.response_bytes.extend_from_slice(&resp);
             return;
         }
@@ -4398,6 +4441,10 @@ impl Terminal {
     }
 
     /// Transmit (and optionally display) image data.
+    ///
+    /// A raw-format payload's declared `s=`×`v=` is a promise about its
+    /// length, and [`expect_payload_len`] holds it at the parse boundary —
+    /// see that function for why a downstream check is too late.
     fn kitty_transmit(&mut self, params: &HashMap<u8, String>, data: &[u8], display: bool) {
         let format = params
             .get(&b'f')
@@ -4436,16 +4483,25 @@ impl Terminal {
                 }
             }
             32 => {
-                // Direct RGBA
-                if width > 0 && height > 0 {
+                // Direct RGBA. The declared geometry is a PROMISE about the
+                // payload's length, and it must be checked here: the only
+                // downstream guard is `!data.is_empty()`, after which
+                // `queue.write_texture` runs with `bytes_per_row = 4*width`
+                // over this buffer. An undersized one is a wgpu validation
+                // error reached through the default uncaptured-error handler
+                // — i.e. mado dies on untrusted terminal output.
+                if expect_payload_len(data.len(), width, height, 4) {
                     Some((data.to_vec(), width, height))
                 } else {
                     None
                 }
             }
             24 => {
-                // Direct RGB — convert to RGBA
-                if width > 0 && height > 0 {
+                // Direct RGB — convert to RGBA. Same promise, 3 bytes/px.
+                // Checked BEFORE widening, because the widening loop silently
+                // drops a trailing partial chunk and would otherwise turn a
+                // short payload into a short-but-plausible RGBA buffer.
+                if expect_payload_len(data.len(), width, height, 3) {
                     let mut rgba = Vec::with_capacity(data.len() / 3 * 4);
                     for chunk in data.chunks(3) {
                         if chunk.len() == 3 {
@@ -6542,8 +6598,10 @@ impl vte::Perform for Terminal {
 
 /// Base64 decoder backed by `data-encoding`.
 /// Delegates to `base64_decode_bytes` and converts the result to a UTF-8 string.
+/// `None` covers both halves of the failure: not valid base64, or not valid
+/// UTF-8 once decoded.
 fn base64_decode(input: &[u8]) -> Option<String> {
-    String::from_utf8(base64_decode_bytes(input)).ok()
+    String::from_utf8(base64_decode_bytes(input)?).ok()
 }
 
 /// The xterm `ESC ] <id> ; rgb:RRRR/GGGG/BBBB ESC \` reply for an OSC color
@@ -10541,26 +10599,153 @@ mod tests {
 
     #[test]
     fn test_base64_decode_bytes_valid() {
-        let result = base64_decode_bytes(b"aGVsbG8=");
+        let result = base64_decode_bytes(b"aGVsbG8=").expect("valid base64 decodes");
         assert_eq!(result, b"hello");
     }
 
     #[test]
     fn test_base64_decode_bytes_empty() {
-        let result = base64_decode_bytes(b"");
+        // Empty input IS valid base64 — it encodes the empty byte string.
+        // This is the case the invalid one below must NOT be confused with.
+        let result = base64_decode_bytes(b"").expect("empty input is valid base64");
         assert!(result.is_empty());
     }
 
     #[test]
     fn test_base64_decode_bytes_with_newlines() {
-        let result = base64_decode_bytes(b"aGVs\nbG8=");
+        let result = base64_decode_bytes(b"aGVs\nbG8=").expect("wrapped base64 decodes");
         assert_eq!(result, b"hello");
     }
 
     #[test]
     fn test_base64_decode_bytes_invalid() {
-        let result = base64_decode_bytes(b"!!!invalid!!!");
-        assert!(result.is_empty());
+        // The whole point of the pair: invalid must be DISTINGUISHABLE from
+        // the valid-empty case above. It used to return the same `vec![]`,
+        // which is what let a corrupt OSC 52 reach the clipboard.
+        assert_eq!(base64_decode_bytes(b"!!!invalid!!!"), None);
+    }
+
+    // ── lateral defect sweep, 2026-08-06 ─────────────────────────────
+    //
+    // Each test below pins a defect of the shape "the failure mode is
+    // indistinguishable from the success mode" — the class this session
+    // kept finding. They are grouped so the shape stays visible: a
+    // reviewer who reads one reads the pattern.
+
+    /// An invalid base64 payload must be REJECTED, never decoded to `""`.
+    ///
+    /// The defect: `base64_decode_bytes` ended in `.unwrap_or_default()`,
+    /// so a decode error produced `vec![]` — byte-identical to a *valid*
+    /// decode of the empty string. `base64_decode` then answered
+    /// `Some("")` for arbitrary garbage, which meant the OSC 52 consumer's
+    /// `if let Some(text) = …` guard could never reject anything, and the
+    /// OSC 99 `e=1` guard's `else { return }` arm was unreachable code.
+    #[test]
+    fn invalid_base64_is_distinguishable_from_valid_empty() {
+        assert_eq!(
+            base64_decode(b""),
+            Some(String::new()),
+            "empty input is valid base64 for the empty string"
+        );
+        assert_eq!(
+            base64_decode(b"!!!not-base64!!!"),
+            None,
+            "invalid base64 must be None — `Some(\"\")` is the bug: it makes \
+             a decode failure look exactly like a successful empty decode"
+        );
+    }
+
+    /// The user-visible half of the same defect: a corrupt OSC 52 must not
+    /// silently wipe the system clipboard.
+    ///
+    /// Reproduced by any program that emits a truncated OSC 52 — the
+    /// terminal answered by storing `""` and handing it to
+    /// `clipboard.copy_text("")`, so a malformed escape from untrusted
+    /// output destroyed whatever the operator had copied.
+    #[test]
+    fn corrupt_osc_52_leaves_the_clipboard_untouched() {
+        let mut term = Terminal::new(80, 24);
+
+        // Positive control — a well-formed payload still lands.
+        term.feed(b"\x1b]52;c;aGVsbG8=\x1b\\");
+        assert_eq!(
+            term.take_clipboard().as_deref(),
+            Some("hello"),
+            "a valid OSC 52 must still set the clipboard"
+        );
+
+        // The regression: garbage must be dropped, not stored as "".
+        term.feed(b"\x1b]52;c;!!!not-base64!!!\x1b\\");
+        assert_eq!(
+            term.take_clipboard(),
+            None,
+            "a corrupt OSC 52 must leave the clipboard untouched"
+        );
+    }
+
+    /// A Kitty transmit whose payload size disagrees with its declared
+    /// `s=`×`v=` must be refused, not stored and answered `OK`.
+    ///
+    /// The defect: `f=32` stored `data.to_vec()` with no length check, so
+    /// `s=1000,v=1000` carrying three bytes was accepted and answered
+    /// exactly like a valid transmit. The only downstream guard was
+    /// `!data.is_empty()`, after which `queue.write_texture` was called
+    /// with `bytes_per_row = 4*width` over an undersized buffer — a wgpu
+    /// validation error reached through the default uncaptured-error
+    /// handler. mado died on untrusted terminal output.
+    ///
+    /// Note this is the invariant `decode_and_place_sixel` already states
+    /// for its own payloads ("rejected with a typed trace — NEVER a
+    /// panic"); the Kitty path simply did not hold it.
+    #[test]
+    fn kitty_transmit_refuses_a_payload_that_disagrees_with_its_declared_size() {
+        let mut term = Terminal::new(80, 24);
+
+        // Positive control — 2x2 RGBA is exactly 16 bytes, and lands.
+        let ok_payload = data_encoding::BASE64.encode(&[0u8; 16]);
+        term.feed(format!("\x1b_Gf=32,s=2,v=2,i=1,a=T;{ok_payload}\x1b\\").as_bytes());
+        assert!(
+            term.images().contains_key(&1),
+            "a correctly-sized transmit must still be stored"
+        );
+
+        // The regression: 8x8 RGBA needs 256 bytes; send 4.
+        let short_payload = data_encoding::BASE64.encode(&[0u8; 4]);
+        term.feed(format!("\x1b_Gf=32,s=8,v=8,i=2,a=T;{short_payload}\x1b\\").as_bytes());
+        assert!(
+            !term.images().contains_key(&2),
+            "a transmit whose payload is shorter than s=*v=*4 must be REFUSED — \
+             storing it hands write_texture an undersized buffer and kills the process"
+        );
+    }
+
+    /// OSC 10 must answer the DEFAULT foreground, not the live SGR pen.
+    ///
+    /// The defect: the query arm read `self.pen_fg`, which every
+    /// `SGR 30-37/38/90-97` overwrites. Its siblings are both correct —
+    /// OSC 11 answers `default_bg` and OSC 12 answers `default_fg` — so
+    /// this was an outlier, not a design choice. vim's `background=`
+    /// probe, delta, bat and neovim theme detection all issue this query
+    /// *after* the shell has printed something coloured, and so picked a
+    /// theme from whatever colour happened to be current.
+    #[test]
+    fn osc_10_answers_the_default_foreground_not_the_live_pen() {
+        let mut term = Terminal::new(80, 24);
+        let fg = Color::new(0xec, 0xef, 0xf4);
+        let bg = Color::new(0x2e, 0x34, 0x40);
+        term.apply_theme(fg, bg, default_ansi_palette());
+
+        // Any coloured output moves the pen; the default must not follow.
+        term.feed(b"\x1b[38;2;255;0;0m");
+        term.feed(b"\x1b]10;?\x1b\\");
+
+        let response = term.take_response().expect("OSC 10 query is answered");
+        assert_eq!(
+            response,
+            crate::vt::osc_color_reply(10, fg.r, fg.g, fg.b),
+            "OSC 10 must report the theme's foreground, not the red the pen \
+             happens to be holding"
+        );
     }
 
     // ── OSC themed color response tests ──────────────────────────────

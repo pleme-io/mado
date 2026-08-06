@@ -835,7 +835,7 @@ impl InputEngine {
                 };
                 let urls = crate::url::detect_urls_in_row(&row_cells, cols, cursor_row);
                 if let Some(url) = urls.first() {
-                    let _ = self.clipboard.copy_text(&url.url);
+                    self.write_clipboard(&url.url, "url");
                 }
                 ActionOutcome::FallThrough
             }
@@ -1743,16 +1743,35 @@ impl InputEngine {
     /// cannot diverge between them.
     ///
     /// Returns whether anything was copied — `false` when there is no
-    /// selection, or when its anchors no longer resolve (content
-    /// evicted / screen switched), which `selected_text` reports as
-    /// `None` rather than as stale coordinates.
+    /// selection, when its anchors no longer resolve (content evicted /
+    /// screen switched), which `selected_text` reports as `None` rather
+    /// than as stale coordinates, **or when the clipboard write itself
+    /// failed**.
+    ///
+    /// That last case used to be `let _ = …; true`: a provider error was
+    /// discarded and reported as a successful copy, silently, so an
+    /// operator whose clipboard was unavailable (no pasteboard on a
+    /// headless session, a Wayland provider that lost its seat) got the
+    /// success path — no log, no visual difference — and pasted stale
+    /// content. `side_effects.rs` warns on the identical call, so the
+    /// silence here was an oversight rather than house style.
     fn copy_selection(&self) -> bool {
         match self.selected_text() {
-            Some(text) => {
-                let _ = self.clipboard.copy_text(&text);
-                true
-            }
+            Some(text) => self.write_clipboard(&text, "selection"),
             None => false,
+        }
+    }
+
+    /// THE clipboard write for the engine — every copy path goes through
+    /// it so a provider failure can never again be reported as success.
+    /// Returns whether the text actually reached the clipboard.
+    fn write_clipboard(&self, text: &str, what: &str) -> bool {
+        match self.clipboard.copy_text(text) {
+            Ok(()) => true,
+            Err(e) => {
+                tracing::warn!(error = %e, what, "clipboard write failed");
+                false
+            }
         }
     }
 
@@ -1853,7 +1872,7 @@ impl InputEngine {
             .then(|| self.selected_text())
             .flatten();
         if let Some(text) = release_copy {
-            let _ = self.clipboard.copy_text(&text);
+            self.write_clipboard(&text, "copy-on-select");
         }
     }
 
@@ -2908,6 +2927,20 @@ mod tests {
             bridge: Option<Box<dyn crate::session_picker::SessionPickerBridge>>,
             max_scrollback: usize,
         ) -> Self {
+            Self::new_full_with_clipboard(kind, bridge, max_scrollback, None)
+        }
+
+        /// Build a harness whose ENGINE writes to `clip_override` instead
+        /// of the recording `MockClipboard` — the seam for proving that a
+        /// clipboard-provider failure is reported as a failure. The
+        /// `MockClipboard` is still returned in `self.clipboard` so an
+        /// override test can also assert nothing reached the real one.
+        fn new_full_with_clipboard(
+            kind: SinkKind,
+            bridge: Option<Box<dyn crate::session_picker::SessionPickerBridge>>,
+            max_scrollback: usize,
+            clip_override: Option<Arc<dyn ClipboardProvider>>,
+        ) -> Self {
             let terminal: SharedTerminal = Arc::new(RwLock::new(Terminal::with_scrollback(
                 80,
                 24,
@@ -2968,7 +3001,9 @@ mod tests {
                     pty,
                     resize,
                     shared: SharedUxState::fresh(),
-                    clipboard: clipboard.clone(),
+                    clipboard: clip_override
+                        .clone()
+                        .unwrap_or_else(|| clipboard.clone() as Arc<dyn ClipboardProvider>),
                     keybinds: KeybindManager::with_mado_defaults(),
                     behavior: UxBehavior {
                         copy_on_select: true,
@@ -3329,6 +3364,83 @@ mod tests {
         // dispatch path).
         let out = h.engine.apply_action(Action::Copy, &mut h.renderer);
         assert!(matches!(out, ActionOutcome::Consumed(_)));
+        assert_eq!(h.clipboard.paste_text().unwrap(), "hello");
+    }
+
+    /// A clipboard provider that always fails — the seam for proving a
+    /// write error is not laundered into a success.
+    struct FailingClipboard;
+
+    impl ClipboardProvider for FailingClipboard {
+        fn copy_text(&self, _text: &str) -> Result<(), hasami::HasamiError> {
+            Err(hasami::HasamiError::Empty)
+        }
+        fn paste_text(&self) -> Result<String, hasami::HasamiError> {
+            Err(hasami::HasamiError::Empty)
+        }
+        fn clear(&self) -> Result<(), hasami::HasamiError> {
+            Err(hasami::HasamiError::Empty)
+        }
+    }
+
+    /// **A failed clipboard write must be reported as a failure.**
+    ///
+    /// The defect (lateral sweep, 2026-08-06): `copy_selection` was
+    /// `let _ = self.clipboard.copy_text(&text); true` — the provider's
+    /// `Result` was discarded and the function returned `true`
+    /// regardless, under a doc-comment promising it "returns whether
+    /// anything was copied". A failure was therefore byte-identical to a
+    /// success at every call site, with no log either, so an operator on
+    /// a session with no working pasteboard saw a normal copy and then
+    /// pasted stale content.
+    ///
+    /// This is the shape the whole sweep was hunting: the failure mode
+    /// is indistinguishable from the success mode.
+    #[test]
+    fn a_failed_clipboard_write_is_reported_as_failure_not_success() {
+        let mut h = Harness::new_full_with_clipboard(
+            SinkKind::Closure,
+            None,
+            10_000,
+            Some(Arc::new(FailingClipboard)),
+        );
+        h.feed(b"hello world");
+
+        // Mouse-select "hello" — a real, resolvable selection, so the
+        // `None` arm cannot be what makes this false.
+        h.button(MouseButton::Left, true, 0, 0, no_mods());
+        let (x1, y1) = h.cell_px(4, 0);
+        h.engine.on_mouse_moved(x1, y1, &h.renderer);
+        h.button(MouseButton::Left, false, 4, 0, no_mods());
+        assert!(
+            h.engine.selection.lock().unwrap().is_active(),
+            "the selection must exist — otherwise this test would pass for the wrong reason"
+        );
+
+        assert!(
+            !h.engine.copy_selection(),
+            "a copy whose clipboard write failed must report false, not true"
+        );
+    }
+
+    /// The positive control for the test above: the SAME selection
+    /// through a working provider reports success and lands the text.
+    /// Without this pair, `Consumed(false)` could be produced by a
+    /// selection that never formed rather than by the write failing.
+    #[test]
+    fn a_successful_clipboard_write_still_reports_success() {
+        let mut h = Harness::new(SinkKind::Closure);
+        h.feed(b"hello world");
+
+        h.button(MouseButton::Left, true, 0, 0, no_mods());
+        let (x1, y1) = h.cell_px(4, 0);
+        h.engine.on_mouse_moved(x1, y1, &h.renderer);
+        h.button(MouseButton::Left, false, 4, 0, no_mods());
+
+        assert!(
+            h.engine.copy_selection(),
+            "a copy through a working clipboard must report true"
+        );
         assert_eq!(h.clipboard.paste_text().unwrap(), "hello");
     }
 
