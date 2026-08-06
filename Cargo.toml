@@ -146,12 +146,20 @@ shikumi = { version = "0.1", features = ["cli"] }
 # 25 generic providers, the shikumi BoardConfig surface). mado's `suggest::`
 # module is now a thin shim over these three crates; the snapshot magic
 # `b"mado-suggest v1\n"` + the YAML schema stay byte-compatible.
-# git+rev pin (the madori/irodzuki idiom); bump rev to track izumi.
-izumi = { git = "https://github.com/pleme-io/izumi", rev = "ab4706f8cf53086d67225abc62ac2031628cdccc", version = "0.1.0" }
-# git+rev pin (the madori/irodzuki idiom); bump rev to track izumi.
-izumi-sources = { git = "https://github.com/pleme-io/izumi", rev = "ab4706f8cf53086d67225abc62ac2031628cdccc", version = "0.1.0" }
-# git+rev pin (the madori/irodzuki idiom); bump rev to track izumi.
-izumi-config = { git = "https://github.com/pleme-io/izumi", rev = "ab4706f8cf53086d67225abc62ac2031628cdccc", version = "0.1.0" }
+# crates.io, NOT a git+rev pin. izumi ships through ★★ AUTO-RELEASE — a merge
+# to main bumps the workspace and publishes all five crates in dependency order
+# — so the released version IS the distribution channel and a rev pin was just a
+# second, hand-maintained one that drifted. 0.1.15 is the first release carrying
+# the breathe-conflict category fix (izumi efd1607).
+#
+# Bumping these is now a version edit, not a 40-char sha: the three MUST move
+# together (they share `workspace.package.version`, and a split pin is how you
+# get "this method takes 4 arguments but 5 were supplied" against your own
+# crate). Publishing a git-dep is impossible on crates.io anyway, so this is
+# also what keeps izumi itself publishable.
+izumi = { version = "0.1.15" }
+izumi-sources = { version = "0.1.15" }
+izumi-config = { version = "0.1.15" }
 hasami = { git = "https://github.com/pleme-io/hasami" , version = "0.1" }
 # Tsuuchi (通知) — the fleet notification primitive (rich vocabulary:
 # sound / actions / attachment / id / Capabilities). The M4 unified
