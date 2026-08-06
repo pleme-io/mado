@@ -121,6 +121,18 @@ pub enum Action {
     ToggleFullscreen,
     #[kind(name = "select_all")]
     SelectAll,
+    /// Select the PREVIOUS command's output (the OSC 133 `C` → next
+    /// `A` zone) and copy it — one keystroke instead of dragging the
+    /// mouse across a wrapped, scrolled-off region. Requires the shell
+    /// integration scripts (`shell-integration/mado.*`) to be sourced,
+    /// exactly like the prompt-jump actions above; without marks there
+    /// is no zone and the action is a no-op.
+    #[kind(
+        name = "copy_last_command_output",
+        alias = "copy_last_output",
+        alias = "copy_command_output"
+    )]
+    CopyLastCommandOutput,
     #[kind(name = "copy_url_to_clipboard")]
     CopyUrlToClipboard,
     #[kind(name = "toggle_mouse_reporting")]
@@ -789,6 +801,18 @@ fn default_bindings() -> Vec<Keybinding> {
             hotkey: hk(ctrl, Key::L),
             action: Action::LayoutPickerOpen,
         },
+        // Copy the previous command's output — Cmd+Shift+C, the
+        // deliberate sibling of Cmd+C (copy the selection). Chosen
+        // because it is the one free chord next to the copy the
+        // operator already knows: the atlas claims D-c / D-v / D-a /
+        // D-f / D-g / D-S-g / D-= / D-- / D-0 / D-C-f / D-k, and
+        // mado's own map claims Cmd+Up/Down/Home/End, Cmd+G, Ctrl-S,
+        // Ctrl-L, Cmd+Shift+S and Cmd+Shift+R — Cmd+Shift+C is
+        // untaken in both. mado-specific (no atlas intent yet).
+        Keybinding {
+            hotkey: hk(cmd_shift, Key::C),
+            action: Action::CopyLastCommandOutput,
+        },
         // Terminal — mado-specific (no atlas reset intent).
         Keybinding {
             hotkey: hk(cmd_shift, Key::R),
@@ -969,8 +993,9 @@ mod tests {
         // removed): clipboard (2) + search (4) + font (3) +
         // scroll (4) + prompt jump (2) + terminal (1) + fullscreen
         // (1) + dir-picker (1) + session-picker (1) + layout-picker
-        // (1, reserved no-op) + save-as-preset (1) = 21.
-        assert_eq!(mgr.bindings().len(), 21);
+        // (1, reserved no-op) + save-as-preset (1) +
+        // copy-last-command-output (1) = 22.
+        assert_eq!(mgr.bindings().len(), 22);
     }
 
     #[test]
@@ -1099,7 +1124,57 @@ mod tests {
     #[test]
     fn test_total_default_bindings_count() {
         let mgr = KeybindManager::with_mado_defaults();
-        assert_eq!(mgr.bindings().len(), 21);
+        assert_eq!(mgr.bindings().len(), 22);
+    }
+
+    #[test]
+    fn copy_last_command_output_bound_to_cmd_shift_c() {
+        let mgr = KeybindManager::with_mado_defaults();
+        let hk = awase::Hotkey::new(
+            awase::Modifiers::CMD | awase::Modifiers::SHIFT,
+            awase::Key::C,
+        );
+        assert_eq!(mgr.lookup(&hk), Some(Action::CopyLastCommandOutput));
+    }
+
+    /// The chord must not shadow — or be shadowed by — anything
+    /// already in the default map. `lookup` is first-match-wins over a
+    /// `Vec`, so a duplicate hotkey silently disables whichever entry
+    /// lands later; this pins that Cmd+Shift+C is claimed exactly once.
+    #[test]
+    fn copy_last_command_output_chord_is_claimed_exactly_once() {
+        let mgr = KeybindManager::with_mado_defaults();
+        let hk = awase::Hotkey::new(
+            awase::Modifiers::CMD | awase::Modifiers::SHIFT,
+            awase::Key::C,
+        );
+        let claimants: Vec<Action> = mgr
+            .bindings()
+            .iter()
+            .filter(|b| b.hotkey == hk)
+            .map(|b| b.action)
+            .collect();
+        assert_eq!(
+            claimants,
+            vec![Action::CopyLastCommandOutput],
+            "Cmd+Shift+C must be bound once, and to this action",
+        );
+    }
+
+    #[test]
+    fn copy_last_command_output_action_name_round_trips() {
+        assert_eq!(
+            parse_action("copy_last_command_output"),
+            Some(Action::CopyLastCommandOutput)
+        );
+        assert_eq!(
+            parse_action("copy_last_output"),
+            Some(Action::CopyLastCommandOutput)
+        );
+        assert_eq!(
+            parse_action("copy_command_output"),
+            Some(Action::CopyLastCommandOutput)
+        );
     }
 
     #[test]
@@ -1227,6 +1302,7 @@ mod tests {
             Action::ClearScreen,
             Action::ToggleFullscreen,
             Action::SelectAll,
+            Action::CopyLastCommandOutput,
             Action::CopyUrlToClipboard,
             Action::ToggleMouseReporting,
         ];

@@ -18,6 +18,7 @@
 //! dangle between eviction and the next resolution; there is simply
 //! no read path that turns them into coordinates.
 
+use crate::prompt_mark::CommandZone;
 use crate::terminal::{Cell, SelectionAnchor};
 
 /// A cell position in the VIEWPORT (row 0 = top of the current
@@ -131,6 +132,56 @@ impl Default for Selection {
     fn default() -> Self {
         Self::new()
     }
+}
+
+/// The INCLUSIVE absolute grid-row span one command's output occupies
+/// — the shape [`command_output_rows`] hands to the anchor capture.
+///
+/// Absolute (scrollback origin 0), the same coordinate space
+/// [`crate::prompt_mark::PromptMark::grid_row`] lives in — NOT the
+/// viewport space [`CellPos`] uses. The two are only a subtraction
+/// apart, but a zone that scrolled off the top of the view has no
+/// viewport row at all, which is exactly why the conversion happens at
+/// the anchor-capture seam and not here.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct OutputRowSpan {
+    pub first: usize,
+    pub last: usize,
+}
+
+/// The rows a [`CommandZone`]'s output occupies, or `None` when the
+/// command produced no output at all.
+///
+/// The zone is half-open in the marks' own terms: `start` is the row
+/// of the OSC 133 `C` mark (the first row of output) and `end` is the
+/// row of the `A` mark that opens the NEXT prompt — one past the last
+/// output row. Two edge cases are decided here rather than at the call
+/// site, because both are indistinguishable from a healthy zone once
+/// they have been turned into coordinates:
+///
+/// * **No output** (`cd /tmp`, a command whose next prompt draws on the
+///   very row the output would have started) collapses to `end ==
+///   start`, and answering `Some(first == last == start)` would select
+///   the next prompt line and copy it as if it were output. `None`.
+/// * **Still running** — the shell has not drawn the next prompt, so
+///   `zone.end` is `None` and there is no recorded bound. The caller
+///   supplies `live_row`, the absolute row the cursor sits on right
+///   now, as the exclusive end: everything printed so far, nothing
+///   beyond it. (A zone that has not printed a full row yet again
+///   collapses to empty and yields `None`.)
+///
+/// A defensive `end < start` (marks recorded out of order) is treated
+/// as empty rather than clamped — a backwards span is not a selection.
+#[must_use]
+pub fn command_output_rows(zone: &CommandZone, live_row: usize) -> Option<OutputRowSpan> {
+    let end_exclusive = zone.end.unwrap_or(live_row);
+    if end_exclusive <= zone.start {
+        return None;
+    }
+    Some(OutputRowSpan {
+        first: zone.start,
+        last: end_exclusive - 1,
+    })
 }
 
 /// Word bounds on a single viewport row: the inclusive `(start_col,
@@ -374,5 +425,55 @@ mod tests {
     fn word_bounds_out_of_range_row_snaps_to_cell() {
         let got = word_bounds_in_row(CellPos { row: 5, col: 3 }, &[], 10, "");
         assert_eq!(got, (3, 3));
+    }
+
+    fn zone(start: usize, end: Option<usize>) -> CommandZone {
+        CommandZone {
+            start,
+            end,
+            exit_status: None,
+        }
+    }
+
+    #[test]
+    fn command_output_rows_spans_c_mark_to_the_row_before_the_next_prompt() {
+        // C at 2, next prompt A at 8 ⇒ output is rows 2..=7. The `A`
+        // row itself is the NEXT prompt and must never be copied.
+        let got = command_output_rows(&zone(2, Some(8)), 99).expect("a six-row zone has output");
+        assert_eq!(got, OutputRowSpan { first: 2, last: 7 });
+    }
+
+    #[test]
+    fn command_output_rows_single_row_of_output() {
+        let got = command_output_rows(&zone(4, Some(5)), 99).expect("one row is still output");
+        assert_eq!(got, OutputRowSpan { first: 4, last: 4 });
+    }
+
+    #[test]
+    fn command_output_rows_rejects_the_no_output_command() {
+        // `cd /tmp`: the next prompt draws on the very row output
+        // would have started. Answering `Some(4..=4)` here would copy
+        // the next PROMPT line and present it as command output.
+        assert_eq!(command_output_rows(&zone(4, Some(4)), 99), None);
+    }
+
+    #[test]
+    fn command_output_rows_uses_the_live_cursor_row_while_a_command_runs() {
+        // Still running (no closing `A` yet) — bound by where the
+        // cursor is right now, so a mid-run copy gets exactly what has
+        // been printed and nothing past it.
+        let got = command_output_rows(&zone(3, None), 7).expect("partial output is still output");
+        assert_eq!(got, OutputRowSpan { first: 3, last: 6 });
+        // …and a run that has not yet completed a row is empty, not a
+        // one-row span over the cursor's own (blank) line.
+        assert_eq!(command_output_rows(&zone(3, None), 3), None);
+    }
+
+    #[test]
+    fn command_output_rows_treats_a_backwards_span_as_empty() {
+        // Defensive: marks recorded out of order must not clamp into a
+        // plausible-looking selection.
+        assert_eq!(command_output_rows(&zone(9, Some(4)), 99), None);
+        assert_eq!(command_output_rows(&zone(9, None), 4), None);
     }
 }

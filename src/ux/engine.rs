@@ -580,9 +580,7 @@ impl InputEngine {
     pub fn apply_action(&mut self, action: Action, zoom: &mut dyn FontZoomTarget) -> ActionOutcome {
         match action {
             Action::Copy => {
-                if let Some(text) = self.selected_text() {
-                    let _ = self.clipboard.copy_text(&text);
-                }
+                self.copy_selection();
                 ActionOutcome::Consumed(EventOutcome::consumed())
             }
             Action::Paste => {
@@ -810,6 +808,19 @@ impl InputEngine {
                 if let Some((a, b)) = span {
                     self.selection.lock().unwrap().set_span(a, b);
                 }
+                ActionOutcome::Consumed(EventOutcome::consumed())
+            }
+            Action::CopyLastCommandOutput => {
+                // Consumed unconditionally, including when there is
+                // nothing to copy — same reasoning as `SelectAll`: the
+                // chord IS the action. Falling through would be
+                // indistinguishable for the default Cmd+Shift+C
+                // (`madori_key_to_pty_bytes` returns `None` for a
+                // meta-only chord, so no byte reaches the shell either
+                // way), and a custom Ctrl-binding that sometimes typed
+                // a control byte and sometimes did not would be worse
+                // than one that never does.
+                self.copy_last_command_output();
                 ActionOutcome::Consumed(EventOutcome::consumed())
             }
             Action::CopyUrlToClipboard => {
@@ -1721,6 +1732,113 @@ impl InputEngine {
     fn selected_text(&self) -> Option<String> {
         let (a, b) = self.selection.lock().unwrap().anchors()?;
         self.terminal.read().extract_selection_text(a, b)
+    }
+
+    /// Put the live selection on the system clipboard — the EXPLICIT
+    /// copy, ungated by `copy_on_select` (that knob governs the
+    /// mouse-release ritual below, never a deliberate action).
+    /// `Action::Copy` and `Action::CopyLastCommandOutput` both call
+    /// THIS; there is no second clipboard write for a selection, so
+    /// clipboard provider, extraction rules and OSC-52 behaviour
+    /// cannot diverge between them.
+    ///
+    /// Returns whether anything was copied — `false` when there is no
+    /// selection, or when its anchors no longer resolve (content
+    /// evicted / screen switched), which `selected_text` reports as
+    /// `None` rather than as stale coordinates.
+    fn copy_selection(&self) -> bool {
+        match self.selected_text() {
+            Some(text) => {
+                let _ = self.clipboard.copy_text(&text);
+                true
+            }
+            None => false,
+        }
+    }
+
+    /// Select the previous command's output and copy it.
+    ///
+    /// Reads the OSC 133 zone (`C` mark → the `A` that opens the next
+    /// prompt) out of the terminal's own mark history, turns it into a
+    /// committed [`Selection`] so the operator SEES what landed on the
+    /// clipboard, then hands off to [`Self::copy_selection`].
+    ///
+    /// Every way this can fail to produce a zone is a **no-op**, never
+    /// an error and never a partial copy:
+    ///
+    /// * **no marks yet** (fresh session, or the shell integration was
+    ///   never sourced) — `last_command_zone` returns `None`;
+    /// * **no output** — `command_output_rows` returns `None` rather
+    ///   than a one-row span that would copy the next prompt line;
+    /// * **scrolled out of the retained scrollback** — the mark itself
+    ///   is gone (`PromptHistory::shift_on_evict` drops marks whose
+    ///   row would go negative), so there is no zone to resolve; and
+    ///   if a surviving mark's row no longer anchors, the capture
+    ///   below returns `None` and the existing selection is left
+    ///   untouched;
+    /// * **alternate screen** — a full-screen TUI owns the viewport
+    ///   and OSC 133 is not recorded there, so the newest zone
+    ///   describes rows of the primary grid that are not on screen.
+    ///
+    /// Returns whether text reached the clipboard.
+    fn copy_last_command_output(&mut self) -> bool {
+        let Some((a, b)) = self.last_command_output_span() else {
+            tracing::debug!("copy_last_command_output: no command-output zone to copy");
+            return false;
+        };
+        self.selection.lock().unwrap().set_span(a, b);
+        self.copy_selection()
+    }
+
+    /// Anchors for the previous command's output rows.
+    ///
+    /// **Why this borrows the scroll offset.** Prompt marks address
+    /// ABSOLUTE grid rows; `Terminal::selection_anchor_at` addresses
+    /// VIEWPORT rows (`abs = scrollback_len - scroll_offset + row`),
+    /// and it is the only public way to mint an anchor. When the zone
+    /// starts above the current view — the normal case, since a
+    /// command worth copying is one whose output scrolled — the
+    /// viewport row would be negative and there is no call to make.
+    /// So the capture runs with the viewport parked at the top, where
+    /// `scroll_offset == scrollback_len` makes viewport rows and
+    /// absolute rows the same number, and restores the offset exactly.
+    /// The whole round trip happens under ONE write lock, so no
+    /// renderer or reconciler can observe the intermediate scroll.
+    ///
+    /// This is the one seam that would collapse to two lines if
+    /// `Terminal` exposed an absolute-row anchor
+    /// (`selection_anchor_at_abs(abs_row, col)`, four lines against
+    /// the private `Grid::cell_anchor_at` it already calls) — that
+    /// belongs in `terminal.rs`, which this change does not own.
+    fn last_command_output_span(&self) -> Option<(SelectionAnchor, SelectionAnchor)> {
+        let mut term = self.terminal.write();
+        // Marks are recorded on the primary grid only; anchors capture
+        // against whichever grid is active. Refuse rather than mint an
+        // alternate-screen anchor for a primary-screen row.
+        if term.is_alternate_screen() {
+            return None;
+        }
+        let live_row = term.scrollback_total() + term.cursor().row;
+        // `usize::MAX` = "the most recent zone", with no row filter —
+        // the operator asked for the LAST command, not for whatever is
+        // above the caret.
+        let zone = term.prompt_marks().last_command_zone(usize::MAX)?;
+        let rows = crate::selection::command_output_rows(&zone, live_row)?;
+        let last_col = term.cols().saturating_sub(1);
+
+        let saved = term.scroll_offset();
+        term.scroll_to_top();
+        let span = term
+            .selection_anchor_at(rows.first, 0)
+            .zip(term.selection_anchor_at(rows.last, last_col));
+        term.scroll_to_bottom();
+        term.scroll_up(saved);
+        debug_assert_eq!(
+            term.scroll_offset(),
+            saved,
+            "scroll offset must be restored"
+        );
+        span
     }
 
     /// Commit the currently-live selection to the system clipboard
@@ -2773,7 +2891,28 @@ mod tests {
             kind: SinkKind,
             bridge: Option<Box<dyn crate::session_picker::SessionPickerBridge>>,
         ) -> Self {
-            let terminal: SharedTerminal = Arc::new(RwLock::new(Terminal::new(80, 24)));
+            Self::new_full(kind, bridge, 10_000)
+        }
+
+        /// Build a harness whose mirror Terminal keeps only
+        /// `max_scrollback` history rows — the seam for tests that
+        /// need rows (and the prompt marks addressing them) to
+        /// actually roll off, which is unreachable at the 10,000-row
+        /// default without feeding ten thousand lines.
+        fn new_with_scrollback(kind: SinkKind, max_scrollback: usize) -> Self {
+            Self::new_full(kind, None, max_scrollback)
+        }
+
+        fn new_full(
+            kind: SinkKind,
+            bridge: Option<Box<dyn crate::session_picker::SessionPickerBridge>>,
+            max_scrollback: usize,
+        ) -> Self {
+            let terminal: SharedTerminal = Arc::new(RwLock::new(Terminal::with_scrollback(
+                80,
+                24,
+                max_scrollback,
+            )));
             let mut renderer = TerminalRenderer::new(
                 Arc::clone(&terminal),
                 14.0,
@@ -3378,6 +3517,259 @@ mod tests {
         // No mouse tracking armed — selection traffic never reaches
         // the PTY.
         assert!(h.sent_bytes().is_empty());
+    }
+
+    // ── Copy the previous command's output (OSC 133 zone) ────────
+    //
+    // The bytes below are what a shell-integration-sourced shell
+    // actually writes, in order: `A` when the prompt is about to be
+    // drawn, `B` once it is drawn, `C` after Enter (first row of
+    // output), `D;<code>` when the command finishes — and the NEXT
+    // `A` is what closes the zone, so the tests emit it explicitly
+    // rather than letting it hide inside a helper.
+
+    /// One command cycle up to (not including) the next prompt's `A`.
+    /// On an 80x24 grid fed from a fresh Terminal this lands `A`/`B`
+    /// on grid row 0, `C` on row 1, and output on rows 1..=n.
+    fn command_cycle(command: &str, output: &[&str]) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(b"\x1b]133;A\x1b\\");
+        bytes.extend_from_slice(b"$ ");
+        bytes.extend_from_slice(command.as_bytes());
+        bytes.extend_from_slice(b"\x1b]133;B\x1b\\");
+        // The shell echoes the Enter that starts the command.
+        bytes.extend_from_slice(b"\r\n");
+        bytes.extend_from_slice(b"\x1b]133;C\x1b\\");
+        for line in output {
+            bytes.extend_from_slice(line.as_bytes());
+            bytes.extend_from_slice(b"\r\n");
+        }
+        bytes.extend_from_slice(b"\x1b]133;D;0\x1b\\");
+        bytes
+    }
+
+    /// The `A` of the prompt drawn AFTER a command — the mark that
+    /// closes the zone.
+    const NEXT_PROMPT: &[u8] = b"\x1b]133;A\x1b\\";
+
+    #[test]
+    fn copy_last_command_output_selects_and_copies_the_zone() {
+        let mut h = Harness::new(SinkKind::Closure);
+        h.feed(&command_cycle("echo two lines", &["alpha", "beta"]));
+        h.feed(NEXT_PROMPT);
+
+        let out = h
+            .engine
+            .apply_action(Action::CopyLastCommandOutput, &mut h.renderer);
+        assert!(matches!(out, ActionOutcome::Consumed(_)));
+        assert_eq!(
+            h.clipboard.paste_text().unwrap(),
+            "alpha\nbeta",
+            "the zone is the OUTPUT rows only — never the command line \
+             above it, never the next prompt below it",
+        );
+        assert!(
+            h.engine.selection.lock().unwrap().is_active(),
+            "the operator must SEE what landed on the clipboard",
+        );
+        // Selecting is not typing: nothing reaches the shell.
+        assert!(h.sent_bytes().is_empty());
+    }
+
+    /// The zone copy and `Action::Copy` are the SAME copy: the action
+    /// leaves a selection that the ordinary copy path extracts to the
+    /// identical text, and the explicit copy is not gated on
+    /// `copy_on_select` (which governs the mouse-release ritual only).
+    #[test]
+    fn copy_last_command_output_goes_through_the_shared_copy_path() {
+        let mut h = Harness::new(SinkKind::Closure);
+        // copy_on_select OFF — an explicit action must still copy.
+        h.engine.behavior.copy_on_select = false;
+        h.feed(&command_cycle("ls", &["alpha", "beta"]));
+        h.feed(NEXT_PROMPT);
+
+        h.engine
+            .apply_action(Action::CopyLastCommandOutput, &mut h.renderer);
+        let via_zone = h.clipboard.paste_text().unwrap();
+        assert_eq!(via_zone, "alpha\nbeta");
+
+        // Re-copy the selection the zone action left behind through
+        // Cmd+C's path — same bytes, so there is one extraction rule
+        // and one clipboard write, not two.
+        h.clipboard.copy_text("SENTINEL").unwrap();
+        let out = h.engine.apply_action(Action::Copy, &mut h.renderer);
+        assert!(matches!(out, ActionOutcome::Consumed(_)));
+        assert_eq!(
+            h.clipboard.paste_text().unwrap(),
+            via_zone,
+            "Action::Copy over the zone's selection must reproduce it exactly",
+        );
+    }
+
+    /// The whole point of the feature: the output scrolled. The zone's
+    /// first row is then ABOVE the viewport top, where the viewport-
+    /// relative anchor API has no row to name — the capture parks the
+    /// viewport at the top of scrollback to address it.
+    #[test]
+    fn copy_last_command_output_reaches_a_zone_above_the_viewport() {
+        let mut h = Harness::new(SinkKind::Closure);
+        let lines: Vec<String> = (1..=40).map(|n| ["out", &n.to_string()].concat()).collect();
+        let refs: Vec<&str> = lines.iter().map(String::as_str).collect();
+        h.feed(&command_cycle("seq 40", &refs));
+        h.feed(NEXT_PROMPT);
+
+        // Premise check: the zone really did scroll off the top.
+        {
+            let term = h.terminal.read();
+            let view_top = term.scrollback_total() - term.scroll_offset();
+            let zone = term
+                .prompt_marks()
+                .last_command_zone(usize::MAX)
+                .expect("the cycle recorded a zone");
+            assert!(
+                zone.start < view_top,
+                "test premise: zone start {} must be above the viewport top {view_top}",
+                zone.start,
+            );
+        }
+
+        h.engine
+            .apply_action(Action::CopyLastCommandOutput, &mut h.renderer);
+        let copied = h.clipboard.paste_text().unwrap();
+        assert_eq!(
+            copied.lines().count(),
+            40,
+            "every output row is copied, not just the visible ones: {copied:?}",
+        );
+        assert!(copied.starts_with("out1\n"), "copied: {copied:?}");
+        assert!(copied.ends_with("\nout40"), "copied: {copied:?}");
+    }
+
+    /// The capture borrows the scroll offset to address absolute rows
+    /// and must hand it back untouched — an operator reading history
+    /// does not get yanked to the bottom for pressing copy.
+    #[test]
+    fn copy_last_command_output_restores_the_scroll_offset() {
+        let mut h = Harness::new(SinkKind::Closure);
+        let lines: Vec<String> = (1..=40).map(|n| ["out", &n.to_string()].concat()).collect();
+        let refs: Vec<&str> = lines.iter().map(String::as_str).collect();
+        h.feed(&command_cycle("seq 40", &refs));
+        h.feed(NEXT_PROMPT);
+        h.terminal.write().scroll_up(7);
+        assert_eq!(h.terminal.read().scroll_offset(), 7);
+
+        h.engine
+            .apply_action(Action::CopyLastCommandOutput, &mut h.renderer);
+        assert_eq!(
+            h.terminal.read().scroll_offset(),
+            7,
+            "the viewport must be exactly where the operator left it",
+        );
+        assert_eq!(h.clipboard.paste_text().unwrap().lines().count(), 40);
+    }
+
+    /// A command that printed nothing (`cd /tmp`) has a zero-height
+    /// zone. Copying "the row at zone.start" would put the NEXT
+    /// PROMPT on the clipboard and pass it off as output — so the
+    /// action does nothing at all.
+    #[test]
+    fn copy_last_command_output_ignores_a_command_with_no_output() {
+        let mut h = Harness::new(SinkKind::Closure);
+        h.feed(&command_cycle("cd /tmp", &[]));
+        h.feed(NEXT_PROMPT);
+        h.clipboard.copy_text("SENTINEL").unwrap();
+
+        let out = h
+            .engine
+            .apply_action(Action::CopyLastCommandOutput, &mut h.renderer);
+        assert!(matches!(out, ActionOutcome::Consumed(_)));
+        assert_eq!(
+            h.clipboard.paste_text().unwrap(),
+            "SENTINEL",
+            "an empty zone must not copy the next prompt line",
+        );
+        assert!(
+            !h.engine.selection.lock().unwrap().is_active(),
+            "an empty zone must not highlight anything",
+        );
+    }
+
+    /// Fresh session (or a shell that never sourced the integration):
+    /// there is no zone. A no-op — not an error, and specifically not
+    /// destructive of whatever the operator already had selected.
+    #[test]
+    fn copy_last_command_output_is_a_noop_with_no_previous_command() {
+        let mut h = Harness::new(SinkKind::Closure);
+        h.feed(b"hello world");
+        // A live mouse selection the action must leave alone.
+        h.button(MouseButton::Left, true, 0, 0, no_mods());
+        h.moved(4, 0);
+        h.button(MouseButton::Left, false, 4, 0, no_mods());
+        h.clipboard.copy_text("SENTINEL").unwrap();
+
+        let out = h
+            .engine
+            .apply_action(Action::CopyLastCommandOutput, &mut h.renderer);
+        assert!(matches!(out, ActionOutcome::Consumed(_)));
+        assert_eq!(
+            h.clipboard.paste_text().unwrap(),
+            "SENTINEL",
+            "no marks ⇒ nothing copied",
+        );
+        // The pre-existing selection survived, byte for byte.
+        h.engine.apply_action(Action::Copy, &mut h.renderer);
+        assert_eq!(
+            h.clipboard.paste_text().unwrap(),
+            "hello",
+            "a no-op must not clear the operator's own selection",
+        );
+    }
+
+    /// Once the output has rolled out of the retained scrollback the
+    /// marks addressing it are dropped (`PromptHistory::
+    /// shift_on_evict`). The action must then copy NOTHING — a stale
+    /// row range would silently hand over whatever text now occupies
+    /// those rows.
+    #[test]
+    fn copy_last_command_output_is_a_noop_once_the_zone_scrolls_out() {
+        // 4 retained history rows: the zone rolls off after ~40 lines
+        // instead of the 10,000 the default would need.
+        let mut h = Harness::new_with_scrollback(SinkKind::Closure, 4);
+        h.feed(&command_cycle("echo two lines", &["alpha", "beta"]));
+        h.feed(NEXT_PROMPT);
+        // Sanity: the zone existed before the eviction.
+        assert!(
+            h.terminal
+                .read()
+                .prompt_marks()
+                .last_command_zone(usize::MAX)
+                .is_some(),
+            "test premise: a zone exists before the grid rolls over",
+        );
+        // Push the whole cycle out through the front of scrollback.
+        for _ in 0..60 {
+            h.feed(b"\r\n");
+        }
+        assert!(
+            h.terminal
+                .read()
+                .prompt_marks()
+                .last_command_zone(usize::MAX)
+                .is_none(),
+            "test premise: eviction dropped the marks",
+        );
+        h.clipboard.copy_text("SENTINEL").unwrap();
+
+        let out = h
+            .engine
+            .apply_action(Action::CopyLastCommandOutput, &mut h.renderer);
+        assert!(matches!(out, ActionOutcome::Consumed(_)));
+        assert_eq!(
+            h.clipboard.paste_text().unwrap(),
+            "SENTINEL",
+            "an evicted zone must copy nothing, never stale rows",
+        );
+        assert!(!h.engine.selection.lock().unwrap().is_active());
     }
 
     /// **Copy-on-release totality** (operator report 2026-06-12): a
