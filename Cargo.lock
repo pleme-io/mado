@@ -2816,9 +2816,9 @@ checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 
 [[package]]
 name = "izumi"
-version = "0.1.16"
+version = "0.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a3c6916bf1c27ae0910dde9b63f59063f6ddc8a9c147d3cc0161d5aa04a1f96"
+checksum = "609457868b0897e14487180aaecea6b66c0676a183e25fb24a730b15caa8946d"
 dependencies = [
  "blake3",
  "dirs 5.0.1",
@@ -2833,9 +2833,9 @@ dependencies = [
 
 [[package]]
 name = "izumi-config"
-version = "0.1.16"
+version = "0.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c90d30aa2594e0990914f4193cf59cc86fd66a7ec68db53c724c9b17c1664b3a"
+checksum = "bf81a872cbc7b316895084d97b367224225fcccef560d04abea8aa25ea1248ef"
 dependencies = [
  "izumi",
  "serde",
@@ -2844,9 +2844,9 @@ dependencies = [
 
 [[package]]
 name = "izumi-sources"
-version = "0.1.16"
+version = "0.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "98f62c7d53cf6404f58096dd731ffe6876e3adb2c28a9859034da34dd93f3107"
+checksum = "4e0b06550ab859b599020f8441b5598c2ae999dcb20add4a427e0fa076e3cf37"
 dependencies = [
  "izumi",
  "serde",
@@ -3363,7 +3363,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.119"
+version = "0.1.120"
 dependencies = [
  "anyhow",
  "awase",
@@ -6286,8 +6286,8 @@ dependencies = [
 
 [[package]]
 name = "shikumi"
-version = "0.1.482"
-source = "git+https://github.com/pleme-io/shikumi?branch=main#e33fc72f62a6fc95820ae81cd07e67d0ca6a8603"
+version = "0.1.484"
+source = "git+https://github.com/pleme-io/shikumi?branch=main#ae5d58aafd8b0fe3669879ff2f2f03309ef06a8d"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -6880,18 +6880,18 @@ checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 
 [[package]]
 name = "tatara-closed-set"
-version = "0.3.35"
+version = "0.3.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c9f4b5eb9d6f6af3015b1185f84bd3b68f20453815838d929bee9f73072f251"
+checksum = "07dad38e6329f0d2ffc81c8f60dda0fb222ae31bc630b445eaa54cc924c77282"
 dependencies = [
  "tatara-closed-set-derive",
 ]
 
 [[package]]
 name = "tatara-closed-set-derive"
-version = "0.3.35"
+version = "0.3.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b12f6265429ab96b279330471e1275b50dfc60cee8145adbd398ef8112c68ca2"
+checksum = "5e3bab8fd86c0f96888b8667d7416cace9cbebe5a9e11b16ae8e0be88b60f364"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7063,7 +7063,7 @@ dependencies = [
  "once_cell",
  "serde",
  "serde_yaml_ng",
- "shikumi 0.1.482",
+ "shikumi 0.1.484",
  "tear-types",
  "thiserror 2.0.19",
  "tracing",

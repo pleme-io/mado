@@ -8445,9 +8445,9 @@ rec {
       };
       "izumi" = rec {
         crateName = "izumi";
-        version = "0.1.15";
+        version = "0.1.16";
         edition = "2024";
-        sha256 = "1164a5cv1110vpd7fjfqxypsjsh9gnvlb8ldj5csi4jzgmg41pgp";
+        sha256 = "15hz9ah5l78nq0y7s54wibf6sgq6b4zvdsfx204sw9qwpwb6jg4s";
         authors = [
           "pleme-io"
         ];
@@ -8504,9 +8504,9 @@ rec {
       };
       "izumi-config" = rec {
         crateName = "izumi-config";
-        version = "0.1.15";
+        version = "0.1.16";
         edition = "2024";
-        sha256 = "1qhzp5y2v2z50i649vz7kbb9f4cn3ba0n4d261694i0yxf132xbi";
+        sha256 = "0fjbcv0ig6scf8ybb3f6grmdcvy8kkskq6gl2h4rkq4l4nm303f9";
         libName = "izumi_config";
         authors = [
           "pleme-io"
@@ -8530,9 +8530,9 @@ rec {
       };
       "izumi-sources" = rec {
         crateName = "izumi-sources";
-        version = "0.1.15";
+        version = "0.1.16";
         edition = "2024";
-        sha256 = "0wvgmpa9yfgs3afh30z3cq4p58h54c7a5a1yy39cbqjib87pv9l9";
+        sha256 = "01ri7zclv8sd0dcri2n2nany6xk8zqgp7pcnh3sh8r6gadyjrxlq";
         libName = "izumi_sources";
         authors = [
           "pleme-io"
@@ -10299,7 +10299,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.119";
+        version = "0.1.120";
         edition = "2024";
         crateBin = [
           {
@@ -22057,15 +22057,15 @@ rec {
         ];
 
       };
-      "shikumi 0.1.481" = rec {
+      "shikumi 0.1.482" = rec {
         crateName = "shikumi";
-        version = "0.1.481";
+        version = "0.1.482";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/shikumi";
-          rev = "c6f289e8c61917d50eb55e5ee5595bd6767c09f0";
-          sha256 = "1lz1b7cldnksff4kv6cwc94llg3v2kxica72ri0rafcry02q18mq";
+          rev = "e33fc72f62a6fc95820ae81cd07e67d0ca6a8603";
+          sha256 = "03ax33nhnp10rj8478n5q2yn8qx0p2m2dq9zmmsd7ivsnkbvq9v3";
         };
         dependencies = [
           {
@@ -24321,9 +24321,9 @@ rec {
       };
       "tatara-closed-set" = rec {
         crateName = "tatara-closed-set";
-        version = "0.3.34";
+        version = "0.3.35";
         edition = "2021";
-        sha256 = "0df9pcwri2b6s012gpvqn9x3rdlbnvvvp6jl30h8h69j92ka65a6";
+        sha256 = "0lgjf8qggsdy57ckhn41ac2g4s1vpn25y65i2lqazxnnp5g4p7sc";
         libName = "tatara_closed_set";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24338,9 +24338,9 @@ rec {
       };
       "tatara-closed-set-derive" = rec {
         crateName = "tatara-closed-set-derive";
-        version = "0.3.34";
+        version = "0.3.35";
         edition = "2021";
-        sha256 = "141pn685l26hb7m4pndx26xjb6k1g9qwl7agvgsr3y97d1y0x4s5";
+        sha256 = "18lcqq983vwqsgdml578rrhgq3dmfl91wirhjcknpfcs89jn4bxi";
         procMacro = true;
         libName = "tatara_closed_set_derive";
         authors = [
@@ -24917,7 +24917,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "shikumi 0.1.481";
+            packageId = "shikumi 0.1.482";
             features = [ "cli" ];
           }
           {
