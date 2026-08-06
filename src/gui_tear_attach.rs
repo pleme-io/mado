@@ -178,6 +178,10 @@ pub fn try_run_default(
     // Daemon path keeps a handle on the kanshou-published injection
     // queue so `simulate_chord` works in both tear runtimes.
     let injected = kanshou_state.injected.clone();
+    // Program + argv as ONE value (the operator's `shell.args`, paired
+    // with the program they declared it for). Minted once here; the
+    // refusal cases log themselves at mint time.
+    let spawn = config.shell_spawn(&shell);
     let (client, socket_path) = match discover(&config.tear) {
         DiscoveryOutcome::Attached(c, p) => (Arc::new(c), p),
         DiscoveryOutcome::Fallback => return TearDefaultOutcome::Unavailable,
@@ -237,15 +241,15 @@ pub fn try_run_default(
         tracing::warn!(error = %e, "tear set_spawn_env failed; daemon child may lack truecolor env");
     }
 
+    // The operator's `shell.args`, carried as the child's argv[1..].
+    // On this path an OLD daemon refuses non-empty args rather than
+    // dropping them (`Capability::SpawnArgs` — tear-client's
+    // `require_spawn_args`), so a stale daemon surfaces as the typed
+    // error below, never as a login shell that quietly isn't one.
     let session_id = match client.new_session_with_source_and_size(
         &session_name,
-        &shell,
-        // `&[]`: mado's boot session is a bare interactive shell. The
-        // operator's `shell.args` config field is still unconsumed (it has
-        // never had a consumer on ANY path — see the `pending-tear-bump:` note
-        // in this repo's CLAUDE.md); wiring it is a decision about the
-        // local-PTY path too, not a mechanical insertion here.
-        &[],
+        spawn.program(),
+        spawn.args(),
         SessionSource::Named("mado".into()),
         (init_cols, init_rows),
     ) {
@@ -1193,6 +1197,11 @@ fn try_run_default_embedded(
     use tear_core::InProcess;
     use tear_types::SessionSource;
 
+    // Program + argv as ONE value — same mint as the daemon path, so both
+    // entry points spawn the child with an identical argv (and log an
+    // identical refusal when the operator's args don't apply).
+    let spawn = config.shell_spawn(&shell);
+
     let inproc = Arc::new(InProcess::new());
     // Publish the live InProcess to the kanshou aggregator so the
     // `sessions` leaf reflects the GUI's actual session graph,
@@ -1262,11 +1271,11 @@ fn try_run_default_embedded(
     // documented gap; the SpawnEnv seam lives on InProcess only.)
     let session_id = match inproc.new_session_with_source_and_size(
         &session_name,
-        &shell,
-        // `&[]`: same as the daemon path above — the boot session is a bare
-        // interactive shell, and `shell.args` stays unconsumed pending a
-        // decision that covers the local-PTY path too.
-        &[],
+        spawn.program(),
+        // The operator's `shell.args`, as the child's argv[1..] — the same
+        // typed value the daemon path passes, so both runtimes spawn the
+        // identical command line.
+        spawn.args(),
         SessionSource::Named("mado-embedded".into()),
         (init_cols, init_rows),
     ) {
@@ -1318,7 +1327,7 @@ fn try_run_default_embedded(
     // auto-attach driver spawns with. Capture a clone before the driver
     // construction below moves the original `spawn_env`.
     let picker_spawn_env = spawn_env.clone();
-    let picker_shell = shell.clone();
+    let picker_spawn = spawn.clone();
 
     let auto_attach: Option<crate::auto_attach::AutoAttachDriver> =
         if config.tear.auto_attach.is_active() {
@@ -1341,7 +1350,13 @@ fn try_run_default_embedded(
                     // The EMOJI projection of the ONE minted identity — the
                     // picker label, matching the glyph form the prompt shows.
                     boot_name.render(ishou_tokens::SessionNameStyle::Emoji),
-                    shell.clone(),
+                    // Program only: `AutoAttachDriver::new` takes a bare
+                    // `String` and spawns with `&[]`, so an auto-attach-on-cd
+                    // session does NOT get `shell.args`. That is a gap in
+                    // `src/auto_attach.rs`, not a decision made here — it
+                    // closes by giving the driver a `ShellSpawn` instead of a
+                    // `String`, the same swap this file just made.
+                    spawn.program().to_owned(),
                     spawn_env,
                     now,
                 ))
@@ -1432,7 +1447,7 @@ fn try_run_default_embedded(
                 shared_praca,
                 Arc::clone(&inproc),
                 switch.clone(),
-                picker_shell.clone(),
+                picker_spawn.clone(),
                 picker_spawn_env.clone(),
                 config.tear.session_picker_surface_presets,
                 config.tear.session_picker_badges,

@@ -3003,6 +3003,145 @@ impl MadoConfig {
         }
         effects
     }
+
+    /// Resolve `program` — the shell string the launcher already picked
+    /// (`--command` → `shell.command` → `$SHELL`; see `main.rs`) — against
+    /// the operator's `shell` block into the ONE value a spawn path
+    /// carries: the program plus the argv[1..] the child actually receives.
+    ///
+    /// **`shell.args` belongs to `shell.command`.** They are one
+    /// declaration ("spawn THIS program with THIS argv"), so the args ride
+    /// along only when the program mado ended up spawning IS the one the
+    /// operator named. Two things can break that pairing and both are
+    /// invisible by the time a spawn site sees a bare `String`:
+    ///
+    /// * an explicit `mado --command htop`, which replaces the program —
+    ///   handing it a login shell's `-l` would be a different bug;
+    /// * `shell.command` not being on `$PATH`, where `main.rs` falls back
+    ///   to `$SHELL` — frostmourne's flags are not zsh's.
+    ///
+    /// In both cases the args are refused, and the refusal is **logged
+    /// here, at mint time**, so no call site can drop them quietly (which
+    /// is exactly what every spawn path did before this existed).
+    #[must_use]
+    pub fn shell_spawn(&self, program: &str) -> ShellSpawn {
+        let verdict = if self.shell.args.is_empty() {
+            ShellArgsVerdict::Empty
+        } else {
+            match self.shell.command.as_deref() {
+                None => ShellArgsVerdict::NoConfiguredProgram,
+                Some(configured) if configured == program => ShellArgsVerdict::Carried,
+                Some(configured) => ShellArgsVerdict::ProgramOverridden {
+                    configured: configured.to_owned(),
+                },
+            }
+        };
+        match &verdict {
+            ShellArgsVerdict::NoConfiguredProgram => tracing::warn!(
+                args = ?self.shell.args,
+                program,
+                "shell.args is set but shell.command is not — the args have no declared \
+                 program to attach to and are NOT passed. Set shell.command to the shell \
+                 you wrote them for."
+            ),
+            ShellArgsVerdict::ProgramOverridden { configured } => tracing::warn!(
+                args = ?self.shell.args,
+                configured = %configured,
+                program,
+                "shell.args is NOT passed — mado is spawning a different program than \
+                 shell.command names (an explicit --command, or shell.command was not on \
+                 PATH and the login-shell fallback fired)."
+            ),
+            ShellArgsVerdict::Empty | ShellArgsVerdict::Carried => {}
+        }
+        let args = if matches!(verdict, ShellArgsVerdict::Carried) {
+            self.shell.args.clone()
+        } else {
+            Vec::new()
+        };
+        ShellSpawn {
+            program: program.to_owned(),
+            args,
+            verdict,
+        }
+    }
+}
+
+/// The program mado spawns **plus** the argv[1..] the child receives —
+/// carried as ONE value so a spawn path cannot hold a program without the
+/// args the operator declared for it.
+///
+/// The fields are private and the only ways in are
+/// [`MadoConfig::shell_spawn`] (which applies the pairing rule) and
+/// [`ShellSpawn::bare`] (explicitly argv-less). There is no way to
+/// assemble a program with argv the config never authorized, and — the
+/// bug this type closes — no way to pass the program on while forgetting
+/// the argv, because there is no field to forget.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ShellSpawn {
+    program: String,
+    args: Vec<String>,
+    verdict: ShellArgsVerdict,
+}
+
+impl ShellSpawn {
+    /// A program with no argv — for a spawn that deliberately takes none
+    /// (tests, and any caller that has no `MadoConfig` in hand).
+    #[allow(dead_code)]
+    // Consumed by tests; the production argv-less spawn
+    // sites (auto_attach.rs, pty.rs) still carry a bare `String`.
+    #[must_use]
+    pub fn bare(program: impl Into<String>) -> Self {
+        Self {
+            program: program.into(),
+            args: Vec::new(),
+            verdict: ShellArgsVerdict::Empty,
+        }
+    }
+
+    /// The program to exec.
+    #[must_use]
+    pub fn program(&self) -> &str {
+        &self.program
+    }
+
+    /// The child's argv[1..] — exactly what `MultiplexerControl`'s
+    /// `args: &[String]` parameter wants.
+    #[must_use]
+    pub fn args(&self) -> &[String] {
+        &self.args
+    }
+
+    /// Why the argv is what it is. Carried on the value so a test can pin
+    /// the *decision*, not just its output.
+    #[allow(dead_code)]
+    // The decision is ACTED on at mint time (the warn in
+    // `shell_spawn`); this reader exists so the tests assert the reason, not
+    // just the empty-vec symptom a dozen bugs would share.
+    #[must_use]
+    pub fn verdict(&self) -> &ShellArgsVerdict {
+        &self.verdict
+    }
+}
+
+/// What became of the operator's `shell.args` for one resolved program.
+///
+/// Every arm is either "there was nothing to carry", "it was carried", or
+/// a NAMED reason it was refused — there is no unexplained-drop arm,
+/// which is the state this whole seam exists to remove.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ShellArgsVerdict {
+    /// `shell.args` is empty — nothing to carry.
+    Empty,
+    /// The declared argv rides along to the child.
+    Carried,
+    /// `shell.args` was declared with no `shell.command`, so there is no
+    /// program the args provably belong to. Refused + logged.
+    NoConfiguredProgram,
+    /// The resolved program is not the one `shell.args` was written for
+    /// (`--command`, or the not-on-PATH login-shell fallback). Refused +
+    /// logged; `configured` is what `shell.command` named.
+    ProgramOverridden { configured: String },
 }
 
 // ── Defaults + tiered constructors ──────────────────────────────
@@ -3984,6 +4123,81 @@ where
     let store = shikumi::ConfigStore::<MadoConfig>::load_and_watch(&path, "MADO_", on_reload)?;
     let config = MadoConfig::clone(&store.get());
     Ok((config, store))
+}
+
+/// `shell.args` → the child's argv[1..] — the seam every spawn path reads.
+///
+/// Before this existed the field was declared in config and passed as `&[]`
+/// at every spawn site, so `shell: { args: ["-l"] }` produced a shell that
+/// was silently not a login shell. These pin the carry AND each named
+/// refusal, so a regression to `&[]` fails here rather than in a user's
+/// window.
+#[cfg(test)]
+mod shell_spawn_tests {
+    use super::*;
+
+    fn cfg_with(command: Option<&str>, args: &[&str]) -> MadoConfig {
+        let mut cfg = MadoConfig::default();
+        cfg.shell.command = command.map(str::to_owned);
+        cfg.shell.args = args.iter().map(|s| (*s).to_owned()).collect();
+        cfg
+    }
+
+    #[test]
+    fn shell_args_reach_the_spawn_when_the_program_is_the_configured_shell() {
+        let cfg = cfg_with(Some("frostmourne"), &["-l", "--no-rc"]);
+        let spawn = cfg.shell_spawn("frostmourne");
+        assert_eq!(spawn.program(), "frostmourne");
+        assert_eq!(
+            spawn.args(),
+            ["-l".to_owned(), "--no-rc".to_owned()],
+            "the operator's shell.args ARE the child's argv[1..]"
+        );
+        assert_eq!(spawn.verdict(), &ShellArgsVerdict::Carried);
+    }
+
+    #[test]
+    fn empty_shell_args_stay_an_empty_argv() {
+        let cfg = cfg_with(Some("frostmourne"), &[]);
+        let spawn = cfg.shell_spawn("frostmourne");
+        assert!(spawn.args().is_empty(), "nothing declared, nothing carried");
+        assert_eq!(spawn.verdict(), &ShellArgsVerdict::Empty);
+    }
+
+    #[test]
+    fn shell_args_are_refused_when_the_program_is_not_the_one_they_name() {
+        // `mado --command htop`, or `shell.command` missing from PATH and
+        // main.rs falling back to the login shell. Either way the argv was
+        // written for a different program — handing zsh frostmourne's flags
+        // is a worse bug than not applying them.
+        let cfg = cfg_with(Some("frostmourne"), &["-l"]);
+        let spawn = cfg.shell_spawn("/usr/bin/htop");
+        assert_eq!(spawn.program(), "/usr/bin/htop");
+        assert!(spawn.args().is_empty());
+        assert_eq!(
+            spawn.verdict(),
+            &ShellArgsVerdict::ProgramOverridden {
+                configured: "frostmourne".to_owned()
+            },
+            "the refusal is NAMED, not a silent drop"
+        );
+    }
+
+    #[test]
+    fn shell_args_without_a_configured_command_are_refused_by_name() {
+        let cfg = cfg_with(None, &["-l"]);
+        let spawn = cfg.shell_spawn("/bin/zsh");
+        assert!(spawn.args().is_empty());
+        assert_eq!(spawn.verdict(), &ShellArgsVerdict::NoConfiguredProgram);
+    }
+
+    #[test]
+    fn a_bare_spawn_carries_no_argv() {
+        let spawn = ShellSpawn::bare("/bin/sh");
+        assert_eq!(spawn.program(), "/bin/sh");
+        assert!(spawn.args().is_empty());
+        assert_eq!(spawn.verdict(), &ShellArgsVerdict::Empty);
+    }
 }
 
 #[cfg(test)]

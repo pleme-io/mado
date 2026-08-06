@@ -209,9 +209,12 @@ pub struct PracaPickerBridge {
     /// The shared switch channel the switchable attach drains — the SAME
     /// channel auto-attach + the `switch_session` MCP tool post to.
     switch: crate::session_switch::SwitchRequests,
-    /// The shell a newly-created session spawns into (the configured /
-    /// default shell — same value auto-attach spawns with).
-    shell: String,
+    /// The shell a newly-created session spawns into, carried as the
+    /// program+argv PAIR (`crate::config::ShellSpawn`) rather than a bare
+    /// program string — so the operator's `shell.args` cannot be lost on
+    /// the way to a picker spawn, which is exactly what a `String` here
+    /// used to guarantee.
+    shell: crate::config::ShellSpawn,
     /// mado's typed capability env, re-applied before each spawn so a
     /// created session inherits the same truecolor/terminfo env as the
     /// boot session (mirrors `AutoAttachDriver`).
@@ -252,7 +255,7 @@ impl PracaPickerBridge {
         praca: Arc<Mutex<praca::Praca>>,
         inproc: Arc<tear_core::InProcess>,
         switch: crate::session_switch::SwitchRequests,
-        shell: String,
+        shell: crate::config::ShellSpawn,
         spawn_env_base: tear_types::SpawnEnv,
         surface_presets: bool,
         badges: crate::config::BadgeMode,
@@ -365,13 +368,11 @@ impl PracaPickerBridge {
         self.inproc
             .new_session_with_source_and_size(
                 tear_name,
-                &self.shell,
-                // `&[]`: the picker spawns a bare interactive login shell —
-                // there is no per-session argv here. The operator's
-                // `shell.args` knob is still unwired everywhere (see this
-                // repo's CLAUDE.md `pending-tear-bump:` note); wiring it is a
-                // decision about the local-PTY path too, not an insertion.
-                &[],
+                self.shell.program(),
+                // The operator's `shell.args`, as the child's argv[1..] — a
+                // picker-created session is the same interactive shell the
+                // boot session is, so it gets the same command line.
+                self.shell.args(),
                 SessionSource::Named("mado-session-picker".into()),
                 (80, 24),
             )
@@ -573,13 +574,15 @@ impl PracaPickerBridge {
         self.inproc.set_spawn_env(env);
         let Ok(sid) = self.inproc.new_session_with_source_and_size(
             sug.spawn.name(),
-            &self.shell,
-            // `&[]` deliberately: a suggestion's payload is NOT argv. It is a
-            // prewarm program — `SetEnv` steps folded into the spawn env above,
-            // then `RunCommand`/`KubeContext` steps delivered as KEYSTROKES to
-            // the live interactive shell below. Passing them as argv would
-            // replace the shell instead of driving it.
-            &[],
+            self.shell.program(),
+            // The operator's `shell.args` — and ONLY those. A suggestion's
+            // own payload is deliberately NOT argv: it is a prewarm program
+            // (`SetEnv` steps folded into the spawn env above, then
+            // `RunCommand`/`KubeContext` steps delivered as KEYSTROKES to the
+            // live shell below). Passing the payload as argv would replace
+            // the shell instead of driving it. The shell's own argv is a
+            // different question and rides along here.
+            self.shell.args(),
             SessionSource::Named("mado-suggestion".into()),
             (80, 24),
         ) else {
@@ -1039,6 +1042,94 @@ mod tests {
         bridge_with_cfg(praca, inproc, true, crate::config::BadgeMode::Always)
     }
 
+    /// A bridge whose spawn value came through the REAL config seam
+    /// (`shell.command` + `shell.args` → `MadoConfig::shell_spawn`), so a
+    /// spawn test exercises config→argv→child rather than a hand-built
+    /// argv that could pass while the config path stays broken.
+    fn bridge_with_shell_args(
+        inproc: Arc<tear_core::InProcess>,
+        command: &str,
+        args: &[&str],
+    ) -> PracaPickerBridge {
+        let mut cfg = crate::config::MadoConfig::default();
+        cfg.shell.command = Some(command.to_owned());
+        cfg.shell.args = args.iter().map(|s| (*s).to_owned()).collect();
+        let switch = crate::session_switch::SwitchRequests::default();
+        switch.attach_sink();
+        PracaPickerBridge::new(
+            Arc::new(Mutex::new(praca::Praca::new())),
+            inproc,
+            switch,
+            cfg.shell_spawn(command),
+            tear_types::SpawnEnv::none(),
+            true,
+            crate::config::BadgeMode::Auto,
+            None,
+            0,
+            0,
+            0,
+        )
+    }
+
+    /// The end-to-end pin for the deliverable: `shell.args` declared in
+    /// `mado.yaml` must reach the process the picker spawns.
+    ///
+    /// Two assertions, deliberately at two different depths — the first
+    /// pins the argv at the tear API boundary (the registry records what
+    /// `new_session_with_source_and_size` was handed), the second pins
+    /// that the CHILD actually ran with it, by making the argv itself the
+    /// thing that produces output. A `&[]` regression fails both: `sh`
+    /// with no args is an interactive shell that prints no marker.
+    #[test]
+    fn picker_spawn_carries_shell_args_into_the_real_child() {
+        const MARKER: &str = "MADO_ARGV_REACHED_THE_CHILD";
+        let inproc = Arc::new(tear_core::InProcess::new());
+        inproc.set_spawn_env(tear_types::SpawnEnv::none());
+        // `sleep` keeps the pane alive past the printf so the reaper can't
+        // tear the grid down before we read it.
+        let script = {
+            let mut s = String::from("printf ");
+            s.push_str(MARKER);
+            s.push_str("; sleep 30");
+            s
+        };
+        let bridge = bridge_with_shell_args(Arc::clone(&inproc), "/bin/sh", &["-c", &script]);
+
+        let sid = bridge.spawn_named("argv-probe").expect("session spawns");
+        let pane = bridge.first_pane_of(sid).expect("session has a pane");
+
+        // Depth 1 — the argv crossed the config → spawn boundary.
+        let recorded = inproc
+            .with_registry(|r| {
+                r.sessions
+                    .get(&sid)
+                    .and_then(|s| s.panes.get(&pane).map(|p| p.args.clone()))
+            })
+            .expect("the pane records the argv it was spawned with");
+        assert_eq!(
+            recorded,
+            vec!["-c".to_owned(), script.clone()],
+            "the picker must hand tear the operator's shell.args, not &[]"
+        );
+
+        // Depth 2 — the child ran with it. Bounded poll: `printf` lands in
+        // the first PTY read, so this normally resolves on the first pass.
+        let mut seen = String::new();
+        for _ in 0..200 {
+            if let Ok(snap) = inproc.pane_snapshot(pane) {
+                seen = snap.to_text();
+                if seen.contains(MARKER) {
+                    break;
+                }
+            }
+            std::thread::sleep(std::time::Duration::from_millis(25));
+        }
+        assert!(
+            seen.contains(MARKER),
+            "the spawned child never ran the argv — it was spawned as a bare shell"
+        );
+    }
+
     fn bridge_with_cfg(
         praca: praca::Praca,
         inproc: Arc<tear_core::InProcess>,
@@ -1051,7 +1142,7 @@ mod tests {
             Arc::new(Mutex::new(praca)),
             inproc,
             switch,
-            "/bin/sh".to_owned(),
+            crate::config::ShellSpawn::bare("/bin/sh"),
             tear_types::SpawnEnv::none(),
             surface_presets,
             badges,
@@ -1076,7 +1167,7 @@ mod tests {
             Arc::new(Mutex::new(praca)),
             inproc,
             switch,
-            "/bin/sh".to_owned(),
+            crate::config::ShellSpawn::bare("/bin/sh"),
             tear_types::SpawnEnv::none(),
             true,
             crate::config::BadgeMode::Auto,
@@ -1657,7 +1748,7 @@ mod tests {
             Arc::new(Mutex::new(praca)),
             Arc::clone(&inproc),
             switch,
-            "/bin/sh".to_owned(),
+            crate::config::ShellSpawn::bare("/bin/sh"),
             tear_types::SpawnEnv::none(),
             true,
             crate::config::BadgeMode::Auto,
