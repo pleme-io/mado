@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "52ca64c1eb929245093f2ae602e4e3d6ccf51f1ebd4974452515f83956fcedc5",
+  "cargo_lock_sha256": "8c1245fd4805d94ff1e286080b193b042f1031f521e6dceafd7057e98acee458",
   "manifest_sha256": {
-    "Cargo.toml": "ed7e53117995d4b52f3b3502c967db6eec307787bbee9054287dde54e33fcb56"
+    "Cargo.toml": "b980e199e3eedea6f7394e2a7dbd43e52d049b99066e30161b8fd13efc338a11"
   },
   "target_resolves": {
     "base": {
@@ -86,7 +86,7 @@
           },
           {
             "name": "zerocopy",
-            "package_key": "zerocopy-0.8.55",
+            "package_key": "zerocopy-0.8.56",
             "kind": "normal",
             "features": [
               "simd"
@@ -1451,11 +1451,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "clap-4.6.5": {
+      "clap-4.6.6": {
         "runtime_dependencies": [
           {
             "name": "clap_builder",
-            "package_key": "clap_builder-4.6.5",
+            "package_key": "clap_builder-4.6.6",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -1487,7 +1487,7 @@
           "usage"
         ]
       },
-      "clap_builder-4.6.5": {
+      "clap_builder-4.6.6": {
         "runtime_dependencies": [
           {
             "name": "anstream",
@@ -2122,7 +2122,7 @@
           },
           {
             "name": "clap",
-            "package_key": "clap-4.6.5",
+            "package_key": "clap-4.6.6",
             "kind": "normal",
             "features": [
               "std"
@@ -4686,6 +4686,45 @@
         "build_dependencies": [],
         "features": []
       },
+      "gen-macros-0.1.35-3925eaab4271cd4a0db1942216062d84b364e3a0": {
+        "runtime_dependencies": [
+          {
+            "name": "proc_macro2",
+            "package_key": "proc-macro2-1.0.107",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "quote",
+            "package_key": "quote-1.0.47",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "syn",
+            "package_key": "syn-2.0.119",
+            "kind": "normal",
+            "features": [
+              "extra-traits",
+              "full"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
       "gen-platform-0.1.34": {
         "runtime_dependencies": [
           {
@@ -4754,7 +4793,157 @@
         "build_dependencies": [],
         "features": []
       },
+      "gen-platform-0.1.35-3925eaab4271cd4a0db1942216062d84b364e3a0": {
+        "runtime_dependencies": [
+          {
+            "name": "gen_macros",
+            "package_key": "gen-macros-0.1.35-3925eaab4271cd4a0db1942216062d84b364e3a0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "host"
+          },
+          {
+            "name": "gen_types",
+            "package_key": "gen-types-0.1.35-3925eaab4271cd4a0db1942216062d84b364e3a0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "inventory",
+            "package_key": "inventory-0.3.24",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.229",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.151",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "thiserror",
+            "package_key": "thiserror-2.0.19",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
       "gen-types-0.1.34": {
+        "runtime_dependencies": [
+          {
+            "name": "blake3",
+            "package_key": "blake3-1.8.6",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "chrono",
+            "package_key": "chrono-0.4.45",
+            "kind": "normal",
+            "features": [
+              "serde"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "indexmap",
+            "package_key": "indexmap-2.14.0",
+            "kind": "normal",
+            "features": [
+              "serde"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "inventory",
+            "package_key": "inventory-0.3.24",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.229",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.151",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "thiserror",
+            "package_key": "thiserror-2.0.19",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "gen-types-0.1.35-3925eaab4271cd4a0db1942216062d84b364e3a0": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -5432,7 +5621,7 @@
           },
           {
             "name": "zerocopy",
-            "package_key": "zerocopy-0.8.55",
+            "package_key": "zerocopy-0.8.56",
             "kind": "normal",
             "features": [
               "derive",
@@ -7327,7 +7516,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "izumi-0.1.18": {
+      "izumi-0.1.19": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -7360,6 +7549,16 @@
             "tree": "target"
           },
           {
+            "name": "reqwest",
+            "package_key": "reqwest-0.12.28",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
             "name": "samba",
             "package_key": "samba-0.1.4",
             "kind": "normal",
@@ -7384,6 +7583,16 @@
           {
             "name": "serde_json",
             "package_key": "serde_json-1.0.151",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "todoku",
+            "package_key": "todoku-0.1.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7432,11 +7641,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "izumi-config-0.1.18": {
+      "izumi-config-0.1.19": {
         "runtime_dependencies": [
           {
             "name": "izumi",
-            "package_key": "izumi-0.1.18",
+            "package_key": "izumi-0.1.19",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7458,7 +7667,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.491",
+            "package_key": "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7470,11 +7679,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "izumi-sources-0.1.18": {
+      "izumi-sources-0.1.19": {
         "runtime_dependencies": [
           {
             "name": "izumi",
-            "package_key": "izumi-0.1.18",
+            "package_key": "izumi-0.1.19",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9200,7 +9409,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.491",
+            "package_key": "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -10546,7 +10755,7 @@
           },
           {
             "name": "clap",
-            "package_key": "clap-4.6.5",
+            "package_key": "clap-4.6.6",
             "kind": "normal",
             "features": [
               "derive",
@@ -12003,7 +12212,7 @@
           },
           {
             "name": "clap",
-            "package_key": "clap-4.6.5",
+            "package_key": "clap-4.6.6",
             "kind": "normal",
             "features": [
               "derive"
@@ -12342,7 +12551,7 @@
         "runtime_dependencies": [
           {
             "name": "zerocopy",
-            "package_key": "zerocopy-0.8.55",
+            "package_key": "zerocopy-0.8.56",
             "kind": "normal",
             "features": [
               "simd"
@@ -12359,7 +12568,7 @@
           "std"
         ]
       },
-      "praca-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919": {
+      "praca-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": {
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
@@ -12385,7 +12594,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+            "package_key": "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12395,9 +12604,7 @@
           }
         ],
         "build_dependencies": [],
-        "features": [
-          "default"
-        ]
+        "features": []
       },
       "precomputed-hash-0.1.1": {
         "runtime_dependencies": [],
@@ -15877,7 +16084,7 @@
           },
           {
             "name": "clap",
-            "package_key": "clap-4.6.5",
+            "package_key": "clap-4.6.6",
             "kind": "normal",
             "features": [
               "derive",
@@ -16064,7 +16271,7 @@
           },
           {
             "name": "clap",
-            "package_key": "clap-4.6.5",
+            "package_key": "clap-4.6.6",
             "kind": "normal",
             "features": [
               "derive",
@@ -17183,7 +17390,7 @@
           "std"
         ]
       },
-      "shidou-0.1.9": {
+      "shidou-0.1.9-52612bc3e60c1fe859a592a5372e66d89835d03c": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -17197,7 +17404,7 @@
           },
           {
             "name": "clap",
-            "package_key": "clap-4.6.5",
+            "package_key": "clap-4.6.6",
             "kind": "normal",
             "features": [
               "derive"
@@ -17221,7 +17428,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.491",
+            "package_key": "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17268,7 +17475,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.491": {
+      "shikumi-0.1.491-d4d481115f1eda678cd7802412fb2995e3d6698a": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -17292,7 +17499,7 @@
           },
           {
             "name": "clap",
-            "package_key": "clap-4.6.5",
+            "package_key": "clap-4.6.6",
             "kind": "normal",
             "features": [
               "derive"
@@ -17352,6 +17559,155 @@
             "kind": "normal",
             "features": [
               "macos_fsevent"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": "cfg(target_os = \"macos\")",
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.229",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.151",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_yaml",
+            "package_key": "serde_yaml-0.9.34+deprecated",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "thiserror",
+            "package_key": "thiserror-2.0.19",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tracing",
+            "package_key": "tracing-0.1.44",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "cli",
+          "default"
+        ]
+      },
+      "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": {
+        "runtime_dependencies": [
+          {
+            "name": "arc_swap",
+            "package_key": "arc-swap-1.9.2",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "async_trait",
+            "package_key": "async-trait-0.1.91",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "host"
+          },
+          {
+            "name": "clap",
+            "package_key": "clap-4.6.6",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "figment",
+            "package_key": "figment-0.10.19",
+            "kind": "normal",
+            "features": [
+              "env",
+              "toml",
+              "yaml"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "gen_platform",
+            "package_key": "gen-platform-0.1.35-3925eaab4271cd4a0db1942216062d84b364e3a0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "gen_types",
+            "package_key": "gen-types-0.1.35-3925eaab4271cd4a0db1942216062d84b364e3a0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "notify",
+            "package_key": "notify-8.2.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "notify",
+            "package_key": "notify-8.2.0",
+            "kind": "normal",
+            "features": [
+              "macos_kqueue"
             ],
             "uses_default_features": false,
             "optional": false,
@@ -19970,11 +20326,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-0.3.36": {
+      "tatara-closed-set-0.3.37": {
         "runtime_dependencies": [
           {
             "name": "tatara_closed_set_derive",
-            "package_key": "tatara-closed-set-derive-0.3.36",
+            "package_key": "tatara-closed-set-derive-0.3.37",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19986,7 +20342,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-derive-0.3.36": {
+      "tatara-closed-set-derive-0.3.37": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -20396,7 +20752,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.3.36",
+            "package_key": "tatara-closed-set-0.3.37",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20798,7 +21154,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-client-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919": {
+      "tear-client-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": {
         "runtime_dependencies": [
           {
             "name": "engate_attach",
@@ -20842,7 +21198,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+            "package_key": "tear-config-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20852,7 +21208,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+            "package_key": "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20867,7 +21223,7 @@
           "engate"
         ]
       },
-      "tear-config-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919": {
+      "tear-config-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20945,7 +21301,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.491",
+            "package_key": "shikumi-0.1.491-d4d481115f1eda678cd7802412fb2995e3d6698a",
             "kind": "normal",
             "features": [
               "cli"
@@ -20957,7 +21313,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+            "package_key": "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20989,7 +21345,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-core-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919": {
+      "tear-core-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21095,7 +21451,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+            "package_key": "tear-config-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21105,7 +21461,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+            "package_key": "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21160,7 +21516,7 @@
           "engate"
         ]
       },
-      "tear-daemon-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919": {
+      "tear-daemon-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21219,7 +21575,7 @@
           },
           {
             "name": "praca",
-            "package_key": "praca-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+            "package_key": "praca-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21261,7 +21617,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+            "package_key": "tear-config-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21271,7 +21627,7 @@
           },
           {
             "name": "tear_core",
-            "package_key": "tear-core-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+            "package_key": "tear-core-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21281,7 +21637,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+            "package_key": "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21319,7 +21675,7 @@
           "default"
         ]
       },
-      "tear-types-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919": {
+      "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21424,7 +21780,7 @@
           },
           {
             "name": "getrandom",
-            "package_key": "getrandom-0.3.4",
+            "package_key": "getrandom-0.4.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -21886,6 +22242,109 @@
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
+      },
+      "todoku-0.1.1": {
+        "runtime_dependencies": [
+          {
+            "name": "async_trait",
+            "package_key": "async-trait-0.1.91",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "host"
+          },
+          {
+            "name": "reqwest",
+            "package_key": "reqwest-0.12.28",
+            "kind": "normal",
+            "features": [
+              "brotli",
+              "charset",
+              "cookies",
+              "gzip",
+              "http2",
+              "json",
+              "macos-system-configuration",
+              "rustls-tls"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.229",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.151",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "thiserror",
+            "package_key": "thiserror-2.0.19",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tokio",
+            "package_key": "tokio-1.53.1",
+            "kind": "normal",
+            "features": [
+              "net",
+              "rt",
+              "time"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tracing",
+            "package_key": "tracing-0.1.44",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "url",
+            "package_key": "url-2.5.8",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "default"
+        ]
       },
       "todoku-0.1.1-6fd4bab4fb048c84571ffcb31b2b81b9b6a2ba8f": {
         "runtime_dependencies": [
@@ -25027,11 +25486,11 @@
           "std"
         ]
       },
-      "zerocopy-0.8.55": {
+      "zerocopy-0.8.56": {
         "runtime_dependencies": [
           {
             "name": "zerocopy_derive",
-            "package_key": "zerocopy-derive-0.8.55",
+            "package_key": "zerocopy-derive-0.8.56",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25041,7 +25500,7 @@
           },
           {
             "name": "zerocopy_derive",
-            "package_key": "zerocopy-derive-0.8.55",
+            "package_key": "zerocopy-derive-0.8.56",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25057,7 +25516,7 @@
           "zerocopy-derive"
         ]
       },
-      "zerocopy-derive-0.8.55": {
+      "zerocopy-derive-0.8.56": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -26335,7 +26794,59 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.120": {
+          "kqueue-1.2.1": {
+            "runtime_dependencies": [
+              {
+                "name": "kqueue_sys",
+                "package_key": "kqueue-sys-1.1.2",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "libc",
+                "package_key": "libc-0.2.189",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": []
+          },
+          "kqueue-sys-1.1.2": {
+            "runtime_dependencies": [
+              {
+                "name": "bitflags",
+                "package_key": "bitflags-2.13.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "libc",
+                "package_key": "libc-0.2.189",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": []
+          },
+          "mado-0.1.121": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26381,7 +26892,7 @@
               },
               {
                 "name": "clap",
-                "package_key": "clap-4.6.5",
+                "package_key": "clap-4.6.6",
                 "kind": "normal",
                 "features": [
                   "derive",
@@ -26550,7 +27061,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.18",
+                "package_key": "izumi-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26560,7 +27071,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.18",
+                "package_key": "izumi-config-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26570,7 +27081,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.18",
+                "package_key": "izumi-sources-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26801,7 +27312,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+                "package_key": "praca-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26888,7 +27399,7 @@
               },
               {
                 "name": "shidou",
-                "package_key": "shidou-0.1.9",
+                "package_key": "shidou-0.1.9-52612bc3e60c1fe859a592a5372e66d89835d03c",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26898,7 +27409,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.491",
+                "package_key": "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -26920,7 +27431,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+                "package_key": "tear-client-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -26932,7 +27443,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+                "package_key": "tear-config-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26942,7 +27453,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+                "package_key": "tear-core-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -26954,7 +27465,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+                "package_key": "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -27198,6 +27709,26 @@
                 "tree": "target"
               },
               {
+                "name": "kqueue",
+                "package_key": "kqueue-1.2.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(any(target_os = \"freebsd\", target_os = \"openbsd\", target_os = \"netbsd\", target_os = \"dragonflybsd\", target_os = \"ios\"))",
+                "tree": "target"
+              },
+              {
+                "name": "kqueue",
+                "package_key": "kqueue-1.2.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": true,
+                "target": "cfg(target_os = \"macos\")",
+                "tree": "target"
+              },
+              {
                 "name": "libc",
                 "package_key": "libc-0.2.189",
                 "kind": "normal",
@@ -27215,6 +27746,42 @@
                 "uses_default_features": true,
                 "optional": false,
                 "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "mio",
+                "package_key": "mio-1.2.2",
+                "kind": "normal",
+                "features": [
+                  "os-ext"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(any(target_os = \"freebsd\", target_os = \"openbsd\", target_os = \"netbsd\", target_os = \"dragonflybsd\", target_os = \"ios\"))",
+                "tree": "target"
+              },
+              {
+                "name": "mio",
+                "package_key": "mio-1.2.2",
+                "kind": "normal",
+                "features": [
+                  "os-ext"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(any(target_os = \"linux\", target_os = \"android\"))",
+                "tree": "target"
+              },
+              {
+                "name": "mio",
+                "package_key": "mio-1.2.2",
+                "kind": "normal",
+                "features": [
+                  "os-ext"
+                ],
+                "uses_default_features": true,
+                "optional": true,
+                "target": "cfg(target_os = \"macos\")",
                 "tree": "target"
               },
               {
@@ -27241,7 +27808,10 @@
             "build_dependencies": [],
             "features": [
               "fsevent-sys",
-              "macos_fsevent"
+              "kqueue",
+              "macos_fsevent",
+              "macos_kqueue",
+              "mio"
             ]
           },
           "objc-0.2.7": {
@@ -31260,7 +31830,7 @@
               "system"
             ]
           },
-          "mado-0.1.120": {
+          "mado-0.1.121": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31306,7 +31876,7 @@
               },
               {
                 "name": "clap",
-                "package_key": "clap-4.6.5",
+                "package_key": "clap-4.6.6",
                 "kind": "normal",
                 "features": [
                   "derive",
@@ -31475,7 +32045,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.18",
+                "package_key": "izumi-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31485,7 +32055,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.18",
+                "package_key": "izumi-config-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31495,7 +32065,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.18",
+                "package_key": "izumi-sources-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31679,7 +32249,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+                "package_key": "praca-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31766,7 +32336,7 @@
               },
               {
                 "name": "shidou",
-                "package_key": "shidou-0.1.9",
+                "package_key": "shidou-0.1.9-52612bc3e60c1fe859a592a5372e66d89835d03c",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31776,7 +32346,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.491",
+                "package_key": "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -31798,7 +32368,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+                "package_key": "tear-client-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -31810,7 +32380,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+                "package_key": "tear-config-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31820,7 +32390,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+                "package_key": "tear-core-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -31832,7 +32402,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+                "package_key": "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -32015,6 +32585,18 @@
                 "tree": "target"
               },
               {
+                "name": "mio",
+                "package_key": "mio-1.2.2",
+                "kind": "normal",
+                "features": [
+                  "os-ext"
+                ],
+                "uses_default_features": true,
+                "optional": true,
+                "target": "cfg(target_os = \"macos\")",
+                "tree": "target"
+              },
+              {
                 "name": "notify_types",
                 "package_key": "notify-types-2.1.0",
                 "kind": "normal",
@@ -32038,7 +32620,10 @@
             "build_dependencies": [],
             "features": [
               "fsevent-sys",
-              "macos_fsevent"
+              "kqueue",
+              "macos_fsevent",
+              "macos_kqueue",
+              "mio"
             ]
           },
           "open-5.4.1": {
@@ -35265,7 +35850,7 @@
               "system"
             ]
           },
-          "mado-0.1.120": {
+          "mado-0.1.121": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35311,7 +35896,7 @@
               },
               {
                 "name": "clap",
-                "package_key": "clap-4.6.5",
+                "package_key": "clap-4.6.6",
                 "kind": "normal",
                 "features": [
                   "derive",
@@ -35480,7 +36065,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.18",
+                "package_key": "izumi-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35490,7 +36075,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.18",
+                "package_key": "izumi-config-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35500,7 +36085,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.18",
+                "package_key": "izumi-sources-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35684,7 +36269,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+                "package_key": "praca-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35771,7 +36356,7 @@
               },
               {
                 "name": "shidou",
-                "package_key": "shidou-0.1.9",
+                "package_key": "shidou-0.1.9-52612bc3e60c1fe859a592a5372e66d89835d03c",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35781,7 +36366,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.491",
+                "package_key": "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -35803,7 +36388,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+                "package_key": "tear-client-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -35815,7 +36400,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+                "package_key": "tear-config-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35825,7 +36410,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+                "package_key": "tear-core-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -35837,7 +36422,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+                "package_key": "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -36020,6 +36605,18 @@
                 "tree": "target"
               },
               {
+                "name": "mio",
+                "package_key": "mio-1.2.2",
+                "kind": "normal",
+                "features": [
+                  "os-ext"
+                ],
+                "uses_default_features": true,
+                "optional": true,
+                "target": "cfg(target_os = \"macos\")",
+                "tree": "target"
+              },
+              {
                 "name": "notify_types",
                 "package_key": "notify-types-2.1.0",
                 "kind": "normal",
@@ -36043,7 +36640,10 @@
             "build_dependencies": [],
             "features": [
               "fsevent-sys",
-              "macos_fsevent"
+              "kqueue",
+              "macos_fsevent",
+              "macos_kqueue",
+              "mio"
             ]
           },
           "open-5.4.1": {
@@ -39388,7 +39988,59 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.120": {
+          "kqueue-1.2.1": {
+            "runtime_dependencies": [
+              {
+                "name": "kqueue_sys",
+                "package_key": "kqueue-sys-1.1.2",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "libc",
+                "package_key": "libc-0.2.189",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": []
+          },
+          "kqueue-sys-1.1.2": {
+            "runtime_dependencies": [
+              {
+                "name": "bitflags",
+                "package_key": "bitflags-2.13.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "libc",
+                "package_key": "libc-0.2.189",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": []
+          },
+          "mado-0.1.121": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39434,7 +40086,7 @@
               },
               {
                 "name": "clap",
-                "package_key": "clap-4.6.5",
+                "package_key": "clap-4.6.6",
                 "kind": "normal",
                 "features": [
                   "derive",
@@ -39603,7 +40255,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.18",
+                "package_key": "izumi-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39613,7 +40265,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.18",
+                "package_key": "izumi-config-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39623,7 +40275,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.18",
+                "package_key": "izumi-sources-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39854,7 +40506,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+                "package_key": "praca-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39941,7 +40593,7 @@
               },
               {
                 "name": "shidou",
-                "package_key": "shidou-0.1.9",
+                "package_key": "shidou-0.1.9-52612bc3e60c1fe859a592a5372e66d89835d03c",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39951,7 +40603,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.491",
+                "package_key": "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -39973,7 +40625,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+                "package_key": "tear-client-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -39985,7 +40637,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+                "package_key": "tear-config-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39995,7 +40647,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+                "package_key": "tear-core-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -40007,7 +40659,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+                "package_key": "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -40251,6 +40903,26 @@
                 "tree": "target"
               },
               {
+                "name": "kqueue",
+                "package_key": "kqueue-1.2.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(any(target_os = \"freebsd\", target_os = \"openbsd\", target_os = \"netbsd\", target_os = \"dragonflybsd\", target_os = \"ios\"))",
+                "tree": "target"
+              },
+              {
+                "name": "kqueue",
+                "package_key": "kqueue-1.2.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": true,
+                "target": "cfg(target_os = \"macos\")",
+                "tree": "target"
+              },
+              {
                 "name": "libc",
                 "package_key": "libc-0.2.189",
                 "kind": "normal",
@@ -40268,6 +40940,42 @@
                 "uses_default_features": true,
                 "optional": false,
                 "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "mio",
+                "package_key": "mio-1.2.2",
+                "kind": "normal",
+                "features": [
+                  "os-ext"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(any(target_os = \"freebsd\", target_os = \"openbsd\", target_os = \"netbsd\", target_os = \"dragonflybsd\", target_os = \"ios\"))",
+                "tree": "target"
+              },
+              {
+                "name": "mio",
+                "package_key": "mio-1.2.2",
+                "kind": "normal",
+                "features": [
+                  "os-ext"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(any(target_os = \"linux\", target_os = \"android\"))",
+                "tree": "target"
+              },
+              {
+                "name": "mio",
+                "package_key": "mio-1.2.2",
+                "kind": "normal",
+                "features": [
+                  "os-ext"
+                ],
+                "uses_default_features": true,
+                "optional": true,
+                "target": "cfg(target_os = \"macos\")",
                 "tree": "target"
               },
               {
@@ -40294,7 +41002,10 @@
             "build_dependencies": [],
             "features": [
               "fsevent-sys",
-              "macos_fsevent"
+              "kqueue",
+              "macos_fsevent",
+              "macos_kqueue",
+              "mio"
             ]
           },
           "objc-0.2.7": {
@@ -44277,7 +44988,7 @@
               "system"
             ]
           },
-          "mado-0.1.120": {
+          "mado-0.1.121": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44323,7 +45034,7 @@
               },
               {
                 "name": "clap",
-                "package_key": "clap-4.6.5",
+                "package_key": "clap-4.6.6",
                 "kind": "normal",
                 "features": [
                   "derive",
@@ -44492,7 +45203,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.18",
+                "package_key": "izumi-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44502,7 +45213,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.18",
+                "package_key": "izumi-config-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44512,7 +45223,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.18",
+                "package_key": "izumi-sources-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44696,7 +45407,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+                "package_key": "praca-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44783,7 +45494,7 @@
               },
               {
                 "name": "shidou",
-                "package_key": "shidou-0.1.9",
+                "package_key": "shidou-0.1.9-52612bc3e60c1fe859a592a5372e66d89835d03c",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44793,7 +45504,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.491",
+                "package_key": "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -44815,7 +45526,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+                "package_key": "tear-client-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -44827,7 +45538,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+                "package_key": "tear-config-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44837,7 +45548,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+                "package_key": "tear-core-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -44849,7 +45560,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+                "package_key": "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -45032,6 +45743,18 @@
                 "tree": "target"
               },
               {
+                "name": "mio",
+                "package_key": "mio-1.2.2",
+                "kind": "normal",
+                "features": [
+                  "os-ext"
+                ],
+                "uses_default_features": true,
+                "optional": true,
+                "target": "cfg(target_os = \"macos\")",
+                "tree": "target"
+              },
+              {
                 "name": "notify_types",
                 "package_key": "notify-types-2.1.0",
                 "kind": "normal",
@@ -45055,7 +45778,10 @@
             "build_dependencies": [],
             "features": [
               "fsevent-sys",
-              "macos_fsevent"
+              "kqueue",
+              "macos_fsevent",
+              "macos_kqueue",
+              "mio"
             ]
           },
           "open-5.4.1": {
@@ -48246,7 +48972,7 @@
               "system"
             ]
           },
-          "mado-0.1.120": {
+          "mado-0.1.121": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48292,7 +49018,7 @@
               },
               {
                 "name": "clap",
-                "package_key": "clap-4.6.5",
+                "package_key": "clap-4.6.6",
                 "kind": "normal",
                 "features": [
                   "derive",
@@ -48461,7 +49187,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.18",
+                "package_key": "izumi-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48471,7 +49197,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.18",
+                "package_key": "izumi-config-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48481,7 +49207,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.18",
+                "package_key": "izumi-sources-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48665,7 +49391,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+                "package_key": "praca-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48752,7 +49478,7 @@
               },
               {
                 "name": "shidou",
-                "package_key": "shidou-0.1.9",
+                "package_key": "shidou-0.1.9-52612bc3e60c1fe859a592a5372e66d89835d03c",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48762,7 +49488,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.491",
+                "package_key": "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -48784,7 +49510,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+                "package_key": "tear-client-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -48796,7 +49522,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+                "package_key": "tear-config-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48806,7 +49532,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+                "package_key": "tear-core-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -48818,7 +49544,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919",
+                "package_key": "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -49001,6 +49727,18 @@
                 "tree": "target"
               },
               {
+                "name": "mio",
+                "package_key": "mio-1.2.2",
+                "kind": "normal",
+                "features": [
+                  "os-ext"
+                ],
+                "uses_default_features": true,
+                "optional": true,
+                "target": "cfg(target_os = \"macos\")",
+                "tree": "target"
+              },
+              {
                 "name": "notify_types",
                 "package_key": "notify-types-2.1.0",
                 "kind": "normal",
@@ -49024,7 +49762,10 @@
             "build_dependencies": [],
             "features": [
               "fsevent-sys",
-              "macos_fsevent"
+              "kqueue",
+              "macos_fsevent",
+              "macos_kqueue",
+              "mio"
             ]
           },
           "open-5.4.1": {
@@ -51621,7 +52362,7 @@
     "ciborium-ll-0.2.2": {
       "edition": "2021"
     },
-    "clap-4.6.5": {
+    "clap-4.6.6": {
       "edition": "2024",
       "binaries": [
         {
@@ -51630,7 +52371,7 @@
         }
       ]
     },
-    "clap_builder-4.6.5": {
+    "clap_builder-4.6.6": {
       "edition": "2024"
     },
     "clap_derive-4.6.4": {
@@ -52020,10 +52761,20 @@
       "edition": "2024",
       "proc_macro": true
     },
+    "gen-macros-0.1.35-3925eaab4271cd4a0db1942216062d84b364e3a0": {
+      "edition": "2024",
+      "proc_macro": true
+    },
     "gen-platform-0.1.34": {
       "edition": "2024"
     },
+    "gen-platform-0.1.35-3925eaab4271cd4a0db1942216062d84b364e3a0": {
+      "edition": "2024"
+    },
     "gen-types-0.1.34": {
+      "edition": "2024"
+    },
+    "gen-types-0.1.35-3925eaab4271cd4a0db1942216062d84b364e3a0": {
       "edition": "2024"
     },
     "generic-array-0.14.7": {
@@ -52253,13 +53004,13 @@
     "itoa-1.0.18": {
       "edition": "2021"
     },
-    "izumi-0.1.18": {
+    "izumi-0.1.19": {
       "edition": "2024"
     },
-    "izumi-config-0.1.18": {
+    "izumi-config-0.1.19": {
       "edition": "2024"
     },
-    "izumi-sources-0.1.18": {
+    "izumi-sources-0.1.19": {
       "edition": "2024"
     },
     "jobserver-0.1.35": {
@@ -52295,6 +53046,12 @@
     "khronos-egl-6.0.0": {
       "edition": "2021",
       "build_script": "build.rs"
+    },
+    "kqueue-1.2.1": {
+      "edition": "2021"
+    },
+    "kqueue-sys-1.1.2": {
+      "edition": "2021"
     },
     "kube-0.99.0": {
       "edition": "2021"
@@ -52382,7 +53139,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.120": {
+    "mado-0.1.121": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -52828,7 +53585,7 @@
     "ppv-lite86-0.2.21": {
       "edition": "2021"
     },
-    "praca-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919": {
+    "praca-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": {
       "edition": "2024"
     },
     "precomputed-hash-0.1.1": {
@@ -53215,10 +53972,13 @@
     "shell-words-1.1.1": {
       "edition": "2015"
     },
-    "shidou-0.1.9": {
+    "shidou-0.1.9-52612bc3e60c1fe859a592a5372e66d89835d03c": {
       "edition": "2024"
     },
-    "shikumi-0.1.491": {
+    "shikumi-0.1.491-d4d481115f1eda678cd7802412fb2995e3d6698a": {
+      "edition": "2024"
+    },
+    "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": {
       "edition": "2024"
     },
     "shlex-2.0.1": {
@@ -53370,10 +54130,10 @@
     "tap-1.0.1": {
       "edition": "2015"
     },
-    "tatara-closed-set-0.3.36": {
+    "tatara-closed-set-0.3.37": {
       "edition": "2021"
     },
-    "tatara-closed-set-derive-0.3.36": {
+    "tatara-closed-set-derive-0.3.37": {
       "edition": "2021",
       "proc_macro": true
     },
@@ -53415,19 +54175,19 @@
         }
       ]
     },
-    "tear-client-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919": {
+    "tear-client-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": {
       "edition": "2024"
     },
-    "tear-config-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919": {
+    "tear-config-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": {
       "edition": "2024"
     },
-    "tear-core-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919": {
+    "tear-core-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": {
       "edition": "2024"
     },
-    "tear-daemon-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919": {
+    "tear-daemon-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": {
       "edition": "2024"
     },
-    "tear-types-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919": {
+    "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": {
       "edition": "2024"
     },
     "tempfile-3.27.0": {
@@ -53488,6 +54248,9 @@
     },
     "tinyvec_macros-0.1.1": {
       "edition": "2018"
+    },
+    "todoku-0.1.1": {
+      "edition": "2024"
     },
     "todoku-0.1.1-6fd4bab4fb048c84571ffcb31b2b81b9b6a2ba8f": {
       "edition": "2024"
@@ -53896,11 +54659,11 @@
     "zeno-0.3.3": {
       "edition": "2021"
     },
-    "zerocopy-0.8.55": {
+    "zerocopy-0.8.56": {
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "zerocopy-derive-0.8.55": {
+    "zerocopy-derive-0.8.56": {
       "edition": "2021",
       "proc_macro": true
     },
@@ -53942,6 +54705,9 @@
     "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": "sha256-7dqrUg3KMEKH5ac5RuK7EJRogt4H3xtv6nDrM0jpccM=",
     "engawa-0.1.4-dd79e87f6282822e7fe4eaae5a676a1c49767013": "sha256-M86ijOVbV64ioLLQiM4TcGIvwTGlG2LABf5ntIMMIIA=",
     "engawa-wgpu-0.1.8-acc2b02d46322077861c9e74c6d2e5cb15cb1e5f": "sha256-sE/Qeve2DJY8NVMxAzjRbeZWIUmmWoF6hUAUusSJ4So=",
+    "gen-macros-0.1.35-3925eaab4271cd4a0db1942216062d84b364e3a0": "sha256-k4fTBaU5Cj2Be8kTvCiwu69u0jIRgLTyLOgEqll2hkg=",
+    "gen-platform-0.1.35-3925eaab4271cd4a0db1942216062d84b364e3a0": "sha256-k4fTBaU5Cj2Be8kTvCiwu69u0jIRgLTyLOgEqll2hkg=",
+    "gen-types-0.1.35-3925eaab4271cd4a0db1942216062d84b364e3a0": "sha256-k4fTBaU5Cj2Be8kTvCiwu69u0jIRgLTyLOgEqll2hkg=",
     "hasami-0.1.2-f9d3da50e4199581d538af2300ba0891aefc05f0": "sha256-QKqk61JrmogxthVfCASTjyJ+lrB/AnNUQHXTstx+vfA=",
     "hayai-0.1.2-4f5239c021bd154fcf5afbb4c8cf61332781dbd1": "sha256-lbxbrZSi/6ugpdjnedI+AspSMeFutczU74CTln0OOpk=",
     "irodzuki-0.1.7-d3bfe781e9c813164a37a0e0a1eeef16f5be9515": "sha256-7iA13F9fE1MktjUB89kQIiVY6TB0wTNHmHNGSJcj9Lg=",
@@ -53957,7 +54723,10 @@
     "pleme-invalidating-setter-derive-0.1.0-8df3b1bc76dbd92aa3fcd2fb9213adb5ef7f0b7c": "sha256-V57vmtWy8SI6IqsAtz5c4lNC0LDCRiRxA8tg0UJWXg8=",
     "pleme-kindbyte-derive-0.1.0-f149963e6cab8b8c0e9bd0a23ed41efd3dfcdbd6": "sha256-TCiyRkxGuJRjXv7xkNtPuUCHRpgyY8qrf978ug5gSn0=",
     "pleme-kindstr-derive-0.1.0-9fde4c145f7ff57acd88275f74511e422d407f94": "sha256-MjK6VPYt1inzElKtmBQF8piLCsOPFGqEYBilWiXYnLQ=",
-    "praca-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919": "sha256-cE0dn6kGSxTW4+KyzVcCZHVVjd8VHLFpGvzZGlrxWxg=",
+    "praca-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": "sha256-DiTdK4gw+G6St4vEY9xqQZEyY1e1ebKtK0J0bzVh0iY=",
+    "shidou-0.1.9-52612bc3e60c1fe859a592a5372e66d89835d03c": "sha256-Bh853zM0bT6ImBpqYW8DAzrou92E9AQaCfbjSTqR2/g=",
+    "shikumi-0.1.491-d4d481115f1eda678cd7802412fb2995e3d6698a": "sha256-u+PY2JyiawX3lrZFNenygvkE6xg7SvUOlS3NEsSf4Qk=",
+    "shikumi-0.1.80-b41d01e453b2c2505941ba02003f48721ca02b17": "sha256-Jd6fUoNSdzk+I5iu7FbAg9F9gbc7oU9jdPnnaTIxL6w=",
     "tatara-core-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
     "tatara-eval-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
     "tatara-lattice-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
@@ -53965,11 +54734,11 @@
     "tatara-lisp-derive-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
     "tatara-nix-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
     "tatara-process-0.2.0-a1062f8069bb336a87cb9b2c68a85885665e3234": "sha256-5Lv0gja4VgaOiRf8HxhZQYmj9/HAcZeb0kNhiukgTWU=",
-    "tear-client-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919": "sha256-cE0dn6kGSxTW4+KyzVcCZHVVjd8VHLFpGvzZGlrxWxg=",
-    "tear-config-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919": "sha256-cE0dn6kGSxTW4+KyzVcCZHVVjd8VHLFpGvzZGlrxWxg=",
-    "tear-core-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919": "sha256-cE0dn6kGSxTW4+KyzVcCZHVVjd8VHLFpGvzZGlrxWxg=",
-    "tear-daemon-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919": "sha256-cE0dn6kGSxTW4+KyzVcCZHVVjd8VHLFpGvzZGlrxWxg=",
-    "tear-types-0.1.11-779d15f5cbd2ec7f714ff8ba7e31b073e02ac919": "sha256-cE0dn6kGSxTW4+KyzVcCZHVVjd8VHLFpGvzZGlrxWxg=",
+    "tear-client-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": "sha256-DiTdK4gw+G6St4vEY9xqQZEyY1e1ebKtK0J0bzVh0iY=",
+    "tear-config-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": "sha256-DiTdK4gw+G6St4vEY9xqQZEyY1e1ebKtK0J0bzVh0iY=",
+    "tear-core-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": "sha256-DiTdK4gw+G6St4vEY9xqQZEyY1e1ebKtK0J0bzVh0iY=",
+    "tear-daemon-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": "sha256-DiTdK4gw+G6St4vEY9xqQZEyY1e1ebKtK0J0bzVh0iY=",
+    "tear-types-0.1.8-a6041abc1d14fb93424738909e1db769c22bdb65": "sha256-DiTdK4gw+G6St4vEY9xqQZEyY1e1ebKtK0J0bzVh0iY=",
     "todoku-0.1.1-6fd4bab4fb048c84571ffcb31b2b81b9b6a2ba8f": "sha256-qtsSwBKWn9b1qFpCKlGDA0WbMye48yRmh+wINLqgT04=",
     "tsuuchi-0.1.5-3a26bae14780f29127d506c11ee6b52c50b4f31d": "sha256-+A99pTm6jQSKPTo8i7DMF52VK/77UHfbEx3WN/hooTc=",
     "vigy-0.1.6-096c393f3252ce0e6b3800663d8779cf03038cd3": "sha256-2zEGXED+0/prb885HIM7u7BdAaH6KSrxJF1TyKIZG0w=",
