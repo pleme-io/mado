@@ -1200,7 +1200,10 @@ mod tests {
                 SourceKind::CargoWarnings,
                 health_row(SourceStatus::Unconfigured, 10_000),
             ),
-            (SourceKind::TendRepos, health_row(SourceStatus::Error, 10_000)),
+            (
+                SourceKind::TendRepos,
+                health_row(SourceStatus::Error, 10_000),
+            ),
         ];
         let mut j = SuggestHealthJanitor::new(2);
         // Streak of 1 — below `min_consecutive`, so neither files yet.
@@ -1211,7 +1214,10 @@ mod tests {
                 SourceKind::CargoWarnings,
                 health_row(SourceStatus::Unconfigured, 20_000),
             ),
-            (SourceKind::TendRepos, health_row(SourceStatus::Error, 20_000)),
+            (
+                SourceKind::TendRepos,
+                health_row(SourceStatus::Error, 20_000),
+            ),
         ];
         let found = j.observe(&env, 30_000);
         let keys: Vec<&str> = found.iter().map(|f| f.key.as_str()).collect();
