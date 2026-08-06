@@ -1619,6 +1619,52 @@ pub struct KittyImage {
     pub seqno: u64,
 }
 
+/// One cell's size in physical pixels — the ONE geometric fact this
+/// VT engine cannot derive and must be told. `Terminal` measures
+/// everything in cells; the font metrics that turn a cell into pixels
+/// are owned by `render.rs` (`TerminalRenderer::cell_size_phys`), and
+/// the PTY winsize this engine drives carries `ws_xpixel = 0` /
+/// `ws_ypixel = 0`, so nothing on the byte path knows it either.
+///
+/// It exists because iTerm2's inline-image protocol spells a size in
+/// PIXELS (`width=200px`) while a placement is expressed in CELLS. A
+/// wrong cell size silently mis-sizes every such image, which is worse
+/// than declining the unit — so this is an `Option` on `Terminal` that
+/// the embedder sets, never a constant guessed here. Unset, a pixel
+/// dimension degrades to `Auto` (natural size) with a trace, and the
+/// cell- and percent-spelled dimensions still work because they need
+/// no conversion.
+///
+/// Zero is unconstructible: `new` rejects it, and the fields are
+/// private, so every division by a `CellSizePx` is total by
+/// construction rather than by a guard someone can forget.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CellSizePx {
+    width: u32,
+    height: u32,
+}
+
+impl CellSizePx {
+    /// `None` when either extent is zero — a degenerate cell size has
+    /// no meaning and would make the pixel→cell conversion undefined.
+    #[must_use]
+    pub fn new(width: u32, height: u32) -> Option<Self> {
+        (width > 0 && height > 0).then_some(Self { width, height })
+    }
+
+    /// Cell width in physical pixels. Never zero.
+    #[must_use]
+    pub fn width(self) -> u32 {
+        self.width
+    }
+
+    /// Cell height in physical pixels. Never zero.
+    #[must_use]
+    pub fn height(self) -> u32 {
+        self.height
+    }
+}
+
 /// A placement of an image at a specific cell position.
 #[derive(Clone, Debug)]
 pub struct ImagePlacement {
@@ -2127,6 +2173,12 @@ pub struct Terminal {
     image_placements: Vec<ImagePlacement>,
     next_image_id: u32,
     pending_kitty: Option<KittyPending>,
+    // Cell size in physical pixels — see `CellSizePx`. `None` until the
+    // embedder measures the font, which is the honest default: this
+    // engine has no font, and the winsize it drives carries zero pixel
+    // extents. Only the iTerm2 `width=Npx` / `height=Npx` inline-image
+    // units need it; everything else in the engine is cell-native.
+    cell_size_px: Option<CellSizePx>,
 
     // Sixel decode goes straight through the shared image path (unhook
     // → icy_sixel → store_rgba_image → `images` + `image_placements`).
@@ -2326,6 +2378,7 @@ impl Terminal {
             image_placements: Vec::new(),
             next_image_id: 1,
             pending_kitty: None,
+            cell_size_px: None,
             sixel_buffer: None,
             sixel_buffer_overflow: false,
             sixel_dcs_params: (None, None, None),
@@ -3042,9 +3095,38 @@ impl Terminal {
     /// moment the grid moves under it.
     #[must_use]
     pub fn selection_anchor_at(&self, row: usize, col: usize) -> Option<SelectionAnchor> {
-        let grid = self.grid();
-        let top_abs = grid.scrollback_len().saturating_sub(self.scroll_offset);
-        let anchor = grid.cell_anchor_at(top_abs + row, col)?;
+        let top_abs = self
+            .grid()
+            .scrollback_len()
+            .saturating_sub(self.scroll_offset);
+        self.selection_anchor_at_abs(top_abs + row, col)
+    }
+
+    /// Capture a content anchor at an ABSOLUTE cell (`abs_row` 0 =
+    /// oldest scrollback row) — the coordinate space
+    /// [`Self::resolve_selection_anchor`] hands back, and the space
+    /// prompt/command marks are stored in.
+    ///
+    /// This is the anchor constructor for any caller whose row came
+    /// from mado's own recorded state rather than from a mouse
+    /// gesture. [`Self::selection_anchor_at`] is the viewport-relative
+    /// wrapper over it, and the two differ by exactly the scroll
+    /// origin — which is why a mark-driven caller must NOT reach for
+    /// the viewport form: a command whose output starts above the view
+    /// resolves its start row to a NEGATIVE viewport row, which
+    /// `usize` cannot carry, so the selection silently begins at the
+    /// top of the screen and copies only the visible tail.
+    ///
+    /// Copy-last-command (`ux::engine`) is the motivating consumer:
+    /// with this it anchors a command block's `(start_abs, end_abs)`
+    /// rows directly and needs no viewport manipulation at all — the
+    /// scroll-to-top-then-restore dance (a write lock taken purely to
+    /// move the offset, capture, and move it back) goes away, and with
+    /// it the frame where a concurrent reader could observe the
+    /// terminal parked at the top of scrollback.
+    #[must_use]
+    pub fn selection_anchor_at_abs(&self, abs_row: usize, col: usize) -> Option<SelectionAnchor> {
+        let anchor = self.grid().cell_anchor_at(abs_row, col)?;
         Some(SelectionAnchor {
             epoch: self.grid_epoch,
             screen: self.active_screen(),
@@ -4472,7 +4554,9 @@ impl Terminal {
         self.next_image_id += 1;
         self.seqno += 1;
         self.store_rgba_image(id, img.pixels, w, h);
-        self.place_decoded_image_at_cursor(id);
+        // Sixel carries no display-geometry keys — the extent comes
+        // from the texture, which is what `(0, 0)` means downstream.
+        self.place_decoded_image_at_cursor(id, 0, 0);
         self.dirty();
         tracing::debug!(id, w, h, "sixel decoded + placed");
     }
@@ -4489,12 +4573,12 @@ impl Terminal {
     /// panic. `image::load_from_memory` is the only failure surface and
     /// it is a typed `Result`.
     ///
-    /// **Geometry is NOT honoured yet.** `file.width` / `file.height` /
-    /// `preserve_aspect_ratio` are parsed and typed but unconsumed — the
-    /// placement below defaults `cols`/`rows` exactly as the sixel path
-    /// does, so display size comes from the texture. Honouring them
-    /// means a placement constructor that takes geometry, which is a
-    /// change to the shared pair, not to this producer.
+    /// **Geometry IS honoured.** `file.width` / `file.height` /
+    /// `preserve_aspect_ratio` resolve to the placement's `cols`/`rows`
+    /// through [`Self::inline_image_cells`], so `imgcat -W 40` sizes the
+    /// image instead of being silently dropped. `Auto` on both axes
+    /// still yields `(0, 0)` — byte-identical to the sixel path, which
+    /// is exactly today's behaviour for an unadorned `imgcat`.
     fn decode_and_place_inline_file(&mut self, file: &crate::osc_1337::InlineFile) {
         let img = match file.decode_rgba() {
             Ok(img) => img,
@@ -4504,34 +4588,173 @@ impl Terminal {
             }
         };
         let (w, h) = (img.width, img.height);
+        let (cols, rows) = self.inline_image_cells(file, w, h);
         let id = self.next_image_id;
         self.next_image_id += 1;
         self.seqno += 1;
         self.store_rgba_image(id, img.pixels, w, h);
-        self.place_decoded_image_at_cursor(id);
+        self.place_decoded_image_at_cursor(id, cols, rows);
         self.dirty();
-        tracing::debug!(id, w, h, "OSC 1337 inline image decoded + placed");
+        tracing::debug!(
+            id,
+            w,
+            h,
+            cols,
+            rows,
+            "OSC 1337 inline image decoded + placed"
+        );
     }
 
-    /// Push a default placement (cols/rows auto from image, z=0) for a
-    /// decoded image at the current cursor. The sixel path has no Kitty
-    /// `c=`/`r=`/`z=` params, so every geometry field defaults — the
-    /// render derives display size from the texture dimensions.
+    /// Teach this engine one cell's size in physical pixels. See
+    /// [`CellSizePx`] for why it is told rather than derived: the
+    /// embedder measures the font, and until it does, `width=Npx` on an
+    /// inline image degrades to `Auto` rather than to a wrong number.
     ///
-    /// The cursor is NOT advanced past the image (no sixel-scrolling).
-    /// Converting image-height-px to rows needs cell-height-in-px, which
-    /// is renderer-owned and not threaded into this VT engine — so text
-    /// emitted right after a sixel can overdraw it. Scope documented at
-    /// `caps::SIXEL_GRAPHICS_IMPLEMENTED` (review 2026-06-12,
-    /// correctness-0).
-    fn place_decoded_image_at_cursor(&mut self, image_id: u32) {
+    /// Idempotent and safe to call every resize/font change; nothing is
+    /// cached against it, so a later placement simply resolves with the
+    /// newer size.
+    pub fn set_cell_size_px(&mut self, cell: CellSizePx) {
+        self.cell_size_px = Some(cell);
+    }
+
+    /// The cell size this engine has been told, if any.
+    #[must_use]
+    pub fn cell_size_px(&self) -> Option<CellSizePx> {
+        self.cell_size_px
+    }
+
+    /// Resolve one iTerm2 `width=` / `height=` value to a count of
+    /// CELLS on its own axis. `None` = "leave it auto" — either the
+    /// dimension was absent, or it was spelled in a unit this engine
+    /// cannot convert yet.
+    ///
+    /// `grid_extent` is the session's size in cells on that axis, which
+    /// is what iTerm2's `N%` is a percentage of. A percentage that
+    /// rounds to zero clamps to one cell: `0` downstream means AUTO,
+    /// not "invisible", so rounding into it would turn a tiny explicit
+    /// size into a full-size image.
+    fn image_dim_cells(
+        dim: crate::osc_1337::ImageDim,
+        grid_extent: usize,
+        cell_extent_px: Option<u32>,
+    ) -> Option<usize> {
+        use crate::osc_1337::ImageDim;
+        let cells = |n: u32| usize::try_from(n).unwrap_or(usize::MAX);
+        match dim {
+            ImageDim::Auto => None,
+            ImageDim::Cells(0) | ImageDim::Pixels(0) | ImageDim::Percent(0) => None,
+            ImageDim::Cells(n) => Some(cells(n)),
+            ImageDim::Percent(n) => Some((grid_extent.saturating_mul(cells(n)) / 100).max(1)),
+            ImageDim::Pixels(n) => match cell_extent_px {
+                // Round UP: a box that fits the pixels is closer to the
+                // request than one that crops them.
+                Some(cell_px) => Some(cells(n.div_ceil(cell_px))),
+                None => {
+                    tracing::debug!(
+                        px = n,
+                        "inline image dimension is in pixels but no cell size is \
+                         known — falling back to the image's natural extent \
+                         rather than guessing a cell size"
+                    );
+                    None
+                }
+            },
+        }
+    }
+
+    /// Resolve an inline image's `width=`/`height=`/`preserveAspectRatio=`
+    /// to the placement's `(cols, rows)`, where `0` on an axis means
+    /// "derive from the texture" — the same encoding Kitty's absent
+    /// `c=`/`r=` uses, so this feeds the one shared placement path
+    /// rather than a parallel geometry channel.
+    ///
+    /// Aspect handling follows iTerm2:
+    /// * `preserveAspectRatio` on, ONE axis given → the other is derived
+    ///   from the image's aspect (this is the `imgcat -W 40` case).
+    /// * `preserveAspectRatio` on, BOTH axes given → the image is fitted
+    ///   INSIDE that box, never stretched to it.
+    /// * `preserveAspectRatio` off → each axis is taken verbatim and an
+    ///   absent axis stays natural.
+    ///
+    /// Both aspect rules need pixels-per-cell to relate the two axes, so
+    /// without a [`CellSizePx`] they degrade to "honour what was given,
+    /// derive nothing" rather than to a guess.
+    fn inline_image_cells(
+        &self,
+        file: &crate::osc_1337::InlineFile,
+        img_w_px: u32,
+        img_h_px: u32,
+    ) -> (usize, usize) {
+        let cell = self.cell_size_px;
+        let w = Self::image_dim_cells(file.width, self.cols, cell.map(CellSizePx::width));
+        let h = Self::image_dim_cells(file.height, self.rows, cell.map(CellSizePx::height));
+        let verbatim = (w.unwrap_or(0), h.unwrap_or(0));
+
+        // No cell size ⇒ the two axes cannot be related at all; a
+        // degenerate texture has no aspect to preserve; and an explicit
+        // `preserveAspectRatio=0` asks for exactly what was written.
+        // All three pass the requested extents through untouched.
+        let Some(cell) = cell else { return verbatim };
+        if img_w_px == 0 || img_h_px == 0 || !file.preserve_aspect_ratio {
+            return verbatim;
+        }
+
+        // Exact integer geometry — cells → pixels → fit → cells. No
+        // floats: the inputs are pixel counts, and a rounding mode is a
+        // decision worth being able to read off the arithmetic.
+        let wide = |n: usize| u64::try_from(n).unwrap_or(u64::MAX);
+        let narrow = |n: u64| usize::try_from(n).unwrap_or(usize::MAX);
+        let (cw, ch) = (u64::from(cell.width()), u64::from(cell.height()));
+        let (iw, ih) = (u64::from(img_w_px), u64::from(img_h_px));
+        // Round UP, then clamp to ≥1: `0` downstream means AUTO, so a
+        // derived axis must never round into it.
+        let to_cells = |px: u64, cell_px: u64| narrow(px.div_ceil(cell_px)).max(1);
+        // Every product is saturating. A `width=4294967295` on the wire
+        // is one escape sequence away, and the honest failure for an
+        // absurd request is an absurd (clamped) extent, never a debug
+        // panic on overflow.
+        let scaled = |a: u64, b: u64, c: u64, d: u64| a.saturating_mul(b).saturating_mul(c) / d;
+
+        match (w, h) {
+            // One axis given — derive the other from the image's aspect.
+            // This is `imgcat -W 40`.
+            (Some(wc), None) => (wc, to_cells(scaled(ih, wide(wc), cw, iw), ch)),
+            (None, Some(hc)) => (to_cells(scaled(iw, wide(hc), ch, ih), cw), hc),
+            // Both given — FIT inside that box rather than stretch to
+            // it. The binding axis is chosen by cross-multiplication
+            // (`box_w/iw` vs `box_h/ih`), so the fitted image is exact
+            // on the tight axis and never overflows the loose one.
+            (Some(wc), Some(hc)) => {
+                let (box_w, box_h) = (wide(wc).saturating_mul(cw), wide(hc).saturating_mul(ch));
+                if box_w.saturating_mul(ih) <= box_h.saturating_mul(iw) {
+                    (wc, to_cells(ih.saturating_mul(box_w) / iw, ch).min(hc))
+                } else {
+                    (to_cells(iw.saturating_mul(box_h) / ih, cw).min(wc), hc)
+                }
+            }
+            (None, None) => (0, 0),
+        }
+    }
+
+    /// Push a placement for a decoded image at the current cursor.
+    /// `cols`/`rows` are the display extent in cells, with `0` meaning
+    /// "derive from the texture" — the encoding Kitty's absent `c=`/`r=`
+    /// already uses, so sixel (no geometry at all) and iTerm2 inline
+    /// images (typed geometry) share ONE constructor instead of growing
+    /// a second one.
+    ///
+    /// The cursor is NOT advanced past the image (no sixel-scrolling) —
+    /// so text emitted right after an image can overdraw it. Scope
+    /// documented at `caps::SIXEL_GRAPHICS_IMPLEMENTED` (review
+    /// 2026-06-12, correctness-0).
+    fn place_decoded_image_at_cursor(&mut self, image_id: u32, cols: usize, rows: usize) {
         self.image_placements.push(ImagePlacement {
             image_id,
             placement_id: 0,
             col: self.cursor.col,
             row: self.cursor.row,
-            cols: 0,
-            rows: 0,
+            cols,
+            rows,
             x_offset: 0,
             y_offset: 0,
             src_x: 0,
@@ -8493,6 +8716,194 @@ mod tests {
         assert_eq!((img.width, img.height), (3, 2));
     }
 
+    /// Feed one `inline=1` image with the given extra argument list and
+    /// return the placement's `(cols, rows)`. Every geometry assertion
+    /// below reads exactly this, so a failure names a geometry, never a
+    /// plumbing accident.
+    fn inline_placement_extent(term: &mut Terminal, args: &str) -> (usize, usize) {
+        let before = term.image_placements().len();
+        let b64 = base64_encode(&inline_png_3x2());
+        let mut full = String::from("inline=1");
+        if !args.is_empty() {
+            full.push(';');
+            full.push_str(args);
+        }
+        term.feed(&osc_1337_file_seq(&full, &b64));
+        assert_eq!(
+            term.image_placements().len(),
+            before + 1,
+            "`{args}` must still place exactly one image"
+        );
+        let p = term.image_placements().last().expect("a placement landed");
+        (p.cols, p.rows)
+    }
+
+    /// The deliverable: `width=` is HONOURED, and the unit it is spelled
+    /// in changes the answer. `imgcat -W 40` used to be parsed into a
+    /// typed `ImageDim` and then dropped on the floor — cells, pixels
+    /// and absent all produced the identical default placement.
+    ///
+    /// Three distinct extents from one 3×2 image on a 10×20-px cell:
+    /// absent ⇒ `(0, 0)` (derive from the texture), `width=6` ⇒ six
+    /// CELLS, `width=6px` ⇒ six PIXELS ⇒ one cell. `preserveAspectRatio`
+    /// is off here so each axis stands alone; the aspect rules get their
+    /// own test.
+    #[test]
+    fn osc_1337_inline_geometry_distinguishes_cells_pixels_and_auto() {
+        let mut term = Terminal::new(80, 24);
+        term.set_cell_size_px(CellSizePx::new(10, 20).expect("a 10×20 cell is valid"));
+
+        let auto = inline_placement_extent(&mut term, "");
+        let cells = inline_placement_extent(&mut term, "width=6;preserveAspectRatio=0");
+        let pixels = inline_placement_extent(&mut term, "width=6px;preserveAspectRatio=0");
+
+        assert_eq!(
+            auto,
+            (0, 0),
+            "an unadorned imgcat still derives from the texture"
+        );
+        assert_eq!(cells, (6, 0), "a bare integer is a count of CELLS");
+        assert_eq!(pixels, (1, 0), "6px on a 10px cell rounds up to one cell");
+        assert_ne!(
+            cells, pixels,
+            "the same number in two units must not produce the same placement"
+        );
+        assert_ne!(cells, auto, "an explicit width must not read as auto");
+        assert_ne!(
+            pixels, auto,
+            "an explicit pixel width must not read as auto"
+        );
+    }
+
+    /// `preserveAspectRatio` — iTerm2's default, ON — is what makes
+    /// `imgcat -W 40` look right: one axis is given and the other is
+    /// DERIVED from the image, not left at its natural size. A 3×2
+    /// image asked to be 10 cells wide on a 10×20-px cell occupies
+    /// 100 px across, so 66 px down, so 4 rows.
+    ///
+    /// With it OFF, the unspecified axis stays natural (`0`) and a
+    /// fully-specified box is taken verbatim — the control that proves
+    /// the flag is read rather than assumed.
+    #[test]
+    fn osc_1337_inline_geometry_honours_preserve_aspect_ratio() {
+        let mut term = Terminal::new(80, 24);
+        term.set_cell_size_px(CellSizePx::new(10, 20).expect("a 10×20 cell is valid"));
+
+        assert_eq!(
+            inline_placement_extent(&mut term, "width=10"),
+            (10, 4),
+            "one axis given + aspect preserved ⇒ the other is derived"
+        );
+        assert_eq!(
+            inline_placement_extent(&mut term, "width=10;preserveAspectRatio=0"),
+            (10, 0),
+            "aspect off ⇒ the unspecified axis stays natural"
+        );
+        // Both axes + aspect on ⇒ FIT inside the box, never stretch to
+        // it: the 3:2 image binds on width and comes back 4 rows tall,
+        // not the 10 rows it was offered.
+        assert_eq!(
+            inline_placement_extent(&mut term, "width=10;height=10"),
+            (10, 4),
+            "a fully-specified box with aspect on fits inside it"
+        );
+        assert_eq!(
+            inline_placement_extent(&mut term, "width=10;height=10;preserveAspectRatio=0"),
+            (10, 10),
+            "aspect off ⇒ the box is taken verbatim"
+        );
+    }
+
+    /// `N%` is a percentage of the SESSION, and the session's size is
+    /// already in cells — so percent needs no pixel knowledge and works
+    /// with or without a cell size.
+    #[test]
+    fn osc_1337_inline_geometry_percent_is_of_the_session_grid() {
+        let mut term = Terminal::new(80, 24);
+        assert_eq!(
+            inline_placement_extent(&mut term, "width=50%;preserveAspectRatio=0"),
+            (40, 0),
+            "50% of an 80-column session is 40 cells"
+        );
+        assert_eq!(
+            inline_placement_extent(&mut term, "height=50%;preserveAspectRatio=0"),
+            (0, 12),
+            "50% of a 24-row session is 12 cells"
+        );
+        // A percentage that rounds to zero clamps to one cell: `0`
+        // downstream means AUTO, so rounding into it would turn the
+        // smallest possible explicit size into a full-size image.
+        assert_eq!(
+            inline_placement_extent(&mut term, "width=1%;preserveAspectRatio=0"),
+            (1, 0),
+            "1% of 80 columns is 0.8 cells and must clamp UP, not to auto"
+        );
+    }
+
+    /// The honest limit. Pixels are the one unit this engine cannot
+    /// convert on its own: cell size is a font metric owned by
+    /// `render.rs`, and the winsize on the byte path carries
+    /// `ws_xpixel = 0`. Until the embedder calls `set_cell_size_px`, a
+    /// pixel dimension degrades to the image's natural extent — a wrong
+    /// cell size would silently mis-size EVERY inline image, which is
+    /// worse than declining the unit. Cell- and percent-spelled sizes
+    /// are unaffected, because they need no conversion.
+    #[test]
+    fn osc_1337_inline_geometry_declines_pixels_until_it_is_told_a_cell_size() {
+        let mut term = Terminal::new(80, 24);
+        assert_eq!(term.cell_size_px(), None, "no cell size by default");
+
+        assert_eq!(
+            inline_placement_extent(&mut term, "width=60px;preserveAspectRatio=0"),
+            (0, 0),
+            "an unconvertible pixel width falls back to the natural extent"
+        );
+        assert_eq!(
+            inline_placement_extent(&mut term, "width=6;preserveAspectRatio=0"),
+            (6, 0),
+            "cells still work without a cell size — they need no conversion"
+        );
+
+        // Told the cell size, the SAME sequence resolves.
+        term.set_cell_size_px(CellSizePx::new(10, 20).expect("a 10×20 cell is valid"));
+        assert_eq!(
+            inline_placement_extent(&mut term, "width=60px;preserveAspectRatio=0"),
+            (6, 0),
+            "60px on a 10px cell is six cells"
+        );
+    }
+
+    /// A degenerate cell size is unconstructible rather than guarded:
+    /// the fields are private and `new` rejects a zero extent, so every
+    /// division by a `CellSizePx` is total by construction.
+    #[test]
+    fn cell_size_px_rejects_a_degenerate_extent() {
+        assert!(CellSizePx::new(0, 20).is_none(), "zero width is not a cell");
+        assert!(
+            CellSizePx::new(10, 0).is_none(),
+            "zero height is not a cell"
+        );
+        let c = CellSizePx::new(10, 20).expect("a 10×20 cell is valid");
+        assert_eq!((c.width(), c.height()), (10, 20));
+    }
+
+    /// A geometry value is attacker-supplied — one escape sequence
+    /// carries `width=4294967295`. The aspect arithmetic multiplies
+    /// cells by pixels by pixels, so it saturates rather than
+    /// overflowing: an absurd request yields an absurd (clamped) extent,
+    /// never a debug-build panic on the VT thread.
+    #[test]
+    fn osc_1337_inline_geometry_saturates_instead_of_overflowing() {
+        let mut term = Terminal::new(80, 24);
+        term.set_cell_size_px(CellSizePx::new(10, 20).expect("a 10×20 cell is valid"));
+        let (cols, rows) = inline_placement_extent(&mut term, "width=4294967295");
+        assert_eq!(
+            cols, 4_294_967_295,
+            "the requested width is carried as asked"
+        );
+        assert!(rows > 0, "and the derived height is finite, not a panic");
+    }
+
     /// `inline=0` — iTerm2's default — means "save this file", not
     /// "paint it". mado has no download surface, so the sequence is
     /// consumed and dropped: no texture, no placement. Painting it would
@@ -12240,6 +12651,106 @@ mod tests {
             Some("YYYYY"),
             "copy from the orphaned tail must yield tail bytes"
         );
+    }
+
+    /// Copy-last-command anchors a command's output block by the
+    /// ABSOLUTE rows its marks recorded, and that block usually STARTS
+    /// ABOVE the viewport. `selection_anchor_at` cannot express it —
+    /// the row it wants is negative in viewport space and `usize`
+    /// cannot carry that — so the caller had to park the viewport at
+    /// the top of scrollback under a write lock, capture, and put it
+    /// back. `selection_anchor_at_abs` is the constructor that removes
+    /// the dance: same absolute row in, that row's content out,
+    /// viewport untouched.
+    #[test]
+    fn selection_anchor_at_abs_reaches_scrollback_above_the_viewport() {
+        let mut term = Terminal::with_scrollback(20, 5, 1000);
+        for i in 0..40u32 {
+            term.feed(b"row");
+            term.feed(i.to_string().as_bytes());
+            term.feed(b"\r\n");
+        }
+        let scrollback = term.grid().scrollback_len();
+        assert!(
+            scrollback >= 10,
+            "the feed must have produced scrollback, got {scrollback}"
+        );
+        assert_eq!(term.scroll_offset(), 0, "viewport parked at the bottom");
+
+        // Absolute row 3 — deep in scrollback, nowhere near the five
+        // visible rows.
+        let a = term
+            .selection_anchor_at_abs(3, 0)
+            .expect("abs anchor start");
+        let b = term.selection_anchor_at_abs(3, 3).expect("abs anchor end");
+        assert_eq!(
+            term.resolve_selection_anchor(a),
+            Some((3, 0)),
+            "an absolute row round-trips as ITSELF — no scroll-origin shift"
+        );
+        assert_eq!(
+            term.extract_selection_text(a, b).as_deref(),
+            Some("row3"),
+            "and it selects that scrollback row's real content"
+        );
+
+        // The viewport form handed the SAME number lands somewhere else
+        // entirely: it means "3 rows below the top of the view". This is
+        // exactly the confusion that copied only a command's visible tail.
+        let v = term.selection_anchor_at(3, 0).expect("viewport anchor");
+        assert_eq!(
+            term.resolve_selection_anchor(v),
+            Some((scrollback + 3, 0)),
+            "the viewport form is offset by the scroll origin"
+        );
+        assert_ne!(
+            term.resolve_selection_anchor(v),
+            term.resolve_selection_anchor(a),
+            "the two constructors must not be interchangeable"
+        );
+        assert_eq!(
+            term.scroll_offset(),
+            0,
+            "capturing an absolute anchor moves no viewport"
+        );
+    }
+
+    /// `selection_anchor_at` is now a wrapper, so the refactor owes a
+    /// control: under a SCROLLED viewport the viewport form must still
+    /// equal the absolute form at `top_abs + row`, for every row of the
+    /// view. If the wrapper ever drops or double-counts the scroll
+    /// origin, every mouse selection shifts and this is what says so.
+    #[test]
+    fn selection_anchor_at_is_the_scroll_shifted_absolute_anchor() {
+        let mut term = Terminal::with_scrollback(20, 5, 1000);
+        for i in 0..40u32 {
+            term.feed(b"row");
+            term.feed(i.to_string().as_bytes());
+            term.feed(b"\r\n");
+        }
+        term.scroll_up(7);
+        assert_eq!(term.scroll_offset(), 7, "the viewport really is scrolled");
+        let top_abs = term.grid().scrollback_len() - term.scroll_offset();
+
+        for row in 0..term.rows() {
+            let v = term.selection_anchor_at(row, 2);
+            assert_eq!(
+                v,
+                term.selection_anchor_at_abs(top_abs + row, 2),
+                "viewport row {row} must equal absolute row {}",
+                top_abs + row
+            );
+            // Not just equal to each other — equal to the RIGHT cell.
+            // Without this, a wrapper and an absolute form that both
+            // double-count the scroll origin would agree with each
+            // other and this test would prove nothing.
+            assert_eq!(
+                v.and_then(|a| term.resolve_selection_anchor(a)),
+                Some((top_abs + row, 2)),
+                "viewport row {row} must resolve to absolute row {}",
+                top_abs + row
+            );
+        }
     }
 
     /// The seqno-keyed span memo serves only fresh resolutions: a
