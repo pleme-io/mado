@@ -101,6 +101,51 @@ kanchi::defaxes! {
     scrollback_lines: u32 = 10_000 => || probe::total_ram_gib().map(scrollback_for_ram);
 }
 
+/// The axes above, as a single typed [`shikumi::AxisLayer`] — mado's
+/// DISCOVERED tier expressed as a *layer* rather than as N field writes.
+///
+/// `kanchi` calls itself "the shikumi `discovered()` tier made declarative",
+/// and `shikumi::AxisLayer` is the adapter that finally joins the two. Before
+/// this, `MadoConfig::bare_plus_discovered` reached into seven
+/// `detect_*_or_fallback()` calls and assigned seven struct fields by hand —
+/// the shape every fleet app was copying, and the reason the DISCOVERED tier
+/// had no composable form.
+///
+/// Keys are the config's dotted paths, so this function is the ONE place that
+/// knows an axis named `window_dims` lands at `window.width` / `window.height`.
+///
+/// ## Why `_or_fallback` here, and why that is a known compromise
+///
+/// Every axis is fed through `detect_*_or_fallback()`, so this layer always
+/// answers. That preserves the exact behaviour of the hand-rolled version it
+/// replaces — the parity test in `config.rs` pins it byte-for-byte — but it is
+/// **not** the shape [`shikumi::AxisLayer::set_opt`] exists for: a fallback
+/// pushed into the DISCOVERED tier masks `prescribed_default()`, which is the
+/// tier actually meant to own curated defaults.
+///
+/// Switching the unwired axes (`theme`, `font_family`, `font_symbols`,
+/// `padding`, all `kanchi::none` today) to `set_opt(detect_*())` would let the
+/// prescribed tier show through instead — the more correct fold. It is
+/// deliberately NOT done in the same change as the mechanical conversion,
+/// because it changes resolved values and would make a parity test impossible
+/// to write. Do it as its own change, with its own before/after.
+#[must_use]
+pub fn platform_layer() -> shikumi::AxisLayer {
+    let (width, height) = detect_window_dims_or_fallback();
+    shikumi::AxisLayer::new("mado-platform")
+        .set("window.width", i64::from(width))
+        .set("window.height", i64::from(height))
+        .set("window.padding", i64::from(detect_padding_or_fallback()))
+        .set("theme", detect_theme_or_fallback())
+        .set("font_family", detect_font_family_or_fallback())
+        .set("font_symbols", detect_font_symbols_or_fallback())
+        .set("font_size", f64::from(detect_font_size_or_fallback()))
+        .set(
+            "behavior.scrollback_lines",
+            i64::from(detect_scrollback_lines_or_fallback()),
+        )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

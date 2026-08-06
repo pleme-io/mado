@@ -3411,8 +3411,48 @@ impl MadoConfig {
     ///
     /// Surfaces the "what would mado look like with ONLY detection,
     /// no developer opinions" question.
+    /// Composed through [`crate::auto_detect::platform_layer`] — a real
+    /// [`shikumi::DiscoveryLayer`], not seven hand-written field writes.
+    ///
+    /// mado is the fleet's **first** consumer of the kanchi→shikumi joint.
+    /// `kanchi` describes itself as "the shikumi `discovered()` tier made
+    /// declarative"; until `shikumi::AxisLayer` landed there was no way to
+    /// say so in code, so this function reached into seven
+    /// `detect_*_or_fallback()` calls and assigned seven fields — the shape
+    /// every other fleet app copied. Routing through a layer means the
+    /// DISCOVERED tier is now composable and, more usefully, *attributable*:
+    /// `compose_with_provenance` can name which layer wrote each leaf.
+    ///
+    /// Behaviour is byte-identical to the hand-rolled version, pinned by
+    /// `bare_plus_discovered_matches_the_frozen_oracle`.
+    ///
+    /// ## One line, because the seam already existed
+    ///
+    /// `TieredConfig::discovered_from_layers` is the fleet's standard
+    /// "wire `discovered()` from a layer stack" entry — it seeds from
+    /// `bare()`, deep-merges the composed dict per leaf, and stays total
+    /// (an undetectable axis degenerates to the bare value). Its own doc
+    /// shows precisely this call shape. mado is simply its first real
+    /// consumer; the merge code does NOT belong here.
     #[must_use]
     pub fn bare_plus_discovered() -> Self {
+        use shikumi::TieredConfig;
+        Self::discovered_from_layers(&[&crate::auto_detect::platform_layer()])
+    }
+
+    /// The frozen pre-conversion `bare_plus_discovered` — the parity oracle
+    /// for [`Self::bare_plus_discovered`], and its degradation path.
+    ///
+    /// Deliberately kept rather than deleted (★★ MODULARIZE, DON'T DELETE):
+    /// it is the only independent statement of what the DISCOVERED tier is
+    /// supposed to contain, so it is what makes the parity test meaningful.
+    /// A parity test whose "expected" side is derived from the code under
+    /// test proves nothing.
+    ///
+    /// **Do not "improve" this function.** Its whole value is that it does
+    /// not change when the layer path does.
+    #[must_use]
+    pub fn bare_plus_discovered_oracle() -> Self {
         let mut c = Self::bare();
         let (w, h) = crate::auto_detect::detect_window_dims_or_fallback();
         c.window.width = w;
@@ -4560,6 +4600,93 @@ mod tests {
         assert!(!bare.effects.scanlines.enabled);
         assert!(!bare.effects.bloom.enabled);
         assert!(!bare.effects.glow_on_bell.enabled);
+    }
+
+    /// **The M0.3 parity gate.** `bare_plus_discovered` now composes a real
+    /// `shikumi::AxisLayer` instead of writing seven fields by hand; this
+    /// pins the conversion as byte-identical against the frozen oracle.
+    ///
+    /// Compared as serialized YAML rather than field-by-field on purpose:
+    /// `MadoConfig` has 35 fields and does not derive `PartialEq`, so a
+    /// hand-written field comparison would silently stop covering any field
+    /// added later. Serializing compares the WHOLE struct, including the 28
+    /// fields the layer never touches — which is the real risk here, since
+    /// the layer path round-trips through serde and a lossy round-trip would
+    /// corrupt a field nobody thought to assert on.
+    #[test]
+    fn bare_plus_discovered_matches_the_frozen_oracle() {
+        use shikumi::{DiffLine, TieredConfig};
+        let diff = MadoConfig::bare_plus_discovered()
+            .diff_against(&MadoConfig::bare_plus_discovered_oracle());
+        let changed: Vec<&DiffLine> = diff
+            .lines
+            .iter()
+            .filter(|l| !matches!(l, DiffLine::Context(_)))
+            .collect();
+        assert!(
+            changed.is_empty(),
+            "the AxisLayer composition drifted from the hand-rolled original: {changed:#?}"
+        );
+    }
+
+    /// The parity test above is only meaningful if the layer path actually
+    /// RAN. `discovered_from_layers` is total — a failed serde round-trip
+    /// returns `bare()` — so a silent regression there would make the
+    /// composed result equal `bare()` and the parity test would then be
+    /// comparing two nearly-identical things for the wrong reason.
+    ///
+    /// This is the non-vacuity guard: the composed config must DIFFER from
+    /// the bare floor, which it can only do if the layer was applied.
+    #[test]
+    fn the_layer_path_actually_applied_and_did_not_degrade_to_bare() {
+        use shikumi::{DiffLine, TieredConfig};
+        let diff = MadoConfig::bare_plus_discovered().diff_against(&MadoConfig::bare());
+        let changed = diff
+            .lines
+            .iter()
+            .filter(|l| !matches!(l, DiffLine::Context(_)))
+            .count();
+        assert!(
+            changed > 0,
+            "bare_plus_discovered is identical to bare() — the layer never applied \
+             (discovered_from_layers degrades to bare() on a failed round-trip)"
+        );
+    }
+
+    /// The layer must actually carry every axis it claims, including the
+    /// NESTED ones. Checked through the resolved config rather than by
+    /// inspecting the dict, so the assertion covers dotted-path expansion
+    /// end to end — a layer that emitted a flat `"window.width"` key the
+    /// config could not receive would pass a dict-shaped check and fail
+    /// here.
+    #[test]
+    fn every_axis_reaches_the_resolved_config() {
+        let c = MadoConfig::bare_plus_discovered();
+        let (w, h) = crate::auto_detect::detect_window_dims_or_fallback();
+        assert_eq!(c.window.width, w, "window.width did not nest through");
+        assert_eq!(c.window.height, h, "window.height did not nest through");
+        assert_eq!(
+            c.window.padding,
+            crate::auto_detect::detect_padding_or_fallback()
+        );
+        assert_eq!(c.theme, crate::auto_detect::detect_theme_or_fallback());
+        assert_eq!(
+            c.font_family,
+            crate::auto_detect::detect_font_family_or_fallback()
+        );
+        assert_eq!(
+            c.font_symbols,
+            crate::auto_detect::detect_font_symbols_or_fallback()
+        );
+        assert_eq!(
+            c.font_size,
+            crate::auto_detect::detect_font_size_or_fallback()
+        );
+        assert_eq!(
+            c.behavior.scrollback_lines,
+            crate::auto_detect::detect_scrollback_lines_or_fallback() as usize,
+            "behavior.scrollback_lines did not nest through"
+        );
     }
 
     #[test]

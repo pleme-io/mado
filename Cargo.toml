@@ -88,14 +88,14 @@ regex = "1"
 regex-syntax = "0.8"
 
 # Pleme-io shared libraries
-# garasu / shikumi declared as crates.io versions here AND redirected via
-# `[patch.crates-io]` below to the git source so madori's transitive
-# `garasu = "0.1"` / `shikumi = "0.1"` resolves to the same git rev as
-# our direct dep — avoiding the two-versions-of-same-crate diamond at
-# link time while keeping the published crates.io version usable for
-# external consumers. Until garasu/shikumi publish a release with the
-# rich-text APIs mado depends on, the patch keeps us on git.
-shidou = { git = "https://github.com/pleme-io/shidou" , version = "0.1" }
+#
+# crates.io only — a git dep here re-imports shidou's OWN dependency
+# spellings and re-fragments them. cargo strips git sources on publish, so
+# the PUBLISHED shidou depends on `shikumi ^0.1` from the registry (verified
+# against the index, 2026-08-06), while the git checkout dragged a second
+# shikumi into this lock alongside our own. Taking shidou from the registry
+# is what collapses them.
+shidou = { version = "0.1" }
 
 # Kanshou — live process introspection over Unix sockets. Mado opens
 # a kanshou socket on startup exposing the GUI's actual AppState
@@ -196,10 +196,10 @@ tsuuchi = { git = "https://github.com/pleme-io/tsuuchi" , version = "0.1" }
 # `from_overrides` / `with_cwd` / `inproc.set_spawn_env` for the
 # env-projection + PWD cwd-handshake). Rev is on tear main, so it
 # resolves on CI + for downstream consumers.
-tear-types = { git = "https://github.com/pleme-io/tear", rev = "a6041abc1d14fb93424738909e1db769c22bdb65", features = ["engate"] , version = "0.1" }
-tear-core = { git = "https://github.com/pleme-io/tear", rev = "a6041abc1d14fb93424738909e1db769c22bdb65", features = ["engate"] , version = "0.1" }
-tear-client = { git = "https://github.com/pleme-io/tear", rev = "a6041abc1d14fb93424738909e1db769c22bdb65", features = ["engate"] , version = "0.1" }
-tear-config = { git = "https://github.com/pleme-io/tear", rev = "a6041abc1d14fb93424738909e1db769c22bdb65" , version = "0.1" }
+tear-types = { git = "https://github.com/pleme-io/tear", rev = "779d15f5cbd2ec7f714ff8ba7e31b073e02ac919", features = ["engate"] , version = "0.1" }
+tear-core = { git = "https://github.com/pleme-io/tear", rev = "779d15f5cbd2ec7f714ff8ba7e31b073e02ac919", features = ["engate"] , version = "0.1" }
+tear-client = { git = "https://github.com/pleme-io/tear", rev = "779d15f5cbd2ec7f714ff8ba7e31b073e02ac919", features = ["engate"] , version = "0.1" }
+tear-config = { git = "https://github.com/pleme-io/tear", rev = "779d15f5cbd2ec7f714ff8ba7e31b073e02ac919" , version = "0.1" }
 
 # praça (praca) — typed session-orchestration substrate (project-root
 # detection, frecency, project↔session bindings, cd-driven attach
@@ -208,7 +208,7 @@ tear-config = { git = "https://github.com/pleme-io/tear", rev = "a6041abc1d14fb9
 # project root at spawn. Auto-attach-on-cd + the picker land in later
 # phases. Same tear git source + rev as the tear-* crates above so cargo
 # unifies the shared tear-types crate identity (one git source rule).
-praca = { git = "https://github.com/pleme-io/tear", rev = "a6041abc1d14fb93424738909e1db769c22bdb65" , version = "0.1" }
+praca = { git = "https://github.com/pleme-io/tear", rev = "779d15f5cbd2ec7f714ff8ba7e31b073e02ac919" , version = "0.1" }
 
 # egaku — the fleet widget-geometry + widget typescape. Consumed today ONLY
 # for `egaku::Rect` (the geometry type the `float` floating-browser module
@@ -427,8 +427,8 @@ tokio = { version = "1", features = ["test-util", "macros", "rt-multi-thread", "
 # Same SpawnEnv-seam rev as the runtime deps above — a single tear
 # git source so cargo unifies the crate identities (a divergent rev
 # would split tear-types into two crates and break the trait unify).
-tear-core = { git = "https://github.com/pleme-io/tear", rev = "a6041abc1d14fb93424738909e1db769c22bdb65" }
-tear-daemon = { git = "https://github.com/pleme-io/tear", rev = "a6041abc1d14fb93424738909e1db769c22bdb65" }
+tear-core = { git = "https://github.com/pleme-io/tear", rev = "779d15f5cbd2ec7f714ff8ba7e31b073e02ac919" }
+tear-daemon = { git = "https://github.com/pleme-io/tear", rev = "779d15f5cbd2ec7f714ff8ba7e31b073e02ac919" }
 # Cross-process MCP integration test (tests/mcp_cross_process.rs)
 # uses the rmcp client + child-process transport. Those features now
 # ship in the main dependency (the `mado e2e` subcommand is a typed
@@ -448,14 +448,7 @@ default = []
 gpu_tests = ["dep:pollster"]
 
 [patch.crates-io]
-# INTERIM FAMILY PIN (2026-06-27): the shikumi family (shikumi + garasu + egaku
-# + madori) MUST move together. shikumi main advanced b41d01e → 2f8c6fd, which is
-# BROKEN (missing `closed_axis_label_string_surface` + `serde_via_display_fromstr`
-# macros + `discovery::Format` lost Display/from_str); the bot's `cargo update`
-# then advanced garasu/egaku to HEADs needing that newer shikumi, desyncing the
-# family. Pin ALL of them (madori too, below) to the last mutually-green rev set.
-# REMOVE these pins once shikumi main is fixed upstream — the real load-bearing fix.
-# ★ garasu is NO LONGER PATCHED — it resolves from crates.io via the plain
+# ★ garasu is NOT patched — it resolves from crates.io via the plain
 # `garasu = "0.1"` dependency above, and that is the point.
 #
 # A git rev pin cannot be unified by cargo: nami-core also depends on
@@ -470,7 +463,16 @@ gpu_tests = ["dep:pollster"]
 # was only ever a workaround for garasu being unpublished; auto-release
 # publishes it (0.1.7 carries `garasu::pane`), so the workaround is gone.
 #
-# shikumi and egaku stay pinned below — shikumi main is genuinely broken
-# upstream, which is a different problem from this one.
-shikumi = { git = "https://github.com/pleme-io/shikumi", rev = "b41d01e453b2c2505941ba02003f48721ca02b17" }
+# ★ shikumi is NO LONGER PATCHED either (2026-08-06, operator ruling:
+# shikumi comes from crates, not git). The removed pin was an
+# "INTERIM FAMILY PIN (2026-06-27)" taken when shikumi main had lost
+# `closed_axis_label_string_surface` / `serde_via_display_fromstr` and
+# `discovery::Format`'s Display/FromStr. All three are back on main —
+# verified before removing it — so the pin had outlived its cause by six
+# weeks. It resolves from crates.io through the plain `shikumi = "0.1"`
+# dependency above, for exactly the garasu reason spelled out above:
+# measured that day, shikumi was reached FOUR incompatible ways across the
+# fleet (mado `rev`, shidou `version+git+rev`, tear `branch=main`, an older
+# shidou by bare `git`), so no two crates could exchange a shikumi type.
+# shidou and tear moved to the registry in the same sweep.
 egaku = { git = "https://github.com/pleme-io/egaku", rev = "81d168190061c452d115f58f186429b84f489be8" }
