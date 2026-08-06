@@ -1,10 +1,16 @@
 //! Scrollback search — find text in terminal history.
 //!
-//! Two matchers, ONE case rule. [`SearchMatcher::Literal`] (the
-//! default) and [`SearchMatcher::Regex`] both decide "is this
-//! character the same as that one?" through the single [`char_eq`]
-//! predicate, so `ignore_case` cannot come to mean two things — the
-//! toggle is defined once and both engines read that definition.
+//! Two matchers, ONE case rule — now held by a TEST rather than by a
+//! shared function, and that is a real weakening worth stating plainly.
+//! [`SearchMatcher::Literal`] still decides "is this character the same
+//! as that one?" through [`char_eq`]. [`SearchMatcher::Regex`] is the
+//! `regex` crate, which must fold at COMPILE time
+//! (`RegexBuilder::case_insensitive`) and so cannot route through a
+//! per-character predicate at all. The two implementations are kept
+//! honest by `ignore_case_means_the_same_thing_in_both_matchers`, which
+//! runs the same toggle over the same grid through both matchers and
+//! asserts the match lists are equal — so a divergence is a red test,
+//! not a silent second meaning.
 //!
 //! Matching runs across the terminal grid (scrollback + visible area
 //! — the engine feeds `Terminal::search_rows`, capped at the most
@@ -53,8 +59,13 @@ pub enum SearchMatcher {
     /// three matches in `aaaa`) — the historical behaviour, kept.
     #[default]
     Literal,
-    /// The query is a regular expression. Matches are leftmost-longest
-    /// and NON-overlapping, as in every other regex search tool.
+    /// The query is a regular expression. Matches are NON-overlapping
+    /// and leftmost-FIRST — `regex`'s preference-order semantics, the
+    /// same as Perl/PCRE and every other mainstream tool, where the
+    /// hand-rolled engine this replaced was POSIX leftmost-longest.
+    /// They agree on everything greedy (`(v1)?\.2` still takes the
+    /// optional group); they differ on an alternation whose earlier
+    /// branch is shorter, so `a|ab` now stops at `a`.
     Regex,
 }
 
@@ -73,13 +84,33 @@ pub enum PatternError {
     NothingToRepeat,
     /// A trailing `\` that escapes nothing.
     TrailingEscape,
-    /// A negated shorthand (`\D`, `\W`, `\S`) inside `[...]`. Rejected
-    /// rather than silently read as a literal letter — the whole point
-    /// of this type.
-    NegatedShorthandInClass,
-    /// Groups nested past [`MAX_GROUP_DEPTH`], which would otherwise
-    /// recurse the parser deep enough to overflow the stack.
+    /// A negated shorthand (`\D`, `\W`, `\S`) inside `[...]`.
+    ///
+    /// **This is now a deliberate self-imposed restriction, not a
+    /// limitation.** The hand-rolled engine held a class as a flat list
+    /// of ranges plus one `negated` bit, which genuinely could not
+    /// represent "everything except a digit, unioned with the rest of
+    /// this class" — so it refused rather than misread `[\D]` as a
+    /// literal `D`. `regex` has nested classes and accepts `[\D]` fine.
+    /// The refusal is kept because it is the pinned contract
+    /// (`invalid_regex_causes_are_typed`); relaxing it is a behaviour
+    /// change for an operator to make on purpose, not a side effect of
+    /// swapping engines. Enforced by [`preflight`].
+    /// Nested past [`MAX_GROUP_DEPTH`]. The hand-rolled parser descended
+    /// once per `(` and would have overflowed the stack; `regex` reaches
+    /// the same refusal through `RegexBuilder::nest_limit`.
     TooDeeplyNested,
+    /// Invalid for a reason with no dedicated variant above — an
+    /// out-of-order repetition count (`a{3,1}`), a reversed class range
+    /// (`[z-a]`), an unknown Unicode property, a program that exceeds
+    /// `regex`'s size limit.
+    ///
+    /// New with the `regex` swap, and unavoidable: the hand-rolled
+    /// grammar had exactly six failure modes, so an exhaustive typed
+    /// list was possible. A real regex parser has dozens. Rounding them
+    /// into a neighbouring variant would name the wrong cause, which is
+    /// worse than admitting the cause is not enumerated.
+    Invalid,
 }
 
 impl PatternError {
@@ -93,8 +124,8 @@ impl PatternError {
             Self::UnclosedClass => "unclosed `[`",
             Self::NothingToRepeat => "nothing to repeat",
             Self::TrailingEscape => "trailing `\\`",
-            Self::NegatedShorthandInClass => "`\\D`/`\\W`/`\\S` not allowed inside `[...]`",
             Self::TooDeeplyNested => "groups nested too deeply",
+            Self::Invalid => "invalid pattern",
         }
     }
 }
@@ -116,7 +147,9 @@ pub struct SearchState {
     /// Index of the currently focused match.
     pub current: usize,
     /// Case-insensitive search. Applies in BOTH matchers and means the
-    /// same thing in both — see [`char_eq`], the one definition.
+    /// same thing in both — [`char_eq`] for literal,
+    /// `RegexBuilder::case_insensitive` for regex, held to one meaning
+    /// by the cross-matcher agreement test (see the module doc).
     pub ignore_case: bool,
     /// How [`Self::query`] is read. Literal by default.
     pub matcher: SearchMatcher,
@@ -207,10 +240,11 @@ impl SearchState {
                     literal_spans(line, &needle, ignore_case)
                 })
             }
-            SearchMatcher::Regex => match Pattern::compile(query) {
-                Ok(pattern) => scan_rows(rows, cols, first_abs, |line| {
-                    pattern.spans(line, ignore_case)
-                }),
+            // `ignore_case` is baked into the compiled program rather
+            // than passed per row: `regex` folds at build time, so the
+            // toggle has to reach `RegexBuilder`, not the scan.
+            SearchMatcher::Regex => match Pattern::compile(query, ignore_case) {
+                Ok(pattern) => scan_rows(rows, cols, first_abs, |line| pattern.spans(line)),
                 Err(err) => {
                     self.pattern_error = Some(err);
                     return;
@@ -337,10 +371,11 @@ fn row_to_string(row: &[Cell], cols: usize) -> String {
 // The one case rule
 // ---------------------------------------------------------------------------
 
-/// THE definition of `ignore_case`, for BOTH matchers. The literal
-/// scanner and every character-consuming regex instruction call this and
-/// nothing else, so the toggle is one rule with one meaning rather than
-/// two implementations that agree until they don't.
+/// The definition of `ignore_case` for the LITERAL matcher. The regex
+/// matcher folds inside `regex` (`RegexBuilder::case_insensitive`, which
+/// is Unicode *simple case folding*) because it has to fold at compile
+/// time; the cross-matcher agreement test is what holds the two to one
+/// meaning. See the module doc.
 ///
 /// Folding per character (rather than lowercasing whole strings, which
 /// is what the literal path used to do) also keeps the column count
@@ -358,14 +393,18 @@ fn char_eq(a: char, b: char, ignore_case: bool) -> bool {
 /// character ranges it reports into absolute-addressed [`SearchMatch`]es.
 /// Zero-width spans are dropped: they highlight nothing, and
 /// `end - 1` on one would underflow.
+/// `spans` receives the row as a `&str` (what `regex` searches) and
+/// returns CHARACTER ranges — the conversion out of `regex`'s byte
+/// offsets happens inside [`Pattern::spans`], so nothing downstream ever
+/// sees a byte offset.
 fn scan_rows<F>(rows: &[Vec<Cell>], cols: usize, first_abs: usize, mut spans: F) -> Vec<SearchMatch>
 where
-    F: FnMut(&[char]) -> Vec<(usize, usize)>,
+    F: FnMut(&str) -> Vec<(usize, usize)>,
 {
     let last_col = cols.saturating_sub(1);
     let mut out = Vec::new();
     for (row_idx, row) in rows.iter().enumerate() {
-        let line: Vec<char> = row_to_string(row, cols).chars().collect();
+        let line = row_to_string(row, cols);
         for (start, end) in spans(&line) {
             if end <= start {
                 continue;
@@ -382,8 +421,11 @@ where
 
 /// Every substring occurrence of `needle` in `line`, OVERLAPPING — the
 /// historical literal behaviour (`aa` reports three hits in `aaaa`).
-fn literal_spans(line: &[char], needle: &[char], ignore_case: bool) -> Vec<(usize, usize)> {
+fn literal_spans(line: &str, needle: &[char], ignore_case: bool) -> Vec<(usize, usize)> {
     let mut out = Vec::new();
+    // Indexed by CHARACTER throughout — the row is collected rather than
+    // scanned as bytes so `start` is already the column the renderer wants.
+    let line: Vec<char> = line.chars().collect();
     if needle.is_empty() || needle.len() > line.len() {
         return out;
     }
@@ -403,503 +445,202 @@ fn literal_spans(line: &[char], needle: &[char], ignore_case: bool) -> Vec<(usiz
 // The regex engine
 // ---------------------------------------------------------------------------
 //
-// Hand-rolled because mado does not declare the `regex` crate (it is in
-// `Cargo.lock` transitively, which makes it BUILT, not USABLE — the
-// source-vs-build distinction the repo's own dependency table warns
-// about). Adding `regex = "1"` to `Cargo.toml` is the load-bearing fix
-// and is a one-line change; this module is written so the swap is local
-// to `Pattern`.
+// The `regex` crate, reached through exactly two methods — [`Pattern::compile`]
+// and [`Pattern::spans`]. This module previously carried a ~570-line
+// hand-rolled Thompson NFA (parser, AST, instruction set, thread-list
+// simulation) written only because `regex` sat in `Cargo.lock` transitively:
+// BUILT but not USABLE, since nothing declared it in `Cargo.toml`. Declaring it
+// deleted the engine; the confinement to `compile`/`spans` is what made that a
+// small change rather than a rewrite.
 //
-// It is a Thompson NFA simulation, not a backtracker, deliberately: the
-// thread set holds each program counter at most once per input position,
-// so `(a*)*` against a long row costs O(len × instructions) instead of
-// hanging the render thread. A pattern that is merely nasty cannot be a
-// denial of service, without a step budget that would silently truncate
-// results.
+// Two obligations survive the swap, because `regex` does not hand them over:
+//
+//   1. `regex` reports BYTE offsets. Every consumer here reads CHARACTER
+//      indices (the renderer multiplies a column by `cell_width`), so
+//      `spans` converts. `columns_are_char_indices_not_byte_offsets` is the
+//      pin, and it is not decorative: a row of 3-byte box-drawing glyphs
+//      reports a match three columns per glyph too far right if this is
+//      skipped.
+//   2. `regex::Error` carries a rendered human-readable string, not a cause an
+//      operator's UI can branch on. [`classify`] re-parses through
+//      `regex_syntax`'s AST parser, which DOES expose a typed kind, and maps
+//      it onto [`PatternError`].
+//
+// The pathological-pattern guarantee is now the crate's rather than ours:
+// `regex` is a finite automaton with no backtracking, so `(a*)*b` is linear in
+// the row length. `pathological_patterns_terminate` still guards it — if that
+// ever regresses the test does not fail, it hangs, and that is the signal.
 
-/// Groups nested deeper than this are rejected — the parser descends
-/// once per `(`, and a 10k-deep pattern would otherwise overflow.
+use regex::{Regex, RegexBuilder};
+use regex_syntax::ast;
+
+/// Nesting past this is refused. The hand-rolled parser descended once per `(`
+/// and a 500-deep pattern overflowed its stack.
+///
+/// Enforced from BOTH sides, because neither alone reproduces the old
+/// behaviour. `RegexBuilder::nest_limit` counts all AST nesting (groups,
+/// alternations, repetitions) but only via a visitor over a *completed* AST,
+/// so it never runs on a pattern that fails to parse — `"(".repeat(500)` dies
+/// at EOF as an unclosed group instead. [`preflight`] therefore counts group
+/// depth up front, which is where the old parser checked it.
 const MAX_GROUP_DEPTH: u32 = 64;
 
-/// A set of character ranges, optionally negated (`[^...]`).
-#[derive(Debug, Clone)]
-struct CharClass {
-    negated: bool,
-    ranges: Vec<(char, char)>,
-}
-
-impl CharClass {
-    fn in_ranges(&self, ch: char) -> bool {
-        self.ranges.iter().any(|&(lo, hi)| ch >= lo && ch <= hi)
-    }
-
-    /// Membership under the shared case rule: with `ignore_case`, a
-    /// character is in the class if EITHER case form is. Negation is
-    /// applied after the fold, so `[^a]` correctly refuses `'A'`.
-    fn contains(&self, ch: char, ignore_case: bool) -> bool {
-        let hit = self.in_ranges(ch)
-            || (ignore_case
-                && (ch.to_lowercase().any(|c| self.in_ranges(c))
-                    || ch.to_uppercase().any(|c| self.in_ranges(c))));
-        hit != self.negated
-    }
-}
-
-/// Parsed pattern, before lowering to the NFA program.
-#[derive(Debug)]
-enum Node {
-    Empty,
-    Char(char),
-    Any,
-    Class(CharClass),
-    Start,
-    End,
-    Concat(Vec<Node>),
-    Alt(Box<Node>, Box<Node>),
-    Star(Box<Node>),
-    Plus(Box<Node>),
-    Opt(Box<Node>),
-}
-
-/// One NFA instruction. `Split`/`Jmp`/`Assert*` are epsilon
-/// transitions, expanded by `add_thread`; the rest consume a character.
-#[derive(Debug, Clone, Copy)]
-enum Inst {
-    Char(char),
-    Any,
-    Class(usize),
-    Split(usize, usize),
-    Jmp(usize),
-    AssertStart,
-    AssertEnd,
-    Match,
-}
-
-/// A compiled pattern.
+/// A compiled pattern. `ignore_case` is folded IN here rather than applied per
+/// row, because `regex` decides case at build time.
 struct Pattern {
-    insts: Vec<Inst>,
-    classes: Vec<CharClass>,
+    re: Regex,
 }
 
 impl Pattern {
-    fn compile(pattern: &str) -> Result<Self, PatternError> {
-        let chars: Vec<char> = pattern.chars().collect();
-        let mut parser = Parser {
-            pat: &chars,
-            pos: 0,
-            depth: 0,
-        };
-        let ast = parser.parse_alt()?;
-        if parser.pos != chars.len() {
-            // `parse_concat` stops at a `)` only when it did not open one.
-            return Err(PatternError::UnopenedGroup);
+    fn compile(pattern: &str, ignore_case: bool) -> Result<Self, PatternError> {
+        if let Some(err) = preflight(pattern) {
+            return Err(err);
         }
-        let mut out = Self {
-            insts: Vec::new(),
-            classes: Vec::new(),
-        };
-        out.emit(&ast);
-        out.insts.push(Inst::Match);
-        Ok(out)
+        RegexBuilder::new(pattern)
+            .case_insensitive(ignore_case)
+            .nest_limit(MAX_GROUP_DEPTH)
+            .build()
+            .map(|re| Self { re })
+            .map_err(|_| classify(pattern))
     }
 
-    fn emit(&mut self, node: &Node) {
-        match node {
-            Node::Empty => {}
-            Node::Char(c) => self.insts.push(Inst::Char(*c)),
-            Node::Any => self.insts.push(Inst::Any),
-            Node::Class(class) => {
-                self.classes.push(class.clone());
-                self.insts.push(Inst::Class(self.classes.len() - 1));
-            }
-            Node::Start => self.insts.push(Inst::AssertStart),
-            Node::End => self.insts.push(Inst::AssertEnd),
-            Node::Concat(items) => {
-                for item in items {
-                    self.emit(item);
-                }
-            }
-            Node::Alt(lhs, rhs) => {
-                let split = self.placeholder();
-                self.emit(lhs);
-                let jmp = self.placeholder();
-                let rhs_at = self.insts.len();
-                self.emit(rhs);
-                let after = self.insts.len();
-                self.insts[split] = Inst::Split(split + 1, rhs_at);
-                self.insts[jmp] = Inst::Jmp(after);
-            }
-            Node::Star(inner) => {
-                let split = self.placeholder();
-                self.emit(inner);
-                self.insts.push(Inst::Jmp(split));
-                let after = self.insts.len();
-                self.insts[split] = Inst::Split(split + 1, after);
-            }
-            Node::Plus(inner) => {
-                let body = self.insts.len();
-                self.emit(inner);
-                let split = self.placeholder();
-                let after = self.insts.len();
-                self.insts[split] = Inst::Split(body, after);
-            }
-            Node::Opt(inner) => {
-                let split = self.placeholder();
-                self.emit(inner);
-                let after = self.insts.len();
-                self.insts[split] = Inst::Split(split + 1, after);
-            }
-        }
-    }
-
-    /// Reserve a slot to be back-patched once the branch target is known.
-    fn placeholder(&mut self) -> usize {
-        let at = self.insts.len();
-        self.insts.push(Inst::Jmp(at));
-        at
-    }
-
-    /// Add `pc` (and everything reachable from it by epsilon) to `list`,
-    /// remembering the earliest `start` each pc was reached with. That
-    /// bookkeeping is also the loop guard: a pc already reached with an
-    /// equal-or-earlier start is not re-expanded, so `(a*)*` terminates.
-    fn add_thread(
-        &self,
-        pc: usize,
-        start: usize,
-        pos: usize,
-        len: usize,
-        list: &mut Vec<(usize, usize)>,
-        seen: &mut [usize],
-    ) {
-        let mut stack = vec![pc];
-        while let Some(pc) = stack.pop() {
-            if seen[pc] <= start {
-                continue;
-            }
-            seen[pc] = start;
-            match self.insts[pc] {
-                Inst::Jmp(target) => stack.push(target),
-                Inst::Split(a, b) => {
-                    stack.push(b);
-                    stack.push(a);
-                }
-                Inst::AssertStart => {
-                    if pos == 0 {
-                        stack.push(pc + 1);
-                    }
-                }
-                Inst::AssertEnd => {
-                    if pos == len {
-                        stack.push(pc + 1);
-                    }
-                }
-                _ => list.push((pc, start)),
-            }
-        }
-    }
-
-    /// The leftmost-longest match at or after `from`, as
-    /// `(start, end_exclusive)`.
-    fn next_match(&self, input: &[char], from: usize, ignore_case: bool) -> Option<(usize, usize)> {
-        let n = self.insts.len();
-        let mut cur: Vec<(usize, usize)> = Vec::new();
-        let mut next: Vec<(usize, usize)> = Vec::new();
-        let mut seen_cur = vec![usize::MAX; n];
-        let mut seen_next = vec![usize::MAX; n];
-        let mut best: Option<(usize, usize)> = None;
-        let mut pos = from;
-
-        loop {
-            // Seed a fresh thread at this position — but only while no
-            // match is in hand, since a later start can never be more
-            // leftmost than one we already have.
-            if best.is_none() {
-                self.add_thread(0, pos, pos, input.len(), &mut cur, &mut seen_cur);
-            }
-            for &(pc, start) in &cur {
-                if matches!(self.insts[pc], Inst::Match) {
-                    best = match best {
-                        None => Some((start, pos)),
-                        Some((bs, be)) if start < bs || (start == bs && pos > be) => {
-                            Some((start, pos))
-                        }
-                        keep => keep,
-                    };
-                }
-            }
-            if pos >= input.len() || cur.is_empty() {
-                break;
-            }
-
-            let ch = input[pos];
-            next.clear();
-            seen_next.iter_mut().for_each(|s| *s = usize::MAX);
-            for &(pc, start) in &cur {
-                // Threads that began after the best match's start can no
-                // longer win; dropping them is what ends the sweep.
-                if best.is_some_and(|(bs, _)| start > bs) {
-                    continue;
-                }
-                let consumed = match self.insts[pc] {
-                    Inst::Char(c) => char_eq(ch, c, ignore_case),
-                    Inst::Any => true,
-                    Inst::Class(idx) => self.classes[idx].contains(ch, ignore_case),
-                    _ => false,
-                };
-                if consumed {
-                    self.add_thread(
-                        pc + 1,
-                        start,
-                        pos + 1,
-                        input.len(),
-                        &mut next,
-                        &mut seen_next,
-                    );
-                }
-            }
-            std::mem::swap(&mut cur, &mut next);
-            std::mem::swap(&mut seen_cur, &mut seen_next);
-            pos += 1;
-        }
-        best
-    }
-
-    /// Every non-overlapping leftmost-longest match in `line`. An empty
-    /// match (`a*` against `bbb`) advances one character rather than
-    /// looping forever, and `scan_rows` discards it.
-    fn spans(&self, line: &[char], ignore_case: bool) -> Vec<(usize, usize)> {
-        let mut out = Vec::new();
-        let mut from = 0;
-        while from <= line.len() {
-            let Some((start, end)) = self.next_match(line, from, ignore_case) else {
-                break;
-            };
-            if end > start {
-                out.push((start, end));
-                from = end;
-            } else {
-                from = start + 1;
-            }
-        }
-        out
-    }
-}
-
-/// Recursive-descent parser over the pattern's characters.
-///
-/// ```text
-/// alt    := concat ('|' concat)*
-/// concat := repeat*
-/// repeat := atom ('*' | '+' | '?')*
-/// atom   := '(' alt ')' | '[' class ']' | '.' | '^' | '$' | '\' esc | char
-/// ```
-struct Parser<'a> {
-    pat: &'a [char],
-    pos: usize,
-    depth: u32,
-}
-
-impl Parser<'_> {
-    fn peek(&self) -> Option<char> {
-        self.pat.get(self.pos).copied()
-    }
-
-    fn parse_alt(&mut self) -> Result<Node, PatternError> {
-        let mut node = self.parse_concat()?;
-        while self.peek() == Some('|') {
-            self.pos += 1;
-            let rhs = self.parse_concat()?;
-            node = Node::Alt(Box::new(node), Box::new(rhs));
-        }
-        Ok(node)
-    }
-
-    fn parse_concat(&mut self) -> Result<Node, PatternError> {
-        let mut items = Vec::new();
-        while !matches!(self.peek(), None | Some('|') | Some(')')) {
-            items.push(self.parse_repeat()?);
-        }
-        Ok(match items.len() {
-            0 => Node::Empty,
-            1 => items.pop().unwrap_or(Node::Empty),
-            _ => Node::Concat(items),
-        })
-    }
-
-    fn parse_repeat(&mut self) -> Result<Node, PatternError> {
-        let mut node = self.parse_atom()?;
-        loop {
-            node = match self.peek() {
-                Some('*') => Node::Star(Box::new(node)),
-                Some('+') => Node::Plus(Box::new(node)),
-                Some('?') => Node::Opt(Box::new(node)),
-                _ => return Ok(node),
-            };
-            self.pos += 1;
-        }
-    }
-
-    fn parse_atom(&mut self) -> Result<Node, PatternError> {
-        let Some(ch) = self.peek() else {
-            return Ok(Node::Empty);
-        };
-        self.pos += 1;
-        match ch {
-            '(' => {
-                self.depth += 1;
-                if self.depth > MAX_GROUP_DEPTH {
-                    return Err(PatternError::TooDeeplyNested);
-                }
-                let inner = self.parse_alt()?;
-                if self.peek() != Some(')') {
-                    return Err(PatternError::UnclosedGroup);
-                }
-                self.pos += 1;
-                self.depth -= 1;
-                Ok(inner)
-            }
-            '[' => self.parse_class(),
-            '.' => Ok(Node::Any),
-            '^' => Ok(Node::Start),
-            '$' => Ok(Node::End),
-            // A quantifier reached as an ATOM had nothing in front of it.
-            '*' | '+' | '?' => Err(PatternError::NothingToRepeat),
-            '\\' => {
-                let Some(esc) = self.peek() else {
-                    return Err(PatternError::TrailingEscape);
-                };
-                self.pos += 1;
-                Ok(escape_node(esc))
-            }
-            other => Ok(Node::Char(other)),
-        }
-    }
-
-    /// `[abc]`, `[^a-z]`, `[\d_]`. A `]` in first position is a literal
-    /// `]`, as everywhere else.
-    fn parse_class(&mut self) -> Result<Node, PatternError> {
-        let mut negated = false;
-        if self.peek() == Some('^') {
-            negated = true;
-            self.pos += 1;
-        }
-        let mut ranges: Vec<(char, char)> = Vec::new();
-        let mut first = true;
-        loop {
-            let Some(ch) = self.peek() else {
-                return Err(PatternError::UnclosedClass);
-            };
-            if ch == ']' && !first {
-                self.pos += 1;
-                break;
-            }
-            first = false;
-            self.pos += 1;
-
-            let lo = if ch == '\\' {
-                let Some(esc) = self.peek() else {
-                    return Err(PatternError::TrailingEscape);
-                };
-                self.pos += 1;
-                match shorthand_ranges(esc) {
-                    Some(Shorthand::Positive(mut r)) => {
-                        ranges.append(&mut r);
-                        continue;
-                    }
-                    // `[\D]` would have to mean "everything except a
-                    // digit, unioned with the rest of this class" — a
-                    // set operation this representation cannot hold.
-                    // Refuse rather than read it as a literal `D`.
-                    Some(Shorthand::Negated) => {
-                        return Err(PatternError::NegatedShorthandInClass);
-                    }
-                    None => literal_escape(esc),
-                }
-            } else {
-                ch
-            };
-
-            // `a-z`, but a trailing `-` before `]` is a literal `-`.
-            if self.peek() == Some('-') && self.pat.get(self.pos + 1).is_some_and(|&c| c != ']') {
-                self.pos += 1;
-                let Some(hi) = self.peek() else {
-                    return Err(PatternError::UnclosedClass);
-                };
-                self.pos += 1;
-                let hi = if hi == '\\' {
-                    let Some(esc) = self.peek() else {
-                        return Err(PatternError::TrailingEscape);
-                    };
-                    self.pos += 1;
-                    literal_escape(esc)
-                } else {
-                    hi
-                };
-                ranges.push(if lo <= hi { (lo, hi) } else { (hi, lo) });
-            } else {
-                ranges.push((lo, lo));
-            }
-        }
-        Ok(Node::Class(CharClass { negated, ranges }))
-    }
-}
-
-/// What a `\x` shorthand denotes.
-enum Shorthand {
-    Positive(Vec<(char, char)>),
-    Negated,
-}
-
-fn shorthand_ranges(esc: char) -> Option<Shorthand> {
-    let ranges = match esc {
-        'd' => vec![('0', '9')],
-        'w' => vec![('0', '9'), ('a', 'z'), ('A', 'Z'), ('_', '_')],
-        's' => vec![
-            (' ', ' '),
-            ('\t', '\t'),
-            ('\n', '\n'),
-            ('\r', '\r'),
-            ('\u{b}', '\u{c}'),
-        ],
-        'D' | 'W' | 'S' => return Some(Shorthand::Negated),
-        _ => return None,
-    };
-    Some(Shorthand::Positive(ranges))
-}
-
-/// The character a non-shorthand escape stands for. `\.` is `.`, `\n`
-/// is a newline, and an escape of anything else is that thing —
-/// escaping a plain character is never an error.
-fn literal_escape(esc: char) -> char {
-    match esc {
-        'n' => '\n',
-        't' => '\t',
-        'r' => '\r',
-        '0' => '\0',
-        other => other,
-    }
-}
-
-fn escape_node(esc: char) -> Node {
-    match shorthand_ranges(esc) {
-        Some(Shorthand::Positive(ranges)) => Node::Class(CharClass {
-            negated: false,
-            ranges,
-        }),
-        Some(Shorthand::Negated) => {
-            // `\D` is `\d` negated; same for `\W` / `\S`.
-            let positive = esc.to_ascii_lowercase();
-            let ranges = match shorthand_ranges(positive) {
-                Some(Shorthand::Positive(r)) => r,
-                _ => Vec::new(),
-            };
-            Node::Class(CharClass {
-                negated: true,
-                ranges,
+    /// Every non-overlapping match in `text`, as `(start, end_exclusive)`
+    /// CHARACTER indices.
+    ///
+    /// An empty match (`a*` against `bbb`) is reported as a zero-width span and
+    /// dropped by [`scan_rows`] — `find_iter` advances past it itself, so
+    /// there is no loop to break here the way the hand-rolled `spans` had to.
+    fn spans(&self, text: &str) -> Vec<(usize, usize)> {
+        let mut cursor = CharCursor::new(text);
+        self.re
+            .find_iter(text)
+            .map(|m| {
+                (
+                    cursor.char_index_at(m.start()),
+                    cursor.char_index_at(m.end()),
+                )
             })
+            .collect()
+    }
+}
+
+/// Byte offset → character index, walked forward exactly once per row.
+///
+/// `find_iter` yields non-overlapping matches in increasing byte order, so
+/// every boundary asked about is at or after the previous one and a single
+/// cursor answers them all without allocating a table.
+struct CharCursor<'a> {
+    rest: std::str::Chars<'a>,
+    byte: usize,
+    idx: usize,
+}
+
+impl<'a> CharCursor<'a> {
+    fn new(text: &'a str) -> Self {
+        Self {
+            rest: text.chars(),
+            byte: 0,
+            idx: 0,
         }
-        None => Node::Char(literal_escape(esc)),
+    }
+
+    fn char_index_at(&mut self, byte: usize) -> usize {
+        while self.byte < byte {
+            let Some(ch) = self.rest.next() else { break };
+            self.byte += ch.len_utf8();
+            self.idx += 1;
+        }
+        self.idx
+    }
+}
+
+/// The two refusals `regex` will not make for us, checked in ONE left-to-right
+/// scan before the pattern is handed over. Scanning left to right is what makes
+/// the precedence between them right: the old recursive-descent parser reported
+/// whichever it reached first, and so does this.
+///
+/// **`[\D]` used to be refused here, and no longer is.** The hand-rolled class
+/// was a range list plus a `negated` bit, which could not represent `[\D]`'s
+/// set union, so it refused rather than misread it as a literal `D`. That was a
+/// LIMITATION of the old engine, and a test pinned it — so the engine swap
+/// briefly re-implemented the refusal, ~20 lines of scan whose only job was to
+/// keep a capability out. `regex` has nested classes and accepts `[\D]`; the
+/// refusal and its pinning test are gone. A test that pins an implementation's
+/// shortcoming as a contract will outlive the implementation if you let it.
+///
+/// **Group depth — a refusal `regex` makes too LATE.** `regex_syntax` enforces
+/// its nest limit with a visitor over the *completed* AST, so `((((…` 500 deep
+/// fails at EOF as an unclosed group and the depth is never reached; the old
+/// parser checked depth as it descended, so depth won. Counting here restores
+/// that precedence. (`RegexBuilder::nest_limit` is still set — it catches
+/// non-group nesting, like stacked repetitions, that this scan does not count.)
+///
+/// Scans conservatively: a nested class (`[\d[a-z]]`) ends the tracked class
+/// early, so a shorthand after it is missed. That direction is safe — the miss
+/// means `regex` handles the pattern, which is the better answer anyway.
+fn preflight(pattern: &str) -> Option<PatternError> {
+    let mut chars = pattern.chars();
+    let mut in_class = false;
+    // Characters consumed since `[`, so the `]`-in-first-position-is-a-literal
+    // rule (and `[^]...]`) reads correctly rather than closing the class.
+    let mut class_len = 0usize;
+    let mut depth: u32 = 0;
+    while let Some(ch) = chars.next() {
+        match ch {
+            '\\' => {
+                // Consume the escaped char so it cannot be read as a class
+                // delimiter; the escape itself needs no verdict here.
+                let _ = chars.next();
+                class_len += usize::from(in_class);
+            }
+            '[' if !in_class => {
+                in_class = true;
+                class_len = 0;
+            }
+            // A leading `^` is the negation marker, not class content.
+            '^' if in_class && class_len == 0 => {}
+            ']' if in_class && class_len > 0 => in_class = false,
+            '(' if !in_class => {
+                depth += 1;
+                if depth > MAX_GROUP_DEPTH {
+                    return Some(PatternError::TooDeeplyNested);
+                }
+            }
+            ')' if !in_class => depth = depth.saturating_sub(1),
+            _ => class_len += usize::from(in_class),
+        }
+    }
+    None
+}
+
+/// Turn a `regex` compile failure into a typed cause.
+///
+/// `regex::Error::Syntax` carries only a rendered multi-line message, so
+/// branching on it would mean matching on prose. `regex_syntax`'s AST parser
+/// answers the same question with a typed `ErrorKind`, so the pattern is
+/// re-parsed here purely to classify. It runs only on the failure path.
+///
+/// `ErrorKind` is `#[non_exhaustive]` and much wider than the old grammar's six
+/// failure modes; anything unmapped is [`PatternError::Invalid`] rather than a
+/// nearby variant that would name the wrong cause.
+fn classify(pattern: &str) -> PatternError {
+    let parsed = ast::parse::ParserBuilder::new()
+        .nest_limit(MAX_GROUP_DEPTH)
+        .build()
+        .parse(pattern);
+    let Err(err) = parsed else {
+        // Parsed as an AST but failed to build: a translate-time or
+        // size-limit refusal, which has no syntactic cause to report.
+        return PatternError::Invalid;
+    };
+    match err.kind() {
+        ast::ErrorKind::GroupUnclosed => PatternError::UnclosedGroup,
+        ast::ErrorKind::GroupUnopened => PatternError::UnopenedGroup,
+        ast::ErrorKind::ClassUnclosed => PatternError::UnclosedClass,
+        ast::ErrorKind::RepetitionMissing => PatternError::NothingToRepeat,
+        ast::ErrorKind::EscapeUnexpectedEof => PatternError::TrailingEscape,
+        ast::ErrorKind::NestLimitExceeded(_) => PatternError::TooDeeplyNested,
+        _ => PatternError::Invalid,
     }
 }
 
@@ -1415,6 +1156,27 @@ mod tests {
 
     /// Every rejection path: no panic, zero matches, a typed cause.
     #[test]
+    fn negated_shorthand_inside_a_class_is_accepted_not_refused() {
+        // `[\D]` is valid regex. The hand-rolled engine could not represent it
+        // and refused; a test pinned that refusal, and the engine swap almost
+        // carried the limitation forward as a feature. It matches non-digits.
+        let rows = vec![make_row("ab12cd")];
+        let mut state = SearchState::new();
+        state.matcher = SearchMatcher::Regex;
+        state.set_query("[\\D]+", &rows, 6, 0);
+        assert_eq!(
+            state.pattern_error(),
+            None,
+            "[\\D] must compile, not refuse"
+        );
+        assert_eq!(
+            state.match_count(),
+            2,
+            "[\\D]+ matches the two non-digit runs, `ab` and `cd`"
+        );
+    }
+
+    #[test]
     fn invalid_regex_causes_are_typed() {
         let rows = vec![make_row("abcdefg [x] (y) 123")];
         let cases = [
@@ -1424,7 +1186,6 @@ mod tests {
             ("*abc", PatternError::NothingToRepeat),
             ("|+", PatternError::NothingToRepeat),
             ("ab\\", PatternError::TrailingEscape),
-            ("[\\D]", PatternError::NegatedShorthandInClass),
         ];
         for (pattern, want) in cases {
             let mut state = SearchState::new();
@@ -1677,6 +1438,79 @@ mod tests {
             );
             assert_eq!(state.matches[0].col_end, 4, "{matcher:?}");
         }
+    }
+
+    /// The byte→char conversion is a stateful forward walk REUSED across
+    /// every match in a row, so one match cannot catch a cursor that goes
+    /// stale or double-counts. Several matches behind several multi-byte
+    /// glyphs can.
+    #[test]
+    fn char_indices_stay_correct_across_multiple_matches_on_a_multibyte_row() {
+        // `→` is 3 bytes wide: the `a`s sit at BYTE 3, 7, 11 but at
+        // COLUMN 1, 3, 5 — and the renderer multiplies columns by
+        // cell_width, so handing it a byte offset draws in the wrong place.
+        let rows = vec![make_row("→a→a→a")];
+        let mut state = SearchState::new();
+        state.matcher = SearchMatcher::Regex;
+        state.set_query("a", &rows, 6, 0);
+
+        assert_eq!(state.match_count(), 3);
+        let starts: Vec<usize> = state.matches.iter().map(|m| m.col_start).collect();
+        assert_eq!(starts, vec![1, 3, 5], "byte offsets would read 3, 7, 11");
+        assert!(
+            state.matches.iter().all(|m| m.col_end == m.col_start),
+            "each match is one char wide"
+        );
+    }
+
+    /// `regex` has far more ways to be invalid than the hand-rolled
+    /// grammar's six, so an unmapped cause is typed [`PatternError::Invalid`]
+    /// rather than rounded into a neighbouring variant that would name the
+    /// wrong thing. It must still REFUSE: typed cause, zero matches.
+    #[test]
+    fn an_unmapped_compile_failure_is_typed_invalid_and_still_refuses() {
+        let rows = vec![make_row("aaa [z] 123")];
+        for pattern in ["a{3,1}", "[z-a]"] {
+            let mut state = SearchState::new();
+            state.matcher = SearchMatcher::Regex;
+            state.set_query(pattern, &rows, 11, 0);
+            assert_eq!(
+                state.pattern_error(),
+                Some(PatternError::Invalid),
+                "pattern {pattern:?}"
+            );
+            assert_eq!(state.match_count(), 0, "pattern {pattern:?}");
+        }
+        assert_eq!(PatternError::Invalid.message(), "invalid pattern");
+    }
+
+    /// What the swap actually bought. The hand-rolled parser had no
+    /// `{n,m}` and no `\b`: `{` was an ordinary character and `\b` fell
+    /// through to a literal `b`, so `a{2,3}` searched for the seven-
+    /// character text `a{2,3}` and `\bcat\b` searched for `bcatb`. Both
+    /// found nothing, silently, while looking like working regexes.
+    #[test]
+    fn regex_vocabulary_the_hand_rolled_engine_could_not_express() {
+        let rows = vec![make_row("a aa aaa cat concat")];
+        let mut state = SearchState::new();
+        state.matcher = SearchMatcher::Regex;
+
+        state.set_query("a{2,3}", &rows, 19, 0);
+        assert_eq!(state.pattern_error(), None);
+        assert_eq!(state.match_count(), 2, "`aa` and `aaa`, not literal text");
+        assert_eq!(state.matches[0].col_start, 2);
+        assert_eq!(state.matches[0].col_end, 3);
+        assert_eq!(state.matches[1].col_start, 5);
+        assert_eq!(state.matches[1].col_end, 7);
+
+        state.set_query("\\bcat\\b", &rows, 19, 0);
+        assert_eq!(state.pattern_error(), None);
+        assert_eq!(
+            state.match_count(),
+            1,
+            "the `cat` inside `concat` has no word boundary"
+        );
+        assert_eq!(state.matches[0].col_start, 9);
     }
 
     #[test]
