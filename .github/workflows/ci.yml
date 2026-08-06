@@ -57,7 +57,33 @@ name: ci
 # runner this workflow targets — first CI run may still surface
 # platform-specific failures, and that is the gate doing its job.
 #
-# Consumers of this repo's CI contract: none. This gate is for mado itself.
+# ── WHAT THIS GATE NOW GATES (wired 2026-08-06) ─────────────────────────
+#
+# Until this commit the header ended "Consumers of this repo's CI contract:
+# none. This gate is for mado itself." That was the defect, not a fact worth
+# recording: the gate rendered a verdict nothing read. All four of mado's
+# workflows fired independently off the same `push: branches: [main]`, with
+# no `needs:`, no `workflow_run:`, and no branch protection on `main` — so a
+# red verification and a green artifact publish were two unrelated events
+# that happened to share a commit.
+#
+# Measured twice, on two different commits, before wiring this:
+#
+#   cb082a2  ci run 31072544164 = FAILURE (`Cargo.gen.lock is STALE`)
+#            release-binaries   31072544178 = SUCCESS → published
+#            `Mado macos-arm64-r392-cb082a2` and moved `macos-arm64-latest`
+#   1a85f80  ci run 31076457408 = FAILURE (`cargo fmt --check`, src/janitors.rs)
+#            release-binaries   31076457291 = SUCCESS → published
+#            `Mado macos-arm64-r397-1a85f80` at 06:25Z, ten minutes BEFORE
+#            the ci run it was supposed to be gated by even finished (06:35Z)
+#
+# Both DMGs shipped from a red-CI commit, and the second one is the whole
+# argument for `needs:` over anything time-ordered: the publish had already
+# completed before the verification reached its verdict.
+#
+# So `autobump-macos` now lives HERE, downstream of both test legs, rather
+# than in release-binaries.yml. See the job's own header for why `needs:` was
+# chosen over `on: workflow_run:`.
 
 on:
   push:
@@ -68,6 +94,21 @@ on:
 # A second push to the same branch/PR supersedes the first — mado merges to
 # main frequently (180 commits in the 30 days to 2026-07-31) and a queue of
 # superseded runs on a GPU-sized dependency graph is pure runner waste.
+#
+# This group now covers the artifact publish too, which is the point: before
+# `autobump-macos` moved into this file, ci.yml cancelled superseded
+# VERIFICATION while release-binaries.yml (no `concurrency` block at all) ran
+# every superseded PUBLISH to completion. That asymmetry is not fixed by
+# giving release-binaries a matching group — it disappears because the
+# publish is now a job in this workflow and inherits this group.
+#
+# Residual, named rather than papered over: if push B arrives while push A's
+# publish step is mid-flight (a ~2-minute window at the end of A's ~22-minute
+# run), A is cancelled mid-publish and can leave its exact release missing
+# assets. That release is immutable-per-run and already superseded, and B
+# rewrites the moving pointer, so the blast radius is one orphan tag. A
+# job-level group would NOT close it — a workflow-level cancel cancels the
+# run regardless of any job-level group.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -82,3 +123,142 @@ jobs:
     # HAND-WRITTEN cargo job here would fail with "failed to authenticate" —
     # which is precisely why this is a shim and not a job.
     secrets: inherit
+
+  # ── The release tooling's OWN tests — the leg `--workspace` cannot reach ──
+  #
+  # `release/` is a SEPARATE cargo workspace (`release/Cargo.toml` declares
+  # its own `[workspace]`, and mado's root Cargo.toml is a bare `[package]`
+  # with no `[workspace]` section at all), so the `ci` job's
+  # `--workspace --no-fail-fast` resolves to the single `mado` package and
+  # cannot see it. Measured 2026-08-06: `cargo test --manifest-path
+  # release/Cargo.toml --workspace --no-fail-fast` → exit 0, 14 tests
+  # (11 mac-app-release + 3 mado-release), and those 14 had never run in CI.
+  #
+  # That gap is not cosmetic: `autobump-macos` below EXECUTES this workspace's
+  # `mado-release` binary to assemble, ad-hoc-sign and publish the DMG. The
+  # tool that ships the artifact was run by CI while its own tests were not.
+  #
+  # Calls nix-devshell-cargo-test.yml directly rather than cargo-ci.yml a
+  # second time: cargo-ci.yml would also re-run `flake-check` (a full
+  # `nix flake check` + the checks-gate eval) over the same flake the `ci`
+  # job already checked — same verdict, twice the runner minutes. This is the
+  # "equivalent job" that carries the parts that matter (the devShell
+  # preflight and the private-git-dep credential wiring) and none of the
+  # duplication.
+  #
+  # `fmt-check: false` because the reusable's fmt step is hardcoded to
+  # `cargo fmt --all -- --check` in the repo ROOT, which resolves the root
+  # manifest — so on this leg it would re-check the `mado` package the `ci`
+  # job already checked and still never reach `release/`. An honest `false`
+  # plus a named gap beats a duplicated gate that reads as coverage it isn't.
+  # `release/`'s own formatting is therefore UNGATED (measured 2026-08-06:
+  # `cargo fmt --manifest-path release/Cargo.toml --all -- --check` → exit 1,
+  # 197 lines of pre-existing drift). Closing it needs a `fmt-args` /
+  # `fmt-manifest` input on the substrate reusable, which is substrate's
+  # change to make, not a hand-written fmt job here.
+  release-tests:
+    uses: pleme-io/substrate/.github/workflows/nix-devshell-cargo-test.yml@main
+    with:
+      devshell: default
+      test-args: "--manifest-path release/Cargo.toml --workspace --no-fail-fast"
+      fmt-check: false
+    secrets: inherit
+
+  # ── AUTOBUMP rolling macOS DMG — now downstream of the tests ─────────────
+  #
+  # Moved here from release-binaries.yml, where its ONLY condition was
+  # `if: github.ref == 'refs/heads/main'` — a check on the SHAPE OF A REF,
+  # never on a result. It could not have been anything else there: a
+  # same-repo `needs: ci` is not expressible across workflow files.
+  #
+  # WHY `needs:` AND NOT `on: workflow_run:` — the two real options, and this
+  # is the argument for the one taken:
+  #
+  #   1. `needs:` binds the publish to the SAME RUN, so the bytes signed and
+  #      shipped come from the same checkout the tests ran against, by
+  #      construction. `workflow_run` hands you `github.sha` = the DEFAULT
+  #      BRANCH TIP, not the verified commit, so it is only correct if you
+  #      remember `ref: ${{ github.event.workflow_run.head_sha }}` on the
+  #      checkout. Forget it and a green run publishes a DIFFERENT commit's
+  #      binary under a verified-looking tag — a silent mis-publish, which is
+  #      strictly worse than the ungated publish being replaced.
+  #   2. `workflow_run` executes the DEFAULT BRANCH's copy of the workflow
+  #      file. The gate visible in a PR diff would not be the gate that runs,
+  #      so the wiring becomes unreviewable before merge and untestable
+  #      except by merging it.
+  #   3. `ci` also runs on `pull_request`, so `workflow_run` would fire on
+  #      every PR's completion too. Correctness would then rest on two more
+  #      guards (`workflow_run.head_branch == 'main'` and
+  #      `workflow_run.event == 'push'`), each of which is a publish-from-a-PR
+  #      hole if omitted.
+  #   4. Fix 2 (the concurrency asymmetry) collapses into this one: as a job
+  #      in this workflow the publish inherits ci.yml's concurrency group,
+  #      instead of two files having to keep matching groups in sync.
+  #
+  # `needs` lists BOTH test legs: `release-tests` is not optional here,
+  # because this job runs `mado-release` and that is the crate that leg
+  # covers.
+  #
+  # `github.event_name == 'push'` keeps `workflow_dispatch` from publishing.
+  # release-binaries.yml had no dispatch trigger, so a dispatchable publish
+  # would be new behaviour smuggled in by a file move; ci.yml's dispatch
+  # stays a way to re-run the TESTS.
+  #
+  # Builds the GPU mado binary, then drives the typed mado-release tool to
+  # assemble + sign + DMG + publish two GitHub Releases: the sortable exact
+  # one (`macos-<arch>-r<run>-<sha>`, immutable) and the moving
+  # `macos-arm64-latest` prerelease that the Homebrew cask tracks.
+  # Apple-silicon runner (arm64); GHA's macos-latest is aarch64. (An x86_64
+  # leg can be added with a macos-13 runner when an Intel DMG is wanted.)
+  # mado is PUBLIC → free GitHub-hosted macOS runners.
+  autobump-macos:
+    needs: [ci, release-tests]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # mado depends on ~20 PRIVATE pleme-io repos by git (nami-core, kanshou,
+      # madori, izumi, the derive family…), so an unauthenticated cargo cannot
+      # resolve them: the build died on the first one with
+      #   failed to load source for dependency `nami-core`
+      #   failed to authenticate when downloading repository
+      # This job had no credential step until 2026-07-30, so it was red on
+      # every run before that — failing at 2a90f46 and 4b7271a.
+      # BOT_PAT is an org secret with ALL-repo visibility.
+      - uses: pleme-io/actions/git-credentials@main
+        with:
+          bot-pat: ${{ secrets.BOT_PAT }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build mado (release)
+        run: cargo build --release --bin mado
+
+      # The autobump EXACT release (sortable + immutable): r<run>-<sha>.
+      - name: Publish sortable exact DMG release
+        run: |
+          cargo run --release --manifest-path release/Cargo.toml --bin mado-release -- \
+            --repo "$PWD" \
+            --gh-repo "${{ github.repository }}" \
+            --prebuilt-binary "$PWD/target/release/mado" \
+            --run-number "${{ github.run_number }}" \
+            --publish
+
+      # The moving `macos-<arch>-latest` PRERELEASE so releases/latest is fresh.
+      - name: Update moving latest prerelease
+        run: |
+          cargo run --release --manifest-path release/Cargo.toml --bin mado-release -- \
+            --repo "$PWD" \
+            --gh-repo "${{ github.repository }}" \
+            --prebuilt-binary "$PWD/target/release/mado" \
+            --tag "macos-arm64-latest" \
+            --latest-asset \
+            --prerelease \
+            --publish

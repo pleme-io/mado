@@ -1,22 +1,24 @@
 name: release-binaries
 
-# Two release triggers, per the ★★ AUTO-RELEASE / AUTOBUMP rule:
+# THE SEMVER CUT-LINE ONLY (`v*` tag) — the official, versioned release.
+# Builds mado for linux/macOS × x86_64/aarch64 via substrate's
+# rust-binary-release.yml and attaches the per-platform artifacts (binaries +
+# .sha256 + macOS .dmg/.zip + linux .tar.gz).
 #
-#  1. SEMVER CUT-LINE (`v*` tag) — the official, versioned release. Builds mado
-#     for linux/macOS × x86_64/aarch64 via substrate's rust-binary-release.yml
-#     and attaches the per-platform artifacts (binaries + .sha256 + macOS
-#     .dmg/.zip + linux .tar.gz). UNCHANGED from before.
+# ── THE AUTOBUMP JOB THAT USED TO LIVE HERE MOVED TO ci.yml (2026-08-06) ──
 #
-#  2. AUTOBUMP (push to `main`) — a continuously-fresh macOS DMG so
-#     github.com/pleme-io/mado/releases/latest always has the newest build.
-#     The `autobump-macos` job below builds mado + drives the TYPED `mado-release`
-#     tool (which consumes the shared `mac-app-release` primitive) to:
-#       - assemble + ad-hoc-sign Mado.app, package the DMG + zip, and
-#       - publish a sortable EXACT release  `macos-<arch>-r<run>-<sha>`
-#         (immutable, traceable — the AUTOBUMP "exact tag" shape) AND
-#       - a moving `macos-<arch>-latest` PRERELEASE pointer that
-#         `releases/latest`-style consumers + the Homebrew cask track.
-#     mado is PUBLIC → free GitHub-hosted macOS runners; no self-hosted runner.
+# This file also carried `push: branches: [main]` and an `autobump-macos` job
+# whose only condition was `if: github.ref == 'refs/heads/main'` — a check on
+# the shape of a ref, never on a result — so it published a DMG on every merge
+# regardless of what the tests said. Measured at 1a85f80: ci run 31076457408
+# FAILED on `cargo fmt --check` at 06:35Z while this file's run 31076457291
+# had already published `Mado macos-arm64-r397-1a85f80` at 06:25Z. Same at
+# cb082a2 (ci 31072544164 red, publish 31072544178 green).
+#
+# The job could not have been gated from here: a same-repo `needs: ci` is not
+# expressible across workflow files. It now lives in ci.yml with
+# `needs: [ci, release-tests]`. See that job's header for why `needs:` was
+# chosen over `on: workflow_run:`.
 #
 # One icon source of truth (assets/mado-icon.svg) feeds both the CI .app
 # (substrate path / the mado-release tool's resvg→iconutil) and the Nix
@@ -24,12 +26,35 @@ name: release-binaries
 
 on:
   push:
-    branches: [main]
     tags: ['v*']
 
+# ── Why this group exists even though the trigger is tags-only ────────────
+#
+# The audited defect was an ASYMMETRY: ci.yml cancelled superseded runs
+# (`cancel-in-progress: true`) while this file had no `concurrency` block at
+# all, so rapid pushes to main cancelled the VERIFICATION and let every
+# artifact publish run to completion. That half is now moot — the publish is a
+# job in ci.yml and inherits ci.yml's group.
+#
+# What is left here is the case a tags-only trigger still has: a tag that is
+# force-moved, or deleted and re-pushed, starts a SECOND run for the same ref
+# while the first is still uploading assets to the same release. Grouping by
+# `github.ref` serializes those; distinct tags are distinct groups and never
+# contend.
+#
+# `cancel-in-progress: false`, deliberately opposite to ci.yml: a semver
+# release is not superseded by a re-push of its own tag, and cancelling one
+# mid-upload is exactly how a release ends up half-populated. Queue it.
+concurrency:
+  group: release-binaries-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  # ── 1. Official semver release on a v* tag (substrate reusable) ──────────
+  # ── Official semver release on a v* tag (substrate reusable) ─────────────
   binaries:
+    # Deliberately redundant against the tags-only trigger above: if a branch
+    # trigger is ever re-added to this file, this guard is what stops a semver
+    # release firing on a branch push instead of it happening silently.
     if: startsWith(github.ref, 'refs/tags/v')
     uses: pleme-io/substrate/.github/workflows/rust-binary-release.yml@main
     with:
@@ -41,60 +66,3 @@ jobs:
       icon-svg: assets/mado-icon.svg
       desktop-categories: "System;TerminalEmulator;"
     secrets: inherit
-
-  # ── 2. AUTOBUMP rolling macOS DMG on every merge to main ────────────────
-  # Builds the GPU mado binary, then drives the typed mado-release tool to
-  # assemble + sign + DMG + publish two GitHub Releases: the sortable exact
-  # one and the moving `…-latest` prerelease. Apple-silicon runner (arm64);
-  # GHA's macos-latest is aarch64. (An x86_64 leg can be added with a
-  # macos-13 runner + a cross/native build when an Intel DMG is wanted.)
-  autobump-macos:
-    if: github.ref == 'refs/heads/main'
-    runs-on: macos-latest
-    permissions:
-      contents: write
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - uses: actions/checkout@v4
-
-      # mado depends on ~20 PRIVATE pleme-io repos by git (nami-core, kanshou,
-      # madori, izumi, the derive family…), so an unauthenticated cargo cannot
-      # resolve them: the build died on the first one with
-      #   failed to load source for dependency `nami-core`
-      #   failed to authenticate when downloading repository
-      # This job never had a credential step, so it has been red on every run —
-      # failing at 2a90f46 and 4b7271a well before any of today's mado work.
-      # BOT_PAT is an org secret with ALL-repo visibility.
-      - uses: pleme-io/actions/git-credentials@main
-        with:
-          bot-pat: ${{ secrets.BOT_PAT }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Build mado (release)
-        run: cargo build --release --bin mado
-
-      # The autobump EXACT release (sortable + immutable): r<run>-<sha>.
-      - name: Publish sortable exact DMG release
-        run: |
-          cargo run --release --manifest-path release/Cargo.toml --bin mado-release -- \
-            --repo "$PWD" \
-            --gh-repo "${{ github.repository }}" \
-            --prebuilt-binary "$PWD/target/release/mado" \
-            --run-number "${{ github.run_number }}" \
-            --publish
-
-      # The moving `macos-<arch>-latest` PRERELEASE so releases/latest is fresh.
-      - name: Update moving latest prerelease
-        run: |
-          cargo run --release --manifest-path release/Cargo.toml --bin mado-release -- \
-            --repo "$PWD" \
-            --gh-repo "${{ github.repository }}" \
-            --prebuilt-binary "$PWD/target/release/mado" \
-            --tag "macos-arm64-latest" \
-            --latest-asset \
-            --prerelease \
-            --publish
