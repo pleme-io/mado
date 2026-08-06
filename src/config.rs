@@ -6684,3 +6684,599 @@ active_profile: "dark"
         assert_eq!(cfg.sound.sound_name(), Some("Glass"));
     }
 }
+
+/// ── Dead-knob invariant ────────────────────────────────────────────────
+///
+/// A config field that parses, validates and does NOTHING is worse than no
+/// field at all: `config-show` prints it, the HM module generates it, and the
+/// operator who sets it gets silence instead of an error. `shell.args` was
+/// exactly that until commit e04e54d — declared, documented, and dropped on
+/// every spawn path.
+///
+/// `shikumi::ConfigCoverage` closes the class. It walks the dotted leaf paths
+/// of `MadoConfig::prescribed_default()` serialised to YAML and cross-checks
+/// them **bidirectionally** against the two lists below:
+///
+/// * a schema leaf in neither list  → a knob was added without a consumer;
+/// * a listed path with no schema leaf → a field was renamed or deleted and
+///   its entry here rotted.
+///
+/// Either turns `config_has_no_unaccounted_fields` red, so the config
+/// surface cannot drift away from what mado honours.
+///
+/// ## Two blind spots, pinned rather than assumed away
+///
+/// The leaf walk can only see what `prescribed_default()` serialises, and two
+/// shapes serialise to nothing a walker can descend into. Both are pinned by
+/// `coverage_blind_spots_are_what_we_think_they_are` so a future default
+/// that fills them in fails here instead of silently widening the gap:
+///
+/// * an **empty map** contributes ZERO paths — `profiles` is
+///   `HashMap<String, ProfileConfig>` and empty by default, so no
+///   `profiles.*` leaf exists and `ProfileConfig`'s own fields are invisible
+///   to this gate (they are covered instead by `with_profile`'s own tests);
+/// * a **`None` option** collapses to one scalar leaf — `tear.impose` and
+///   `tear.pane` are single leaves, so `MadoTearImpose`'s fields are not
+///   individually checked.
+#[cfg(test)]
+mod coverage {
+    use super::MadoConfig;
+
+    /// Every schema leaf with a real consumer — a code path outside this
+    /// module (or a projection in it, such as `PerformanceConfig::
+    /// resolve_target_fps` or `MadoConfig::boot_spawn_cwd`, that an outside
+    /// caller invokes) whose value reaches runtime behaviour.
+    ///
+    /// Membership is a claim about the BUILD, not about grep: several entries
+    /// here have zero `config.<section>.<field>` sites because their section
+    /// is handed to its owning module wholesale (`&config.notifications` →
+    /// `notify_center`, `JanitorsConfig` → `janitors::from_config`).
+    const CONSUMED_FIELDS: &[&str] = &[
+        "accessibility.colorblind",
+        "accessibility.font_scale",
+        "accessibility.reduce_motion",
+        "active_profile",
+        "appearance.background",
+        "appearance.bold_is_bright",
+        "appearance.foreground",
+        "appearance.opacity",
+        "behavior.confirm_close",
+        "behavior.copy_on_select",
+        "behavior.deselect_on_copy",
+        "behavior.mouse_hide_while_typing",
+        "behavior.mouse_scroll_multiplier",
+        "behavior.mouse_shift_capture",
+        "behavior.precise_scroll_mode",
+        "behavior.precise_scroll_multiplier",
+        "behavior.reflow_on_resize",
+        "behavior.scroll_friction",
+        "behavior.scroll_max_velocity",
+        "behavior.scroll_momentum",
+        "behavior.scrollback_lines",
+        "behavior.selection_autoscroll",
+        "behavior.selection_autoscroll_max_overshoot",
+        "behavior.selection_autoscroll_speed",
+        "cursor.blink",
+        "cursor.blink_rate_ms",
+        "cursor.style",
+        "display.downscale_ratio",
+        "display.seam_auto_tune",
+        "effects.ambience",
+        "effects.aurora.drift",
+        "effects.aurora.enabled",
+        "effects.aurora.horizon",
+        "effects.aurora.intensity",
+        "effects.aurora.shimmer",
+        "effects.bloom.enabled",
+        "effects.bloom.intensity",
+        "effects.bloom.radius_px",
+        "effects.bloom.threshold",
+        "effects.colorblind.mode",
+        "effects.crt.aberration",
+        "effects.crt.curvature",
+        "effects.crt.enabled",
+        "effects.crt.vignette",
+        "effects.glow_on_bell.enabled",
+        "effects.glow_on_bell.glow_retain",
+        "effects.glow_on_bell.radius_px",
+        "effects.grain.enabled",
+        "effects.grain.opacity",
+        "effects.popup_elevation.enabled",
+        "effects.scanlines.enabled",
+        "effects.scanlines.intensity",
+        "effects.scanlines.period_px",
+        "effects.snow.accumulation",
+        "effects.snow.enabled",
+        "effects.snow.intensity",
+        "effects.snow.layer_count",
+        "effects.snow.melt_rate",
+        "effects.snow.pile_rate",
+        "effects.snow.snow_pulse_retain",
+        "effects.snow.temperature",
+        "effects.snow.wind",
+        "effects.window_depth.depth",
+        "effects.window_depth.enabled",
+        "effects.window_depth.intensity",
+        "effects.window_depth.softness",
+        "environment.initial_command",
+        "environment.working_directory",
+        "feedback.exit_code_glow",
+        "feedback.visual_bell",
+        "font_family",
+        "font_italic",
+        "font_size",
+        "font_symbols",
+        "janitors.authority",
+        "janitors.board_rows",
+        "janitors.enabled",
+        "janitors.ghost_session.authority",
+        "janitors.ghost_session.enabled",
+        "janitors.ghost_session.grace_secs",
+        "janitors.ghost_session.interval_secs",
+        "janitors.suggest_health.authority",
+        "janitors.suggest_health.enabled",
+        "janitors.suggest_health.interval_secs",
+        "janitors.suggest_health.min_consecutive_polls",
+        "keybinds.custom",
+        "line_height",
+        "links.enabled",
+        "links.highlight",
+        "links.open_on_click",
+        "links.pointer_cursor",
+        "motion.bell_flash.duration_ms",
+        "motion.bell_flash.easing",
+        "motion.bell_flash.peak_alpha",
+        "motion.picker_animate",
+        "motion.unfocused_dim",
+        "notifications.backend",
+        "notifications.badge_unread",
+        "notifications.bell.audible",
+        "notifications.bell.notify",
+        "notifications.bell.sound",
+        "notifications.coalesce_window_ms",
+        "notifications.command_completion.enabled",
+        "notifications.command_completion.min_duration_ms",
+        "notifications.command_completion.notify_on_failure",
+        "notifications.command_completion.notify_on_success",
+        "notifications.command_completion.only_when_unfocused",
+        "notifications.command_completion.respect_alt_screen",
+        "notifications.enabled",
+        "notifications.history_capacity",
+        "notifications.progress_dock",
+        "notifications.rate_limit_per_min",
+        "notifications.when",
+        "performance.battery_fps_cap",
+        "performance.fps_cap",
+        "performance.target_fps",
+        "performance.vsync",
+        "safra.enabled",
+        "safra.environments",
+        "safra.gha.branches",
+        "safra.gha.env_allow",
+        "safra.gha.events",
+        "safra.gha.repos",
+        "safra.gha.surface_success",
+        "safra.gha.workflow_allow",
+        "safra.gha.workflow_deny",
+        "safra.global.cadence_secs",
+        "safra.global.enabled",
+        "safra.global.max_items",
+        "safra.global.quota_pct",
+        "safra.kinds",
+        "selection.word_chars",
+        "shell.args",
+        "shell.command",
+        "suggestions.attention_on_critical",
+        "suggestions.default_enabled",
+        "suggestions.enabled",
+        "suggestions.max_entries",
+        "suggestions.max_visible",
+        "suggestions.per_source_cap",
+        "suggestions.persist",
+        "suggestions.persist_debounce_secs",
+        "suggestions.reserved_rows",
+        "suggestions.shade_in_ms",
+        "suggestions.sources",
+        "suggestions.sources_replace",
+        "suggestions.ttl_secs",
+        "tear.auto_attach",
+        "tear.auto_spawn",
+        "tear.impose",
+        "tear.mode",
+        "tear.runtime",
+        "tear.session_name",
+        "tear.session_picker_anchor",
+        "tear.session_picker_badges",
+        "tear.session_picker_surface_presets",
+        "tear.session_switching",
+        "tear.socket",
+        "tear.spawn_wait_ms",
+        "theme",
+        "vigy.enabled",
+        "window.decorations",
+        "window.height",
+        "window.inherit_working_directory",
+        "window.macos.appearance",
+        "window.macos.native_tabs",
+        "window.macos.titlebar",
+        "window.padding",
+        "window.width",
+    ];
+
+    /// Declared knobs with NO consumer, each with the reason it survives and
+    /// the file that would consume it. This list is a debt ledger, not an
+    /// exemption: an entry here is a knob an operator can set today and get
+    /// silence from, and the only honest reasons to keep one are that the
+    /// feature is genuinely wanted or that deleting it is not this file's
+    /// call.
+    ///
+    /// **Why every one of these is KEPT rather than deleted.** Deleting a
+    /// field is a cross-repo change and cannot be made from `src/config.rs`
+    /// alone: `blackmatter-mado`'s `module/default.nix` already GENERATES
+    /// `shaders.{enabled,files}` and `shell_integration.{enabled,features}`
+    /// into `~/.config/mado/mado.yaml`, and any operator may already have any
+    /// of these in a hand-written config. Several sections carry
+    /// `deny_unknown_fields`, so dropping a field there converts a dead knob
+    /// into a hard parse error on someone's live config — strictly worse.
+    /// The entries whose reason says "Delete candidate" are the ones to
+    /// remove once the emitter is updated in the same change.
+    const DEAD_KNOBS: &[(&str, &str)] = &[
+        (
+            "accessibility.min_contrast",
+            "Contrast enforcement was never implemented; Phase 5 accessibility. Would be consumed by render.rs when it gains a contrast-ratio clamp on the resolved fg/bg pair.",
+        ),
+        (
+            "appearance.background_blur",
+            "No blur pass exists in the 3-pass pipeline. Would be consumed by render.rs behind a compositor-blur pass.",
+        ),
+        (
+            "appearance.minimum_contrast",
+            "Derived from the fleet palette (minimum_contrast_from_fleet) and then never read. Same destination as accessibility.min_contrast: one clamp in render.rs, one knob. Two knobs for one job is itself the bug.",
+        ),
+        (
+            "appearance.unfocused_split_fill",
+            "Multi-pane leftover. mado is single-pane; splits live in tear. Delete candidate once M5 settles whether tear or mado owns split chrome.",
+        ),
+        (
+            "behavior.link_url",
+            "Superseded by links.enabled/links.highlight, which ARE wired (render.rs, ux/engine.rs). Delete candidate: it reads as a second master switch for a subsystem that already has one.",
+        ),
+        (
+            "behavior.mouse_reporting",
+            "Mouse reporting is driven by the DECSET 1000/1002/1003 modes the application sets, not by config. The knob cannot override a mode the app requested, so it has no honest meaning.",
+        ),
+        (
+            "behavior.wait_after_command",
+            "No hold-open-on-exit path exists. Would be consumed by the PTY exit handler in single_pane.rs.",
+        ),
+        (
+            "browser.default_height",
+            "See browser.enabled. Would be consumed by browser_engine.rs when spawning a surface.",
+        ),
+        (
+            "browser.default_opacity",
+            "See browser.enabled. Would be consumed by render.rs draw_float_panels.",
+        ),
+        (
+            "browser.default_width",
+            "See browser.enabled. Would be consumed by browser_engine.rs when spawning a surface.",
+        ),
+        (
+            "browser.enabled",
+            "The float browser never receives BrowserConfig: browser_bridge.rs/browser_engine.rs take no config argument.",
+        ),
+        (
+            "browser.restore_on_close",
+            "No geometry/URL persistence exists. Would be consumed by browser_bridge.rs.",
+        ),
+        (
+            "browser.snap_band",
+            "See browser.snap_enabled. One line in ux/engine.rs (pass config.browser.snap_config()) wires both.",
+        ),
+        (
+            "browser.snap_enabled",
+            "BrowserConfig::snap_config() has zero callers; ux/engine.rs:349 builds SnapSystem::new(SnapConfig::default()) from the hardcoded default instead.",
+        ),
+        (
+            "cursor.click_to_move",
+            "No click-to-move-cursor gesture. Would be consumed by ux/engine.rs pointer handling.",
+        ),
+        (
+            "cursor.color",
+            "theme.rs:172 sets the cursor colour from the THEME, never from this knob. An operator setting cursor.color sees no change.",
+        ),
+        (
+            "cursor.opacity",
+            "The cursor alpha is the literal 0.85 at theme.rs:172 and ux/config_apply.rs:236. This knob is exactly the value that was hardcoded next to it.",
+        ),
+        (
+            "cursor.text_color",
+            "No inverted-cell text colour under the block cursor. Would be consumed by render.rs cursor pass.",
+        ),
+        (
+            "feedback.copy_flash",
+            "Declared as a forward gate by its own doc comment: the typed surface landed before the render wiring. Would be consumed by render.rs on the copy-path signal.",
+        ),
+        (
+            "feedback.exit_code_coloring",
+            "Forward gate, same comment. Would be consumed by render.rs once per-block exit status reaches the renderer.",
+        ),
+        (
+            "font.family_bold",
+            "cosmic-text picks the bold face by walking the family; no explicit per-weight family override is threaded. Would be consumed by render.rs attrs construction.",
+        ),
+        (
+            "font.family_bold_italic",
+            "See font.family_bold. Would be consumed by render.rs attrs construction.",
+        ),
+        (
+            "font.family_italic",
+            "Shadowed by the top-level font_italic knob, which IS consumed. Delete candidate: two knobs, one job.",
+        ),
+        (
+            "font.features",
+            "The shaper (rustybuzz via cosmic-text) ships, but no OpenType feature string is passed to it, so -calt/-liga are unreachable. Would be consumed by render.rs shape_run.",
+        ),
+        (
+            "font.synthetic_style",
+            "No skew transform for a missing italic face. Would be consumed by render.rs when selecting a synthetic style.",
+        ),
+        (
+            "font.thicken",
+            "No stem-darkening/thicken pass. Would be consumed by render.rs glyph rasterization.",
+        ),
+        (
+            "motion.blink_ease",
+            "The cursor blink is a square wave; the easing curve is never applied. Would be consumed by render.rs cursor blink phase (motion/curve.rs already has the curves).",
+        ),
+        (
+            "notifications.bell.urgency",
+            "notify_center.rs reads bell.notify/audible/sound but never urgency; ux/side_effects.rs passes a hardcoded Urgency. Would be consumed at ux/side_effects.rs:189.",
+        ),
+        (
+            "notifications.command_completion.deny",
+            "CommandCompletionConfig::should_notify implements every other field of this struct and skips deny, so the curated interactive-tool list (vim/less/lazygit/...) never suppresses anything.",
+        ),
+        (
+            "notifications.osc.osc777",
+            "The inbound OSC 777 path in terminal.rs does not consult this gate either; vt.rs osc777_notify is the unrelated outbound emitter.",
+        ),
+        (
+            "notifications.osc.osc9",
+            "The inbound OSC 9 handler in terminal.rs does not consult this gate. (vt.rs osc9_notify is the OUTBOUND emitter for `mado notify-test` and is unrelated.)",
+        ),
+        (
+            "notifications.osc.osc99",
+            "See notifications.osc.osc9. terminal.rs handles pending_osc99 unconditionally.",
+        ),
+        (
+            "quick_terminal.animation_ms",
+            "No slide-in animation exists because no Quick Terminal exists; would be consumed by the drop-down show/hide transition alongside motion/curve.rs.",
+        ),
+        (
+            "quick_terminal.autohide_on_blur",
+            "See quick_terminal.enabled. Would be consumed by the madori focus-lost handler.",
+        ),
+        (
+            "quick_terminal.edge",
+            "Consumed only by tests. (float/spec.rs's `self.edge` is the float-surface spec, a different type.)",
+        ),
+        (
+            "quick_terminal.enabled",
+            "The whole Quick Terminal is Phase 4 and unbuilt: no module outside config.rs mentions quick_terminal.",
+        ),
+        (
+            "quick_terminal.hotkey",
+            "QuickTerminalConfig::is_active_hotkey() has zero callers.",
+        ),
+        (
+            "quick_terminal.size_fraction",
+            "QuickTerminalConfig::resolve_size_pixels()/resolve_origin_pixels() have zero callers.",
+        ),
+        (
+            "search.background",
+            "render.rs sources every search colour from the theme (search_status_color/search_current_color/search_other_color, Nord constants at render.rs:2104-2110), never from this section.",
+        ),
+        (
+            "search.foreground",
+            "Search-match text keeps the cell's own fg; the renderer never overrides it from this section (see search.background).",
+        ),
+        (
+            "search.selected_background",
+            "The CURRENT match draws render.rs's search_current_color at alpha 0.5, a theme value, never this knob.",
+        ),
+        (
+            "search.selected_foreground",
+            "The CURRENT match keeps the cell's own fg; nothing reads this knob (see search.selected_background).",
+        ),
+        (
+            "selection.background",
+            "The selection fill is the literal overlay_rect_color(0x88, 0xC0, 0xD0, 0.3) at render.rs:2099.",
+        ),
+        (
+            "selection.clear_on_copy",
+            "ux/engine.rs clears the selection unconditionally; the knob cannot keep it.",
+        ),
+        (
+            "selection.clear_on_typing",
+            "ux/engine.rs:1345 clears on typing unconditionally.",
+        ),
+        (
+            "selection.foreground",
+            "See selection.background. No per-cell fg override is applied inside a selection span.",
+        ),
+        (
+            "shaders.enabled",
+            "The WGSL post-processing chain is Phase 2 and unwired: no module outside config.rs reads this section, although blackmatter-mado ALREADY generates it into the YAML.",
+        ),
+        (
+            "shaders.files",
+            "See shaders.enabled. blackmatter-mado emits absolute paths here today, so an operator can see a populated list that nothing loads.",
+        ),
+        (
+            "shell_integration.enabled",
+            "The OSC 133/7/2 handlers in terminal.rs are always on; this gate cannot turn them off. blackmatter-mado emits it.",
+        ),
+        (
+            "shell_integration.features",
+            "The per-feature list (cursor/sudo/title) is never consulted. blackmatter-mado emits it.",
+        ),
+        (
+            "tear.pane",
+            "Referenced only by a bare-tier assertion. The attach path takes the pane from the CLI (main.rs cmd_tear_attach), never from config.",
+        ),
+        (
+            "window.background_image",
+            "No background-image pass (Phase 2, pass 5 of the target six-pass model).",
+        ),
+        (
+            "window.fullscreen",
+            "Never passed to madori's window builder alongside width/height/decorations.",
+        ),
+        (
+            "window.inherit_font_size",
+            "No new-window path exists to inherit into (mado is single-window).",
+        ),
+        (
+            "window.maximize",
+            "Never passed to madori's window builder, which receives only width/height/decorations (main.rs:1044, gui_tear_attach.rs:643).",
+        ),
+        (
+            "window.padding_balance",
+            "main.rs/gui_tear_attach.rs use config.window.padding directly; the balance mode is never applied.",
+        ),
+        (
+            "window.split_divider_color",
+            "Multi-pane leftover; splits live in tear. Delete candidate with appearance.unfocused_split_fill.",
+        ),
+        (
+            "window.title",
+            "The window title comes from OSC 0/2; this static override is never applied at window creation.",
+        ),
+        (
+            "window.unfocused_split_opacity",
+            "Multi-pane leftover. Delete candidate with appearance.unfocused_split_fill.",
+        ),
+    ];
+
+    /// Union of both lists — what the schema is allowed to contain.
+    fn accounted() -> Vec<&'static str> {
+        let mut v: Vec<&'static str> = CONSUMED_FIELDS
+            .iter()
+            .copied()
+            .chain(DEAD_KNOBS.iter().map(|(path, _)| *path))
+            .collect();
+        v.sort_unstable();
+        v
+    }
+
+    /// **The gate.** Every declared field is either consumed or an explicitly
+    /// reasoned dead knob, and every listed path still exists.
+    #[test]
+    fn config_has_no_unaccounted_fields() {
+        shikumi::ConfigCoverage::assert_every_field_consumed::<MadoConfig>(&accounted());
+    }
+
+    /// A path cannot be claimed live and dead at once — that would let a knob
+    /// be quietly demoted to the allowlist while still reading as wired.
+    #[test]
+    fn no_field_is_both_consumed_and_dead() {
+        let dead: std::collections::BTreeSet<&str> =
+            DEAD_KNOBS.iter().map(|(path, _)| *path).collect();
+        let both: Vec<&str> = CONSUMED_FIELDS
+            .iter()
+            .copied()
+            .filter(|p| dead.contains(p))
+            .collect();
+        assert!(
+            both.is_empty(),
+            "listed as both consumed and dead: {both:?}"
+        );
+    }
+
+    /// An allowlist entry with no reason is just a silenced failure. Each
+    /// reason must also name something concrete, so "TODO" cannot pass.
+    #[test]
+    fn every_dead_knob_carries_a_real_reason() {
+        for (path, reason) in DEAD_KNOBS {
+            assert!(
+                reason.len() > 40,
+                "{path}: reason is too thin to be a reason: {reason:?}"
+            );
+        }
+    }
+
+    /// Neither list may carry a duplicate — a duplicated path hides a second
+    /// occurrence that would otherwise have to be justified.
+    #[test]
+    fn neither_list_repeats_a_path() {
+        let all = accounted();
+        let unique: std::collections::BTreeSet<&str> = all.iter().copied().collect();
+        assert_eq!(
+            all.len(),
+            unique.len(),
+            "duplicate path in the coverage lists"
+        );
+    }
+
+    /// **Control #1 — the gate detects a knob with no consumer.** Drop one
+    /// entry from the accounted set and the report must name exactly that
+    /// path as a dead knob. A coverage gate that cannot go red is the defect
+    /// it exists to prevent.
+    #[test]
+    fn gate_detects_a_field_whose_consumer_entry_is_missing() {
+        let victim = "font_size";
+        assert!(
+            CONSUMED_FIELDS.contains(&victim),
+            "control precondition: {victim} must be a live entry"
+        );
+        let thinned: Vec<&str> = accounted().into_iter().filter(|p| *p != victim).collect();
+        let report = shikumi::ConfigCoverage::report::<MadoConfig>(&thinned);
+        assert_eq!(report.dead_knobs, vec![victim.to_string()]);
+        assert!(report.stale_entries.is_empty(), "{report:?}");
+        assert!(
+            !report.is_clean(),
+            "a missing consumer must not read as clean"
+        );
+    }
+
+    /// **Control #2 — the gate detects a stale entry.** A path that no field
+    /// produces must be reported, so renaming or deleting a field without
+    /// updating these lists cannot pass.
+    #[test]
+    fn gate_detects_a_listed_path_that_no_field_produces() {
+        let mut padded = accounted();
+        padded.push("window.depth_of_field");
+        let report = shikumi::ConfigCoverage::report::<MadoConfig>(&padded);
+        assert_eq!(
+            report.stale_entries,
+            vec!["window.depth_of_field".to_string()]
+        );
+        assert!(report.dead_knobs.is_empty(), "{report:?}");
+    }
+
+    /// The two blind spots named in this module's docs, pinned. If a future
+    /// prescribed default populates `profiles` or `tear.impose`, their inner
+    /// fields become visible leaves and this test fails — which is the signal
+    /// to extend the lists above, not to relax the assertion.
+    #[test]
+    fn coverage_blind_spots_are_what_we_think_they_are() {
+        use shikumi::TieredConfig;
+        let d = <MadoConfig as TieredConfig>::prescribed_default();
+        assert!(
+            d.profiles.is_empty(),
+            "profiles is no longer empty by default — its leaves are now visible \
+             to ConfigCoverage and must be added to CONSUMED_FIELDS/DEAD_KNOBS"
+        );
+        assert!(
+            d.tear.impose.is_none() && d.tear.pane.is_none(),
+            "tear.impose/tear.pane are no longer None by default — their inner \
+             fields are now visible leaves and must be accounted for above"
+        );
+        let leaves = shikumi::ConfigCoverage::schema_leaf_paths::<MadoConfig>();
+        assert!(
+            !leaves.iter().any(|p| p.starts_with("profiles.")),
+            "profiles.* became visible; extend the coverage lists"
+        );
+    }
+}
