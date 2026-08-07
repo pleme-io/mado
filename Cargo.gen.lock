@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "7e531380842ba91172e8d387fee9b3751c310e7c26780e26eb1e2c3a286f0fad",
+  "cargo_lock_sha256": "954679568d65612b6927fd93c3121df6222d20c4628bf24c35a0355909bddeea",
   "manifest_sha256": {
     "Cargo.toml": "7cabf20ab65659433bfb7c852b258130eff7ab3499c64aea4d13643096e4925f"
   },
@@ -7478,7 +7478,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.492",
+            "package_key": "shikumi-0.1.496",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9220,7 +9220,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.492",
+            "package_key": "shikumi-0.1.496",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17241,7 +17241,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.492",
+            "package_key": "shikumi-0.1.496",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17288,7 +17288,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.492": {
+      "shikumi-0.1.496": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -20965,7 +20965,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.492",
+            "package_key": "shikumi-0.1.496",
             "kind": "normal",
             "features": [
               "cli"
@@ -27021,7 +27021,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.492",
+                "package_key": "shikumi-0.1.496",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -31899,7 +31899,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.492",
+                "package_key": "shikumi-0.1.496",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -35904,7 +35904,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.492",
+                "package_key": "shikumi-0.1.496",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -40074,7 +40074,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.492",
+                "package_key": "shikumi-0.1.496",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -44916,7 +44916,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.492",
+                "package_key": "shikumi-0.1.496",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -48885,7 +48885,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.492",
+                "package_key": "shikumi-0.1.496",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -53341,7 +53341,7 @@
     "shidou-0.1.10": {
       "edition": "2024"
     },
-    "shikumi-0.1.492": {
+    "shikumi-0.1.496": {
       "edition": "2024"
     },
     "shlex-2.0.1": {

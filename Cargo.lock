@@ -1912,36 +1912,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "gen-macros"
-version = "0.1.35"
-source = "git+https://github.com/pleme-io/gen#3925eaab4271cd4a0db1942216062d84b364e3a0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.119",
-]
-
-[[package]]
 name = "gen-platform"
 version = "0.1.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "340242b11b413b24644f55a9dd7ffd05e371910a738ab52981a03a6ffedf6783"
 dependencies = [
- "gen-macros 0.1.34",
- "gen-types 0.1.34",
- "inventory",
- "serde",
- "serde_json",
- "thiserror 2.0.19",
-]
-
-[[package]]
-name = "gen-platform"
-version = "0.1.35"
-source = "git+https://github.com/pleme-io/gen#3925eaab4271cd4a0db1942216062d84b364e3a0"
-dependencies = [
- "gen-macros 0.1.35",
- "gen-types 0.1.35",
+ "gen-macros",
+ "gen-types",
  "inventory",
  "serde",
  "serde_json",
@@ -1953,20 +1930,6 @@ name = "gen-types"
 version = "0.1.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1efa39b439fd999e2f7454c08cb7a4d1f9e6e49ffa805557647f7f998caf7414"
-dependencies = [
- "blake3",
- "chrono",
- "indexmap",
- "inventory",
- "serde",
- "serde_json",
- "thiserror 2.0.19",
-]
-
-[[package]]
-name = "gen-types"
-version = "0.1.35"
-source = "git+https://github.com/pleme-io/gen#3925eaab4271cd4a0db1942216062d84b364e3a0"
 dependencies = [
  "blake3",
  "chrono",
@@ -2841,7 +2804,7 @@ checksum = "2876d087fe9f221bf1110bb5bee16ea16ec49d3d3e46acf081bb8f38ecaba245"
 dependencies = [
  "izumi",
  "serde",
- "shikumi 0.1.80",
+ "shikumi",
 ]
 
 [[package]]
@@ -3408,7 +3371,7 @@ dependencies = [
  "serde_json",
  "serde_yaml_ng",
  "shidou",
- "shikumi 0.1.80",
+ "shikumi",
  "tatara-lisp 0.3.27",
  "tear-client",
  "tear-config",
@@ -3437,7 +3400,7 @@ dependencies = [
  "garasu",
  "pollster",
  "serde",
- "shikumi 0.1.80",
+ "shikumi",
  "thiserror 2.0.19",
  "tracing",
  "wgpu",
@@ -4893,8 +4856,8 @@ dependencies = [
 
 [[package]]
 name = "praca"
-version = "0.1.8"
-source = "git+https://github.com/pleme-io/tear?rev=a6041abc1d14fb93424738909e1db769c22bdb65#a6041abc1d14fb93424738909e1db769c22bdb65"
+version = "0.1.11"
+source = "git+https://github.com/pleme-io/tear?rev=779d15f5cbd2ec7f714ff8ba7e31b073e02ac919#779d15f5cbd2ec7f714ff8ba7e31b073e02ac919"
 dependencies = [
  "ishou-tokens",
  "serde",
@@ -6242,13 +6205,14 @@ checksum = "dc6fe69c597f9c37bfeeeeeb33da3530379845f10be461a66d16d03eca2ded77"
 
 [[package]]
 name = "shidou"
-version = "0.1.9"
-source = "git+https://github.com/pleme-io/shidou#52612bc3e60c1fe859a592a5372e66d89835d03c"
+version = "0.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b4542cfac61c11bf07dec9d6d7b5b4225ff3c53dc555a87f947fd054e59fac31"
 dependencies = [
  "anyhow",
  "clap",
  "serde",
- "shikumi 0.1.80",
+ "shikumi",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -6256,34 +6220,16 @@ dependencies = [
 
 [[package]]
 name = "shikumi"
-version = "0.1.80"
-source = "git+https://github.com/pleme-io/shikumi?rev=b41d01e453b2c2505941ba02003f48721ca02b17#b41d01e453b2c2505941ba02003f48721ca02b17"
+version = "0.1.496"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "de145934a9ccb306460220a3cd6068240dea61c139a34846b030bdb3d7b6af41"
 dependencies = [
  "arc-swap",
  "async-trait",
  "clap",
  "figment",
- "gen-platform 0.1.35",
- "gen-types 0.1.35",
- "notify",
- "serde",
- "serde_json",
- "serde_yaml",
- "thiserror 2.0.19",
- "tracing",
-]
-
-[[package]]
-name = "shikumi"
-version = "0.1.491"
-source = "git+https://github.com/pleme-io/shikumi?branch=main#d4d481115f1eda678cd7802412fb2995e3d6698a"
-dependencies = [
- "arc-swap",
- "async-trait",
- "clap",
- "figment",
- "gen-platform 0.1.34",
- "gen-types 0.1.34",
+ "gen-platform",
+ "gen-types",
  "notify",
  "serde",
  "serde_json",
@@ -7029,8 +6975,8 @@ dependencies = [
 
 [[package]]
 name = "tear-client"
-version = "0.1.8"
-source = "git+https://github.com/pleme-io/tear?rev=a6041abc1d14fb93424738909e1db769c22bdb65#a6041abc1d14fb93424738909e1db769c22bdb65"
+version = "0.1.11"
+source = "git+https://github.com/pleme-io/tear?rev=779d15f5cbd2ec7f714ff8ba7e31b073e02ac919#779d15f5cbd2ec7f714ff8ba7e31b073e02ac919"
 dependencies = [
  "engate-attach",
  "engate-types",
@@ -7042,8 +6988,8 @@ dependencies = [
 
 [[package]]
 name = "tear-config"
-version = "0.1.8"
-source = "git+https://github.com/pleme-io/tear?rev=a6041abc1d14fb93424738909e1db769c22bdb65#a6041abc1d14fb93424738909e1db769c22bdb65"
+version = "0.1.11"
+source = "git+https://github.com/pleme-io/tear?rev=779d15f5cbd2ec7f714ff8ba7e31b073e02ac919#779d15f5cbd2ec7f714ff8ba7e31b073e02ac919"
 dependencies = [
  "anyhow",
  "arc-swap",
@@ -7052,7 +6998,7 @@ dependencies = [
  "once_cell",
  "serde",
  "serde_yaml_ng",
- "shikumi 0.1.491",
+ "shikumi",
  "tear-types",
  "thiserror 2.0.19",
  "tracing",
@@ -7060,8 +7006,8 @@ dependencies = [
 
 [[package]]
 name = "tear-core"
-version = "0.1.8"
-source = "git+https://github.com/pleme-io/tear?rev=a6041abc1d14fb93424738909e1db769c22bdb65#a6041abc1d14fb93424738909e1db769c22bdb65"
+version = "0.1.11"
+source = "git+https://github.com/pleme-io/tear?rev=779d15f5cbd2ec7f714ff8ba7e31b073e02ac919#779d15f5cbd2ec7f714ff8ba7e31b073e02ac919"
 dependencies = [
  "anyhow",
  "blake3",
@@ -7083,8 +7029,8 @@ dependencies = [
 
 [[package]]
 name = "tear-daemon"
-version = "0.1.8"
-source = "git+https://github.com/pleme-io/tear?rev=a6041abc1d14fb93424738909e1db769c22bdb65#a6041abc1d14fb93424738909e1db769c22bdb65"
+version = "0.1.11"
+source = "git+https://github.com/pleme-io/tear?rev=779d15f5cbd2ec7f714ff8ba7e31b073e02ac919#779d15f5cbd2ec7f714ff8ba7e31b073e02ac919"
 dependencies = [
  "anyhow",
  "blake3",
@@ -7104,8 +7050,8 @@ dependencies = [
 
 [[package]]
 name = "tear-types"
-version = "0.1.8"
-source = "git+https://github.com/pleme-io/tear?rev=a6041abc1d14fb93424738909e1db769c22bdb65#a6041abc1d14fb93424738909e1db769c22bdb65"
+version = "0.1.11"
+source = "git+https://github.com/pleme-io/tear?rev=779d15f5cbd2ec7f714ff8ba7e31b073e02ac919#779d15f5cbd2ec7f714ff8ba7e31b073e02ac919"
 dependencies = [
  "anyhow",
  "blake3",
