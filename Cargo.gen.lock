@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "954679568d65612b6927fd93c3121df6222d20c4628bf24c35a0355909bddeea",
+  "cargo_lock_sha256": "e0ddbab9b39f1ea7e25f9d56b00167eb9dbe4b0543e63f1a77583ff84e18d85d",
   "manifest_sha256": {
-    "Cargo.toml": "7cabf20ab65659433bfb7c852b258130eff7ab3499c64aea4d13643096e4925f"
+    "Cargo.toml": "8ca81bf2d24a186cbd55dfbcc504c11b0f32b1116da9a5631632bde23dbfef0a"
   },
   "target_resolves": {
     "base": {
@@ -602,7 +602,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "awase-0.1.2-d1ff4287e46342375d9c3a3426777f2e3fba30bb": {
+      "awase-0.1.4-4ea1d7b0aacb8375ef683e4d40151aa88626f2fb": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -7251,7 +7251,7 @@
           "default"
         ]
       },
-      "ishou-tokens-0.1.4-18eeb05964240b195e1cc205ec64dfcafdd10026": {
+      "ishou-tokens-0.1.4-dc817deec1248ad1117b3670653ab65e03b0c74b": {
         "runtime_dependencies": [
           {
             "name": "irodori",
@@ -9859,7 +9859,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.4-18eeb05964240b195e1cc205ec64dfcafdd10026",
+            "package_key": "ishou-tokens-0.1.4-dc817deec1248ad1117b3670653ab65e03b0c74b",
             "kind": "normal",
             "features": [
               "wgpu"
@@ -12383,7 +12383,7 @@
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.4-18eeb05964240b195e1cc205ec64dfcafdd10026",
+            "package_key": "ishou-tokens-0.1.4-dc817deec1248ad1117b3670653ab65e03b0c74b",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20911,7 +20911,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.4-18eeb05964240b195e1cc205ec64dfcafdd10026",
+            "package_key": "ishou-tokens-0.1.4-dc817deec1248ad1117b3670653ab65e03b0c74b",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21053,7 +21053,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.4-18eeb05964240b195e1cc205ec64dfcafdd10026",
+            "package_key": "ishou-tokens-0.1.4-dc817deec1248ad1117b3670653ab65e03b0c74b",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21383,7 +21383,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.4-18eeb05964240b195e1cc205ec64dfcafdd10026",
+            "package_key": "ishou-tokens-0.1.4-dc817deec1248ad1117b3670653ab65e03b0c74b",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -26458,7 +26458,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.121": {
+          "mado-0.1.122": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26472,7 +26472,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.2-d1ff4287e46342375d9c3a3426777f2e3fba30bb",
+                "package_key": "awase-0.1.4-4ea1d7b0aacb8375ef683e4d40151aa88626f2fb",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26661,7 +26661,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.4-18eeb05964240b195e1cc205ec64dfcafdd10026",
+                "package_key": "ishou-tokens-0.1.4-dc817deec1248ad1117b3670653ab65e03b0c74b",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -31383,7 +31383,7 @@
               "system"
             ]
           },
-          "mado-0.1.121": {
+          "mado-0.1.122": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31397,7 +31397,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.2-d1ff4287e46342375d9c3a3426777f2e3fba30bb",
+                "package_key": "awase-0.1.4-4ea1d7b0aacb8375ef683e4d40151aa88626f2fb",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31586,7 +31586,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.4-18eeb05964240b195e1cc205ec64dfcafdd10026",
+                "package_key": "ishou-tokens-0.1.4-dc817deec1248ad1117b3670653ab65e03b0c74b",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -35388,7 +35388,7 @@
               "system"
             ]
           },
-          "mado-0.1.121": {
+          "mado-0.1.122": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35402,7 +35402,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.2-d1ff4287e46342375d9c3a3426777f2e3fba30bb",
+                "package_key": "awase-0.1.4-4ea1d7b0aacb8375ef683e4d40151aa88626f2fb",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35591,7 +35591,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.4-18eeb05964240b195e1cc205ec64dfcafdd10026",
+                "package_key": "ishou-tokens-0.1.4-dc817deec1248ad1117b3670653ab65e03b0c74b",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -39511,7 +39511,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.121": {
+          "mado-0.1.122": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39525,7 +39525,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.2-d1ff4287e46342375d9c3a3426777f2e3fba30bb",
+                "package_key": "awase-0.1.4-4ea1d7b0aacb8375ef683e4d40151aa88626f2fb",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39714,7 +39714,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.4-18eeb05964240b195e1cc205ec64dfcafdd10026",
+                "package_key": "ishou-tokens-0.1.4-dc817deec1248ad1117b3670653ab65e03b0c74b",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -44400,7 +44400,7 @@
               "system"
             ]
           },
-          "mado-0.1.121": {
+          "mado-0.1.122": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44414,7 +44414,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.2-d1ff4287e46342375d9c3a3426777f2e3fba30bb",
+                "package_key": "awase-0.1.4-4ea1d7b0aacb8375ef683e4d40151aa88626f2fb",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44603,7 +44603,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.4-18eeb05964240b195e1cc205ec64dfcafdd10026",
+                "package_key": "ishou-tokens-0.1.4-dc817deec1248ad1117b3670653ab65e03b0c74b",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -48369,7 +48369,7 @@
               "system"
             ]
           },
-          "mado-0.1.121": {
+          "mado-0.1.122": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48383,7 +48383,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.2-d1ff4287e46342375d9c3a3426777f2e3fba30bb",
+                "package_key": "awase-0.1.4-4ea1d7b0aacb8375ef683e4d40151aa88626f2fb",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48572,7 +48572,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.4-18eeb05964240b195e1cc205ec64dfcafdd10026",
+                "package_key": "ishou-tokens-0.1.4-dc817deec1248ad1117b3670653ab65e03b0c74b",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -51589,7 +51589,7 @@
     "autocfg-1.5.1": {
       "edition": "2015"
     },
-    "awase-0.1.2-d1ff4287e46342375d9c3a3426777f2e3fba30bb": {
+    "awase-0.1.4-4ea1d7b0aacb8375ef683e4d40151aa88626f2fb": {
       "edition": "2024"
     },
     "backon-1.6.0": {
@@ -52367,7 +52367,7 @@
     "is_terminal_polyfill-1.70.2": {
       "edition": "2021"
     },
-    "ishou-tokens-0.1.4-18eeb05964240b195e1cc205ec64dfcafdd10026": {
+    "ishou-tokens-0.1.4-dc817deec1248ad1117b3670653ab65e03b0c74b": {
       "edition": "2024"
     },
     "itertools-0.10.5": {
@@ -52505,7 +52505,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.121": {
+    "mado-0.1.122": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -54062,7 +54062,7 @@
     }
   },
   "git_nar_sha256": {
-    "awase-0.1.2-d1ff4287e46342375d9c3a3426777f2e3fba30bb": "sha256-kgc3q48a+A0pQabqwlo3GrnTDP1NvvaHENRXk3kzOv4=",
+    "awase-0.1.4-4ea1d7b0aacb8375ef683e4d40151aa88626f2fb": "sha256-NFYKyrBTGCl7RYXsTZeCI1lFHORJi17srwsTS9sTpHA=",
     "egaku-0.1.3-81d168190061c452d115f58f186429b84f489be8": "sha256-sNTpm8OD42MDucjVuV5ag1xcoMZatDk4GVIuRFRLa4c=",
     "engate-attach-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": "sha256-7dqrUg3KMEKH5ac5RuK7EJRogt4H3xtv6nDrM0jpccM=",
     "engate-types-0.1.1-a6215718a11a5c5c374623ba5338266bea1f382e": "sha256-7dqrUg3KMEKH5ac5RuK7EJRogt4H3xtv6nDrM0jpccM=",
@@ -54071,7 +54071,7 @@
     "hasami-0.1.2-f9d3da50e4199581d538af2300ba0891aefc05f0": "sha256-QKqk61JrmogxthVfCASTjyJ+lrB/AnNUQHXTstx+vfA=",
     "hayai-0.1.2-4f5239c021bd154fcf5afbb4c8cf61332781dbd1": "sha256-lbxbrZSi/6ugpdjnedI+AspSMeFutczU74CTln0OOpk=",
     "irodzuki-0.1.7-d3bfe781e9c813164a37a0e0a1eeef16f5be9515": "sha256-7iA13F9fE1MktjUB89kQIiVY6TB0wTNHmHNGSJcj9Lg=",
-    "ishou-tokens-0.1.4-18eeb05964240b195e1cc205ec64dfcafdd10026": "sha256-uvE/Y280keWLB9Y6wj8oXCQ8hHEfGmtWcGklpTfo6XE=",
+    "ishou-tokens-0.1.4-dc817deec1248ad1117b3670653ab65e03b0c74b": "sha256-W4wih3VjkR6SRHOD6GVPRraJeRg7+W6NKiredujbeuk=",
     "kanchi-0.1.3-1ba82571a3e3b061d4cb4509f88ca0bf0a54b00c": "sha256-pQuPMse9iY4kMjvRwNkzph7gfBzOjgh+/c8AIHImqWA=",
     "kanshou-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",
     "kanshou-derive-0.1.3-678b920bc143eee735cc70ed470104026f0ff83e": "sha256-u9//iByKnB6QE5elZxslzw1XIoE35sWTL4QIupNJqXE=",

@@ -2184,10 +2184,10 @@ rec {
       };
       "clap" = rec {
         crateName = "clap";
-        version = "4.6.5";
+        version = "4.6.6";
         edition = "2024";
         crateBin = [];
-        sha256 = "1pyaq1cfrwzwcfdlxynxiq8fgrvvi3yccyk490v8zr4qhmjmc6rh";
+        sha256 = "1jmx5z8d6jbvxdz6dybh599s4rd7ns6sl90p2rrdga09yh3pwg27";
         dependencies = [
           {
             name = "clap_builder";
@@ -2226,9 +2226,9 @@ rec {
       };
       "clap_builder" = rec {
         crateName = "clap_builder";
-        version = "4.6.5";
+        version = "4.6.6";
         edition = "2024";
-        sha256 = "0y500wa2x3jqvsc95dgcbvp0hj47x038bsv8vkvjigd1s41m99ll";
+        sha256 = "12cqg25zpjc3k82cpqa2v9h7s3vk1vydpgnwl8lfg6lfm2jzwj3v";
         dependencies = [
           {
             name = "anstream";
@@ -5647,6 +5647,115 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" ];
       };
+      "gen-macros" = rec {
+        crateName = "gen-macros";
+        version = "0.1.34";
+        edition = "2024";
+        sha256 = "1v95haq8116dn26nkkrdb67m7byp5j6cb5pdsah4pbbx865nwzg8";
+        procMacro = true;
+        libName = "gen_macros";
+        authors = [
+          "pleme-io"
+        ];
+        dependencies = [
+          {
+            name = "proc-macro2";
+            packageId = "proc-macro2";
+          }
+          {
+            name = "quote";
+            packageId = "quote";
+          }
+          {
+            name = "syn";
+            packageId = "syn 2.0.119";
+            features = [ "full" "extra-traits" ];
+          }
+        ];
+
+      };
+      "gen-platform" = rec {
+        crateName = "gen-platform";
+        version = "0.1.34";
+        edition = "2024";
+        sha256 = "10v7vzz6yfm0h4lvb2kk1a8p3qq5zmzxvaam9xj28fs13fql40il";
+        libName = "gen_platform";
+        authors = [
+          "pleme-io"
+        ];
+        dependencies = [
+          {
+            name = "gen-macros";
+            packageId = "gen-macros";
+          }
+          {
+            name = "gen-types";
+            packageId = "gen-types";
+          }
+          {
+            name = "inventory";
+            packageId = "inventory";
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
+            name = "thiserror";
+            packageId = "thiserror 2.0.19";
+          }
+        ];
+
+      };
+      "gen-types" = rec {
+        crateName = "gen-types";
+        version = "0.1.34";
+        edition = "2024";
+        sha256 = "053lmy69jzvzcibmb07skzjfdyfiljvqrh2lfhprx6gx76s3kyhy";
+        libName = "gen_types";
+        authors = [
+          "pleme-io"
+        ];
+        dependencies = [
+          {
+            name = "blake3";
+            packageId = "blake3";
+          }
+          {
+            name = "chrono";
+            packageId = "chrono";
+            features = [ "serde" ];
+          }
+          {
+            name = "indexmap";
+            packageId = "indexmap";
+            features = [ "serde" ];
+          }
+          {
+            name = "inventory";
+            packageId = "inventory";
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
+            name = "thiserror";
+            packageId = "thiserror 2.0.19";
+          }
+        ];
+
+      };
       "generic-array" = rec {
         crateName = "generic-array";
         version = "0.14.7";
@@ -5920,64 +6029,26 @@ rec {
         };
         resolvedDefaultFeatures = [ "std" "sys_rng" "wasm_js" ];
       };
-      "git+https://github.com/pleme-io/gen#gen-macros@0.1.34" = rec {
-        crateName = "gen-macros";
-        version = "0.1.34";
+      "git+https://github.com/pleme-io/todoku#0.1.1" = rec {
+        crateName = "todoku";
+        version = "0.1.1";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/gen";
-          rev = "c2f80f9adb7bef183527872e9aced10ad07a6072";
-          sha256 = "0ql5mzcl7n1skkvsm9qj71yb89gzf30zsxmbzd2sy8whnqd3nxr7";
+          url = "https://github.com/pleme-io/todoku";
+          rev = "6fd4bab4fb048c84571ffcb31b2b81b9b6a2ba8f";
+          sha256 = "0kjgl2x3827chxk29wxq4wrrni83hd8jlhjsm3sxd7wn2b015nxa";
         };
-        procMacro = true;
-        libName = "gen_macros";
-        authors = [
-          "pleme-io"
-        ];
         dependencies = [
           {
-            name = "proc-macro2";
-            packageId = "proc-macro2";
+            name = "async-trait";
+            packageId = "async-trait";
           }
           {
-            name = "quote";
-            packageId = "quote";
-          }
-          {
-            name = "syn";
-            packageId = "syn 2.0.119";
-            features = [ "full" "extra-traits" ];
-          }
-        ];
-
-      };
-      "git+https://github.com/pleme-io/gen#gen-platform@0.1.34" = rec {
-        crateName = "gen-platform";
-        version = "0.1.34";
-        edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/gen";
-          rev = "c2f80f9adb7bef183527872e9aced10ad07a6072";
-          sha256 = "0ql5mzcl7n1skkvsm9qj71yb89gzf30zsxmbzd2sy8whnqd3nxr7";
-        };
-        libName = "gen_platform";
-        authors = [
-          "pleme-io"
-        ];
-        dependencies = [
-          {
-            name = "gen-macros";
-            packageId = "git+https://github.com/pleme-io/gen#gen-macros@0.1.34";
-          }
-          {
-            name = "gen-types";
-            packageId = "git+https://github.com/pleme-io/gen#gen-types@0.1.34";
-          }
-          {
-            name = "inventory";
-            packageId = "inventory";
+            name = "reqwest";
+            packageId = "reqwest";
+            usesDefaultFeatures = false;
+            features = [ "charset" "http2" "macos-system-configuration" "json" "rustls-tls" "cookies" "gzip" "brotli" ];
           }
           {
             name = "serde";
@@ -5992,57 +6063,31 @@ rec {
             name = "thiserror";
             packageId = "thiserror 2.0.19";
           }
+          {
+            name = "tokio";
+            packageId = "tokio";
+            features = [ "time" "net" "rt" ];
+          }
+          {
+            name = "tracing";
+            packageId = "tracing";
+          }
+          {
+            name = "url";
+            packageId = "url";
+          }
         ];
-
-      };
-      "git+https://github.com/pleme-io/gen#gen-types@0.1.34" = rec {
-        crateName = "gen-types";
-        version = "0.1.34";
-        edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/gen";
-          rev = "c2f80f9adb7bef183527872e9aced10ad07a6072";
-          sha256 = "0ql5mzcl7n1skkvsm9qj71yb89gzf30zsxmbzd2sy8whnqd3nxr7";
+        devDependencies = [
+          {
+            name = "tokio";
+            packageId = "tokio";
+            features = [ "rt-multi-thread" "macros" "net" ];
+          }
+        ];
+        features = {
+          "stealth" = [ "dep:wreq" "dep:wreq-util" ];
         };
-        libName = "gen_types";
-        authors = [
-          "pleme-io"
-        ];
-        dependencies = [
-          {
-            name = "blake3";
-            packageId = "blake3";
-          }
-          {
-            name = "chrono";
-            packageId = "chrono";
-            features = [ "serde" ];
-          }
-          {
-            name = "indexmap";
-            packageId = "indexmap";
-            features = [ "serde" ];
-          }
-          {
-            name = "inventory";
-            packageId = "inventory";
-          }
-          {
-            name = "serde";
-            packageId = "serde";
-            features = [ "derive" ];
-          }
-          {
-            name = "serde_json";
-            packageId = "serde_json";
-          }
-          {
-            name = "thiserror";
-            packageId = "thiserror 2.0.19";
-          }
-        ];
-
+        resolvedDefaultFeatures = [ "default" ];
       };
       "gl_generator" = rec {
         crateName = "gl_generator";
@@ -8445,9 +8490,9 @@ rec {
       };
       "izumi" = rec {
         crateName = "izumi";
-        version = "0.1.18";
+        version = "0.1.19";
         edition = "2024";
-        sha256 = "0vclm351a2vk9ar5zql3l5v0cv5nlv7aw2hqhx2f35q8if35g530";
+        sha256 = "0dvz19vln94q9rwczf9vpwkykmg2m16l7yx95lvyfy5852xjr6yr";
         authors = [
           "pleme-io"
         ];
@@ -8463,6 +8508,15 @@ rec {
           {
             name = "parking_lot";
             packageId = "parking_lot";
+          }
+          {
+            name = "todoku";
+            packageId = "registry+https://github.com/rust-lang/crates.io-index#todoku@0.1.1";
+          }
+          {
+            name = "reqwest";
+            packageId = "reqwest";
+            usesDefaultFeatures = false;
           }
           {
             name = "samba";
@@ -8504,9 +8558,9 @@ rec {
       };
       "izumi-config" = rec {
         crateName = "izumi-config";
-        version = "0.1.18";
+        version = "0.1.19";
         edition = "2024";
-        sha256 = "1vs82bm2bam8pr5d0q7mrv65y8i4f8v7pnc4a24idcy7rdrai0dz";
+        sha256 = "0id2mgn3i3xvh7qaqiiy7nfw8vm1dvhvxd8b27qin8lzzs3x0xi8";
         libName = "izumi_config";
         authors = [
           "pleme-io"
@@ -8523,16 +8577,16 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "shikumi 0.1.80";
+            packageId = "shikumi";
           }
         ];
 
       };
       "izumi-sources" = rec {
         crateName = "izumi-sources";
-        version = "0.1.18";
+        version = "0.1.19";
         edition = "2024";
-        sha256 = "0dygwdva03vy895ds2mjvjcyjalcb6sl310g0acvandq19ahc2sf";
+        sha256 = "04dhk8m7smiqxl4x2zvxc1gmfzyivhlnfsk76kjvv8zm8m3clgax";
         libName = "izumi_sources";
         authors = [
           "pleme-io"
@@ -10254,7 +10308,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.121";
+        version = "0.1.122";
         edition = "2024";
         crateBin = [
           {
@@ -10496,7 +10550,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "shikumi 0.1.80";
+            packageId = "shikumi";
             features = [ "cli" ];
           }
           {
@@ -10629,7 +10683,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "shikumi 0.1.80";
+            packageId = "shikumi";
           }
           {
             name = "thiserror";
@@ -11194,6 +11248,11 @@ rec {
             optional = true;
           }
           {
+            name = "todoku";
+            packageId = "git+https://github.com/pleme-io/todoku#0.1.1";
+            optional = true;
+          }
+          {
             name = "glyphon";
             packageId = "glyphon";
             optional = true;
@@ -11264,11 +11323,6 @@ rec {
           {
             name = "thiserror";
             packageId = "thiserror 2.0.19";
-          }
-          {
-            name = "todoku";
-            packageId = "todoku";
-            optional = true;
           }
           {
             name = "tracing";
@@ -11714,7 +11768,7 @@ rec {
           "serde" = [ "notify-types/serde" ];
           "serialization-compat-6" = [ "notify-types/serialization-compat-6" ];
         };
-        resolvedDefaultFeatures = [ "fsevent-sys" "kqueue" "macos_fsevent" "macos_kqueue" "mio" ];
+        resolvedDefaultFeatures = [ "fsevent-sys" "macos_fsevent" ];
       };
       "notify-types" = rec {
         crateName = "notify-types";
@@ -16944,13 +16998,13 @@ rec {
       };
       "praca" = rec {
         crateName = "praca";
-        version = "0.1.8";
+        version = "0.1.11";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
-          rev = "a6041abc1d14fb93424738909e1db769c22bdb65";
-          sha256 = "09njc4snyx225fnv4ydmaxik54a1dbf67i4bny96xy1hi0mxs90f";
+          rev = "779d15f5cbd2ec7f714ff8ba7e31b073e02ac919";
+          sha256 = "062vy5d1mngw39lv270mvy6maxb409bwvcp2wgb18jq6m6giskbh";
         };
         authors = [
           "pleme-io"
@@ -16970,7 +17024,9 @@ rec {
             packageId = "tear-types";
           }
         ];
-
+        features = {
+        };
+        resolvedDefaultFeatures = [ "default" ];
       };
       "precomputed-hash" = rec {
         crateName = "precomputed-hash";
@@ -18507,54 +18563,21 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "std" "unicode" "unicode-age" "unicode-bool" "unicode-case" "unicode-gencat" "unicode-perl" "unicode-script" "unicode-segment" ];
       };
-      "registry+https://github.com/rust-lang/crates.io-index#gen-macros@0.1.34" = rec {
-        crateName = "gen-macros";
-        version = "0.1.34";
+      "registry+https://github.com/rust-lang/crates.io-index#todoku@0.1.1" = rec {
+        crateName = "todoku";
+        version = "0.1.1";
         edition = "2024";
-        sha256 = "1v95haq8116dn26nkkrdb67m7byp5j6cb5pdsah4pbbx865nwzg8";
-        procMacro = true;
-        libName = "gen_macros";
-        authors = [
-          "pleme-io"
-        ];
+        sha256 = "1sy0gmfgpn15w1y7sqgy5ya7qji5fpq6sq1i04spnbq0slk1p8pk";
         dependencies = [
           {
-            name = "proc-macro2";
-            packageId = "proc-macro2";
+            name = "async-trait";
+            packageId = "async-trait";
           }
           {
-            name = "quote";
-            packageId = "quote";
-          }
-          {
-            name = "syn";
-            packageId = "syn 2.0.119";
-            features = [ "full" "extra-traits" ];
-          }
-        ];
-
-      };
-      "registry+https://github.com/rust-lang/crates.io-index#gen-platform@0.1.34" = rec {
-        crateName = "gen-platform";
-        version = "0.1.34";
-        edition = "2024";
-        sha256 = "10v7vzz6yfm0h4lvb2kk1a8p3qq5zmzxvaam9xj28fs13fql40il";
-        libName = "gen_platform";
-        authors = [
-          "pleme-io"
-        ];
-        dependencies = [
-          {
-            name = "inventory";
-            packageId = "inventory";
-          }
-          {
-            name = "gen-macros";
-            packageId = "registry+https://github.com/rust-lang/crates.io-index#gen-macros@0.1.34";
-          }
-          {
-            name = "gen-types";
-            packageId = "registry+https://github.com/rust-lang/crates.io-index#gen-types@0.1.34";
+            name = "reqwest";
+            packageId = "reqwest";
+            usesDefaultFeatures = false;
+            features = [ "charset" "http2" "macos-system-configuration" "json" "rustls-tls" "cookies" "gzip" "brotli" ];
           }
           {
             name = "serde";
@@ -18569,52 +18592,31 @@ rec {
             name = "thiserror";
             packageId = "thiserror 2.0.19";
           }
-        ];
-
-      };
-      "registry+https://github.com/rust-lang/crates.io-index#gen-types@0.1.34" = rec {
-        crateName = "gen-types";
-        version = "0.1.34";
-        edition = "2024";
-        sha256 = "053lmy69jzvzcibmb07skzjfdyfiljvqrh2lfhprx6gx76s3kyhy";
-        libName = "gen_types";
-        authors = [
-          "pleme-io"
-        ];
-        dependencies = [
           {
-            name = "blake3";
-            packageId = "blake3";
+            name = "tokio";
+            packageId = "tokio";
+            features = [ "time" "net" "rt" ];
           }
           {
-            name = "chrono";
-            packageId = "chrono";
-            features = [ "serde" ];
+            name = "tracing";
+            packageId = "tracing";
           }
           {
-            name = "indexmap";
-            packageId = "indexmap";
-            features = [ "serde" ];
-          }
-          {
-            name = "inventory";
-            packageId = "inventory";
-          }
-          {
-            name = "serde";
-            packageId = "serde";
-            features = [ "derive" ];
-          }
-          {
-            name = "serde_json";
-            packageId = "serde_json";
-          }
-          {
-            name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            name = "url";
+            packageId = "url";
           }
         ];
-
+        devDependencies = [
+          {
+            name = "tokio";
+            packageId = "tokio";
+            features = [ "rt-multi-thread" "macros" "net" ];
+          }
+        ];
+        features = {
+          "stealth" = [ "dep:wreq" "dep:wreq-util" ];
+        };
+        resolvedDefaultFeatures = [ "default" ];
       };
       "rend" = rec {
         crateName = "rend";
@@ -21972,14 +21974,9 @@ rec {
       };
       "shidou" = rec {
         crateName = "shidou";
-        version = "0.1.9";
+        version = "0.1.10";
         edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/shidou";
-          rev = "35c12221ac8622d90e03e21d5fec30ac329547e7";
-          sha256 = "1x7chj9h14785kq840g2bhi394mw4mw13fx2mrvgf3qrb3a3wfxf";
-        };
+        sha256 = "0cdckzjm9l3zjizshmf57p2z6pr2njsxgmn9vq3vy48wqvx2qm5l";
         dependencies = [
           {
             name = "anyhow";
@@ -21997,7 +21994,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "shikumi 0.1.80";
+            packageId = "shikumi";
           }
           {
             name = "tokio";
@@ -22016,16 +22013,11 @@ rec {
         ];
 
       };
-      "shikumi 0.1.484" = rec {
+      "shikumi" = rec {
         crateName = "shikumi";
-        version = "0.1.484";
+        version = "0.1.496";
         edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/shikumi";
-          rev = "ae5d58aafd8b0fe3669879ff2f2f03309ef06a8d";
-          sha256 = "1lri56zini89h4c2yx2d91qwnlcd692r0gcvqmlazhmc3925gmwd";
-        };
+        sha256 = "0hdgnvbv7g9hn134i8rrq5hyl394d1hcv8r00930dcycm4s5j56y";
         dependencies = [
           {
             name = "arc-swap";
@@ -22047,6 +22039,14 @@ rec {
             features = [ "env" "yaml" "toml" ];
           }
           {
+            name = "gen-platform";
+            packageId = "gen-platform";
+          }
+          {
+            name = "gen-types";
+            packageId = "gen-types";
+          }
+          {
             name = "notify";
             packageId = "notify";
             usesDefaultFeatures = false;
@@ -22057,14 +22057,6 @@ rec {
             usesDefaultFeatures = false;
             target = { target, features }: ("macos" == target."os" or null);
             features = [ "macos_fsevent" ];
-          }
-          {
-            name = "gen-platform";
-            packageId = "registry+https://github.com/rust-lang/crates.io-index#gen-platform@0.1.34";
-          }
-          {
-            name = "gen-types";
-            packageId = "registry+https://github.com/rust-lang/crates.io-index#gen-types@0.1.34";
           }
           {
             name = "serde";
@@ -22107,99 +22099,6 @@ rec {
           "hotswap" = [ "dep:pleme-hotswap" "dep:blake3" ];
           "kube" = [ "kube-discovery" "dep:reqwest" "reqwest/blocking" "dep:base64" ];
           "kube-discovery" = [ "dep:kanchi" ];
-          "lisp" = [ "dep:tatara-lisp" ];
-          "op-native" = [ "dep:reqwest" "dep:tokio" ];
-          "vault-native" = [ "dep:reqwest" "dep:tokio" ];
-        };
-        resolvedDefaultFeatures = [ "cli" "default" ];
-      };
-      "shikumi 0.1.80" = rec {
-        crateName = "shikumi";
-        version = "0.1.80";
-        edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/shikumi";
-          rev = "b41d01e453b2c2505941ba02003f48721ca02b17";
-          sha256 = "1b1g64r6krzrfiilz89vny0pvlc3q1bfrblq4cz3jxsjhd99zpi5";
-        };
-        dependencies = [
-          {
-            name = "arc-swap";
-            packageId = "arc-swap";
-          }
-          {
-            name = "async-trait";
-            packageId = "async-trait";
-          }
-          {
-            name = "clap";
-            packageId = "clap";
-            optional = true;
-            features = [ "derive" ];
-          }
-          {
-            name = "figment";
-            packageId = "figment";
-            features = [ "env" "yaml" "toml" ];
-          }
-          {
-            name = "gen-platform";
-            packageId = "git+https://github.com/pleme-io/gen#gen-platform@0.1.34";
-          }
-          {
-            name = "gen-types";
-            packageId = "git+https://github.com/pleme-io/gen#gen-types@0.1.34";
-          }
-          {
-            name = "notify";
-            packageId = "notify";
-            usesDefaultFeatures = false;
-          }
-          {
-            name = "notify";
-            packageId = "notify";
-            usesDefaultFeatures = false;
-            target = { target, features }: ("macos" == target."os" or null);
-            features = [ "macos_kqueue" ];
-          }
-          {
-            name = "serde";
-            packageId = "serde";
-            features = [ "derive" ];
-          }
-          {
-            name = "serde_json";
-            packageId = "serde_json";
-          }
-          {
-            name = "serde_yaml";
-            packageId = "serde_yaml";
-          }
-          {
-            name = "thiserror";
-            packageId = "thiserror 2.0.19";
-          }
-          {
-            name = "tracing";
-            packageId = "tracing";
-          }
-        ];
-        devDependencies = [
-          {
-            name = "serde_json";
-            packageId = "serde_json";
-          }
-          {
-            name = "serde_yaml";
-            packageId = "serde_yaml";
-          }
-        ];
-        features = {
-          "akeyless-native" = [ "dep:akeyless-api" "dep:tokio" ];
-          "aws-native" = [ "dep:aws-sdk-secretsmanager" "dep:aws-config" "dep:tokio" ];
-          "cli" = [ "dep:clap" ];
-          "gcp-native" = [ "dep:reqwest" "dep:tokio" ];
           "lisp" = [ "dep:tatara-lisp" ];
           "op-native" = [ "dep:reqwest" "dep:tokio" ];
           "vault-native" = [ "dep:reqwest" "dep:tokio" ];
@@ -24280,9 +24179,9 @@ rec {
       };
       "tatara-closed-set" = rec {
         crateName = "tatara-closed-set";
-        version = "0.3.36";
+        version = "0.3.37";
         edition = "2021";
-        sha256 = "10kjqwjcjk55x92v8c663gijl8pvl3fn13qwr3zx5w19cf7d7nh7";
+        sha256 = "1giskvfyhgb3zs64qlcigpp40la3y6kmbasr4s7fmnskx81ssz8y";
         libName = "tatara_closed_set";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24297,9 +24196,9 @@ rec {
       };
       "tatara-closed-set-derive" = rec {
         crateName = "tatara-closed-set-derive";
-        version = "0.3.36";
+        version = "0.3.37";
         edition = "2021";
-        sha256 = "0r7kc25yh2wfmqb1pqd9wpmwpsdcdi0xfrw6if49c3vcv27snfsy";
+        sha256 = "1q3r7jn7f8y5lyhgdhygknjnl6xl72d4wv2wjx7v3hp168g3pca9";
         procMacro = true;
         libName = "tatara_closed_set_derive";
         authors = [
@@ -24783,13 +24682,13 @@ rec {
       };
       "tear-client" = rec {
         crateName = "tear-client";
-        version = "0.1.8";
+        version = "0.1.11";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
-          rev = "a6041abc1d14fb93424738909e1db769c22bdb65";
-          sha256 = "09njc4snyx225fnv4ydmaxik54a1dbf67i4bny96xy1hi0mxs90f";
+          rev = "779d15f5cbd2ec7f714ff8ba7e31b073e02ac919";
+          sha256 = "062vy5d1mngw39lv270mvy6maxb409bwvcp2wgb18jq6m6giskbh";
         };
         libName = "tear_client";
         authors = [
@@ -24830,13 +24729,13 @@ rec {
       };
       "tear-config" = rec {
         crateName = "tear-config";
-        version = "0.1.8";
+        version = "0.1.11";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
-          rev = "a6041abc1d14fb93424738909e1db769c22bdb65";
-          sha256 = "09njc4snyx225fnv4ydmaxik54a1dbf67i4bny96xy1hi0mxs90f";
+          rev = "779d15f5cbd2ec7f714ff8ba7e31b073e02ac919";
+          sha256 = "062vy5d1mngw39lv270mvy6maxb409bwvcp2wgb18jq6m6giskbh";
         };
         libName = "tear_config";
         authors = [
@@ -24876,7 +24775,7 @@ rec {
           }
           {
             name = "shikumi";
-            packageId = "shikumi 0.1.484";
+            packageId = "shikumi";
             features = [ "cli" ];
           }
           {
@@ -24896,13 +24795,13 @@ rec {
       };
       "tear-core" = rec {
         crateName = "tear-core";
-        version = "0.1.8";
+        version = "0.1.11";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
-          rev = "a6041abc1d14fb93424738909e1db769c22bdb65";
-          sha256 = "09njc4snyx225fnv4ydmaxik54a1dbf67i4bny96xy1hi0mxs90f";
+          rev = "779d15f5cbd2ec7f714ff8ba7e31b073e02ac919";
+          sha256 = "062vy5d1mngw39lv270mvy6maxb409bwvcp2wgb18jq6m6giskbh";
         };
         libName = "tear_core";
         authors = [
@@ -24984,13 +24883,13 @@ rec {
       };
       "tear-daemon" = rec {
         crateName = "tear-daemon";
-        version = "0.1.8";
+        version = "0.1.11";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
-          rev = "a6041abc1d14fb93424738909e1db769c22bdb65";
-          sha256 = "09njc4snyx225fnv4ydmaxik54a1dbf67i4bny96xy1hi0mxs90f";
+          rev = "779d15f5cbd2ec7f714ff8ba7e31b073e02ac919";
+          sha256 = "062vy5d1mngw39lv270mvy6maxb409bwvcp2wgb18jq6m6giskbh";
         };
         libName = "tear_daemon";
         authors = [
@@ -25065,13 +24964,13 @@ rec {
       };
       "tear-types" = rec {
         crateName = "tear-types";
-        version = "0.1.8";
+        version = "0.1.11";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/tear";
-          rev = "a6041abc1d14fb93424738909e1db769c22bdb65";
-          sha256 = "09njc4snyx225fnv4ydmaxik54a1dbf67i4bny96xy1hi0mxs90f";
+          rev = "779d15f5cbd2ec7f714ff8ba7e31b073e02ac919";
+          sha256 = "062vy5d1mngw39lv270mvy6maxb409bwvcp2wgb18jq6m6giskbh";
         };
         libName = "tear_types";
         authors = [
@@ -25643,66 +25542,6 @@ rec {
           "Soveu <marx.tomasz@gmail.com>"
         ];
 
-      };
-      "todoku" = rec {
-        crateName = "todoku";
-        version = "0.1.1";
-        edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/todoku";
-          rev = "6fd4bab4fb048c84571ffcb31b2b81b9b6a2ba8f";
-          sha256 = "0kjgl2x3827chxk29wxq4wrrni83hd8jlhjsm3sxd7wn2b015nxa";
-        };
-        dependencies = [
-          {
-            name = "async-trait";
-            packageId = "async-trait";
-          }
-          {
-            name = "reqwest";
-            packageId = "reqwest";
-            usesDefaultFeatures = false;
-            features = [ "charset" "http2" "macos-system-configuration" "json" "rustls-tls" "cookies" "gzip" "brotli" ];
-          }
-          {
-            name = "serde";
-            packageId = "serde";
-            features = [ "derive" ];
-          }
-          {
-            name = "serde_json";
-            packageId = "serde_json";
-          }
-          {
-            name = "thiserror";
-            packageId = "thiserror 2.0.19";
-          }
-          {
-            name = "tokio";
-            packageId = "tokio";
-            features = [ "time" "net" "rt" ];
-          }
-          {
-            name = "tracing";
-            packageId = "tracing";
-          }
-          {
-            name = "url";
-            packageId = "url";
-          }
-        ];
-        devDependencies = [
-          {
-            name = "tokio";
-            packageId = "tokio";
-            features = [ "rt-multi-thread" "macros" "net" ];
-          }
-        ];
-        features = {
-          "stealth" = [ "dep:wreq" "dep:wreq-util" ];
-        };
-        resolvedDefaultFeatures = [ "default" ];
       };
       "tokio" = rec {
         crateName = "tokio";
@@ -34125,10 +33964,10 @@ rec {
       };
       "xml-rs" = rec {
         crateName = "xml-rs";
-        version = "0.8.28";
+        version = "0.8.29";
         edition = "2021";
         crateBin = [];
-        sha256 = "0grdj7xwbki5zrkalrg8dljyf14y4yj3wrj34sbzqp06i9zk7s1s";
+        sha256 = "19y8s93sh2dx21bqlpagkixld2c66f3rln0j9k4k7zqxxnrgjl74";
         libName = "xml";
         authors = [
           "Vladimir Matveev <vmatveev@citrine.cc>"
@@ -34248,13 +34087,9 @@ rec {
       };
       "zerocopy" = rec {
         crateName = "zerocopy";
-        version = "0.8.55";
+        version = "0.8.56";
         edition = "2021";
-        sha256 = "1swncvj53zi9yr08b9ddhfrcmlrmh6ijxzxcr3p6w3qlgg6hb8dm";
-        authors = [
-          "Joshua Liebow-Feeser <joshlf@google.com>"
-          "Jack Wrenn <jswrenn@amazon.com>"
-        ];
+        sha256 = "1svmifchgdk0sm7v24lfwhhxis57gwa2lg21ingmmd5dhgjn8rsm";
         dependencies = [
           {
             name = "zerocopy-derive";
@@ -34284,15 +34119,11 @@ rec {
       };
       "zerocopy-derive" = rec {
         crateName = "zerocopy-derive";
-        version = "0.8.55";
+        version = "0.8.56";
         edition = "2021";
-        sha256 = "1sr8w9zc62lxmw7v6n89nxvqlki48b0nyfpyri6dd367f3xpds8g";
+        sha256 = "1hfz1hfxj86y1sgyia8gbisny9bl9bwlbahg4jypjmsp43y45azj";
         procMacro = true;
         libName = "zerocopy_derive";
-        authors = [
-          "Joshua Liebow-Feeser <joshlf@google.com>"
-          "Jack Wrenn <jswrenn@amazon.com>"
-        ];
         dependencies = [
           {
             name = "proc-macro2";

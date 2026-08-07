@@ -334,8 +334,8 @@ checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
 
 [[package]]
 name = "awase"
-version = "0.1.2"
-source = "git+https://github.com/pleme-io/awase#d1ff4287e46342375d9c3a3426777f2e3fba30bb"
+version = "0.1.4"
+source = "git+https://github.com/pleme-io/awase#4ea1d7b0aacb8375ef683e4d40151aa88626f2fb"
 dependencies = [
  "serde",
  "thiserror 2.0.19",
@@ -2754,7 +2754,7 @@ checksum = "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695"
 [[package]]
 name = "ishou-tokens"
 version = "0.1.4"
-source = "git+https://github.com/pleme-io/ishou#18eeb05964240b195e1cc205ec64dfcafdd10026"
+source = "git+https://github.com/pleme-io/ishou#dc817deec1248ad1117b3670653ab65e03b0c74b"
 dependencies = [
  "irodori",
  "serde",
@@ -3314,7 +3314,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.121"
+version = "0.1.122"
 dependencies = [
  "anyhow",
  "awase",
