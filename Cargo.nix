@@ -521,7 +521,7 @@ rec {
         dependencies = [
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.61.2";
+            packageId = "windows-sys 0.60.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_System_Console" "Win32_Foundation" ];
           }
@@ -546,7 +546,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.61.2";
+            packageId = "windows-sys 0.60.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_System_Console" "Win32_Foundation" ];
           }
@@ -1027,14 +1027,9 @@ rec {
       };
       "awase" = rec {
         crateName = "awase";
-        version = "0.1.2";
+        version = "0.1.7";
         edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/awase";
-          rev = "d1ff4287e46342375d9c3a3426777f2e3fba30bb";
-          sha256 = "1zis6dwr6myl223zdgjdzl6d7f8s6xdc5sm684lhvy0siymkf1wj";
-        };
+        sha256 = "1ky7f2nvsjyfj8gmgjx2az3fwgc05abrhsk5pg6ggma7kgrg4z61";
         dependencies = [
           {
             name = "serde";
@@ -1780,9 +1775,9 @@ rec {
       };
       "bytemuck_derive" = rec {
         crateName = "bytemuck_derive";
-        version = "1.11.0";
+        version = "1.12.0";
         edition = "2018";
-        sha256 = "1r9xdwcdxw385lbflmqlcc2via7hvg7d3zk2ky5mi73bkc2r6mpn";
+        sha256 = "07rd3m03pb51laj70pz6rb0wsgsajhfarggldgzk5qgi2skmc3pw";
         procMacro = true;
         authors = [
           "Lokathor <zefria@gmail.com>"
@@ -1798,7 +1793,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.119";
+            packageId = "syn 3.0.3";
           }
         ];
 
@@ -1943,12 +1938,9 @@ rec {
       };
       "cc" = rec {
         crateName = "cc";
-        version = "1.4.0";
-        edition = "2018";
-        sha256 = "1fc26n76n7gr37m2q0xw5l8jpn4sd33hvyppmwhv6v4fcyxq3pas";
-        authors = [
-          "Alex Crichton <alex@alexcrichton.com>"
-        ];
+        version = "1.4.1";
+        edition = "2021";
+        sha256 = "0dniydgf5lv8dh4mr6n1gvas9albqmp0kyh557wkcij6jacw8rlh";
         dependencies = [
           {
             name = "find-msvc-tools";
@@ -1973,7 +1965,7 @@ rec {
           }
         ];
         features = {
-          "parallel" = [ "dep:libc" "dep:jobserver" ];
+          "parallel" = [ "dep:jobserver" "dep:libc" ];
         };
         resolvedDefaultFeatures = [ "parallel" ];
       };
@@ -4025,7 +4017,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.61.2";
+            packageId = "windows-sys 0.60.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_UI_Shell" "Win32_Foundation" "Win32_Globalization" "Win32_System_Com" ];
           }
@@ -4294,14 +4286,9 @@ rec {
       };
       "egaku" = rec {
         crateName = "egaku";
-        version = "0.1.3";
+        version = "0.1.9";
         edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/egaku";
-          rev = "81d168190061c452d115f58f186429b84f489be8";
-          sha256 = "11vb9da48bjj34w3kd2sqsh5qp43b9gbkmf8p41n7qw3qfdykm5h";
-        };
+        sha256 = "09s3hqpapraajiwlp2k6lw0s7r3c0385ca3cgj4xbjifsxffxsjc";
         dependencies = [
           {
             name = "serde";
@@ -4373,14 +4360,9 @@ rec {
       };
       "engate-attach" = rec {
         crateName = "engate-attach";
-        version = "0.1.1";
+        version = "0.1.2";
         edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/engate";
-          rev = "a6215718a11a5c5c374623ba5338266bea1f382e";
-          sha256 = "1hvix5437svhx9pippq7vs16i50hpgi4cfd7wn3l4c6a1m9apnpd";
-        };
+        sha256 = "029rnqjljc4inl3c0f4lsdgkvkmv7ksv8msijaiw47bw2cnj9hpr";
         libName = "engate_attach";
         authors = [
           "pleme-io <ops@pleme.io>"
@@ -4418,14 +4400,9 @@ rec {
       };
       "engate-types" = rec {
         crateName = "engate-types";
-        version = "0.1.1";
+        version = "0.1.2";
         edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/engate";
-          rev = "a6215718a11a5c5c374623ba5338266bea1f382e";
-          sha256 = "1hvix5437svhx9pippq7vs16i50hpgi4cfd7wn3l4c6a1m9apnpd";
-        };
+        sha256 = "1wypnl0ss9bk8qd59dygsq7q1c7igiyq773p77ldx65v84ni9aix";
         libName = "engate_types";
         authors = [
           "pleme-io <ops@pleme.io>"
@@ -4445,14 +4422,9 @@ rec {
       };
       "engawa" = rec {
         crateName = "engawa";
-        version = "0.1.4";
+        version = "0.1.5";
         edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/engawa";
-          rev = "dd79e87f6282822e7fe4eaae5a676a1c49767013";
-          sha256 = "10101j1v8rzy0p0646x5670jyqkh2g78il5jl0iawmsvwn6a5kik";
-        };
+        sha256 = "1pbl3d00qfiagm34ipmj965j9fbk3nl17sgczzyj8jl8cx3ri5dx";
         authors = [
           "pleme-io"
         ];
@@ -4477,14 +4449,9 @@ rec {
       };
       "engawa-wgpu" = rec {
         crateName = "engawa-wgpu";
-        version = "0.1.8";
+        version = "0.1.10";
         edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/engawa-wgpu";
-          rev = "acc2b02d46322077861c9e74c6d2e5cb15cb1e5f";
-          sha256 = "0ap1i72bl520hmx82nm694hmdrkds4w06cak6ly9c35nyxxd0kxh";
-        };
+        sha256 = "1vs4n7092m9c9wwfngny99ai454mzj9biidfz5y898lafa4hi1wy";
         libName = "engawa_wgpu";
         authors = [
           "pleme-io"
@@ -4598,7 +4565,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.61.2";
+            packageId = "windows-sys 0.60.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_System_Diagnostics_Debug" ];
           }
@@ -4922,9 +4889,9 @@ rec {
       };
       "find-msvc-tools" = rec {
         crateName = "find-msvc-tools";
-        version = "0.1.9";
-        edition = "2018";
-        sha256 = "10nmi0qdskq6l7zwxw5g56xny7hb624iki1c39d907qmfh3vrbjv";
+        version = "0.1.10";
+        edition = "2021";
+        sha256 = "1pp1612g5k6im9732g16j6a87czhb35xcyzlrpq2mkgdwrrkbdr6";
         libName = "find_msvc_tools";
 
       };
@@ -6029,66 +5996,6 @@ rec {
         };
         resolvedDefaultFeatures = [ "std" "sys_rng" "wasm_js" ];
       };
-      "git+https://github.com/pleme-io/todoku#0.1.1" = rec {
-        crateName = "todoku";
-        version = "0.1.1";
-        edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/todoku";
-          rev = "6fd4bab4fb048c84571ffcb31b2b81b9b6a2ba8f";
-          sha256 = "0kjgl2x3827chxk29wxq4wrrni83hd8jlhjsm3sxd7wn2b015nxa";
-        };
-        dependencies = [
-          {
-            name = "async-trait";
-            packageId = "async-trait";
-          }
-          {
-            name = "reqwest";
-            packageId = "reqwest";
-            usesDefaultFeatures = false;
-            features = [ "charset" "http2" "macos-system-configuration" "json" "rustls-tls" "cookies" "gzip" "brotli" ];
-          }
-          {
-            name = "serde";
-            packageId = "serde";
-            features = [ "derive" ];
-          }
-          {
-            name = "serde_json";
-            packageId = "serde_json";
-          }
-          {
-            name = "thiserror";
-            packageId = "thiserror 2.0.19";
-          }
-          {
-            name = "tokio";
-            packageId = "tokio";
-            features = [ "time" "net" "rt" ];
-          }
-          {
-            name = "tracing";
-            packageId = "tracing";
-          }
-          {
-            name = "url";
-            packageId = "url";
-          }
-        ];
-        devDependencies = [
-          {
-            name = "tokio";
-            packageId = "tokio";
-            features = [ "rt-multi-thread" "macros" "net" ];
-          }
-        ];
-        features = {
-          "stealth" = [ "dep:wreq" "dep:wreq-util" ];
-        };
-        resolvedDefaultFeatures = [ "default" ];
-      };
       "gl_generator" = rec {
         crateName = "gl_generator";
         version = "0.14.0";
@@ -6540,12 +6447,7 @@ rec {
         crateName = "hasami";
         version = "0.1.2";
         edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/hasami";
-          rev = "f9d3da50e4199581d538af2300ba0891aefc05f0";
-          sha256 = "1w5xgvfb5lvm81a760kzn2b7w8lgjc20hpqmnqqqi6kbabms9aj0";
-        };
+        sha256 = "0bwn53hxx3qi21m7n2ha9s4kbfq1k9jqb36bjm6fk4p3vyb74a7j";
         dependencies = [
           {
             name = "arboard";
@@ -6743,12 +6645,7 @@ rec {
         crateName = "hayai";
         version = "0.1.2";
         edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/hayai";
-          rev = "4f5239c021bd154fcf5afbb4c8cf61332781dbd1";
-          sha256 = "169s1ryrd4w0xzacrdbfw4qm5jh27v97kryqlnhapzx2jjnmpg4m";
-        };
+        sha256 = "0r61qggbz1vngb5pr40y99k9vb00irqc9lwaj1bwp2v7z32nn7dq";
         dependencies = [
           {
             name = "regex";
@@ -7118,6 +7015,14 @@ rec {
           "Pyfisch <pyfisch@posteo.org>"
         ];
 
+      };
+      "humantime" = rec {
+        crateName = "humantime";
+        version = "2.4.0";
+        edition = "2021";
+        sha256 = "059w9i1g0gmfg30axhqh10fvqpym4frsz9iggqlm673h0xkx5k8m";
+        features = {
+        };
       };
       "hyper" = rec {
         crateName = "hyper";
@@ -8293,14 +8198,9 @@ rec {
       };
       "irodzuki" = rec {
         crateName = "irodzuki";
-        version = "0.1.7";
+        version = "0.1.11";
         edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/irodzuki";
-          rev = "d3bfe781e9c813164a37a0e0a1eeef16f5be9515";
-          sha256 = "1f7l4fblhikkk13k7hbl63lmh99223cz609mnqj564szbzf3a87f";
-        };
+        sha256 = "0lks8qy111621apgqk3fzyf0pxl1kj4f9fxmh5fjmhm952hc4g7m";
         dependencies = [
           {
             name = "bytemuck";
@@ -8375,7 +8275,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.61.2";
+            packageId = "windows-sys 0.60.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Storage_FileSystem" "Win32_System_Console" ];
           }
@@ -8421,14 +8321,9 @@ rec {
       };
       "ishou-tokens" = rec {
         crateName = "ishou-tokens";
-        version = "0.1.4";
+        version = "0.1.6";
         edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/ishou";
-          rev = "18eeb05964240b195e1cc205ec64dfcafdd10026";
-          sha256 = "0wg9x0vsa9b9f1b6n6hzf623q92w50zw4fnn0y5yb49ldxikzwds";
-        };
+        sha256 = "0fnpqyr571l0mrcz76p7895lr2q0bjga0qibq40r211s7nfvmhda";
         libName = "ishou_tokens";
         dependencies = [
           {
@@ -8510,10 +8405,6 @@ rec {
             packageId = "parking_lot";
           }
           {
-            name = "todoku";
-            packageId = "registry+https://github.com/rust-lang/crates.io-index#todoku@0.1.1";
-          }
-          {
             name = "reqwest";
             packageId = "reqwest";
             usesDefaultFeatures = false;
@@ -8531,6 +8422,10 @@ rec {
           {
             name = "serde_json";
             packageId = "serde_json";
+          }
+          {
+            name = "todoku";
+            packageId = "todoku";
           }
           {
             name = "tokio";
@@ -8976,12 +8871,7 @@ rec {
         crateName = "kanchi";
         version = "0.1.3";
         edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/kanchi";
-          rev = "1ba82571a3e3b061d4cb4509f88ca0bf0a54b00c";
-          sha256 = "0q594rr2006gzmz0i3nf3iyf07m66gcw1l9v68j8x2dxqwr8y2x5";
-        };
+        sha256 = "1snwgyrn0yhyiljglp5lm4nxyhhnng97firhypr1s5vznr229syc";
         dependencies = [
           {
             name = "libc";
@@ -9027,12 +8917,7 @@ rec {
         crateName = "kanshou";
         version = "0.1.3";
         edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/kanshou";
-          rev = "678b920bc143eee735cc70ed470104026f0ff83e";
-          sha256 = "0wd9969vl2445y9wbriph4i5f3fg4ldng9cp2f81x74a3j4gzpxv";
-        };
+        sha256 = "1brrdrcpalrq526nia3lk8rh3i0w0a4rq3rxn0smdbqmw1jj5v94";
         authors = [
           "pleme-io"
         ];
@@ -9082,12 +8967,7 @@ rec {
         crateName = "kanshou-derive";
         version = "0.1.3";
         edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/kanshou";
-          rev = "678b920bc143eee735cc70ed470104026f0ff83e";
-          sha256 = "0wd9969vl2445y9wbriph4i5f3fg4ldng9cp2f81x74a3j4gzpxv";
-        };
+        sha256 = "0lqab34ch09y4xnqhfv99i2sbrlc6wxssmlby5yjdciqi8cbqaxs";
         procMacro = true;
         libName = "kanshou_derive";
         authors = [
@@ -9114,12 +8994,7 @@ rec {
         crateName = "katsuji";
         version = "0.1.1";
         edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/katsuji";
-          rev = "d6b3ad8f0e69898497475128bd1f7faebe14f334";
-          sha256 = "0zx6ndj7cd1k1z8dkyq0lbf0syxjxvynp5c18njx18jdy2d6nxfg";
-        };
+        sha256 = "0y8dxdjccg16wa2srdr83nlb0cma870rac1a8vhslp0wh9s1wsgg";
         authors = [
           "pleme-io"
         ];
@@ -10308,7 +10183,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.122";
+        version = "0.1.123";
         edition = "2024";
         crateBin = [
           {
@@ -10555,7 +10430,7 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.3.27";
+            packageId = "tatara-lisp";
           }
           {
             name = "tear-client";
@@ -10655,14 +10530,9 @@ rec {
       };
       "madori" = rec {
         crateName = "madori";
-        version = "0.1.5";
+        version = "0.1.7";
         edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/madori";
-          rev = "79b33a4811853f1a8153735a69fb58bde894c2d9";
-          sha256 = "1b7n65fkw7pwa7dm7y26hc3zi6kx5hgg3c7d46yf70w18zvw346z";
-        };
+        sha256 = "03kn2h17hv082zsmdha6jnypya3xgpgaj3rcqygr845qs9zf411w";
         dependencies = [
           {
             name = "egaku";
@@ -10671,6 +10541,11 @@ rec {
           {
             name = "garasu";
             packageId = "garasu";
+          }
+          {
+            name = "ishou-tokens";
+            packageId = "ishou-tokens";
+            features = [ "wgpu" ];
           }
           {
             name = "pollster";
@@ -11228,13 +11103,13 @@ rec {
       };
       "nami-core" = rec {
         crateName = "nami-core";
-        version = "0.1.9";
+        version = "0.1.11";
         edition = "2024";
         workspace_member = null;
         src = pkgs.fetchgit {
           url = "https://github.com/pleme-io/nami-core";
-          rev = "7d9df98be462bb417da51b512c3a55d6eca82837";
-          sha256 = "15a6pma1cigan2hm7hsgi8g01bckppf8wjwphj194jiznncsvmiz";
+          rev = "ab562f0d8361b499fed3c32e3b2959024875f908";
+          sha256 = "1a6lfnvrh1i5d2jwc6x6wzm84rwq2m38f383dpyizrbhbm4ym8ny";
         };
         libName = "nami_core";
         dependencies = [
@@ -11245,11 +11120,6 @@ rec {
           {
             name = "garasu";
             packageId = "garasu";
-            optional = true;
-          }
-          {
-            name = "todoku";
-            packageId = "git+https://github.com/pleme-io/todoku#0.1.1";
             optional = true;
           }
           {
@@ -11317,12 +11187,17 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.3.27";
+            packageId = "tatara-lisp";
             optional = true;
           }
           {
             name = "thiserror";
             packageId = "thiserror 2.0.19";
+          }
+          {
+            name = "todoku";
+            packageId = "todoku";
+            optional = true;
           }
           {
             name = "tracing";
@@ -11805,7 +11680,7 @@ rec {
         dependencies = [
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.61.2";
+            packageId = "windows-sys 0.60.2";
             rename = "windows";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_System_Console" "Win32_Storage_FileSystem" "Win32_Security" ];
@@ -15275,9 +15150,9 @@ rec {
       };
       "openraft" = rec {
         crateName = "openraft";
-        version = "0.9.25";
+        version = "0.9.22";
         edition = "2021";
-        sha256 = "1zda5sbv6abxx2n0iagk8fradlvdbwqdmhhalkippdxcg3xi8w59";
+        sha256 = "1csa8j1451ghfs2a5yglb5x9z4smy2zja4srff3flj9iwaq40byc";
         authors = [
           "Databend Authors <opensource@datafuselabs.com>"
           "Anthony Dodd <Dodd.AnthonyJosiah@gmail.com>"
@@ -16552,12 +16427,7 @@ rec {
         crateName = "pleme-allvariants-derive";
         version = "0.1.0";
         edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/pleme-allvariants-derive";
-          rev = "142b74f58ef31231d6f11ad572c9485156640d06";
-          sha256 = "1q4abnwz5wf1j47zd4clrvnh0c1bpr1nbylglpz2sxda8x10zisi";
-        };
+        sha256 = "0ak6kb42n3023bag9p2qxpzinkvzm9bmyh6alj6llc9kv2y19cbc";
         procMacro = true;
         libName = "pleme_allvariants_derive";
         dependencies = [
@@ -16581,12 +16451,7 @@ rec {
         crateName = "pleme-fleet-themed-derive";
         version = "0.1.1";
         edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/pleme-fleet-themed-derive";
-          rev = "160b9757a9427c89095acf174665219cf917d627";
-          sha256 = "164k3whhah9nrzjr312bx6hyl05ivprcdv79vlg6yw6ja4z201x3";
-        };
+        sha256 = "1vv2ap4dzznarn32c46sicn11lfa1xxqjw1irk1k16ky1nhhbpjr";
         procMacro = true;
         libName = "pleme_fleet_themed_derive";
         dependencies = [
@@ -16610,12 +16475,7 @@ rec {
         crateName = "pleme-invalidating-setter-derive";
         version = "0.1.0";
         edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/pleme-invalidating-setter-derive";
-          rev = "8df3b1bc76dbd92aa3fcd2fb9213adb5ef7f0b7c";
-          sha256 = "03syar1d2q6b0dqj8in2n3844lz2bhzbf05b48x25wdjsndfz7jp";
-        };
+        sha256 = "04x4p83gg7q7y5q30wjw5hcd0c352midx7i1fypjx8ip4dh5353p";
         procMacro = true;
         libName = "pleme_invalidating_setter_derive";
         dependencies = [
@@ -16695,12 +16555,7 @@ rec {
         crateName = "pleme-kindbyte-derive";
         version = "0.1.0";
         edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/pleme-kindbyte-derive";
-          rev = "f149963e6cab8b8c0e9bd0a23ed41efd3dfcdbd6";
-          sha256 = "0zaac07bmz6ygymwlqrjk138fh5r9zdr1wgybrir9f269i3b4a2c";
-        };
+        sha256 = "0qmzwzjazlvi83qpr05x3dxsw43b8ydkmhwza0w4dg0ihk4yb6gm";
         procMacro = true;
         libName = "pleme_kindbyte_derive";
         dependencies = [
@@ -16724,12 +16579,7 @@ rec {
         crateName = "pleme-kindstr-derive";
         version = "0.1.0";
         edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/pleme-kindstr-derive";
-          rev = "9fde4c145f7ff57acd88275f74511e422d407f94";
-          sha256 = "1d4wv0jmm98qc226l54gqc58p67j0la9ibaj2brjkmidyrablcij";
-        };
+        sha256 = "1jg2nkcbhivpywcwg0mwkfrasaxmx7k9155fbniscgs0asj056nf";
         procMacro = true;
         libName = "pleme_kindstr_derive";
         dependencies = [
@@ -16998,14 +16848,9 @@ rec {
       };
       "praca" = rec {
         crateName = "praca";
-        version = "0.1.11";
+        version = "0.1.12";
         edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/tear";
-          rev = "779d15f5cbd2ec7f714ff8ba7e31b073e02ac919";
-          sha256 = "062vy5d1mngw39lv270mvy6maxb409bwvcp2wgb18jq6m6giskbh";
-        };
+        sha256 = "09kjv0cszhvnhy09f9cl4d4zkhmzk7kixl1wjvh07k0l4i4vhgkq";
         authors = [
           "pleme-io"
         ];
@@ -17775,7 +17620,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.61.2";
+            packageId = "windows-sys 0.60.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_System_IO" "Win32_Networking_WinSock" ];
           }
@@ -18562,61 +18407,6 @@ rec {
           "unicode" = [ "unicode-age" "unicode-bool" "unicode-case" "unicode-gencat" "unicode-perl" "unicode-script" "unicode-segment" ];
         };
         resolvedDefaultFeatures = [ "default" "std" "unicode" "unicode-age" "unicode-bool" "unicode-case" "unicode-gencat" "unicode-perl" "unicode-script" "unicode-segment" ];
-      };
-      "registry+https://github.com/rust-lang/crates.io-index#todoku@0.1.1" = rec {
-        crateName = "todoku";
-        version = "0.1.1";
-        edition = "2024";
-        sha256 = "1sy0gmfgpn15w1y7sqgy5ya7qji5fpq6sq1i04spnbq0slk1p8pk";
-        dependencies = [
-          {
-            name = "async-trait";
-            packageId = "async-trait";
-          }
-          {
-            name = "reqwest";
-            packageId = "reqwest";
-            usesDefaultFeatures = false;
-            features = [ "charset" "http2" "macos-system-configuration" "json" "rustls-tls" "cookies" "gzip" "brotli" ];
-          }
-          {
-            name = "serde";
-            packageId = "serde";
-            features = [ "derive" ];
-          }
-          {
-            name = "serde_json";
-            packageId = "serde_json";
-          }
-          {
-            name = "thiserror";
-            packageId = "thiserror 2.0.19";
-          }
-          {
-            name = "tokio";
-            packageId = "tokio";
-            features = [ "time" "net" "rt" ];
-          }
-          {
-            name = "tracing";
-            packageId = "tracing";
-          }
-          {
-            name = "url";
-            packageId = "url";
-          }
-        ];
-        devDependencies = [
-          {
-            name = "tokio";
-            packageId = "tokio";
-            features = [ "rt-multi-thread" "macros" "net" ];
-          }
-        ];
-        features = {
-          "stealth" = [ "dep:wreq" "dep:wreq-util" ];
-        };
-        resolvedDefaultFeatures = [ "default" ];
       };
       "rend" = rec {
         crateName = "rend";
@@ -19818,7 +19608,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.61.2";
+            packageId = "windows-sys 0.60.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Networking_WinSock" ];
           }
@@ -22485,7 +22275,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.61.2";
+            packageId = "windows-sys 0.60.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Networking_WinSock" "Win32_System_IO" "Win32_System_Threading" "Win32_System_WindowsProgramming" ];
           }
@@ -24223,14 +24013,9 @@ rec {
       };
       "tatara-core" = rec {
         crateName = "tatara-core";
-        version = "0.2.0";
+        version = "0.2.202";
         edition = "2021";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/tatara";
-          rev = "a1062f8069bb336a87cb9b2c68a85885665e3234";
-          sha256 = "0rad43lqlqa3sadrfwf0y7vs72a1b4c1zz0pi670cmmq6s1g9fz4";
-        };
+        sha256 = "1mjs27i09ybjznrilv9n3ii39c158nqshfx3cbz8s6qy5019z32l";
         libName = "tatara_core";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24280,6 +24065,10 @@ rec {
             packageId = "sha2";
           }
           {
+            name = "shikumi";
+            packageId = "shikumi";
+          }
+          {
             name = "thiserror";
             packageId = "thiserror 2.0.19";
           }
@@ -24301,14 +24090,9 @@ rec {
       };
       "tatara-eval" = rec {
         crateName = "tatara-eval";
-        version = "0.2.0";
+        version = "0.2.202";
         edition = "2021";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/tatara";
-          rev = "a1062f8069bb336a87cb9b2c68a85885665e3234";
-          sha256 = "0rad43lqlqa3sadrfwf0y7vs72a1b4c1zz0pi670cmmq6s1g9fz4";
-        };
+        sha256 = "0yqhipmw3amc13ngrihaarph4qpbrbjbd0yrh3zjn42a90hzhakw";
         libName = "tatara_eval";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24330,7 +24114,7 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.2.0";
+            packageId = "tatara-lisp";
           }
           {
             name = "tatara-nix";
@@ -24345,14 +24129,9 @@ rec {
       };
       "tatara-lattice" = rec {
         crateName = "tatara-lattice";
-        version = "0.2.0";
+        version = "0.2.202";
         edition = "2021";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/tatara";
-          rev = "a1062f8069bb336a87cb9b2c68a85885665e3234";
-          sha256 = "0rad43lqlqa3sadrfwf0y7vs72a1b4c1zz0pi670cmmq6s1g9fz4";
-        };
+        sha256 = "04lbpfmhfwhwbyfilgpl0rig99qib3kz1sr9r3zr551v01fmyvxr";
         libName = "tatara_lattice";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24379,49 +24158,7 @@ rec {
         ];
 
       };
-      "tatara-lisp 0.2.0" = rec {
-        crateName = "tatara-lisp";
-        version = "0.2.0";
-        edition = "2021";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/tatara";
-          rev = "a1062f8069bb336a87cb9b2c68a85885665e3234";
-          sha256 = "0rad43lqlqa3sadrfwf0y7vs72a1b4c1zz0pi670cmmq6s1g9fz4";
-        };
-        libName = "tatara_lisp";
-        authors = [
-          "Pleme.io <engineering@pleme.io>"
-        ];
-        dependencies = [
-          {
-            name = "blake3";
-            packageId = "blake3";
-          }
-          {
-            name = "serde";
-            packageId = "serde";
-            features = [ "derive" ];
-          }
-          {
-            name = "serde_json";
-            packageId = "serde_json";
-          }
-          {
-            name = "tatara-lisp-derive";
-            packageId = "tatara-lisp-derive 0.2.0";
-          }
-          {
-            name = "thiserror";
-            packageId = "thiserror 2.0.19";
-          }
-        ];
-        features = {
-          "iac-forge" = [ "dep:iac-forge" ];
-        };
-        resolvedDefaultFeatures = [ "default" ];
-      };
-      "tatara-lisp 0.3.27" = rec {
+      "tatara-lisp" = rec {
         crateName = "tatara-lisp";
         version = "0.3.27";
         edition = "2021";
@@ -24450,7 +24187,7 @@ rec {
           }
           {
             name = "tatara-lisp-derive";
-            packageId = "tatara-lisp-derive 0.3.27";
+            packageId = "tatara-lisp-derive";
           }
           {
             name = "thiserror";
@@ -24461,39 +24198,7 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" ];
       };
-      "tatara-lisp-derive 0.2.0" = rec {
-        crateName = "tatara-lisp-derive";
-        version = "0.2.0";
-        edition = "2021";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/tatara";
-          rev = "a1062f8069bb336a87cb9b2c68a85885665e3234";
-          sha256 = "0rad43lqlqa3sadrfwf0y7vs72a1b4c1zz0pi670cmmq6s1g9fz4";
-        };
-        procMacro = true;
-        libName = "tatara_lisp_derive";
-        authors = [
-          "Pleme.io <engineering@pleme.io>"
-        ];
-        dependencies = [
-          {
-            name = "proc-macro2";
-            packageId = "proc-macro2";
-          }
-          {
-            name = "quote";
-            packageId = "quote";
-          }
-          {
-            name = "syn";
-            packageId = "syn 2.0.119";
-            features = [ "full" ];
-          }
-        ];
-
-      };
-      "tatara-lisp-derive 0.3.27" = rec {
+      "tatara-lisp-derive" = rec {
         crateName = "tatara-lisp-derive";
         version = "0.3.27";
         edition = "2021";
@@ -24532,7 +24237,7 @@ rec {
         dependencies = [
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.3.27";
+            packageId = "tatara-lisp";
           }
           {
             name = "thiserror";
@@ -24543,14 +24248,9 @@ rec {
       };
       "tatara-nix" = rec {
         crateName = "tatara-nix";
-        version = "0.2.0";
+        version = "0.2.202";
         edition = "2021";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/tatara";
-          rev = "a1062f8069bb336a87cb9b2c68a85885665e3234";
-          sha256 = "0rad43lqlqa3sadrfwf0y7vs72a1b4c1zz0pi670cmmq6s1g9fz4";
-        };
+        sha256 = "1lrx1q2ms4d3by031idz1q3qx0il1mb59bqmywx8sicf760rjdq5";
         libName = "tatara_nix";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24579,11 +24279,11 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.2.0";
+            packageId = "tatara-lisp";
           }
           {
             name = "tatara-lisp-derive";
-            packageId = "tatara-lisp-derive 0.2.0";
+            packageId = "tatara-lisp-derive";
           }
           {
             name = "tempfile";
@@ -24598,15 +24298,10 @@ rec {
       };
       "tatara-process" = rec {
         crateName = "tatara-process";
-        version = "0.2.0";
+        version = "0.2.202";
         edition = "2021";
         crateBin = [];
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/tatara";
-          rev = "a1062f8069bb336a87cb9b2c68a85885665e3234";
-          sha256 = "0rad43lqlqa3sadrfwf0y7vs72a1b4c1zz0pi670cmmq6s1g9fz4";
-        };
+        sha256 = "1y892b577n8wlxlkb697c1wf894jbr2idwch8xxq2rfglgdig38k";
         libName = "tatara_process";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24628,6 +24323,10 @@ rec {
           {
             name = "hex";
             packageId = "hex";
+          }
+          {
+            name = "humantime";
+            packageId = "humantime";
           }
           {
             name = "k8s-openapi";
@@ -24658,16 +24357,16 @@ rec {
             packageId = "serde_yaml";
           }
           {
+            name = "tatara-closed-set";
+            packageId = "tatara-closed-set";
+          }
+          {
             name = "tatara-core";
             packageId = "tatara-core";
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.2.0";
-          }
-          {
-            name = "tatara-lisp-derive";
-            packageId = "tatara-lisp-derive 0.2.0";
+            packageId = "tatara-lisp";
           }
           {
             name = "thiserror";
@@ -24682,14 +24381,9 @@ rec {
       };
       "tear-client" = rec {
         crateName = "tear-client";
-        version = "0.1.11";
+        version = "0.1.12";
         edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/tear";
-          rev = "779d15f5cbd2ec7f714ff8ba7e31b073e02ac919";
-          sha256 = "062vy5d1mngw39lv270mvy6maxb409bwvcp2wgb18jq6m6giskbh";
-        };
+        sha256 = "10zhi31laq0cdask1ys5z2w1xffq7jfi5fjyan24fjk3wh9sn7a8";
         libName = "tear_client";
         authors = [
           "pleme-io"
@@ -24729,14 +24423,9 @@ rec {
       };
       "tear-config" = rec {
         crateName = "tear-config";
-        version = "0.1.11";
+        version = "0.1.12";
         edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/tear";
-          rev = "779d15f5cbd2ec7f714ff8ba7e31b073e02ac919";
-          sha256 = "062vy5d1mngw39lv270mvy6maxb409bwvcp2wgb18jq6m6giskbh";
-        };
+        sha256 = "046wal9ag0gq1075vqw6accm3fk32bwkmip9rn6gzs251gy8gb2z";
         libName = "tear_config";
         authors = [
           "pleme-io"
@@ -24795,14 +24484,9 @@ rec {
       };
       "tear-core" = rec {
         crateName = "tear-core";
-        version = "0.1.11";
+        version = "0.1.12";
         edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/tear";
-          rev = "779d15f5cbd2ec7f714ff8ba7e31b073e02ac919";
-          sha256 = "062vy5d1mngw39lv270mvy6maxb409bwvcp2wgb18jq6m6giskbh";
-        };
+        sha256 = "0qd9vq6bzf35wksl4sh14x7zr90s715m2a1d1brdrj4nby45qj7d";
         libName = "tear_core";
         authors = [
           "pleme-io"
@@ -24883,14 +24567,9 @@ rec {
       };
       "tear-daemon" = rec {
         crateName = "tear-daemon";
-        version = "0.1.11";
+        version = "0.1.12";
         edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/tear";
-          rev = "779d15f5cbd2ec7f714ff8ba7e31b073e02ac919";
-          sha256 = "062vy5d1mngw39lv270mvy6maxb409bwvcp2wgb18jq6m6giskbh";
-        };
+        sha256 = "0xafdpxaxjl005nv2jdf2cxipgnzl4nsx5smd5zjf0j6l82xbrq8";
         libName = "tear_daemon";
         authors = [
           "pleme-io"
@@ -24964,14 +24643,9 @@ rec {
       };
       "tear-types" = rec {
         crateName = "tear-types";
-        version = "0.1.11";
+        version = "0.1.12";
         edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/tear";
-          rev = "779d15f5cbd2ec7f714ff8ba7e31b073e02ac919";
-          sha256 = "062vy5d1mngw39lv270mvy6maxb409bwvcp2wgb18jq6m6giskbh";
-        };
+        sha256 = "01jz6400w46f96k0bwfz556pyzhn86q434x7z5x2m6mjg4sw0z7i";
         libName = "tear_types";
         authors = [
           "pleme-io"
@@ -25054,7 +24728,7 @@ rec {
           }
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.61.2";
+            packageId = "windows-sys 0.60.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Storage_FileSystem" "Win32_Foundation" ];
           }
@@ -25542,6 +25216,61 @@ rec {
           "Soveu <marx.tomasz@gmail.com>"
         ];
 
+      };
+      "todoku" = rec {
+        crateName = "todoku";
+        version = "0.1.1";
+        edition = "2024";
+        sha256 = "1sy0gmfgpn15w1y7sqgy5ya7qji5fpq6sq1i04spnbq0slk1p8pk";
+        dependencies = [
+          {
+            name = "async-trait";
+            packageId = "async-trait";
+          }
+          {
+            name = "reqwest";
+            packageId = "reqwest";
+            usesDefaultFeatures = false;
+            features = [ "charset" "http2" "macos-system-configuration" "json" "rustls-tls" "cookies" "gzip" "brotli" ];
+          }
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+          {
+            name = "thiserror";
+            packageId = "thiserror 2.0.19";
+          }
+          {
+            name = "tokio";
+            packageId = "tokio";
+            features = [ "time" "net" "rt" ];
+          }
+          {
+            name = "tracing";
+            packageId = "tracing";
+          }
+          {
+            name = "url";
+            packageId = "url";
+          }
+        ];
+        devDependencies = [
+          {
+            name = "tokio";
+            packageId = "tokio";
+            features = [ "rt-multi-thread" "macros" "net" ];
+          }
+        ];
+        features = {
+          "stealth" = [ "dep:wreq" "dep:wreq-util" ];
+        };
+        resolvedDefaultFeatures = [ "default" ];
       };
       "tokio" = rec {
         crateName = "tokio";
@@ -26680,12 +26409,7 @@ rec {
         crateName = "tsuuchi";
         version = "0.1.5";
         edition = "2024";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/tsuuchi";
-          rev = "3a26bae14780f29127d506c11ee6b52c50b4f31d";
-          sha256 = "0dx1d3w3gmhx2gdpfl7vzqmrb78prjq8ng1s7n5093ds76jps3zq";
-        };
+        sha256 = "0isslzcs4bkwfzjizkzap51lrglxzkk7asm25drvnkk71qsxcb61";
         dependencies = [
           {
             name = "block2";
@@ -27406,12 +27130,7 @@ rec {
         crateName = "vigy";
         version = "0.1.6";
         edition = "2021";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/vigy";
-          rev = "096c393f3252ce0e6b3800663d8779cf03038cd3";
-          sha256 = "0k0v36ichlsx4kqjlagsl40mvc5v7f1iqffgdxmzmlzy81f0ccfv";
-        };
+        sha256 = "1d0n27528xp1v9cwkjx461vw7p057ksmqpdz415sfjsi93pfs5p7";
         authors = [
           "Pleme Team <team@pleme.io>"
         ];
@@ -27451,12 +27170,7 @@ rec {
         crateName = "vigy-eval";
         version = "0.1.6";
         edition = "2021";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/vigy";
-          rev = "096c393f3252ce0e6b3800663d8779cf03038cd3";
-          sha256 = "0k0v36ichlsx4kqjlagsl40mvc5v7f1iqffgdxmzmlzy81f0ccfv";
-        };
+        sha256 = "10dpyg6q4mb3cymph0nh82zcbmz1aw9s2zgaykarablxnj7ca1lm";
         libName = "vigy_eval";
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -27481,7 +27195,7 @@ rec {
           }
           {
             name = "tatara-lisp";
-            packageId = "tatara-lisp 0.3.27";
+            packageId = "tatara-lisp";
           }
           {
             name = "tatara-lisp-eval";
@@ -27516,12 +27230,7 @@ rec {
         crateName = "vigy-mcp";
         version = "0.1.6";
         edition = "2021";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/vigy";
-          rev = "096c393f3252ce0e6b3800663d8779cf03038cd3";
-          sha256 = "0k0v36ichlsx4kqjlagsl40mvc5v7f1iqffgdxmzmlzy81f0ccfv";
-        };
+        sha256 = "118shgcfwl4614l8b9nkfhls9rr720l0h4v27k2gmhrjkavvbjj4";
         libName = "vigy_mcp";
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -27564,12 +27273,7 @@ rec {
         crateName = "vigy-runtime";
         version = "0.1.6";
         edition = "2021";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/vigy";
-          rev = "096c393f3252ce0e6b3800663d8779cf03038cd3";
-          sha256 = "0k0v36ichlsx4kqjlagsl40mvc5v7f1iqffgdxmzmlzy81f0ccfv";
-        };
+        sha256 = "17bny5r40zp7fvwixkdba2ljdm4jlixm8d81xg6l2g9plbfyv4dp";
         libName = "vigy_runtime";
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -27628,12 +27332,7 @@ rec {
         crateName = "vigy-store";
         version = "0.1.6";
         edition = "2021";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/vigy";
-          rev = "096c393f3252ce0e6b3800663d8779cf03038cd3";
-          sha256 = "0k0v36ichlsx4kqjlagsl40mvc5v7f1iqffgdxmzmlzy81f0ccfv";
-        };
+        sha256 = "0v7gp2d37iwhv4d5q3v66ynydvrwipxc2rc1j8pklh7cynjk7xjx";
         libName = "vigy_store";
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -27704,12 +27403,7 @@ rec {
         crateName = "vigy-types";
         version = "0.1.6";
         edition = "2021";
-        workspace_member = null;
-        src = pkgs.fetchgit {
-          url = "https://github.com/pleme-io/vigy";
-          rev = "096c393f3252ce0e6b3800663d8779cf03038cd3";
-          sha256 = "0k0v36ichlsx4kqjlagsl40mvc5v7f1iqffgdxmzmlzy81f0ccfv";
-        };
+        sha256 = "1mmxgb7fjiz1ncqzsij9cmb72rbqg8qg90cw3f728s8wb50h9y98";
         libName = "vigy_types";
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -29809,7 +29503,7 @@ rec {
         dependencies = [
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.61.2";
+            packageId = "windows-sys 0.48.0";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Storage_FileSystem" "Win32_System_Console" "Win32_System_SystemInformation" ];
           }
@@ -31906,7 +31600,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Globalization" "Win32_System" "Win32_System_Com" "Win32_UI" "Win32_UI_Shell" "default" ];
+        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Globalization" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Console" "Win32_System_SystemInformation" "Win32_UI" "Win32_UI_Shell" "default" ];
       };
       "windows-sys 0.52.0" = rec {
         crateName = "windows-sys";
@@ -32678,7 +32372,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Graphics" "Win32_Graphics_Gdi" "Win32_Security" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_DataExchange" "Win32_System_IO" "Win32_System_Memory" "Win32_System_Ole" "Win32_System_Threading" "Win32_System_WindowsProgramming" "Win32_UI" "Win32_UI_Shell" "default" ];
+        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Globalization" "Win32_Graphics" "Win32_Graphics_Gdi" "Win32_Networking" "Win32_Networking_WinSock" "Win32_Security" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Console" "Win32_System_DataExchange" "Win32_System_Diagnostics" "Win32_System_Diagnostics_Debug" "Win32_System_IO" "Win32_System_Memory" "Win32_System_Ole" "Win32_System_Threading" "Win32_System_WindowsProgramming" "Win32_UI" "Win32_UI_Shell" "default" ];
       };
       "windows-sys 0.61.2" = rec {
         crateName = "windows-sys";
@@ -32940,7 +32634,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Wdk" "Wdk_Foundation" "Wdk_Storage" "Wdk_Storage_FileSystem" "Wdk_System" "Wdk_System_IO" "Win32" "Win32_Devices" "Win32_Devices_Communication" "Win32_Foundation" "Win32_Globalization" "Win32_Networking" "Win32_Networking_WinSock" "Win32_Security" "Win32_Security_Authentication" "Win32_Security_Authentication_Identity" "Win32_Security_Credentials" "Win32_Security_Cryptography" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Console" "Win32_System_Diagnostics" "Win32_System_Diagnostics_Debug" "Win32_System_IO" "Win32_System_LibraryLoader" "Win32_System_Memory" "Win32_System_Pipes" "Win32_System_Registry" "Win32_System_SystemInformation" "Win32_System_SystemServices" "Win32_System_Threading" "Win32_System_WindowsProgramming" "Win32_UI" "Win32_UI_Shell" "default" ];
+        resolvedDefaultFeatures = [ "Wdk" "Wdk_Foundation" "Wdk_Storage" "Wdk_Storage_FileSystem" "Wdk_System" "Wdk_System_IO" "Win32" "Win32_Devices" "Win32_Devices_Communication" "Win32_Foundation" "Win32_Networking" "Win32_Networking_WinSock" "Win32_Security" "Win32_Security_Authentication" "Win32_Security_Authentication_Identity" "Win32_Security_Credentials" "Win32_Security_Cryptography" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Console" "Win32_System_IO" "Win32_System_LibraryLoader" "Win32_System_Memory" "Win32_System_Pipes" "Win32_System_Registry" "Win32_System_SystemInformation" "Win32_System_SystemServices" "Win32_System_Threading" "Win32_System_WindowsProgramming" "Win32_UI" "Win32_UI_Shell" "default" ];
       };
       "windows-targets 0.48.5" = rec {
         crateName = "windows-targets";
