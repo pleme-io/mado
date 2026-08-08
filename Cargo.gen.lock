@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "ba504d136d0a357ec4a845eca50c32234481006341c8392803b43c6c852818b2",
+  "cargo_lock_sha256": "1f17d313c4bfb29ae64c10f0fbefd09de12c0765e2ee65ff10b719c6a8f30743",
   "manifest_sha256": {
-    "Cargo.toml": "9a2e6bd1073c510d1f09ebdb642cbbc00b3fbf280a9d54a28312d541aa49f257"
+    "Cargo.toml": "0dd4af8d83405129bce69111350e651ef15826c2c79d86f4ba0021a9216e780f"
   },
   "target_resolves": {
     "base": {
@@ -618,7 +618,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1258,7 +1258,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "cc-1.4.1": {
+      "cc-1.4.2": {
         "runtime_dependencies": [
           {
             "name": "find_msvc_tools",
@@ -3298,8 +3298,18 @@
           "PartialEq"
         ]
       },
-      "egaku-0.1.9": {
+      "egaku-0.1.10": {
         "runtime_dependencies": [
+          {
+            "name": "awase",
+            "package_key": "awase-0.1.7",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
           {
             "name": "serde",
             "package_key": "serde-1.0.229",
@@ -3314,7 +3324,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3435,7 +3445,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3485,7 +3495,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3523,7 +3533,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3571,7 +3581,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4603,7 +4613,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4742,7 +4752,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4824,7 +4834,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5466,7 +5476,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5664,7 +5674,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -6869,7 +6879,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7141,7 +7151,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7169,7 +7179,7 @@
           },
           {
             "name": "egaku",
-            "package_key": "egaku-0.1.9",
+            "package_key": "egaku-0.1.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7211,7 +7221,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7585,7 +7595,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7644,7 +7654,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7796,7 +7806,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8239,7 +8249,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8444,7 +8454,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8705,7 +8715,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8810,7 +8820,7 @@
         "build_dependencies": [
           {
             "name": "cc",
-            "package_key": "cc-1.4.1",
+            "package_key": "cc-1.4.2",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -8826,7 +8836,7 @@
         "build_dependencies": [
           {
             "name": "cc",
-            "package_key": "cc-1.4.1",
+            "package_key": "cc-1.4.2",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -9183,7 +9193,7 @@
         "runtime_dependencies": [
           {
             "name": "egaku",
-            "package_key": "egaku-0.1.9",
+            "package_key": "egaku-0.1.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9247,7 +9257,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9572,6 +9582,11 @@
           "os-poll"
         ]
       },
+      "monosashi-0.3.41": {
+        "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": []
+      },
       "moxcms-0.8.1": {
         "runtime_dependencies": [
           {
@@ -9770,7 +9785,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -12119,7 +12134,7 @@
           },
           {
             "name": "tatara_eval",
-            "package_key": "tatara-eval-0.2.202",
+            "package_key": "tatara-eval-0.2.203",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12129,7 +12144,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.27",
+            "package_key": "tatara-lisp-0.3.41",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12139,7 +12154,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13078,7 +13093,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13228,7 +13243,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14538,7 +14553,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15316,7 +15331,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15822,7 +15837,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -16489,7 +16504,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -17429,7 +17444,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18025,7 +18040,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18774,7 +18789,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19166,7 +19181,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19395,7 +19410,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20007,11 +20022,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-0.3.37": {
+      "tatara-closed-set-0.3.41": {
         "runtime_dependencies": [
           {
             "name": "tatara_closed_set_derive",
-            "package_key": "tatara-closed-set-derive-0.3.37",
+            "package_key": "tatara-closed-set-derive-0.3.41",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20023,7 +20038,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-derive-0.3.37": {
+      "tatara-closed-set-derive-0.3.41": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -20061,7 +20076,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-core-0.2.202": {
+      "tatara-core-0.2.203": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20182,7 +20197,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20227,7 +20242,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-eval-0.2.202": {
+      "tatara-eval-0.2.203": {
         "runtime_dependencies": [
           {
             "name": "bumpalo",
@@ -20265,7 +20280,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.27",
+            "package_key": "tatara-lisp-0.3.41",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20275,7 +20290,7 @@
           },
           {
             "name": "tatara_nix",
-            "package_key": "tatara-nix-0.2.202",
+            "package_key": "tatara-nix-0.2.203",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20285,7 +20300,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20297,7 +20312,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lattice-0.2.202": {
+      "tatara-lattice-0.2.203": {
         "runtime_dependencies": [
           {
             "name": "schemars",
@@ -20325,7 +20340,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.202",
+            "package_key": "tatara-core-0.2.203",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20335,7 +20350,7 @@
           },
           {
             "name": "tatara_process",
-            "package_key": "tatara-process-0.2.202",
+            "package_key": "tatara-process-0.2.203",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20347,7 +20362,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-0.3.27": {
+      "tatara-lisp-0.3.41": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -20383,7 +20398,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.3.37",
+            "package_key": "tatara-closed-set-0.3.41",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20393,7 +20408,7 @@
           },
           {
             "name": "tatara_lisp_derive",
-            "package_key": "tatara-lisp-derive-0.3.27",
+            "package_key": "tatara-lisp-derive-0.3.41",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20403,7 +20418,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20417,7 +20432,7 @@
           "default"
         ]
       },
-      "tatara-lisp-derive-0.3.27": {
+      "tatara-lisp-derive-0.3.41": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -20455,11 +20470,31 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-eval-0.3.27": {
+      "tatara-lisp-eval-0.3.41": {
         "runtime_dependencies": [
           {
+            "name": "monosashi",
+            "package_key": "monosashi-0.3.41",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tatara_closed_set",
+            "package_key": "tatara-closed-set-0.3.41",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.27",
+            "package_key": "tatara-lisp-0.3.41",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20469,7 +20504,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20481,7 +20516,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-nix-0.2.202": {
+      "tatara-nix-0.2.203": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -20527,7 +20562,7 @@
           },
           {
             "name": "tatara_lattice",
-            "package_key": "tatara-lattice-0.2.202",
+            "package_key": "tatara-lattice-0.2.203",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20537,7 +20572,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.27",
+            "package_key": "tatara-lisp-0.3.41",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20547,7 +20582,7 @@
           },
           {
             "name": "tatara_lisp_derive",
-            "package_key": "tatara-lisp-derive-0.3.27",
+            "package_key": "tatara-lisp-derive-0.3.41",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20567,7 +20602,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20579,7 +20614,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-process-0.2.202": {
+      "tatara-process-0.2.203": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20705,7 +20740,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.3.37",
+            "package_key": "tatara-closed-set-0.3.41",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20715,7 +20750,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.202",
+            "package_key": "tatara-core-0.2.203",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20725,7 +20760,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.27",
+            "package_key": "tatara-lisp-0.3.41",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20735,7 +20770,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20926,7 +20961,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21074,7 +21109,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21354,7 +21389,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21479,11 +21514,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "thiserror-2.0.19": {
+      "thiserror-2.0.20": {
         "runtime_dependencies": [
           {
             "name": "thiserror_impl",
-            "package_key": "thiserror-impl-2.0.19",
+            "package_key": "thiserror-impl-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21534,7 +21569,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "thiserror-impl-2.0.19": {
+      "thiserror-impl-2.0.20": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -21901,7 +21936,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23805,7 +23840,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.27",
+            "package_key": "tatara-lisp-0.3.41",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23815,7 +23850,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.3.27",
+            "package_key": "tatara-lisp-eval-0.3.41",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23825,7 +23860,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24012,7 +24047,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24193,7 +24228,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24308,7 +24343,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24432,7 +24467,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24782,7 +24817,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
+            "package_key": "thiserror-2.0.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -25251,7 +25286,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "zune-core-0.5.1": {
+      "zune-core-0.5.3": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": [
@@ -25262,7 +25297,7 @@
         "runtime_dependencies": [
           {
             "name": "zune_core",
-            "package_key": "zune-core-0.5.1",
+            "package_key": "zune-core-0.5.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25456,7 +25491,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.1",
+                "package_key": "cc-1.4.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -26294,7 +26329,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.123": {
+          "mado-0.1.124": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26385,7 +26420,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.9",
+                "package_key": "egaku-0.1.10",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26869,7 +26904,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.27",
+                "package_key": "tatara-lisp-0.3.41",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26925,7 +26960,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.19",
+                "package_key": "thiserror-2.0.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -29175,7 +29210,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.1",
+                "package_key": "cc-1.4.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -29526,7 +29561,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.19",
+                "package_key": "thiserror-2.0.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -29707,7 +29742,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.19",
+                "package_key": "thiserror-2.0.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -30070,7 +30105,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.19",
+                "package_key": "thiserror-2.0.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -30534,7 +30569,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.1",
+                "package_key": "cc-1.4.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -31219,7 +31254,7 @@
               "system"
             ]
           },
-          "mado-0.1.123": {
+          "mado-0.1.124": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31310,7 +31345,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.9",
+                "package_key": "egaku-0.1.10",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31747,7 +31782,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.27",
+                "package_key": "tatara-lisp-0.3.41",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31803,7 +31838,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.19",
+                "package_key": "thiserror-2.0.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32162,7 +32197,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.1",
+                "package_key": "cc-1.4.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -32829,7 +32864,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.19",
+                "package_key": "thiserror-2.0.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32928,7 +32963,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.1",
+                "package_key": "cc-1.4.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -33479,7 +33514,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.19",
+                "package_key": "thiserror-2.0.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -33805,7 +33840,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.19",
+                "package_key": "thiserror-2.0.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -34539,7 +34574,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.1",
+                "package_key": "cc-1.4.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -35224,7 +35259,7 @@
               "system"
             ]
           },
-          "mado-0.1.123": {
+          "mado-0.1.124": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35315,7 +35350,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.9",
+                "package_key": "egaku-0.1.10",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35752,7 +35787,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.27",
+                "package_key": "tatara-lisp-0.3.41",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35808,7 +35843,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.19",
+                "package_key": "thiserror-2.0.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36167,7 +36202,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.1",
+                "package_key": "cc-1.4.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -36834,7 +36869,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.19",
+                "package_key": "thiserror-2.0.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36933,7 +36968,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.1",
+                "package_key": "cc-1.4.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -37484,7 +37519,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.19",
+                "package_key": "thiserror-2.0.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -37810,7 +37845,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.19",
+                "package_key": "thiserror-2.0.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -38535,7 +38570,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.1",
+                "package_key": "cc-1.4.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -39347,7 +39382,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.123": {
+          "mado-0.1.124": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39438,7 +39473,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.9",
+                "package_key": "egaku-0.1.10",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39922,7 +39957,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.27",
+                "package_key": "tatara-lisp-0.3.41",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39978,7 +40013,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.19",
+                "package_key": "thiserror-2.0.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -42208,7 +42243,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.1",
+                "package_key": "cc-1.4.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -42559,7 +42594,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.19",
+                "package_key": "thiserror-2.0.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -42740,7 +42775,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.19",
+                "package_key": "thiserror-2.0.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -43103,7 +43138,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.19",
+                "package_key": "thiserror-2.0.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -43577,7 +43612,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.1",
+                "package_key": "cc-1.4.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -44236,7 +44271,7 @@
               "system"
             ]
           },
-          "mado-0.1.123": {
+          "mado-0.1.124": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44327,7 +44362,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.9",
+                "package_key": "egaku-0.1.10",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44764,7 +44799,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.27",
+                "package_key": "tatara-lisp-0.3.41",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44820,7 +44855,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.19",
+                "package_key": "thiserror-2.0.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45159,7 +45194,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.1",
+                "package_key": "cc-1.4.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -45826,7 +45861,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.19",
+                "package_key": "thiserror-2.0.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45925,7 +45960,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.1",
+                "package_key": "cc-1.4.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -46476,7 +46511,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.19",
+                "package_key": "thiserror-2.0.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -46802,7 +46837,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.19",
+                "package_key": "thiserror-2.0.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -47546,7 +47581,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.1",
+                "package_key": "cc-1.4.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -48205,7 +48240,7 @@
               "system"
             ]
           },
-          "mado-0.1.123": {
+          "mado-0.1.124": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48296,7 +48331,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.9",
+                "package_key": "egaku-0.1.10",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48733,7 +48768,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.27",
+                "package_key": "tatara-lisp-0.3.41",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48789,7 +48824,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.19",
+                "package_key": "thiserror-2.0.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49128,7 +49163,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.1",
+                "package_key": "cc-1.4.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -49795,7 +49830,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.19",
+                "package_key": "thiserror-2.0.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49894,7 +49929,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.1",
+                "package_key": "cc-1.4.2",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -50445,7 +50480,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.19",
+                "package_key": "thiserror-2.0.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -50771,7 +50806,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.19",
+                "package_key": "thiserror-2.0.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -51553,7 +51588,7 @@
     "cast-0.3.0": {
       "edition": "2018"
     },
-    "cc-1.4.1": {
+    "cc-1.4.2": {
       "edition": "2021"
     },
     "cfg-if-1.0.4": {
@@ -51822,7 +51857,7 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "egaku-0.1.9": {
+    "egaku-0.1.10": {
       "edition": "2024"
     },
     "either-1.17.0": {
@@ -52344,7 +52379,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.123": {
+    "mado-0.1.124": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -52411,6 +52446,9 @@
       "edition": "2021"
     },
     "mio-1.2.2": {
+      "edition": "2021"
+    },
+    "monosashi-0.3.41": {
       "edition": "2021"
     },
     "moxcms-0.8.1": {
@@ -53336,36 +53374,36 @@
     "tap-1.0.1": {
       "edition": "2015"
     },
-    "tatara-closed-set-0.3.37": {
+    "tatara-closed-set-0.3.41": {
       "edition": "2021"
     },
-    "tatara-closed-set-derive-0.3.37": {
+    "tatara-closed-set-derive-0.3.41": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-core-0.2.202": {
+    "tatara-core-0.2.203": {
       "edition": "2021"
     },
-    "tatara-eval-0.2.202": {
+    "tatara-eval-0.2.203": {
       "edition": "2021"
     },
-    "tatara-lattice-0.2.202": {
+    "tatara-lattice-0.2.203": {
       "edition": "2021"
     },
-    "tatara-lisp-0.3.27": {
+    "tatara-lisp-0.3.41": {
       "edition": "2021"
     },
-    "tatara-lisp-derive-0.3.27": {
+    "tatara-lisp-derive-0.3.41": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-lisp-eval-0.3.27": {
+    "tatara-lisp-eval-0.3.41": {
       "edition": "2021"
     },
-    "tatara-nix-0.2.202": {
+    "tatara-nix-0.2.203": {
       "edition": "2021"
     },
-    "tatara-process-0.2.202": {
+    "tatara-process-0.2.203": {
       "edition": "2021",
       "binaries": [
         {
@@ -53402,7 +53440,7 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "thiserror-2.0.19": {
+    "thiserror-2.0.20": {
       "edition": "2021",
       "build_script": "build.rs"
     },
@@ -53410,7 +53448,7 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "thiserror-impl-2.0.19": {
+    "thiserror-impl-2.0.20": {
       "edition": "2021",
       "proc_macro": true
     },
@@ -53887,7 +53925,7 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "zune-core-0.5.1": {
+    "zune-core-0.5.3": {
       "edition": "2021"
     },
     "zune-jpeg-0.5.15": {
