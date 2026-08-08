@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "b0906b7aa455f1161835d8402b878af0fb692cedfc231394fdd5a7b454b6a3d5",
+  "cargo_lock_sha256": "bc5aea023159790373f1ea937098f7704388080e82cc1909e1a0488104686a03",
   "manifest_sha256": {
-    "Cargo.toml": "5177bc0e18d81687bbad888cb1c01c5a61deac54d36ce4e44fce68ccea6dc023"
+    "Cargo.toml": "bd06338ed04a7102547262f1776cbbb595773d3eb49ff75d7a73e865a92d1a6d"
   },
   "target_resolves": {
     "base": {
@@ -530,7 +530,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "async-trait-0.1.91": {
+      "async-trait-0.1.92": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -8575,7 +8575,7 @@
           },
           {
             "name": "async_trait",
-            "package_key": "async-trait-0.1.91",
+            "package_key": "async-trait-0.1.92",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14419,7 +14419,7 @@
         "runtime_dependencies": [
           {
             "name": "async_trait",
-            "package_key": "async-trait-0.1.91",
+            "package_key": "async-trait-0.1.92",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15675,7 +15675,7 @@
           },
           {
             "name": "async_trait",
-            "package_key": "async-trait-0.1.91",
+            "package_key": "async-trait-0.1.92",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -16106,7 +16106,7 @@
         "runtime_dependencies": [
           {
             "name": "async_trait",
-            "package_key": "async-trait-0.1.91",
+            "package_key": "async-trait-0.1.92",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -17334,7 +17334,7 @@
           },
           {
             "name": "async_trait",
-            "package_key": "async-trait-0.1.91",
+            "package_key": "async-trait-0.1.92",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21885,7 +21885,7 @@
         "runtime_dependencies": [
           {
             "name": "async_trait",
-            "package_key": "async-trait-0.1.91",
+            "package_key": "async-trait-0.1.92",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23808,7 +23808,7 @@
           },
           {
             "name": "async_trait",
-            "package_key": "async-trait-0.1.91",
+            "package_key": "async-trait-0.1.92",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24027,7 +24027,7 @@
           },
           {
             "name": "async_trait",
-            "package_key": "async-trait-0.1.91",
+            "package_key": "async-trait-0.1.92",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24157,7 +24157,7 @@
           },
           {
             "name": "async_trait",
-            "package_key": "async-trait-0.1.91",
+            "package_key": "async-trait-0.1.92",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -26329,7 +26329,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.124": {
+          "mado-0.1.125": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31256,7 +31256,7 @@
               "system"
             ]
           },
-          "mado-0.1.124": {
+          "mado-0.1.125": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35261,7 +35261,7 @@
               "system"
             ]
           },
-          "mado-0.1.124": {
+          "mado-0.1.125": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39384,7 +39384,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.124": {
+          "mado-0.1.125": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44275,7 +44275,7 @@
               "system"
             ]
           },
-          "mado-0.1.124": {
+          "mado-0.1.125": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48244,7 +48244,7 @@
               "system"
             ]
           },
-          "mado-0.1.124": {
+          "mado-0.1.125": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -51451,7 +51451,7 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "async-trait-0.1.91": {
+    "async-trait-0.1.92": {
       "edition": "2021",
       "proc_macro": true
     },
@@ -52383,7 +52383,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.124": {
+    "mado-0.1.125": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",

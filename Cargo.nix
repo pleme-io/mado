@@ -372,7 +372,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
         ];
         buildDependencies = [
@@ -1038,7 +1038,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "tracing";
@@ -1938,9 +1938,9 @@ rec {
       };
       "cc" = rec {
         crateName = "cc";
-        version = "1.4.1";
+        version = "1.4.2";
         edition = "2021";
-        sha256 = "0dniydgf5lv8dh4mr6n1gvas9albqmp0kyh557wkcij6jacw8rlh";
+        sha256 = "0zi7dyd4jaflww22jd3701869jrv4p47f9xlslw7h60pk4a2w9jx";
         dependencies = [
           {
             name = "find-msvc-tools";
@@ -4286,10 +4286,14 @@ rec {
       };
       "egaku" = rec {
         crateName = "egaku";
-        version = "0.1.9";
+        version = "0.1.10";
         edition = "2024";
-        sha256 = "09s3hqpapraajiwlp2k6lw0s7r3c0385ca3cgj4xbjifsxffxsjc";
+        sha256 = "0h4wqal65gqzv53f4b2aiv85j8lfm51z0k1gvx8ifa82byl76lif";
         dependencies = [
+          {
+            name = "awase";
+            packageId = "awase";
+          }
           {
             name = "serde";
             packageId = "serde";
@@ -4297,7 +4301,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "tracing";
@@ -4383,7 +4387,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "tracing";
@@ -4415,7 +4419,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
         ];
 
@@ -4440,7 +4444,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
         ];
         features = {
@@ -4472,7 +4476,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "wgpu";
@@ -5595,7 +5599,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "tracing";
@@ -5674,7 +5678,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
         ];
 
@@ -5718,7 +5722,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
         ];
 
@@ -6455,7 +6459,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "tokio";
@@ -6662,7 +6666,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
         ];
 
@@ -7877,7 +7881,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
         ];
 
@@ -8191,7 +8195,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
         ];
 
@@ -8226,7 +8230,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "tracing";
@@ -8538,7 +8542,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "windows-link";
@@ -8677,9 +8681,9 @@ rec {
       };
       "js-sys" = rec {
         crateName = "js-sys";
-        version = "0.3.103";
+        version = "0.3.104";
         edition = "2021";
-        sha256 = "00lib0b6hqmw56r2hjp7xrv730qacslirbkdlhvmi39zvgy4pd2k";
+        sha256 = "0fjsgady7wbv7bbyy6c8qhrd93bnx11qbl83l1g7bb9a4601030f";
         libName = "js_sys";
         authors = [
           "The wasm-bindgen Developers"
@@ -8734,7 +8738,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
         ];
         devDependencies = [
@@ -8779,7 +8783,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
         ];
 
@@ -8938,7 +8942,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "tokio";
@@ -9305,7 +9309,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "tokio";
@@ -9468,7 +9472,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
         ];
         devDependencies = [
@@ -9623,7 +9627,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "tokio";
@@ -10183,7 +10187,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.124";
+        version = "0.1.125";
         edition = "2024";
         crateBin = [
           {
@@ -10334,7 +10338,7 @@ rec {
             name = "objc2-app-kit";
             packageId = "objc2-app-kit 0.3.2";
             target = { target, features }: ("macos" == target."os" or null);
-            features = [ "NSApplication" "NSWindow" "NSDockTile" "NSResponder" "NSScreen" "NSSound" "NSGraphics" "NSProgressIndicator" "NSView" ];
+            features = [ "NSApplication" "NSWindow" "NSDockTile" "NSResponder" "NSScreen" "NSSound" "NSGraphics" "NSProgressIndicator" "NSView" "NSMenu" "NSMenuItem" ];
           }
           {
             name = "objc2-foundation";
@@ -10454,7 +10458,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "tokio";
@@ -10531,9 +10535,9 @@ rec {
       };
       "madori" = rec {
         crateName = "madori";
-        version = "0.1.7";
+        version = "0.1.8";
         edition = "2024";
-        sha256 = "03kn2h17hv082zsmdha6jnypya3xgpgaj3rcqygr845qs9zf411w";
+        sha256 = "1yz7bdmx0q6ygvfmc6vr4xikhdcvmwbjnxh317jpsv3zwv7vsh6n";
         dependencies = [
           {
             name = "egaku";
@@ -10563,7 +10567,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "tracing";
@@ -10939,6 +10943,16 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "log" "net" "os-ext" "os-poll" ];
       };
+      "monosashi" = rec {
+        crateName = "monosashi";
+        version = "0.3.41";
+        edition = "2021";
+        sha256 = "1q3pn2sz3na6723mnxd3fvdf06xzmnc7psic3aw69kvkhc51s4z8";
+        authors = [
+          "Pleme.io <engineering@pleme.io>"
+        ];
+
+      };
       "moxcms" = rec {
         crateName = "moxcms";
         version = "0.8.1";
@@ -11063,7 +11077,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
             usesDefaultFeatures = false;
           }
           {
@@ -16560,7 +16574,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "todoku";
@@ -17428,7 +17442,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "tokio";
@@ -17549,7 +17563,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "tinyvec";
@@ -18215,7 +18229,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
         ];
         features = {
@@ -18975,7 +18989,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "tokio";
@@ -19961,7 +19975,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "tokio";
@@ -20450,7 +20464,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
             usesDefaultFeatures = false;
           }
           {
@@ -21016,7 +21030,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
             usesDefaultFeatures = false;
           }
         ];
@@ -21859,7 +21873,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "tracing";
@@ -22587,7 +22601,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "time";
@@ -23047,7 +23061,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "time";
@@ -23251,7 +23265,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "time";
@@ -23377,7 +23391,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "time";
@@ -23965,9 +23979,9 @@ rec {
       };
       "tatara-closed-set" = rec {
         crateName = "tatara-closed-set";
-        version = "0.3.37";
+        version = "0.3.41";
         edition = "2021";
-        sha256 = "1giskvfyhgb3zs64qlcigpp40la3y6kmbasr4s7fmnskx81ssz8y";
+        sha256 = "10r6nxmqa3xlvfqdl2pqlqr1ksplg0fv4s4aq5mkajk9i2agq7i4";
         libName = "tatara_closed_set";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -23982,9 +23996,9 @@ rec {
       };
       "tatara-closed-set-derive" = rec {
         crateName = "tatara-closed-set-derive";
-        version = "0.3.37";
+        version = "0.3.41";
         edition = "2021";
-        sha256 = "1q3r7jn7f8y5lyhgdhygknjnl6xl72d4wv2wjx7v3hp168g3pca9";
+        sha256 = "05x0h7hg2b4mhqgqzlicfjnrhwcmwmm966lk86nirp6hq7qkz2n9";
         procMacro = true;
         libName = "tatara_closed_set_derive";
         authors = [
@@ -24009,9 +24023,9 @@ rec {
       };
       "tatara-core" = rec {
         crateName = "tatara-core";
-        version = "0.2.202";
+        version = "0.2.203";
         edition = "2021";
-        sha256 = "1mjs27i09ybjznrilv9n3ii39c158nqshfx3cbz8s6qy5019z32l";
+        sha256 = "1yl7a5ppsi4mr4ldjz03vgab8prvz0cl6n50l7ndc4ng83rw1ni4";
         libName = "tatara_core";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24066,7 +24080,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "toml";
@@ -24086,9 +24100,9 @@ rec {
       };
       "tatara-eval" = rec {
         crateName = "tatara-eval";
-        version = "0.2.202";
+        version = "0.2.203";
         edition = "2021";
-        sha256 = "0yqhipmw3amc13ngrihaarph4qpbrbjbd0yrh3zjn42a90hzhakw";
+        sha256 = "0p0v9glc5148mqcqlyxq3mqyk7srgkxhp5z6j326adg73wwj5h6k";
         libName = "tatara_eval";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24118,16 +24132,16 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
         ];
 
       };
       "tatara-lattice" = rec {
         crateName = "tatara-lattice";
-        version = "0.2.202";
+        version = "0.2.203";
         edition = "2021";
-        sha256 = "04lbpfmhfwhwbyfilgpl0rig99qib3kz1sr9r3zr551v01fmyvxr";
+        sha256 = "1r18ksn5sijnmzh67h3rqkhfw3rjl394xqnzhb23rb5n3yd8q267";
         libName = "tatara_lattice";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24156,9 +24170,9 @@ rec {
       };
       "tatara-lisp" = rec {
         crateName = "tatara-lisp";
-        version = "0.3.27";
+        version = "0.3.41";
         edition = "2021";
-        sha256 = "1sbf81mf6dms2ck04k9y8c7i6h67mrx1kk126xz580qaqs7q3m5n";
+        sha256 = "151l0w3zjdb33rg8xyw7jn77m47pxr4wq71rfim3b2p892brn03m";
         libName = "tatara_lisp";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24187,7 +24201,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
         ];
         features = {
@@ -24196,9 +24210,9 @@ rec {
       };
       "tatara-lisp-derive" = rec {
         crateName = "tatara-lisp-derive";
-        version = "0.3.27";
+        version = "0.3.41";
         edition = "2021";
-        sha256 = "1fbg6z2pq7s0xv5g5k1gl58xq3f5fzaxk5ksz96iggh3c3x95qq2";
+        sha256 = "1h0lrm8ylyzp6cw5yx15b7iavr9x6amxlfvmmgy715gjd3w7w4h2";
         procMacro = true;
         libName = "tatara_lisp_derive";
         authors = [
@@ -24223,30 +24237,38 @@ rec {
       };
       "tatara-lisp-eval" = rec {
         crateName = "tatara-lisp-eval";
-        version = "0.3.27";
+        version = "0.3.41";
         edition = "2021";
-        sha256 = "0ks0k42ig87viirya6q1c0j1s52x42rj0bjn9d9pv0pr75flmgza";
+        sha256 = "08p3kmb1vmxrc9b24i8w62wlam1ay6xmn5nx060if685g8hk02ym";
         libName = "tatara_lisp_eval";
         authors = [
           "Pleme.io <engineering@pleme.io>"
         ];
         dependencies = [
           {
+            name = "monosashi";
+            packageId = "monosashi";
+          }
+          {
+            name = "tatara-closed-set";
+            packageId = "tatara-closed-set";
+          }
+          {
             name = "tatara-lisp";
             packageId = "tatara-lisp";
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
         ];
 
       };
       "tatara-nix" = rec {
         crateName = "tatara-nix";
-        version = "0.2.202";
+        version = "0.2.203";
         edition = "2021";
-        sha256 = "1lrx1q2ms4d3by031idz1q3qx0il1mb59bqmywx8sicf760rjdq5";
+        sha256 = "0x8sr7rd783bln6bl8iq68xg9687lk0hvzp343bayiy5x58kdj89";
         libName = "tatara_nix";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24287,17 +24309,17 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
         ];
 
       };
       "tatara-process" = rec {
         crateName = "tatara-process";
-        version = "0.2.202";
+        version = "0.2.203";
         edition = "2021";
         crateBin = [];
-        sha256 = "1y892b577n8wlxlkb697c1wf894jbr2idwch8xxq2rfglgdig38k";
+        sha256 = "0h9a3s8740h6bwyl5hw4dq71wc4y0sc89h5md4yffcn1183ymypi";
         libName = "tatara_process";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24366,7 +24388,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "tracing";
@@ -24469,7 +24491,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "tracing";
@@ -24541,7 +24563,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "tracing";
@@ -24679,7 +24701,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
         ];
         features = {
@@ -24797,18 +24819,18 @@ rec {
         ];
 
       };
-      "thiserror 2.0.19" = rec {
+      "thiserror 2.0.20" = rec {
         crateName = "thiserror";
-        version = "2.0.19";
+        version = "2.0.20";
         edition = "2021";
-        sha256 = "1ngwxsjsa64v1n7vb90h2b0i3fqk1piwaf0z6fqdacqfhjc3b909";
+        sha256 = "0kxs6p295jffxhzaxpxv1dwaaf5iqlm6sx8h0djp6ancbxgj71pc";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
         ];
         dependencies = [
           {
             name = "thiserror-impl";
-            packageId = "thiserror-impl 2.0.19";
+            packageId = "thiserror-impl 2.0.20";
           }
         ];
         features = {
@@ -24842,11 +24864,11 @@ rec {
         ];
 
       };
-      "thiserror-impl 2.0.19" = rec {
+      "thiserror-impl 2.0.20" = rec {
         crateName = "thiserror-impl";
-        version = "2.0.19";
+        version = "2.0.20";
         edition = "2021";
-        sha256 = "1ka10pqy1g8zy5al9m8yadg30jp8hx0q80j8awmd8131yw6gxjs3";
+        sha256 = "1bwjc94gi0xn5jz26h1a8bjj1wdkvvr6jifamyc4mp9n28zcs15w";
         procMacro = true;
         libName = "thiserror_impl";
         authors = [
@@ -25240,7 +25262,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "tokio";
@@ -26440,7 +26462,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "tracing";
@@ -27199,7 +27221,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "time";
@@ -27289,7 +27311,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "time";
@@ -27367,7 +27389,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "time";
@@ -27420,7 +27442,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
           {
             name = "time";
@@ -27499,7 +27521,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
           }
         ];
 
@@ -27605,9 +27627,9 @@ rec {
       };
       "wasm-bindgen" = rec {
         crateName = "wasm-bindgen";
-        version = "0.2.126";
+        version = "0.2.127";
         edition = "2021";
-        sha256 = "197rma4qg1kb8l4bl7857pgszzval8s1w740g9myyjh92467q1jb";
+        sha256 = "0w6fa1mkbb6qlkffgy4qaz0hdf496zbjkyiyvs4lvmpd8xbr6w0v";
         libName = "wasm_bindgen";
         authors = [
           "The wasm-bindgen Developers"
@@ -27661,9 +27683,9 @@ rec {
       };
       "wasm-bindgen-futures" = rec {
         crateName = "wasm-bindgen-futures";
-        version = "0.4.76";
+        version = "0.4.77";
         edition = "2021";
-        sha256 = "0799v92cpaprapnmpaflc51sdnz362q2fsjdqnwiq8ij1wsg2bf6";
+        sha256 = "0l3r8m335kb2p8yj65kb0biwlypcx3ay4g750hafkl13rkapfxvb";
         libName = "wasm_bindgen_futures";
         authors = [
           "The wasm-bindgen Developers"
@@ -27689,9 +27711,9 @@ rec {
       };
       "wasm-bindgen-macro" = rec {
         crateName = "wasm-bindgen-macro";
-        version = "0.2.126";
+        version = "0.2.127";
         edition = "2021";
-        sha256 = "1cda6wl5zyiy7777cfgrix7fhpaqba55l5zpqj4zig7ng7jyaz0n";
+        sha256 = "1hcvlb6bv771fvgifd367wd0cm4giyar8fq5i4h705vj7y7myxvp";
         procMacro = true;
         libName = "wasm_bindgen_macro";
         authors = [
@@ -27713,9 +27735,9 @@ rec {
       };
       "wasm-bindgen-macro-support" = rec {
         crateName = "wasm-bindgen-macro-support";
-        version = "0.2.126";
+        version = "0.2.127";
         edition = "2021";
-        sha256 = "03iq412frl2py55skwb3ya08xha0cf6q22zr5kqlwbr675w7r6gk";
+        sha256 = "112j4d7dv8y2sk9yy9czrl9fpjx9388ywnn7icdv2bywazw367g1";
         libName = "wasm_bindgen_macro_support";
         authors = [
           "The wasm-bindgen Developers"
@@ -27749,10 +27771,10 @@ rec {
       };
       "wasm-bindgen-shared" = rec {
         crateName = "wasm-bindgen-shared";
-        version = "0.2.126";
+        version = "0.2.127";
         edition = "2021";
         links = "wasm_bindgen";
-        sha256 = "097a3kbjls447s1lwr41l21x5crrh5vq3h6zsxccz7slrjq4q6yw";
+        sha256 = "1gywp6xv8a27fvm3ga9xby93xyic3hc2s626b9z9rw2xqny4vxky";
         libName = "wasm_bindgen_shared";
         authors = [
           "The wasm-bindgen Developers"
@@ -28100,9 +28122,9 @@ rec {
       };
       "web-sys" = rec {
         crateName = "web-sys";
-        version = "0.3.103";
+        version = "0.3.104";
         edition = "2021";
-        sha256 = "0hb1zdnrp99p5r5q66jagsddmwha460yv2wklvzrzk0b3jvdq8l6";
+        sha256 = "0c0acbvaqzqf21q5vdff2g74fvb7afi91xjplmclybq4d24k6df4";
         libName = "web_sys";
         authors = [
           "The wasm-bindgen Developers"
@@ -28358,6 +28380,10 @@ rec {
           "MouseEvent" = [ "Event" "UiEvent" ];
           "MouseScrollEvent" = [ "Event" "MouseEvent" "UiEvent" ];
           "MutationEvent" = [ "Event" ];
+          "NavigateEvent" = [ "Event" ];
+          "Navigation" = [ "EventTarget" ];
+          "NavigationCurrentEntryChangeEvent" = [ "Event" ];
+          "NavigationHistoryEntry" = [ "EventTarget" ];
           "NetworkInformation" = [ "EventTarget" ];
           "Node" = [ "EventTarget" ];
           "Notification" = [ "EventTarget" ];
@@ -28933,7 +28959,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
             usesDefaultFeatures = false;
           }
           {
@@ -29282,7 +29308,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
             usesDefaultFeatures = false;
           }
           {
@@ -29382,7 +29408,7 @@ rec {
           }
           {
             name = "thiserror";
-            packageId = "thiserror 2.0.19";
+            packageId = "thiserror 2.0.20";
             optional = true;
             usesDefaultFeatures = false;
           }
@@ -29499,7 +29525,7 @@ rec {
         dependencies = [
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.61.2";
+            packageId = "windows-sys 0.48.0";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Storage_FileSystem" "Win32_System_Console" "Win32_System_SystemInformation" ];
           }
@@ -31596,7 +31622,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Globalization" "Win32_System" "Win32_System_Com" "Win32_UI" "Win32_UI_Shell" "default" ];
+        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Globalization" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Console" "Win32_System_SystemInformation" "Win32_UI" "Win32_UI_Shell" "default" ];
       };
       "windows-sys 0.52.0" = rec {
         crateName = "windows-sys";
@@ -34035,9 +34061,9 @@ rec {
       };
       "zune-core" = rec {
         crateName = "zune-core";
-        version = "0.5.1";
+        version = "0.5.3";
         edition = "2021";
-        sha256 = "1ya0zdqxlr5v57791j7bvm408ri2cfx81a4v6z85f560yw3hi2nb";
+        sha256 = "12v5zdwcmjwzlfz61ajchzdaab75cxasqnmwf2hq929n8vypfqym";
         libName = "zune_core";
         features = {
           "log" = [ "dep:log" ];
