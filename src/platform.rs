@@ -208,6 +208,42 @@ pub fn notification_dispatcher(
     }
 }
 
+/// Install mado's own macOS menubar in place of the one winit builds.
+///
+/// **Why mado owns this at all.** winit installs a default menubar on
+/// macOS — About / Services / Hide / Hide Others / Show All / Quit
+/// (`winit-0.30.13/src/platform_impl/macos/menu.rs`) — and it is
+/// all-or-nothing: winit exposes no API to drop a single item. So the only
+/// way to not ship a Services submenu is to decline the whole default
+/// (`madori::MenuPolicy::AppOwned`) and build the menu here.
+///
+/// **Why Services is the item that had to go.** winit calls
+/// `app.setServicesMenu(...)`, which advertises mado as a Services
+/// participant. A Service acts on the app's *selection*, which it obtains
+/// through `NSServicesMenuRequestor` — `validRequestorForSendType:
+/// returnType:` plus `writeSelectionToPasteboard:types:`. mado implements
+/// none of them, so no service could ever read mado's terminal selection:
+/// the submenu could only ever list system-wide entries that ignore the
+/// app. It was a menu that structurally could not do the one thing it
+/// looks like it does. (If mado ever wants real text services — "Search
+/// With…", "New Note With Selection" — that is implementing the requestor
+/// protocol over the existing selection buffer, a feature, not a menu
+/// entry.)
+///
+/// **What is kept, and why it is not optional.** ⌘Q and ⌘H are *menu key
+/// equivalents* on macOS — they are `terminate:` and `hide:` hung off menu
+/// items, not application-level shortcuts. Declining winit's menu without
+/// replacing it would ship a terminal the operator cannot quit with ⌘Q and
+/// an empty Apple-menu-only menubar, which reads as broken rather than
+/// minimal. So About / Hide / Quit stay; Services, Hide Others and Show
+/// All go.
+pub fn install_app_menu() {
+    #[cfg(target_os = "macos")]
+    {
+        macos::install_app_menu();
+    }
+}
+
 /// Check if the system is in dark mode.
 #[must_use]
 pub fn is_dark_mode() -> bool {
@@ -932,10 +968,66 @@ mod macos {
     use objc2::MainThreadMarker;
     use objc2_app_kit::{
         NSAppearance, NSAppearanceCustomization, NSAppearanceNameAqua, NSAppearanceNameDarkAqua,
-        NSApplication, NSColor, NSRequestUserAttentionType, NSScreen, NSTitlebarSeparatorStyle,
-        NSWindow, NSWindowStyleMask, NSWindowTabbingMode, NSWindowTitleVisibility,
+        NSApplication, NSColor, NSMenu, NSMenuItem, NSRequestUserAttentionType, NSScreen,
+        NSTitlebarSeparatorStyle, NSWindow, NSWindowStyleMask, NSWindowTabbingMode,
+        NSWindowTitleVisibility,
     };
-    use objc2_foundation::{NSPoint, NSRect, NSSize, NSString, NSUserDefaults};
+    use objc2_foundation::{NSPoint, NSProcessInfo, NSRect, NSSize, NSString, NSUserDefaults};
+
+    /// Build and install mado's menubar. See `super::install_app_menu` for
+    /// the reasoning; this is the mechanism only.
+    pub(super) fn install_app_menu() {
+        use objc2::sel;
+        use objc2_foundation::ns_string;
+
+        // Off the main thread there is no legal way to touch AppKit, and a
+        // missing menu is far better than a crash — so this is a silent
+        // no-op rather than an unwrap.
+        let Some(mtm) = MainThreadMarker::new() else {
+            return;
+        };
+        let app = NSApplication::sharedApplication(mtm);
+
+        let menubar = NSMenu::new(mtm);
+        let app_item = NSMenuItem::new(mtm);
+        menubar.addItem(&app_item);
+
+        let app_menu = NSMenu::new(mtm);
+        let name = NSProcessInfo::processInfo().processName();
+
+        let item = |title: &NSString, action, key: &NSString| unsafe {
+            NSMenuItem::initWithTitle_action_keyEquivalent(mtm.alloc(), title, action, key)
+        };
+
+        let about = item(
+            &ns_string!("About ").stringByAppendingString(&name),
+            Some(sel!(orderFrontStandardAboutPanel:)),
+            ns_string!(""),
+        );
+        let hide = item(
+            &ns_string!("Hide ").stringByAppendingString(&name),
+            Some(sel!(hide:)),
+            ns_string!("h"),
+        );
+        let quit = item(
+            &ns_string!("Quit ").stringByAppendingString(&name),
+            Some(sel!(terminate:)),
+            ns_string!("q"),
+        );
+
+        app_menu.addItem(&about);
+        app_menu.addItem(&NSMenuItem::separatorItem(mtm));
+        app_menu.addItem(&hide);
+        app_menu.addItem(&NSMenuItem::separatorItem(mtm));
+        app_menu.addItem(&quit);
+        app_item.setSubmenu(Some(&app_menu));
+
+        // Deliberately NOT `setServicesMenu` — mado implements no
+        // `NSServicesMenuRequestor`, so a Services submenu here could not
+        // reach the terminal selection. Adding one back without the
+        // protocol would restore exactly the dead menu this replaced.
+        app.setMainMenu(Some(&menubar));
+    }
 
     use crate::config::{TitlebarStyle, WindowAppearance};
 

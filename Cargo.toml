@@ -404,7 +404,7 @@ icy_sixel = "0.5.0"
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
 objc2-foundation = { version = "0.3", features = ["NSString", "NSUserDefaults", "NSBundle", "NSError", "NSUUID", "NSProcessInfo"] }
-objc2-app-kit = { version = "0.3", features = ["NSApplication", "NSWindow", "NSDockTile", "NSResponder", "NSScreen", "NSSound", "NSGraphics", "NSProgressIndicator", "NSView"] }
+objc2-app-kit = { version = "0.3", features = ["NSApplication", "NSWindow", "NSDockTile", "NSResponder", "NSScreen", "NSSound", "NSGraphics", "NSProgressIndicator", "NSView", "NSMenu", "NSMenuItem"] }
 # Native notifications via UNUserNotificationCenter — the mado-attributed,
 # rich path that replaces the osascript/Script-Editor shell-out. See
 # src/notify_mac.rs + docs/NOTIFICATIONS.md. Actions/attachments (the

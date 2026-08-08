@@ -646,7 +646,11 @@ where
         vsync: config.performance.vsync,
         transparent: false,
         decorations: config.window.decorations,
+        // Same reasoning as the local-PTY path in main.rs: mado owns its
+        // menubar so winit's Services submenu never ships.
+        menu_policy: madori::MenuPolicy::AppOwned,
     };
+    crate::platform::install_app_menu();
     crate::perf::log_phase("event_loop_entering");
     let session_reap_target = std::sync::Arc::new(std::sync::Mutex::new(owned_session_id));
     let control_for_reap = Arc::clone(&control);

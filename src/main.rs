@@ -1073,7 +1073,16 @@ fn main() -> anyhow::Result<()> {
         vsync: config.performance.vsync,
         transparent: false,
         decorations: config.window.decorations,
+        // mado installs its own menubar (About / Hide / Quit) instead of
+        // winit's — see `platform::install_app_menu`. Declining winit's
+        // default is the ONLY way to not ship its Services submenu, which
+        // mado can never serve.
+        menu_policy: madori::MenuPolicy::AppOwned,
     };
+    // Must precede `run()`: winit installs (or, here, declines) its menu
+    // during event-loop construction, and a menubar set afterwards would
+    // race the first frame.
+    crate::platform::install_app_menu();
     madori::App::builder(renderer)
         .config(app_config)
         .on_event(move |event, renderer| -> EventResponse {
