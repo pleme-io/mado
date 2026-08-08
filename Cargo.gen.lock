@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "1f17d313c4bfb29ae64c10f0fbefd09de12c0765e2ee65ff10b719c6a8f30743",
+  "cargo_lock_sha256": "b0906b7aa455f1161835d8402b878af0fb692cedfc231394fdd5a7b454b6a3d5",
   "manifest_sha256": {
-    "Cargo.toml": "0dd4af8d83405129bce69111350e651ef15826c2c79d86f4ba0021a9216e780f"
+    "Cargo.toml": "5177bc0e18d81687bbad888cb1c01c5a61deac54d36ce4e44fce68ccea6dc023"
   },
   "target_resolves": {
     "base": {
@@ -9189,7 +9189,7 @@
           "serde"
         ]
       },
-      "madori-0.1.7": {
+      "madori-0.1.8": {
         "runtime_dependencies": [
           {
             "name": "egaku",
@@ -26634,7 +26634,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.7",
+                "package_key": "madori-0.1.8",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26670,6 +26670,8 @@
                   "NSApplication",
                   "NSDockTile",
                   "NSGraphics",
+                  "NSMenu",
+                  "NSMenuItem",
                   "NSProgressIndicator",
                   "NSResponder",
                   "NSScreen",
@@ -31559,7 +31561,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.7",
+                "package_key": "madori-0.1.8",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35564,7 +35566,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.7",
+                "package_key": "madori-0.1.8",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39687,7 +39689,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.7",
+                "package_key": "madori-0.1.8",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39723,6 +39725,8 @@
                   "NSApplication",
                   "NSDockTile",
                   "NSGraphics",
+                  "NSMenu",
+                  "NSMenuItem",
                   "NSProgressIndicator",
                   "NSResponder",
                   "NSScreen",
@@ -44576,7 +44580,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.7",
+                "package_key": "madori-0.1.8",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48545,7 +48549,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.7",
+                "package_key": "madori-0.1.8",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -52392,7 +52396,7 @@
         }
       ]
     },
-    "madori-0.1.7": {
+    "madori-0.1.8": {
       "edition": "2024"
     },
     "malloc_buf-0.0.6": {
