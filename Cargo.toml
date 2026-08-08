@@ -229,7 +229,11 @@ egaku = "0.1"
 # nami-core no longer needs to move in lockstep with garasu: it takes
 # garasu from crates.io now, as mado does, so cargo unifies them by semver
 # instead of either crate having to know the other's pin.
-nami-core = { git = "https://github.com/pleme-io/nami-core", rev = "ab562f0d8361b499fed3c32e3b2959024875f908", default-features = false, features = ["network", "eval", "gpu"] , version = "0.1" }
+# Published as `pleme-nami-core`: the bare `nami-core` on crates.io belongs to
+# water-rs (the same org that owns the `mado` name), and their 0.3.2 exposes
+# only `default`/`std` — so pointing at the bare name fails on unknown features,
+# not on the name. Renaming here keeps every `use nami_core::…` untouched.
+nami-core = { package = "pleme-nami-core", version = "0.1.13", default-features = false, features = ["network", "eval", "gpu"] }
 
 # tatara-lisp — the Four-Lisps authoring engine. Consumed by the `float`
 # module's `spec` border: `#[derive(DeriveTataraDomain)]` turns

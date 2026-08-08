@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "036c87e8d565ef52da820b24ecc44ccebe3503dba44ffd04f5214c8ab98c3082",
+  "cargo_lock_sha256": "ba504d136d0a357ec4a845eca50c32234481006341c8392803b43c6c852818b2",
   "manifest_sha256": {
-    "Cargo.toml": "9cf7892447815da0c60ab7e0261694ca5baa0365e4ccbce63020be5f4323f5aa"
+    "Cargo.toml": "9a2e6bd1073c510d1f09ebdb642cbbc00b3fbf280a9d54a28312d541aa49f257"
   },
   "target_resolves": {
     "base": {
@@ -9812,245 +9812,6 @@
           "wgsl-out"
         ]
       },
-      "nami-core-0.1.11-ab562f0d8361b499fed3c32e3b2959024875f908": {
-        "runtime_dependencies": [
-          {
-            "name": "blake3",
-            "package_key": "blake3-1.8.6",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "garasu",
-            "package_key": "garasu-0.1.7",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": true,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "glyphon",
-            "package_key": "glyphon-0.9.0",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": true,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "hayai",
-            "package_key": "hayai-0.1.2",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "hmac",
-            "package_key": "hmac-0.12.1",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "html5ever",
-            "package_key": "html5ever-0.29.1",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.6",
-            "kind": "normal",
-            "features": [
-              "wgpu"
-            ],
-            "uses_default_features": true,
-            "optional": true,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "lightningcss",
-            "package_key": "lightningcss-1.0.0-alpha.72",
-            "kind": "normal",
-            "features": [
-              "visitor"
-            ],
-            "uses_default_features": false,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "markup5ever",
-            "package_key": "markup5ever-0.14.1",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "regex",
-            "package_key": "regex-1.13.1",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "serde",
-            "package_key": "serde-1.0.229",
-            "kind": "normal",
-            "features": [
-              "derive"
-            ],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "serde_json",
-            "package_key": "serde_json-1.0.151",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "sha1",
-            "package_key": "sha1-0.10.7",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "sha2",
-            "package_key": "sha2-0.10.9",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "taffy",
-            "package_key": "taffy-0.7.7",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "tatara_eval",
-            "package_key": "tatara-eval-0.2.202",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": true,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.27",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": true,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "thiserror",
-            "package_key": "thiserror-2.0.19",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "todoku",
-            "package_key": "todoku-0.1.1",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": true,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "tracing",
-            "package_key": "tracing-0.1.44",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "url",
-            "package_key": "url-2.5.8",
-            "kind": "normal",
-            "features": [
-              "serde"
-            ],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "wgpu",
-            "package_key": "wgpu-25.0.2",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": true,
-            "target": null,
-            "tree": "target"
-          }
-        ],
-        "build_dependencies": [],
-        "features": [
-          "eval",
-          "gpu",
-          "lisp",
-          "network"
-        ]
-      },
       "new_debug_unreachable-1.0.6": {
         "runtime_dependencies": [],
         "build_dependencies": [],
@@ -12197,6 +11958,245 @@
         ],
         "build_dependencies": [],
         "features": []
+      },
+      "pleme-nami-core-0.1.13": {
+        "runtime_dependencies": [
+          {
+            "name": "blake3",
+            "package_key": "blake3-1.8.6",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "garasu",
+            "package_key": "garasu-0.1.7",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "glyphon",
+            "package_key": "glyphon-0.9.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "hayai",
+            "package_key": "hayai-0.1.2",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "hmac",
+            "package_key": "hmac-0.12.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "html5ever",
+            "package_key": "html5ever-0.29.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "ishou_tokens",
+            "package_key": "ishou-tokens-0.1.6",
+            "kind": "normal",
+            "features": [
+              "wgpu"
+            ],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "lightningcss",
+            "package_key": "lightningcss-1.0.0-alpha.72",
+            "kind": "normal",
+            "features": [
+              "visitor"
+            ],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "markup5ever",
+            "package_key": "markup5ever-0.14.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "regex",
+            "package_key": "regex-1.13.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.229",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.151",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "sha1",
+            "package_key": "sha1-0.10.7",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "sha2",
+            "package_key": "sha2-0.10.9",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "taffy",
+            "package_key": "taffy-0.7.7",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tatara_eval",
+            "package_key": "tatara-eval-0.2.202",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tatara_lisp",
+            "package_key": "tatara-lisp-0.3.27",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "thiserror",
+            "package_key": "thiserror-2.0.19",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "todoku",
+            "package_key": "todoku-0.1.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tracing",
+            "package_key": "tracing-0.1.44",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "url",
+            "package_key": "url-2.5.8",
+            "kind": "normal",
+            "features": [
+              "serde"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "wgpu",
+            "package_key": "wgpu-25.0.2",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "eval",
+          "gpu",
+          "lisp",
+          "network"
+        ]
       },
       "png-0.18.1": {
         "runtime_dependencies": [
@@ -26618,20 +26618,6 @@
                 "tree": "target"
               },
               {
-                "name": "nami_core",
-                "package_key": "nami-core-0.1.11-ab562f0d8361b499fed3c32e3b2959024875f908",
-                "kind": "normal",
-                "features": [
-                  "eval",
-                  "gpu",
-                  "network"
-                ],
-                "uses_default_features": false,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              },
-              {
                 "name": "objc2",
                 "package_key": "objc2-0.6.4",
                 "kind": "normal",
@@ -26757,6 +26743,20 @@
                 "optional": false,
                 "target": null,
                 "tree": "host"
+              },
+              {
+                "name": "nami_core",
+                "package_key": "pleme-nami-core-0.1.13",
+                "kind": "normal",
+                "features": [
+                  "eval",
+                  "gpu",
+                  "network"
+                ],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
               },
               {
                 "name": "praca",
@@ -31543,20 +31543,6 @@
                 "tree": "target"
               },
               {
-                "name": "nami_core",
-                "package_key": "nami-core-0.1.11-ab562f0d8361b499fed3c32e3b2959024875f908",
-                "kind": "normal",
-                "features": [
-                  "eval",
-                  "gpu",
-                  "network"
-                ],
-                "uses_default_features": false,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              },
-              {
                 "name": "open",
                 "package_key": "open-5.4.1",
                 "kind": "normal",
@@ -31635,6 +31621,20 @@
                 "optional": false,
                 "target": null,
                 "tree": "host"
+              },
+              {
+                "name": "nami_core",
+                "package_key": "pleme-nami-core-0.1.13",
+                "kind": "normal",
+                "features": [
+                  "eval",
+                  "gpu",
+                  "network"
+                ],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
               },
               {
                 "name": "praca",
@@ -35548,20 +35548,6 @@
                 "tree": "target"
               },
               {
-                "name": "nami_core",
-                "package_key": "nami-core-0.1.11-ab562f0d8361b499fed3c32e3b2959024875f908",
-                "kind": "normal",
-                "features": [
-                  "eval",
-                  "gpu",
-                  "network"
-                ],
-                "uses_default_features": false,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              },
-              {
                 "name": "open",
                 "package_key": "open-5.4.1",
                 "kind": "normal",
@@ -35640,6 +35626,20 @@
                 "optional": false,
                 "target": null,
                 "tree": "host"
+              },
+              {
+                "name": "nami_core",
+                "package_key": "pleme-nami-core-0.1.13",
+                "kind": "normal",
+                "features": [
+                  "eval",
+                  "gpu",
+                  "network"
+                ],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
               },
               {
                 "name": "praca",
@@ -39671,20 +39671,6 @@
                 "tree": "target"
               },
               {
-                "name": "nami_core",
-                "package_key": "nami-core-0.1.11-ab562f0d8361b499fed3c32e3b2959024875f908",
-                "kind": "normal",
-                "features": [
-                  "eval",
-                  "gpu",
-                  "network"
-                ],
-                "uses_default_features": false,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              },
-              {
                 "name": "objc2",
                 "package_key": "objc2-0.6.4",
                 "kind": "normal",
@@ -39810,6 +39796,20 @@
                 "optional": false,
                 "target": null,
                 "tree": "host"
+              },
+              {
+                "name": "nami_core",
+                "package_key": "pleme-nami-core-0.1.13",
+                "kind": "normal",
+                "features": [
+                  "eval",
+                  "gpu",
+                  "network"
+                ],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
               },
               {
                 "name": "praca",
@@ -44560,20 +44560,6 @@
                 "tree": "target"
               },
               {
-                "name": "nami_core",
-                "package_key": "nami-core-0.1.11-ab562f0d8361b499fed3c32e3b2959024875f908",
-                "kind": "normal",
-                "features": [
-                  "eval",
-                  "gpu",
-                  "network"
-                ],
-                "uses_default_features": false,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              },
-              {
                 "name": "open",
                 "package_key": "open-5.4.1",
                 "kind": "normal",
@@ -44652,6 +44638,20 @@
                 "optional": false,
                 "target": null,
                 "tree": "host"
+              },
+              {
+                "name": "nami_core",
+                "package_key": "pleme-nami-core-0.1.13",
+                "kind": "normal",
+                "features": [
+                  "eval",
+                  "gpu",
+                  "network"
+                ],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
               },
               {
                 "name": "praca",
@@ -48529,20 +48529,6 @@
                 "tree": "target"
               },
               {
-                "name": "nami_core",
-                "package_key": "nami-core-0.1.11-ab562f0d8361b499fed3c32e3b2959024875f908",
-                "kind": "normal",
-                "features": [
-                  "eval",
-                  "gpu",
-                  "network"
-                ],
-                "uses_default_features": false,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              },
-              {
                 "name": "open",
                 "package_key": "open-5.4.1",
                 "kind": "normal",
@@ -48621,6 +48607,20 @@
                 "optional": false,
                 "target": null,
                 "tree": "host"
+              },
+              {
+                "name": "nami_core",
+                "package_key": "pleme-nami-core-0.1.13",
+                "kind": "normal",
+                "features": [
+                  "eval",
+                  "gpu",
+                  "network"
+                ],
+                "uses_default_features": false,
+                "optional": false,
+                "target": null,
+                "tree": "target"
               },
               {
                 "name": "praca",
@@ -52420,9 +52420,6 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "nami-core-0.1.11-ab562f0d8361b499fed3c32e3b2959024875f908": {
-      "edition": "2024"
-    },
     "new_debug_unreachable-1.0.6": {
       "edition": "2021",
       "lib_target": {
@@ -52768,6 +52765,13 @@
     "pleme-kindstr-derive-0.1.0": {
       "edition": "2024",
       "proc_macro": true
+    },
+    "pleme-nami-core-0.1.13": {
+      "edition": "2024",
+      "lib_target": {
+        "name": "nami_core",
+        "path": "src/lib.rs"
+      }
     },
     "png-0.18.1": {
       "edition": "2021"
@@ -53890,8 +53894,6 @@
       "edition": "2021"
     }
   },
-  "git_nar_sha256": {
-    "nami-core-0.1.11-ab562f0d8361b499fed3c32e3b2959024875f908": "sha256-3qLqSV1w5R/9bQMNh0YVmGeC6uemG8alaCUGmLd11Kg="
-  },
+  "git_nar_sha256": {},
   "flake_metadata": {}
 }

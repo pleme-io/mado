@@ -3368,7 +3368,6 @@ dependencies = [
  "lru",
  "madori",
  "mimalloc",
- "nami-core",
  "objc2 0.6.4",
  "objc2-app-kit 0.3.2",
  "objc2-foundation 0.3.2",
@@ -3380,6 +3379,7 @@ dependencies = [
  "pleme-io-wadachi",
  "pleme-kindbyte-derive",
  "pleme-kindstr-derive",
+ "pleme-nami-core",
  "pollster",
  "praca",
  "proptest",
@@ -3597,35 +3597,6 @@ dependencies = [
  "strum",
  "thiserror 2.0.19",
  "unicode-ident",
-]
-
-[[package]]
-name = "nami-core"
-version = "0.1.11"
-source = "git+https://github.com/pleme-io/nami-core?rev=ab562f0d8361b499fed3c32e3b2959024875f908#ab562f0d8361b499fed3c32e3b2959024875f908"
-dependencies = [
- "blake3",
- "garasu",
- "glyphon",
- "hayai",
- "hmac",
- "html5ever",
- "ishou-tokens",
- "lightningcss",
- "markup5ever",
- "regex",
- "serde",
- "serde_json",
- "sha1",
- "sha2",
- "taffy",
- "tatara-eval",
- "tatara-lisp",
- "thiserror 2.0.19",
- "todoku",
- "tracing",
- "url",
- "wgpu",
 ]
 
 [[package]]
@@ -4795,6 +4766,36 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.119",
+]
+
+[[package]]
+name = "pleme-nami-core"
+version = "0.1.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "51c6087ca87c6549feff59f51847d18dc43da6d3937f04b598e8ff66f6037958"
+dependencies = [
+ "blake3",
+ "garasu",
+ "glyphon",
+ "hayai",
+ "hmac",
+ "html5ever",
+ "ishou-tokens",
+ "lightningcss",
+ "markup5ever",
+ "regex",
+ "serde",
+ "serde_json",
+ "sha1",
+ "sha2",
+ "taffy",
+ "tatara-eval",
+ "tatara-lisp",
+ "thiserror 2.0.19",
+ "todoku",
+ "tracing",
+ "url",
+ "wgpu",
 ]
 
 [[package]]
