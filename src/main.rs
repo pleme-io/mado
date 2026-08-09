@@ -1083,6 +1083,17 @@ fn main() -> anyhow::Result<()> {
     // during event-loop construction, and a menubar set afterwards would
     // race the first frame.
     crate::platform::install_app_menu();
+    // pending-frame-pacing: `.target_fps(effective_fps)` goes HERE (and at the
+    // twin builder in gui_tear_attach.rs) the moment madori 0.1.9 reaches
+    // crates.io. Without it `performance.target_fps` still only budgets the
+    // ambience governor: madori runs `ControlFlow::Poll`, so an idle prompt
+    // redraws at ~297 Hz and burns ~10% of a core presenting identical frames.
+    // madori's half is the opt-in `AppBuilder::target_fps` / `FramePacing`
+    // (0 = uncapped, matching `resolve_target_fps`'s sentinel); `effective_fps`
+    // is already resolved above. mado takes madori from the registry by semver
+    // (`madori = "0.1"`, no git/path pin — see the reasoning in the
+    // `[patch.crates-io]` block), so this lands with a `cargo update -p madori`
+    // and no source change here beyond the one call.
     madori::App::builder(renderer)
         .config(app_config)
         .on_event(move |event, renderer| -> EventResponse {
