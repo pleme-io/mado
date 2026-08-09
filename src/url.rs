@@ -4,8 +4,31 @@
 //! including proper parenthesis handling (Wikipedia URLs) and
 //! trailing-punctuation trimming.
 
+use std::sync::LazyLock;
+
 use crate::grid_col::glyph_columns;
 use crate::terminal::Cell;
+
+/// The one `LinkFinder` this process ever builds.
+///
+/// `detect_urls_in_row` is called once per grid ROW, and `detect_urls` calls it
+/// in a loop over every row on screen — so a per-call
+/// `LinkFinder::new()` + `kinds()` was ~50 constructions per full-grid scan,
+/// and at the measured idle redraw rate (~297 Hz before the madori frame-pacing
+/// fix) roughly 15k constructions per second, every one of them identical.
+/// A `LinkFinder` is immutable configuration once `kinds()` is set, and
+/// `links(&self, …)` borrows it shared, so exactly one is needed for the
+/// lifetime of the process.
+///
+/// `LazyLock` rather than a `RefCell`/`OnceCell` on a renderer: URL detection is
+/// a free function with no owning struct to hang a cache off, and the value is
+/// read-only after init — the same shape `theme.rs` and `perf.rs` use for their
+/// process-wide immutables.
+static URL_FINDER: LazyLock<linkify::LinkFinder> = LazyLock::new(|| {
+    let mut finder = linkify::LinkFinder::new();
+    finder.kinds(&[linkify::LinkKind::Url]);
+    finder
+});
 
 /// A detected URL in a terminal row.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -35,11 +58,8 @@ pub fn detect_urls_in_row(row: &[Cell], cols: usize, row_idx: usize) -> Vec<Dete
         end_col,
     } = row_text_and_columns(row, cols);
 
-    let mut finder = linkify::LinkFinder::new();
-    finder.kinds(&[linkify::LinkKind::Url]);
-
     let mut urls = Vec::new();
-    for link in finder.links(&text) {
+    for link in URL_FINDER.links(&text) {
         // `start_col[b]` / `end_col[b]` are the first / last grid column
         // of the cell byte `b` belongs to (they differ only for a wide
         // cell). `link.end()` is exclusive, so the URL's last byte is
