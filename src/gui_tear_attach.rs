@@ -779,6 +779,11 @@ where
     let terminal_for_switch = Arc::clone(&terminal);
     let mut live_cell = live_cell;
 
+    // pending-frame-pacing: `.target_fps(effective_fps)` goes HERE too — the
+    // embedded-tear window is the DEFAULT render mode, so this is the site the
+    // idle-spin actually costs the operator. Full reasoning + the madori-side
+    // API at the twin builder in main.rs; `effective_fps` is resolved above
+    // (`config.performance.resolve_target_fps(None)`).
     madori::App::builder(renderer)
         .config(app_config)
         .on_event(move |event, renderer| -> EventResponse {
