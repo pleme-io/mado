@@ -1067,6 +1067,33 @@ impl InputEngine {
         }
     }
 
+    /// How deep the dock-attention path reads the ranked store to decide
+    /// whether to alert. Only the top rows can ever produce a bounce, so this
+    /// is the whole question this path asks.
+    const CRITICAL_ALERT_SCAN: usize = 64;
+
+    /// When the seen-latch is pruned.
+    const CRITICAL_LATCH_CAP: usize = 4096;
+
+    /// How deep the latch-hygiene prune reads.
+    ///
+    /// This used to be `usize::MAX` — the only unbounded ranked read left in
+    /// the tree (every other call site is bounded: the picker over-fetches
+    /// `suggest_max * 4` behind a generation memo, `board_json` clamps to 200).
+    /// It cannot simply reuse [`CRITICAL_ALERT_SCAN`]: the prune drops every
+    /// latched id it does NOT see, so a live Critical outside the read window
+    /// would be forgotten and re-alert the next time it is observed — a
+    /// spurious dock bounce for an incident the operator already saw.
+    ///
+    /// 512 is safe because urgency is the HIGH bits of the rank key
+    /// (`izumi::store::effective_rank_key` shifts it left 20), so every
+    /// Critical sorts above every non-Critical: reading 512 covers the top 64
+    /// alert window eight times over, and 2.5× the prescribed store ceiling
+    /// (`suggestions.max_entries = 200`, enforced by the store's own `gc`) —
+    /// i.e. in the shipped configuration it reads the entire store, just
+    /// without asking for an unbounded clone to get there.
+    const CRITICAL_LATCH_SCAN: usize = 512;
+
     /// Ambient attention: on a store change, bounce the dock ONCE per newly-
     /// arrived Critical suggestion (an incident reaches the operator with the
     /// board closed). The first observation only seeds the latch — a warm
@@ -1080,7 +1107,7 @@ impl InputEngine {
         let store = crate::suggest::store();
         let now_ms = crate::auto_attach::now_unix_seconds().saturating_mul(1000);
         let criticals: Vec<crate::suggest::SuggestionId> = store
-            .ranked_stored(64, now_ms)
+            .ranked_stored(Self::CRITICAL_ALERT_SCAN, now_ms)
             .into_iter()
             .filter(|st| {
                 st.item.urgency == crate::suggest::Urgency::Critical
@@ -1104,9 +1131,9 @@ impl InputEngine {
         }
         // Latch hygiene: ids decay out of the store but accumulate here; keep
         // the set bounded without ever re-alerting a live id.
-        if self.seen_criticals.len() > 4096 {
+        if self.seen_criticals.len() > Self::CRITICAL_LATCH_CAP {
             let live: std::collections::HashSet<_> = store
-                .ranked_stored(usize::MAX, now_ms)
+                .ranked_stored(Self::CRITICAL_LATCH_SCAN, now_ms)
                 .into_iter()
                 .map(|st| st.item.id)
                 .collect();
