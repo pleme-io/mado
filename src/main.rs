@@ -1083,18 +1083,18 @@ fn main() -> anyhow::Result<()> {
     // during event-loop construction, and a menubar set afterwards would
     // race the first frame.
     crate::platform::install_app_menu();
-    // pending-frame-pacing: `.target_fps(effective_fps)` goes HERE (and at the
-    // twin builder in gui_tear_attach.rs) the moment madori 0.1.9 reaches
-    // crates.io. Without it `performance.target_fps` still only budgets the
-    // ambience governor: madori runs `ControlFlow::Poll`, so an idle prompt
-    // redraws at ~297 Hz and burns ~10% of a core presenting identical frames.
-    // madori's half is the opt-in `AppBuilder::target_fps` / `FramePacing`
-    // (0 = uncapped, matching `resolve_target_fps`'s sentinel); `effective_fps`
-    // is already resolved above. mado takes madori from the registry by semver
-    // (`madori = "0.1"`, no git/path pin — see the reasoning in the
-    // `[patch.crates-io]` block), so this lands with a `cargo update -p madori`
-    // and no source change here beyond the one call.
+    // Frame pacing. Without this madori runs `ControlFlow::Poll` and an idle
+    // prompt redraws at ~297 Hz, burning ~10% of a core presenting identical
+    // frames — and `performance.target_fps` reads like it caps the frame rate
+    // while only budgeting the ambience governor. `FramePacing::Capped` makes
+    // the knob mean what it says; `0` stays uncapped, matching
+    // `resolve_target_fps`'s own sentinel, so the default is unchanged.
+    //
+    // The twin builder in gui_tear_attach.rs carries the same call and BOTH
+    // matter: embedded-tear is the default render mode, so pacing only this
+    // one would look done while changing nothing the operator runs.
     madori::App::builder(renderer)
+        .target_fps(effective_fps)
         .config(app_config)
         .on_event(move |event, renderer| -> EventResponse {
             // Check if PTY has exited — request window close

@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "bc5aea023159790373f1ea937098f7704388080e82cc1909e1a0488104686a03",
+  "cargo_lock_sha256": "042268335caf40e5f438d63c7a770d36bbccbb607108b5c0d8ee5d394078b551",
   "manifest_sha256": {
     "Cargo.toml": "bd06338ed04a7102547262f1776cbbb595773d3eb49ff75d7a73e865a92d1a6d"
   },
@@ -9189,7 +9189,7 @@
           "serde"
         ]
       },
-      "madori-0.1.8": {
+      "madori-0.1.9": {
         "runtime_dependencies": [
           {
             "name": "egaku",
@@ -26634,7 +26634,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.8",
+                "package_key": "madori-0.1.9",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31561,7 +31561,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.8",
+                "package_key": "madori-0.1.9",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35566,7 +35566,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.8",
+                "package_key": "madori-0.1.9",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39689,7 +39689,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.8",
+                "package_key": "madori-0.1.9",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44580,7 +44580,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.8",
+                "package_key": "madori-0.1.9",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48549,7 +48549,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.8",
+                "package_key": "madori-0.1.9",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -52396,7 +52396,7 @@
         }
       ]
     },
-    "madori-0.1.8": {
+    "madori-0.1.9": {
       "edition": "2024"
     },
     "malloc_buf-0.0.6": {
