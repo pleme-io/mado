@@ -2117,6 +2117,26 @@ pub struct Terminal {
     // Dynamic cursor shape (DECSCUSR)
     pub cursor_style: CursorStyle,
     pub cursor_blink: bool,
+    /// Has an application actually spoken DECSCUSR on this screen?
+    ///
+    /// `cursor_style`/`cursor_blink` carry startup DEFAULTS (`Block`/`true`)
+    /// so DECRQM `?12` can answer honestly from the moment the terminal
+    /// exists. That makes them useless as a render input on their own: a
+    /// renderer reading them directly would slam a `Block` over a
+    /// `cursor.style: bar` config before any program had said a word, and
+    /// would re-enable blink against the fleet's `blink = false` floor.
+    ///
+    /// This flag is the difference between "the default value" and "a value
+    /// somebody chose", and it is what `cursor_presentation()` gates on.
+    /// Set only by DECSCUSR (`CSI Ps SP q`) — DECSET/DECRST 12 in isolation
+    /// still only moves `cursor_blink` for DECRQM's benefit, exactly as
+    /// before, because a blink-only toggle with no shape is not the
+    /// mode-change channel this exists to carry and changing it would be a
+    /// behaviour change nobody asked for.
+    ///
+    /// Cleared by RIS and DECSTR so a crashed full-screen app cannot strand
+    /// its bar cursor on the operator's shell.
+    pub cursor_presentation_set: bool,
 
     // Active hyperlink link-id (from OSC 8, applied to subsequent
     // cells). Interned into `link_table` once per OSC 8 — the
@@ -2394,6 +2414,7 @@ impl Terminal {
             bell_pending: false,
             cursor_style: CursorStyle::Block,
             cursor_blink: true,
+            cursor_presentation_set: false,
             active_link_id: NO_LINK_ID,
             clipboard_content: None,
             pending_notifications: Vec::new(),
@@ -2989,6 +3010,25 @@ impl Terminal {
     #[must_use]
     pub fn cursor(&self) -> &Cursor {
         &self.cursor
+    }
+
+    /// The cursor presentation an application has ASKED for, or `None` when
+    /// none has.
+    ///
+    /// `None` is the whole point: it lets the renderer fall back to the
+    /// operator's config instead of to this type's startup defaults. Reading
+    /// `cursor_style`/`cursor_blink` directly is the bug this method exists
+    /// to prevent — they are always populated, so a direct read cannot tell
+    /// "Block because the app said so" from "Block because nothing has
+    /// happened yet".
+    ///
+    /// Carries blink alongside shape because DECSCUSR sets them as one
+    /// decision (`2` is steady-block, `1` is blinking-block); splitting them
+    /// would let a renderer honour half a sequence.
+    #[must_use]
+    pub fn cursor_presentation(&self) -> Option<(CursorStyle, bool)> {
+        self.cursor_presentation_set
+            .then_some((self.cursor_style, self.cursor_blink))
     }
 
     #[must_use]
@@ -4260,6 +4300,12 @@ impl Terminal {
         self.gl_is_g1 = false;
         self.wrap_pending = false;
         self.kitty_keyboard_stack.clear();
+        // Hand the cursor presentation back to the config. DECSTR is what a
+        // shell emits to clean up after a full-screen app, so a vim that
+        // died mid-insert must not leave its bar cursor on the prompt.
+        self.cursor_style = CursorStyle::Block;
+        self.cursor_blink = true;
+        self.cursor_presentation_set = false;
         self.dirty();
     }
 
@@ -6505,6 +6551,14 @@ impl vte::Perform for Terminal {
                     self.cursor_blink = false;
                 }
                 _ => {}
+            }
+            // Only a RECOGNISED Ps means an application chose a
+            // presentation. An unknown parameter falls through the match
+            // untouched above, and must not flip the flag — otherwise a
+            // garbled sequence would hand the renderer the startup defaults
+            // dressed up as somebody's choice.
+            if matches!(ps, 0..=6) {
+                self.cursor_presentation_set = true;
             }
             self.seqno += 1;
             return;
@@ -10351,6 +10405,65 @@ mod tests {
     }
 
     // ── DECSCUSR cursor shape tests ──────────────────────────────────
+
+    /// The renderer must be able to tell "Block because an app asked" from
+    /// "Block because nothing has happened yet". Without this distinction it
+    /// would paint the startup default over the operator's `cursor.style`
+    /// config on the very first frame, before any program had spoken.
+    #[test]
+    fn cursor_presentation_is_none_until_an_application_speaks() {
+        let term = Terminal::new(80, 24);
+        // The raw fields ARE populated — that is what DECRQM ?12 answers from.
+        assert_eq!(term.cursor_style, CursorStyle::Block);
+        assert!(term.cursor_blink);
+        // …and precisely why reading them directly is the bug.
+        assert_eq!(term.cursor_presentation(), None);
+    }
+
+    #[test]
+    fn cursor_presentation_carries_shape_and_blink_as_one_decision() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[6 q"); // steady bar — reedline's vi INSERT
+        assert_eq!(
+            term.cursor_presentation(),
+            Some((CursorStyle::Bar, false)),
+            "DECSCUSR sets shape and blink together; honouring half is wrong"
+        );
+        term.feed(b"\x1b[2 q"); // steady block — reedline's vi NORMAL
+        assert_eq!(term.cursor_presentation(), Some((CursorStyle::Block, false)));
+    }
+
+    /// A garbled parameter falls through the match untouched, so it must not
+    /// flip the flag — otherwise noise on the wire would hand the renderer
+    /// the startup defaults dressed up as somebody's choice.
+    #[test]
+    fn an_unrecognised_decscusr_param_claims_no_presentation() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[9 q");
+        assert_eq!(term.cursor_presentation(), None);
+    }
+
+    /// DECSTR is what a shell emits to clean up after a full-screen app. A
+    /// vim that died mid-insert must not strand its bar cursor on the prompt.
+    #[test]
+    fn decstr_hands_the_cursor_presentation_back_to_the_config() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[6 q");
+        assert!(term.cursor_presentation().is_some());
+        term.feed(b"\x1b[!p"); // DECSTR
+        assert_eq!(term.cursor_presentation(), None);
+    }
+
+    /// RIS rebuilds the whole Terminal, so the flag clears for free — pinned
+    /// so a future hand-rolled `reset` cannot silently drop the clear.
+    #[test]
+    fn ris_hands_the_cursor_presentation_back_to_the_config() {
+        let mut term = Terminal::new(80, 24);
+        term.feed(b"\x1b[4 q");
+        assert!(term.cursor_presentation().is_some());
+        term.feed(b"\x1bc"); // RIS
+        assert_eq!(term.cursor_presentation(), None);
+    }
 
     #[test]
     fn test_decscusr_block() {

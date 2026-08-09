@@ -1157,6 +1157,15 @@ struct Snapshot {
     /// keeps the index, so the render side needs the palette truth.
     palette: [Color; 256],
     cursor: Cursor,
+    /// Cursor presentation an application asked for via DECSCUSR, or `None`
+    /// when none has — in which case the config-fed renderer fields win.
+    ///
+    /// This is the channel that makes a vi-mode change visible: reedline
+    /// emits `CSI 2 SP q` / `CSI 6 SP q` on Normal/Insert, `Terminal` parses
+    /// it, and this carries it to the one draw site. Before this field the
+    /// parse existed and the renderer never read it, so the shell's mode was
+    /// invisible in mado while working in every other terminal.
+    cursor_presentation: Option<(CursorStyle, bool)>,
     cols: usize,
     num_rows: usize,
     /// Viewport scroll offset (0 = live tail). Drives the history
@@ -3451,6 +3460,7 @@ impl TerminalRenderer {
         let term = self.terminal.read();
         let seqno = term.seqno();
         let cursor = *term.cursor();
+        let cursor_presentation = term.cursor_presentation();
         let cols = term.cols();
         let num_rows = term.rows();
         let on_alt = term.on_alt_screen();
@@ -3538,6 +3548,7 @@ impl TerminalRenderer {
                 styles,
                 palette,
                 cursor,
+                cursor_presentation,
                 cols,
                 num_rows,
                 scroll_offset,
@@ -4034,8 +4045,18 @@ impl TerminalRenderer {
         // cursor steady (no blink) and draw the hollow variant — the
         // standard which-window-owns-the-keyboard affordance
         // (kitty/ghostty/iTerm2/Terminal.app).
+        // Blink resolves config-as-floor, application-on-top — but
+        // `reduce_motion` stays a hard AND over the result. An accessibility
+        // setting is not a default an application may override; DECSCUSR 1/3/5
+        // must not be able to reintroduce motion the operator switched off.
+        // (`self.cursor_blink` already folded reduce_motion in at construction;
+        // re-applying it here is what keeps that true for the override path.)
+        let effective_blink = match snap.cursor_presentation {
+            Some((_, blink)) => blink && !self.reduce_motion,
+            None => self.cursor_blink,
+        };
         let cursor_on = !self.focused
-            || !self.cursor_blink
+            || !effective_blink
             || crate::motion::blink_on(elapsed, self.cursor_blink_rate_ms as f32 / 1000.0 * 2.0);
 
         // Where the live cursor actually lands on screen. `scroll_offset`
@@ -4075,8 +4096,14 @@ impl TerminalRenderer {
             let cx = origin_x + snap.cursor.col as f32 * self.cell_width;
             let cy = origin_y + cursor_screen_row as f32 * self.cell_height;
 
+            // Focus stays OUTERMOST: the hollow block is the
+            // which-window-owns-the-keyboard affordance, and an unfocused
+            // window has no keyboard mode to advertise. An application's
+            // DECSCUSR shape only decides what a FOCUSED window draws, so the
+            // override sits inside this branch rather than beside it.
             let effective_style = if self.focused {
-                self.cursor_style
+                snap.cursor_presentation
+                    .map_or(self.cursor_style, |(style, _)| style)
             } else {
                 CursorStyle::BlockHollow
             };
@@ -6000,14 +6027,25 @@ impl RenderCallback for TerminalRenderer {
         // Stage 2 is the existing post-snapshot gate that catches
         // the rare case where snapshot data still proves we don't
         // need to redraw (kept as a belt-and-braces safety net).
-        let (peek_seqno, peek_cursor_visible, peek_sync_output, peek_epoch) = {
+        let (peek_seqno, peek_cursor_visible, peek_sync_output, peek_epoch, peek_presentation) = {
             let term = self.terminal.read();
             (
                 term.seqno(),
                 term.cursor().visible,
                 term.synchronized_output(),
                 term.grid_epoch(),
+                term.cursor_presentation(),
             )
+        };
+        // The damage gate has to agree with the DRAW path about whether the
+        // cursor blinks, or the two disagree in the worst direction: an app
+        // asks for a blinking cursor (DECSCUSR 1/3/5) over a `blink = false`
+        // config, the draw path animates it, and this gate — reading only the
+        // config field — schedules no repaints, so the blink renders frozen.
+        // Same resolution, same reduce_motion AND, as the draw path.
+        let effective_blink = match peek_presentation {
+            Some((_, blink)) => blink && !self.reduce_motion,
+            None => self.cursor_blink,
         };
         // Grid-epoch change = the grid was fully reset (RIS / config
         // hot-reload / session switch — all route through
@@ -6058,13 +6096,13 @@ impl RenderCallback for TerminalRenderer {
         // this we'd repaint every vsync just to redraw the same
         // cursor state, which was the case before this change (idle
         // render rate stuck at 60 Hz instead of 4 Hz).
-        let cursor_on_now = !self.cursor_blink
+        let cursor_on_now = !effective_blink
             || crate::motion::blink_on(
                 ctx.elapsed,
                 self.cursor_blink_rate_ms as f32 / 1000.0 * 2.0,
             );
         let blink_flip =
-            self.cursor_blink && peek_cursor_visible && cursor_on_now != self.last_cursor_on;
+            effective_blink && peek_cursor_visible && cursor_on_now != self.last_cursor_on;
         // The bell flash reads through the motion algebra's `Advance`
         // trait (value / advance / is_active).
         use crate::motion::Advance;
