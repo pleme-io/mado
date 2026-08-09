@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "bc5aea023159790373f1ea937098f7704388080e82cc1909e1a0488104686a03",
+  "cargo_lock_sha256": "bd6da5069eccc68628311bc894927342ebf4df60413b13aa52207ebd0f44049d",
   "manifest_sha256": {
-    "Cargo.toml": "bd06338ed04a7102547262f1776cbbb595773d3eb49ff75d7a73e865a92d1a6d"
+    "Cargo.toml": "b185cf04978ae97672773d3c9f5bc73987d97fe471fe8fdf85a3eb2f7674fa80"
   },
   "target_resolves": {
     "base": {
@@ -602,7 +602,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "awase-0.1.7": {
+      "awase-0.1.9": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -1721,7 +1721,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "cookie-0.18.1": {
+      "cookie-0.18.2": {
         "runtime_dependencies": [
           {
             "name": "percent_encoding",
@@ -1770,7 +1770,7 @@
         "runtime_dependencies": [
           {
             "name": "cookie",
-            "package_key": "cookie-0.18.1",
+            "package_key": "cookie-0.18.2",
             "kind": "normal",
             "features": [
               "percent-encode"
@@ -2286,54 +2286,6 @@
         "build_dependencies": [],
         "features": []
       },
-      "crossbeam-deque-0.8.7": {
-        "runtime_dependencies": [
-          {
-            "name": "crossbeam_epoch",
-            "package_key": "crossbeam-epoch-0.9.20",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": false,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "crossbeam_utils",
-            "package_key": "crossbeam-utils-0.8.22",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": false,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          }
-        ],
-        "build_dependencies": [],
-        "features": [
-          "default",
-          "std"
-        ]
-      },
-      "crossbeam-epoch-0.9.20": {
-        "runtime_dependencies": [
-          {
-            "name": "crossbeam_utils",
-            "package_key": "crossbeam-utils-0.8.22",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": false,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          }
-        ],
-        "build_dependencies": [],
-        "features": [
-          "alloc",
-          "std"
-        ]
-      },
       "crossbeam-queue-0.3.13": {
         "runtime_dependencies": [
           {
@@ -2358,7 +2310,6 @@
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": [
-          "default",
           "std"
         ]
       },
@@ -3298,11 +3249,11 @@
           "PartialEq"
         ]
       },
-      "egaku-0.1.10": {
+      "egaku-0.1.11": {
         "runtime_dependencies": [
           {
             "name": "awase",
-            "package_key": "awase-0.1.7",
+            "package_key": "awase-0.1.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -6865,14 +6816,16 @@
           "baked"
         ]
       },
-      "icy_sixel-0.5.0": {
+      "icy_sixel-0.5.1": {
         "runtime_dependencies": [
           {
             "name": "quantette",
-            "package_key": "quantette-0.5.1",
+            "package_key": "quantette-0.6.0",
             "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
+            "features": [
+              "kmeans"
+            ],
+            "uses_default_features": false,
             "optional": false,
             "target": null,
             "tree": "target"
@@ -7179,7 +7132,7 @@
           },
           {
             "name": "egaku",
-            "package_key": "egaku-0.1.10",
+            "package_key": "egaku-0.1.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7266,7 +7219,7 @@
           "default"
         ]
       },
-      "ishou-tokens-0.1.6": {
+      "ishou-tokens-0.1.8": {
         "runtime_dependencies": [
           {
             "name": "irodori",
@@ -7493,7 +7446,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.496",
+            "package_key": "shikumi-0.1.497",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9193,7 +9146,7 @@
         "runtime_dependencies": [
           {
             "name": "egaku",
-            "package_key": "egaku-0.1.10",
+            "package_key": "egaku-0.1.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9213,7 +9166,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.6",
+            "package_key": "ishou-tokens-0.1.8",
             "kind": "normal",
             "features": [
               "wgpu"
@@ -9247,7 +9200,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.496",
+            "package_key": "shikumi-0.1.497",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9582,7 +9535,7 @@
           "os-poll"
         ]
       },
-      "monosashi-0.3.41": {
+      "monosashi-0.3.43": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
@@ -12038,7 +11991,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.6",
+            "package_key": "ishou-tokens-0.1.8",
             "kind": "normal",
             "features": [
               "wgpu"
@@ -12144,7 +12097,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.41",
+            "package_key": "tatara-lisp-0.3.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12415,7 +12368,7 @@
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.6",
+            "package_key": "ishou-tokens-0.1.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12856,7 +12809,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "quantette-0.5.1": {
+      "quantette-0.6.0": {
         "runtime_dependencies": [
           {
             "name": "bitvec",
@@ -12881,16 +12834,6 @@
             ],
             "uses_default_features": true,
             "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "image",
-            "package_key": "image-0.25.10",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": false,
-            "optional": true,
             "target": null,
             "tree": "target"
           },
@@ -12942,7 +12885,7 @@
           },
           {
             "name": "rand",
-            "package_key": "rand-0.9.5",
+            "package_key": "rand-0.10.2",
             "kind": "normal",
             "features": [
               "alloc"
@@ -12954,17 +12897,7 @@
           },
           {
             "name": "rand_xoshiro",
-            "package_key": "rand_xoshiro-0.7.0",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": true,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "rayon",
-            "package_key": "rayon-1.12.0",
+            "package_key": "rand_xoshiro-0.8.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12984,7 +12917,7 @@
           },
           {
             "name": "wide",
-            "package_key": "wide-0.8.3",
+            "package_key": "wide-1.6.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -12995,14 +12928,9 @@
         ],
         "build_dependencies": [],
         "features": [
-          "default",
-          "image",
           "kmeans",
           "rand",
-          "rand_xoshiro",
-          "rayon",
-          "std",
-          "threads"
+          "rand_xoshiro"
         ]
       },
       "quick-error-1.2.3": {
@@ -13618,11 +13546,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "rand_xoshiro-0.7.0": {
+      "rand_xoshiro-0.8.1": {
         "runtime_dependencies": [
           {
             "name": "rand_core",
-            "package_key": "rand_core-0.9.5",
+            "package_key": "rand_core-0.10.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13646,58 +13574,6 @@
           "alloc",
           "std"
         ]
-      },
-      "rayon-1.12.0": {
-        "runtime_dependencies": [
-          {
-            "name": "either",
-            "package_key": "either-1.17.0",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": false,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "rayon_core",
-            "package_key": "rayon-core-1.13.0",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          }
-        ],
-        "build_dependencies": [],
-        "features": []
-      },
-      "rayon-core-1.13.0": {
-        "runtime_dependencies": [
-          {
-            "name": "crossbeam_deque",
-            "package_key": "crossbeam-deque-0.8.7",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "crossbeam_utils",
-            "package_key": "crossbeam-utils-0.8.22",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          }
-        ],
-        "build_dependencies": [],
-        "features": []
       },
       "read-fonts-0.41.0": {
         "runtime_dependencies": [
@@ -13988,7 +13864,7 @@
           },
           {
             "name": "cookie_crate",
-            "package_key": "cookie-0.18.1",
+            "package_key": "cookie-0.18.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15287,25 +15163,6 @@
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
-      },
-      "safe_arch-0.9.3": {
-        "runtime_dependencies": [
-          {
-            "name": "bytemuck",
-            "package_key": "bytemuck-1.25.2",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": true,
-            "target": null,
-            "tree": "target"
-          }
-        ],
-        "build_dependencies": [],
-        "features": [
-          "bytemuck",
-          "default"
-        ]
       },
       "samba-0.1.4": {
         "runtime_dependencies": [
@@ -17273,7 +17130,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.496",
+            "package_key": "shikumi-0.1.497",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17320,7 +17177,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.496": {
+      "shikumi-0.1.497": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -20022,11 +19879,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-0.3.41": {
+      "tatara-closed-set-0.3.43": {
         "runtime_dependencies": [
           {
             "name": "tatara_closed_set_derive",
-            "package_key": "tatara-closed-set-derive-0.3.41",
+            "package_key": "tatara-closed-set-derive-0.3.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20038,7 +19895,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-derive-0.3.41": {
+      "tatara-closed-set-derive-0.3.43": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -20187,7 +20044,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.496",
+            "package_key": "shikumi-0.1.497",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20280,7 +20137,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.41",
+            "package_key": "tatara-lisp-0.3.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20362,7 +20219,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-0.3.41": {
+      "tatara-lisp-0.3.43": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -20398,7 +20255,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.3.41",
+            "package_key": "tatara-closed-set-0.3.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20408,7 +20265,7 @@
           },
           {
             "name": "tatara_lisp_derive",
-            "package_key": "tatara-lisp-derive-0.3.41",
+            "package_key": "tatara-lisp-derive-0.3.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20432,7 +20289,7 @@
           "default"
         ]
       },
-      "tatara-lisp-derive-0.3.41": {
+      "tatara-lisp-derive-0.3.43": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -20470,11 +20327,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-eval-0.3.41": {
+      "tatara-lisp-eval-0.3.43": {
         "runtime_dependencies": [
           {
             "name": "monosashi",
-            "package_key": "monosashi-0.3.41",
+            "package_key": "monosashi-0.3.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20484,7 +20341,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.3.41",
+            "package_key": "tatara-closed-set-0.3.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20494,7 +20351,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.41",
+            "package_key": "tatara-lisp-0.3.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20572,7 +20429,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.41",
+            "package_key": "tatara-lisp-0.3.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20582,7 +20439,7 @@
           },
           {
             "name": "tatara_lisp_derive",
-            "package_key": "tatara-lisp-derive-0.3.41",
+            "package_key": "tatara-lisp-derive-0.3.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20740,7 +20597,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.3.41",
+            "package_key": "tatara-closed-set-0.3.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20760,7 +20617,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.41",
+            "package_key": "tatara-lisp-0.3.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20885,7 +20742,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.6",
+            "package_key": "ishou-tokens-0.1.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20939,7 +20796,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.496",
+            "package_key": "shikumi-0.1.497",
             "kind": "normal",
             "features": [
               "cli"
@@ -21027,7 +20884,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.6",
+            "package_key": "ishou-tokens-0.1.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21357,7 +21214,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.6",
+            "package_key": "ishou-tokens-0.1.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23840,7 +23697,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.41",
+            "package_key": "tatara-lisp-0.3.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23850,7 +23707,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.3.41",
+            "package_key": "tatara-lisp-eval-0.3.43",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24837,36 +24694,6 @@
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
-      },
-      "wide-0.8.3": {
-        "runtime_dependencies": [
-          {
-            "name": "bytemuck",
-            "package_key": "bytemuck-1.25.2",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "safe_arch",
-            "package_key": "safe_arch-0.9.3",
-            "kind": "normal",
-            "features": [
-              "bytemuck"
-            ],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          }
-        ],
-        "build_dependencies": [],
-        "features": [
-          "std"
-        ]
       },
       "winnow-0.7.15": {
         "runtime_dependencies": [],
@@ -26329,7 +26156,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.125": {
+          "mado-0.1.126": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26343,7 +26170,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.7",
+                "package_key": "awase-0.1.9",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26420,7 +26247,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.10",
+                "package_key": "egaku-0.1.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26500,7 +26327,7 @@
               },
               {
                 "name": "icy_sixel",
-                "package_key": "icy_sixel-0.5.0",
+                "package_key": "icy_sixel-0.5.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26532,7 +26359,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.6",
+                "package_key": "ishou-tokens-0.1.8",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -26894,7 +26721,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.496",
+                "package_key": "shikumi-0.1.497",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -26906,7 +26733,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.41",
+                "package_key": "tatara-lisp-0.3.43",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30148,6 +29975,22 @@
               "vulkan"
             ]
           },
+          "wide-1.6.1": {
+            "runtime_dependencies": [
+              {
+                "name": "bytemuck",
+                "package_key": "bytemuck-1.25.2",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": []
+          },
           "winit-0.30.13": {
             "runtime_dependencies": [
               {
@@ -31256,7 +31099,7 @@
               "system"
             ]
           },
-          "mado-0.1.125": {
+          "mado-0.1.126": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31270,7 +31113,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.7",
+                "package_key": "awase-0.1.9",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31347,7 +31190,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.10",
+                "package_key": "egaku-0.1.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31427,7 +31270,7 @@
               },
               {
                 "name": "icy_sixel",
-                "package_key": "icy_sixel-0.5.0",
+                "package_key": "icy_sixel-0.5.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31459,7 +31302,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.6",
+                "package_key": "ishou-tokens-0.1.8",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -31772,7 +31615,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.496",
+                "package_key": "shikumi-0.1.497",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -31784,7 +31627,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.41",
+                "package_key": "tatara-lisp-0.3.43",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33882,6 +33725,22 @@
               "renderdoc",
               "vulkan"
             ]
+          },
+          "wide-1.6.1": {
+            "runtime_dependencies": [
+              {
+                "name": "bytemuck",
+                "package_key": "bytemuck-1.25.2",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": []
           },
           "winit-0.30.13": {
             "runtime_dependencies": [
@@ -35261,7 +35120,7 @@
               "system"
             ]
           },
-          "mado-0.1.125": {
+          "mado-0.1.126": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35275,7 +35134,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.7",
+                "package_key": "awase-0.1.9",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35352,7 +35211,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.10",
+                "package_key": "egaku-0.1.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35432,7 +35291,7 @@
               },
               {
                 "name": "icy_sixel",
-                "package_key": "icy_sixel-0.5.0",
+                "package_key": "icy_sixel-0.5.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35464,7 +35323,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.6",
+                "package_key": "ishou-tokens-0.1.8",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -35777,7 +35636,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.496",
+                "package_key": "shikumi-0.1.497",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -35789,7 +35648,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.41",
+                "package_key": "tatara-lisp-0.3.43",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37887,6 +37746,22 @@
               "renderdoc",
               "vulkan"
             ]
+          },
+          "wide-1.6.1": {
+            "runtime_dependencies": [
+              {
+                "name": "bytemuck",
+                "package_key": "bytemuck-1.25.2",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": []
           },
           "winit-0.30.13": {
             "runtime_dependencies": [
@@ -39384,7 +39259,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.125": {
+          "mado-0.1.126": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39398,7 +39273,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.7",
+                "package_key": "awase-0.1.9",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39475,7 +39350,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.10",
+                "package_key": "egaku-0.1.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39555,7 +39430,7 @@
               },
               {
                 "name": "icy_sixel",
-                "package_key": "icy_sixel-0.5.0",
+                "package_key": "icy_sixel-0.5.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39587,7 +39462,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.6",
+                "package_key": "ishou-tokens-0.1.8",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -39949,7 +39824,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.496",
+                "package_key": "shikumi-0.1.497",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -39961,7 +39836,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.41",
+                "package_key": "tatara-lisp-0.3.43",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -42369,6 +42244,25 @@
             "build_dependencies": [],
             "features": []
           },
+          "safe_arch-1.1.0": {
+            "runtime_dependencies": [
+              {
+                "name": "bytemuck",
+                "package_key": "bytemuck-1.25.2",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": [
+              "bytemuck",
+              "default"
+            ]
+          },
           "security-framework-3.7.0": {
             "runtime_dependencies": [
               {
@@ -43182,6 +43076,46 @@
               "renderdoc",
               "vulkan"
             ]
+          },
+          "wide-1.6.1": {
+            "runtime_dependencies": [
+              {
+                "name": "bytemuck",
+                "package_key": "bytemuck-1.25.2",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "safe_arch",
+                "package_key": "safe_arch-1.1.0",
+                "kind": "normal",
+                "features": [
+                  "bytemuck"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(target_arch = \"x86\")",
+                "tree": "target"
+              },
+              {
+                "name": "safe_arch",
+                "package_key": "safe_arch-1.1.0",
+                "kind": "normal",
+                "features": [
+                  "bytemuck"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(target_arch = \"x86_64\")",
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": []
           },
           "winit-0.30.13": {
             "runtime_dependencies": [
@@ -44275,7 +44209,7 @@
               "system"
             ]
           },
-          "mado-0.1.125": {
+          "mado-0.1.126": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44289,7 +44223,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.7",
+                "package_key": "awase-0.1.9",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44366,7 +44300,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.10",
+                "package_key": "egaku-0.1.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44446,7 +44380,7 @@
               },
               {
                 "name": "icy_sixel",
-                "package_key": "icy_sixel-0.5.0",
+                "package_key": "icy_sixel-0.5.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44478,7 +44412,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.6",
+                "package_key": "ishou-tokens-0.1.8",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -44791,7 +44725,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.496",
+                "package_key": "shikumi-0.1.497",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -44803,7 +44737,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.41",
+                "package_key": "tatara-lisp-0.3.43",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45468,6 +45402,25 @@
             ],
             "build_dependencies": [],
             "features": []
+          },
+          "safe_arch-1.1.0": {
+            "runtime_dependencies": [
+              {
+                "name": "bytemuck",
+                "package_key": "bytemuck-1.25.2",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": [
+              "bytemuck",
+              "default"
+            ]
           },
           "scoped-tls-1.0.1": {
             "runtime_dependencies": [],
@@ -46881,6 +46834,46 @@
               "renderdoc",
               "vulkan"
             ]
+          },
+          "wide-1.6.1": {
+            "runtime_dependencies": [
+              {
+                "name": "bytemuck",
+                "package_key": "bytemuck-1.25.2",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "safe_arch",
+                "package_key": "safe_arch-1.1.0",
+                "kind": "normal",
+                "features": [
+                  "bytemuck"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(target_arch = \"x86\")",
+                "tree": "target"
+              },
+              {
+                "name": "safe_arch",
+                "package_key": "safe_arch-1.1.0",
+                "kind": "normal",
+                "features": [
+                  "bytemuck"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(target_arch = \"x86_64\")",
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": []
           },
           "winit-0.30.13": {
             "runtime_dependencies": [
@@ -48244,7 +48237,7 @@
               "system"
             ]
           },
-          "mado-0.1.125": {
+          "mado-0.1.126": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48258,7 +48251,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.7",
+                "package_key": "awase-0.1.9",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48335,7 +48328,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.10",
+                "package_key": "egaku-0.1.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48415,7 +48408,7 @@
               },
               {
                 "name": "icy_sixel",
-                "package_key": "icy_sixel-0.5.0",
+                "package_key": "icy_sixel-0.5.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48447,7 +48440,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.6",
+                "package_key": "ishou-tokens-0.1.8",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -48760,7 +48753,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.496",
+                "package_key": "shikumi-0.1.497",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -48772,7 +48765,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.41",
+                "package_key": "tatara-lisp-0.3.43",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49437,6 +49430,25 @@
             ],
             "build_dependencies": [],
             "features": []
+          },
+          "safe_arch-1.1.0": {
+            "runtime_dependencies": [
+              {
+                "name": "bytemuck",
+                "package_key": "bytemuck-1.25.2",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": true,
+                "target": null,
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": [
+              "bytemuck",
+              "default"
+            ]
           },
           "scoped-tls-1.0.1": {
             "runtime_dependencies": [],
@@ -50851,6 +50863,46 @@
               "vulkan"
             ]
           },
+          "wide-1.6.1": {
+            "runtime_dependencies": [
+              {
+                "name": "bytemuck",
+                "package_key": "bytemuck-1.25.2",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "safe_arch",
+                "package_key": "safe_arch-1.1.0",
+                "kind": "normal",
+                "features": [
+                  "bytemuck"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(target_arch = \"x86\")",
+                "tree": "target"
+              },
+              {
+                "name": "safe_arch",
+                "package_key": "safe_arch-1.1.0",
+                "kind": "normal",
+                "features": [
+                  "bytemuck"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": "cfg(target_arch = \"x86_64\")",
+                "tree": "target"
+              }
+            ],
+            "build_dependencies": [],
+            "features": []
+          },
           "winit-0.30.13": {
             "runtime_dependencies": [
               {
@@ -51464,7 +51516,7 @@
     "autocfg-1.5.1": {
       "edition": "2015"
     },
-    "awase-0.1.7": {
+    "awase-0.1.9": {
       "edition": "2024"
     },
     "backon-1.6.0": {
@@ -51662,7 +51714,7 @@
     "convert_case-0.6.0": {
       "edition": "2018"
     },
-    "cookie-0.18.1": {
+    "cookie-0.18.2": {
       "edition": "2018",
       "build_script": "build.rs"
     },
@@ -51708,14 +51760,6 @@
     },
     "criterion-plot-0.5.0": {
       "edition": "2018"
-    },
-    "crossbeam-deque-0.8.7": {
-      "edition": "2021",
-      "build_script": "build.rs"
-    },
-    "crossbeam-epoch-0.9.20": {
-      "edition": "2021",
-      "build_script": "build.rs"
     },
     "crossbeam-queue-0.3.13": {
       "edition": "2021"
@@ -51861,7 +51905,7 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "egaku-0.1.10": {
+    "egaku-0.1.11": {
       "edition": "2024"
     },
     "either-1.17.0": {
@@ -52189,7 +52233,7 @@
     "icu_provider-2.2.0": {
       "edition": "2021"
     },
-    "icy_sixel-0.5.0": {
+    "icy_sixel-0.5.1": {
       "edition": "2021"
     },
     "ident_case-1.0.1": {
@@ -52245,7 +52289,7 @@
     "is_terminal_polyfill-1.70.2": {
       "edition": "2021"
     },
-    "ishou-tokens-0.1.6": {
+    "ishou-tokens-0.1.8": {
       "edition": "2024"
     },
     "itertools-0.10.5": {
@@ -52383,7 +52427,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.125": {
+    "mado-0.1.126": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -52452,7 +52496,7 @@
     "mio-1.2.2": {
       "edition": "2021"
     },
-    "monosashi-0.3.41": {
+    "monosashi-0.3.43": {
       "edition": "2021"
     },
     "moxcms-0.8.1": {
@@ -52878,7 +52922,7 @@
     "pxfm-0.1.30": {
       "edition": "2024"
     },
-    "quantette-0.5.1": {
+    "quantette-0.6.0": {
       "edition": "2024"
     },
     "quick-error-1.2.3": {
@@ -52939,22 +52983,14 @@
     "rand_xorshift-0.4.0": {
       "edition": "2021"
     },
-    "rand_xoshiro-0.7.0": {
-      "edition": "2021"
+    "rand_xoshiro-0.8.1": {
+      "edition": "2024"
     },
     "rangemap-1.7.1": {
       "edition": "2018"
     },
     "raw-window-handle-0.6.2": {
       "edition": "2021"
-    },
-    "rayon-1.12.0": {
-      "edition": "2021"
-    },
-    "rayon-core-1.13.0": {
-      "edition": "2021",
-      "build_script": "build.rs",
-      "links": "rayon-core"
     },
     "read-fonts-0.41.0": {
       "edition": "2021"
@@ -53068,8 +53104,8 @@
     "ryu-1.0.23": {
       "edition": "2021"
     },
-    "safe_arch-0.9.3": {
-      "edition": "2018"
+    "safe_arch-1.1.0": {
+      "edition": "2024"
     },
     "samba-0.1.4": {
       "edition": "2024"
@@ -53226,7 +53262,7 @@
     "shidou-0.1.10": {
       "edition": "2024"
     },
-    "shikumi-0.1.496": {
+    "shikumi-0.1.497": {
       "edition": "2024"
     },
     "shlex-2.0.1": {
@@ -53378,10 +53414,10 @@
     "tap-1.0.1": {
       "edition": "2015"
     },
-    "tatara-closed-set-0.3.41": {
+    "tatara-closed-set-0.3.43": {
       "edition": "2021"
     },
-    "tatara-closed-set-derive-0.3.41": {
+    "tatara-closed-set-derive-0.3.43": {
       "edition": "2021",
       "proc_macro": true
     },
@@ -53394,14 +53430,14 @@
     "tatara-lattice-0.2.203": {
       "edition": "2021"
     },
-    "tatara-lisp-0.3.41": {
+    "tatara-lisp-0.3.43": {
       "edition": "2021"
     },
-    "tatara-lisp-derive-0.3.41": {
+    "tatara-lisp-derive-0.3.43": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-lisp-eval-0.3.41": {
+    "tatara-lisp-eval-0.3.43": {
       "edition": "2021"
     },
     "tatara-nix-0.2.203": {
@@ -53843,8 +53879,8 @@
     "whoami-1.6.1": {
       "edition": "2018"
     },
-    "wide-0.8.3": {
-      "edition": "2018"
+    "wide-1.6.1": {
+      "edition": "2024"
     },
     "winit-0.30.13": {
       "edition": "2021",
