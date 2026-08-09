@@ -334,9 +334,9 @@ checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
 
 [[package]]
 name = "awase"
-version = "0.1.7"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c17cf2f29b47d5f7ccbb656a98972a803deec657a2cb571f92ce4bbdad70c7cf"
+checksum = "3e630197bc2b792a4ab70bfa2bf2c418c28960304339108e7624e19cc1bfc0dc"
 dependencies = [
  "serde",
  "thiserror 2.0.20",
@@ -853,9 +853,9 @@ dependencies = [
 
 [[package]]
 name = "cookie"
-version = "0.18.1"
+version = "0.18.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ddef33a339a91ea89fb53151bd0a4689cfce27055c291dfa69945475d22c747"
+checksum = "1a373e3602691c3cdea496d2f0ee5935151e6168fe87739483c463db1b2f2f87"
 dependencies = [
  "percent-encoding",
  "time",
@@ -1027,25 +1027,6 @@ checksum = "6b50826342786a51a89e2da3a28f1c32b06e387201bc2d19791f622c673706b1"
 dependencies = [
  "cast",
  "itertools",
-]
-
-[[package]]
-name = "crossbeam-deque"
-version = "0.8.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5181e0de7b61eb03a81e347d6dd8797bae9da5146707b51077e2d71a54ec0ceb"
-dependencies = [
- "crossbeam-epoch",
- "crossbeam-utils",
-]
-
-[[package]]
-name = "crossbeam-epoch"
-version = "0.9.20"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d6914041f254d6e9176c01941b21115dcfb7089e55135a35411081bd106ef3f"
-dependencies = [
- "crossbeam-utils",
 ]
 
 [[package]]
@@ -1426,9 +1407,9 @@ dependencies = [
 
 [[package]]
 name = "egaku"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e5273a85f02291751df2f4cf043a98e2259d08e4a2ce246d91fbf62a8c29c40"
+checksum = "303306ced4abddc91c82af7327368ed92a7b1122f939ee148fe8f168f40caad8"
 dependencies = [
  "awase",
  "serde",
@@ -2593,9 +2574,9 @@ dependencies = [
 
 [[package]]
 name = "icy_sixel"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "85518b9086bf01117761b90e7691c0ef3236fa8adfb1fb44dd248fe5f87215d5"
+checksum = "4bfb5a63225620b59df34a235d1fb56ff7b766909c3212a8ff927511a22b181d"
 dependencies = [
  "quantette",
  "thiserror 2.0.20",
@@ -2769,9 +2750,9 @@ checksum = "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695"
 
 [[package]]
 name = "ishou-tokens"
-version = "0.1.6"
+version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aac1ba9d3d3a049101c12b62a09e5c008b4c4b42e79af359ae808653b2c7d73a"
+checksum = "6681a225d23254d7a6540f556e68a4e504e264dc6d854a5a9eb1e8bcbad4e492"
 dependencies = [
  "irodori",
  "serde",
@@ -3335,7 +3316,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.125"
+version = "0.1.126"
 dependencies = [
  "anyhow",
  "awase",
@@ -3567,9 +3548,9 @@ dependencies = [
 
 [[package]]
 name = "monosashi"
-version = "0.3.41"
+version = "0.3.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8131d0a8373cf64b81a2cea7b98adbf1be0da76a3755b873846d9f1b5b077e0"
+checksum = "d813b668ae804940f0064d8a392a29452efb6e37ddc87847c892dc8258045b71"
 
 [[package]]
 name = "moxcms"
@@ -5026,20 +5007,18 @@ checksum = "d55d956fa96f5ec02be2e13af0e20391a5aa83d6a074e3ad368959d0fab299ea"
 
 [[package]]
 name = "quantette"
-version = "0.5.1"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c98fecda8b16396ff9adac67644a523dd1778c42b58606a29df5c31ca925d174"
+checksum = "ba5d37e94c17b8870a5b936001d2845a6782a22ebdb1706c84294eca777f6729"
 dependencies = [
  "bitvec",
  "bytemuck",
- "image",
  "libm",
  "num-traits",
  "ordered-float 5.3.0",
  "palette",
- "rand 0.9.5",
+ "rand 0.10.2",
  "rand_xoshiro",
- "rayon",
  "ref-cast",
  "wide",
 ]
@@ -5244,11 +5223,11 @@ dependencies = [
 
 [[package]]
 name = "rand_xoshiro"
-version = "0.7.0"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f703f4665700daf5512dcca5f43afa6af89f09db47fb56be587f80636bda2d41"
+checksum = "662effc7698e08ea324d3acccf8d9d7f7bf79b9785e270a174ea36e56900c91d"
 dependencies = [
- "rand_core 0.9.5",
+ "rand_core 0.10.1",
 ]
 
 [[package]]
@@ -5268,26 +5247,6 @@ name = "raw-window-handle"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "20675572f6f24e9e76ef639bc5552774ed45f1c30e2951e1e99c59888861c539"
-
-[[package]]
-name = "rayon"
-version = "1.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb39b166781f92d482534ef4b4b1b2568f42613b53e5b6c160e24cfbfa30926d"
-dependencies = [
- "either",
- "rayon-core",
-]
-
-[[package]]
-name = "rayon-core"
-version = "1.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22e18b0f0062d30d4230b2e85ff77fdfe4326feb054b9783a3460d8435c8ab91"
-dependencies = [
- "crossbeam-deque",
- "crossbeam-utils",
-]
 
 [[package]]
 name = "read-fonts"
@@ -5731,9 +5690,9 @@ checksum = "9774ba4a74de5f7b1c1451ed6cd5285a32eddb5cccb8cc655a4e50009e06477f"
 
 [[package]]
 name = "safe_arch"
-version = "0.9.3"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "629516c85c29fe757770fa03f2074cf1eac43d44c02a3de9fc2ef7b0e207dfdd"
+checksum = "3a52ec151f024d703f9fd65abb7cbe81e7cdb39f18917a3a37e3014470dc7c59"
 dependencies = [
  "bytemuck",
 ]
@@ -6256,9 +6215,9 @@ dependencies = [
 
 [[package]]
 name = "shikumi"
-version = "0.1.496"
+version = "0.1.497"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "de145934a9ccb306460220a3cd6068240dea61c139a34846b030bdb3d7b6af41"
+checksum = "69f2498ae4b0ff68e0114b7ba8b004c54c3e70fa5eb20524449ea22db810b8b4"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -6851,18 +6810,18 @@ checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 
 [[package]]
 name = "tatara-closed-set"
-version = "0.3.41"
+version = "0.3.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "241efc9488694a356bc18a68b21d78f4ea1932a6f80adab0dbb40f856bb72683"
+checksum = "90b77d023afab60329086179825fec0fb116adb337ba83e349cb983f250ffbf2"
 dependencies = [
  "tatara-closed-set-derive",
 ]
 
 [[package]]
 name = "tatara-closed-set-derive"
-version = "0.3.41"
+version = "0.3.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c98a3ff1c1d0dc1cad41931a936ae5957198ad742cd28f1f86952cf1e081a017"
+checksum = "28af3b41fd5909b11f58eccd6caf8b1ba6384e6e4ecd1e58a76b54d9191b8d66"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6920,9 +6879,9 @@ dependencies = [
 
 [[package]]
 name = "tatara-lisp"
-version = "0.3.41"
+version = "0.3.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75009b9748e88a356a74391ccc49eef7907a8e9587fb8e5e1e6335f907073494"
+checksum = "34057cb90e0f7bcbaa08a60bed5e97e7adedcf93ee7aeab6eb92a0b089f6c301"
 dependencies = [
  "blake3",
  "serde",
@@ -6934,9 +6893,9 @@ dependencies = [
 
 [[package]]
 name = "tatara-lisp-derive"
-version = "0.3.41"
+version = "0.3.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02127ef868f29570fcab753bdaab323de5ade25925745f3833f77bea51cd14c0"
+checksum = "fbaf1149687d09d103eba5d11ac35a041f01ce7402e8520e8d7711571b8f23be"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6945,9 +6904,9 @@ dependencies = [
 
 [[package]]
 name = "tatara-lisp-eval"
-version = "0.3.41"
+version = "0.3.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d50b30217a0519178101dd165bbbf12a5445b9301c45225662b9d71d569de322"
+checksum = "619f1a823d4386b81b55ff7ae3e9b7a8ba0bafeea9cb0b24012537b3ca7a77c2"
 dependencies = [
  "monosashi",
  "tatara-closed-set",
@@ -8377,9 +8336,9 @@ dependencies = [
 
 [[package]]
 name = "wide"
-version = "0.8.3"
+version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13ca908d26e4786149c48efcf6c0ea09ab0e06d1fe3c17dc1b4b0f1ca4a7e788"
+checksum = "de2aaf408e58689c2096682331b1f42bb2d9f2ed6b11560407d023cd0a6c634e"
 dependencies = [
  "bytemuck",
  "safe_arch",
