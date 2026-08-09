@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "7af9e8791f5ca3e8fdb40eaf0c9113f06127d0aaee8b85290ac5e57b82c1e8f3",
+  "cargo_lock_sha256": "fa3f8e590c39c11c6b8463c0ab88d4d6788cb100c93f6c8d1c70b9e2ff34a17e",
   "manifest_sha256": {
-    "Cargo.toml": "b185cf04978ae97672773d3c9f5bc73987d97fe471fe8fdf85a3eb2f7674fa80"
+    "Cargo.toml": "402575bbf2c7193bd1164c21f316e14057c42e4ef06356475550173cb0144e1d"
   },
   "target_resolves": {
     "base": {
@@ -7219,7 +7219,7 @@
           "default"
         ]
       },
-      "ishou-tokens-0.1.8": {
+      "ishou-tokens-0.1.9": {
         "runtime_dependencies": [
           {
             "name": "irodori",
@@ -9166,7 +9166,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.8",
+            "package_key": "ishou-tokens-0.1.9",
             "kind": "normal",
             "features": [
               "wgpu"
@@ -11991,7 +11991,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.8",
+            "package_key": "ishou-tokens-0.1.9",
             "kind": "normal",
             "features": [
               "wgpu"
@@ -12364,11 +12364,11 @@
           "std"
         ]
       },
-      "praca-0.1.12": {
+      "praca-0.1.13": {
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.8",
+            "package_key": "ishou-tokens-0.1.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12390,7 +12390,17 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.12",
+            "package_key": "tear-types-0.1.13",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "wadachi_spec",
+            "package_key": "wadachi-spec-0.1.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20649,7 +20659,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-client-0.1.12": {
+      "tear-client-0.1.13": {
         "runtime_dependencies": [
           {
             "name": "engate_attach",
@@ -20693,7 +20703,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.12",
+            "package_key": "tear-config-0.1.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20703,7 +20713,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.12",
+            "package_key": "tear-types-0.1.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20718,7 +20728,7 @@
           "engate"
         ]
       },
-      "tear-config-0.1.12": {
+      "tear-config-0.1.13": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20742,7 +20752,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.8",
+            "package_key": "ishou-tokens-0.1.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20808,7 +20818,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.12",
+            "package_key": "tear-types-0.1.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20840,7 +20850,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-core-0.1.12": {
+      "tear-core-0.1.13": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20884,7 +20894,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.8",
+            "package_key": "ishou-tokens-0.1.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20946,7 +20956,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.12",
+            "package_key": "tear-config-0.1.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20956,7 +20966,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.12",
+            "package_key": "tear-types-0.1.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21011,7 +21021,7 @@
           "engate"
         ]
       },
-      "tear-daemon-0.1.12": {
+      "tear-daemon-0.1.13": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21070,7 +21080,7 @@
           },
           {
             "name": "praca",
-            "package_key": "praca-0.1.12",
+            "package_key": "praca-0.1.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21112,7 +21122,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.12",
+            "package_key": "tear-config-0.1.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21122,7 +21132,7 @@
           },
           {
             "name": "tear_core",
-            "package_key": "tear-core-0.1.12",
+            "package_key": "tear-core-0.1.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21132,7 +21142,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.12",
+            "package_key": "tear-types-0.1.13",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21170,7 +21180,7 @@
           "default"
         ]
       },
-      "tear-types-0.1.12": {
+      "tear-types-0.1.13": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21214,7 +21224,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.8",
+            "package_key": "ishou-tokens-0.1.9",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -26156,7 +26166,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.126": {
+          "mado-0.1.127": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26359,7 +26369,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.8",
+                "package_key": "ishou-tokens-0.1.9",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -26624,7 +26634,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.12",
+                "package_key": "praca-0.1.13",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26743,7 +26753,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.12",
+                "package_key": "tear-client-0.1.13",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -26755,7 +26765,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.12",
+                "package_key": "tear-config-0.1.13",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26765,7 +26775,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.12",
+                "package_key": "tear-core-0.1.13",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -26777,7 +26787,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.12",
+                "package_key": "tear-types-0.1.13",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -31099,7 +31109,7 @@
               "system"
             ]
           },
-          "mado-0.1.126": {
+          "mado-0.1.127": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31302,7 +31312,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.8",
+                "package_key": "ishou-tokens-0.1.9",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -31518,7 +31528,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.12",
+                "package_key": "praca-0.1.13",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31637,7 +31647,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.12",
+                "package_key": "tear-client-0.1.13",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -31649,7 +31659,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.12",
+                "package_key": "tear-config-0.1.13",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31659,7 +31669,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.12",
+                "package_key": "tear-core-0.1.13",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -31671,7 +31681,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.12",
+                "package_key": "tear-types-0.1.13",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -35120,7 +35130,7 @@
               "system"
             ]
           },
-          "mado-0.1.126": {
+          "mado-0.1.127": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35323,7 +35333,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.8",
+                "package_key": "ishou-tokens-0.1.9",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -35539,7 +35549,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.12",
+                "package_key": "praca-0.1.13",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35658,7 +35668,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.12",
+                "package_key": "tear-client-0.1.13",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -35670,7 +35680,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.12",
+                "package_key": "tear-config-0.1.13",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35680,7 +35690,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.12",
+                "package_key": "tear-core-0.1.13",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -35692,7 +35702,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.12",
+                "package_key": "tear-types-0.1.13",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -39259,7 +39269,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.126": {
+          "mado-0.1.127": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39462,7 +39472,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.8",
+                "package_key": "ishou-tokens-0.1.9",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -39727,7 +39737,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.12",
+                "package_key": "praca-0.1.13",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39846,7 +39856,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.12",
+                "package_key": "tear-client-0.1.13",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -39858,7 +39868,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.12",
+                "package_key": "tear-config-0.1.13",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39868,7 +39878,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.12",
+                "package_key": "tear-core-0.1.13",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -39880,7 +39890,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.12",
+                "package_key": "tear-types-0.1.13",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -44209,7 +44219,7 @@
               "system"
             ]
           },
-          "mado-0.1.126": {
+          "mado-0.1.127": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44412,7 +44422,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.8",
+                "package_key": "ishou-tokens-0.1.9",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -44628,7 +44638,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.12",
+                "package_key": "praca-0.1.13",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44747,7 +44757,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.12",
+                "package_key": "tear-client-0.1.13",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -44759,7 +44769,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.12",
+                "package_key": "tear-config-0.1.13",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44769,7 +44779,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.12",
+                "package_key": "tear-core-0.1.13",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -44781,7 +44791,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.12",
+                "package_key": "tear-types-0.1.13",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -48237,7 +48247,7 @@
               "system"
             ]
           },
-          "mado-0.1.126": {
+          "mado-0.1.127": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48440,7 +48450,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.8",
+                "package_key": "ishou-tokens-0.1.9",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -48656,7 +48666,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.12",
+                "package_key": "praca-0.1.13",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48775,7 +48785,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.12",
+                "package_key": "tear-client-0.1.13",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -48787,7 +48797,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.12",
+                "package_key": "tear-config-0.1.13",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48797,7 +48807,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.12",
+                "package_key": "tear-core-0.1.13",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -48809,7 +48819,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.12",
+                "package_key": "tear-types-0.1.13",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -52289,7 +52299,7 @@
     "is_terminal_polyfill-1.70.2": {
       "edition": "2021"
     },
-    "ishou-tokens-0.1.8": {
+    "ishou-tokens-0.1.9": {
       "edition": "2024"
     },
     "itertools-0.10.5": {
@@ -52427,7 +52437,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.126": {
+    "mado-0.1.127": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -52880,7 +52890,7 @@
     "ppv-lite86-0.2.21": {
       "edition": "2021"
     },
-    "praca-0.1.12": {
+    "praca-0.1.13": {
       "edition": "2024"
     },
     "precomputed-hash-0.1.1": {
@@ -53452,19 +53462,19 @@
         }
       ]
     },
-    "tear-client-0.1.12": {
+    "tear-client-0.1.13": {
       "edition": "2024"
     },
-    "tear-config-0.1.12": {
+    "tear-config-0.1.13": {
       "edition": "2024"
     },
-    "tear-core-0.1.12": {
+    "tear-core-0.1.13": {
       "edition": "2024"
     },
-    "tear-daemon-0.1.12": {
+    "tear-daemon-0.1.13": {
       "edition": "2024"
     },
-    "tear-types-0.1.12": {
+    "tear-types-0.1.13": {
       "edition": "2024"
     },
     "tempfile-3.27.0": {

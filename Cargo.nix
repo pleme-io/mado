@@ -1027,9 +1027,9 @@ rec {
       };
       "awase" = rec {
         crateName = "awase";
-        version = "0.1.7";
+        version = "0.1.9";
         edition = "2024";
-        sha256 = "1ky7f2nvsjyfj8gmgjx2az3fwgc05abrhsk5pg6ggma7kgrg4z61";
+        sha256 = "1p60pz0rrq94fs710fa361h8khhqqkr2pyhbnx52ly9bpjbh2qry";
         dependencies = [
           {
             name = "serde";
@@ -2562,9 +2562,9 @@ rec {
       };
       "cookie" = rec {
         crateName = "cookie";
-        version = "0.18.1";
+        version = "0.18.2";
         edition = "2018";
-        sha256 = "0iy749flficrlvgr3hjmf3igr738lk81n5akzf4ym4cs6cxg7pjd";
+        sha256 = "11rg5wdxnqy4hfa771zyd1hiw59mb7pg1llnlkg3q73908v3wdqs";
         authors = [
           "Sergio Benitez <sb@sergio.bz>"
           "Alex Crichton <alex@alexcrichton.com>"
@@ -3156,52 +3156,6 @@ rec {
         ];
 
       };
-      "crossbeam-deque" = rec {
-        crateName = "crossbeam-deque";
-        version = "0.8.7";
-        edition = "2021";
-        sha256 = "1sqcxia1mmz2fw8ba1v72jjrvbkvg7c6sz9l3sl07sv1gggf10ai";
-        libName = "crossbeam_deque";
-        dependencies = [
-          {
-            name = "crossbeam-epoch";
-            packageId = "crossbeam-epoch";
-            usesDefaultFeatures = false;
-          }
-          {
-            name = "crossbeam-utils";
-            packageId = "crossbeam-utils";
-            usesDefaultFeatures = false;
-          }
-        ];
-        features = {
-          "default" = [ "std" ];
-          "std" = [ "crossbeam-epoch/std" "crossbeam-utils/std" ];
-        };
-        resolvedDefaultFeatures = [ "default" "std" ];
-      };
-      "crossbeam-epoch" = rec {
-        crateName = "crossbeam-epoch";
-        version = "0.9.20";
-        edition = "2021";
-        sha256 = "0gzg0v8in20iajikalg5i5qgpp0m26r426f0fs8nwk953w218s9d";
-        libName = "crossbeam_epoch";
-        dependencies = [
-          {
-            name = "crossbeam-utils";
-            packageId = "crossbeam-utils";
-            usesDefaultFeatures = false;
-          }
-        ];
-        features = {
-          "default" = [ "std" ];
-          "loom" = [ "loom-crate" "crossbeam-utils/loom" ];
-          "loom-crate" = [ "dep:loom-crate" ];
-          "nightly" = [ "crossbeam-utils/nightly" ];
-          "std" = [ "alloc" "crossbeam-utils/std" ];
-        };
-        resolvedDefaultFeatures = [ "alloc" "std" ];
-      };
       "crossbeam-queue" = rec {
         crateName = "crossbeam-queue";
         version = "0.3.13";
@@ -3232,7 +3186,7 @@ rec {
           "default" = [ "std" ];
           "loom" = [ "dep:loom" ];
         };
-        resolvedDefaultFeatures = [ "default" "std" ];
+        resolvedDefaultFeatures = [ "std" ];
       };
       "crunchy" = rec {
         crateName = "crunchy";
@@ -4286,9 +4240,9 @@ rec {
       };
       "egaku" = rec {
         crateName = "egaku";
-        version = "0.1.10";
+        version = "0.1.11";
         edition = "2024";
-        sha256 = "0h4wqal65gqzv53f4b2aiv85j8lfm51z0k1gvx8ifa82byl76lif";
+        sha256 = "1n5a1ks6iwg8iwafwfgr488pnanriqv2fwxgh8fckpdbsk70ccrh";
         dependencies = [
           {
             name = "awase";
@@ -7868,9 +7822,9 @@ rec {
       };
       "icy_sixel" = rec {
         crateName = "icy_sixel";
-        version = "0.5.0";
+        version = "0.5.1";
         edition = "2021";
-        sha256 = "1m8mfbwfb3r4vm2gpcfzibx3ccpgq28pc3mrc5vi20dzhs88nlc5";
+        sha256 = "078q5fi12xcjzyl14clwj1kbgxvgnlgms8sayffva82n49immysb";
         authors = [
           "Mike Krüger <mkrueger@posteo.de>"
         ];
@@ -7878,6 +7832,8 @@ rec {
           {
             name = "quantette";
             packageId = "quantette";
+            usesDefaultFeatures = false;
+            features = [ "kmeans" ];
           }
           {
             name = "thiserror";
@@ -8325,9 +8281,9 @@ rec {
       };
       "ishou-tokens" = rec {
         crateName = "ishou-tokens";
-        version = "0.1.6";
+        version = "0.1.8";
         edition = "2024";
-        sha256 = "0fnpqyr571l0mrcz76p7895lr2q0bjga0qibq40r211s7nfvmhda";
+        sha256 = "14p4sjxbrs5ikrd4m1bdvijf4175lil6wm8gajkdfm1js8js50b6";
         libName = "ishou_tokens";
         dependencies = [
           {
@@ -10187,7 +10143,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.126";
+        version = "0.1.127";
         edition = "2024";
         crateBin = [
           {
@@ -10535,9 +10491,9 @@ rec {
       };
       "madori" = rec {
         crateName = "madori";
-        version = "0.1.8";
+        version = "0.1.9";
         edition = "2024";
-        sha256 = "1yz7bdmx0q6ygvfmc6vr4xikhdcvmwbjnxh317jpsv3zwv7vsh6n";
+        sha256 = "0rsi7832l8sj91y0p5vhpz87as8d62d83lafw3xqmjhxh6sf4a3n";
         dependencies = [
           {
             name = "egaku";
@@ -10945,9 +10901,9 @@ rec {
       };
       "monosashi" = rec {
         crateName = "monosashi";
-        version = "0.3.41";
+        version = "0.3.43";
         edition = "2021";
-        sha256 = "1q3pn2sz3na6723mnxd3fvdf06xzmnc7psic3aw69kvkhc51s4z8";
+        sha256 = "0wav0ic85p4jr13pij6x6xpgnbj554m3k2jd0vq40jc0mrlbc4yq";
         authors = [
           "Pleme.io <engineering@pleme.io>"
         ];
@@ -17257,9 +17213,9 @@ rec {
       };
       "quantette" = rec {
         crateName = "quantette";
-        version = "0.5.1";
+        version = "0.6.0";
         edition = "2024";
-        sha256 = "0x6i4nlirhzmkni0d1mm8a67gl9xa9568rxcmpwnyf8nigdfr3y9";
+        sha256 = "0ab7gxvwlki9hin71cdx5si84rsshk902q4kbc58gf0p9klkfpds";
         dependencies = [
           {
             name = "bitvec";
@@ -17271,12 +17227,6 @@ rec {
             name = "bytemuck";
             packageId = "bytemuck";
             features = [ "derive" "min_const_generics" "extern_crate_alloc" ];
-          }
-          {
-            name = "image";
-            packageId = "image";
-            optional = true;
-            usesDefaultFeatures = false;
           }
           {
             name = "libm";
@@ -17302,7 +17252,7 @@ rec {
           }
           {
             name = "rand";
-            packageId = "rand 0.9.5";
+            packageId = "rand 0.10.2";
             optional = true;
             usesDefaultFeatures = false;
             features = [ "alloc" ];
@@ -17313,11 +17263,6 @@ rec {
             optional = true;
           }
           {
-            name = "rayon";
-            packageId = "rayon";
-            optional = true;
-          }
-          {
             name = "ref-cast";
             packageId = "ref-cast";
           }
@@ -17325,14 +17270,6 @@ rec {
             name = "wide";
             packageId = "wide";
             usesDefaultFeatures = false;
-          }
-        ];
-        devDependencies = [
-          {
-            name = "image";
-            packageId = "image";
-            usesDefaultFeatures = false;
-            features = [ "jpeg" "png" ];
           }
         ];
         features = {
@@ -17346,7 +17283,7 @@ rec {
           "tap" = [ "dep:tap" ];
           "threads" = [ "rayon" "std" ];
         };
-        resolvedDefaultFeatures = [ "default" "image" "kmeans" "rand" "rand_xoshiro" "rayon" "std" "threads" ];
+        resolvedDefaultFeatures = [ "kmeans" "rand" "rand_xoshiro" ];
       };
       "quick-error 1.2.3" = rec {
         crateName = "quick-error";
@@ -17979,16 +17916,16 @@ rec {
       };
       "rand_xoshiro" = rec {
         crateName = "rand_xoshiro";
-        version = "0.7.0";
-        edition = "2021";
-        sha256 = "0h9dv9mn703zb2z5dys7vc4rzy3az8xg99fc5m8zbnh0axkg80zp";
+        version = "0.8.1";
+        edition = "2024";
+        sha256 = "07f901lyadpafjhp1ql5jydzfyvzkn6wzk1s9lrfl24fd73zybk6";
         authors = [
           "The Rand Project Developers"
         ];
         dependencies = [
           {
             name = "rand_core";
-            packageId = "rand_core 0.9.5";
+            packageId = "rand_core 0.10.1";
           }
         ];
         features = {
@@ -18035,47 +17972,6 @@ rec {
           "wasm-bindgen-0-2" = [ "wasm-bindgen" "std" ];
         };
         resolvedDefaultFeatures = [ "alloc" "std" ];
-      };
-      "rayon" = rec {
-        crateName = "rayon";
-        version = "1.12.0";
-        edition = "2021";
-        sha256 = "0vcj63xgnk72c30vdrak7dhl53snnaqv9x2faf1d94hzg1kb2fgv";
-        dependencies = [
-          {
-            name = "either";
-            packageId = "either";
-            usesDefaultFeatures = false;
-          }
-          {
-            name = "rayon-core";
-            packageId = "rayon-core";
-          }
-        ];
-        features = {
-          "web_spin_lock" = [ "dep:wasm_sync" "rayon-core/web_spin_lock" ];
-        };
-      };
-      "rayon-core" = rec {
-        crateName = "rayon-core";
-        version = "1.13.0";
-        edition = "2021";
-        links = "rayon-core";
-        sha256 = "14dbr0sq83a6lf1rfjq5xdpk5r6zgzvmzs5j6110vlv2007qpq92";
-        libName = "rayon_core";
-        dependencies = [
-          {
-            name = "crossbeam-deque";
-            packageId = "crossbeam-deque";
-          }
-          {
-            name = "crossbeam-utils";
-            packageId = "crossbeam-utils";
-          }
-        ];
-        features = {
-          "web_spin_lock" = [ "dep:wasm_sync" ];
-        };
       };
       "read-fonts" = rec {
         crateName = "read-fonts";
@@ -19941,9 +19837,9 @@ rec {
       };
       "safe_arch" = rec {
         crateName = "safe_arch";
-        version = "0.9.3";
-        edition = "2018";
-        sha256 = "1pfz0zib1xrfzklksan08hyw9spi9h3z40zsf1vpbzi9bk41d5b2";
+        version = "1.1.0";
+        edition = "2024";
+        sha256 = "0nbwviq480g36wx7m48qkyrwvrw1prybnnnnkwzp0k823wayqlis";
         authors = [
           "Lokathor <zefria@gmail.com>"
         ];
@@ -21815,9 +21711,9 @@ rec {
       };
       "shikumi" = rec {
         crateName = "shikumi";
-        version = "0.1.496";
+        version = "0.1.497";
         edition = "2024";
-        sha256 = "0hdgnvbv7g9hn134i8rrq5hyl394d1hcv8r00930dcycm4s5j56y";
+        sha256 = "1d5q22w2v8ly8hj0bcjyz9q3wk650jqahysb27h6izxhwj54kwk9";
         dependencies = [
           {
             name = "arc-swap";
@@ -23979,9 +23875,9 @@ rec {
       };
       "tatara-closed-set" = rec {
         crateName = "tatara-closed-set";
-        version = "0.3.41";
+        version = "0.3.43";
         edition = "2021";
-        sha256 = "10r6nxmqa3xlvfqdl2pqlqr1ksplg0fv4s4aq5mkajk9i2agq7i4";
+        sha256 = "1wpv1wjkz66b97iq7fipnfnidc8gxigq4yb110lh7dps7817vdwh";
         libName = "tatara_closed_set";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -23996,9 +23892,9 @@ rec {
       };
       "tatara-closed-set-derive" = rec {
         crateName = "tatara-closed-set-derive";
-        version = "0.3.41";
+        version = "0.3.43";
         edition = "2021";
-        sha256 = "05x0h7hg2b4mhqgqzlicfjnrhwcmwmm966lk86nirp6hq7qkz2n9";
+        sha256 = "0rld3ccxjm3blxc1xkafdr73i9hvifpnrkgcb0gv22arzm0kpbr8";
         procMacro = true;
         libName = "tatara_closed_set_derive";
         authors = [
@@ -24170,9 +24066,9 @@ rec {
       };
       "tatara-lisp" = rec {
         crateName = "tatara-lisp";
-        version = "0.3.41";
+        version = "0.3.43";
         edition = "2021";
-        sha256 = "151l0w3zjdb33rg8xyw7jn77m47pxr4wq71rfim3b2p892brn03m";
+        sha256 = "00f3ys4v184jxfvflypfjg7yvbg7jxgfs2x612mcnyqg1swpq19l";
         libName = "tatara_lisp";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24210,9 +24106,9 @@ rec {
       };
       "tatara-lisp-derive" = rec {
         crateName = "tatara-lisp-derive";
-        version = "0.3.41";
+        version = "0.3.43";
         edition = "2021";
-        sha256 = "1h0lrm8ylyzp6cw5yx15b7iavr9x6amxlfvmmgy715gjd3w7w4h2";
+        sha256 = "1gi3iwdmf4bpil755s02fk7027q4bb1imld5xc1x22bxd14i3bzv";
         procMacro = true;
         libName = "tatara_lisp_derive";
         authors = [
@@ -24237,9 +24133,9 @@ rec {
       };
       "tatara-lisp-eval" = rec {
         crateName = "tatara-lisp-eval";
-        version = "0.3.41";
+        version = "0.3.43";
         edition = "2021";
-        sha256 = "08p3kmb1vmxrc9b24i8w62wlam1ay6xmn5nx060if685g8hk02ym";
+        sha256 = "1hkpgb5b6dr504j0pjx9xsphpfm8nzly6ypzaldvi1j37n11m7v1";
         libName = "tatara_lisp_eval";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -29454,9 +29350,9 @@ rec {
       };
       "wide" = rec {
         crateName = "wide";
-        version = "0.8.3";
-        edition = "2018";
-        sha256 = "1277lyj1q3sb3gf1fg7ys430xaq9xb0gdz4fqi4n2y744s6r1jhk";
+        version = "1.6.1";
+        edition = "2024";
+        sha256 = "0kk3dh5cs8yh0w25c4bbxprdkcibyjqk28v8jqh9qs2qir0ayany";
         authors = [
           "Lokathor <zefria@gmail.com>"
         ];
@@ -29468,14 +29364,20 @@ rec {
           {
             name = "safe_arch";
             packageId = "safe_arch";
+            target = { target, features }: ("x86" == target."arch" or null);
+            features = [ "bytemuck" ];
+          }
+          {
+            name = "safe_arch";
+            packageId = "safe_arch";
+            target = { target, features }: ("x86_64" == target."arch" or null);
             features = [ "bytemuck" ];
           }
         ];
         features = {
           "default" = [ "std" ];
-          "serde" = [ "dep:serde" ];
+          "serde" = [ "dep:serde_core" ];
         };
-        resolvedDefaultFeatures = [ "std" ];
       };
       "winapi" = rec {
         crateName = "winapi";
@@ -29525,7 +29427,7 @@ rec {
         dependencies = [
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.61.2";
+            packageId = "windows-sys 0.48.0";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Storage_FileSystem" "Win32_System_Console" "Win32_System_SystemInformation" ];
           }
@@ -31622,7 +31524,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Globalization" "Win32_System" "Win32_System_Com" "Win32_UI" "Win32_UI_Shell" "default" ];
+        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Globalization" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Console" "Win32_System_SystemInformation" "Win32_UI" "Win32_UI_Shell" "default" ];
       };
       "windows-sys 0.52.0" = rec {
         crateName = "windows-sys";
