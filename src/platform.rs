@@ -187,8 +187,30 @@ pub fn notification_dispatcher(
                 D::new(Box::new(macos::OsaScriptBackend))
             }
             NotifyBackend::Log => D::new(Box::new(tsuuchi::LogBackend::new())),
+            NotifyBackend::Shirase => {
+                if let Some(sh) = tsuuchi::ShiraseBackend::try_default("mado") {
+                    tracing::info!("notifications: shirase backend (fleet plane)");
+                    D::new(Box::new(sh))
+                } else {
+                    // Deliberately NOT falling through to UnBackend: the
+                    // operator asked for the fleet plane explicitly, and
+                    // quietly substituting Apple's agent would hide exactly
+                    // the dependency they were trying to shed.
+                    tracing::warn!(
+                        "notifications: shirase requested but its socket is absent — LogBackend"
+                    );
+                    D::new(Box::new(tsuuchi::LogBackend::new()))
+                }
+            }
             NotifyBackend::Auto | NotifyBackend::Native => {
-                if let Some(un) = tsuuchi::UnBackend::try_new() {
+                // Auto prefers the fleet plane; Native is the explicit
+                // "use Apple's" escape and skips it.
+                if choice == NotifyBackend::Auto
+                    && let Some(sh) = tsuuchi::ShiraseBackend::try_default("mado")
+                {
+                    tracing::info!("notifications: shirase backend (fleet plane)");
+                    D::new(Box::new(sh))
+                } else if let Some(un) = tsuuchi::UnBackend::try_new() {
                     tracing::info!("notifications: native UNUserNotificationCenter backend");
                     D::new(Box::new(un))
                 } else {
@@ -201,10 +223,23 @@ pub fn notification_dispatcher(
             }
         }
     }
+    // Non-macOS is unix too, and the shirase socket is `#[cfg(unix)]` — so the
+    // fleet plane is the one notification path that works here at all. Before
+    // this, mado on Linux could never raise a notification: the arm ignored
+    // `choice` and always logged.
     #[cfg(not(target_os = "macos"))]
     {
-        let _ = choice;
-        tsuuchi::NotificationDispatcher::new(Box::new(tsuuchi::LogBackend::new()))
+        use tsuuchi::NotificationDispatcher as D;
+        match choice {
+            NotifyBackend::Log => D::new(Box::new(tsuuchi::LogBackend::new())),
+            _ => match tsuuchi::ShiraseBackend::try_default("mado") {
+                Some(sh) => {
+                    tracing::info!("notifications: shirase backend (fleet plane)");
+                    D::new(Box::new(sh))
+                }
+                None => D::new(Box::new(tsuuchi::LogBackend::new())),
+            },
+        }
     }
 }
 

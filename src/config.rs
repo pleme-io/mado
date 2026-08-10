@@ -1326,13 +1326,23 @@ impl FeedbackConfig {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum NotifyBackend {
-    /// Native `UNUserNotificationCenter` when bundled (`Mado.app`), else a
-    /// silent log (dock attention still fires). **No Script-Editor
-    /// popup.** The default.
+    /// shirase when its socket is live, else native
+    /// `UNUserNotificationCenter` when bundled (`Mado.app`), else a silent
+    /// log (dock attention still fires). **No Script-Editor popup.** The
+    /// default.
+    ///
+    /// shirase is preferred because it is the fleet-plane path: a Unix
+    /// socket to a pleme-io daemon, with no dependency on Apple's
+    /// notification agent — which the fleet's quiet posture is aimed at
+    /// disabling. Falling through to the native backend keeps a machine
+    /// without shirase behaving exactly as before.
     #[default]
     Auto,
     /// Force the native backend; falls back to log when unbundled.
     Native,
+    /// Force the shirase (fleet-plane) backend; falls back to log when the
+    /// socket is absent, rather than silently reaching for Apple's agent.
+    Shirase,
     /// The legacy `osascript` path — attributed to *Script Editor* and
     /// tripping the automation popup. Opt-in only (the one way to get a
     /// banner from an unbundled CLI mado).

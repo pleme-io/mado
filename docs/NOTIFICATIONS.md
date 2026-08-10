@@ -58,12 +58,33 @@ The illegal state — "notification attributed to Script Editor / the
 automation popup" — becomes **unrepresentable** in a bundled build: the
 osascript path is demoted to explicit opt-in; the default path is native.
 
+### The fleet plane takes precedence (2026-08-10)
+
+`Auto` now prefers **shirase** — `tsuuchi::ShiraseBackend`, a Unix socket to
+the pleme-io notification daemon — and only falls through to
+`UNUserNotificationCenter` when that socket is absent. The reason is a fleet
+posture, not a preference: `blackmatter.components.macos.quiet` disables
+`com.apple.notificationcenterui.agent`, and the native backend is built on
+`UNUserNotificationCenter`, so it goes down with the agent. A machine without
+shirase behaves exactly as it did before.
+
+Two escapes, both explicit and neither silent: `native` skips shirase and
+uses Apple's agent; `shirase` demands the fleet plane and falls back to
+**log, never to Apple's agent** — substituting the thing the operator was
+trying to shed would hide the dependency rather than report it.
+
+Honest scope: this routes what **mado emits**. Notifications from
+*third-party* apps cannot be re-routed at all — macOS exposes no public API
+for one process to observe another's user notifications, which is a fact
+about the platform rather than a gap in this design.
+
 ## Layers
 
 | Layer | What | Where |
 |---|---|---|
 | **L0** | `tsuuchi` vocabulary: `NotificationSound`, `NotificationAction`/`ActionKind`, `NotificationAttachment`, `category`/`id`/`timeout`/`icon` fields, `Capabilities`, `Urgency::interruption_level()` | `tsuuchi/src/notification.rs`, `backend.rs` |
 | **L1** | native `UNUserNotificationCenter` backend + bundle detection + graceful fallback (dock/log); osascript opt-in | `mado/src/notify_mac.rs`, `platform.rs::notification_dispatcher()` |
+| **L1′** | **shirase (fleet plane), preferred by `Auto` when its socket is live** | `tsuuchi::ShiraseBackend`, `platform.rs::notification_dispatcher()` |
 | **L2** | terminal protocols (already parsed; extended for OSC 99 richness) | `mado/src/terminal.rs` OSC dispatch |
 | **L3** | mado-native sources: command-completion (OSC 133), attention, session-exit | `mado/src/terminal.rs`, `ux/side_effects.rs` |
 | **L4** | orchestrator: focus-gating, coalesce, rate-limit, DND/mute, history, routing | `mado/src/notify/center.rs` |
