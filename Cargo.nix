@@ -8281,9 +8281,9 @@ rec {
       };
       "ishou-tokens" = rec {
         crateName = "ishou-tokens";
-        version = "0.1.8";
+        version = "0.1.9";
         edition = "2024";
-        sha256 = "14p4sjxbrs5ikrd4m1bdvijf4175lil6wm8gajkdfm1js8js50b6";
+        sha256 = "0yf14gkvfkgmf90car69rn4qy6w35l6n9ikyfk1axfc6f8lk67cm";
         libName = "ishou_tokens";
         dependencies = [
           {
@@ -10143,7 +10143,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.127";
+        version = "0.1.128";
         edition = "2024";
         crateBin = [
           {
@@ -16814,9 +16814,9 @@ rec {
       };
       "praca" = rec {
         crateName = "praca";
-        version = "0.1.12";
+        version = "0.1.13";
         edition = "2024";
-        sha256 = "09kjv0cszhvnhy09f9cl4d4zkhmzk7kixl1wjvh07k0l4i4vhgkq";
+        sha256 = "1fvn6n884pxym7n6jqsxs8wds7za7kz2xya67g9z8r5i3z9m7k6j";
         authors = [
           "pleme-io"
         ];
@@ -16833,6 +16833,10 @@ rec {
           {
             name = "tear-types";
             packageId = "tear-types";
+          }
+          {
+            name = "wadachi-spec";
+            packageId = "wadachi-spec";
           }
         ];
         features = {
@@ -24295,9 +24299,9 @@ rec {
       };
       "tear-client" = rec {
         crateName = "tear-client";
-        version = "0.1.12";
+        version = "0.1.13";
         edition = "2024";
-        sha256 = "10zhi31laq0cdask1ys5z2w1xffq7jfi5fjyan24fjk3wh9sn7a8";
+        sha256 = "1xqqy6ba0imwpr8f6y5g2gc5clypvqr3lw96nmh5x6x2h4rrarfi";
         libName = "tear_client";
         authors = [
           "pleme-io"
@@ -24337,9 +24341,9 @@ rec {
       };
       "tear-config" = rec {
         crateName = "tear-config";
-        version = "0.1.12";
+        version = "0.1.13";
         edition = "2024";
-        sha256 = "046wal9ag0gq1075vqw6accm3fk32bwkmip9rn6gzs251gy8gb2z";
+        sha256 = "1vshbdivbv1nvar6sgcsz9vbyhw3mlj11haklxmvfryapm0c1cww";
         libName = "tear_config";
         authors = [
           "pleme-io"
@@ -24398,9 +24402,9 @@ rec {
       };
       "tear-core" = rec {
         crateName = "tear-core";
-        version = "0.1.12";
+        version = "0.1.13";
         edition = "2024";
-        sha256 = "0qd9vq6bzf35wksl4sh14x7zr90s715m2a1d1brdrj4nby45qj7d";
+        sha256 = "1a6f61w7chv34nni4ya8dvwbfjs5183m1h6f3rw39v21h2rymgxd";
         libName = "tear_core";
         authors = [
           "pleme-io"
@@ -24481,9 +24485,9 @@ rec {
       };
       "tear-daemon" = rec {
         crateName = "tear-daemon";
-        version = "0.1.12";
+        version = "0.1.13";
         edition = "2024";
-        sha256 = "0xafdpxaxjl005nv2jdf2cxipgnzl4nsx5smd5zjf0j6l82xbrq8";
+        sha256 = "0j7idqsn68npzy2zakv6jzk741kr8px5baxq04mzf36qkp966mj8";
         libName = "tear_daemon";
         authors = [
           "pleme-io"
@@ -24557,9 +24561,9 @@ rec {
       };
       "tear-types" = rec {
         crateName = "tear-types";
-        version = "0.1.12";
+        version = "0.1.13";
         edition = "2024";
-        sha256 = "01jz6400w46f96k0bwfz556pyzhn86q434x7z5x2m6mjg4sw0z7i";
+        sha256 = "117gyif8idawk9i9hyc410v9zlr0a4bwh9r3kkiny4wad7rv5fpr";
         libName = "tear_types";
         authors = [
           "pleme-io"
@@ -29427,7 +29431,7 @@ rec {
         dependencies = [
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.48.0";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Storage_FileSystem" "Win32_System_Console" "Win32_System_SystemInformation" ];
           }
@@ -31524,7 +31528,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Globalization" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Console" "Win32_System_SystemInformation" "Win32_UI" "Win32_UI_Shell" "default" ];
+        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Globalization" "Win32_System" "Win32_System_Com" "Win32_UI" "Win32_UI_Shell" "default" ];
       };
       "windows-sys 0.52.0" = rec {
         crateName = "windows-sys";

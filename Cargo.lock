@@ -1407,9 +1407,9 @@ dependencies = [
 
 [[package]]
 name = "egaku"
-version = "0.1.11"
+version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "303306ced4abddc91c82af7327368ed92a7b1122f939ee148fe8f168f40caad8"
+checksum = "e63eab84c59ae1118c0e091cd0e11a3bf6d5ab5affa78c4f0ce3a9e0a2d5e418"
 dependencies = [
  "awase",
  "serde",
@@ -1869,9 +1869,9 @@ dependencies = [
 
 [[package]]
 name = "garasu"
-version = "0.1.7"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56e5f711c62734d52b0692049a0885caed4c4ed1905904e9bc838380955168a6"
+checksum = "1e079d0252d9f1d4eff4c7229e15dc73af576f5e4f5adf26b97455daad501daa"
 dependencies = [
  "bincode",
  "blake3",
@@ -1879,6 +1879,7 @@ dependencies = [
  "dirs 6.0.0",
  "fontdb",
  "glyphon",
+ "lru",
  "pollster",
  "raw-window-handle",
  "serde",
@@ -3316,7 +3317,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.127"
+version = "0.1.128"
 dependencies = [
  "anyhow",
  "awase",
@@ -4758,9 +4759,9 @@ dependencies = [
 
 [[package]]
 name = "pleme-nami-core"
-version = "0.1.13"
+version = "0.1.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51c6087ca87c6549feff59f51847d18dc43da6d3937f04b598e8ff66f6037958"
+checksum = "b6b7917a59e651f3412f57d47a47632960f7e23ffd35800a0a710a79811e3609"
 dependencies = [
  "blake3",
  "garasu",
@@ -4821,9 +4822,9 @@ checksum = "2f3a9f18d041e6d0e102a0a46750538147e5e8992d3b4873aaafee2520b00ce3"
 
 [[package]]
 name = "portable-atomic"
-version = "1.14.0"
+version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d20d5497ef88037a52ff98267d066e7f11fcc5e99bbfbd58a42336193aacec3"
+checksum = "05c8b63e8d9609db387f0324918f81d68fe27748f084ef092fb35954d0539a85"
 
 [[package]]
 name = "portable-pty"
