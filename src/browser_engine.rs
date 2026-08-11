@@ -226,8 +226,8 @@ impl BrowserEngine for MadoNamiEngine {
         true
     }
 
-    fn take_display_list(&mut self) -> DisplayList {
-        std::mem::take(&mut self.display_list)
+    fn display_list(&self) -> &DisplayList {
+        &self.display_list
     }
 }
 
@@ -312,7 +312,7 @@ impl RealBrowserBackend {
     /// content seqno, + mark loaded. For feeding HTML directly + tests.
     pub fn render_html(&mut self, html: &str) {
         self.engine.render_html(html);
-        self.last_list = std::sync::Arc::new(self.engine.take_display_list());
+        self.last_list = std::sync::Arc::new(self.engine.display_list().clone());
         self.content_seqno = self.content_seqno.wrapping_add(1);
         self.load = LoadState::Loaded;
     }
@@ -323,7 +323,7 @@ impl RealBrowserBackend {
     /// page, never a silent blank.
     pub fn set_dom_sexp(&mut self, sexp: &str) -> Result<(), String> {
         self.engine.set_dom_sexp(sexp)?;
-        self.last_list = std::sync::Arc::new(self.engine.take_display_list());
+        self.last_list = std::sync::Arc::new(self.engine.display_list().clone());
         self.content_seqno = self.content_seqno.wrapping_add(1);
         self.load = LoadState::Loaded;
         Ok(())
@@ -378,7 +378,7 @@ impl BrowserBackend for RealBrowserBackend {
         self.load = LoadState::Loading;
         self.engine.navigate(url);
         if self.engine.navigate_ok {
-            self.last_list = std::sync::Arc::new(self.engine.take_display_list());
+            self.last_list = std::sync::Arc::new(self.engine.display_list().clone());
             self.content_seqno = self.content_seqno.wrapping_add(1);
             self.load = LoadState::Loaded;
             Ok(())
@@ -403,7 +403,7 @@ impl BrowserBackend for RealBrowserBackend {
         // neither is why a resize used to stretch the old-size bitmap — the
         // engine re-laid out and nothing downstream was ever told.
         if self.engine.relayout_at(rect) {
-            self.last_list = std::sync::Arc::new(self.engine.take_display_list());
+            self.last_list = std::sync::Arc::new(self.engine.display_list().clone());
             self.content_seqno = self.content_seqno.wrapping_add(1);
         }
     }
