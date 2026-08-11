@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "9f9aba81d6be3ab6f9e6cc882726dff91aedc7715b18261f60f80162ed2866b2",
+  "cargo_lock_sha256": "aff656c6ee1bef98e3bedf185baca2676f4865137d7cfe522beec8ddc8e0d1f6",
   "manifest_sha256": {
-    "Cargo.toml": "2b26082e063b364cd7e519a8def4c381a6c9a3fd029f11f81c5d4ad52c06350c"
+    "Cargo.toml": "b6c2f3e31e440f2c34f4acdcc69b313aa034fc5507292d1f6dff4318093cef8a"
   },
   "target_resolves": {
     "base": {
@@ -7456,7 +7456,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.497",
+            "package_key": "shikumi-0.1.498",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9210,7 +9210,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.497",
+            "package_key": "shikumi-0.1.498",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17150,7 +17150,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.497",
+            "package_key": "shikumi-0.1.498",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17197,7 +17197,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.497": {
+      "shikumi-0.1.498": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -20064,7 +20064,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.497",
+            "package_key": "shikumi-0.1.498",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20816,7 +20816,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.497",
+            "package_key": "shikumi-0.1.498",
             "kind": "normal",
             "features": [
               "cli"
@@ -26176,7 +26176,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.128": {
+          "mado-0.1.129": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26741,7 +26741,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.497",
+                "package_key": "shikumi-0.1.498",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -31119,7 +31119,7 @@
               "system"
             ]
           },
-          "mado-0.1.128": {
+          "mado-0.1.129": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31635,7 +31635,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.497",
+                "package_key": "shikumi-0.1.498",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -35140,7 +35140,7 @@
               "system"
             ]
           },
-          "mado-0.1.128": {
+          "mado-0.1.129": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35656,7 +35656,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.497",
+                "package_key": "shikumi-0.1.498",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -39279,7 +39279,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.128": {
+          "mado-0.1.129": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39844,7 +39844,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.497",
+                "package_key": "shikumi-0.1.498",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -44229,7 +44229,7 @@
               "system"
             ]
           },
-          "mado-0.1.128": {
+          "mado-0.1.129": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44745,7 +44745,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.497",
+                "package_key": "shikumi-0.1.498",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -48257,7 +48257,7 @@
               "system"
             ]
           },
-          "mado-0.1.128": {
+          "mado-0.1.129": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48773,7 +48773,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.497",
+                "package_key": "shikumi-0.1.498",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -52447,7 +52447,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.128": {
+    "mado-0.1.129": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -53282,7 +53282,7 @@
     "shidou-0.1.10": {
       "edition": "2024"
     },
-    "shikumi-0.1.497": {
+    "shikumi-0.1.498": {
       "edition": "2024"
     },
     "shlex-2.0.1": {

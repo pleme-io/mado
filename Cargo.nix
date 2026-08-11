@@ -4240,9 +4240,9 @@ rec {
       };
       "egaku" = rec {
         crateName = "egaku";
-        version = "0.1.11";
+        version = "0.1.12";
         edition = "2024";
-        sha256 = "1n5a1ks6iwg8iwafwfgr488pnanriqv2fwxgh8fckpdbsk70ccrh";
+        sha256 = "0674snif1ag31i7qr9zzbamxbxiv3bhx07091s613qcsqn2angp6";
         dependencies = [
           {
             name = "awase";
@@ -5509,9 +5509,9 @@ rec {
       };
       "garasu" = rec {
         crateName = "garasu";
-        version = "0.1.7";
+        version = "0.1.9";
         edition = "2024";
-        sha256 = "19k8a6aq10w3pklh8nchs574rvfahl49l14j0qmxad17qq8zgran";
+        sha256 = "1ahxa2nxlmblp4kdynjgbrpmgbvkvharw8n7ykpx9wfra819s1qy";
         dependencies = [
           {
             name = "bincode";
@@ -5537,6 +5537,10 @@ rec {
           {
             name = "glyphon";
             packageId = "glyphon";
+          }
+          {
+            name = "lru";
+            packageId = "lru";
           }
           {
             name = "pollster";
@@ -10143,7 +10147,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.128";
+        version = "0.1.129";
         edition = "2024";
         crateBin = [
           {
@@ -16446,9 +16450,9 @@ rec {
       };
       "pleme-nami-core" = rec {
         crateName = "pleme-nami-core";
-        version = "0.1.13";
+        version = "0.1.16";
         edition = "2024";
-        sha256 = "0n3r0gv6dzz8k2sh8zwksfk3vi4ds53iixarzzz4jrbwm1y0iiji";
+        sha256 = "029n3s0pj2ki18580dgx7zigfq19cd3pmm2p5x0z6lg6b5x93dxn";
         libName = "nami_core";
         dependencies = [
           {
@@ -16663,9 +16667,9 @@ rec {
       };
       "portable-atomic" = rec {
         crateName = "portable-atomic";
-        version = "1.14.0";
+        version = "1.15.0";
         edition = "2018";
-        sha256 = "1hyfma9n2cs2ibazpfwrbv61zwg7cv86g0pr5yjkg07qgr4xa81x";
+        sha256 = "11csag858ndk5w4yz17h91vy53ynh67r2903gwwdn2cnilzbdj05";
         libName = "portable_atomic";
         features = {
           "critical-section" = [ "dep:critical-section" ];

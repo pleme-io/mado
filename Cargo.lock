@@ -3317,7 +3317,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.128"
+version = "0.1.129"
 dependencies = [
  "anyhow",
  "awase",
@@ -6217,9 +6217,9 @@ dependencies = [
 
 [[package]]
 name = "shikumi"
-version = "0.1.497"
+version = "0.1.498"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69f2498ae4b0ff68e0114b7ba8b004c54c3e70fa5eb20524449ea22db810b8b4"
+checksum = "ea242de8cb6763bd6c57d78fadc21c0996751db5eb8f08cf2d47a80e8ffce932"
 dependencies = [
  "arc-swap",
  "async-trait",
