@@ -1079,26 +1079,6 @@ pub struct SpawnTermParams {
     pub rows: Option<u16>,
 }
 
-/// Spawn the kanshou server in a tokio task. Returns the path the
-/// server bound to so the caller can log it. The task is detached;
-/// dropping it shuts the server (and removes the socket file).
-///
-/// `app_name` is the canonical wire identifier — operator tools use
-/// it to filter discovery. Pass `"mado"` for the GUI process.
-pub fn spawn_server(
-    app_name: &str,
-    state: Arc<MadoAppState>,
-) -> std::io::Result<std::path::PathBuf> {
-    let server = kanshou::Server::new(app_name, state)?;
-    let socket_path = server.socket_path().to_path_buf();
-    tokio::spawn(async move {
-        if let Err(e) = server.serve().await {
-            tracing::warn!(error = ?e, "mado kanshou server exited with error");
-        }
-    });
-    Ok(socket_path)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

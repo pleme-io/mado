@@ -736,35 +736,18 @@ fn main() -> anyhow::Result<()> {
         std::sync::Arc::new(config.clone()),
         std::sync::Arc::new(crate::session::SessionRegistry::default()),
     ));
-    let kanshou_state_for_server = std::sync::Arc::clone(&kanshou_state);
-    std::thread::Builder::new()
-        .name("kanshou".into())
-        .spawn(move || {
-            match tokio::runtime::Builder::new_current_thread()
-                .enable_all()
-                .thread_name("kanshou-tokio")
-                .build()
-            {
-                Ok(rt) => rt.block_on(async {
-                    match kanshou_state::spawn_server("mado", kanshou_state_for_server) {
-                        Ok(path) => {
-                            tracing::info!(
-                                socket = %path.display(),
-                                "kanshou introspection live"
-                            );
-                            std::future::pending::<()>().await;
-                        }
-                        Err(e) => {
-                            tracing::warn!(err = %e, "kanshou bind failed; introspection disabled");
-                        }
-                    }
-                }),
-                Err(e) => {
-                    tracing::warn!(err = %e, "could not create kanshou tokio runtime");
-                }
-            }
-        })
-        .expect("spawn kanshou thread");
+    // The whole sidecar — bind, runtime, thread, serve — is one call now.
+    // This block used to `.expect("spawn kanshou thread")`, so mado PANICKED
+    // at startup under thread-spawn EAGAIN instead of simply running without
+    // introspection, which is the opposite of what an optional debug surface
+    // should do. kanshou::Server::spawn_sidecar makes that decision once,
+    // non-fatally, for every consumer — so the three hand-rolled copies
+    // (frost, mado, tear-daemon) cannot drift apart again.
+    if let Some(path) =
+        kanshou::Server::spawn_sidecar("mado", std::sync::Arc::clone(&kanshou_state))
+    {
+        tracing::info!(socket = %path.display(), "kanshou introspection live");
+    }
     crate::perf::log_phase("kanshou_started");
 
     // Apply active profile if set — same resolution the hot-reload
