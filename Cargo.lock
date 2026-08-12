@@ -160,7 +160,7 @@ version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40c48f72fd53cd289104fc64099abca73db4166ad86ea0b4341abe65af83dadc"
 dependencies = [
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -171,7 +171,7 @@ checksum = "291e6a250ff86cd4a820112fb8898808a366d8f9f58ce16d1f538353ad55747d"
 dependencies = [
  "anstyle",
  "once_cell_polyfill",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1298,7 +1298,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users 0.5.2",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1518,7 +1518,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1677,9 +1677,9 @@ checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
 
 [[package]]
 name = "font-types"
-version = "0.12.2"
+version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a7299a780854a6d391be2ae1c8521c9368471b559dbfd6a8dbd9f407eaff100"
+checksum = "75382bc7392ef10aad10935f92fc3db36d2d4dad0e5d96d8d65e04f89a07ec39"
 dependencies = [
  "bytemuck",
 ]
@@ -2730,7 +2730,7 @@ checksum = "3640c1c38b8e4e43584d8df18be5fc6b0aa314ce6ebf51b53313d4306cca8e46"
 dependencies = [
  "hermit-abi",
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2975,9 +2975,9 @@ dependencies = [
 
 [[package]]
 name = "kanshou-derive"
-version = "0.1.3"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba2bbc188a38b2267df18b56ad3b378ce6a5454c693b886d273e01c8c8580a53"
+checksum = "c1ba08fcfd223db5cfc2922d30815cfd3f455f7ed8dac9e78de8813bc6d8a39b"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3327,7 +3327,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.130"
+version = "0.1.131"
 dependencies = [
  "anyhow",
  "awase",
@@ -3727,7 +3727,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5116,7 +5116,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5615,7 +5615,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.12.1",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -6234,9 +6234,9 @@ dependencies = [
 
 [[package]]
 name = "shikumi"
-version = "0.1.514"
+version = "0.1.516"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af9f6616927273a817354e0e18e4f2ed6ab3ae6db052838a0358f36a145b104d"
+checksum = "bffbda7e321831a594654eb4faff5439ef4046446452e2436fe646d461e06e3d"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -6381,7 +6381,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3d1e2c7f27f8d4cb10542a02c49005dbd6e93095799d6f3be745fae9f8fedd4"
 dependencies = [
  "libc",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -6849,9 +6849,9 @@ dependencies = [
 
 [[package]]
 name = "tatara-core"
-version = "0.2.219"
+version = "0.2.222"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a5e1dfd4d0cbf72a893a60a7c452f64f8dc7b9144082df4888f1e2f0799a84bd"
+checksum = "c21a40be1491f199a949c3bdf1788a43d03f604a76f141969e6cd238b848f6e8"
 dependencies = [
  "anyhow",
  "blake3",
@@ -6872,9 +6872,9 @@ dependencies = [
 
 [[package]]
 name = "tatara-eval"
-version = "0.2.218"
+version = "0.2.221"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "edfd8fed791e88bc8996c521929ba272a794eda08e75a20e01035ff94f3b85df"
+checksum = "94972775032c5fba1d4427daff4919a80c7c7bd2675750228f6bbc3269a0aa8f"
 dependencies = [
  "bumpalo",
  "serde",
@@ -6886,9 +6886,9 @@ dependencies = [
 
 [[package]]
 name = "tatara-lattice"
-version = "0.2.219"
+version = "0.2.222"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a28d800d3ff0272afa1c93791e4618e7d01b6b7718fd6a52ff15ee97dd3e356"
+checksum = "2ecc919422935d3eeb7eb4bc911c7f9a685977038695bdbd5d8b0d92b14ac41f"
 dependencies = [
  "schemars 0.8.22",
  "serde",
@@ -6935,9 +6935,9 @@ dependencies = [
 
 [[package]]
 name = "tatara-nix"
-version = "0.2.219"
+version = "0.2.221"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c84bad44d43a45bbd41b5c259a8dfd8803f30ba660b79138330681f4ad554f1e"
+checksum = "d40f6c247a8c99e57e772ad5469755d355a998d3c7d9d8b60f22ce43f8b75a84"
 dependencies = [
  "blake3",
  "hex",
@@ -6952,9 +6952,9 @@ dependencies = [
 
 [[package]]
 name = "tatara-process"
-version = "0.2.219"
+version = "0.2.222"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb6794ac46ecd1e40673a38538a9b2dc5788da79559a20f3a580967596f10e0a"
+checksum = "0adf3534973047b6b3533e49bce0bfe2f935030eb6232d339b8c4cd53e74b439"
 dependencies = [
  "anyhow",
  "blake3",
@@ -7080,7 +7080,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix 1.1.4",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -8386,7 +8386,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
