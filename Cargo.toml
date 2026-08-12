@@ -103,6 +103,11 @@ shidou = { version = "0.1" }
 # state). The MCP server in `mado mcp` connects to that socket and
 # forwards queries — closing the "MCP returns process-local zeros
 # while GUI renders 120 fps" class. See pleme-io/kanshou.
+# kotae (答え) — the typed answer a machine gives a machine. mado 65 MCP
+# tools answered through ok_json/err_json, whose `ok` flag is BINARY: an
+# empty pane list and an unreachable daemon arrived as the same shape.
+# kotae adds the four-way discriminant alongside `ok`, so no client breaks.
+kotae = "0.1"
 kanshou = "0.1"
 
 # Katsuji (活字) — typed terminal emission. `mado banner` composes its wordmark

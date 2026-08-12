@@ -1576,7 +1576,16 @@ impl MadoMcp {
                         })
                     })
                     .collect();
-                ok_json(serde_json::json!({ "sessions": v }))
+                // NO SESSIONS is a finding, not an empty success. Before this,
+                // "the multiplexer has no sessions" and "mado could not reach
+                // the daemon" both arrived as a response the reader had to
+                // squint at; now the first says `outcome: "empty"` and the
+                // second says `outcome: "blind"`.
+                if v.is_empty() {
+                    empty_json("sessions", serde_json::json!({ "sessions": v }))
+                } else {
+                    ok_json(serde_json::json!({ "sessions": v }))
+                }
             }
             Err(e) => err_json(e),
         })
@@ -2457,7 +2466,15 @@ where
 {
     with_tear_client(|client| match raw.parse::<T>() {
         Ok(id) => f(client, id),
-        Err(e) => err_json(format!("invalid {label}: {e}")),
+        // REFUSED, not blind. A caller-supplied id that will not parse is the
+        // caller asking wrong — the remedy is to change the request, where a
+        // blind answer's remedy is to fix the environment. Folding both into
+        // err_json told an agent to retry an unreachable daemon and to debug
+        // the network for a typo, in the same shape.
+        Err(e) => refused_json(
+            format!("invalid {label}: {e}"),
+            [format!("a valid {label}")],
+        ),
     })
 }
 
@@ -2471,14 +2488,78 @@ fn ok_json(extra: serde_json::Value) -> String {
     if let serde_json::Value::Object(fields) = extra {
         obj.extend(fields);
     }
-    serde_json::Value::Object(obj).to_string()
+    // kotae splices the object and prepends `outcome: "found"`, so the answer
+    // carries BOTH vocabularies: `ok` for the clients this file's own doc
+    // comment promises can "branch on `ok` exactly once", and `outcome` for a
+    // reader that needs to tell found from empty from blind. Compact, not
+    // pretty — 65 tools' payloads should not grow whitespace.
+    kotae::Answer::found_value(serde_json::Value::Object(obj))
+        .to_value()
+        .to_string()
 }
 
 /// `{"ok": false, "error": <e>}` — terminal-state response for tool
 /// failures. Uniform across every tear_* tool so MCP clients can
 /// branch on `ok` exactly once.
 fn err_json<E: std::fmt::Display>(error: E) -> String {
-    serde_json::json!({ "ok": false, "error": error.to_string() }).to_string()
+    let msg = error.to_string();
+    // BLIND, not a generic error: a failed tool call means mado could not look,
+    // which is neither an absence nor a refusal. `ok`/`error` are kept so every
+    // existing MCP client keeps branching exactly as it did; `outcome` +
+    // `because` are added for a reader that needs the distinction.
+    let mut v = kotae::Answer::blind(&msg).to_value();
+    if let serde_json::Value::Object(ref mut o) = v {
+        o.insert("ok".into(), serde_json::Value::Bool(false));
+        o.insert("error".into(), serde_json::Value::String(msg));
+    }
+    v.to_string()
+}
+
+/// `{"outcome":"empty", "ok": true, ...}` — the tool looked and there is
+/// nothing.
+///
+/// A FINDING, so `ok` stays true: mado did its job. Distinguishing this from
+/// [`err_json`] is the whole reason kotae is here — an empty pane list and an
+/// unreachable daemon were previously both "a response with no rows", and a
+/// reader could not tell "there are no panes" from "I could not ask".
+fn empty_json(of: impl Into<String>, extra: serde_json::Value) -> String {
+    let mut v = kotae::Answer::empty(of).to_value();
+    if let serde_json::Value::Object(ref mut o) = v {
+        o.insert("ok".into(), serde_json::Value::Bool(true));
+        // The DATA KEY SURVIVES, holding its empty value. A first version
+        // omitted it and `tear_kill_session_removes_session_from_list` caught
+        // the break immediately: a client doing `response.sessions.filter(..)`
+        // got `undefined`, because "there is nothing" had been expressed by
+        // deleting the field rather than by emptying it. The discriminant is
+        // ADDED to the existing shape, never substituted for it.
+        if let serde_json::Value::Object(fields) = extra {
+            o.extend(fields);
+        }
+    }
+    v.to_string()
+}
+
+/// `{"outcome":"refused", "ok": false, ...}` — the CALLER asked wrong, and
+/// here is what would have been accepted.
+///
+/// Distinct from [`err_json`] because the remedy differs: a refusal is fixed by
+/// changing the request, a blind answer by fixing the environment. Naming the
+/// legal set makes the retry cost one call instead of a conversation.
+fn refused_json(
+    because: impl Into<String>,
+    legal: impl IntoIterator<Item = impl Into<String>>,
+) -> String {
+    let because = because.into();
+    let mut v = kotae::Answer::refused(&because, legal).to_value();
+    if let serde_json::Value::Object(ref mut o) = v {
+        o.insert("ok".into(), serde_json::Value::Bool(false));
+        // `error` survives alongside `because`, exactly as `err_json` keeps it.
+        // The discriminant is ADDED to the shape clients already read, never
+        // substituted for it — three invalid-id tests pass unchanged, which is
+        // the proof that this is additive rather than the claim that it is.
+        o.insert("error".into(), serde_json::Value::String(because));
+    }
+    v.to_string()
 }
 
 /// The `{ok:false, error:"not-forwardable", …}` fallback shape a browser
@@ -4842,14 +4923,21 @@ mod tests {
     fn ok_json_with_null_extra_emits_just_ok_true() {
         let s = ok_json(serde_json::Value::Null);
         let v: serde_json::Value = serde_json::from_str(&s).unwrap();
-        assert_eq!(v, serde_json::json!({ "ok": true }));
+        // `outcome` is ADDED, `ok` is kept — every client that branches
+        // on `ok` (which this file's own doc comment promises it may)
+        // reads exactly what it did, and a reader that needs found-vs-
+        // empty-vs-blind now has a field to branch on.
+        assert_eq!(v, serde_json::json!({ "outcome": "found", "ok": true }));
     }
 
     #[test]
     fn ok_json_with_object_extra_merges_fields() {
         let s = ok_json(serde_json::json!({ "a": 1, "b": "x" }));
         let v: serde_json::Value = serde_json::from_str(&s).unwrap();
-        assert_eq!(v, serde_json::json!({ "ok": true, "a": 1, "b": "x" }));
+        assert_eq!(
+            v,
+            serde_json::json!({ "outcome": "found", "ok": true, "a": 1, "b": "x" }),
+        );
     }
 
     #[test]
@@ -4859,7 +4947,7 @@ mod tests {
         // a runtime panic in an MCP tool body).
         let s = ok_json(serde_json::json!([1, 2, 3]));
         let v: serde_json::Value = serde_json::from_str(&s).unwrap();
-        assert_eq!(v, serde_json::json!({ "ok": true }));
+        assert_eq!(v, serde_json::json!({ "outcome": "found", "ok": true }));
     }
 
     #[test]

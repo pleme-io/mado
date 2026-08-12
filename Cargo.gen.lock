@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "aff656c6ee1bef98e3bedf185baca2676f4865137d7cfe522beec8ddc8e0d1f6",
+  "cargo_lock_sha256": "ea7f7d6e87ddd022b52161da6de45faa381a80b2a9e582197c5b807b6dc323a1",
   "manifest_sha256": {
-    "Cargo.toml": "b6c2f3e31e440f2c34f4acdcc69b313aa034fc5507292d1f6dff4318093cef8a"
+    "Cargo.toml": "36eaeb31f21de47722f766ec856ea7f3e54b7bfa0905a4d61a3d3388bed6e954"
   },
   "target_resolves": {
     "base": {
@@ -7903,6 +7903,34 @@
           "pkg-config",
           "static"
         ]
+      },
+      "kotae-0.1.1": {
+        "runtime_dependencies": [
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.229",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.151",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
       },
       "kube-0.99.0": {
         "runtime_dependencies": [
@@ -26450,6 +26478,16 @@
                 "tree": "target"
               },
               {
+                "name": "kotae",
+                "package_key": "kotae-0.1.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "libc",
                 "package_key": "libc-0.2.189",
                 "kind": "normal",
@@ -31393,6 +31431,16 @@
                 "tree": "target"
               },
               {
+                "name": "kotae",
+                "package_key": "kotae-0.1.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "libc",
                 "package_key": "libc-0.2.189",
                 "kind": "normal",
@@ -35406,6 +35454,16 @@
               {
                 "name": "katsuji",
                 "package_key": "katsuji-0.1.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "kotae",
+                "package_key": "kotae-0.1.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39545,6 +39603,16 @@
               {
                 "name": "katsuji",
                 "package_key": "katsuji-0.1.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "kotae",
+                "package_key": "kotae-0.1.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44503,6 +44571,16 @@
                 "tree": "target"
               },
               {
+                "name": "kotae",
+                "package_key": "kotae-0.1.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "libc",
                 "package_key": "libc-0.2.189",
                 "kind": "normal",
@@ -48531,6 +48609,16 @@
                 "tree": "target"
               },
               {
+                "name": "kotae",
+                "package_key": "kotae-0.1.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "libc",
                 "package_key": "libc-0.2.189",
                 "kind": "normal",
@@ -52360,6 +52448,9 @@
     "khronos-egl-6.0.0": {
       "edition": "2021",
       "build_script": "build.rs"
+    },
+    "kotae-0.1.1": {
+      "edition": "2024"
     },
     "kube-0.99.0": {
       "edition": "2021"
