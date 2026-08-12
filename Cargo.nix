@@ -9019,6 +9019,24 @@ rec {
         ];
 
       };
+      "kotae" = rec {
+        crateName = "kotae";
+        version = "0.1.1";
+        edition = "2024";
+        sha256 = "010b0jfaqw187yrlly2r0dy7f0b8v41xinckjwpp48br66fni50i";
+        dependencies = [
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+          {
+            name = "serde_json";
+            packageId = "serde_json";
+          }
+        ];
+
+      };
       "kqueue" = rec {
         crateName = "kqueue";
         version = "1.2.1";
@@ -10147,7 +10165,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.129";
+        version = "0.1.130";
         edition = "2024";
         crateBin = [
           {
@@ -10267,6 +10285,10 @@ rec {
           {
             name = "katsuji";
             packageId = "katsuji";
+          }
+          {
+            name = "kotae";
+            packageId = "kotae";
           }
           {
             name = "libc";
@@ -21719,9 +21741,9 @@ rec {
       };
       "shikumi" = rec {
         crateName = "shikumi";
-        version = "0.1.497";
+        version = "0.1.498";
         edition = "2024";
-        sha256 = "1d5q22w2v8ly8hj0bcjyz9q3wk650jqahysb27h6izxhwj54kwk9";
+        sha256 = "0cp9zj7hxa275p7hi3zbnlfpb5h93k1av3ypaxnbsqv7rgl2s97a";
         dependencies = [
           {
             name = "arc-swap";

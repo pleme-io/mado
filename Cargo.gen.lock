@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "ea7f7d6e87ddd022b52161da6de45faa381a80b2a9e582197c5b807b6dc323a1",
+  "cargo_lock_sha256": "da75456e3a615032a671cb2dbdc31c17394c8c2f70fb880a261dfa96546eff29",
   "manifest_sha256": {
-    "Cargo.toml": "36eaeb31f21de47722f766ec856ea7f3e54b7bfa0905a4d61a3d3388bed6e954"
+    "Cargo.toml": "dd6fe93426bce55efe135c13d9670596b05a0f81167a4ecbe806af8dd746420d"
   },
   "target_resolves": {
     "base": {
@@ -383,7 +383,7 @@
           },
           {
             "name": "futures_core",
-            "package_key": "futures-core-0.3.33",
+            "package_key": "futures-core-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -469,7 +469,7 @@
           },
           {
             "name": "futures_core",
-            "package_key": "futures-core-0.3.33",
+            "package_key": "futures-core-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -714,7 +714,7 @@
           },
           {
             "name": "num_integer",
-            "package_key": "num-integer-0.1.46",
+            "package_key": "num-integer-0.1.47",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -3957,7 +3957,7 @@
         "runtime_dependencies": [
           {
             "name": "futures_core",
-            "package_key": "futures-core-0.3.33",
+            "package_key": "futures-core-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -3967,7 +3967,7 @@
           },
           {
             "name": "futures_sink",
-            "package_key": "futures-sink-0.3.33",
+            "package_key": "futures-sink-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -4081,11 +4081,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "futures-0.3.33": {
+      "futures-0.3.34": {
         "runtime_dependencies": [
           {
             "name": "futures_channel",
-            "package_key": "futures-channel-0.3.33",
+            "package_key": "futures-channel-0.3.34",
             "kind": "normal",
             "features": [
               "sink"
@@ -4097,7 +4097,7 @@
           },
           {
             "name": "futures_core",
-            "package_key": "futures-core-0.3.33",
+            "package_key": "futures-core-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -4107,7 +4107,7 @@
           },
           {
             "name": "futures_executor",
-            "package_key": "futures-executor-0.3.33",
+            "package_key": "futures-executor-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -4117,7 +4117,7 @@
           },
           {
             "name": "futures_io",
-            "package_key": "futures-io-0.3.33",
+            "package_key": "futures-io-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -4127,7 +4127,7 @@
           },
           {
             "name": "futures_sink",
-            "package_key": "futures-sink-0.3.33",
+            "package_key": "futures-sink-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -4137,7 +4137,7 @@
           },
           {
             "name": "futures_task",
-            "package_key": "futures-task-0.3.33",
+            "package_key": "futures-task-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -4147,7 +4147,7 @@
           },
           {
             "name": "futures_util",
-            "package_key": "futures-util-0.3.33",
+            "package_key": "futures-util-0.3.34",
             "kind": "normal",
             "features": [
               "sink"
@@ -4168,11 +4168,11 @@
           "std"
         ]
       },
-      "futures-channel-0.3.33": {
+      "futures-channel-0.3.34": {
         "runtime_dependencies": [
           {
             "name": "futures_core",
-            "package_key": "futures-core-0.3.33",
+            "package_key": "futures-core-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -4182,7 +4182,7 @@
           },
           {
             "name": "futures_sink",
-            "package_key": "futures-sink-0.3.33",
+            "package_key": "futures-sink-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -4200,7 +4200,7 @@
           "std"
         ]
       },
-      "futures-core-0.3.33": {
+      "futures-core-0.3.34": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": [
@@ -4209,11 +4209,11 @@
           "std"
         ]
       },
-      "futures-executor-0.3.33": {
+      "futures-executor-0.3.34": {
         "runtime_dependencies": [
           {
             "name": "futures_core",
-            "package_key": "futures-core-0.3.33",
+            "package_key": "futures-core-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -4223,7 +4223,7 @@
           },
           {
             "name": "futures_task",
-            "package_key": "futures-task-0.3.33",
+            "package_key": "futures-task-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -4233,7 +4233,7 @@
           },
           {
             "name": "futures_util",
-            "package_key": "futures-util-0.3.33",
+            "package_key": "futures-util-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -4252,7 +4252,7 @@
         "runtime_dependencies": [
           {
             "name": "futures_core",
-            "package_key": "futures-core-0.3.33",
+            "package_key": "futures-core-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -4289,7 +4289,7 @@
           "std"
         ]
       },
-      "futures-io-0.3.33": {
+      "futures-io-0.3.34": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": [
@@ -4297,7 +4297,7 @@
           "std"
         ]
       },
-      "futures-macro-0.3.33": {
+      "futures-macro-0.3.34": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -4321,7 +4321,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.119",
+            "package_key": "syn-3.0.3",
             "kind": "normal",
             "features": [
               "full"
@@ -4335,7 +4335,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "futures-sink-0.3.33": {
+      "futures-sink-0.3.34": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": [
@@ -4344,7 +4344,7 @@
           "std"
         ]
       },
-      "futures-task-0.3.33": {
+      "futures-task-0.3.34": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": [
@@ -4352,11 +4352,11 @@
           "std"
         ]
       },
-      "futures-util-0.3.33": {
+      "futures-util-0.3.34": {
         "runtime_dependencies": [
           {
             "name": "futures_channel",
-            "package_key": "futures-channel-0.3.33",
+            "package_key": "futures-channel-0.3.34",
             "kind": "normal",
             "features": [
               "std"
@@ -4368,7 +4368,7 @@
           },
           {
             "name": "futures_core",
-            "package_key": "futures-core-0.3.33",
+            "package_key": "futures-core-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -4378,7 +4378,7 @@
           },
           {
             "name": "futures_io",
-            "package_key": "futures-io-0.3.33",
+            "package_key": "futures-io-0.3.34",
             "kind": "normal",
             "features": [
               "std"
@@ -4390,7 +4390,7 @@
           },
           {
             "name": "futures_macro",
-            "package_key": "futures-macro-0.3.33",
+            "package_key": "futures-macro-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -4400,7 +4400,7 @@
           },
           {
             "name": "futures_sink",
-            "package_key": "futures-sink-0.3.33",
+            "package_key": "futures-sink-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -4410,7 +4410,7 @@
           },
           {
             "name": "futures_task",
-            "package_key": "futures-task-0.3.33",
+            "package_key": "futures-task-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -5286,7 +5286,7 @@
           },
           {
             "name": "futures_core",
-            "package_key": "futures-core-0.3.33",
+            "package_key": "futures-core-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -5296,7 +5296,7 @@
           },
           {
             "name": "futures_sink",
-            "package_key": "futures-sink-0.3.33",
+            "package_key": "futures-sink-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -5935,7 +5935,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "http-body-util-0.1.4": {
+      "http-body-util-0.1.5": {
         "runtime_dependencies": [
           {
             "name": "bytes",
@@ -5949,7 +5949,7 @@
           },
           {
             "name": "futures_core",
-            "package_key": "futures-core-0.3.33",
+            "package_key": "futures-core-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -6035,7 +6035,7 @@
           },
           {
             "name": "futures_channel",
-            "package_key": "futures-channel-0.3.33",
+            "package_key": "futures-channel-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -6045,7 +6045,7 @@
           },
           {
             "name": "futures_core",
-            "package_key": "futures-core-0.3.33",
+            "package_key": "futures-core-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -6157,7 +6157,7 @@
           "http2"
         ]
       },
-      "hyper-http-proxy-1.1.1": {
+      "hyper-http-proxy-1.2.0": {
         "runtime_dependencies": [
           {
             "name": "bytes",
@@ -6171,7 +6171,7 @@
           },
           {
             "name": "futures_util",
-            "package_key": "futures-util-0.3.33",
+            "package_key": "futures-util-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -7456,7 +7456,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.498",
+            "package_key": "shikumi-0.1.514",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8043,7 +8043,7 @@
           },
           {
             "name": "futures",
-            "package_key": "futures-0.3.33",
+            "package_key": "futures-0.3.34",
             "kind": "normal",
             "features": [
               "std"
@@ -8085,7 +8085,7 @@
           },
           {
             "name": "http_body_util",
-            "package_key": "http-body-util-0.1.4",
+            "package_key": "http-body-util-0.1.5",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8601,7 +8601,7 @@
           },
           {
             "name": "futures",
-            "package_key": "futures-0.3.33",
+            "package_key": "futures-0.3.34",
             "kind": "normal",
             "features": [
               "async-await"
@@ -9238,7 +9238,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.498",
+            "package_key": "shikumi-0.1.514",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9573,7 +9573,7 @@
           "os-poll"
         ]
       },
-      "monosashi-0.3.43": {
+      "monosashi-0.3.44": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
@@ -10086,7 +10086,7 @@
         "runtime_dependencies": [
           {
             "name": "num_integer",
-            "package_key": "num-integer-0.1.46",
+            "package_key": "num-integer-0.1.47",
             "kind": "normal",
             "features": [
               "i128"
@@ -10141,7 +10141,7 @@
           },
           {
             "name": "num_integer",
-            "package_key": "num-integer-0.1.46",
+            "package_key": "num-integer-0.1.47",
             "kind": "normal",
             "features": [
               "i128"
@@ -10218,7 +10218,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "num-integer-0.1.46": {
+      "num-integer-0.1.47": {
         "runtime_dependencies": [
           {
             "name": "num_traits",
@@ -10243,7 +10243,7 @@
         "runtime_dependencies": [
           {
             "name": "num_integer",
-            "package_key": "num-integer-0.1.46",
+            "package_key": "num-integer-0.1.47",
             "kind": "normal",
             "features": [
               "i128"
@@ -10300,6 +10300,11 @@
           "libm",
           "std"
         ]
+      },
+      "okiba-0.1.1": {
+        "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": []
       },
       "once_cell-1.21.4": {
         "runtime_dependencies": [],
@@ -10378,7 +10383,7 @@
           },
           {
             "name": "futures",
-            "package_key": "futures-0.3.33",
+            "package_key": "futures-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12125,7 +12130,7 @@
           },
           {
             "name": "tatara_eval",
-            "package_key": "tatara-eval-0.2.203",
+            "package_key": "tatara-eval-0.2.218",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12135,7 +12140,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.43",
+            "package_key": "tatara-lisp-0.3.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12402,7 +12407,7 @@
           "std"
         ]
       },
-      "praca-0.1.13": {
+      "praca-0.1.14": {
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
@@ -12428,7 +12433,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.13",
+            "package_key": "tear-types-0.1.14",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12559,7 +12564,7 @@
         "runtime_dependencies": [
           {
             "name": "futures",
-            "package_key": "futures-0.3.33",
+            "package_key": "futures-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13942,7 +13947,7 @@
           },
           {
             "name": "futures_core",
-            "package_key": "futures-core-0.3.33",
+            "package_key": "futures-core-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -13982,7 +13987,7 @@
           },
           {
             "name": "http_body_util",
-            "package_key": "http-body-util-0.1.4",
+            "package_key": "http-body-util-0.1.5",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14390,7 +14395,7 @@
           },
           {
             "name": "futures",
-            "package_key": "futures-0.3.33",
+            "package_key": "futures-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14642,7 +14647,7 @@
           },
           {
             "name": "num_integer",
-            "package_key": "num-integer-0.1.46",
+            "package_key": "num-integer-0.1.47",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -14943,7 +14948,7 @@
           },
           {
             "name": "webpki",
-            "package_key": "rustls-webpki-0.103.13",
+            "package_key": "rustls-webpki-0.103.14",
             "kind": "normal",
             "features": [
               "alloc"
@@ -15005,7 +15010,7 @@
           "web-time"
         ]
       },
-      "rustls-webpki-0.103.13": {
+      "rustls-webpki-0.103.14": {
         "runtime_dependencies": [
           {
             "name": "ring",
@@ -15622,7 +15627,7 @@
           },
           {
             "name": "futures_util",
-            "package_key": "futures-util-0.3.33",
+            "package_key": "futures-util-0.3.34",
             "kind": "normal",
             "features": [
               "std"
@@ -16425,7 +16430,7 @@
         "runtime_dependencies": [
           {
             "name": "futures",
-            "package_key": "futures-0.3.33",
+            "package_key": "futures-0.3.34",
             "kind": "normal",
             "features": [
               "alloc"
@@ -17178,7 +17183,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.498",
+            "package_key": "shikumi-0.1.514",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17225,7 +17230,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.498": {
+      "shikumi-0.1.514": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -17761,7 +17766,7 @@
           },
           {
             "name": "futures_core",
-            "package_key": "futures-core-0.3.33",
+            "package_key": "futures-core-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -17781,7 +17786,7 @@
           },
           {
             "name": "futures_io",
-            "package_key": "futures-io-0.3.33",
+            "package_key": "futures-io-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17791,7 +17796,7 @@
           },
           {
             "name": "futures_util",
-            "package_key": "futures-util-0.3.33",
+            "package_key": "futures-util-0.3.34",
             "kind": "normal",
             "features": [
               "alloc",
@@ -18451,7 +18456,7 @@
           },
           {
             "name": "futures_channel",
-            "package_key": "futures-channel-0.3.33",
+            "package_key": "futures-channel-0.3.34",
             "kind": "normal",
             "features": [
               "alloc",
@@ -18465,7 +18470,7 @@
           },
           {
             "name": "futures_core",
-            "package_key": "futures-core-0.3.33",
+            "package_key": "futures-core-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -18475,7 +18480,7 @@
           },
           {
             "name": "futures_io",
-            "package_key": "futures-io-0.3.33",
+            "package_key": "futures-io-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18485,7 +18490,7 @@
           },
           {
             "name": "futures_util",
-            "package_key": "futures-util-0.3.33",
+            "package_key": "futures-util-0.3.34",
             "kind": "normal",
             "features": [
               "alloc",
@@ -18853,7 +18858,7 @@
           },
           {
             "name": "futures_channel",
-            "package_key": "futures-channel-0.3.33",
+            "package_key": "futures-channel-0.3.34",
             "kind": "normal",
             "features": [
               "alloc",
@@ -18867,7 +18872,7 @@
           },
           {
             "name": "futures_core",
-            "package_key": "futures-core-0.3.33",
+            "package_key": "futures-core-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -18877,7 +18882,7 @@
           },
           {
             "name": "futures_util",
-            "package_key": "futures-util-0.3.33",
+            "package_key": "futures-util-0.3.34",
             "kind": "normal",
             "features": [
               "alloc",
@@ -19192,7 +19197,7 @@
           },
           {
             "name": "futures_channel",
-            "package_key": "futures-channel-0.3.33",
+            "package_key": "futures-channel-0.3.34",
             "kind": "normal",
             "features": [
               "alloc",
@@ -19206,7 +19211,7 @@
           },
           {
             "name": "futures_core",
-            "package_key": "futures-core-0.3.33",
+            "package_key": "futures-core-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -19216,7 +19221,7 @@
           },
           {
             "name": "futures_executor",
-            "package_key": "futures-executor-0.3.33",
+            "package_key": "futures-executor-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19236,7 +19241,7 @@
           },
           {
             "name": "futures_util",
-            "package_key": "futures-util-0.3.33",
+            "package_key": "futures-util-0.3.34",
             "kind": "normal",
             "features": [
               "alloc",
@@ -19810,7 +19815,7 @@
         "runtime_dependencies": [
           {
             "name": "futures_core",
-            "package_key": "futures-core-0.3.33",
+            "package_key": "futures-core-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -19927,11 +19932,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-0.3.43": {
+      "tatara-closed-set-0.3.44": {
         "runtime_dependencies": [
           {
             "name": "tatara_closed_set_derive",
-            "package_key": "tatara-closed-set-derive-0.3.43",
+            "package_key": "tatara-closed-set-derive-0.3.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19943,7 +19948,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-derive-0.3.43": {
+      "tatara-closed-set-derive-0.3.44": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -19981,7 +19986,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-core-0.2.203": {
+      "tatara-core-0.2.219": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20092,7 +20097,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.498",
+            "package_key": "shikumi-0.1.514",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20147,7 +20152,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-eval-0.2.203": {
+      "tatara-eval-0.2.218": {
         "runtime_dependencies": [
           {
             "name": "bumpalo",
@@ -20185,7 +20190,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.43",
+            "package_key": "tatara-lisp-0.3.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20195,7 +20200,7 @@
           },
           {
             "name": "tatara_nix",
-            "package_key": "tatara-nix-0.2.203",
+            "package_key": "tatara-nix-0.2.219",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20217,7 +20222,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lattice-0.2.203": {
+      "tatara-lattice-0.2.219": {
         "runtime_dependencies": [
           {
             "name": "schemars",
@@ -20245,7 +20250,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.203",
+            "package_key": "tatara-core-0.2.219",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20255,7 +20260,7 @@
           },
           {
             "name": "tatara_process",
-            "package_key": "tatara-process-0.2.203",
+            "package_key": "tatara-process-0.2.219",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20267,7 +20272,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-0.3.43": {
+      "tatara-lisp-0.3.44": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -20303,7 +20308,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.3.43",
+            "package_key": "tatara-closed-set-0.3.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20313,7 +20318,7 @@
           },
           {
             "name": "tatara_lisp_derive",
-            "package_key": "tatara-lisp-derive-0.3.43",
+            "package_key": "tatara-lisp-derive-0.3.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20337,7 +20342,7 @@
           "default"
         ]
       },
-      "tatara-lisp-derive-0.3.43": {
+      "tatara-lisp-derive-0.3.44": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -20375,11 +20380,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-eval-0.3.43": {
+      "tatara-lisp-eval-0.3.44": {
         "runtime_dependencies": [
           {
             "name": "monosashi",
-            "package_key": "monosashi-0.3.43",
+            "package_key": "monosashi-0.3.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20389,7 +20394,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.3.43",
+            "package_key": "tatara-closed-set-0.3.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20399,7 +20404,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.43",
+            "package_key": "tatara-lisp-0.3.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20421,7 +20426,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-nix-0.2.203": {
+      "tatara-nix-0.2.219": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -20467,7 +20472,7 @@
           },
           {
             "name": "tatara_lattice",
-            "package_key": "tatara-lattice-0.2.203",
+            "package_key": "tatara-lattice-0.2.219",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20477,7 +20482,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.43",
+            "package_key": "tatara-lisp-0.3.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20487,7 +20492,7 @@
           },
           {
             "name": "tatara_lisp_derive",
-            "package_key": "tatara-lisp-derive-0.3.43",
+            "package_key": "tatara-lisp-derive-0.3.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20519,7 +20524,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-process-0.2.203": {
+      "tatara-process-0.2.219": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20645,7 +20650,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.3.43",
+            "package_key": "tatara-closed-set-0.3.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20655,7 +20660,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.203",
+            "package_key": "tatara-core-0.2.219",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20665,7 +20670,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.43",
+            "package_key": "tatara-lisp-0.3.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20697,7 +20702,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-client-0.1.13": {
+      "tear-client-0.1.14": {
         "runtime_dependencies": [
           {
             "name": "engate_attach",
@@ -20741,7 +20746,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.13",
+            "package_key": "tear-config-0.1.14",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20751,7 +20756,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.13",
+            "package_key": "tear-types-0.1.14",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20766,7 +20771,7 @@
           "engate"
         ]
       },
-      "tear-config-0.1.13": {
+      "tear-config-0.1.14": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20844,7 +20849,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.498",
+            "package_key": "shikumi-0.1.514",
             "kind": "normal",
             "features": [
               "cli"
@@ -20856,7 +20861,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.13",
+            "package_key": "tear-types-0.1.14",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20888,7 +20893,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-core-0.1.13": {
+      "tear-core-0.1.14": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20994,7 +20999,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.13",
+            "package_key": "tear-config-0.1.14",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21004,7 +21009,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.13",
+            "package_key": "tear-types-0.1.14",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21059,7 +21064,7 @@
           "engate"
         ]
       },
-      "tear-daemon-0.1.13": {
+      "tear-daemon-0.1.14": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21117,8 +21122,18 @@
             "tree": "target"
           },
           {
+            "name": "okiba",
+            "package_key": "okiba-0.1.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
             "name": "praca",
-            "package_key": "praca-0.1.13",
+            "package_key": "praca-0.1.14",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21160,7 +21175,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.13",
+            "package_key": "tear-config-0.1.14",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21170,7 +21185,7 @@
           },
           {
             "name": "tear_core",
-            "package_key": "tear-core-0.1.13",
+            "package_key": "tear-core-0.1.14",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21180,7 +21195,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.13",
+            "package_key": "tear-types-0.1.14",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21218,7 +21233,7 @@
           "default"
         ]
       },
-      "tear-types-0.1.13": {
+      "tear-types-0.1.14": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -22095,7 +22110,7 @@
         "runtime_dependencies": [
           {
             "name": "futures_core",
-            "package_key": "futures-core-0.3.33",
+            "package_key": "futures-core-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22147,7 +22162,7 @@
           },
           {
             "name": "futures_core",
-            "package_key": "futures-core-0.3.33",
+            "package_key": "futures-core-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22157,7 +22172,7 @@
           },
           {
             "name": "futures_sink",
-            "package_key": "futures-sink-0.3.33",
+            "package_key": "futures-sink-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22458,7 +22473,7 @@
         "runtime_dependencies": [
           {
             "name": "futures_core",
-            "package_key": "futures-core-0.3.33",
+            "package_key": "futures-core-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22468,7 +22483,7 @@
           },
           {
             "name": "futures_util",
-            "package_key": "futures-util-0.3.33",
+            "package_key": "futures-util-0.3.34",
             "kind": "normal",
             "features": [
               "alloc"
@@ -22613,7 +22628,7 @@
           },
           {
             "name": "futures_core",
-            "package_key": "futures-core-0.3.33",
+            "package_key": "futures-core-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -22623,7 +22638,7 @@
           },
           {
             "name": "futures_util",
-            "package_key": "futures-util-0.3.33",
+            "package_key": "futures-util-0.3.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -22653,7 +22668,7 @@
           },
           {
             "name": "http_body_util",
-            "package_key": "http-body-util-0.1.4",
+            "package_key": "http-body-util-0.1.5",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23745,7 +23760,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.43",
+            "package_key": "tatara-lisp-0.3.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23755,7 +23770,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.3.43",
+            "package_key": "tatara-lisp-eval-0.3.44",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25944,7 +25959,7 @@
               },
               {
                 "name": "futures_channel",
-                "package_key": "futures-channel-0.3.33",
+                "package_key": "futures-channel-0.3.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -25954,7 +25969,7 @@
               },
               {
                 "name": "futures_util",
-                "package_key": "futures-util-0.3.33",
+                "package_key": "futures-util-0.3.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -26204,7 +26219,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.129": {
+          "mado-0.1.130": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26682,7 +26697,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.13",
+                "package_key": "praca-0.1.14",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26779,7 +26794,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.498",
+                "package_key": "shikumi-0.1.514",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -26791,7 +26806,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.43",
+                "package_key": "tatara-lisp-0.3.44",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26801,7 +26816,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.13",
+                "package_key": "tear-client-0.1.14",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -26813,7 +26828,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.13",
+                "package_key": "tear-config-0.1.14",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26823,7 +26838,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.13",
+                "package_key": "tear-core-0.1.14",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -26835,7 +26850,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.13",
+                "package_key": "tear-types-0.1.14",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -30854,7 +30869,7 @@
               },
               {
                 "name": "futures_channel",
-                "package_key": "futures-channel-0.3.33",
+                "package_key": "futures-channel-0.3.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30864,7 +30879,7 @@
               },
               {
                 "name": "futures_util",
-                "package_key": "futures-util-0.3.33",
+                "package_key": "futures-util-0.3.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -31157,7 +31172,7 @@
               "system"
             ]
           },
-          "mado-0.1.129": {
+          "mado-0.1.130": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31586,7 +31601,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.13",
+                "package_key": "praca-0.1.14",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31683,7 +31698,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.498",
+                "package_key": "shikumi-0.1.514",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -31695,7 +31710,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.43",
+                "package_key": "tatara-lisp-0.3.44",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31705,7 +31720,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.13",
+                "package_key": "tear-client-0.1.14",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -31717,7 +31732,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.13",
+                "package_key": "tear-config-0.1.14",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31727,7 +31742,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.13",
+                "package_key": "tear-core-0.1.14",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -31739,7 +31754,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.13",
+                "package_key": "tear-types-0.1.14",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -34885,7 +34900,7 @@
               },
               {
                 "name": "futures_channel",
-                "package_key": "futures-channel-0.3.33",
+                "package_key": "futures-channel-0.3.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34895,7 +34910,7 @@
               },
               {
                 "name": "futures_util",
-                "package_key": "futures-util-0.3.33",
+                "package_key": "futures-util-0.3.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -35188,7 +35203,7 @@
               "system"
             ]
           },
-          "mado-0.1.129": {
+          "mado-0.1.130": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35617,7 +35632,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.13",
+                "package_key": "praca-0.1.14",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35714,7 +35729,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.498",
+                "package_key": "shikumi-0.1.514",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -35726,7 +35741,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.43",
+                "package_key": "tatara-lisp-0.3.44",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35736,7 +35751,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.13",
+                "package_key": "tear-client-0.1.14",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -35748,7 +35763,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.13",
+                "package_key": "tear-config-0.1.14",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35758,7 +35773,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.13",
+                "package_key": "tear-core-0.1.14",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -35770,7 +35785,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.13",
+                "package_key": "tear-types-0.1.14",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -39077,7 +39092,7 @@
               },
               {
                 "name": "futures_channel",
-                "package_key": "futures-channel-0.3.33",
+                "package_key": "futures-channel-0.3.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39087,7 +39102,7 @@
               },
               {
                 "name": "futures_util",
-                "package_key": "futures-util-0.3.33",
+                "package_key": "futures-util-0.3.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -39337,7 +39352,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.129": {
+          "mado-0.1.130": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39815,7 +39830,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.13",
+                "package_key": "praca-0.1.14",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39912,7 +39927,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.498",
+                "package_key": "shikumi-0.1.514",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -39924,7 +39939,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.43",
+                "package_key": "tatara-lisp-0.3.44",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39934,7 +39949,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.13",
+                "package_key": "tear-client-0.1.14",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -39946,7 +39961,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.13",
+                "package_key": "tear-config-0.1.14",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39956,7 +39971,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.13",
+                "package_key": "tear-core-0.1.14",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -39968,7 +39983,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.13",
+                "package_key": "tear-types-0.1.14",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -43994,7 +44009,7 @@
               },
               {
                 "name": "futures_channel",
-                "package_key": "futures-channel-0.3.33",
+                "package_key": "futures-channel-0.3.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44004,7 +44019,7 @@
               },
               {
                 "name": "futures_util",
-                "package_key": "futures-util-0.3.33",
+                "package_key": "futures-util-0.3.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -44297,7 +44312,7 @@
               "system"
             ]
           },
-          "mado-0.1.129": {
+          "mado-0.1.130": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44726,7 +44741,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.13",
+                "package_key": "praca-0.1.14",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44823,7 +44838,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.498",
+                "package_key": "shikumi-0.1.514",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -44835,7 +44850,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.43",
+                "package_key": "tatara-lisp-0.3.44",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44845,7 +44860,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.13",
+                "package_key": "tear-client-0.1.14",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -44857,7 +44872,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.13",
+                "package_key": "tear-config-0.1.14",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44867,7 +44882,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.13",
+                "package_key": "tear-core-0.1.14",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -44879,7 +44894,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.13",
+                "package_key": "tear-types-0.1.14",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -48032,7 +48047,7 @@
               },
               {
                 "name": "futures_channel",
-                "package_key": "futures-channel-0.3.33",
+                "package_key": "futures-channel-0.3.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48042,7 +48057,7 @@
               },
               {
                 "name": "futures_util",
-                "package_key": "futures-util-0.3.33",
+                "package_key": "futures-util-0.3.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -48335,7 +48350,7 @@
               "system"
             ]
           },
-          "mado-0.1.129": {
+          "mado-0.1.130": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48764,7 +48779,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.13",
+                "package_key": "praca-0.1.14",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48861,7 +48876,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.498",
+                "package_key": "shikumi-0.1.514",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -48873,7 +48888,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.43",
+                "package_key": "tatara-lisp-0.3.44",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48883,7 +48898,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.13",
+                "package_key": "tear-client-0.1.14",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -48895,7 +48910,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.13",
+                "package_key": "tear-config-0.1.14",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48905,7 +48920,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.13",
+                "package_key": "tear-core-0.1.14",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -48917,7 +48932,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.13",
+                "package_key": "tear-types-0.1.14",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -52131,35 +52146,35 @@
     "futf-0.1.5": {
       "edition": "2015"
     },
-    "futures-0.3.33": {
+    "futures-0.3.34": {
       "edition": "2018"
     },
-    "futures-channel-0.3.33": {
+    "futures-channel-0.3.34": {
       "edition": "2018"
     },
-    "futures-core-0.3.33": {
+    "futures-core-0.3.34": {
       "edition": "2018"
     },
-    "futures-executor-0.3.33": {
+    "futures-executor-0.3.34": {
       "edition": "2018"
     },
     "futures-intrusive-0.5.0": {
       "edition": "2018"
     },
-    "futures-io-0.3.33": {
+    "futures-io-0.3.34": {
       "edition": "2018"
     },
-    "futures-macro-0.3.33": {
+    "futures-macro-0.3.34": {
       "edition": "2018",
       "proc_macro": true
     },
-    "futures-sink-0.3.33": {
+    "futures-sink-0.3.34": {
       "edition": "2018"
     },
-    "futures-task-0.3.33": {
+    "futures-task-0.3.34": {
       "edition": "2018"
     },
-    "futures-util-0.3.33": {
+    "futures-util-0.3.34": {
       "edition": "2018"
     },
     "garasu-0.1.9": {
@@ -52287,7 +52302,7 @@
     "http-body-1.1.0": {
       "edition": "2018"
     },
-    "http-body-util-0.1.4": {
+    "http-body-util-0.1.5": {
       "edition": "2018"
     },
     "httparse-1.10.1": {
@@ -52303,7 +52318,7 @@
     "hyper-1.11.0": {
       "edition": "2021"
     },
-    "hyper-http-proxy-1.1.1": {
+    "hyper-http-proxy-1.2.0": {
       "edition": "2021"
     },
     "hyper-rustls-0.27.9": {
@@ -52538,7 +52553,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.129": {
+    "mado-0.1.130": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -52607,7 +52622,7 @@
     "mio-1.2.2": {
       "edition": "2021"
     },
-    "monosashi-0.3.43": {
+    "monosashi-0.3.44": {
       "edition": "2021"
     },
     "moxcms-0.8.1": {
@@ -52659,7 +52674,7 @@
     "num-conv-0.2.2": {
       "edition": "2021"
     },
-    "num-integer-0.1.46": {
+    "num-integer-0.1.47": {
       "edition": "2018"
     },
     "num-iter-0.1.46": {
@@ -52746,6 +52761,9 @@
     },
     "objc2-user-notifications-0.3.2": {
       "edition": "2021"
+    },
+    "okiba-0.1.1": {
+      "edition": "2024"
     },
     "once_cell-1.21.4": {
       "edition": "2021"
@@ -52991,7 +53009,7 @@
     "ppv-lite86-0.2.21": {
       "edition": "2021"
     },
-    "praca-0.1.13": {
+    "praca-0.1.14": {
       "edition": "2024"
     },
     "precomputed-hash-0.1.1": {
@@ -53194,7 +53212,7 @@
     "rustls-pki-types-1.15.1": {
       "edition": "2021"
     },
-    "rustls-webpki-0.103.13": {
+    "rustls-webpki-0.103.14": {
       "edition": "2021",
       "lib_target": {
         "name": "webpki",
@@ -53373,7 +53391,7 @@
     "shidou-0.1.10": {
       "edition": "2024"
     },
-    "shikumi-0.1.498": {
+    "shikumi-0.1.514": {
       "edition": "2024"
     },
     "shlex-2.0.1": {
@@ -53525,36 +53543,36 @@
     "tap-1.0.1": {
       "edition": "2015"
     },
-    "tatara-closed-set-0.3.43": {
+    "tatara-closed-set-0.3.44": {
       "edition": "2021"
     },
-    "tatara-closed-set-derive-0.3.43": {
+    "tatara-closed-set-derive-0.3.44": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-core-0.2.203": {
+    "tatara-core-0.2.219": {
       "edition": "2021"
     },
-    "tatara-eval-0.2.203": {
+    "tatara-eval-0.2.218": {
       "edition": "2021"
     },
-    "tatara-lattice-0.2.203": {
+    "tatara-lattice-0.2.219": {
       "edition": "2021"
     },
-    "tatara-lisp-0.3.43": {
+    "tatara-lisp-0.3.44": {
       "edition": "2021"
     },
-    "tatara-lisp-derive-0.3.43": {
+    "tatara-lisp-derive-0.3.44": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-lisp-eval-0.3.43": {
+    "tatara-lisp-eval-0.3.44": {
       "edition": "2021"
     },
-    "tatara-nix-0.2.203": {
+    "tatara-nix-0.2.219": {
       "edition": "2021"
     },
-    "tatara-process-0.2.203": {
+    "tatara-process-0.2.219": {
       "edition": "2021",
       "binaries": [
         {
@@ -53563,19 +53581,19 @@
         }
       ]
     },
-    "tear-client-0.1.13": {
+    "tear-client-0.1.14": {
       "edition": "2024"
     },
-    "tear-config-0.1.13": {
+    "tear-config-0.1.14": {
       "edition": "2024"
     },
-    "tear-core-0.1.13": {
+    "tear-core-0.1.14": {
       "edition": "2024"
     },
-    "tear-daemon-0.1.13": {
+    "tear-daemon-0.1.14": {
       "edition": "2024"
     },
-    "tear-types-0.1.13": {
+    "tear-types-0.1.14": {
       "edition": "2024"
     },
     "tempfile-3.27.0": {
