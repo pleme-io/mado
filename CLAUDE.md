@@ -153,7 +153,7 @@ Config <-- shikumi (hot-reload, ArcSwap) <-- ~/.config/mado/mado.yaml
 
 | Module | Lines | Purpose | Key Types |
 |--------|-------|---------|-----------|
-| `terminal.rs` | ~11300 | VT100/xterm state machine | `Terminal`, `Grid`, `Cell`, `CellAttrs`, `Color`, `MouseMode` |
+| `terminal.rs` | **13,453** (measured 2026-08-13; the ~11300 here was stale) | VT100/xterm state machine — **destined for `tear-core::PaneGrid`** per [`docs/SHUKEN.md`](https://github.com/pleme-io/tear/blob/main/docs/SHUKEN.md); before hand-adding a VT arm here, read [`theory/NATURALIZE-TERMINAL.md`](https://github.com/pleme-io/theory/blob/main/NATURALIZE-TERMINAL.md) | `Terminal`, `Grid`, `Cell`, `CellAttrs`, `Color`, `MouseMode` |
 | `render.rs` | ~9500 | Multi-pass GPU pipeline | `TerminalRenderer`, `RectPipeline`, `Snapshot` |
 | `main.rs` | ~1450 | Event loop, input dispatch | CLI args, clipboard, double/triple click, single-pane wiring |
 | `config.rs` | ~6200 | shikumi config with hot-reload | `MadoConfig`, `load_and_watch()` |
