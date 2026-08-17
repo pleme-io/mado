@@ -1938,9 +1938,9 @@ rec {
       };
       "cc" = rec {
         crateName = "cc";
-        version = "1.4.2";
+        version = "1.4.3";
         edition = "2021";
-        sha256 = "0zi7dyd4jaflww22jd3701869jrv4p47f9xlslw7h60pk4a2w9jx";
+        sha256 = "0v9b5arr047vbihfbh3fmbd3aj9vf1i7dbdgfpvlwzynpjvr35ah";
         dependencies = [
           {
             name = "find-msvc-tools";
@@ -4240,9 +4240,9 @@ rec {
       };
       "egaku" = rec {
         crateName = "egaku";
-        version = "0.1.12";
+        version = "0.1.13";
         edition = "2024";
-        sha256 = "0674snif1ag31i7qr9zzbamxbxiv3bhx07091s613qcsqn2angp6";
+        sha256 = "1jdal2i9jgs9nkhjm8mm45kwljxp7v1x88srd8z459dab5n42b89";
         dependencies = [
           {
             name = "awase";
@@ -4252,6 +4252,10 @@ rec {
             name = "serde";
             packageId = "serde";
             features = [ "derive" ];
+          }
+          {
+            name = "shibori";
+            packageId = "shibori";
           }
           {
             name = "thiserror";
@@ -4536,9 +4540,9 @@ rec {
       };
       "error-code" = rec {
         crateName = "error-code";
-        version = "3.3.2";
+        version = "3.4.0";
         edition = "2018";
-        sha256 = "0nacxm9xr3s1rwd6fabk3qm89fyglahmbi4m512y0hr8ym6dz8ny";
+        sha256 = "1dv1fs1h1zkgvpvck23cgw61jji3rysdm26579j5ldm8sjpl6lqb";
         libName = "error_code";
         authors = [
           "Douman <douman@gmx.se>"
@@ -4847,9 +4851,9 @@ rec {
       };
       "find-msvc-tools" = rec {
         crateName = "find-msvc-tools";
-        version = "0.1.10";
+        version = "0.1.11";
         edition = "2021";
-        sha256 = "1pp1612g5k6im9732g16j6a87czhb35xcyzlrpq2mkgdwrrkbdr6";
+        sha256 = "145qpfb9r4ml2klr8v4byvrkikp61qyiks9n69b8z0vbscbb0pfl";
         libName = "find_msvc_tools";
 
       };
@@ -7533,9 +7537,9 @@ rec {
       };
       "icu_collections" = rec {
         crateName = "icu_collections";
-        version = "2.2.0";
-        edition = "2021";
-        sha256 = "070r7xd0pynm0hnc1v2jzlbxka6wf50f81wybf9xg0y82v6x3119";
+        version = "2.3.0";
+        edition = "2024";
+        sha256 = "04x59h6vdq0cnpippim1nr471ivlsnnn470sj1d5v864h48d4s7s";
         authors = [
           "The ICU4X Project Developers"
         ];
@@ -7583,9 +7587,9 @@ rec {
       };
       "icu_locale_core" = rec {
         crateName = "icu_locale_core";
-        version = "2.2.0";
-        edition = "2021";
-        sha256 = "0a9cmin5w1x3bg941dlmgszn33qgq428k7qiqn5did72ndi9n8cj";
+        version = "2.3.0";
+        edition = "2024";
+        sha256 = "1sqdj16wwl7h9y6r7j394av4kpdb7zryz9h169ffwbm9imc2hvnm";
         authors = [
           "The ICU4X Project Developers"
         ];
@@ -7635,9 +7639,9 @@ rec {
       };
       "icu_normalizer" = rec {
         crateName = "icu_normalizer";
-        version = "2.2.0";
-        edition = "2021";
-        sha256 = "1d7krxr0xpc4x9635k1100a24nh0nrc59n65j6yk6gbfkplmwvn5";
+        version = "2.3.0";
+        edition = "2024";
+        sha256 = "0vv43ixk2wmbxrx7kl33cwkhx1wdyb1q3pa18qkyshan4dgwzy8j";
         authors = [
           "The ICU4X Project Developers"
         ];
@@ -7689,9 +7693,9 @@ rec {
       };
       "icu_normalizer_data" = rec {
         crateName = "icu_normalizer_data";
-        version = "2.2.0";
-        edition = "2021";
-        sha256 = "0f5d5d5fhhr9937m2z6z38fzh6agf14z24kwlr6lyczafypf0fys";
+        version = "2.3.0";
+        edition = "2024";
+        sha256 = "1811h0ppb7lwq1q2492p5x6lcmlwmhbmkf69fhyvzcz0scgdlqqm";
         authors = [
           "The ICU4X Project Developers"
         ];
@@ -7699,13 +7703,18 @@ rec {
       };
       "icu_properties" = rec {
         crateName = "icu_properties";
-        version = "2.2.0";
-        edition = "2021";
-        sha256 = "1pkh3s837808cbwxvfagwc28cvwrz2d9h5rl02jwrhm51ryvdqxy";
+        version = "2.3.0";
+        edition = "2024";
+        sha256 = "0j51hi8qgf0l6a7qzvnwsc61598w2fpnsklicld6ci9immva4z3y";
         authors = [
           "The ICU4X Project Developers"
         ];
         dependencies = [
+          {
+            name = "displaydoc";
+            packageId = "displaydoc";
+            usesDefaultFeatures = false;
+          }
           {
             name = "icu_collections";
             packageId = "icu_collections";
@@ -7747,6 +7756,7 @@ rec {
           "datagen" = [ "serde" "dep:databake" "zerovec/databake" "icu_collections/databake" "icu_locale_core/databake" "zerotrie/databake" "icu_provider/export" ];
           "default" = [ "compiled_data" ];
           "harfbuzz_traits" = [ "dep:harfbuzz-traits" ];
+          "log" = [ "dep:log" ];
           "serde" = [ "dep:serde" "icu_locale_core/serde" "zerovec/serde" "icu_collections/serde" "icu_provider/serde" "zerotrie/serde" ];
           "unicode_bidi" = [ "dep:unicode-bidi" ];
         };
@@ -7754,9 +7764,9 @@ rec {
       };
       "icu_properties_data" = rec {
         crateName = "icu_properties_data";
-        version = "2.2.0";
-        edition = "2021";
-        sha256 = "052awny0qwkbcbpd5jg2cd7vl5ry26pq4hz1nfsgf10c3qhbnawf";
+        version = "2.3.0";
+        edition = "2024";
+        sha256 = "1akw1gp5rcaiz377xzsnkx8f92qax4kh3lfn9y4rcjj6q4wg1475";
         authors = [
           "The ICU4X Project Developers"
         ];
@@ -7764,9 +7774,9 @@ rec {
       };
       "icu_provider" = rec {
         crateName = "icu_provider";
-        version = "2.2.0";
-        edition = "2021";
-        sha256 = "08dl8pxbwr8zsz4c5vphqb7xw0hykkznwi4rw7bk6pwb3krlr70k";
+        version = "2.3.0";
+        edition = "2024";
+        sha256 = "0a343jlrb7jlb20xv1airslzv63559wf38jihrx81bba39kyv9wj";
         authors = [
           "The ICU4X Project Developers"
         ];
@@ -8058,9 +8068,9 @@ rec {
       };
       "inotify" = rec {
         crateName = "inotify";
-        version = "0.11.4";
+        version = "0.11.5";
         edition = "2018";
-        sha256 = "1j7jkacw6cxra4jf1sbndkpkbm5qm0bvxpcms36cjghq3aaf2fqm";
+        sha256 = "14p5gkhk95yk536zncfrjywy2yxrxf06yrfsnx89bd6a0ylhxh2c";
         dependencies = [
           {
             name = "bitflags";
@@ -8350,9 +8360,9 @@ rec {
       };
       "izumi" = rec {
         crateName = "izumi";
-        version = "0.1.19";
+        version = "0.1.20";
         edition = "2024";
-        sha256 = "0dvz19vln94q9rwczf9vpwkykmg2m16l7yx95lvyfy5852xjr6yr";
+        sha256 = "0x7jqhjrwq7rahpn3zhzalnk63maw6859wpn6fnr69j2by0v1jkv";
         authors = [
           "pleme-io"
         ];
@@ -8418,9 +8428,9 @@ rec {
       };
       "izumi-config" = rec {
         crateName = "izumi-config";
-        version = "0.1.19";
+        version = "0.1.20";
         edition = "2024";
-        sha256 = "0id2mgn3i3xvh7qaqiiy7nfw8vm1dvhvxd8b27qin8lzzs3x0xi8";
+        sha256 = "0dbfzi6y99ry7gsvq0cs02sbdndvvi6gxmlcbrpqa42cbsqv0yg1";
         libName = "izumi_config";
         authors = [
           "pleme-io"
@@ -8444,9 +8454,9 @@ rec {
       };
       "izumi-sources" = rec {
         crateName = "izumi-sources";
-        version = "0.1.19";
+        version = "0.1.20";
         edition = "2024";
-        sha256 = "04dhk8m7smiqxl4x2zvxc1gmfzyivhlnfsk76kjvv8zm8m3clgax";
+        sha256 = "0qlnfdngxccx1qn56kaqiq7sz6rifxh1a26p3fphiii6j0nb2l56";
         libName = "izumi_sources";
         authors = [
           "pleme-io"
@@ -8880,9 +8890,9 @@ rec {
       };
       "kanshou" = rec {
         crateName = "kanshou";
-        version = "0.1.5";
+        version = "0.1.6";
         edition = "2024";
-        sha256 = "0gyl7ldlz8didldpkhc8nz3zd98pzf0g9b682j0x8xc91naqydpq";
+        sha256 = "12b397y8aybcgnjq4s73ghzfmal4cigiy2z7y84b0vin461cxhgc";
         authors = [
           "pleme-io"
         ];
@@ -8891,6 +8901,10 @@ rec {
             name = "kanshou-derive";
             packageId = "kanshou-derive";
             optional = true;
+          }
+          {
+            name = "okiba";
+            packageId = "okiba";
           }
           {
             name = "serde";
@@ -8930,9 +8944,9 @@ rec {
       };
       "kanshou-derive" = rec {
         crateName = "kanshou-derive";
-        version = "0.1.5";
+        version = "0.1.6";
         edition = "2024";
-        sha256 = "16x3v333p0g8ipkwknnqgrglagzxbj0k0bcjqb7vag92zpy0ifn1";
+        sha256 = "1h1qz6waqkp1d146ak9yiwiyjrhml1yyids2nx059yk3iyig86mx";
         procMacro = true;
         libName = "kanshou_derive";
         authors = [
@@ -9742,9 +9756,9 @@ rec {
       };
       "libredox" = rec {
         crateName = "libredox";
-        version = "0.1.19";
+        version = "0.1.20";
         edition = "2021";
-        sha256 = "1yl5s2g4s072829l4sis97shg98dlk5qhr6mylmhp8b4cw2sa9i0";
+        sha256 = "02h77867iakw9798c6zl238rwzrs3rr9ny5ng7b31yd94l4s1l18";
         authors = [
           "4lDO2 <4lDO2@protonmail.com>"
         ];
@@ -10014,9 +10028,9 @@ rec {
       };
       "litemap" = rec {
         crateName = "litemap";
-        version = "0.8.2";
+        version = "0.8.3";
         edition = "2021";
-        sha256 = "1w7628bc7wwcxc4n4s5kw0610xk06710nh2hn5kwwk2wa91z9nlj";
+        sha256 = "1bpgpj87560hmckh3875fbahpmfxbk4g8pzns84h3ykf3nfx3na7";
         authors = [
           "The ICU4X Project Developers"
         ];
@@ -10166,7 +10180,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.132";
+        version = "0.1.133";
         edition = "2024";
         crateBin = [
           {
@@ -10928,9 +10942,9 @@ rec {
       };
       "monosashi" = rec {
         crateName = "monosashi";
-        version = "0.3.44";
+        version = "0.3.46";
         edition = "2021";
-        sha256 = "118x8dxls2f86l2hbr2z0wj22a495f7p03a8fk7s0llpc7k2bsgk";
+        sha256 = "1cy293fjc391rs5fhcsfkmm4pqwcvdfdf3w8c3yx034wymk0af7b";
         authors = [
           "Pleme.io <engineering@pleme.io>"
         ];
@@ -14959,9 +14973,9 @@ rec {
       };
       "okiba" = rec {
         crateName = "okiba";
-        version = "0.1.1";
+        version = "0.2.1";
         edition = "2024";
-        sha256 = "1xr0czg5zrb5mcc1pkdgyzpwyysnva7x8i5xhcijh4y3kahc3yb8";
+        sha256 = "0j0in2spm2ljjafcr2g3xpzkfyd6rifpqfy7hvkqcl1ck2wrqzxv";
 
       };
       "once_cell" = rec {
@@ -15816,9 +15830,9 @@ rec {
       };
       "pest" = rec {
         crateName = "pest";
-        version = "2.8.8";
+        version = "2.9.0";
         edition = "2021";
-        sha256 = "18jhl2zpxvl6kikc0jgp7gi7i7cy9s634z5bnvx70w1whjz2ixvx";
+        sha256 = "1kwvhc5hyrfpxpmp0jw0wr891xyjs44mcs2wz68hrl54qw6ac1ss";
         authors = [
           "Dragoș Tiselice <dragostiselice@gmail.com>"
         ];
@@ -15845,9 +15859,9 @@ rec {
       };
       "pest_derive" = rec {
         crateName = "pest_derive";
-        version = "2.8.8";
+        version = "2.9.0";
         edition = "2021";
-        sha256 = "1zcijlfdf6sk2s6l1qnm3j7kj7d4ymqcial8w4p4dcr67gydcbcy";
+        sha256 = "13f8ihi8928s9mc13pcbhxy382kqc89h7i8d7s5mnif8lm23ga5k";
         procMacro = true;
         authors = [
           "Dragoș Tiselice <dragostiselice@gmail.com>"
@@ -15873,9 +15887,9 @@ rec {
       };
       "pest_generator" = rec {
         crateName = "pest_generator";
-        version = "2.8.8";
+        version = "2.9.0";
         edition = "2021";
-        sha256 = "1dkmk6r6bb2hh5wayymfmwd7mswwbyhw12dnx2lrdxdnrw2r4yka";
+        sha256 = "0jihcdnmdban4bqjd02r2wbb79nywj2nhwqyk95hvrixm98k9kg0";
         authors = [
           "Dragoș Tiselice <dragostiselice@gmail.com>"
         ];
@@ -15911,9 +15925,9 @@ rec {
       };
       "pest_meta" = rec {
         crateName = "pest_meta";
-        version = "2.8.8";
+        version = "2.9.0";
         edition = "2021";
-        sha256 = "0z7m54jc3nj3nxbbk4kyjfa06d8s24vhf6krzj2867nyq18x7aw5";
+        sha256 = "15jly0r7r4m15fhm3pg814h65j7dqnqq6k43rvgxfhg29443lkg0";
         authors = [
           "Dragoș Tiselice <dragostiselice@gmail.com>"
         ];
@@ -16283,9 +16297,9 @@ rec {
       };
       "pkg-config" = rec {
         crateName = "pkg-config";
-        version = "0.3.33";
-        edition = "2018";
-        sha256 = "17jnqmcbxsnwhg9gjf0nh6dj5k0x3hgwi3mb9krjnmfa9v435w8r";
+        version = "0.3.34";
+        edition = "2021";
+        sha256 = "0j05h08nzg0q8rf6lzw7nry0b7kn7x97vc9n4hwrl52fqzxn9d7n";
         libName = "pkg_config";
         authors = [
           "Alex Crichton <alex@alexcrichton.com>"
@@ -16787,9 +16801,9 @@ rec {
       };
       "potential_utf" = rec {
         crateName = "potential_utf";
-        version = "0.1.5";
+        version = "0.1.6";
         edition = "2021";
-        sha256 = "0r0518fr32xbkgzqap509s3r60cr0iancsg9j1jgf37cyz7b20q1";
+        sha256 = "0qbndl2fpphq7mph41m11vaixs05xrh1s451wxlgap4fdnybjgnq";
         authors = [
           "The ICU4X Project Developers"
         ];
@@ -16848,9 +16862,9 @@ rec {
       };
       "praca" = rec {
         crateName = "praca";
-        version = "0.1.14";
+        version = "0.1.18";
         edition = "2024";
-        sha256 = "0d4m7hcmybn1i633flsck0fb4gb9grg5j851c2jaadx8sqfhi1qx";
+        sha256 = "00q2nwmqml2bs6g5hdvh4sq8bqmh916sqapm12awkpi365p32y9d";
         authors = [
           "pleme-io"
         ];
@@ -16863,6 +16877,10 @@ rec {
             name = "serde";
             packageId = "serde";
             features = [ "derive" ];
+          }
+          {
+            name = "shibori";
+            packageId = "shibori";
           }
           {
             name = "tear-types";
@@ -17983,16 +18001,17 @@ rec {
       };
       "rangemap" = rec {
         crateName = "rangemap";
-        version = "1.7.1";
+        version = "1.8.0";
         edition = "2018";
-        sha256 = "0s7am2w72siggn668h03gn3g06gsinv6m1jaaxmnbj59177l6d4p";
+        sha256 = "0gdaws5kkg3md7z4w7ln4sf3jkz6n3f3xl5pfr6fngvla1dx24d6";
         authors = [
           "Jeff Parsons <jeff@parsons.io>"
         ];
         features = {
+          "ordered-float5" = [ "dep:ordered-float" ];
           "quickcheck" = [ "dep:quickcheck" ];
           "serde" = [ "dep:serde" ];
-          "serde1" = [ "serde" ];
+          "serde1" = [ "serde" "ordered-float?/serde" ];
         };
       };
       "raw-window-handle" = rec {
@@ -19875,9 +19894,9 @@ rec {
       };
       "safe_arch" = rec {
         crateName = "safe_arch";
-        version = "1.1.0";
+        version = "1.2.0";
         edition = "2024";
-        sha256 = "0nbwviq480g36wx7m48qkyrwvrw1prybnnnnkwzp0k823wayqlis";
+        sha256 = "0przxg40043xxwgfgzx5qpx882x4q6qb07x6kjryrrkmb2hyzij2";
         authors = [
           "Lokathor <zefria@gmail.com>"
         ];
@@ -21706,6 +21725,13 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "std" ];
       };
+      "shibori" = rec {
+        crateName = "shibori";
+        version = "0.1.1";
+        edition = "2024";
+        sha256 = "0h1z8blr656c50rn6vfxlzagvbyfy8s79c8xbl2izvb2qkbkxyx5";
+
+      };
       "shidou" = rec {
         crateName = "shidou";
         version = "0.1.10";
@@ -21749,9 +21775,9 @@ rec {
       };
       "shikumi" = rec {
         crateName = "shikumi";
-        version = "0.1.516";
+        version = "0.1.594";
         edition = "2024";
-        sha256 = "0gbfw1hx8ip6dx1y4lk48i341vrrakzzmd2fcnaaac8q69zdmyxz";
+        sha256 = "00vgy2h27z19h668lqbh2j0i5mwnph2vzvjjr82k4cjqpr8c8vdh";
         dependencies = [
           {
             name = "arc-swap";
@@ -23726,7 +23752,7 @@ rec {
           "proc-macro" = [ "proc-macro2/proc-macro" "quote?/proc-macro" ];
           "test" = [ "syn-test-suite/all-features" ];
         };
-        resolvedDefaultFeatures = [ "clone-impls" "default" "derive" "full" "parsing" "printing" "proc-macro" "visit-mut" ];
+        resolvedDefaultFeatures = [ "clone-impls" "default" "derive" "extra-traits" "full" "parsing" "printing" "proc-macro" "visit-mut" ];
       };
       "sync_wrapper" = rec {
         crateName = "sync_wrapper";
@@ -23913,9 +23939,9 @@ rec {
       };
       "tatara-closed-set" = rec {
         crateName = "tatara-closed-set";
-        version = "0.3.44";
+        version = "0.3.46";
         edition = "2021";
-        sha256 = "1dr5kmwpnj6vx8fgkmzgrfnr2lmy267jy2m52wlvrzimwvlg5cmg";
+        sha256 = "1bnwb18xdb8gh1a4nrs8pp09b5idw61r36q7lq4n4vb7rkzlsaaz";
         libName = "tatara_closed_set";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -23930,9 +23956,9 @@ rec {
       };
       "tatara-closed-set-derive" = rec {
         crateName = "tatara-closed-set-derive";
-        version = "0.3.44";
+        version = "0.3.46";
         edition = "2021";
-        sha256 = "1ix7m407mazp0ylzdqjzsx9wanpijgbdv8r4a09yc98viiqp3k3a";
+        sha256 = "1bdav5kiz54lfq94lx6warrpq923lisvy81z12nywidq155rzg7b";
         procMacro = true;
         libName = "tatara_closed_set_derive";
         authors = [
@@ -23957,9 +23983,9 @@ rec {
       };
       "tatara-core" = rec {
         crateName = "tatara-core";
-        version = "0.2.222";
+        version = "0.2.310";
         edition = "2021";
-        sha256 = "1s7n92w3ilkcksb43wbn99h3zl23i9wg3gf396lrkwci2jz406n2";
+        sha256 = "1wdyyz7jqqw73fr8087nr663cayhalwafmp2zh1s9gr24zq4kdch";
         libName = "tatara_core";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24034,9 +24060,9 @@ rec {
       };
       "tatara-eval" = rec {
         crateName = "tatara-eval";
-        version = "0.2.221";
+        version = "0.2.310";
         edition = "2021";
-        sha256 = "13xal1lk5g3biwi50mv7s9xpq358354zzni78hfvlprc0dsjg5wl";
+        sha256 = "14ndbn2hpigxh1sv8rnzh0513bkrw36nwy0cpwp9k6bxym2lxzih";
         libName = "tatara_eval";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24073,9 +24099,9 @@ rec {
       };
       "tatara-lattice" = rec {
         crateName = "tatara-lattice";
-        version = "0.2.222";
+        version = "0.2.310";
         edition = "2021";
-        sha256 = "07y49aqr43cbbnyvv5c60dvmjs4sgwf93g5lgvmkwpck4aa93k1f";
+        sha256 = "16hj7naq9a378n7zq6vzxjg0z1x9pzyq0s4lwm5fm9qinmzm6zfz";
         libName = "tatara_lattice";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24104,9 +24130,9 @@ rec {
       };
       "tatara-lisp" = rec {
         crateName = "tatara-lisp";
-        version = "0.3.44";
+        version = "0.3.46";
         edition = "2021";
-        sha256 = "13wz7f6d6k7565g0k0ddb979ygwb2ci420ampcb7zq7pxfs93k89";
+        sha256 = "15vz23jwdg6lrjvsx39hlc31w863y3vmhcdszjk0d1cgc9iwa175";
         libName = "tatara_lisp";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24144,9 +24170,9 @@ rec {
       };
       "tatara-lisp-derive" = rec {
         crateName = "tatara-lisp-derive";
-        version = "0.3.44";
+        version = "0.3.46";
         edition = "2021";
-        sha256 = "0z2kdgdwqmzi01wv182im6gi8v8n1syihfd87xa0rn47qqgdq7pm";
+        sha256 = "0ww7z5i08qz8hf8w1578zdpzyhvc9lrdqxh8hwqka0izm8sdfqzw";
         procMacro = true;
         libName = "tatara_lisp_derive";
         authors = [
@@ -24171,9 +24197,9 @@ rec {
       };
       "tatara-lisp-eval" = rec {
         crateName = "tatara-lisp-eval";
-        version = "0.3.44";
+        version = "0.3.46";
         edition = "2021";
-        sha256 = "0g6dwsghv34yz3dx53cpjb0kbb0zm6yny5bfjdyn8cbb818vx2vc";
+        sha256 = "1r0nf30zakr2ckpilmzrklphj2709vr8hyl7hgwn23kychws5ck3";
         libName = "tatara_lisp_eval";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24200,9 +24226,9 @@ rec {
       };
       "tatara-nix" = rec {
         crateName = "tatara-nix";
-        version = "0.2.221";
+        version = "0.2.310";
         edition = "2021";
-        sha256 = "112snzw47ki21yvdinf7sfcajmfkanbldm9afxzfb6ccg8j6q3yl";
+        sha256 = "0kig80arxsg0clf5r7m6qlnyi7qh596ff609g53i0v95rcr9p3jj";
         libName = "tatara_nix";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24250,10 +24276,10 @@ rec {
       };
       "tatara-process" = rec {
         crateName = "tatara-process";
-        version = "0.2.222";
+        version = "0.2.310";
         edition = "2021";
         crateBin = [];
-        sha256 = "0fdlfhzdak4ckcrjs8xn1q1kbyg2pzhbqj9yafrvcirhjws3bpqa";
+        sha256 = "10gm12m294rqlz1485jl6zl7ymj3fjkc8cydapfflb8q3bx6k5wc";
         libName = "tatara_process";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24333,9 +24359,9 @@ rec {
       };
       "tear-client" = rec {
         crateName = "tear-client";
-        version = "0.1.14";
+        version = "0.1.18";
         edition = "2024";
-        sha256 = "1n97w5n7nzgg6ma4q112264jwhknvh87cnn2cq9j0g6m8wbdc33y";
+        sha256 = "1l0wmnkd8kbk26dcy0s4whcji8kqzmhr9i1a788gla29jdbz7d2g";
         libName = "tear_client";
         authors = [
           "pleme-io"
@@ -24375,9 +24401,9 @@ rec {
       };
       "tear-config" = rec {
         crateName = "tear-config";
-        version = "0.1.14";
+        version = "0.1.18";
         edition = "2024";
-        sha256 = "1vqpvz7fs5k43yry4jd7kmgzqy8ijnz6hynw8r9c9g67i03gkay1";
+        sha256 = "1jc1141q3r2k424fbyvns461aaahaqjwzhgy207vshil82sbqicx";
         libName = "tear_config";
         authors = [
           "pleme-io"
@@ -24400,6 +24426,10 @@ rec {
             packageId = "notify";
             usesDefaultFeatures = false;
             features = [ "macos_fsevent" ];
+          }
+          {
+            name = "okiba";
+            packageId = "okiba";
           }
           {
             name = "once_cell";
@@ -24436,9 +24466,9 @@ rec {
       };
       "tear-core" = rec {
         crateName = "tear-core";
-        version = "0.1.14";
+        version = "0.1.18";
         edition = "2024";
-        sha256 = "1qq2r3hf65d97vhbhsk7wh93a5zghx8a94fxggf5qhyvnddj1lqn";
+        sha256 = "00mkv721sqrjasxy245vj50r5x0l0w0c4w64ykvwgwvjq1h9m96z";
         libName = "tear_core";
         authors = [
           "pleme-io"
@@ -24519,9 +24549,9 @@ rec {
       };
       "tear-daemon" = rec {
         crateName = "tear-daemon";
-        version = "0.1.14";
+        version = "0.1.18";
         edition = "2024";
-        sha256 = "1wjbxvbjwj53rqq063s4ciaxp584sajdf33dqrds8bjg0cyn57wp";
+        sha256 = "1dmfjzndkprc8zxj9j7dhmivs9g5jzhi9gs9ncjjn9dix4xz8wly";
         libName = "tear_daemon";
         authors = [
           "pleme-io"
@@ -24599,9 +24629,9 @@ rec {
       };
       "tear-types" = rec {
         crateName = "tear-types";
-        version = "0.1.14";
+        version = "0.1.18";
         edition = "2024";
-        sha256 = "1p05cbb9ddxdkdaxw9703rgmxldgh29knxk9q68qdz9k9z5h7jsw";
+        sha256 = "19fd2psnzk2jph44bwgcam2ff3bz9mcmx2i3x22yjszmx1958j1f";
         libName = "tear_types";
         authors = [
           "pleme-io"
@@ -24627,6 +24657,10 @@ rec {
           {
             name = "ishou-tokens";
             packageId = "ishou-tokens";
+          }
+          {
+            name = "okiba";
+            packageId = "okiba";
           }
           {
             name = "serde";
@@ -25083,9 +25117,9 @@ rec {
       };
       "tinystr" = rec {
         crateName = "tinystr";
-        version = "0.8.3";
+        version = "0.8.4";
         edition = "2021";
-        sha256 = "0vfr8x285w6zsqhna0a9jyhylwiafb2kc8pj2qaqaahw48236cn8";
+        sha256 = "0hzncw8rgk4syla79qscfml46jm7ll1zdp7kdacc42cj8n8prqmi";
         authors = [
           "The ICU4X Project Developers"
         ];
@@ -26957,9 +26991,9 @@ rec {
       };
       "uuid" = rec {
         crateName = "uuid";
-        version = "1.24.0";
+        version = "1.24.1";
         edition = "2021";
-        sha256 = "0faj5x0zgri8m3i8dv9qgyhiwqwdyhbl2g351cp3iin4ynk26fdz";
+        sha256 = "1n8b7fg7dbx6ws64387l2i0qq900rw9b7qax63acdh37sczw1vrc";
         authors = [
           "Ashley Mannix<ashleymannix@live.com.au>"
           "Dylan DPC<dylan.dpc@gmail.com>"
@@ -27727,9 +27761,9 @@ rec {
       };
       "wayland-backend" = rec {
         crateName = "wayland-backend";
-        version = "0.3.16";
+        version = "0.3.17";
         edition = "2021";
-        sha256 = "1f2l7zw10cwid6444w86szvr08wvgkhi6a31k64nz2y5s40wyv01";
+        sha256 = "0y50cw56f09cdcsinbbl94naz91xf7iqaj87s4f7py6zmm71pa9q";
         libName = "wayland_backend";
         authors = [
           "Elinor Berger <elinor@safaradeg.net>"
@@ -33381,9 +33415,9 @@ rec {
       };
       "writeable" = rec {
         crateName = "writeable";
-        version = "0.6.3";
+        version = "0.6.4";
         edition = "2021";
-        sha256 = "1i54d13h9bpap2hf13xcry1s4lxh7ap3923g8f3c0grd7c9fbyhz";
+        sha256 = "1p3r4s4wbf3dksfpj3xyrn7id5p0f7r74mj6qx6ngjfd6cm2vn1s";
         authors = [
           "The ICU4X Project Developers"
         ];
@@ -33880,9 +33914,9 @@ rec {
       };
       "zerotrie" = rec {
         crateName = "zerotrie";
-        version = "0.2.4";
+        version = "0.2.5";
         edition = "2021";
-        sha256 = "1gr0pkcn3qsr6in6iixqyp0vbzwf2j1jzyvh7yl2yydh3p9m548g";
+        sha256 = "0gss16krjzk22m57dz5hkdjg99ibj6pa41qr68na7w1jpp1nk8jf";
         authors = [
           "The ICU4X Project Developers"
         ];
@@ -33920,9 +33954,9 @@ rec {
       };
       "zerovec" = rec {
         crateName = "zerovec";
-        version = "0.11.6";
+        version = "0.11.7";
         edition = "2021";
-        sha256 = "0fdjsy6b31q9i0d73sl7xjd12xadbwi45lkpfgqnmasrqg5i3ych";
+        sha256 = "1n4n109wgbbin5hljq6gmbnqqg74yp9igzf40gbw2rkdjyswddcl";
         authors = [
           "The ICU4X Project Developers"
         ];
@@ -33966,9 +34000,9 @@ rec {
       };
       "zerovec-derive" = rec {
         crateName = "zerovec-derive";
-        version = "0.11.3";
+        version = "0.11.4";
         edition = "2021";
-        sha256 = "0m85qj92mmfvhjra6ziqky5b1p4kcmp5069k7kfadp5hr8jw8pb2";
+        sha256 = "0qmanjqvn97qwsscnzwyy7vad6h8rhydqq014gjvy0ka48ijah27";
         procMacro = true;
         libName = "zerovec_derive";
         authors = [
@@ -33985,7 +34019,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.119";
+            packageId = "syn 3.0.3";
             features = [ "extra-traits" ];
           }
         ];

@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "1912eefe65d63b6f9bbef0dad108953ba18572461d9acb6bf3d833448db75657",
+  "cargo_lock_sha256": "433273382188ae19cad110998f5ccf8d5324b0555fa9e465a96cc7252a9ac781",
   "manifest_sha256": {
-    "Cargo.toml": "1215964b21f6a9284d2e09f0a27cde81785c8149e59ef7f840264c1a8b271773"
+    "Cargo.toml": "85fed0cd8b78eeed71b1aec7c8e515c2efc441a2b3abcf9a43495245a094ed87"
   },
   "target_resolves": {
     "base": {
@@ -9210,7 +9210,7 @@
           "serde"
         ]
       },
-      "madori-0.1.9": {
+      "madori-0.1.10": {
         "runtime_dependencies": [
           {
             "name": "egaku",
@@ -26285,7 +26285,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.132": {
+          "mado-0.1.133": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26600,7 +26600,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.9",
+                "package_key": "madori-0.1.10",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31238,7 +31238,7 @@
               "system"
             ]
           },
-          "mado-0.1.132": {
+          "mado-0.1.133": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31553,7 +31553,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.9",
+                "package_key": "madori-0.1.10",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35269,7 +35269,7 @@
               "system"
             ]
           },
-          "mado-0.1.132": {
+          "mado-0.1.133": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35584,7 +35584,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.9",
+                "package_key": "madori-0.1.10",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39418,7 +39418,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.132": {
+          "mado-0.1.133": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39733,7 +39733,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.9",
+                "package_key": "madori-0.1.10",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44378,7 +44378,7 @@
               "system"
             ]
           },
-          "mado-0.1.132": {
+          "mado-0.1.133": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44693,7 +44693,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.9",
+                "package_key": "madori-0.1.10",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48416,7 +48416,7 @@
               "system"
             ]
           },
-          "mado-0.1.132": {
+          "mado-0.1.133": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48731,7 +48731,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.9",
+                "package_key": "madori-0.1.10",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -52619,7 +52619,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.132": {
+    "mado-0.1.133": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -52632,7 +52632,7 @@
         }
       ]
     },
-    "madori-0.1.9": {
+    "madori-0.1.10": {
       "edition": "2024"
     },
     "malloc_buf-0.0.6": {
