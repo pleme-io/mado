@@ -10430,7 +10430,10 @@ mod tests {
             "DECSCUSR sets shape and blink together; honouring half is wrong"
         );
         term.feed(b"\x1b[2 q"); // steady block — reedline's vi NORMAL
-        assert_eq!(term.cursor_presentation(), Some((CursorStyle::Block, false)));
+        assert_eq!(
+            term.cursor_presentation(),
+            Some((CursorStyle::Block, false))
+        );
     }
 
     /// A garbled parameter falls through the match untouched, so it must not
