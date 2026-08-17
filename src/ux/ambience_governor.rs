@@ -444,6 +444,55 @@ mod tests {
         );
     }
 
+    /// The shed-fast / reclaim-slow ASYMMETRY (`M_UP >> N_DOWN`) — the
+    /// mechanism this module's header calls "half the no-oscillation
+    /// guarantee", and which had NO guard until this test.
+    ///
+    /// Measured 2026-08-16 by red run: collapsing `M_UP` from 300 to
+    /// `N_DOWN` (30) left **all 9 governor tests green**. Neither
+    /// no-oscillation test can see it — an alternating or neutral signal
+    /// never builds a one-sided streak long enough for the asymmetry to
+    /// matter, which is precisely the marginal workload the asymmetry
+    /// exists to protect.
+    ///
+    /// Stated behaviourally rather than as `M_UP >= 10 * N_DOWN`: a
+    /// constant-comparing assertion restates the constants and would still
+    /// pass if the event arms stopped reading them.
+    #[test]
+    fn shed_fast_reclaim_slow_asymmetry_stops_a_marginal_workload_hunting() {
+        let mut g = AmbienceGovernor::new(AuroraQuality::High); // starts Medium
+        for _ in 0..N_DOWN {
+            g.on_event(GovernorEvent::TickOverBudget);
+        }
+        assert_eq!(
+            g.quality(),
+            AuroraQuality::Low,
+            "precondition: sustained over-budget sheds one tier"
+        );
+
+        // The SAME number of calm frames that sufficed to shed must NOT
+        // suffice to reclaim. If it does, a workload sitting near its
+        // budget gives the tier up and takes it straight back, forever.
+        for _ in 0..N_DOWN {
+            g.on_event(GovernorEvent::TickCalm);
+        }
+        assert_eq!(
+            g.quality(),
+            AuroraQuality::Low,
+            "a calm run no longer than the shed threshold must not reclaim"
+        );
+
+        // It takes the full, much longer, calm streak.
+        for _ in 0..(M_UP - N_DOWN) {
+            g.on_event(GovernorEvent::TickCalm);
+        }
+        assert_eq!(
+            g.quality(),
+            AuroraQuality::Medium,
+            "sustained calm does eventually reclaim the tier"
+        );
+    }
+
     /// N_DOWN consecutive over-budget frames step DOWN exactly once,
     /// and the over-streak resets after the step (the next step needs a
     /// fresh N_DOWN run).
