@@ -1,6 +1,6 @@
 # Session pre-warming — the on-call cockpit (vigy-configurable)
 
-> **Direction (operator, 2026-07-09, on-call at akeyless):** a Datadog/OpsGenie/
+> **Direction (operator, 2026-07-09, from an on-call rotation):** a Datadog/OpsGenie/
 > Grafana/VM alert on the Ctrl-S board shouldn't just Enter into a *bare* shell
 > — choosing to create its session should land you **already in the issue**:
 > kube-context set, pod described, logs streaming, runbook + dashboard open. The
