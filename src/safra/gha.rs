@@ -6,12 +6,12 @@
 //!
 //! **Generic + borealis-clean:** this source names no consumer. The concrete
 //! repo allowlist + workflow/env patterns are supplied as a [`GhaFilter`] from
-//! config (the blackmatter-akeyless layer carries the akeyless filter); the code
-//! + tests here use only generic shapes. See `docs/SAFRA.md` §2.5.
+//! config (the private deployment layer carries the site-specific filter); the
+//! code + tests here use only generic shapes. See `docs/SAFRA.md` §2.5.
 //!
 //! **Env denotation:** the critical signal is the target environment, encoded in
-//! the run *name* (e.g. "Deploy Service: auth, tenant: mte, environment:
-//! production, version: 1.2.3" → `mte_production`), since the job-level
+//! the run *name* (e.g. "Deploy Service: api, tenant: acme, environment:
+//! production, version: 1.2.3" → `acme_production`), since the job-level
 //! `environment:` keyword is not exposed on the runs API. [`extract_env`] parses
 //! it without a regex dependency.
 
@@ -314,26 +314,26 @@ mod tests {
     fn text_match_variants() {
         assert!(TextMatch::Exact("x".into()).matches("x"));
         assert!(TextMatch::Prefix("De".into()).matches("Deploy"));
-        assert!(TextMatch::Suffix("_production".into()).matches("mte_production"));
+        assert!(TextMatch::Suffix("_production".into()).matches("acme_production"));
         assert!(TextMatch::Contains("Build".into()).matches("Build-And-Push"));
-        assert!(!TextMatch::Suffix("_production".into()).matches("mte_staging"));
+        assert!(!TextMatch::Suffix("_production".into()).matches("acme_staging"));
     }
 
     #[test]
     fn extract_env_parses_tenant_and_environment() {
-        let n = "Deploy Service: auth, tenant: mte, environment: production, version: 1.2.3";
-        assert_eq!(extract_env(n).as_deref(), Some("mte_production"));
+        let n = "Deploy Service: api, tenant: acme, environment: production, version: 1.2.3";
+        assert_eq!(extract_env(n).as_deref(), Some("acme_production"));
         assert_eq!(extract_env("no tokens here"), None);
         assert_eq!(
-            extract_env("tenant: wmt environment: staging").as_deref(),
-            Some("wmt_staging")
+            extract_env("tenant: globex environment: staging").as_deref(),
+            Some("globex_staging")
         );
     }
 
     #[test]
     fn failed_prod_deploy_is_critical() {
         let r = run(
-            "Deploy tenant: mte, environment: production",
+            "Deploy tenant: acme, environment: production",
             "completed",
             Some("failure"),
             "workflow_dispatch",
@@ -341,7 +341,7 @@ mod tests {
         );
         let s = run_to_signal("o/r", &r, "deploy-flows", &prod_filter()).expect("surfaced");
         assert_eq!(s.severity, Severity::Critical);
-        assert_eq!(s.env, "mte_production");
+        assert_eq!(s.env, "acme_production");
         assert_eq!(s.identity, "o/r#42");
         assert_eq!(
             s.link.as_deref(),
@@ -352,7 +352,7 @@ mod tests {
     #[test]
     fn in_progress_deploy_is_warning() {
         let r = run(
-            "Deploy tenant: wmt, environment: staging",
+            "Deploy tenant: globex, environment: staging",
             "in_progress",
             None,
             "workflow_dispatch",
@@ -360,7 +360,7 @@ mod tests {
         );
         let s = run_to_signal("o/r", &r, "deploy-flows", &prod_filter()).expect("surfaced");
         assert_eq!(s.severity, Severity::Warning);
-        assert_eq!(s.env, "wmt_staging");
+        assert_eq!(s.env, "globex_staging");
     }
 
     #[test]
@@ -371,7 +371,7 @@ mod tests {
             run_to_signal(
                 "o/r",
                 &run(
-                    "Deploy Build tenant: mte, environment: production",
+                    "Deploy Build tenant: acme, environment: production",
                     "completed",
                     Some("failure"),
                     "workflow_dispatch",
@@ -387,7 +387,7 @@ mod tests {
             run_to_signal(
                 "o/r",
                 &run(
-                    "Deploy tenant: mte, environment: production",
+                    "Deploy tenant: acme, environment: production",
                     "in_progress",
                     None,
                     "workflow_dispatch",
@@ -403,7 +403,7 @@ mod tests {
             run_to_signal(
                 "o/r",
                 &run(
-                    "Deploy tenant: mte, environment: development",
+                    "Deploy tenant: acme, environment: development",
                     "in_progress",
                     None,
                     "workflow_dispatch",
@@ -419,7 +419,7 @@ mod tests {
             run_to_signal(
                 "o/r",
                 &run(
-                    "Deploy tenant: mte, environment: production",
+                    "Deploy tenant: acme, environment: production",
                     "completed",
                     Some("success"),
                     "workflow_dispatch",
@@ -435,8 +435,8 @@ mod tests {
     #[test]
     fn observe_polls_repo_and_normalizes() {
         let body = r#"{"total_count":2,"workflow_runs":[
-            {"id":1,"name":"Deploy tenant: mte, environment: production","status":"completed","conclusion":"failure","head_branch":"master","event":"workflow_dispatch","html_url":"https://x/1","actor":{"login":"bob"}},
-            {"id":2,"name":"Build-And-Push tenant: mte, environment: production","status":"in_progress","head_branch":"master","event":"workflow_dispatch","html_url":"https://x/2"}
+            {"id":1,"name":"Deploy tenant: acme, environment: production","status":"completed","conclusion":"failure","head_branch":"master","event":"workflow_dispatch","html_url":"https://x/1","actor":{"login":"bob"}},
+            {"id":2,"name":"Build-And-Push tenant: acme, environment: production","status":"in_progress","head_branch":"master","event":"workflow_dispatch","html_url":"https://x/2"}
         ]}"#;
         let url = GhaDeploymentSource::runs_url("https://api.github.com", "o/r");
         let env = MockEnvironment::new()
@@ -444,7 +444,7 @@ mod tests {
             .secret_val("github/x/token", "tok");
         let src = GhaDeploymentSource::new(prod_filter());
         let tracked_env = TrackedEnvironment {
-            name: "akeyless-gha".into(),
+            name: "example-gha".into(),
             groups: vec![],
             endpoints: vec![Endpoint {
                 service: ServiceKind::GitHubActions,

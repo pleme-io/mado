@@ -12,13 +12,13 @@
 //! / the `vigy` runtime) + the ~10 observability sources already shipped.
 //!
 //! Off by default (the bare tier ships no endpoints, no secrets, no pooling);
-//! the `blackmatter-akeyless` config layer flips it on and supplies the three
-//! tuning scopes.
+//! a private, out-of-tree deployment config layer flips it on and supplies the
+//! three tuning scopes.
 //!
 //! M0 (this module): the typed core — the declared schema ([`schema`]), the
 //! long-term curated set + batch convergence ([`curated`]), and the three-scope
 //! tunable config ([`config`]). M1+ land the tatara-lisp domains, the source
-//! matrix, the blackmatter-akeyless layer, and convergence hardening (see
+//! matrix, the deployment layer, and convergence hardening (see
 //! `docs/SAFRA.md` §10).
 
 // The plane is LIVE via the `SafraSuggestionSource` adapter (registered in the

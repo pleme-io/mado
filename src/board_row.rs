@@ -28,7 +28,7 @@
 //! service word, since the row already opens with a per-source emoji — is
 //! NOT supported. The icon literature is consistent that icon+label beats
 //! icon-alone for anything but a small, over-learned set, and mado has ~25
-//! source emoji. So `datadog:akeyless` keeps its word; it earns its width
+//! source emoji. So `datadog:acme` keeps its word; it earns its width
 //! by becoming a column instead of getting shorter.
 //!
 //! **One vocabulary across vendors.** Grafana says `critical`, Datadog
@@ -308,9 +308,9 @@ mod tests {
     #[test]
     fn metadata_starts_at_one_column_for_every_row() {
         let rows = vec![
-            row("short", Some("datadog:akeyless")),
+            row("short", Some("datadog:acme")),
             row("a much longer title here", Some("grafana:rio")),
-            row("mid length", Some("jira:asm")),
+            row("mid length", Some("jira:proj")),
         ];
         let out = render_aligned(&rows);
         let cols: Vec<usize> = out
@@ -335,7 +335,7 @@ mod tests {
     #[test]
     fn alignment_is_by_display_width_not_char_count() {
         let rows = vec![
-            row("\u{1f415} datadog thing", Some("datadog:akeyless")), // 🐕
+            row("\u{1f415} datadog thing", Some("datadog:acme")), // 🐕
             row("plain ascii thing", Some("grafana:rio")),
         ];
         let out = render_aligned(&rows);

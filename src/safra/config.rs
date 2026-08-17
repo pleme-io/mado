@@ -1,6 +1,6 @@
 //! Three-scope tunable config (global / group / specific), resolved most-
 //! specific-wins per field. See `docs/SAFRA.md` §6. Bare tier = off entirely;
-//! the `blackmatter-akeyless` layer supplies the on-config on top.
+//! a private, out-of-tree deployment layer supplies the on-config on top.
 
 use std::collections::HashMap;
 
@@ -65,7 +65,7 @@ impl ResolvedTuning {
 }
 
 /// The safra config surface. `enabled = false` is the bare tier (no pooling, no
-/// endpoints, no secrets); the blackmatter-akeyless layer flips it on and
+/// endpoints, no secrets); the private deployment layer flips it on and
 /// supplies the three scopes.
 #[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(default, deny_unknown_fields)]

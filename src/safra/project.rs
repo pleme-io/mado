@@ -103,11 +103,11 @@ mod tests {
 
     fn sig() -> Signal {
         Signal::new(
-            "mte_production",
+            "acme_production",
             "deploy-flows",
             "o/r#42",
             Severity::Critical,
-            "Deploy auth → mte production",
+            "Deploy api → acme production",
         )
         .with_link("https://github.com/o/r/actions/runs/42")
     }
@@ -115,18 +115,18 @@ mod tests {
     #[test]
     fn projects_a_clickable_scoped_suggestion() {
         let s = project_signal(&sig(), STUB, Path::new("/code")).expect("projected");
-        assert_eq!(s.title, "Deploy auth → mte production");
+        assert_eq!(s.title, "Deploy api → acme production");
         assert_eq!(
             s.urgency,
             Urgency::Critical,
             "critical severity → critical urgency"
         );
         assert!(
-            s.spawn.name().starts_with("mte_production"),
+            s.spawn.name().starts_with("acme_production"),
             "session scoped to the env"
         );
         assert_eq!(s.spawn.cwd(), Path::new("/code"));
-        assert!(s.detail.as_deref().unwrap().contains("env mte_production"));
+        assert!(s.detail.as_deref().unwrap().contains("env acme_production"));
         assert!(
             s.detail.as_deref().unwrap().contains("actions/runs/42"),
             "deep-link in detail"

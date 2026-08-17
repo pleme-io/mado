@@ -81,9 +81,9 @@ pub struct Endpoint {
 }
 
 /// A watched environment — the unit a source is scoped to. The tracked set is
-/// the Akeyless fleet by default (dev / staging-* / prod-* / cs-* — the
-/// portão/shaar registry). `groups` lets the 3-scope config target e.g. all
-/// `prod` envs at once.
+/// whatever fleet the deployment config layer declares (e.g. `dev` /
+/// `staging-*` / `prod-*`); mado ships none. `groups` lets the 3-scope config
+/// target e.g. all `prod` envs at once.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TrackedEnvironment {
