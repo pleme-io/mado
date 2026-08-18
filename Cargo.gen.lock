@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "f1b21a5dcfbaee7dd244877acb6e8f32dd451430e0f06ffcf343b0c331f01786",
+  "cargo_lock_sha256": "039eaa920c30b2316f80bca3a4b80d21e1a2ed0dfe5f6ee9f932368f79d49f07",
   "manifest_sha256": {
-    "Cargo.toml": "55939f070455039c7ba38416e9f7b16655408bc94d7245c02b89c4cd9b966136"
+    "Cargo.toml": "d55ee224835d695c466e9a56d2be749f2e44754b0c6d8b70cc3727c9a800a917"
   },
   "target_resolves": {
     "base": {
@@ -5262,7 +5262,7 @@
           "std"
         ]
       },
-      "h2-0.4.15": {
+      "h2-0.4.16": {
         "runtime_dependencies": [
           {
             "name": "atomic_waker",
@@ -5432,6 +5432,11 @@
           "num-traits",
           "std"
         ]
+      },
+      "handan-0.1.2": {
+        "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": []
       },
       "hasami-0.1.2": {
         "runtime_dependencies": [
@@ -6065,7 +6070,7 @@
           },
           {
             "name": "h2",
-            "package_key": "h2-0.4.15",
+            "package_key": "h2-0.4.16",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7325,7 +7330,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "izumi-0.1.20": {
+      "izumi-0.1.21": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -7401,7 +7406,7 @@
           },
           {
             "name": "todoku",
-            "package_key": "todoku-0.1.1",
+            "package_key": "todoku-0.1.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7450,11 +7455,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "izumi-config-0.1.20": {
+      "izumi-config-0.1.21": {
         "runtime_dependencies": [
           {
             "name": "izumi",
-            "package_key": "izumi-0.1.20",
+            "package_key": "izumi-0.1.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7488,11 +7493,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "izumi-sources-0.1.20": {
+      "izumi-sources-0.1.21": {
         "runtime_dependencies": [
           {
             "name": "izumi",
-            "package_key": "izumi-0.1.20",
+            "package_key": "izumi-0.1.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9603,7 +9608,7 @@
           "os-poll"
         ]
       },
-      "monosashi-0.3.46": {
+      "monosashi-0.3.52": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
@@ -12160,7 +12165,7 @@
           },
           {
             "name": "tatara_eval",
-            "package_key": "tatara-eval-0.2.310",
+            "package_key": "tatara-eval-0.2.311",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12170,7 +12175,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.46",
+            "package_key": "tatara-lisp-0.3.52",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12190,7 +12195,7 @@
           },
           {
             "name": "todoku",
-            "package_key": "todoku-0.1.1",
+            "package_key": "todoku-0.1.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12437,7 +12442,7 @@
           "std"
         ]
       },
-      "praca-0.1.18": {
+      "praca-0.1.19": {
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
@@ -12473,7 +12478,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.18",
+            "package_key": "tear-types-0.1.19",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13060,7 +13065,7 @@
           },
           {
             "name": "proto",
-            "package_key": "quinn-proto-0.11.16",
+            "package_key": "quinn-proto-0.11.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -13166,7 +13171,7 @@
           "rustls-ring"
         ]
       },
-      "quinn-proto-0.11.16": {
+      "quinn-proto-0.11.17": {
         "runtime_dependencies": [
           {
             "name": "bytes",
@@ -13997,7 +14002,7 @@
           },
           {
             "name": "h2",
-            "package_key": "h2-0.4.15",
+            "package_key": "h2-0.4.16",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19978,11 +19983,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-0.3.46": {
+      "tatara-closed-set-0.3.52": {
         "runtime_dependencies": [
           {
             "name": "tatara_closed_set_derive",
-            "package_key": "tatara-closed-set-derive-0.3.46",
+            "package_key": "tatara-closed-set-derive-0.3.52",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19994,7 +19999,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-derive-0.3.46": {
+      "tatara-closed-set-derive-0.3.52": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -20032,7 +20037,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-core-0.2.310": {
+      "tatara-core-0.2.311": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20198,7 +20203,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-eval-0.2.310": {
+      "tatara-eval-0.2.311": {
         "runtime_dependencies": [
           {
             "name": "bumpalo",
@@ -20236,7 +20241,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.46",
+            "package_key": "tatara-lisp-0.3.52",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20246,7 +20251,7 @@
           },
           {
             "name": "tatara_nix",
-            "package_key": "tatara-nix-0.2.310",
+            "package_key": "tatara-nix-0.2.311",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20268,7 +20273,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lattice-0.2.310": {
+      "tatara-lattice-0.2.311": {
         "runtime_dependencies": [
           {
             "name": "schemars",
@@ -20296,7 +20301,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.310",
+            "package_key": "tatara-core-0.2.311",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20306,7 +20311,7 @@
           },
           {
             "name": "tatara_process",
-            "package_key": "tatara-process-0.2.310",
+            "package_key": "tatara-process-0.2.311",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20318,7 +20323,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-0.3.46": {
+      "tatara-lisp-0.3.52": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -20354,7 +20359,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.3.46",
+            "package_key": "tatara-closed-set-0.3.52",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20364,7 +20369,7 @@
           },
           {
             "name": "tatara_lisp_derive",
-            "package_key": "tatara-lisp-derive-0.3.46",
+            "package_key": "tatara-lisp-derive-0.3.52",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20388,7 +20393,7 @@
           "default"
         ]
       },
-      "tatara-lisp-derive-0.3.46": {
+      "tatara-lisp-derive-0.3.52": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -20426,11 +20431,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lisp-eval-0.3.46": {
+      "tatara-lisp-eval-0.3.52": {
         "runtime_dependencies": [
           {
             "name": "monosashi",
-            "package_key": "monosashi-0.3.46",
+            "package_key": "monosashi-0.3.52",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20440,7 +20445,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.3.46",
+            "package_key": "tatara-closed-set-0.3.52",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20450,7 +20455,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.46",
+            "package_key": "tatara-lisp-0.3.52",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20472,7 +20477,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-nix-0.2.310": {
+      "tatara-nix-0.2.311": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -20518,7 +20523,7 @@
           },
           {
             "name": "tatara_lattice",
-            "package_key": "tatara-lattice-0.2.310",
+            "package_key": "tatara-lattice-0.2.311",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20528,7 +20533,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.46",
+            "package_key": "tatara-lisp-0.3.52",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20538,7 +20543,7 @@
           },
           {
             "name": "tatara_lisp_derive",
-            "package_key": "tatara-lisp-derive-0.3.46",
+            "package_key": "tatara-lisp-derive-0.3.52",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20570,7 +20575,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-process-0.2.310": {
+      "tatara-process-0.2.311": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20696,7 +20701,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.3.46",
+            "package_key": "tatara-closed-set-0.3.52",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20706,7 +20711,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.310",
+            "package_key": "tatara-core-0.2.311",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20716,7 +20721,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.46",
+            "package_key": "tatara-lisp-0.3.52",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20748,7 +20753,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-client-0.1.18": {
+      "tear-client-0.1.19": {
         "runtime_dependencies": [
           {
             "name": "engate_attach",
@@ -20792,7 +20797,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.18",
+            "package_key": "tear-config-0.1.19",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20802,7 +20807,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.18",
+            "package_key": "tear-types-0.1.19",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20817,7 +20822,7 @@
           "engate"
         ]
       },
-      "tear-config-0.1.18": {
+      "tear-config-0.1.19": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20917,7 +20922,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.18",
+            "package_key": "tear-types-0.1.19",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20949,7 +20954,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-core-0.1.18": {
+      "tear-core-0.1.19": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21055,7 +21060,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.18",
+            "package_key": "tear-config-0.1.19",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21065,7 +21070,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.18",
+            "package_key": "tear-types-0.1.19",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21120,7 +21125,7 @@
           "engate"
         ]
       },
-      "tear-daemon-0.1.18": {
+      "tear-daemon-0.1.19": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21189,7 +21194,7 @@
           },
           {
             "name": "praca",
-            "package_key": "praca-0.1.18",
+            "package_key": "praca-0.1.19",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21231,7 +21236,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.18",
+            "package_key": "tear-config-0.1.19",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21241,7 +21246,7 @@
           },
           {
             "name": "tear_core",
-            "package_key": "tear-core-0.1.18",
+            "package_key": "tear-core-0.1.19",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21251,7 +21256,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.18",
+            "package_key": "tear-types-0.1.19",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21289,7 +21294,7 @@
           "default"
         ]
       },
-      "tear-types-0.1.18": {
+      "tear-types-0.1.19": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21867,7 +21872,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "todoku-0.1.1": {
+      "todoku-0.1.2": {
         "runtime_dependencies": [
           {
             "name": "async_trait",
@@ -21878,6 +21883,16 @@
             "optional": false,
             "target": null,
             "tree": "host"
+          },
+          {
+            "name": "handan",
+            "package_key": "handan-0.1.2",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
           },
           {
             "name": "reqwest",
@@ -23826,7 +23841,7 @@
           },
           {
             "name": "tatara_lisp",
-            "package_key": "tatara-lisp-0.3.46",
+            "package_key": "tatara-lisp-0.3.52",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23836,7 +23851,7 @@
           },
           {
             "name": "tatara_lisp_eval",
-            "package_key": "tatara-lisp-eval-0.3.46",
+            "package_key": "tatara-lisp-eval-0.3.52",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25184,7 +25199,7 @@
           },
           {
             "name": "zerovec_derive",
-            "package_key": "zerovec-derive-0.11.4",
+            "package_key": "zerovec-derive-0.11.5",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -25199,7 +25214,7 @@
           "yoke"
         ]
       },
-      "zerovec-derive-0.11.4": {
+      "zerovec-derive-0.11.5": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -26285,7 +26300,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.134": {
+          "mado-0.1.135": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26500,7 +26515,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.20",
+                "package_key": "izumi-0.1.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26510,7 +26525,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.20",
+                "package_key": "izumi-config-0.1.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26520,7 +26535,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.20",
+                "package_key": "izumi-sources-0.1.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26763,7 +26778,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.18",
+                "package_key": "praca-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26872,7 +26887,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.46",
+                "package_key": "tatara-lisp-0.3.52",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26882,7 +26897,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.18",
+                "package_key": "tear-client-0.1.19",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -26894,7 +26909,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.18",
+                "package_key": "tear-config-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26904,7 +26919,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.18",
+                "package_key": "tear-core-0.1.19",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -26916,7 +26931,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.18",
+                "package_key": "tear-types-0.1.19",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -31238,7 +31253,7 @@
               "system"
             ]
           },
-          "mado-0.1.134": {
+          "mado-0.1.135": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31453,7 +31468,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.20",
+                "package_key": "izumi-0.1.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31463,7 +31478,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.20",
+                "package_key": "izumi-config-0.1.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31473,7 +31488,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.20",
+                "package_key": "izumi-sources-0.1.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31667,7 +31682,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.18",
+                "package_key": "praca-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31776,7 +31791,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.46",
+                "package_key": "tatara-lisp-0.3.52",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31786,7 +31801,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.18",
+                "package_key": "tear-client-0.1.19",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -31798,7 +31813,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.18",
+                "package_key": "tear-config-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31808,7 +31823,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.18",
+                "package_key": "tear-core-0.1.19",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -31820,7 +31835,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.18",
+                "package_key": "tear-types-0.1.19",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -35269,7 +35284,7 @@
               "system"
             ]
           },
-          "mado-0.1.134": {
+          "mado-0.1.135": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35484,7 +35499,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.20",
+                "package_key": "izumi-0.1.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35494,7 +35509,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.20",
+                "package_key": "izumi-config-0.1.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35504,7 +35519,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.20",
+                "package_key": "izumi-sources-0.1.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35698,7 +35713,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.18",
+                "package_key": "praca-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35807,7 +35822,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.46",
+                "package_key": "tatara-lisp-0.3.52",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35817,7 +35832,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.18",
+                "package_key": "tear-client-0.1.19",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -35829,7 +35844,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.18",
+                "package_key": "tear-config-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35839,7 +35854,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.18",
+                "package_key": "tear-core-0.1.19",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -35851,7 +35866,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.18",
+                "package_key": "tear-types-0.1.19",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -39418,7 +39433,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.134": {
+          "mado-0.1.135": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39633,7 +39648,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.20",
+                "package_key": "izumi-0.1.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39643,7 +39658,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.20",
+                "package_key": "izumi-config-0.1.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39653,7 +39668,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.20",
+                "package_key": "izumi-sources-0.1.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39896,7 +39911,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.18",
+                "package_key": "praca-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40005,7 +40020,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.46",
+                "package_key": "tatara-lisp-0.3.52",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40015,7 +40030,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.18",
+                "package_key": "tear-client-0.1.19",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -40027,7 +40042,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.18",
+                "package_key": "tear-config-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40037,7 +40052,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.18",
+                "package_key": "tear-core-0.1.19",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -40049,7 +40064,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.18",
+                "package_key": "tear-types-0.1.19",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -44378,7 +44393,7 @@
               "system"
             ]
           },
-          "mado-0.1.134": {
+          "mado-0.1.135": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44593,7 +44608,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.20",
+                "package_key": "izumi-0.1.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44603,7 +44618,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.20",
+                "package_key": "izumi-config-0.1.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44613,7 +44628,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.20",
+                "package_key": "izumi-sources-0.1.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44807,7 +44822,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.18",
+                "package_key": "praca-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44916,7 +44931,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.46",
+                "package_key": "tatara-lisp-0.3.52",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44926,7 +44941,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.18",
+                "package_key": "tear-client-0.1.19",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -44938,7 +44953,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.18",
+                "package_key": "tear-config-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44948,7 +44963,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.18",
+                "package_key": "tear-core-0.1.19",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -44960,7 +44975,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.18",
+                "package_key": "tear-types-0.1.19",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -48416,7 +48431,7 @@
               "system"
             ]
           },
-          "mado-0.1.134": {
+          "mado-0.1.135": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48631,7 +48646,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.20",
+                "package_key": "izumi-0.1.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48641,7 +48656,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.20",
+                "package_key": "izumi-config-0.1.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48651,7 +48666,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.20",
+                "package_key": "izumi-sources-0.1.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48845,7 +48860,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.18",
+                "package_key": "praca-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48954,7 +48969,7 @@
               },
               {
                 "name": "tatara_lisp",
-                "package_key": "tatara-lisp-0.3.46",
+                "package_key": "tatara-lisp-0.3.52",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48964,7 +48979,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.18",
+                "package_key": "tear-client-0.1.19",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -48976,7 +48991,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.18",
+                "package_key": "tear-config-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48986,7 +49001,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.18",
+                "package_key": "tear-core-0.1.19",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -48998,7 +49013,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.18",
+                "package_key": "tear-types-0.1.19",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -52299,11 +52314,14 @@
     "grid-0.15.0": {
       "edition": "2018"
     },
-    "h2-0.4.15": {
+    "h2-0.4.16": {
       "edition": "2021"
     },
     "half-2.7.1": {
       "edition": "2021"
+    },
+    "handan-0.1.2": {
+      "edition": "2024"
     },
     "hasami-0.1.2": {
       "edition": "2024"
@@ -52487,13 +52505,13 @@
     "itoa-1.0.18": {
       "edition": "2021"
     },
-    "izumi-0.1.20": {
+    "izumi-0.1.21": {
       "edition": "2024"
     },
-    "izumi-config-0.1.20": {
+    "izumi-config-0.1.21": {
       "edition": "2024"
     },
-    "izumi-sources-0.1.20": {
+    "izumi-sources-0.1.21": {
       "edition": "2024"
     },
     "jobserver-0.1.35": {
@@ -52619,7 +52637,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.134": {
+    "mado-0.1.135": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -52688,7 +52706,7 @@
     "mio-1.2.2": {
       "edition": "2021"
     },
-    "monosashi-0.3.46": {
+    "monosashi-0.3.52": {
       "edition": "2021"
     },
     "moxcms-0.8.1": {
@@ -53075,7 +53093,7 @@
     "ppv-lite86-0.2.21": {
       "edition": "2021"
     },
-    "praca-0.1.18": {
+    "praca-0.1.19": {
       "edition": "2024"
     },
     "precomputed-hash-0.1.1": {
@@ -53133,7 +53151,7 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "quinn-proto-0.11.16": {
+    "quinn-proto-0.11.17": {
       "edition": "2021"
     },
     "quinn-udp-0.5.15": {
@@ -53612,36 +53630,36 @@
     "tap-1.0.1": {
       "edition": "2015"
     },
-    "tatara-closed-set-0.3.46": {
+    "tatara-closed-set-0.3.52": {
       "edition": "2021"
     },
-    "tatara-closed-set-derive-0.3.46": {
+    "tatara-closed-set-derive-0.3.52": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-core-0.2.310": {
+    "tatara-core-0.2.311": {
       "edition": "2021"
     },
-    "tatara-eval-0.2.310": {
+    "tatara-eval-0.2.311": {
       "edition": "2021"
     },
-    "tatara-lattice-0.2.310": {
+    "tatara-lattice-0.2.311": {
       "edition": "2021"
     },
-    "tatara-lisp-0.3.46": {
+    "tatara-lisp-0.3.52": {
       "edition": "2021"
     },
-    "tatara-lisp-derive-0.3.46": {
+    "tatara-lisp-derive-0.3.52": {
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-lisp-eval-0.3.46": {
+    "tatara-lisp-eval-0.3.52": {
       "edition": "2021"
     },
-    "tatara-nix-0.2.310": {
+    "tatara-nix-0.2.311": {
       "edition": "2021"
     },
-    "tatara-process-0.2.310": {
+    "tatara-process-0.2.311": {
       "edition": "2021",
       "binaries": [
         {
@@ -53650,19 +53668,19 @@
         }
       ]
     },
-    "tear-client-0.1.18": {
+    "tear-client-0.1.19": {
       "edition": "2024"
     },
-    "tear-config-0.1.18": {
+    "tear-config-0.1.19": {
       "edition": "2024"
     },
-    "tear-core-0.1.18": {
+    "tear-core-0.1.19": {
       "edition": "2024"
     },
-    "tear-daemon-0.1.18": {
+    "tear-daemon-0.1.19": {
       "edition": "2024"
     },
-    "tear-types-0.1.18": {
+    "tear-types-0.1.19": {
       "edition": "2024"
     },
     "tempfile-3.27.0": {
@@ -53724,7 +53742,7 @@
     "tinyvec_macros-0.1.1": {
       "edition": "2018"
     },
-    "todoku-0.1.1": {
+    "todoku-0.1.2": {
       "edition": "2024"
     },
     "tokio-1.53.1": {
@@ -54155,7 +54173,7 @@
     "zerovec-0.11.7": {
       "edition": "2021"
     },
-    "zerovec-derive-0.11.4": {
+    "zerovec-derive-0.11.5": {
       "edition": "2021",
       "proc_macro": true
     },
