@@ -2274,15 +2274,22 @@ pub struct WindowConfig {
     ///   chrome reads as part of the canvas for a "minimal but
     ///   functional" look. Operators who want a truly chromeless
     ///   look (no traffic lights) override to `false`.
-    /// * Linux / Windows: `false` — server/wm decorations are
-    ///   removed entirely for a pure borderless window. Most
-    ///   tiling-WM operators on Linux already disable
-    ///   decorations via their WM; this aligns mado's default.
+    /// * Linux: `true`. A borderless window under Wayland/X11 has
+    ///   no move handle, no resize edges, no maximize/close
+    ///   affordance, and under Wayland no server-side border at
+    ///   all — the operator sees a fixed rectangle they cannot
+    ///   drag or maximize. libdecor (Wayland) and the WM (X11)
+    ///   supply real decorations when this is `true`. Tiling-WM
+    ///   operators who want the borderless look override to
+    ///   `false`; the default matches the majority stack (GNOME/
+    ///   KDE on Wayland or X11).
+    /// * Windows: `false` — pre-existing default; mado is not
+    ///   shipped on Windows today.
     ///
-    /// The operator-facing contract: "as little chrome as
-    /// possible by default, per platform." Override in
-    /// `~/.config/mado/mado.yaml` if you want a specific
-    /// behavior.
+    /// The operator-facing contract: "give the operator a real
+    /// window they can move by default; opt out if you want
+    /// borderless." Override in `~/.config/mado/mado.yaml` if you
+    /// want a specific behavior.
     #[serde(default = "default_decorations")]
     pub decorations: bool,
     #[serde(default)]
@@ -3562,12 +3569,30 @@ fn mado_theme_name_from_fleet(fd: &ishou_tokens::FleetDefaults) -> String {
     fd.theme.resolve().name.clone()
 }
 
-/// `window`: fleet `padding` + the per-OS decoration split (macOS keeps
-/// traffic-lights, tiling-WM platforms go borderless), every other field
-/// from `WindowConfig::default()`.
+/// `window`: fleet `padding` + the per-OS decoration split. macOS reads
+/// the fleet default (`fd.decorations_macos = true` today — keeps traffic-
+/// lights). Linux OVERRIDES the fleet default to `true`: the fleet ships
+/// `fd.decorations_linux = false` (see `ishou/crates/ishou-tokens/src/
+/// fleet_defaults.rs`, comment "tiling-WM friendly elsewhere"), which
+/// leaves a Wayland/X11 operator with a fixed rectangle they cannot drag
+/// or maximize — reported 2026-08-17 on ggg (Wayland/GNOME).
+///
+/// **Load-bearing fix belongs upstream in ishou-tokens** (flip
+/// `prescribed().decorations_linux` to `true` and let tiling-WM operators
+/// opt out via config). Deferred here because that path is
+/// ishou-tokens PR + crates.io release + this crate's dep bump — three
+/// coordinated ships, each a separate review, while the operator needs a
+/// working window today. Every other field flows from
+/// `WindowConfig::default()`.
+///
+/// `pending-ishou-tokens-decorations-linux: flip the fleet default to
+/// `true` and delete this override.`
 fn mado_window_from_fleet(fd: &ishou_tokens::FleetDefaults) -> WindowConfig {
     let decorations = if cfg!(target_os = "macos") {
         fd.decorations_macos
+    } else if cfg!(target_os = "linux") {
+        // Override — see doc comment above.
+        true
     } else {
         fd.decorations_linux
     };
@@ -3948,13 +3973,35 @@ fn default_padding() -> u32 {
 }
 
 fn default_decorations() -> bool {
-    // Platform-aware: true on macOS so traffic-light buttons
-    // stay (and platform::apply_native_styling themes the titlebar
-    // band into the canvas — FullSizeContentView only with
-    // `titlebar: overlay`); false on Linux/Windows for pure
-    // borderless. See WindowConfig::decorations doc for the
-    // operator contract.
-    cfg!(target_os = "macos")
+    // Platform-aware:
+    //
+    // * macOS — `true`: keeps the traffic-light buttons so
+    //   `platform::apply_native_styling` themes the titlebar band into
+    //   the canvas (FullSizeContentView only with `titlebar: overlay`).
+    //
+    // * Linux — `true`: a borderless Wayland/X11 window has no move
+    //   handle, no resize edges, no maximize/close affordance — the
+    //   operator sees a fixed rectangle. Reported 2026-08-17 on ggg
+    //   (Wayland/GNOME). winit + libdecor supply client-side
+    //   decorations on Wayland, WM supplies server-side on X11.
+    //
+    // * Windows — `false`: pre-existing default, no Windows report to
+    //   invalidate it.
+    //
+    // Also see `mado_window_from_fleet`, which is the LOAD-BEARING
+    // path for `MadoConfig::default()`. This fn is only reached as
+    // the `#[serde(default)]` for `WindowConfig.decorations` when a
+    // user's YAML omits the field.
+    //
+    // See `WindowConfig::decorations` doc for the operator contract.
+    #[cfg(target_os = "windows")]
+    {
+        false
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        true
+    }
 }
 /// The theme mado ships as its prescribed default. mado DELIBERATELY
 /// diverges from the fleet theme (`FleetTheme::prescribed_default()` =
@@ -4726,6 +4773,46 @@ mod tests {
         );
     }
 
+    // ── Window decorations default — cross-platform seal ─────────
+    //
+    // The bare tier is truly-chromeless (`decorations: false`) — see
+    // `bare_tier_has_zero_opinion_defaults` above. The default
+    // (prescribed) tier is platform-aware via `default_decorations()`.
+    // Both platforms mado ships on today (macOS + Linux) must default
+    // to `true`, so the operator gets a real movable window; Windows
+    // stays at `false` (mado is not shipped there). A regression in
+    // either direction fails here rather than as a chat-log report.
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_default_window_has_decorations() {
+        let cfg = MadoConfig::default();
+        assert!(
+            cfg.window.decorations,
+            "macOS default lost window decorations — traffic lights would disappear"
+        );
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn linux_default_window_has_decorations() {
+        let cfg = MadoConfig::default();
+        assert!(
+            cfg.window.decorations,
+            "Linux default lost window decorations — the operator would see a fixed rectangle they cannot drag or maximize"
+        );
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn windows_default_window_stays_borderless() {
+        let cfg = MadoConfig::default();
+        assert!(
+            !cfg.window.decorations,
+            "Windows default gained decorations without a Windows report — revisit `default_decorations()`"
+        );
+    }
+
     #[test]
     fn default_tier_is_bare_plus_defaults_plus_discovered() {
         // Default() is the operator-facing tier: bare + defaults + discovered.
@@ -4907,8 +4994,13 @@ mod tests {
             resolved.foreground.clone()
         };
         let cursor_color = resolved.cursor.clone();
+        // Mirror `mado_window_from_fleet`'s Linux override so the
+        // byte-identical proof still holds. See that fn's doc comment
+        // for the ishou-tokens `pending-` and the ggg 2026-08-17 report.
         let decorations = if cfg!(target_os = "macos") {
             fd.decorations_macos
+        } else if cfg!(target_os = "linux") {
+            true
         } else {
             fd.decorations_linux
         };
@@ -5676,11 +5768,12 @@ window:
         assert!(config.window.height >= 600 && config.window.height <= 1100);
         // Operator-facing default flipped to 0 (minimal edges).
         assert_eq!(config.window.padding, 0);
-        // Platform-aware decorations default: true on macOS so
-        // traffic-light buttons stay (and apply_native_styling
-        // integrates the chrome); false on Linux/Windows for
-        // pure borderless. See WindowConfig::decorations doc.
-        assert_eq!(config.window.decorations, cfg!(target_os = "macos"));
+        // Platform-aware decorations default: true on macOS
+        // (traffic lights) + true on Linux (Wayland/X11 needs a real
+        // window per the ggg 2026-08-17 report — see
+        // `mado_window_from_fleet`), false on Windows (pre-existing
+        // default). See `WindowConfig::decorations` doc.
+        assert_eq!(config.window.decorations, !cfg!(target_os = "windows"));
         assert!(config.window.title.is_none());
         assert!((config.window.unfocused_split_opacity - 0.85).abs() < 0.001);
         assert!(config.window.split_divider_color.is_none());
@@ -6426,9 +6519,10 @@ active_profile: "dark"
     #[test]
     fn test_window_config_new_fields() {
         let w = WindowConfig::default();
-        // Platform-aware: macOS keeps decorations (traffic
-        // lights stay usable); Linux/Windows borderless.
-        assert_eq!(w.decorations, cfg!(target_os = "macos"));
+        // Platform-aware (see `default_decorations()`): macOS keeps
+        // traffic lights, Linux gets a real window (per the ggg
+        // 2026-08-17 Wayland report), Windows stays borderless.
+        assert_eq!(w.decorations, !cfg!(target_os = "windows"));
         assert!(w.title.is_none());
         assert!((w.unfocused_split_opacity - 0.85).abs() < 0.001);
         assert!(!w.fullscreen);

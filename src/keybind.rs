@@ -818,6 +818,31 @@ fn default_bindings() -> Vec<Keybinding> {
             hotkey: hk(cmd_shift, Key::R),
             action: Action::ResetTerminal,
         },
+        // ── Linux clipboard ergonomics ───────────────────────────────
+        // The atlas resolves `kb.copy` / `kb.paste` to `D-c` / `D-v`
+        // (Cmd) fleet-wide. On Linux `Cmd` maps to Super (the Windows
+        // key), which is not what Linux terminal operators reach for
+        // — `Ctrl+C` is claimed by SIGINT, so the terminal convention
+        // is `Ctrl+Shift+C` / `Ctrl+Shift+V`. Neither chord is claimed
+        // anywhere else in this map or in the atlas (the atlas claims
+        // D-C-f but no Ctrl+Shift+letter), so these are additive: mac
+        // operators keep Cmd+C / Cmd+V unchanged, Linux operators gain
+        // the shortcut they expect. Reported 2026-08-17 on ggg:
+        // "não funciona colar".
+        //
+        // Scope: `cfg!(target_os = "linux")` — a Windows report would
+        // extend this to `not(target_os = "macos")`, mirroring the
+        // `default_decorations()` split.
+        #[cfg(target_os = "linux")]
+        Keybinding {
+            hotkey: hk(Modifiers::CTRL | Modifiers::SHIFT, Key::C),
+            action: Action::Copy,
+        },
+        #[cfg(target_os = "linux")]
+        Keybinding {
+            hotkey: hk(Modifiers::CTRL | Modifiers::SHIFT, Key::V),
+            action: Action::Paste,
+        },
     ]
 }
 
@@ -830,6 +855,54 @@ mod tests {
         // Operator principle: zero bindings until explicitly opted in.
         let mgr = KeybindManager::new();
         assert!(mgr.bindings().is_empty());
+    }
+
+    // ── Cross-platform clipboard regression seal ─────────────────────
+    //
+    // Two rules, one per platform, both provable at compile+test time.
+    // If either regresses, the failure names the exact broken chord
+    // rather than surfacing as "colar não funciona" in a chat log.
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_clipboard_uses_cmd_c_and_cmd_v() {
+        // The macOS operator must keep the atlas-canonical Cmd+C /
+        // Cmd+V; any Linux-facing change that displaces them regresses
+        // here first, not in a review comment on a merged PR.
+        let mgr = KeybindManager::with_mado_defaults();
+        let cmd = awase::Modifiers::CMD;
+        assert_eq!(
+            mgr.lookup(&awase::Hotkey::new(cmd, awase::Key::C)),
+            Some(Action::Copy),
+            "macOS lost Cmd+C = Copy"
+        );
+        assert_eq!(
+            mgr.lookup(&awase::Hotkey::new(cmd, awase::Key::V)),
+            Some(Action::Paste),
+            "macOS lost Cmd+V = Paste"
+        );
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn linux_clipboard_carries_ctrl_shift_c_and_ctrl_shift_v_extras() {
+        // Linux gains Ctrl+Shift+C / Ctrl+Shift+V as additive bindings
+        // (Ctrl+C is claimed by SIGINT). The atlas defaults are still
+        // registered — Ctrl+Shift+C/V is a superset, not a
+        // replacement — so a Linux operator can use whichever chord
+        // they know.
+        let mgr = KeybindManager::with_mado_defaults();
+        let cs = awase::Modifiers::CTRL | awase::Modifiers::SHIFT;
+        assert_eq!(
+            mgr.lookup(&awase::Hotkey::new(cs, awase::Key::C)),
+            Some(Action::Copy),
+            "Linux lost Ctrl+Shift+C = Copy"
+        );
+        assert_eq!(
+            mgr.lookup(&awase::Hotkey::new(cs, awase::Key::V)),
+            Some(Action::Paste),
+            "Linux lost Ctrl+Shift+V = Paste"
+        );
     }
 
     #[test]
@@ -995,7 +1068,16 @@ mod tests {
         // (1) + dir-picker (1) + session-picker (1) + layout-picker
         // (1, reserved no-op) + save-as-preset (1) +
         // copy-last-command-output (1) = 22.
-        assert_eq!(mgr.bindings().len(), 22);
+        //
+        // Linux adds Ctrl+Shift+C / Ctrl+Shift+V as additive
+        // clipboard bindings (Ctrl+C is claimed by SIGINT), so the
+        // linux count is 24. See `linux_clipboard_carries_
+        // ctrl_shift_c_and_ctrl_shift_v_extras` for the seal.
+        #[cfg(target_os = "linux")]
+        let expected = 24;
+        #[cfg(not(target_os = "linux"))]
+        let expected = 22;
+        assert_eq!(mgr.bindings().len(), expected);
     }
 
     #[test]
@@ -1124,7 +1206,14 @@ mod tests {
     #[test]
     fn test_total_default_bindings_count() {
         let mgr = KeybindManager::with_mado_defaults();
-        assert_eq!(mgr.bindings().len(), 22);
+        // Cross-platform: 22 baseline, +2 for the linux clipboard
+        // extras (Ctrl+Shift+C/V). See `default_bindings_count` for
+        // the itemization.
+        #[cfg(target_os = "linux")]
+        let expected = 24;
+        #[cfg(not(target_os = "linux"))]
+        let expected = 22;
+        assert_eq!(mgr.bindings().len(), expected);
     }
 
     #[test]
