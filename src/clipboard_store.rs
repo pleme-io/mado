@@ -688,3 +688,49 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 }
+
+/// Open the system clipboard, degrading to an in-process buffer when no
+/// display server is reachable.
+///
+/// `hasami::Clipboard::new()` is **documented to fail** in exactly this case —
+/// its own doc comment names "no display server on Linux". Both of mado's
+/// entry points nevertheless `.expect()`-ed on it, which turned a documented,
+/// expected condition into a first-run panic:
+///
+/// ```text
+/// thread 'main' panicked at src/gui_tear_attach.rs:721:43:
+/// failed to initialize clipboard: ClipboardAccess("Unknown error while
+/// interacting with the clipboard: X11 server connection timed out because it
+/// was unreachable")
+/// ```
+///
+/// Measured 2026-08-18 on a headless NixOS host: that panic fires ~65 lines
+/// BEFORE `madori::App::builder`, so mado on Linux had never reached window
+/// creation, never requested a GPU adapter and never drew a pixel. The Linux
+/// release asset's download count was 0, so nothing had exercised it.
+///
+/// A terminal is still useful without OS clipboard integration — OSC 52 copies,
+/// selection and paste all work against an in-process buffer — so the honest
+/// behaviour is to degrade and say so, not to abort. The operator gets one
+/// warning naming exactly what is lost.
+///
+/// Note the fallback is `hasami::MockClipboard`, whose name is test vocabulary.
+/// It is the right *data structure* (an in-memory buffer behind the same trait)
+/// and it is what hasami 0.1 exports. A properly-named `MemoryClipboard`
+/// belongs upstream in hasami; mado pins `hasami = "0.1"` from crates.io, so
+/// that rename is a publish-and-bump, not a change we can make from here.
+#[must_use]
+pub fn open_or_memory() -> std::sync::Arc<dyn hasami::ClipboardProvider> {
+    match hasami::Clipboard::new() {
+        Ok(clipboard) => std::sync::Arc::new(clipboard),
+        Err(err) => {
+            tracing::warn!(
+                %err,
+                "system clipboard unavailable — falling back to an in-process \
+                 buffer. Copy/paste works inside mado; the OS clipboard is not \
+                 shared with other applications."
+            );
+            std::sync::Arc::new(hasami::MockClipboard::new())
+        }
+    }
+}

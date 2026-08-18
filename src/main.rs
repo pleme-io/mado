@@ -936,8 +936,7 @@ fn main() -> anyhow::Result<()> {
     );
 
     let pane_for_events = Arc::clone(&pane);
-    let clipboard: Arc<dyn ClipboardProvider> =
-        Arc::new(Clipboard::new().expect("failed to initialize clipboard"));
+    let clipboard: Arc<dyn ClipboardProvider> = crate::clipboard_store::open_or_memory();
     // Curated default baseline + operator `keybinds.custom` overrides —
     // the same assembly the kanshou `simulate_chord` resolver uses
     // (keybind::manager_from_config), so chord→Action resolution can't

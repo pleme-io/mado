@@ -717,8 +717,8 @@ where
     // as main.rs; the M4 drain consumer reads it). Shared with the
     // engine so terminal-driven copies and operator copies land in
     // one place.
-    let side_effect_clipboard: Arc<hasami::Clipboard> =
-        Arc::new(hasami::Clipboard::new().expect("failed to initialize clipboard"));
+    let side_effect_clipboard: Arc<dyn hasami::ClipboardProvider> =
+        crate::clipboard_store::open_or_memory();
     // Boot-time notification center (M4 drain consumer): focus-aware,
     // coalescing, rate-limiting orchestrator over the chosen backend. See
     // docs/NOTIFICATIONS.md.
@@ -734,8 +734,7 @@ where
             pty: pty_sink,
             resize: resize_sink,
             shared: crate::ux::SharedUxState::fresh(),
-            clipboard: Arc::clone(&side_effect_clipboard)
-                as Arc<dyn hasami::ClipboardProvider + Send + Sync>,
+            clipboard: Arc::clone(&side_effect_clipboard),
             // Curated default baseline + operator `keybinds.custom`
             // overrides via keybind::manager_from_config — the same
             // assembly as the local-PTY path and the kanshou
