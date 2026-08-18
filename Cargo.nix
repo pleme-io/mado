@@ -6289,9 +6289,9 @@ rec {
       };
       "h2" = rec {
         crateName = "h2";
-        version = "0.4.15";
+        version = "0.4.16";
         edition = "2021";
-        sha256 = "0mgilh1g8gydcchqi6acs5l6j0gwg5jwpa64sj4b3ncb9v497c3c";
+        sha256 = "09syqqhvh36b3rwyn8vjhiz597hfki1hcz3hwagb3cs1ifapmwx9";
         authors = [
           "Carl Lerche <me@carllerche.com>"
           "Sean McArthur <sean@seanmonstar.com>"
@@ -6408,6 +6408,13 @@ rec {
           "std" = [ "alloc" ];
         };
         resolvedDefaultFeatures = [ "alloc" "default" "num-traits" "std" ];
+      };
+      "handan" = rec {
+        crateName = "handan";
+        version = "0.1.2";
+        edition = "2024";
+        sha256 = "0rssps4cj612kk42fifq5lw68sfzsyy9h6x2zzmd7bz85y1cx2qn";
+
       };
       "hasami" = rec {
         crateName = "hasami";
@@ -8360,9 +8367,9 @@ rec {
       };
       "izumi" = rec {
         crateName = "izumi";
-        version = "0.1.20";
+        version = "0.1.21";
         edition = "2024";
-        sha256 = "0x7jqhjrwq7rahpn3zhzalnk63maw6859wpn6fnr69j2by0v1jkv";
+        sha256 = "1gzy37i2cz3wphp8h1m4swakzl9c43mcfw4p7502nk4647f2vvzq";
         authors = [
           "pleme-io"
         ];
@@ -8428,9 +8435,9 @@ rec {
       };
       "izumi-config" = rec {
         crateName = "izumi-config";
-        version = "0.1.20";
+        version = "0.1.21";
         edition = "2024";
-        sha256 = "0dbfzi6y99ry7gsvq0cs02sbdndvvi6gxmlcbrpqa42cbsqv0yg1";
+        sha256 = "1wxg37kwfb47n4a7bmx1p1wri5lljn23w30vifalvl8i87xncqxa";
         libName = "izumi_config";
         authors = [
           "pleme-io"
@@ -8454,9 +8461,9 @@ rec {
       };
       "izumi-sources" = rec {
         crateName = "izumi-sources";
-        version = "0.1.20";
+        version = "0.1.21";
         edition = "2024";
-        sha256 = "0qlnfdngxccx1qn56kaqiq7sz6rifxh1a26p3fphiii6j0nb2l56";
+        sha256 = "1414s63xbci0hzpgd1a62bw0b87rgxif5608ayy2j733njzc419p";
         libName = "izumi_sources";
         authors = [
           "pleme-io"
@@ -10180,7 +10187,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.135";
+        version = "0.1.136";
         edition = "2024";
         crateBin = [
           {
@@ -10942,9 +10949,9 @@ rec {
       };
       "monosashi" = rec {
         crateName = "monosashi";
-        version = "0.3.46";
+        version = "0.3.52";
         edition = "2021";
-        sha256 = "1cy293fjc391rs5fhcsfkmm4pqwcvdfdf3w8c3yx034wymk0af7b";
+        sha256 = "0wg42k0lsx2qzcg1b5bnyl9b38ljhg3v6xnd0k0ch4v6z75zrhkg";
         authors = [
           "Pleme.io <engineering@pleme.io>"
         ];
@@ -16862,9 +16869,9 @@ rec {
       };
       "praca" = rec {
         crateName = "praca";
-        version = "0.1.18";
+        version = "0.1.19";
         edition = "2024";
-        sha256 = "00q2nwmqml2bs6g5hdvh4sq8bqmh916sqapm12awkpi365p32y9d";
+        sha256 = "1ax0782sc9ghffrq51ibrhma0n4s9d2r7vs5m8j2spqx0rb94imz";
         authors = [
           "pleme-io"
         ];
@@ -17494,9 +17501,9 @@ rec {
       };
       "quinn-proto" = rec {
         crateName = "quinn-proto";
-        version = "0.11.16";
+        version = "0.11.17";
         edition = "2021";
-        sha256 = "0q75f2wkhc7iw8n0q63jb3zm7206b7774l44r1ixzfb2a80zqjrg";
+        sha256 = "10xskd9f8qynnkmg8vw3058fynd6jhi22a3f2c4kgs9vah894x84";
         libName = "quinn_proto";
         dependencies = [
           {
@@ -23939,9 +23946,9 @@ rec {
       };
       "tatara-closed-set" = rec {
         crateName = "tatara-closed-set";
-        version = "0.3.46";
+        version = "0.3.52";
         edition = "2021";
-        sha256 = "1bnwb18xdb8gh1a4nrs8pp09b5idw61r36q7lq4n4vb7rkzlsaaz";
+        sha256 = "0ah4z06llskgfl6klp2mnmyxl35g4a0ddpi3qnp9dhsrq5bkxg6d";
         libName = "tatara_closed_set";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -23956,9 +23963,9 @@ rec {
       };
       "tatara-closed-set-derive" = rec {
         crateName = "tatara-closed-set-derive";
-        version = "0.3.46";
+        version = "0.3.52";
         edition = "2021";
-        sha256 = "1bdav5kiz54lfq94lx6warrpq923lisvy81z12nywidq155rzg7b";
+        sha256 = "1yjja1g90k1p1q15vn7n7dkql1zrpsbixi2b231sxvqw81qaz9lj";
         procMacro = true;
         libName = "tatara_closed_set_derive";
         authors = [
@@ -23983,9 +23990,9 @@ rec {
       };
       "tatara-core" = rec {
         crateName = "tatara-core";
-        version = "0.2.310";
+        version = "0.2.311";
         edition = "2021";
-        sha256 = "1wdyyz7jqqw73fr8087nr663cayhalwafmp2zh1s9gr24zq4kdch";
+        sha256 = "0ymv5wiaa0rj9s9ldiccrahny8s30xkggdd3g2rxdydp11b5d5bw";
         libName = "tatara_core";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24060,9 +24067,9 @@ rec {
       };
       "tatara-eval" = rec {
         crateName = "tatara-eval";
-        version = "0.2.310";
+        version = "0.2.311";
         edition = "2021";
-        sha256 = "14ndbn2hpigxh1sv8rnzh0513bkrw36nwy0cpwp9k6bxym2lxzih";
+        sha256 = "1lihwkw4rh1nwzb0jxn3z5kw4xwr6gy2zhinq3fimxicgvm4b4y2";
         libName = "tatara_eval";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24099,9 +24106,9 @@ rec {
       };
       "tatara-lattice" = rec {
         crateName = "tatara-lattice";
-        version = "0.2.310";
+        version = "0.2.311";
         edition = "2021";
-        sha256 = "16hj7naq9a378n7zq6vzxjg0z1x9pzyq0s4lwm5fm9qinmzm6zfz";
+        sha256 = "024pb178x11rap32fp3f69mzxlsrcw2vc40y70mdhlffpgrdcy6a";
         libName = "tatara_lattice";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24130,9 +24137,9 @@ rec {
       };
       "tatara-lisp" = rec {
         crateName = "tatara-lisp";
-        version = "0.3.46";
+        version = "0.3.52";
         edition = "2021";
-        sha256 = "15vz23jwdg6lrjvsx39hlc31w863y3vmhcdszjk0d1cgc9iwa175";
+        sha256 = "0qslh1rqzq11yvhhx2lbp253qb4qwksb02cafq1a3zml4sv6mg3q";
         libName = "tatara_lisp";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24170,9 +24177,9 @@ rec {
       };
       "tatara-lisp-derive" = rec {
         crateName = "tatara-lisp-derive";
-        version = "0.3.46";
+        version = "0.3.52";
         edition = "2021";
-        sha256 = "0ww7z5i08qz8hf8w1578zdpzyhvc9lrdqxh8hwqka0izm8sdfqzw";
+        sha256 = "1401y1vbmakm5l8jb0abg4ja1fdvgp4lyslmmr799czyghsh2fp8";
         procMacro = true;
         libName = "tatara_lisp_derive";
         authors = [
@@ -24197,9 +24204,9 @@ rec {
       };
       "tatara-lisp-eval" = rec {
         crateName = "tatara-lisp-eval";
-        version = "0.3.46";
+        version = "0.3.52";
         edition = "2021";
-        sha256 = "1r0nf30zakr2ckpilmzrklphj2709vr8hyl7hgwn23kychws5ck3";
+        sha256 = "02khdffbsc5dx12iabcqsjac2gfawdaf84028caas1a91dmg3vzm";
         libName = "tatara_lisp_eval";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24226,9 +24233,9 @@ rec {
       };
       "tatara-nix" = rec {
         crateName = "tatara-nix";
-        version = "0.2.310";
+        version = "0.2.311";
         edition = "2021";
-        sha256 = "0kig80arxsg0clf5r7m6qlnyi7qh596ff609g53i0v95rcr9p3jj";
+        sha256 = "1gpijd9cpsa471p9bi13ig4ww10icn1cz766qhb9c5n0svb4zmi8";
         libName = "tatara_nix";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24276,10 +24283,10 @@ rec {
       };
       "tatara-process" = rec {
         crateName = "tatara-process";
-        version = "0.2.310";
+        version = "0.2.311";
         edition = "2021";
         crateBin = [];
-        sha256 = "10gm12m294rqlz1485jl6zl7ymj3fjkc8cydapfflb8q3bx6k5wc";
+        sha256 = "1yblzwk9150misn7z426aq8arrr39hjiqwxjgfg0rdg3spqbr8wq";
         libName = "tatara_process";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24359,9 +24366,9 @@ rec {
       };
       "tear-client" = rec {
         crateName = "tear-client";
-        version = "0.1.18";
+        version = "0.1.19";
         edition = "2024";
-        sha256 = "1l0wmnkd8kbk26dcy0s4whcji8kqzmhr9i1a788gla29jdbz7d2g";
+        sha256 = "1qdlzgbmrxr3h15f0d8y2623qf76afqq28q8rc4zs1g8iqlqw1kl";
         libName = "tear_client";
         authors = [
           "pleme-io"
@@ -24401,9 +24408,9 @@ rec {
       };
       "tear-config" = rec {
         crateName = "tear-config";
-        version = "0.1.18";
+        version = "0.1.19";
         edition = "2024";
-        sha256 = "1jc1141q3r2k424fbyvns461aaahaqjwzhgy207vshil82sbqicx";
+        sha256 = "1skhx9c5cwr5r3f5gfhwxm56pwca0mf232zphhl98basfzkyp87x";
         libName = "tear_config";
         authors = [
           "pleme-io"
@@ -24466,9 +24473,9 @@ rec {
       };
       "tear-core" = rec {
         crateName = "tear-core";
-        version = "0.1.18";
+        version = "0.1.19";
         edition = "2024";
-        sha256 = "00mkv721sqrjasxy245vj50r5x0l0w0c4w64ykvwgwvjq1h9m96z";
+        sha256 = "18jhj4fccds8pkry2cvgwl17qdgp1llc0s75f3qnf2psv4854396";
         libName = "tear_core";
         authors = [
           "pleme-io"
@@ -24549,9 +24556,9 @@ rec {
       };
       "tear-daemon" = rec {
         crateName = "tear-daemon";
-        version = "0.1.18";
+        version = "0.1.19";
         edition = "2024";
-        sha256 = "1dmfjzndkprc8zxj9j7dhmivs9g5jzhi9gs9ncjjn9dix4xz8wly";
+        sha256 = "00gq258kq6fbvjvjc86q0vrv41dkgqq0sck7j98h8lvzzyl51a43";
         libName = "tear_daemon";
         authors = [
           "pleme-io"
@@ -24629,9 +24636,9 @@ rec {
       };
       "tear-types" = rec {
         crateName = "tear-types";
-        version = "0.1.18";
+        version = "0.1.19";
         edition = "2024";
-        sha256 = "19fd2psnzk2jph44bwgcam2ff3bz9mcmx2i3x22yjszmx1958j1f";
+        sha256 = "05m41lwb8gkqmnjv6r6p1fhdaiafqxd8xzj4yg63qlw42lvgni7k";
         libName = "tear_types";
         authors = [
           "pleme-io"
@@ -25209,13 +25216,17 @@ rec {
       };
       "todoku" = rec {
         crateName = "todoku";
-        version = "0.1.1";
+        version = "0.1.2";
         edition = "2024";
-        sha256 = "1sy0gmfgpn15w1y7sqgy5ya7qji5fpq6sq1i04spnbq0slk1p8pk";
+        sha256 = "1m0ipkhagw5rwrzzs99k4z37hmj55sl8ascmccml8bcpf7vcjrkw";
         dependencies = [
           {
             name = "async-trait";
             packageId = "async-trait";
+          }
+          {
+            name = "handan";
+            packageId = "handan";
           }
           {
             name = "reqwest";
@@ -34000,9 +34011,9 @@ rec {
       };
       "zerovec-derive" = rec {
         crateName = "zerovec-derive";
-        version = "0.11.4";
+        version = "0.11.5";
         edition = "2021";
-        sha256 = "0qmanjqvn97qwsscnzwyy7vad6h8rhydqq014gjvy0ka48ijah27";
+        sha256 = "1a8pz516ddcgxvxq3j1xgprac5wnprlrbyzsgzarj0423la2l8cz";
         procMacro = true;
         libName = "zerovec_derive";
         authors = [
