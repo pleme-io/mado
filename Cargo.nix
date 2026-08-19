@@ -1027,9 +1027,9 @@ rec {
       };
       "awase" = rec {
         crateName = "awase";
-        version = "0.1.9";
+        version = "0.1.10";
         edition = "2024";
-        sha256 = "1p60pz0rrq94fs710fa361h8khhqqkr2pyhbnx52ly9bpjbh2qry";
+        sha256 = "1qlgxsrghb65rh4ynvyz1y30v4wsvskl75v2lpfl53a6wzjk0nq9";
         dependencies = [
           {
             name = "serde";
@@ -4240,9 +4240,9 @@ rec {
       };
       "egaku" = rec {
         crateName = "egaku";
-        version = "0.1.13";
+        version = "0.1.14";
         edition = "2024";
-        sha256 = "1jdal2i9jgs9nkhjm8mm45kwljxp7v1x88srd8z459dab5n42b89";
+        sha256 = "0picbqzr6d4mbnj0slks8yxdd4b3x3g8dsjx74c9fjjsysmj1ykf";
         dependencies = [
           {
             name = "awase";
@@ -4272,6 +4272,10 @@ rec {
           {
             name = "unicode-width";
             packageId = "unicode-width";
+          }
+          {
+            name = "zeroize";
+            packageId = "zeroize";
           }
         ];
 
@@ -6289,9 +6293,9 @@ rec {
       };
       "h2" = rec {
         crateName = "h2";
-        version = "0.4.16";
+        version = "0.4.17";
         edition = "2021";
-        sha256 = "09syqqhvh36b3rwyn8vjhiz597hfki1hcz3hwagb3cs1ifapmwx9";
+        sha256 = "0jblh2mscahvbz42d1sp5702ib444rcxswm5a3n2g64yydspx1wz";
         authors = [
           "Carl Lerche <me@carllerche.com>"
           "Sean McArthur <sean@seanmonstar.com>"
@@ -8303,9 +8307,9 @@ rec {
       };
       "ishou-tokens" = rec {
         crateName = "ishou-tokens";
-        version = "0.1.9";
+        version = "0.1.10";
         edition = "2024";
-        sha256 = "0yf14gkvfkgmf90car69rn4qy6w35l6n9ikyfk1axfc6f8lk67cm";
+        sha256 = "1ym53bambg919p6rp7qy9ppyccrxah8ri314pfxarli042hax3li";
         libName = "ishou_tokens";
         dependencies = [
           {
@@ -10187,7 +10191,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.137";
+        version = "0.1.138";
         edition = "2024";
         crateBin = [
           {
@@ -10539,9 +10543,9 @@ rec {
       };
       "madori" = rec {
         crateName = "madori";
-        version = "0.1.11";
+        version = "0.1.12";
         edition = "2024";
-        sha256 = "000m5fwp0xrcmlj4mx7qw0hmyjya0hyplfxqd8xdwc4llirgsm2l";
+        sha256 = "0s4g354lh03n7bpp5vjhwsyx5ib5n9w549rrrgkgdqnn4bqfb25q";
         dependencies = [
           {
             name = "egaku";
@@ -18201,9 +18205,9 @@ rec {
       };
       "ref-cast" = rec {
         crateName = "ref-cast";
-        version = "1.0.26";
+        version = "1.0.27";
         edition = "2021";
-        sha256 = "0vdra0766jcc2czzqwhql41kkfyajdnai1pbkjxbq8vr7mvqyvi1";
+        sha256 = "1hv5sf0j7b65gz2g57c3wp0fzr5r3807dywf6fap455lwjs0yi3y";
         libName = "ref_cast";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
@@ -18218,9 +18222,9 @@ rec {
       };
       "ref-cast-impl" = rec {
         crateName = "ref-cast-impl";
-        version = "1.0.26";
+        version = "1.0.27";
         edition = "2021";
-        sha256 = "0g70ff9an5i97cw9kijgzqrqydz7smcfic2zyydddizfbxl874ic";
+        sha256 = "0fnzgkvddgl9xs3884x5ypi9rd0dgc1p5vd1k4b74lw49ybdiv4j";
         procMacro = true;
         libName = "ref_cast_impl";
         authors = [
@@ -21782,9 +21786,9 @@ rec {
       };
       "shikumi" = rec {
         crateName = "shikumi";
-        version = "0.1.594";
+        version = "0.1.613";
         edition = "2024";
-        sha256 = "00vgy2h27z19h668lqbh2j0i5mwnph2vzvjjr82k4cjqpr8c8vdh";
+        sha256 = "14vzn02j42951rwj7g5f86r4500qxd5bq6ixb93ray8cs3xq0fbf";
         dependencies = [
           {
             name = "arc-swap";
@@ -23990,9 +23994,9 @@ rec {
       };
       "tatara-core" = rec {
         crateName = "tatara-core";
-        version = "0.2.311";
+        version = "0.2.328";
         edition = "2021";
-        sha256 = "0ymv5wiaa0rj9s9ldiccrahny8s30xkggdd3g2rxdydp11b5d5bw";
+        sha256 = "0zgii8xwkn82s5ir5qkn8x3cpfx5jracjl5fm0yga507d943x0df";
         libName = "tatara_core";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24067,9 +24071,9 @@ rec {
       };
       "tatara-eval" = rec {
         crateName = "tatara-eval";
-        version = "0.2.311";
+        version = "0.2.328";
         edition = "2021";
-        sha256 = "1lihwkw4rh1nwzb0jxn3z5kw4xwr6gy2zhinq3fimxicgvm4b4y2";
+        sha256 = "0d1ilxdp4vrnc7aa9ffapzi0l5r8a8y39q4nj95c7irgcy99436k";
         libName = "tatara_eval";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24106,9 +24110,9 @@ rec {
       };
       "tatara-lattice" = rec {
         crateName = "tatara-lattice";
-        version = "0.2.311";
+        version = "0.2.328";
         edition = "2021";
-        sha256 = "024pb178x11rap32fp3f69mzxlsrcw2vc40y70mdhlffpgrdcy6a";
+        sha256 = "10ifm94imz0d2dvip8kh0bxfiqs0l3shwhhfpyvj72ansnwpqp2m";
         libName = "tatara_lattice";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24233,9 +24237,9 @@ rec {
       };
       "tatara-nix" = rec {
         crateName = "tatara-nix";
-        version = "0.2.311";
+        version = "0.2.328";
         edition = "2021";
-        sha256 = "1gpijd9cpsa471p9bi13ig4ww10icn1cz766qhb9c5n0svb4zmi8";
+        sha256 = "1cs5f0s1nfyfd45vyhwvbi840hhmr7xanj966vaxha3zgfs7mcak";
         libName = "tatara_nix";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24283,10 +24287,10 @@ rec {
       };
       "tatara-process" = rec {
         crateName = "tatara-process";
-        version = "0.2.311";
+        version = "0.2.328";
         edition = "2021";
         crateBin = [];
-        sha256 = "1yblzwk9150misn7z426aq8arrr39hjiqwxjgfg0rdg3spqbr8wq";
+        sha256 = "1xyi6zjsxvdw9adz3bp0zr9fccl40jiiba2qdzyc0y9p2b63vnwz";
         libName = "tatara_process";
         authors = [
           "Pleme.io <engineering@pleme.io>"
