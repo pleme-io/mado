@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "bc46b4007a455349d47032259472e751a4c1bab9c318eff7b30e1ab62f0ff5cc",
+  "cargo_lock_sha256": "42b95d60c298622f9e518e769c15582618a81ae7639c30fcb32f1d78695e2f6f",
   "manifest_sha256": {
     "Cargo.toml": "c560eb476ca483258dbefced9bb06efb16f448018e3ee8627e71bce3f2b28531"
   },
@@ -4476,7 +4476,7 @@
           "std"
         ]
       },
-      "garasu-0.1.9": {
+      "garasu-0.1.11": {
         "runtime_dependencies": [
           {
             "name": "bincode",
@@ -9215,7 +9215,7 @@
           "serde"
         ]
       },
-      "madori-0.1.10": {
+      "madori-0.1.11": {
         "runtime_dependencies": [
           {
             "name": "egaku",
@@ -9229,7 +9229,7 @@
           },
           {
             "name": "garasu",
-            "package_key": "garasu-0.1.9",
+            "package_key": "garasu-0.1.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12019,7 +12019,7 @@
           },
           {
             "name": "garasu",
-            "package_key": "garasu-0.1.9",
+            "package_key": "garasu-0.1.11",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -26441,7 +26441,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.9",
+                "package_key": "garasu-0.1.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26615,7 +26615,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.10",
+                "package_key": "madori-0.1.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31394,7 +31394,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.9",
+                "package_key": "garasu-0.1.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31568,7 +31568,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.10",
+                "package_key": "madori-0.1.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35425,7 +35425,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.9",
+                "package_key": "garasu-0.1.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35599,7 +35599,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.10",
+                "package_key": "madori-0.1.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39574,7 +39574,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.9",
+                "package_key": "garasu-0.1.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39748,7 +39748,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.10",
+                "package_key": "madori-0.1.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44534,7 +44534,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.9",
+                "package_key": "garasu-0.1.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44708,7 +44708,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.10",
+                "package_key": "madori-0.1.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48572,7 +48572,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.9",
+                "package_key": "garasu-0.1.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48746,7 +48746,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.10",
+                "package_key": "madori-0.1.11",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -52258,7 +52258,7 @@
     "futures-util-0.3.34": {
       "edition": "2018"
     },
-    "garasu-0.1.9": {
+    "garasu-0.1.11": {
       "edition": "2024",
       "build_script": "build.rs"
     },
@@ -52650,7 +52650,7 @@
         }
       ]
     },
-    "madori-0.1.10": {
+    "madori-0.1.11": {
       "edition": "2024"
     },
     "malloc_buf-0.0.6": {

@@ -1870,9 +1870,9 @@ dependencies = [
 
 [[package]]
 name = "garasu"
-version = "0.1.9"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e079d0252d9f1d4eff4c7229e15dc73af576f5e4f5adf26b97455daad501daa"
+checksum = "6c2ec08e2d0e89d13a65095c9a37504698a3156170c28665d57537db0ea53408"
 dependencies = [
  "bincode",
  "blake3",
@@ -3416,9 +3416,9 @@ dependencies = [
 
 [[package]]
 name = "madori"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "932158562f224d920fa24cbececbcbeb188ac56cca1c0afef884c09a87078b92"
+checksum = "5454fd72a49430de3a6ab83b7a3d04ca4b5f21e0f8f44a24ad2c7770b92b1500"
 dependencies = [
  "egaku",
  "garasu",
@@ -8405,7 +8405,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
