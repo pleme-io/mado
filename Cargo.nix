@@ -5513,9 +5513,9 @@ rec {
       };
       "garasu" = rec {
         crateName = "garasu";
-        version = "0.1.9";
+        version = "0.1.11";
         edition = "2024";
-        sha256 = "1ahxa2nxlmblp4kdynjgbrpmgbvkvharw8n7ykpx9wfra819s1qy";
+        sha256 = "021lll7dndvmsmjqdhkhc4as7626a0vrlp09clxd328f5n7c0bkc";
         dependencies = [
           {
             name = "bincode";
@@ -10187,7 +10187,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.136";
+        version = "0.1.137";
         edition = "2024";
         crateBin = [
           {
@@ -10539,9 +10539,9 @@ rec {
       };
       "madori" = rec {
         crateName = "madori";
-        version = "0.1.10";
+        version = "0.1.11";
         edition = "2024";
-        sha256 = "14lb0y3rmh44z3z0l76adk2ql67brg5wxgjcl87r4k925xb5h8ck";
+        sha256 = "000m5fwp0xrcmlj4mx7qw0hmyjya0hyplfxqd8xdwc4llirgsm2l";
         dependencies = [
           {
             name = "egaku";
@@ -29514,7 +29514,7 @@ rec {
         dependencies = [
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.61.2";
+            packageId = "windows-sys 0.48.0";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Storage_FileSystem" "Win32_System_Console" "Win32_System_SystemInformation" ];
           }
@@ -31611,7 +31611,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Globalization" "Win32_System" "Win32_System_Com" "Win32_UI" "Win32_UI_Shell" "default" ];
+        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Globalization" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Console" "Win32_System_SystemInformation" "Win32_UI" "Win32_UI_Shell" "default" ];
       };
       "windows-sys 0.52.0" = rec {
         crateName = "windows-sys";

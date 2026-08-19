@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "42b95d60c298622f9e518e769c15582618a81ae7639c30fcb32f1d78695e2f6f",
+  "cargo_lock_sha256": "dfe237bbaef9a651b540ac53f2c9d2b7e036b44084c50b32f4b43d1e9942f0e2",
   "manifest_sha256": {
-    "Cargo.toml": "c560eb476ca483258dbefced9bb06efb16f448018e3ee8627e71bce3f2b28531"
+    "Cargo.toml": "ae8e36a6aa1e0e9964dce2bfcad1d3e37e379e9af4181a470793276187bd16b7"
   },
   "target_resolves": {
     "base": {
@@ -602,7 +602,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "awase-0.1.9": {
+      "awase-0.1.10": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -3249,11 +3249,11 @@
           "PartialEq"
         ]
       },
-      "egaku-0.1.13": {
+      "egaku-0.1.14": {
         "runtime_dependencies": [
           {
             "name": "awase",
-            "package_key": "awase-0.1.9",
+            "package_key": "awase-0.1.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3316,6 +3316,16 @@
           {
             "name": "unicode_width",
             "package_key": "unicode-width-0.2.2",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "zeroize",
+            "package_key": "zeroize-1.9.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5262,7 +5272,7 @@
           "std"
         ]
       },
-      "h2-0.4.16": {
+      "h2-0.4.17": {
         "runtime_dependencies": [
           {
             "name": "atomic_waker",
@@ -6070,7 +6080,7 @@
           },
           {
             "name": "h2",
-            "package_key": "h2-0.4.16",
+            "package_key": "h2-0.4.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7167,7 +7177,7 @@
           },
           {
             "name": "egaku",
-            "package_key": "egaku-0.1.13",
+            "package_key": "egaku-0.1.14",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7254,7 +7264,7 @@
           "default"
         ]
       },
-      "ishou-tokens-0.1.9": {
+      "ishou-tokens-0.1.10": {
         "runtime_dependencies": [
           {
             "name": "irodori",
@@ -7481,7 +7491,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.594",
+            "package_key": "shikumi-0.1.613",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9219,7 +9229,7 @@
         "runtime_dependencies": [
           {
             "name": "egaku",
-            "package_key": "egaku-0.1.13",
+            "package_key": "egaku-0.1.14",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9239,7 +9249,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.9",
+            "package_key": "ishou-tokens-0.1.10",
             "kind": "normal",
             "features": [
               "wgpu"
@@ -9273,7 +9283,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.594",
+            "package_key": "shikumi-0.1.613",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12069,7 +12079,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.9",
+            "package_key": "ishou-tokens-0.1.10",
             "kind": "normal",
             "features": [
               "wgpu"
@@ -12165,7 +12175,7 @@
           },
           {
             "name": "tatara_eval",
-            "package_key": "tatara-eval-0.2.311",
+            "package_key": "tatara-eval-0.2.328",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12446,7 +12456,7 @@
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.9",
+            "package_key": "ishou-tokens-0.1.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13005,7 +13015,7 @@
           },
           {
             "name": "ref_cast",
-            "package_key": "ref-cast-1.0.26",
+            "package_key": "ref-cast-1.0.27",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13716,11 +13726,11 @@
           "std"
         ]
       },
-      "ref-cast-1.0.26": {
+      "ref-cast-1.0.27": {
         "runtime_dependencies": [
           {
             "name": "ref_cast_impl",
-            "package_key": "ref-cast-impl-1.0.26",
+            "package_key": "ref-cast-impl-1.0.27",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13732,7 +13742,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "ref-cast-impl-1.0.26": {
+      "ref-cast-impl-1.0.27": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -14002,7 +14012,7 @@
           },
           {
             "name": "h2",
-            "package_key": "h2-0.4.16",
+            "package_key": "h2-0.4.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15416,7 +15426,7 @@
           },
           {
             "name": "ref_cast",
-            "package_key": "ref-cast-1.0.26",
+            "package_key": "ref-cast-1.0.27",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17233,7 +17243,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.594",
+            "package_key": "shikumi-0.1.613",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17280,7 +17290,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.594": {
+      "shikumi-0.1.613": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -20037,7 +20047,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-core-0.2.311": {
+      "tatara-core-0.2.328": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20148,7 +20158,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.594",
+            "package_key": "shikumi-0.1.613",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20203,7 +20213,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-eval-0.2.311": {
+      "tatara-eval-0.2.328": {
         "runtime_dependencies": [
           {
             "name": "bumpalo",
@@ -20251,7 +20261,7 @@
           },
           {
             "name": "tatara_nix",
-            "package_key": "tatara-nix-0.2.311",
+            "package_key": "tatara-nix-0.2.328",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20273,7 +20283,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lattice-0.2.311": {
+      "tatara-lattice-0.2.328": {
         "runtime_dependencies": [
           {
             "name": "schemars",
@@ -20301,7 +20311,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.311",
+            "package_key": "tatara-core-0.2.328",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20311,7 +20321,7 @@
           },
           {
             "name": "tatara_process",
-            "package_key": "tatara-process-0.2.311",
+            "package_key": "tatara-process-0.2.328",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20477,7 +20487,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-nix-0.2.311": {
+      "tatara-nix-0.2.328": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -20523,7 +20533,7 @@
           },
           {
             "name": "tatara_lattice",
-            "package_key": "tatara-lattice-0.2.311",
+            "package_key": "tatara-lattice-0.2.328",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20575,7 +20585,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-process-0.2.311": {
+      "tatara-process-0.2.328": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20711,7 +20721,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.311",
+            "package_key": "tatara-core-0.2.328",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20846,7 +20856,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.9",
+            "package_key": "ishou-tokens-0.1.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20910,7 +20920,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.594",
+            "package_key": "shikumi-0.1.613",
             "kind": "normal",
             "features": [
               "cli"
@@ -20998,7 +21008,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.9",
+            "package_key": "ishou-tokens-0.1.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21338,7 +21348,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.9",
+            "package_key": "ishou-tokens-0.1.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -26300,7 +26310,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.136": {
+          "mado-0.1.137": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26314,7 +26324,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.9",
+                "package_key": "awase-0.1.10",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26391,7 +26401,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.13",
+                "package_key": "egaku-0.1.14",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26503,7 +26513,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.9",
+                "package_key": "ishou-tokens-0.1.10",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -26875,7 +26885,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.594",
+                "package_key": "shikumi-0.1.613",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -31253,7 +31263,7 @@
               "system"
             ]
           },
-          "mado-0.1.136": {
+          "mado-0.1.137": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31267,7 +31277,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.9",
+                "package_key": "awase-0.1.10",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31344,7 +31354,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.13",
+                "package_key": "egaku-0.1.14",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31456,7 +31466,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.9",
+                "package_key": "ishou-tokens-0.1.10",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -31779,7 +31789,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.594",
+                "package_key": "shikumi-0.1.613",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -35284,7 +35294,7 @@
               "system"
             ]
           },
-          "mado-0.1.136": {
+          "mado-0.1.137": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35298,7 +35308,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.9",
+                "package_key": "awase-0.1.10",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35375,7 +35385,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.13",
+                "package_key": "egaku-0.1.14",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35487,7 +35497,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.9",
+                "package_key": "ishou-tokens-0.1.10",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -35810,7 +35820,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.594",
+                "package_key": "shikumi-0.1.613",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -39433,7 +39443,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.136": {
+          "mado-0.1.137": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39447,7 +39457,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.9",
+                "package_key": "awase-0.1.10",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39524,7 +39534,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.13",
+                "package_key": "egaku-0.1.14",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39636,7 +39646,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.9",
+                "package_key": "ishou-tokens-0.1.10",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -40008,7 +40018,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.594",
+                "package_key": "shikumi-0.1.613",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -44393,7 +44403,7 @@
               "system"
             ]
           },
-          "mado-0.1.136": {
+          "mado-0.1.137": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44407,7 +44417,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.9",
+                "package_key": "awase-0.1.10",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44484,7 +44494,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.13",
+                "package_key": "egaku-0.1.14",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44596,7 +44606,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.9",
+                "package_key": "ishou-tokens-0.1.10",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -44919,7 +44929,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.594",
+                "package_key": "shikumi-0.1.613",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -48431,7 +48441,7 @@
               "system"
             ]
           },
-          "mado-0.1.136": {
+          "mado-0.1.137": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48445,7 +48455,7 @@
               },
               {
                 "name": "awase",
-                "package_key": "awase-0.1.9",
+                "package_key": "awase-0.1.10",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48522,7 +48532,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.13",
+                "package_key": "egaku-0.1.14",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48634,7 +48644,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.9",
+                "package_key": "ishou-tokens-0.1.10",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -48957,7 +48967,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.594",
+                "package_key": "shikumi-0.1.613",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -51720,7 +51730,7 @@
     "autocfg-1.5.1": {
       "edition": "2015"
     },
-    "awase-0.1.9": {
+    "awase-0.1.10": {
       "edition": "2024"
     },
     "backon-1.6.0": {
@@ -52109,7 +52119,7 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "egaku-0.1.13": {
+    "egaku-0.1.14": {
       "edition": "2024"
     },
     "either-1.17.0": {
@@ -52314,7 +52324,7 @@
     "grid-0.15.0": {
       "edition": "2018"
     },
-    "h2-0.4.16": {
+    "h2-0.4.17": {
       "edition": "2021"
     },
     "half-2.7.1": {
@@ -52496,7 +52506,7 @@
     "is_terminal_polyfill-1.70.2": {
       "edition": "2021"
     },
-    "ishou-tokens-0.1.9": {
+    "ishou-tokens-0.1.10": {
       "edition": "2024"
     },
     "itertools-0.10.5": {
@@ -52637,7 +52647,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.136": {
+    "mado-0.1.137": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -53208,11 +53218,11 @@
     "read-fonts-0.41.0": {
       "edition": "2021"
     },
-    "ref-cast-1.0.26": {
+    "ref-cast-1.0.27": {
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "ref-cast-impl-1.0.26": {
+    "ref-cast-impl-1.0.27": {
       "edition": "2021",
       "proc_macro": true
     },
@@ -53478,7 +53488,7 @@
     "shidou-0.1.10": {
       "edition": "2024"
     },
-    "shikumi-0.1.594": {
+    "shikumi-0.1.613": {
       "edition": "2024"
     },
     "shlex-2.0.1": {
@@ -53637,13 +53647,13 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-core-0.2.311": {
+    "tatara-core-0.2.328": {
       "edition": "2021"
     },
-    "tatara-eval-0.2.311": {
+    "tatara-eval-0.2.328": {
       "edition": "2021"
     },
-    "tatara-lattice-0.2.311": {
+    "tatara-lattice-0.2.328": {
       "edition": "2021"
     },
     "tatara-lisp-0.3.52": {
@@ -53656,10 +53666,10 @@
     "tatara-lisp-eval-0.3.52": {
       "edition": "2021"
     },
-    "tatara-nix-0.2.311": {
+    "tatara-nix-0.2.328": {
       "edition": "2021"
     },
-    "tatara-process-0.2.311": {
+    "tatara-process-0.2.328": {
       "edition": "2021",
       "binaries": [
         {
