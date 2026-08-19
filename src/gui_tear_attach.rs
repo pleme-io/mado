@@ -785,6 +785,10 @@ where
     madori::App::builder(renderer)
         .target_fps(effective_fps)
         .config(app_config)
+        // Wayland `app_id` / X11 `WM_CLASS` — see the twin builder in
+        // main.rs. Same string on both paths so the embedded-tear window
+        // (default render mode) matches the launcher too.
+        .app_id("mado")
         .on_event(move |event, renderer| -> EventResponse {
             // ── Auto-attach-on-cd (the headline praça automation) ──
             // BEFORE servicing the switch channel: observe the displayed

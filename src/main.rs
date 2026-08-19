@@ -1078,6 +1078,12 @@ fn main() -> anyhow::Result<()> {
     madori::App::builder(renderer)
         .target_fps(effective_fps)
         .config(app_config)
+        // Wayland `app_id` / X11 `WM_CLASS` — matches `mado.desktop`'s
+        // `StartupWMClass=mado` so GNOME (and every other Wayland
+        // compositor / X11 WM) associates the running window with its
+        // favourited launcher, instead of showing a separate generic
+        // icon beside it. See madori's `AppBuilder::app_id` rustdoc.
+        .app_id("mado")
         .on_event(move |event, renderer| -> EventResponse {
             // Check if PTY has exited — request window close
             if pane_for_events.any_exited() {
