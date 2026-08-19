@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "dfe237bbaef9a651b540ac53f2c9d2b7e036b44084c50b32f4b43d1e9942f0e2",
+  "cargo_lock_sha256": "7287306b0a4064ac8e4c99a8161a648ba9107447ed529dade6dfca566cd16edb",
   "manifest_sha256": {
     "Cargo.toml": "ae8e36a6aa1e0e9964dce2bfcad1d3e37e379e9af4181a470793276187bd16b7"
   },
@@ -9225,7 +9225,7 @@
           "serde"
         ]
       },
-      "madori-0.1.11": {
+      "madori-0.1.12": {
         "runtime_dependencies": [
           {
             "name": "egaku",
@@ -26625,7 +26625,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.11",
+                "package_key": "madori-0.1.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31578,7 +31578,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.11",
+                "package_key": "madori-0.1.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35609,7 +35609,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.11",
+                "package_key": "madori-0.1.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39758,7 +39758,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.11",
+                "package_key": "madori-0.1.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44718,7 +44718,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.11",
+                "package_key": "madori-0.1.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48756,7 +48756,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.11",
+                "package_key": "madori-0.1.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -52660,7 +52660,7 @@
         }
       ]
     },
-    "madori-0.1.11": {
+    "madori-0.1.12": {
       "edition": "2024"
     },
     "malloc_buf-0.0.6": {
