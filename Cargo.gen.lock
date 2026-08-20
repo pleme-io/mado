@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "4d82c0188c0a6a4f2c0a722d760bfa508ecaeca05c0f9175f1c2120bf842f0b5",
+  "cargo_lock_sha256": "725a6e12c0a86414d8030a83b1f43187b2ad3352706eebd606702a2f77721104",
   "manifest_sha256": {
-    "Cargo.toml": "4daa8b29643bd0d3c2932af3b984b3662894622b0f2fe17e3732e335d6ea8606"
+    "Cargo.toml": "119b5a73e2a2941a0918b14bebd6e2a43218a623786e6dcce413603cedd02405"
   },
   "target_resolves": {
     "base": {
@@ -322,11 +322,6 @@
             "tree": "host"
           }
         ],
-        "build_dependencies": [],
-        "features": []
-      },
-      "arrayref-0.3.9": {
-        "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
       },
@@ -4500,7 +4495,7 @@
           },
           {
             "name": "blake3",
-            "package_key": "blake3-1.8.6",
+            "package_key": "blake3-1.8.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4749,7 +4744,7 @@
         "runtime_dependencies": [
           {
             "name": "blake3",
-            "package_key": "blake3-1.8.6",
+            "package_key": "blake3-1.8.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -6550,7 +6545,7 @@
           },
           {
             "name": "zerovec",
-            "package_key": "zerovec-0.11.7",
+            "package_key": "zerovec-0.11.8",
             "kind": "normal",
             "features": [
               "derive",
@@ -6609,7 +6604,7 @@
           },
           {
             "name": "zerovec",
-            "package_key": "zerovec-0.11.7",
+            "package_key": "zerovec-0.11.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -6667,7 +6662,7 @@
           },
           {
             "name": "zerovec",
-            "package_key": "zerovec-0.11.7",
+            "package_key": "zerovec-0.11.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -6755,7 +6750,7 @@
           },
           {
             "name": "zerovec",
-            "package_key": "zerovec-0.11.7",
+            "package_key": "zerovec-0.11.8",
             "kind": "normal",
             "features": [
               "derive",
@@ -6845,7 +6840,7 @@
           },
           {
             "name": "zerovec",
-            "package_key": "zerovec-0.11.7",
+            "package_key": "zerovec-0.11.8",
             "kind": "normal",
             "features": [
               "derive"
@@ -7344,7 +7339,7 @@
         "runtime_dependencies": [
           {
             "name": "blake3",
-            "package_key": "blake3-1.8.6",
+            "package_key": "blake3-1.8.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7491,7 +7486,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.614",
+            "package_key": "shikumi-0.1.622",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9283,7 +9278,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.614",
+            "package_key": "shikumi-0.1.622",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12019,7 +12014,7 @@
         "runtime_dependencies": [
           {
             "name": "blake3",
-            "package_key": "blake3-1.8.6",
+            "package_key": "blake3-1.8.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12175,7 +12170,7 @@
           },
           {
             "name": "tatara_eval",
-            "package_key": "tatara-eval-0.2.330",
+            "package_key": "tatara-eval-0.2.341",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12412,7 +12407,7 @@
         "runtime_dependencies": [
           {
             "name": "zerovec",
-            "package_key": "zerovec-0.11.7",
+            "package_key": "zerovec-0.11.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -17243,7 +17238,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.614",
+            "package_key": "shikumi-0.1.622",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17290,7 +17285,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.614": {
+      "shikumi-0.1.622": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -20047,7 +20042,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-core-0.2.330": {
+      "tatara-core-0.2.341": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20061,7 +20056,7 @@
           },
           {
             "name": "blake3",
-            "package_key": "blake3-1.8.6",
+            "package_key": "blake3-1.8.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20158,7 +20153,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.614",
+            "package_key": "shikumi-0.1.622",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20213,7 +20208,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-eval-0.2.330": {
+      "tatara-eval-0.2.341": {
         "runtime_dependencies": [
           {
             "name": "bumpalo",
@@ -20261,7 +20256,7 @@
           },
           {
             "name": "tatara_nix",
-            "package_key": "tatara-nix-0.2.330",
+            "package_key": "tatara-nix-0.2.341",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20283,7 +20278,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lattice-0.2.330": {
+      "tatara-lattice-0.2.341": {
         "runtime_dependencies": [
           {
             "name": "schemars",
@@ -20311,7 +20306,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.330",
+            "package_key": "tatara-core-0.2.341",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20321,7 +20316,7 @@
           },
           {
             "name": "tatara_process",
-            "package_key": "tatara-process-0.2.330",
+            "package_key": "tatara-process-0.2.341",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20337,7 +20332,7 @@
         "runtime_dependencies": [
           {
             "name": "blake3",
-            "package_key": "blake3-1.8.6",
+            "package_key": "blake3-1.8.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20487,11 +20482,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-nix-0.2.330": {
+      "tatara-nix-0.2.341": {
         "runtime_dependencies": [
           {
             "name": "blake3",
-            "package_key": "blake3-1.8.6",
+            "package_key": "blake3-1.8.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20533,7 +20528,7 @@
           },
           {
             "name": "tatara_lattice",
-            "package_key": "tatara-lattice-0.2.330",
+            "package_key": "tatara-lattice-0.2.341",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20585,7 +20580,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-process-0.2.330": {
+      "tatara-process-0.2.341": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20599,7 +20594,7 @@
           },
           {
             "name": "blake3",
-            "package_key": "blake3-1.8.6",
+            "package_key": "blake3-1.8.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20721,7 +20716,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.330",
+            "package_key": "tatara-core-0.2.341",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20920,7 +20915,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.614",
+            "package_key": "shikumi-0.1.622",
             "kind": "normal",
             "features": [
               "cli"
@@ -20978,7 +20973,7 @@
           },
           {
             "name": "blake3",
-            "package_key": "blake3-1.8.6",
+            "package_key": "blake3-1.8.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21149,7 +21144,7 @@
           },
           {
             "name": "blake3",
-            "package_key": "blake3-1.8.6",
+            "package_key": "blake3-1.8.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21318,7 +21313,7 @@
           },
           {
             "name": "blake3",
-            "package_key": "blake3-1.8.6",
+            "package_key": "blake3-1.8.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21817,7 +21812,7 @@
           },
           {
             "name": "zerovec",
-            "package_key": "zerovec-0.11.7",
+            "package_key": "zerovec-0.11.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -24322,7 +24317,7 @@
         "runtime_dependencies": [
           {
             "name": "blake3",
-            "package_key": "blake3-1.8.6",
+            "package_key": "blake3-1.8.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25185,7 +25180,7 @@
           "zerofrom"
         ]
       },
-      "zerovec-0.11.7": {
+      "zerovec-0.11.8": {
         "runtime_dependencies": [
           {
             "name": "yoke",
@@ -25426,18 +25421,8 @@
               "default"
             ]
           },
-          "blake3-1.8.6": {
+          "blake3-1.8.7": {
             "runtime_dependencies": [
-              {
-                "name": "arrayref",
-                "package_key": "arrayref-0.3.9",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              },
               {
                 "name": "arrayvec",
                 "package_key": "arrayvec-0.7.8",
@@ -26310,7 +26295,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.138": {
+          "mado-0.1.139": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26334,7 +26319,7 @@
               },
               {
                 "name": "blake3",
-                "package_key": "blake3-1.8.6",
+                "package_key": "blake3-1.8.7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26885,7 +26870,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.614",
+                "package_key": "shikumi-0.1.622",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -30524,6 +30509,11 @@
               "windows-sys"
             ]
           },
+          "arrayref-0.3.9": {
+            "runtime_dependencies": [],
+            "build_dependencies": [],
+            "features": []
+          },
           "as-raw-xcb-connection-1.0.1": {
             "runtime_dependencies": [],
             "build_dependencies": [],
@@ -30532,18 +30522,8 @@
               "default"
             ]
           },
-          "blake3-1.8.6": {
+          "blake3-1.8.7": {
             "runtime_dependencies": [
-              {
-                "name": "arrayref",
-                "package_key": "arrayref-0.3.9",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              },
               {
                 "name": "arrayvec",
                 "package_key": "arrayvec-0.7.8",
@@ -31263,7 +31243,7 @@
               "system"
             ]
           },
-          "mado-0.1.138": {
+          "mado-0.1.139": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31287,7 +31267,7 @@
               },
               {
                 "name": "blake3",
-                "package_key": "blake3-1.8.6",
+                "package_key": "blake3-1.8.7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31789,7 +31769,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.614",
+                "package_key": "shikumi-0.1.622",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -34555,6 +34535,11 @@
               "windows-sys"
             ]
           },
+          "arrayref-0.3.9": {
+            "runtime_dependencies": [],
+            "build_dependencies": [],
+            "features": []
+          },
           "as-raw-xcb-connection-1.0.1": {
             "runtime_dependencies": [],
             "build_dependencies": [],
@@ -34563,18 +34548,8 @@
               "default"
             ]
           },
-          "blake3-1.8.6": {
+          "blake3-1.8.7": {
             "runtime_dependencies": [
-              {
-                "name": "arrayref",
-                "package_key": "arrayref-0.3.9",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              },
               {
                 "name": "arrayvec",
                 "package_key": "arrayvec-0.7.8",
@@ -35294,7 +35269,7 @@
               "system"
             ]
           },
-          "mado-0.1.138": {
+          "mado-0.1.139": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35318,7 +35293,7 @@
               },
               {
                 "name": "blake3",
-                "package_key": "blake3-1.8.6",
+                "package_key": "blake3-1.8.7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35820,7 +35795,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.614",
+                "package_key": "shikumi-0.1.622",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -38575,18 +38550,8 @@
               "default"
             ]
           },
-          "blake3-1.8.6": {
+          "blake3-1.8.7": {
             "runtime_dependencies": [
-              {
-                "name": "arrayref",
-                "package_key": "arrayref-0.3.9",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              },
               {
                 "name": "arrayvec",
                 "package_key": "arrayvec-0.7.8",
@@ -39443,7 +39408,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.138": {
+          "mado-0.1.139": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39467,7 +39432,7 @@
               },
               {
                 "name": "blake3",
-                "package_key": "blake3-1.8.6",
+                "package_key": "blake3-1.8.7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40018,7 +39983,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.614",
+                "package_key": "shikumi-0.1.622",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -43680,6 +43645,11 @@
               "windows-sys"
             ]
           },
+          "arrayref-0.3.9": {
+            "runtime_dependencies": [],
+            "build_dependencies": [],
+            "features": []
+          },
           "as-raw-xcb-connection-1.0.1": {
             "runtime_dependencies": [],
             "build_dependencies": [],
@@ -43688,18 +43658,8 @@
               "default"
             ]
           },
-          "blake3-1.8.6": {
+          "blake3-1.8.7": {
             "runtime_dependencies": [
-              {
-                "name": "arrayref",
-                "package_key": "arrayref-0.3.9",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              },
               {
                 "name": "arrayvec",
                 "package_key": "arrayvec-0.7.8",
@@ -44403,7 +44363,7 @@
               "system"
             ]
           },
-          "mado-0.1.138": {
+          "mado-0.1.139": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44427,7 +44387,7 @@
               },
               {
                 "name": "blake3",
-                "package_key": "blake3-1.8.6",
+                "package_key": "blake3-1.8.7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44929,7 +44889,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.614",
+                "package_key": "shikumi-0.1.622",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -47718,6 +47678,11 @@
               "windows-sys"
             ]
           },
+          "arrayref-0.3.9": {
+            "runtime_dependencies": [],
+            "build_dependencies": [],
+            "features": []
+          },
           "as-raw-xcb-connection-1.0.1": {
             "runtime_dependencies": [],
             "build_dependencies": [],
@@ -47726,18 +47691,8 @@
               "default"
             ]
           },
-          "blake3-1.8.6": {
+          "blake3-1.8.7": {
             "runtime_dependencies": [
-              {
-                "name": "arrayref",
-                "package_key": "arrayref-0.3.9",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              },
               {
                 "name": "arrayvec",
                 "package_key": "arrayvec-0.7.8",
@@ -48441,7 +48396,7 @@
               "system"
             ]
           },
-          "mado-0.1.138": {
+          "mado-0.1.139": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48465,7 +48420,7 @@
               },
               {
                 "name": "blake3",
-                "package_key": "blake3-1.8.6",
+                "package_key": "blake3-1.8.7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48967,7 +48922,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.614",
+                "package_key": "shikumi-0.1.622",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -51764,7 +51719,7 @@
     "bitvec-1.1.1": {
       "edition": "2021"
     },
-    "blake3-1.8.6": {
+    "blake3-1.8.7": {
       "edition": "2024",
       "build_script": "build.rs"
     },
@@ -52647,7 +52602,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.138": {
+    "mado-0.1.139": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -53488,7 +53443,7 @@
     "shidou-0.1.10": {
       "edition": "2024"
     },
-    "shikumi-0.1.614": {
+    "shikumi-0.1.622": {
       "edition": "2024"
     },
     "shlex-2.0.1": {
@@ -53647,13 +53602,13 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-core-0.2.330": {
+    "tatara-core-0.2.341": {
       "edition": "2021"
     },
-    "tatara-eval-0.2.330": {
+    "tatara-eval-0.2.341": {
       "edition": "2021"
     },
-    "tatara-lattice-0.2.330": {
+    "tatara-lattice-0.2.341": {
       "edition": "2021"
     },
     "tatara-lisp-0.3.52": {
@@ -53666,10 +53621,10 @@
     "tatara-lisp-eval-0.3.52": {
       "edition": "2021"
     },
-    "tatara-nix-0.2.330": {
+    "tatara-nix-0.2.341": {
       "edition": "2021"
     },
-    "tatara-process-0.2.330": {
+    "tatara-process-0.2.341": {
       "edition": "2021",
       "binaries": [
         {
@@ -54180,7 +54135,7 @@
     "zerotrie-0.2.5": {
       "edition": "2021"
     },
-    "zerovec-0.11.7": {
+    "zerovec-0.11.8": {
       "edition": "2021"
     },
     "zerovec-derive-0.11.5": {
