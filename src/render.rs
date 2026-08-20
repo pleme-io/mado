@@ -1678,6 +1678,19 @@ pub struct TerminalRenderer {
     /// fire once per settled size instead of ~60×/sec through the drag; the
     /// final grid snaps on the settled size exactly as before.
     last_ratio_probe_wh: (u32, u32),
+    /// How many times the panel-ratio probe has come back unavailable with no
+    /// known-good ratio to fall back on.
+    ///
+    /// ★ The retry loop needed a bound. `FallbackRetry` deliberately does not
+    /// lock `last_ratio_probe_wh`, so it re-probes every settled frame until a
+    /// real ratio appears — which self-heals a startup hiccup, and never
+    /// terminates when the probe *cannot* succeed on this platform.
+    ///
+    /// `kanchi::probe::display_scaling_ratio()` is implemented for macOS only;
+    /// every other target returns a hardcoded `None`. So on Linux the loop is
+    /// infinite by construction. Measured on plo 2026-08-20 under omoya: 889
+    /// identical `WARN` lines in ~8 seconds, roughly one per frame.
+    ratio_probe_failures: u32,
     /// P7 shape cache: bounded LRU keyed by (text-bytes, attrs,
     /// physical font-size). The Arc<Buffer> lets cache hits share
     /// the same shaped Buffer with the per-frame text_areas Vec
@@ -2057,6 +2070,15 @@ enum RatioUpdate {
 /// display until the next resize re-probes. `Retain` closes that recurrence:
 /// once a good ratio is found, no failed probe can discard it.
 #[inline]
+/// How many consecutive unavailable probes to tolerate before holding 1.0 for
+/// the current surface size.
+///
+/// Sized to cover a startup hiccup (a handful of frames) without letting a
+/// permanently-unavailable probe warn once per frame forever. A surface resize
+/// re-arms the probe regardless, so this bounds the noise rather than
+/// abandoning recovery.
+const RATIO_PROBE_MAX_RETRIES: u32 = 8;
+
 fn resolve_ratio_update(
     probe: crate::panel_fit::PanelRatio,
     have_known_ratio: bool,
@@ -2217,6 +2239,7 @@ impl TerminalRenderer {
             last_surface_h: 0,
             // (0, 0) forces the first frame to probe (0 != any real size).
             last_ratio_probe_wh: (0, 0),
+            ratio_probe_failures: 0,
             shape_cache: RefCell::new(LruCache::new(
                 NonZeroUsize::new(SHAPE_CACHE_CAP)
                     .expect("SHAPE_CACHE_CAP is a non-zero compile-time constant"),
@@ -5940,6 +5963,10 @@ impl RenderCallback for TerminalRenderer {
                         self.set_panel_ratio(ratio);
                         self.panel_ratio_source = source;
                         self.last_ratio_probe_wh = this;
+                        // A real ratio arrived, so any earlier unavailability
+                        // was the transient case the retry exists for. Clear
+                        // the count so a later hiccup gets its full budget.
+                        self.ratio_probe_failures = 0;
                     }
                     RatioUpdate::Retain => {
                         // Keep the known-good ratio + its source; lock the size
@@ -5955,18 +5982,46 @@ impl RenderCallback for TerminalRenderer {
                     }
                     RatioUpdate::FallbackRetry(ratio) => {
                         // No good ratio yet. Fall back to 1.0 so rendering
-                        // proceeds, but deliberately do NOT lock `last_ratio_probe_wh`
-                        // → we re-probe next settled frame until a real ratio is
-                        // found, so a startup hiccup self-heals instead of latching
-                        // a seam for this size.
+                        // proceeds and keep re-probing, so a startup hiccup
+                        // self-heals instead of latching a seam for this size.
+                        //
+                        // ★ BUT BOUNDED. Not locking `last_ratio_probe_wh` is
+                        // what makes the retry work; it is also what made it
+                        // infinite where the probe can never succeed, and
+                        // `display_scaling_ratio()` is macOS-only — every other
+                        // target returns a hardcoded `None`. Unbounded, this
+                        // warned once per frame forever (measured: 889 lines in
+                        // ~8s on plo). A warning at 60 Hz is not a warning; it
+                        // is a log that can no longer be read.
                         self.set_panel_ratio(ratio);
                         self.panel_ratio_source = source;
-                        tracing::warn!(
-                            target: "mado::seam",
-                            "panel-ratio probe unavailable — falling back to 1.0 and retrying; a \
-                             fractionally-scaled display will seam until the probe succeeds. Run \
-                             `mado print-posture` to confirm the ratio."
-                        );
+                        self.ratio_probe_failures =
+                            self.ratio_probe_failures.saturating_add(1);
+                        if self.ratio_probe_failures <= RATIO_PROBE_MAX_RETRIES {
+                            tracing::warn!(
+                                target: "mado::seam",
+                                attempt = self.ratio_probe_failures,
+                                max = RATIO_PROBE_MAX_RETRIES,
+                                "panel-ratio probe unavailable — falling back to 1.0 and retrying; \
+                                 a fractionally-scaled display will seam until the probe succeeds. \
+                                 Run `mado print-posture` to confirm the ratio."
+                            );
+                            if self.ratio_probe_failures == RATIO_PROBE_MAX_RETRIES {
+                                tracing::warn!(
+                                    target: "mado::seam",
+                                    "panel-ratio probe has not succeeded in {RATIO_PROBE_MAX_RETRIES} \
+                                     attempts — treating it as unavailable on this platform and \
+                                     holding 1.0. A surface resize re-probes."
+                                );
+                            }
+                        }
+                        // Past the bound, latch for THIS size. A genuine
+                        // display-scale change resizes the surface, which
+                        // re-arms `should_reprobe_ratio` — so this stops the
+                        // flood without giving up the recovery path.
+                        if self.ratio_probe_failures > RATIO_PROBE_MAX_RETRIES {
+                            self.last_ratio_probe_wh = this;
+                        }
                     }
                 }
             }
