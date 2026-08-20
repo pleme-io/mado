@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "725a6e12c0a86414d8030a83b1f43187b2ad3352706eebd606702a2f77721104",
+  "cargo_lock_sha256": "693f226b37a54116e2d107f59b9d422f6ea8f7b34e214f54dc7f9ab24f7f1683",
   "manifest_sha256": {
     "Cargo.toml": "119b5a73e2a2941a0918b14bebd6e2a43218a623786e6dcce413603cedd02405"
   },
@@ -4481,7 +4481,7 @@
           "std"
         ]
       },
-      "garasu-0.1.11": {
+      "garasu-0.1.12": {
         "runtime_dependencies": [
           {
             "name": "bincode",
@@ -9234,7 +9234,7 @@
           },
           {
             "name": "garasu",
-            "package_key": "garasu-0.1.11",
+            "package_key": "garasu-0.1.12",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12024,7 +12024,7 @@
           },
           {
             "name": "garasu",
-            "package_key": "garasu-0.1.11",
+            "package_key": "garasu-0.1.12",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -26436,7 +26436,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.11",
+                "package_key": "garasu-0.1.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31384,7 +31384,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.11",
+                "package_key": "garasu-0.1.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35410,7 +35410,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.11",
+                "package_key": "garasu-0.1.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39549,7 +39549,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.11",
+                "package_key": "garasu-0.1.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44504,7 +44504,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.11",
+                "package_key": "garasu-0.1.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48537,7 +48537,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.11",
+                "package_key": "garasu-0.1.12",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -52223,7 +52223,7 @@
     "futures-util-0.3.34": {
       "edition": "2018"
     },
-    "garasu-0.1.11": {
+    "garasu-0.1.12": {
       "edition": "2024",
       "build_script": "build.rs"
     },
