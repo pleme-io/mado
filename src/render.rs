@@ -2060,6 +2060,15 @@ enum RatioUpdate {
     FallbackRetry(f32),
 }
 
+/// How many consecutive unavailable probes to tolerate before holding 1.0 for
+/// the current surface size.
+///
+/// Sized to cover a startup hiccup (a handful of frames) without letting a
+/// permanently-unavailable probe warn once per frame forever. A surface resize
+/// re-arms the probe regardless, so this bounds the noise rather than
+/// abandoning recovery.
+const RATIO_PROBE_MAX_RETRIES: u32 = 8;
+
 /// Decide how a fresh panel-ratio probe result updates the current state.
 ///
 /// The load-bearing invariant (operator report: "we fixed the seam many
@@ -2070,15 +2079,6 @@ enum RatioUpdate {
 /// display until the next resize re-probes. `Retain` closes that recurrence:
 /// once a good ratio is found, no failed probe can discard it.
 #[inline]
-/// How many consecutive unavailable probes to tolerate before holding 1.0 for
-/// the current surface size.
-///
-/// Sized to cover a startup hiccup (a handful of frames) without letting a
-/// permanently-unavailable probe warn once per frame forever. A surface resize
-/// re-arms the probe regardless, so this bounds the noise rather than
-/// abandoning recovery.
-const RATIO_PROBE_MAX_RETRIES: u32 = 8;
-
 fn resolve_ratio_update(
     probe: crate::panel_fit::PanelRatio,
     have_known_ratio: bool,
