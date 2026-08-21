@@ -27,12 +27,28 @@
 //! screen** and is now gone. So M7 is no longer "make idle cheap" — it is the
 //! remaining, narrower question: **when a frame IS needed, say WHAT changed.**
 //!
-//! That has a real consumer now, which it did not when this module was
-//! written. omoya's `import_shm_buffer` copies only the damaged rows of a
-//! client buffer; mado currently reports whole-surface damage every frame, so
-//! the compositor memcpys ~8 MB per frame under load. `frame_us` on plo is
-//! 4.2 ms against a 2.78 ms vblank at 360 Hz — that copy is now the ceiling.
-//! Per-row spans from here are what would lower it.
+//! ★ CORRECTED, SAME DAY. I first wrote that per-row spans here would cut the
+//! compositor's per-keystroke copy. **They will not, and the reason is worth
+//! recording so nobody re-plans around it.** mado never calls
+//! `wl_surface.damage_buffer` — presentation goes through wgpu, and
+//! `SurfaceTexture::present()` takes no damage argument at all (wgpu exposes
+//! no `VK_KHR_incremental_present` equivalent). So the whole surface is
+//! reported dirty on every present no matter what this module computes, and
+//! omoya copies ~7.9 MB per keystroke either way.
+//!
+//! Measured on plo: a pointer-caused compositor frame costs **250 us**, a
+//! commit-caused one **4194 us** — 17x, and past the 2.78 ms vblank at
+//! 360 Hz. That gap is the compositor's import, and it is not mado's to close
+//! from here.
+//!
+//! What M7 *does* buy is mado's OWN render cost: `last_frame_us` is ~440 us
+//! today and most of it is `snapshot()`'s full grid clone. Real, worth having,
+//! and roughly a tenth of the number people would expect from the paragraph
+//! above.
+//!
+//! The compositor-side fix is **direct scanout** (`pending-omoya-planes`):
+//! hand a fullscreen client's buffer straight to a DRM plane and copy nothing.
+//! That is omoya's work, not this module's.
 //!
 //! Note the division of labour, because conflating the two is exactly the
 //! mistake that produced the idle repaint: **`needs_frame` decides IF, this
