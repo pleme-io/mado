@@ -157,7 +157,10 @@ pleme-fleet-themed-derive = "0.1"
 pleme-allvariants-derive = "0.1"
 
 garasu = "0.1"
-madori = "0.1"
+# 0.1.13 is a REQUIREMENT, not a bump: RenderCallback::needs_frame lands
+# there, and mado overrides it. An older madori compiles but never asks,
+# so the override would be dead code and the idle repaint would return.
+madori = "0.1.14"
 shikumi = { version = "0.1", features = ["cli"] }
 # izumi (泉) — the fresh-source board substrate: the generalized extraction of
 # mado's Ctrl-S suggestion plane (Item/Store/Engine/Environment algebra, the

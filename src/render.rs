@@ -5877,6 +5877,98 @@ impl TerminalRenderer {
 }
 
 impl RenderCallback for TerminalRenderer {
+    /// ★ THE SKIP THAT ACTUALLY SKIPS.
+    ///
+    /// `render` below has computed this verdict since forever — it counts it
+    /// into `TOTAL_FRAMES_SKIPPED`, logs it as an idle frame, and then falls
+    /// through to a full repaint. The counter read **9,934,969 of 10,726,562
+    /// "skipped"**, none of which were, and the cost measured on plo
+    /// (2026-08-21) was **50.7% of a core on a completely static screen** —
+    /// against a source comment estimating "≈0.2% … free correctness with no
+    /// measurable cost". That estimate was reasoned, never measured, and it
+    /// was wrong by ~250x.
+    ///
+    /// It was written that way for a real reason: the original gate returned
+    /// early *and madori still presented*, handing the swapchain a slot
+    /// nobody had painted — the "prompt leaves shadows of itself" regression,
+    /// plus Metal's uninitialised magenta. But the implication of *never
+    /// present an unwritten slot* is **do not present**, not **always write**,
+    /// and mado could not express that alone: madori owns the acquire and the
+    /// present. `RenderCallback::needs_frame` is that seam, and a `false`
+    /// here skips acquire, render and present together — so no unpainted slot
+    /// can reach the display and the window keeps the frame it already has.
+    ///
+    /// ★ **Deliberately conservative, and side-effect free.** It returns
+    /// `false` ONLY when every reason to paint is absent, and it mutates
+    /// nothing — `last_seqno`, `last_cursor_on`, `force_paint_frames` and the
+    /// sync-output defer all stay owned by `render`, so a `true` here leaves
+    /// behaviour bit-for-bit identical to before this method existed. Any
+    /// doubt resolves to `true`: a redundant frame costs microseconds, a
+    /// wrongly-skipped one is a display that stops updating.
+    fn needs_frame(&mut self, q: madori::FrameQuery) -> bool {
+        use crate::motion::Advance as _;
+        // A forced repaint outranks everything — it exists to scrub stale
+        // content out of EVERY swapchain slot after a pane switch, and
+        // skipping any of those frames is what leaves one slot showing the
+        // previous session.
+        if self.force_paint_frames > 0 {
+            return true;
+        }
+        // Never skipped a frame yet: `last_seqno == 0` is the "nothing has
+        // been drawn" sentinel that several reset paths restore, and it must
+        // not be mistaken for "the terminal is at seqno 0 and quiet".
+        if self.last_seqno == 0 {
+            return true;
+        }
+
+        let (seqno, cursor_visible, epoch, presentation) = {
+            let term = self.terminal.read();
+            (
+                term.seqno(),
+                term.cursor().visible,
+                term.grid_epoch(),
+                term.cursor_presentation(),
+            )
+        };
+
+        // New content, or a whole new pane.
+        if seqno != self.last_seqno || epoch != self.last_grid_epoch {
+            return true;
+        }
+        // A pending synchronized-output defer means a frame is owed the
+        // moment the defer resolves; `render` owns that timer, so stay awake.
+        if self.sync_output_deferred_since.is_some() {
+            return true;
+        }
+        if self.bell_flash.is_active() || self.search.lock().unwrap().active {
+            return true;
+        }
+
+        // The blink phase, resolved exactly as the draw path resolves it —
+        // an app asking for a blinking cursor via DECSCUSR over a
+        // `blink = false` config must still animate, or the cursor renders
+        // frozen. Same `effective_blink` derivation, same `blink_on` clock.
+        // Resolved EXACTLY as the draw path resolves it (`Some((_, blink))`
+        // = an application spoke via DECSCUSR and outranks the config). Two
+        // spellings of this would drift, and the drift is invisible: the gate
+        // schedules no repaints while the draw path animates, so the cursor
+        // renders frozen and nothing errors.
+        let effective_blink = match presentation {
+            Some((_, blink)) => blink && !self.reduce_motion,
+            None => self.cursor_blink,
+        };
+        let cursor_on_now = !effective_blink
+            || crate::motion::blink_on(
+                q.elapsed,
+                self.cursor_blink_rate_ms as f32 / 1000.0 * 2.0,
+            );
+        if effective_blink && cursor_visible && cursor_on_now != self.last_cursor_on {
+            return true;
+        }
+
+        false
+    }
+
     fn init(&mut self, gpu: &garasu::GpuContext) {
         crate::perf::log_phase("renderer_init_start");
         let format = SURFACE_FORMAT;
@@ -6203,13 +6295,35 @@ impl RenderCallback for TerminalRenderer {
             && !bell_active
             && !search_active_peek
         {
+            // ★ REACHING HERE IS NOW A DIAGNOSTIC, NOT THE NORM.
+            //
+            // `RenderCallback::needs_frame` (above) owns this decision and
+            // answers it BEFORE madori acquires a swapchain image, so an idle
+            // frame no longer arrives here at all — acquire, render and
+            // present are skipped together and the window keeps the frame it
+            // already has. The counter is kept because the two predicates are
+            // deliberately not identical: `needs_frame` is conservative and
+            // side-effect free, while this one runs after `snapshot()` and can
+            // see state the peek could not.
+            //
+            // So a rising count now means "the cheap gate said draw and the
+            // expensive one disagreed" — a real, readable signal about how
+            // well the conservative predicate is calibrated. It used to mean
+            // nothing at all: it read 9,934,969 of 10,726,562 "skipped" while
+            // skipping none of them, because this block fell through to a
+            // full render.
+            //
+            // Still falls through, and that is correct: by this point the
+            // swapchain image IS acquired and madori WILL present it, so the
+            // slot must be painted. Skipping here is the shadow/afterimage
+            // regression. The place to skip is `needs_frame`.
             TOTAL_FRAMES_SKIPPED.fetch_add(1, Ordering::Relaxed);
             tracing::debug!(
                 peek_us = frame_start.elapsed().as_micros() as u64,
                 path = "idle_peek_full",
-                "idle frame — full repaint to current swapchain slot"
+                "late idle detection — needs_frame said draw, the post-snapshot \
+                 gate disagrees; painting anyway because the slot is acquired"
             );
-            // Fall through to full render below.
         }
 
         let snapshot_start = Instant::now();
@@ -6823,6 +6937,135 @@ mod render_invariants {
             Color::WHITE,
         );
         (renderer, term)
+    }
+
+    // ── ★ needs_frame: the skip that actually skips ──────────────────────
+    //
+    // `render` has computed this verdict forever and rendered anyway — the
+    // counter read 9,934,969 of 10,726,562 "skipped", none of which were, and
+    // it cost 50.7% of a core on a static screen (measured on plo,
+    // 2026-08-21). These pin the predicate so it cannot quietly revert to
+    // always-true, which is a change every screenshot test in this file would
+    // report as "no difference".
+
+    const Q0: madori::FrameQuery = madori::FrameQuery {
+        elapsed: 0.0,
+        dt: 0.0,
+    };
+
+    /// Drive the renderer to the settled state a real one reaches after its
+    /// first paint: `last_seqno` matching the terminal, epoch matching, no
+    /// forced repaint outstanding.
+    fn settled(r: &mut TerminalRenderer, term: &SharedTerminal) {
+        // ★ FEED SOMETHING FIRST. A fresh `Terminal` sits at seqno 0, and 0 is
+        // ALSO the "nothing has ever been painted" sentinel `needs_frame`
+        // checks — so settling straight from a new terminal produces a state
+        // indistinguishable from an unpainted renderer, and every quiet-screen
+        // assertion below would see `true` for the wrong reason. (Harmless in
+        // production, where a real terminal leaves seqno 0 immediately; worth
+        // knowing that the sentinel and a legitimate value overlap at exactly
+        // one point.)
+        term.write().feed(b"x");
+        let (seqno, epoch) = {
+            let t = term.read();
+            (t.seqno(), t.grid_epoch())
+        };
+        assert_ne!(seqno, 0, "the harness must leave the unpainted sentinel");
+        r.last_seqno = seqno;
+        r.last_grid_epoch = epoch;
+        r.force_paint_frames = 0;
+        r.sync_output_deferred_since = None;
+    }
+
+    #[test]
+    fn a_settled_quiet_renderer_needs_no_frame() {
+        let (mut r, term) = harness(20, 5);
+        settled(&mut r, &term);
+        assert!(
+            !r.needs_frame(Q0),
+            "nothing changed, so no frame is owed — a `true` here is half a \
+             core burned on a static screen"
+        );
+    }
+
+    #[test]
+    fn an_unpainted_renderer_always_owes_a_frame() {
+        // `last_seqno == 0` is the "nothing drawn yet" sentinel several reset
+        // paths restore. Mistaking it for "quiet at seqno 0" is a terminal
+        // that never draws its first frame.
+        let (mut r, _term) = harness(20, 5);
+        assert_eq!(r.last_seqno, 0);
+        assert!(
+            r.needs_frame(Q0),
+            "a renderer that has never painted owes a frame"
+        );
+    }
+
+    #[test]
+    fn a_forced_repaint_outranks_a_quiet_screen() {
+        // Set after a pane switch to scrub stale content out of EVERY
+        // swapchain slot. Skipping any of them leaves one slot showing the
+        // previous session — the "shadow / copies of the prompt" report.
+        let (mut r, term) = harness(20, 5);
+        settled(&mut r, &term);
+        assert!(!r.needs_frame(Q0));
+        r.force_paint_frames = 2;
+        assert!(
+            r.needs_frame(Q0),
+            "a forced repaint must never be skipped, quiet screen or not"
+        );
+    }
+
+    #[test]
+    fn a_pending_sync_output_defer_keeps_the_loop_awake() {
+        let (mut r, term) = harness(20, 5);
+        settled(&mut r, &term);
+        r.sync_output_deferred_since = Some(std::time::Instant::now());
+        assert!(
+            r.needs_frame(Q0),
+            "a frame is owed the moment the defer resolves, and `render` owns \
+             that timer — sleeping here would strand it"
+        );
+    }
+
+    #[test]
+    fn a_new_grid_epoch_owes_a_frame() {
+        // A whole new pane: the seqno may legitimately be unchanged while
+        // every pixel differs, so the epoch is the discriminator.
+        let (mut r, term) = harness(20, 5);
+        settled(&mut r, &term);
+        assert!(!r.needs_frame(Q0));
+        r.last_grid_epoch = r.last_grid_epoch.wrapping_sub(1);
+        assert!(r.needs_frame(Q0), "a grid-epoch change is a different pane");
+    }
+
+    #[test]
+    fn needs_frame_mutates_nothing_the_draw_path_owns() {
+        // Deliberately side-effect free: `render` owns last_seqno,
+        // last_cursor_on, force_paint_frames and the defer. If the question
+        // consumed any of them, asking it would change what the answer would
+        // have been — and the draw path would then see state already spent.
+        let (mut r, term) = harness(20, 5);
+        settled(&mut r, &term);
+        let before = (
+            r.last_seqno,
+            r.last_cursor_on,
+            r.force_paint_frames,
+            r.sync_output_deferred_since.is_some(),
+        );
+        for _ in 0..10 {
+            let _ = r.needs_frame(Q0);
+        }
+        let after = (
+            r.last_seqno,
+            r.last_cursor_on,
+            r.force_paint_frames,
+            r.sync_output_deferred_since.is_some(),
+        );
+        assert_eq!(
+            before, after,
+            "needs_frame must not consume the draw path's state"
+        );
     }
 
     /// The row-seam chokepoint (operator report 2026-07-05): cell
