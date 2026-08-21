@@ -1934,9 +1934,9 @@ rec {
       };
       "cc" = rec {
         crateName = "cc";
-        version = "1.4.3";
+        version = "1.4.4";
         edition = "2021";
-        sha256 = "0v9b5arr047vbihfbh3fmbd3aj9vf1i7dbdgfpvlwzynpjvr35ah";
+        sha256 = "0wq26vvhzv5ci9gx3cfiw320skvaysf9i701wp668lks6ps39m8a";
         dependencies = [
           {
             name = "find-msvc-tools";
@@ -4278,9 +4278,9 @@ rec {
       };
       "either" = rec {
         crateName = "either";
-        version = "1.17.0";
+        version = "1.18.0";
         edition = "2021";
-        sha256 = "07dagpwcfdzpkb1n7fxkx0q3nv80rnf81v7gwlz9ljx22mn8yply";
+        sha256 = "0d7dx31sf8rakcgp63070ngb2vkjynrni866pnx879pawndgnai5";
         dependencies = [
           {
             name = "serde";
@@ -6289,9 +6289,9 @@ rec {
       };
       "h2" = rec {
         crateName = "h2";
-        version = "0.4.17";
+        version = "0.4.18";
         edition = "2021";
-        sha256 = "0jblh2mscahvbz42d1sp5702ib444rcxswm5a3n2g64yydspx1wz";
+        sha256 = "0a52hs8cakvg7xi3pxqi83vganyaasxn545ya8v74f8j3250x743";
         authors = [
           "Carl Lerche <me@carllerche.com>"
           "Sean McArthur <sean@seanmonstar.com>"
@@ -7781,9 +7781,9 @@ rec {
       };
       "icu_provider" = rec {
         crateName = "icu_provider";
-        version = "2.3.0";
+        version = "2.3.1";
         edition = "2024";
-        sha256 = "0a343jlrb7jlb20xv1airslzv63559wf38jihrx81bba39kyv9wj";
+        sha256 = "0wrydhwprwgyka3r3sw6276syjnlw6fpqr2zsm2srvxv7afvnyyj";
         authors = [
           "The ICU4X Project Developers"
         ];
@@ -9665,6 +9665,23 @@ rec {
           "unstable-runtime" = [ "unstable-runtime-subscribe" "unstable-runtime-stream-control" "unstable-runtime-reconcile-on" ];
         };
       };
+      "kukaku" = rec {
+        crateName = "kukaku";
+        version = "0.1.20";
+        edition = "2024";
+        sha256 = "0dbxgnyqs3cmm9bgzhzy48934xnz9plxb4liv5h1wvkw5ajdi50b";
+        authors = [
+          "pleme-io"
+        ];
+        dependencies = [
+          {
+            name = "serde";
+            packageId = "serde";
+            features = [ "derive" ];
+          }
+        ];
+
+      };
       "lazy_static" = rec {
         crateName = "lazy_static";
         version = "1.5.0";
@@ -10187,7 +10204,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.141";
+        version = "0.1.142";
         edition = "2024";
         crateBin = [
           {
@@ -16869,9 +16886,9 @@ rec {
       };
       "praca" = rec {
         crateName = "praca";
-        version = "0.1.19";
+        version = "0.1.20";
         edition = "2024";
-        sha256 = "1ax0782sc9ghffrq51ibrhma0n4s9d2r7vs5m8j2spqx0rb94imz";
+        sha256 = "0yk9hchbh5h9yac6g8b6ala37xhirq6a9mwm14cmfi72cn3jb722";
         authors = [
           "pleme-io"
         ];
@@ -21782,9 +21799,9 @@ rec {
       };
       "shikumi" = rec {
         crateName = "shikumi";
-        version = "0.1.625";
+        version = "0.1.647";
         edition = "2024";
-        sha256 = "1f33rjg22qc6v6c51v7prfpxwfnpqiwv3vnza4hmjls1jc4af3c3";
+        sha256 = "0m3fr301gl6wagm5jbijp0gf961wrkfrinm9cvaxvjgkw2nv7im9";
         dependencies = [
           {
             name = "arc-swap";
@@ -23990,9 +24007,9 @@ rec {
       };
       "tatara-core" = rec {
         crateName = "tatara-core";
-        version = "0.2.342";
+        version = "0.2.367";
         edition = "2021";
-        sha256 = "1xcrq257navypakdrqj9619ak00lg6rhldazxfsq11809av2afx4";
+        sha256 = "19iddlarf9587hkp0wbb69pl4qsynkkfb5fpyr9b2xlh0604hacq";
         libName = "tatara_core";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24067,9 +24084,9 @@ rec {
       };
       "tatara-eval" = rec {
         crateName = "tatara-eval";
-        version = "0.2.342";
+        version = "0.2.367";
         edition = "2021";
-        sha256 = "16dd05sim31c7hwy422swalxkihz707fza3907gchm2mw8mvv401";
+        sha256 = "1assbahhpklv7cqkj9s6fnsl899ynnsiq464wya4h3wy2hk2nh3d";
         libName = "tatara_eval";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24106,9 +24123,9 @@ rec {
       };
       "tatara-lattice" = rec {
         crateName = "tatara-lattice";
-        version = "0.2.342";
+        version = "0.2.367";
         edition = "2021";
-        sha256 = "14nhz2p6hxr3zhbvd8ip2cw4q73wn89r5z36i59bp4ilmszfp1iv";
+        sha256 = "09izqbis018klb8fkzhmzlvvjv3bvvk7k9sgy39kc6q9fyv30wlx";
         libName = "tatara_lattice";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24233,9 +24250,9 @@ rec {
       };
       "tatara-nix" = rec {
         crateName = "tatara-nix";
-        version = "0.2.342";
+        version = "0.2.367";
         edition = "2021";
-        sha256 = "0dnqgvqdg7yzflwl60ja73fwz5l04nmransr59alwp8lqvkdqfvs";
+        sha256 = "1pfdi4m5mv62j6f89rgawn7ynq1rc85szp7bknvcnqsc2d8m2xs8";
         libName = "tatara_nix";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24283,10 +24300,10 @@ rec {
       };
       "tatara-process" = rec {
         crateName = "tatara-process";
-        version = "0.2.342";
+        version = "0.2.367";
         edition = "2021";
         crateBin = [];
-        sha256 = "02vsnisak3zgjlg3gfn11j8vcpvjzsxc8kzqwrm6vh7ikgkam3gc";
+        sha256 = "10l8wkfrg17bm529zn3kib5dnd3x0q074kz2lwzwrm68qzh0dhsw";
         libName = "tatara_process";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24366,9 +24383,9 @@ rec {
       };
       "tear-client" = rec {
         crateName = "tear-client";
-        version = "0.1.19";
+        version = "0.1.20";
         edition = "2024";
-        sha256 = "1qdlzgbmrxr3h15f0d8y2623qf76afqq28q8rc4zs1g8iqlqw1kl";
+        sha256 = "100bkkrvssgnkvq2cv866q8809j3bhhvxv1wlpmq9872yv0yfwr6";
         libName = "tear_client";
         authors = [
           "pleme-io"
@@ -24408,9 +24425,9 @@ rec {
       };
       "tear-config" = rec {
         crateName = "tear-config";
-        version = "0.1.19";
+        version = "0.1.20";
         edition = "2024";
-        sha256 = "1skhx9c5cwr5r3f5gfhwxm56pwca0mf232zphhl98basfzkyp87x";
+        sha256 = "1n6whh4vsbk33v9xgzhn24nm4ds3c2a3i7w9in2c44v8pgpmlnp9";
         libName = "tear_config";
         authors = [
           "pleme-io"
@@ -24473,9 +24490,9 @@ rec {
       };
       "tear-core" = rec {
         crateName = "tear-core";
-        version = "0.1.19";
+        version = "0.1.20";
         edition = "2024";
-        sha256 = "18jhj4fccds8pkry2cvgwl17qdgp1llc0s75f3qnf2psv4854396";
+        sha256 = "18qprr35dqc7mw2skdsffbdjxnlx3c8r1lydz603f4kyq43fa5il";
         libName = "tear_core";
         authors = [
           "pleme-io"
@@ -24556,9 +24573,9 @@ rec {
       };
       "tear-daemon" = rec {
         crateName = "tear-daemon";
-        version = "0.1.19";
+        version = "0.1.20";
         edition = "2024";
-        sha256 = "00gq258kq6fbvjvjc86q0vrv41dkgqq0sck7j98h8lvzzyl51a43";
+        sha256 = "0scvj6yhn45bh70f8x6axsl9kzkrr4742adwkhbs8r611fygag8q";
         libName = "tear_daemon";
         authors = [
           "pleme-io"
@@ -24636,9 +24653,9 @@ rec {
       };
       "tear-types" = rec {
         crateName = "tear-types";
-        version = "0.1.19";
+        version = "0.1.20";
         edition = "2024";
-        sha256 = "05m41lwb8gkqmnjv6r6p1fhdaiafqxd8xzj4yg63qlw42lvgni7k";
+        sha256 = "13xw80nb85prx8zyldcvnlxlvzarjx8jv83pqchwd171z1qjjah5";
         libName = "tear_types";
         authors = [
           "pleme-io"
@@ -24664,6 +24681,10 @@ rec {
           {
             name = "ishou-tokens";
             packageId = "ishou-tokens";
+          }
+          {
+            name = "kukaku";
+            packageId = "kukaku";
           }
           {
             name = "okiba";
@@ -34011,9 +34032,9 @@ rec {
       };
       "zerovec-derive" = rec {
         crateName = "zerovec-derive";
-        version = "0.11.5";
+        version = "0.11.6";
         edition = "2021";
-        sha256 = "1a8pz516ddcgxvxq3j1xgprac5wnprlrbyzsgzarj0423la2l8cz";
+        sha256 = "1ni5j8v99x3fcf3l8kp64b7aq4vf8y22jshfq74xs9mxkp1nzprl";
         procMacro = true;
         libName = "zerovec_derive";
         authors = [
