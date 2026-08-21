@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "974b009b7066dd329674339e9ed641b423cf430b244b8e172331d63c0913acdd",
+  "cargo_lock_sha256": "513f97ed27c1ead0fe90d39ccdf3c7324245bfa93ad27c6eaf38199da375999f",
   "manifest_sha256": {
-    "Cargo.toml": "15201040d815041b780e43d6d51f5a7634a1baab160f233613c8ac1f0f87cd2d"
+    "Cargo.toml": "65b291527e6c572d6cfe1c56380d438cb9673fb6e98d842e68fe64831f1444a5"
   },
   "target_resolves": {
     "base": {
@@ -1253,7 +1253,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "cc-1.4.3": {
+      "cc-1.4.4": {
         "runtime_dependencies": [
           {
             "name": "find_msvc_tools",
@@ -3332,7 +3332,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "either-1.17.0": {
+      "either-1.18.0": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -5267,7 +5267,7 @@
           "std"
         ]
       },
-      "h2-0.4.17": {
+      "h2-0.4.18": {
         "runtime_dependencies": [
           {
             "name": "atomic_waker",
@@ -6075,7 +6075,7 @@
           },
           {
             "name": "h2",
-            "package_key": "h2-0.4.17",
+            "package_key": "h2-0.4.18",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -6642,7 +6642,7 @@
           },
           {
             "name": "icu_provider",
-            "package_key": "icu_provider-2.3.0",
+            "package_key": "icu_provider-2.3.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -6727,7 +6727,7 @@
           },
           {
             "name": "icu_provider",
-            "package_key": "icu_provider-2.3.0",
+            "package_key": "icu_provider-2.3.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -6772,7 +6772,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "icu_provider-2.3.0": {
+      "icu_provider-2.3.1": {
         "runtime_dependencies": [
           {
             "name": "displaydoc",
@@ -7314,7 +7314,7 @@
         "runtime_dependencies": [
           {
             "name": "either",
-            "package_key": "either-1.17.0",
+            "package_key": "either-1.18.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -7486,7 +7486,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.625",
+            "package_key": "shikumi-0.1.647",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8073,7 +8073,7 @@
           },
           {
             "name": "either",
-            "package_key": "either-1.17.0",
+            "package_key": "either-1.18.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8792,6 +8792,24 @@
         "build_dependencies": [],
         "features": []
       },
+      "kukaku-0.1.20": {
+        "runtime_dependencies": [
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.229",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
       "lazy_static-1.5.0": {
         "runtime_dependencies": [
           {
@@ -8851,7 +8869,7 @@
         "build_dependencies": [
           {
             "name": "cc",
-            "package_key": "cc-1.4.3",
+            "package_key": "cc-1.4.4",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -8867,7 +8885,7 @@
         "build_dependencies": [
           {
             "name": "cc",
-            "package_key": "cc-1.4.3",
+            "package_key": "cc-1.4.4",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -9278,7 +9296,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.625",
+            "package_key": "shikumi-0.1.647",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12170,7 +12188,7 @@
           },
           {
             "name": "tatara_eval",
-            "package_key": "tatara-eval-0.2.342",
+            "package_key": "tatara-eval-0.2.367",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12447,7 +12465,7 @@
           "std"
         ]
       },
-      "praca-0.1.19": {
+      "praca-0.1.20": {
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
@@ -12483,7 +12501,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.19",
+            "package_key": "tear-types-0.1.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14007,7 +14025,7 @@
           },
           {
             "name": "h2",
-            "package_key": "h2-0.4.17",
+            "package_key": "h2-0.4.18",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17238,7 +17256,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.625",
+            "package_key": "shikumi-0.1.647",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17285,7 +17303,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.625": {
+      "shikumi-0.1.647": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -17801,7 +17819,7 @@
           },
           {
             "name": "either",
-            "package_key": "either-1.17.0",
+            "package_key": "either-1.18.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18210,7 +18228,7 @@
           },
           {
             "name": "either",
-            "package_key": "either-1.17.0",
+            "package_key": "either-1.18.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18501,7 +18519,7 @@
           },
           {
             "name": "either",
-            "package_key": "either-1.17.0",
+            "package_key": "either-1.18.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20042,7 +20060,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-core-0.2.342": {
+      "tatara-core-0.2.367": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20153,7 +20171,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.625",
+            "package_key": "shikumi-0.1.647",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20208,7 +20226,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-eval-0.2.342": {
+      "tatara-eval-0.2.367": {
         "runtime_dependencies": [
           {
             "name": "bumpalo",
@@ -20256,7 +20274,7 @@
           },
           {
             "name": "tatara_nix",
-            "package_key": "tatara-nix-0.2.342",
+            "package_key": "tatara-nix-0.2.367",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20278,7 +20296,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lattice-0.2.342": {
+      "tatara-lattice-0.2.367": {
         "runtime_dependencies": [
           {
             "name": "schemars",
@@ -20306,7 +20324,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.342",
+            "package_key": "tatara-core-0.2.367",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20316,7 +20334,7 @@
           },
           {
             "name": "tatara_process",
-            "package_key": "tatara-process-0.2.342",
+            "package_key": "tatara-process-0.2.367",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20482,7 +20500,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-nix-0.2.342": {
+      "tatara-nix-0.2.367": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -20528,7 +20546,7 @@
           },
           {
             "name": "tatara_lattice",
-            "package_key": "tatara-lattice-0.2.342",
+            "package_key": "tatara-lattice-0.2.367",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20580,7 +20598,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-process-0.2.342": {
+      "tatara-process-0.2.367": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20716,7 +20734,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.342",
+            "package_key": "tatara-core-0.2.367",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20758,7 +20776,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-client-0.1.19": {
+      "tear-client-0.1.20": {
         "runtime_dependencies": [
           {
             "name": "engate_attach",
@@ -20802,7 +20820,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.19",
+            "package_key": "tear-config-0.1.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20812,7 +20830,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.19",
+            "package_key": "tear-types-0.1.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20827,7 +20845,7 @@
           "engate"
         ]
       },
-      "tear-config-0.1.19": {
+      "tear-config-0.1.20": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20915,7 +20933,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.625",
+            "package_key": "shikumi-0.1.647",
             "kind": "normal",
             "features": [
               "cli"
@@ -20927,7 +20945,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.19",
+            "package_key": "tear-types-0.1.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20959,7 +20977,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-core-0.1.19": {
+      "tear-core-0.1.20": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21065,7 +21083,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.19",
+            "package_key": "tear-config-0.1.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21075,7 +21093,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.19",
+            "package_key": "tear-types-0.1.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21130,7 +21148,7 @@
           "engate"
         ]
       },
-      "tear-daemon-0.1.19": {
+      "tear-daemon-0.1.20": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21199,7 +21217,7 @@
           },
           {
             "name": "praca",
-            "package_key": "praca-0.1.19",
+            "package_key": "praca-0.1.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21241,7 +21259,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.19",
+            "package_key": "tear-config-0.1.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21251,7 +21269,7 @@
           },
           {
             "name": "tear_core",
-            "package_key": "tear-core-0.1.19",
+            "package_key": "tear-core-0.1.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21261,7 +21279,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.19",
+            "package_key": "tear-types-0.1.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21299,7 +21317,7 @@
           "default"
         ]
       },
-      "tear-types-0.1.19": {
+      "tear-types-0.1.20": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21344,6 +21362,16 @@
           {
             "name": "ishou_tokens",
             "package_key": "ishou-tokens-0.1.10",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "kukaku",
+            "package_key": "kukaku-0.1.20",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25204,7 +25232,7 @@
           },
           {
             "name": "zerovec_derive",
-            "package_key": "zerovec-derive-0.11.5",
+            "package_key": "zerovec-derive-0.11.6",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -25219,7 +25247,7 @@
           "yoke"
         ]
       },
-      "zerovec-derive-0.11.5": {
+      "zerovec-derive-0.11.6": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -25457,7 +25485,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.3",
+                "package_key": "cc-1.4.4",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -26295,7 +26323,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.140": {
+          "mado-0.1.141": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26773,7 +26801,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.19",
+                "package_key": "praca-0.1.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26870,7 +26898,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.625",
+                "package_key": "shikumi-0.1.647",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -26892,7 +26920,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.19",
+                "package_key": "tear-client-0.1.20",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -26904,7 +26932,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.19",
+                "package_key": "tear-config-0.1.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26914,7 +26942,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.19",
+                "package_key": "tear-core-0.1.20",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -26926,7 +26954,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.19",
+                "package_key": "tear-types-0.1.20",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -29188,7 +29216,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.3",
+                "package_key": "cc-1.4.4",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -30558,7 +30586,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.3",
+                "package_key": "cc-1.4.4",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -31243,7 +31271,7 @@
               "system"
             ]
           },
-          "mado-0.1.140": {
+          "mado-0.1.141": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31672,7 +31700,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.19",
+                "package_key": "praca-0.1.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31769,7 +31797,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.625",
+                "package_key": "shikumi-0.1.647",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -31791,7 +31819,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.19",
+                "package_key": "tear-client-0.1.20",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -31803,7 +31831,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.19",
+                "package_key": "tear-config-0.1.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31813,7 +31841,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.19",
+                "package_key": "tear-core-0.1.20",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -31825,7 +31853,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.19",
+                "package_key": "tear-types-0.1.20",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -32196,7 +32224,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.3",
+                "package_key": "cc-1.4.4",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -32962,7 +32990,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.3",
+                "package_key": "cc-1.4.4",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -34584,7 +34612,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.3",
+                "package_key": "cc-1.4.4",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -35269,7 +35297,7 @@
               "system"
             ]
           },
-          "mado-0.1.140": {
+          "mado-0.1.141": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35698,7 +35726,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.19",
+                "package_key": "praca-0.1.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35795,7 +35823,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.625",
+                "package_key": "shikumi-0.1.647",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -35817,7 +35845,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.19",
+                "package_key": "tear-client-0.1.20",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -35829,7 +35857,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.19",
+                "package_key": "tear-config-0.1.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35839,7 +35867,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.19",
+                "package_key": "tear-core-0.1.20",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -35851,7 +35879,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.19",
+                "package_key": "tear-types-0.1.20",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -36222,7 +36250,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.3",
+                "package_key": "cc-1.4.4",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -36988,7 +37016,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.3",
+                "package_key": "cc-1.4.4",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -38596,7 +38624,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.3",
+                "package_key": "cc-1.4.4",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -39408,7 +39436,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.140": {
+          "mado-0.1.141": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39886,7 +39914,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.19",
+                "package_key": "praca-0.1.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39983,7 +40011,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.625",
+                "package_key": "shikumi-0.1.647",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -40005,7 +40033,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.19",
+                "package_key": "tear-client-0.1.20",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -40017,7 +40045,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.19",
+                "package_key": "tear-config-0.1.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40027,7 +40055,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.19",
+                "package_key": "tear-core-0.1.20",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -40039,7 +40067,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.19",
+                "package_key": "tear-types-0.1.20",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -42281,7 +42309,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.3",
+                "package_key": "cc-1.4.4",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -43704,7 +43732,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.3",
+                "package_key": "cc-1.4.4",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -44363,7 +44391,7 @@
               "system"
             ]
           },
-          "mado-0.1.140": {
+          "mado-0.1.141": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44792,7 +44820,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.19",
+                "package_key": "praca-0.1.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44889,7 +44917,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.625",
+                "package_key": "shikumi-0.1.647",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -44911,7 +44939,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.19",
+                "package_key": "tear-client-0.1.20",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -44923,7 +44951,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.19",
+                "package_key": "tear-config-0.1.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44933,7 +44961,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.19",
+                "package_key": "tear-core-0.1.20",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -44945,7 +44973,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.19",
+                "package_key": "tear-types-0.1.20",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -45296,7 +45324,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.3",
+                "package_key": "cc-1.4.4",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -46081,7 +46109,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.3",
+                "package_key": "cc-1.4.4",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -47737,7 +47765,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.3",
+                "package_key": "cc-1.4.4",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -48396,7 +48424,7 @@
               "system"
             ]
           },
-          "mado-0.1.140": {
+          "mado-0.1.141": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48825,7 +48853,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.19",
+                "package_key": "praca-0.1.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48922,7 +48950,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.625",
+                "package_key": "shikumi-0.1.647",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -48944,7 +48972,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.19",
+                "package_key": "tear-client-0.1.20",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -48956,7 +48984,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.19",
+                "package_key": "tear-config-0.1.20",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48966,7 +48994,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.19",
+                "package_key": "tear-core-0.1.20",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -48978,7 +49006,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.19",
+                "package_key": "tear-types-0.1.20",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -49329,7 +49357,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.3",
+                "package_key": "cc-1.4.4",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -50114,7 +50142,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.3",
+                "package_key": "cc-1.4.4",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -51813,7 +51841,7 @@
     "cast-0.3.0": {
       "edition": "2018"
     },
-    "cc-1.4.3": {
+    "cc-1.4.4": {
       "edition": "2021"
     },
     "cfg-if-1.0.4": {
@@ -52077,7 +52105,7 @@
     "egaku-0.1.14": {
       "edition": "2024"
     },
-    "either-1.17.0": {
+    "either-1.18.0": {
       "edition": "2021"
     },
     "encoding_rs-0.8.35": {
@@ -52279,7 +52307,7 @@
     "grid-0.15.0": {
       "edition": "2018"
     },
-    "h2-0.4.17": {
+    "h2-0.4.18": {
       "edition": "2021"
     },
     "half-2.7.1": {
@@ -52402,7 +52430,7 @@
       "edition": "2024",
       "build_script": "build.rs"
     },
-    "icu_provider-2.3.0": {
+    "icu_provider-2.3.1": {
       "edition": "2024"
     },
     "icy_sixel-0.5.1": {
@@ -52532,6 +52560,9 @@
     "kube-runtime-0.99.0": {
       "edition": "2021"
     },
+    "kukaku-0.1.20": {
+      "edition": "2024"
+    },
     "lazy_static-1.5.0": {
       "edition": "2015"
     },
@@ -52602,7 +52633,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.140": {
+    "mado-0.1.141": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -53058,7 +53089,7 @@
     "ppv-lite86-0.2.21": {
       "edition": "2021"
     },
-    "praca-0.1.19": {
+    "praca-0.1.20": {
       "edition": "2024"
     },
     "precomputed-hash-0.1.1": {
@@ -53443,7 +53474,7 @@
     "shidou-0.1.10": {
       "edition": "2024"
     },
-    "shikumi-0.1.625": {
+    "shikumi-0.1.647": {
       "edition": "2024"
     },
     "shlex-2.0.1": {
@@ -53602,13 +53633,13 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-core-0.2.342": {
+    "tatara-core-0.2.367": {
       "edition": "2021"
     },
-    "tatara-eval-0.2.342": {
+    "tatara-eval-0.2.367": {
       "edition": "2021"
     },
-    "tatara-lattice-0.2.342": {
+    "tatara-lattice-0.2.367": {
       "edition": "2021"
     },
     "tatara-lisp-0.3.52": {
@@ -53621,10 +53652,10 @@
     "tatara-lisp-eval-0.3.52": {
       "edition": "2021"
     },
-    "tatara-nix-0.2.342": {
+    "tatara-nix-0.2.367": {
       "edition": "2021"
     },
-    "tatara-process-0.2.342": {
+    "tatara-process-0.2.367": {
       "edition": "2021",
       "binaries": [
         {
@@ -53633,19 +53664,19 @@
         }
       ]
     },
-    "tear-client-0.1.19": {
+    "tear-client-0.1.20": {
       "edition": "2024"
     },
-    "tear-config-0.1.19": {
+    "tear-config-0.1.20": {
       "edition": "2024"
     },
-    "tear-core-0.1.19": {
+    "tear-core-0.1.20": {
       "edition": "2024"
     },
-    "tear-daemon-0.1.19": {
+    "tear-daemon-0.1.20": {
       "edition": "2024"
     },
-    "tear-types-0.1.19": {
+    "tear-types-0.1.20": {
       "edition": "2024"
     },
     "tempfile-3.27.0": {
@@ -54138,7 +54169,7 @@
     "zerovec-0.11.8": {
       "edition": "2021"
     },
-    "zerovec-derive-0.11.5": {
+    "zerovec-derive-0.11.6": {
       "edition": "2021",
       "proc_macro": true
     },
