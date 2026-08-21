@@ -17,6 +17,28 @@
 //! [`DirtyRegion::spans`].
 
 #![allow(dead_code)] // Consumed at M7 — see module docs.
+//!
+//! ★ **UPDATE 2026-08-21 — "whether to draw" is now solved WITHOUT this, and
+//! that changes what M7 is for.**
+//!
+//! `RenderCallback::needs_frame` (madori 0.1.14) answers *is a frame needed at
+//! all*, before the swapchain acquire, and mado implements it. That was the
+//! expensive half: the idle repaint cost **50.7% of a core on a static
+//! screen** and is now gone. So M7 is no longer "make idle cheap" — it is the
+//! remaining, narrower question: **when a frame IS needed, say WHAT changed.**
+//!
+//! That has a real consumer now, which it did not when this module was
+//! written. omoya's `import_shm_buffer` copies only the damaged rows of a
+//! client buffer; mado currently reports whole-surface damage every frame, so
+//! the compositor memcpys ~8 MB per frame under load. `frame_us` on plo is
+//! 4.2 ms against a 2.78 ms vblank at 360 Hz — that copy is now the ceiling.
+//! Per-row spans from here are what would lower it.
+//!
+//! Note the division of labour, because conflating the two is exactly the
+//! mistake that produced the idle repaint: **`needs_frame` decides IF, this
+//! module describes WHAT.** They are not alternatives and neither subsumes the
+//! other.
+
 
 use std::ops::Range;
 
