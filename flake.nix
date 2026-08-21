@@ -453,111 +453,35 @@
         };
       });
 
-    # ── Linux GUI runtime wrap ────────────────────────────────────────────
-    # Two problems compose on Linux, and only fixing BOTH gets a working GUI:
+    # ── Linux GUI runtime wrap — RETIRED 2026-08-21, it lives in the builder ──
+    # ~90 lines stood here: a symlinkJoin+wrapProgram over substrate's
+    # `host-tool` variant, plus a hand-copied duplicate of
+    # `eframe.nix::linuxRuntimeLibs` under a comment reading "keep the two in
+    # step if that grows".
     #
-    # 1. Static-musl target vs GUI app.
-    #    substrate.rust.tool's `packages.default` on Linux is built for
-    #    `x86_64-unknown-linux-musl` via pkgsStatic — a fully static-pie
-    #    binary with NO INTERP segment, NO NEEDED entries and empty RUNPATH.
-    #    That's fine for a deploy CLI, but wrong for a GUI app: winit/wgpu
-    #    dlopen `libwayland-client.so.0`, `libxkbcommon.so.0`, `libGL.so.1`,
-    #    `libvulkan.so.1` and the Xlib/XCB families at RUN time, and a
-    #    static-musl process has no working dlopen path for external
-    #    libraries — LD_LIBRARY_PATH is a glibc-ld.so concept the musl
-    #    static loader does not honor. Substrate already exposes the glibc
-    #    variant as `packages.<system>.host-tool` (linked against regular
-    #    nixpkgs, not pkgsStatic); we swap it in as the Linux default.
+    # It was correct, and its own justification named the mistake out loud:
+    # "plumbing patchelf cleanly would mean extending substrate. Wrapping stays
+    # a one-repo change." The one-repo change is exactly why mado was the ONLY
+    # fleet GUI flake that ran on Linux — twelve siblings (tobira, escriba,
+    # shirase, fumi, kagi, myaku, nami, namimado, shashin, hasami, hibiki,
+    # tanken) had no such wrap and could not start at all.
     #
-    # 2. Runtime library path.
-    #    Even on glibc, the nix binary has no RPATH for wayland/GL/vulkan
-    #    (they're dlopen'd, not linked), so on NixOS they aren't findable
-    #    via the standard dynamic linker without help. Wrap with
-    #    `LD_LIBRARY_PATH` set to a directory holding BOTH wayland AND X11
-    #    loaders — winit auto-detects at runtime (prefers Wayland when
-    #    `WAYLAND_DISPLAY` is set, falls back to X11), so one binary works
-    #    in every Linux session type.
+    # substrate now DERIVES it: `gui-detect.nix` reads Cargo.lock, finds
+    # winit/wgpu in mado's closure, flips the linux triples from musl to gnu
+    # (a static binary has no dynamic loader, so there is no dlopen for a
+    # library path to help) and applies the wrap to every linux artifact. The
+    # library list has one home again, and it is the one this file used to
+    # copy from.
     #
-    # Deliberately a wrapper (symlinkJoin + makeWrapper) rather than
-    # rpath-stamping via autoPatchelfHook + runtimeDependencies: the
-    # substrate.rust.tool crateOverrides surface does not expose per-system
-    # pkgs to the consumer, so plumbing patchelf cleanly would mean
-    # extending substrate. Wrapping stays a one-repo change.
-    #
-    # macOS/darwin: no-op — the wgpu Metal backend needs none of this.
-    linuxGuiOutputs = flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = import nixpkgs { inherit system; };
-      in
-        if !pkgs.stdenv.hostPlatform.isLinux then {} else
-        let
-          # Glibc-linked native binary (substrate's `host-tool` variant),
-          # NOT `packages.default` — the latter is pkgsStatic musl and
-          # cannot dlopen the GUI runtime libs at all.
-          baseBin = base.packages.${system}.host-tool;
-          # Wayland + X11 + GL + Vulkan + font loaders. Names track
-          # substrate/lib/build/rust/eframe.nix::linuxRuntimeLibs (the
-          # canonical fleet list); keep the two in step if that grows.
-          guiLibs = with pkgs; [
-            wayland
-            libxkbcommon
-            libGL
-            vulkan-loader
-            libx11
-            libxcursor
-            libxi
-            libxrandr
-            libxcb
-            libxcb-util
-            fontconfig
-            freetype
-            expat
-          ];
-          wrapped = pkgs.symlinkJoin {
-            name = "mado-linux-gui";
-            paths = [ baseBin ];
-            nativeBuildInputs = [ pkgs.makeWrapper ];
-            postBuild = ''
-              for f in $out/bin/*; do
-                [ -L "$f" ] || continue
-                wrapProgram "$f" \
-                  --prefix LD_LIBRARY_PATH : ${pkgs.lib.makeLibraryPath guiLibs}
-              done
-            '';
-            meta = (baseBin.meta or {}) // {
-              mainProgram = baseBin.meta.mainProgram or "mado";
-            };
-          };
-        in {
-          packages.default = wrapped;
-          packages.mado = wrapped;
-          apps.default = {
-            type = "app";
-            program = "${wrapped}/bin/mado";
-          };
-        });
-
-    # The HM/NixOS/Darwin module trio reads `pkgs.mado` through
-    # `overlays.default`; re-emit that overlay so a Linux consumer's
-    # `pkgs.mado` (and therefore the HM module's `services.mado.package`
-    # default) resolves to the wrapped binary.
-    linuxGuiOverlay = {
-      overlays.default = final: prev:
-        let baseAttrs = base.overlays.default final prev;
-        in baseAttrs
-           // (if final.stdenv.hostPlatform.isLinux
-               then { mado = linuxGuiOutputs.packages.${final.stdenv.hostPlatform.system}.default; }
-               else {});
-    };
+    # Nothing replaces this block. `packages.default` on linux is already the
+    # wrapped glibc binary, and `overlays.default` already carries it.
   in
-    # Deep-merge in order: base ← release apps ← Linux GUI wrap ← overlay
-    # re-emit. recursiveUpdate merges per-system `apps`/`packages` without
-    # clobbering substrate's; the overlay's outer `overlays.default` key
-    # is *replaced* wholesale (correct — the new function composes the
-    # base overlay by calling it).
-    nixpkgs.lib.recursiveUpdate
-      (nixpkgs.lib.recursiveUpdate
-        (nixpkgs.lib.recursiveUpdate base releaseOutputs)
-        linuxGuiOutputs)
-      linuxGuiOverlay;
+    # Deep-merge in order: base ← release apps. recursiveUpdate merges
+    # per-system `apps`/`packages` without clobbering substrate's.
+    #
+    # Two further layers used to sit on top of this — the Linux GUI wrap and an
+    # overlay that re-emitted it. Both are gone because substrate does the job
+    # itself now; see the retirement note above. `base` alone carries the
+    # wrapped linux binary AND the overlay that exposes it.
+    nixpkgs.lib.recursiveUpdate base releaseOutputs;
 }
