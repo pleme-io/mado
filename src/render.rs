@@ -5944,6 +5944,35 @@ impl RenderCallback for TerminalRenderer {
             return true;
         }
 
+        // ── ★ AN OPEN OVERLAY MUST KEEP THE RENDERER AWAKE ──────────────────
+        // Every condition above is about the terminal GRID. None of them is
+        // about an overlay, so with a quiet shell an open Ctrl-S picker
+        // rendered exactly once and then froze: keystrokes still mutated the
+        // picker's state, and nothing ever scheduled the repaint that would
+        // show it. The window looked hung.
+        //
+        // Measured on a live GUI 2026-08-21 (pid 95129, picker open, quiet
+        // shell): `total_frames` pinned at 333 across 20+ seconds with 0.0%
+        // CPU, `last_frame_us` byte-identical between samples, and an
+        // INJECTED ctrl+s chord failed to advance the counter. Frames were not
+        // slow — they had stopped.
+        //
+        // It hid for so long because the other wake conditions usually cover
+        // it by accident: any terminal output, or a blinking cursor, drags the
+        // overlay along with the grid. This operator's config has
+        // `cursor.blink = false`, which removes the last incidental waker, so
+        // a quiet window froze outright while a busy one merely stuttered.
+        //
+        // `overlay_focus` is the gate rather than the pickers' `.open` bools —
+        // it is this file's declared single source of truth for which overlay
+        // Pass 6 draws, and the `.open` bools are documented as content-only.
+        if !matches!(
+            *self.overlay_focus.lock().unwrap(),
+            crate::ux::modes::Overlay::None
+        ) {
+            return true;
+        }
+
         // The blink phase, resolved exactly as the draw path resolves it —
         // an app asking for a blinking cursor via DECSCUSR over a
         // `blink = false` config must still animate, or the cursor renders
@@ -5958,10 +5987,7 @@ impl RenderCallback for TerminalRenderer {
             None => self.cursor_blink,
         };
         let cursor_on_now = !effective_blink
-            || crate::motion::blink_on(
-                q.elapsed,
-                self.cursor_blink_rate_ms as f32 / 1000.0 * 2.0,
-            );
+            || crate::motion::blink_on(q.elapsed, self.cursor_blink_rate_ms as f32 / 1000.0 * 2.0);
         if effective_blink && cursor_visible && cursor_on_now != self.last_cursor_on {
             return true;
         }
@@ -6087,8 +6113,7 @@ impl RenderCallback for TerminalRenderer {
                         // is a log that can no longer be read.
                         self.set_panel_ratio(ratio);
                         self.panel_ratio_source = source;
-                        self.ratio_probe_failures =
-                            self.ratio_probe_failures.saturating_add(1);
+                        self.ratio_probe_failures = self.ratio_probe_failures.saturating_add(1);
                         if self.ratio_probe_failures <= RATIO_PROBE_MAX_RETRIES {
                             tracing::warn!(
                                 target: "mado::seam",
@@ -7013,6 +7038,43 @@ mod render_invariants {
         assert!(
             r.needs_frame(Q0),
             "a forced repaint must never be skipped, quiet screen or not"
+        );
+    }
+
+    #[test]
+    fn an_open_overlay_keeps_the_loop_awake() {
+        // ★ THE FROZEN-PICKER REGRESSION (2026-08-21).
+        //
+        // Every other wake condition is about the terminal GRID, so with a
+        // quiet shell an open Ctrl-S picker rendered once and then stopped:
+        // keystrokes mutated picker state and nothing scheduled the repaint
+        // that would show it. Measured live (pid 95129): total_frames pinned
+        // at 333 for 20+ seconds at 0.0% CPU, and an injected ctrl+s chord did
+        // not advance it.
+        //
+        // It stayed hidden because terminal output or a blinking cursor
+        // usually wakes the loop by accident; with `cursor.blink = false` the
+        // last incidental waker is gone and a quiet window freezes outright.
+        let (mut r, term) = harness(20, 5);
+        settled(&mut r, &term);
+        assert!(!r.needs_frame(Q0), "a quiet grid with no overlay sleeps");
+
+        for overlay in [
+            crate::ux::modes::Overlay::SessionPicker,
+            crate::ux::modes::Overlay::DirPicker,
+        ] {
+            *r.overlay_focus.lock().unwrap() = overlay;
+            assert!(
+                r.needs_frame(Q0),
+                "an overlay owning the keyboard must keep the renderer awake, \
+                 or its own keystrokes never reach the screen: {overlay:?}"
+            );
+        }
+
+        *r.overlay_focus.lock().unwrap() = crate::ux::modes::Overlay::None;
+        assert!(
+            !r.needs_frame(Q0),
+            "and closing it must hand the loop back to sleep"
         );
     }
 
