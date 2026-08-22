@@ -784,6 +784,33 @@ fn default_bindings() -> Vec<Keybinding> {
             hotkey: hk(ctrl, Key::S),
             action: Action::SessionPickerOpen,
         },
+        // ★ Ctrl+SHIFT+S lands here too, and that is a SAFETY binding, not a
+        // convenience.
+        //
+        // Unbound, this chord fell through to `madori_key_to_pty_bytes`, which
+        // sees `text = Some("S")` with ctrl held and emits `0x13` — XOFF. mado
+        // never touches termios, so the PTY carries macOS's default `ixon` with
+        // `stop = ^S` (verified 2026-08-21 by reading `stty -a` inside a live
+        // mado PTY), and 0x13 stops all output from that shell until someone
+        // sends Ctrl-Q. The terminal looks hung, which is indistinguishable
+        // from "Ctrl-S is broken" — and the recovery is worse than the bug:
+        // with the PTY stopped, a write to the master blocks, so the MCP
+        // `send_keys` path cannot deliver the Ctrl-Q that would unstick it
+        // (measured: a 120 s timeout with the session still frozen).
+        //
+        // Binding it closes the trap at the only layer that can: the chord now
+        // resolves to an action, and `on_key` returns Consumed before the PTY
+        // translation is ever reached. Note mado has ALREADY taken bare Ctrl-S
+        // for this picker, so the operator has no intentional XOFF gesture left
+        // to preserve — this removes accident surface, not a feature.
+        //
+        // Deliberately NOT fixed by clearing IXON on the PTY: that would change
+        // flow-control semantics for every program running inside mado, which is
+        // a far larger decision than closing one chord.
+        Keybinding {
+            hotkey: hk(ctrl | Modifiers::SHIFT, Key::S),
+            action: Action::SessionPickerOpen,
+        },
         // Save the highlighted live session-picker row as a preset —
         // Cmd+Shift+S ("save"). The keybind companion to the
         // `save_session_as_preset` MCP verb; a no-op unless Ctrl-S is open
@@ -1071,12 +1098,17 @@ mod tests {
         //
         // Linux adds Ctrl+Shift+C / Ctrl+Shift+V as additive
         // clipboard bindings (Ctrl+C is claimed by SIGINT), so the
-        // linux count is 24. See `linux_clipboard_carries_
+        // linux count is 24 before the XOFF seal below. See `linux_clipboard_carries_
         // ctrl_shift_c_and_ctrl_shift_v_extras` for the seal.
+        // +1 (23 / 25 on linux) for the ctrl+SHIFT+s XOFF seal — see
+        // `ctrl_shift_s_is_bound_so_it_can_never_reach_the_pty_as_xoff`.
+        // That binding exists to stop an unbound chord falling through to
+        // the PTY as 0x13 and freezing the terminal, so if this count ever
+        // drops back by one, read that test before "fixing" the number.
         #[cfg(target_os = "linux")]
-        let expected = 24;
+        let expected = 25;
         #[cfg(not(target_os = "linux"))]
-        let expected = 22;
+        let expected = 23;
         assert_eq!(mgr.bindings().len(), expected);
     }
 
@@ -1206,13 +1238,18 @@ mod tests {
     #[test]
     fn test_total_default_bindings_count() {
         let mgr = KeybindManager::with_mado_defaults();
-        // Cross-platform: 22 baseline, +2 for the linux clipboard
+        // Cross-platform: 22 chords, +2 for the linux clipboard
         // extras (Ctrl+Shift+C/V). See `default_bindings_count` for
         // the itemization.
+        // +1 (23 / 25 on linux) for the ctrl+SHIFT+s XOFF seal — see
+        // `ctrl_shift_s_is_bound_so_it_can_never_reach_the_pty_as_xoff`.
+        // That binding exists to stop an unbound chord falling through to
+        // the PTY as 0x13 and freezing the terminal, so if this count ever
+        // drops back by one, read that test before "fixing" the number.
         #[cfg(target_os = "linux")]
-        let expected = 24;
+        let expected = 25;
         #[cfg(not(target_os = "linux"))]
-        let expected = 22;
+        let expected = 23;
         assert_eq!(mgr.bindings().len(), expected);
     }
 
@@ -1271,6 +1308,65 @@ mod tests {
         let mgr = KeybindManager::with_mado_defaults();
         let hk = awase::Hotkey::new(awase::Modifiers::CTRL, awase::Key::S);
         assert_eq!(mgr.lookup(&hk), Some(Action::SessionPickerOpen));
+    }
+
+    #[test]
+    fn ctrl_shift_s_is_bound_so_it_can_never_reach_the_pty_as_xoff() {
+        // ★ THE XOFF TRAP (2026-08-21).
+        //
+        // Two independently-verified facts meet here:
+        //
+        //  1. A live mado PTY carries macOS's default termios — `stty -a`
+        //     inside one reports `ixon` (ON) with `stop = ^S`. mado never
+        //     calls tcsetattr, so byte 0x13 written to that PTY stops all
+        //     output from the shell until a Ctrl-Q arrives. Proved by writing
+        //     0x13 to a live session mid-stream: output halted and stayed
+        //     halted.
+        //  2. `madori_key_to_pty_bytes` turns Ctrl + an ASCII letter into that
+        //     byte from `text`, and macOS reports Ctrl+SHIFT+S with
+        //     `text = Some("S")` — uppercase, still ascii_alphabetic, still
+        //     folded to 's'. So the shift variant produced 0x13.
+        //
+        // Unbound, that chord fell straight through the action dispatch into
+        // the PTY translation and froze the terminal — indistinguishable from
+        // "Ctrl-S is broken", and unrecoverable through the MCP surface,
+        // because a write to a stopped PTY master blocks (measured: 120 s
+        // timeout, session still frozen).
+        //
+        // The binding is the seal: a resolved action returns Consumed from
+        // `on_key` before the PTY translation is reached. This asserts the
+        // seal, and then asserts the trap it closes is real — so if someone
+        // removes the binding as redundant, this fails and says why.
+        let mgr = KeybindManager::with_mado_defaults();
+        let hk = awase::Hotkey::new(
+            awase::Modifiers::CTRL | awase::Modifiers::SHIFT,
+            awase::Key::S,
+        );
+        assert_eq!(
+            mgr.lookup(&hk),
+            Some(Action::SessionPickerOpen),
+            "ctrl+shift+s must resolve to an action; unbound it emits XOFF"
+        );
+
+        // The trap, demonstrated: this is what an unbound ctrl+shift+s would
+        // have sent. 0x13 is XOFF.
+        let bytes = madori_key_to_pty_bytes(
+            &madori::event::KeyCode::Char('S'),
+            &Some("S".to_string()),
+            madori::event::Modifiers {
+                ctrl: true,
+                shift: true,
+                alt: false,
+                meta: false,
+            },
+            false,
+        );
+        assert_eq!(
+            bytes,
+            Some(vec![0x13]),
+            "if this no longer produces XOFF the hazard changed shape — \
+             re-read why the binding above exists before deleting either"
+        );
     }
 
     #[test]

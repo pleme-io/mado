@@ -30,6 +30,50 @@ pub(crate) static LAST_FRAME_TEXT: AtomicU64 = AtomicU64::new(0);
 pub(crate) static LAST_FRAME_SHAPE_CACHE: AtomicU64 = AtomicU64::new(0);
 pub(crate) static TOTAL_FRAMES: AtomicU64 = AtomicU64::new(0);
 pub(crate) static TOTAL_FRAMES_SKIPPED: AtomicU64 = AtomicU64::new(0);
+/// Frames where `needs_frame` said paint and the post-snapshot gate — which
+/// runs later and can see state the cheap peek could not — disagreed. The
+/// frame is painted anyway (the swapchain slot is already acquired by then),
+/// so this is NOT a skip: it is a calibration signal for how conservative
+/// `needs_frame` is being. Split out of `TOTAL_FRAMES_SKIPPED` on 2026-08-21,
+/// because summing "skipped" and "painted after all" into one counter is what
+/// let that number read 9,934,969 "skipped" while skipping none of them.
+pub(crate) static TOTAL_LATE_IDLE_PAINTS: AtomicU64 = AtomicU64::new(0);
+
+/// Upper bound on how long an OPEN overlay may go unpainted when change
+/// detection says nothing moved.
+///
+/// This is a backstop, not the mechanism — [`OverlaySnapshot`] comparison is.
+/// It exists because the two failure directions are wildly asymmetric: a
+/// redundant paint costs ~5 ms of GPU, while a wrongly-skipped one is a UI
+/// that has visibly stopped. One paint per second while an open picker sits
+/// idle is ~0.5% of a core (measured 5.1 ms/frame on cid, 2026-08-21) against
+/// the ~9% the unconditional repaint it replaces was burning, and it caps any
+/// missed mutation at one second of staleness instead of forever.
+const OVERLAY_HEARTBEAT_SECS: f32 = 1.0;
+
+/// What the overlay passes drew on the last painted frame — the overlay's
+/// answer to the grid's `seqno`.
+///
+/// ★ The comparison is DERIVED, never hand-written, and that is the whole
+/// point of this type. `needs_frame` skips a frame when this compares equal
+/// to the live state, so anything drawn but absent from the comparison is a
+/// field whose changes stop reaching the screen. Deriving `PartialEq` over
+/// the real picker states means a new field added to
+/// [`crate::picker::state::FuzzyPicker`] joins the comparison by
+/// construction, and cannot be forgotten here.
+///
+/// Both pickers are carried, not just the focused one: `focus` alone cannot
+/// distinguish "same overlay, different contents", and a focus change between
+/// two non-`None` overlays must repaint.
+#[derive(Default, Clone, PartialEq)]
+pub(crate) struct OverlaySnapshot {
+    /// Which overlay owned the keyboard, from the single source of truth.
+    focus: Option<crate::ux::modes::Overlay>,
+    /// The Ctrl-S session board's full drawn state.
+    session: crate::session_picker::SessionPickerState,
+    /// The Ctrl-T directory picker's full drawn state.
+    dir: crate::dir_picker::DirPickerState,
+}
 
 use bytemuck::{Pod, Zeroable};
 use glyphon::cosmic_text::{CacheKeyFlags, FeatureTag, FontFeatures};
@@ -1743,6 +1787,21 @@ pub struct TerminalRenderer {
     /// forced full repaint across the swapchain — see
     /// `force_paint_frames` and `Terminal::grid_epoch`.
     last_grid_epoch: u64,
+    /// ★ THE OVERLAY'S `last_seqno`. What the overlay passes actually DREW on
+    /// the last painted frame, so `needs_frame` can tell "the picker is open"
+    /// from "the picker has something new to show".
+    ///
+    /// Owned by `render` exactly as `last_seqno` is — `needs_frame` only reads
+    /// it. See [`OverlaySnapshot`] for why comparison is derived rather than
+    /// hand-written.
+    last_overlay_snapshot: OverlaySnapshot,
+    /// Render-clock (`ctx.elapsed`) seconds at the last painted frame that had
+    /// an overlay open. Drives the bounded-staleness backstop in
+    /// `needs_frame`: even if change detection ever misses a mutation, an open
+    /// overlay still repaints within [`OVERLAY_HEARTBEAT_SECS`], so the worst
+    /// case degrades to brief staleness instead of the hard freeze this whole
+    /// mechanism exists to prevent.
+    last_overlay_paint_at: f32,
     /// Frames remaining to force a full paint after a grid-epoch change,
     /// bypassing the synchronized-output defer. Set to the swapchain
     /// depth so EVERY back-buffer slot is repainted with the new pane's
@@ -2249,6 +2308,8 @@ impl TerminalRenderer {
             row_scratch: RefCell::new(Vec::new()),
             sync_output_deferred_since: None,
             last_grid_epoch: 0,
+            last_overlay_snapshot: OverlaySnapshot::default(),
+            last_overlay_paint_at: f32::NEG_INFINITY,
             force_paint_frames: 0,
             effects_config: crate::config::MadoEffectsConfig::default(),
             ambience: crate::config::MadoEffectsConfig::default()
@@ -2750,6 +2811,50 @@ impl TerminalRenderer {
     /// drops from the top); every colour comes from `self.overlay_style`
     /// (theme-resolved), so no Nord literal survives + a theme swap
     /// restyles all pickers. Each line's [`LineRole`] picks its colour.
+    /// Snapshot everything the overlay passes draw, for change detection.
+    ///
+    /// Cheap by construction: the pickers hold a handful of short strings and
+    /// a result vector that the row budget already caps, and this runs at most
+    /// once per PAINTED frame (plus once per `needs_frame` poll, where the
+    /// comparison short-circuits on the first differing field). Against the
+    /// ~5 ms paint it exists to avoid, the clone is noise.
+    ///
+    /// Locks are taken in the same order as the draw path and released before
+    /// returning — nothing here can outlive the call.
+    fn overlay_snapshot(&self) -> OverlaySnapshot {
+        OverlaySnapshot {
+            focus: self.overlay_focus.lock().ok().map(|g| *g),
+            session: self
+                .session_picker
+                .lock()
+                .map(|g| g.clone())
+                .unwrap_or_default(),
+            dir: self
+                .dir_picker
+                .lock()
+                .map(|g| g.clone())
+                .unwrap_or_default(),
+        }
+    }
+
+    /// `true` while any visible suggestion row's shade-in is still ramping.
+    ///
+    /// `suggestion_fade` maps a row to the render-clock instant it first
+    /// appeared, so a row is still animating until `shade_in_ms` has elapsed
+    /// since then. Without this, a row that dissolved in while the board sat
+    /// otherwise unchanged would freeze part-way through its fade — the same
+    /// class of bug as the frozen picker, one level down.
+    fn suggestion_fades_in_flight(&self, elapsed: f32) -> bool {
+        let shade_in = self.suggestion_shade_in_ms as f32 / 1000.0;
+        if shade_in <= 0.0 {
+            return false;
+        }
+        self.suggestion_fade
+            .borrow()
+            .values()
+            .any(|born| elapsed - *born < shade_in)
+    }
+
     /// The picker fade-in alpha ∈ [0,1] for this frame (`motion.picker_animate`).
     /// `1.0` when the knob is off or the fade has completed; ramps from ~0 at
     /// the overlay-open edge over ~0.18s via a decelerate curve. A pure fn of
@@ -5966,11 +6071,68 @@ impl RenderCallback for TerminalRenderer {
         // `overlay_focus` is the gate rather than the pickers' `.open` bools —
         // it is this file's declared single source of truth for which overlay
         // Pass 6 draws, and the `.open` bools are documented as content-only.
+        //
+        // ── ★ …BUT "AWAKE" IS NOT "REPAINTING UNCONDITIONALLY" ──────────────
+        // The first fix for the frozen picker was a bare `return true` here.
+        // It cured the freeze by deleting the governor: while ANY overlay was
+        // open, every reason-to-skip below became unreachable, so the loop
+        // repainted a completely static board at full rate, forever.
+        //
+        // The cost is measured; the duty cycle is read off the source. Being
+        // precise about which is which, because the obvious experiment does
+        // NOT prove this and it is worth nobody repeating it:
+        //
+        //  • MEASURED, live GUI 2026-08-21 (pid 840): a frame that draws the
+        //    board costs `last_frame_us` ~4900 against 627 idle — an ~8x
+        //    frame, for only +65 rects and +80 text runs. That superlinearity
+        //    is `draw_overlay` re-shaping every picker line from scratch (it
+        //    is the one draw path that bypasses the LRU shape cache), not the
+        //    rect count.
+        //  • NOT measurable on that process: pid 840 execs a binary built at
+        //    18:51, and the clause this comment replaces landed at 21:19 the
+        //    same evening. It was never in the running image, so the frame
+        //    counter advancing there proves nothing about it — that was the
+        //    grid staying busy. The duty cycle below is therefore a source
+        //    fact about the predicate, not a reading off a live process.
+        //
+        // Unconditional `true` at vsync × ~4.9 ms/frame is 30-60% of a core
+        // for as long as the board is open, to redraw a list that had already
+        // finished being drawn.
+        //
+        // An overlay earns a frame for exactly three reasons, and this asks
+        // for each of them instead of assuming all three forever:
+        //   1. its entry animation is still running,
+        //   2. a suggestion row's shade-in is still ramping,
+        //   3. its drawn state differs from what was last painted.
+        // Plus a bounded-staleness backstop, so a missed mutation costs a
+        // second of staleness rather than the hard freeze this replaced.
+        //
+        // Falling THROUGH (rather than returning `false`) is deliberate: the
+        // grid checks below still get to ask for the frame, so an overlay open
+        // over a live shell keeps animating the cursor exactly as before.
         if !matches!(
             *self.overlay_focus.lock().unwrap(),
             crate::ux::modes::Overlay::None
         ) {
-            return true;
+            // (1) Still fading in — a pure fn of the render clock, so this
+            // stops asking the moment the tween completes.
+            if self.overlay_fade_progress(q.elapsed) < 1.0 {
+                return true;
+            }
+            // (2) A row is still dissolving in.
+            if self.suggestion_fades_in_flight(q.elapsed) {
+                return true;
+            }
+            // (3) Something the overlay draws actually changed.
+            if self.overlay_snapshot() != self.last_overlay_snapshot {
+                return true;
+            }
+            // (4) Bounded-staleness backstop. `last_overlay_paint_at` starts
+            // at NEG_INFINITY, so the first frame after an overlay opens
+            // always paints even if it somehow reached here.
+            if q.elapsed - self.last_overlay_paint_at >= OVERLAY_HEARTBEAT_SECS {
+                return true;
+            }
         }
 
         // The blink phase, resolved exactly as the draw path resolves it —
@@ -5992,6 +6154,23 @@ impl RenderCallback for TerminalRenderer {
             return true;
         }
 
+        // ★ THE SKIP IS COUNTED WHERE THE SKIP HAPPENS.
+        //
+        // `TOTAL_FRAMES_SKIPPED` used to be bumped inside `render`, which was
+        // correct while `render` did the skipping itself. It is not correct
+        // now: a `false` here means madori never calls `render` at all, so the
+        // old increment became unreachable and the counter read a flat **0**
+        // forever — while the loop was in fact skipping fine.
+        //
+        // Measured on a live GUI 2026-08-21 (pid 840, a build that DOES carry
+        // `needs_frame`): `total_frames_skipped` read 0 across 5,628 frames.
+        // The skip itself worked; the only broken thing was our ability to SEE
+        // it, which is worse than it sounds — every frame-budget claim about
+        // mado is read off this number through `frame_perf`, so a stuck 0
+        // makes the whole surface unfalsifiable. It also hid the defect from
+        // its own guard test, which drives `render` directly and so never
+        // asks the predicate that does the skipping.
+        TOTAL_FRAMES_SKIPPED.fetch_add(1, Ordering::Relaxed);
         false
     }
 
@@ -6314,11 +6493,26 @@ impl RenderCallback for TerminalRenderer {
         // counter so frame_perf MCP can surface the rate, and the
         // tracing event is preserved so operators with debug
         // logging keep the same observability.
+        // ★ The overlay term is REQUIRED here, not optional symmetry. This gate
+        // asks "did the cheap predicate mispredict?", and it can only answer
+        // that if it tests the same things the cheap predicate tests. Every
+        // clause below is about the GRID, so once `needs_frame` grew an overlay
+        // reason to paint, a legitimate overlay-driven frame — a keystroke in
+        // the board, a row fading in — looked like a misprediction to this
+        // gate and would have been counted as one on every single frame the
+        // board was open. That is how a diagnostic counter becomes noise: not
+        // by being wrong about its own clause, but by being asked a question
+        // its clauses cannot answer.
+        let overlay_active_peek = !matches!(
+            *self.overlay_focus.lock().unwrap(),
+            crate::ux::modes::Overlay::None
+        );
         if peek_seqno == self.last_seqno
             && self.last_seqno != 0
             && !blink_flip
             && !bell_active
             && !search_active_peek
+            && !overlay_active_peek
         {
             // ★ REACHING HERE IS NOW A DIAGNOSTIC, NOT THE NORM.
             //
@@ -6342,7 +6536,17 @@ impl RenderCallback for TerminalRenderer {
             // swapchain image IS acquired and madori WILL present it, so the
             // slot must be painted. Skipping here is the shadow/afterimage
             // regression. The place to skip is `needs_frame`.
-            TOTAL_FRAMES_SKIPPED.fetch_add(1, Ordering::Relaxed);
+            //
+            // ★ Counted SEPARATELY from `TOTAL_FRAMES_SKIPPED` since
+            // 2026-08-21. This block paints its frame — it says so two
+            // paragraphs up — so adding it to a counter named "skipped" made
+            // the two events indistinguishable, and now that `needs_frame`
+            // counts real skips they would have summed into one meaningless
+            // number. Two names for two facts: frames genuinely skipped, and
+            // frames the cheap gate mispredicted. The second is a calibration
+            // signal for the first, which is only useful while they can be
+            // told apart.
+            TOTAL_LATE_IDLE_PAINTS.fetch_add(1, Ordering::Relaxed);
             tracing::debug!(
                 peek_us = frame_start.elapsed().as_micros() as u64,
                 path = "idle_peek_full",
@@ -6364,6 +6568,18 @@ impl RenderCallback for TerminalRenderer {
         // is negligible (snapshot was already paid for) and
         // consistency wins.
         self.last_seqno = seqno;
+
+        // ★ The overlay's half of the same memo. `needs_frame` compares the
+        // live overlay state against this to decide whether an open-but-quiet
+        // board deserves another 5 ms; recording it here (and only here) keeps
+        // `needs_frame` side-effect free, exactly as `last_seqno` does.
+        //
+        // Taken BEFORE the overlay passes draw, which is the conservative
+        // order: any mutation the draw path itself makes lands after the
+        // snapshot and so reads as a change next frame — a redundant paint,
+        // never a missed one.
+        self.last_overlay_snapshot = self.overlay_snapshot();
+        self.last_overlay_paint_at = ctx.elapsed;
 
         // Build rect instances (cell backgrounds + cursor + decorations).
         // The selection was already resolved into snap.selection_span
@@ -7000,6 +7216,14 @@ mod render_invariants {
         r.last_grid_epoch = epoch;
         r.force_paint_frames = 0;
         r.sync_output_deferred_since = None;
+        // The overlay half of "settled", for the same reason the seqno half
+        // exists: `render` records this after every paint, so a renderer that
+        // has painted once has it recorded. Leaving it at `Default` would make
+        // the live snapshot differ from the recorded one forever, and every
+        // overlay assertion below would read `true` for the wrong reason —
+        // the exact trap the seqno-0 note above describes, one field over.
+        r.last_overlay_snapshot = r.overlay_snapshot();
+        r.last_overlay_paint_at = Q0.elapsed;
     }
 
     #[test]
@@ -7055,26 +7279,250 @@ mod render_invariants {
         // It stayed hidden because terminal output or a blinking cursor
         // usually wakes the loop by accident; with `cursor.blink = false` the
         // last incidental waker is gone and a quiet window freezes outright.
+        // ★ EVERY non-None variant, from the enum itself. This used to
+        // hand-list two of them, which is the same hand-list defect the
+        // production predicate deliberately avoids: `Overlay` already derives
+        // `AllVariants` under cfg(test), so a sixth overlay added later joins
+        // this loop by construction instead of being silently untested.
         let (mut r, term) = harness(20, 5);
         settled(&mut r, &term);
         assert!(!r.needs_frame(Q0), "a quiet grid with no overlay sleeps");
 
-        for overlay in [
-            crate::ux::modes::Overlay::SessionPicker,
-            crate::ux::modes::Overlay::DirPicker,
-        ] {
+        let non_none: Vec<_> = crate::ux::modes::Overlay::ALL
+            .iter()
+            .copied()
+            .filter(|o| !matches!(o, crate::ux::modes::Overlay::None))
+            .collect();
+        assert!(
+            non_none.len() >= 2,
+            "the enum should carry several overlays; got {non_none:?}"
+        );
+
+        for overlay in non_none {
+            settled(&mut r, &term);
             *r.overlay_focus.lock().unwrap() = overlay;
             assert!(
                 r.needs_frame(Q0),
-                "an overlay owning the keyboard must keep the renderer awake, \
-                 or its own keystrokes never reach the screen: {overlay:?}"
+                "OPENING an overlay must schedule the repaint that first draws \
+                 it, or it never appears at all: {overlay:?}"
             );
         }
 
         *r.overlay_focus.lock().unwrap() = crate::ux::modes::Overlay::None;
+        settled(&mut r, &term);
         assert!(
             !r.needs_frame(Q0),
             "and closing it must hand the loop back to sleep"
+        );
+    }
+
+    #[test]
+    fn an_open_but_unchanged_overlay_lets_the_loop_sleep() {
+        // ★ THE BUSY-SPIN REGRESSION (2026-08-21) — the SECOND half of the
+        // frozen-picker story, and the one the first fix created.
+        //
+        // The fix for the freeze above was a bare `return true` while any
+        // overlay was open. That cured the freeze by deleting the governor:
+        // every reason-to-skip below it became unreachable, so an open board
+        // with nothing moving on it repainted at vsync forever. A frame that
+        // draws the board costs ~4.9 ms (measured live, pid 840, against
+        // 627 us idle), so that is 30-60% of a core to redraw a list that had
+        // already finished being drawn.
+        //
+        // This test is the governor. It fails against a bare `return true`,
+        // which is exactly the state this file was in when it was written.
+        let (mut r, term) = harness(20, 5);
+        settled(&mut r, &term);
+
+        *r.overlay_focus.lock().unwrap() = crate::ux::modes::Overlay::SessionPicker;
+        r.session_picker.lock().unwrap().open = true;
+        assert!(r.needs_frame(Q0), "opening it owes the first frame");
+
+        // Record it, exactly as a paint would.
+        r.last_overlay_snapshot = r.overlay_snapshot();
+        r.last_overlay_paint_at = Q0.elapsed;
+
+        assert!(
+            !r.needs_frame(Q0),
+            "an open overlay whose state has not moved owes NO frame — a \
+             `true` here is the busy-spin, and it is invisible to every \
+             screenshot test in this file because the pixels are identical"
+        );
+    }
+
+    #[test]
+    fn every_overlay_field_that_is_drawn_wakes_the_loop() {
+        // ★ THE ANTI-VACUITY HALF. The test above proves we sleep; without
+        // this one, "sleep" could just as well mean "never wake again", which
+        // is the freeze wearing the skip's clothes.
+        //
+        // One mutation per field the board draws, each asserted to schedule a
+        // repaint on its own. The comparison itself is derived
+        // (`FuzzyPicker: PartialEq`), so a field ADDED to the picker joins the
+        // change detection for free — but only a case here proves the wiring
+        // reaches this renderer at all.
+        let (mut r, term) = harness(20, 5);
+
+        type Mutate = (
+            &'static str,
+            fn(&mut crate::session_picker::SessionPickerState),
+        );
+        let mutations: [Mutate; 6] = [
+            ("query", |sp| sp.query.push('a')),
+            ("selected", |sp| sp.selected += 1),
+            ("results", |sp| {
+                sp.results.push(crate::session_picker::SessionPickerRow {
+                    label: "row".into(),
+                    kind: crate::session_picker::RowKind::Create(
+                        crate::session_picker::CreateSpec::Named { name: "n".into() },
+                    ),
+                    urgency: None,
+                })
+            }),
+            ("notice", |sp| {
+                sp.notice = Some("could not start that".into())
+            }),
+            ("footer", |sp| sp.footer = Some("2 lanes blind".into())),
+            ("rename_buffer", |sp| sp.rename_buffer = Some(String::new())),
+        ];
+
+        for (field, mutate) in mutations {
+            settled(&mut r, &term);
+            *r.overlay_focus.lock().unwrap() = crate::ux::modes::Overlay::SessionPicker;
+            r.session_picker.lock().unwrap().open = true;
+            r.last_overlay_snapshot = r.overlay_snapshot();
+            r.last_overlay_paint_at = Q0.elapsed;
+            assert!(!r.needs_frame(Q0), "baseline for `{field}` must be asleep");
+
+            mutate(&mut r.session_picker.lock().unwrap());
+            assert!(
+                r.needs_frame(Q0),
+                "changing `{field}` must schedule the repaint that shows it — \
+                 without this the operator types into a board that never \
+                 updates, which is the frozen picker all over again"
+            );
+        }
+    }
+
+    #[test]
+    fn a_mid_fade_overlay_keeps_painting_even_when_its_state_is_static() {
+        // The entry animation is a pure fn of the render clock, so its frames
+        // are NOT state changes and change detection alone would freeze the
+        // fade part-way in — a board stuck at 40% opacity.
+        let (mut r, term) = harness(20, 5);
+        settled(&mut r, &term);
+        // ★ Blink OFF, deliberately. `blink_on(elapsed, 1.0)` flips at exactly
+        // the instants a time-based test wants to sample, so leaving it on
+        // makes the CURSOR the thing asking for the frame and the overlay
+        // assertion means nothing. Caught the honest way: the heartbeat test
+        // below was passing off a blink flip rather than the heartbeat.
+        r.cursor_blink = false;
+        *r.overlay_focus.lock().unwrap() = crate::ux::modes::Overlay::SessionPicker;
+        // The FIELD, not `set_motion_picker_animate`. Every
+        // `#[invalidating_setter]` emits `self.last_seqno = 0` alongside the
+        // assignment, and `last_seqno == 0` is the "never painted" sentinel
+        // `needs_frame` short-circuits on — so calling the setter after
+        // `settled()` un-settles the renderer and every assertion below reads
+        // `true` for that reason instead of the one under test. The sibling
+        // tests at the bottom of this file already poke the field directly for
+        // exactly this reason.
+        r.motion_picker_animate = true;
+        // Born at t=0; the tween runs 0.18s.
+        r.overlay_open_at.set(Some(0.0));
+
+        let mid = madori::FrameQuery {
+            elapsed: 0.09,
+            dt: 0.0,
+        };
+        r.last_overlay_snapshot = r.overlay_snapshot();
+        r.last_overlay_paint_at = mid.elapsed;
+        assert!(
+            r.overlay_fade_progress(mid.elapsed) < 1.0,
+            "0.09s into a 0.18s tween must still be ramping"
+        );
+        assert!(
+            r.needs_frame(mid),
+            "a fade in flight owes frames regardless of state changes"
+        );
+
+        // Past the tween, with nothing else moving, it must settle.
+        let after = madori::FrameQuery {
+            elapsed: 5.0,
+            dt: 0.0,
+        };
+        r.last_overlay_paint_at = after.elapsed;
+        assert!(
+            !r.needs_frame(after),
+            "once the fade completes the overlay must stop asking — an \
+             animation that never ends is the busy-spin with a nicer name"
+        );
+    }
+
+    #[test]
+    fn an_unchanged_overlay_still_repaints_within_the_heartbeat() {
+        // The bounded-staleness backstop. Change detection is derived and
+        // therefore hard to defeat, but the cost of being wrong is asymmetric:
+        // a redundant paint is microseconds, a missed one is a UI that has
+        // visibly stopped. This caps any miss at OVERLAY_HEARTBEAT_SECS.
+        let (mut r, term) = harness(20, 5);
+        settled(&mut r, &term);
+        // Blink off — see the note in the mid-fade test. With it on, the
+        // `just_after` assertion below passed off the cursor's 1.0s blink
+        // flip landing on the same instant as the heartbeat, which would have
+        // made this test green even with the heartbeat deleted.
+        r.cursor_blink = false;
+        *r.overlay_focus.lock().unwrap() = crate::ux::modes::Overlay::SessionPicker;
+        r.last_overlay_snapshot = r.overlay_snapshot();
+        r.last_overlay_paint_at = 0.0;
+
+        let just_before = madori::FrameQuery {
+            elapsed: OVERLAY_HEARTBEAT_SECS - 0.01,
+            dt: 0.0,
+        };
+        assert!(
+            !r.needs_frame(just_before),
+            "inside the heartbeat window an unchanged overlay stays asleep"
+        );
+
+        let just_after = madori::FrameQuery {
+            elapsed: OVERLAY_HEARTBEAT_SECS + 0.01,
+            dt: 0.0,
+        };
+        assert!(
+            r.needs_frame(just_after),
+            "past the heartbeat it repaints once, so a missed mutation costs \
+             one second of staleness instead of a frozen window"
+        );
+    }
+
+    #[test]
+    fn a_skipped_frame_is_counted_as_a_skipped_frame() {
+        // ★ THE COUNTER THAT COUNTED NOTHING (2026-08-21).
+        //
+        // `TOTAL_FRAMES_SKIPPED` was incremented inside `render`, which was
+        // right while `render` did the skipping. Once the decision moved to
+        // `needs_frame`, a skip meant `render` was never called — so the only
+        // increment site became unreachable and the counter read a flat 0
+        // forever, while the skip worked fine. Measured live (pid 840): 0
+        // across 5,628 frames.
+        //
+        // It survived because the counters' own guard test drives `render`
+        // directly and never asks `needs_frame`, so it stayed green the whole
+        // time. This asserts the predicate, not the draw path.
+        let (mut r, term) = harness(20, 5);
+        settled(&mut r, &term);
+
+        let before = TOTAL_FRAMES_SKIPPED.load(Ordering::Relaxed);
+        for _ in 0..3 {
+            assert!(!r.needs_frame(Q0), "the harness is quiet; these are skips");
+        }
+        let after = TOTAL_FRAMES_SKIPPED.load(Ordering::Relaxed);
+        assert_eq!(
+            after - before,
+            3,
+            "three skipped frames must read as three skipped frames — a stuck \
+             0 makes every frame-budget claim about mado unfalsifiable, since \
+             `frame_perf` is where they are all read from"
         );
     }
 

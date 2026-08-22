@@ -105,6 +105,7 @@ impl Introspect for MadoAppState {
                 "last_frame_shape_cache": crate::render::LAST_FRAME_SHAPE_CACHE.load(Ordering::Relaxed),
                 "total_frames": crate::render::TOTAL_FRAMES.load(Ordering::Relaxed),
                 "total_frames_skipped": crate::render::TOTAL_FRAMES_SKIPPED.load(Ordering::Relaxed),
+                "total_late_idle_paints": crate::render::TOTAL_LATE_IDLE_PAINTS.load(Ordering::Relaxed),
             })),
             "sessions" => {
                 // GUI mode: live tear-core registry IS the truth.

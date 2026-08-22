@@ -15,7 +15,21 @@
 /// The modal state of any fuzzy-filter picker overlay, generic over the
 /// displayed `Row`. Drives the renderer (read-only) and is driven by the
 /// overlay FSM (open / edit / navigate / accept / close).
-#[derive(Default)]
+/// ★ `Clone` + `PartialEq` are LOAD-BEARING here, not conveniences.
+/// `render::needs_frame` snapshots this state at paint time and compares it
+/// on the next frame to decide whether an OPEN overlay needs repainting at
+/// all. Deriving the comparison is what makes that safe: a field added to
+/// this struct JOINS the change detection automatically. A hand-written
+/// fingerprint would silently omit it, and the overlay would stop repainting
+/// on that field — which is exactly the frozen-picker regression of
+/// 2026-08-21, whose first fix (repaint unconditionally while open) traded
+/// the freeze for a permanent busy-spin.
+///
+/// `PartialEq` and not `Eq` on purpose: `DirRow = (PathBuf, f64)` carries a
+/// float frecency score. The failure mode of float comparison here is the
+/// SAFE direction — `NaN != NaN` reads as "changed", so a degenerate score
+/// costs redundant paints, never a frozen overlay.
+#[derive(Clone, PartialEq)]
 pub struct FuzzyPicker<Row> {
     /// Whether the overlay is open (gates rendering + input capture).
     pub open: bool,
@@ -47,6 +61,21 @@ pub struct FuzzyPicker<Row> {
     /// The rename TARGET is resolved from `selected_row()` at commit time,
     /// so no session-specific id lives on this shared picker type.
     pub rename_buffer: Option<String>,
+}
+
+/// Hand-written rather than derived, and the difference is not cosmetic:
+/// `#[derive(Default)]` on a generic struct emits a `Row: Default` bound even
+/// when no field needs one — `Vec<Row>::default()` is the empty vec for any
+/// `Row` at all. That phantom bound made `FuzzyPicker::<SessionPickerRow>`
+/// un-`Default`-able (a picker row is a label plus a `RowKind`; there is no
+/// sensible "default row" and it does not derive one), which is exactly the
+/// kind of accidental API restriction that gets worked around at the call site
+/// instead of fixed here. Delegating to `new()` keeps the impl honest and
+/// gives every row type a `Default` picker.
+impl<Row> Default for FuzzyPicker<Row> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<Row> FuzzyPicker<Row> {
