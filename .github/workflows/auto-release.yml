@@ -15,20 +15,4 @@ jobs:
     uses: pleme-io/substrate/.github/workflows/cargo-auto-release.yml@main
     with:
       bump-type: ${{ inputs.bump-type || 'patch' }}
-    # BOT_PAT deliberately WITHHELD — not `secrets: inherit`. Every input this
-    # repo resolves is PUBLIC, so the release path needs no cross-repo
-    # credential, and the org BOT_PAT has been 401 "Bad credentials" since
-    # 2026-08-22. A present-but-dead secret is worse than an absent one:
-    # `secrets.BOT_PAT || secrets.GITHUB_TOKEN` falls through on EMPTY, never
-    # on INVALID — so the dead token got attached to `actions/checkout` and to
-    # nix's `access-tokens`, and 401'd this PUBLIC repo against PUBLIC
-    # substrate. Withholding it re-arms both fallbacks onto GITHUB_TOKEN, and
-    # nix-installer-action writes no `access-tokens` line at all for an empty
-    # token, so the substrate fetch goes anonymous.
-    #
-    # Cost, stated not hidden: a tag pushed under GITHUB_TOKEN does not
-    # re-trigger `on: push: tags:` workflows — `release-binaries` will not fire
-    # off this repo's bump tag until BOT_PAT is live again. Restore inherit
-    # then — better, retire it per nix/docs/github-token-distribution.md T3.
-    secrets:
-      CRATES_API_TOKEN: ${{ secrets.CRATES_API_TOKEN }}
+    secrets: inherit
