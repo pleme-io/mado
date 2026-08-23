@@ -55,7 +55,6 @@
 //! module describes WHAT.** They are not alternatives and neither subsumes the
 //! other.
 
-
 use std::ops::Range;
 
 /// Per-row dirty bitset over a fixed viewport row count. One bit per
