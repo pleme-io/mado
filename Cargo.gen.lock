@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "616c53ee9a6a348668dbd76c0777d8067445ae0be2d13a27242946c6177231ee",
+  "cargo_lock_sha256": "387386e97d0d26e7d1e2f30f77539233b2060afdb765e0e50bd61056bec145fc",
   "manifest_sha256": {
-    "Cargo.toml": "c8c2f0870584601c023d87791bec49a60abd4db293887c51392effd04b3106b3"
+    "Cargo.toml": "a959983d6fda69d9844b40f70a29b75b61534c5e917c0dd6a3b2a42d070fcec1"
   },
   "target_resolves": {
     "base": {
@@ -1797,7 +1797,7 @@
           },
           {
             "name": "log",
-            "package_key": "log-0.4.33",
+            "package_key": "log-0.4.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1898,7 +1898,7 @@
           },
           {
             "name": "log",
-            "package_key": "log-0.4.33",
+            "package_key": "log-0.4.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -2064,7 +2064,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "crc32fast-1.5.0": {
+      "crc32fast-1.5.1": {
         "runtime_dependencies": [
           {
             "name": "cfg_if",
@@ -3925,7 +3925,7 @@
         "runtime_dependencies": [
           {
             "name": "crc32fast",
-            "package_key": "crc32fast-1.5.0",
+            "package_key": "crc32fast-1.5.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4023,7 +4023,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "font-types-0.12.3": {
+      "font-types-0.12.4": {
         "runtime_dependencies": [
           {
             "name": "bytemuck",
@@ -5858,7 +5858,7 @@
         "runtime_dependencies": [
           {
             "name": "log",
-            "package_key": "log-0.4.33",
+            "package_key": "log-0.4.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -6343,7 +6343,7 @@
           },
           {
             "name": "log",
-            "package_key": "log-0.4.33",
+            "package_key": "log-0.4.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7335,7 +7335,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "izumi-0.1.21": {
+      "izumi-0.1.22": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -7460,11 +7460,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "izumi-config-0.1.21": {
+      "izumi-config-0.1.22": {
         "runtime_dependencies": [
           {
             "name": "izumi",
-            "package_key": "izumi-0.1.21",
+            "package_key": "izumi-0.1.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7486,7 +7486,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.649",
+            "package_key": "shikumi-0.1.669",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7498,11 +7498,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "izumi-sources-0.1.21": {
+      "izumi-sources-0.1.22": {
         "runtime_dependencies": [
           {
             "name": "izumi",
-            "package_key": "izumi-0.1.21",
+            "package_key": "izumi-0.1.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9170,10 +9170,11 @@
           "default"
         ]
       },
-      "log-0.4.33": {
+      "log-0.4.34": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": [
+          "alloc",
           "std"
         ]
       },
@@ -9296,7 +9297,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.649",
+            "package_key": "shikumi-0.1.669",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9357,7 +9358,7 @@
         "runtime_dependencies": [
           {
             "name": "log",
-            "package_key": "log-0.4.33",
+            "package_key": "log-0.4.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9613,7 +9614,7 @@
           },
           {
             "name": "log",
-            "package_key": "log-0.4.33",
+            "package_key": "log-0.4.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9769,7 +9770,7 @@
           },
           {
             "name": "log",
-            "package_key": "log-0.4.33",
+            "package_key": "log-0.4.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -10655,7 +10656,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "ordered-float-5.3.0": {
+      "ordered-float-5.5.0": {
         "runtime_dependencies": [
           {
             "name": "num_traits",
@@ -10911,7 +10912,7 @@
           },
           {
             "name": "log",
-            "package_key": "log-0.4.33",
+            "package_key": "log-0.4.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12188,7 +12189,7 @@
           },
           {
             "name": "tatara_eval",
-            "package_key": "tatara-eval-0.2.369",
+            "package_key": "tatara-eval-0.2.387",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12281,7 +12282,7 @@
           },
           {
             "name": "crc32fast",
-            "package_key": "crc32fast-1.5.0",
+            "package_key": "crc32fast-1.5.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12374,7 +12375,7 @@
           },
           {
             "name": "log",
-            "package_key": "log-0.4.33",
+            "package_key": "log-0.4.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12982,7 +12983,7 @@
           },
           {
             "name": "ordered_float",
-            "package_key": "ordered-float-5.3.0",
+            "package_key": "ordered-float-5.5.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -13710,7 +13711,7 @@
           },
           {
             "name": "font_types",
-            "package_key": "font-types-0.12.3",
+            "package_key": "font-types-0.12.4",
             "kind": "normal",
             "features": [
               "bytemuck"
@@ -14107,7 +14108,7 @@
           },
           {
             "name": "log",
-            "package_key": "log-0.4.33",
+            "package_key": "log-0.4.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14971,7 +14972,7 @@
         "runtime_dependencies": [
           {
             "name": "log",
-            "package_key": "log-0.4.33",
+            "package_key": "log-0.4.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15016,7 +15017,7 @@
           },
           {
             "name": "webpki",
-            "package_key": "rustls-webpki-0.103.14",
+            "package_key": "rustls-webpki-0.103.15",
             "kind": "normal",
             "features": [
               "alloc"
@@ -15078,7 +15079,7 @@
           "web-time"
         ]
       },
-      "rustls-webpki-0.103.14": {
+      "rustls-webpki-0.103.15": {
         "runtime_dependencies": [
           {
             "name": "ring",
@@ -15707,7 +15708,7 @@
           },
           {
             "name": "log",
-            "package_key": "log-0.4.33",
+            "package_key": "log-0.4.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -15858,7 +15859,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.24.1",
+            "package_key": "uuid-1.25.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -16279,7 +16280,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.24.1",
+            "package_key": "uuid-1.25.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -16395,7 +16396,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.24.1",
+            "package_key": "uuid-1.25.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -17256,7 +17257,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.649",
+            "package_key": "shikumi-0.1.669",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17303,7 +17304,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.649": {
+      "shikumi-0.1.669": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -17913,7 +17914,7 @@
           },
           {
             "name": "log",
-            "package_key": "log-0.4.33",
+            "package_key": "log-0.4.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -18098,7 +18099,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.24.1",
+            "package_key": "uuid-1.25.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18627,7 +18628,7 @@
           },
           {
             "name": "log",
-            "package_key": "log-0.4.33",
+            "package_key": "log-0.4.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18808,7 +18809,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.24.1",
+            "package_key": "uuid-1.25.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19021,7 +19022,7 @@
           },
           {
             "name": "log",
-            "package_key": "log-0.4.33",
+            "package_key": "log-0.4.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19200,7 +19201,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.24.1",
+            "package_key": "uuid-1.25.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19341,7 +19342,7 @@
           },
           {
             "name": "log",
-            "package_key": "log-0.4.33",
+            "package_key": "log-0.4.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19439,7 +19440,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.24.1",
+            "package_key": "uuid-1.25.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20060,7 +20061,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-core-0.2.369": {
+      "tatara-core-0.2.387": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20171,7 +20172,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.649",
+            "package_key": "shikumi-0.1.669",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20211,7 +20212,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.24.1",
+            "package_key": "uuid-1.25.0",
             "kind": "normal",
             "features": [
               "serde",
@@ -20226,7 +20227,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-eval-0.2.369": {
+      "tatara-eval-0.2.387": {
         "runtime_dependencies": [
           {
             "name": "bumpalo",
@@ -20274,7 +20275,7 @@
           },
           {
             "name": "tatara_nix",
-            "package_key": "tatara-nix-0.2.369",
+            "package_key": "tatara-nix-0.2.387",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20296,7 +20297,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lattice-0.2.369": {
+      "tatara-lattice-0.2.387": {
         "runtime_dependencies": [
           {
             "name": "schemars",
@@ -20324,7 +20325,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.369",
+            "package_key": "tatara-core-0.2.387",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20334,7 +20335,7 @@
           },
           {
             "name": "tatara_process",
-            "package_key": "tatara-process-0.2.369",
+            "package_key": "tatara-process-0.2.387",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20500,7 +20501,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-nix-0.2.369": {
+      "tatara-nix-0.2.387": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -20546,7 +20547,7 @@
           },
           {
             "name": "tatara_lattice",
-            "package_key": "tatara-lattice-0.2.369",
+            "package_key": "tatara-lattice-0.2.387",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20598,7 +20599,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-process-0.2.369": {
+      "tatara-process-0.2.387": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20734,7 +20735,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.369",
+            "package_key": "tatara-core-0.2.387",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20933,7 +20934,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.649",
+            "package_key": "shikumi-0.1.669",
             "kind": "normal",
             "features": [
               "cli"
@@ -22916,7 +22917,7 @@
         "runtime_dependencies": [
           {
             "name": "log",
-            "package_key": "log-0.4.33",
+            "package_key": "log-0.4.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23063,7 +23064,7 @@
         "runtime_dependencies": [
           {
             "name": "log",
-            "package_key": "log-0.4.33",
+            "package_key": "log-0.4.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23689,7 +23690,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.24.1",
+            "package_key": "uuid-1.25.0",
             "kind": "normal",
             "features": [
               "serde"
@@ -23708,7 +23709,7 @@
           "uuid"
         ]
       },
-      "uuid-1.24.1": {
+      "uuid-1.25.0": {
         "runtime_dependencies": [
           {
             "name": "getrandom",
@@ -24316,7 +24317,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.24.1",
+            "package_key": "uuid-1.25.0",
             "kind": "normal",
             "features": [
               "serde",
@@ -24416,7 +24417,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.24.1",
+            "package_key": "uuid-1.25.0",
             "kind": "normal",
             "features": [
               "serde",
@@ -24649,7 +24650,7 @@
           },
           {
             "name": "log",
-            "package_key": "log-0.4.33",
+            "package_key": "log-0.4.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24841,7 +24842,7 @@
           },
           {
             "name": "log",
-            "package_key": "log-0.4.33",
+            "package_key": "log-0.4.34",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -25882,7 +25883,7 @@
             "runtime_dependencies": [
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26323,7 +26324,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.142": {
+          "mado-0.1.143": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26538,7 +26539,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.21",
+                "package_key": "izumi-0.1.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26548,7 +26549,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.21",
+                "package_key": "izumi-config-0.1.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26558,7 +26559,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.21",
+                "package_key": "izumi-sources-0.1.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26898,7 +26899,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.649",
+                "package_key": "shikumi-0.1.669",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -27140,7 +27141,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -27209,7 +27210,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -29666,7 +29667,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30009,7 +30010,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30479,7 +30480,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30489,7 +30490,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30614,7 +30615,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30859,7 +30860,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31271,7 +31272,7 @@
               "system"
             ]
           },
-          "mado-0.1.142": {
+          "mado-0.1.143": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31486,7 +31487,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.21",
+                "package_key": "izumi-0.1.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31496,7 +31497,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.21",
+                "package_key": "izumi-config-0.1.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31506,7 +31507,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.21",
+                "package_key": "izumi-sources-0.1.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31797,7 +31798,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.649",
+                "package_key": "shikumi-0.1.669",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -32003,7 +32004,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32514,7 +32515,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32616,7 +32617,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32802,7 +32803,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33345,7 +33346,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33459,7 +33460,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33785,7 +33786,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34382,7 +34383,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34505,7 +34506,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34515,7 +34516,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34640,7 +34641,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -34885,7 +34886,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35297,7 +35298,7 @@
               "system"
             ]
           },
-          "mado-0.1.142": {
+          "mado-0.1.143": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35512,7 +35513,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.21",
+                "package_key": "izumi-0.1.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35522,7 +35523,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.21",
+                "package_key": "izumi-config-0.1.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35532,7 +35533,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.21",
+                "package_key": "izumi-sources-0.1.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35823,7 +35824,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.649",
+                "package_key": "shikumi-0.1.669",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -36029,7 +36030,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36540,7 +36541,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36642,7 +36643,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36828,7 +36829,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37371,7 +37372,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37485,7 +37486,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37811,7 +37812,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38408,7 +38409,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38995,7 +38996,7 @@
             "runtime_dependencies": [
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39436,7 +39437,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.142": {
+          "mado-0.1.143": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39651,7 +39652,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.21",
+                "package_key": "izumi-0.1.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39661,7 +39662,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.21",
+                "package_key": "izumi-config-0.1.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39671,7 +39672,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.21",
+                "package_key": "izumi-sources-0.1.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40011,7 +40012,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.649",
+                "package_key": "shikumi-0.1.669",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -40253,7 +40254,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40322,7 +40323,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -42778,7 +42779,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -43121,7 +43122,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -43615,7 +43616,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -43625,7 +43626,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -43760,7 +43761,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -43979,7 +43980,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44391,7 +44392,7 @@
               "system"
             ]
           },
-          "mado-0.1.142": {
+          "mado-0.1.143": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44606,7 +44607,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.21",
+                "package_key": "izumi-0.1.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44616,7 +44617,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.21",
+                "package_key": "izumi-config-0.1.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44626,7 +44627,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.21",
+                "package_key": "izumi-sources-0.1.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44917,7 +44918,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.649",
+                "package_key": "shikumi-0.1.669",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -45123,7 +45124,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45633,7 +45634,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45735,7 +45736,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45921,7 +45922,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -46464,7 +46465,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -46578,7 +46579,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -46904,7 +46905,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47525,7 +47526,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47648,7 +47649,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47658,7 +47659,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47793,7 +47794,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48012,7 +48013,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48424,7 +48425,7 @@
               "system"
             ]
           },
-          "mado-0.1.142": {
+          "mado-0.1.143": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48639,7 +48640,7 @@
               },
               {
                 "name": "izumi",
-                "package_key": "izumi-0.1.21",
+                "package_key": "izumi-0.1.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48649,7 +48650,7 @@
               },
               {
                 "name": "izumi_config",
-                "package_key": "izumi-config-0.1.21",
+                "package_key": "izumi-config-0.1.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48659,7 +48660,7 @@
               },
               {
                 "name": "izumi_sources",
-                "package_key": "izumi-sources-0.1.21",
+                "package_key": "izumi-sources-0.1.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48950,7 +48951,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.649",
+                "package_key": "shikumi-0.1.669",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -49156,7 +49157,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49666,7 +49667,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49768,7 +49769,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49954,7 +49955,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -50497,7 +50498,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -50611,7 +50612,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -50937,7 +50938,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51558,7 +51559,7 @@
               },
               {
                 "name": "log",
-                "package_key": "log-0.4.33",
+                "package_key": "log-0.4.34",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51948,7 +51949,7 @@
     "crc-catalog-2.5.0": {
       "edition": "2018"
     },
-    "crc32fast-1.5.0": {
+    "crc32fast-1.5.1": {
       "edition": "2021",
       "build_script": "build.rs"
     },
@@ -52189,7 +52190,7 @@
     "foldhash-0.1.5": {
       "edition": "2021"
     },
-    "font-types-0.12.3": {
+    "font-types-0.12.4": {
       "edition": "2021"
     },
     "fontconfig-parser-0.5.8": {
@@ -52498,13 +52499,13 @@
     "itoa-1.0.18": {
       "edition": "2021"
     },
-    "izumi-0.1.21": {
+    "izumi-0.1.22": {
       "edition": "2024"
     },
-    "izumi-config-0.1.21": {
+    "izumi-config-0.1.22": {
       "edition": "2024"
     },
-    "izumi-sources-0.1.21": {
+    "izumi-sources-0.1.22": {
       "edition": "2024"
     },
     "jobserver-0.1.35": {
@@ -52618,7 +52619,7 @@
     "lock_api-0.4.14": {
       "edition": "2021"
     },
-    "log-0.4.33": {
+    "log-0.4.34": {
       "edition": "2021"
     },
     "lru-0.12.5": {
@@ -52633,7 +52634,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.142": {
+    "mado-0.1.143": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -52887,7 +52888,7 @@
     "ordered-float-4.6.0": {
       "edition": "2021"
     },
-    "ordered-float-5.3.0": {
+    "ordered-float-5.5.0": {
       "edition": "2021"
     },
     "ouroboros-0.18.5": {
@@ -53292,7 +53293,7 @@
     "rustls-pki-types-1.15.1": {
       "edition": "2021"
     },
-    "rustls-webpki-0.103.14": {
+    "rustls-webpki-0.103.15": {
       "edition": "2021",
       "lib_target": {
         "name": "webpki",
@@ -53474,7 +53475,7 @@
     "shidou-0.1.10": {
       "edition": "2024"
     },
-    "shikumi-0.1.649": {
+    "shikumi-0.1.669": {
       "edition": "2024"
     },
     "shlex-2.0.1": {
@@ -53633,13 +53634,13 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-core-0.2.369": {
+    "tatara-core-0.2.387": {
       "edition": "2021"
     },
-    "tatara-eval-0.2.369": {
+    "tatara-eval-0.2.387": {
       "edition": "2021"
     },
-    "tatara-lattice-0.2.369": {
+    "tatara-lattice-0.2.387": {
       "edition": "2021"
     },
     "tatara-lisp-0.3.52": {
@@ -53652,10 +53653,10 @@
     "tatara-lisp-eval-0.3.52": {
       "edition": "2021"
     },
-    "tatara-nix-0.2.369": {
+    "tatara-nix-0.2.387": {
       "edition": "2021"
     },
-    "tatara-process-0.2.369": {
+    "tatara-process-0.2.387": {
       "edition": "2021",
       "binaries": [
         {
@@ -53922,7 +53923,7 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "uuid-1.24.1": {
+    "uuid-1.25.0": {
       "edition": "2021"
     },
     "validit-0.2.6": {

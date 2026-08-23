@@ -987,9 +987,9 @@ checksum = "217698eaf96b4a3f0bc4f3662aaa55bdf913cd54d7204591faa790070c6d0853"
 
 [[package]]
 name = "crc32fast"
-version = "1.5.0"
+version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9481c1c90cbf2ac953f07c8d4a58aa3945c425b7185c9154d67a65e4230da511"
+checksum = "8498c871161e1742aaa9d52551b2d6ebdd4c3d45a3be423e3728f33b955be550"
 dependencies = [
  "cfg-if",
 ]
@@ -1678,9 +1678,9 @@ checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
 
 [[package]]
 name = "font-types"
-version = "0.12.3"
+version = "0.12.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75382bc7392ef10aad10935f92fc3db36d2d4dad0e5d96d8d65e04f89a07ec39"
+checksum = "e64eb721ca85a34323425f4041adc5d82704d3782d5f8f03793bc012419dce23"
 dependencies = [
  "bytemuck",
 ]
@@ -2786,9 +2786,9 @@ checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 
 [[package]]
 name = "izumi"
-version = "0.1.21"
+version = "0.1.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8ef2ddc21864c2b40399770c7ea202cd13f15d7a406882ebc7c7c26e219febf"
+checksum = "4a3ee01387a706f6e1489505462cbee241fede4143da67e4cd7078b8c60b44b6"
 dependencies = [
  "blake3",
  "dirs 5.0.1",
@@ -2805,9 +2805,9 @@ dependencies = [
 
 [[package]]
 name = "izumi-config"
-version = "0.1.21"
+version = "0.1.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa6366fb4111d14d958b1b0c3e849594969879b8a1d77514b1872cc7e719aff3"
+checksum = "3fd041ba3a73cfe6639dd37afcfb2bf97cc62a7f38f886c2236164f7b0d1a1ea"
 dependencies = [
  "izumi",
  "serde",
@@ -2816,9 +2816,9 @@ dependencies = [
 
 [[package]]
 name = "izumi-sources"
-version = "0.1.21"
+version = "0.1.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3705c2beb4631c29bc570898e2627ff9a005f8124685f6ee8720b2d587d12490"
+checksum = "b37104ac00ab3b0c8dd5d266eae4296d7246c5677bb6d68347ac7cb2c0e320f0"
 dependencies = [
  "izumi",
  "serde",
@@ -3214,7 +3214,7 @@ dependencies = [
  "bitflags 2.13.1",
  "libc",
  "plain",
- "redox_syscall 0.9.2",
+ "redox_syscall 0.9.3",
 ]
 
 [[package]]
@@ -3307,9 +3307,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.33"
+version = "0.4.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ceec5bc11778974d1bcb055b18002eba7f4b3518b6a0081b3af5f21666da9ad"
+checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
 
 [[package]]
 name = "lru"
@@ -3345,7 +3345,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.142"
+version = "0.1.143"
 dependencies = [
  "anyhow",
  "awase",
@@ -4340,9 +4340,9 @@ dependencies = [
 
 [[package]]
 name = "ordered-float"
-version = "5.3.0"
+version = "5.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b7d950ca161dc355eaf28f82b11345ed76c6e1f6eb1f4f4479e0323b9e2fbd0e"
+checksum = "8c7c9e0d9b23589f26070720bac724174bfec1083e82f7854cdd0267518343c0"
 dependencies = [
  "num-traits",
 ]
@@ -5053,7 +5053,7 @@ dependencies = [
  "bytemuck",
  "libm",
  "num-traits",
- "ordered-float 5.3.0",
+ "ordered-float 5.5.0",
  "palette",
  "rand 0.10.2",
  "rand_xoshiro",
@@ -5317,9 +5317,9 @@ dependencies = [
 
 [[package]]
 name = "redox_syscall"
-version = "0.9.2"
+version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1c93da5bb2c5d4e6c0ef7abeead62c89169a0a4882bfb83ac892f2423aea2fe"
+checksum = "d678d17679829e73d371e96880897e98fee2ded7acc0a50bdf8af2affa4b2fe5"
 dependencies = [
  "bitflags 2.13.1",
 ]
@@ -5676,9 +5676,9 @@ dependencies = [
 
 [[package]]
 name = "rustls-webpki"
-version = "0.103.14"
+version = "0.103.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0527518605e68109d875e248ea259b6758801cf165e4b2c2733ae3b51f12535a"
+checksum = "f3c3cf1d8b1e7d4927e2d154c3fcb02979afb9939629c62cd9048d4f07b60ac2"
 dependencies = [
  "ring",
  "rustls-pki-types",
@@ -6259,9 +6259,9 @@ dependencies = [
 
 [[package]]
 name = "shikumi"
-version = "0.1.649"
+version = "0.1.669"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13881c8770c15f34bcc1c838f095e53944d5e56a78df7cb704676e406d03f1fc"
+checksum = "64e7ae61ef85e9d22fad37fd7c48a1443364810ef30d3475d93bbe161cf602c4"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -6874,9 +6874,9 @@ dependencies = [
 
 [[package]]
 name = "tatara-core"
-version = "0.2.369"
+version = "0.2.387"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "286ed376f1ec543339f514997b9e5a4807ea8bcdfe7c79cc2a2cf58118fa05ee"
+checksum = "f9c5aa2df5a0cbbcd119584cb932ab8ee9c232315162731500e66e45aa40f539"
 dependencies = [
  "anyhow",
  "blake3",
@@ -6897,9 +6897,9 @@ dependencies = [
 
 [[package]]
 name = "tatara-eval"
-version = "0.2.369"
+version = "0.2.387"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b8050229e2bc9adb1aed0ce9a8c4affb051aa3c710d7d6beee651364d9ff2e4"
+checksum = "c0293cf834fe51c249b2a00d0a5d6d9aa67f26bd15b8032cb04b6b0f3944ac5e"
 dependencies = [
  "bumpalo",
  "serde",
@@ -6911,9 +6911,9 @@ dependencies = [
 
 [[package]]
 name = "tatara-lattice"
-version = "0.2.369"
+version = "0.2.387"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cad4aa42d25fb1f2edb1897454b272ea9cc3f61c6ac474146e8e6e55d5927a4c"
+checksum = "e7502da2f324c2841daa3a17f8c327f1d28d67fbdf2f5399177dddf7a61b1525"
 dependencies = [
  "schemars 0.8.22",
  "serde",
@@ -6960,9 +6960,9 @@ dependencies = [
 
 [[package]]
 name = "tatara-nix"
-version = "0.2.369"
+version = "0.2.387"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e56fb06987283f9e53513b6338fe342773bc4bca455bd4f1ac5c97c875c7927e"
+checksum = "a14ff8d7f20fcea2acca2c1ad409d54f133a9dc2bf71b9e6b4fee05230f658f6"
 dependencies = [
  "blake3",
  "hex",
@@ -6977,9 +6977,9 @@ dependencies = [
 
 [[package]]
 name = "tatara-process"
-version = "0.2.369"
+version = "0.2.387"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "085eb49db37321181574feaa2db8a0d21bd16c0c66c4f50c1235f4341f3d8a55"
+checksum = "f79ef4f0e67793bb1524fc99194f16c143c810d5a46e34d5693feeb7e96a5455"
 dependencies = [
  "anyhow",
  "blake3",
@@ -7807,9 +7807,9 @@ dependencies = [
 
 [[package]]
 name = "uuid"
-version = "1.24.1"
+version = "1.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2cefc03fd367c0c6d4305de1b312cf00248c4114f4a0418ce6a6af769e3b0bd9"
+checksum = "f053576934f05a761a402421fbbe3d425d9366f75f978806a037b3ca481abecc"
 dependencies = [
  "getrandom 0.4.3",
  "js-sys",
