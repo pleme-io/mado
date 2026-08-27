@@ -84,7 +84,7 @@ use madori::render::{RenderCallback, RenderContext};
 use crate::config::{ColorblindMode, CursorStyle};
 // PaneRect / WindowState removed at Phase 4 — single-pane mado.
 use crate::search::SearchState;
-use crate::selection::{CellPos, Selection};
+use crate::selection::{CellPos, Selection, SelectionEpoch};
 use crate::terminal::{
     AttrFlags, Cell, Color, Cursor, ImagePlacement, StyleSnapshot, Terminal, UnderlineColor,
     UnderlineStyle, bold_bright_color, default_ansi_palette,
@@ -1802,6 +1802,18 @@ pub struct TerminalRenderer {
     /// case degrades to brief staleness instead of the hard freeze this whole
     /// mechanism exists to prevent.
     last_overlay_paint_at: f32,
+    /// ★ THE SELECTION'S `last_seqno`. Highlights the last painted frame
+    /// drew — so `needs_frame` can tell "the selection state matches what
+    /// is on screen" from "the operator dragged and owes a repaint".
+    ///
+    /// Owned by `render` exactly as `last_seqno` is — `needs_frame` only
+    /// reads it. Without this, `on_mouse_moved` updates `Selection::state`
+    /// but never trips a wake condition (seqno/epoch/bell/search/overlay/
+    /// cursor-blink), so a drag on a quiet screen with `cursor.blink =
+    /// false` leaves the highlight unpainted forever (measured
+    /// 2026-08-26 on Linux / mado 0.1.142, reported as "mado does not
+    /// select text").
+    last_selection_epoch: SelectionEpoch,
     /// Frames remaining to force a full paint after a grid-epoch change,
     /// bypassing the synchronized-output defer. Set to the swapchain
     /// depth so EVERY back-buffer slot is repainted with the new pane's
@@ -2310,6 +2322,7 @@ impl TerminalRenderer {
             last_grid_epoch: 0,
             last_overlay_snapshot: OverlaySnapshot::default(),
             last_overlay_paint_at: f32::NEG_INFINITY,
+            last_selection_epoch: SelectionEpoch::default(),
             force_paint_frames: 0,
             effects_config: crate::config::MadoEffectsConfig::default(),
             ambience: crate::config::MadoEffectsConfig::default()
@@ -6154,6 +6167,27 @@ impl RenderCallback for TerminalRenderer {
             return true;
         }
 
+        // ★ MOUSE SELECTION WAKES THE LOOP.
+        //
+        // Without this, `on_mouse_moved` updates `Selection::state` but the
+        // seqno/epoch/bell/search/overlay/blink checklist above misses it —
+        // selection is a rendering overlay, not terminal CONTENT — so madori
+        // skips the frame and the highlight never reaches the display.
+        // Every incidental waker still masks this by accident: any terminal
+        // output or a blinking cursor drags the selection along with the
+        // grid. Fleet-wide `cursor.blink = false` (nix/modules/shared/
+        // terminal.nix) removes the last incidental waker, so a quiet
+        // window drops the highlight outright — reported as "mado does
+        // not select text" (2026-08-26, Linux + mado 0.1.142).
+        //
+        // Short lock, one `u64` compare — the same shape as `last_seqno`
+        // one field over. Mutation-count comparison keeps the wake
+        // conservative: a redundant frame is microseconds, a wrongly
+        // skipped one is the class this whole predicate exists to serve.
+        if self.selection.lock().unwrap().epoch() != self.last_selection_epoch {
+            return true;
+        }
+
         // ★ THE SKIP IS COUNTED WHERE THE SKIP HAPPENS.
         //
         // `TOTAL_FRAMES_SKIPPED` used to be bumped inside `render`, which was
@@ -6580,6 +6614,15 @@ impl RenderCallback for TerminalRenderer {
         // never a missed one.
         self.last_overlay_snapshot = self.overlay_snapshot();
         self.last_overlay_paint_at = ctx.elapsed;
+
+        // ★ The selection's half of the same memo. Recording it here (and
+        // only here — `needs_frame` stays side-effect free) means the next
+        // `needs_frame` compares "what selection state the pixels on screen
+        // reflect" against the live state, and answers `true` on any move.
+        // Taken BEFORE Pass 2 draws the highlight — a mutation the draw
+        // path itself makes lands after the read and so reads as a change
+        // next frame (a redundant paint, never a missed one).
+        self.last_selection_epoch = self.selection.lock().unwrap().epoch();
 
         // Build rect instances (cell backgrounds + cursor + decorations).
         // The selection was already resolved into snap.selection_span
@@ -7224,6 +7267,12 @@ mod render_invariants {
         // the exact trap the seqno-0 note above describes, one field over.
         r.last_overlay_snapshot = r.overlay_snapshot();
         r.last_overlay_paint_at = Q0.elapsed;
+        // Same reason the overlay + seqno halves exist: `render` records
+        // this after every paint, so a settled renderer has it recorded.
+        // Leaving it at `Default` would make the live selection epoch
+        // differ from the recorded one forever, and every quiet-screen
+        // assertion below would read `true` for the wrong reason.
+        r.last_selection_epoch = r.selection.lock().unwrap().epoch();
     }
 
     #[test]
@@ -7549,12 +7598,92 @@ mod render_invariants {
         assert!(r.needs_frame(Q0), "a grid-epoch change is a different pane");
     }
 
+    // ── ★ SELECTION WAKES THE LOOP (regression 2026-08-26) ──────────────
+    //
+    // The idle-frame-skip predicate above forgot to include the selection
+    // overlay. Every other overlay (search, bell, Ctrl-S picker) is on the
+    // list; selection alone was missing, so on a quiet screen with
+    // `cursor.blink = false` (fleet-wide default) `on_mouse_moved`
+    // updated `Selection::state` while madori skipped every following
+    // frame — the highlight never reached the display.
+    //
+    // Three cases, one per mutation shape. Each red-runs without the
+    // wire: deleting the `self.selection.lock()...epoch()` check turns
+    // them RED and the current predicate stays green everywhere else.
+
+    #[test]
+    fn a_selection_start_wakes_the_loop() {
+        let (mut r, term) = harness(20, 5);
+        term.write().feed(b"hello world");
+        settled(&mut r, &term);
+        assert!(!r.needs_frame(Q0), "a quiet grid with no selection sleeps");
+
+        let anchor = term.read().selection_anchor_at(0, 0).unwrap();
+        r.selection.lock().unwrap().start(anchor);
+        assert!(
+            r.needs_frame(Q0),
+            "a mouse press that begins a selection must wake the loop — \
+             the highlight lives in Pass 2 and never draws if this frame is \
+             skipped"
+        );
+    }
+
+    #[test]
+    fn a_selection_drag_update_wakes_the_loop() {
+        let (mut r, term) = harness(20, 5);
+        term.write().feed(b"hello world");
+        let (a0, a5) = {
+            let t = term.read();
+            (
+                t.selection_anchor_at(0, 0).unwrap(),
+                t.selection_anchor_at(0, 5).unwrap(),
+            )
+        };
+        r.selection.lock().unwrap().start(a0);
+        settled(&mut r, &term);
+        assert!(!r.needs_frame(Q0), "the started selection has been painted");
+
+        r.selection.lock().unwrap().update(a5);
+        assert!(
+            r.needs_frame(Q0),
+            "every drag tick must wake the loop or the highlight lags the \
+             pointer — that IS the reported bug"
+        );
+    }
+
+    #[test]
+    fn a_selection_clear_wakes_the_loop() {
+        let (mut r, term) = harness(20, 5);
+        term.write().feed(b"hello world");
+        let (a, b) = {
+            let t = term.read();
+            (
+                t.selection_anchor_at(0, 0).unwrap(),
+                t.selection_anchor_at(0, 5).unwrap(),
+            )
+        };
+        r.selection.lock().unwrap().set_span(a, b);
+        settled(&mut r, &term);
+        assert!(
+            !r.needs_frame(Q0),
+            "the committed selection has been painted"
+        );
+
+        r.selection.lock().unwrap().clear();
+        assert!(
+            r.needs_frame(Q0),
+            "clearing must wake the loop so the highlight is actually \
+             REMOVED from screen — otherwise a stale highlight sticks"
+        );
+    }
+
     #[test]
     fn needs_frame_mutates_nothing_the_draw_path_owns() {
         // Deliberately side-effect free: `render` owns last_seqno,
-        // last_cursor_on, force_paint_frames and the defer. If the question
-        // consumed any of them, asking it would change what the answer would
-        // have been — and the draw path would then see state already spent.
+        // last_cursor_on, force_paint_frames, the defer, and (2026-08-26)
+        // last_selection_epoch. If the question consumed any of them,
+        // asking it would change what the answer would have been — and
+        // the draw path would then see state already spent.
         let (mut r, term) = harness(20, 5);
         settled(&mut r, &term);
         let before = (
@@ -7562,6 +7691,7 @@ mod render_invariants {
             r.last_cursor_on,
             r.force_paint_frames,
             r.sync_output_deferred_since.is_some(),
+            r.last_selection_epoch,
         );
         for _ in 0..10 {
             let _ = r.needs_frame(Q0);
@@ -7571,6 +7701,7 @@ mod render_invariants {
             r.last_cursor_on,
             r.force_paint_frames,
             r.sync_output_deferred_since.is_some(),
+            r.last_selection_epoch,
         );
         assert_eq!(
             before, after,

@@ -46,17 +46,47 @@ enum State {
     },
 }
 
+/// Monotonically-bumped counter over `Selection` mutations.
+///
+/// The selection overlay's answer to `Terminal::seqno()`. `needs_frame`
+/// compares the live epoch against `render`'s memoized last-painted
+/// epoch to tell "the highlight looks like what was last drawn" from
+/// "the selection state moved and owes a repaint" — without this, a
+/// drag or a clear mutated the state but incremented nothing on the
+/// wake predicate's checklist, so madori skipped the frame and the
+/// highlight never reached the display (measured 2026-08-26, mado
+/// 0.1.142 on Linux + `cursor.blink = false`: drag selected, state
+/// updated, no frame painted).
+///
+/// Bumped on every state-mutating method — start / update /
+/// set_span / finish / clear — even on a no-op transition (a drag
+/// re-arriving at the same anchor). The wake predicate is deliberately
+/// conservative: a redundant frame costs microseconds, a wrongly
+/// skipped one is a display that stops updating.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct SelectionEpoch(u64);
+
+impl SelectionEpoch {
+    fn bump(&mut self) {
+        self.0 = self.0.wrapping_add(1);
+    }
+}
+
 /// Text selection manager. Holds anchors in CAPTURE order — reading
 /// order (start ≤ end) is only knowable after resolution, so
 /// normalization lives in `Terminal::resolve_selection_span`.
 pub struct Selection {
     state: State,
+    epoch: SelectionEpoch,
 }
 
 impl Selection {
     #[must_use]
     pub fn new() -> Self {
-        Self { state: State::None }
+        Self {
+            state: State::None,
+            epoch: SelectionEpoch::default(),
+        }
     }
 
     /// Begin a char-drag gesture at the given anchor.
@@ -65,6 +95,7 @@ impl Selection {
             start: pos,
             end: pos,
         };
+        self.epoch.bump();
     }
 
     /// Move the gesture's end anchor. Acts in BOTH live states —
@@ -75,9 +106,11 @@ impl Selection {
         match self.state {
             State::Selecting { start, .. } => {
                 self.state = State::Selecting { start, end: pos };
+                self.epoch.bump();
             }
             State::Selected { start, .. } => {
                 self.state = State::Selected { start, end: pos };
+                self.epoch.bump();
             }
             State::None => {}
         }
@@ -87,6 +120,7 @@ impl Selection {
     /// select-all, shift-click extend, word/line drag union).
     pub fn set_span(&mut self, start: SelectionAnchor, end: SelectionAnchor) {
         self.state = State::Selected { start, end };
+        self.epoch.bump();
     }
 
     /// Finalize a char-drag (mouse released): a zero-length gesture
@@ -98,12 +132,22 @@ impl Selection {
             } else {
                 self.state = State::Selected { start, end };
             }
+            self.epoch.bump();
         }
     }
 
     /// Clear the selection.
     pub fn clear(&mut self) {
         self.state = State::None;
+        self.epoch.bump();
+    }
+
+    /// The current mutation epoch. Read by `render::TerminalRenderer::needs_frame`
+    /// to wake the loop on any selection state change (start / update / commit
+    /// / clear). See [`SelectionEpoch`].
+    #[must_use]
+    pub fn epoch(&self) -> SelectionEpoch {
+        self.epoch
     }
 
     /// Whether a selection is currently active (selecting or selected).
