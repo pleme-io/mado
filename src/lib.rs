@@ -24,4 +24,11 @@
 #![allow(dead_code)]
 
 pub mod float;
+// hanko (判子) — the frame gate's O(1) stamp. In the LIB rather than the binary
+// deliberately: the class it seals is not mado's. seki's daemon leaked 31.8 GB
+// to the sibling shape, and every fleet render loop and reconciler asks the same
+// "did it change?" question on a hot path. Extraction to a fleet crate is the
+// named destination, currently blocked on org repo creation (all 5 shards
+// parked), so it lives here and is already importable as `mado::hanko`.
+pub mod hanko;
 pub mod motion;
