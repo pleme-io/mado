@@ -49,6 +49,11 @@ enum State {
 /// Text selection manager. Holds anchors in CAPTURE order — reading
 /// order (start ≤ end) is only knowable after resolution, so
 /// normalization lives in `Terminal::resolve_selection_span`.
+// `Copy + PartialEq` so the renderer can hold a cheap previous-value
+// snapshot and detect a change. The whole struct is one `Copy` enum, so
+// this is a register move, not a clone -- which matters because the frame
+// gate compares it on every vsync tick.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Selection {
     state: State,
 }
