@@ -13454,3 +13454,139 @@ mod proptests {
         }
     }
 }
+// ── ★ THE DAMAGE INVARIANT ──────────────────────────────────────────────────
+// If the visible grid changed, the damage counter MUST have changed.
+//
+// This is the load-bearing invariant of the whole render path and until now
+// nothing checked it. `needs_frame` (render.rs) decides whether to draw by
+// comparing `term.seqno()` against its memo; when it answers false, madori
+// does not even acquire a swapchain image, so nothing is submitted and the
+// screen keeps showing the LAST painted frame. A mutation that changes the
+// grid without bumping the seqno therefore does not render as a wrong frame —
+// it renders as a FROZEN one, and no error is raised anywhere.
+//
+// That is damage ASSERTED by whoever mutates rather than DERIVED from the
+// state, which is `theory/SHATEI.md`'s shape: the fact "this changed the
+// screen" has to hold at every mutation site, and it is represented by each
+// site remembering to bump a counter. ~20 CSI sites plus a proc-macro-derived
+// setter, every one of them free to forget.
+//
+// The seal for the class is `theory/KENTOU.md`'s `Model::reduce` — a
+// transition that RETURNS its damage, so forgetting has no expressible form.
+// Until that lands, this test is the honest floor: it cannot make the bad
+// state unrepresentable, but it makes it loud, over a corpus that walks the
+// mutation sites a real session walks.
+//
+// Deliberately NOT behind `feature = "gpu_tests"`. It needs no GPU, and the
+// guards that were gated behind that default-off feature are the reason this
+// class went unmeasured (`theory/KENTOU.md` §IV.2).
+#[cfg(test)]
+mod damage_invariant {
+    use super::*;
+
+    /// Everything the renderer would draw, as a comparable value.
+    fn grid_snapshot(t: &Terminal) -> Vec<Vec<Cell>> {
+        t.visible_rows().map(<[Cell]>::to_vec).collect()
+    }
+
+    /// What `needs_frame` actually consults to decide "something changed".
+    fn damage_claim(t: &Terminal) -> (u64, u64) {
+        (t.seqno(), t.grid_epoch())
+    }
+
+    /// One corpus entry: a name for the failure message, and the bytes.
+    const CORPUS: &[(&str, &[u8])] = &[
+        ("plain text", b"hello world"),
+        ("newline", b"\r\n"),
+        ("more text after newline", b"second line"),
+        ("carriage return overwrite", b"\rSECOND"),
+        ("SGR bold", b"\x1b[1mbold"),
+        ("SGR colour", b"\x1b[31mred"),
+        ("SGR reset", b"\x1b[0mplain"),
+        ("erase in line, to end", b"\x1b[K"),
+        ("erase in line, whole", b"\x1b[2K"),
+        ("cursor home then write", b"\x1b[Hover"),
+        ("cursor absolute position", b"\x1b[3;5Hxy"),
+        ("erase in display, below", b"\x1b[J"),
+        ("erase in display, all", b"\x1b[2J"),
+        ("write after full erase", b"\x1b[Hafter-erase"),
+        ("insert line", b"\x1b[L"),
+        ("delete line", b"\x1b[M"),
+        ("insert characters", b"\x1b[3@"),
+        ("delete characters", b"\x1b[2P"),
+        ("erase characters", b"\x1b[4X"),
+        ("scroll up", b"\x1b[S"),
+        ("scroll down", b"\x1b[T"),
+        ("tab", b"\tafter-tab"),
+        ("backspace", b"\x08X"),
+        ("set scroll region then write", b"\x1b[2;6r\x1b[Hregion"),
+        ("index (line feed)", b"\x1bD"),
+        ("reverse index", b"\x1bM"),
+        ("alt screen on", b"\x1b[?1049h"),
+        ("write on alt screen", b"alt-screen-text"),
+        ("alt screen off", b"\x1b[?1049l"),
+        ("wide characters", b"\xe6\x97\xa5\xe6\x9c\xac\xe8\xaa\x9e"),
+        ("combining marks", b"e\xcc\x81a\xcc\x80"),
+        ("many lines, forcing a scroll", b"1\r\n2\r\n3\r\n4\r\n5\r\n6\r\n7\r\n8\r\n9\r\n10\r\n"),
+        ("full reset", b"\x1bc"),
+        ("write after reset", b"post-reset"),
+    ];
+
+    #[test]
+    fn a_grid_change_always_bumps_the_damage_claim() {
+        let mut t = Terminal::new(40, 8);
+        // Settle: the first feed always reports change, which would mask a
+        // silent mutation later in the corpus.
+        t.feed(b"settle\r\n");
+
+        let mut silent: Vec<String> = Vec::new();
+
+        for (name, bytes) in CORPUS {
+            let before_grid = grid_snapshot(&t);
+            let before_claim = damage_claim(&t);
+
+            t.feed(bytes);
+
+            let grid_changed = grid_snapshot(&t) != before_grid;
+            let claim_changed = damage_claim(&t) != before_claim;
+
+            if grid_changed && !claim_changed {
+                silent.push(format!(
+                    "{name:?}: the visible grid changed and (seqno, grid_epoch) \
+                     did not move from {before_claim:?}"
+                ));
+            }
+        }
+
+        assert!(
+            silent.is_empty(),
+            "a mutation changed the screen without claiming damage. \
+             `needs_frame` will answer false, madori will not acquire a \
+             swapchain image, and the display will FREEZE on the previous \
+             frame with no error anywhere (theory/KENTOU.md):\n  {}",
+            silent.join("\n  ")
+        );
+    }
+
+    /// The converse is NOT asserted, deliberately.
+    ///
+    /// Claiming damage that did not occur costs a redundant paint — wasteful,
+    /// never wrong. Claiming none that did occur freezes the screen. The two
+    /// are not symmetric, so only one direction is an invariant, and a test
+    /// that demanded both would fail on every conservative bump and get
+    /// weakened until it asserted nothing.
+    #[test]
+    fn the_claim_is_allowed_to_be_conservative() {
+        let mut t = Terminal::new(20, 4);
+        t.feed(b"x");
+        let before = damage_claim(&t);
+        // A no-op sequence: a cursor position report request writes nothing.
+        t.feed(b"\x1b[6n");
+        assert!(
+            damage_claim(&t) >= before,
+            "the damage claim must never move BACKWARD — needs_frame compares \
+             for inequality, but a rewind would make two different states \
+             compare equal"
+        );
+    }
+}
