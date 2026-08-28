@@ -1795,11 +1795,6 @@ pub struct TerminalRenderer {
     /// it. See [`OverlaySnapshot`] for why comparison is derived rather than
     /// hand-written.
     last_overlay_snapshot: OverlaySnapshot,
-    /// Previous painted SELECTION, for the same reason
-    /// `last_overlay_snapshot` exists: the frame gate has to be able to see
-    /// that it changed. Selection lives outside the terminal grid, so it
-    /// bumps no `seqno` and no `grid_epoch` -- see `needs_frame`.
-    last_selection: Selection,
     /// Render-clock (`ctx.elapsed`) seconds at the last painted frame that had
     /// an overlay open. Drives the bounded-staleness backstop in
     /// `needs_frame`: even if change detection ever misses a mutation, an open
@@ -2314,7 +2309,6 @@ impl TerminalRenderer {
             sync_output_deferred_since: None,
             last_grid_epoch: 0,
             last_overlay_snapshot: OverlaySnapshot::default(),
-            last_selection: Selection::new(),
             last_overlay_paint_at: f32::NEG_INFINITY,
             force_paint_frames: 0,
             effects_config: crate::config::MadoEffectsConfig::default(),
@@ -6055,34 +6049,6 @@ impl RenderCallback for TerminalRenderer {
             return true;
         }
 
-        // ── ★ A SELECTION CHANGE IS A REASON TO PAINT ───────────────────────
-        // Selection is drawn by the rect pipeline (cell backgrounds, cursor,
-        // selection, search highlights, URL underlines) but it is NOT part of
-        // the terminal grid: `Selection::{start,update,set_span,clear}` mutate
-        // only the `Selection` struct, bumping no `seqno` and no `grid_epoch`.
-        // So before this clause a drag had NO wake reason at all -- and, being
-        // outside the overlay block below, no bounded-staleness backstop
-        // either. `needs_frame` returned false, madori skipped acquire/render/
-        // present, and the highlight simply never appeared.
-        //
-        // This is the frozen-Ctrl-S-picker bug one level over: that fix taught
-        // the gate about overlays and left grid-level visual state that isn't
-        // grid CONTENT out of the story.
-        //
-        // Why it presented as "sometimes": any incidental waker covers it --
-        // terminal output, or a blinking cursor dragging the whole frame along.
-        // This operator's config has `cursor.blink = false` (verified live via
-        // kanshou, 2026-08-28), which removes the last one, so selecting in a
-        // quiet window failed outright while a busy one worked.
-        //
-        // Compared, not flagged: `Selection` is one `Copy` enum, so this is a
-        // register compare on a lock already taken elsewhere in this fn. And
-        // it self-limits -- once the drag stops changing, the values match and
-        // the gate goes back to skipping.
-        if *self.selection.lock().unwrap() != self.last_selection {
-            return true;
-        }
-
         // ── ★ AN OPEN OVERLAY MUST KEEP THE RENDERER AWAKE ──────────────────
         // Every condition above is about the terminal GRID. None of them is
         // about an overlay, so with a quiet shell an open Ctrl-S picker
@@ -6613,7 +6579,6 @@ impl RenderCallback for TerminalRenderer {
         // snapshot and so reads as a change next frame — a redundant paint,
         // never a missed one.
         self.last_overlay_snapshot = self.overlay_snapshot();
-        self.last_selection = *self.selection.lock().unwrap();
         self.last_overlay_paint_at = ctx.elapsed;
 
         // Build rect instances (cell backgrounds + cursor + decorations).
@@ -7582,49 +7547,6 @@ mod render_invariants {
         assert!(!r.needs_frame(Q0));
         r.last_grid_epoch = r.last_grid_epoch.wrapping_sub(1);
         assert!(r.needs_frame(Q0), "a grid-epoch change is a different pane");
-    }
-
-    /// A selection change must earn a frame even though the GRID is quiet.
-    ///
-    /// Pins the operator-reported "highlighting doesn't work sometimes"
-    /// (2026-08-28): selection is drawn by the rect pipeline but lives outside
-    /// the grid, so it bumps no `seqno` and no `grid_epoch`. Before the gate
-    /// learned about it, a drag on a quiet window had NO wake reason and -- not
-    /// being an overlay -- no bounded-staleness backstop either, so the
-    /// highlight never appeared at all.
-    #[test]
-    fn needs_frame_wakes_on_a_selection_change() {
-        let (mut r, term) = harness(20, 5);
-        settled(&mut r, &term);
-        assert!(
-            !r.needs_frame(Q0),
-            "precondition: a settled quiet grid must skip, or this proves nothing"
-        );
-
-        let (a, b) = {
-            let t = term.read();
-            (
-                t.selection_anchor_at(0, 0).expect("anchor start"),
-                t.selection_anchor_at(0, 5).expect("anchor end"),
-            )
-        };
-        r.selection.lock().unwrap().set_span(a, b);
-
-        assert!(
-            r.needs_frame(Q0),
-            "a selection change must earn a frame -- it is drawn, but bumps no seqno"
-        );
-
-        // The DRAW path owns the acknowledgement, same invariant as
-        // `last_overlay_snapshot`: asking must not consume the answer, or the
-        // first skipped tick would swallow the highlight permanently.
-        for _ in 0..5 {
-            let _ = r.needs_frame(Q0);
-        }
-        assert!(
-            r.needs_frame(Q0),
-            "asking must not consume the pending selection change"
-        );
     }
 
     #[test]
