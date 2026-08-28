@@ -7988,9 +7988,9 @@ rec {
       };
       "indexmap" = rec {
         crateName = "indexmap";
-        version = "2.14.0";
+        version = "2.14.1";
         edition = "2024";
-        sha256 = "1na9z6f0d5pkjr1lgsni470v98gv2r7c41j8w48skr089x2yjrnl";
+        sha256 = "1sq9z90viwfw8053l32rrby563hy67xl8n6k65d92hi22i421ah7";
         dependencies = [
           {
             name = "equivalent";
@@ -10205,7 +10205,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.149";
+        version = "0.1.150";
         edition = "2024";
         crateBin = [
           {
