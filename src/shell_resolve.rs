@@ -33,24 +33,13 @@
 /// The fleet's shell. A bare name on purpose -- resolved through `PATH`, so a
 /// nix profile, a home-manager profile and a release download all get whatever
 /// they actually have rather than a store path baked in at compile time.
-pub const PRESCRIBED: &str = "frostmourne";
+pub const PRESCRIBED: &str = ishou_tokens::fleet_shell::FleetShell::prescribed().prescribed;
 
 /// True if `cmd` names a runnable binary: an absolute or relative path that is
 /// a file, or a bare name found on `PATH`.
 #[must_use]
 pub fn is_executable(cmd: &str) -> bool {
-    if cmd.is_empty() {
-        return false;
-    }
-    let direct = std::path::Path::new(cmd);
-    if direct.is_absolute() || cmd.contains('/') {
-        return direct.is_file();
-    }
-    std::env::var_os("PATH")
-        .map(|paths| {
-            std::env::split_paths(&paths).any(|dir| dir.join(cmd).is_file())
-        })
-        .unwrap_or(false)
+    ishou_tokens::fleet_shell::FleetShell::is_executable(cmd)
 }
 
 /// Resolve the shell to spawn.
@@ -61,40 +50,13 @@ pub fn is_executable(cmd: &str) -> bool {
 /// never returns a name that is not there.
 #[must_use]
 pub fn resolve(configured: Option<&str>) -> String {
-    // 1 — an explicit choice, when it actually exists. A configured shell that
-    //     is missing is a misconfiguration worth SAYING, not worth spawning.
-    if let Some(c) = configured.filter(|c| !c.trim().is_empty()) {
-        if is_executable(c) {
-            return c.to_string();
-        }
-        tracing::warn!(
-            configured = %c,
-            "configured shell not found on PATH — falling through to the prescribed ladder"
-        );
-    }
-
-    // 2 — the prescribed shell.
-    if is_executable(PRESCRIBED) {
-        return PRESCRIBED.to_string();
-    }
-
-    // 3 — the operator's own login shell. On a fleet node this IS frostmourne
-    //     (the passwd record was flipped on 2026-08-28), so this rung matters
-    //     for machines that are not ours.
-    if let Ok(s) = std::env::var("SHELL") {
-        if is_executable(&s) {
-            return s;
-        }
-    }
-
-    // 4 — the floor. `/bin/sh` is the POSIX guarantee and the last rung on
-    //     purpose: reaching it means nothing else on this machine was runnable.
-    for candidate in ["/bin/zsh", "/bin/sh"] {
-        if is_executable(candidate) {
-            return candidate.to_string();
-        }
-    }
-    "/bin/sh".to_string()
+    // ── ★ THE LADDER MOVED TO THE FLEET TOKEN ───────────────────────────
+    // It lived here first, which made mado the second place with a copy --
+    // tear needed the identical thing. The prescription and the rules for
+    // applying it are one fact, so both now read
+    // `ishou_tokens::fleet_shell::FleetShell`. This module stays as mado's
+    // door onto it, keeping the tests that came from mado's own defects.
+    ishou_tokens::fleet_shell::FleetShell::prescribed().resolve(configured)
 }
 
 #[cfg(test)]
