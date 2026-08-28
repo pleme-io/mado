@@ -89,13 +89,32 @@ impl Selection {
         }
     }
 
+    /// ★ THE ONLY PATH TO `state`, so the epoch CANNOT be forgotten.
+    ///
+    /// The epoch is what `needs_frame` reads to decide the highlight owes a
+    /// repaint, and it buys its O(1) compare with a duty: every mutator must
+    /// bump it. That duty was discharged by hand -- seven `self.state = …`
+    /// assignments paired with six `epoch.bump()` calls -- and a hand-paired
+    /// invariant is one a future mutator forgets. The failure is silent and it
+    /// is the EXACT bug the epoch exists to fix: the state moves, the epoch
+    /// does not, the gate skips the frame, and the selection stops drawing.
+    ///
+    /// Assigning through here makes the pairing structural instead of
+    /// remembered. TIER: this is not truly-unrepresentable -- `state` is still
+    /// reachable as a field from inside this module -- so
+    /// `every_mutator_bumps_the_epoch` and `state_is_only_assigned_through_
+    /// set_state` hold the line in CI.
+    fn set_state(&mut self, next: State) {
+        self.state = next;
+        self.epoch.bump();
+    }
+
     /// Begin a char-drag gesture at the given anchor.
     pub fn start(&mut self, pos: SelectionAnchor) {
-        self.state = State::Selecting {
+        self.set_state(State::Selecting {
             start: pos,
             end: pos,
-        };
-        self.epoch.bump();
+        });
     }
 
     /// Move the gesture's end anchor. Acts in BOTH live states —
@@ -105,12 +124,10 @@ impl Selection {
     pub fn update(&mut self, pos: SelectionAnchor) {
         match self.state {
             State::Selecting { start, .. } => {
-                self.state = State::Selecting { start, end: pos };
-                self.epoch.bump();
+                self.set_state(State::Selecting { start, end: pos });
             }
             State::Selected { start, .. } => {
-                self.state = State::Selected { start, end: pos };
-                self.epoch.bump();
+                self.set_state(State::Selected { start, end: pos });
             }
             State::None => {}
         }
@@ -119,27 +136,24 @@ impl Selection {
     /// Replace the selection with a committed span (word/line snap,
     /// select-all, shift-click extend, word/line drag union).
     pub fn set_span(&mut self, start: SelectionAnchor, end: SelectionAnchor) {
-        self.state = State::Selected { start, end };
-        self.epoch.bump();
+        self.set_state(State::Selected { start, end });
     }
 
     /// Finalize a char-drag (mouse released): a zero-length gesture
     /// was a click, not a selection — clear it.
     pub fn finish(&mut self) {
         if let State::Selecting { start, end } = self.state {
-            if start == end {
-                self.state = State::None;
+            self.set_state(if start == end {
+                State::None
             } else {
-                self.state = State::Selected { start, end };
-            }
-            self.epoch.bump();
+                State::Selected { start, end }
+            });
         }
     }
 
     /// Clear the selection.
     pub fn clear(&mut self) {
-        self.state = State::None;
-        self.epoch.bump();
+        self.set_state(State::None);
     }
 
     /// The current mutation epoch. Read by `render::TerminalRenderer::needs_frame`
@@ -279,6 +293,70 @@ pub fn word_bounds_in_row(
 
 #[cfg(test)]
 mod tests {
+
+    /// Every mutator bumps the epoch — the duty the epoch's O(1) compare buys.
+    ///
+    /// Each case does its SETUP first, then records the epoch, then runs only
+    /// the mutator under test, so a bump from the setup cannot mask a missing
+    /// one. A mutator that moves `state` without bumping makes `needs_frame`
+    /// silently blind, which is the exact bug the epoch exists to fix.
+    #[test]
+    fn every_mutator_bumps_the_epoch() {
+        let t = term_with(b"hello world");
+        let a = anchor(&t, 0, 0);
+        let b = anchor(&t, 0, 4);
+
+        macro_rules! bumps {
+            ($name:literal, $sel:ident, $setup:block, $mutate:block) => {{
+                let mut $sel = Selection::new();
+                $setup
+                let before = $sel.epoch();
+                $mutate
+                assert_ne!(
+                    $sel.epoch(),
+                    before,
+                    concat!(
+                        "`", $name, "` mutated the selection without bumping the \
+                         epoch — needs_frame cannot see it and the highlight \
+                         stops drawing"
+                    )
+                );
+            }};
+        }
+
+        bumps!("start", s, {}, { s.start(a); });
+        bumps!("update", s, { s.start(a); }, { s.update(b); });
+        bumps!("set_span", s, {}, { s.set_span(a, b); });
+        bumps!("finish", s, { s.start(a); s.update(b); }, { s.finish(); });
+        bumps!("clear", s, { s.set_span(a, b); }, { s.clear(); });
+    }
+
+    /// `state` is assigned in exactly ONE place, so the epoch bump cannot be
+    /// separated from the mutation it describes.
+    ///
+    /// Comment lines are stripped before matching: this file's own prose
+    /// mentions the assignment it forbids, and an unstripped scan matches its
+    /// own documentation — a test that passes for the wrong reason. The scan
+    /// also stops at the test module so it never reads itself.
+    #[test]
+    fn state_is_only_assigned_through_set_state() {
+        let src = include_str!("selection.rs");
+        let body = src
+            .split_once("#[cfg(test)]")
+            .map_or(src, |(before, _)| before);
+        let assignments: Vec<&str> = body
+            .lines()
+            .filter(|l| !l.trim_start().starts_with("//"))
+            .filter(|l| l.contains("self.state ="))
+            .collect();
+        assert_eq!(
+            assignments.len(),
+            1,
+            "expected exactly one `self.state =` (inside `set_state`); found:\n{}",
+            assignments.join("\n")
+        );
+    }
+
     use super::*;
     use crate::terminal::Terminal;
 
