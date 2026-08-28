@@ -84,6 +84,7 @@ mod safra;
 mod scenario;
 mod search;
 mod selection;
+mod shell_resolve;
 mod session;
 mod session_picker;
 mod session_switch;
@@ -792,13 +793,11 @@ fn main() -> anyhow::Result<()> {
     // exited and returns with no shell). Falling back to `$SHELL`/`/bin/zsh`
     // keeps the download-and-use experience working out of the box.
     let shell = match cli.command {
+        // An explicit --command is taken verbatim: someone typing it on
+        // the command line has already decided, and second-guessing them
+        // here would make the flag advisory.
         Some(explicit) => explicit,
-        None => config
-            .shell
-            .command
-            .clone()
-            .map(resolve_shell_or_fallback)
-            .unwrap_or_else(default_shell),
+        None => crate::shell_resolve::resolve(config.shell.command.as_deref()),
     };
 
     // ── Default-on tear attachment ───────────────────────────────
@@ -1273,54 +1272,8 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-/// First runnable login shell: `$SHELL` if it resolves to a real binary, else
-/// `/bin/zsh`, else `/bin/sh` (the POSIX floor). Never returns a missing
-/// binary — a stale/broken `$SHELL` is skipped rather than propagated, so the
-/// download-and-use path always lands on a shell that actually exists.
-fn default_shell() -> String {
-    if let Ok(s) = std::env::var("SHELL") {
-        if shell_is_executable(&s) {
-            return s;
-        }
-    }
-    for candidate in ["/bin/zsh", "/bin/sh"] {
-        if shell_is_executable(candidate) {
-            return candidate.to_string();
-        }
-    }
-    "/bin/sh".to_string()
-}
 
-/// True if `cmd` names a runnable binary: an absolute/relative path that is a
-/// file, or a bare name found on `$PATH`. Used to guard the config-derived
-/// shell so a standalone download (no `frostmourne` on PATH) never spawns a
-/// missing binary.
-fn shell_is_executable(cmd: &str) -> bool {
-    use std::path::Path;
-    if cmd.contains('/') {
-        return Path::new(cmd).is_file();
-    }
-    std::env::var_os("PATH")
-        .map(|paths| std::env::split_paths(&paths).any(|dir| dir.join(cmd).is_file()))
-        .unwrap_or(false)
-}
 
-/// Return `configured` if it resolves to a real binary, otherwise fall back to
-/// `$SHELL`/`/bin/zsh`. The prescribed default (`frostmourne`) only exists on
-/// fleet machines; a release-download user gets their login shell instead of a
-/// dead window. An explicit `--command` is resolved by the caller, not here.
-fn resolve_shell_or_fallback(configured: String) -> String {
-    if shell_is_executable(&configured) {
-        return configured;
-    }
-    let fallback = default_shell();
-    tracing::warn!(
-        configured = %configured,
-        fallback = %fallback,
-        "configured shell not found on PATH — falling back to login shell"
-    );
-    fallback
-}
 
 /// Build EventResponse for exit request, applying confirm_close logic when enabled.
 fn exit_response(confirm_close: bool, pending_close: &AtomicBool) -> EventResponse {
@@ -1382,11 +1335,11 @@ mod tests {
     fn shell_is_executable_finds_sh_on_path() {
         // /bin/sh is present on every unix that runs these tests.
         assert!(
-            shell_is_executable("/bin/sh"),
+            crate::shell_resolve::is_executable("/bin/sh"),
             "absolute path to a real binary resolves"
         );
         assert!(
-            shell_is_executable("sh"),
+            crate::shell_resolve::is_executable("sh"),
             "bare name found on $PATH resolves"
         );
     }
@@ -1394,11 +1347,11 @@ mod tests {
     #[test]
     fn shell_is_executable_rejects_missing() {
         assert!(
-            !shell_is_executable("definitely-not-a-real-shell-xyzzy"),
+            !crate::shell_resolve::is_executable("definitely-not-a-real-shell-xyzzy"),
             "a bare name not on $PATH does not resolve"
         );
         assert!(
-            !shell_is_executable("/nonexistent/frostmourne"),
+            !crate::shell_resolve::is_executable("/nonexistent/frostmourne"),
             "an absolute path that isn't a file does not resolve"
         );
     }
@@ -1406,7 +1359,7 @@ mod tests {
     #[test]
     fn resolve_shell_keeps_a_real_binary() {
         // A configured shell that exists is returned verbatim.
-        assert_eq!(resolve_shell_or_fallback("/bin/sh".to_string()), "/bin/sh");
+        assert_eq!(crate::shell_resolve::resolve(Some(&"/bin/sh".to_string())), "/bin/sh");
     }
 
     #[test]
@@ -1417,10 +1370,10 @@ mod tests {
         // on fleet workstations where these tests run. Resolution must yield a
         // real login shell, never the missing name.
         let missing = "definitely-not-a-real-shell-xyzzy";
-        let resolved = resolve_shell_or_fallback(missing.to_string());
+        let resolved = crate::shell_resolve::resolve(Some(&missing.to_string()));
         assert_ne!(resolved, missing, "a missing shell must not be returned");
         assert!(
-            shell_is_executable(&resolved),
+            crate::shell_resolve::is_executable(&resolved),
             "the fallback must itself be a runnable shell ({resolved})"
         );
     }
@@ -1496,7 +1449,7 @@ mod tests {
 
     #[test]
     fn test_default_shell_is_nonempty() {
-        let shell = default_shell();
+        let shell = crate::shell_resolve::resolve(None);
         assert!(!shell.is_empty());
     }
 
@@ -1580,9 +1533,22 @@ mod tests {
     // embedded-tear path can consume it too).
 
     #[test]
-    fn test_default_shell_contains_path() {
-        let shell = default_shell();
-        assert!(shell.contains('/') || shell.contains("sh"));
+    fn the_default_shell_is_runnable() {
+        // Was `test_default_shell_contains_path`, asserting the result
+        // contained '/' or "sh". That held while the ladder ended at
+        // /bin/zsh or /bin/sh, and stopped holding the moment the
+        // prescribed shell became `frostmourne` -- a BARE NAME, resolved
+        // through PATH on purpose so a nix profile, an HM profile and a
+        // release download each get whatever they actually have.
+        //
+        // The shape of the string was never the property worth pinning.
+        // Being able to run it is.
+        let shell = crate::shell_resolve::resolve(None);
+        assert!(!shell.is_empty(), "the ladder returned an empty shell");
+        assert!(
+            crate::shell_resolve::is_executable(&shell) || shell == "/bin/sh",
+            "the ladder returned {shell:?}, which is not runnable here"
+        );
     }
 
     #[test]

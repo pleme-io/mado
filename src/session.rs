@@ -40,9 +40,8 @@ use crate::pty::Pty;
 use crate::term_spec::TermSpec;
 use crate::terminal::{Cell, Terminal, UnderlineStyle};
 
-/// Default shell when neither the spec nor `$SHELL` is set. `/bin/sh`
-/// is the POSIX guarantee — present on every system mado runs on.
-const DEFAULT_SHELL: &str = "/bin/sh";
+// The floor moved to `shell_resolve`, the only place that decides what to
+// spawn. This was one of four `/bin/sh` floors that did not agree.
 
 /// A live terminal session — PTY + state machine + reader pump.
 ///
@@ -369,11 +368,11 @@ impl SessionRegistry {
             "mado-session-{}",
             self.next_id.fetch_add(1, Ordering::SeqCst)
         );
-        let shell = if spec.shell.is_empty() {
-            std::env::var("SHELL").unwrap_or_else(|_| DEFAULT_SHELL.to_string())
-        } else {
-            spec.shell.clone()
-        };
+        // ★ Through the one ladder. This branch read only $SHELL and never
+        // consulted the configured shell at all, so a headless pane ignored
+        // the operator's choice while a GUI pane honoured it -- same machine,
+        // same config, two answers.
+        let shell = crate::shell_resolve::resolve(Some(spec.shell.as_str()));
         let (cols, rows) = spec.resolved_dimensions();
         let working_directory: Option<PathBuf> = if spec.cwd.is_empty() {
             None

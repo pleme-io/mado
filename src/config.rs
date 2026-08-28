@@ -3855,16 +3855,21 @@ impl Default for WindowConfig {
 }
 
 impl Default for ShellConfig {
-    /// The prescribed default is the operator's OWN login shell — `command:
-    /// None` resolves at launch (`main.rs`) to `$SHELL → /bin/zsh → /bin/sh`
-    /// via `default_shell()`. A config-less mado must feel like the system
-    /// terminal: it does NOT bind `frostmourne` (the curated pleme-io shell
-    /// distribution) or any bundled shell environment. Operators who WANT
-    /// frostmourne opt in explicitly via `mado.yaml`
-    /// (`shell.command: frostmourne`) or the blackmatter-mado HM module's
-    /// `programs.mado.shell.command` option — which is how the operator's own
-    /// fleet nodes get it. This keeps the default experience unsurprising
-    /// (your shell, your rc) while the fleet opt-in stays one line away.
+    /// `command: None` means NOBODY HAS SAID -- it is not a shell, it is the
+    /// absence of a choice. `shell_resolve::resolve` supplies the prescription
+    /// (frostmourne) for that case, guarded by an executable check.
+    ///
+    /// ── ★ THIS REVERSES WHAT THIS DOCSTRING USED TO SAY ─────────────────
+    /// It argued that "a config-less mado must feel like the system terminal:
+    /// it does NOT bind frostmourne", with the fleet opting in through
+    /// blackmatter-mado. Sound reasoning for a general-purpose terminal, and
+    /// overridden by the operator on 2026-08-28: frostmourne as the default
+    /// everywhere, "especially in our own software".
+    ///
+    /// The half of that reasoning that was REALLY load-bearing survives: a
+    /// release download with no frostmourne on PATH still lands on the
+    /// user's own login shell instead of a dead window. frostmourne is now
+    /// tried first; it is still never assumed.
     fn default() -> Self {
         Self {
             command: None,

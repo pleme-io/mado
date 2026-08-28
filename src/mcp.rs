@@ -1193,11 +1193,11 @@ impl MadoMcp {
                     "world": "headless",
                     "session_id": id,
                     "title": spec.display_title(),
-                    "shell": if spec.shell.is_empty() {
-                        std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string())
-                    } else {
-                        spec.shell.clone()
-                    },
+                    // ★ The SAME ladder the spawn uses. This re-derived the shell for the
+                    // report instead of reading back what was actually spawned, so the
+                    // two could disagree -- and the one a caller sees would be the wrong
+                    // one, which is worse than no field at all.
+                    "shell": crate::shell_resolve::resolve(Some(spec.shell.as_str())),
                     "cols": cols,
                     "rows": rows,
                     "placement": format!("{:?}", spec.resolved_placement()),

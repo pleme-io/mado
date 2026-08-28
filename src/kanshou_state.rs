@@ -373,12 +373,16 @@ impl Introspect for MadoAppState {
                         "note": "this GUI runs without an embedded tear registry (daemon mode)",
                     }));
                 };
-                let shell = params
-                    .shell
-                    .filter(|s| !s.is_empty())
-                    .or_else(|| self.config.shell.command.clone())
-                    .or_else(|| std::env::var("SHELL").ok())
-                    .unwrap_or_else(|| "/bin/sh".to_string());
+                // ★ One ladder, and it GUARDS. This chain handed whatever it found
+                // straight to execvp with no executable check, so a stale configured
+                // shell became a dead pane instead of a warning.
+                let shell = crate::shell_resolve::resolve(
+                    params
+                        .shell
+                        .as_deref()
+                        .filter(|s| !s.is_empty())
+                        .or(self.config.shell.command.as_deref()),
+                );
                 use tear_types::{MultiplexerControl, SessionSource};
                 let size = (params.cols.unwrap_or(80), params.rows.unwrap_or(24));
                 // `args` reaches execvp as a vector, with no shell in between.
