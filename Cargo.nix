@@ -3013,9 +3013,9 @@ rec {
       };
       "crc32fast" = rec {
         crateName = "crc32fast";
-        version = "1.5.0";
+        version = "1.5.1";
         edition = "2021";
-        sha256 = "04d51liy8rbssra92p0qnwjw8i9rm9c4m3bwy19wjamz1k4w30cl";
+        sha256 = "0l75bfakpwr86wz45gm38lylrpgbssr529fmm6m445qy2rqwi644";
         authors = [
           "Sam Rijs <srijs@airpost.net>"
           "Alex Crichton <alex@alexcrichton.com>"
@@ -4973,9 +4973,9 @@ rec {
       };
       "font-types" = rec {
         crateName = "font-types";
-        version = "0.12.3";
+        version = "0.12.4";
         edition = "2021";
-        sha256 = "0fgc0ydgh12ysvc9cp8fmm6jsvdk7py94pwk22nhmw9f773jnf3m";
+        sha256 = "08yfkm0i5h1vg41qyprdg39h89yqqnnl2h2z88il78w5r8hvfkp6";
         libName = "font_types";
         dependencies = [
           {
@@ -8367,9 +8367,9 @@ rec {
       };
       "izumi" = rec {
         crateName = "izumi";
-        version = "0.1.21";
+        version = "0.1.22";
         edition = "2024";
-        sha256 = "1gzy37i2cz3wphp8h1m4swakzl9c43mcfw4p7502nk4647f2vvzq";
+        sha256 = "1dj41g3bhy3hrpj6gnj387ggwhg2pqn4c1cm93hzc1m7hw9y0gja";
         authors = [
           "pleme-io"
         ];
@@ -8435,9 +8435,9 @@ rec {
       };
       "izumi-config" = rec {
         crateName = "izumi-config";
-        version = "0.1.21";
+        version = "0.1.22";
         edition = "2024";
-        sha256 = "1wxg37kwfb47n4a7bmx1p1wri5lljn23w30vifalvl8i87xncqxa";
+        sha256 = "1sm1s6qgfr314g18dy1qgwmccz7r5gxzqynkkmiydkvk7ax43l1z";
         libName = "izumi_config";
         authors = [
           "pleme-io"
@@ -8461,9 +8461,9 @@ rec {
       };
       "izumi-sources" = rec {
         crateName = "izumi-sources";
-        version = "0.1.21";
+        version = "0.1.22";
         edition = "2024";
-        sha256 = "1414s63xbci0hzpgd1a62bw0b87rgxif5608ayy2j733njzc419p";
+        sha256 = "1w10wg0b4z5c8y1xddkvcz2lcwkd57jflrnjsn6hqfxb02n08wdk";
         libName = "izumi_sources";
         authors = [
           "pleme-io"
@@ -9804,7 +9804,7 @@ rec {
           }
           {
             name = "redox_syscall";
-            packageId = "redox_syscall 0.9.2";
+            packageId = "redox_syscall 0.9.3";
             optional = true;
           }
         ];
@@ -10104,9 +10104,9 @@ rec {
       };
       "log" = rec {
         crateName = "log";
-        version = "0.4.33";
+        version = "0.4.34";
         edition = "2021";
-        sha256 = "1bd9dmk22pxgnf0h0slba6rz99zb0a0b2mdhpk8p92bp26ycbvhc";
+        sha256 = "1ihkzn0m33ab79fcl4mkb04n5iwqzbxzyw7l7hazqkffaqzbvy7r";
         authors = [
           "The Rust Project Developers"
         ];
@@ -10120,11 +10120,12 @@ rec {
           "kv_unstable_sval" = [ "kv_sval" "kv_unstable" ];
           "serde" = [ "serde_core" ];
           "serde_core" = [ "dep:serde_core" ];
+          "std" = [ "alloc" ];
           "sval" = [ "dep:sval" ];
           "sval_ref" = [ "dep:sval_ref" ];
           "value-bag" = [ "dep:value-bag" ];
         };
-        resolvedDefaultFeatures = [ "std" ];
+        resolvedDefaultFeatures = [ "alloc" "std" ];
       };
       "lru" = rec {
         crateName = "lru";
@@ -10204,7 +10205,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.143";
+        version = "0.1.144";
         edition = "2024";
         crateBin = [
           {
@@ -15308,11 +15309,11 @@ rec {
           "std" = [ "num-traits/std" ];
         };
       };
-      "ordered-float 5.3.0" = rec {
+      "ordered-float 5.5.0" = rec {
         crateName = "ordered-float";
-        version = "5.3.0";
+        version = "5.5.0";
         edition = "2021";
-        sha256 = "03mx5yg3ncp0g524y7zbyvhwcxpd8l9v30lgybm5bhqx2v551ndp";
+        sha256 = "1h23hd8nf0nx9j2zg0iy130zwjqp4k3vl8070wk9yn13kc6rwz4c";
         libName = "ordered_float";
         authors = [
           "Jonathan Reem <jonathan.reem@gmail.com>"
@@ -15331,6 +15332,7 @@ rec {
           "bytemuck" = [ "dep:bytemuck" ];
           "default" = [ "std" ];
           "derive-visitor" = [ "dep:derive-visitor" ];
+          "facet" = [ "dep:facet" ];
           "libm" = [ "num-traits/libm" ];
           "num-cmp" = [ "dep:num-cmp" ];
           "proptest" = [ "dep:proptest" ];
@@ -15347,6 +15349,7 @@ rec {
           "rkyv_64" = [ "dep:rkyv" "rkyv?/size_64" ];
           "rkyv_ck" = [ "rkyv?/validation" ];
           "schemars" = [ "dep:schemars" ];
+          "schemars1" = [ "dep:schemars1" ];
           "serde" = [ "dep:serde" "rand?/serde1" ];
           "speedy" = [ "dep:speedy" ];
           "std" = [ "num-traits/std" ];
@@ -17321,7 +17324,7 @@ rec {
           }
           {
             name = "ordered-float";
-            packageId = "ordered-float 5.3.0";
+            packageId = "ordered-float 5.5.0";
             usesDefaultFeatures = false;
           }
           {
@@ -18128,11 +18131,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "userspace" ];
       };
-      "redox_syscall 0.9.2" = rec {
+      "redox_syscall 0.9.3" = rec {
         crateName = "redox_syscall";
-        version = "0.9.2";
+        version = "0.9.3";
         edition = "2021";
-        sha256 = "1zm2mqij8bw9mj1znaw8ljh6k4f8canyxazp1rn4wp9cpfjkvjgi";
+        sha256 = "1r9g9gxazwlavw5sbh5cszgf5zlqgs4q0s79f79p77l2g5vd2y6n";
         libName = "syscall";
         authors = [
           "Jeremy Soller <jackpot51@gmail.com>"
@@ -19766,9 +19769,9 @@ rec {
       };
       "rustls-webpki" = rec {
         crateName = "rustls-webpki";
-        version = "0.103.14";
+        version = "0.103.15";
         edition = "2021";
-        sha256 = "0njk28gvbqrsfg1b5r35y4f80n37kcjylj72fpc0k0g60n3529q5";
+        sha256 = "1hhanq3lz384v4nccacnjfwsyy99n3yc6m6iw8kljz8yicfwzhzk";
         libName = "webpki";
         dependencies = [
           {
@@ -21799,9 +21802,9 @@ rec {
       };
       "shikumi" = rec {
         crateName = "shikumi";
-        version = "0.1.649";
+        version = "0.1.669";
         edition = "2024";
-        sha256 = "1z7i0dnl0vk70jvprpvqdbjxai1rwnaz0f68q6y38py1f23ir20k";
+        sha256 = "1i02yqf1dgivv5sk83gk1s0n8cs4l547rz9pmlpx5sc5xxhsxrv4";
         dependencies = [
           {
             name = "arc-swap";
@@ -24007,9 +24010,9 @@ rec {
       };
       "tatara-core" = rec {
         crateName = "tatara-core";
-        version = "0.2.369";
+        version = "0.2.387";
         edition = "2021";
-        sha256 = "1vh5z8c83x9c5b67jz7yrn5yl1s8bag7p68lylwk6m7cy5vd6vi8";
+        sha256 = "0fgm82m4avp600ap6qji64rc5scfmcrbjk2q378vrjx0ylnsmigr";
         libName = "tatara_core";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24084,9 +24087,9 @@ rec {
       };
       "tatara-eval" = rec {
         crateName = "tatara-eval";
-        version = "0.2.369";
+        version = "0.2.387";
         edition = "2021";
-        sha256 = "1r7jkx6kclg6xrmps3bi7jm53c7z9a69mknhmsqsvj9bkqi5102v";
+        sha256 = "0pmc8hwhyssbn0n07f0mplk7z9lsdmfhl3d0n94w4lgy6kw3qaf0";
         libName = "tatara_eval";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24123,9 +24126,9 @@ rec {
       };
       "tatara-lattice" = rec {
         crateName = "tatara-lattice";
-        version = "0.2.369";
+        version = "0.2.387";
         edition = "2021";
-        sha256 = "0k3sjbamavlfdqa79i3a3kvc777afar58x49n7nz5cazs91amm6a";
+        sha256 = "098m3fkggpbx2ycm6byzzdkqvlpi4z1zh5rsm8fq9hi4yfi2sl77";
         libName = "tatara_lattice";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24250,9 +24253,9 @@ rec {
       };
       "tatara-nix" = rec {
         crateName = "tatara-nix";
-        version = "0.2.369";
+        version = "0.2.387";
         edition = "2021";
-        sha256 = "0zljqxswi5swmkqx8ns5r95vqwr76kz3hqrva59rwgr8hxlv0vz5";
+        sha256 = "1xjqyqq55q7ynkkbjwdzqafkl4sgsl4x86icrana5khgybbzhkx1";
         libName = "tatara_nix";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24300,10 +24303,10 @@ rec {
       };
       "tatara-process" = rec {
         crateName = "tatara-process";
-        version = "0.2.369";
+        version = "0.2.387";
         edition = "2021";
         crateBin = [];
-        sha256 = "0mca7lgk9x1m286gbi361ind26yjl2w2vapyfhaih8bknffv8ph8";
+        sha256 = "0maldblvgvizd7ak8vm4sl8chhy12r7ik6gw4havp4vpwvqg97pp";
         libName = "tatara_process";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -27023,9 +27026,9 @@ rec {
       };
       "uuid" = rec {
         crateName = "uuid";
-        version = "1.24.1";
+        version = "1.25.0";
         edition = "2021";
-        sha256 = "1n8b7fg7dbx6ws64387l2i0qq900rw9b7qax63acdh37sczw1vrc";
+        sha256 = "1k5y394cmcrpl038i5szyxk96pa27nzgn89480d7cnph6ilmflzh";
         authors = [
           "Ashley Mannix<ashleymannix@live.com.au>"
           "Dylan DPC<dylan.dpc@gmail.com>"

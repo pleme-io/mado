@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "387386e97d0d26e7d1e2f30f77539233b2060afdb765e0e50bd61056bec145fc",
+  "cargo_lock_sha256": "97284a3ef0a4621d277ffcf1667d2996be1a6eeb76f248ed5a9e400296458049",
   "manifest_sha256": {
-    "Cargo.toml": "a959983d6fda69d9844b40f70a29b75b61534c5e917c0dd6a3b2a42d070fcec1"
+    "Cargo.toml": "28808c17e163608204c0a6fe1af422a6acaa0f42a588f6595c2f55753910a868"
   },
   "target_resolves": {
     "base": {
@@ -549,7 +549,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.3",
+            "package_key": "syn-3.0.4",
             "kind": "normal",
             "features": [
               "clone-impls",
@@ -883,11 +883,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "borsh-1.8.0": {
+      "borsh-1.8.1": {
         "runtime_dependencies": [
           {
             "name": "borsh_derive",
-            "package_key": "borsh-derive-1.8.0",
+            "package_key": "borsh-derive-1.8.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -915,7 +915,7 @@
           "unstable__schema"
         ]
       },
-      "borsh-derive-1.8.0": {
+      "borsh-derive-1.8.1": {
         "runtime_dependencies": [
           {
             "name": "once_cell",
@@ -959,7 +959,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-2.0.119",
+            "package_key": "syn-3.0.4",
             "kind": "normal",
             "features": [
               "fold",
@@ -1213,7 +1213,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.3",
+            "package_key": "syn-3.0.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1570,7 +1570,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.3",
+            "package_key": "syn-3.0.4",
             "kind": "normal",
             "features": [
               "full"
@@ -1649,7 +1649,7 @@
           },
           {
             "name": "flate2",
-            "package_key": "flate2-1.1.9",
+            "package_key": "flate2-1.1.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3109,7 +3109,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.3",
+            "package_key": "syn-3.0.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3613,7 +3613,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.3",
+            "package_key": "syn-3.0.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3921,42 +3921,28 @@
         "build_dependencies": [],
         "features": []
       },
-      "flate2-1.1.9": {
+      "flate2-1.1.10": {
         "runtime_dependencies": [
           {
             "name": "crc32fast",
             "package_key": "crc32fast-1.5.1",
             "kind": "normal",
             "features": [],
+            "uses_default_features": false,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "miniz_oxide",
+            "package_key": "miniz_oxide-0.9.1",
+            "kind": "normal",
+            "features": [
+              "simd"
+            ],
             "uses_default_features": true,
             "optional": true,
             "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "miniz_oxide",
-            "package_key": "miniz_oxide-0.8.9",
-            "kind": "normal",
-            "features": [
-              "simd",
-              "with-alloc"
-            ],
-            "uses_default_features": false,
-            "optional": true,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "miniz_oxide",
-            "package_key": "miniz_oxide-0.8.9",
-            "kind": "normal",
-            "features": [
-              "simd",
-              "with-alloc"
-            ],
-            "uses_default_features": false,
-            "optional": false,
-            "target": "cfg(all(target_arch = \"wasm32\", not(target_os = \"emscripten\")))",
             "tree": "target"
           }
         ],
@@ -3965,6 +3951,7 @@
           "any_impl",
           "default",
           "miniz_oxide",
+          "runtime_detection",
           "rust_backend"
         ]
       },
@@ -4336,7 +4323,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.3",
+            "package_key": "syn-3.0.4",
             "kind": "normal",
             "features": [
               "full"
@@ -4633,7 +4620,7 @@
           "default"
         ]
       },
-      "gen-macros-0.1.34": {
+      "gen-macros-0.1.48": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -4672,11 +4659,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "gen-platform-0.1.34": {
+      "gen-platform-0.1.48": {
         "runtime_dependencies": [
           {
             "name": "gen_macros",
-            "package_key": "gen-macros-0.1.34",
+            "package_key": "gen-macros-0.1.48",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4686,7 +4673,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.34",
+            "package_key": "gen-types-0.1.48",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4740,7 +4727,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "gen-types-0.1.34": {
+      "gen-types-0.1.48": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -5267,7 +5254,7 @@
           "std"
         ]
       },
-      "h2-0.4.18": {
+      "h2-0.4.19": {
         "runtime_dependencies": [
           {
             "name": "atomic_waker",
@@ -6031,7 +6018,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "hyper-1.11.0": {
+      "hyper-1.11.1": {
         "runtime_dependencies": [
           {
             "name": "atomic_waker",
@@ -6075,7 +6062,7 @@
           },
           {
             "name": "h2",
-            "package_key": "h2-0.4.18",
+            "package_key": "h2-0.4.19",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -6221,7 +6208,7 @@
           },
           {
             "name": "hyper",
-            "package_key": "hyper-1.11.0",
+            "package_key": "hyper-1.11.1",
             "kind": "normal",
             "features": [
               "client"
@@ -6320,7 +6307,7 @@
           },
           {
             "name": "hyper",
-            "package_key": "hyper-1.11.0",
+            "package_key": "hyper-1.11.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -6430,7 +6417,7 @@
         "runtime_dependencies": [
           {
             "name": "hyper",
-            "package_key": "hyper-1.11.0",
+            "package_key": "hyper-1.11.1",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7096,7 +7083,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.3",
+            "package_key": "syn-3.0.4",
             "kind": "normal",
             "features": [
               "full"
@@ -7411,7 +7398,7 @@
           },
           {
             "name": "todoku",
-            "package_key": "todoku-0.1.2",
+            "package_key": "todoku-0.1.5",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7486,7 +7473,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.669",
+            "package_key": "shikumi-0.1.731",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8135,7 +8122,7 @@
           },
           {
             "name": "hyper",
-            "package_key": "hyper-1.11.0",
+            "package_key": "hyper-1.11.1",
             "kind": "normal",
             "features": [
               "client",
@@ -9297,7 +9284,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.669",
+            "package_key": "shikumi-0.1.731",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9570,6 +9557,37 @@
         "features": []
       },
       "miniz_oxide-0.8.9": {
+        "runtime_dependencies": [
+          {
+            "name": "adler2",
+            "package_key": "adler2-2.0.1",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "simd_adler32",
+            "package_key": "simd-adler32-0.3.10",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": false,
+            "optional": true,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": [
+          "default",
+          "simd",
+          "simd-adler32",
+          "with-alloc"
+        ]
+      },
+      "miniz_oxide-0.9.1": {
         "runtime_dependencies": [
           {
             "name": "adler2",
@@ -10234,7 +10252,7 @@
           },
           {
             "name": "rand",
-            "package_key": "rand-0.8.7",
+            "package_key": "rand-0.8.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -10472,7 +10490,7 @@
           },
           {
             "name": "rand",
-            "package_key": "rand-0.8.7",
+            "package_key": "rand-0.8.8",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11447,7 +11465,7 @@
           },
           {
             "name": "rand",
-            "package_key": "rand-0.8.7",
+            "package_key": "rand-0.8.8",
             "kind": "normal",
             "features": [
               "small_rng"
@@ -12189,7 +12207,7 @@
           },
           {
             "name": "tatara_eval",
-            "package_key": "tatara-eval-0.2.387",
+            "package_key": "tatara-eval-0.2.451",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12219,7 +12237,7 @@
           },
           {
             "name": "todoku",
-            "package_key": "todoku-0.1.2",
+            "package_key": "todoku-0.1.5",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12302,7 +12320,7 @@
           },
           {
             "name": "flate2",
-            "package_key": "flate2-1.1.9",
+            "package_key": "flate2-1.1.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13039,7 +13057,7 @@
           },
           {
             "name": "wide",
-            "package_key": "wide-1.6.1",
+            "package_key": "wide-1.7.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -13412,7 +13430,7 @@
         "runtime_dependencies": [
           {
             "name": "chacha20",
-            "package_key": "chacha20-0.10.1",
+            "package_key": "chacha20-0.10.2",
             "kind": "normal",
             "features": [
               "rng"
@@ -13453,7 +13471,7 @@
           "thread_rng"
         ]
       },
-      "rand-0.8.7": {
+      "rand-0.8.8": {
         "runtime_dependencies": [
           {
             "name": "libc",
@@ -13780,7 +13798,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.3",
+            "package_key": "syn-3.0.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14026,7 +14044,7 @@
           },
           {
             "name": "h2",
-            "package_key": "h2-0.4.18",
+            "package_key": "h2-0.4.19",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14066,7 +14084,7 @@
           },
           {
             "name": "hyper",
-            "package_key": "hyper-1.11.0",
+            "package_key": "hyper-1.11.1",
             "kind": "normal",
             "features": [
               "client",
@@ -15574,7 +15592,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.3",
+            "package_key": "syn-3.0.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15859,7 +15877,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.25.0",
+            "package_key": "uuid-1.26.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -16280,7 +16298,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.25.0",
+            "package_key": "uuid-1.26.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -16396,7 +16414,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.25.0",
+            "package_key": "uuid-1.26.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -16757,7 +16775,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.3",
+            "package_key": "syn-3.0.4",
             "kind": "normal",
             "features": [
               "clone-impls",
@@ -16842,7 +16860,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.3",
+            "package_key": "syn-3.0.4",
             "kind": "normal",
             "features": [
               "clone-impls",
@@ -17257,7 +17275,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.669",
+            "package_key": "shikumi-0.1.731",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17304,7 +17322,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.669": {
+      "shikumi-0.1.731": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -17354,7 +17372,7 @@
           },
           {
             "name": "gen_platform",
-            "package_key": "gen-platform-0.1.34",
+            "package_key": "gen-platform-0.1.48",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17364,7 +17382,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.34",
+            "package_key": "gen-types-0.1.48",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18099,7 +18117,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.25.0",
+            "package_key": "uuid-1.26.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18678,7 +18696,7 @@
           },
           {
             "name": "rand",
-            "package_key": "rand-0.8.7",
+            "package_key": "rand-0.8.8",
             "kind": "normal",
             "features": [
               "std",
@@ -18809,7 +18827,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.25.0",
+            "package_key": "uuid-1.26.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19072,7 +19090,7 @@
           },
           {
             "name": "rand",
-            "package_key": "rand-0.8.7",
+            "package_key": "rand-0.8.8",
             "kind": "normal",
             "features": [
               "std",
@@ -19201,7 +19219,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.25.0",
+            "package_key": "uuid-1.26.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19440,7 +19458,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.25.0",
+            "package_key": "uuid-1.26.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19840,7 +19858,7 @@
           "visit-mut"
         ]
       },
-      "syn-3.0.3": {
+      "syn-3.0.4": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -19879,6 +19897,7 @@
           "default",
           "derive",
           "extra-traits",
+          "fold",
           "full",
           "parsing",
           "printing",
@@ -20061,7 +20080,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-core-0.2.387": {
+      "tatara-core-0.2.451": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20172,7 +20191,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.669",
+            "package_key": "shikumi-0.1.731",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20212,7 +20231,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.25.0",
+            "package_key": "uuid-1.26.0",
             "kind": "normal",
             "features": [
               "serde",
@@ -20227,7 +20246,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-eval-0.2.387": {
+      "tatara-eval-0.2.451": {
         "runtime_dependencies": [
           {
             "name": "bumpalo",
@@ -20275,7 +20294,7 @@
           },
           {
             "name": "tatara_nix",
-            "package_key": "tatara-nix-0.2.387",
+            "package_key": "tatara-nix-0.2.451",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20297,7 +20316,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lattice-0.2.387": {
+      "tatara-lattice-0.2.451": {
         "runtime_dependencies": [
           {
             "name": "schemars",
@@ -20325,7 +20344,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.387",
+            "package_key": "tatara-core-0.2.451",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20335,7 +20354,7 @@
           },
           {
             "name": "tatara_process",
-            "package_key": "tatara-process-0.2.387",
+            "package_key": "tatara-process-0.2.451",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20501,7 +20520,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-nix-0.2.387": {
+      "tatara-nix-0.2.451": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -20547,7 +20566,7 @@
           },
           {
             "name": "tatara_lattice",
-            "package_key": "tatara-lattice-0.2.387",
+            "package_key": "tatara-lattice-0.2.451",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20599,7 +20618,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-process-0.2.387": {
+      "tatara-process-0.2.451": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20735,7 +20754,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.387",
+            "package_key": "tatara-core-0.2.451",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20934,7 +20953,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.669",
+            "package_key": "shikumi-0.1.731",
             "kind": "normal",
             "features": [
               "cli"
@@ -21618,7 +21637,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.3",
+            "package_key": "syn-3.0.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21660,7 +21679,7 @@
           },
           {
             "name": "flate2",
-            "package_key": "flate2-1.1.9",
+            "package_key": "flate2-1.1.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21906,7 +21925,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "todoku-0.1.2": {
+      "todoku-0.1.5": {
         "runtime_dependencies": [
           {
             "name": "async_trait",
@@ -22175,7 +22194,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.3",
+            "package_key": "syn-3.0.4",
             "kind": "normal",
             "features": [
               "full"
@@ -23690,7 +23709,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.25.0",
+            "package_key": "uuid-1.26.0",
             "kind": "normal",
             "features": [
               "serde"
@@ -23709,7 +23728,7 @@
           "uuid"
         ]
       },
-      "uuid-1.25.0": {
+      "uuid-1.26.0": {
         "runtime_dependencies": [
           {
             "name": "getrandom",
@@ -24317,7 +24336,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.25.0",
+            "package_key": "uuid-1.26.0",
             "kind": "normal",
             "features": [
               "serde",
@@ -24417,7 +24436,7 @@
           },
           {
             "name": "uuid",
-            "package_key": "uuid-1.25.0",
+            "package_key": "uuid-1.26.0",
             "kind": "normal",
             "features": [
               "serde",
@@ -25272,7 +25291,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.3",
+            "package_key": "syn-3.0.4",
             "kind": "normal",
             "features": [
               "extra-traits"
@@ -25285,6 +25304,14 @@
         ],
         "build_dependencies": [],
         "features": []
+      },
+      "zlib-rs-0.6.7": {
+        "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": [
+          "rust-allocator",
+          "std"
+        ]
       },
       "zmij-1.0.23": {
         "runtime_dependencies": [],
@@ -25547,7 +25574,7 @@
               "std"
             ]
           },
-          "chacha20-0.10.1": {
+          "chacha20-0.10.2": {
             "runtime_dependencies": [
               {
                 "name": "cfg_if",
@@ -26003,7 +26030,7 @@
               },
               {
                 "name": "syn",
-                "package_key": "syn-3.0.3",
+                "package_key": "syn-3.0.4",
                 "kind": "normal",
                 "features": [
                   "full"
@@ -26104,7 +26131,7 @@
               },
               {
                 "name": "hyper",
-                "package_key": "hyper-1.11.0",
+                "package_key": "hyper-1.11.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26324,7 +26351,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.143": {
+          "mado-0.1.144": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26708,7 +26735,7 @@
               },
               {
                 "name": "open",
-                "package_key": "open-5.4.1",
+                "package_key": "open-5.4.2",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26899,7 +26926,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.669",
+                "package_key": "shikumi-0.1.731",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -29145,7 +29172,7 @@
               "std"
             ]
           },
-          "open-5.4.1": {
+          "open-5.4.2": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -30153,7 +30180,7 @@
               "vulkan"
             ]
           },
-          "wide-1.6.1": {
+          "wide-1.7.0": {
             "runtime_dependencies": [
               {
                 "name": "bytemuck",
@@ -30720,7 +30747,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "chacha20-0.10.1": {
+          "chacha20-0.10.2": {
             "runtime_dependencies": [
               {
                 "name": "cfg_if",
@@ -31009,7 +31036,7 @@
               },
               {
                 "name": "hyper",
-                "package_key": "hyper-1.11.0",
+                "package_key": "hyper-1.11.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31272,7 +31299,7 @@
               "system"
             ]
           },
-          "mado-0.1.143": {
+          "mado-0.1.144": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31607,7 +31634,7 @@
               },
               {
                 "name": "open",
-                "package_key": "open-5.4.1",
+                "package_key": "open-5.4.2",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31798,7 +31825,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.669",
+                "package_key": "shikumi-0.1.731",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -32063,7 +32090,7 @@
               "macos_fsevent"
             ]
           },
-          "open-5.4.1": {
+          "open-5.4.2": {
             "runtime_dependencies": [
               {
                 "name": "is_wsl",
@@ -33909,7 +33936,7 @@
               "vulkan"
             ]
           },
-          "wide-1.6.1": {
+          "wide-1.7.0": {
             "runtime_dependencies": [
               {
                 "name": "bytemuck",
@@ -34746,7 +34773,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "chacha20-0.10.1": {
+          "chacha20-0.10.2": {
             "runtime_dependencies": [
               {
                 "name": "cfg_if",
@@ -35035,7 +35062,7 @@
               },
               {
                 "name": "hyper",
-                "package_key": "hyper-1.11.0",
+                "package_key": "hyper-1.11.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35298,7 +35325,7 @@
               "system"
             ]
           },
-          "mado-0.1.143": {
+          "mado-0.1.144": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35633,7 +35660,7 @@
               },
               {
                 "name": "open",
-                "package_key": "open-5.4.1",
+                "package_key": "open-5.4.2",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35824,7 +35851,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.669",
+                "package_key": "shikumi-0.1.731",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -36089,7 +36116,7 @@
               "macos_fsevent"
             ]
           },
-          "open-5.4.1": {
+          "open-5.4.2": {
             "runtime_dependencies": [
               {
                 "name": "is_wsl",
@@ -37935,7 +37962,7 @@
               "vulkan"
             ]
           },
-          "wide-1.6.1": {
+          "wide-1.7.0": {
             "runtime_dependencies": [
               {
                 "name": "bytemuck",
@@ -38613,7 +38640,7 @@
               },
               {
                 "name": "cpufeatures",
-                "package_key": "cpufeatures-0.3.0",
+                "package_key": "cpufeatures-0.3.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38686,7 +38713,7 @@
               "std"
             ]
           },
-          "chacha20-0.10.1": {
+          "chacha20-0.10.2": {
             "runtime_dependencies": [
               {
                 "name": "cfg_if",
@@ -38700,7 +38727,7 @@
               },
               {
                 "name": "cpufeatures",
-                "package_key": "cpufeatures-0.3.0",
+                "package_key": "cpufeatures-0.3.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -38893,7 +38920,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "cpufeatures-0.3.0": {
+          "cpufeatures-0.3.1": {
             "runtime_dependencies": [],
             "build_dependencies": [],
             "features": []
@@ -39116,7 +39143,7 @@
               },
               {
                 "name": "syn",
-                "package_key": "syn-3.0.3",
+                "package_key": "syn-3.0.4",
                 "kind": "normal",
                 "features": [
                   "full"
@@ -39217,7 +39244,7 @@
               },
               {
                 "name": "hyper",
-                "package_key": "hyper-1.11.0",
+                "package_key": "hyper-1.11.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39437,7 +39464,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.143": {
+          "mado-0.1.144": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39821,7 +39848,7 @@
               },
               {
                 "name": "open",
-                "package_key": "open-5.4.1",
+                "package_key": "open-5.4.2",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40012,7 +40039,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.669",
+                "package_key": "shikumi-0.1.731",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -42258,7 +42285,7 @@
               "std"
             ]
           },
-          "open-5.4.1": {
+          "open-5.4.2": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -43265,7 +43292,7 @@
               "vulkan"
             ]
           },
-          "wide-1.6.1": {
+          "wide-1.7.0": {
             "runtime_dependencies": [
               {
                 "name": "bytemuck",
@@ -43721,7 +43748,7 @@
               },
               {
                 "name": "cpufeatures",
-                "package_key": "cpufeatures-0.3.0",
+                "package_key": "cpufeatures-0.3.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -43866,7 +43893,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "chacha20-0.10.1": {
+          "chacha20-0.10.2": {
             "runtime_dependencies": [
               {
                 "name": "cfg_if",
@@ -43880,7 +43907,7 @@
               },
               {
                 "name": "cpufeatures",
-                "package_key": "cpufeatures-0.3.0",
+                "package_key": "cpufeatures-0.3.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -43909,7 +43936,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "cpufeatures-0.3.0": {
+          "cpufeatures-0.3.1": {
             "runtime_dependencies": [],
             "build_dependencies": [],
             "features": []
@@ -44129,7 +44156,7 @@
               },
               {
                 "name": "hyper",
-                "package_key": "hyper-1.11.0",
+                "package_key": "hyper-1.11.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44392,7 +44419,7 @@
               "system"
             ]
           },
-          "mado-0.1.143": {
+          "mado-0.1.144": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44727,7 +44754,7 @@
               },
               {
                 "name": "open",
-                "package_key": "open-5.4.1",
+                "package_key": "open-5.4.2",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44918,7 +44945,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.669",
+                "package_key": "shikumi-0.1.731",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -45183,7 +45210,7 @@
               "macos_fsevent"
             ]
           },
-          "open-5.4.1": {
+          "open-5.4.2": {
             "runtime_dependencies": [
               {
                 "name": "is_wsl",
@@ -47028,7 +47055,7 @@
               "vulkan"
             ]
           },
-          "wide-1.6.1": {
+          "wide-1.7.0": {
             "runtime_dependencies": [
               {
                 "name": "bytemuck",
@@ -47754,7 +47781,7 @@
               },
               {
                 "name": "cpufeatures",
-                "package_key": "cpufeatures-0.3.0",
+                "package_key": "cpufeatures-0.3.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47899,7 +47926,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "chacha20-0.10.1": {
+          "chacha20-0.10.2": {
             "runtime_dependencies": [
               {
                 "name": "cfg_if",
@@ -47913,7 +47940,7 @@
               },
               {
                 "name": "cpufeatures",
-                "package_key": "cpufeatures-0.3.0",
+                "package_key": "cpufeatures-0.3.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47942,7 +47969,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "cpufeatures-0.3.0": {
+          "cpufeatures-0.3.1": {
             "runtime_dependencies": [],
             "build_dependencies": [],
             "features": []
@@ -48162,7 +48189,7 @@
               },
               {
                 "name": "hyper",
-                "package_key": "hyper-1.11.0",
+                "package_key": "hyper-1.11.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48425,7 +48452,7 @@
               "system"
             ]
           },
-          "mado-0.1.143": {
+          "mado-0.1.144": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48760,7 +48787,7 @@
               },
               {
                 "name": "open",
-                "package_key": "open-5.4.1",
+                "package_key": "open-5.4.2",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48951,7 +48978,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.669",
+                "package_key": "shikumi-0.1.731",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -49216,7 +49243,7 @@
               "macos_fsevent"
             ]
           },
-          "open-5.4.1": {
+          "open-5.4.2": {
             "runtime_dependencies": [
               {
                 "name": "is_wsl",
@@ -51061,7 +51088,7 @@
               "vulkan"
             ]
           },
-          "wide-1.6.1": {
+          "wide-1.7.0": {
             "runtime_dependencies": [
               {
                 "name": "bytemuck",
@@ -51764,7 +51791,7 @@
     "block2-0.6.2": {
       "edition": "2021"
     },
-    "borsh-1.8.0": {
+    "borsh-1.8.1": {
       "edition": "2018",
       "build_script": "build.rs",
       "binaries": [
@@ -51774,7 +51801,7 @@
         }
       ]
     },
-    "borsh-derive-1.8.0": {
+    "borsh-derive-1.8.1": {
       "edition": "2018",
       "proc_macro": true
     },
@@ -51854,7 +51881,7 @@
     "cfg_aliases-0.2.2": {
       "edition": "2018"
     },
-    "chacha20-0.10.1": {
+    "chacha20-0.10.2": {
       "edition": "2024"
     },
     "chrono-0.4.45": {
@@ -51940,7 +51967,7 @@
     "cpufeatures-0.2.17": {
       "edition": "2018"
     },
-    "cpufeatures-0.3.0": {
+    "cpufeatures-0.3.1": {
       "edition": "2024"
     },
     "crc-3.4.0": {
@@ -52174,7 +52201,7 @@
     "find-msvc-tools-0.1.11": {
       "edition": "2021"
     },
-    "flate2-1.1.9": {
+    "flate2-1.1.10": {
       "edition": "2018"
     },
     "flume-0.11.1": {
@@ -52256,14 +52283,14 @@
       "edition": "2024",
       "build_script": "build.rs"
     },
-    "gen-macros-0.1.34": {
+    "gen-macros-0.1.48": {
       "edition": "2024",
       "proc_macro": true
     },
-    "gen-platform-0.1.34": {
+    "gen-platform-0.1.48": {
       "edition": "2024"
     },
-    "gen-types-0.1.34": {
+    "gen-types-0.1.48": {
       "edition": "2024"
     },
     "generic-array-0.14.7": {
@@ -52308,7 +52335,7 @@
     "grid-0.15.0": {
       "edition": "2018"
     },
-    "h2-0.4.18": {
+    "h2-0.4.19": {
       "edition": "2021"
     },
     "half-2.7.1": {
@@ -52393,7 +52420,7 @@
     "humantime-2.4.0": {
       "edition": "2021"
     },
-    "hyper-1.11.0": {
+    "hyper-1.11.1": {
       "edition": "2021"
     },
     "hyper-http-proxy-1.2.0": {
@@ -52634,7 +52661,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.143": {
+    "mado-0.1.144": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -52698,6 +52725,9 @@
       "edition": "2015"
     },
     "miniz_oxide-0.8.9": {
+      "edition": "2021"
+    },
+    "miniz_oxide-0.9.1": {
       "edition": "2021"
     },
     "mio-1.2.2": {
@@ -52852,7 +52882,7 @@
     "oorandom-11.1.5": {
       "edition": "2018"
     },
-    "open-5.4.1": {
+    "open-5.4.2": {
       "edition": "2018",
       "binaries": [
         {
@@ -53166,7 +53196,7 @@
     "rand-0.10.2": {
       "edition": "2024"
     },
-    "rand-0.8.7": {
+    "rand-0.8.8": {
       "edition": "2018"
     },
     "rand-0.9.5": {
@@ -53475,7 +53505,7 @@
     "shidou-0.1.10": {
       "edition": "2024"
     },
-    "shikumi-0.1.669": {
+    "shikumi-0.1.731": {
       "edition": "2024"
     },
     "shlex-2.0.1": {
@@ -53602,7 +53632,7 @@
     "syn-2.0.119": {
       "edition": "2021"
     },
-    "syn-3.0.3": {
+    "syn-3.0.4": {
       "edition": "2021"
     },
     "sync_wrapper-1.0.2": {
@@ -53634,13 +53664,13 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-core-0.2.387": {
+    "tatara-core-0.2.451": {
       "edition": "2021"
     },
-    "tatara-eval-0.2.387": {
+    "tatara-eval-0.2.451": {
       "edition": "2021"
     },
-    "tatara-lattice-0.2.387": {
+    "tatara-lattice-0.2.451": {
       "edition": "2021"
     },
     "tatara-lisp-0.3.52": {
@@ -53653,10 +53683,10 @@
     "tatara-lisp-eval-0.3.52": {
       "edition": "2021"
     },
-    "tatara-nix-0.2.387": {
+    "tatara-nix-0.2.451": {
       "edition": "2021"
     },
-    "tatara-process-0.2.387": {
+    "tatara-process-0.2.451": {
       "edition": "2021",
       "binaries": [
         {
@@ -53739,8 +53769,14 @@
     "tinyvec_macros-0.1.1": {
       "edition": "2018"
     },
-    "todoku-0.1.2": {
-      "edition": "2024"
+    "todoku-0.1.5": {
+      "edition": "2024",
+      "binaries": [
+        {
+          "name": "gh-owner",
+          "path": "src/bin/gh-owner.rs"
+        }
+      ]
     },
     "tokio-1.53.1": {
       "edition": "2021"
@@ -53923,7 +53959,7 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "uuid-1.25.0": {
+    "uuid-1.26.0": {
       "edition": "2021"
     },
     "validit-0.2.6": {
@@ -54092,7 +54128,7 @@
     "whoami-1.6.1": {
       "edition": "2018"
     },
-    "wide-1.6.1": {
+    "wide-1.7.0": {
       "edition": "2024"
     },
     "winit-0.30.13": {
@@ -54173,6 +54209,9 @@
     "zerovec-derive-0.11.6": {
       "edition": "2021",
       "proc_macro": true
+    },
+    "zlib-rs-0.6.7": {
+      "edition": "2021"
     },
     "zmij-1.0.23": {
       "edition": "2021",
