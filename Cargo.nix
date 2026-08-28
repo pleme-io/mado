@@ -8303,9 +8303,9 @@ rec {
       };
       "ishou-tokens" = rec {
         crateName = "ishou-tokens";
-        version = "0.1.10";
+        version = "0.1.14";
         edition = "2024";
-        sha256 = "1ym53bambg919p6rp7qy9ppyccrxah8ri314pfxarli042hax3li";
+        sha256 = "0d1n9fxshfnlry57csip3ihdgcpyrgy3z32l1lmvkpycdzh5wl9q";
         libName = "ishou_tokens";
         dependencies = [
           {
@@ -10205,7 +10205,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.147";
+        version = "0.1.148";
         edition = "2024";
         crateBin = [
           {
