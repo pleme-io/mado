@@ -10929,7 +10929,182 @@ mod render_gpu_invariants {
     /// signature is: hashes [a, a, a] when the gate doesn't
     /// fire vs. [a, b, c] when it does and leaves slots
     /// inconsistent.
+        /// ── ★ THE DIFFERENTIAL: A CHANGING SEQUENCE AGAINST A FULL-REPAINT ORACLE
+    ///
+    /// This is the test whose ABSENCE let the stale-frame class ship. Measured on
+    /// plo 2026-08-28: mado's model held ONE non-blank row while the screen showed
+    /// TWO stale prompts and not the current one.
+    ///
+    /// Its sibling above (`three_slot_swapchain_full_renders_yield_identical_hashes`)
+    /// was written for this very class and cannot catch it, for a reason worth
+    /// stating precisely: it renders three frames of **identical state**. When
+    /// state does not change, "damage since the last frame" and "damage since this
+    /// slot was last painted" are THE SAME NUMBER, so the quantity this bug lives
+    /// in does not exist in that fixture.
+    ///
+    /// **A test whose fixture cannot distinguish two quantities cannot guard the
+    /// difference between them.**
+    ///
+    /// So this one changes the model at every step and rotates through a swapchain
+    /// deeper than one, which is the only shape where the two quantities diverge.
+    ///
+    /// The ORACLE is what makes it non-vacuous. Comparing incremental frames to
+    /// each other would pass while every one of them was equally wrong; comparing
+    /// against a full repaint of the same model state is a SECOND, INDEPENDENT
+    /// answer to "what should be on screen", so agreement means something. The
+    /// oracle is a fresh renderer painting a fresh target: no accumulated
+    /// `last_seqno`, no slot history, no damage bookkeeping to be wrong about.
+    ///
+    /// See `theory/KENTOU.md` §VII.
     #[test]
+    fn incremental_frames_match_a_full_repaint_oracle_across_a_rotating_swapchain() {
+        use garasu::headless::{HeadlessSwapchain, HeadlessTarget, frame_hash};
+        use madori::RenderContext;
+
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+
+        const COLS: usize = 40;
+        const ROWS: usize = 8;
+        const W: u32 = 320;
+        const H: u32 = 128;
+        // 3 slots: the worst case on Metal, and the longest stale window.
+        const SLOTS: usize = 3;
+
+        // A CHANGING sequence. Each step must alter what is on screen, or the
+        // step contributes nothing and the fixture drifts back toward its
+        // sibling's blind spot.
+        // ── ★ THE UNCHANGED STEPS ARE THE POINT ─────────────────────────
+        // The first version of this test changed the model at EVERY step, and
+        // passed. That was informative: mado's Pass 1 clears the whole target
+        // each frame, so there is no partial repaint to be stale, and a
+        // sequence that always changes never lets the damage gate skip.
+        //
+        // The staleness lives in the SKIP. When the gate early-outs nothing is
+        // painted at all, and `present()` in madori is UNCONDITIONAL (render
+        // returns `()`, so there is no channel to decline) — so the slot is
+        // surfaced holding whatever it held when it was last painted, which is
+        // `SLOTS` frames ago.
+        //
+        // So the sequence must interleave: change enough to fill every slot
+        // with DIFFERENT content, then hold still for at least `SLOTS` frames.
+        // Each of those quiet frames must still surface the CURRENT state. An
+        // all-changing fixture cannot produce a skip and therefore cannot see
+        // this, which is the same blind spot as the identical-state sibling,
+        // arrived at from the opposite direction.
+        let steps: [&[u8]; 10] = [
+            b"alpha\r\n",
+            b"bravo\r\n",
+            b"charlie\r\n",
+            // an erase: cells must be CLEARED, which a stale slot preserves.
+            b"\x1b[2J\x1b[Hdelta\r\n",
+            b"echo\r\n",
+            b"foxtrot-final\r\n",
+            // ── now hold still, longer than the chain is deep ───────────
+            b"",
+            b"",
+            b"",
+            b"",
+        ];
+
+        // ── ★ FORCE THE TOPOLOGY THE FLEET ACTUALLY RUNS ────────────────
+        // This is not a detail; it is the whole reason the bug survived, and
+        // the first version of THIS test fell into it too — it passed, which
+        // is how the trap was caught.
+        //
+        // `render.rs` picks the scene target with a runtime predicate: with
+        // any effect enabled it renders into an OWNED offscreen texture and
+        // composites (sound — the swapchain slot is fully overwritten), and
+        // with none it renders STRAIGHT INTO THE SWAPCHAIN SLOT through one
+        // Clear and seven LoadOp::Load passes (the exposed path).
+        //
+        // mado's in-repo default is `AmbiencePreset::Matte` — effects ON. The
+        // fleet deploys `ambience = "off"` (nix/modules/shared/terminal.nix).
+        // So the default fixture exercises the topology no operator runs, and
+        // a test written without this line is green about the wrong program.
+        //
+        // Gate 0 calls this S10... S9 (theory/KENTOU.md): the authoritative
+        // target chosen by config, so tests and production diverge.
+        let mut effects = crate::config::MadoEffectsConfig::default();
+        effects.ambience = crate::ambience::AmbiencePreset::Off;
+
+        let mut chain = HeadlessSwapchain::new(&gpu, SLOTS, W, H, SURFACE_FORMAT);
+        let (mut incremental, term, _text) = build_gpu_renderer(&gpu, COLS, ROWS);
+        incremental.set_effects_config(effects.clone());
+
+        let mut fed: Vec<u8> = Vec::new();
+        let mut divergences: Vec<String> = Vec::new();
+
+        for (step, chunk) in steps.iter().enumerate() {
+            // ── advance the production path ──────────────────────────────
+            term.write().feed(chunk);
+            fed.extend_from_slice(chunk);
+
+            let presented = chain.render_into_next(&gpu, |text, view, w, h| {
+                let mut ctx = RenderContext {
+                    gpu: &gpu,
+                    text,
+                    surface_view: view,
+                    width: w,
+                    height: h,
+                    scale_factor: 1.0,
+                    elapsed: 0.0,
+                    dt: 0.0,
+                };
+                incremental.render(&mut ctx);
+            });
+
+            // ── the oracle: this same model state, painted from scratch ───
+            // A fresh renderer and a fresh target, fed the whole sequence so
+            // far. Nothing here carries state across steps, so it cannot be
+            // wrong in the way the thing it judges can be.
+            let (mut oracle, oracle_term, mut oracle_text) =
+                build_gpu_renderer(&gpu, COLS, ROWS);
+            // The oracle must run the SAME topology, or the comparison is
+            // between two different programs and any verdict is meaningless.
+            oracle.set_effects_config(effects.clone());
+            oracle_term.write().feed(&fed);
+            let oracle_target = HeadlessTarget::new(&gpu, W, H, SURFACE_FORMAT);
+            {
+                let mut ctx = RenderContext {
+                    gpu: &gpu,
+                    text: &mut oracle_text,
+                    surface_view: oracle_target.view(),
+                    width: W,
+                    height: H,
+                    scale_factor: 1.0,
+                    elapsed: 0.0,
+                    dt: 0.0,
+                };
+                oracle.render(&mut ctx);
+            }
+            let _ = gpu.device.poll(wgpu::PollType::Wait);
+            let expected = oracle_target.read_pixels_rgba8(&gpu);
+
+            if frame_hash(&presented) != frame_hash(&expected) {
+                let differing = presented
+                    .chunks_exact(4)
+                    .zip(expected.chunks_exact(4))
+                    .filter(|(a, b)| a != b)
+                    .count();
+                divergences.push(format!(
+                    "step {step} (slot {}): {differing} of {} pixels differ from a \
+                     full repaint of the same model state",
+                    step % SLOTS,
+                    (W * H) as usize
+                ));
+            }
+        }
+
+        assert!(
+            divergences.is_empty(),
+            "an incrementally-rendered frame disagreed with a full repaint of the \
+             SAME model state — the screen is showing something the model does not \
+             say. This is the stale-frame class (theory/KENTOU.md):\n  {}",
+            divergences.join("\n  ")
+        );
+    }
+
+#[test]
     fn three_slot_swapchain_full_renders_yield_identical_hashes_and_no_magenta() {
         use garasu::headless::{HeadlessSwapchain, assert_no_magenta_pixels, frame_hash};
         use madori::RenderContext;
