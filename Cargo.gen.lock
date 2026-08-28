@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "dc486ca1a163f782c7017046b4909f1a835dbe0e815ef011157d65dd4147d54e",
+  "cargo_lock_sha256": "ce7bfd6e9f078dc06eca6705f620e2b078c437427c489f6bf4b2178bd7e8ef0b",
   "manifest_sha256": {
-    "Cargo.toml": "9ee8506461f56e683cbb3d8a4e33ad71fb36ad856d33d5b33e11509b815eaf02"
+    "Cargo.toml": "ccb1d01061725a68ec28380ab18ac42c99a596a7d951dc8457f822542fea8847"
   },
   "target_resolves": {
     "base": {
@@ -26351,7 +26351,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.145": {
+          "mado-0.1.146": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31299,7 +31299,7 @@
               "system"
             ]
           },
-          "mado-0.1.145": {
+          "mado-0.1.146": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35325,7 +35325,7 @@
               "system"
             ]
           },
-          "mado-0.1.145": {
+          "mado-0.1.146": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39464,7 +39464,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.145": {
+          "mado-0.1.146": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44419,7 +44419,7 @@
               "system"
             ]
           },
-          "mado-0.1.145": {
+          "mado-0.1.146": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48452,7 +48452,7 @@
               "system"
             ]
           },
-          "mado-0.1.145": {
+          "mado-0.1.146": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -52661,7 +52661,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.145": {
+    "mado-0.1.146": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
