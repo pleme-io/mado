@@ -1871,9 +1871,9 @@ dependencies = [
 
 [[package]]
 name = "garasu"
-version = "0.1.12"
+version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c82e77cea72f8c36336aef4a0760972c2f2d6661ea8e89070e47331f520649d4"
+checksum = "6fac6efb0a32df606057ffbce4a23396336eaa46c4d46fc455a71aa660c578a7"
 dependencies = [
  "bincode",
  "blake3",
@@ -3346,7 +3346,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.150"
+version = "0.1.151"
 dependencies = [
  "anyhow",
  "awase",
@@ -6270,9 +6270,9 @@ dependencies = [
 
 [[package]]
 name = "shikumi"
-version = "0.1.731"
+version = "0.1.733"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6460524aabeadd6d3fd433f40291d5e4287d0fd02a86e1336217d10c9d64bf4"
+checksum = "05ee7f2bc0bdfb151b6d0916cf9dd74f8bfeb7ce984d0489b6b14f3f51b9a094"
 dependencies = [
  "arc-swap",
  "async-trait",

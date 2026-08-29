@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "8900df51f2134cd97738c64d822645d85df925fb526d945d62c034e6f6703bd0",
+  "cargo_lock_sha256": "5f5a54f8bf7b3b4ca84a53c31b81d5995798e9cfd4f90e51704347ec4eec730b",
   "manifest_sha256": {
-    "Cargo.toml": "5db99b76ca3ec1bdaeb6908f3c979eff84c1947f4f23a5b5a1a6fca93fbe3777"
+    "Cargo.toml": "aaf0f7953729f2064b714dd9e9b034806d3c4c06de58eb3d2441546fa80ef229"
   },
   "target_resolves": {
     "base": {
@@ -4468,7 +4468,7 @@
           "std"
         ]
       },
-      "garasu-0.1.12": {
+      "garasu-0.1.14": {
         "runtime_dependencies": [
           {
             "name": "bincode",
@@ -7473,7 +7473,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.731",
+            "package_key": "shikumi-0.1.733",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9240,7 +9240,7 @@
           },
           {
             "name": "garasu",
-            "package_key": "garasu-0.1.12",
+            "package_key": "garasu-0.1.14",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9284,7 +9284,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.731",
+            "package_key": "shikumi-0.1.733",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12061,7 +12061,7 @@
           },
           {
             "name": "garasu",
-            "package_key": "garasu-0.1.12",
+            "package_key": "garasu-0.1.14",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17275,7 +17275,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.731",
+            "package_key": "shikumi-0.1.733",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17322,7 +17322,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.731": {
+      "shikumi-0.1.733": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -20191,7 +20191,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.731",
+            "package_key": "shikumi-0.1.733",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20953,7 +20953,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.731",
+            "package_key": "shikumi-0.1.733",
             "kind": "normal",
             "features": [
               "cli"
@@ -26351,7 +26351,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.150": {
+          "mado-0.1.151": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26492,7 +26492,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.12",
+                "package_key": "garasu-0.1.14",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26926,7 +26926,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.731",
+                "package_key": "shikumi-0.1.733",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -31299,7 +31299,7 @@
               "system"
             ]
           },
-          "mado-0.1.150": {
+          "mado-0.1.151": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31440,7 +31440,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.12",
+                "package_key": "garasu-0.1.14",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31825,7 +31825,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.731",
+                "package_key": "shikumi-0.1.733",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -35325,7 +35325,7 @@
               "system"
             ]
           },
-          "mado-0.1.150": {
+          "mado-0.1.151": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35466,7 +35466,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.12",
+                "package_key": "garasu-0.1.14",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35851,7 +35851,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.731",
+                "package_key": "shikumi-0.1.733",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -39464,7 +39464,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.150": {
+          "mado-0.1.151": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39605,7 +39605,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.12",
+                "package_key": "garasu-0.1.14",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40039,7 +40039,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.731",
+                "package_key": "shikumi-0.1.733",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -44419,7 +44419,7 @@
               "system"
             ]
           },
-          "mado-0.1.150": {
+          "mado-0.1.151": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44560,7 +44560,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.12",
+                "package_key": "garasu-0.1.14",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44945,7 +44945,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.731",
+                "package_key": "shikumi-0.1.733",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -48452,7 +48452,7 @@
               "system"
             ]
           },
-          "mado-0.1.150": {
+          "mado-0.1.151": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48593,7 +48593,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.12",
+                "package_key": "garasu-0.1.14",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48978,7 +48978,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.731",
+                "package_key": "shikumi-0.1.733",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -52279,7 +52279,7 @@
     "futures-util-0.3.34": {
       "edition": "2018"
     },
-    "garasu-0.1.12": {
+    "garasu-0.1.14": {
       "edition": "2024",
       "build_script": "build.rs"
     },
@@ -52661,7 +52661,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.150": {
+    "mado-0.1.151": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -53505,7 +53505,7 @@
     "shidou-0.1.10": {
       "edition": "2024"
     },
-    "shikumi-0.1.731": {
+    "shikumi-0.1.733": {
       "edition": "2024"
     },
     "shlex-2.0.1": {
