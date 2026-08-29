@@ -39,7 +39,7 @@ zero.** Two lanes, one board:
 - **Sprint lane** (planned) — Jira sprint + assigned tickets (the existing
   suggestion sources).
 - **Stability / on-call lane** (reactive) — the safra-curated signals from the
-  Tendril/Lareira mesh (firing alerts, PromQL/SLO breaches, log spikes,
+  Lareira tap mesh (firing alerts, PromQL/SLO breaches, log spikes,
   OpsGenie/Datadog paging state).
 
 Both are the same kind of thing — *a unit of work to pick up* — co-ranked in one
@@ -110,10 +110,10 @@ deployment layer.
 
 ---
 
-## 2.5 Upstream — the Lareira / Tendril mesh (what safra absorbs)
+## 2.5 Upstream — the Lareira tap mesh (what safra absorbs)
 
-**The concrete source is the Tendril / Lareira observability program**
-(doctrine home to author: `pleme-io/theory/LAREIRA.md`). Tendril deploys
+**The concrete source is the Lareira observability program**
+(doctrine home to author: `pleme-io/theory/LAREIRA.md`). Its tap layer deploys
 **taps** that branch live data flows off a target fleet — a matrix of Vector
 clusters across (tenant × cloud × dev/staging/prod) — into an in-boundary
 **Lareira mesh** —
@@ -123,34 +123,34 @@ MCP`, + ntfy. The store, dashboards-as-code, breathe, and the **`grafana-rio`
 MCP are LIVE on rio.**
 
 **safra is the mado-side operator consumer of that mesh** — the in-terminal
-realization of Tendril's `alert`-tap doctrine ("a personal early-warning over
+realization of the `alert`-tap doctrine ("a personal early-warning over
 my own copy, earlier than the team, never paging"). It absorbs the curated
-signals the tendrils produce and surfaces them in Ctrl-S. The surfaces map
+signals the taps produce and surfaces them in Ctrl-S. The surfaces map
 directly onto safra's `ServiceKind`s:
 
-| Tendril / Lareira surface | safra `CellSource` |
+| Lareira tap surface | safra `CellSource` |
 |---|---|
 | **victoriaops** (VictoriaMetrics) | PromQL — firing alerts / SLO breaches, per-tenant tag |
 | **VictoriaLogs** | error-log spikes |
 | **grafana-rio MCP** (live) | Grafana alerts via MCP — the "grafana-mcp, structured" path |
 | **`mirror` taps** (team OpsGenie / Datadog state) | read-only paging-state pull |
 
-**The cell ↔ tendril identity:** a safra `TrackedEnvironment` **is a tendril
-tap-cell** — Tendril's cell grammar `tap-<datakind>-<tenant>-<env>-<cloud>-<region>`
-(e.g. `tap-audit-<tenant>-prod-aws-use2`), its endpoints the `tendril.*` access
-grammar (`grafana.tendril.<tenant>.<env>.<domain>`), auth via the cofre/SOPS
+**The cell ↔ tap identity:** a safra `TrackedEnvironment` **is a
+tap-cell** — the tap-layer cell grammar `tap-<datakind>-<tenant>-<env>-<cloud>-<region>`
+(e.g. `tap-audit-<tenant>-prod-aws-use2`), its endpoints the tap access
+grammar (`grafana.<tap>.<tenant>.<env>.<domain>`), auth via the cofre/SOPS
 `SecretRef` safra already models. The `groups` axis carries
 tenant/env/cloud/region so the three-scope config can tune e.g. all cells of one
 tenant, or all `prod` cells, at once.
 
 **First-real-cell unlock:** because `grafana-rio` MCP + victoriaops are
 **already live**, safra's first real cell can absorb **now** — no dependency on
-the per-tenant tendril deploys (which gate on Tendril's own M0). Scope:
+the per-tenant tap deploys (which gate on the tap layer's own M0). Scope:
 **non-tenant fleet-global telemetry only**; per-tenant data is
 residency/governance-gated (raw data never crosses residency; rio receives only
 fleet-global / derived signal). The `borealis` codename hygiene applies —
 safra's *generic* curation surface never names the consumer; the concrete
-tendril endpoints + SecretRefs live in the deployment config layer (§8).
+tap endpoints + SecretRefs live in the deployment config layer (§8).
 
 ---
 

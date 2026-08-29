@@ -31,10 +31,10 @@ pub enum ServiceKind {
     /// VictoriaLogs — the Lareira log store (LogsQL error-log spikes).
     #[kind(name = "victoria-logs")]
     VictoriaLogs,
-    /// Datadog (monitors / events) — the Tendril `mirror`-tap paging surface.
+    /// Datadog (monitors / events) — the `mirror`-tap paging surface.
     #[kind(name = "datadog")]
     Datadog,
-    /// OpsGenie (open/unacked alerts) — the Tendril `mirror`-tap team paging
+    /// OpsGenie (open/unacked alerts) — the `mirror`-tap team paging
     /// state (read-only).
     #[kind(name = "opsgenie")]
     OpsGenie,
