@@ -49,7 +49,8 @@ pub use crate::ux::ResponseWriter;
 /// outside the consumer thread.
 ///
 /// Invariant the pair encodes: after the loop quiesces,
-/// `responses_written == queries_seen` — every DSR/DA/OSC query the
+/// `responses_written + responses_suppressed == queries_seen` — every
+/// DSR/DA/OSC query the
 /// VT engine answered actually made it back through the
 /// `ResponseWriter`. A persistent gap means answers are being
 /// generated and then dropped (the exact failure shape that killed
@@ -63,6 +64,10 @@ pub struct ProbeCounters {
     /// Responses pushed back through the `ResponseWriter` callback:
     /// incremented after the writer returns.
     responses_written: AtomicU64,
+    /// Answers DROPPED because the bytes were a replay of already-delivered
+    /// output. Without this the invariant below would read as a LEAK — a query
+    /// seen with no answer written — when it is in fact the fix working.
+    responses_suppressed: AtomicU64,
 }
 
 impl ProbeCounters {
@@ -76,6 +81,12 @@ impl ProbeCounters {
     #[must_use]
     pub fn responses_written(&self) -> u64 {
         self.responses_written.load(Ordering::Relaxed)
+    }
+
+    /// Answers suppressed because they came from a replay.
+    #[must_use]
+    pub fn responses_suppressed(&self) -> u64 {
+        self.responses_suppressed.load(Ordering::Relaxed)
     }
 }
 
@@ -137,7 +148,9 @@ impl TerminalSink {
 
     /// Helper: feed bytes + drain any VT response back through
     /// the writer in one atomic step. Used by `consume` + `replay`.
-    fn feed_and_drain(&self, bytes: &[u8]) {
+    /// Feed bytes that arrived LIVE from the pty, and answer any query in
+    /// them. The only path that may write to the pty.
+    fn feed_and_answer(&self, bytes: &[u8]) {
         let mut term = self.inner.write();
         term.feed(bytes);
         // Drain inside the write-lock so we don't race with another
@@ -156,6 +169,42 @@ impl TerminalSink {
                 .fetch_add(1, Ordering::Relaxed);
         }
     }
+
+    /// Feed bytes we have ALREADY delivered once, and answer nothing.
+    ///
+    /// ── ★ REPLAY MUST NOT ANSWER ────────────────────────────────────────────
+    ///
+    /// `replay` feeds the ANSI serialization of the producer's CURRENT GRID.
+    /// If the shell sent `ESC[6n` and that query is still sitting in the grid,
+    /// re-parsing it produces a SECOND answer to a query that was already
+    /// answered live. The shell gets two replies for one question, the extra
+    /// one desynchronises its stream, and the operator sees them as text:
+    ///
+    ///     ^[[31;24R^[[31;24R
+    ///
+    /// read off the live grid on plo, 2026-08-30, between two prompts.
+    ///
+    /// This is a DIFFERENT method rather than a `bool` parameter on purpose.
+    /// A flag is a value someone can pass wrongly; a missing writer is a thing
+    /// that cannot be called. Prior art converges 7/7 on exactly one emission
+    /// path per pty (kitty `screen.c:1743`, foot `terminal.c:116`, ghostty
+    /// `stream_handler.zig:143`, xterm's single `unparseseq` outside the
+    /// switch), and xterm goes further by merging DSR and CPR into one case
+    /// with an explicit FALLTHRU so no second arm can fire.
+    fn feed_silent(&self, bytes: &[u8]) {
+        let mut term = self.inner.write();
+        term.feed(bytes);
+        // Drain and DROP. Draining still matters: leaving the answer in the
+        // buffer would let the next LIVE feed emit it, which is the same bug
+        // one step later.
+        if term.take_response().is_some() {
+            drop(term);
+            self.probes.queries_seen.fetch_add(1, Ordering::Relaxed);
+            self.probes
+                .responses_suppressed
+                .fetch_add(1, Ordering::Relaxed);
+        }
+    }
 }
 
 impl Consumer for TerminalSink {
@@ -168,13 +217,14 @@ impl Consumer for TerminalSink {
         // parser level — same bytes the daemon-mode M0 path delivers
         // as the first PaneBytes frame.
         let bytes = snapshot.to_ansi();
-        self.feed_and_drain(&bytes);
+        // ★ SILENT: these bytes were already delivered once. See `feed_silent`.
+        self.feed_silent(&bytes);
     }
 
     fn consume(&mut self, item: Self::Item) {
         // Live items are raw PTY bytes (or, in embedded mode, the
         // bytes the InProcess::subscribe_pane_bytes channel emits).
-        self.feed_and_drain(&item);
+        self.feed_and_answer(&item);
     }
 }
 
@@ -288,5 +338,66 @@ mod tests {
         sink.consume(b"\x1b[6n".to_vec());
         assert_eq!(probes.queries_seen(), 1);
         assert_eq!(probes.responses_written(), 1);
+    }
+
+    /// ★ REPLAY MUST NEVER WRITE TO THE PTY — driven through the REAL path.
+    ///
+    /// `Consumer::replay` feeds `snapshot.to_ansi()`, which emits cell
+    /// characters VERBATIM. A cell holding a raw `ESC` therefore re-enters the
+    /// parser as a control sequence, and before the split that produced a
+    /// SECOND answer to a query already answered live — the operator saw both
+    /// as text, `^[[31;24R^[[31;24R`, read off the live grid on plo 2026-08-30.
+    ///
+    /// ★ THIS TEST CALLS `replay`, NOT `feed_silent`. The first version called
+    /// the silent helper directly, which meant pointing `replay` back at the
+    /// answering path left it GREEN — a test that bypassed the very wiring it
+    /// existed to protect. Red-run below is against `replay` itself.
+    #[test]
+    fn replay_never_writes_to_the_pty() {
+        use tear_types::engate_wrap::PaneSnapshotWrap;
+        use tear_types::pane_snapshot::{Cell, PaneSnapshot};
+
+        let (w, collected) = collecting_writer();
+        let term = Arc::new(RwLock::new(Terminal::with_scrollback(80, 24, 100)));
+        let mut sink = TerminalSink::new(Arc::clone(&term), w);
+
+        // Live: the shell asks once. Exactly one answer is owed and written.
+        sink.consume(b"\x1b[6n".to_vec());
+        assert_eq!(
+            collected.lock().unwrap().len(),
+            1,
+            "a live query must be answered exactly once"
+        );
+
+        // A grid whose cells spell a query, including a raw ESC. `to_ansi`
+        // emits these verbatim, so replay re-enters the parser with them.
+        let mut cells = vec![vec![Cell::default(); 8]];
+        for (i, ch) in ['\u{1b}', '[', '6', 'n'].into_iter().enumerate() {
+            cells[0][i].ch = ch;
+        }
+        let snap = PaneSnapshotWrap(PaneSnapshot {
+            rows: 1,
+            cols: 8,
+            cells,
+            cursor_row: 0,
+            cursor_col: 0,
+            alt_screen_active: false,
+            cursor_visible: true,
+            title: None,
+            cursor_keys_mode: false,
+            scrollback: Vec::new(),
+            combining: Vec::new(),
+            modes: tear_types::modes::ModeSet::default(),
+            graphics: Vec::new(),
+        });
+
+        sink.replay(snap);
+
+        assert_eq!(
+            collected.lock().unwrap().len(),
+            1,
+            "replay wrote to the pty — a query already answered live got a \
+             SECOND answer, which is the ^[[31;24R^[[31;24R the operator saw"
+        );
     }
 }
