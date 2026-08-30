@@ -27,9 +27,37 @@ use crate::terminal::{Color, Terminal};
 /// Single live terminal + the channels that drive its PTY. All
 /// fields are public for the main loop to access directly —
 /// this is the replacement for `Arc<Mutex<WindowState>>`.
+/// What is being written to the PTY, and by whom.
+///
+/// ── ★ WHY THE CHANNEL IS TYPED ──────────────────────────────────────────────
+///
+/// Operator keystrokes and VT query ANSWERS used to share one
+/// `UnboundedSender<Vec<u8>>` (`response_tx = input_tx.clone()`), so the writer
+/// could not tell them apart and wrote both unconditionally. They are not the
+/// same thing and they have opposite preconditions:
+///
+/// * a keystroke is always wanted — the operator typed it;
+/// * an ANSWER is wanted only while the asker is still reading. Delivered late,
+///   it is not input at all: the line discipline paints it, and the operator
+///   sees `^[[1;29R` in his shell. Measured on plo, where the slave's termios
+///   carries `echoctl`, which is exactly what renders ESC as the two printable
+///   characters `^[`.
+///
+/// The distinction has to be in the TYPE, because the byte strings are
+/// indistinguishable — an answer is just bytes, and so is a keypress.
+#[derive(Debug, Clone)]
+pub enum PtyWrite {
+    /// The operator typed this. Always written.
+    Keys(Vec<u8>),
+    /// mado's VT engine produced this in reply to a query (DSR/DA/OSC).
+    /// Written only while the asker can still consume it — see the ECHO gate
+    /// in the writer task.
+    VtAnswer(Vec<u8>),
+}
+
 pub struct SinglePane {
     pub terminal: SharedTerminal,
-    pub input_tx: UnboundedSender<Vec<u8>>,
+    pub input_tx: UnboundedSender<PtyWrite>,
     pub resize_tx: UnboundedSender<(u16, u16)>,
     pub selection: Arc<Mutex<Selection>>,
     pub search: Arc<Mutex<SearchState>>,
@@ -50,7 +78,7 @@ impl SinglePane {
     /// to the PTY. Non-blocking — drops the bytes if the writer
     /// task has already exited.
     pub fn send_input(&self, data: Vec<u8>) {
-        let _ = self.input_tx.send(data);
+        let _ = self.input_tx.send(PtyWrite::Keys(data));
     }
 
     /// Resize the PTY's winsize. Triggers SIGWINCH at the child.
@@ -125,7 +153,7 @@ pub fn spawn(
     let exited = Arc::new(AtomicBool::new(false));
     let exited_writer = Arc::clone(&exited);
 
-    let (input_tx, mut input_rx) = unbounded_channel::<Vec<u8>>();
+    let (input_tx, mut input_rx) = unbounded_channel::<PtyWrite>();
     let (resize_tx, mut resize_rx) = unbounded_channel::<(u16, u16)>();
     let response_tx = input_tx.clone();
 
@@ -175,7 +203,42 @@ pub fn spawn(
             // Writer task
             let writer_task = tokio::spawn(async move {
                 use tokio::io::AsyncWriteExt;
-                while let Some(data) = input_rx.recv().await {
+                while let Some(item) = input_rx.recv().await {
+                    let data = match item {
+                        PtyWrite::Keys(d) => d,
+                        // ── ★ THE ECHO GATE ─────────────────────────────────
+                        //
+                        // A shell that asked `ESC[6n` is in RAW mode — it has
+                        // to be, or it could not read the answer byte by byte.
+                        // So an answer arriving while the slave has ECHO on is
+                        // arriving after the asker stopped reading, and writing
+                        // it does not deliver anything: the line discipline
+                        // paints it, and the operator sees `^[[1;29R` in his
+                        // prompt.
+                        //
+                        // This is the precondition the writer never had. It was
+                        // not a latency problem — measured, a 300 ms delayed
+                        // answer produces ZERO echoes while a surplus one
+                        // desyncs the shell permanently — it is a liveness
+                        // problem about the READER.
+                        //
+                        // Reading termios from the MASTER reports the pair's
+                        // flags (verified on plo: raw slave -> master shows
+                        // ECHO false), so mado can answer this without holding
+                        // the slave.
+                        PtyWrite::VtAnswer(d) => {
+                            if slave_is_echoing(master_raw) {
+                                tracing::debug!(
+                                    len = d.len(),
+                                    "VT answer SUPPRESSED — slave has ECHO on, so \
+                                     nobody is reading it and the line discipline \
+                                     would paint it as text"
+                                );
+                                continue;
+                            }
+                            d
+                        }
+                    };
                     if let Err(e) = writer.write_all(&data).await {
                         tracing::warn!("PTY write error: {e}");
                         break;
@@ -209,7 +272,7 @@ pub fn spawn(
                         t.feed(&buf[..n]);
                         if let Some(response) = t.take_response() {
                             drop(t);
-                            let _ = response_tx.send(response);
+                            let _ = response_tx.send(PtyWrite::VtAnswer(response));
                         }
                     }
                     Err(e) => {
@@ -247,7 +310,7 @@ mod tests {
         let terminal: SharedTerminal = Arc::new(parking_lot::RwLock::new(
             Terminal::with_scrollback(cols, rows, 100),
         ));
-        let (input_tx, _input_rx) = unbounded_channel::<Vec<u8>>();
+        let (input_tx, _input_rx) = unbounded_channel::<PtyWrite>();
         let (resize_tx, _resize_rx) = unbounded_channel::<(u16, u16)>();
         // Drop the receivers so subsequent sends return Err — exactly
         // what happens after a real PTY's writer / resize task exits.
@@ -339,5 +402,100 @@ mod tests {
         let t = p.terminal.read();
         assert!(t.cols() >= 1);
         assert!(t.rows() >= 1);
+    }
+}
+
+/// Is the slave in a mode where the LINE DISCIPLINE would echo what we write?
+///
+/// Reads termios from the MASTER fd, which reports the pair's flags — verified
+/// on plo: a slave put into raw mode makes the master report `ECHO: False`.
+/// mado holds the master, so this needs no access to the slave.
+///
+/// Returns `false` when the ioctl fails. That is deliberate and it is the
+/// permissive direction: if we cannot tell, we WRITE. An unanswered DSR kills a
+/// reedline shell outright (a fatal CPR timeout), while a surplus answer is a
+/// cosmetic echo — so the failure mode of not knowing must be the recoverable
+/// one.
+#[must_use]
+fn slave_is_echoing(master: std::os::unix::io::RawFd) -> bool {
+    // SAFETY: `termios` is a plain C struct that `tcgetattr` fully initialises
+    // on success; the value is only read when the call returns 0.
+    unsafe {
+        let mut t: libc::termios = std::mem::zeroed();
+        if libc::tcgetattr(master, &raw mut t) != 0 {
+            return false;
+        }
+        t.c_lflag & libc::ECHO != 0
+    }
+}
+
+#[cfg(test)]
+mod echo_gate_tests {
+    use super::slave_is_echoing;
+
+    /// ★ THE GATE'S PREDICATE, against real termios on a real pty pair.
+    ///
+    /// The whole fix rests on one measured claim: reading termios from the
+    /// MASTER reports the *pair's* flags, so mado — which holds only the master
+    /// — can tell whether the slave would echo. If that were false the gate
+    /// would be reading its own fd's defaults and suppressing (or writing)
+    /// arbitrarily.
+    ///
+    /// Both directions are asserted. A one-directional test would pass against
+    /// a function that always returned `true`.
+    #[test]
+    fn a_raw_slave_reports_not_echoing_and_a_cooked_one_reports_echoing() {
+        let mut master: libc::c_int = 0;
+        let mut slave: libc::c_int = 0;
+        // SAFETY: openpty fills both fds on success; we check the return.
+        let rc = unsafe {
+            libc::openpty(
+                &raw mut master,
+                &raw mut slave,
+                std::ptr::null_mut(),
+                std::ptr::null_mut(),
+                std::ptr::null_mut(),
+            )
+        };
+        assert_eq!(rc, 0, "openpty failed — cannot test the gate without a pty");
+
+        // A fresh pty is cooked: the line discipline WOULD paint what we write.
+        assert!(
+            slave_is_echoing(master),
+            "a default pty must report echoing — if this is false the gate \
+             suppresses answers a shell is genuinely waiting for, which kills \
+             reedline outright"
+        );
+
+        // Put the slave in raw mode, as a shell issuing ESC[6n must be.
+        // SAFETY: `t` is fully initialised by tcgetattr before use.
+        unsafe {
+            let mut t: libc::termios = std::mem::zeroed();
+            assert_eq!(libc::tcgetattr(slave, &raw mut t), 0);
+            libc::cfmakeraw(&raw mut t);
+            assert_eq!(libc::tcsetattr(slave, libc::TCSANOW, &raw const t), 0);
+        }
+
+        assert!(
+            !slave_is_echoing(master),
+            "a RAW slave must report not-echoing — this is the case where an \
+             answer is genuinely wanted, and suppressing it would be the \
+             regression"
+        );
+
+        // SAFETY: both fds were opened by openpty above and are still open.
+        unsafe {
+            libc::close(slave);
+            libc::close(master);
+        }
+    }
+
+    /// An unreadable fd must answer "not echoing", so the failure mode of not
+    /// knowing is to WRITE. An unanswered DSR kills a reedline shell; a surplus
+    /// answer is a cosmetic echo. The permissive direction is the recoverable
+    /// one, and this pins which way that is.
+    #[test]
+    fn an_invalid_fd_fails_permissive() {
+        assert!(!slave_is_echoing(-1));
     }
 }
