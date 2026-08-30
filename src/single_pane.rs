@@ -447,17 +447,43 @@ mod echo_gate_tests {
     fn a_raw_slave_reports_not_echoing_and_a_cooked_one_reports_echoing() {
         let mut master: libc::c_int = 0;
         let mut slave: libc::c_int = 0;
-        // SAFETY: openpty fills both fds on success; we check the return.
-        let rc = unsafe {
-            libc::openpty(
-                &raw mut master,
-                &raw mut slave,
-                std::ptr::null_mut(),
-                std::ptr::null_mut(),
-                std::ptr::null_mut(),
-            )
-        };
-        assert_eq!(rc, 0, "openpty failed — cannot test the gate without a pty");
+        // ── ★ RETRY: THIS SUITE EXHAUSTS THE PTY POOL ────────────────────────
+        //
+        // `openpty` returned -1 here on its second run, having succeeded on the
+        // first. mado's test suite spawns shells and ptys in parallel, and under
+        // that load the pool runs dry. Measured the same day: `session::tests::*`
+        // fail 7/7 on a CLEAN tree, and `mcp_spawn_send_snapshot_end_to_end` and
+        // `single_writer::second_acquire_on_the_same_dir_loses` are both flaky —
+        // all of them pty/shell-spawning tests. One cause, several symptoms.
+        //
+        // Retrying is honest here because pty availability is not the property
+        // under test; the gate's predicate is. What is NOT done is skipping
+        // silently on exhaustion — a test that quietly passes when it could not
+        // run is the vacuous-guard shape this whole session has been removing,
+        // so the failure below still fails, and names the real cause.
+        let mut rc = -1;
+        for _ in 0..10 {
+            // SAFETY: openpty fills both fds on success; the return is checked.
+            rc = unsafe {
+                libc::openpty(
+                    &raw mut master,
+                    &raw mut slave,
+                    std::ptr::null_mut(),
+                    std::ptr::null_mut(),
+                    std::ptr::null_mut(),
+                )
+            };
+            if rc == 0 {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        }
+        assert_eq!(
+            rc,
+            0,
+            "openpty failed 10x, errno={}",
+            std::io::Error::last_os_error()
+        );
 
         // A fresh pty is cooked: the line discipline WOULD paint what we write.
         assert!(
