@@ -8897,9 +8897,9 @@ rec {
       };
       "kanshou" = rec {
         crateName = "kanshou";
-        version = "0.1.6";
+        version = "0.1.7";
         edition = "2024";
-        sha256 = "12b397y8aybcgnjq4s73ghzfmal4cigiy2z7y84b0vin461cxhgc";
+        sha256 = "11z3cmqs9cdplf383cf3dd4gnaap6ivabg5imadnxjm17vv9x3fn";
         authors = [
           "pleme-io"
         ];
@@ -8951,9 +8951,9 @@ rec {
       };
       "kanshou-derive" = rec {
         crateName = "kanshou-derive";
-        version = "0.1.6";
+        version = "0.1.7";
         edition = "2024";
-        sha256 = "1h1qz6waqkp1d146ak9yiwiyjrhml1yyids2nx059yk3iyig86mx";
+        sha256 = "0ljaw6brlq658r9m5944wczngmj2c529zn0j58bmizvbghxgm74a";
         procMacro = true;
         libName = "kanshou_derive";
         authors = [
@@ -10205,7 +10205,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.152";
+        version = "0.1.153";
         edition = "2024";
         crateBin = [
           {
@@ -16556,9 +16556,9 @@ rec {
       };
       "pleme-nami-core" = rec {
         crateName = "pleme-nami-core";
-        version = "0.1.16";
+        version = "0.1.17";
         edition = "2024";
-        sha256 = "029n3s0pj2ki18580dgx7zigfq19cd3pmm2p5x0z6lg6b5x93dxn";
+        sha256 = "0iw5mcfx0l9862z906nrhsm3pcfn67ipdh18zijb1h5p4v0xd2r2";
         libName = "nami_core";
         dependencies = [
           {
@@ -21837,9 +21837,9 @@ rec {
       };
       "shikumi" = rec {
         crateName = "shikumi";
-        version = "0.1.733";
+        version = "0.1.734";
         edition = "2024";
-        sha256 = "1550p58kykxins4h8kcqrsvzx2sgsyfwy5h9dldibyxxq0mpzvh5";
+        sha256 = "18svbh4h68biqd1z7zkfcbw29w1xxwyjkdbb3mkidsqamrkp1hff";
         dependencies = [
           {
             name = "arc-swap";
