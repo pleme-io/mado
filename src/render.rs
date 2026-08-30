@@ -963,6 +963,12 @@ pub(crate) struct FloatPanel {
     pub content_seqno: u64,
 }
 
+/// Instance capacity of the SHARED `ImagePipeline::instance_buffer`, in
+/// `ImageInstance`s. Every writer sub-allocates from it through
+/// `TerminalRenderer::image_instance_cursor`, so this is a whole-frame
+/// budget, not a per-draw one.
+const IMAGE_INSTANCE_CAPACITY: usize = 256;
+
 struct ImagePipeline {
     pipeline: wgpu::RenderPipeline,
     uniform_buffer: wgpu::Buffer,
@@ -1116,7 +1122,7 @@ impl ImagePipeline {
 
         let instance_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("image_instances"),
-            size: (64 * std::mem::size_of::<ImageInstance>()) as u64,
+            size: (IMAGE_INSTANCE_CAPACITY * std::mem::size_of::<ImageInstance>()) as u64,
             usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
@@ -1413,6 +1419,30 @@ pub struct TerminalRenderer {
     /// Kitty-image instances in the same submit (last-write-wins hazard).
     /// Lazily created + grown to fit (persistent so it outlives the pass).
     float_panel_buf: std::cell::RefCell<Option<wgpu::Buffer>>,
+    /// Frame-scoped bump allocator over `ImagePipeline::instance_buffer`, in
+    /// `ImageInstance` units. Reset to 0 once per frame at the top of
+    /// [`Self::render`]; every writer takes its region by bumping this.
+    ///
+    /// ── ★ WHY A CURSOR AND NOT `write_buffer(.., 0, ..)` ───────────────────
+    ///
+    /// `Queue::write_buffer` does NOT execute where it is called. Every write
+    /// queued for a submit runs FIRST, immediately before the submitted
+    /// command buffers (wgpu 25 `Queue::write_buffer` docs; wgpu-core's
+    /// `Queue::submit` does `active_executions.insert(0, pending_writes)`).
+    /// So N writes at offset 0 inside one submit collapse to the LAST one and
+    /// every draw recorded against them reads that last payload — the earlier
+    /// draws keep their own texture but take the last writer's geometry.
+    ///
+    /// mado hits that N > 1 twice over: `draw_kitty_images` batches per
+    /// texture id, and it is called TWICE per frame (the z < 0 and z >= 0
+    /// bands, either side of the text pass) into the ONE `mado_render`
+    /// encoder, with the frame's only `queue.submit` after both.
+    ///
+    /// Two earlier repairs bolted a private buffer onto the new consumer
+    /// (`RectPipeline::overlay_buffer`, `float_panel_buf`) and left the shape
+    /// writable. The cursor removes the class instead: a region is *taken*,
+    /// so two writers cannot be handed the same bytes.
+    image_instance_cursor: std::cell::Cell<u32>,
     /// Per-surface rendered-page texture cache, keyed by browser id →
     /// (content_seqno, texture). Re-rasterized only when the surface's seqno
     /// moves (navigate/resize), never per frame.
@@ -2242,6 +2272,7 @@ impl TerminalRenderer {
             float_panels: Arc::new(Mutex::new(Vec::new())),
             float_panel_tex: std::cell::RefCell::new(None),
             float_panel_buf: std::cell::RefCell::new(None),
+            image_instance_cursor: std::cell::Cell::new(0),
             browser_page_tex: std::cell::RefCell::new(std::collections::HashMap::new()),
             // window: removed Phase 4
             font_size,
@@ -5472,26 +5503,71 @@ impl TerminalRenderer {
             }
         }
 
+        // ── ★ ONE WRITE PER FRAME REGION, NEVER ONE PER BATCH ───────────────
+        //
+        // This loop used to `write_buffer(.., 0, batch)` and then draw, once
+        // per batch. That reads as "fill, draw, refill, draw" and is not what
+        // runs: queued writes do not execute where they are called, they all
+        // execute at the head of the next `submit`, just before the command
+        // buffers (wgpu 25 `Queue::write_buffer` docs; wgpu-core's
+        // `Queue::submit` → `active_executions.insert(0, pending_writes)`).
+        // Every batch therefore read the LAST batch's instances — the right
+        // texture at the wrong rect. Reproduced on Metal/wgpu 25.0.2.
+        //
+        // Now: ONE write of the whole call's instances into a region taken
+        // from the frame arena, and each batch draws its own `from..to` slice
+        // of that region. `draw_kitty_images` runs twice per frame (z < 0 and
+        // z >= 0) into the same encoder and the same submit, so the SECOND
+        // call must not land on the first's bytes either — the cursor is what
+        // guarantees that, not the ordering of these two calls.
+        let base = self.image_instance_cursor.get() as usize;
+        let Ok(count) = u32::try_from(image_draws.len()) else {
+            return;
+        };
+        if base + image_draws.len() > IMAGE_INSTANCE_CAPACITY {
+            // Degrade by dropping this band, never by overrunning the buffer:
+            // an oversized `write_buffer` is a wgpu validation error, which
+            // the default handler turns into a panic mid-frame.
+            tracing::warn!(
+                base,
+                requested = image_draws.len(),
+                capacity = IMAGE_INSTANCE_CAPACITY,
+                "kitty image instances exceed the frame arena; band skipped"
+            );
+            return;
+        }
+        let instances: Vec<ImageInstance> = image_draws.iter().map(|(_, i)| *i).collect();
+        let stride = std::mem::size_of::<ImageInstance>() as wgpu::BufferAddress;
+        gpu.queue.write_buffer(
+            &image_pipeline.instance_buffer,
+            base as wgpu::BufferAddress * stride,
+            bytemuck::cast_slice(&instances),
+        );
+        self.image_instance_cursor
+            .set(self.image_instance_cursor.get() + count);
+
         let mut layered =
             garasu::pane::LayeredPass::new(pass, garasu::PaneRect::root(width, height));
         layered.in_pane(clip, |pp| {
             for (from, to, bg) in &batches {
-                let batch: Vec<_> = image_draws[*from..*to].iter().map(|(_, i)| *i).collect();
-                gpu.queue.write_buffer(
-                    &image_pipeline.instance_buffer,
-                    0,
-                    bytemuck::cast_slice(&batch),
-                );
                 let mut groups: Vec<&wgpu::BindGroup> = vec![&image_pipeline.uniform_bind_group];
                 if let Some(b) = bg {
                     groups.push(b);
                 }
+                // Absolute instance indices into the frame arena. The vertex
+                // buffer stays the full slice; `first_instance` does the
+                // offsetting, which wgpu 25 validates only against the buffer
+                // length (and emulates on GL).
+                let (Ok(lo), Ok(hi)) = (u32::try_from(base + *from), u32::try_from(base + *to))
+                else {
+                    continue;
+                };
                 pp.instanced(
                     &image_pipeline.pipeline,
                     &groups,
                     image_pipeline.instance_buffer.slice(..),
                     0..6,
-                    0..u32::try_from(batch.len()).unwrap_or(0),
+                    lo..hi,
                 );
             }
         });
@@ -6824,6 +6900,10 @@ impl RenderCallback for TerminalRenderer {
 
         // Sync Kitty GPU textures (mutable borrow) before we start render passes.
         self.sync_kitty_images(ctx);
+
+        // One frame, one submit (below), so the shared image instance buffer
+        // is a frame-scoped arena: rewind it here and let each writer bump.
+        self.image_instance_cursor.set(0);
 
         let mut encoder = ctx
             .gpu
@@ -10445,6 +10525,141 @@ mod render_gpu_invariants {
     /// surface-format / gamma regression: if mado ever writes linear to a
     /// non-sRGB target, R collapses far below 255 and G/B lift well above
     /// 0. The readback order on a Bgra8 target is B,G,R,A.
+    /// ── ★ TWO KITTY IMAGES IN ONE FRAME MUST LAND AT THEIR OWN RECTS ──────
+    ///
+    /// The regression this pins: `draw_kitty_images` batches per texture id
+    /// and used to `write_buffer(instance_buffer, 0, batch)` INSIDE the batch
+    /// loop. Queued writes do not execute where they are called — they all run
+    /// at the head of the next `submit`, just before the command buffers — so
+    /// with N > 1 batch every draw read the LAST batch's instances: each image
+    /// kept its own texture but took the last one's rect.
+    ///
+    /// Why the pre-existing coverage missed it: `z_band_split_from_parsed_apc_z_param`
+    /// and friends assert the CPU-side placement Vec, and
+    /// `partition_placements_by_z`'s doc even claims that Vec order IS "the GPU
+    /// draw order". It is the *record* order; the clobber happens after, at
+    /// submit. Only pixels can tell the difference, so this test reads pixels.
+    ///
+    /// Colour-order note: the readback on a Bgra8 target is B,G,R,A.
+    #[test]
+    fn two_kitty_images_each_draw_at_their_own_placement() {
+        use garasu::headless::pixel_at;
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let (cols, rows) = (16u32, 6u32);
+        let (mut r, t, mut text) = build_gpu_renderer(&gpu, cols as usize, rows as usize);
+        // Direct path: no effect chain between the image pass and the readback.
+        r.ambience.members.clear();
+        assert!(
+            r.enabled_effect_set().is_empty(),
+            "must run the direct path"
+        );
+
+        let sw = (r.cell_width * cols as f32).ceil() as u32;
+        let sh = (r.cell_height * rows as f32).ceil() as u32;
+        let target = HeadlessTarget::new(&gpu, sw, sh, SURFACE_FORMAT);
+
+        // Two 1x1 RGBA images, each scaled over a 4x2 cell rect, at two
+        // clearly disjoint cursor positions. Distinct ids ⇒ two batches.
+        // Payloads are base64 of [255,0,0,255] and [0,0,255,255].
+        t.write().feed(b"\x1b[H\x1b[2J");
+        t.write()
+            .feed(b"\x1b[1;1H\x1b_Ga=T,f=32,s=1,v=1,c=4,r=2,i=1;/wAA/w==\x1b\\");
+        t.write()
+            .feed(b"\x1b[4;9H\x1b_Ga=T,f=32,s=1,v=1,c=4,r=2,i=2;AAD//w==\x1b\\");
+        assert_eq!(
+            t.read().image_placements().len(),
+            2,
+            "both placements must reach the renderer for this test to mean anything"
+        );
+
+        let px = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+
+        let pad = r.padding_px();
+        let centre = |col: f32, row: f32| {
+            (
+                (pad + (col + 2.0) * r.cell_width) as u32,
+                (pad + (row + 1.0) * r.cell_height) as u32,
+            )
+        };
+        let (rx, ry) = centre(0.0, 0.0); // image 1 occupies cols 0..4, rows 0..2
+        let (bx, by) = centre(8.0, 3.0); // image 2 occupies cols 8..12, rows 3..5
+        let red = pixel_at(&px, sw, rx.min(sw - 1), ry.min(sh - 1));
+        let blue = pixel_at(&px, sw, bx.min(sw - 1), by.min(sh - 1));
+
+        // Under the clobber, image 1 painted at image 2's rect: the red rect
+        // stayed background and the blue rect was drawn twice.
+        assert!(
+            red[2] > red[0] && red[2] > 128,
+            "image i=1 is missing from its OWN rect: BGRA {red:?} at ({rx},{ry}) — \
+             every batch read the last batch's instances"
+        );
+        assert!(
+            blue[0] > blue[2] && blue[0] > 128,
+            "image i=2 is not at its own rect: BGRA {blue:?} at ({bx},{by})"
+        );
+    }
+
+    /// The SECOND half of the same class, and the half a "hoist the write out
+    /// of the batch loop" fix would still have left broken.
+    ///
+    /// `draw_kitty_images` runs TWICE per frame — once for the z < 0 band
+    /// before the text pass, once for z >= 0 after it — into the ONE
+    /// `mado_render` encoder, with the frame's only `queue.submit` after both.
+    /// So even with ONE batch per call, two calls writing at offset 0 collapse
+    /// to the last: the below-text image took the above-text image's rect.
+    ///
+    /// Distinct ids in distinct bands ⇒ exactly one batch per call, which is
+    /// what isolates this from the two-batches-in-one-call case above.
+    #[test]
+    fn kitty_images_in_different_z_bands_do_not_clobber_each_other() {
+        use garasu::headless::pixel_at;
+        let gpu = pollster::block_on(GpuContext::new()).expect("gpu");
+        let (cols, rows) = (16u32, 6u32);
+        let (mut r, t, mut text) = build_gpu_renderer(&gpu, cols as usize, rows as usize);
+        r.ambience.members.clear();
+        assert!(
+            r.enabled_effect_set().is_empty(),
+            "must run the direct path"
+        );
+
+        let sw = (r.cell_width * cols as f32).ceil() as u32;
+        let sh = (r.cell_height * rows as f32).ceil() as u32;
+        let target = HeadlessTarget::new(&gpu, sw, sh, SURFACE_FORMAT);
+
+        t.write().feed(b"\x1b[H\x1b[2J");
+        // z=-1 → the BELOW band. z=1 → the ABOVE band. One placement each.
+        t.write()
+            .feed(b"\x1b[1;1H\x1b_Ga=T,f=32,s=1,v=1,c=4,r=2,z=-1,i=1;/wAA/w==\x1b\\");
+        t.write()
+            .feed(b"\x1b[4;9H\x1b_Ga=T,f=32,s=1,v=1,c=4,r=2,z=1,i=2;AAD//w==\x1b\\");
+        let (below, above) =
+            crate::terminal::partition_placements_by_z(t.read().image_placements());
+        assert_eq!(below.len(), 1, "one placement in the below band");
+        assert_eq!(above.len(), 1, "one placement in the above band");
+
+        let px = render_one_frame_headless(&gpu, &mut r, &mut text, &target);
+        let pad = r.padding_px();
+        let centre = |col: f32, row: f32| {
+            (
+                (pad + (col + 2.0) * r.cell_width) as u32,
+                (pad + (row + 1.0) * r.cell_height) as u32,
+            )
+        };
+        let (rx, ry) = centre(0.0, 0.0);
+        let (bx, by) = centre(8.0, 3.0);
+        let red = pixel_at(&px, sw, rx.min(sw - 1), ry.min(sh - 1));
+        let blue = pixel_at(&px, sw, bx.min(sw - 1), by.min(sh - 1));
+        assert!(
+            red[2] > red[0] && red[2] > 128,
+            "the z<0 image is missing from its OWN rect: BGRA {red:?} at ({rx},{ry}) — \
+             the below-band pass read the above-band pass's instance"
+        );
+        assert!(
+            blue[0] > blue[2] && blue[0] > 128,
+            "the z>=0 image is not at its own rect: BGRA {blue:?} at ({bx},{by})"
+        );
+    }
+
     #[test]
     fn truecolor_roundtrip_is_gamma_correct_both_paths() {
         use garasu::headless::pixel_at;
