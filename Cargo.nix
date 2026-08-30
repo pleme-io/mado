@@ -4388,9 +4388,9 @@ rec {
       };
       "engawa" = rec {
         crateName = "engawa";
-        version = "0.1.5";
+        version = "0.1.6";
         edition = "2024";
-        sha256 = "1pbl3d00qfiagm34ipmj965j9fbk3nl17sgczzyj8jl8cx3ri5dx";
+        sha256 = "176f9fc6m9w8dsr8l6j545rk439gs55grcrhas5h5sh3p0df3ydb";
         authors = [
           "pleme-io"
         ];
@@ -5590,9 +5590,9 @@ rec {
       };
       "gen-macros" = rec {
         crateName = "gen-macros";
-        version = "0.1.48";
+        version = "0.1.49";
         edition = "2024";
-        sha256 = "1bvzs36c1cdlzg6hvx3zbrijns9mc88y6j3lc7rs70m9ffpnkxbn";
+        sha256 = "1plxmw7kwvgzhnl0zlr0dilphjqgiqj7mxv57rms31mhqa7r6wvj";
         procMacro = true;
         libName = "gen_macros";
         authors = [
@@ -5617,9 +5617,9 @@ rec {
       };
       "gen-platform" = rec {
         crateName = "gen-platform";
-        version = "0.1.48";
+        version = "0.1.49";
         edition = "2024";
-        sha256 = "17z2cmn4wlr0qvj19qmwjh1kq7vd9giwbrvfysiqyxg71wfqhbjx";
+        sha256 = "1xvaf08qcx522qz9cj9h1qh8mv5kkkvil1271jdc9f0wwc8mnx33";
         libName = "gen_platform";
         authors = [
           "pleme-io"
@@ -5655,9 +5655,9 @@ rec {
       };
       "gen-types" = rec {
         crateName = "gen-types";
-        version = "0.1.48";
+        version = "0.1.49";
         edition = "2024";
-        sha256 = "1rfrn49rys5m2g72wxx2a69b36qkz0y6m2vixpj78fkcxajnizls";
+        sha256 = "0740841212hznsxz6xbq2lpf7s8x6cac6d0al7v8cc6sf0bl1xla";
         libName = "gen_types";
         authors = [
           "pleme-io"
@@ -10213,7 +10213,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.156";
+        version = "0.1.157";
         edition = "2024";
         crateBin = [
           {
