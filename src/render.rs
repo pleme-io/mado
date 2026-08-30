@@ -25,6 +25,25 @@ use std::time::Instant;
 /// Atomics rather than a mutexed ring buffer so the renderer writes
 /// are wait-free and never compete for a lock with the MCP reader.
 pub(crate) static LAST_FRAME_US: AtomicU64 = AtomicU64::new(0);
+// ── ★ S4: THE CLIENT SIDE OF A SIZE DISAGREEMENT ────────────────────────────
+//
+// A visual defect is often "client and compositor disagree about size", and an
+// agent could not previously see EITHER side. omoya publishes the compositor's
+// view (S1's `toplevels`, `output`); these are mado's.
+//
+// Published as atomics beside the frame counters rather than reached out of the
+// renderer, for the same reason those are: the render thread owns them and the
+// socket thread must never touch renderer state.
+pub(crate) static SURFACE_PX_W: AtomicU64 = AtomicU64::new(0);
+pub(crate) static SURFACE_PX_H: AtomicU64 = AtomicU64::new(0);
+pub(crate) static CELL_PX_W: AtomicU64 = AtomicU64::new(0);
+pub(crate) static CELL_PX_H: AtomicU64 = AtomicU64::new(0);
+/// Scale factor x1000 — an integer because there is no atomic f32, and the
+/// third decimal is well past what a scale factor meaningfully carries.
+pub(crate) static SCALE_MILLI: AtomicU64 = AtomicU64::new(0);
+/// Font size x100, same reasoning.
+pub(crate) static FONT_PX_CENTI: AtomicU64 = AtomicU64::new(0);
+
 pub(crate) static LAST_FRAME_RECTS: AtomicU64 = AtomicU64::new(0);
 pub(crate) static LAST_FRAME_TEXT: AtomicU64 = AtomicU64::new(0);
 pub(crate) static LAST_FRAME_SHAPE_CACHE: AtomicU64 = AtomicU64::new(0);

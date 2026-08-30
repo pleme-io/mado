@@ -107,6 +107,42 @@ impl Introspect for MadoAppState {
                 "total_frames_skipped": crate::render::TOTAL_FRAMES_SKIPPED.load(Ordering::Relaxed),
                 "total_late_idle_paints": crate::render::TOTAL_LATE_IDLE_PAINTS.load(Ordering::Relaxed),
             })),
+            // ── ★ S4: WHAT THE CLIENT BELIEVES ABOUT ITS OWN GEOMETRY ────
+            //
+            // The other half of a size disagreement. omoya publishes the
+            // compositor's view; without this an agent can see only one side
+            // and cannot tell WHICH is wrong.
+            //
+            // `panel_ratio` carries its CAUSE, not just "unavailable": four
+            // failures used to render identically, and on plo the real one was
+            // a compositor publishing a 0x0 physical size.
+            "client_geometry" => {
+                use std::sync::atomic::Ordering as O;
+                let scale_milli = crate::render::SCALE_MILLI.load(O::Relaxed);
+                let font_centi = crate::render::FONT_PX_CENTI.load(O::Relaxed);
+                Ok(serde_json::json!({
+                    "surface_px": [
+                        crate::render::SURFACE_PX_W.load(O::Relaxed),
+                        crate::render::SURFACE_PX_H.load(O::Relaxed),
+                    ],
+                    "cell_px": [
+                        crate::render::CELL_PX_W.load(O::Relaxed),
+                        crate::render::CELL_PX_H.load(O::Relaxed),
+                    ],
+                    // 0 is "not yet published", NOT a real scale of zero --
+                    // reported as null so a reader cannot average it in.
+                    "scale": if scale_milli == 0 {
+                        serde_json::Value::Null
+                    } else {
+                        serde_json::json!(scale_milli as f64 / 1000.0)
+                    },
+                    "font_px": if font_centi == 0 {
+                        serde_json::Value::Null
+                    } else {
+                        serde_json::json!(font_centi as f64 / 100.0)
+                    },
+                }))
+            }
             "sessions" => {
                 // GUI mode: live tear-core registry IS the truth.
                 // MCP-only mode: tear_inproc never gets populated,
@@ -377,11 +413,11 @@ impl Introspect for MadoAppState {
                 // straight to execvp with no executable check, so a stale configured
                 // shell became a dead pane instead of a warning.
                 let shell = crate::shell_resolve::resolve(
-                    params
+                    params.shell.as_deref().filter(|s| !s.is_empty()).or(self
+                        .config
                         .shell
-                        .as_deref()
-                        .filter(|s| !s.is_empty())
-                        .or(self.config.shell.command.as_deref()),
+                        .command
+                        .as_deref()),
                 );
                 use tear_types::{MultiplexerControl, SessionSource};
                 let size = (params.cols.unwrap_or(80), params.rows.unwrap_or(24));
@@ -1008,6 +1044,7 @@ impl Introspect for MadoAppState {
     fn schema(&self) -> &'static [&'static str] {
         &[
             "frame_perf",
+            "client_geometry",
             "sessions",
             "config",
             "process",
