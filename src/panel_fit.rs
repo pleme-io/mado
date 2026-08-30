@@ -31,6 +31,39 @@ use std::fmt;
 /// The numeric ratio drives the seam snap; the VARIANT records whether that
 /// number is trustworthy. This is the vocabulary-style seal on the seam's
 /// one unguarded input: a probe failure is a distinct, visible state, never
+/// Why a panel ratio could not be resolved.
+///
+/// ★ Four causes, not one. A bare `Unavailable` made them the same answer, and
+/// they have opposite remedies: `NoPhysicalSize` is a compositor bug worth
+/// filing, `NoOutputYet` is a race worth retrying, `OutsideSaneWindow` is a
+/// garbage probe worth distrusting, and `NotProbed` means nobody asked.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RatioUnknown {
+    /// `wl_output` reported a physical size of 0x0, so no ratio is derivable.
+    /// Measured on plo: omoya publishes exactly this despite a valid EDID.
+    NoPhysicalSize,
+    /// No output has been advertised yet — a startup race, not a defect.
+    NoOutputYet,
+    /// The probe produced a value outside `(0.25, 1.0]`, i.e. not a real
+    /// compositor downscale. Snapping on it would corrupt the grid.
+    OutsideSaneWindow,
+    /// No probe has run.
+    NotProbed,
+}
+
+impl RatioUnknown {
+    /// A short operator-facing phrase.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::NoPhysicalSize => "wl_output reports a 0x0 physical size (compositor bug)",
+            Self::NoOutputYet => "no wl_output yet (startup race, retry)",
+            Self::OutsideSaneWindow => "probe outside the sane window (0.25, 1.0]",
+            Self::NotProbed => "no probe has run",
+        }
+    }
+}
+
 /// a silent `1.0` — and a *genuine* `1.0` is a different value than a
 /// *fallback* `1.0`, so the diagnosis is representable.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -44,7 +77,23 @@ pub enum PanelRatio {
     /// yet. Rendering falls back to ratio `1.0` (no snap) so it proceeds —
     /// but the state is RECORDED, so a seam here is attributable to "the
     /// ratio is unknown", never silently mistaken for a real `1.0`.
-    Unavailable,
+    ///
+    /// ── ★ CARRIES ITS CAUSE (2026-08-29) ─────────────────────────────────
+    ///
+    /// This was a bare `Unavailable`, and FOUR different failures collapsed
+    /// into it: the compositor published a 0x0 physical size, no `wl_output`
+    /// had arrived yet, the probe returned a ratio outside the sane window, or
+    /// no probe had run at all. On plo the real cause was the first — omoya
+    /// publishes `PhysicalProperties { size: 0x0 }` despite an EDID reading
+    /// 54cm x 30cm — and the operator-visible line was only
+    ///
+    ///     panel_ratio: unavailable (probe failed → fell back to 1.0;
+    ///                               a downscaled display WILL seam)
+    ///
+    /// which names a symptom and no cause. Three of the four causes are
+    /// somebody else's bug and one is a race; telling them apart is the whole
+    /// difference between "fix omoya's wl_output" and "wait for a frame".
+    Unavailable(RatioUnknown),
 }
 
 /// The sane downscale window. A ratio outside `(0.25, 1.0]` is not a real
@@ -65,7 +114,11 @@ impl PanelRatio {
             Some(r) if r.is_finite() && r > MIN_RATIO && r <= MAX_RATIO => {
                 PanelRatio::Discovered(r)
             }
-            _ => PanelRatio::Unavailable,
+            // ★ The two failures reaching here are DIFFERENT and now say so:
+            // `None` means nobody produced a value; a `Some` that fell through
+            // the guard means the probe produced one and it was nonsense.
+            None => PanelRatio::Unavailable(RatioUnknown::NotProbed),
+            Some(_) => PanelRatio::Unavailable(RatioUnknown::OutsideSaneWindow),
         }
     }
 
@@ -82,7 +135,7 @@ impl PanelRatio {
     pub fn ratio(self) -> f32 {
         match self {
             PanelRatio::Discovered(r) | PanelRatio::Configured(r) => r,
-            PanelRatio::Unavailable => 1.0,
+            PanelRatio::Unavailable(_) => 1.0,
         }
     }
 
@@ -91,7 +144,7 @@ impl PanelRatio {
     /// gun — the seam is a probe failure, not a snap bug.
     #[must_use]
     pub fn is_known(self) -> bool {
-        !matches!(self, PanelRatio::Unavailable)
+        !matches!(self, PanelRatio::Unavailable(_))
     }
 
     /// Whether a real fractional downscale is in effect (the seam snap is
@@ -110,9 +163,15 @@ impl fmt::Display for PanelRatio {
         match self {
             PanelRatio::Discovered(r) => write!(f, "discovered {r:.4}"),
             PanelRatio::Configured(r) => write!(f, "configured {r:.4}"),
-            PanelRatio::Unavailable => write!(
+            // ★ NAMES THE CAUSE. The old text said only "probe failed",
+            // which is true of four different situations with opposite
+            // remedies -- a compositor bug, a startup race, a garbage probe,
+            // and nobody having asked. On plo the real cause was the first,
+            // and the operator-visible line could not say so.
+            PanelRatio::Unavailable(why) => write!(
                 f,
-                "unavailable (probe failed → fell back to 1.0; a downscaled display WILL seam)"
+                "unavailable: {} → fell back to 1.0; a downscaled display WILL seam",
+                why.as_str()
             ),
         }
     }
@@ -125,7 +184,7 @@ mod tests {
     #[test]
     fn probe_failure_is_a_distinct_recorded_state_not_a_silent_one() {
         let failed = PanelRatio::from_probe(None);
-        assert_eq!(failed, PanelRatio::Unavailable);
+        assert_eq!(failed, PanelRatio::Unavailable(RatioUnknown::NotProbed));
         assert_eq!(
             failed.ratio(),
             1.0,
@@ -138,17 +197,26 @@ mod tests {
     #[test]
     fn a_nonsense_probe_is_a_failed_probe_never_snapped_on() {
         // > 1.0, non-finite, or non-positive is not a real downscale.
-        assert_eq!(PanelRatio::from_probe(Some(1.5)), PanelRatio::Unavailable);
+        assert_eq!(
+            PanelRatio::from_probe(Some(1.5)),
+            PanelRatio::Unavailable(RatioUnknown::OutsideSaneWindow)
+        );
         assert_eq!(
             PanelRatio::from_probe(Some(f32::NAN)),
-            PanelRatio::Unavailable
+            PanelRatio::Unavailable(RatioUnknown::OutsideSaneWindow)
         );
         assert_eq!(
             PanelRatio::from_probe(Some(f32::INFINITY)),
-            PanelRatio::Unavailable
+            PanelRatio::Unavailable(RatioUnknown::OutsideSaneWindow)
         );
-        assert_eq!(PanelRatio::from_probe(Some(0.0)), PanelRatio::Unavailable);
-        assert_eq!(PanelRatio::from_probe(Some(-0.8)), PanelRatio::Unavailable);
+        assert_eq!(
+            PanelRatio::from_probe(Some(0.0)),
+            PanelRatio::Unavailable(RatioUnknown::OutsideSaneWindow)
+        );
+        assert_eq!(
+            PanelRatio::from_probe(Some(-0.8)),
+            PanelRatio::Unavailable(RatioUnknown::OutsideSaneWindow)
+        );
     }
 
     #[test]
@@ -200,6 +268,74 @@ mod tests {
                 .to_string()
                 .contains("discovered")
         );
-        assert!(PanelRatio::Unavailable.to_string().contains("probe failed"));
+        // ★ The string now names the CAUSE instead of saying "probe failed",
+        // which was true of four different situations.
+        assert!(
+            PanelRatio::Unavailable(RatioUnknown::NotProbed)
+                .to_string()
+                .contains("no probe has run")
+        );
+    }
+}
+
+#[cfg(test)]
+mod ratio_cause_tests {
+    use super::{PanelRatio, RatioUnknown};
+
+    /// ★ FOUR CAUSES, ONE SYMPTOM (plo, 2026-08-29).
+    ///
+    /// `Unavailable` was bare, so a compositor bug, a startup race, a garbage
+    /// probe and "nobody asked" produced the identical operator-visible line:
+    ///
+    ///     panel_ratio: unavailable (probe failed → fell back to 1.0)
+    ///
+    /// On plo the real cause was omoya publishing `wl_output` physical size
+    /// 0x0 despite an EDID of 54cm x 30cm. The remedies differ completely —
+    /// file a compositor bug, retry, distrust the probe, or run one — and the
+    /// line named none of them.
+    #[test]
+    fn the_reason_reaches_the_operator_visible_string() {
+        let s = PanelRatio::Unavailable(RatioUnknown::NoPhysicalSize).to_string();
+        assert!(s.contains("0x0"), "must name the actual cause: {s}");
+        assert!(s.contains("compositor bug"), "{s}");
+    }
+
+    /// Anti-vacuity: the four causes must not render the same. A single shared
+    /// string would pass the test above while restoring the exact defect.
+    #[test]
+    fn the_four_causes_are_distinguishable() {
+        let all = [
+            RatioUnknown::NoPhysicalSize,
+            RatioUnknown::NoOutputYet,
+            RatioUnknown::OutsideSaneWindow,
+            RatioUnknown::NotProbed,
+        ];
+        let rendered: std::collections::BTreeSet<&str> = all.iter().map(|r| r.as_str()).collect();
+        assert_eq!(
+            rendered.len(),
+            all.len(),
+            "causes must differ: {rendered:?}"
+        );
+    }
+
+    /// A probe that produced NOTHING and one that produced NONSENSE are
+    /// different failures — the first means nobody measured, the second means
+    /// the measurement is untrustworthy.
+    #[test]
+    fn no_probe_is_not_the_same_as_a_bad_probe() {
+        assert_eq!(
+            PanelRatio::from_probe(None),
+            PanelRatio::Unavailable(RatioUnknown::NotProbed)
+        );
+        assert_eq!(
+            PanelRatio::from_probe(Some(3.0)),
+            PanelRatio::Unavailable(RatioUnknown::OutsideSaneWindow),
+            "a ratio above 1.0 is a garbage probe, not an absent one"
+        );
+        // And a good probe is still accepted.
+        assert_eq!(
+            PanelRatio::from_probe(Some(0.8)),
+            PanelRatio::Discovered(0.8)
+        );
     }
 }

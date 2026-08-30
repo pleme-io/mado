@@ -2299,7 +2299,11 @@ impl TerminalRenderer {
             panel_ratio: 1.0,
             // Unknown until the first probe / config apply — an honest
             // "not yet measured", never a silent genuine-1.0.
-            panel_ratio_source: crate::panel_fit::PanelRatio::Unavailable,
+            // ★ At construction nothing has been probed yet -- which is a DIFFERENT
+            // state from "probed and it failed", and now says so.
+            panel_ratio_source: crate::panel_fit::PanelRatio::Unavailable(
+                crate::panel_fit::RatioUnknown::NotProbed,
+            ),
             // Seam auto-tune on by default; the display config overrides via
             // `apply_effects_and_accessibility` → `set_seam_config`.
             seam_auto_tune: true,
@@ -7991,7 +7995,10 @@ mod render_invariants {
         // THE invariant: probe fails AFTER a known-good ratio → Retain, never a
         // silent regression to 1.0 (the exact bug behind the recurring seam).
         assert_eq!(
-            resolve_ratio_update(PanelRatio::Unavailable, true),
+            resolve_ratio_update(
+                PanelRatio::Unavailable(crate::panel_fit::RatioUnknown::NotProbed),
+                true
+            ),
             RatioUpdate::Retain
         );
 
@@ -7999,7 +8006,10 @@ mod render_invariants {
         // FallbackRetry (unlocked) so a startup hiccup self-heals next frame
         // instead of latching a seam-producing 1.0 for this size.
         assert_eq!(
-            resolve_ratio_update(PanelRatio::Unavailable, false),
+            resolve_ratio_update(
+                PanelRatio::Unavailable(crate::panel_fit::RatioUnknown::NotProbed),
+                false
+            ),
             RatioUpdate::FallbackRetry(1.0)
         );
     }
@@ -10929,7 +10939,7 @@ mod render_gpu_invariants {
     /// signature is: hashes [a, a, a] when the gate doesn't
     /// fire vs. [a, b, c] when it does and leaves slots
     /// inconsistent.
-        /// ── ★ THE DIFFERENTIAL: A CHANGING SEQUENCE AGAINST A FULL-REPAINT ORACLE
+    /// ── ★ THE DIFFERENTIAL: A CHANGING SEQUENCE AGAINST A FULL-REPAINT ORACLE
     ///
     /// This is the test whose ABSENCE let the stale-frame class ship. Measured on
     /// plo 2026-08-28: mado's model held ONE non-blank row while the screen showed
@@ -11057,8 +11067,7 @@ mod render_gpu_invariants {
             // A fresh renderer and a fresh target, fed the whole sequence so
             // far. Nothing here carries state across steps, so it cannot be
             // wrong in the way the thing it judges can be.
-            let (mut oracle, oracle_term, mut oracle_text) =
-                build_gpu_renderer(&gpu, COLS, ROWS);
+            let (mut oracle, oracle_term, mut oracle_text) = build_gpu_renderer(&gpu, COLS, ROWS);
             // The oracle must run the SAME topology, or the comparison is
             // between two different programs and any verdict is meaningless.
             oracle.set_effects_config(effects.clone());
@@ -11104,7 +11113,7 @@ mod render_gpu_invariants {
         );
     }
 
-#[test]
+    #[test]
     fn three_slot_swapchain_full_renders_yield_identical_hashes_and_no_magenta() {
         use garasu::headless::{HeadlessSwapchain, assert_no_magenta_pixels, frame_hash};
         use madori::RenderContext;
