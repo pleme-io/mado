@@ -1465,9 +1465,9 @@ dependencies = [
 
 [[package]]
 name = "engawa"
-version = "0.1.5"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd95984767884a24fdffece913a81d73b9248b49b2de48467d2a3a0c401b74dd"
+checksum = "abf9e11ab803ea028b5630b3fc4ad12f0d327321451a8ab26e88a76a984bce9c"
 dependencies = [
  "pleme-allvariants-derive",
  "serde",
@@ -1895,9 +1895,9 @@ dependencies = [
 
 [[package]]
 name = "gen-macros"
-version = "0.1.48"
+version = "0.1.49"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "76f569af73a982a3f3617448e3116235692b635e7ff40dcdfbb4b1c0ccd07faf"
+checksum = "7273938fc2b086a16b3e65f77a248e0f4b78696c20d30fa885ff6d3e0faf9dde"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1906,9 +1906,9 @@ dependencies = [
 
 [[package]]
 name = "gen-platform"
-version = "0.1.48"
+version = "0.1.49"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d2e881d0fe7758fa3f66ee7c5e34b6d1f3c0394bce214e4c620534e6c65e29f"
+checksum = "63745b11e31cb8c49a0c47041af79cb3ec8a200e3049963e16a2748611706af7"
 dependencies = [
  "gen-macros",
  "gen-types",
@@ -1920,9 +1920,9 @@ dependencies = [
 
 [[package]]
 name = "gen-types"
-version = "0.1.48"
+version = "0.1.49"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9afe68a5ea6c3a74e4ed718b6a3cf8139bb19251a2772ece13b5689f13b1d9e5"
+checksum = "8af6401770da3086f6a10a34c314331de9e32e157875f3bbb61f8a200241801c"
 dependencies = [
  "blake3",
  "chrono",
@@ -3348,7 +3348,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.155"
+version = "0.1.156"
 dependencies = [
  "anyhow",
  "awase",

@@ -5517,9 +5517,9 @@ rec {
       };
       "garasu" = rec {
         crateName = "garasu";
-        version = "0.1.15";
+        version = "0.1.16";
         edition = "2024";
-        sha256 = "1lq90s8ckxp7scxw9qk1wpbd6jvg7p7mbjw4nry3yp62x8sb2b2n";
+        sha256 = "03kvig179a2ilp3575hdagakmz1gsjf1iqxgs404lph98jvihabx";
         dependencies = [
           {
             name = "bincode";
@@ -8311,9 +8311,9 @@ rec {
       };
       "ishou-tokens" = rec {
         crateName = "ishou-tokens";
-        version = "0.1.14";
+        version = "0.1.15";
         edition = "2024";
-        sha256 = "0d1n9fxshfnlry57csip3ihdgcpyrgy3z32l1lmvkpycdzh5wl9q";
+        sha256 = "0928wq4aw5j6qk4s9lp4rhsp6n2g8k2vfv4r5r25wx3z97gskc6i";
         libName = "ishou_tokens";
         dependencies = [
           {
@@ -10213,7 +10213,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.155";
+        version = "0.1.156";
         edition = "2024";
         crateBin = [
           {

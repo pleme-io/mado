@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "3024333586425cff05c2191934b3d34402fc82983452ee92162b4531b746320a",
+  "cargo_lock_sha256": "1ccf1592f0a830f364bacd8d6c89c0b6fa713f7bd20cb4bd12a4b724c45ce34b",
   "manifest_sha256": {
-    "Cargo.toml": "7a91c8fe0f980b5e87aeabddcd9b5f11ba06196ab007a2125fbf95b7f8d687ad"
+    "Cargo.toml": "60a756a2bd345be35b8ba5c9076adda699c010b3c76bb88d9df09891ddb4f278"
   },
   "target_resolves": {
     "base": {
@@ -3483,7 +3483,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "engawa-0.1.5": {
+      "engawa-0.1.6": {
         "runtime_dependencies": [
           {
             "name": "pleme_allvariants_derive",
@@ -3537,7 +3537,7 @@
           },
           {
             "name": "engawa",
-            "package_key": "engawa-0.1.5",
+            "package_key": "engawa-0.1.6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4640,7 +4640,7 @@
           "default"
         ]
       },
-      "gen-macros-0.1.48": {
+      "gen-macros-0.1.49": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -4679,11 +4679,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "gen-platform-0.1.48": {
+      "gen-platform-0.1.49": {
         "runtime_dependencies": [
           {
             "name": "gen_macros",
-            "package_key": "gen-macros-0.1.48",
+            "package_key": "gen-macros-0.1.49",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4693,7 +4693,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.48",
+            "package_key": "gen-types-0.1.49",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4747,7 +4747,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "gen-types-0.1.48": {
+      "gen-types-0.1.49": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -17397,7 +17397,7 @@
           },
           {
             "name": "gen_platform",
-            "package_key": "gen-platform-0.1.48",
+            "package_key": "gen-platform-0.1.49",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17407,7 +17407,7 @@
           },
           {
             "name": "gen_types",
-            "package_key": "gen-types-0.1.48",
+            "package_key": "gen-types-0.1.49",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -26376,7 +26376,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.155": {
+          "mado-0.1.156": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26497,7 +26497,7 @@
               },
               {
                 "name": "engawa",
-                "package_key": "engawa-0.1.5",
+                "package_key": "engawa-0.1.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31324,7 +31324,7 @@
               "system"
             ]
           },
-          "mado-0.1.155": {
+          "mado-0.1.156": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31445,7 +31445,7 @@
               },
               {
                 "name": "engawa",
-                "package_key": "engawa-0.1.5",
+                "package_key": "engawa-0.1.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35350,7 +35350,7 @@
               "system"
             ]
           },
-          "mado-0.1.155": {
+          "mado-0.1.156": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35471,7 +35471,7 @@
               },
               {
                 "name": "engawa",
-                "package_key": "engawa-0.1.5",
+                "package_key": "engawa-0.1.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39489,7 +39489,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.155": {
+          "mado-0.1.156": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39610,7 +39610,7 @@
               },
               {
                 "name": "engawa",
-                "package_key": "engawa-0.1.5",
+                "package_key": "engawa-0.1.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44444,7 +44444,7 @@
               "system"
             ]
           },
-          "mado-0.1.155": {
+          "mado-0.1.156": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44565,7 +44565,7 @@
               },
               {
                 "name": "engawa",
-                "package_key": "engawa-0.1.5",
+                "package_key": "engawa-0.1.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48477,7 +48477,7 @@
               "system"
             ]
           },
-          "mado-0.1.155": {
+          "mado-0.1.156": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48598,7 +48598,7 @@
               },
               {
                 "name": "engawa",
-                "package_key": "engawa-0.1.5",
+                "package_key": "engawa-0.1.6",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -52170,7 +52170,7 @@
     "engate-types-0.1.2": {
       "edition": "2024"
     },
-    "engawa-0.1.5": {
+    "engawa-0.1.6": {
       "edition": "2024"
     },
     "engawa-wgpu-0.1.10": {
@@ -52308,14 +52308,14 @@
       "edition": "2024",
       "build_script": "build.rs"
     },
-    "gen-macros-0.1.48": {
+    "gen-macros-0.1.49": {
       "edition": "2024",
       "proc_macro": true
     },
-    "gen-platform-0.1.48": {
+    "gen-platform-0.1.49": {
       "edition": "2024"
     },
-    "gen-types-0.1.48": {
+    "gen-types-0.1.49": {
       "edition": "2024"
     },
     "generic-array-0.14.7": {
@@ -52686,7 +52686,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.155": {
+    "mado-0.1.156": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
