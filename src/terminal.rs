@@ -13527,7 +13527,10 @@ mod damage_invariant {
         ("alt screen off", b"\x1b[?1049l"),
         ("wide characters", b"\xe6\x97\xa5\xe6\x9c\xac\xe8\xaa\x9e"),
         ("combining marks", b"e\xcc\x81a\xcc\x80"),
-        ("many lines, forcing a scroll", b"1\r\n2\r\n3\r\n4\r\n5\r\n6\r\n7\r\n8\r\n9\r\n10\r\n"),
+        (
+            "many lines, forcing a scroll",
+            b"1\r\n2\r\n3\r\n4\r\n5\r\n6\r\n7\r\n8\r\n9\r\n10\r\n",
+        ),
         ("full reset", b"\x1bc"),
         ("write after reset", b"post-reset"),
     ];

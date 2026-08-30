@@ -989,22 +989,25 @@ mod tests {
             );
         }
 
-        // Symmetric Guard assertion via ishou's typed convergence
-        // helper. Catches the same drift class but with the named-
-        // intent error message ("font_increase chord drift") rather
-        // than the action-lookup mismatch above.
-        ishou_tokens::convergence::Guard::for_app("mado")
-            .expect_copy(kb.copy)
-            .expect_paste(kb.paste)
-            .expect_search_open(kb.search_open)
-            .expect_search_close(kb.search_close)
-            .expect_search_next(kb.search_next)
-            .expect_search_prev(kb.search_prev)
-            .expect_font_increase(kb.font_increase)
-            .expect_font_decrease(kb.font_decrease)
-            .expect_font_reset(kb.font_reset)
-            .expect_toggle_fullscreen(kb.toggle_fullscreen)
-            .run();
+        // ★ TEN TAUTOLOGIES REMOVED 2026-08-30. A `Guard` chain stood here,
+        // commented as catching "the same drift class" as the loop above. It
+        // caught nothing.
+        //
+        // Every expectation was `expect_copy(kb.copy)` where `kb` is
+        // `FleetKeybinds::prescribed()` — and the Guard compares what it is
+        // given against its OWN internal `prescribed()`. So each line asserted
+        // `prescribed().copy == prescribed().copy`. Ten assertions that could
+        // not fail, for any value of mado.
+        //
+        // Removing an assertion that cannot fail retires FALSE COVERAGE, not
+        // coverage. The real check is the `atlas_actions` loop above, which
+        // compares mado's ACTUAL `KeybindManager` lookups against the atlas —
+        // red-run 2026-08-30 by binding Copy to Paste:
+        //   `mado default for atlas chord "D-c" does not bind Copy`.
+        //
+        // `ishou_tokens::convergence::Guard::run()` now refuses a
+        // zero-expectation run, so the shape this block had — a Guard that
+        // examines nothing — is loud rather than green from ishou 0.1.15 on.
     }
 
     #[test]

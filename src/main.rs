@@ -84,10 +84,10 @@ mod safra;
 mod scenario;
 mod search;
 mod selection;
-mod shell_resolve;
 mod session;
 mod session_picker;
 mod session_switch;
+mod shell_resolve;
 mod single_writer;
 mod suggest;
 mod vt;
@@ -1272,9 +1272,6 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-
-
-
 /// Build EventResponse for exit request, applying confirm_close logic when enabled.
 fn exit_response(confirm_close: bool, pending_close: &AtomicBool) -> EventResponse {
     if !confirm_close {
@@ -1359,7 +1356,10 @@ mod tests {
     #[test]
     fn resolve_shell_keeps_a_real_binary() {
         // A configured shell that exists is returned verbatim.
-        assert_eq!(crate::shell_resolve::resolve(Some(&"/bin/sh".to_string())), "/bin/sh");
+        assert_eq!(
+            crate::shell_resolve::resolve(Some(&"/bin/sh".to_string())),
+            "/bin/sh"
+        );
     }
 
     #[test]

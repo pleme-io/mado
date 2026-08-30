@@ -74,7 +74,10 @@ mod tests {
         // returned this string straight to execvp.
         let got = resolve(Some("/nonexistent/definitely-not-a-shell"));
         assert_ne!(got, "/nonexistent/definitely-not-a-shell");
-        assert!(is_executable(&got), "the ladder returned {got:?}, which is not runnable");
+        assert!(
+            is_executable(&got),
+            "the ladder returned {got:?}, which is not runnable"
+        );
     }
 
     #[test]

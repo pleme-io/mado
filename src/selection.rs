@@ -324,11 +324,43 @@ mod tests {
             }};
         }
 
-        bumps!("start", s, {}, { s.start(a); });
-        bumps!("update", s, { s.start(a); }, { s.update(b); });
-        bumps!("set_span", s, {}, { s.set_span(a, b); });
-        bumps!("finish", s, { s.start(a); s.update(b); }, { s.finish(); });
-        bumps!("clear", s, { s.set_span(a, b); }, { s.clear(); });
+        bumps!("start", s, {}, {
+            s.start(a);
+        });
+        bumps!(
+            "update",
+            s,
+            {
+                s.start(a);
+            },
+            {
+                s.update(b);
+            }
+        );
+        bumps!("set_span", s, {}, {
+            s.set_span(a, b);
+        });
+        bumps!(
+            "finish",
+            s,
+            {
+                s.start(a);
+                s.update(b);
+            },
+            {
+                s.finish();
+            }
+        );
+        bumps!(
+            "clear",
+            s,
+            {
+                s.set_span(a, b);
+            },
+            {
+                s.clear();
+            }
+        );
     }
 
     /// `state` is assigned in exactly ONE place, so the epoch bump cannot be
