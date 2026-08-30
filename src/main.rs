@@ -98,6 +98,7 @@ mod theme;
 mod url;
 mod ux;
 mod vigy_host;
+mod vt_answer;
 // mod window removed at Phase 4 — single-pane mado uses single_pane.
 
 use std::sync::Arc;

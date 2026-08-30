@@ -437,17 +437,23 @@ impl SessionRegistry {
                         // frostmourne matrix (E2/E5 class; the GUI
                         // paths route the same answers through
                         // engate_consumer::ResponseWriter).
+                        // ★ ONE FUNNEL. Drained through `VtAnswer`, which has
+                        // no other constructor, so this writer cannot invent an
+                        // answer and cannot emit one it did not drain. Three
+                        // independent drainers is what produced the doubled
+                        // `^[[31;24R` the operator saw.
                         let response = {
                             let mut term = terminal_for_pump.write();
                             term.feed(&buf[..n]);
-                            term.take_response()
+                            crate::vt_answer::VtAnswer::drain(&mut term)
                         };
-                        if let Some(resp) = response {
+                        if let Some(resp) = response.filter(|a| !a.is_empty()) {
+                            let len = resp.len();
                             let mut w = writer_for_pump.lock().await;
-                            if let Err(e) = w.write_all(&resp).await {
+                            if let Err(e) = w.write_all(&resp.into_bytes()).await {
                                 tracing::warn!(
                                     error = %e,
-                                    len = resp.len(),
+                                    len,
                                     "VT query response write-back FAILED — shell may stall on an unanswered DSR/DA/OSC query"
                                 );
                             }
