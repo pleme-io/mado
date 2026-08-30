@@ -2970,9 +2970,9 @@ dependencies = [
 
 [[package]]
 name = "kanshou"
-version = "0.1.6"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ecc1ce8221366eb008f2e70b1f5f6484aaea3e7ce36882a57d6c7985fc496389"
+checksum = "d68d9ef63ea1ca6e9baab1bca576345729fb486bc3b18186a3b7b1a47165e387"
 dependencies = [
  "kanshou-derive",
  "okiba",
@@ -2985,9 +2985,9 @@ dependencies = [
 
 [[package]]
 name = "kanshou-derive"
-version = "0.1.6"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd1af4a28f63fa5440b742b7e87da01566e9238f3e4d654868e14eacb8f938c0"
+checksum = "8a9cfa3a7c6bff58172a12d89f446142d6673fe384a4525346c5609a97e14a52"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3346,7 +3346,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.151"
+version = "0.1.152"
 dependencies = [
  "anyhow",
  "awase",
@@ -4805,9 +4805,9 @@ dependencies = [
 
 [[package]]
 name = "pleme-nami-core"
-version = "0.1.16"
+version = "0.1.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6b7917a59e651f3412f57d47a47632960f7e23ffd35800a0a710a79811e3609"
+checksum = "228bd6c126b7c0b064fc28c076e331d6b13baa86d91a90be302851d01dab8547"
 dependencies = [
  "blake3",
  "garasu",
@@ -6270,9 +6270,9 @@ dependencies = [
 
 [[package]]
 name = "shikumi"
-version = "0.1.733"
+version = "0.1.734"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05ee7f2bc0bdfb151b6d0916cf9dd74f8bfeb7ce984d0489b6b14f3f51b9a094"
+checksum = "cec17067ae0aeb16671d6bb5293def3df024f8626efef343c3712103095c5ba3"
 dependencies = [
  "arc-swap",
  "async-trait",

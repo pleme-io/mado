@@ -5513,9 +5513,9 @@ rec {
       };
       "garasu" = rec {
         crateName = "garasu";
-        version = "0.1.12";
+        version = "0.1.14";
         edition = "2024";
-        sha256 = "1m290r91ycs71q3qk3pac5k2sbrcjxh0fjpgd8rkd31glz77fbn8";
+        sha256 = "19vqqmhac6m7ap26zm648sm6wcwn6fif9g7zaxh61prj1bxnxb3g";
         dependencies = [
           {
             name = "bincode";
@@ -10205,7 +10205,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.151";
+        version = "0.1.152";
         edition = "2024";
         crateBin = [
           {
@@ -21837,9 +21837,9 @@ rec {
       };
       "shikumi" = rec {
         crateName = "shikumi";
-        version = "0.1.731";
+        version = "0.1.733";
         edition = "2024";
-        sha256 = "1x2bsv4i0z916q9nxa02zp88fhjy3lll0gs3zp9xdbdym8j0aimn";
+        sha256 = "1550p58kykxins4h8kcqrsvzx2sgsyfwy5h9dldibyxxq0mpzvh5";
         dependencies = [
           {
             name = "arc-swap";

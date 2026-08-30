@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "5f5a54f8bf7b3b4ca84a53c31b81d5995798e9cfd4f90e51704347ec4eec730b",
+  "cargo_lock_sha256": "502913eb560633a6cfb0a1e8c419f07c9a307c9682fa58607d91bd76f96d301d",
   "manifest_sha256": {
-    "Cargo.toml": "aaf0f7953729f2064b714dd9e9b034806d3c4c06de58eb3d2441546fa80ef229"
+    "Cargo.toml": "b31994b3314f28cb2a31e7e32932557c51d99d248c413b6feda79fd6439697bf"
   },
   "target_resolves": {
     "base": {
@@ -7473,7 +7473,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.733",
+            "package_key": "shikumi-0.1.734",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7750,11 +7750,11 @@
           "v1_32"
         ]
       },
-      "kanshou-0.1.6": {
+      "kanshou-0.1.7": {
         "runtime_dependencies": [
           {
             "name": "kanshou_derive",
-            "package_key": "kanshou-derive-0.1.6",
+            "package_key": "kanshou-derive-0.1.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7838,7 +7838,7 @@
           "derive"
         ]
       },
-      "kanshou-derive-0.1.6": {
+      "kanshou-derive-0.1.7": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -9284,7 +9284,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.733",
+            "package_key": "shikumi-0.1.734",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12047,7 +12047,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "pleme-nami-core-0.1.16": {
+      "pleme-nami-core-0.1.17": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -17275,7 +17275,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.733",
+            "package_key": "shikumi-0.1.734",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17322,7 +17322,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.733": {
+      "shikumi-0.1.734": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -20191,7 +20191,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.733",
+            "package_key": "shikumi-0.1.734",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20953,7 +20953,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.733",
+            "package_key": "shikumi-0.1.734",
             "kind": "normal",
             "features": [
               "cli"
@@ -21192,7 +21192,7 @@
           },
           {
             "name": "kanshou",
-            "package_key": "kanshou-0.1.6",
+            "package_key": "kanshou-0.1.7",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -26351,7 +26351,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.151": {
+          "mado-0.1.152": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26606,7 +26606,7 @@
               },
               {
                 "name": "kanshou",
-                "package_key": "kanshou-0.1.6",
+                "package_key": "kanshou-0.1.7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26815,7 +26815,7 @@
               },
               {
                 "name": "nami_core",
-                "package_key": "pleme-nami-core-0.1.16",
+                "package_key": "pleme-nami-core-0.1.17",
                 "kind": "normal",
                 "features": [
                   "eval",
@@ -26926,7 +26926,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.733",
+                "package_key": "shikumi-0.1.734",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -31299,7 +31299,7 @@
               "system"
             ]
           },
-          "mado-0.1.151": {
+          "mado-0.1.152": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31554,7 +31554,7 @@
               },
               {
                 "name": "kanshou",
-                "package_key": "kanshou-0.1.6",
+                "package_key": "kanshou-0.1.7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31714,7 +31714,7 @@
               },
               {
                 "name": "nami_core",
-                "package_key": "pleme-nami-core-0.1.16",
+                "package_key": "pleme-nami-core-0.1.17",
                 "kind": "normal",
                 "features": [
                   "eval",
@@ -31825,7 +31825,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.733",
+                "package_key": "shikumi-0.1.734",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -35325,7 +35325,7 @@
               "system"
             ]
           },
-          "mado-0.1.151": {
+          "mado-0.1.152": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35580,7 +35580,7 @@
               },
               {
                 "name": "kanshou",
-                "package_key": "kanshou-0.1.6",
+                "package_key": "kanshou-0.1.7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35740,7 +35740,7 @@
               },
               {
                 "name": "nami_core",
-                "package_key": "pleme-nami-core-0.1.16",
+                "package_key": "pleme-nami-core-0.1.17",
                 "kind": "normal",
                 "features": [
                   "eval",
@@ -35851,7 +35851,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.733",
+                "package_key": "shikumi-0.1.734",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -39464,7 +39464,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.151": {
+          "mado-0.1.152": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39719,7 +39719,7 @@
               },
               {
                 "name": "kanshou",
-                "package_key": "kanshou-0.1.6",
+                "package_key": "kanshou-0.1.7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39928,7 +39928,7 @@
               },
               {
                 "name": "nami_core",
-                "package_key": "pleme-nami-core-0.1.16",
+                "package_key": "pleme-nami-core-0.1.17",
                 "kind": "normal",
                 "features": [
                   "eval",
@@ -40039,7 +40039,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.733",
+                "package_key": "shikumi-0.1.734",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -44419,7 +44419,7 @@
               "system"
             ]
           },
-          "mado-0.1.151": {
+          "mado-0.1.152": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44674,7 +44674,7 @@
               },
               {
                 "name": "kanshou",
-                "package_key": "kanshou-0.1.6",
+                "package_key": "kanshou-0.1.7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44834,7 +44834,7 @@
               },
               {
                 "name": "nami_core",
-                "package_key": "pleme-nami-core-0.1.16",
+                "package_key": "pleme-nami-core-0.1.17",
                 "kind": "normal",
                 "features": [
                   "eval",
@@ -44945,7 +44945,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.733",
+                "package_key": "shikumi-0.1.734",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -48452,7 +48452,7 @@
               "system"
             ]
           },
-          "mado-0.1.151": {
+          "mado-0.1.152": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48707,7 +48707,7 @@
               },
               {
                 "name": "kanshou",
-                "package_key": "kanshou-0.1.6",
+                "package_key": "kanshou-0.1.7",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48867,7 +48867,7 @@
               },
               {
                 "name": "nami_core",
-                "package_key": "pleme-nami-core-0.1.16",
+                "package_key": "pleme-nami-core-0.1.17",
                 "kind": "normal",
                 "features": [
                   "eval",
@@ -48978,7 +48978,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.733",
+                "package_key": "shikumi-0.1.734",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -52555,10 +52555,10 @@
     "kanchi-0.1.3": {
       "edition": "2024"
     },
-    "kanshou-0.1.6": {
+    "kanshou-0.1.7": {
       "edition": "2024"
     },
-    "kanshou-derive-0.1.6": {
+    "kanshou-derive-0.1.7": {
       "edition": "2024",
       "proc_macro": true
     },
@@ -52661,7 +52661,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.151": {
+    "mado-0.1.152": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -53092,7 +53092,7 @@
       "edition": "2024",
       "proc_macro": true
     },
-    "pleme-nami-core-0.1.16": {
+    "pleme-nami-core-0.1.17": {
       "edition": "2024",
       "lib_target": {
         "name": "nami_core",
@@ -53505,7 +53505,7 @@
     "shidou-0.1.10": {
       "edition": "2024"
     },
-    "shikumi-0.1.733": {
+    "shikumi-0.1.734": {
       "edition": "2024"
     },
     "shlex-2.0.1": {
