@@ -5326,6 +5326,7 @@ impl TerminalRenderer {
         placements: &[ImagePlacement],
         origin_x: f32,
         origin_y: f32,
+        clip: garasu::PaneRect,
     ) {
         if placements.is_empty() {
             return;
@@ -5414,7 +5415,7 @@ impl TerminalRenderer {
         // costs at most one extra bind per layer transition — correctness
         // (z-order honored) over a micro-optimization (fewer binds).
 
-        let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        let pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("mado_images"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view: target_view,
@@ -5429,50 +5430,71 @@ impl TerminalRenderer {
             occlusion_query_set: None,
         });
 
-        pass.set_pipeline(&image_pipeline.pipeline);
-        pass.set_bind_group(0, &image_pipeline.uniform_bind_group, &[]);
-
-        let mut current_id = u32::MAX;
-        let mut batch_start = 0;
-
-        for (i, (id, _instance)) in image_draws.iter().enumerate() {
-            if *id != current_id {
-                if current_id != u32::MAX && i > batch_start {
-                    let batch: Vec<_> = image_draws[batch_start..i]
-                        .iter()
-                        .map(|(_, inst)| *inst)
-                        .collect();
-                    gpu.queue.write_buffer(
-                        &image_pipeline.instance_buffer,
-                        0,
-                        bytemuck::cast_slice(&batch),
-                    );
-                    pass.set_vertex_buffer(0, image_pipeline.instance_buffer.slice(..));
-                    pass.draw(0..6, 0..batch.len() as u32);
+        // ── ★ KITTY IMAGES ARE NOW CONTAINED ────────────────────────────────
+        //
+        // This pass used to draw straight onto the attachment with no scissor,
+        // so a placement whose geometry exceeded the grid — an image scrolled
+        // partly off, or one sized from a client-supplied cell count — painted
+        // over the tab bar and the window chrome. Nothing clipped it, because
+        // nothing in the fleet clipped anything: `set_scissor_rect` appears in
+        // exactly one non-garasu file and only inside comments.
+        //
+        // `in_pane` issues the single `set_scissor_rect(clip)` BEFORE the
+        // closure can express a draw, and hands out a `PanePass` with no route
+        // back to the raw pass — so no expression inside this closure can paint
+        // outside `clip`.
+        //
+        // The draw SEQUENCE below is unchanged: same batching, same order, same
+        // per-id rebinding. `PanePass::instanced` sets pipeline + bind groups +
+        // vertex buffer + draw, which is exactly what the longhand did, so this
+        // is a containment change and not a rendering change.
+        // Batches are computed BEFORE the pass so every borrow they hold
+        // (`self.gpu_images`) outlives it — a closure capturing them inside the
+        // pass gives each `&BindGroup` an unrelated lifetime and cannot satisfy
+        // `instanced`'s `&'p` bound.
+        let mut batches: Vec<(usize, usize, Option<&wgpu::BindGroup>)> = Vec::new();
+        {
+            let mut current_id = u32::MAX;
+            let mut batch_start = 0usize;
+            let mut current_bg: Option<&wgpu::BindGroup> = None;
+            for (i, (id, _instance)) in image_draws.iter().enumerate() {
+                if *id != current_id {
+                    if current_id != u32::MAX && i > batch_start {
+                        batches.push((batch_start, i, current_bg));
+                    }
+                    current_id = *id;
+                    batch_start = i;
+                    current_bg = self.gpu_images.get(id).map(|g| &g.bind_group);
                 }
-
-                current_id = *id;
-                batch_start = i;
-
-                if let Some(gpu_img) = self.gpu_images.get(id) {
-                    pass.set_bind_group(1, &gpu_img.bind_group, &[]);
-                }
+            }
+            if current_id != u32::MAX && image_draws.len() > batch_start {
+                batches.push((batch_start, image_draws.len(), current_bg));
             }
         }
 
-        if current_id != u32::MAX && image_draws.len() > batch_start {
-            let batch: Vec<_> = image_draws[batch_start..]
-                .iter()
-                .map(|(_, inst)| *inst)
-                .collect();
-            gpu.queue.write_buffer(
-                &image_pipeline.instance_buffer,
-                0,
-                bytemuck::cast_slice(&batch),
-            );
-            pass.set_vertex_buffer(0, image_pipeline.instance_buffer.slice(..));
-            pass.draw(0..6, 0..batch.len() as u32);
-        }
+        let mut layered =
+            garasu::pane::LayeredPass::new(pass, garasu::PaneRect::root(width, height));
+        layered.in_pane(clip, |pp| {
+            for (from, to, bg) in &batches {
+                let batch: Vec<_> = image_draws[*from..*to].iter().map(|(_, i)| *i).collect();
+                gpu.queue.write_buffer(
+                    &image_pipeline.instance_buffer,
+                    0,
+                    bytemuck::cast_slice(&batch),
+                );
+                let mut groups: Vec<&wgpu::BindGroup> = vec![&image_pipeline.uniform_bind_group];
+                if let Some(b) = bg {
+                    groups.push(b);
+                }
+                pp.instanced(
+                    &image_pipeline.pipeline,
+                    &groups,
+                    image_pipeline.instance_buffer.slice(..),
+                    0..6,
+                    0..u32::try_from(batch.len()).unwrap_or(0),
+                );
+            }
+        });
     }
 
     /// Composite the floating browser panels (the engine-written mirror) as
@@ -6917,6 +6939,10 @@ impl RenderCallback for TerminalRenderer {
                 &images_below,
                 self.padding_px(),
                 self.padding_px(),
+                // Clip to the grid pane; the full target when none is set, which
+                // is byte-identical to the unclipped behaviour this replaces.
+                self.grid_pane
+                    .unwrap_or_else(|| garasu::PaneRect::root(ctx.width, ctx.height)),
             );
         }
 
@@ -7025,6 +7051,10 @@ impl RenderCallback for TerminalRenderer {
                 &images_above,
                 self.padding_px(),
                 self.padding_px(),
+                // Clip to the grid pane; the full target when none is set, which
+                // is byte-identical to the unclipped behaviour this replaces.
+                self.grid_pane
+                    .unwrap_or_else(|| garasu::PaneRect::root(ctx.width, ctx.height)),
             );
         }
 
