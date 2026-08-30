@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "4e4316192551f5b1acf876d3f47df6d30c7950b8170d1b0b948f05b5b0d4309d",
+  "cargo_lock_sha256": "fb4ff0a10144e68152c89beabd311775b92f2e30ce0463d75b4b0f42918b2ad6",
   "manifest_sha256": {
-    "Cargo.toml": "cd64469584b76bde3f6ec72e2eab663023ee315b2e36fbf980a822780df61a82"
+    "Cargo.toml": "f9ff89af1094dbacddb467b74f59178c55e0a894a5b73b20d9c6db872d24cb29"
   },
   "target_resolves": {
     "base": {
@@ -3244,11 +3244,21 @@
           "PartialEq"
         ]
       },
-      "egaku-0.1.14": {
+      "egaku-0.1.15": {
         "runtime_dependencies": [
           {
             "name": "awase",
             "package_key": "awase-0.1.10",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "ishou_tokens",
+            "package_key": "ishou-tokens-0.1.14",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4468,7 +4478,7 @@
           "std"
         ]
       },
-      "garasu-0.1.14": {
+      "garasu-0.1.15": {
         "runtime_dependencies": [
           {
             "name": "bincode",
@@ -4535,6 +4545,16 @@
           {
             "name": "lru",
             "package_key": "lru-0.12.5",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "mekuri",
+            "package_key": "mekuri-0.1.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7159,7 +7179,7 @@
           },
           {
             "name": "egaku",
-            "package_key": "egaku-0.1.14",
+            "package_key": "egaku-0.1.15",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8779,7 +8799,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "kukaku-0.1.20": {
+      "kukaku-0.1.22": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -9230,7 +9250,7 @@
         "runtime_dependencies": [
           {
             "name": "egaku",
-            "package_key": "egaku-0.1.14",
+            "package_key": "egaku-0.1.15",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9240,7 +9260,7 @@
           },
           {
             "name": "garasu",
-            "package_key": "garasu-0.1.14",
+            "package_key": "garasu-0.1.15",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9489,6 +9509,11 @@
             "tree": "target"
           }
         ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "mekuri-0.1.2": {
+        "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
       },
@@ -12061,7 +12086,7 @@
           },
           {
             "name": "garasu",
-            "package_key": "garasu-0.1.14",
+            "package_key": "garasu-0.1.15",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12484,7 +12509,7 @@
           "std"
         ]
       },
-      "praca-0.1.20": {
+      "praca-0.1.22": {
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
@@ -12520,7 +12545,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.20",
+            "package_key": "tear-types-0.1.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20796,7 +20821,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-client-0.1.20": {
+      "tear-client-0.1.22": {
         "runtime_dependencies": [
           {
             "name": "engate_attach",
@@ -20840,7 +20865,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.20",
+            "package_key": "tear-config-0.1.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20850,7 +20875,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.20",
+            "package_key": "tear-types-0.1.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20865,7 +20890,7 @@
           "engate"
         ]
       },
-      "tear-config-0.1.20": {
+      "tear-config-0.1.22": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20965,7 +20990,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.20",
+            "package_key": "tear-types-0.1.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20997,7 +21022,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-core-0.1.20": {
+      "tear-core-0.1.22": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21103,7 +21128,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.20",
+            "package_key": "tear-config-0.1.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21113,7 +21138,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.20",
+            "package_key": "tear-types-0.1.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21168,7 +21193,7 @@
           "engate"
         ]
       },
-      "tear-daemon-0.1.20": {
+      "tear-daemon-0.1.22": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21237,7 +21262,7 @@
           },
           {
             "name": "praca",
-            "package_key": "praca-0.1.20",
+            "package_key": "praca-0.1.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21279,7 +21304,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.20",
+            "package_key": "tear-config-0.1.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21289,7 +21314,7 @@
           },
           {
             "name": "tear_core",
-            "package_key": "tear-core-0.1.20",
+            "package_key": "tear-core-0.1.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21299,7 +21324,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.20",
+            "package_key": "tear-types-0.1.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21337,7 +21362,7 @@
           "default"
         ]
       },
-      "tear-types-0.1.20": {
+      "tear-types-0.1.22": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21391,7 +21416,7 @@
           },
           {
             "name": "kukaku",
-            "package_key": "kukaku-0.1.20",
+            "package_key": "kukaku-0.1.22",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -26351,7 +26376,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.153": {
+          "mado-0.1.154": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26442,7 +26467,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.14",
+                "package_key": "egaku-0.1.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26492,7 +26517,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.14",
+                "package_key": "garasu-0.1.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26829,7 +26854,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.20",
+                "package_key": "praca-0.1.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26948,7 +26973,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.20",
+                "package_key": "tear-client-0.1.22",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -26960,7 +26985,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.20",
+                "package_key": "tear-config-0.1.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26970,7 +26995,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.20",
+                "package_key": "tear-core-0.1.22",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -26982,7 +27007,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.20",
+                "package_key": "tear-types-0.1.22",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -31299,7 +31324,7 @@
               "system"
             ]
           },
-          "mado-0.1.153": {
+          "mado-0.1.154": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31390,7 +31415,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.14",
+                "package_key": "egaku-0.1.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31440,7 +31465,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.14",
+                "package_key": "garasu-0.1.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31728,7 +31753,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.20",
+                "package_key": "praca-0.1.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31847,7 +31872,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.20",
+                "package_key": "tear-client-0.1.22",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -31859,7 +31884,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.20",
+                "package_key": "tear-config-0.1.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31869,7 +31894,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.20",
+                "package_key": "tear-core-0.1.22",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -31881,7 +31906,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.20",
+                "package_key": "tear-types-0.1.22",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -35325,7 +35350,7 @@
               "system"
             ]
           },
-          "mado-0.1.153": {
+          "mado-0.1.154": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35416,7 +35441,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.14",
+                "package_key": "egaku-0.1.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35466,7 +35491,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.14",
+                "package_key": "garasu-0.1.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35754,7 +35779,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.20",
+                "package_key": "praca-0.1.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35873,7 +35898,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.20",
+                "package_key": "tear-client-0.1.22",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -35885,7 +35910,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.20",
+                "package_key": "tear-config-0.1.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35895,7 +35920,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.20",
+                "package_key": "tear-core-0.1.22",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -35907,7 +35932,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.20",
+                "package_key": "tear-types-0.1.22",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -39464,7 +39489,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.153": {
+          "mado-0.1.154": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39555,7 +39580,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.14",
+                "package_key": "egaku-0.1.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39605,7 +39630,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.14",
+                "package_key": "garasu-0.1.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39942,7 +39967,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.20",
+                "package_key": "praca-0.1.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40061,7 +40086,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.20",
+                "package_key": "tear-client-0.1.22",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -40073,7 +40098,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.20",
+                "package_key": "tear-config-0.1.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40083,7 +40108,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.20",
+                "package_key": "tear-core-0.1.22",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -40095,7 +40120,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.20",
+                "package_key": "tear-types-0.1.22",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -44419,7 +44444,7 @@
               "system"
             ]
           },
-          "mado-0.1.153": {
+          "mado-0.1.154": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44510,7 +44535,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.14",
+                "package_key": "egaku-0.1.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44560,7 +44585,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.14",
+                "package_key": "garasu-0.1.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44848,7 +44873,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.20",
+                "package_key": "praca-0.1.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44967,7 +44992,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.20",
+                "package_key": "tear-client-0.1.22",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -44979,7 +45004,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.20",
+                "package_key": "tear-config-0.1.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44989,7 +45014,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.20",
+                "package_key": "tear-core-0.1.22",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -45001,7 +45026,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.20",
+                "package_key": "tear-types-0.1.22",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -48452,7 +48477,7 @@
               "system"
             ]
           },
-          "mado-0.1.153": {
+          "mado-0.1.154": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48543,7 +48568,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.14",
+                "package_key": "egaku-0.1.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48593,7 +48618,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.14",
+                "package_key": "garasu-0.1.15",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48881,7 +48906,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.20",
+                "package_key": "praca-0.1.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49000,7 +49025,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.20",
+                "package_key": "tear-client-0.1.22",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -49012,7 +49037,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.20",
+                "package_key": "tear-config-0.1.22",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49022,7 +49047,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.20",
+                "package_key": "tear-core-0.1.22",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -49034,7 +49059,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.20",
+                "package_key": "tear-types-0.1.22",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -52130,7 +52155,7 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "egaku-0.1.14": {
+    "egaku-0.1.15": {
       "edition": "2024"
     },
     "either-1.18.0": {
@@ -52279,7 +52304,7 @@
     "futures-util-0.3.34": {
       "edition": "2018"
     },
-    "garasu-0.1.14": {
+    "garasu-0.1.15": {
       "edition": "2024",
       "build_script": "build.rs"
     },
@@ -52588,7 +52613,7 @@
     "kube-runtime-0.99.0": {
       "edition": "2021"
     },
-    "kukaku-0.1.20": {
+    "kukaku-0.1.22": {
       "edition": "2024"
     },
     "lazy_static-1.5.0": {
@@ -52661,7 +52686,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.153": {
+    "mado-0.1.154": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -52704,6 +52729,9 @@
         "name": "md5",
         "path": "src/lib.rs"
       }
+    },
+    "mekuri-0.1.2": {
+      "edition": "2024"
     },
     "memchr-2.8.3": {
       "edition": "2021"
@@ -53120,7 +53148,7 @@
     "ppv-lite86-0.2.21": {
       "edition": "2021"
     },
-    "praca-0.1.20": {
+    "praca-0.1.22": {
       "edition": "2024"
     },
     "precomputed-hash-0.1.1": {
@@ -53695,19 +53723,19 @@
         }
       ]
     },
-    "tear-client-0.1.20": {
+    "tear-client-0.1.22": {
       "edition": "2024"
     },
-    "tear-config-0.1.20": {
+    "tear-config-0.1.22": {
       "edition": "2024"
     },
-    "tear-core-0.1.20": {
+    "tear-core-0.1.22": {
       "edition": "2024"
     },
-    "tear-daemon-0.1.20": {
+    "tear-daemon-0.1.22": {
       "edition": "2024"
     },
-    "tear-types-0.1.20": {
+    "tear-types-0.1.22": {
       "edition": "2024"
     },
     "tempfile-3.27.0": {
