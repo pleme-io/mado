@@ -1991,6 +1991,32 @@ const SYNC_OUTPUT_MAX_DEFER: std::time::Duration = std::time::Duration::from_mil
 /// frames cost <1 ms, once, per switch.
 const EPOCH_FORCE_PAINT_FRAMES: u8 = 3;
 
+/// How many frames to force after ORDINARY new content.
+///
+/// ── ★ THE AFTERIMAGE WAS NEVER EPOCH-SPECIFIC ───────────────────────────────
+///
+/// `EPOCH_FORCE_PAINT_FRAMES` above already names this exact failure — a
+/// `present()` cycling back to a slot that still holds older content, seen as
+/// "shadow / copies of the prompt" — and it was armed ONLY on a grid-epoch
+/// change (RIS / config reload / session switch).
+///
+/// But nothing about the mechanism is epoch-specific. Any single paint lands in
+/// ONE swapchain slot; with `LoadOp::Load` the other 2-3 slots keep whatever
+/// they last held. A burst of output followed by quiet therefore leaves stale
+/// content in the slots that were not painted, and it surfaces the moment the
+/// swapchain cycles — which is why moving the pointer "uncovers" things: the
+/// cursor damage forces the repaints that were never owed.
+///
+/// Reported on plo 2026-08-30: *"everything in mado seems to leave lasting
+/// images, and waving the mouse around uncovers or paints over things that
+/// existed"*. Not after a session switch — all the time.
+///
+/// Same value and same reasoning as the epoch constant: comfortably past any
+/// platform swapchain depth (2-3). The cost is the same too — a full idle paint
+/// is ~300 us, so the worst case is <1 ms of extra work after a quiet edit, and
+/// during continuous output the frames were being painted anyway.
+const CONTENT_FORCE_PAINT_FRAMES: u8 = 3;
+
 /// Sealed column-truth for the dense terminal grid.
 ///
 /// ## The invariant, as a type
@@ -6624,6 +6650,19 @@ impl RenderCallback for TerminalRenderer {
         // We fall through to a full render; the cost difference
         // is negligible (snapshot was already paid for) and
         // consistency wins.
+        // ── ★ COVER EVERY SWAPCHAIN SLOT, NOT JUST THIS ONE ────────────────
+        //
+        // This paint reached ONE slot. The others still hold older content and
+        // will show it when `present()` cycles back, which is the afterimage
+        // the epoch constant above was written for -- applied there only to
+        // session switches, though the mechanism never was.
+        //
+        // Armed only when the content actually CHANGED: re-arming on an
+        // unchanged seqno would hold the renderer permanently awake, which is
+        // the opposite defect (a terminal that never idles).
+        if seqno != self.last_seqno {
+            self.force_paint_frames = self.force_paint_frames.max(CONTENT_FORCE_PAINT_FRAMES);
+        }
         self.last_seqno = seqno;
 
         // ★ The overlay's half of the same memo. `needs_frame` compares the
@@ -12878,5 +12917,45 @@ mod grid_pane_tests {
         assert!(root.split_x(0).is_none(), "a zero-width side is refused");
         assert!(root.split_x(640).is_none(), "so is a zero-width remainder");
         assert!(root.split_x(320).is_some());
+    }
+}
+
+#[cfg(test)]
+mod swapchain_afterimage_tests {
+    use super::{CONTENT_FORCE_PAINT_FRAMES, EPOCH_FORCE_PAINT_FRAMES};
+
+    /// ★ THE OPERATOR'S REPORT (plo, 2026-08-30).
+    ///
+    /// *"everything in mado seems to leave lasting images, and waving the mouse
+    /// around uncovers or paints over things that existed"*
+    ///
+    /// A single paint reaches ONE swapchain slot; with `LoadOp::Load` the other
+    /// 2–3 keep whatever they last held, and `present()` cycling back shows it.
+    /// Moving the pointer "uncovers" things because the cursor damage forces
+    /// the repaints that were never owed.
+    ///
+    /// `EPOCH_FORCE_PAINT_FRAMES` already named this exact failure — and was
+    /// armed only on a grid-epoch change, though nothing about the mechanism is
+    /// epoch-specific.
+    #[test]
+    fn content_paints_cover_the_whole_swapchain() {
+        // Must exceed any platform swapchain depth. Metal is 2–3; a value of 1
+        // would mean "paint once", which is the bug.
+        assert!(
+            CONTENT_FORCE_PAINT_FRAMES >= 3,
+            "must exceed a 2–3 slot swapchain, got {CONTENT_FORCE_PAINT_FRAMES}"
+        );
+    }
+
+    /// The two constants exist for ONE mechanism, so they must not drift apart.
+    /// If a future reader raises the epoch one because a deeper swapchain
+    /// appeared, the content one is wrong by exactly the same amount.
+    #[test]
+    fn both_force_paint_paths_cover_the_same_depth() {
+        assert_eq!(
+            CONTENT_FORCE_PAINT_FRAMES, EPOCH_FORCE_PAINT_FRAMES,
+            "one mechanism, one depth — a session switch and ordinary output \
+             land in the same swapchain"
+        );
     }
 }
