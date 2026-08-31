@@ -52,7 +52,12 @@ impl AsRawFd for RawOwnedFd {
 /// A pseudo-terminal with an associated child shell process.
 pub struct Pty {
     master_fd: OwnedFd,
-    _child: Child,
+    /// The child shell. Retained for its DROP, not to be read: the spawn sets
+    /// `kill_on_drop(true)`, so dropping this handle is what reaps the shell and
+    /// releases its PTY. Do not remove it as an "unused" field, and do not
+    /// re-prefix it with `_` — the underscore is what made it look droppable and
+    /// hid the leak below.
+    child: Child,
 }
 
 impl Pty {
@@ -115,7 +120,7 @@ impl Pty {
 
         Ok(Self {
             master_fd,
-            _child: child,
+            child,
         })
     }
 
@@ -424,6 +429,54 @@ fn spawn_child(
     }
 
     let child = tokio::process::Command::from(cmd)
+        // ★ Reap the shell when its Pty is dropped. Closing the master fd is NOT
+        // enough: `pre_exec` above makes the child a session leader (`setsid`)
+        // owning the slave as its controlling terminal (`TIOCSCTTY`), and callers
+        // routinely put that tty in raw mode (`stty raw -echo`), which disables
+        // the line-discipline signals. So the shell survives its master's EOF,
+        // is reparented to launchd, and holds its PTY forever.
+        //
+        // Measured on ryn 2026-08-31: 486 orphaned `-sh` from this path had taken
+        // ttys001..ttys510 against the `kern.tty.ptmx_max` cap of 511, so every
+        // subsequent PTY allocation failed with ENXIO — which broke `nix run
+        // .#rebuild` with "opening pseudoterminal master: Device not configured".
+        // They accumulated in batches Aug 28-30 from the session tests, which
+        // spawn a real login shell per case. `single_pane.rs`'s "openpty failed
+        // 10x" retry loop is the symptom this line removes the cause of.
+        //
+        // Same idiom already used for the e2e mcp child (`e2e.rs`).
+        //
+        // ★ TIER-HONEST — this is a HARDENING, not a proven cure, and the
+        // difference matters if the leak recurs. It fixes the path where `Drop`
+        // actually runs. It CANNOT help when the parent dies abruptly
+        // (Ctrl-C/SIGKILL/abort of `cargo test`), because nothing runs on
+        // SIGKILL — and that is the likelier origin of the 486, which arrived in
+        // batches over three days of test runs.
+        //
+        // The trigger is UNREPRODUCED. Three models were built and all three
+        // FAILED to leak, so do not trust any of them as the explanation:
+        //
+        //   1. Normal `Pty` drop, cooked mode — shell exits on the master's EOF.
+        //      A unit test asserting this passed with `kill_on_drop` BOTH true
+        //      and false, i.e. it was vacuous; removed rather than shipped as a
+        //      false guard (red-run 2026-08-31).
+        //   2. Normal drop with the tty in `stty raw -echo` — still exits.
+        //   3. Parent SIGKILLed so no `Drop` runs at all — the kernel closes the
+        //      master, the session leader takes SIGHUP, shell dies. Modelled with
+        //      `pty.fork()` and again with an explicitly inheritable master.
+        //
+        // So the surviving hypothesis needs something none of these had. The
+        // untested suspect is the `dd bs=1 count=1` child the session DSR test
+        // leaves blocked on the tty in raw mode (`session.rs`): the shell is in
+        // `wait()` for it, and that pair's signal handling was never examined.
+        //
+        // ★ AND THE EVIDENCE WAS DESTROYED: 486 live specimens existed and were
+        // reaped to unblock a rebuild BEFORE any were inspected. If this recurs,
+        // INSPECT FIRST — `lsof -p <pid>` (who holds the master), `ps -o
+        // stat,wchan -p <pid>` (what it is blocked in), and the process group /
+        // session of the shell and its `dd` child. One specimen answers this;
+        // no amount of modelling has.
+        .kill_on_drop(true)
         .spawn()
         .map_err(PtyError::Spawn)?;
 
