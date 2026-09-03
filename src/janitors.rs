@@ -858,6 +858,87 @@ struct Slot {
 pub struct JanitorRunner {
     slots: Vec<Slot>,
     board_rows: bool,
+    /// Findings already reported, as `key -> (title, times seen)`.
+    ///
+    /// ★ Bounded: cleared wholesale past `SEEN_CAP`, which degrades to
+    /// "everything is loud again" — noisy, never wrong. An unbounded map on a
+    /// process that runs for days is a leak, and a leak in the thing that
+    /// exists to reduce noise would be a poor trade.
+    seen: BTreeMap<String, (String, u64)>,
+}
+
+/// Distinct finding keys remembered before the memory is dropped. Two orders
+/// of magnitude above the fourteen keys measured on plo.
+const SEEN_CAP: usize = 1024;
+
+/// What to do with a finding that has been seen before.
+///
+/// ── ★ WHY THIS EXISTS, MEASURED ON plo 2026-09-03 ────────────────────────
+/// The suggest-health janitor emitted **fourteen identical INFO lines every
+/// two minutes, indefinitely** — one per source, each saying "<source> has
+/// never once succeeded". Roughly ten thousand lines a day, all of them the
+/// same fourteen facts.
+///
+/// The findings were CORRECT. Re-stating an unchanged finding at full volume
+/// is the defect, and it is not merely untidy: that flood is what buried a
+/// genuine one-line event in the same journal — `garasu` reporting that the
+/// seat had fallen back to CPU rendering — and made it hard to find while
+/// investigating exactly that. A log that repeats itself trains its reader to
+/// stop reading it, which costs the next real event.
+///
+/// So volume follows *staleness*, not tick rate: new and changed findings are
+/// loud, an unchanged one is quiet, and a long-standing one re-announces
+/// itself occasionally WITH its age so it can never go silently permanent.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Emit {
+    /// Never seen before. Loud.
+    First,
+    /// Seen, but it says something different now. Loud — a changed finding is
+    /// news even when the key is old.
+    Changed,
+    /// Same finding, same words. Quiet; counted.
+    Repeat { seen: u64 },
+    /// Same finding, and it has now repeated enough to be worth restating —
+    /// with the count, so "still blind, 30 sweeps later" is one line instead
+    /// of thirty.
+    Reaffirm { seen: u64 },
+}
+
+impl Emit {
+    /// How many repeats between re-announcements.
+    ///
+    /// 30 against the suggest janitor's 120 s interval is one line an hour per
+    /// stuck source, rather than thirty. Counted in SWEEPS rather than
+    /// seconds because a janitor's interval is its own business, and a slow
+    /// janitor must not be re-announced more often than it actually runs.
+    pub const REAFFIRM_EVERY: u64 = 30;
+
+    /// True when this emission belongs at INFO rather than DEBUG.
+    #[must_use]
+    pub const fn is_loud(self) -> bool {
+        matches!(self, Self::First | Self::Changed | Self::Reaffirm { .. })
+    }
+
+    /// Decide, from what was seen before and what is being reported now.
+    ///
+    /// Pure so it can be tested without a janitor, a clock, or a log sink —
+    /// which is the whole reason the rule lives in a function rather than in
+    /// an `if` inside the sweep.
+    #[must_use]
+    pub fn decide(previous: Option<(&str, u64)>, title: &str) -> Self {
+        match previous {
+            None => Self::First,
+            Some((prev_title, _)) if prev_title != title => Self::Changed,
+            Some((_, seen)) => {
+                let seen = seen.saturating_add(1);
+                if seen % Self::REAFFIRM_EVERY == 0 {
+                    Self::Reaffirm { seen }
+                } else {
+                    Self::Repeat { seen }
+                }
+            }
+        }
+    }
 }
 
 impl JanitorRunner {
@@ -901,6 +982,7 @@ impl JanitorRunner {
         Self {
             slots,
             board_rows: cfg.board_rows,
+            seen: BTreeMap::new(),
         }
     }
 
@@ -917,6 +999,9 @@ impl JanitorRunner {
     pub fn tick(&mut self, env: &dyn JanitorEnv, bus: &FiberBus, now_ms: u64) -> usize {
         let mut processed = 0_usize;
         let board_rows = self.board_rows;
+        // Split the borrow: the loop holds `&mut self.slots`, so the memory
+        // is reached through its own binding rather than through `self`.
+        let seen = &mut self.seen;
         for slot in &mut self.slots {
             if slot.last_run_ms != 0 && now_ms.saturating_sub(slot.last_run_ms) < slot.interval_ms {
                 continue;
@@ -932,14 +1017,49 @@ impl JanitorRunner {
                 } else {
                     RemediationOutcome::ShadowHeld
                 };
-                tracing::info!(
-                    janitor = finding.janitor.slug(),
-                    key = %finding.key,
-                    authority = slot.authority.label(),
-                    outcome = outcome.label(),
-                    title = %finding.title,
-                    "janitor finding"
+                // ★ Volume follows staleness, not tick rate. See `Emit`.
+                let key = finding.key.to_string();
+                let title = finding.title.to_string();
+                let emit = Emit::decide(seen.get(&key).map(|(t, n)| (t.as_str(), *n)), &title);
+                if seen.len() >= SEEN_CAP && !seen.contains_key(&key) {
+                    tracing::warn!(
+                        cap = SEEN_CAP,
+                        "janitor finding memory full — clearing it; findings \
+                         will be reported as new until it refills"
+                    );
+                    seen.clear();
+                }
+                seen.insert(
+                    key,
+                    (
+                        title,
+                        match emit {
+                            Emit::First | Emit::Changed => 0,
+                            Emit::Repeat { seen } | Emit::Reaffirm { seen } => seen,
+                        },
+                    ),
                 );
+                if emit.is_loud() {
+                    tracing::info!(
+                        janitor = finding.janitor.slug(),
+                        key = %finding.key,
+                        authority = slot.authority.label(),
+                        outcome = outcome.label(),
+                        title = %finding.title,
+                        emit = ?emit,
+                        "janitor finding"
+                    );
+                } else {
+                    tracing::debug!(
+                        janitor = finding.janitor.slug(),
+                        key = %finding.key,
+                        authority = slot.authority.label(),
+                        outcome = outcome.label(),
+                        title = %finding.title,
+                        emit = ?emit,
+                        "janitor finding (unchanged)"
+                    );
+                }
                 // Effect facts get their own session-lifecycle event.
                 if outcome == RemediationOutcome::Applied
                     && finding.kind == FindingKind::GhostSession
@@ -1634,5 +1754,92 @@ mod tests {
         assert_eq!(cfg.ghost_session.authority, Some(Authority::Shadow));
         let back = serde_yaml_ng::to_string(&cfg).expect("serializes");
         assert!(back.contains("authority: effect"));
+    }
+}
+
+#[cfg(test)]
+mod emit_tests {
+    use super::Emit;
+
+    /// ★ THE MEASURED DEFECT, PINNED: fourteen sources, none of which ever
+    /// changes, must not produce fourteen INFO lines every sweep forever.
+    ///
+    /// Simulates one stuck source across a full hour of the suggest janitor's
+    /// 120 s sweeps and counts what would reach INFO.
+    #[test]
+    fn a_permanently_stuck_finding_is_loud_about_twice_an_hour_not_thirty_times() {
+        let title = "blind source: jira-sprint has never once succeeded";
+        let mut prev: Option<(String, u64)> = None;
+        let mut loud = 0_usize;
+        // 61 sweeps x 120 s ≈ two hours. 61 rather than 60 because sweep 1 is
+        // `First` and RESETS the counter, so the Nth repeat lands on sweep
+        // N+1 — an off-by-one I got wrong first and the test caught.
+        for _ in 0..61 {
+            let e = Emit::decide(prev.as_ref().map(|(t, n)| (t.as_str(), *n)), title);
+            if e.is_loud() {
+                loud += 1;
+            }
+            let n = match e {
+                Emit::First | Emit::Changed => 0,
+                Emit::Repeat { seen } | Emit::Reaffirm { seen } => seen,
+            };
+            prev = Some((title.to_string(), n));
+        }
+        // `First` at sweep 1, then a `Reaffirm` at 31 and at 61. Three lines
+        // where the same two hours previously produced 61 — and, across the
+        // fourteen stuck sources actually measured on plo, 854.
+        assert_eq!(
+            loud, 3,
+            "an unchanged finding went loud {loud} times in two hours; the \
+             whole point is that volume follows staleness, not tick rate"
+        );
+    }
+
+    /// ★ AND IT NEVER GOES SILENTLY PERMANENT. A finding that is quiet
+    /// forever is indistinguishable from one that was fixed, which would be
+    /// trading a noise bug for a blindness bug.
+    #[test]
+    fn a_long_standing_finding_still_reaffirms_with_its_age() {
+        let e = Emit::decide(Some(("same", Emit::REAFFIRM_EVERY - 1)), "same");
+        assert_eq!(
+            e,
+            Emit::Reaffirm {
+                seen: Emit::REAFFIRM_EVERY
+            }
+        );
+        assert!(e.is_loud(), "the reaffirmation must reach INFO");
+    }
+
+    /// ★ A CHANGED FINDING IS NEWS, even under an old key — otherwise a source
+    /// that went from `blind` to `failing` would be swallowed by the dedupe,
+    /// which is the exact event an operator needs.
+    #[test]
+    fn a_changed_title_is_loud_however_old_the_key_is() {
+        let e = Emit::decide(
+            Some(("blind source: jira-sprint", 9_999)),
+            "jira-sprint is failing",
+        );
+        assert_eq!(e, Emit::Changed);
+        assert!(e.is_loud());
+    }
+
+    /// ★ THE FIRST SIGHTING IS ALWAYS LOUD — a new problem must never wait
+    /// for a reaffirmation window to be heard.
+    #[test]
+    fn the_first_sighting_is_loud() {
+        assert_eq!(Emit::decide(None, "anything"), Emit::First);
+        assert!(Emit::decide(None, "anything").is_loud());
+    }
+
+    /// ★ ANTI-VACUITY: the quiet case must actually be quiet. Without this a
+    /// change making everything loud would pass every test above.
+    #[test]
+    fn an_ordinary_repeat_is_quiet() {
+        let e = Emit::decide(Some(("same", 1)), "same");
+        assert_eq!(e, Emit::Repeat { seen: 2 });
+        assert!(
+            !e.is_loud(),
+            "an unchanged repeat reached INFO — the flood is back"
+        );
     }
 }
