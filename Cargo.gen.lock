@@ -1,53 +1,14 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "942984cdcdef1cd6afcef556f5ec5b2f5c9487b6b5e88ab4618df86459af20e2",
+  "cargo_lock_sha256": "c7051a25a3101bb7fd64c603c7ddc307ad147c182af79f583b4165898e2e8f8e",
   "manifest_sha256": {
-    "Cargo.toml": "2b0b839ca6fb8b8168d2fe6a0ba0fc24d772ec18f0d6869da9a86ce4f0d9b94e"
+    "Cargo.toml": "1b5021a2f375aaa7744d13982b19b46a0a4e0940447d4099160af0b201c82692"
   },
   "target_resolves": {
     "base": {
       "adler2-2.0.1": {
         "runtime_dependencies": [],
         "build_dependencies": [],
-        "features": []
-      },
-      "ahash-0.7.8": {
-        "runtime_dependencies": [
-          {
-            "name": "getrandom",
-            "package_key": "getrandom-0.2.17",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": "cfg(any(target_os = \"linux\", target_os = \"android\", target_os = \"windows\", target_os = \"macos\", target_os = \"ios\", target_os = \"freebsd\", target_os = \"openbsd\", target_os = \"netbsd\", target_os = \"dragonfly\", target_os = \"solaris\", target_os = \"illumos\", target_os = \"fuchsia\", target_os = \"redox\", target_os = \"cloudabi\", target_os = \"haiku\", target_os = \"vxworks\", target_os = \"emscripten\", target_os = \"wasi\"))",
-            "tree": "target"
-          },
-          {
-            "name": "once_cell",
-            "package_key": "once_cell-1.21.4",
-            "kind": "normal",
-            "features": [
-              "alloc"
-            ],
-            "uses_default_features": false,
-            "optional": false,
-            "target": "cfg(not(all(target_arch = \"arm\", target_os = \"none\")))",
-            "tree": "target"
-          }
-        ],
-        "build_dependencies": [
-          {
-            "name": "version_check",
-            "package_key": "version_check-0.9.5",
-            "kind": "build",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "host"
-          }
-        ],
         "features": []
       },
       "ahash-0.8.12": {
@@ -400,11 +361,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "async-compression-0.4.43": {
+      "async-compression-0.4.44": {
         "runtime_dependencies": [
           {
             "name": "compression_codecs",
-            "package_key": "compression-codecs-0.4.38",
+            "package_key": "compression-codecs-0.4.39",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -414,7 +375,7 @@
           },
           {
             "name": "compression_core",
-            "package_key": "compression-core-0.4.32",
+            "package_key": "compression-core-0.4.33",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1063,7 +1024,7 @@
         "runtime_dependencies": [
           {
             "name": "rust_decimal",
-            "package_key": "rust_decimal-1.42.1",
+            "package_key": "rust_decimal-1.43.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -1087,83 +1048,6 @@
           "byte",
           "default",
           "rust_decimal",
-          "std"
-        ]
-      },
-      "bytecheck-0.6.12": {
-        "runtime_dependencies": [
-          {
-            "name": "bytecheck_derive",
-            "package_key": "bytecheck_derive-0.6.12",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": false,
-            "optional": false,
-            "target": null,
-            "tree": "host"
-          },
-          {
-            "name": "ptr_meta",
-            "package_key": "ptr_meta-0.1.4",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": false,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "simdutf8",
-            "package_key": "simdutf8-0.1.5",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": false,
-            "optional": true,
-            "target": null,
-            "tree": "target"
-          }
-        ],
-        "build_dependencies": [],
-        "features": [
-          "simdutf8",
-          "std"
-        ]
-      },
-      "bytecheck_derive-0.6.12": {
-        "runtime_dependencies": [
-          {
-            "name": "proc_macro2",
-            "package_key": "proc-macro2-1.0.107",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "quote",
-            "package_key": "quote-1.0.47",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "syn",
-            "package_key": "syn-1.0.109",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          }
-        ],
-        "build_dependencies": [],
-        "features": [
           "std"
         ]
       },
@@ -1625,7 +1509,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "compression-codecs-0.4.38": {
+      "compression-codecs-0.4.39": {
         "runtime_dependencies": [
           {
             "name": "brotli",
@@ -1639,7 +1523,7 @@
           },
           {
             "name": "compression_core",
-            "package_key": "compression-core-0.4.32",
+            "package_key": "compression-core-0.4.33",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -1676,7 +1560,7 @@
           "memchr"
         ]
       },
-      "compression-core-0.4.32": {
+      "compression-core-0.4.33": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
@@ -2384,7 +2268,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.15.2",
+            "package_key": "smallvec-1.16.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3258,7 +3142,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.15",
+            "package_key": "ishou-tokens-0.1.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5499,26 +5383,6 @@
         "build_dependencies": [],
         "features": []
       },
-      "hashbrown-0.12.3": {
-        "runtime_dependencies": [
-          {
-            "name": "ahash",
-            "package_key": "ahash-0.7.8",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": false,
-            "optional": true,
-            "target": null,
-            "tree": "target"
-          }
-        ],
-        "build_dependencies": [],
-        "features": [
-          "ahash",
-          "default",
-          "inline-more"
-        ]
-      },
       "hashbrown-0.14.5": {
         "runtime_dependencies": [
           {
@@ -6142,7 +6006,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.15.2",
+            "package_key": "smallvec-1.16.0",
             "kind": "normal",
             "features": [
               "const_generics",
@@ -6659,7 +6523,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.15.2",
+            "package_key": "smallvec-1.16.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -6910,7 +6774,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.15.2",
+            "package_key": "smallvec-1.16.0",
             "kind": "normal",
             "features": [
               "const_generics"
@@ -7266,7 +7130,7 @@
           "default"
         ]
       },
-      "ishou-tokens-0.1.15": {
+      "ishou-tokens-0.1.17": {
         "runtime_dependencies": [
           {
             "name": "irodori",
@@ -7493,7 +7357,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.734",
+            "package_key": "shikumi-0.1.778",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8799,7 +8663,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "kukaku-0.1.22": {
+      "kukaku-0.1.24": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -9068,7 +8932,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.15.2",
+            "package_key": "smallvec-1.16.0",
             "kind": "normal",
             "features": [
               "union"
@@ -9270,7 +9134,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.15",
+            "package_key": "ishou-tokens-0.1.17",
             "kind": "normal",
             "features": [
               "wgpu"
@@ -9304,7 +9168,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.734",
+            "package_key": "shikumi-0.1.778",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9643,7 +9507,7 @@
           "with-alloc"
         ]
       },
-      "mio-1.2.2": {
+      "mio-1.2.3": {
         "runtime_dependencies": [
           {
             "name": "libc",
@@ -10287,7 +10151,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.15.2",
+            "package_key": "smallvec-1.16.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -10995,7 +10859,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.15.2",
+            "package_key": "smallvec-1.16.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11075,7 +10939,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.15.2",
+            "package_key": "smallvec-1.16.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12136,7 +12000,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.15",
+            "package_key": "ishou-tokens-0.1.17",
             "kind": "normal",
             "features": [
               "wgpu"
@@ -12232,7 +12096,7 @@
           },
           {
             "name": "tatara_eval",
-            "package_key": "tatara-eval-0.2.451",
+            "package_key": "tatara-eval-0.2.499",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12509,11 +12373,11 @@
           "std"
         ]
       },
-      "praca-0.1.22": {
+      "praca-0.1.24": {
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.15",
+            "package_key": "ishou-tokens-0.1.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12545,7 +12409,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.22",
+            "package_key": "tear-types-0.1.24",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12880,62 +12744,6 @@
       },
       "psl-types-2.0.11": {
         "runtime_dependencies": [],
-        "build_dependencies": [],
-        "features": []
-      },
-      "ptr_meta-0.1.4": {
-        "runtime_dependencies": [
-          {
-            "name": "ptr_meta_derive",
-            "package_key": "ptr_meta_derive-0.1.4",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "host"
-          }
-        ],
-        "build_dependencies": [],
-        "features": [
-          "std"
-        ]
-      },
-      "ptr_meta_derive-0.1.4": {
-        "runtime_dependencies": [
-          {
-            "name": "proc_macro2",
-            "package_key": "proc-macro2-1.0.107",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "quote",
-            "package_key": "quote-1.0.47",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "syn",
-            "package_key": "syn-1.0.109",
-            "kind": "normal",
-            "features": [
-              "full"
-            ],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          }
-        ],
         "build_dependencies": [],
         "features": []
       },
@@ -13981,25 +13789,6 @@
           "unicode-segment"
         ]
       },
-      "rend-0.4.2": {
-        "runtime_dependencies": [
-          {
-            "name": "bytecheck",
-            "package_key": "bytecheck-0.6.12",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": false,
-            "optional": true,
-            "target": null,
-            "tree": "target"
-          }
-        ],
-        "build_dependencies": [],
-        "features": [
-          "bytecheck",
-          "std"
-        ]
-      },
       "renderdoc-sys-1.1.0": {
         "runtime_dependencies": [],
         "build_dependencies": [],
@@ -14365,95 +14154,6 @@
           "rustls-tls-webpki-roots",
           "rustls-tls-webpki-roots-no-provider",
           "system-proxy"
-        ]
-      },
-      "rkyv-0.7.46": {
-        "runtime_dependencies": [
-          {
-            "name": "hashbrown",
-            "package_key": "hashbrown-0.12.3",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": true,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "ptr_meta",
-            "package_key": "ptr_meta-0.1.4",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": false,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "rkyv_derive",
-            "package_key": "rkyv_derive-0.7.46",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "host"
-          },
-          {
-            "name": "seahash",
-            "package_key": "seahash-4.1.0",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          }
-        ],
-        "build_dependencies": [],
-        "features": [
-          "alloc",
-          "hashbrown",
-          "size_32",
-          "std"
-        ]
-      },
-      "rkyv_derive-0.7.46": {
-        "runtime_dependencies": [
-          {
-            "name": "proc_macro2",
-            "package_key": "proc-macro2-1.0.107",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "quote",
-            "package_key": "quote-1.0.47",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          },
-          {
-            "name": "syn",
-            "package_key": "syn-1.0.109",
-            "kind": "normal",
-            "features": [],
-            "uses_default_features": true,
-            "optional": false,
-            "target": null,
-            "tree": "target"
-          }
-        ],
-        "build_dependencies": [],
-        "features": [
-          "default"
         ]
       },
       "rmcp-0.15.0": {
@@ -14925,7 +14625,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.15.2",
+            "package_key": "smallvec-1.16.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14940,7 +14640,7 @@
           "modern_sqlite"
         ]
       },
-      "rust_decimal-1.42.1": {
+      "rust_decimal-1.43.0": {
         "runtime_dependencies": [
           {
             "name": "arrayvec",
@@ -15252,7 +14952,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.15.2",
+            "package_key": "smallvec-1.16.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15771,7 +15471,7 @@
           },
           {
             "name": "rust_decimal",
-            "package_key": "rust_decimal-1.42.1",
+            "package_key": "rust_decimal-1.43.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -16278,7 +15978,7 @@
           },
           {
             "name": "rust_decimal",
-            "package_key": "rust_decimal-1.42.1",
+            "package_key": "rust_decimal-1.43.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -16382,7 +16082,7 @@
           },
           {
             "name": "rust_decimal",
-            "package_key": "rust_decimal-1.42.1",
+            "package_key": "rust_decimal-1.43.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -16662,13 +16362,6 @@
         ],
         "build_dependencies": [],
         "features": []
-      },
-      "seahash-4.1.0": {
-        "runtime_dependencies": [],
-        "build_dependencies": [],
-        "features": [
-          "default"
-        ]
       },
       "secrecy-0.10.3": {
         "runtime_dependencies": [
@@ -17300,7 +16993,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.734",
+            "package_key": "shikumi-0.1.778",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17347,7 +17040,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.734": {
+      "shikumi-0.1.778": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -17570,13 +17263,6 @@
           "std"
         ]
       },
-      "simdutf8-0.1.5": {
-        "runtime_dependencies": [],
-        "build_dependencies": [],
-        "features": [
-          "std"
-        ]
-      },
       "siphasher-1.0.3": {
         "runtime_dependencies": [],
         "build_dependencies": [],
@@ -17640,7 +17326,7 @@
           "std"
         ]
       },
-      "smallvec-1.15.2": {
+      "smallvec-1.16.0": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -17997,7 +17683,7 @@
           },
           {
             "name": "rust_decimal",
-            "package_key": "rust_decimal-1.42.1",
+            "package_key": "rust_decimal-1.43.0",
             "kind": "normal",
             "features": [
               "std"
@@ -18057,7 +17743,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.15.2",
+            "package_key": "smallvec-1.16.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18744,7 +18430,7 @@
           },
           {
             "name": "rust_decimal",
-            "package_key": "rust_decimal-1.42.1",
+            "package_key": "rust_decimal-1.43.0",
             "kind": "normal",
             "features": [
               "std"
@@ -18786,7 +18472,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.15.2",
+            "package_key": "smallvec-1.16.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19128,7 +18814,7 @@
           },
           {
             "name": "rust_decimal",
-            "package_key": "rust_decimal-1.42.1",
+            "package_key": "rust_decimal-1.43.0",
             "kind": "normal",
             "features": [
               "std"
@@ -19174,7 +18860,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.15.2",
+            "package_key": "smallvec-1.16.0",
             "kind": "normal",
             "features": [
               "serde"
@@ -19828,7 +19514,6 @@
           "default",
           "derive",
           "extra-traits",
-          "full",
           "parsing",
           "printing",
           "proc-macro",
@@ -20105,7 +19790,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-core-0.2.451": {
+      "tatara-core-0.2.499": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20216,7 +19901,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.734",
+            "package_key": "shikumi-0.1.778",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20271,7 +19956,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-eval-0.2.451": {
+      "tatara-eval-0.2.499": {
         "runtime_dependencies": [
           {
             "name": "bumpalo",
@@ -20319,7 +20004,7 @@
           },
           {
             "name": "tatara_nix",
-            "package_key": "tatara-nix-0.2.451",
+            "package_key": "tatara-nix-0.2.499",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20341,7 +20026,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lattice-0.2.451": {
+      "tatara-lattice-0.2.499": {
         "runtime_dependencies": [
           {
             "name": "schemars",
@@ -20369,7 +20054,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.451",
+            "package_key": "tatara-core-0.2.499",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20379,7 +20064,7 @@
           },
           {
             "name": "tatara_process",
-            "package_key": "tatara-process-0.2.451",
+            "package_key": "tatara-process-0.2.499",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20545,7 +20230,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-nix-0.2.451": {
+      "tatara-nix-0.2.499": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -20591,7 +20276,7 @@
           },
           {
             "name": "tatara_lattice",
-            "package_key": "tatara-lattice-0.2.451",
+            "package_key": "tatara-lattice-0.2.499",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20643,7 +20328,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-process-0.2.451": {
+      "tatara-process-0.2.499": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20672,6 +20357,16 @@
             "features": [
               "serde"
             ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "either",
+            "package_key": "either-1.18.0",
+            "kind": "normal",
+            "features": [],
             "uses_default_features": true,
             "optional": false,
             "target": null,
@@ -20779,7 +20474,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.451",
+            "package_key": "tatara-core-0.2.499",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20821,7 +20516,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-client-0.1.22": {
+      "tear-client-0.1.24": {
         "runtime_dependencies": [
           {
             "name": "engate_attach",
@@ -20865,7 +20560,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.22",
+            "package_key": "tear-config-0.1.24",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20875,7 +20570,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.22",
+            "package_key": "tear-types-0.1.24",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20890,7 +20585,7 @@
           "engate"
         ]
       },
-      "tear-config-0.1.22": {
+      "tear-config-0.1.24": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20914,7 +20609,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.15",
+            "package_key": "ishou-tokens-0.1.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20978,7 +20673,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.734",
+            "package_key": "shikumi-0.1.778",
             "kind": "normal",
             "features": [
               "cli"
@@ -20990,7 +20685,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.22",
+            "package_key": "tear-types-0.1.24",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21022,7 +20717,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-core-0.1.22": {
+      "tear-core-0.1.24": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21066,7 +20761,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.15",
+            "package_key": "ishou-tokens-0.1.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21128,7 +20823,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.22",
+            "package_key": "tear-config-0.1.24",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21138,7 +20833,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.22",
+            "package_key": "tear-types-0.1.24",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21193,7 +20888,7 @@
           "engate"
         ]
       },
-      "tear-daemon-0.1.22": {
+      "tear-daemon-0.1.24": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21262,7 +20957,7 @@
           },
           {
             "name": "praca",
-            "package_key": "praca-0.1.22",
+            "package_key": "praca-0.1.24",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21304,7 +20999,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.22",
+            "package_key": "tear-config-0.1.24",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21314,7 +21009,7 @@
           },
           {
             "name": "tear_core",
-            "package_key": "tear-core-0.1.22",
+            "package_key": "tear-core-0.1.24",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21324,7 +21019,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.22",
+            "package_key": "tear-types-0.1.24",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21362,7 +21057,7 @@
           "default"
         ]
       },
-      "tear-types-0.1.22": {
+      "tear-types-0.1.24": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21406,7 +21101,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.15",
+            "package_key": "ishou-tokens-0.1.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21416,7 +21111,7 @@
           },
           {
             "name": "kukaku",
-            "package_key": "kukaku-0.1.22",
+            "package_key": "kukaku-0.1.24",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22107,7 +21802,7 @@
           },
           {
             "name": "mio",
-            "package_key": "mio-1.2.2",
+            "package_key": "mio-1.2.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -22117,7 +21812,7 @@
           },
           {
             "name": "mio",
-            "package_key": "mio-1.2.2",
+            "package_key": "mio-1.2.3",
             "kind": "normal",
             "features": [
               "os-ext",
@@ -22745,7 +22440,7 @@
         "runtime_dependencies": [
           {
             "name": "async_compression",
-            "package_key": "async-compression-0.4.43",
+            "package_key": "async-compression-0.4.44",
             "kind": "normal",
             "features": [
               "tokio"
@@ -23245,7 +22940,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.15.2",
+            "package_key": "smallvec-1.16.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24736,7 +24431,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.15.2",
+            "package_key": "smallvec-1.16.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24746,7 +24441,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.15.2",
+            "package_key": "smallvec-1.16.0",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -26376,7 +26071,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.160": {
+          "mado-0.1.161": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26579,7 +26274,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.15",
+                "package_key": "ishou-tokens-0.1.17",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -26760,7 +26455,7 @@
               },
               {
                 "name": "open",
-                "package_key": "open-5.4.2",
+                "package_key": "open-5.4.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26854,7 +26549,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.22",
+                "package_key": "praca-0.1.24",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26951,7 +26646,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.734",
+                "package_key": "shikumi-0.1.778",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -26973,7 +26668,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.22",
+                "package_key": "tear-client-0.1.24",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -26985,7 +26680,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.22",
+                "package_key": "tear-config-0.1.24",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26995,7 +26690,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.22",
+                "package_key": "tear-core-0.1.24",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -27007,7 +26702,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.22",
+                "package_key": "tear-types-0.1.24",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -29197,7 +28892,7 @@
               "std"
             ]
           },
-          "open-5.4.2": {
+          "open-5.4.3": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -29791,7 +29486,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.15.2",
+                "package_key": "smallvec-1.16.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30152,7 +29847,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.15.2",
+                "package_key": "smallvec-1.16.0",
                 "kind": "normal",
                 "features": [
                   "union"
@@ -31324,7 +31019,7 @@
               "system"
             ]
           },
-          "mado-0.1.160": {
+          "mado-0.1.161": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31527,7 +31222,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.15",
+                "package_key": "ishou-tokens-0.1.17",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -31659,7 +31354,7 @@
               },
               {
                 "name": "open",
-                "package_key": "open-5.4.2",
+                "package_key": "open-5.4.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31753,7 +31448,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.22",
+                "package_key": "praca-0.1.24",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31850,7 +31545,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.734",
+                "package_key": "shikumi-0.1.778",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -31872,7 +31567,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.22",
+                "package_key": "tear-client-0.1.24",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -31884,7 +31579,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.22",
+                "package_key": "tear-config-0.1.24",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31894,7 +31589,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.22",
+                "package_key": "tear-core-0.1.24",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -31906,7 +31601,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.22",
+                "package_key": "tear-types-0.1.24",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -32066,7 +31761,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.2",
+                "package_key": "mio-1.2.3",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -32078,7 +31773,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.2",
+                "package_key": "mio-1.2.3",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -32115,7 +31810,7 @@
               "macos_fsevent"
             ]
           },
-          "open-5.4.2": {
+          "open-5.4.3": {
             "runtime_dependencies": [
               {
                 "name": "is_wsl",
@@ -33017,7 +32712,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.15.2",
+                "package_key": "smallvec-1.16.0",
                 "kind": "normal",
                 "features": [
                   "const_generics",
@@ -33584,7 +33279,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.15.2",
+                "package_key": "smallvec-1.16.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33908,7 +33603,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.15.2",
+                "package_key": "smallvec-1.16.0",
                 "kind": "normal",
                 "features": [
                   "union"
@@ -35350,7 +35045,7 @@
               "system"
             ]
           },
-          "mado-0.1.160": {
+          "mado-0.1.161": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35553,7 +35248,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.15",
+                "package_key": "ishou-tokens-0.1.17",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -35685,7 +35380,7 @@
               },
               {
                 "name": "open",
-                "package_key": "open-5.4.2",
+                "package_key": "open-5.4.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35779,7 +35474,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.22",
+                "package_key": "praca-0.1.24",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35876,7 +35571,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.734",
+                "package_key": "shikumi-0.1.778",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -35898,7 +35593,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.22",
+                "package_key": "tear-client-0.1.24",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -35910,7 +35605,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.22",
+                "package_key": "tear-config-0.1.24",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35920,7 +35615,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.22",
+                "package_key": "tear-core-0.1.24",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -35932,7 +35627,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.22",
+                "package_key": "tear-types-0.1.24",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -36092,7 +35787,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.2",
+                "package_key": "mio-1.2.3",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -36104,7 +35799,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.2",
+                "package_key": "mio-1.2.3",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -36141,7 +35836,7 @@
               "macos_fsevent"
             ]
           },
-          "open-5.4.2": {
+          "open-5.4.3": {
             "runtime_dependencies": [
               {
                 "name": "is_wsl",
@@ -37043,7 +36738,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.15.2",
+                "package_key": "smallvec-1.16.0",
                 "kind": "normal",
                 "features": [
                   "const_generics",
@@ -37610,7 +37305,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.15.2",
+                "package_key": "smallvec-1.16.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37934,7 +37629,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.15.2",
+                "package_key": "smallvec-1.16.0",
                 "kind": "normal",
                 "features": [
                   "union"
@@ -39489,7 +39184,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.160": {
+          "mado-0.1.161": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39692,7 +39387,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.15",
+                "package_key": "ishou-tokens-0.1.17",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -39873,7 +39568,7 @@
               },
               {
                 "name": "open",
-                "package_key": "open-5.4.2",
+                "package_key": "open-5.4.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39967,7 +39662,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.22",
+                "package_key": "praca-0.1.24",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40064,7 +39759,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.734",
+                "package_key": "shikumi-0.1.778",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -40086,7 +39781,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.22",
+                "package_key": "tear-client-0.1.24",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -40098,7 +39793,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.22",
+                "package_key": "tear-config-0.1.24",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40108,7 +39803,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.22",
+                "package_key": "tear-core-0.1.24",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -40120,7 +39815,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.22",
+                "package_key": "tear-types-0.1.24",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -42310,7 +42005,7 @@
               "std"
             ]
           },
-          "open-5.4.2": {
+          "open-5.4.3": {
             "runtime_dependencies": [
               {
                 "name": "libc",
@@ -42903,7 +42598,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.15.2",
+                "package_key": "smallvec-1.16.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -43264,7 +42959,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.15.2",
+                "package_key": "smallvec-1.16.0",
                 "kind": "normal",
                 "features": [
                   "union"
@@ -44444,7 +44139,7 @@
               "system"
             ]
           },
-          "mado-0.1.160": {
+          "mado-0.1.161": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44647,7 +44342,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.15",
+                "package_key": "ishou-tokens-0.1.17",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -44779,7 +44474,7 @@
               },
               {
                 "name": "open",
-                "package_key": "open-5.4.2",
+                "package_key": "open-5.4.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44873,7 +44568,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.22",
+                "package_key": "praca-0.1.24",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44970,7 +44665,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.734",
+                "package_key": "shikumi-0.1.778",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -44992,7 +44687,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.22",
+                "package_key": "tear-client-0.1.24",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -45004,7 +44699,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.22",
+                "package_key": "tear-config-0.1.24",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45014,7 +44709,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.22",
+                "package_key": "tear-core-0.1.24",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -45026,7 +44721,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.22",
+                "package_key": "tear-types-0.1.24",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -45186,7 +44881,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.2",
+                "package_key": "mio-1.2.3",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -45198,7 +44893,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.2",
+                "package_key": "mio-1.2.3",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -45235,7 +44930,7 @@
               "macos_fsevent"
             ]
           },
-          "open-5.4.2": {
+          "open-5.4.3": {
             "runtime_dependencies": [
               {
                 "name": "is_wsl",
@@ -46136,7 +45831,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.15.2",
+                "package_key": "smallvec-1.16.0",
                 "kind": "normal",
                 "features": [
                   "const_generics",
@@ -46703,7 +46398,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.15.2",
+                "package_key": "smallvec-1.16.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47027,7 +46722,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.15.2",
+                "package_key": "smallvec-1.16.0",
                 "kind": "normal",
                 "features": [
                   "union"
@@ -48477,7 +48172,7 @@
               "system"
             ]
           },
-          "mado-0.1.160": {
+          "mado-0.1.161": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48680,7 +48375,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.15",
+                "package_key": "ishou-tokens-0.1.17",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -48812,7 +48507,7 @@
               },
               {
                 "name": "open",
-                "package_key": "open-5.4.2",
+                "package_key": "open-5.4.3",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48906,7 +48601,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.22",
+                "package_key": "praca-0.1.24",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49003,7 +48698,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.734",
+                "package_key": "shikumi-0.1.778",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -49025,7 +48720,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.22",
+                "package_key": "tear-client-0.1.24",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -49037,7 +48732,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.22",
+                "package_key": "tear-config-0.1.24",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49047,7 +48742,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.22",
+                "package_key": "tear-core-0.1.24",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -49059,7 +48754,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.22",
+                "package_key": "tear-types-0.1.24",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -49219,7 +48914,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.2",
+                "package_key": "mio-1.2.3",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -49231,7 +48926,7 @@
               },
               {
                 "name": "mio",
-                "package_key": "mio-1.2.2",
+                "package_key": "mio-1.2.3",
                 "kind": "normal",
                 "features": [
                   "os-ext"
@@ -49268,7 +48963,7 @@
               "macos_fsevent"
             ]
           },
-          "open-5.4.2": {
+          "open-5.4.3": {
             "runtime_dependencies": [
               {
                 "name": "is_wsl",
@@ -50169,7 +49864,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.15.2",
+                "package_key": "smallvec-1.16.0",
                 "kind": "normal",
                 "features": [
                   "const_generics",
@@ -50736,7 +50431,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.15.2",
+                "package_key": "smallvec-1.16.0",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51060,7 +50755,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.15.2",
+                "package_key": "smallvec-1.16.0",
                 "kind": "normal",
                 "features": [
                   "union"
@@ -51664,10 +51359,6 @@
     "adler2-2.0.1": {
       "edition": "2021"
     },
-    "ahash-0.7.8": {
-      "edition": "2018",
-      "build_script": "build.rs"
-    },
     "ahash-0.8.12": {
       "edition": "2018",
       "build_script": "build.rs"
@@ -51743,7 +51434,7 @@
     "async-broadcast-0.7.2": {
       "edition": "2021"
     },
-    "async-compression-0.4.43": {
+    "async-compression-0.4.44": {
       "edition": "2018"
     },
     "async-stream-0.3.6": {
@@ -51861,14 +51552,6 @@
     "byte-unit-5.2.5": {
       "edition": "2024"
     },
-    "bytecheck-0.6.12": {
-      "edition": "2021",
-      "build_script": "build.rs"
-    },
-    "bytecheck_derive-0.6.12": {
-      "edition": "2021",
-      "proc_macro": true
-    },
     "bytemuck-1.25.2": {
       "edition": "2018"
     },
@@ -51946,10 +51629,10 @@
     "colorchoice-1.0.5": {
       "edition": "2021"
     },
-    "compression-codecs-0.4.38": {
+    "compression-codecs-0.4.39": {
       "edition": "2018"
     },
-    "compression-core-0.4.32": {
+    "compression-core-0.4.33": {
       "edition": "2018"
     },
     "const-oid-0.9.6": {
@@ -52372,9 +52055,6 @@
     "hasami-0.1.2": {
       "edition": "2024"
     },
-    "hashbrown-0.12.3": {
-      "edition": "2021"
-    },
     "hashbrown-0.14.5": {
       "edition": "2021"
     },
@@ -52542,7 +52222,7 @@
     "is_terminal_polyfill-1.70.2": {
       "edition": "2021"
     },
-    "ishou-tokens-0.1.15": {
+    "ishou-tokens-0.1.17": {
       "edition": "2024"
     },
     "itertools-0.10.5": {
@@ -52613,7 +52293,7 @@
     "kube-runtime-0.99.0": {
       "edition": "2021"
     },
-    "kukaku-0.1.22": {
+    "kukaku-0.1.24": {
       "edition": "2024"
     },
     "lazy_static-1.5.0": {
@@ -52686,7 +52366,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.160": {
+    "mado-0.1.161": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -52758,7 +52438,7 @@
     "miniz_oxide-0.9.1": {
       "edition": "2021"
     },
-    "mio-1.2.2": {
+    "mio-1.2.3": {
       "edition": "2021"
     },
     "monosashi-0.3.52": {
@@ -52910,7 +52590,7 @@
     "oorandom-11.1.5": {
       "edition": "2018"
     },
-    "open-5.4.2": {
+    "open-5.4.3": {
       "edition": "2018",
       "binaries": [
         {
@@ -53148,7 +52828,7 @@
     "ppv-lite86-0.2.21": {
       "edition": "2021"
     },
-    "praca-0.1.22": {
+    "praca-0.1.24": {
       "edition": "2024"
     },
     "precomputed-hash-0.1.1": {
@@ -53176,13 +52856,6 @@
     },
     "psl-types-2.0.11": {
       "edition": "2018"
-    },
-    "ptr_meta-0.1.4": {
-      "edition": "2018"
-    },
-    "ptr_meta_derive-0.1.4": {
-      "edition": "2018",
-      "proc_macro": true
     },
     "publicsuffix-2.3.0": {
       "edition": "2018"
@@ -53280,10 +52953,6 @@
     "regex-syntax-0.8.11": {
       "edition": "2021"
     },
-    "rend-0.4.2": {
-      "edition": "2018",
-      "build_script": "build.rs"
-    },
     "renderdoc-sys-1.1.0": {
       "edition": "2015"
     },
@@ -53294,14 +52963,6 @@
       "edition": "2021",
       "build_script": "build.rs",
       "links": "ring_core_0_17_14_"
-    },
-    "rkyv-0.7.46": {
-      "edition": "2021",
-      "build_script": "build.rs"
-    },
-    "rkyv_derive-0.7.46": {
-      "edition": "2021",
-      "proc_macro": true
     },
     "rmcp-0.15.0": {
       "edition": "2024",
@@ -53320,7 +52981,7 @@
     "rusqlite-0.32.1": {
       "edition": "2021"
     },
-    "rust_decimal-1.42.1": {
+    "rust_decimal-1.43.0": {
       "edition": "2021",
       "build_script": "build.rs"
     },
@@ -53449,9 +53110,6 @@
       "edition": "2018",
       "proc_macro": true
     },
-    "seahash-4.1.0": {
-      "edition": "2015"
-    },
     "secrecy-0.10.3": {
       "edition": "2021"
     },
@@ -53533,7 +53191,7 @@
     "shidou-0.1.10": {
       "edition": "2024"
     },
-    "shikumi-0.1.734": {
+    "shikumi-0.1.778": {
       "edition": "2024"
     },
     "shlex-2.0.1": {
@@ -53546,9 +53204,6 @@
       "edition": "2021"
     },
     "simd-adler32-0.3.10": {
-      "edition": "2018"
-    },
-    "simdutf8-0.1.5": {
       "edition": "2018"
     },
     "siphasher-1.0.3": {
@@ -53564,7 +53219,7 @@
       "edition": "2018",
       "build_script": "build.rs"
     },
-    "smallvec-1.15.2": {
+    "smallvec-1.16.0": {
       "edition": "2018"
     },
     "smithay-client-toolkit-0.19.2": {
@@ -53692,13 +53347,13 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-core-0.2.451": {
+    "tatara-core-0.2.499": {
       "edition": "2021"
     },
-    "tatara-eval-0.2.451": {
+    "tatara-eval-0.2.499": {
       "edition": "2021"
     },
-    "tatara-lattice-0.2.451": {
+    "tatara-lattice-0.2.499": {
       "edition": "2021"
     },
     "tatara-lisp-0.3.52": {
@@ -53711,10 +53366,10 @@
     "tatara-lisp-eval-0.3.52": {
       "edition": "2021"
     },
-    "tatara-nix-0.2.451": {
+    "tatara-nix-0.2.499": {
       "edition": "2021"
     },
-    "tatara-process-0.2.451": {
+    "tatara-process-0.2.499": {
       "edition": "2021",
       "binaries": [
         {
@@ -53723,19 +53378,19 @@
         }
       ]
     },
-    "tear-client-0.1.22": {
+    "tear-client-0.1.24": {
       "edition": "2024"
     },
-    "tear-config-0.1.22": {
+    "tear-config-0.1.24": {
       "edition": "2024"
     },
-    "tear-core-0.1.22": {
+    "tear-core-0.1.24": {
       "edition": "2024"
     },
-    "tear-daemon-0.1.22": {
+    "tear-daemon-0.1.24": {
       "edition": "2024"
     },
-    "tear-types-0.1.22": {
+    "tear-types-0.1.24": {
       "edition": "2024"
     },
     "tempfile-3.27.0": {
