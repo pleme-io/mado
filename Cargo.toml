@@ -362,6 +362,27 @@ image = { version = "0.25", default-features = false, features = ["png"] }
 tokio = { version = "1", features = ["rt-multi-thread", "process", "io-util", "sync", "macros", "net", "time"] }
 libc = "0.2"
 
+# ── ★ NOT USED DIRECTLY. PRESENT TO TURN ON `std`. ──────────────────────────
+#
+# tinyvec 1.13.0 (published 2026-09-03) does not compile with `alloc` and
+# without `std`: `src/tinyvec.rs:3` does `use alloc::vec::{self, Vec}`, which
+# brings the MODULE `vec` into scope and shadows the `vec!` MACRO, and line
+# 710 then calls `vec![...]`. Most consumers enable std, which is how upstream
+# shipped it; the fleet build resolved `alloc` + `default` and no `std`, so it
+# failed — taking mado, then system-path, then the whole plo system with it,
+# and leaving the gitops loop DEGRADED for 16 consecutive cycles.
+#
+# ★ A LOCK PIN DOES NOT HOLD. `cargo update -p tinyvec --precise 1.12.0` fixed
+# it for exactly one release: mado's auto-release regenerated Cargo.lock and
+# re-resolved 1.13.0. The durable fix is a feature, not a version — cargo
+# unifies features across the graph, so declaring `std` here turns it on for
+# whichever transitive dependency actually pulls tinyvec in, and the crate
+# compiles at any version.
+#
+# Fixing the CAUSE rather than pinning away from it also means we keep taking
+# tinyvec updates instead of freezing at 1.12 forever.
+tinyvec = { version = "1", features = ["std"] }
+
 # mimalloc — Microsoft's general-purpose allocator. Ghostty / foot /
 # wezterm all swap the system allocator for a tuned one because the
 # terminal hot path allocates aggressively (per-cell buffers, per-line

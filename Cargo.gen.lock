@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "8342c0a05bd1c29f0640ae76af03d7445fd6377fe627e4a366b3bebcfa8304c0",
+  "cargo_lock_sha256": "ddb5b2e51acb0819abb4adf4ab4906f85620158c2e701c4b9d87000923484527",
   "manifest_sha256": {
-    "Cargo.toml": "3d7e469d9ae18e17206d7e0eb671c9b518304047a38eac7265ceba0d87b1cbdf"
+    "Cargo.toml": "999cf3a573fe3209d7340d02554aac3ef2daf5be31b11a65f557875ce877a90c"
   },
   "target_resolves": {
     "base": {
@@ -21637,6 +21637,7 @@
         "features": [
           "alloc",
           "default",
+          "std",
           "tinyvec_macros"
         ]
       },
@@ -26723,6 +26724,18 @@
                 "tree": "target"
               },
               {
+                "name": "tinyvec",
+                "package_key": "tinyvec-1.13.0",
+                "kind": "normal",
+                "features": [
+                  "std"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "tokio",
                 "package_key": "tokio-1.53.1",
                 "kind": "normal",
@@ -31622,6 +31635,18 @@
                 "tree": "target"
               },
               {
+                "name": "tinyvec",
+                "package_key": "tinyvec-1.13.0",
+                "kind": "normal",
+                "features": [
+                  "std"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "tokio",
                 "package_key": "tokio-1.53.1",
                 "kind": "normal",
@@ -35642,6 +35667,18 @@
                 "package_key": "thiserror-2.0.20",
                 "kind": "normal",
                 "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "tinyvec",
+                "package_key": "tinyvec-1.13.0",
+                "kind": "normal",
+                "features": [
+                  "std"
+                ],
                 "uses_default_features": true,
                 "optional": false,
                 "target": null,
@@ -39830,6 +39867,18 @@
                 "package_key": "thiserror-2.0.20",
                 "kind": "normal",
                 "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "tinyvec",
+                "package_key": "tinyvec-1.13.0",
+                "kind": "normal",
+                "features": [
+                  "std"
+                ],
                 "uses_default_features": true,
                 "optional": false,
                 "target": null,
@@ -44742,6 +44791,18 @@
                 "tree": "target"
               },
               {
+                "name": "tinyvec",
+                "package_key": "tinyvec-1.13.0",
+                "kind": "normal",
+                "features": [
+                  "std"
+                ],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
                 "name": "tokio",
                 "package_key": "tokio-1.53.1",
                 "kind": "normal",
@@ -48769,6 +48830,18 @@
                 "package_key": "thiserror-2.0.20",
                 "kind": "normal",
                 "features": [],
+                "uses_default_features": true,
+                "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "tinyvec",
+                "package_key": "tinyvec-1.13.0",
+                "kind": "normal",
+                "features": [
+                  "std"
+                ],
                 "uses_default_features": true,
                 "optional": false,
                 "target": null,
