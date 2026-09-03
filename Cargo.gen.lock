@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "c7051a25a3101bb7fd64c603c7ddc307ad147c182af79f583b4165898e2e8f8e",
+  "cargo_lock_sha256": "aa9af5e02fc44bd7661a264df0c0570c2de08c385d28428e372f2825a370271e",
   "manifest_sha256": {
-    "Cargo.toml": "1b5021a2f375aaa7744d13982b19b46a0a4e0940447d4099160af0b201c82692"
+    "Cargo.toml": "e01bb8d7a03c87a0ee18dee333b270c28af296f596b5c242eda39b44ef20e446"
   },
   "target_resolves": {
     "base": {
@@ -4362,7 +4362,7 @@
           "std"
         ]
       },
-      "garasu-0.1.16": {
+      "garasu-0.1.17": {
         "runtime_dependencies": [
           {
             "name": "bincode",
@@ -7357,7 +7357,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.778",
+            "package_key": "shikumi-0.1.779",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9124,7 +9124,7 @@
           },
           {
             "name": "garasu",
-            "package_key": "garasu-0.1.16",
+            "package_key": "garasu-0.1.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9168,7 +9168,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.778",
+            "package_key": "shikumi-0.1.779",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11950,7 +11950,7 @@
           },
           {
             "name": "garasu",
-            "package_key": "garasu-0.1.16",
+            "package_key": "garasu-0.1.17",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13154,7 +13154,7 @@
           },
           {
             "name": "tinyvec",
-            "package_key": "tinyvec-1.12.0",
+            "package_key": "tinyvec-1.13.0",
             "kind": "normal",
             "features": [
               "alloc",
@@ -16993,7 +16993,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.778",
+            "package_key": "shikumi-0.1.779",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17040,7 +17040,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.778": {
+      "shikumi-0.1.779": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -19790,7 +19790,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-core-0.2.499": {
+      "tatara-core-0.2.500": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -19901,7 +19901,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.778",
+            "package_key": "shikumi-0.1.779",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20026,7 +20026,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lattice-0.2.499": {
+      "tatara-lattice-0.2.500": {
         "runtime_dependencies": [
           {
             "name": "schemars",
@@ -20054,7 +20054,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.499",
+            "package_key": "tatara-core-0.2.500",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20064,7 +20064,7 @@
           },
           {
             "name": "tatara_process",
-            "package_key": "tatara-process-0.2.499",
+            "package_key": "tatara-process-0.2.500",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20276,7 +20276,7 @@
           },
           {
             "name": "tatara_lattice",
-            "package_key": "tatara-lattice-0.2.499",
+            "package_key": "tatara-lattice-0.2.500",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20328,7 +20328,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-process-0.2.499": {
+      "tatara-process-0.2.500": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20474,7 +20474,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.499",
+            "package_key": "tatara-core-0.2.500",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20673,7 +20673,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.778",
+            "package_key": "shikumi-0.1.779",
             "kind": "normal",
             "features": [
               "cli"
@@ -21620,7 +21620,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tinyvec-1.12.0": {
+      "tinyvec-1.13.0": {
         "runtime_dependencies": [
           {
             "name": "tinyvec_macros",
@@ -23176,7 +23176,7 @@
         "runtime_dependencies": [
           {
             "name": "tinyvec",
-            "package_key": "tinyvec-1.12.0",
+            "package_key": "tinyvec-1.13.0",
             "kind": "normal",
             "features": [
               "alloc"
@@ -25660,7 +25660,7 @@
               },
               {
                 "name": "tinyvec",
-                "package_key": "tinyvec-1.12.0",
+                "package_key": "tinyvec-1.13.0",
                 "kind": "normal",
                 "features": [
                   "alloc"
@@ -26071,7 +26071,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.161": {
+          "mado-0.1.162": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26212,7 +26212,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.16",
+                "package_key": "garasu-0.1.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26646,7 +26646,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.778",
+                "package_key": "shikumi-0.1.779",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -30637,7 +30637,7 @@
               },
               {
                 "name": "tinyvec",
-                "package_key": "tinyvec-1.12.0",
+                "package_key": "tinyvec-1.13.0",
                 "kind": "normal",
                 "features": [
                   "alloc"
@@ -31019,7 +31019,7 @@
               "system"
             ]
           },
-          "mado-0.1.161": {
+          "mado-0.1.162": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31160,7 +31160,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.16",
+                "package_key": "garasu-0.1.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31545,7 +31545,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.778",
+                "package_key": "shikumi-0.1.779",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -34663,7 +34663,7 @@
               },
               {
                 "name": "tinyvec",
-                "package_key": "tinyvec-1.12.0",
+                "package_key": "tinyvec-1.13.0",
                 "kind": "normal",
                 "features": [
                   "alloc"
@@ -35045,7 +35045,7 @@
               "system"
             ]
           },
-          "mado-0.1.161": {
+          "mado-0.1.162": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35186,7 +35186,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.16",
+                "package_key": "garasu-0.1.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35571,7 +35571,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.778",
+                "package_key": "shikumi-0.1.779",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -38773,7 +38773,7 @@
               },
               {
                 "name": "tinyvec",
-                "package_key": "tinyvec-1.12.0",
+                "package_key": "tinyvec-1.13.0",
                 "kind": "normal",
                 "features": [
                   "alloc"
@@ -39184,7 +39184,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.161": {
+          "mado-0.1.162": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39325,7 +39325,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.16",
+                "package_key": "garasu-0.1.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39759,7 +39759,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.778",
+                "package_key": "shikumi-0.1.779",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -43757,7 +43757,7 @@
               },
               {
                 "name": "tinyvec",
-                "package_key": "tinyvec-1.12.0",
+                "package_key": "tinyvec-1.13.0",
                 "kind": "normal",
                 "features": [
                   "alloc"
@@ -44139,7 +44139,7 @@
               "system"
             ]
           },
-          "mado-0.1.161": {
+          "mado-0.1.162": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44280,7 +44280,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.16",
+                "package_key": "garasu-0.1.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44665,7 +44665,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.778",
+                "package_key": "shikumi-0.1.779",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -47790,7 +47790,7 @@
               },
               {
                 "name": "tinyvec",
-                "package_key": "tinyvec-1.12.0",
+                "package_key": "tinyvec-1.13.0",
                 "kind": "normal",
                 "features": [
                   "alloc"
@@ -48172,7 +48172,7 @@
               "system"
             ]
           },
-          "mado-0.1.161": {
+          "mado-0.1.162": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48313,7 +48313,7 @@
               },
               {
                 "name": "garasu",
-                "package_key": "garasu-0.1.16",
+                "package_key": "garasu-0.1.17",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48698,7 +48698,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.778",
+                "package_key": "shikumi-0.1.779",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -51987,7 +51987,7 @@
     "futures-util-0.3.34": {
       "edition": "2018"
     },
-    "garasu-0.1.16": {
+    "garasu-0.1.17": {
       "edition": "2024",
       "build_script": "build.rs"
     },
@@ -52366,7 +52366,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.161": {
+    "mado-0.1.162": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -53191,7 +53191,7 @@
     "shidou-0.1.10": {
       "edition": "2024"
     },
-    "shikumi-0.1.778": {
+    "shikumi-0.1.779": {
       "edition": "2024"
     },
     "shlex-2.0.1": {
@@ -53347,13 +53347,13 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-core-0.2.499": {
+    "tatara-core-0.2.500": {
       "edition": "2021"
     },
     "tatara-eval-0.2.499": {
       "edition": "2021"
     },
-    "tatara-lattice-0.2.499": {
+    "tatara-lattice-0.2.500": {
       "edition": "2021"
     },
     "tatara-lisp-0.3.52": {
@@ -53369,7 +53369,7 @@
     "tatara-nix-0.2.499": {
       "edition": "2021"
     },
-    "tatara-process-0.2.499": {
+    "tatara-process-0.2.500": {
       "edition": "2021",
       "binaries": [
         {
@@ -53446,7 +53446,7 @@
     "tinytemplate-1.2.1": {
       "edition": "2015"
     },
-    "tinyvec-1.12.0": {
+    "tinyvec-1.13.0": {
       "edition": "2018"
     },
     "tinyvec_macros-0.1.1": {
