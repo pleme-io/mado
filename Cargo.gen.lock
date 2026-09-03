@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "aa9af5e02fc44bd7661a264df0c0570c2de08c385d28428e372f2825a370271e",
+  "cargo_lock_sha256": "5017cf4a4ff15a542b7926b04d49b04fb29dbdb55a99e517de93dbce1c503268",
   "manifest_sha256": {
     "Cargo.toml": "e01bb8d7a03c87a0ee18dee333b270c28af296f596b5c242eda39b44ef20e446"
   },
@@ -13154,7 +13154,7 @@
           },
           {
             "name": "tinyvec",
-            "package_key": "tinyvec-1.13.0",
+            "package_key": "tinyvec-1.12.0",
             "kind": "normal",
             "features": [
               "alloc",
@@ -21620,7 +21620,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tinyvec-1.13.0": {
+      "tinyvec-1.12.0": {
         "runtime_dependencies": [
           {
             "name": "tinyvec_macros",
@@ -23176,7 +23176,7 @@
         "runtime_dependencies": [
           {
             "name": "tinyvec",
-            "package_key": "tinyvec-1.13.0",
+            "package_key": "tinyvec-1.12.0",
             "kind": "normal",
             "features": [
               "alloc"
@@ -25660,7 +25660,7 @@
               },
               {
                 "name": "tinyvec",
-                "package_key": "tinyvec-1.13.0",
+                "package_key": "tinyvec-1.12.0",
                 "kind": "normal",
                 "features": [
                   "alloc"
@@ -30637,7 +30637,7 @@
               },
               {
                 "name": "tinyvec",
-                "package_key": "tinyvec-1.13.0",
+                "package_key": "tinyvec-1.12.0",
                 "kind": "normal",
                 "features": [
                   "alloc"
@@ -34663,7 +34663,7 @@
               },
               {
                 "name": "tinyvec",
-                "package_key": "tinyvec-1.13.0",
+                "package_key": "tinyvec-1.12.0",
                 "kind": "normal",
                 "features": [
                   "alloc"
@@ -38773,7 +38773,7 @@
               },
               {
                 "name": "tinyvec",
-                "package_key": "tinyvec-1.13.0",
+                "package_key": "tinyvec-1.12.0",
                 "kind": "normal",
                 "features": [
                   "alloc"
@@ -43757,7 +43757,7 @@
               },
               {
                 "name": "tinyvec",
-                "package_key": "tinyvec-1.13.0",
+                "package_key": "tinyvec-1.12.0",
                 "kind": "normal",
                 "features": [
                   "alloc"
@@ -47790,7 +47790,7 @@
               },
               {
                 "name": "tinyvec",
-                "package_key": "tinyvec-1.13.0",
+                "package_key": "tinyvec-1.12.0",
                 "kind": "normal",
                 "features": [
                   "alloc"
@@ -53446,7 +53446,7 @@
     "tinytemplate-1.2.1": {
       "edition": "2015"
     },
-    "tinyvec-1.13.0": {
+    "tinyvec-1.12.0": {
       "edition": "2018"
     },
     "tinyvec_macros-0.1.1": {
