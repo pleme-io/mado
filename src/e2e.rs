@@ -168,6 +168,36 @@ pub async fn run(shell: &str) -> Result<E2eSummary> {
     let mut rows: Vec<RowResult> = Vec::new();
 
     // ── row 1: spawn_term ────────────────────────────────────────
+    //
+    // ★ THE NAMED SHELL IS CHECKED FIRST, and refused rather than substituted.
+    // Measured 2026-09-03: `--shell /nonexistent/e2e-bogus-shell` reported
+    // pass on four of five rows, with `prompt_visible` quoting a REAL prompt —
+    // the session resolver had fallen back to a working shell and the e2e
+    // certified that one under the missing shell's name. An e2e exists to say
+    // "this artifact works"; certifying a substitute is the one failure it
+    // must not have. See `shell_resolve::resolve_named`.
+    if let Err(e) = crate::shell_resolve::resolve_named(shell) {
+        rows.push(RowResult::failed("spawn_term", format!("{e}")));
+        // Every remaining row still REPORTS, as a dependency-failure — the
+        // matrix rule this module opens with: "a dead row 1 must not hide
+        // rows 2-5". They are dependency-skips (`pass: false, skipped:
+        // false`), never environment-skips, because nothing about this
+        // environment is unsuitable; the request was.
+        for name in [
+            "prompt_visible",
+            "enter_fresh_prompt",
+            "echo_marker",
+            "single_recorder",
+        ] {
+            rows.push(skipped(name, "spawn_term failed"));
+        }
+        let pass = summary_pass(&rows);
+        return Ok(E2eSummary {
+            shell: shell.to_string(),
+            rows,
+            pass,
+        });
+    }
     let session_id = match spawn_term(&client, shell, Some(hermetic_shell_env(&[]))).await {
         Ok(id) => {
             rows.push(RowResult::passed(

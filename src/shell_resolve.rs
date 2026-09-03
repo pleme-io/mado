@@ -99,3 +99,102 @@ mod tests {
         }
     }
 }
+
+/// A shell the operator NAMED that is not runnable.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NamedShellMissing {
+    /// Exactly what was asked for, unmodified.
+    pub named: String,
+}
+
+impl std::fmt::Display for NamedShellMissing {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "the shell {:?} is not runnable, and it was named explicitly rather \
+             than prescribed — refusing to substitute a different one",
+            self.named
+        )
+    }
+}
+
+impl std::error::Error for NamedShellMissing {}
+
+/// Resolve a shell the operator NAMED — with no substitution.
+///
+/// ── ★ WHY THIS IS A SECOND FUNCTION AND NOT A FLAG ───────────────────────
+/// [`resolve`]'s ladder is right for a PRESCRIPTION: a config default, or
+/// nothing at all. A release-download user with no `frostmourne` on PATH must
+/// get their own login shell rather than a dead window, and that is the whole
+/// point of the fallback.
+///
+/// It is wrong for a shell the operator TYPED. Measured 2026-09-03:
+/// `mado e2e --shell /nonexistent/e2e-bogus-shell` reported
+/// **`pass: true`** on four of five rows, with `prompt_visible` detailing a
+/// real prompt — the operator's own. The fallback had substituted a working
+/// shell, and the e2e then certified *that one*, under the name of the shell
+/// it never ran. A green verdict about an artifact that was never tested is
+/// worse than a red one.
+///
+/// So authority decides the contract: a prescription may be substituted, a
+/// name may not. Same rule as "an explicit `mode=` is never overridden" —
+/// when the caller has decided, silently deciding differently is not a
+/// convenience, it is a wrong answer wearing one.
+///
+/// # Errors
+/// [`NamedShellMissing`] when `named` is not runnable. The name is returned
+/// verbatim in the error so the message says what was asked for.
+pub fn resolve_named(named: &str) -> Result<String, NamedShellMissing> {
+    if is_executable(named) {
+        Ok(named.to_string())
+    } else {
+        Err(NamedShellMissing {
+            named: named.to_string(),
+        })
+    }
+}
+
+#[cfg(test)]
+mod named_tests {
+    use super::{PRESCRIBED, resolve_named};
+
+    /// ★ THE MEASURED DEFECT: a named shell that does not exist must be an
+    /// error, never a substitution.
+    #[test]
+    fn a_named_shell_that_is_missing_is_refused_not_substituted() {
+        let bogus = "/nonexistent/e2e-bogus-shell";
+        let err = resolve_named(bogus).expect_err("a missing named shell must refuse");
+        assert_eq!(err.named, bogus, "the error must name what was asked for");
+        // And the message must not read as a generic failure — it has to say
+        // WHY no substitute was chosen, or the next reader "fixes" it by
+        // adding one back.
+        assert!(
+            err.to_string().contains("named explicitly"),
+            "the refusal must explain that substitution was declined on \
+             purpose: {err}"
+        );
+    }
+
+    /// ★ ANTI-VACUITY: it must still resolve a shell that IS there, or the
+    /// test above passes for a function that refuses everything.
+    #[test]
+    fn a_named_shell_that_exists_is_returned_verbatim() {
+        // `/bin/sh` is the one path POSIX guarantees.
+        assert_eq!(resolve_named("/bin/sh").as_deref(), Ok("/bin/sh"));
+    }
+
+    /// ★ AND THE PRESCRIPTION KEEPS ITS FALLBACK — the two contracts are
+    /// different on purpose, so a change collapsing them fails here.
+    #[test]
+    fn the_prescription_is_still_allowed_to_fall_back() {
+        // `resolve` never returns a name that is not runnable, even when the
+        // prescribed shell is absent. That is the download-and-use case and it
+        // must survive this split.
+        let resolved = super::resolve(Some("definitely-not-a-real-shell-xyzzy"));
+        assert!(super::is_executable(&resolved));
+        assert!(
+            !PRESCRIBED.is_empty(),
+            "the prescription must still exist for resolve() to reach for"
+        );
+    }
+}
