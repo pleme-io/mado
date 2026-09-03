@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "5017cf4a4ff15a542b7926b04d49b04fb29dbdb55a99e517de93dbce1c503268",
+  "cargo_lock_sha256": "8342c0a05bd1c29f0640ae76af03d7445fd6377fe627e4a366b3bebcfa8304c0",
   "manifest_sha256": {
-    "Cargo.toml": "e01bb8d7a03c87a0ee18dee333b270c28af296f596b5c242eda39b44ef20e446"
+    "Cargo.toml": "3d7e469d9ae18e17206d7e0eb671c9b518304047a38eac7265ceba0d87b1cbdf"
   },
   "target_resolves": {
     "base": {
@@ -7357,7 +7357,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.779",
+            "package_key": "shikumi-0.1.780",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9168,7 +9168,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.779",
+            "package_key": "shikumi-0.1.780",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12096,7 +12096,7 @@
           },
           {
             "name": "tatara_eval",
-            "package_key": "tatara-eval-0.2.499",
+            "package_key": "tatara-eval-0.2.501",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13154,7 +13154,7 @@
           },
           {
             "name": "tinyvec",
-            "package_key": "tinyvec-1.12.0",
+            "package_key": "tinyvec-1.13.0",
             "kind": "normal",
             "features": [
               "alloc",
@@ -16993,7 +16993,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.779",
+            "package_key": "shikumi-0.1.780",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17040,7 +17040,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.779": {
+      "shikumi-0.1.780": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -19790,7 +19790,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-core-0.2.500": {
+      "tatara-core-0.2.501": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -19901,7 +19901,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.779",
+            "package_key": "shikumi-0.1.780",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19956,7 +19956,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-eval-0.2.499": {
+      "tatara-eval-0.2.501": {
         "runtime_dependencies": [
           {
             "name": "bumpalo",
@@ -20004,7 +20004,7 @@
           },
           {
             "name": "tatara_nix",
-            "package_key": "tatara-nix-0.2.499",
+            "package_key": "tatara-nix-0.2.501",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20026,7 +20026,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lattice-0.2.500": {
+      "tatara-lattice-0.2.501": {
         "runtime_dependencies": [
           {
             "name": "schemars",
@@ -20054,7 +20054,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.500",
+            "package_key": "tatara-core-0.2.501",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20064,7 +20064,7 @@
           },
           {
             "name": "tatara_process",
-            "package_key": "tatara-process-0.2.500",
+            "package_key": "tatara-process-0.2.501",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20230,7 +20230,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-nix-0.2.499": {
+      "tatara-nix-0.2.501": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -20276,7 +20276,7 @@
           },
           {
             "name": "tatara_lattice",
-            "package_key": "tatara-lattice-0.2.500",
+            "package_key": "tatara-lattice-0.2.501",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20328,7 +20328,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-process-0.2.500": {
+      "tatara-process-0.2.501": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20474,7 +20474,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.500",
+            "package_key": "tatara-core-0.2.501",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20673,7 +20673,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.779",
+            "package_key": "shikumi-0.1.780",
             "kind": "normal",
             "features": [
               "cli"
@@ -21620,7 +21620,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tinyvec-1.12.0": {
+      "tinyvec-1.13.0": {
         "runtime_dependencies": [
           {
             "name": "tinyvec_macros",
@@ -23176,7 +23176,7 @@
         "runtime_dependencies": [
           {
             "name": "tinyvec",
-            "package_key": "tinyvec-1.12.0",
+            "package_key": "tinyvec-1.13.0",
             "kind": "normal",
             "features": [
               "alloc"
@@ -25660,7 +25660,7 @@
               },
               {
                 "name": "tinyvec",
-                "package_key": "tinyvec-1.12.0",
+                "package_key": "tinyvec-1.13.0",
                 "kind": "normal",
                 "features": [
                   "alloc"
@@ -26071,7 +26071,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.162": {
+          "mado-0.1.163": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26646,7 +26646,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.779",
+                "package_key": "shikumi-0.1.780",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -30637,7 +30637,7 @@
               },
               {
                 "name": "tinyvec",
-                "package_key": "tinyvec-1.12.0",
+                "package_key": "tinyvec-1.13.0",
                 "kind": "normal",
                 "features": [
                   "alloc"
@@ -31019,7 +31019,7 @@
               "system"
             ]
           },
-          "mado-0.1.162": {
+          "mado-0.1.163": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31545,7 +31545,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.779",
+                "package_key": "shikumi-0.1.780",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -34663,7 +34663,7 @@
               },
               {
                 "name": "tinyvec",
-                "package_key": "tinyvec-1.12.0",
+                "package_key": "tinyvec-1.13.0",
                 "kind": "normal",
                 "features": [
                   "alloc"
@@ -35045,7 +35045,7 @@
               "system"
             ]
           },
-          "mado-0.1.162": {
+          "mado-0.1.163": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35571,7 +35571,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.779",
+                "package_key": "shikumi-0.1.780",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -38773,7 +38773,7 @@
               },
               {
                 "name": "tinyvec",
-                "package_key": "tinyvec-1.12.0",
+                "package_key": "tinyvec-1.13.0",
                 "kind": "normal",
                 "features": [
                   "alloc"
@@ -39184,7 +39184,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.162": {
+          "mado-0.1.163": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39759,7 +39759,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.779",
+                "package_key": "shikumi-0.1.780",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -43757,7 +43757,7 @@
               },
               {
                 "name": "tinyvec",
-                "package_key": "tinyvec-1.12.0",
+                "package_key": "tinyvec-1.13.0",
                 "kind": "normal",
                 "features": [
                   "alloc"
@@ -44139,7 +44139,7 @@
               "system"
             ]
           },
-          "mado-0.1.162": {
+          "mado-0.1.163": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44665,7 +44665,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.779",
+                "package_key": "shikumi-0.1.780",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -47790,7 +47790,7 @@
               },
               {
                 "name": "tinyvec",
-                "package_key": "tinyvec-1.12.0",
+                "package_key": "tinyvec-1.13.0",
                 "kind": "normal",
                 "features": [
                   "alloc"
@@ -48172,7 +48172,7 @@
               "system"
             ]
           },
-          "mado-0.1.162": {
+          "mado-0.1.163": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48698,7 +48698,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.779",
+                "package_key": "shikumi-0.1.780",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -52366,7 +52366,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.162": {
+    "mado-0.1.163": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -53191,7 +53191,7 @@
     "shidou-0.1.10": {
       "edition": "2024"
     },
-    "shikumi-0.1.779": {
+    "shikumi-0.1.780": {
       "edition": "2024"
     },
     "shlex-2.0.1": {
@@ -53347,13 +53347,13 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-core-0.2.500": {
+    "tatara-core-0.2.501": {
       "edition": "2021"
     },
-    "tatara-eval-0.2.499": {
+    "tatara-eval-0.2.501": {
       "edition": "2021"
     },
-    "tatara-lattice-0.2.500": {
+    "tatara-lattice-0.2.501": {
       "edition": "2021"
     },
     "tatara-lisp-0.3.52": {
@@ -53366,10 +53366,10 @@
     "tatara-lisp-eval-0.3.52": {
       "edition": "2021"
     },
-    "tatara-nix-0.2.499": {
+    "tatara-nix-0.2.501": {
       "edition": "2021"
     },
-    "tatara-process-0.2.500": {
+    "tatara-process-0.2.501": {
       "edition": "2021",
       "binaries": [
         {
@@ -53446,7 +53446,7 @@
     "tinytemplate-1.2.1": {
       "edition": "2015"
     },
-    "tinyvec-1.12.0": {
+    "tinyvec-1.13.0": {
       "edition": "2018"
     },
     "tinyvec_macros-0.1.1": {
