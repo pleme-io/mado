@@ -118,10 +118,7 @@ impl Pty {
 
         tracing::info!(shell, cols, rows, "PTY spawned");
 
-        Ok(Self {
-            master_fd,
-            child,
-        })
+        Ok(Self { master_fd, child })
     }
 
     /// Create an async reader for the master side of the PTY.
