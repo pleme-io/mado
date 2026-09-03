@@ -52,6 +52,7 @@ mod mcp;
 #[cfg(test)]
 mod shell_seam;
 mod single_pane;
+mod spawn;
 mod tear_discovery;
 mod terminfo;
 // `motion` lives in the lib target (src/lib.rs) so `benches/*.rs` can link

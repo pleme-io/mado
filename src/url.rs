@@ -153,17 +153,21 @@ pub fn open_command(url: &str, editor: &str) -> (String, Vec<String>) {
 
 /// Open a clickable link with a typed `std::process::Command` (NO shell):
 /// an `http`/`https`/`ftp` URL through the OS opener, a `file://path:line`
-/// through the operator's `$VISUAL`/`$EDITOR` (fallback `nvim`). Spawns
-/// detached (never blocks); the caller logs any error. Never panics.
+/// through the operator's `$VISUAL`/`$EDITOR` (fallback `nvim`).
+///
+/// ★ Genuinely detached, which this comment used to CLAIM while the code
+/// left an unreaped child (fixed 2026-09-03). mado runs for days, so one
+/// corpse per clicked link accumulated for the whole session. `crate::spawn`
+/// explains why a double-fork rather than omoya's process-wide answer.
+/// The caller logs any error. Never panics.
 pub fn open_link(url: &str) -> std::io::Result<()> {
     let editor = std::env::var("VISUAL")
         .or_else(|_| std::env::var("EDITOR"))
         .unwrap_or_else(|_| "nvim".to_string());
     let (program, args) = open_command(url, &editor);
-    std::process::Command::new(&program)
-        .args(&args)
-        .spawn()
-        .map(|_child| ())
+    let mut cmd = std::process::Command::new(&program);
+    cmd.args(&args);
+    crate::spawn::detached(&mut cmd)
 }
 
 /// The row text linkify scans, plus the per-byte first/last grid column

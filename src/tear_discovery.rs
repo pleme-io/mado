@@ -138,22 +138,28 @@ pub fn try_connect(socket_path: &Path) -> Option<Client> {
 fn spawn_tear_daemon(socket_path: &Path) -> std::io::Result<()> {
     use std::process::{Command, Stdio};
     let path_str = socket_path.to_string_lossy().to_string();
-    let child = Command::new("tear")
-        .args(["daemon", "--socket"])
+    let mut cmd = Command::new("tear");
+    cmd.args(["daemon", "--socket"])
         .arg(&path_str)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()?;
+        .stderr(Stdio::null());
+
+    // ★ Independence is what `detached` MAKES true; not waiting only made it
+    // sound true. The daemon was previously a child mado never reaped, so
+    // whenever it eventually exited it became a corpse mado held. Double-fork
+    // orphans it to PID 1 at birth, which is what "lives independently of
+    // mado" was always meant to describe — see `crate::spawn`.
+    crate::spawn::detached(&mut cmd)?;
+
+    // ★ No pid: `Child::id` would name the middle process of the double-fork,
+    // which is gone microseconds later. A pid that matches nothing in `ps`
+    // reads as a lookup failure rather than as a design choice, so reporting
+    // none is the honest option.
     tracing::info!(
-        pid = child.id(),
         path = %socket_path.display(),
-        "tear daemon auto-spawned"
+        "tear daemon auto-spawned (detached; reaped by init, not by mado)"
     );
-    // Don't wait — we want the daemon to live independently of mado.
-    // The DiscoveryOutcome::Attached client holds the connection;
-    // when mado exits, the daemon outlives it (the intended shape
-    // — sessions survive mado restarts).
     Ok(())
 }
 
