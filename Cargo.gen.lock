@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "ddb5b2e51acb0819abb4adf4ab4906f85620158c2e701c4b9d87000923484527",
+  "cargo_lock_sha256": "87b1f812f53bda9ce71c0325d6f774566a28b42c0c3695487b9961c6441b10c1",
   "manifest_sha256": {
-    "Cargo.toml": "999cf3a573fe3209d7340d02554aac3ef2daf5be31b11a65f557875ce877a90c"
+    "Cargo.toml": "cc30b28ed07d3cc3b9c64cdbd5ceba99b388db7cff65bcb2fefd6481e0b11f31"
   },
   "target_resolves": {
     "base": {
@@ -7357,7 +7357,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.780",
+            "package_key": "shikumi-0.1.782",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9168,7 +9168,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.780",
+            "package_key": "shikumi-0.1.782",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12096,7 +12096,7 @@
           },
           {
             "name": "tatara_eval",
-            "package_key": "tatara-eval-0.2.501",
+            "package_key": "tatara-eval-0.2.503",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16993,7 +16993,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.780",
+            "package_key": "shikumi-0.1.782",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17040,7 +17040,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.780": {
+      "shikumi-0.1.782": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -19790,7 +19790,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-core-0.2.501": {
+      "tatara-core-0.2.503": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -19901,7 +19901,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.780",
+            "package_key": "shikumi-0.1.782",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19956,7 +19956,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-eval-0.2.501": {
+      "tatara-eval-0.2.503": {
         "runtime_dependencies": [
           {
             "name": "bumpalo",
@@ -20004,7 +20004,7 @@
           },
           {
             "name": "tatara_nix",
-            "package_key": "tatara-nix-0.2.501",
+            "package_key": "tatara-nix-0.2.503",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20026,7 +20026,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lattice-0.2.501": {
+      "tatara-lattice-0.2.503": {
         "runtime_dependencies": [
           {
             "name": "schemars",
@@ -20054,7 +20054,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.501",
+            "package_key": "tatara-core-0.2.503",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20064,7 +20064,7 @@
           },
           {
             "name": "tatara_process",
-            "package_key": "tatara-process-0.2.501",
+            "package_key": "tatara-process-0.2.503",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20230,7 +20230,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-nix-0.2.501": {
+      "tatara-nix-0.2.503": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -20276,7 +20276,7 @@
           },
           {
             "name": "tatara_lattice",
-            "package_key": "tatara-lattice-0.2.501",
+            "package_key": "tatara-lattice-0.2.503",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20328,7 +20328,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-process-0.2.501": {
+      "tatara-process-0.2.503": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20474,7 +20474,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.501",
+            "package_key": "tatara-core-0.2.503",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20673,7 +20673,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.780",
+            "package_key": "shikumi-0.1.782",
             "kind": "normal",
             "features": [
               "cli"
@@ -26072,7 +26072,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.163": {
+          "mado-0.1.164": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26647,7 +26647,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.780",
+                "package_key": "shikumi-0.1.782",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -31032,7 +31032,7 @@
               "system"
             ]
           },
-          "mado-0.1.163": {
+          "mado-0.1.164": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31558,7 +31558,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.780",
+                "package_key": "shikumi-0.1.782",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -35070,7 +35070,7 @@
               "system"
             ]
           },
-          "mado-0.1.163": {
+          "mado-0.1.164": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35596,7 +35596,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.780",
+                "package_key": "shikumi-0.1.782",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -39221,7 +39221,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.163": {
+          "mado-0.1.164": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39796,7 +39796,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.780",
+                "package_key": "shikumi-0.1.782",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -44188,7 +44188,7 @@
               "system"
             ]
           },
-          "mado-0.1.163": {
+          "mado-0.1.164": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44714,7 +44714,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.780",
+                "package_key": "shikumi-0.1.782",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -48233,7 +48233,7 @@
               "system"
             ]
           },
-          "mado-0.1.163": {
+          "mado-0.1.164": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48759,7 +48759,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.780",
+                "package_key": "shikumi-0.1.782",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -52439,7 +52439,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.163": {
+    "mado-0.1.164": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -53264,7 +53264,7 @@
     "shidou-0.1.10": {
       "edition": "2024"
     },
-    "shikumi-0.1.780": {
+    "shikumi-0.1.782": {
       "edition": "2024"
     },
     "shlex-2.0.1": {
@@ -53420,13 +53420,13 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-core-0.2.501": {
+    "tatara-core-0.2.503": {
       "edition": "2021"
     },
-    "tatara-eval-0.2.501": {
+    "tatara-eval-0.2.503": {
       "edition": "2021"
     },
-    "tatara-lattice-0.2.501": {
+    "tatara-lattice-0.2.503": {
       "edition": "2021"
     },
     "tatara-lisp-0.3.52": {
@@ -53439,10 +53439,10 @@
     "tatara-lisp-eval-0.3.52": {
       "edition": "2021"
     },
-    "tatara-nix-0.2.501": {
+    "tatara-nix-0.2.503": {
       "edition": "2021"
     },
-    "tatara-process-0.2.501": {
+    "tatara-process-0.2.503": {
       "edition": "2021",
       "binaries": [
         {

@@ -3306,7 +3306,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.163"
+version = "0.1.164"
 dependencies = [
  "anyhow",
  "awase",
@@ -6173,9 +6173,9 @@ dependencies = [
 
 [[package]]
 name = "shikumi"
-version = "0.1.780"
+version = "0.1.782"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90d0efcb84583022c5cc52c720d93b21eff5999c190c2ce01f830af9d55f0b7e"
+checksum = "2706f38bd2a89c4c74e1088e6892a65e87a2017a23a3df1a7fb94349267d4301"
 dependencies = [
  "arc-swap",
  "async-trait",
@@ -6788,9 +6788,9 @@ dependencies = [
 
 [[package]]
 name = "tatara-core"
-version = "0.2.501"
+version = "0.2.503"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "604338a61573eaf0548aa03b87e859e52e288c2b8946eaa65ff9238d50f22a0d"
+checksum = "7ff46d572bff22d757bbb66c5eacf01cee9cbf0daf0a33970b98604be5d49082"
 dependencies = [
  "anyhow",
  "blake3",
@@ -6811,9 +6811,9 @@ dependencies = [
 
 [[package]]
 name = "tatara-eval"
-version = "0.2.501"
+version = "0.2.503"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a674158e3a6842738def452e959c36ffa1143dfe1f29e2edb80793ba64157db9"
+checksum = "c7396dfe5ff9b4cf79ee3a6c18dd4a08562aea05b6d94c252ad496c476d29466"
 dependencies = [
  "bumpalo",
  "serde",
@@ -6825,9 +6825,9 @@ dependencies = [
 
 [[package]]
 name = "tatara-lattice"
-version = "0.2.501"
+version = "0.2.503"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13f25477187b96359c01422002fcd91e3c31694f5bb9fb6e011693c941709670"
+checksum = "81e1abfc700747f99bd6b0ee440a392fb22b07802a66fbce858cf224fe516148"
 dependencies = [
  "schemars 0.8.22",
  "serde",
@@ -6874,9 +6874,9 @@ dependencies = [
 
 [[package]]
 name = "tatara-nix"
-version = "0.2.501"
+version = "0.2.503"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1aa04830b94cce51a423bf3b5a42690a31dcda6bfa4874da790d5e54633dfc8b"
+checksum = "685e99a44bd78ead8dd8edd732e081cd3c28f1d5824d4eb1328ededb1692a0d8"
 dependencies = [
  "blake3",
  "hex",
@@ -6891,9 +6891,9 @@ dependencies = [
 
 [[package]]
 name = "tatara-process"
-version = "0.2.501"
+version = "0.2.503"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d98d73d86c6309090eb99dc217f608d68fec7ae16027a58e637ec49b4f343c92"
+checksum = "97d2e8c594f164ac743b94a73b769decc41ebccfbe9cdbd87738dc9dca5fa695"
 dependencies = [
  "anyhow",
  "blake3",

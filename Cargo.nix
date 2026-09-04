@@ -10083,7 +10083,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.163";
+        version = "0.1.164";
         edition = "2024";
         crateBin = [
           {
@@ -10359,6 +10359,11 @@ rec {
           {
             name = "thiserror";
             packageId = "thiserror 2.0.20";
+          }
+          {
+            name = "tinyvec";
+            packageId = "tinyvec";
+            features = [ "std" ];
           }
           {
             name = "tokio";
@@ -21530,9 +21535,9 @@ rec {
       };
       "shikumi" = rec {
         crateName = "shikumi";
-        version = "0.1.779";
+        version = "0.1.780";
         edition = "2024";
-        sha256 = "0ffkpiv133dh872g3hf3qi00azzabg3hapx73krpa1mzw3gv579b";
+        sha256 = "0zhbbzazj2l33zh2q30rkjczbvr17gcj1isjrk2j4c2qhk5yzl4h";
         dependencies = [
           {
             name = "arc-swap";
@@ -23738,9 +23743,9 @@ rec {
       };
       "tatara-core" = rec {
         crateName = "tatara-core";
-        version = "0.2.500";
+        version = "0.2.501";
         edition = "2021";
-        sha256 = "1gjdn1cizar3bsq7vwflizssk6g6vhpxy2zj0v6mcz6b89vfzg9s";
+        sha256 = "039ay988s8zrbykflil95f62hbp5b7l8ffx0i9ag1skk2nk3hhv0";
         libName = "tatara_core";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -23815,9 +23820,9 @@ rec {
       };
       "tatara-eval" = rec {
         crateName = "tatara-eval";
-        version = "0.2.499";
+        version = "0.2.501";
         edition = "2021";
-        sha256 = "17agki052byymk3kdfk7dlrp1b53p14jhwkrbr9zvq2kxhyaa6b8";
+        sha256 = "1fbx2mjbm4q7p3ny4a8zzqyi98gz6sf9abj5xy6p6hk87a71ax56";
         libName = "tatara_eval";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -23854,9 +23859,9 @@ rec {
       };
       "tatara-lattice" = rec {
         crateName = "tatara-lattice";
-        version = "0.2.500";
+        version = "0.2.501";
         edition = "2021";
-        sha256 = "1qsbdm0c0kz4fd49m4j7js6hdggqp8kv4pjmkks8lxkz67izxqr2";
+        sha256 = "0w4nf10wk4qn05pgpfav9xlk2g0yv7y0482206f3b5kv31vm9whk";
         libName = "tatara_lattice";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -23981,9 +23986,9 @@ rec {
       };
       "tatara-nix" = rec {
         crateName = "tatara-nix";
-        version = "0.2.499";
+        version = "0.2.501";
         edition = "2021";
-        sha256 = "15rzsx9bh95q3sg4wf5w3ymfdb2wmks7bbilfydhm4awvi8mq16s";
+        sha256 = "12zw7mim8phdg7d78j7sdgddqc8ad515lfxz4fj53kjcp4q4i80s";
         libName = "tatara_nix";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24031,10 +24036,10 @@ rec {
       };
       "tatara-process" = rec {
         crateName = "tatara-process";
-        version = "0.2.500";
+        version = "0.2.501";
         edition = "2021";
         crateBin = [];
-        sha256 = "0ailqf90nls51dmxc8f1f6m63y2ybxjnfxhmvqi6194w8736ah2h";
+        sha256 = "14iw6i7rpi3ycf7aa9v0w5xfr3yn13v1ghlxp470j2b3dkc773fr";
         libName = "tatara_process";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24930,9 +24935,9 @@ rec {
       };
       "tinyvec" = rec {
         crateName = "tinyvec";
-        version = "1.12.0";
+        version = "1.13.0";
         edition = "2018";
-        sha256 = "0zxaid976y60f4722vjhfnwcbydmzpwva7p03aqzl15gl3dblkmv";
+        sha256 = "0xss2xdfvf14lzidxg7l4gwmj6r6mfj4b7l4ii0cg4ydwmxhg8hb";
         authors = [
           "Lokathor <zefria@gmail.com>"
         ];
@@ -24958,7 +24963,7 @@ rec {
           "std" = [ "alloc" ];
           "tinyvec_macros" = [ "dep:tinyvec_macros" ];
         };
-        resolvedDefaultFeatures = [ "alloc" "default" "tinyvec_macros" ];
+        resolvedDefaultFeatures = [ "alloc" "default" "std" "tinyvec_macros" ];
       };
       "tinyvec_macros" = rec {
         crateName = "tinyvec_macros";
