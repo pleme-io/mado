@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "a382d6199bb6aa2b1becaf51b9e05416a28d28951fafa54372740f732af5804a",
+  "cargo_lock_sha256": "71ab490c5cad3187f8a6219096f86e402667220b07fe1d89b226e0abb7a2cd8a",
   "manifest_sha256": {
-    "Cargo.toml": "158d08d1b07df20117bd24ab5c50107ca6d3b2554f24d7c80b1f7c718e2a2658"
+    "Cargo.toml": "af16d4a0d8241961578f1eed01e1fcd87058c090a5c11495a88fbc063e307b65"
   },
   "target_resolves": {
     "base": {
@@ -9110,7 +9110,7 @@
           "serde"
         ]
       },
-      "madori-0.1.18": {
+      "madori-0.1.21": {
         "runtime_dependencies": [
           {
             "name": "egaku",
@@ -9143,6 +9143,16 @@
             "optional": false,
             "target": null,
             "tree": "target"
+          },
+          {
+            "name": "pleme_allvariants_derive",
+            "package_key": "pleme-allvariants-derive-0.1.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "host"
           },
           {
             "name": "pollster",
@@ -26388,7 +26398,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.18",
+                "package_key": "madori-0.1.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31348,7 +31358,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.18",
+                "package_key": "madori-0.1.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35386,7 +35396,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.18",
+                "package_key": "madori-0.1.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39537,7 +39547,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.18",
+                "package_key": "madori-0.1.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44504,7 +44514,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.18",
+                "package_key": "madori-0.1.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48549,7 +48559,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.18",
+                "package_key": "madori-0.1.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -52453,7 +52463,7 @@
         }
       ]
     },
-    "madori-0.1.18": {
+    "madori-0.1.21": {
       "edition": "2024"
     },
     "malloc_buf-0.0.6": {

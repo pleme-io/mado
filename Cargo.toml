@@ -160,7 +160,25 @@ garasu = "0.1"
 # 0.1.13 is a REQUIREMENT, not a bump: RenderCallback::needs_frame lands
 # there, and mado overrides it. An older madori compiles but never asks,
 # so the override would be dead code and the idle repaint would return.
-madori = "0.1.17"
+#
+# ★ 0.1.21 IS THE SAME KIND OF REQUIREMENT — FOR THAT OVERRIDE'S OWN COST.
+# Our needs_frame (src/render.rs:6173) answers from terminal-grid state alone:
+# seqno, grid epoch, cursor, overlays, bell, search. That is honest, and it is
+# what buys back the 50.7%-of-a-core idle repaint. But it means a RESIZE — which
+# changes no grid content — answers `false`, and through 0.1.20 madori then
+# skipped acquire+render+present. Nothing was committed at the new size, and on
+# Wayland a surface's size IS its last committed buffer.
+#
+# MEASURED on plo 2026-09-06 against madori 0.1.18: omoya re-flowed to a single
+# full-width slot (layout 4,32 1912x1044) and mado's surface stayed 952x1044 —
+# same origin, half the width, the right half of the screen showing desktop.
+# One keystroke fixed it, because a keystroke is the only thing the override was
+# watching for.
+#
+# 0.1.21 makes geometry the LOOP's decision (`FrameDebt`), so this override can
+# go on answering only about CONTENT — the one question it can honestly answer.
+# Downgrading below 0.1.21 re-arms the bug, and nothing in this repo would fail.
+madori = "0.1.21"
 shikumi = { version = "0.1", features = ["cli"] }
 # izumi (泉) — the fresh-source board substrate: the generalized extraction of
 # mado's Ctrl-S suggestion plane (Item/Store/Engine/Environment algebra, the

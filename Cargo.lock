@@ -3387,13 +3387,14 @@ dependencies = [
 
 [[package]]
 name = "madori"
-version = "0.1.18"
+version = "0.1.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93bd2b3bebb87c92f23c4d33e3542b5eba5ab90bec4cbf9fc7f5c5f05277fad6"
+checksum = "e35df3e39bc820b9247226bc217f87241eb426d472e390a4ce351cb8af3afbf2"
 dependencies = [
  "egaku",
  "garasu",
  "ishou-tokens",
+ "pleme-allvariants-derive",
  "pollster",
  "serde",
  "shikumi",
@@ -8330,7 +8331,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
