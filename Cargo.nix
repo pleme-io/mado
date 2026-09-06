@@ -10082,7 +10082,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.168";
+        version = "0.1.169";
         edition = "2024";
         crateBin = [
           {
@@ -21538,9 +21538,9 @@ rec {
       };
       "shikumi" = rec {
         crateName = "shikumi";
-        version = "0.1.831";
+        version = "0.1.838";
         edition = "2024";
-        sha256 = "0rk5wkpvq56dvhrx4wjzqxw9v5znzykx7sxzfwmbp1q8xgfzxhvn";
+        sha256 = "1l228ww91yxwsbx2zjvhsgrwgn19gqhykq99gmqvnynsjfsgappa";
         dependencies = [
           {
             name = "arc-swap";
@@ -23746,9 +23746,9 @@ rec {
       };
       "tatara-core" = rec {
         crateName = "tatara-core";
-        version = "0.2.554";
+        version = "0.2.562";
         edition = "2021";
-        sha256 = "03j9idk6midc2i1cbpx5xyq18fqbfxzdakg5lzg7f13nk291cmrr";
+        sha256 = "12jv0pmj2k97z4qpz5d4fg18jnxxvgksqwa9fxm2h4ahkivmvj9f";
         libName = "tatara_core";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -23823,9 +23823,9 @@ rec {
       };
       "tatara-eval" = rec {
         crateName = "tatara-eval";
-        version = "0.2.554";
+        version = "0.2.562";
         edition = "2021";
-        sha256 = "0zasx9p328x3nhfy80vlak1xj93s8pmfa9m87sbhxcmnsa4r86jr";
+        sha256 = "1pk2jydp0bszvxbs0j6829ravqp051npm1rxg0rvnm9x275vdzqy";
         libName = "tatara_eval";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -23862,9 +23862,9 @@ rec {
       };
       "tatara-lattice" = rec {
         crateName = "tatara-lattice";
-        version = "0.2.554";
+        version = "0.2.562";
         edition = "2021";
-        sha256 = "1wjpah15bjjbc5clbz28j6v6l3iiphv49fiyapl38arrwbc4bp9z";
+        sha256 = "01h0ac1qra73qy4jjwimp7gg47cfq1gz4r7dpz4nxvq0gw985v4n";
         libName = "tatara_lattice";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -23989,9 +23989,9 @@ rec {
       };
       "tatara-nix" = rec {
         crateName = "tatara-nix";
-        version = "0.2.554";
+        version = "0.2.562";
         edition = "2021";
-        sha256 = "1jp1hflwfzmra7gfm80xji83s0hrsw2pnxf0rjh5xbi5sg3rzfgw";
+        sha256 = "1v0l0c7h68iszar0lhh484b0vxvqcckpjslvrri4fr5wv94p1zc8";
         libName = "tatara_nix";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24039,10 +24039,10 @@ rec {
       };
       "tatara-process" = rec {
         crateName = "tatara-process";
-        version = "0.2.554";
+        version = "0.2.562";
         edition = "2021";
         crateBin = [];
-        sha256 = "1zj4n1r2r17sj2ir287y4k6nlhhb5mkd43dk892vhzscavfhd02y";
+        sha256 = "0h1ard470hqyb49m30xlzqfw2z89mrrp88bsbmh5cfg3p06csbz0";
         libName = "tatara_process";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -29279,7 +29279,7 @@ rec {
         dependencies = [
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.48.0";
+            packageId = "windows-sys 0.61.2";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Storage_FileSystem" "Win32_System_Console" "Win32_System_SystemInformation" ];
           }
@@ -31376,7 +31376,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Globalization" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Console" "Win32_System_SystemInformation" "Win32_UI" "Win32_UI_Shell" "default" ];
+        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Globalization" "Win32_System" "Win32_System_Com" "Win32_UI" "Win32_UI_Shell" "default" ];
       };
       "windows-sys 0.52.0" = rec {
         crateName = "windows-sys";
