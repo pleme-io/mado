@@ -910,7 +910,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.4";
+            packageId = "syn 3.0.5";
             usesDefaultFeatures = false;
             features = [ "clone-impls" "full" "parsing" "printing" "proc-macro" "visit-mut" ];
           }
@@ -1482,14 +1482,14 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.4";
+            packageId = "syn 3.0.5";
             features = [ "full" "fold" ];
           }
         ];
         devDependencies = [
           {
             name = "syn";
-            packageId = "syn 3.0.4";
+            packageId = "syn 3.0.5";
             features = [ "full" "fold" "parsing" ];
           }
         ];
@@ -1691,7 +1691,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.4";
+            packageId = "syn 3.0.5";
           }
         ];
 
@@ -1836,9 +1836,9 @@ rec {
       };
       "cc" = rec {
         crateName = "cc";
-        version = "1.4.4";
+        version = "1.4.5";
         edition = "2021";
-        sha256 = "0wq26vvhzv5ci9gx3cfiw320skvaysf9i701wp668lks6ps39m8a";
+        sha256 = "102dznr5n781pj0shcjncv6pdi9fanai38gpiphzlm551ivc4ph0";
         dependencies = [
           {
             name = "find-msvc-tools";
@@ -2174,7 +2174,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.4";
+            packageId = "syn 3.0.5";
             features = [ "full" ];
           }
         ];
@@ -3056,9 +3056,9 @@ rec {
       };
       "crossbeam-queue" = rec {
         crateName = "crossbeam-queue";
-        version = "0.3.13";
+        version = "0.3.14";
         edition = "2021";
-        sha256 = "09ksdjzqk1iadmsfnz46f1qvy6bbqri91hnvyklqpn097gxi6gc0";
+        sha256 = "1bizbcv98anbink3gr3xhnb757d9vj6pcv7df2f4hybl5xvbvs03";
         libName = "crossbeam_queue";
         dependencies = [
           {
@@ -3076,9 +3076,9 @@ rec {
       };
       "crossbeam-utils" = rec {
         crateName = "crossbeam-utils";
-        version = "0.8.22";
+        version = "0.8.23";
         edition = "2021";
-        sha256 = "05vwf7pmjq8c8f3fp5qqdm0z3cnk4p62wi8spf0jms5yjnh3v031";
+        sha256 = "1ilan2nw7fvka8hki80fr57a5dgd4mvcsvwq60437j6yvlwyw7m3";
         libName = "crossbeam_utils";
         features = {
           "default" = [ "std" ];
@@ -3952,7 +3952,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.4";
+            packageId = "syn 3.0.5";
           }
         ];
         features = {
@@ -4390,7 +4390,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.4";
+            packageId = "syn 3.0.5";
           }
         ];
         features = {
@@ -4757,9 +4757,9 @@ rec {
       };
       "find-msvc-tools" = rec {
         crateName = "find-msvc-tools";
-        version = "0.1.11";
+        version = "0.1.12";
         edition = "2021";
-        sha256 = "145qpfb9r4ml2klr8v4byvrkikp61qyiks9n69b8z0vbscbb0pfl";
+        sha256 = "0bcxgbc8g33fkpzx71ws9307ad2jyxsm35my1bc6zikj79y1q3ry";
         libName = "find_msvc_tools";
 
       };
@@ -5014,7 +5014,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.4";
+            packageId = "syn 3.0.5";
             features = [ "full" ];
           }
         ];
@@ -5299,7 +5299,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.4";
+            packageId = "syn 3.0.5";
             features = [ "full" ];
           }
         ];
@@ -7865,9 +7865,9 @@ rec {
       };
       "indexmap" = rec {
         crateName = "indexmap";
-        version = "2.14.1";
+        version = "2.14.2";
         edition = "2024";
-        sha256 = "1sq9z90viwfw8053l32rrby563hy67xl8n6k65d92hi22i421ah7";
+        sha256 = "0mf86hbjkkcd82cpq683bblbs0zwa8ndla96ci8p1ji6bl7ijknc";
         dependencies = [
           {
             name = "equivalent";
@@ -7932,7 +7932,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.4";
+            packageId = "syn 3.0.5";
             features = [ "full" ];
           }
         ];
@@ -8536,9 +8536,9 @@ rec {
       };
       "js-sys" = rec {
         crateName = "js-sys";
-        version = "0.3.104";
+        version = "0.3.105";
         edition = "2021";
-        sha256 = "0fjsgady7wbv7bbyy6c8qhrd93bnx11qbl83l1g7bb9a4601030f";
+        sha256 = "17pr58p55pxbflkjl2wz6pyz854j80nlgavjq4mcwr583q6x4myf";
         libName = "js_sys";
         authors = [
           "The wasm-bindgen Developers"
@@ -8553,7 +8553,6 @@ rec {
             packageId = "futures-util";
             optional = true;
             usesDefaultFeatures = false;
-            features = [ "std" ];
           }
           {
             name = "wasm-bindgen";
@@ -8564,7 +8563,7 @@ rec {
         features = {
           "default" = [ "std" "unsafe-eval" ];
           "futures-core-03-stream" = [ "dep:futures-util" "dep:futures-core" ];
-          "std" = [ "wasm-bindgen/std" "dep:futures-util" ];
+          "std" = [ "wasm-bindgen/std" "futures-util/std" ];
         };
         resolvedDefaultFeatures = [ "default" "std" "unsafe-eval" ];
       };
@@ -9681,7 +9680,7 @@ rec {
           }
           {
             name = "redox_syscall";
-            packageId = "redox_syscall 0.9.3";
+            packageId = "redox_syscall 0.9.4";
             optional = true;
           }
         ];
@@ -10083,7 +10082,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.165";
+        version = "0.1.166";
         edition = "2024";
         crateBin = [
           {
@@ -10440,9 +10439,9 @@ rec {
       };
       "madori" = rec {
         crateName = "madori";
-        version = "0.1.15";
+        version = "0.1.17";
         edition = "2024";
-        sha256 = "04628rx4y3y3bf9f4kpfwvvlcd5g0f3ccarharvalr4mla7rlmba";
+        sha256 = "1mi8qd4yb6z8f2az5dhs16bcq5ijsq5qwz4fss9sg39ypzr0w03z";
         dependencies = [
           {
             name = "egaku";
@@ -15782,9 +15781,9 @@ rec {
       };
       "pest" = rec {
         crateName = "pest";
-        version = "2.9.0";
+        version = "2.9.1";
         edition = "2021";
-        sha256 = "1kwvhc5hyrfpxpmp0jw0wr891xyjs44mcs2wz68hrl54qw6ac1ss";
+        sha256 = "1bghagbnjgf0s5303kjgbzw4hiwcdx3g41a25phiiy2b3fvawibd";
         authors = [
           "Dragoș Tiselice <dragostiselice@gmail.com>"
         ];
@@ -15811,9 +15810,9 @@ rec {
       };
       "pest_derive" = rec {
         crateName = "pest_derive";
-        version = "2.9.0";
+        version = "2.9.1";
         edition = "2021";
-        sha256 = "13f8ihi8928s9mc13pcbhxy382kqc89h7i8d7s5mnif8lm23ga5k";
+        sha256 = "17y35pcr7gim93cm5qp74y60mqpv5h7j9gnh0ivlxv955qj5mk49";
         procMacro = true;
         authors = [
           "Dragoș Tiselice <dragostiselice@gmail.com>"
@@ -15839,9 +15838,9 @@ rec {
       };
       "pest_generator" = rec {
         crateName = "pest_generator";
-        version = "2.9.0";
+        version = "2.9.1";
         edition = "2021";
-        sha256 = "0jihcdnmdban4bqjd02r2wbb79nywj2nhwqyk95hvrixm98k9kg0";
+        sha256 = "1ra33b0fnkwz48x5nfwz3017mxh254ac4bfanbj0z0n3bi3j3gvs";
         authors = [
           "Dragoș Tiselice <dragostiselice@gmail.com>"
         ];
@@ -15877,9 +15876,9 @@ rec {
       };
       "pest_meta" = rec {
         crateName = "pest_meta";
-        version = "2.9.0";
+        version = "2.9.1";
         edition = "2021";
-        sha256 = "15jly0r7r4m15fhm3pg814h65j7dqnqq6k43rvgxfhg29443lkg0";
+        sha256 = "0vlkqrfh78rf2yc2q6ppkp571n219ba4h4y530y3k1zni2rlvfmd";
         authors = [
           "Dragoș Tiselice <dragostiselice@gmail.com>"
         ];
@@ -18011,11 +18010,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "default" "userspace" ];
       };
-      "redox_syscall 0.9.3" = rec {
+      "redox_syscall 0.9.4" = rec {
         crateName = "redox_syscall";
-        version = "0.9.3";
+        version = "0.9.4";
         edition = "2021";
-        sha256 = "1r9g9gxazwlavw5sbh5cszgf5zlqgs4q0s79f79p77l2g5vd2y6n";
+        sha256 = "03p257wq9i52i5h5ns9v0xx03fycgcq17bdcwwqzmil7ka9p0ybk";
         libName = "syscall";
         authors = [
           "Jeremy Soller <jackpot51@gmail.com>"
@@ -18137,7 +18136,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.4";
+            packageId = "syn 3.0.5";
           }
         ];
 
@@ -19967,13 +19966,13 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.4";
+            packageId = "syn 3.0.5";
           }
         ];
         devDependencies = [
           {
             name = "syn";
-            packageId = "syn 3.0.4";
+            packageId = "syn 3.0.5";
             features = [ "extra-traits" ];
           }
         ];
@@ -21093,7 +21092,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.4";
+            packageId = "syn 3.0.5";
             usesDefaultFeatures = false;
             features = [ "clone-impls" "derive" "parsing" "printing" "proc-macro" ];
           }
@@ -21155,7 +21154,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.4";
+            packageId = "syn 3.0.5";
             usesDefaultFeatures = false;
             features = [ "clone-impls" "derive" "parsing" "printing" ];
           }
@@ -21535,9 +21534,9 @@ rec {
       };
       "shikumi" = rec {
         crateName = "shikumi";
-        version = "0.1.782";
+        version = "0.1.823";
         edition = "2024";
-        sha256 = "00a3glk4jhxrgwddz8r3g80s51syls96i3h8w5s4r758sa5z61i7";
+        sha256 = "00x7bya8fv6zmdin3530rzk3hhj0q9nal779hn3z63ayf7q1wpmh";
         dependencies = [
           {
             name = "arc-swap";
@@ -23481,11 +23480,11 @@ rec {
         };
         resolvedDefaultFeatures = [ "clone-impls" "default" "derive" "extra-traits" "fold" "full" "parsing" "printing" "proc-macro" "visit" "visit-mut" ];
       };
-      "syn 3.0.4" = rec {
+      "syn 3.0.5" = rec {
         crateName = "syn";
-        version = "3.0.4";
+        version = "3.0.5";
         edition = "2021";
-        sha256 = "17v4ac61x0hvj1879ywqzlwhyzg7n9lr9zniwrsif3b1ykfmq9z6";
+        sha256 = "1yc9vbm1wqs68fyj5f1f3f9isyh6i7wpxccvfrgpfnzn200jxpqj";
         authors = [
           "David Tolnay <dtolnay@gmail.com>"
         ];
@@ -23512,7 +23511,7 @@ rec {
           "proc-macro" = [ "proc-macro2/proc-macro" "quote?/proc-macro" ];
           "test" = [ "syn-test-suite/all-features" ];
         };
-        resolvedDefaultFeatures = [ "clone-impls" "default" "derive" "extra-traits" "fold" "full" "parsing" "printing" "proc-macro" "visit-mut" ];
+        resolvedDefaultFeatures = [ "clone-impls" "default" "derive" "extra-traits" "fold" "full" "parsing" "printing" "proc-macro" "visit" "visit-mut" ];
       };
       "sync_wrapper" = rec {
         crateName = "sync_wrapper";
@@ -23743,9 +23742,9 @@ rec {
       };
       "tatara-core" = rec {
         crateName = "tatara-core";
-        version = "0.2.503";
+        version = "0.2.547";
         edition = "2021";
-        sha256 = "10lhskjlnq4q1fbk62mg1nzrrvhwy2n5wv5npdbxf8pz5dbnvx3z";
+        sha256 = "11sa2dbx1vz1sxgc9sd65xw3miwwfc9hkfr2p06lcpgln3ydngxz";
         libName = "tatara_core";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -23820,9 +23819,9 @@ rec {
       };
       "tatara-eval" = rec {
         crateName = "tatara-eval";
-        version = "0.2.503";
+        version = "0.2.547";
         edition = "2021";
-        sha256 = "0rlls9vc95nl58jlrndn0pm2lmh89bfihv1sxrwwzd7rbzz6sff7";
+        sha256 = "1br0jli6m698qfbxmxq7j97qqf9fyl75xvxcgxjhi3chbk2qx9yp";
         libName = "tatara_eval";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -23859,9 +23858,9 @@ rec {
       };
       "tatara-lattice" = rec {
         crateName = "tatara-lattice";
-        version = "0.2.503";
+        version = "0.2.547";
         edition = "2021";
-        sha256 = "0j31a7z29wlchp7gnriah03jpcig74549vmhssdzjiq7f3yapqc1";
+        sha256 = "1nmy45yxzkj7w10c3psz1p60br1ww9vwylbqinvpssz1zxin3x6b";
         libName = "tatara_lattice";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -23986,9 +23985,9 @@ rec {
       };
       "tatara-nix" = rec {
         crateName = "tatara-nix";
-        version = "0.2.503";
+        version = "0.2.547";
         edition = "2021";
-        sha256 = "1n50j8bdpplf6aqlwkc2spqjhg6dh7h35mzdv26sv3np9fj9jpk8";
+        sha256 = "1vjnwr6nj6xangb39bdr8v9bqby359hgszpza6d8cx33v1pc1413";
         libName = "tatara_nix";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24036,10 +24035,10 @@ rec {
       };
       "tatara-process" = rec {
         crateName = "tatara-process";
-        version = "0.2.503";
+        version = "0.2.547";
         edition = "2021";
         crateBin = [];
-        sha256 = "15d6bz59vp1qfzcdp75yryy1xi7ckmv3p9wl7dsaqr7ijk2yillp";
+        sha256 = "1z0541y0h7cdp6aypavh57l7gvwrcb20qpdp0v4mzyn0k18qwhg3";
         libName = "tatara_process";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24625,7 +24624,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.4";
+            packageId = "syn 3.0.5";
           }
         ];
 
@@ -24935,9 +24934,9 @@ rec {
       };
       "tinyvec" = rec {
         crateName = "tinyvec";
-        version = "1.13.0";
+        version = "1.13.2";
         edition = "2018";
-        sha256 = "0xss2xdfvf14lzidxg7l4gwmj6r6mfj4b7l4ii0cg4ydwmxhg8hb";
+        sha256 = "16yy9hpbl5a0j03w8jhldnyd6f6hcyxy2fd3z3c1hsg5qkaxxw2c";
         authors = [
           "Lokathor <zefria@gmail.com>"
         ];
@@ -25172,7 +25171,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.4";
+            packageId = "syn 3.0.5";
             features = [ "full" ];
           }
         ];
@@ -25180,9 +25179,9 @@ rec {
       };
       "tokio-rustls" = rec {
         crateName = "tokio-rustls";
-        version = "0.26.4";
+        version = "0.26.5";
         edition = "2021";
-        sha256 = "0qggwknz9w4bbsv1z158hlnpkm97j3w8v31586jipn99byaala8p";
+        sha256 = "0rqzway3m45lj9bdhd5mbl75z6dagaqz90k6ndccvcgh7qn5zj5h";
         libName = "tokio_rustls";
         dependencies = [
           {
@@ -27372,9 +27371,9 @@ rec {
       };
       "wasm-bindgen" = rec {
         crateName = "wasm-bindgen";
-        version = "0.2.127";
+        version = "0.2.128";
         edition = "2021";
-        sha256 = "0w6fa1mkbb6qlkffgy4qaz0hdf496zbjkyiyvs4lvmpd8xbr6w0v";
+        sha256 = "1gsi4ggm03dqr3j9bcc1sbxzmkw6ykm3cqx4g8xmw31v7niqgjxf";
         libName = "wasm_bindgen";
         authors = [
           "The wasm-bindgen Developers"
@@ -27428,9 +27427,9 @@ rec {
       };
       "wasm-bindgen-futures" = rec {
         crateName = "wasm-bindgen-futures";
-        version = "0.4.77";
+        version = "0.4.78";
         edition = "2021";
-        sha256 = "0l3r8m335kb2p8yj65kb0biwlypcx3ay4g750hafkl13rkapfxvb";
+        sha256 = "0a6r1q1v2qvi3ypmy0nva3il422iyml1f61i897wbxfdsb9wbx3f";
         libName = "wasm_bindgen_futures";
         authors = [
           "The wasm-bindgen Developers"
@@ -27456,9 +27455,9 @@ rec {
       };
       "wasm-bindgen-macro" = rec {
         crateName = "wasm-bindgen-macro";
-        version = "0.2.127";
+        version = "0.2.128";
         edition = "2021";
-        sha256 = "1hcvlb6bv771fvgifd367wd0cm4giyar8fq5i4h705vj7y7myxvp";
+        sha256 = "1vdrjrb7yqh8p0r0yr93rlaq9iq05hy1wl9kbsjv7a61wc8xb456";
         procMacro = true;
         libName = "wasm_bindgen_macro";
         authors = [
@@ -27480,9 +27479,9 @@ rec {
       };
       "wasm-bindgen-macro-support" = rec {
         crateName = "wasm-bindgen-macro-support";
-        version = "0.2.127";
+        version = "0.2.128";
         edition = "2021";
-        sha256 = "112j4d7dv8y2sk9yy9czrl9fpjx9388ywnn7icdv2bywazw367g1";
+        sha256 = "12p4jm9dr88h1j5sglycizvvxvr05pgmz7aa2v9g47h7y23lh7j1";
         libName = "wasm_bindgen_macro_support";
         authors = [
           "The wasm-bindgen Developers"
@@ -27502,7 +27501,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 2.0.119";
+            packageId = "syn 3.0.5";
             features = [ "visit" "visit-mut" "full" "extra-traits" ];
           }
           {
@@ -27516,10 +27515,10 @@ rec {
       };
       "wasm-bindgen-shared" = rec {
         crateName = "wasm-bindgen-shared";
-        version = "0.2.127";
+        version = "0.2.128";
         edition = "2021";
         links = "wasm_bindgen";
-        sha256 = "1gywp6xv8a27fvm3ga9xby93xyic3hc2s626b9z9rw2xqny4vxky";
+        sha256 = "0ghh8hqx038h9c9zj1rlmzlv2k2shh917q756dn054hcipbir541";
         libName = "wasm_bindgen_shared";
         authors = [
           "The wasm-bindgen Developers"
@@ -27867,9 +27866,9 @@ rec {
       };
       "web-sys" = rec {
         crateName = "web-sys";
-        version = "0.3.104";
+        version = "0.3.105";
         edition = "2021";
-        sha256 = "0c0acbvaqzqf21q5vdff2g74fvb7afi91xjplmclybq4d24k6df4";
+        sha256 = "1y57whpj5ncrl0cljmfsj5m31jqm66ylad68317yq03g0d5drgcz";
         libName = "web_sys";
         authors = [
           "The wasm-bindgen Developers"
@@ -33792,7 +33791,7 @@ rec {
           }
           {
             name = "syn";
-            packageId = "syn 3.0.4";
+            packageId = "syn 3.0.5";
             features = [ "extra-traits" ];
           }
         ];
