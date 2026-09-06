@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "23896f6e74ea34d7c55eb8872f61eb2c8814172716c6be9583c27b6d2ca59e16",
+  "cargo_lock_sha256": "a382d6199bb6aa2b1becaf51b9e05416a28d28951fafa54372740f732af5804a",
   "manifest_sha256": {
-    "Cargo.toml": "945693425bb23b87f51b3a7cbf045aa161888a4029518ae3aa7617bea7347ffa"
+    "Cargo.toml": "158d08d1b07df20117bd24ab5c50107ca6d3b2554f24d7c80b1f7c718e2a2658"
   },
   "target_resolves": {
     "base": {
@@ -6991,7 +6991,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "ipnet-2.12.1": {
+      "ipnet-2.12.2": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": [
@@ -7357,7 +7357,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.825",
+            "package_key": "shikumi-0.1.831",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9110,7 +9110,7 @@
           "serde"
         ]
       },
-      "madori-0.1.17": {
+      "madori-0.1.18": {
         "runtime_dependencies": [
           {
             "name": "egaku",
@@ -9168,7 +9168,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.825",
+            "package_key": "shikumi-0.1.831",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12096,7 +12096,7 @@
           },
           {
             "name": "tatara_eval",
-            "package_key": "tatara-eval-0.2.549",
+            "package_key": "tatara-eval-0.2.554",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -16993,7 +16993,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.825",
+            "package_key": "shikumi-0.1.831",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17040,7 +17040,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.825": {
+      "shikumi-0.1.831": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -19791,7 +19791,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-core-0.2.549": {
+      "tatara-core-0.2.554": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -19902,7 +19902,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.825",
+            "package_key": "shikumi-0.1.831",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19957,7 +19957,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-eval-0.2.549": {
+      "tatara-eval-0.2.554": {
         "runtime_dependencies": [
           {
             "name": "bumpalo",
@@ -20005,7 +20005,7 @@
           },
           {
             "name": "tatara_nix",
-            "package_key": "tatara-nix-0.2.549",
+            "package_key": "tatara-nix-0.2.554",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20027,7 +20027,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lattice-0.2.549": {
+      "tatara-lattice-0.2.554": {
         "runtime_dependencies": [
           {
             "name": "schemars",
@@ -20055,7 +20055,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.549",
+            "package_key": "tatara-core-0.2.554",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20065,7 +20065,7 @@
           },
           {
             "name": "tatara_process",
-            "package_key": "tatara-process-0.2.549",
+            "package_key": "tatara-process-0.2.554",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20231,7 +20231,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-nix-0.2.549": {
+      "tatara-nix-0.2.554": {
         "runtime_dependencies": [
           {
             "name": "blake3",
@@ -20277,7 +20277,7 @@
           },
           {
             "name": "tatara_lattice",
-            "package_key": "tatara-lattice-0.2.549",
+            "package_key": "tatara-lattice-0.2.554",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20329,7 +20329,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-process-0.2.549": {
+      "tatara-process-0.2.554": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20475,7 +20475,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.549",
+            "package_key": "tatara-core-0.2.554",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20674,7 +20674,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.825",
+            "package_key": "shikumi-0.1.831",
             "kind": "normal",
             "features": [
               "cli"
@@ -25863,7 +25863,7 @@
               },
               {
                 "name": "ipnet",
-                "package_key": "ipnet-2.12.1",
+                "package_key": "ipnet-2.12.2",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26073,7 +26073,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.166": {
+          "mado-0.1.167": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26388,7 +26388,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.17",
+                "package_key": "madori-0.1.18",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26648,7 +26648,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.825",
+                "package_key": "shikumi-0.1.831",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -30780,7 +30780,7 @@
               },
               {
                 "name": "ipnet",
-                "package_key": "ipnet-2.12.1",
+                "package_key": "ipnet-2.12.2",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31033,7 +31033,7 @@
               "system"
             ]
           },
-          "mado-0.1.166": {
+          "mado-0.1.167": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31348,7 +31348,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.17",
+                "package_key": "madori-0.1.18",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31559,7 +31559,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.825",
+                "package_key": "shikumi-0.1.831",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -34818,7 +34818,7 @@
               },
               {
                 "name": "ipnet",
-                "package_key": "ipnet-2.12.1",
+                "package_key": "ipnet-2.12.2",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35071,7 +35071,7 @@
               "system"
             ]
           },
-          "mado-0.1.166": {
+          "mado-0.1.167": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35386,7 +35386,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.17",
+                "package_key": "madori-0.1.18",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35597,7 +35597,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.825",
+                "package_key": "shikumi-0.1.831",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -39012,7 +39012,7 @@
               },
               {
                 "name": "ipnet",
-                "package_key": "ipnet-2.12.1",
+                "package_key": "ipnet-2.12.2",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39222,7 +39222,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.166": {
+          "mado-0.1.167": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39537,7 +39537,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.17",
+                "package_key": "madori-0.1.18",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39797,7 +39797,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.825",
+                "package_key": "shikumi-0.1.831",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -43936,7 +43936,7 @@
               },
               {
                 "name": "ipnet",
-                "package_key": "ipnet-2.12.1",
+                "package_key": "ipnet-2.12.2",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44189,7 +44189,7 @@
               "system"
             ]
           },
-          "mado-0.1.166": {
+          "mado-0.1.167": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44504,7 +44504,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.17",
+                "package_key": "madori-0.1.18",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44715,7 +44715,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.825",
+                "package_key": "shikumi-0.1.831",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -47981,7 +47981,7 @@
               },
               {
                 "name": "ipnet",
-                "package_key": "ipnet-2.12.1",
+                "package_key": "ipnet-2.12.2",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48234,7 +48234,7 @@
               "system"
             ]
           },
-          "mado-0.1.166": {
+          "mado-0.1.167": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48549,7 +48549,7 @@
               },
               {
                 "name": "madori",
-                "package_key": "madori-0.1.17",
+                "package_key": "madori-0.1.18",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48760,7 +48760,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.825",
+                "package_key": "shikumi-0.1.831",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -52275,7 +52275,7 @@
     "inventory-0.3.24": {
       "edition": "2021"
     },
-    "ipnet-2.12.1": {
+    "ipnet-2.12.2": {
       "edition": "2018"
     },
     "irodori-0.1.1": {
@@ -52440,7 +52440,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.166": {
+    "mado-0.1.167": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -52453,7 +52453,7 @@
         }
       ]
     },
-    "madori-0.1.17": {
+    "madori-0.1.18": {
       "edition": "2024"
     },
     "malloc_buf-0.0.6": {
@@ -53265,7 +53265,7 @@
     "shidou-0.1.10": {
       "edition": "2024"
     },
-    "shikumi-0.1.825": {
+    "shikumi-0.1.831": {
       "edition": "2024"
     },
     "shlex-2.0.1": {
@@ -53421,13 +53421,13 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-core-0.2.549": {
+    "tatara-core-0.2.554": {
       "edition": "2021"
     },
-    "tatara-eval-0.2.549": {
+    "tatara-eval-0.2.554": {
       "edition": "2021"
     },
-    "tatara-lattice-0.2.549": {
+    "tatara-lattice-0.2.554": {
       "edition": "2021"
     },
     "tatara-lisp-0.3.52": {
@@ -53440,10 +53440,10 @@
     "tatara-lisp-eval-0.3.52": {
       "edition": "2021"
     },
-    "tatara-nix-0.2.549": {
+    "tatara-nix-0.2.554": {
       "edition": "2021"
     },
-    "tatara-process-0.2.549": {
+    "tatara-process-0.2.554": {
       "edition": "2021",
       "binaries": [
         {
