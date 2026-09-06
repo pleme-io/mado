@@ -8019,9 +8019,9 @@ rec {
       };
       "ipnet" = rec {
         crateName = "ipnet";
-        version = "2.12.1";
+        version = "2.12.2";
         edition = "2018";
-        sha256 = "0y6xssyvfy85k90pnnanxv9phayxalhp8bacy61rw4vkmhznqxba";
+        sha256 = "1h65hw16sqv8nrrmqp0g8drv5wh98n4z7a4h1lb76n8d7js306br";
         authors = [
           "Kris Price <kris@krisprice.nz>"
         ];
@@ -10082,7 +10082,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.167";
+        version = "0.1.168";
         edition = "2024";
         crateBin = [
           {
@@ -10439,9 +10439,9 @@ rec {
       };
       "madori" = rec {
         crateName = "madori";
-        version = "0.1.17";
+        version = "0.1.21";
         edition = "2024";
-        sha256 = "1mi8qd4yb6z8f2az5dhs16bcq5ijsq5qwz4fss9sg39ypzr0w03z";
+        sha256 = "1wpv7apvh71mrsj91qvjshkb87i4hxzj3g16f8jbj868kgiz6pg3";
         dependencies = [
           {
             name = "egaku";
@@ -10455,6 +10455,10 @@ rec {
             name = "ishou-tokens";
             packageId = "ishou-tokens";
             features = [ "wgpu" ];
+          }
+          {
+            name = "pleme-allvariants-derive";
+            packageId = "pleme-allvariants-derive";
           }
           {
             name = "pollster";
@@ -21534,9 +21538,9 @@ rec {
       };
       "shikumi" = rec {
         crateName = "shikumi";
-        version = "0.1.825";
+        version = "0.1.831";
         edition = "2024";
-        sha256 = "06sk3r66mvrf46vs0y10ljyqnvxv925n0kys7gbipn8f06z4f5ml";
+        sha256 = "0rk5wkpvq56dvhrx4wjzqxw9v5znzykx7sxzfwmbp1q8xgfzxhvn";
         dependencies = [
           {
             name = "arc-swap";
@@ -23742,9 +23746,9 @@ rec {
       };
       "tatara-core" = rec {
         crateName = "tatara-core";
-        version = "0.2.549";
+        version = "0.2.554";
         edition = "2021";
-        sha256 = "1nljqxlylapki3nh1pp1dbf8idxcrxxzp9qd5ismx6b5vbay0gc6";
+        sha256 = "03j9idk6midc2i1cbpx5xyq18fqbfxzdakg5lzg7f13nk291cmrr";
         libName = "tatara_core";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -23819,9 +23823,9 @@ rec {
       };
       "tatara-eval" = rec {
         crateName = "tatara-eval";
-        version = "0.2.549";
+        version = "0.2.554";
         edition = "2021";
-        sha256 = "11rbfyavk7vx9v4qarz8yv3yzrsfj1bdf8pxd1pplq4jhkwrhbcl";
+        sha256 = "0zasx9p328x3nhfy80vlak1xj93s8pmfa9m87sbhxcmnsa4r86jr";
         libName = "tatara_eval";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -23858,9 +23862,9 @@ rec {
       };
       "tatara-lattice" = rec {
         crateName = "tatara-lattice";
-        version = "0.2.549";
+        version = "0.2.554";
         edition = "2021";
-        sha256 = "1rm5354cj7hxqy61006xv95jmzgnajj4zmkynrsjvfds0g56kj37";
+        sha256 = "1wjpah15bjjbc5clbz28j6v6l3iiphv49fiyapl38arrwbc4bp9z";
         libName = "tatara_lattice";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -23985,9 +23989,9 @@ rec {
       };
       "tatara-nix" = rec {
         crateName = "tatara-nix";
-        version = "0.2.549";
+        version = "0.2.554";
         edition = "2021";
-        sha256 = "188fikzfgwrhi7q4j7lyswizrqlibd80gcl420ma84c79sqx5r02";
+        sha256 = "1jp1hflwfzmra7gfm80xji83s0hrsw2pnxf0rjh5xbi5sg3rzfgw";
         libName = "tatara_nix";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24035,10 +24039,10 @@ rec {
       };
       "tatara-process" = rec {
         crateName = "tatara-process";
-        version = "0.2.549";
+        version = "0.2.554";
         edition = "2021";
         crateBin = [];
-        sha256 = "0xwd41xn29b17gkaj91zggpg4sipzw2ngx2zf5jvwqp5b1nds01s";
+        sha256 = "1zj4n1r2r17sj2ir287y4k6nlhhb5mkd43dk892vhzscavfhd02y";
         libName = "tatara_process";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -29275,7 +29279,7 @@ rec {
         dependencies = [
           {
             name = "windows-sys";
-            packageId = "windows-sys 0.61.2";
+            packageId = "windows-sys 0.48.0";
             target = { target, features }: (target."windows" or false);
             features = [ "Win32_Foundation" "Win32_Storage_FileSystem" "Win32_System_Console" "Win32_System_SystemInformation" ];
           }
@@ -31372,7 +31376,7 @@ rec {
           "Win32_Web" = [ "Win32" ];
           "Win32_Web_InternetExplorer" = [ "Win32_Web" ];
         };
-        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Globalization" "Win32_System" "Win32_System_Com" "Win32_UI" "Win32_UI_Shell" "default" ];
+        resolvedDefaultFeatures = [ "Win32" "Win32_Foundation" "Win32_Globalization" "Win32_Storage" "Win32_Storage_FileSystem" "Win32_System" "Win32_System_Com" "Win32_System_Console" "Win32_System_SystemInformation" "Win32_UI" "Win32_UI_Shell" "default" ];
       };
       "windows-sys 0.52.0" = rec {
         crateName = "windows-sys";
