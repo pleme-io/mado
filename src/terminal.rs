@@ -1000,12 +1000,47 @@ struct SelectionSpanMemo {
 /// `ParseMailbox` between the PTY reader and the parser. See
 /// `docs/GRID-THREADING-CONTRACT.md` (Stream G contract) and the
 /// typed stubs in `crate::grid_damage`.
+/// The byte ceiling scrollback is held under, independent of the line cap.
+///
+/// ── ★ WHY A SECOND BOUND EXISTS AT ALL ───────────────────────────────────
+/// `default_scrollback()` is `usize::MAX` and says so deliberately: the
+/// operator contract is *"never lose anything"*, and its comment records the
+/// reasoning — *"Host RAM is the only ceiling; VecDeque grows on demand so
+/// memory tracks actual scrollback usage, not the cap."*
+///
+/// Both halves of that are true and the conclusion still does not follow.
+/// Memory does track actual usage — and with no cap, actual usage is
+/// unbounded, so "host RAM is the only ceiling" is a statement of the failure
+/// mode rather than a mitigation of it. MEASURED 2026-09-06: a mado on cid
+/// reached **~90 GB** during a heavy session. Every line costs
+/// `cols * size_of::<Cell>()` — 24 bytes per cell, allocated at the FULL row
+/// width whether the line holds 200 characters or 3 — so a 200-column pane
+/// spends ~4.8 KB per line of output regardless of content.
+///
+/// ★ The line cap is the wrong unit. The resource is BYTES, and the fleet
+/// already knew that: `tear`'s `ScrollbackConfig` carries `max_bytes`, and
+/// mado's own `MadoTearScrollbackImpose` (config.rs) mirrors it field-for-field
+/// so mado can impose it on tear sessions. Two systems in one problem domain,
+/// and the one modelling the resource correctly is the one mado configures
+/// rather than the one mado *is*. That is convergent evidence, not a
+/// preference — so this adopts the sibling's unit instead of inventing a third.
+///
+/// **The line contract is untouched.** `scrollback_lines` stays `usize::MAX`;
+/// nothing is lost by line count. This bounds the machine, and at the default
+/// a 200-column pane still holds ~220k lines — far past anything an operator
+/// scrolls to, and far short of exhausting RAM.
+pub const DEFAULT_SCROLLBACK_MAX_BYTES: usize = 1 << 30; // 1 GiB
+
 struct Grid {
     /// All rows: scrollback at front, visible at back.
     rows: VecDeque<Line>,
     cols: usize,
     visible_rows: usize,
     max_scrollback: usize,
+    /// Byte ceiling for scrollback. Enforced together with
+    /// [`Grid::max_scrollback`] — whichever binds first wins. See
+    /// [`DEFAULT_SCROLLBACK_MAX_BYTES`].
+    max_scrollback_bytes: usize,
     /// Monotonic stamp source for [`LogicalLineId`]. Never reused —
     /// u64 cannot realistically wrap within a session.
     next_logical_id: u64,
@@ -1028,8 +1063,34 @@ impl Grid {
             cols,
             visible_rows,
             max_scrollback,
+            max_scrollback_bytes: DEFAULT_SCROLLBACK_MAX_BYTES,
             next_logical_id,
         }
+    }
+
+    /// The scrollback ceiling actually enforced, in ROWS — the line cap and
+    /// the byte budget resolved into one number.
+    ///
+    /// O(1) and exact for the dominant term, because every row in a grid is
+    /// allocated at the same width (`Line::filled(self.cols, …)`), so total
+    /// scrollback bytes is just `rows * cols * size_of::<Cell>()` and the byte
+    /// budget converts to a row count by division.
+    ///
+    /// Honest about what it does NOT count: a cell holding combining
+    /// characters carries an `Option<Box<Vec<char>>>` whose heap lives outside
+    /// the 24-byte cell. This bounds the dominant term, not every byte — a
+    /// scrollback of pure emoji-with-modifiers exceeds this budget. Naming that
+    /// is the point; the alternative was an unbounded structure with a comment
+    /// claiming host RAM would save us.
+    fn effective_max_scrollback(&self) -> usize {
+        let row_cost = self.cols.max(1) * std::mem::size_of::<Cell>();
+        let by_bytes = self.max_scrollback_bytes / row_cost.max(1);
+        self.max_scrollback.min(by_bytes)
+    }
+
+    /// Set the scrollback byte budget. See [`DEFAULT_SCROLLBACK_MAX_BYTES`].
+    fn set_max_scrollback_bytes(&mut self, bytes: usize) {
+        self.max_scrollback_bytes = bytes;
     }
 
     /// Allocate a fresh logical-line identity.
@@ -1241,7 +1302,7 @@ impl Grid {
             let id = self.fresh_id();
             self.rows.push_back(Line::filled(self.cols, id, fill));
             // Evict oldest scrollback if over limit
-            while self.scrollback_len() > self.max_scrollback {
+            while self.scrollback_len() > self.effective_max_scrollback() {
                 self.rows.pop_front();
                 evicted += 1;
             }
@@ -1476,7 +1537,7 @@ impl Grid {
         {
             self.rows.pop_back();
         }
-        while self.scrollback_len() > self.max_scrollback {
+        while self.scrollback_len() > self.effective_max_scrollback() {
             self.rows.pop_front();
         }
     }
@@ -2357,6 +2418,19 @@ impl Terminal {
     }
 
     #[must_use]
+    /// Set the scrollback BYTE budget for this terminal.
+    ///
+    /// The line cap (`with_scrollback`'s `max_scrollback`) and this budget are
+    /// enforced together — whichever binds first wins. Mirrors `tear`'s
+    /// `ScrollbackConfig::max_bytes`, which mado already imposes on tear
+    /// sessions via `MadoTearScrollbackImpose`; this makes mado's own
+    /// scrollback answer to the same unit rather than only configuring it in
+    /// somebody else.
+    pub fn set_scrollback_max_bytes(&mut self, bytes: usize) {
+        self.primary.set_max_scrollback_bytes(bytes);
+        self.alternate.set_max_scrollback_bytes(bytes);
+    }
+
     pub fn with_scrollback(cols: usize, rows: usize, max_scrollback: usize) -> Self {
         let mut tab_stops = vec![false; cols];
         for i in (0..cols).step_by(8) {
@@ -8465,6 +8539,71 @@ mod tests {
         assert_eq!(term.rows(), 24);
         // Fill beyond visible to test scrollback limit
         // (500 is the max, not tested here for brevity)
+    }
+
+    #[test]
+    fn an_unlimited_line_cap_is_still_bounded_in_bytes() {
+        // THE REGRESSION, and it is not hypothetical: a mado on cid reached
+        // ~90 GB on 2026-09-06 under a heavy session. `default_scrollback()`
+        // is `usize::MAX` by operator contract ("never lose anything"), and
+        // with the line cap as the only bound, eviction never ran.
+        //
+        // The line contract is deliberately preserved here — this constructs
+        // the REAL default, `usize::MAX`, and asserts the machine is protected
+        // anyway. A fix that capped lines instead would pass a test and break
+        // the contract.
+        let mut term = Terminal::with_scrollback(200, 24, usize::MAX);
+        // A small budget rather than 60k lines of brute force: the property is
+        // "the byte bound binds even at usize::MAX lines", and it holds at any
+        // budget. A heavy test also perturbs the timing of PTY-backed tests
+        // elsewhere in this suite, which is a real cost for no extra coverage.
+        let budget = 256 * 200 * std::mem::size_of::<Cell>(); // 256 rows' worth
+        term.set_scrollback_max_bytes(budget);
+        for i in 0..3_000u32 {
+            term.feed(format!("line {i}\r\n").as_bytes());
+        }
+
+        let held = term.primary.scrollback_len();
+        let bytes = held * 200 * std::mem::size_of::<Cell>();
+        assert!(
+            bytes <= budget,
+            "scrollback held {held} rows = {bytes} bytes, over the \
+             {budget}-byte budget — eviction did not run"
+        );
+        assert!(held > 0, "eviction must bound scrollback, not empty it");
+    }
+
+    #[test]
+    fn the_byte_budget_binds_before_the_line_cap_only_when_it_is_tighter() {
+        // The other direction, so the bound is a MIN and not a replacement: a
+        // small explicit line cap must still win, or configuring a modest
+        // scrollback would silently get a gigabyte's worth instead.
+        let mut term = Terminal::with_scrollback(80, 24, 100);
+        for i in 0..5_000u32 {
+            term.feed(format!("line {i}\r\n").as_bytes());
+        }
+        assert!(
+            term.primary.scrollback_len() <= 100,
+            "an explicit 100-line cap must still bind; held {}",
+            term.primary.scrollback_len()
+        );
+    }
+
+    #[test]
+    fn a_wider_pane_holds_proportionally_fewer_lines() {
+        // The unit is BYTES, so the row count the budget permits must fall as
+        // the pane widens. This is what a line cap cannot express and is the
+        // whole reason the second bound exists — a 400-column pane costs twice
+        // a 200-column one per line of output.
+        let narrow = Terminal::with_scrollback(100, 24, usize::MAX);
+        let wide = Terminal::with_scrollback(400, 24, usize::MAX);
+        let n = narrow.primary.effective_max_scrollback();
+        let w = wide.primary.effective_max_scrollback();
+        assert!(
+            n > w,
+            "a 100-col pane must permit more rows than a 400-col one; got {n} vs {w}"
+        );
+        assert!(w > 0, "the budget must permit SOME scrollback; got {w}");
     }
 
     #[test]

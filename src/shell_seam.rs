@@ -515,10 +515,31 @@ fn seam_agreement_is_not_vacuous() {
     };
     let seam = Seam::boot(&bin, 100, 20);
     seam.settle_to_clean_prompt("anti-vacuity");
-    assert_eq!(
+    // ── ★ WAIT for the convergence this asserts ──────────────────────────
+    // `settle_to_clean_prompt` waits on `occupied_rows()`, which reads ONE
+    // mirror. Asserting both agree immediately afterwards is a race: mado can
+    // be settled to a single prompt on row 0 while tear's mirror still carries
+    // the echoed `clear`, and the assertion then reports a seam divergence
+    // that is really a read taken mid-flight —
+    //   left:  "· … ❄ [I]"
+    //   right: "· … ❄ [I] clear"
+    //
+    // Measured 2026-09-06: fails 4 of 4 runs in isolation on a clean tree, and
+    // passes inside the full suite, because suite scheduling happens to give
+    // the second mirror the microseconds it needs. That is a test whose colour
+    // is decided by unrelated tests — it flipped when three tests were added
+    // elsewhere in the crate, which is how it was found.
+    //
+    // Waiting does NOT weaken the gate. The anti-vacuity proof is the
+    // DIVERGENCE byte injected below; if the mirrors genuinely never agree
+    // this times out and the same assertion fires with the same dump.
+    let converged = wait_until(PHASE_DEADLINE, || seam.mado_rows() == seam.tear_rows());
+    assert!(
+        converged,
+        "precondition: a healthy seam agrees\nmado: {:?}\ntear: {:?}\n{}",
         seam.mado_rows(),
         seam.tear_rows(),
-        "precondition: a healthy seam agrees"
+        seam.dump()
     );
 
     // A byte straight into mado's mirror, bypassing tear entirely.
