@@ -3387,9 +3387,9 @@ dependencies = [
 
 [[package]]
 name = "madori"
-version = "0.1.14"
+version = "0.1.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "572b76869b63a3d0450bde65c38d1588ba266332394a7ea24a6203ce4d5779d9"
+checksum = "6a559a8fa29564aa7656302bc68603af3446f7e6ee4ee2925bc30f4f7a46c210"
 dependencies = [
  "egaku",
  "garasu",
