@@ -5902,6 +5902,17 @@ impl Terminal {
     /// full-screen app that sets a region must not be able to address, and
     /// therefore paint, outside it. With DECOM off this is screen-absolute
     /// clamped to the last row, i.e. byte-identical to the pre-DECOM code.
+    /// Is the cursor inside the DECSTBM scroll region?
+    ///
+    /// ★ NOT DERIVABLE FROM `addressable_rows`. With DECOM off that pair is
+    /// `(0, rows - 1)` — the whole screen — while the scroll region stays
+    /// wherever DECSTBM put it. So "may the cursor be addressed here" and "is
+    /// the cursor in the scroll region" are different questions, and IL/DL
+    /// asks the second one.
+    fn cursor_in_scroll_region(&self) -> bool {
+        self.cursor.row >= self.scroll_top && self.cursor.row <= self.scroll_bottom
+    }
+
     fn origin_row(&self, row: usize) -> usize {
         let (top, bottom) = self.addressable_rows();
         (top + row.saturating_sub(1)).min(bottom)
@@ -6003,6 +6014,25 @@ impl Terminal {
                     _ => {}
                 }
             }
+            // ── ★ IL AND DL ARE A NO-OP OUTSIDE THE SCROLL REGION ───────
+            //
+            // Both arms computed `n.min(bottom - cursor_row + 1)` in plain
+            // `usize`, and `cursor.row > scroll_bottom` is a LEGAL, REACHABLE
+            // state: with DECOM off, `origin_row` clamps a CUP row to
+            // `rows - 1` and never to the region. The release profile sets
+            // `overflow-checks = false`, so in the shipped binary the
+            // subtraction wrapped to ~`usize::MAX`, `.min(n)` returned `n`,
+            // and the loop ran — scrolling a band the cursor is not in.
+            //
+            //   printf '\e[1;5r\e[20;1H\e[M'   (DECSTBM 1-5, CUP row 20, DL)
+            //
+            // deleted the content of visible row 19 and inserted a blank line
+            // inside rows 0-4. DEC and xterm both make IL/DL a no-op here, so
+            // the guard is the specified behaviour and not a defensive clamp —
+            // and with it, `bottom - cursor_row` cannot underflow, which is
+            // why that arithmetic is left plain rather than saturating: a
+            // future edit that drops the guard should be loud in a debug
+            // build, not silently absorbed.
             C::InsertLines(n) => {
                 let cursor_row = self.cursor.row;
                 let bottom = self.scroll_bottom;
@@ -6028,6 +6058,9 @@ impl Terminal {
                 }
                 self.dirty();
             }
+            // The cursor is outside the region: nothing happens, and nothing
+            // is dirtied. Named rather than left to a `_` arm so the no-op is
+            // a decision a reader can see.
             C::DeleteChars(n) => {
                 let row = self.cursor.row;
                 let col = self.cursor.col;
@@ -6810,6 +6843,78 @@ mod tests {
     /// across DECSET / DECRST / DECRQM because all three are generated from the
     /// one `dec_private_modes!` registry. DECSET makes DECRQM report `1`
     /// (set); DECRST makes it report `2` (reset).
+    /// ★ IL/DL BELOW THE SCROLL REGION UNDERFLOWED AND SCROLLED THE WRONG
+    /// ROWS (2026-09-20).
+    ///
+    /// `n.min(bottom - cursor_row + 1)` in plain `usize`, with
+    /// `cursor.row > scroll_bottom` a legal state — `origin_row` clamps a CUP
+    /// row to `rows - 1`, never to the region. Release builds have
+    /// `overflow-checks = false`, so the subtraction wrapped to ~`usize::MAX`,
+    /// `.min(n)` returned `n`, and the loop ran.
+    ///
+    /// The witness is CONTENT, not a count: the visible row the cursor is on
+    /// must survive, and the region must be untouched. A test that only
+    /// asserted "no panic" would pass in release either way.
+    #[test]
+    fn insert_and_delete_lines_do_nothing_outside_the_scroll_region() {
+        let mut t = Terminal::new(20, 24);
+        // DECSTBM rows 1-5, then fill rows 1 and 20 with markers.
+        t.feed(b"\x1b[1;5r");
+        t.feed(b"\x1b[1;1Hregion");
+        t.feed(b"\x1b[20;1Houtside");
+
+        let row_text = |t: &Terminal, r: usize| -> String {
+            t.grid()
+                .visible_row(r)
+                .iter()
+                .map(|c| c.ch)
+                .collect::<String>()
+        };
+        let before_region = row_text(&t, 0);
+        let before_outside = row_text(&t, 19);
+        assert!(before_region.starts_with("region"), "{before_region:?}");
+        assert!(before_outside.starts_with("outside"), "{before_outside:?}");
+
+        // Cursor at row 20 — BELOW scroll_bottom (4). DL then IL.
+        t.feed(b"\x1b[20;1H\x1b[M");
+        t.feed(b"\x1b[20;1H\x1b[L");
+
+        assert_eq!(
+            row_text(&t, 19),
+            before_outside,
+            "the cursor's own row must survive — DL deleted it"
+        );
+        assert_eq!(
+            row_text(&t, 0),
+            before_region,
+            "the scroll region must be untouched — the wrapped count scrolled it"
+        );
+    }
+
+    /// The other side of the same guard: INSIDE the region it must still work,
+    /// or the fix above is just a disabled feature.
+    #[test]
+    fn insert_and_delete_lines_still_work_inside_the_scroll_region() {
+        let mut t = Terminal::new(20, 24);
+        t.feed(b"\x1b[1;5r");
+        t.feed(b"\x1b[1;1Hone");
+        t.feed(b"\x1b[2;1Htwo");
+        let row_text = |t: &Terminal, r: usize| -> String {
+            t.grid()
+                .visible_row(r)
+                .iter()
+                .map(|c| c.ch)
+                .collect::<String>()
+        };
+        // Cursor at row 1, inside 1..=5. DL 1 pulls "two" up into row 0.
+        t.feed(b"\x1b[1;1H\x1b[M");
+        assert!(
+            row_text(&t, 0).starts_with("two"),
+            "DL inside the region must scroll it: {:?}",
+            row_text(&t, 0)
+        );
+    }
+
     #[test]
     fn dec_private_modes_set_reset_report_are_table_consistent() {
         let mut t = Terminal::new(80, 24);
