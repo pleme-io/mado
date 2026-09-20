@@ -10082,7 +10082,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.169";
+        version = "0.1.170";
         edition = "2024";
         crateBin = [
           {
@@ -21538,9 +21538,9 @@ rec {
       };
       "shikumi" = rec {
         crateName = "shikumi";
-        version = "0.1.838";
+        version = "0.1.841";
         edition = "2024";
-        sha256 = "1l228ww91yxwsbx2zjvhsgrwgn19gqhykq99gmqvnynsjfsgappa";
+        sha256 = "18vgfgkvpnqj33fwqrzacz2dxfyaz9hrm23y69rikhm62zwwsh13";
         dependencies = [
           {
             name = "arc-swap";
@@ -23746,9 +23746,9 @@ rec {
       };
       "tatara-core" = rec {
         crateName = "tatara-core";
-        version = "0.2.562";
+        version = "0.2.568";
         edition = "2021";
-        sha256 = "12jv0pmj2k97z4qpz5d4fg18jnxxvgksqwa9fxm2h4ahkivmvj9f";
+        sha256 = "1cx534dbz7xza3cpa7chj5lyj8kip5mbjbi4l9wrw1ifhsxs7mk6";
         libName = "tatara_core";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -23823,9 +23823,9 @@ rec {
       };
       "tatara-eval" = rec {
         crateName = "tatara-eval";
-        version = "0.2.562";
+        version = "0.2.568";
         edition = "2021";
-        sha256 = "1pk2jydp0bszvxbs0j6829ravqp051npm1rxg0rvnm9x275vdzqy";
+        sha256 = "0zx4mxsapk1plhv4c1rm9hqy1y8d35kfnfgdizyjbxn2ll6w1y7y";
         libName = "tatara_eval";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -23862,9 +23862,9 @@ rec {
       };
       "tatara-lattice" = rec {
         crateName = "tatara-lattice";
-        version = "0.2.562";
+        version = "0.2.568";
         edition = "2021";
-        sha256 = "01h0ac1qra73qy4jjwimp7gg47cfq1gz4r7dpz4nxvq0gw985v4n";
+        sha256 = "1pxkwk2v5hih90dw1ifp62giy3cshyzp2hbv0zcfjlhjplarrxy1";
         libName = "tatara_lattice";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -23989,9 +23989,9 @@ rec {
       };
       "tatara-nix" = rec {
         crateName = "tatara-nix";
-        version = "0.2.562";
+        version = "0.2.568";
         edition = "2021";
-        sha256 = "1v0l0c7h68iszar0lhh484b0vxvqcckpjslvrri4fr5wv94p1zc8";
+        sha256 = "19hc8w1fi6zx31dd6pfpp447z9k6zn6q7q9mx3mhv9zyn6cnrcar";
         libName = "tatara_nix";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -24039,10 +24039,10 @@ rec {
       };
       "tatara-process" = rec {
         crateName = "tatara-process";
-        version = "0.2.562";
+        version = "0.2.568";
         edition = "2021";
         crateBin = [];
-        sha256 = "0h1ard470hqyb49m30xlzqfw2z89mrrp88bsbmh5cfg3p06csbz0";
+        sha256 = "0wjivmasykf2kk18xg8lrxfaqjbgm01q1mjy8aazl0ppvw3jpmjr";
         libName = "tatara_process";
         authors = [
           "Pleme.io <engineering@pleme.io>"
