@@ -3378,6 +3378,9 @@ dependencies = [
  "shidou",
  "shikumi",
  "tatara-lisp",
+ "tatara-lisp-eval",
+ "tatara-nix",
+ "tatara-process",
  "tear-client",
  "tear-config",
  "tear-core",
@@ -6876,9 +6879,9 @@ dependencies = [
 
 [[package]]
 name = "tatara-lisp"
-version = "0.3.58"
+version = "0.3.52"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe2af0bc1bc646bff34b74693c6452538727cb78d6667f6c46e662f909e86b59"
+checksum = "78bc6ab626b4fea102768a09b0f4e4982c3c8ab88b8a0ee1f621e08f73805463"
 dependencies = [
  "blake3",
  "serde",
@@ -6890,9 +6893,9 @@ dependencies = [
 
 [[package]]
 name = "tatara-lisp-derive"
-version = "0.3.58"
+version = "0.3.52"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a25824d7cdc67ea933550c82bdda90fe0a7ceaf15dfa2c76fdf7b9a0338830a4"
+checksum = "e83a01357cfeb3944eae956a4fc97dbbb9a024794b8125112d75aaba76f00190"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6901,9 +6904,9 @@ dependencies = [
 
 [[package]]
 name = "tatara-lisp-eval"
-version = "0.3.58"
+version = "0.3.52"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e0452627caa1a71f51e3396a39fee5cb49f49733e0e2c117646cdfd489e442f"
+checksum = "f5eff16a0b4905ad14430210e454e3ca3dc194d4982d1545e8ad30bd9c6b700a"
 dependencies = [
  "monosashi",
  "tatara-closed-set",
@@ -6913,10 +6916,12 @@ dependencies = [
 
 [[package]]
 name = "tatara-nix"
-version = "0.2.765"
+version = "0.2.568"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d701e550ffff23756965f9a76126ee3d7c1ca626fbdc55de12f1261228c0a34"
+checksum = "59b16c99b1fea70debe835e1838dfd66a67f08b9d75dd35a18fd9be802470ca6"
 dependencies = [
+ "blake3",
+ "hex",
  "serde",
  "serde_json",
  "tatara-lattice",
@@ -6928,9 +6933,9 @@ dependencies = [
 
 [[package]]
 name = "tatara-process"
-version = "0.2.765"
+version = "0.2.568"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1ba36cd88dce7ca2c2181bd565281a04bd8815476814114407259cc68472f53"
+checksum = "59d62b07dff702fa95425ed68003a86f49ac5ccf14bd8ec29cc24daf55dd5172"
 dependencies = [
  "anyhow",
  "blake3",

@@ -273,7 +273,10 @@ nami-core = { package = "pleme-nami-core", version = "0.1.13", default-features 
 # or nami-core boundary (mado touches `vigy::eval::*` through vigy's own paths
 # and nami-core's `lisp` API is string-in/string-out), so those crates keeping
 # their own tatara-lisp source is not an identity split mado can observe.
-tatara-lisp = { version = "0.3.3" }
+# ★ `=0.3.52`, NOT `0.3.3` — see the tatara note below. 0.3.57+ removed
+# `pub mod hash` inside this caret range, so a floating `^0.3` resolves to a
+# tatara-lisp that tatara-process cannot compile against.
+tatara-lisp = { version = "=0.3.52" }
 
 # Vigy — always-on tatara-lisp reconciler runtime, embedded in-process.
 # Hosts small reconcilers ("vigies") that tick continuously to keep
@@ -281,6 +284,39 @@ tatara-lisp = { version = "0.3.3" }
 # panes can register more vigies at runtime via the MCP tools (and via
 # the OSC 1338 extension, future). See pleme-io/vigy for the primitive.
 vigy = { version = "0.1", default-features = false, features = ["mcp"] }
+# ── ★ A CONSTRAINT, NOT A USE (2026-09-20) ────────────────────────────────
+# mado does not call tatara-lisp-eval; it arrives through
+# `vigy → vigy-eval → tatara-lisp-eval = "^0.3.3"`. It is named here to HOLD
+# the tatara cluster, because 0.3.57+ is broken as published:
+#
+#   tatara-lisp 0.3.58 removed `pub mod hash` inside a caret-compatible
+#   range, tatara-process still calls it and requires only `^0.3`, and 0.3.58
+#   is the newest published version — so there is nothing to move forward to
+#   and every consumer that resolves to it fails with E0433.
+#
+# It has to be pinned HERE rather than in Cargo.lock: the auto-release
+# regenerates the lock on every release, and v0.1.171 did exactly that
+# minutes after the lock was repaired by hand. `tatara-lisp-eval` is the right
+# lever because it requires its own tatara-lisp at `=`, so holding it holds
+# tatara-lisp with it — pinning tatara-lisp alone is unsatisfiable.
+#
+# REMOVE THIS the moment tatara-lisp restores the module or tatara-process
+# republishes without it. It is a line held, not a class closed.
+tatara-lisp-eval = "=0.3.52"
+# tatara-lisp itself is pinned at its existing declaration above.
+# and tatara-process at the version that shipped alongside it. 0.2.765 is the
+# one whose `src/hash.rs` fails to compile against 0.3.58; holding the pair
+# together is the combination measured green rather than the one inferred to
+# work.
+tatara-process = "=0.2.568"
+# tatara-nix, for the SAME reason and in the opposite direction — which is
+# what makes this a generation and not three crates. 0.2.765 needs
+# `tatara_lisp::DeriveClosedSet`, which exists ONLY in 0.3.58; 0.2.765's
+# tatara-process needs `tatara_lisp::hash`, which exists only up to 0.3.52.
+# No published tatara-lisp satisfies both, so the 0.2.765 generation cannot
+# build against any single one. The 0.2.568 / 0.3.52 generation is the last
+# self-consistent set and is the one measured green here.
+tatara-nix = "=0.2.568"
 
 # engate typed-attach primitive — mado's gui_tear_attach uses it to
 # wrap the daemon-mode or embedded-mode tear Producer into one
