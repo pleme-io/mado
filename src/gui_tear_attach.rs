@@ -429,7 +429,29 @@ where
     };
 
     let terminal: SharedTerminal = Arc::new(RwLock::new({
-        let mut term = Terminal::with_scrollback(cols, rows, 10_000);
+        // ★ THE CONFIGURED DEPTH, NOT A LITERAL. This was `10_000` while the
+        // very next statement read `config.behavior.reflow_on_resize` off the
+        // same value — the config was in scope and `scrollback_lines` was
+        // simply never consulted. Its default is `usize::MAX`, documented as
+        // "never lose anything. Host RAM is the only ceiling", and it IS
+        // honoured on the local-PTY path (`single_pane::spawn`). This is the
+        // DEFAULT path, so on plo the operator's scrollback silently stopped
+        // at 10 000 lines while `config-show` echoed back what they had set.
+        //
+        // ★ AND HONOURING IT DOES NOT RE-OPEN THE 90 GB INCIDENT. The default
+        // is `usize::MAX`, and on 2026-09-06 a mado reached ~90 GB on exactly
+        // that contract — but the fix for it was a BYTE budget, not a line
+        // cap: `Grid::new` sets `max_scrollback_bytes` to
+        // `DEFAULT_SCROLLBACK_MAX_BYTES` (1 GiB) by construction, so whichever
+        // of the two binds first wins and an unlimited LINE count is bounded
+        // in bytes. The literal here was accidental protection against a
+        // hazard that is now handled where it belongs; keeping it would mean
+        // this path silently disagreeing with the local-PTY path forever.
+        debug_assert!(
+            crate::terminal::DEFAULT_SCROLLBACK_MAX_BYTES > 0,
+            "the byte budget is what bounds an unlimited line cap"
+        );
+        let mut term = Terminal::with_scrollback(cols, rows, config.behavior.scrollback_lines);
         // M2 — behavior.reflow_on_resize: rewrap-on-resize knob,
         // same wiring the local-PTY path gets via single_pane::spawn.
         term.set_reflow_on_resize(config.behavior.reflow_on_resize);
