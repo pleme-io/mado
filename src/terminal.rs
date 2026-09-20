@@ -4455,14 +4455,29 @@ impl Terminal {
     }
 
     /// Scroll viewport to the top of scrollback.
+    ///
+    /// ★ `dirty()`, LIKE `scroll_up`/`scroll_down`. Those two carry the reason
+    /// verbatim — "a viewport-offset change is a frame change: bump seqno so
+    /// the renderer's damage gate never treats a scroll as idle" — and these
+    /// two assigned `scroll_offset` and called nothing. `needs_frame` reads
+    /// `seqno()` and `grid_epoch()`, neither of which moved, so on a quiet
+    /// shell with `cursor.blink = false` the ScrollToTop / ScrollToBottom
+    /// chords moved the viewport and painted NOTHING: the keybinding reads as
+    /// unbound until the next keystroke happens to force a frame.
     pub fn scroll_to_top(&mut self) {
         let max = self.grid().scrollback_len();
-        self.scroll_offset = max;
+        if self.scroll_offset != max {
+            self.scroll_offset = max;
+            self.dirty();
+        }
     }
 
     /// Scroll viewport to the bottom (live view).
     pub fn scroll_to_bottom(&mut self) {
-        self.scroll_offset = 0;
+        if self.scroll_offset != 0 {
+            self.scroll_offset = 0;
+            self.dirty();
+        }
     }
 
     /// Current Kitty keyboard protocol flags (0 = protocol not active).
@@ -6033,7 +6048,26 @@ impl Terminal {
             // why that arithmetic is left plain rather than saturating: a
             // future edit that drops the guard should be loud in a debug
             // build, not silently absorbed.
-            C::InsertLines(n) => {
+            // ── ★ IL AND DL ARE A NO-OP OUTSIDE THE SCROLL REGION ───────
+            //
+            // Both arms compute `n.min(bottom - cursor_row + 1)` in plain
+            // `usize`, and `cursor.row > scroll_bottom` is a LEGAL, REACHABLE
+            // state: with DECOM off, `origin_row` clamps a CUP row to
+            // `rows - 1` and never to the region. The release profile sets
+            // `overflow-checks = false`, so in the shipped binary the
+            // subtraction wraps to ~`usize::MAX`, `.min(n)` returns `n`, and
+            // the loop runs — scrolling a band the cursor is not in.
+            //
+            //   printf '\e[1;5r\e[20;1H\e[M'   (DECSTBM 1-5, CUP row 20, DL)
+            //
+            // deleted the content of visible row 19 and inserted a blank line
+            // inside rows 0-4. DEC and xterm both make IL/DL a no-op here, so
+            // the guard is the specified behaviour and not a defensive clamp —
+            // and with it, `bottom - cursor_row` cannot underflow, which is
+            // why that arithmetic is left plain rather than saturating: a
+            // future edit that drops the guard should be loud in a debug
+            // build, not silently absorbed.
+            C::InsertLines(n) if self.cursor_in_scroll_region() => {
                 let cursor_row = self.cursor.row;
                 let bottom = self.scroll_bottom;
                 let fill = self.bce_fill_cell();
@@ -6043,7 +6077,7 @@ impl Terminal {
                 }
                 self.dirty();
             }
-            C::DeleteLines(n) => {
+            C::DeleteLines(n) if self.cursor_in_scroll_region() => {
                 let cursor_row = self.cursor.row;
                 let bottom = self.scroll_bottom;
                 let use_alt = self.use_alternate;
@@ -6058,6 +6092,10 @@ impl Terminal {
                 }
                 self.dirty();
             }
+            // The cursor is outside the region: nothing happens, and nothing
+            // is dirtied. Named rather than left to a `_` arm so the no-op is
+            // a decision a reader can see.
+            C::InsertLines(_) | C::DeleteLines(_) => {}
             // The cursor is outside the region: nothing happens, and nothing
             // is dirtied. Named rather than left to a `_` arm so the no-op is
             // a decision a reader can see.

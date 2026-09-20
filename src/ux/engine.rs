@@ -244,7 +244,7 @@ pub struct InputEngine {
     /// dispatch before render, so event-derived bookkeeping is one
     /// frame ahead of measured metrics and ping-pongs the pane
     /// between old/new grids.
-    grid_sync_sig: Option<(u32, u32, u32, u32)>,
+    grid_sync_sig: Option<(u32, u32, u32, u32, u32)>,
     /// Last-seen [`Terminal::grid_generation`] — the search
     /// re-anchoring seam. A resize (rewrap or truncate) renumbers
     /// absolute grid rows, so the active search's match list goes
@@ -1679,7 +1679,14 @@ impl InputEngine {
                     },
                     col: col + 1,
                     row: row + 1,
-                    mods: MouseMods::NONE,
+                    // ★ THE REAL BITS. This was `MouseMods::NONE` with
+                    // `modifiers` in scope and used by the Press/Release arms
+                    // ten lines up. `mouse_report.rs` states the contract the
+                    // lift was meant to close — "modifier bits add to the
+                    // button byte" — so Ctrl+drag under SGR-1006 emitted
+                    // press with the ctrl bit and then MOTION WITHOUT IT, and
+                    // vim/tmux/htop saw the modifier vanish mid-gesture.
+                    mods: MouseMods::from(modifiers),
                 };
                 self.pty.write(&report.encode(true));
             }
@@ -2145,7 +2152,10 @@ impl InputEngine {
                     },
                     col: col + 1,
                     row: row + 1,
-                    mods: MouseMods::NONE,
+                    // Same omission on the wheel, and `last_mods` is already
+                    // read two branches up — so Ctrl+wheel (zoom, in every
+                    // app that binds it) forwarded as a plain wheel.
+                    mods: MouseMods::from(self.last_mods),
                 };
                 let bytes = report.encode(sgr);
                 for _ in 0..count {
@@ -2503,6 +2513,13 @@ impl InputEngine {
         // Land any completed off-thread page fetches (open/navigate results).
         self.drain_browser_fetches();
         self.publish_float_panels();
+        // ★ RE-READ THE PADDING EVERY TICK. `self.padding` was assigned once
+        // at construction while the renderer's is hot-reloadable, so after a
+        // `window.padding` reload the engine divided pointer coordinates by a
+        // grid origin the renderer had stopped using and every click landed on
+        // the wrong cell. A mirror that is only sampled at boot is a snapshot;
+        // this is the tick every other mirror in this function refreshes on.
+        self.padding = renderer.padding();
         if let Some((w, h)) = renderer.last_surface_size() {
             #[allow(clippy::cast_precision_loss)]
             {
@@ -2510,7 +2527,14 @@ impl InputEngine {
             }
             let cw = renderer.cell_width();
             let ch = renderer.cell_height();
-            let sig = (w, h, cw.to_bits(), ch.to_bits());
+            // ★ PADDING IS AN INPUT TO THE GRID, so it belongs in the
+            // signature that decides whether to recompute it.
+            // `cells_for_window_phys` subtracts `2 * padding_px()`, and this
+            // tuple omitted it — so a padding reload changed the cell count
+            // without changing (w, h, cw, ch), the push was skipped, and
+            // `renderer.measured_grid()` and `terminal.cols()/rows()`
+            // disagreed with nothing to resync them.
+            let sig = (w, h, cw.to_bits(), ch.to_bits(), self.padding.to_bits());
             if self.grid_sync_sig != Some(sig) {
                 self.grid_sync_sig = Some(sig);
                 self.push_grid(renderer, w, h);

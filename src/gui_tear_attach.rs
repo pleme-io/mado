@@ -458,7 +458,15 @@ where
         term
     }));
 
-    let effective_font_size = config.font_size;
+    // ★ THE ACCESSIBILITY SCALE, which THIS path dropped. `main.rs` computes
+    // `config.font_size * config.accessibility.font_scale` for the local-PTY
+    // path; this one — which `main.rs` itself calls "the default render mode"
+    // — took the bare size, so `accessibility: { font_scale: 1.5 }` rendered
+    // at 1.0x for every normal launch and at 1.5x only on the fallback. The
+    // shared `apply_effects_and_accessibility` called just below touches
+    // bold_is_bright, reduce_motion, links, feedback, motion, seam and font
+    // features, and never the font size.
+    let effective_font_size = config.font_size * config.accessibility.font_scale;
     let padding = config.window.padding as f32;
     let bg_srgb = ishou_tokens::Srgb::from_hex(&config.appearance.background)
         .unwrap_or(ishou_tokens::Srgb::new(0x2e, 0x34, 0x40));

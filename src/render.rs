@@ -2639,6 +2639,21 @@ impl TerminalRenderer {
         snap_origin_px(self.padding * self.scale_factor, self.panel_ratio)
     }
 
+    /// The LOGICAL padding currently in force.
+    ///
+    /// ★ EXPOSED SO THE MIRROR CAN BE A MIRROR. `InputEngine` kept its own
+    /// copy, assigned once at construction and never written again, while
+    /// this one is `#[invalidating_setter]` and moves on every
+    /// `SetterCall::Padding` hot reload. The two then disagreed: the renderer
+    /// drew the grid origin somewhere new and `mouse_cell` still divided from
+    /// the boot value, so clicks landed on the wrong cell — and the engine's
+    /// grid-push signature, which does not carry padding, never noticed the
+    /// cell count had changed either.
+    #[must_use]
+    pub fn padding(&self) -> f32 {
+        self.padding
+    }
+
     /// The viewport-derived overlay-list row budget — how many list rows a
     /// picker should BUILD for the current surface height. It is the SAME
     /// vertical-fit `draw_overlay` clamps its window to (`line_h = fs *
