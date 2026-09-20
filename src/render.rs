@@ -1209,6 +1209,25 @@ impl ImagePipeline {
 // Render snapshot — cloned terminal state for lock-free rendering
 // ---------------------------------------------------------------------------
 
+/// Does this frame hold a cell the SGR-5 attribute makes blink?
+///
+/// ★ THE DRAW PATH'S SCAN, NOT THE GATE'S. `needs_frame` runs on every tick
+/// and must neither mutate nor pay per-cell costs; a painted frame already
+/// visits every one of these cells twice (rects, then text), so one more pass
+/// is noise there and unaffordable in the predicate.
+///
+/// Style-resolved rather than read off the cell: `AttrFlags::BLINK` lives in
+/// the style the cell's `style_id` interns to, which is the same resolution
+/// `build_rect_instances` does.
+fn snapshot_has_blinking_cell(snap: &Snapshot) -> bool {
+    snap.rows.iter().flatten().any(|cell| {
+        cell.style(&snap.styles)
+            .attrs
+            .flags
+            .contains(AttrFlags::BLINK)
+    })
+}
+
 struct Snapshot {
     rows: Vec<Vec<Cell>>,
     /// M2 — the style mapping the cloned rows' `style_id`s resolve
@@ -1811,6 +1830,24 @@ pub struct TerminalRenderer {
     /// where neither seqno NOR this bit have flipped — drops idle
     /// render rate from 60 Hz to ~4 Hz.
     last_cursor_on: bool,
+    /// Did the last PAINTED frame contain a cell with `AttrFlags::BLINK`?
+    ///
+    /// ── ★ SGR-5 TEXT ANIMATES AND NOTHING WOKE THE LOOP FOR IT ──────────
+    /// `blink_phase_on` drives BOTH the cursor blink and the SGR-5 attribute
+    /// — `build_rect_instances` and `build_text_buffers` both hide a cell on
+    /// the off phase — but `needs_frame`'s only blink clause asks about the
+    /// CURSOR (`effective_blink && cursor_visible`). With the fleet default
+    /// `cursor.blink = false`, or the cursor hidden by DECTCEM, a quiet grid
+    /// holding `\e[5m` text painted its three forced frames at ONE phase and
+    /// then froze there — invisible half the time, with nothing to say so.
+    ///
+    /// Written by the draw path, read by the gate: `needs_frame` may not
+    /// mutate what `render` owns, and `needs_frame_mutates_nothing_the_draw_path_owns`
+    /// pins that. A one-frame-stale flag is sound here because a blinking
+    /// cell APPEARING is new content, which bumps seqno and forces a paint.
+    saw_blinking_cell: bool,
+    /// The SGR-5 phase the last painted frame used. Mirrors `last_cursor_on`.
+    last_text_blink_on: bool,
     /// P31 — sprite atlas analog for box-drawing / block-element
     /// rect templates. Each entry stores the *relative* sub-rects
     /// (rel_x, rel_y, w, h) that compose a glyph at the renderer's
@@ -2396,6 +2433,8 @@ impl TerminalRenderer {
                     .expect("SHAPE_CACHE_CAP is a non-zero compile-time constant"),
             )),
             last_cursor_on: false,
+            saw_blinking_cell: false,
+            last_text_blink_on: false,
             box_draw_templates: RefCell::new(HashMap::new()),
             row_scratch: RefCell::new(Vec::new()),
             sync_output_deferred_since: None,
@@ -6329,6 +6368,17 @@ impl RenderCallback for TerminalRenderer {
             return true;
         }
 
+        // ── ★ AND SGR-5 TEXT, WHICH BLINKS ON THE SAME CLOCK ─────────────
+        //
+        // The clause above asks only about the CURSOR, and `blink_phase_on`
+        // drives both. `reduce_motion` is honoured by `blink_phase_on`
+        // itself (it returns always-on), so this needs no separate term —
+        // the phase simply stops changing and the clause stops firing.
+        let text_blink_on_now = self.blink_phase_on(q.elapsed);
+        if self.saw_blinking_cell && text_blink_on_now != self.last_text_blink_on {
+            return true;
+        }
+
         // ★ MOUSE SELECTION WAKES THE LOOP.
         //
         // Without this, `on_mouse_moved` updates `Selection::state` but the
@@ -6756,6 +6806,12 @@ impl RenderCallback for TerminalRenderer {
         let snapshot_us = snapshot_start.elapsed().as_micros() as u64;
         // Memoise cursor_on for the next-frame peek's flip detection.
         self.last_cursor_on = cursor_on_now;
+        // …and the same for SGR-5 text: WHETHER any cell blinks, and at which
+        // phase this frame drew it. Scanned once per PAINTED frame, where the
+        // per-cell cost is already being paid — never in `needs_frame`, which
+        // runs on every tick and may not mutate this.
+        self.saw_blinking_cell = snapshot_has_blinking_cell(&snap);
+        self.last_text_blink_on = self.blink_phase_on(ctx.elapsed);
 
         // P-FIX: stage-2 gate was a "safety net" early-return when
         // the peek-vs-snapshot seqno disagreed. Same swapchain-
@@ -7865,6 +7921,70 @@ mod render_invariants {
     }
 
     #[test]
+    /// ★ SGR-5 TEXT FROZE: the gate's only blink clause asked about the
+    /// CURSOR, and `blink_phase_on` drives both. With the fleet default
+    /// `cursor.blink = false`, a quiet grid holding `\e[5m` text painted its
+    /// three forced frames at one phase and then never woke again —
+    /// invisible half the time, with nothing to say so.
+    ///
+    /// Two halves, tested separately because `render` needs a GPU surface a
+    /// headless harness has not got: the SCAN is pure, and the GATE reads a
+    /// field the draw path sets.
+    #[test]
+    fn the_blink_scan_sees_sgr5_text_and_only_sgr5_text() {
+        let (r, t) = harness(20, 3);
+        t.write().feed(b"\x1b[5mDISK FULL\x1b[0m");
+        let (snap, _) = r.snapshot();
+        assert!(
+            snapshot_has_blinking_cell(&snap),
+            "an SGR-5 run must be seen"
+        );
+
+        let (r2, t2) = harness(20, 3);
+        t2.write().feed(b"plain text");
+        let (snap2, _) = r2.snapshot();
+        assert!(
+            !snapshot_has_blinking_cell(&snap2),
+            "plain text must not read as blinking — a false positive here is a \
+             2 Hz wakeup on every idle terminal in the fleet"
+        );
+    }
+
+    #[test]
+    fn blinking_text_wakes_the_loop_even_with_the_cursor_blink_off() {
+        let (mut r, term) = harness(20, 5);
+        r.set_cursor_blink(false);
+        term.write().feed(b"\x1b[5mDISK FULL\x1b[0m");
+        settled(&mut r, &term);
+
+        let period = r.cursor_blink_rate_ms as f32 / 1000.0 * 2.0;
+        let mut q_flip = Q0;
+        q_flip.elapsed = period * 0.75;
+        assert_ne!(
+            crate::motion::blink_on(q_flip.elapsed, period),
+            crate::motion::blink_on(0.0, period),
+            "the probe must straddle a phase boundary or it tests nothing"
+        );
+
+        // What the draw path would have recorded for this grid. Set directly
+        // because `render` needs a surface; `the_blink_scan_sees_sgr5_text…`
+        // proves the value it would set.
+        r.saw_blinking_cell = true;
+        r.last_text_blink_on = crate::motion::blink_on(0.0, period);
+        assert!(
+            r.needs_frame(q_flip),
+            "a phase flip with blinking text on screen must wake the loop"
+        );
+
+        // …and with no blinking cell the clause must stay quiet, or the fix
+        // is a 2 Hz wakeup on every idle terminal in the fleet.
+        r.saw_blinking_cell = false;
+        assert!(
+            !r.needs_frame(q_flip),
+            "no blinking cell — the phase must not wake an idle grid"
+        );
+    }
+
     fn needs_frame_mutates_nothing_the_draw_path_owns() {
         // Deliberately side-effect free: `render` owns last_seqno,
         // last_cursor_on, force_paint_frames, the defer, and (2026-08-26)
