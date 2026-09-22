@@ -45,7 +45,7 @@ use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
 
 use ishou_tokens::{FleetSessionNames, SessionName};
-use tear_types::{DefinitionId, MultiplexerControl, PaneId, SessionId, SessionSource};
+use tear_types::{DefinitionId, PaneId, SessionId, SessionSource};
 
 use crate::suggest::{StoredSuggestion, SuggestionId, SuggestionStore};
 
@@ -193,19 +193,26 @@ pub trait SessionPickerBridge: Send {
     }
 }
 
-/// The concrete [`SessionPickerBridge`] wired in the embedded event loop:
-/// the praça index shared with the auto-attach driver + the reconciler
-/// (so spawned/visited/out-of-band sessions all appear), the live
-/// `InProcess` registry (the `SessionId` → first-pane translation + the
-/// spawn target), the switch channel, and the spawn shell/env (so the
-/// picker can create new sessions like auto-attach does).
+/// The concrete [`SessionPickerBridge`]: the praça index shared with the
+/// auto-attach driver + the reconciler (so spawned/visited/out-of-band
+/// sessions all appear), the window's tear control plane (the `SessionId` →
+/// first-pane translation + the spawn target), the switch channel, and the
+/// spawn shell/env (so the picker can create new sessions like auto-attach
+/// does).
+///
+/// Backend-agnostic by construction: `control` is the one
+/// `MultiplexerControl` seam, so the embedded `InProcess` and a resident
+/// daemon `Client` give the operator the SAME picker over the same kind of
+/// session list. Every spawn carries its own env (`new_session_in`), never
+/// the backend-global one, so two windows creating sessions at once cannot
+/// swap directories.
 pub struct PracaPickerBridge {
     /// The praça decision engine, shared with the auto-attach driver +
     /// the reconciler. One index, many readers/writers — never a fork.
     praca: Arc<Mutex<praca::Praca>>,
-    /// The live in-process tear control plane — the `SessionId` → first
-    /// pane translation + the spawn target.
-    inproc: Arc<tear_core::InProcess>,
+    /// The window's tear control plane — the `SessionId` → first pane
+    /// translation + the spawn target.
+    control: Arc<dyn tear_types::MultiplexerControl>,
     /// The shared switch channel the switchable attach drains — the SAME
     /// channel auto-attach + the `switch_session` MCP tool post to.
     switch: crate::session_switch::SwitchRequests,
@@ -253,7 +260,7 @@ impl PracaPickerBridge {
     #[must_use]
     pub fn new(
         praca: Arc<Mutex<praca::Praca>>,
-        inproc: Arc<tear_core::InProcess>,
+        control: Arc<dyn tear_types::MultiplexerControl>,
         switch: crate::session_switch::SwitchRequests,
         shell: crate::config::ShellSpawn,
         spawn_env_base: tear_types::SpawnEnv,
@@ -266,7 +273,7 @@ impl PracaPickerBridge {
     ) -> Self {
         Self {
             praca,
-            inproc,
+            control,
             switch,
             shell,
             spawn_env_base,
@@ -289,11 +296,10 @@ impl PracaPickerBridge {
     /// Resolve a session's first pane from the live registry — the
     /// `SessionId` → `PaneId` half of the switch translation.
     fn first_pane_of(&self, session: SessionId) -> Option<PaneId> {
-        self.inproc.with_registry(|r| {
-            r.sessions
-                .get(&session)
-                .and_then(|s| s.windows.values().next().map(|w| w.active_pane))
-        })
+        self.control
+            .get_session(session)
+            .ok()
+            .and_then(|s| s.windows.values().next().map(|w| w.active_pane))
     }
 
     /// Compose a picker row label: `<badge> display_name  basename`. A
@@ -336,7 +342,7 @@ impl PracaPickerBridge {
         let Some(def) = def else {
             return false;
         };
-        let live = match praca::instantiate(&def, self.inproc.as_ref()) {
+        let live = match praca::instantiate(&def, self.control.as_ref()) {
             Ok(l) => l,
             Err(_) => return false,
         };
@@ -364,9 +370,8 @@ impl PracaPickerBridge {
     /// inheriting mado's capability env. Mirrors
     /// `AutoAttachDriver::perform_spawn`'s spawn half.
     fn spawn_named(&self, tear_name: &str) -> Option<SessionId> {
-        self.inproc.set_spawn_env(self.spawn_env_base.clone());
-        self.inproc
-            .new_session_with_source_and_size(
+        self.control
+            .new_session_in(
                 tear_name,
                 self.shell.program(),
                 // The operator's `shell.args`, as the child's argv[1..] — a
@@ -375,6 +380,8 @@ impl PracaPickerBridge {
                 self.shell.args(),
                 SessionSource::Named("mado-session-picker".into()),
                 (80, 24),
+                // THIS spawn's env — never the backend-global one.
+                &self.spawn_env_base,
             )
             .ok()
     }
@@ -571,8 +578,7 @@ impl PracaPickerBridge {
         for (k, v) in prewarm.env_steps() {
             env.overrides.push((k.to_string(), v.to_string()));
         }
-        self.inproc.set_spawn_env(env);
-        let Ok(sid) = self.inproc.new_session_with_source_and_size(
+        let Ok(sid) = self.control.new_session_in(
             sug.spawn.name(),
             self.shell.program(),
             // The operator's `shell.args` — and ONLY those. A suggestion's
@@ -585,6 +591,8 @@ impl PracaPickerBridge {
             self.shell.args(),
             SessionSource::Named("mado-suggestion".into()),
             (80, 24),
+            // The suggestion's own cwd + prewarm env, carried ON the request.
+            &env,
         ) else {
             return false;
         };
@@ -612,7 +620,7 @@ impl PracaPickerBridge {
         // for a bare suggestion.
         if !prewarm.is_empty() {
             let mut penv = SessionPrewarmEnv {
-                inproc: self.inproc.as_ref(),
+                control: self.control.as_ref(),
                 pane,
             };
             let _ = crate::prewarm::apply(&prewarm, &mut penv);
@@ -670,7 +678,7 @@ fn kickoff_keystrokes(command: &str) -> Vec<u8> {
 /// boundary: the strategy is data, this executor runs it in the new session's
 /// shell — no privileged write-intrinsics.
 struct SessionPrewarmEnv<'a> {
-    inproc: &'a tear_core::InProcess,
+    control: &'a dyn tear_types::MultiplexerControl,
     pane: PaneId,
 }
 
@@ -678,7 +686,7 @@ impl crate::prewarm::PrewarmEnv for SessionPrewarmEnv<'_> {
     fn run_command(&mut self, cmd: &str) {
         // PTY input buffering carries the keystrokes until the shell is ready,
         // so this works exactly like typing-ahead (as the kickoff did).
-        let _ = self.inproc.send_keys(self.pane, &kickoff_keystrokes(cmd));
+        let _ = self.control.send_keys(self.pane, &kickoff_keystrokes(cmd));
     }
 
     fn open_url(&mut self, url: &url::Url) {
@@ -697,12 +705,12 @@ impl crate::prewarm::PrewarmEnv for SessionPrewarmEnv<'_> {
 /// `praca::SessionDefinition::from_live`, keyed on the session's bound
 /// project root. `false` if the session is gone or untracked (no project).
 pub(crate) fn capture_preset(
-    inproc: &tear_core::InProcess,
+    control: &dyn tear_types::MultiplexerControl,
     praca: &Mutex<praca::Praca>,
     session: SessionId,
     now: u64,
 ) -> bool {
-    let Ok(tear_session) = inproc.get_session(session) else {
+    let Ok(tear_session) = control.get_session(session) else {
         return false;
     };
     let lock = || {
@@ -894,13 +902,13 @@ impl SessionPickerBridge for PracaPickerBridge {
     }
 
     fn save_as_preset(&self, session: SessionId, now: u64) -> bool {
-        capture_preset(self.inproc.as_ref(), &self.praca, session, now)
+        capture_preset(self.control.as_ref(), &self.praca, session, now)
     }
 
     fn rename_session(&self, session: SessionId, new_name: &str, now: u64) -> bool {
-        // (a) Rename the PTY-owning tear session — the MultiplexerControl RPC
-        // on the embedded InProcess owner; this IS "all the way down to tear".
-        let tear_ok = self.inproc.rename_session(session, new_name).is_ok();
+        // (a) Rename the PTY-owning tear session — the MultiplexerControl call
+        // on whichever backend owns it; this IS "all the way down to tear".
+        let tear_ok = self.control.rename_session(session, new_name).is_ok();
         // (b) Mirror into the praça custom_name so display_name() + the fuzzy
         // index reflect it immediately (an empty name clears custom_name,
         // reverting to the emoji/glyph identity — a free "reset name").
@@ -924,7 +932,7 @@ impl SessionPickerBridge for PracaPickerBridge {
     fn refresh(&self, now: u64) {
         use crate::picker::reconcile::IndexReconciler;
         let reconciler =
-            crate::picker::reconcile::InProcessSessionReconciler::new(Arc::clone(&self.inproc));
+            crate::picker::reconcile::ControlSessionReconciler::new(Arc::clone(&self.control));
         let mut praca = self.praca();
         reconciler.reconcile(&mut praca, now);
     }
@@ -1032,6 +1040,7 @@ mod tests {
     use super::*;
     use ishou_tokens::SessionNameStyle;
     use std::path::PathBuf;
+    use tear_types::MultiplexerControl;
 
     fn sid(s: &str) -> SessionId {
         SessionId::from_seed(s)
@@ -1746,7 +1755,7 @@ mod tests {
         switch.attach_sink();
         let bridge = PracaPickerBridge::new(
             Arc::new(Mutex::new(praca)),
-            Arc::clone(&inproc),
+            inproc.clone(),
             switch,
             crate::config::ShellSpawn::bare("/bin/sh"),
             tear_types::SpawnEnv::none(),

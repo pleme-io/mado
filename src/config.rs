@@ -2097,7 +2097,39 @@ pub enum TearRuntime {
     /// remote ssh-mux need to share the same session. Operator
     /// opts in via `mado.tear.runtime = "daemon"` (or the maestro
     /// mado-shared.yaml stack spec).
+    ///
+    /// The window OWNS its session here: closing it (or SIGTERM)
+    /// kills the session. For sessions that outlive the window, use
+    /// [`TearRuntime::Resident`].
     Daemon,
+    /// Sessions RESIDE in the tear daemon and outlive every window
+    /// (tear docs/SESSION-DURABILITY.md §3.1). A window is a VIEW:
+    /// closing it — or quitting mado, or mado crashing — DETACHES,
+    /// and the session keeps running in the background. The Ctrl-S
+    /// picker lists every resident session and switching re-attaches
+    /// the window to any of them, so a backgrounded session is always
+    /// one chord away.
+    ///
+    /// "Detachable" is an ARM of this enum rather than a boolean next
+    /// to it on purpose: an embedded session lives inside mado and
+    /// cannot outlive it, so "embedded but detachable" must have no
+    /// spelling at all — and with a boolean it would.
+    ///
+    /// Creates each session with its env carried on the request
+    /// (`MultiplexerControl::new_session_in`), so a daemon older than
+    /// tear 0.1.27 is refused legibly rather than spawning in its own
+    /// working directory.
+    Resident,
+}
+
+impl TearRuntime {
+    /// Whether sessions outlive the window that shows them. `true`
+    /// only for [`TearRuntime::Resident`]: an embedded session lives in
+    /// mado's process, and a `Daemon` window reaps the session it owns.
+    #[must_use]
+    pub const fn sessions_outlive_windows(self) -> bool {
+        matches!(self, Self::Resident)
+    }
 }
 
 /// How mado reacts when the *displayed* session's shell `cd`s into a
@@ -5745,10 +5777,37 @@ window:
 
     #[test]
     fn tear_runtime_round_trips_via_serde() {
-        for &rt in &[TearRuntime::Embedded, TearRuntime::Daemon] {
+        for &rt in &[
+            TearRuntime::Embedded,
+            TearRuntime::Daemon,
+            TearRuntime::Resident,
+        ] {
             let s = serde_yaml_ng::to_string(&rt).unwrap();
             let back: TearRuntime = serde_yaml_ng::from_str(&s).unwrap();
             assert_eq!(rt, back);
+        }
+    }
+
+    /// `runtime: resident` is the operator's spelling for sessions that
+    /// outlive their window, and it is the ONLY runtime that claims so:
+    /// embedded sessions die with mado, and a `daemon` window reaps the
+    /// session it owns. The exhaustive match is the forcing function — a new
+    /// runtime arm must decide this before it compiles.
+    #[test]
+    fn only_resident_sessions_outlive_windows() {
+        let yaml = "mode: auto\nruntime: resident\n";
+        let cfg: MadoTearConfig = serde_yaml_ng::from_str(yaml).unwrap();
+        assert_eq!(cfg.runtime, TearRuntime::Resident);
+        for rt in [
+            TearRuntime::Embedded,
+            TearRuntime::Daemon,
+            TearRuntime::Resident,
+        ] {
+            let expected = match rt {
+                TearRuntime::Resident => true,
+                TearRuntime::Embedded | TearRuntime::Daemon => false,
+            };
+            assert_eq!(rt.sessions_outlive_windows(), expected, "{rt:?}");
         }
     }
 

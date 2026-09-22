@@ -374,7 +374,8 @@ impl Introspect for MadoAppState {
                     }));
                 };
                 let now = crate::auto_attach::now_unix_seconds();
-                let saved = crate::session_picker::capture_preset(inproc, praca, session, now);
+                let saved =
+                    crate::session_picker::capture_preset(inproc.as_ref(), praca, session, now);
                 Ok(serde_json::json!({
                     "saved": saved,
                     "pane_id": pane_str,
@@ -385,7 +386,7 @@ impl Introspect for MadoAppState {
             // session INTO THIS GUI's embedded tear registry (session-world
             // union phase 1: the MCP `spawn_term` tool forwards here so an
             // agent-spawned session lands in the world the Ctrl-S picker
-            // actually reads — the InProcessSessionReconciler absorbs it
+            // actually reads — the ControlSessionReconciler absorbs it
             // into praca on the next picker refresh, so it shows as a ●
             // row and anchors live-dedup with zero picker changes).
             // Deliberately does NOT touch the InProcess spawn env: the

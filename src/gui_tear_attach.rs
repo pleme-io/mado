@@ -146,7 +146,17 @@ pub fn run(pane_id: PaneId, socket_path: PathBuf) -> Result<()> {
     // somebody else created — don't kill it on our close. No
     // kanshou server runs on this path, so no injection queue and
     // no config watcher (config was a one-shot load above).
-    run_against_pane(client, pane_id, None, socket_path, config, None, None)
+    run_against_pane(
+        client,
+        pane_id,
+        None,
+        socket_path,
+        config,
+        None,
+        None,
+        None,
+        None,
+    )
 }
 
 /// Default-launch path: try to attach to (or auto-spawn) the tear
@@ -237,23 +247,50 @@ pub fn try_run_default(
             .boot_spawn_cwd()
             .map(|d| d.to_string_lossy().into_owned()),
     );
-    if let Err(e) = client.set_spawn_env(&spawn_env) {
-        tracing::warn!(error = %e, "tear set_spawn_env failed; daemon child may lack truecolor env");
-    }
+    // Resident sessions outlive this window (TearRuntime::Resident): the
+    // window only views them, so it never reaps them on close or SIGTERM.
+    let resident = config.tear.runtime.sessions_outlive_windows();
 
     // The operator's `shell.args`, carried as the child's argv[1..].
     // On this path an OLD daemon refuses non-empty args rather than
     // dropping them (`Capability::SpawnArgs` — tear-client's
     // `require_spawn_args`), so a stale daemon surfaces as the typed
     // error below, never as a login shell that quietly isn't one.
-    let session_id = match client.new_session_with_source_and_size(
-        &session_name,
-        spawn.program(),
-        spawn.args(),
-        SessionSource::Named("mado".into()),
-        (init_cols, init_rows),
-    ) {
+    let created = if resident {
+        // The env rides ON the request: a resident daemon serves every
+        // window, so a global env would let two windows swap directories.
+        // A daemon without `spawn-env` refuses here, typed, before sending.
+        client.new_session_in(
+            &session_name,
+            spawn.program(),
+            spawn.args(),
+            SessionSource::Named("mado".into()),
+            (init_cols, init_rows),
+            &spawn_env,
+        )
+    } else {
+        if let Err(e) = client.set_spawn_env(&spawn_env) {
+            tracing::warn!(error = %e, "tear set_spawn_env failed; daemon child may lack truecolor env");
+        }
+        client.new_session_with_source_and_size(
+            &session_name,
+            spawn.program(),
+            spawn.args(),
+            SessionSource::Named("mado".into()),
+            (init_cols, init_rows),
+        )
+    };
+    let session_id = match created {
         Ok(sid) => sid,
+        Err(e) if resident => {
+            // No silent fallback to a local PTY: the operator asked for
+            // sessions that survive the window, and a local PTY cannot.
+            return TearDefaultOutcome::Error(anyhow::anyhow!(
+                "tear.runtime = resident, but the tear daemon could not create a session: {e}. \
+                 A daemon older than tear 0.1.27 cannot carry a per-session env — restart the \
+                 tear daemon on the new build."
+            ));
+        }
         Err(e) => {
             tracing::warn!(error = %e, "tear new_session failed; falling back to local PTY");
             return TearDefaultOutcome::Unavailable;
@@ -288,13 +325,16 @@ pub fn try_run_default(
     );
     crate::perf::log_phase("tear_session_created");
 
-    // SIGTERM / SIGINT reaper. winit's CloseRequested only fires
-    // when the user closes the window — `kill mado` / `timeout
-    // mado` / launchd-restart bypasses winit entirely. A signal
-    // handler that holds a clone of the client + session_id reaps
-    // before the process exits, so orphans don't pile up even
-    // under abnormal termination.
-    {
+    // SIGTERM / SIGINT reaper — ONLY for a window that owns its session
+    // (`TearRuntime::Daemon`). winit's CloseRequested only fires when the
+    // user closes the window — `kill mado` / `timeout mado` /
+    // launchd-restart bypasses winit entirely — so a signal handler holding
+    // a clone of the client + session_id reaps before the process exits.
+    //
+    // A RESIDENT window registers nothing: its session is meant to outlive
+    // the window, so a signal simply ends mado and the session keeps
+    // running in the daemon, one Ctrl-S away from the next window.
+    if !resident {
         let reap_client = Arc::clone(&client);
         let sid = session_id;
         ctrlc::set_handler(move || {
@@ -307,19 +347,50 @@ pub fn try_run_default(
         // here is non-fatal (reap-on-close still works).
     }
 
-    // We own this session — kill it when our window closes so
-    // it doesn't accumulate as an orphan in the daemon. The
-    // `mado tear-attach <existing-pane>` CLI path does NOT pass
-    // session_id (it's attaching to someone else's session,
-    // shouldn't reap it on close).
+    // Owned (`Daemon`): kill the session when the window closes so it doesn't
+    // accumulate as an orphan. Resident: the window is a VIEW — no owned
+    // session, nothing reaped — and it gets the same switch channel + Ctrl-S
+    // picker the embedded runtime has, over the daemon's session list. The
+    // `mado tear-attach <existing-pane>` CLI path passes no session either
+    // (it attaches to someone else's session).
+    let (owned_session, switch_requests, session_picker_bridge) = if resident {
+        let switch = kanshou_state.switch.clone();
+        let boot_name = resolve_boot_name(
+            config.tear.session_name.as_deref(),
+            config.boot_spawn_cwd().as_deref(),
+        );
+        let picker = config.tear.session_switching.then(|| {
+            build_session_picker_bridge(
+                &config,
+                &kanshou_state,
+                Arc::clone(&client) as Arc<dyn tear_types::MultiplexerControl>,
+                switch.clone(),
+                None,
+                session_id,
+                &boot_name,
+                spawn.clone(),
+                spawn_env.clone(),
+            )
+        });
+        (
+            None,
+            config.tear.session_switching.then_some(switch),
+            picker,
+        )
+    } else {
+        (Some(session_id), None, None)
+    };
+
     match run_against_pane(
         client,
         pane_id,
-        Some(session_id),
+        owned_session,
         socket_path,
         config,
         Some(injected),
         reload,
+        switch_requests,
+        session_picker_bridge,
     ) {
         Ok(()) => TearDefaultOutcome::Ran,
         Err(e) => TearDefaultOutcome::Error(e),
@@ -1426,78 +1497,17 @@ fn try_run_default_embedded(
     // disabled" hint) on the byte-identical legacy path.
     let session_picker_bridge: Option<Box<dyn crate::session_picker::SessionPickerBridge>> =
         switch_requests.as_ref().map(|switch| {
-            let shared_praca = match auto_attach.as_ref() {
-                Some(driver) => driver.shared_praca(),
-                None => {
-                    // No auto-attach driver to share with — seed a fresh
-                    // index with the boot session so the picker has the
-                    // current seat (the picker is read-only here; nothing
-                    // mutates this index, so the lone boot row is enough
-                    // to demonstrate browse + switch-to-self).
-                    let now = crate::auto_attach::now_unix_seconds();
-                    let boot_root = praca::project::project_root(
-                        config
-                            .boot_spawn_cwd()
-                            .as_deref()
-                            .unwrap_or_else(|| std::path::Path::new(".")),
-                    );
-                    let mut index = praca::SessionIndex::new();
-                    // Label the boot record by the EMOJI projection of the
-                    // minted identity (the same identity the registry/prompt
-                    // glyph-projects) — NOT a re-derivation from boot_root —
-                    // so the picker shows exactly what the prompt names.
-                    let mut boot_rec = praca::SessionRecord::for_project(
-                        session_id,
-                        boot_root.clone(),
-                        ishou_tokens::SessionNameStyle::Emoji,
-                        now,
-                    );
-                    boot_rec.rename(boot_name.render(ishou_tokens::SessionNameStyle::Emoji));
-                    index.upsert(boot_rec);
-                    let mut binding = praca::ProjectBinding::new();
-                    binding.bind(boot_root, session_id);
-                    std::sync::Arc::new(std::sync::Mutex::new(praca::Praca::with(
-                        index,
-                        binding,
-                        config.tear.auto_attach.policy(),
-                        ishou_tokens::SessionNameStyle::Emoji,
-                    )))
-                }
-            };
-            // Presets survive restarts: restore the persisted definitions
-            // catalog into the freshly-built praça (boot index/binding/policy
-            // untouched — dead-session state must not steer auto-attach) and
-            // register it for the maintenance loop's debounced persist.
-            crate::praca_store::load_and_register(&shared_praca);
-            // Give the MCP surface the SAME catalog the picker reads, so
-            // `save_session_as_preset` writes where Ctrl-S reads its ○ rows.
-            kanshou_state.set_praca(std::sync::Arc::clone(&shared_praca));
-            // The Ctrl-S picker shares the global suggestion store the watcher
-            // engine fills (see `crate::suggest`), so the continuously-
-            // refreshing ○ task rows appear beneath sessions + presets when the
-            // stream is enabled.
-            let (suggest_store, suggest_max, suggest_cap) = if config.suggestions.enabled {
-                (
-                    Some(crate::suggest::store()),
-                    config.suggestions.max_visible,
-                    config.suggestions.per_source_cap,
-                )
-            } else {
-                (None, 0, 0)
-            };
-            Box::new(crate::session_picker::PracaPickerBridge::new(
-                shared_praca,
-                Arc::clone(&inproc),
+            build_session_picker_bridge(
+                &config,
+                &kanshou_state,
+                Arc::clone(&inproc) as Arc<dyn tear_types::MultiplexerControl>,
                 switch.clone(),
+                auto_attach.as_ref().map(|driver| driver.shared_praca()),
+                session_id,
+                &boot_name,
                 picker_spawn.clone(),
                 picker_spawn_env.clone(),
-                config.tear.session_picker_surface_presets,
-                config.tear.session_picker_badges,
-                suggest_store,
-                suggest_max,
-                suggest_cap,
-                config.suggestions.reserved_rows,
-            )) as Box<dyn crate::session_picker::SessionPickerBridge>
+            )
         });
 
     match run_against_embedded_pane(
@@ -1513,6 +1523,91 @@ fn try_run_default_embedded(
         Ok(()) => TearDefaultOutcome::Ran,
         Err(e) => TearDefaultOutcome::Error(e),
     }
+}
+
+/// Build the Ctrl-S session-picker bridge over ANY tear backend — the ONE
+/// construction both the embedded and the resident launch paths use, so the
+/// picker a resident window gets is the same picker an embedded window gets.
+///
+/// `shared_praca` is the auto-attach driver's live index when one exists;
+/// otherwise a fresh index is seeded with the boot session so the picker has
+/// the current seat, and the reconciler (run on every picker refresh) absorbs
+/// every other session the backend holds.
+#[allow(clippy::too_many_arguments)]
+fn build_session_picker_bridge(
+    config: &MadoConfig,
+    kanshou_state: &crate::kanshou_state::MadoAppState,
+    control: Arc<dyn tear_types::MultiplexerControl>,
+    switch: SwitchRequests,
+    shared_praca: Option<Arc<std::sync::Mutex<praca::Praca>>>,
+    boot_session: tear_types::SessionId,
+    boot_name: &ishou_tokens::ResolvedName,
+    spawn: crate::config::ShellSpawn,
+    spawn_env: tear_types::SpawnEnv,
+) -> Box<dyn crate::session_picker::SessionPickerBridge> {
+    let shared_praca = shared_praca.unwrap_or_else(|| {
+        let now = crate::auto_attach::now_unix_seconds();
+        let boot_root = praca::project::project_root(
+            config
+                .boot_spawn_cwd()
+                .as_deref()
+                .unwrap_or_else(|| std::path::Path::new(".")),
+        );
+        let mut index = praca::SessionIndex::new();
+        // Label the boot record by the EMOJI projection of the minted
+        // identity (the same identity the registry/prompt glyph-projects) —
+        // NOT a re-derivation from boot_root — so the picker shows exactly
+        // what the prompt names.
+        let mut boot_rec = praca::SessionRecord::for_project(
+            boot_session,
+            boot_root.clone(),
+            ishou_tokens::SessionNameStyle::Emoji,
+            now,
+        );
+        boot_rec.rename(boot_name.render(ishou_tokens::SessionNameStyle::Emoji));
+        index.upsert(boot_rec);
+        let mut binding = praca::ProjectBinding::new();
+        binding.bind(boot_root, boot_session);
+        Arc::new(std::sync::Mutex::new(praca::Praca::with(
+            index,
+            binding,
+            config.tear.auto_attach.policy(),
+            ishou_tokens::SessionNameStyle::Emoji,
+        )))
+    });
+    // Presets survive restarts: restore the persisted definitions catalog into
+    // the freshly-built praça (boot index/binding/policy untouched — dead-
+    // session state must not steer auto-attach) and register it for the
+    // maintenance loop's debounced persist.
+    crate::praca_store::load_and_register(&shared_praca);
+    // Give the MCP surface the SAME catalog the picker reads, so
+    // `save_session_as_preset` writes where Ctrl-S reads its ○ rows.
+    kanshou_state.set_praca(Arc::clone(&shared_praca));
+    // The Ctrl-S picker shares the global suggestion store the watcher engine
+    // fills (see `crate::suggest`), so the continuously-refreshing ○ task rows
+    // appear beneath sessions + presets when the stream is enabled.
+    let (suggest_store, suggest_max, suggest_cap) = if config.suggestions.enabled {
+        (
+            Some(crate::suggest::store()),
+            config.suggestions.max_visible,
+            config.suggestions.per_source_cap,
+        )
+    } else {
+        (None, 0, 0)
+    };
+    Box::new(crate::session_picker::PracaPickerBridge::new(
+        shared_praca,
+        control,
+        switch,
+        spawn,
+        spawn_env,
+        config.tear.session_picker_surface_presets,
+        config.tear.session_picker_badges,
+        suggest_store,
+        suggest_max,
+        suggest_cap,
+        config.suggestions.reserved_rows,
+    ))
 }
 
 /// Embedded-mode renderer + event loop — thin wrapper around
@@ -1638,6 +1733,7 @@ fn impose_if_any(client: &Arc<tear_client::Client>, tear_cfg: &MadoTearConfig) {
 /// Producer + uses `Arc<Client>` as the control plane; the unified
 /// function handles the rest including the SIGTERM/CloseRequested
 /// reap path for the owned session.
+#[allow(clippy::too_many_arguments)]
 fn run_against_pane(
     client: Arc<tear_client::Client>,
     pane_id: PaneId,
@@ -1646,11 +1742,29 @@ fn run_against_pane(
     config: MadoConfig,
     injected: Option<crate::action_injection::InjectedActions>,
     reload: Option<crate::ux::ConfigReloadSource>,
+    switch_requests: Option<SwitchRequests>,
+    session_picker_bridge: Option<Box<dyn crate::session_picker::SessionPickerBridge>>,
 ) -> Result<()> {
     let snapshot = client
         .pane_snapshot(pane_id)
         .with_context(|| format!("pane_snapshot({pane_id})"))?;
     let producer = tear_client::engate_producer::PaneProducer::new(Arc::clone(&client), pane_id);
+    // Runtime re-attach over the daemon: the same SwitchDriver the embedded
+    // runtime uses, with the pump rebuilt from the CLIENT's producer — so a
+    // switch re-subscribes this window to any pane the daemon holds.
+    let switch = switch_requests.map(|requests| {
+        let client_for_factory = Arc::clone(&client);
+        SwitchDriver {
+            requests,
+            current: Arc::new(RwLock::new(pane_id)),
+            build_producer: Box::new(move |pane| {
+                tear_client::engate_producer::PaneProducer::new(
+                    Arc::clone(&client_for_factory),
+                    pane,
+                )
+            }),
+        }
+    });
     run_against_pane_unified(
         producer,
         client,
@@ -1662,16 +1776,14 @@ fn run_against_pane(
         "tear",
         injected,
         reload,
-        // Daemon-mode runtime switching is a later phase (it needs the
-        // multi-attach + persistence story). Embedded only for now.
+        // Switching + the Ctrl-S picker: present for a RESIDENT window
+        // (sessions outlive it, so moving between them is the point), absent
+        // for an owned `Daemon` window and for `mado tear-attach`.
+        switch,
+        // Auto-attach stays embedded-only: its driver spawns into and reads
+        // the GUI's own InProcess registry.
         None,
-        // Auto-attach is embedded-only too (it drives the embedded
-        // switch channel + reads the GUI's own InProcess registry).
-        None,
-        // The session picker is embedded-only as well (its bridge reads
-        // the GUI's own InProcess registry + posts to the embedded
-        // switch channel). Daemon mode keeps Ctrl-S an inert hint.
-        None,
+        session_picker_bridge,
     )
 }
 

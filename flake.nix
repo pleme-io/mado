@@ -166,9 +166,9 @@
           # defaults (same convention as behavior.copy_on_select).
           runtime = {
             type    = "enum";
-            values  = [ "embedded" "daemon" ];
+            values  = [ "embedded" "daemon" "resident" ];
             default = "embedded";
-            description = "Tear runtime: embedded = in-process tear_core (no IPC, ghostty-class latency; the default); daemon = Unix-socket tear daemon (multi-attach: ayatsuri overlay / namimado / ssh-mux sharing sessions).";
+            description = "Tear runtime: embedded = in-process tear_core (no IPC, ghostty-class latency; the default; sessions die with mado); daemon = Unix-socket tear daemon, the window OWNS its session (killed on close); resident = sessions live in the tear daemon and OUTLIVE every window — closing or quitting mado detaches, and Ctrl-S lists and re-attaches every backgrounded session.";
           };
           auto_attach = {
             type    = "enum";
