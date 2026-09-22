@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "d5f15cf3652b2491fbfab636f68d663ea1f23dfc1968ee11272093a1b54472ce",
+  "cargo_lock_sha256": "d027dfb596e36e87881e840ac29b7eecd9da7f826d0668d875904ffa32d5fbcf",
   "manifest_sha256": {
-    "Cargo.toml": "dbd653adf086c087207360a35778202af50e6c0ea979e61c418186b039549561"
+    "Cargo.toml": "9b699798bc88c77e29740e9100f2891294b56a0c7464b52c9b880fbd205d99cf"
   },
   "target_resolves": {
     "base": {
@@ -6085,7 +6085,7 @@
           },
           {
             "name": "hyper_rustls",
-            "package_key": "hyper-rustls-0.27.9",
+            "package_key": "hyper-rustls-0.27.10",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -6158,7 +6158,7 @@
           "rustls-tls-native-roots"
         ]
       },
-      "hyper-rustls-0.27.9": {
+      "hyper-rustls-0.27.10": {
         "runtime_dependencies": [
           {
             "name": "http",
@@ -7459,7 +7459,7 @@
         "runtime_dependencies": [
           {
             "name": "pest",
-            "package_key": "pest-2.9.1",
+            "package_key": "pest-2.9.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7469,7 +7469,7 @@
           },
           {
             "name": "pest_derive",
-            "package_key": "pest_derive-2.9.1",
+            "package_key": "pest_derive-2.9.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8000,7 +8000,7 @@
           },
           {
             "name": "hyper_rustls",
-            "package_key": "hyper-rustls-0.27.9",
+            "package_key": "hyper-rustls-0.27.10",
             "kind": "normal",
             "features": [
               "http1",
@@ -11105,7 +11105,7 @@
           "std"
         ]
       },
-      "pest-2.9.1": {
+      "pest-2.9.2": {
         "runtime_dependencies": [
           {
             "name": "memchr",
@@ -11135,11 +11135,11 @@
           "std"
         ]
       },
-      "pest_derive-2.9.1": {
+      "pest_derive-2.9.2": {
         "runtime_dependencies": [
           {
             "name": "pest",
-            "package_key": "pest-2.9.1",
+            "package_key": "pest-2.9.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -11149,7 +11149,7 @@
           },
           {
             "name": "pest_generator",
-            "package_key": "pest_generator-2.9.1",
+            "package_key": "pest_generator-2.9.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -11164,11 +11164,11 @@
           "std"
         ]
       },
-      "pest_generator-2.9.1": {
+      "pest_generator-2.9.2": {
         "runtime_dependencies": [
           {
             "name": "pest",
-            "package_key": "pest-2.9.1",
+            "package_key": "pest-2.9.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -11178,7 +11178,7 @@
           },
           {
             "name": "pest_meta",
-            "package_key": "pest_meta-2.9.1",
+            "package_key": "pest_meta-2.9.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11222,11 +11222,11 @@
           "std"
         ]
       },
-      "pest_meta-2.9.1": {
+      "pest_meta-2.9.2": {
         "runtime_dependencies": [
           {
             "name": "pest",
-            "package_key": "pest-2.9.1",
+            "package_key": "pest-2.9.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13907,7 +13907,7 @@
           },
           {
             "name": "hyper_rustls",
-            "package_key": "hyper-rustls-0.27.9",
+            "package_key": "hyper-rustls-0.27.10",
             "kind": "normal",
             "features": [
               "http1",
@@ -21186,7 +21186,7 @@
           },
           {
             "name": "getrandom",
-            "package_key": "getrandom-0.3.4",
+            "package_key": "getrandom-0.4.3",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -26124,7 +26124,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.173": {
+          "mado-0.1.174": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31177,7 +31177,7 @@
               "system"
             ]
           },
-          "mado-0.1.173": {
+          "mado-0.1.174": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35308,7 +35308,7 @@
               "system"
             ]
           },
-          "mado-0.1.173": {
+          "mado-0.1.174": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39579,7 +39579,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.173": {
+          "mado-0.1.174": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44734,7 +44734,7 @@
               "system"
             ]
           },
-          "mado-0.1.173": {
+          "mado-0.1.174": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48967,7 +48967,7 @@
               "system"
             ]
           },
-          "mado-0.1.173": {
+          "mado-0.1.174": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -53040,7 +53040,7 @@
     "hyper-http-proxy-1.2.0": {
       "edition": "2021"
     },
-    "hyper-rustls-0.27.9": {
+    "hyper-rustls-0.27.10": {
       "edition": "2021"
     },
     "hyper-timeout-0.5.2": {
@@ -53275,7 +53275,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.173": {
+    "mado-0.1.174": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -53619,17 +53619,17 @@
     "percent-encoding-2.3.2": {
       "edition": "2018"
     },
-    "pest-2.9.1": {
+    "pest-2.9.2": {
       "edition": "2021"
     },
-    "pest_derive-2.9.1": {
+    "pest_derive-2.9.2": {
       "edition": "2021",
       "proc_macro": true
     },
-    "pest_generator-2.9.1": {
+    "pest_generator-2.9.2": {
       "edition": "2021"
     },
-    "pest_meta-2.9.1": {
+    "pest_meta-2.9.2": {
       "edition": "2021"
     },
     "pgvector-0.4.2": {
