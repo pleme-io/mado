@@ -243,7 +243,7 @@ praca = "0.1"
 # unifies ONE egaku crate identity — a divergent rev is the documented E0463
 # split-crate break. When the floating-window CHROME widget lands it consumes
 # egaku's widget trait too (QUADRO T1); until then this is a geometry-only dep.
-egaku = "0.1"
+egaku = "0.1.18"  # 0.1.18: vt (OSC builders lifted from mado)
 
 # nami-core — the pure-Rust web engine (DOM → CSS → layout → typed paint IR).
 # Drives the RealBrowserBackend behind float::BrowserBackend (browser_engine.rs).

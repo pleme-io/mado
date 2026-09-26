@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "d027dfb596e36e87881e840ac29b7eecd9da7f826d0668d875904ffa32d5fbcf",
+  "cargo_lock_sha256": "6a536bd6b37e196b1a2f62d95c0a4d6eb4c1fd6e60783c68b6d0f7e881b3f04f",
   "manifest_sha256": {
-    "Cargo.toml": "9b699798bc88c77e29740e9100f2891294b56a0c7464b52c9b880fbd205d99cf"
+    "Cargo.toml": "9b4f34a8c35fc1066318976d03b38974361cc0008042a79e02aa71470235802c"
   },
   "target_resolves": {
     "base": {
@@ -3128,7 +3128,7 @@
           "PartialEq"
         ]
       },
-      "egaku-0.1.15": {
+      "egaku-0.1.18": {
         "runtime_dependencies": [
           {
             "name": "awase",
@@ -7024,7 +7024,7 @@
           },
           {
             "name": "egaku",
-            "package_key": "egaku-0.1.15",
+            "package_key": "egaku-0.1.18",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9095,7 +9095,7 @@
         "runtime_dependencies": [
           {
             "name": "egaku",
-            "package_key": "egaku-0.1.15",
+            "package_key": "egaku-0.1.18",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -26215,7 +26215,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.15",
+                "package_key": "egaku-0.1.18",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31268,7 +31268,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.15",
+                "package_key": "egaku-0.1.18",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35399,7 +35399,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.15",
+                "package_key": "egaku-0.1.18",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39670,7 +39670,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.15",
+                "package_key": "egaku-0.1.18",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44825,7 +44825,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.15",
+                "package_key": "egaku-0.1.18",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49058,7 +49058,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.15",
+                "package_key": "egaku-0.1.18",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -52746,7 +52746,7 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "egaku-0.1.15": {
+    "egaku-0.1.18": {
       "edition": "2024"
     },
     "either-1.18.0": {

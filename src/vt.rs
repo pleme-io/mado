@@ -63,139 +63,15 @@ pub fn apc(body: &str) -> Vec<u8> {
     out
 }
 
-/// How an OSC string is terminated: `BEL` (0x07) or `ST` (`ESC \`).
-/// Both are valid per ECMA-48; individual protocols pick one (iTerm2 OSC 9
-/// and OSC 1337 use BEL; the kitty OSC 99 protocol uses ST).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum OscTerminator {
-    /// `BEL` — 0x07.
-    Bel,
-    /// `ST` — `ESC \`.
-    St,
-}
-
-/// An OSC sequence: `ESC ]` · numeric code · `;`-joined string params ·
-/// terminator. The envelope grammar (introducer, `;` separators,
-/// terminator) lives here once; the call site declares the numeric code
-/// and the typed string parameters, never the escape bytes. This is the
-/// OSC peer of [`csi`] / [`dcs`] / [`apc`] — the outbound half of the
-/// terminal-notification protocols mado also parses (OSC 9 / 777 / 99 /
-/// 1337, see `terminal.rs::osc_dispatch`).
-#[must_use]
-pub fn osc(code: u16, params: &[&str], terminator: OscTerminator) -> Vec<u8> {
-    let total: usize = params.iter().map(|p| p.len() + 1).sum();
-    let mut out = Vec::with_capacity(6 + total);
-    out.extend_from_slice(b"\x1b]");
-    let _ = write!(out, "{code}");
-    for p in params {
-        out.push(b';');
-        out.extend_from_slice(p.as_bytes());
-    }
-    match terminator {
-        OscTerminator::Bel => out.push(0x07),
-        OscTerminator::St => out.extend_from_slice(b"\x1b\\"),
-    }
-    out
-}
-
-/// OSC 9 (iTerm2) simple notification: `ESC ] 9 ; <body> BEL`.
-#[must_use]
-pub fn osc9_notify(body: &str) -> Vec<u8> {
-    osc(9, &[body], OscTerminator::Bel)
-}
-
-/// OSC 777 (urxvt/foot) notification:
-/// `ESC ] 777 ; notify ; <title> ; <body> BEL`.
-#[must_use]
-pub fn osc777_notify(title: &str, body: &str) -> Vec<u8> {
-    osc(777, &["notify", title, body], OscTerminator::Bel)
-}
-
-/// Which field an OSC 99 payload chunk carries.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Osc99Part {
-    /// The notification title.
-    Title,
-    /// The notification body.
-    Body,
-}
-
-impl Osc99Part {
-    fn as_str(self) -> &'static str {
-        match self {
-            Osc99Part::Title => "title",
-            Osc99Part::Body => "body",
-        }
-    }
-}
-
-/// One chunk of a kitty OSC 99 notification:
-/// `ESC ] 99 ; i=<id>:d=<0|1>:u=<urgency>:p=<part> ; <payload> ST`.
-///
-/// `done` marks the final chunk (the receiver renders on `d=1`);
-/// `urgency` is 0 (low) / 1 (normal) / 2 (critical). The metadata block
-/// is assembled from typed pieces — no escape or `:`/`;` grammar leaks to
-/// the call site.
-#[must_use]
-pub fn osc99_notify(id: &str, done: bool, urgency: u8, part: Osc99Part, payload: &str) -> Vec<u8> {
-    use std::fmt::Write as _;
-    let mut meta = String::with_capacity(id.len() + 20);
-    let _ = write!(
-        meta,
-        "i={id}:d={}:u={urgency}:p={}",
-        u8::from(done),
-        part.as_str()
-    );
-    osc(99, &[&meta, payload], OscTerminator::St)
-}
-
-/// OSC 1337 (iTerm2) `RequestAttention`: `ESC ] 1337 ; RequestAttention=<0|1> BEL`.
-/// Bounces the dock until focus returns (mado maps it to a Critical,
-/// focus-bypassing notification + dock attention).
-#[must_use]
-pub fn osc1337_request_attention(on: bool) -> Vec<u8> {
-    let param = if on {
-        "RequestAttention=1"
-    } else {
-        "RequestAttention=0"
-    };
-    osc(1337, &[param], OscTerminator::Bel)
-}
-
-/// A shell-integration semantic prompt mark (OSC 133 / `FinalTerm`). mado
-/// brackets each command with these: `A` fresh prompt, `B` command-input
-/// start, `C` command-output start (execution begins — the completion clock
-/// starts), `D` command end (`D;<exit>` carries the status — the completion
-/// fires). See `terminal.rs::handle_osc_133_shell_integration`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Osc133Mark {
-    /// `A` — prompt start (fresh line + start of prompt).
-    PromptStart,
-    /// `B` — end of prompt, start of command input.
-    CommandStart,
-    /// `C` — command output begins (the command is now executing).
-    CommandOutput,
-    /// `D` — command finished; `Some(code)` carries the exit status.
-    CommandEnd(Option<i32>),
-}
-
-/// Emit one OSC 133 mark: `ESC ] 133 ; <letter>[;<exit>] ST`. The letter
-/// and optional exit code are declared as a typed [`Osc133Mark`]; the
-/// escape grammar stays in [`osc`]. The peer of the OSC 9/777/99/1337
-/// emitters above — the outbound half of a protocol mado also parses.
-#[must_use]
-pub fn osc133(mark: Osc133Mark) -> Vec<u8> {
-    match mark {
-        Osc133Mark::PromptStart => osc(133, &["A"], OscTerminator::St),
-        Osc133Mark::CommandStart => osc(133, &["B"], OscTerminator::St),
-        Osc133Mark::CommandOutput => osc(133, &["C"], OscTerminator::St),
-        Osc133Mark::CommandEnd(None) => osc(133, &["D"], OscTerminator::St),
-        Osc133Mark::CommandEnd(Some(code)) => {
-            let s = code.to_string();
-            osc(133, &["D", &s], OscTerminator::St)
-        }
-    }
-}
+// The OSC envelope and the notification / attention / prompt-mark
+// builders live in egaku::vt (lifted from here, 2026-09-26) so every fleet
+// program that writes to a terminal emits the same bytes mado parses. Re-
+// exported under the same names, so `crate::vt::osc(…)` et al. are unchanged;
+// the byte-exact tests below now guard the re-export.
+pub use egaku::vt::{
+    Osc99Part, Osc133Mark, OscTerminator, osc, osc9_notify, osc99_notify, osc133,
+    osc777_notify, osc1337_request_attention,
+};
 
 /// An OSC color-reply body: `rgb:RRRR/GGGG/BBBB`, each channel byte doubled
 /// per xterm so 16-bit-precision parsers read `RR` as `RRRR`. This is a typed
