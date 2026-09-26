@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "6a536bd6b37e196b1a2f62d95c0a4d6eb4c1fd6e60783c68b6d0f7e881b3f04f",
+  "cargo_lock_sha256": "416b0e23e82424b91c0d6336810a2ac164f695b39256cf1b646a391e3273019d",
   "manifest_sha256": {
-    "Cargo.toml": "9b4f34a8c35fc1066318976d03b38974361cc0008042a79e02aa71470235802c"
+    "Cargo.toml": "75db484d4b5caee668804d32b2654a1cf85d58828ff3d26331a90946a9807c06"
   },
   "target_resolves": {
     "base": {
@@ -47,7 +47,7 @@
           },
           {
             "name": "zerocopy",
-            "package_key": "zerocopy-0.8.57",
+            "package_key": "zerocopy-0.8.59",
             "kind": "normal",
             "features": [
               "simd"
@@ -574,7 +574,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -636,6 +636,16 @@
         "features": [
           "alloc",
           "default",
+          "std"
+        ]
+      },
+      "base64-0.23.1": {
+        "runtime_dependencies": [],
+        "build_dependencies": [],
+        "features": [
+          "alloc",
+          "default",
+          "simd-unsafe",
           "std"
         ]
       },
@@ -1137,11 +1147,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "cc-1.4.7": {
+      "cc-1.5.1": {
         "runtime_dependencies": [
           {
             "name": "find_msvc_tools",
-            "package_key": "find-msvc-tools-0.1.13",
+            "package_key": "find-msvc-tools-0.1.14",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -2268,7 +2278,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.1",
+            "package_key": "smallvec-1.16.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3174,7 +3184,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3286,7 +3296,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3336,7 +3346,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3374,7 +3384,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3422,7 +3432,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -3791,7 +3801,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "find-msvc-tools-0.1.13": {
+      "find-msvc-tools-0.1.14": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
@@ -4461,7 +4471,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4600,7 +4610,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -4682,7 +4692,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5290,7 +5300,7 @@
           },
           {
             "name": "zerocopy",
-            "package_key": "zerocopy-0.8.57",
+            "package_key": "zerocopy-0.8.59",
             "kind": "normal",
             "features": [
               "derive",
@@ -5329,7 +5339,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5507,7 +5517,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -5519,7 +5529,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "headers-0.4.1": {
+      "headers-0.4.2": {
         "runtime_dependencies": [
           {
             "name": "base64",
@@ -5987,7 +5997,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.1",
+            "package_key": "smallvec-1.16.2",
             "kind": "normal",
             "features": [
               "const_generics",
@@ -6053,7 +6063,7 @@
           },
           {
             "name": "headers",
-            "package_key": "headers-0.4.1",
+            "package_key": "headers-0.4.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -6095,7 +6105,7 @@
           },
           {
             "name": "hyper_util",
-            "package_key": "hyper-util-0.1.20",
+            "package_key": "hyper-util-0.1.21",
             "kind": "normal",
             "features": [
               "client",
@@ -6182,7 +6192,7 @@
           },
           {
             "name": "hyper_util",
-            "package_key": "hyper-util-0.1.20",
+            "package_key": "hyper-util-0.1.21",
             "kind": "normal",
             "features": [
               "client-legacy",
@@ -6292,7 +6302,7 @@
           },
           {
             "name": "hyper_util",
-            "package_key": "hyper-util-0.1.20",
+            "package_key": "hyper-util-0.1.21",
             "kind": "normal",
             "features": [
               "client-legacy",
@@ -6504,7 +6514,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.1",
+            "package_key": "smallvec-1.16.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -6724,7 +6734,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -6755,7 +6765,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.1",
+            "package_key": "smallvec-1.16.2",
             "kind": "normal",
             "features": [
               "const_generics"
@@ -6996,7 +7006,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7066,7 +7076,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7263,7 +7273,7 @@
           },
           {
             "name": "todoku",
-            "package_key": "todoku-0.1.5",
+            "package_key": "todoku-0.1.6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7338,7 +7348,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.1021",
+            "package_key": "shikumi-0.1.1068",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7440,7 +7450,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7499,7 +7509,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7661,7 +7671,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8025,7 +8035,7 @@
           },
           {
             "name": "hyper_util",
-            "package_key": "hyper-util-0.1.20",
+            "package_key": "hyper-util-0.1.21",
             "kind": "normal",
             "features": [
               "client",
@@ -8132,7 +8142,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8337,7 +8347,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8598,7 +8608,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -8721,7 +8731,7 @@
         "build_dependencies": [
           {
             "name": "cc",
-            "package_key": "cc-1.4.7",
+            "package_key": "cc-1.5.1",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -8737,7 +8747,7 @@
         "build_dependencies": [
           {
             "name": "cc",
-            "package_key": "cc-1.4.7",
+            "package_key": "cc-1.5.1",
             "kind": "build",
             "features": [],
             "uses_default_features": true,
@@ -8913,7 +8923,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.1",
+            "package_key": "smallvec-1.16.2",
             "kind": "normal",
             "features": [
               "union"
@@ -9159,7 +9169,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.1021",
+            "package_key": "shikumi-0.1.1068",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9169,7 +9179,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9738,7 +9748,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -10147,7 +10157,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.1",
+            "package_key": "smallvec-1.16.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -10855,7 +10865,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.1",
+            "package_key": "smallvec-1.16.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -10935,7 +10945,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.1",
+            "package_key": "smallvec-1.16.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11452,7 +11462,7 @@
         "runtime_dependencies": [
           {
             "name": "siphasher",
-            "package_key": "siphasher-1.0.3",
+            "package_key": "siphasher-1.0.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -11471,7 +11481,7 @@
         "runtime_dependencies": [
           {
             "name": "siphasher",
-            "package_key": "siphasher-1.0.3",
+            "package_key": "siphasher-1.0.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12092,7 +12102,7 @@
           },
           {
             "name": "tatara_eval",
-            "package_key": "tatara-eval-0.2.765",
+            "package_key": "tatara-eval-0.2.816",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12112,7 +12122,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12122,7 +12132,7 @@
           },
           {
             "name": "todoku",
-            "package_key": "todoku-0.1.5",
+            "package_key": "todoku-0.1.6",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -12352,7 +12362,7 @@
         "runtime_dependencies": [
           {
             "name": "zerocopy",
-            "package_key": "zerocopy-0.8.57",
+            "package_key": "zerocopy-0.8.59",
             "kind": "normal",
             "features": [
               "simd"
@@ -12532,7 +12542,7 @@
           "yansi"
         ]
       },
-      "process-wrap-9.1.0": {
+      "process-wrap-9.1.1": {
         "runtime_dependencies": [
           {
             "name": "futures",
@@ -12990,7 +13000,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13140,7 +13150,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13834,7 +13844,7 @@
           },
           {
             "name": "encoding_rs",
-            "package_key": "encoding_rs-0.8.41",
+            "package_key": "encoding_rs-0.8.42",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -13920,7 +13930,7 @@
           },
           {
             "name": "hyper_util",
-            "package_key": "hyper-util-0.1.20",
+            "package_key": "hyper-util-0.1.21",
             "kind": "normal",
             "features": [
               "client",
@@ -14233,7 +14243,7 @@
           },
           {
             "name": "process_wrap",
-            "package_key": "process-wrap-9.1.0",
+            "package_key": "process-wrap-9.1.1",
             "kind": "normal",
             "features": [
               "tokio1"
@@ -14290,7 +14300,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14621,7 +14631,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.1",
+            "package_key": "smallvec-1.16.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -14948,7 +14958,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.1",
+            "package_key": "smallvec-1.16.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15049,7 +15059,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -15555,7 +15565,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -16222,7 +16232,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -16989,7 +16999,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.1021",
+            "package_key": "shikumi-0.1.1068",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17036,7 +17046,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "shikumi-0.1.1021": {
+      "shikumi-0.1.1068": {
         "runtime_dependencies": [
           {
             "name": "arc_swap",
@@ -17160,7 +17170,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17268,7 +17278,7 @@
           "std"
         ]
       },
-      "siphasher-1.0.3": {
+      "siphasher-1.0.4": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": [
@@ -17331,7 +17341,7 @@
           "std"
         ]
       },
-      "smallvec-1.16.1": {
+      "smallvec-1.16.2": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -17748,7 +17758,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.1",
+            "package_key": "smallvec-1.16.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -17758,7 +17768,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18477,7 +18487,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.1",
+            "package_key": "smallvec-1.16.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18507,7 +18517,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -18865,7 +18875,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.1",
+            "package_key": "smallvec-1.16.2",
             "kind": "normal",
             "features": [
               "serde"
@@ -18899,7 +18909,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19128,7 +19138,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19794,7 +19804,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-core-0.2.765": {
+      "tatara-core-0.2.816": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -19905,7 +19915,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.1021",
+            "package_key": "shikumi-0.1.1068",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19915,7 +19925,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19960,7 +19970,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-eval-0.2.765": {
+      "tatara-eval-0.2.816": {
         "runtime_dependencies": [
           {
             "name": "bumpalo",
@@ -20018,7 +20028,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20030,7 +20040,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-lattice-0.2.765": {
+      "tatara-lattice-0.2.816": {
         "runtime_dependencies": [
           {
             "name": "schemars",
@@ -20058,7 +20068,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.765",
+            "package_key": "tatara-core-0.2.816",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20136,7 +20146,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20222,7 +20232,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20280,7 +20290,7 @@
           },
           {
             "name": "tatara_lattice",
-            "package_key": "tatara-lattice-0.2.765",
+            "package_key": "tatara-lattice-0.2.816",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20320,7 +20330,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20478,7 +20488,7 @@
           },
           {
             "name": "tatara_core",
-            "package_key": "tatara-core-0.2.765",
+            "package_key": "tatara-core-0.2.816",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20498,7 +20508,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20677,7 +20687,7 @@
           },
           {
             "name": "shikumi",
-            "package_key": "shikumi-0.1.1021",
+            "package_key": "shikumi-0.1.1068",
             "kind": "normal",
             "features": [
               "cli"
@@ -20699,7 +20709,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20847,7 +20857,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21157,7 +21167,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21282,11 +21292,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "thiserror-2.0.20": {
+      "thiserror-2.0.21": {
         "runtime_dependencies": [
           {
             "name": "thiserror_impl",
-            "package_key": "thiserror-impl-2.0.20",
+            "package_key": "thiserror-impl-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21337,7 +21347,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "thiserror-impl-2.0.20": {
+      "thiserror-impl-2.0.21": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -21633,7 +21643,7 @@
           "std"
         ]
       },
-      "todoku-0.1.5": {
+      "todoku-0.1.6": {
         "runtime_dependencies": [
           {
             "name": "async_trait",
@@ -21698,7 +21708,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -22928,7 +22938,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.1",
+            "package_key": "smallvec-1.16.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23622,7 +23632,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23809,7 +23819,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -23990,7 +24000,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24105,7 +24115,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24229,7 +24239,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24419,7 +24429,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.1",
+            "package_key": "smallvec-1.16.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24429,7 +24439,7 @@
           },
           {
             "name": "smallvec",
-            "package_key": "smallvec-1.16.1",
+            "package_key": "smallvec-1.16.2",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24579,7 +24589,7 @@
           },
           {
             "name": "thiserror",
-            "package_key": "thiserror-2.0.20",
+            "package_key": "thiserror-2.0.21",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -24754,11 +24764,11 @@
           "std"
         ]
       },
-      "zerocopy-0.8.57": {
+      "zerocopy-0.8.59": {
         "runtime_dependencies": [
           {
             "name": "zerocopy_derive",
-            "package_key": "zerocopy-derive-0.8.57",
+            "package_key": "zerocopy-derive-0.8.59",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24768,7 +24778,7 @@
           },
           {
             "name": "zerocopy_derive",
-            "package_key": "zerocopy-derive-0.8.57",
+            "package_key": "zerocopy-derive-0.8.59",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -24784,7 +24794,7 @@
           "zerocopy-derive"
         ]
       },
-      "zerocopy-derive-0.8.57": {
+      "zerocopy-derive-0.8.59": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -25223,7 +25233,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.7",
+                "package_key": "cc-1.5.1",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -25616,7 +25626,7 @@
               "std"
             ]
           },
-          "encoding_rs-0.8.41": {
+          "encoding_rs-0.8.42": {
             "runtime_dependencies": [
               {
                 "name": "cfg_if",
@@ -25840,11 +25850,11 @@
             "build_dependencies": [],
             "features": []
           },
-          "hyper-util-0.1.20": {
+          "hyper-util-0.1.21": {
             "runtime_dependencies": [
               {
                 "name": "base64",
-                "package_key": "base64-0.22.1",
+                "package_key": "base64-0.23.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -25899,6 +25909,16 @@
                 "features": [],
                 "uses_default_features": true,
                 "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "httparse",
+                "package_key": "httparse-1.10.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": true,
                 "target": null,
                 "tree": "target"
               },
@@ -26124,7 +26144,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.174": {
+          "mado-0.1.175": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26699,7 +26719,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1021",
+                "package_key": "shikumi-0.1.1068",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -26797,7 +26817,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.20",
+                "package_key": "thiserror-2.0.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -29059,7 +29079,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.7",
+                "package_key": "cc-1.5.1",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -29410,7 +29430,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.20",
+                "package_key": "thiserror-2.0.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -29581,7 +29601,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.1",
+                "package_key": "smallvec-1.16.2",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -29591,7 +29611,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.20",
+                "package_key": "thiserror-2.0.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -29942,7 +29962,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.1",
+                "package_key": "smallvec-1.16.2",
                 "kind": "normal",
                 "features": [
                   "union"
@@ -29954,7 +29974,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.20",
+                "package_key": "thiserror-2.0.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -30429,7 +30449,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.7",
+                "package_key": "cc-1.5.1",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -30672,7 +30692,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "encoding_rs-0.8.41": {
+          "encoding_rs-0.8.42": {
             "runtime_dependencies": [
               {
                 "name": "cfg_if",
@@ -30850,11 +30870,11 @@
             "build_dependencies": [],
             "features": []
           },
-          "hyper-util-0.1.20": {
+          "hyper-util-0.1.21": {
             "runtime_dependencies": [
               {
                 "name": "base64",
-                "package_key": "base64-0.22.1",
+                "package_key": "base64-0.23.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -30909,6 +30929,16 @@
                 "features": [],
                 "uses_default_features": true,
                 "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "httparse",
+                "package_key": "httparse-1.10.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": true,
                 "target": null,
                 "tree": "target"
               },
@@ -31177,7 +31207,7 @@
               "system"
             ]
           },
-          "mado-0.1.174": {
+          "mado-0.1.175": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31703,7 +31733,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1021",
+                "package_key": "shikumi-0.1.1068",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -31801,7 +31831,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.20",
+                "package_key": "thiserror-2.0.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32172,7 +32202,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.7",
+                "package_key": "cc-1.5.1",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -32839,7 +32869,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.20",
+                "package_key": "thiserror-2.0.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -32912,7 +32942,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.1",
+                "package_key": "smallvec-1.16.2",
                 "kind": "normal",
                 "features": [
                   "const_generics",
@@ -32938,7 +32968,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.7",
+                "package_key": "cc-1.5.1",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -33479,7 +33509,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.1",
+                "package_key": "smallvec-1.16.2",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -33489,7 +33519,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.20",
+                "package_key": "thiserror-2.0.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -33803,7 +33833,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.1",
+                "package_key": "smallvec-1.16.2",
                 "kind": "normal",
                 "features": [
                   "union"
@@ -33815,7 +33845,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.20",
+                "package_key": "thiserror-2.0.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -34560,7 +34590,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.7",
+                "package_key": "cc-1.5.1",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -34803,7 +34833,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "encoding_rs-0.8.41": {
+          "encoding_rs-0.8.42": {
             "runtime_dependencies": [
               {
                 "name": "cfg_if",
@@ -34981,11 +35011,11 @@
             "build_dependencies": [],
             "features": []
           },
-          "hyper-util-0.1.20": {
+          "hyper-util-0.1.21": {
             "runtime_dependencies": [
               {
                 "name": "base64",
-                "package_key": "base64-0.22.1",
+                "package_key": "base64-0.23.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35040,6 +35070,16 @@
                 "features": [],
                 "uses_default_features": true,
                 "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "httparse",
+                "package_key": "httparse-1.10.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": true,
                 "target": null,
                 "tree": "target"
               },
@@ -35308,7 +35348,7 @@
               "system"
             ]
           },
-          "mado-0.1.174": {
+          "mado-0.1.175": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35834,7 +35874,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1021",
+                "package_key": "shikumi-0.1.1068",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -35932,7 +35972,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.20",
+                "package_key": "thiserror-2.0.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -36303,7 +36343,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.7",
+                "package_key": "cc-1.5.1",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -36970,7 +37010,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.20",
+                "package_key": "thiserror-2.0.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37043,7 +37083,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.1",
+                "package_key": "smallvec-1.16.2",
                 "kind": "normal",
                 "features": [
                   "const_generics",
@@ -37069,7 +37109,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.7",
+                "package_key": "cc-1.5.1",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -37610,7 +37650,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.1",
+                "package_key": "smallvec-1.16.2",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -37620,7 +37660,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.20",
+                "package_key": "thiserror-2.0.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -37934,7 +37974,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.1",
+                "package_key": "smallvec-1.16.2",
                 "kind": "normal",
                 "features": [
                   "union"
@@ -37946,7 +37986,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.20",
+                "package_key": "thiserror-2.0.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -38677,7 +38717,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.7",
+                "package_key": "cc-1.5.1",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -39051,7 +39091,7 @@
               "std"
             ]
           },
-          "encoding_rs-0.8.41": {
+          "encoding_rs-0.8.42": {
             "runtime_dependencies": [
               {
                 "name": "cfg_if",
@@ -39071,16 +39111,6 @@
                 "uses_default_features": true,
                 "optional": false,
                 "target": "cfg(any(target_arch = \"x86_64\", target_arch = \"x86\"))",
-                "tree": "target"
-              },
-              {
-                "name": "multiversion",
-                "package_key": "multiversion-0.9.0",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": false,
-                "optional": false,
-                "target": "cfg(all(any(target_arch = \"x86_64\", target_arch = \"x86\"), not(all(target_feature = \"avx2\", target_feature = \"bmi1\"))))",
                 "tree": "target"
               },
               {
@@ -39295,11 +39325,11 @@
             "build_dependencies": [],
             "features": []
           },
-          "hyper-util-0.1.20": {
+          "hyper-util-0.1.21": {
             "runtime_dependencies": [
               {
                 "name": "base64",
-                "package_key": "base64-0.22.1",
+                "package_key": "base64-0.23.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39354,6 +39384,16 @@
                 "features": [],
                 "uses_default_features": true,
                 "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "httparse",
+                "package_key": "httparse-1.10.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": true,
                 "target": null,
                 "tree": "target"
               },
@@ -39579,7 +39619,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.174": {
+          "mado-0.1.175": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -40154,7 +40194,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1021",
+                "package_key": "shikumi-0.1.1068",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -40252,7 +40292,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.20",
+                "package_key": "thiserror-2.0.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40472,74 +40512,6 @@
               "default",
               "link"
             ]
-          },
-          "multiversion-0.9.0": {
-            "runtime_dependencies": [
-              {
-                "name": "multiversion_macros",
-                "package_key": "multiversion-macros-0.9.0",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": false,
-                "optional": false,
-                "target": null,
-                "tree": "host"
-              }
-            ],
-            "build_dependencies": [],
-            "features": []
-          },
-          "multiversion-macros-0.9.0": {
-            "runtime_dependencies": [
-              {
-                "name": "proc_macro2",
-                "package_key": "proc-macro2-1.0.107",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              },
-              {
-                "name": "quote",
-                "package_key": "quote-1.0.47",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              },
-              {
-                "name": "rustversion",
-                "package_key": "rustversion-1.0.23",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "host"
-              },
-              {
-                "name": "syn",
-                "package_key": "syn-3.0.6",
-                "kind": "normal",
-                "features": [
-                  "extra-traits",
-                  "full",
-                  "printing",
-                  "visit",
-                  "visit-mut"
-                ],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              }
-            ],
-            "build_dependencies": [],
-            "features": []
           },
           "notify-8.2.0": {
             "runtime_dependencies": [
@@ -42562,7 +42534,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.7",
+                "package_key": "cc-1.5.1",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -42932,7 +42904,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.20",
+                "package_key": "thiserror-2.0.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -43103,7 +43075,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.1",
+                "package_key": "smallvec-1.16.2",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -43113,7 +43085,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.20",
+                "package_key": "thiserror-2.0.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -43464,7 +43436,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.1",
+                "package_key": "smallvec-1.16.2",
                 "kind": "normal",
                 "features": [
                   "union"
@@ -43476,7 +43448,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.20",
+                "package_key": "thiserror-2.0.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -43985,7 +43957,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.7",
+                "package_key": "cc-1.5.1",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -44209,7 +44181,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "encoding_rs-0.8.41": {
+          "encoding_rs-0.8.42": {
             "runtime_dependencies": [
               {
                 "name": "cfg_if",
@@ -44229,16 +44201,6 @@
                 "uses_default_features": true,
                 "optional": false,
                 "target": "cfg(any(target_arch = \"x86_64\", target_arch = \"x86\"))",
-                "tree": "target"
-              },
-              {
-                "name": "multiversion",
-                "package_key": "multiversion-0.9.0",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": false,
-                "optional": false,
-                "target": "cfg(all(any(target_arch = \"x86_64\", target_arch = \"x86\"), not(all(target_feature = \"avx2\", target_feature = \"bmi1\"))))",
                 "tree": "target"
               },
               {
@@ -44407,11 +44369,11 @@
             "build_dependencies": [],
             "features": []
           },
-          "hyper-util-0.1.20": {
+          "hyper-util-0.1.21": {
             "runtime_dependencies": [
               {
                 "name": "base64",
-                "package_key": "base64-0.22.1",
+                "package_key": "base64-0.23.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44466,6 +44428,16 @@
                 "features": [],
                 "uses_default_features": true,
                 "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "httparse",
+                "package_key": "httparse-1.10.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": true,
                 "target": null,
                 "tree": "target"
               },
@@ -44734,7 +44706,7 @@
               "system"
             ]
           },
-          "mado-0.1.174": {
+          "mado-0.1.175": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -45260,7 +45232,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1021",
+                "package_key": "shikumi-0.1.1068",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -45358,7 +45330,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.20",
+                "package_key": "thiserror-2.0.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45483,74 +45455,6 @@
             "features": [
               "default"
             ]
-          },
-          "multiversion-0.9.0": {
-            "runtime_dependencies": [
-              {
-                "name": "multiversion_macros",
-                "package_key": "multiversion-macros-0.9.0",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": false,
-                "optional": false,
-                "target": null,
-                "tree": "host"
-              }
-            ],
-            "build_dependencies": [],
-            "features": []
-          },
-          "multiversion-macros-0.9.0": {
-            "runtime_dependencies": [
-              {
-                "name": "proc_macro2",
-                "package_key": "proc-macro2-1.0.107",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              },
-              {
-                "name": "quote",
-                "package_key": "quote-1.0.47",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              },
-              {
-                "name": "rustversion",
-                "package_key": "rustversion-1.0.23",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "host"
-              },
-              {
-                "name": "syn",
-                "package_key": "syn-3.0.6",
-                "kind": "normal",
-                "features": [
-                  "extra-traits",
-                  "full",
-                  "printing",
-                  "visit",
-                  "visit-mut"
-                ],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              }
-            ],
-            "build_dependencies": [],
-            "features": []
           },
           "notify-8.2.0": {
             "runtime_dependencies": [
@@ -45777,7 +45681,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.7",
+                "package_key": "cc-1.5.1",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -46463,7 +46367,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.20",
+                "package_key": "thiserror-2.0.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -46536,7 +46440,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.1",
+                "package_key": "smallvec-1.16.2",
                 "kind": "normal",
                 "features": [
                   "const_generics",
@@ -46562,7 +46466,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.7",
+                "package_key": "cc-1.5.1",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -47103,7 +47007,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.1",
+                "package_key": "smallvec-1.16.2",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -47113,7 +47017,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.20",
+                "package_key": "thiserror-2.0.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -47427,7 +47331,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.1",
+                "package_key": "smallvec-1.16.2",
                 "kind": "normal",
                 "features": [
                   "union"
@@ -47439,7 +47343,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.20",
+                "package_key": "thiserror-2.0.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -48218,7 +48122,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.7",
+                "package_key": "cc-1.5.1",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -48442,7 +48346,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "encoding_rs-0.8.41": {
+          "encoding_rs-0.8.42": {
             "runtime_dependencies": [
               {
                 "name": "cfg_if",
@@ -48462,16 +48366,6 @@
                 "uses_default_features": true,
                 "optional": false,
                 "target": "cfg(any(target_arch = \"x86_64\", target_arch = \"x86\"))",
-                "tree": "target"
-              },
-              {
-                "name": "multiversion",
-                "package_key": "multiversion-0.9.0",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": false,
-                "optional": false,
-                "target": "cfg(all(any(target_arch = \"x86_64\", target_arch = \"x86\"), not(all(target_feature = \"avx2\", target_feature = \"bmi1\"))))",
                 "tree": "target"
               },
               {
@@ -48640,11 +48534,11 @@
             "build_dependencies": [],
             "features": []
           },
-          "hyper-util-0.1.20": {
+          "hyper-util-0.1.21": {
             "runtime_dependencies": [
               {
                 "name": "base64",
-                "package_key": "base64-0.22.1",
+                "package_key": "base64-0.23.1",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48699,6 +48593,16 @@
                 "features": [],
                 "uses_default_features": true,
                 "optional": false,
+                "target": null,
+                "tree": "target"
+              },
+              {
+                "name": "httparse",
+                "package_key": "httparse-1.10.1",
+                "kind": "normal",
+                "features": [],
+                "uses_default_features": true,
+                "optional": true,
                 "target": null,
                 "tree": "target"
               },
@@ -48967,7 +48871,7 @@
               "system"
             ]
           },
-          "mado-0.1.174": {
+          "mado-0.1.175": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -49493,7 +49397,7 @@
               },
               {
                 "name": "shikumi",
-                "package_key": "shikumi-0.1.1021",
+                "package_key": "shikumi-0.1.1068",
                 "kind": "normal",
                 "features": [
                   "cli"
@@ -49591,7 +49495,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.20",
+                "package_key": "thiserror-2.0.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49716,74 +49620,6 @@
             "features": [
               "default"
             ]
-          },
-          "multiversion-0.9.0": {
-            "runtime_dependencies": [
-              {
-                "name": "multiversion_macros",
-                "package_key": "multiversion-macros-0.9.0",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": false,
-                "optional": false,
-                "target": null,
-                "tree": "host"
-              }
-            ],
-            "build_dependencies": [],
-            "features": []
-          },
-          "multiversion-macros-0.9.0": {
-            "runtime_dependencies": [
-              {
-                "name": "proc_macro2",
-                "package_key": "proc-macro2-1.0.107",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              },
-              {
-                "name": "quote",
-                "package_key": "quote-1.0.47",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              },
-              {
-                "name": "rustversion",
-                "package_key": "rustversion-1.0.23",
-                "kind": "normal",
-                "features": [],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "host"
-              },
-              {
-                "name": "syn",
-                "package_key": "syn-3.0.6",
-                "kind": "normal",
-                "features": [
-                  "extra-traits",
-                  "full",
-                  "printing",
-                  "visit",
-                  "visit-mut"
-                ],
-                "uses_default_features": true,
-                "optional": false,
-                "target": null,
-                "tree": "target"
-              }
-            ],
-            "build_dependencies": [],
-            "features": []
           },
           "notify-8.2.0": {
             "runtime_dependencies": [
@@ -50010,7 +49846,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.7",
+                "package_key": "cc-1.5.1",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": false,
@@ -50696,7 +50532,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.20",
+                "package_key": "thiserror-2.0.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -50769,7 +50605,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.1",
+                "package_key": "smallvec-1.16.2",
                 "kind": "normal",
                 "features": [
                   "const_generics",
@@ -50795,7 +50631,7 @@
             "build_dependencies": [
               {
                 "name": "cc",
-                "package_key": "cc-1.4.7",
+                "package_key": "cc-1.5.1",
                 "kind": "build",
                 "features": [],
                 "uses_default_features": true,
@@ -51336,7 +51172,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.1",
+                "package_key": "smallvec-1.16.2",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -51346,7 +51182,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.20",
+                "package_key": "thiserror-2.0.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -51660,7 +51496,7 @@
               },
               {
                 "name": "smallvec",
-                "package_key": "smallvec-1.16.1",
+                "package_key": "smallvec-1.16.2",
                 "kind": "normal",
                 "features": [
                   "union"
@@ -51672,7 +51508,7 @@
               },
               {
                 "name": "thiserror",
-                "package_key": "thiserror-2.0.20",
+                "package_key": "thiserror-2.0.21",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": false,
@@ -52371,6 +52207,9 @@
     "base64-0.22.1": {
       "edition": "2018"
     },
+    "base64-0.23.1": {
+      "edition": "2021"
+    },
     "base64ct-1.8.3": {
       "edition": "2024"
     },
@@ -52482,7 +52321,7 @@
     "cast-0.3.0": {
       "edition": "2018"
     },
-    "cc-1.4.7": {
+    "cc-1.5.1": {
       "edition": "2021"
     },
     "cfg-if-1.0.5": {
@@ -52752,7 +52591,7 @@
     "either-1.18.0": {
       "edition": "2021"
     },
-    "encoding_rs-0.8.41": {
+    "encoding_rs-0.8.42": {
       "edition": "2024",
       "build_script": "build.rs"
     },
@@ -52815,7 +52654,7 @@
     "filedescriptor-0.8.3": {
       "edition": "2018"
     },
-    "find-msvc-tools-0.1.13": {
+    "find-msvc-tools-0.1.14": {
       "edition": "2021"
     },
     "flate2-1.1.10": {
@@ -52982,7 +52821,7 @@
     "hayai-0.1.2": {
       "edition": "2024"
     },
-    "headers-0.4.1": {
+    "headers-0.4.2": {
       "edition": "2018"
     },
     "headers-core-0.3.0": {
@@ -53046,8 +52885,8 @@
     "hyper-timeout-0.5.2": {
       "edition": "2018"
     },
-    "hyper-util-0.1.20": {
-      "edition": "2021"
+    "hyper-util-0.1.21": {
+      "edition": "2024"
     },
     "iana-time-zone-0.1.65": {
       "edition": "2021"
@@ -53275,7 +53114,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.174": {
+    "mado-0.1.175": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -53355,13 +53194,6 @@
     },
     "moxcms-0.8.1": {
       "edition": "2024"
-    },
-    "multiversion-0.9.0": {
-      "edition": "2021"
-    },
-    "multiversion-macros-0.9.0": {
-      "edition": "2021",
-      "proc_macro": true
     },
     "multiversion_no_op-1.0.0": {
       "edition": "2021",
@@ -53765,7 +53597,7 @@
       "edition": "2018",
       "build_script": "build.rs"
     },
-    "process-wrap-9.1.0": {
+    "process-wrap-9.1.1": {
       "edition": "2024"
     },
     "profiling-1.0.18": {
@@ -54111,7 +53943,7 @@
     "shidou-0.1.10": {
       "edition": "2024"
     },
-    "shikumi-0.1.1021": {
+    "shikumi-0.1.1068": {
       "edition": "2024"
     },
     "shlex-2.0.1": {
@@ -54129,7 +53961,7 @@
     "simdutf8-0.1.5": {
       "edition": "2018"
     },
-    "siphasher-1.0.3": {
+    "siphasher-1.0.4": {
       "edition": "2018"
     },
     "skrifa-0.44.0": {
@@ -54142,7 +53974,7 @@
       "edition": "2018",
       "build_script": "build.rs"
     },
-    "smallvec-1.16.1": {
+    "smallvec-1.16.2": {
       "edition": "2018"
     },
     "smithay-client-toolkit-0.19.2": {
@@ -54270,13 +54102,13 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "tatara-core-0.2.765": {
+    "tatara-core-0.2.816": {
       "edition": "2021"
     },
-    "tatara-eval-0.2.765": {
+    "tatara-eval-0.2.816": {
       "edition": "2021"
     },
-    "tatara-lattice-0.2.765": {
+    "tatara-lattice-0.2.816": {
       "edition": "2021"
     },
     "tatara-lisp-0.3.52": {
@@ -54329,7 +54161,7 @@
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "thiserror-2.0.20": {
+    "thiserror-2.0.21": {
       "edition": "2021",
       "build_script": "build.rs"
     },
@@ -54337,7 +54169,7 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "thiserror-impl-2.0.20": {
+    "thiserror-impl-2.0.21": {
       "edition": "2021",
       "proc_macro": true
     },
@@ -54372,7 +54204,7 @@
     "tinyvec-1.13.3": {
       "edition": "2018"
     },
-    "todoku-0.1.5": {
+    "todoku-0.1.6": {
       "edition": "2024",
       "binaries": [
         {
@@ -54785,11 +54617,11 @@
     "zeno-0.3.3": {
       "edition": "2021"
     },
-    "zerocopy-0.8.57": {
+    "zerocopy-0.8.59": {
       "edition": "2021",
       "build_script": "build.rs"
     },
-    "zerocopy-derive-0.8.57": {
+    "zerocopy-derive-0.8.59": {
       "edition": "2021",
       "proc_macro": true
     },
