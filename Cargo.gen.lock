@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "416b0e23e82424b91c0d6336810a2ac164f695b39256cf1b646a391e3273019d",
+  "cargo_lock_sha256": "3e70edaabd12d91ae0b8776206e1fcdda2a0a7dc076b5e7187c71e89f5a2cdb9",
   "manifest_sha256": {
-    "Cargo.toml": "75db484d4b5caee668804d32b2654a1cf85d58828ff3d26331a90946a9807c06"
+    "Cargo.toml": "daa6ee138df5e4f916002a39c14ecf82063e499b88451cdeb62188d6d8a624d4"
   },
   "target_resolves": {
     "base": {
@@ -3138,7 +3138,7 @@
           "PartialEq"
         ]
       },
-      "egaku-0.1.18": {
+      "egaku-0.1.19": {
         "runtime_dependencies": [
           {
             "name": "awase",
@@ -7034,7 +7034,7 @@
           },
           {
             "name": "egaku",
-            "package_key": "egaku-0.1.18",
+            "package_key": "egaku-0.1.19",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9105,7 +9105,7 @@
         "runtime_dependencies": [
           {
             "name": "egaku",
-            "package_key": "egaku-0.1.18",
+            "package_key": "egaku-0.1.19",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -9540,7 +9540,7 @@
           "os-poll"
         ]
       },
-      "monosashi-0.3.58": {
+      "monosashi-0.3.60": {
         "runtime_dependencies": [],
         "build_dependencies": [],
         "features": []
@@ -19750,11 +19750,11 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-0.3.58": {
+      "tatara-closed-set-0.3.60": {
         "runtime_dependencies": [
           {
             "name": "tatara_closed_set_derive",
-            "package_key": "tatara-closed-set-derive-0.3.58",
+            "package_key": "tatara-closed-set-derive-0.3.60",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -19766,7 +19766,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tatara-closed-set-derive-0.3.58": {
+      "tatara-closed-set-derive-0.3.60": {
         "runtime_dependencies": [
           {
             "name": "proc_macro2",
@@ -20126,7 +20126,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.3.58",
+            "package_key": "tatara-closed-set-0.3.60",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20202,7 +20202,7 @@
         "runtime_dependencies": [
           {
             "name": "monosashi",
-            "package_key": "monosashi-0.3.58",
+            "package_key": "monosashi-0.3.60",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20212,7 +20212,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.3.58",
+            "package_key": "tatara-closed-set-0.3.60",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20478,7 +20478,7 @@
           },
           {
             "name": "tatara_closed_set",
-            "package_key": "tatara-closed-set-0.3.58",
+            "package_key": "tatara-closed-set-0.3.60",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -26144,7 +26144,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.175": {
+          "mado-0.1.176": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -26235,7 +26235,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.18",
+                "package_key": "egaku-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31207,7 +31207,7 @@
               "system"
             ]
           },
-          "mado-0.1.175": {
+          "mado-0.1.176": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -31298,7 +31298,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.18",
+                "package_key": "egaku-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35348,7 +35348,7 @@
               "system"
             ]
           },
-          "mado-0.1.175": {
+          "mado-0.1.176": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -35439,7 +35439,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.18",
+                "package_key": "egaku-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -39619,7 +39619,7 @@
             "build_dependencies": [],
             "features": []
           },
-          "mado-0.1.175": {
+          "mado-0.1.176": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -39710,7 +39710,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.18",
+                "package_key": "egaku-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -44706,7 +44706,7 @@
               "system"
             ]
           },
-          "mado-0.1.175": {
+          "mado-0.1.176": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -44797,7 +44797,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.18",
+                "package_key": "egaku-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -48871,7 +48871,7 @@
               "system"
             ]
           },
-          "mado-0.1.175": {
+          "mado-0.1.176": {
             "runtime_dependencies": [
               {
                 "name": "anyhow",
@@ -48962,7 +48962,7 @@
               },
               {
                 "name": "egaku",
-                "package_key": "egaku-0.1.18",
+                "package_key": "egaku-0.1.19",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -52585,7 +52585,7 @@
       "edition": "2021",
       "proc_macro": true
     },
-    "egaku-0.1.18": {
+    "egaku-0.1.19": {
       "edition": "2024"
     },
     "either-1.18.0": {
@@ -53114,7 +53114,7 @@
     "mac_address-1.1.8": {
       "edition": "2018"
     },
-    "mado-0.1.175": {
+    "mado-0.1.176": {
       "edition": "2024",
       "lib_target": {
         "name": "mado",
@@ -53189,7 +53189,7 @@
     "mio-1.2.3": {
       "edition": "2021"
     },
-    "monosashi-0.3.58": {
+    "monosashi-0.3.60": {
       "edition": "2021"
     },
     "moxcms-0.8.1": {
@@ -54095,10 +54095,10 @@
     "tap-1.0.1": {
       "edition": "2015"
     },
-    "tatara-closed-set-0.3.58": {
+    "tatara-closed-set-0.3.60": {
       "edition": "2021"
     },
-    "tatara-closed-set-derive-0.3.58": {
+    "tatara-closed-set-derive-0.3.60": {
       "edition": "2021",
       "proc_macro": true
     },
