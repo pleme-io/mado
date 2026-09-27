@@ -69,8 +69,8 @@ pub fn apc(body: &str) -> Vec<u8> {
 // exported under the same names, so `crate::vt::osc(…)` et al. are unchanged;
 // the byte-exact tests below now guard the re-export.
 pub use egaku::vt::{
-    Osc99Part, Osc133Mark, OscTerminator, osc, osc9_notify, osc99_notify, osc133,
-    osc777_notify, osc1337_request_attention,
+    Osc99Part, Osc133Mark, OscTerminator, osc, osc9_notify, osc99_notify, osc133, osc777_notify,
+    osc1337_request_attention,
 };
 
 /// An OSC color-reply body: `rgb:RRRR/GGGG/BBBB`, each channel byte doubled
