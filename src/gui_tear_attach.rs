@@ -446,6 +446,68 @@ fn next_live_pane(sessions: &[tear_types::TearSession], exclude: PaneId) -> Opti
         .map(|p| p.id)
 }
 
+/// What an idle tick must do about the pane the window is showing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DisplayedPaneFate {
+    /// Still running — or the backend could not be read, which is BLIND and
+    /// never "gone": a daemon RPC that fails for a moment must not close the
+    /// window.
+    Keep,
+    /// The displayed pane's session has ENDED. Move to `next`, or close the
+    /// window when `next` is `None`. `reap` is the session still registered
+    /// that must be killed first (an exited pane's — tear keeps it,
+    /// remain-on-exit); `None` when it is already gone from the registry.
+    Leave {
+        reap: Option<tear_types::SessionId>,
+        next: Option<PaneId>,
+    },
+}
+
+/// Decide [`DisplayedPaneFate`] for the displayed pane `cur`.
+///
+/// A session ends in two shapes, and the window must treat them alike:
+///
+/// * its shell EXITED — the pane is still registered, state `Exited`;
+/// * it was DELETED out from under the window — Ctrl-S Ctrl-D on the session
+///   being shown, `tear_kill_session` over MCP, another resident window. The
+///   pane is simply absent. Before this arm the absence read as "keep", so
+///   the window sat on a dead pane with nothing re-attaching it.
+///
+/// Absence is a negative, so it is confirmed by a second probe of a different
+/// shape before the window acts on it: `get_pane` must answer `NoSuchPane`
+/// (a transport error is blind) AND a successful `list_sessions` must hold
+/// no session owning `cur`.
+fn displayed_pane_fate(
+    control: &dyn tear_types::MultiplexerControl,
+    cur: PaneId,
+) -> DisplayedPaneFate {
+    // `true` = the pane EXITED, `false` = it is ABSENT; anything else keeps.
+    let exited = match control.get_pane(cur) {
+        Ok(p) if matches!(p.state, tear_types::PaneState::Exited { .. }) => true,
+        Err(tear_types::ControlError::NoSuchPane(_)) => false,
+        // Running, or blind.
+        Ok(_) | Err(_) => return DisplayedPaneFate::Keep,
+    };
+    let Ok(sessions) = control.list_sessions() else {
+        return DisplayedPaneFate::Keep;
+    };
+    let owner = session_of_pane(&sessions, cur);
+    let reap = if exited {
+        owner
+    } else if owner.is_some() {
+        // The two probes disagree — `get_pane` said absent, the session list
+        // still holds the pane. Absence is not confirmed, so keep, and above
+        // all never reap a session the list says is there.
+        return DisplayedPaneFate::Keep;
+    } else {
+        None
+    };
+    DisplayedPaneFate::Leave {
+        reap,
+        next: next_live_pane(&sessions, cur),
+    }
+}
+
 fn run_against_pane_unified<P, C>(
     producer: P,
     control: Arc<C>,
@@ -1042,10 +1104,12 @@ where
                     // otherwise STICK on screen and linger in the Ctrl-S
                     // list. Only checked on an IDLE tick (a dead pane
                     // produces no bytes, so `drained == 0`) to avoid a
-                    // per-frame registry read. On the displayed pane's
-                    // exit: reap its session (→ gone from the picker) and
-                    // auto-switch to another live pane, or close the
-                    // window if none remain.
+                    // per-frame registry read. When the displayed pane's
+                    // session ENDS — its shell exited, or it was deleted out
+                    // from under the window (Ctrl-S Ctrl-D, MCP) — reap what
+                    // is left of it (→ gone from the picker) and auto-switch
+                    // to another live pane, or close the window if none
+                    // remain. The decision is `displayed_pane_fate`.
                     if drained == 0
                         && let (Some(cp), Some(reqs)) = (
                             current_pane_for_switch.as_ref(),
@@ -1053,23 +1117,25 @@ where
                         )
                     {
                         let cur = cp.get();
-                        let exited = matches!(
-                            control_for_switch.get_pane(cur).map(|p| p.state),
-                            Ok(tear_types::PaneState::Exited { .. })
-                        );
-                        if exited && let Ok(sessions) = control_for_switch.list_sessions() {
-                            let next = next_live_pane(&sessions, cur);
-                            if let Some(sid) = session_of_pane(&sessions, cur) {
+                        if let DisplayedPaneFate::Leave { reap, next } =
+                            displayed_pane_fate(&*control_for_switch, cur)
+                        {
+                            if let Some(sid) = reap {
                                 let _ = control_for_switch.kill_session(sid);
                                 tracing::info!(
                                     pane = ?cur,
                                     session = %sid,
                                     "displayed pane exited — reaped its session"
                                 );
+                            } else {
+                                tracing::info!(
+                                    pane = ?cur,
+                                    "displayed pane's session was deleted — leaving it"
+                                );
                             }
                             match next {
                                 Some(target) => {
-                                    tracing::info!(to = ?target, "auto-switching away from exited pane");
+                                    tracing::info!(to = ?target, "auto-switching away from ended pane");
                                     reqs.post(target);
                                 }
                                 None => {
@@ -1789,8 +1855,112 @@ fn run_against_pane(
 
 #[cfg(test)]
 mod tests {
-    use super::{resolve_boot_name, with_title};
+    use super::{DisplayedPaneFate, displayed_pane_fate, resolve_boot_name, with_title};
     use madori::EventResponse;
+    use tear_types::{MultiplexerControl, PaneId, SessionId, SessionSource};
+
+    /// A live one-pane session on `inproc`, and its pane.
+    fn live_session(inproc: &tear_core::InProcess, name: &str) -> (SessionId, PaneId) {
+        let sid = inproc
+            .new_session_with_source_and_size(
+                name,
+                "/bin/sh",
+                &[],
+                SessionSource::Named("fate-test".into()),
+                (80, 24),
+            )
+            .expect("spawn");
+        let pane = inproc
+            .get_session(sid)
+            .ok()
+            .and_then(|s| s.windows.values().next().map(|w| w.active_pane))
+            .expect("a live session has a pane");
+        (sid, pane)
+    }
+
+    /// The window is showing session A's pane and A is DELETED out from under
+    /// it (Ctrl-S Ctrl-D on the session being shown). The window must leave
+    /// the dead pane exactly as it does when a shell exits: to the next live
+    /// pane, or close once nothing is left — never sit on a pane that no
+    /// longer exists. Nothing is left to reap: the delete already removed it.
+    ///
+    /// Red-run: with the absent arm treated as "keep" (the pre-change
+    /// behaviour, which only looked for `PaneState::Exited`), both `Leave`
+    /// assertions fail with `Keep`.
+    #[test]
+    fn a_deleted_displayed_session_moves_the_window_on_like_an_ended_one() {
+        let inproc = tear_core::InProcess::new();
+        inproc.set_spawn_env(tear_types::SpawnEnv::none());
+        let (a, a_pane) = live_session(&inproc, "shown");
+        let (b, b_pane) = live_session(&inproc, "other");
+
+        assert_eq!(
+            displayed_pane_fate(&inproc, a_pane),
+            DisplayedPaneFate::Keep,
+            "a running pane is kept"
+        );
+
+        inproc.kill_session(a).expect("delete the shown session");
+        assert_eq!(
+            displayed_pane_fate(&inproc, a_pane),
+            DisplayedPaneFate::Leave {
+                reap: None,
+                next: Some(b_pane)
+            },
+            "deleted → move to the next live pane"
+        );
+
+        inproc.kill_session(b).expect("delete the last session");
+        assert_eq!(
+            displayed_pane_fate(&inproc, a_pane),
+            DisplayedPaneFate::Leave {
+                reap: None,
+                next: None
+            },
+            "nothing left → the window closes, as it does for a last exited shell"
+        );
+    }
+
+    /// The pre-existing arm, preserved: a displayed pane whose shell EXITED is
+    /// still registered — tear keeps a WATCHED session (remain-on-exit), and
+    /// the window's byte subscription is what makes it watched — so its
+    /// session is reaped first.
+    #[test]
+    fn an_exited_displayed_pane_is_reaped_then_left() {
+        let inproc = tear_core::InProcess::new();
+        inproc.set_spawn_env(tear_types::SpawnEnv::none());
+        let (sid, pane) = live_session(&inproc, "exits");
+        // The window's attach: without a live subscriber tear reaps the
+        // session itself on exit, which is the OTHER (absent) shape.
+        let _window = inproc.subscribe_pane_bytes(pane).expect("subscribe");
+        inproc.send_keys(pane, b"exit\n").expect("type exit");
+        // Bounded wait for the child to exit and tear to mark the pane.
+        let mut fate = DisplayedPaneFate::Keep;
+        for _ in 0..200 {
+            fate = displayed_pane_fate(&inproc, pane);
+            if fate != DisplayedPaneFate::Keep {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(25));
+        }
+        assert_eq!(
+            fate,
+            DisplayedPaneFate::Leave {
+                reap: Some(sid),
+                next: None
+            }
+        );
+    }
+
+    /// A backend that cannot be read is BLIND: the window keeps its pane. A
+    /// daemon RPC failing for a moment must never close the operator's window.
+    #[test]
+    fn an_unreadable_backend_keeps_the_displayed_pane() {
+        assert_eq!(
+            displayed_pane_fate(&crate::control_stub::Unreachable, PaneId::from_seed("p")),
+            DisplayedPaneFate::Keep
+        );
+    }
 
     /// The boot naming authority: a cwd inside a git project resolves to
     /// the deterministic identity of the PROJECT ROOT (not the cwd), and

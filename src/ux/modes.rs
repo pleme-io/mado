@@ -110,6 +110,11 @@ pub(crate) enum OverlayKeyClass {
     /// keyboard; everywhere else a bare Ctrl-E (readline end-of-line) still
     /// falls through to the PTY.
     CtrlE,
+    /// Ctrl-D — delete the highlighted session-picker row (kill the live
+    /// session and scrub every store it lives in, or drop a latent preset).
+    /// Overlay-local exactly like [`Self::CtrlE`]: with no overlay open a
+    /// bare Ctrl-D still falls through to the PTY as EOF.
+    CtrlD,
     Other,
 }
 
@@ -156,6 +161,7 @@ impl OverlayKey {
             KeyCode::Char('n' | 'N') if ctrl_only => OverlayKeyClass::CtrlN,
             KeyCode::Char('p' | 'P') if ctrl_only => OverlayKeyClass::CtrlP,
             KeyCode::Char('e' | 'E') if ctrl_only => OverlayKeyClass::CtrlE,
+            KeyCode::Char('d' | 'D') if ctrl_only => OverlayKeyClass::CtrlD,
             KeyCode::Escape => OverlayKeyClass::Escape,
             KeyCode::Enter => OverlayKeyClass::Enter,
             KeyCode::Up => OverlayKeyClass::Up,
@@ -239,6 +245,12 @@ pub(crate) enum OverlayEffect {
     SessionPickerRenameCommit,
     /// Discard the rename buffer, target unchanged.
     SessionPickerRenameCancel,
+    /// Ctrl-D: delete the highlighted row — a live session is killed and
+    /// scrubbed from every store it lives in (tear registry, praça index +
+    /// binding, the persisted snapshots), a latent preset is dropped from the
+    /// catalog. The picker stays open on a re-listed board with the cursor
+    /// on the row that slid into the deleted one's place.
+    SessionPickerDelete,
 }
 
 /// Whether the keystroke was consumed by the overlay or continues
@@ -495,9 +507,13 @@ impl Overlay {
                             overlay_step(Overlay::DirPicker, Consumed, vec![])
                         }
                     }
-                    // Ctrl-E is the session-picker rename gesture only — inert
-                    // in the dir picker.
-                    OverlayKeyClass::CtrlE => overlay_step(Overlay::DirPicker, Consumed, vec![]),
+                    // Ctrl-E (rename) and Ctrl-D (delete) are session-picker
+                    // gestures only — inert in the dir picker, and consumed so
+                    // they cannot leak to the PTY (a Ctrl-D here was an inert
+                    // consume before it had a class, too).
+                    OverlayKeyClass::CtrlE | OverlayKeyClass::CtrlD => {
+                        overlay_step(Overlay::DirPicker, Consumed, vec![])
+                    }
                     OverlayKeyClass::Other => {
                         if k.plain
                             && let Some(t) = k.text
@@ -587,6 +603,14 @@ impl Overlay {
                         Consumed,
                         vec![OverlayEffect::SessionPickerRenameBegin],
                     ),
+                    // Ctrl-D deletes the highlighted row and STAYS in the
+                    // picker: the operator is curating the list, so the board
+                    // re-lists in place rather than closing on them.
+                    OverlayKeyClass::CtrlD => overlay_step(
+                        Overlay::SessionPicker,
+                        Consumed,
+                        vec![OverlayEffect::SessionPickerDelete],
+                    ),
                     OverlayKeyClass::Other => {
                         if k.plain
                             && let Some(t) = k.text
@@ -654,12 +678,15 @@ impl Overlay {
                         Consumed,
                         vec![OverlayEffect::SessionPickerRenameBackspace],
                     ),
-                    // Navigation is inert during rename — keep the target row fixed.
+                    // Navigation is inert during rename — keep the target row
+                    // fixed. Ctrl-D is inert too: deleting the very row being
+                    // renamed would leave the commit aimed at a row that moved.
                     OverlayKeyClass::Up
                     | OverlayKeyClass::Down
                     | OverlayKeyClass::CtrlN
                     | OverlayKeyClass::CtrlP
-                    | OverlayKeyClass::CtrlE => {
+                    | OverlayKeyClass::CtrlE
+                    | OverlayKeyClass::CtrlD => {
                         overlay_step(Overlay::SessionRename, Consumed, vec![])
                     }
                     OverlayKeyClass::Other => {
@@ -1387,7 +1414,7 @@ mod tests {
             Overlay::SessionRename.on_event(OverlayEvent::Key(key(None, K::Backspace, None, true)));
         assert_eq!(s.effects, vec![OverlayEffect::SessionPickerRenameBackspace]);
         // Navigation is inert — the rename target stays on the row Ctrl-E hit.
-        for nav in [K::Up, K::Down, K::CtrlN, K::CtrlP, K::CtrlE] {
+        for nav in [K::Up, K::Down, K::CtrlN, K::CtrlP, K::CtrlE, K::CtrlD] {
             let s = Overlay::SessionRename.on_event(OverlayEvent::Key(key(None, nav, None, false)));
             assert_eq!(s.state, Overlay::SessionRename);
             assert!(s.effects.is_empty(), "nav {nav:?} must be inert in rename");
@@ -1402,6 +1429,61 @@ mod tests {
             Overlay::SessionRename.on_event(OverlayEvent::Key(key(None, K::Escape, None, false)));
         assert_eq!(s.state, Overlay::SessionPicker);
         assert_eq!(s.effects, vec![OverlayEffect::SessionPickerRenameCancel]);
+    }
+
+    /// Ctrl-D: the delete gesture exists ONLY while the session picker owns
+    /// the keyboard, and it keeps the picker open. Everywhere else it is the
+    /// state's existing answer for a ctrl chord — an inert consume in an open
+    /// overlay, and a fall-through (the shell's EOF) with no overlay open.
+    #[test]
+    fn ctrl_d_deletes_only_in_the_session_picker_and_keeps_it_open() {
+        // The raw keystroke lowers to the class — ctrl alone, either case.
+        let ctrl = Modifiers {
+            ctrl: true,
+            alt: false,
+            shift: false,
+            meta: false,
+        };
+        for ch in ['d', 'D'] {
+            let k = OverlayKey::lower(None, KeyCode::Char(ch), Some("\u{4}"), ctrl);
+            assert_eq!(k.key, OverlayKeyClass::CtrlD, "ctrl+{ch} lowers to CtrlD");
+        }
+        // Ctrl+Alt+D and a plain `d` are NOT the gesture: `d` is a query key.
+        let plain = OverlayKey::lower(None, KeyCode::Char('d'), Some("d"), Modifiers::default());
+        assert_eq!(plain.key, OverlayKeyClass::Other);
+        let ctrl_alt = OverlayKey::lower(
+            None,
+            KeyCode::Char('d'),
+            None,
+            Modifiers { alt: true, ..ctrl },
+        );
+        assert_eq!(ctrl_alt.key, OverlayKeyClass::Other);
+
+        let ctrl_d = || OverlayEvent::Key(key(None, OverlayKeyClass::CtrlD, None, false));
+        for state in all_overlay_states() {
+            let step = state.on_event(ctrl_d());
+            let deletes = step.effects.contains(&OverlayEffect::SessionPickerDelete);
+            match state {
+                Overlay::SessionPicker => {
+                    assert_eq!(step.effects, vec![OverlayEffect::SessionPickerDelete]);
+                    assert_eq!(step.state, Overlay::SessionPicker, "the board stays open");
+                    assert_eq!(step.routing, OverlayRouting::Consumed);
+                }
+                Overlay::None => {
+                    assert_eq!(
+                        step.routing,
+                        OverlayRouting::FallThrough,
+                        "no overlay: Ctrl-D is the shell's EOF"
+                    );
+                    assert!(!deletes);
+                }
+                Overlay::Search | Overlay::DirPicker | Overlay::SessionRename => {
+                    assert_eq!(step.routing, OverlayRouting::Consumed, "{state:?}");
+                    assert!(step.effects.is_empty(), "{state:?}: Ctrl-D must be inert");
+                    assert_eq!(step.state, state, "{state:?}: Ctrl-D must not move the FSM");
+                }
+            }
+        }
     }
 
     fn all_overlay_events() -> Vec<OverlayEvent> {
@@ -1434,6 +1516,7 @@ mod tests {
             OverlayEvent::Key(key(None, OverlayKeyClass::CtrlN, None, false)),
             OverlayEvent::Key(key(None, OverlayKeyClass::CtrlP, None, false)),
             OverlayEvent::Key(key(None, OverlayKeyClass::CtrlE, None, false)),
+            OverlayEvent::Key(key(None, OverlayKeyClass::CtrlD, None, false)),
             OverlayEvent::Key(key(None, OverlayKeyClass::Backspace, None, true)),
             OverlayEvent::Key(key(None, OverlayKeyClass::Backspace, None, false)),
             OverlayEvent::Key(key(None, OverlayKeyClass::Other, Some("a"), true)),
@@ -1695,6 +1778,7 @@ mod tests {
                             | OverlayEffect::SessionPickerBackspace
                             | OverlayEffect::SessionPickerPush(_)
                             | OverlayEffect::SessionPickerAccept
+                            | OverlayEffect::SessionPickerDelete
                     )
                 });
                 if session_picker_mutates && state != Overlay::SessionPicker {

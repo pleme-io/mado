@@ -942,6 +942,7 @@ impl InputEngine {
                 }
                 OverlayEffect::SessionPickerRenameCommit => self.session_picker_rename_commit(),
                 OverlayEffect::SessionPickerRenameCancel => self.session_picker_rename_cancel(),
+                OverlayEffect::SessionPickerDelete => self.session_picker_delete(),
             }
         }
     }
@@ -1230,6 +1231,67 @@ impl InputEngine {
             bridge.rename_session(session, name.trim(), now);
         }
         self.session_picker_recompute();
+    }
+
+    /// Ctrl-D: delete what the highlighted row stands for, then re-list IN
+    /// PLACE — the cursor holds its index, so it lands on the row that slid
+    /// into the deleted one's place and a run of Ctrl-Ds walks down the list.
+    ///
+    /// * a live session (`Switch`) → [`SessionPickerBridge::delete_session`]:
+    ///   killed, and scrubbed from the owner's registry and both praça stores.
+    ///   If it is the session this window is SHOWING, the window moves on the
+    ///   way it does when a session ends (next live pane, or it closes) — see
+    ///   `gui_tear_attach::displayed_pane_fate`; the picker does not special-
+    ///   case it.
+    /// * a latent preset (`Instantiate`) → [`SessionPickerBridge::delete_preset`].
+    /// * a suggestion or a create row is not a session: nothing to delete, and
+    ///   the notice says so rather than doing nothing silently.
+    ///
+    /// No bridge (switching disabled) → inert, like every other picker verb.
+    fn session_picker_delete(&mut self) {
+        use crate::session_picker::RowKind;
+        let Some(bridge) = self.session_picker_bridge.as_ref() else {
+            return;
+        };
+        let (kind, label) = {
+            let sp = self.session_picker.lock().unwrap();
+            match sp.selected_row() {
+                Some(row) => (row.kind.clone(), row.label.clone()),
+                None => return,
+            }
+        };
+        // (deleted?, the notice when it was not)
+        let (deleted, refusal) = match kind {
+            RowKind::Switch(session) => (
+                bridge.delete_session(session),
+                "could not delete that session — its tear backend did not answer",
+            ),
+            RowKind::Instantiate(def_id) => (
+                bridge.delete_preset(def_id),
+                "could not delete that preset — it is already gone",
+            ),
+            RowKind::Suggestion(_) | RowKind::Create(_) => {
+                (false, "nothing to delete — that row is not a session")
+            }
+        };
+        let notice = if deleted {
+            let mut s = String::from("\u{2715} deleted ");
+            s.push_str(&label);
+            s
+        } else {
+            String::from(refusal)
+        };
+        // Re-list whatever the outcome: a refusal can still mean the row went
+        // stale (a preset already deleted elsewhere), and the board must show
+        // the world as it is now.
+        let query = self.session_picker.lock().unwrap().query.clone();
+        let now = crate::auto_attach::now_unix_seconds();
+        let rows = bridge.list(&query, now);
+        let footer = bridge.health_footer();
+        let mut sp = self.session_picker.lock().unwrap();
+        sp.set_results_holding_position(rows);
+        sp.footer = footer;
+        sp.notice = Some(notice);
     }
 
     /// Escape: discard the rename buffer, target unchanged.
@@ -4673,6 +4735,144 @@ mod tests {
             switched.lock().unwrap().as_slice(),
             &[sid("c")],
             "Enter switched to the navigated-to session"
+        );
+    }
+
+    /// A bridge whose roster really shrinks on delete — records every
+    /// `delete_session` / `delete_preset` so the dispatch test can assert the
+    /// Ctrl-D keystroke reached the right verb with the right row.
+    struct DeletingBridge {
+        roster: Arc<StdMutex<Vec<SessionPickerRow>>>,
+        deleted: Arc<StdMutex<Vec<RowKind>>>,
+    }
+
+    impl DeletingBridge {
+        fn remove(&self, kind: &RowKind) -> bool {
+            let mut roster = self.roster.lock().unwrap();
+            let before = roster.len();
+            roster.retain(|r| &r.kind != kind);
+            let removed = roster.len() != before;
+            if removed {
+                self.deleted.lock().unwrap().push(kind.clone());
+            }
+            removed
+        }
+    }
+
+    impl SessionPickerBridge for DeletingBridge {
+        fn list(&self, _query: &str, _now: u64) -> Vec<SessionPickerRow> {
+            self.roster.lock().unwrap().clone()
+        }
+        fn switch_to(&self, _session: SessionId) -> bool {
+            true
+        }
+        fn create_and_switch(&self, _spec: CreateSpec, _now: u64) -> bool {
+            false
+        }
+        fn delete_session(&self, session: SessionId) -> bool {
+            self.remove(&RowKind::Switch(session))
+        }
+        fn delete_preset(&self, def_id: tear_types::DefinitionId) -> bool {
+            self.remove(&RowKind::Instantiate(def_id))
+        }
+    }
+
+    /// Ctrl-S → navigate → Ctrl-D deletes the HIGHLIGHTED row through the
+    /// bridge, keeps the board open, and leaves the cursor on the row that
+    /// slid into its place (the next item). A preset row goes to
+    /// `delete_preset`; a create row deletes nothing and says so.
+    ///
+    /// Red-run (recorded in the commit): with the `CtrlD` lowering removed,
+    /// Ctrl-D is an inert consume and the first `deleted` assertion fails
+    /// with an empty list.
+    #[test]
+    fn ctrl_d_in_the_session_picker_deletes_the_highlighted_row_and_stays_open() {
+        let row = |label: &str, kind: RowKind| SessionPickerRow {
+            label: label.to_owned(),
+            kind,
+            urgency: None,
+        };
+        let preset = tear_types::DefinitionId::from_seed("preset");
+        let roster = Arc::new(StdMutex::new(vec![
+            row("alpha", RowKind::Switch(sid("a"))),
+            row("bravo", RowKind::Switch(sid("b"))),
+            row("charlie", RowKind::Switch(sid("c"))),
+            row("\u{25cb} saved", RowKind::Instantiate(preset)),
+            row(
+                "\u{ff0b} create x",
+                RowKind::Create(CreateSpec::Named { name: "x".into() }),
+            ),
+        ]));
+        let deleted = Arc::new(StdMutex::new(Vec::new()));
+        let bridge = DeletingBridge {
+            roster: Arc::clone(&roster),
+            deleted: Arc::clone(&deleted),
+        };
+        let mut h = Harness::new_with_bridge(SinkKind::Closure, Some(Box::new(bridge)));
+        let ctrl = Modifiers {
+            ctrl: true,
+            alt: false,
+            shift: false,
+            meta: false,
+        };
+        h.engine
+            .apply_action(Action::SessionPickerOpen, &mut h.renderer);
+        h.key(KeyCode::Down, None, no_mods()); // on "bravo"
+
+        h.key(KeyCode::Char('d'), Some("\u{4}"), ctrl);
+        assert_eq!(
+            deleted.lock().unwrap().as_slice(),
+            &[RowKind::Switch(sid("b"))],
+            "Ctrl-D deleted the highlighted session"
+        );
+        {
+            let sp = h.engine.session_picker.lock().unwrap();
+            assert!(sp.open, "the board stays open");
+            assert_eq!(h.engine.overlay, Overlay::SessionPicker);
+            assert_eq!(sp.results.len(), 4, "the row left the board at once");
+            assert_eq!(
+                sp.selected_row().map(|r| r.label.as_str()),
+                Some("charlie"),
+                "the cursor is on the next item"
+            );
+            assert!(
+                sp.notice.as_deref().is_some_and(|n| n.contains("bravo")),
+                "the notice names what was deleted: {:?}",
+                sp.notice
+            );
+        }
+        assert!(
+            h.drain_sent().is_empty(),
+            "Ctrl-D in the picker must never reach the shell as EOF"
+        );
+
+        // The preset row routes to `delete_preset`.
+        h.key(KeyCode::Down, None, no_mods()); // on "○ saved"
+        h.key(KeyCode::Char('d'), Some("\u{4}"), ctrl);
+        assert_eq!(
+            deleted.lock().unwrap().last(),
+            Some(&RowKind::Instantiate(preset))
+        );
+
+        // A create row is not a session: nothing deleted, and the board says so.
+        let before = deleted.lock().unwrap().len();
+        {
+            let sp = h.engine.session_picker.lock().unwrap();
+            assert!(matches!(
+                sp.selected_row().map(|r| &r.kind),
+                Some(RowKind::Create(_))
+            ));
+        }
+        h.key(KeyCode::Char('d'), Some("\u{4}"), ctrl);
+        assert_eq!(deleted.lock().unwrap().len(), before);
+        assert!(
+            h.engine
+                .session_picker
+                .lock()
+                .unwrap()
+                .notice
+                .as_deref()
+                .is_some_and(|n| n.contains("not a session"))
         );
     }
 

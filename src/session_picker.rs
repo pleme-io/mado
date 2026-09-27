@@ -11,7 +11,14 @@
 //!   from the **emoji presets** (one per [`ishou_tokens::FleetSessionNames`]
 //!   atlas entry, fuzzy-matched by name: type `smile`, get the `:smile:`
 //!   preset) when the query matches an emoji, else a session named
-//!   literally by the typed query.
+//!   literally by the typed query, and
+//! * **deletes** the highlighted row on Ctrl-D, staying open: a live session
+//!   is killed and scrubbed from every store it lives in
+//!   ([`delete_session`]), a latent preset is dropped from the catalog.
+//!
+//! Deleting the session the window is showing moves the window the same way a
+//! session that ENDS does (`gui_tear_attach::displayed_pane_fate`): to the
+//! next live pane, or the window closes when none is left.
 //!
 //! ## Base + delta
 //!
@@ -152,6 +159,24 @@ pub trait SessionPickerBridge: Send {
     /// `false` (an inert bridge doesn't rename); the live praça bridge
     /// overrides it.
     fn rename_session(&self, _session: SessionId, _new_name: &str, _now: u64) -> bool {
+        false
+    }
+
+    /// Ctrl-D on a live row: delete the session COMPLETELY — every store it
+    /// lives in, not just the one the picker happens to read. See
+    /// [`delete_session`] for the stores and why each is reached where it
+    /// is. `true` when the session is gone (including "already gone"),
+    /// `false` when the owner could not be reached, in which case nothing is
+    /// scrubbed. Default `false` (an inert bridge deletes nothing).
+    fn delete_session(&self, _session: SessionId) -> bool {
+        false
+    }
+
+    /// Ctrl-D on a latent ○ row: drop the saved preset from the catalog (and
+    /// from the persisted snapshot, so it does not come back on the next
+    /// boot). A preset is its own row — deleting a live session never takes
+    /// the operator's saved preset with it. Default `false`.
+    fn delete_preset(&self, _def_id: DefinitionId) -> bool {
         false
     }
 
@@ -726,6 +751,73 @@ pub(crate) fn capture_preset(
     true
 }
 
+/// Delete a live session from EVERY store it lives in — the Ctrl-D gesture's
+/// one implementation, whichever backend the window holds.
+///
+/// A session is recorded in two independent places, and killing it in one
+/// leaves the other describing a ghost:
+///
+/// 1. **The owner** — `MultiplexerControl::kill_session`, which each backend
+///    already implements as its complete teardown, so it is called, never
+///    re-derived here. Embedded (`tear_core::InProcess`): the registry entry,
+///    the PTY children (killed + reaped), the per-pane cell grids, the byte
+///    subscribers (their receivers disconnect) and the recording buffers.
+///    Resident (`tear_client::Client` → the tear daemon): the same teardown
+///    in the daemon's process, plus the daemon's own praça store (its record
+///    and bindings, re-persisted to `$XDG_STATE_HOME/tear/praca.json`) and
+///    its audit trail. An owner that answers `NoSuchSession` already
+///    finished this half — somebody else won the race — so the delete goes
+///    on to scrub mado's side rather than leaving it for the reconciler.
+/// 2. **mado's praça** — the index record (frecency, custom name) and every
+///    project→session binding, which otherwise survive until the next
+///    reconcile and keep steering auto-attach at a dead session. The
+///    persisted snapshot is rewritten at once instead of on the next
+///    maintenance tick, so a crash in between cannot leave the record on
+///    disk.
+///
+/// A transport failure is BLIND, not "gone": the session may still be
+/// running, so nothing is scrubbed and the caller reports the failure.
+pub(crate) fn delete_session(
+    control: &dyn tear_types::MultiplexerControl,
+    praca: &Mutex<praca::Praca>,
+    session: SessionId,
+) -> bool {
+    match control.kill_session(session) {
+        Ok(()) | Err(tear_types::ControlError::NoSuchSession(_)) => {}
+        Err(e) => {
+            tracing::warn!(session = %session, error = %e, "session delete: owner unreachable; nothing scrubbed");
+            return false;
+        }
+    }
+    {
+        let mut p = praca
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        p.index.remove(session);
+        p.binding.remove_session(session);
+    }
+    crate::praca_store::maintenance_tick();
+    tracing::info!(session = %session, "session deleted from the picker");
+    true
+}
+
+/// Drop a latent preset from the catalog and persist the catalog at once —
+/// the definitions are the half of praça that IS restored on boot
+/// ([`crate::praca_store`]), so a preset deleted but not yet persisted would
+/// come straight back after a crash. `false` if no such preset.
+pub(crate) fn delete_preset(praca: &Mutex<praca::Praca>, def_id: DefinitionId) -> bool {
+    let removed = praca
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .definitions
+        .remove(def_id)
+        .is_some();
+    if removed {
+        crate::praca_store::maintenance_tick();
+    }
+    removed
+}
+
 impl SessionPickerBridge for PracaPickerBridge {
     fn list(&self, query: &str, now: u64) -> Vec<SessionPickerRow> {
         let (mut rows, style) = {
@@ -927,6 +1019,14 @@ impl SessionPickerBridge for PracaPickerBridge {
             self.praca().record_visit(session, now);
         }
         tear_ok || praca_ok
+    }
+
+    fn delete_session(&self, session: SessionId) -> bool {
+        delete_session(self.control.as_ref(), &self.praca, session)
+    }
+
+    fn delete_preset(&self, def_id: DefinitionId) -> bool {
+        delete_preset(&self.praca, def_id)
     }
 
     fn refresh(&self, now: u64) {
@@ -2176,6 +2276,346 @@ mod tests {
                 .count(),
             2,
             "the cache invalidated on the generation change"
+        );
+    }
+
+    // ── Ctrl-D delete: gone from EVERY store, not just the one we list ──
+
+    /// Poll `alive(pid)` false within a bounded window — a killed child is
+    /// reaped by tear, a killed grandchild by launchd/init, neither instantly.
+    fn pid_gone_within(pid: u32) -> bool {
+        let alive = |pid: u32| {
+            std::process::Command::new("/bin/kill")
+                .args(["-0", &pid.to_string()])
+                .stderr(std::process::Stdio::null())
+                .status()
+                .is_ok_and(|s| s.success())
+        };
+        for _ in 0..120 {
+            if !alive(pid) {
+                return true;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(25));
+        }
+        false
+    }
+
+    /// Read a pid a test shell wrote to `path` (bounded wait for the write).
+    fn read_pid(path: &std::path::Path) -> u32 {
+        for _ in 0..200 {
+            if let Some(pid) = std::fs::read_to_string(path)
+                .ok()
+                .and_then(|s| s.trim().parse::<u32>().ok())
+            {
+                return pid;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(25));
+        }
+        panic!("the test shell never wrote {}", path.display());
+    }
+
+    /// THE deliverable, embedded runtime: Ctrl-D on a live row leaves the
+    /// session in no store. Every place the session was recorded is set up
+    /// first (a bound project, a byte subscriber, a recording, a background
+    /// job) and each is then probed individually — so a delete that only
+    /// reaches the one store the picker lists from is caught.
+    ///
+    /// Red-run (recorded in the commit): with `delete_session` reduced to the
+    /// pre-existing kill path alone (`control.kill_session`), the tear-side
+    /// assertions pass and the praça one fails: "praça record survived".
+    // Length is the design: one probe per store, each with its own message,
+    // so a regression names exactly which store it left the session in.
+    #[allow(clippy::too_many_lines)]
+    #[test]
+    fn ctrl_d_delete_leaves_the_session_in_no_store() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let shell_pid = dir.path().join("shell.pid");
+        let job_pid = dir.path().join("job.pid");
+        let inproc = Arc::new(tear_core::InProcess::new());
+        inproc.set_spawn_env(tear_types::SpawnEnv::none());
+        // The shell records its own pid and a background job's, then waits.
+        let script = {
+            let mut s = String::from("echo $$ > ");
+            s.push_str(&shell_pid.to_string_lossy());
+            s.push_str("; sleep 3000 & echo $! > ");
+            s.push_str(&job_pid.to_string_lossy());
+            s.push_str("; wait");
+            s
+        };
+        let doomed = inproc
+            .new_session_with_source_and_size(
+                "doomed",
+                "/bin/sh",
+                &["-c".to_owned(), script],
+                SessionSource::Named("test".into()),
+                (80, 24),
+            )
+            .expect("spawn the session to delete");
+        let keep = inproc
+            .new_session_with_source_and_size(
+                "keep",
+                "/bin/sh",
+                &[],
+                SessionSource::Named("test".into()),
+                (80, 24),
+            )
+            .expect("spawn a sibling");
+        let pane = inproc
+            .get_session(doomed)
+            .ok()
+            .and_then(|s| s.windows.values().next().map(|w| w.active_pane))
+            .expect("pane");
+        let shell = read_pid(&shell_pid);
+        let job = read_pid(&job_pid);
+
+        // Every store the session lives in, populated.
+        let root = PathBuf::from("/code/pleme-io/doomed");
+        let mut praca = praca::Praca::new();
+        for (id, r) in [(doomed, root.clone()), (keep, PathBuf::from("/code/keep"))] {
+            praca.index.upsert(praca::SessionRecord::for_project(
+                id,
+                r.clone(),
+                SessionNameStyle::Emoji,
+                1000,
+            ));
+            praca.binding.bind(r, id);
+        }
+        let subscriber = inproc.subscribe_pane_bytes(pane).expect("subscribe");
+        inproc.enable_pane_recording(pane).expect("record");
+        let bridge = bridge_with(praca, Arc::clone(&inproc));
+        assert!(
+            bridge
+                .list("", 1000)
+                .iter()
+                .any(|r| r.kind == RowKind::Switch(doomed)),
+            "precondition: the session is listed"
+        );
+
+        assert!(bridge.delete_session(doomed), "the delete reports success");
+
+        // tear: registry, grid, recording, subscriber, processes.
+        assert!(
+            inproc
+                .list_sessions()
+                .expect("list")
+                .iter()
+                .all(|s| s.id != doomed),
+            "registry still holds the session"
+        );
+        assert!(
+            matches!(
+                inproc.get_pane(pane),
+                Err(tear_types::ControlError::NoSuchPane(_))
+            ),
+            "pane record survived"
+        );
+        assert!(inproc.pane_snapshot(pane).is_err(), "cell grid survived");
+        assert!(
+            inproc.export_pane_recording(pane).is_err(),
+            "recording buffer survived"
+        );
+        assert!(
+            subscriber
+                .recv_timeout(std::time::Duration::from_secs(2))
+                .is_err(),
+            "the byte subscriber was not disconnected"
+        );
+        assert!(pid_gone_within(shell), "the pane's shell survived");
+        assert!(pid_gone_within(job), "the shell's background job survived");
+
+        // mado's praça: record and binding.
+        {
+            let p = bridge.praca();
+            assert!(p.index.get(doomed).is_none(), "praça record survived");
+            assert_eq!(
+                p.binding.lookup(&root),
+                None,
+                "the project binding still steers auto-attach at a dead session"
+            );
+        }
+
+        // The picker: gone now, and gone after a reconcile (no ghost on reopen).
+        bridge.refresh(1001);
+        assert!(
+            bridge
+                .list("", 1001)
+                .iter()
+                .all(|r| r.kind != RowKind::Switch(doomed)),
+            "ghost row on reopen"
+        );
+
+        // The sibling is untouched.
+        assert!(bridge.first_pane_of(keep).is_some(), "the sibling died too");
+        assert!(bridge.praca().index.get(keep).is_some());
+        let _ = inproc.kill_session(keep);
+    }
+
+    /// A delete that cannot reach the owner is BLIND: the session may still
+    /// be running, so mado's side is NOT scrubbed (a scrubbed record would
+    /// only be re-added nameless by the next reconcile) and the delete says
+    /// it failed.
+    #[test]
+    fn a_delete_the_owner_never_heard_scrubs_nothing() {
+        let session = sid("unreachable");
+        let praca = Mutex::new(praca::Praca::new());
+        {
+            let mut p = praca.lock().unwrap();
+            p.index.upsert(praca::SessionRecord::for_project(
+                session,
+                PathBuf::from("/code/x"),
+                SessionNameStyle::Emoji,
+                1000,
+            ));
+            p.binding.bind(PathBuf::from("/code/x"), session);
+        }
+        assert!(!delete_session(
+            &crate::control_stub::Unreachable,
+            &praca,
+            session
+        ));
+        let p = praca.lock().unwrap();
+        assert!(
+            p.index.get(session).is_some(),
+            "blind delete pruned the record"
+        );
+        assert_eq!(
+            p.binding.lookup(std::path::Path::new("/code/x")),
+            Some(session)
+        );
+    }
+
+    /// Ctrl-D on a latent ○ row drops the preset, and ONLY the preset: the
+    /// live session it was captured from is a different row and survives.
+    #[test]
+    fn ctrl_d_on_a_preset_row_drops_the_preset_not_the_session() {
+        let (inproc, live) = live_inproc();
+        let mut praca = praca::Praca::new();
+        praca.index.upsert(praca::SessionRecord::for_project(
+            live,
+            PathBuf::from("/code/pleme-io/mado"),
+            SessionNameStyle::Emoji,
+            1000,
+        ));
+        let bridge = bridge_with(praca, Arc::clone(&inproc));
+        assert!(bridge.save_as_preset(live, 1000));
+        let def_id = bridge.praca().definitions.all()[0].def_id;
+
+        assert!(bridge.delete_preset(def_id));
+        assert!(bridge.praca().definitions.get(def_id).is_none());
+        assert!(
+            !bridge.delete_preset(def_id),
+            "a second delete finds nothing"
+        );
+        assert!(
+            bridge.first_pane_of(live).is_some(),
+            "deleting a preset killed a live session"
+        );
+        let _ = inproc.kill_session(live);
+    }
+
+    /// THE deliverable, resident runtime: the window holds a daemon client,
+    /// and Ctrl-D must clear the session out of the DAEMON — its registry and
+    /// its own persisted praça store — not just mado's copy. Driven over a
+    /// real socket through the daemon's full serve loop, with the daemon's
+    /// praça store at a temp path (never the operator's state file).
+    #[test]
+    fn ctrl_d_delete_over_the_daemon_clears_the_daemon_side_too() {
+        use tear_daemon::praca_store::PracaStore;
+
+        let dir = tempfile::tempdir().expect("tempdir");
+        let socket = dir.path().join("tear.sock");
+        let store_path = dir.path().join("state").join("praca.json");
+        let store = PracaStore::open(store_path.clone());
+        let daemon_inproc = Arc::new(tear_core::InProcess::new());
+        // The daemon's create hook binds the spawn cwd's project, so give it
+        // one — the record + binding this test then watches disappear.
+        daemon_inproc.set_spawn_env(
+            tear_types::SpawnEnv::none().with_cwd(Some(dir.path().to_string_lossy().into_owned())),
+        );
+        let listener = std::os::unix::net::UnixListener::bind(&socket).expect("bind");
+        {
+            let inproc = Arc::clone(&daemon_inproc);
+            let store = store.clone();
+            std::thread::spawn(move || {
+                for stream in listener.incoming().flatten() {
+                    let inproc = Arc::clone(&inproc);
+                    let store = store.clone();
+                    std::thread::spawn(move || {
+                        let _ = tear_daemon::serve_connection_full(
+                            stream,
+                            inproc,
+                            Arc::new(tear_config::LiveConfig::default()),
+                            None,
+                            None,
+                            Some(store),
+                        );
+                    });
+                }
+            });
+        }
+        let client = Arc::new(tear_client::Client::connect(&socket).expect("connect"));
+        let control: Arc<dyn MultiplexerControl> = client;
+        let sid = control
+            .new_session_with_source_and_size(
+                "resident",
+                "/bin/sh",
+                &[],
+                SessionSource::Named("test".into()),
+                (80, 24),
+            )
+            .expect("spawn through the daemon");
+        assert!(
+            store.with(|p| p.index.get(sid).is_some() && p.binding.lookup(dir.path()) == Some(sid)),
+            "precondition: the daemon's praça recorded + bound the session"
+        );
+
+        let switch = crate::session_switch::SwitchRequests::default();
+        switch.attach_sink();
+        let mut praca = praca::Praca::new();
+        praca.index.upsert(praca::SessionRecord::for_project(
+            sid,
+            PathBuf::from("/code/resident"),
+            SessionNameStyle::Emoji,
+            1000,
+        ));
+        let bridge = PracaPickerBridge::new(
+            Arc::new(Mutex::new(praca)),
+            Arc::clone(&control),
+            switch,
+            crate::config::ShellSpawn::bare("/bin/sh"),
+            tear_types::SpawnEnv::none(),
+            true,
+            crate::config::BadgeMode::Auto,
+            None,
+            0,
+            0,
+            0,
+        );
+        assert!(bridge.delete_session(sid));
+
+        assert!(
+            control
+                .list_sessions()
+                .expect("list")
+                .iter()
+                .all(|s| s.id != sid),
+            "the daemon still runs the session"
+        );
+        assert!(
+            daemon_inproc.with_registry(|r| !r.sessions.contains_key(&sid)),
+            "the daemon's registry still holds the session"
+        );
+        assert!(
+            store.with(|p| p.index.get(sid).is_none() && p.binding.lookup(dir.path()).is_none()),
+            "the daemon's live praça still holds the session"
+        );
+        assert!(
+            PracaStore::open(store_path).with(|p| p.index.get(sid).is_none()),
+            "the daemon's PERSISTED praça still holds the session (a restart would resurrect it)"
+        );
+        assert!(
+            bridge.praca().index.get(sid).is_none(),
+            "mado's praça record survived"
         );
     }
 }

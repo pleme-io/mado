@@ -157,6 +157,21 @@ impl<Row> FuzzyPicker<Row> {
         }
     }
 
+    /// Replace the rows after the highlighted row was REMOVED on purpose (the
+    /// session picker's Ctrl-D): the highlight stays at the same INDEX, so it
+    /// lands on the row that slid up into the deleted one's place — the next
+    /// item, which is where a list-curating operator's eye already is. Past
+    /// the new end it clamps to the last row; an empty list leaves it at 0.
+    ///
+    /// Distinct from [`Self::set_results`] (a query edit: back to the top)
+    /// and [`Self::set_results_preserving`] (an autonomous re-list: follow the
+    /// same row by identity — which, for a row that was just deleted, would
+    /// report a vanish and clamp to the top).
+    pub fn set_results_holding_position(&mut self, rows: Vec<Row>) {
+        self.selected = self.selected.min(rows.len().saturating_sub(1));
+        self.results = rows;
+    }
+
     /// `true` when the picker is open AND the highlight is still at the top
     /// (the operator hasn't navigated yet). The suggestion stream's live
     /// re-list only fires while resting, so a refresh never yanks the cursor
@@ -302,6 +317,28 @@ mod tests {
             "'b' vanished → caller must stamp the stability window"
         );
         assert_eq!(p.selected, 0);
+    }
+
+    #[test]
+    fn set_results_holding_position_lands_on_the_next_row_after_a_delete() {
+        // On "b" (index 1); "b" is deleted → the cursor is on "c", the row
+        // that slid into its place.
+        let mut p = picker(&["a", "b", "c"]);
+        p.move_down();
+        p.set_results_holding_position(vec!["a".to_owned(), "c".to_owned()]);
+        assert_eq!(p.selected_row().map(String::as_str), Some("c"));
+
+        // "c" is now the LAST row (index 1). Deleting it clamps the cursor to
+        // the new last row, never past the end.
+        assert_eq!(p.selected, 1);
+        p.set_results_holding_position(vec!["a".to_owned()]);
+        assert_eq!(p.selected, 0);
+        assert_eq!(p.selected_row().map(String::as_str), Some("a"));
+
+        // Deleting the only row leaves an empty list with the cursor at 0.
+        p.set_results_holding_position(Vec::new());
+        assert_eq!(p.selected, 0);
+        assert!(p.selected_row().is_none());
     }
 
     #[test]

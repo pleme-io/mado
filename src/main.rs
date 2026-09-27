@@ -25,6 +25,9 @@ mod browser_fetch;
 mod browser_snapshot;
 mod clipboard_store;
 mod config;
+// Test-only MultiplexerControl stubs shared by several modules' tests.
+#[cfg(test)]
+mod control_stub;
 mod dir_picker;
 mod e2e;
 mod engate_consumer;

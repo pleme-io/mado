@@ -71,6 +71,10 @@ pub fn load_and_register(praca: &std::sync::Arc<Mutex<praca::Praca>>) {
 /// maintenance loop (so persistence needs no extra thread); a bare-tier mado
 /// with the stream disabled simply never persists presets — acceptable, the
 /// bare tier has no picker presets surface either.
+///
+/// Also called directly by the Ctrl-S picker's deletes
+/// ([`crate::session_picker::delete_session`] / `delete_preset`), so a
+/// deletion reaches disk at once rather than at the next tick.
 pub fn maintenance_tick() {
     let Some(reg) = REGISTERED.get() else {
         return;
@@ -78,6 +82,17 @@ pub fn maintenance_tick() {
     if !crate::single_writer::is_writer() {
         return;
     }
+    // The write guard is taken FIRST and held across snapshot + write. Two
+    // threads call this — the suggestion engine's maintenance loop and the
+    // picker persisting a delete — and the framed write's temp file is tagged
+    // by PID, which both threads share: unserialized, one thread's
+    // `File::create` could truncate the other's half-written temp before its
+    // rename, or an older snapshot could land after a newer one. Taking the
+    // guard before the snapshot makes the writes whole AND in order.
+    let mut last = reg
+        .last_hash
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     let snap = {
         let g = reg
             .praca
@@ -89,16 +104,10 @@ pub fn maintenance_tick() {
         return;
     };
     let hash = blake3::hash(&json);
-    {
-        let mut last = reg
-            .last_hash
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        if *last == Some(hash) {
-            return;
-        }
-        *last = Some(hash);
+    if *last == Some(hash) {
+        return;
     }
+    *last = Some(hash);
     crate::suggest::store::atomic_write_framed(&state_path(), &json);
 }
 
