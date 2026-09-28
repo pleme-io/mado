@@ -476,9 +476,10 @@ mado exposes two typed automation primitives — **no third scripting engine**:
   clipboard history, prompt/command blocks, asciinema recording, 18 `tear_*`,
   11 `browser_*`, 5 `vigy_*`, 3 `suggest_*`; see the MCP Server section below)
   for agent / external drive.
-- **embedded vigy reconciler** running **tatara-lisp** in-process (see
-  `vigy_host.rs`). Scripting IS tatara-lisp: user automation is authored as
-  `(def…)` forms over mado intrinsics registered through vigy's `register_fn`
+- **embedded vigy reconciler** in-process (see `vigy_host.rs`; doctrine
+  `theory/VIGY.md`). Scripting is vigy: user automation is authored in
+  **blue**, lowered to the tatara-lisp AST vigy evaluates (existing `(def…)`
+  tatara-lisp forms keep working and move to blue on refactor), over mado intrinsics registered through vigy's `register_fn`
   / `ExtInterpreter` (e.g. `(mado-tear-attached?)`). Output-driven triggers
   and a shell-facing `mado` control CLI land as a thin layer over this + the
   MCP surface (see [`docs/REMEDIATION-PLAN.md`](./docs/REMEDIATION-PLAN.md) M7).
@@ -502,8 +503,8 @@ non-overlapping with the shell.
 > (2026-05-31)** — the functions never had a real terminal handle (they
 > returned format-string placeholders), so the API was doc/code drift and
 > carried TYPED-EMISSION `format!()` violations. Per the Four-Lisps /
-> solve-once discipline, scripting consolidates on **tatara-lisp via vigy**,
-> not a second engine.
+> solve-once discipline, scripting consolidates on **vigy** (blue-authored,
+> tatara-lisp AST), not a second engine.
 
 ---
 
