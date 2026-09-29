@@ -32,7 +32,11 @@ use vigy::eval::{
     ExtArity, ExtEvalError, ExtInterpreter, ExtValue, ExtensionHandle, VigyHost, closure_extension,
     standard_extensions,
 };
+use vigy::runtime::Scope;
 use vigy::{RuntimeHandle, TickInterval, Vigy};
+
+/// The name mado schedules under in the shared vigy store.
+pub const VIGY_HOST: &str = "mado";
 
 const DEFAULT_HEARTBEAT_NAME: &str = "mado-heartbeat";
 const DEFAULT_HEARTBEAT_PROGRAM: &str = r#"
@@ -69,7 +73,11 @@ impl MadoVigyHost {
         // hop required.
         let mut extensions = standard_extensions();
         extensions.push(mado_intrinsics_extension());
-        let rt = RuntimeHandle::open_with_extensions(&db, extensions)
+        // mado is the primary vigy host: it schedules its own vigies
+        // (`host=mado`, the heartbeat) and the unlabelled ones registered
+        // from panes or the CLI, and leaves other hosts' (`host=arnes`) to
+        // them. It still lists and inspects every vigy in the shared store.
+        let rt = RuntimeHandle::open_with_scope(&db, extensions, Scope::HostAndUnlabelled(VIGY_HOST.into()))
             .await
             .with_context(|| format!("open vigy runtime at {}", db.display()))?;
 
@@ -79,7 +87,7 @@ impl MadoVigyHost {
         let interval = TickInterval::from_millis(DEFAULT_HEARTBEAT_INTERVAL_MS)
             .expect("heartbeat interval is in range");
         let mut v = Vigy::new(DEFAULT_HEARTBEAT_NAME, DEFAULT_HEARTBEAT_PROGRAM, interval)?;
-        v.labels.insert("host", "mado")?;
+        v.labels.insert(vigy::runtime::HOST_LABEL, VIGY_HOST)?;
         v.labels.insert("kind", "heartbeat")?;
         if let Err(e) = rt.register_or_update(v).await {
             tracing::warn!(err = %e, "could not register mado heartbeat vigy");
