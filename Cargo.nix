@@ -4164,9 +4164,9 @@ rec {
       };
       "egaku" = rec {
         crateName = "egaku";
-        version = "0.1.18";
+        version = "0.1.19";
         edition = "2024";
-        sha256 = "0kvnwb1c2h6fk2cyqkrsm54m24px2v1hvngp5fcynrl6hgkjhlnq";
+        sha256 = "1cn8db18igsp5wiz7kwc29rva7lk563gw71z144kamr1fv3m42l9";
         dependencies = [
           {
             name = "awase";
@@ -10148,7 +10148,7 @@ rec {
       };
       "mado" = rec {
         crateName = "mado";
-        version = "0.1.176";
+        version = "0.1.177";
         edition = "2024";
         crateBin = [
           {
@@ -10973,9 +10973,9 @@ rec {
       };
       "monosashi" = rec {
         crateName = "monosashi";
-        version = "0.3.58";
+        version = "0.3.60";
         edition = "2021";
-        sha256 = "1956j1pncnk4xs753z8p5mdsa1ymiikx568vpwlxibvlclskyqdd";
+        sha256 = "0nzpgppzjpybm92rf08zh43i78rj552k8qgx6nd72nhrhjkvk13r";
         authors = [
           "Pleme.io <engineering@pleme.io>"
         ];
@@ -23787,9 +23787,9 @@ rec {
       };
       "tatara-closed-set" = rec {
         crateName = "tatara-closed-set";
-        version = "0.3.58";
+        version = "0.3.60";
         edition = "2021";
-        sha256 = "0ry8k208v34836sxc48l4mk5abxjpgs0xhyjq9xr8fff9a7gsjsq";
+        sha256 = "1l66blyjgjjy3vs92f5sr0vjpd94m25rj1dv9s0c8jx9pai5sghs";
         libName = "tatara_closed_set";
         authors = [
           "Pleme.io <engineering@pleme.io>"
@@ -23804,9 +23804,9 @@ rec {
       };
       "tatara-closed-set-derive" = rec {
         crateName = "tatara-closed-set-derive";
-        version = "0.3.58";
+        version = "0.3.60";
         edition = "2021";
-        sha256 = "0613dz9ggqq8zbjvp9ykskfcchwcrnsm4g52rzdylac3526bnpgz";
+        sha256 = "1if3xd2qiws52f0grw71q8z0bpv5108aznvbr1q9ykw5s5lf31v7";
         procMacro = true;
         libName = "tatara_closed_set_derive";
         authors = [
@@ -26960,9 +26960,9 @@ rec {
       };
       "vigy" = rec {
         crateName = "vigy";
-        version = "0.1.6";
+        version = "0.1.7";
         edition = "2021";
-        sha256 = "1d0n27528xp1v9cwkjx461vw7p057ksmqpdz415sfjsi93pfs5p7";
+        sha256 = "1nz7mpzzsizppw4jpn0wm90ypbbjrzdj4pzmp0m12sg4d8yj214w";
         authors = [
           "Pleme Team <team@pleme.io>"
         ];
@@ -27000,9 +27000,9 @@ rec {
       };
       "vigy-eval" = rec {
         crateName = "vigy-eval";
-        version = "0.1.6";
+        version = "0.1.7";
         edition = "2021";
-        sha256 = "10dpyg6q4mb3cymph0nh82zcbmz1aw9s2zgaykarablxnj7ca1lm";
+        sha256 = "1xs7h826252s91af6scs8hkvs7skwndwpi80ck0hc20dq47d03fg";
         libName = "vigy_eval";
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -27060,9 +27060,9 @@ rec {
       };
       "vigy-mcp" = rec {
         crateName = "vigy-mcp";
-        version = "0.1.6";
+        version = "0.1.7";
         edition = "2021";
-        sha256 = "118shgcfwl4614l8b9nkfhls9rr720l0h4v27k2gmhrjkavvbjj4";
+        sha256 = "167b4lc201jz1mx2fbim3k3m7if83i12nwklvh6r4jpynzs2xzpd";
         libName = "vigy_mcp";
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -27103,9 +27103,9 @@ rec {
       };
       "vigy-runtime" = rec {
         crateName = "vigy-runtime";
-        version = "0.1.6";
+        version = "0.1.7";
         edition = "2021";
-        sha256 = "17bny5r40zp7fvwixkdba2ljdm4jlixm8d81xg6l2g9plbfyv4dp";
+        sha256 = "15jrh56k2jcgyjckcfd20wmrb126nk1niapphjcxik8vj0ragdy9";
         libName = "vigy_runtime";
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -27162,9 +27162,9 @@ rec {
       };
       "vigy-store" = rec {
         crateName = "vigy-store";
-        version = "0.1.6";
+        version = "0.1.7";
         edition = "2021";
-        sha256 = "0v7gp2d37iwhv4d5q3v66ynydvrwipxc2rc1j8pklh7cynjk7xjx";
+        sha256 = "0xg3i4awwx0c40akkxw6n0fpkkklr1wwlc0akf6xmjyj9xf0ac34";
         libName = "vigy_store";
         authors = [
           "Pleme Team <team@pleme.io>"
@@ -27233,9 +27233,9 @@ rec {
       };
       "vigy-types" = rec {
         crateName = "vigy-types";
-        version = "0.1.6";
+        version = "0.1.7";
         edition = "2021";
-        sha256 = "1mmxgb7fjiz1ncqzsij9cmb72rbqg8qg90cw3f728s8wb50h9y98";
+        sha256 = "1kgvdizs5h1x8kk3bjbmwgaj41m3ayrhw3z6n8yqhazgrsgk6vl4";
         libName = "vigy_types";
         authors = [
           "Pleme Team <team@pleme.io>"

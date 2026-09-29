@@ -363,9 +363,9 @@ checksum = "2af50177e190e07a26ab74f8b1efbfe2ef87da2116221318cb1c2e82baf7de06"
 
 [[package]]
 name = "bigdecimal"
-version = "0.4.10"
+version = "0.4.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4d6867f1565b3aad85681f1015055b087fcfd840d6aeee6eee7f2da317603695"
+checksum = "8fa3f3d8cbf4dffcfe4991de61d012bef509a409ecbe9dd41049bfe32b4d4653"
 dependencies = [
  "autocfg",
  "libm",
@@ -1385,9 +1385,9 @@ dependencies = [
 
 [[package]]
 name = "egaku"
-version = "0.1.19"
+version = "0.1.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "890a52c77621573509093f1cfe8629931eb573128ccff3232f57bf88c26ac8b2"
+checksum = "8f93d284f9e3ee535ece5e73082127c388a6d8b369e5f4015c0cff7cc2e9706c"
 dependencies = [
  "awase",
  "ishou-tokens",
@@ -1395,6 +1395,7 @@ dependencies = [
  "shibori",
  "thiserror 2.0.21",
  "tracing",
+ "unicode-linebreak",
  "unicode-segmentation",
  "unicode-width",
  "zeroize",
@@ -2687,9 +2688,9 @@ dependencies = [
 
 [[package]]
 name = "irodzuki"
-version = "0.1.11"
+version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f53cc2a028a9c22a5d81b5bbe4889c81f60b9cff6e4cfcae0ac284103c467a52"
+checksum = "beadedb3c63ece44386381d5b67649989b628450b906e05166c9081d304ad8e1"
 dependencies = [
  "bytemuck",
  "egaku",
@@ -3324,7 +3325,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.176"
+version = "0.1.177"
 dependencies = [
  "anyhow",
  "awase",
@@ -3578,9 +3579,9 @@ dependencies = [
 
 [[package]]
 name = "monosashi"
-version = "0.3.60"
+version = "0.3.62"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7984b9a784195a719a35fd6134452932a31307811f019745aacb5ff9ef7df75b"
+checksum = "9b9acec1374cadca7e41b9df87dc9566976085d114ec95ab0048732573cb69b7"
 
 [[package]]
 name = "moxcms"
@@ -6795,18 +6796,18 @@ checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 
 [[package]]
 name = "tatara-closed-set"
-version = "0.3.60"
+version = "0.3.62"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a3e5da2baa94bc4804ebb05998ba824b52b37c8ba3891f41e5eca273d5dc6d0"
+checksum = "01828745f054a69712a26aaa268f595340e07578c696a30a16ccfedaa5c4587a"
 dependencies = [
  "tatara-closed-set-derive",
 ]
 
 [[package]]
 name = "tatara-closed-set-derive"
-version = "0.3.60"
+version = "0.3.62"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6787e168d1854f9f70c86bdbaf100865df053ec2e1f0fc801345f38845ebc3c5"
+checksum = "21d982ec114f4f37ed5254ed4de02def9ce4206b11a77345234c2fe8e248fcb2"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7263,9 +7264,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-rustls"
-version = "0.26.5"
+version = "0.26.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0c85f2c3ef0b1cd58b36682f4b17aaa995f0e5db534d85692b4903abce21f67"
+checksum = "c9cc2678c2cdd569ef8215e2afd7954ada2ae20b4fdd2c5fe6139a3b02d105db"
 dependencies = [
  "rustls",
  "tokio",
