@@ -95,7 +95,7 @@ in-progress → resolved).
 | ~10 observability sources | grafana_alerts/incidents/oncall, datadog_monitors, k8s_unhealthy, flux_failing, breathe_conflict, engenho_nodes, opsgenie_alerts, aws_health, cloudflare_deployments | `src/suggest/sources/` |
 | Persisted store (long-term) | the suggestion store persists to `~/.local/share/mado/suggestions.json` | `src/suggest/store.rs` |
 | Continuous pooling runtime | the embedded **vigy** reconciler runtime + 1 watcher/source | `src/vigy_host.rs`, `src/suggest/mod.rs` |
-| Recurrence/dedup | the `anomaly-recurrence` pattern (stable signature + recurrence count) | (skill / to wire) |
+| Recurrence/dedup | the `controller-anomaly-axes` pattern (stable signature + recurrence count) | (skill / to wire) |
 | Tiered config | shikumi `TieredConfig` (bare/prescribed) + per-source overrides | `src/config.rs` |
 | TYPED-SPEC triplet + mock | `MockEnvironment` with `.http()`/`.secret_val()` builders | `src/suggest/env.rs:317` |
 
@@ -190,7 +190,7 @@ Safra
       └── per TrackedDataKind (alerts, unhealthy-pods, slo-breaches, …)
            └── CuratedSet<Item>
                 ├── items keyed by Item::signature()      (stable identity)
-                ├── recurrence count + first_seen/last_seen (anomaly-recurrence)
+                ├── recurrence count + first_seen/last_seen (controller-anomaly-axes)
                 ├── decay (drop when last_seen older than the kind's TTL)
                 └── rank (severity × recurrence × recency)
 ```
@@ -334,7 +334,7 @@ vocabulary — `SecretRef` stays the only consumer surface (composes with cofre)
   Grafana/cluster).
 - **Viggy / CONTINUOUS CONVERGENCE** — each (kind × env) reconciler is a
   desired-vs-observed loop; the safra is the converged state.
-- **anomaly-recurrence** — the curated identity + recurrence-count surface.
+- **controller-anomaly-axes** — the curated identity + recurrence-count surface.
 - **TYPED EMISSION / NO SHELL** — queries are typed `HttpReq`/`Cmd` (curl/kubectl
   as argv, already the pattern); no `format!()` of query strings beyond typed
   builders.
