@@ -103,6 +103,7 @@ pub struct OverlayLine {
     /// matched" highlight). Empty = no highlight (the default / empty-query
     /// view renders byte-identically to before).
     pub highlights: Vec<usize>,
+    pub row: Option<usize>,
 }
 
 impl OverlayLine {
@@ -114,7 +115,14 @@ impl OverlayLine {
             alpha: 255,
             color: None,
             highlights: Vec::new(),
+            row: None,
         }
+    }
+
+    #[must_use]
+    pub fn with_row(mut self, row: usize) -> Self {
+        self.row = Some(row);
+        self
     }
 
     /// Set the line's opacity (the shade-in ramp). Chainable.

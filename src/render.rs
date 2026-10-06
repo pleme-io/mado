@@ -1437,6 +1437,7 @@ pub struct TerminalRenderer {
     /// overlays can never paint at once (theory §VI). The picker `.open`
     /// bools above are read only for their *content*, never as the gate.
     overlay_focus: Arc<Mutex<crate::ux::modes::Overlay>>,
+    overlay_hits: Arc<Mutex<crate::picker::pointer::OverlayHits>>,
     /// Floating browser panels to composite this frame (engine-written mirror,
     /// in z draw-order). Empty ⇒ the float pass is skipped entirely.
     float_panels: Arc<Mutex<Vec<FloatPanel>>>,
@@ -2316,6 +2317,7 @@ impl TerminalRenderer {
             // Born `None`; the engine rewires this to its shared cell via
             // `set_overlay_focus` in `attach_to_renderer`.
             overlay_focus: Arc::new(Mutex::new(crate::ux::modes::Overlay::None)),
+            overlay_hits: Arc::new(Mutex::new(crate::picker::pointer::OverlayHits::default())),
             float_panels: Arc::new(Mutex::new(Vec::new())),
             float_panel_tex: std::cell::RefCell::new(None),
             float_panel_buf: std::cell::RefCell::new(None),
@@ -2858,6 +2860,10 @@ impl TerminalRenderer {
         self.overlay_focus = overlay_focus;
     }
 
+    pub fn set_overlay_hits(&mut self, hits: Arc<Mutex<crate::picker::pointer::OverlayHits>>) {
+        self.overlay_hits = hits;
+    }
+
     /// Share the engine's floating-browser panel mirror so the render loop can
     /// composite the surfaces (the `overlay_focus` mirror pattern).
     pub fn set_float_panels(&mut self, float_panels: Arc<Mutex<Vec<FloatPanel>>>) {
@@ -3256,6 +3262,37 @@ impl TerminalRenderer {
             GlyphonColor::rgba(c.r, c.g, c.b, ((f32::from(line.alpha)) * progress) as u8)
         };
 
+        {
+            use crate::picker::pointer::{Band, OverlayHits};
+            let content_right = left + card_w;
+            let (row_left, row_right) =
+                panel.map_or((left, content_right), |(px, _, pw, _)| (px, px + pw));
+            let rows = vis
+                .iter()
+                .enumerate()
+                .filter_map(|(k, &i)| {
+                    spec.lines[i].row.map(|index| {
+                        let top = top0 + k as f32 * line_h;
+                        (
+                            Band {
+                                left: row_left,
+                                top,
+                                right: row_right,
+                                bottom: top + line_h,
+                            },
+                            index,
+                        )
+                    })
+                })
+                .collect();
+            let card = panel.map(|(px, py, pw, ph)| Band {
+                left: px,
+                top: py,
+                right: px + pw,
+                bottom: py + ph,
+            });
+            *self.overlay_hits.lock().unwrap() = OverlayHits { card, rows };
+        }
         let bounds = panel.map_or_else(
             || garasu::PaneRect::root(width, height).text_bounds(),
             |(px, py, pw, ph)| card_text_bounds(px, py, pw, ph),
@@ -3348,10 +3385,9 @@ impl TerminalRenderer {
                 } else {
                     ("  ", LineRole::Row)
                 };
-                lines.push(OverlayLine::new(
-                    format!("{marker}{}", path.display()),
-                    role,
-                ));
+                lines.push(
+                    OverlayLine::new(format!("{marker}{}", path.display()), role).with_row(i),
+                );
             }
         }
         // The dir picker keeps the legacy top-drop anchor.
@@ -3489,7 +3525,8 @@ impl TerminalRenderer {
                     OverlayLine::new(text, role)
                         .with_alpha(alpha)
                         .with_color(color)
-                        .with_highlights(highlights),
+                        .with_highlights(highlights)
+                        .with_row(abs),
                 );
             }
             // Overflow affordance: how many rows lie below the window. A tiny
@@ -7334,6 +7371,7 @@ impl RenderCallback for TerminalRenderer {
                         &mut overlay_encoder,
                     );
                 }
+                *self.overlay_hits.lock().unwrap() = crate::picker::pointer::OverlayHits::default();
             }
             // The rename sub-mode keeps the picker board visible underneath;
             // the live rename buffer rides the picker's `notice` line (set by

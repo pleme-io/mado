@@ -227,6 +227,8 @@ pub struct InputEngine {
     /// bools remain for each picker's own data lifecycle, but no longer
     /// decide what paints.
     overlay_focus: Arc<Mutex<Overlay>>,
+    overlay_hits: Arc<Mutex<crate::picker::pointer::OverlayHits>>,
+    picker_wheel: crate::picker::pointer::WheelSteps,
     /// Floating browser panels published to the renderer each frame (the
     /// `overlay_focus` mirror pattern — engine writes, renderer reads + draws).
     float_panels: Arc<Mutex<Vec<crate::render::FloatPanel>>>,
@@ -307,6 +309,8 @@ impl InputEngine {
         // on it in Pass 6 (one overlay drawn, never two).
         let overlay_focus = Arc::new(Mutex::new(Overlay::None));
         renderer.set_overlay_focus(Arc::clone(&overlay_focus));
+        let overlay_hits = Arc::new(Mutex::new(crate::picker::pointer::OverlayHits::default()));
+        renderer.set_overlay_hits(Arc::clone(&overlay_hits));
         let float_panels = Arc::new(Mutex::new(Vec::new()));
         renderer.set_float_panels(Arc::clone(&float_panels));
         // Build the scroll system from the typed scroll policy BEFORE the
@@ -354,6 +358,8 @@ impl InputEngine {
             active_drag: None,
             last_viewport: egaku::Rect::new(0.0, 0.0, 0.0, 0.0),
             overlay_focus,
+            overlay_hits,
+            picker_wheel: crate::picker::pointer::WheelSteps::default(),
             float_panels,
             last_mods: Modifiers::default(),
             last_mouse_pos: (0.0, 0.0),
@@ -944,6 +950,91 @@ impl InputEngine {
                 OverlayEffect::SessionPickerRenameCancel => self.session_picker_rename_cancel(),
                 OverlayEffect::SessionPickerDelete => self.session_picker_delete(),
             }
+        }
+    }
+
+    fn picker_owns_pointer(&self) -> bool {
+        matches!(
+            self.overlay,
+            Overlay::SessionPicker | Overlay::SessionRename | Overlay::DirPicker
+        )
+    }
+
+    fn picker_select(&mut self, index: usize) {
+        match self.overlay {
+            Overlay::SessionPicker => {
+                let mut sp = self.session_picker.lock().unwrap();
+                if index < sp.results.len() {
+                    sp.selected = index;
+                }
+            }
+            Overlay::DirPicker => {
+                let mut dp = self.dir_picker.lock().unwrap();
+                if index < dp.results.len() {
+                    dp.selected = index;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn picker_selected(&self) -> Option<(usize, usize)> {
+        match self.overlay {
+            Overlay::SessionPicker => {
+                let sp = self.session_picker.lock().unwrap();
+                Some((sp.selected, sp.results.len()))
+            }
+            Overlay::DirPicker => {
+                let dp = self.dir_picker.lock().unwrap();
+                Some((dp.selected, dp.results.len()))
+            }
+            _ => None,
+        }
+    }
+
+    fn picker_hover(&mut self, x: f64, y: f64) {
+        #[allow(clippy::cast_possible_truncation)]
+        let row = self.overlay_hits.lock().unwrap().row_at(x as f32, y as f32);
+        if let Some(index) = row {
+            self.picker_select(index);
+        }
+    }
+
+    fn picker_step(&mut self, steps: i32) {
+        let Some((selected, len)) = self.picker_selected() else {
+            return;
+        };
+        if steps == 0 || len == 0 {
+            return;
+        }
+        let target = (selected as i64 - i64::from(steps)).clamp(0, len as i64 - 1);
+        self.picker_select(target as usize);
+    }
+
+    fn picker_click(&mut self, x: f64, y: f64) {
+        #[allow(clippy::cast_possible_truncation)]
+        let (row, inside) = {
+            let hits = self.overlay_hits.lock().unwrap();
+            (
+                hits.row_at(x as f32, y as f32),
+                hits.contains(x as f32, y as f32),
+            )
+        };
+        let key = |class| OverlayKey {
+            nav: None,
+            key: class,
+            text: None,
+            plain: true,
+        };
+        match (self.overlay, row) {
+            (Overlay::SessionPicker | Overlay::DirPicker, Some(index)) => {
+                self.picker_select(index);
+                self.dispatch_overlay(OverlayEvent::Key(key(modes::OverlayKeyClass::Enter)));
+            }
+            (_, None) if !inside => {
+                self.dispatch_overlay(OverlayEvent::Key(key(modes::OverlayKeyClass::Escape)));
+            }
+            _ => {}
         }
     }
 
@@ -1542,6 +1633,12 @@ impl InputEngine {
     ) -> EventOutcome {
         self.last_mouse_pos = (x, y);
         self.last_mods = modifiers;
+        if self.picker_owns_pointer() {
+            if button == MouseButton::Left && pressed {
+                self.picker_click(x, y);
+            }
+            return EventOutcome::consumed();
+        }
 
         // ── Floating browser surfaces claim the Left pointer before the grid.
         // Guarded: hit_test on an empty stack is None, so the terminal path is
@@ -2076,6 +2173,10 @@ impl InputEngine {
     /// `mouse_hide_while_typing`.
     pub fn on_mouse_moved(&mut self, x: f64, y: f64, metrics: &dyn FontZoomTarget) -> EventOutcome {
         self.last_mouse_pos = (x, y);
+        if self.picker_owns_pointer() {
+            self.picker_hover(x, y);
+            return EventOutcome::consumed();
+        }
 
         // ── Drag a floating browser surface. Guarded: no active drag ⇒ the
         // terminal motion path runs unchanged. ──
@@ -2152,6 +2253,13 @@ impl InputEngine {
         gesture: ScrollGesture,
         metrics: &dyn FontZoomTarget,
     ) -> EventOutcome {
+        if self.picker_owns_pointer() {
+            let steps = self
+                .picker_wheel
+                .feed(gesture, f64::from(metrics.cell_height()));
+            self.picker_step(steps);
+            return EventOutcome::consumed();
+        }
         // Re-feed the policy so `behavior` stays the single source of truth
         // (cheap — `ScrollConfig` is `Copy`); in-flight kinetic/accumulator
         // state is preserved.
@@ -4735,6 +4843,92 @@ mod tests {
             switched.lock().unwrap().as_slice(),
             &[sid("c")],
             "Enter switched to the navigated-to session"
+        );
+    }
+
+    fn three_row_hits() -> crate::picker::pointer::OverlayHits {
+        use crate::picker::pointer::{Band, OverlayHits};
+        let row = |top: f32, index| {
+            (
+                Band {
+                    left: 100.0,
+                    top,
+                    right: 400.0,
+                    bottom: top + 20.0,
+                },
+                index,
+            )
+        };
+        OverlayHits {
+            card: Some(Band {
+                left: 90.0,
+                top: 40.0,
+                right: 410.0,
+                bottom: 140.0,
+            }),
+            rows: vec![row(60.0, 0), row(80.0, 1), row(100.0, 2)],
+        }
+    }
+
+    fn picker_with_three() -> (Harness, Arc<StdMutex<Vec<SessionId>>>) {
+        let (bridge, switched) = RecordingBridge::new(vec![
+            (sid("a"), "alpha"),
+            (sid("b"), "bravo"),
+            (sid("c"), "charlie"),
+        ]);
+        let mut h = Harness::new_with_bridge(SinkKind::Closure, Some(Box::new(bridge)));
+        h.engine
+            .apply_action(Action::SessionPickerOpen, &mut h.renderer);
+        *h.engine.overlay_hits.lock().unwrap() = three_row_hits();
+        (h, switched)
+    }
+
+    #[test]
+    fn hovering_a_picker_row_selects_it_and_clicking_switches_to_it() {
+        let (mut h, switched) = picker_with_three();
+        h.moved_px(200.0, 85.0);
+        assert_eq!(h.engine.session_picker.lock().unwrap().selected, 1);
+        h.engine.on_mouse_button(
+            MouseButton::Left,
+            true,
+            200.0,
+            105.0,
+            no_mods(),
+            &h.renderer,
+        );
+        assert_eq!(switched.lock().unwrap().as_slice(), &[sid("c")]);
+        assert_eq!(h.engine.overlay, Overlay::None);
+    }
+
+    #[test]
+    fn the_wheel_steps_the_selection_and_stops_at_the_ends() {
+        let (mut h, _) = picker_with_three();
+        h.scroll(-1.0);
+        h.scroll(-1.0);
+        h.scroll(-1.0);
+        assert_eq!(h.engine.session_picker.lock().unwrap().selected, 2);
+        h.scroll(1.0);
+        assert_eq!(h.engine.session_picker.lock().unwrap().selected, 1);
+        h.scroll(5.0);
+        assert_eq!(h.engine.session_picker.lock().unwrap().selected, 0);
+    }
+
+    #[test]
+    fn clicking_outside_the_card_dismisses_and_inside_chrome_does_nothing() {
+        let (mut h, switched) = picker_with_three();
+        h.engine
+            .on_mouse_button(MouseButton::Left, true, 200.0, 45.0, no_mods(), &h.renderer);
+        assert_eq!(
+            h.engine.overlay,
+            Overlay::SessionPicker,
+            "the title line is chrome"
+        );
+        h.engine
+            .on_mouse_button(MouseButton::Left, true, 5.0, 5.0, no_mods(), &h.renderer);
+        assert_eq!(h.engine.overlay, Overlay::None);
+        assert!(
+            switched.lock().unwrap().is_empty(),
+            "dismissing switches nothing"
         );
     }
 

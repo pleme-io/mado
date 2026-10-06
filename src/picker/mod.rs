@@ -27,6 +27,7 @@
 
 pub mod component;
 pub mod motion;
+pub mod pointer;
 pub mod presets;
 pub mod reconcile;
 pub mod state;
