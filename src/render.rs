@@ -400,6 +400,42 @@ fn centered_panel_geom(
     (px, py, pw, ph)
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct OverlayShapeKey {
+    text: String,
+    highlights: Vec<usize>,
+    accent_alpha: u8,
+    family: String,
+    size_bits: u32,
+    line_bits: u32,
+}
+
+impl OverlayShapeKey {
+    fn new(
+        line: &crate::picker::component::OverlayLine,
+        max_chars: usize,
+        accent_alpha: u8,
+        family: &str,
+        size: f32,
+        line_h: f32,
+    ) -> Self {
+        let (text, highlights) = truncate_overlay_text(&line.text, &line.highlights, max_chars);
+        let accent_alpha = if highlights.is_empty() {
+            0
+        } else {
+            accent_alpha
+        };
+        Self {
+            text,
+            highlights,
+            accent_alpha,
+            family: family.to_owned(),
+            size_bits: size.to_bits(),
+            line_bits: line_h.to_bits(),
+        }
+    }
+}
+
 fn card_text_bounds(px: f32, py: f32, pw: f32, ph: f32) -> glyphon::TextBounds {
     glyphon::TextBounds {
         left: px.floor() as i32,
@@ -1737,6 +1773,7 @@ pub struct TerminalRenderer {
     /// ladders assert. Pruned to the visible set each draw, so a row that
     /// leaves + returns re-fades. `RefCell` → mutable from the `&self` draw path.
     suggestion_fade: RefCell<HashMap<crate::suggest::SuggestionId, f32>>,
+    overlay_shapes: RefCell<HashMap<OverlayShapeKey, glyphon::Buffer>>,
     /// Shade-in duration (ms) from `config.suggestions.shade_in_ms` — how long
     /// a freshly-arrived suggestion takes to dissolve in.
     suggestion_shade_in_ms: u64,
@@ -2412,6 +2449,7 @@ impl TerminalRenderer {
             reduce_motion: false,
             session_picker_anchor: crate::config::PickerAnchor::default(),
             suggestion_fade: RefCell::new(HashMap::new()),
+            overlay_shapes: RefCell::new(HashMap::new()),
             suggestion_shade_in_ms: 600,
             // Nord defaults (the exact literals the old draw_* methods
             // hardcoded); `theme::apply_config_theme` overrides per theme.
@@ -3085,37 +3123,60 @@ impl TerminalRenderer {
         // Shape every line first (the centred anchor needs the shaped
         // widths to centre the block; the TextAreas borrow the buffers
         // through prepare, so they're kept alive in `buffers`).
-        let mut buffers: Vec<glyphon::Buffer> = Vec::with_capacity(spec.lines.len());
-        for line in &spec.lines {
-            let (text, highlights) = truncate_overlay_text(&line.text, &line.highlights, max_chars);
-            let base = Attrs::new().family(Family::Name(&self.font_family));
-            let mut buf = if highlights.is_empty() {
-                // Common path (no query / no match): one run, unchanged. The
-                // line's colour comes from the TextArea default_color below.
-                frame.create_rich_buffer(&[(text.as_str(), base)], fs, line_h)
-            } else {
-                // Matched chars glow in the Nord frost accent (alpha-matched to
-                // the row's shade-in); unmatched runs carry no colour so they
-                // fall back to default_color (the role / urgency tint). This is
-                // the fzf-style "here's why this row matched" highlight.
-                let accent = GlyphonColor::rgba(0x88, 0xC0, 0xD0, line.alpha);
-                let runs = crate::picker::component::highlight_runs(&text, &highlights);
-                let spans: Vec<(&str, Attrs)> = runs
-                    .iter()
-                    .map(|(r, hl)| {
-                        let seg = &text[r.clone()];
-                        if *hl {
-                            (seg, base.clone().color(accent))
-                        } else {
-                            (seg, base.clone())
-                        }
-                    })
-                    .collect();
-                frame.create_rich_buffer(&spans, fs, line_h)
-            };
-            buf.shape_until_scroll(frame.font_system_mut(), false);
-            buffers.push(buf);
+        let keys: Vec<OverlayShapeKey> = spec
+            .lines
+            .iter()
+            .map(|line| {
+                OverlayShapeKey::new(
+                    line,
+                    max_chars,
+                    ((f32::from(line.alpha)) * progress) as u8,
+                    &self.font_family,
+                    fs,
+                    line_h,
+                )
+            })
+            .collect();
+        {
+            let mut cache = self.overlay_shapes.borrow_mut();
+            let wanted: std::collections::HashSet<&OverlayShapeKey> = keys.iter().collect();
+            cache.retain(|k, _| wanted.contains(k));
+            for key in &keys {
+                if cache.contains_key(key) {
+                    continue;
+                }
+                let (text, highlights) = (&key.text, &key.highlights);
+                let base = Attrs::new().family(Family::Name(&self.font_family));
+                let mut buf = if highlights.is_empty() {
+                    // Common path (no query / no match): one run, unchanged. The
+                    // line's colour comes from the TextArea default_color below.
+                    frame.create_rich_buffer(&[(text.as_str(), base)], fs, line_h)
+                } else {
+                    // Matched chars glow in the Nord frost accent (alpha-matched to
+                    // the row's shade-in); unmatched runs carry no colour so they
+                    // fall back to default_color (the role / urgency tint). This is
+                    // the fzf-style "here's why this row matched" highlight.
+                    let accent = GlyphonColor::rgba(0x88, 0xC0, 0xD0, key.accent_alpha);
+                    let runs = crate::picker::component::highlight_runs(text, highlights);
+                    let spans: Vec<(&str, Attrs)> = runs
+                        .iter()
+                        .map(|(r, hl)| {
+                            let seg = &text[r.clone()];
+                            if *hl {
+                                (seg, base.clone().color(accent))
+                            } else {
+                                (seg, base.clone())
+                            }
+                        })
+                        .collect();
+                    frame.create_rich_buffer(&spans, fs, line_h)
+                };
+                buf.shape_until_scroll(frame.font_system_mut(), false);
+                cache.insert(key.clone(), buf);
+            }
         }
+        let cache = self.overlay_shapes.borrow();
+        let buffers: Vec<&glyphon::Buffer> = keys.iter().map(|k| &cache[k]).collect();
 
         let pad_y = line_h * 0.5;
         // Cap the rendered lines to those that fit the viewport (panel height
@@ -3303,7 +3364,7 @@ impl TerminalRenderer {
         for (row, &i) in vis.iter().enumerate() {
             let line = &spec.lines[i];
             text_areas.push(glyphon::TextArea {
-                buffer: &buffers[i],
+                buffer: buffers[i],
                 left,
                 top: top0 + (row as f32) * line_h,
                 scale: 1.0,
@@ -7834,6 +7895,32 @@ mod render_invariants {
             "once the fade completes the overlay must stop asking — an \
              animation that never ends is the busy-spin with a nicer name"
         );
+    }
+
+    #[test]
+    fn an_overlay_line_shapes_once_and_only_reshapes_when_what_it_draws_changes() {
+        use crate::picker::component::{LineRole, OverlayLine};
+        let plain = OverlayLine::new("  alpha", LineRole::Row);
+        let key = |line: &OverlayLine, alpha: u8, size: f32| {
+            OverlayShapeKey::new(line, 80, alpha, "mono", size, size * 1.2)
+        };
+        assert_eq!(
+            key(&plain, 255, 14.0),
+            key(&plain, 40, 14.0),
+            "a fading plain row is not re-shaped"
+        );
+        assert_ne!(
+            key(&plain, 255, 14.0),
+            key(&plain, 255, 16.0),
+            "a zoom re-shapes"
+        );
+        let matched = OverlayLine::new("  alpha", LineRole::Row).with_highlights(vec![2, 3]);
+        assert_ne!(
+            key(&matched, 255, 14.0),
+            key(&matched, 40, 14.0),
+            "highlight spans carry their alpha, so a fading match re-shapes and fades with the card"
+        );
+        assert_ne!(key(&plain, 255, 14.0), key(&matched, 255, 14.0));
     }
 
     #[test]
