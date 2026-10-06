@@ -3059,6 +3059,7 @@ impl TerminalRenderer {
         // fade progress (1.0 = fully open / knob off). Read via &self from the
         // Cell the render loop set (draw_overlay takes no `elapsed`).
         let progress = self.overlay_progress.get();
+        self.overlay_motion.remember(spec);
 
         let pad = self.padding_px();
         let pad_x = self.cell_width * 2.0;
@@ -3140,6 +3141,11 @@ impl TerminalRenderer {
                 ((width as f32 - card_w) / 2.0).max(pad),
                 ((height as f32 - card_h) / 2.0).max(pad),
             ),
+        };
+        let lift = (1.0 - progress) * line_h * 0.4;
+        let top0 = match spec.anchor {
+            PickerAnchor::Top => top0 - lift,
+            PickerAnchor::Bottom | PickerAnchor::Center => top0 + lift,
         };
         let panel =
             centered.then(|| centered_panel_geom(left, top0, card_w, card_h, pad, pad_x, pad_y));
@@ -6339,6 +6345,9 @@ impl RenderCallback for TerminalRenderer {
         // Falling THROUGH (rather than returning `false`) is deliberate: the
         // grid checks below still get to ask for the frame, so an overlay open
         // over a live shell keeps animating the cursor exactly as before.
+        if self.overlay_motion.closing() {
+            return true;
+        }
         if !matches!(
             *self.overlay_focus.lock().unwrap(),
             crate::ux::modes::Overlay::None
@@ -7312,7 +7321,20 @@ impl RenderCallback for TerminalRenderer {
             self.motion_picker_animate && !self.reduce_motion,
         );
         match focus {
-            Overlay::None => {}
+            Overlay::None => {
+                if let Some((ghost, alpha)) = self.overlay_motion.ghost() {
+                    self.overlay_progress.set(alpha);
+                    self.draw_overlay(
+                        &ghost,
+                        &mut frame,
+                        ctx.gpu,
+                        ctx.surface_view,
+                        ctx.width,
+                        ctx.height,
+                        &mut overlay_encoder,
+                    );
+                }
+            }
             // The rename sub-mode keeps the picker board visible underneath;
             // the live rename buffer rides the picker's `notice` line (set by
             // the engine's rename handlers), so both states draw the picker.

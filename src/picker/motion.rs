@@ -1,9 +1,11 @@
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 
 use crate::motion::{Curve, EasingKind, Glide, secs};
+use crate::picker::component::OverlaySpec;
 
 const BAR_SECS: f32 = 0.11;
 const CARD_SECS: f32 = 0.14;
+const CLOSE_SECS: f32 = 0.12;
 
 #[derive(Debug)]
 pub struct OverlayMotion {
@@ -13,6 +15,9 @@ pub struct OverlayMotion {
     bar: Cell<Glide>,
     card_w: Cell<Glide>,
     card_h: Cell<Glide>,
+    was_open: Cell<bool>,
+    closed_at: Cell<Option<f32>>,
+    ghost: RefCell<Option<OverlaySpec>>,
 }
 
 impl Default for OverlayMotion {
@@ -31,15 +36,50 @@ impl OverlayMotion {
             bar: Cell::new(glide(BAR_SECS)),
             card_w: Cell::new(glide(CARD_SECS)),
             card_h: Cell::new(glide(CARD_SECS)),
+            was_open: Cell::new(false),
+            closed_at: Cell::new(None),
+            ghost: RefCell::new(None),
         }
     }
 
     pub fn begin_frame(&self, now: f32, open: bool, enabled: bool) {
         self.clock.set(now);
         self.enabled.set(enabled);
-        if !open {
+        if open {
+            self.closed_at.set(None);
+            *self.ghost.borrow_mut() = None;
+        } else {
             self.settled.set(false);
+            if self.was_open.get() && enabled && self.ghost.borrow().is_some() {
+                self.closed_at.set(Some(now));
+            }
         }
+        self.was_open.set(open);
+    }
+
+    pub fn remember(&self, spec: &OverlaySpec) {
+        if self.closed_at.get().is_none() {
+            *self.ghost.borrow_mut() = Some(spec.clone());
+        }
+    }
+
+    #[must_use]
+    pub fn ghost(&self) -> Option<(OverlaySpec, f32)> {
+        let closed = self.closed_at.get()?;
+        let now = self.clock.get();
+        let t = (now - closed) / CLOSE_SECS;
+        if t >= 1.0 {
+            self.closed_at.set(None);
+            *self.ghost.borrow_mut() = None;
+            return None;
+        }
+        let eased = Curve::named(EasingKind::Accelerate).ease(t.clamp(0.0, 1.0));
+        self.ghost.borrow().clone().map(|spec| (spec, 1.0 - eased))
+    }
+
+    #[must_use]
+    pub fn closing(&self) -> bool {
+        self.closed_at.get().is_some()
     }
 
     pub fn end_frame(&self) {
@@ -138,6 +178,62 @@ mod tests {
         assert_eq!(m.card(250.0, 100.0), (250.0, 100.0));
         m.end_frame();
         assert!(!m.in_flight(1.3));
+    }
+
+    fn spec() -> OverlaySpec {
+        use crate::picker::component::{LineRole, OverlayLine};
+        OverlaySpec::new(
+            crate::config::PickerAnchor::Center,
+            vec![OverlayLine::new("▶ session", LineRole::Title)],
+        )
+    }
+
+    #[test]
+    fn closing_leaves_a_ghost_that_fades_out_and_then_clears() {
+        let m = OverlayMotion::new();
+        m.begin_frame(1.0, true, true);
+        m.remember(&spec());
+        m.end_frame();
+        m.begin_frame(2.0, false, true);
+        assert!(m.closing());
+        let (_, a0) = m.ghost().expect("a ghost right after close");
+        assert!((a0 - 1.0).abs() < 1e-6);
+        m.begin_frame(2.06, false, true);
+        let (_, mid) = m.ghost().expect("still fading");
+        assert!(mid > 0.0 && mid < 1.0, "{mid}");
+        m.begin_frame(2.2, false, true);
+        assert!(m.ghost().is_none());
+        assert!(!m.closing(), "the clearing frame ends the close");
+    }
+
+    #[test]
+    fn reopening_mid_close_cancels_the_ghost_and_reduced_motion_never_leaves_one() {
+        let m = OverlayMotion::new();
+        m.begin_frame(1.0, true, true);
+        m.remember(&spec());
+        m.begin_frame(2.0, false, true);
+        m.begin_frame(2.05, true, true);
+        assert!(!m.closing());
+        let r = OverlayMotion::new();
+        r.begin_frame(1.0, true, false);
+        r.remember(&spec());
+        r.begin_frame(2.0, false, false);
+        assert!(!r.closing());
+        assert!(r.ghost().is_none());
+    }
+
+    #[test]
+    fn an_overlay_that_never_drew_a_spec_leaves_no_stale_ghost() {
+        let m = OverlayMotion::new();
+        m.begin_frame(1.0, true, true);
+        m.remember(&spec());
+        m.begin_frame(2.0, true, true);
+        m.begin_frame(3.0, false, true);
+        assert!(
+            !m.closing(),
+            "a search bar closing must not replay an old picker"
+        );
+        assert!(m.ghost().is_none());
     }
 
     #[test]
