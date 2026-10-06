@@ -1067,7 +1067,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d045de693cb712d0b22c6a64be5b953f67b3ce00ab5ad3dd5d8b441886ab8e1a"
 dependencies = [
  "quote",
- "syn 3.0.6",
+ "syn 2.0.119",
 ]
 
 [[package]]
@@ -2739,9 +2739,9 @@ checksum = "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695"
 
 [[package]]
 name = "ishou-tokens"
-version = "0.1.18"
+version = "0.1.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23db07da0d5de4f3a0a689c87d1b407286fbcdaaa4ed5e2c61c6e64efb1f8125"
+checksum = "ccc298c8c7e8274196a91d5217c8f683dff6e2c58970a67ad144abeae02b5afb"
 dependencies = [
  "irodori",
  "serde",

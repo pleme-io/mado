@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "0c4950e115ac2d320b0d59d694ef939d7bbc215fa7ef9b5e7cdcf2e70eb32b83",
+  "cargo_lock_sha256": "7f6385a0cd89fd37e3e2acd2008520f353aa91f132752229a110c9e6eb6ce347",
   "manifest_sha256": {
     "Cargo.toml": "da31e632236a344766abf774b90a7dcff010729b76e37109d5b96165cd36f94f"
   },
@@ -2326,7 +2326,7 @@
           },
           {
             "name": "syn",
-            "package_key": "syn-3.0.6",
+            "package_key": "syn-2.0.119",
             "kind": "normal",
             "features": [
               "extra-traits",
@@ -3152,7 +3152,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.18",
+            "package_key": "ishou-tokens-0.1.19",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -7131,7 +7131,7 @@
           "default"
         ]
       },
-      "ishou-tokens-0.1.18": {
+      "ishou-tokens-0.1.19": {
         "runtime_dependencies": [
           {
             "name": "irodori",
@@ -9135,7 +9135,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.18",
+            "package_key": "ishou-tokens-0.1.19",
             "kind": "normal",
             "features": [
               "wgpu"
@@ -11955,7 +11955,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.18",
+            "package_key": "ishou-tokens-0.1.19",
             "kind": "normal",
             "features": [
               "wgpu"
@@ -12332,7 +12332,7 @@
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.18",
+            "package_key": "ishou-tokens-0.1.19",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20572,7 +20572,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.18",
+            "package_key": "ishou-tokens-0.1.19",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20724,7 +20724,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.18",
+            "package_key": "ishou-tokens-0.1.19",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21255,7 +21255,7 @@
           },
           {
             "name": "ishou_tokens",
-            "package_key": "ishou-tokens-0.1.18",
+            "package_key": "ishou-tokens-0.1.19",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -26487,7 +26487,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.18",
+                "package_key": "ishou-tokens-0.1.19",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -31550,7 +31550,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.18",
+                "package_key": "ishou-tokens-0.1.19",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -35691,7 +35691,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.18",
+                "package_key": "ishou-tokens-0.1.19",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -39962,7 +39962,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.18",
+                "package_key": "ishou-tokens-0.1.19",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -45049,7 +45049,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.18",
+                "package_key": "ishou-tokens-0.1.19",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -49214,7 +49214,7 @@
               },
               {
                 "name": "ishou_tokens",
-                "package_key": "ishou-tokens-0.1.18",
+                "package_key": "ishou-tokens-0.1.19",
                 "kind": "normal",
                 "features": [
                   "wgpu"
@@ -53110,7 +53110,7 @@
     "is_terminal_polyfill-1.70.2": {
       "edition": "2021"
     },
-    "ishou-tokens-0.1.18": {
+    "ishou-tokens-0.1.19": {
       "edition": "2024"
     },
     "itertools-0.10.5": {
