@@ -1067,7 +1067,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d045de693cb712d0b22c6a64be5b953f67b3ce00ab5ad3dd5d8b441886ab8e1a"
 dependencies = [
  "quote",
- "syn 2.0.119",
+ "syn 3.0.6",
 ]
 
 [[package]]
@@ -1403,9 +1403,9 @@ dependencies = [
 
 [[package]]
 name = "either"
-version = "1.18.0"
+version = "1.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "252afb9ae5eaa683babdc6a068b3f5726eb19e05070c731f9b2a23a7c3e8ed34"
+checksum = "0e9c71c2167ca323c882b99918929403426e2373ea17242ff5653e0d5e1058be"
 dependencies = [
  "serde",
 ]
@@ -2949,9 +2949,9 @@ dependencies = [
 
 [[package]]
 name = "kanshou"
-version = "0.1.7"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d68d9ef63ea1ca6e9baab1bca576345729fb486bc3b18186a3b7b1a47165e387"
+checksum = "40b277bb151a354301a5ba8006a93e4b8d404896fbdc50830205a2e611a1551f"
 dependencies = [
  "kanshou-derive",
  "okiba",
@@ -2964,9 +2964,9 @@ dependencies = [
 
 [[package]]
 name = "kanshou-derive"
-version = "0.1.7"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a9cfa3a7c6bff58172a12d89f446142d6673fe384a4525346c5609a97e14a52"
+checksum = "318268ec1d5ef14ce0fe8e7086204c5f06336959b1ba362242dcfdaa7e2fce89"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3138,9 +3138,9 @@ dependencies = [
 
 [[package]]
 name = "kukaku"
-version = "0.1.28"
+version = "0.1.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "402111f42cb70cbd12da8970518f1e5c435ad3b741e39c9f3afbe89d3f179c1a"
+checksum = "30e2dc193fde48564b56824f2f796033bdb4682b4ab40b74eff64250a9988e7e"
 dependencies = [
  "serde",
 ]
@@ -3325,7 +3325,7 @@ dependencies = [
 
 [[package]]
 name = "mado"
-version = "0.1.178"
+version = "0.1.179"
 dependencies = [
  "anyhow",
  "awase",
@@ -4902,9 +4902,9 @@ dependencies = [
 
 [[package]]
 name = "praca"
-version = "0.1.28"
+version = "0.1.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d782d2564f6c0d71b053ba80d6700cd5be5d377779aa897c6ccc5875a56efe9"
+checksum = "42ef29a1516cd1f44d56c23e1c28072087107289e4cb6cb8e70a58b828d8e826"
 dependencies = [
  "ishou-tokens",
  "serde",
@@ -6931,9 +6931,9 @@ dependencies = [
 
 [[package]]
 name = "tear-client"
-version = "0.1.28"
+version = "0.1.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad879307d2afbfb3521b2d531954c55389b7702e95664eb9ec732397e29b021a"
+checksum = "c364285d81976893eddd35438dabd40465852b460a182cf5fec60c428828f957"
 dependencies = [
  "engate-attach",
  "engate-types",
@@ -6945,9 +6945,9 @@ dependencies = [
 
 [[package]]
 name = "tear-config"
-version = "0.1.28"
+version = "0.1.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5c90b405743e587742ec72e46d8cfbab8fb4a8532608cc2e223720030fe3c8e5"
+checksum = "20a79a8980c7e2afa0e476c4ac776a16a63f44a3ad8ef1a110977f66139b4b59"
 dependencies = [
  "anyhow",
  "arc-swap",
@@ -6965,9 +6965,9 @@ dependencies = [
 
 [[package]]
 name = "tear-core"
-version = "0.1.28"
+version = "0.1.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f89ebaf47b6d3ecdd44d29daaa9ab130193c1a75e9e6ae3c714dfd253405cbe"
+checksum = "67440036c8475cffe54aad080b3c16002c26a35db1e96d01f317b163efd8e812"
 dependencies = [
  "anyhow",
  "blake3",
@@ -6991,9 +6991,9 @@ dependencies = [
 
 [[package]]
 name = "tear-daemon"
-version = "0.1.28"
+version = "0.1.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8c14b404470fee5f7deccf4e6c694881ba053687f589f1fe40cfd754aae6bbce"
+checksum = "8b7fc8e66c7bf155f545276c7b31016852200c0701d6995d9f0d0a24acb5938c"
 dependencies = [
  "anyhow",
  "blake3",
@@ -7016,9 +7016,9 @@ dependencies = [
 
 [[package]]
 name = "tear-makimono"
-version = "0.1.28"
+version = "0.1.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "01454b5f84079570862dada160c43da9a68863b73ee55d68a2f2e95e5f4dedcd"
+checksum = "1ef332208bd1266516a6bf81b3f924b55b12607f608d81bcc487cf7e1197ce0b"
 dependencies = [
  "serde",
  "serde_json",
@@ -7029,9 +7029,9 @@ dependencies = [
 
 [[package]]
 name = "tear-tamotsu"
-version = "0.1.28"
+version = "0.1.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b275cf06ae104613b0a03723e932c67625db067399c03ce7882a44f9f086043"
+checksum = "81e9ab0830aabe2eab4529e69d4d10872bda2d570409946b13e90dbfe7bb9f16"
 dependencies = [
  "anyhow",
  "ciborium",
@@ -7045,9 +7045,9 @@ dependencies = [
 
 [[package]]
 name = "tear-types"
-version = "0.1.28"
+version = "0.1.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed0e360da11153762177a56f6070a6714fa01f850e2470b57872244190339c63"
+checksum = "c30e88679a4f9e1e628e2909656b63d6fd6b285ed96d743a47205898419dfe03"
 dependencies = [
  "anyhow",
  "blake3",
@@ -9042,9 +9042,9 @@ dependencies = [
 
 [[package]]
 name = "zeroize"
-version = "1.9.0"
+version = "1.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e13c156562582aa81c60cb29407084cdb54c4164760106ab78e6c5b0858cf64e"
+checksum = "e13084392c5e4bc371903e2935a5eaeed24905a7511356b883835e18a78f6879"
 
 [[package]]
 name = "zerotrie"
