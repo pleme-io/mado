@@ -446,6 +446,15 @@ fn next_live_pane(sessions: &[tear_types::TearSession], exclude: PaneId) -> Opti
         .map(|p| p.id)
 }
 
+const REATTACH_BACKOFF: std::time::Duration = std::time::Duration::from_millis(500);
+
+fn stream_lost_but_pane_runs(control: &dyn tear_types::MultiplexerControl, cur: PaneId) -> bool {
+    matches!(
+        control.get_pane(cur),
+        Ok(p) if matches!(p.state, tear_types::PaneState::Running)
+    )
+}
+
 /// What an idle tick must do about the pane the window is showing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum DisplayedPaneFate {
@@ -694,9 +703,15 @@ where
     let terminal_for_attach = Arc::clone(&terminal);
     let build_attach_live = move |producer: P,
                                   response_writer: crate::engate_consumer::ResponseWriter|
-          -> Result<
-        engate_attach::Attach<engate_types::Live, P, crate::engate_consumer::TerminalSink>,
-    > {
+          -> Result<(
+        engate_attach::Attach<
+            engate_types::Live,
+            crate::stream_watch::StreamWatch<P>,
+            crate::engate_consumer::TerminalSink,
+        >,
+        crate::stream_watch::StreamEnded,
+    )> {
+        let (producer, ended) = crate::stream_watch::StreamWatch::new(producer);
         let consumer = crate::engate_consumer::TerminalSink::new(
             Arc::clone(&terminal_for_attach),
             response_writer,
@@ -708,10 +723,10 @@ where
         let (attach_subscribed, history) =
             attach_builder.subscribe().context("engate.subscribe")?;
         let attach_synced = attach_subscribed.replay(history).context("engate.replay")?;
-        Ok(attach_synced.start_live())
+        Ok((attach_synced.start_live(), ended))
     };
 
-    let attach_live = build_attach_live(producer, Arc::clone(&response_writer))?;
+    let (attach_live, first_ended) = build_attach_live(producer, Arc::clone(&response_writer))?;
     crate::perf::log_phase("pane_subscribed");
 
     // Shell-exit detection: when the engate Producer's bytes channel
@@ -732,8 +747,13 @@ where
     //     subscriber (dropping the cell unsubscribes; it does not EOF
     //     the PTY).
     let mut live_cell: Option<
-        engate_attach::Attach<engate_types::Live, P, crate::engate_consumer::TerminalSink>,
+        engate_attach::Attach<
+            engate_types::Live,
+            crate::stream_watch::StreamWatch<P>,
+            crate::engate_consumer::TerminalSink,
+        >,
     > = None;
+    let mut live_ended: Option<crate::stream_watch::StreamEnded> = None;
     if switch.is_none() {
         let child_exited_engate = Arc::clone(&child_exited);
         let title_kind_owned: String = title_kind.to_owned();
@@ -753,6 +773,7 @@ where
         // Switchable path: keep the attach in the cell; the event loop
         // pumps it with `poll_one()` every tick.
         live_cell = Some(attach_live);
+        live_ended = Some(first_ended);
     }
 
     // Initial size-sync: push pane_resize_absolute BEFORE the event
@@ -940,6 +961,8 @@ where
     let response_writer_for_switch = Arc::clone(&response_writer);
     let terminal_for_switch = Arc::clone(&terminal);
     let mut live_cell = live_cell;
+    let mut live_ended = live_ended;
+    let mut last_reattach = std::time::Instant::now();
 
     // Frame pacing — and THIS is the site that actually costs the operator:
     // the embedded-tear window is the default render mode. Full reasoning and
@@ -1017,12 +1040,29 @@ where
             // already reads the new pane), then drain the new pane's
             // bytes via poll_one.
             if let Some(reqs) = switch_requests.as_ref() {
-                if let Some(target) = reqs.take() {
+                let reattach = if live_ended
+                    .as_ref()
+                    .is_some_and(crate::stream_watch::StreamEnded::is_set)
+                    && last_reattach.elapsed() >= REATTACH_BACKOFF
+                {
+                    last_reattach = std::time::Instant::now();
+                    current_pane_for_switch
+                        .as_ref()
+                        .map(CurrentPane::get)
+                        .filter(|cur| stream_lost_but_pane_runs(&*control_for_switch, *cur))
+                } else {
+                    None
+                };
+                let pending = reqs
+                    .take()
+                    .map(|t| (t, false))
+                    .or(reattach.map(|t| (t, true)));
+                if let Some((target, forced)) = pending {
                     let from = current_pane_for_switch
                         .as_ref()
                         .map(CurrentPane::get)
                         .unwrap_or(target);
-                    if target != from {
+                    if target != from || forced {
                         // 1. Drop the old attach — unsubscribes the old
                         //    pane's byte channel WITHOUT EOF-ing its PTY
                         //    (the pane stays alive for a later switch
@@ -1047,8 +1087,9 @@ where
                                     producer,
                                     Arc::clone(&response_writer_for_switch),
                                 ) {
-                                    Ok(new_live) => {
+                                    Ok((new_live, ended)) => {
                                         live_cell = Some(new_live);
+                                        live_ended = Some(ended);
                                         // Size-sync the new pane to the
                                         // window's current grid so it
                                         // doesn't briefly hold tear's
