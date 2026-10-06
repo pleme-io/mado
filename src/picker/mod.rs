@@ -26,6 +26,7 @@
 //! pickers, Ctrl-R history, skim-tab, tend) consume the same way.
 
 pub mod component;
+pub mod motion;
 pub mod presets;
 pub mod reconcile;
 pub mod state;

@@ -1591,6 +1591,7 @@ pub struct TerminalRenderer {
     /// draw path.
     overlay_open_at: std::cell::Cell<Option<f32>>,
     overlay_progress: std::cell::Cell<f32>,
+    overlay_motion: crate::picker::motion::OverlayMotion,
     /// Selection highlight background (RGBA).
     #[invalidating_setter]
     selection_bg: [f32; 4],
@@ -2350,6 +2351,7 @@ impl TerminalRenderer {
             bell_flash_curve: crate::motion::Curve::Linear,
             overlay_open_at: std::cell::Cell::new(None),
             overlay_progress: std::cell::Cell::new(1.0),
+            overlay_motion: crate::picker::motion::OverlayMotion::new(),
             // Nord frost #88C0D0 at 0.3 alpha, linearized for the rect
             // pipeline (see `overlay_rect_color`). NOT the raw byte/255
             // triple — that would render washed-out on the sRGB surface.
@@ -3182,7 +3184,7 @@ impl TerminalRenderer {
             // within the windowed line list (the selected row is always kept
             // visible by `viewport_line_window`), not its absolute index.
             if let Some(vis_pos) = sel_idx.and_then(|s| vis.iter().position(|&i| i == s)) {
-                let bar_y = top0 + vis_pos as f32 * line_h;
+                let bar_y = top0 + self.overlay_motion.bar_row(vis_pos as f32) * line_h;
                 rects.push(RectInstance::rounded(
                     [px + pad_x * 0.5, bar_y],
                     [pw - pad_x, line_h],
@@ -6337,6 +6339,9 @@ impl RenderCallback for TerminalRenderer {
             if self.suggestion_fades_in_flight(q.elapsed) {
                 return true;
             }
+            if self.overlay_motion.in_flight(q.elapsed) {
+                return true;
+            }
             // (3) Something the overlay draws actually changed.
             if self.overlay_snapshot() != self.last_overlay_snapshot {
                 return true;
@@ -7288,6 +7293,11 @@ impl RenderCallback for TerminalRenderer {
         }
         self.overlay_progress
             .set(self.overlay_fade_progress(ctx.elapsed));
+        self.overlay_motion.begin_frame(
+            ctx.elapsed,
+            !matches!(focus, Overlay::None),
+            self.motion_picker_animate && !self.reduce_motion,
+        );
         match focus {
             Overlay::None => {}
             // The rename sub-mode keeps the picker board visible underneath;
@@ -7355,6 +7365,9 @@ impl RenderCallback for TerminalRenderer {
                     &mut overlay_encoder,
                 );
             }
+        }
+        if !matches!(focus, Overlay::None) {
+            self.overlay_motion.end_frame();
         }
 
         // Drop the text frame BEFORE submit: its Drop trims the atlas exactly
@@ -7748,6 +7761,35 @@ mod render_invariants {
             "once the fade completes the overlay must stop asking — an \
              animation that never ends is the busy-spin with a nicer name"
         );
+    }
+
+    #[test]
+    fn a_gliding_selection_bar_keeps_painting_and_then_rests() {
+        let (mut r, term) = harness(20, 5);
+        settled(&mut r, &term);
+        r.cursor_blink = false;
+        *r.overlay_focus.lock().unwrap() = crate::ux::modes::Overlay::SessionPicker;
+        r.motion_picker_animate = true;
+        r.overlay_open_at.set(Some(0.0));
+        r.overlay_motion.begin_frame(1.0, true, true);
+        let _ = r.overlay_motion.bar_row(0.0);
+        r.overlay_motion.end_frame();
+        r.overlay_motion.begin_frame(1.0, true, true);
+        let _ = r.overlay_motion.bar_row(3.0);
+        r.overlay_motion.end_frame();
+        let mid = madori::FrameQuery {
+            elapsed: 1.05,
+            dt: 0.0,
+        };
+        r.last_overlay_snapshot = r.overlay_snapshot();
+        r.last_overlay_paint_at = mid.elapsed;
+        assert!(r.needs_frame(mid), "a bar in flight owes frames");
+        let after = madori::FrameQuery {
+            elapsed: 1.5,
+            dt: 0.0,
+        };
+        r.last_overlay_paint_at = after.elapsed;
+        assert!(!r.needs_frame(after), "a landed bar asks for nothing");
     }
 
     #[test]
