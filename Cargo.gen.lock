@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "cargo_lock_sha256": "95bc326e4b863920c053c54f4298f01a5b66af2532d21a2aaafea34321163889",
+  "cargo_lock_sha256": "fe1bef4dcaef0bf6d3d64d7bbfde2c35ae1165914dcb009676c5c5e105df56da",
   "manifest_sha256": {
     "Cargo.toml": "4c7c94eaebb861805cb0b8878eaf7b2948e71904007d54e0d22e1e3d2c1c2daf"
   },
@@ -8664,7 +8664,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "kukaku-0.1.27": {
+      "kukaku-0.1.28": {
         "runtime_dependencies": [
           {
             "name": "serde",
@@ -9982,6 +9982,8 @@
         "features": [
           "default",
           "memoffset",
+          "process",
+          "signal",
           "socket",
           "term"
         ]
@@ -12389,7 +12391,7 @@
           "std"
         ]
       },
-      "praca-0.1.27": {
+      "praca-0.1.28": {
         "runtime_dependencies": [
           {
             "name": "ishou_tokens",
@@ -12425,7 +12427,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.27",
+            "package_key": "tear-types-0.1.28",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20540,7 +20542,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-client-0.1.27": {
+      "tear-client-0.1.28": {
         "runtime_dependencies": [
           {
             "name": "engate_attach",
@@ -20584,7 +20586,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.27",
+            "package_key": "tear-config-0.1.28",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20594,7 +20596,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.27",
+            "package_key": "tear-types-0.1.28",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20609,7 +20611,7 @@
           "engate"
         ]
       },
-      "tear-config-0.1.27": {
+      "tear-config-0.1.28": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20709,7 +20711,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.27",
+            "package_key": "tear-types-0.1.28",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20741,7 +20743,7 @@
         "build_dependencies": [],
         "features": []
       },
-      "tear-core-0.1.27": {
+      "tear-core-0.1.28": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20847,7 +20849,27 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.27",
+            "package_key": "tear-config-0.1.28",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "makimono",
+            "package_key": "tear-makimono-0.1.28",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tamotsu",
+            "package_key": "tear-tamotsu-0.1.28",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20857,7 +20879,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.27",
+            "package_key": "tear-types-0.1.28",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -20912,7 +20934,7 @@
           "engate"
         ]
       },
-      "tear-daemon-0.1.27": {
+      "tear-daemon-0.1.28": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -20981,7 +21003,7 @@
           },
           {
             "name": "praca",
-            "package_key": "praca-0.1.27",
+            "package_key": "praca-0.1.28",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21023,7 +21045,7 @@
           },
           {
             "name": "tear_config",
-            "package_key": "tear-config-0.1.27",
+            "package_key": "tear-config-0.1.28",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21033,7 +21055,27 @@
           },
           {
             "name": "tear_core",
-            "package_key": "tear-core-0.1.27",
+            "package_key": "tear-core-0.1.28",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "makimono",
+            "package_key": "tear-makimono-0.1.28",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tamotsu",
+            "package_key": "tear-tamotsu-0.1.28",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21043,7 +21085,7 @@
           },
           {
             "name": "tear_types",
-            "package_key": "tear-types-0.1.27",
+            "package_key": "tear-types-0.1.28",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21081,7 +21123,158 @@
           "default"
         ]
       },
-      "tear-types-0.1.27": {
+      "tear-makimono-0.1.28": {
+        "runtime_dependencies": [
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.229",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde_json",
+            "package_key": "serde_json-1.0.151",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tear_types",
+            "package_key": "tear-types-0.1.28",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "thiserror",
+            "package_key": "thiserror-2.0.21",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tracing",
+            "package_key": "tracing-0.1.44",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "tear-tamotsu-0.1.28": {
+        "runtime_dependencies": [
+          {
+            "name": "anyhow",
+            "package_key": "anyhow-1.0.104",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "ciborium",
+            "package_key": "ciborium-0.2.2",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "nix",
+            "package_key": "nix-0.30.1",
+            "kind": "normal",
+            "features": [
+              "process",
+              "signal",
+              "socket",
+              "term"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "parking_lot",
+            "package_key": "parking_lot-0.12.5",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "portable_pty",
+            "package_key": "portable-pty-0.9.0",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "serde",
+            "package_key": "serde-1.0.229",
+            "kind": "normal",
+            "features": [
+              "derive"
+            ],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "makimono",
+            "package_key": "tear-makimono-0.1.28",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          },
+          {
+            "name": "tracing",
+            "package_key": "tracing-0.1.44",
+            "kind": "normal",
+            "features": [],
+            "uses_default_features": true,
+            "optional": false,
+            "target": null,
+            "tree": "target"
+          }
+        ],
+        "build_dependencies": [],
+        "features": []
+      },
+      "tear-types-0.1.28": {
         "runtime_dependencies": [
           {
             "name": "anyhow",
@@ -21135,7 +21328,7 @@
           },
           {
             "name": "kukaku",
-            "package_key": "kukaku-0.1.27",
+            "package_key": "kukaku-0.1.28",
             "kind": "normal",
             "features": [],
             "uses_default_features": true,
@@ -21206,7 +21399,7 @@
           },
           {
             "name": "getrandom",
-            "package_key": "getrandom-0.4.3",
+            "package_key": "getrandom-0.3.4",
             "kind": "normal",
             "features": [],
             "uses_default_features": false,
@@ -26632,7 +26825,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.27",
+                "package_key": "praca-0.1.28",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26781,7 +26974,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.27",
+                "package_key": "tear-client-0.1.28",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -26793,7 +26986,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.27",
+                "package_key": "tear-config-0.1.28",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -26803,7 +26996,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.27",
+                "package_key": "tear-core-0.1.28",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -26815,7 +27008,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.27",
+                "package_key": "tear-types-0.1.28",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -31646,7 +31839,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.27",
+                "package_key": "praca-0.1.28",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31795,7 +31988,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.27",
+                "package_key": "tear-client-0.1.28",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -31807,7 +32000,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.27",
+                "package_key": "tear-config-0.1.28",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -31817,7 +32010,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.27",
+                "package_key": "tear-core-0.1.28",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -31829,7 +32022,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.27",
+                "package_key": "tear-types-0.1.28",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -35787,7 +35980,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.27",
+                "package_key": "praca-0.1.28",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35936,7 +36129,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.27",
+                "package_key": "tear-client-0.1.28",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -35948,7 +36141,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.27",
+                "package_key": "tear-config-0.1.28",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -35958,7 +36151,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.27",
+                "package_key": "tear-core-0.1.28",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -35970,7 +36163,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.27",
+                "package_key": "tear-types-0.1.28",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -40107,7 +40300,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.27",
+                "package_key": "praca-0.1.28",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40256,7 +40449,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.27",
+                "package_key": "tear-client-0.1.28",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -40268,7 +40461,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.27",
+                "package_key": "tear-config-0.1.28",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -40278,7 +40471,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.27",
+                "package_key": "tear-core-0.1.28",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -40290,7 +40483,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.27",
+                "package_key": "tear-types-0.1.28",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -45145,7 +45338,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.27",
+                "package_key": "praca-0.1.28",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45294,7 +45487,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.27",
+                "package_key": "tear-client-0.1.28",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -45306,7 +45499,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.27",
+                "package_key": "tear-config-0.1.28",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -45316,7 +45509,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.27",
+                "package_key": "tear-core-0.1.28",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -45328,7 +45521,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.27",
+                "package_key": "tear-types-0.1.28",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -49310,7 +49503,7 @@
               },
               {
                 "name": "praca",
-                "package_key": "praca-0.1.27",
+                "package_key": "praca-0.1.28",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49459,7 +49652,7 @@
               },
               {
                 "name": "tear_client",
-                "package_key": "tear-client-0.1.27",
+                "package_key": "tear-client-0.1.28",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -49471,7 +49664,7 @@
               },
               {
                 "name": "tear_config",
-                "package_key": "tear-config-0.1.27",
+                "package_key": "tear-config-0.1.28",
                 "kind": "normal",
                 "features": [],
                 "uses_default_features": true,
@@ -49481,7 +49674,7 @@
               },
               {
                 "name": "tear_core",
-                "package_key": "tear-core-0.1.27",
+                "package_key": "tear-core-0.1.28",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -49493,7 +49686,7 @@
               },
               {
                 "name": "tear_types",
-                "package_key": "tear-types-0.1.27",
+                "package_key": "tear-types-0.1.28",
                 "kind": "normal",
                 "features": [
                   "engate"
@@ -53051,7 +53244,7 @@
     "kube-runtime-0.99.0": {
       "edition": "2021"
     },
-    "kukaku-0.1.27": {
+    "kukaku-0.1.28": {
       "edition": "2024"
     },
     "lazy_static-1.5.0": {
@@ -53590,7 +53783,7 @@
     "ppv-lite86-0.2.21": {
       "edition": "2021"
     },
-    "praca-0.1.27": {
+    "praca-0.1.28": {
       "edition": "2024"
     },
     "precomputed-hash-0.1.1": {
@@ -54143,19 +54336,39 @@
         }
       ]
     },
-    "tear-client-0.1.27": {
+    "tear-client-0.1.28": {
       "edition": "2024"
     },
-    "tear-config-0.1.27": {
+    "tear-config-0.1.28": {
       "edition": "2024"
     },
-    "tear-core-0.1.27": {
+    "tear-core-0.1.28": {
       "edition": "2024"
     },
-    "tear-daemon-0.1.27": {
+    "tear-daemon-0.1.28": {
       "edition": "2024"
     },
-    "tear-types-0.1.27": {
+    "tear-makimono-0.1.28": {
+      "edition": "2024",
+      "lib_target": {
+        "name": "makimono",
+        "path": "src/lib.rs"
+      }
+    },
+    "tear-tamotsu-0.1.28": {
+      "edition": "2024",
+      "lib_target": {
+        "name": "tamotsu",
+        "path": "src/lib.rs"
+      },
+      "binaries": [
+        {
+          "name": "tamotsu",
+          "path": "src/main.rs"
+        }
+      ]
+    },
+    "tear-types-0.1.28": {
       "edition": "2024"
     },
     "tempfile-3.27.0": {

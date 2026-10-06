@@ -194,7 +194,7 @@ dependencies = [
  "objc2-foundation 0.3.2",
  "parking_lot",
  "percent-encoding",
- "windows-sys 0.60.2",
+ "windows-sys 0.52.0",
  "x11rb",
 ]
 
@@ -1276,7 +1276,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users 0.5.3",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -1505,7 +1505,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -2466,7 +2466,7 @@ dependencies = [
  "js-sys",
  "log",
  "wasm-bindgen",
- "windows-core 0.62.2",
+ "windows-core 0.58.0",
 ]
 
 [[package]]
@@ -2718,7 +2718,7 @@ checksum = "3640c1c38b8e4e43584d8df18be5fc6b0aa314ce6ebf51b53313d4306cca8e46"
 dependencies = [
  "hermit-abi",
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3138,9 +3138,9 @@ dependencies = [
 
 [[package]]
 name = "kukaku"
-version = "0.1.27"
+version = "0.1.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36d5544ae04661d13d9c4673f9a02bfa1280e5cf77f5b4e5be4ab58d4794633b"
+checksum = "402111f42cb70cbd12da8970518f1e5c435ad3b741e39c9f3afbe89d3f179c1a"
 dependencies = [
  "serde",
 ]
@@ -3752,7 +3752,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -4915,9 +4915,9 @@ dependencies = [
 
 [[package]]
 name = "praca"
-version = "0.1.27"
+version = "0.1.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9015785af5267b90fbda74b9f22ca8e1c9aa4936bc1520f7c5332306da41b96d"
+checksum = "3d782d2564f6c0d71b053ba80d6700cd5be5d377779aa897c6ccc5875a56efe9"
 dependencies = [
  "ishou-tokens",
  "serde",
@@ -5122,7 +5122,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -5582,7 +5582,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.12.1",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -6944,9 +6944,9 @@ dependencies = [
 
 [[package]]
 name = "tear-client"
-version = "0.1.27"
+version = "0.1.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "041d0ba1642707e895182191e244bd8e01f306a5929117dae6b9f81fcc92e885"
+checksum = "ad879307d2afbfb3521b2d531954c55389b7702e95664eb9ec732397e29b021a"
 dependencies = [
  "engate-attach",
  "engate-types",
@@ -6958,9 +6958,9 @@ dependencies = [
 
 [[package]]
 name = "tear-config"
-version = "0.1.27"
+version = "0.1.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8afc208d0f9ff1ec89340ce8536ffb6ac0ca7381aba1433d4b2bc4e856eff71"
+checksum = "5c90b405743e587742ec72e46d8cfbab8fb4a8532608cc2e223720030fe3c8e5"
 dependencies = [
  "anyhow",
  "arc-swap",
@@ -6978,9 +6978,9 @@ dependencies = [
 
 [[package]]
 name = "tear-core"
-version = "0.1.27"
+version = "0.1.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88fce85128ae38a3f565face018e168c6a7923348a1060a6cef44b59724b4f78"
+checksum = "9f89ebaf47b6d3ecdd44d29daaa9ab130193c1a75e9e6ae3c714dfd253405cbe"
 dependencies = [
  "anyhow",
  "blake3",
@@ -6993,6 +6993,8 @@ dependencies = [
  "serde",
  "serde_json",
  "tear-config",
+ "tear-makimono",
+ "tear-tamotsu",
  "tear-types",
  "thiserror 2.0.21",
  "tracing",
@@ -7002,9 +7004,9 @@ dependencies = [
 
 [[package]]
 name = "tear-daemon"
-version = "0.1.27"
+version = "0.1.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dbdbef2ccdc95cd44966281f95eeaf8bcc87ccccd208e7c4998e38d588492ed8"
+checksum = "8c14b404470fee5f7deccf4e6c694881ba053687f589f1fe40cfd754aae6bbce"
 dependencies = [
  "anyhow",
  "blake3",
@@ -7018,16 +7020,47 @@ dependencies = [
  "serde_yaml_ng",
  "tear-config",
  "tear-core",
+ "tear-makimono",
+ "tear-tamotsu",
  "tear-types",
  "tokio",
  "tracing",
 ]
 
 [[package]]
-name = "tear-types"
-version = "0.1.27"
+name = "tear-makimono"
+version = "0.1.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "941322668b7ff542a069b03133e3fb76acbcd61e4c1197a3c6c8055e26161b10"
+checksum = "01454b5f84079570862dada160c43da9a68863b73ee55d68a2f2e95e5f4dedcd"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tear-types",
+ "thiserror 2.0.21",
+ "tracing",
+]
+
+[[package]]
+name = "tear-tamotsu"
+version = "0.1.28"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b275cf06ae104613b0a03723e932c67625db067399c03ce7882a44f9f086043"
+dependencies = [
+ "anyhow",
+ "ciborium",
+ "nix 0.30.1",
+ "parking_lot",
+ "portable-pty",
+ "serde",
+ "tear-makimono",
+ "tracing",
+]
+
+[[package]]
+name = "tear-types"
+version = "0.1.28"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed0e360da11153762177a56f6070a6714fa01f850e2470b57872244190339c63"
 dependencies = [
  "anyhow",
  "blake3",
@@ -7048,10 +7081,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.4.3",
+ "getrandom 0.3.4",
  "once_cell",
  "rustix 1.1.5",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -8350,7 +8383,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
