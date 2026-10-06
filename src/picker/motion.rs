@@ -3,6 +3,7 @@ use std::cell::Cell;
 use crate::motion::{Curve, EasingKind, Glide, secs};
 
 const BAR_SECS: f32 = 0.11;
+const CARD_SECS: f32 = 0.14;
 
 #[derive(Debug)]
 pub struct OverlayMotion {
@@ -10,6 +11,8 @@ pub struct OverlayMotion {
     enabled: Cell<bool>,
     settled: Cell<bool>,
     bar: Cell<Glide>,
+    card_w: Cell<Glide>,
+    card_h: Cell<Glide>,
 }
 
 impl Default for OverlayMotion {
@@ -26,6 +29,8 @@ impl OverlayMotion {
             enabled: Cell::new(true),
             settled: Cell::new(false),
             bar: Cell::new(glide(BAR_SECS)),
+            card_w: Cell::new(glide(CARD_SECS)),
+            card_h: Cell::new(glide(CARD_SECS)),
         }
     }
 
@@ -47,8 +52,15 @@ impl OverlayMotion {
     }
 
     #[must_use]
+    pub fn card(&self, w: f32, h: f32) -> (f32, f32) {
+        (self.follow(&self.card_w, w), self.follow(&self.card_h, h))
+    }
+
+    #[must_use]
     pub fn in_flight(&self, now: f32) -> bool {
-        self.bar.get().in_flight(now)
+        [&self.bar, &self.card_w, &self.card_h]
+            .iter()
+            .any(|g| g.get().in_flight(now))
     }
 
     fn follow(&self, cell: &Cell<Glide>, target: f32) -> f32 {
@@ -105,6 +117,27 @@ mod tests {
         frame(&m, 1.0, 7.0);
         m.begin_frame(2.0, false, true);
         assert_eq!(frame(&m, 3.0, 0.0), 0.0);
+    }
+
+    #[test]
+    fn the_card_resizes_smoothly_when_the_result_set_changes() {
+        let m = OverlayMotion::new();
+        m.begin_frame(1.0, true, true);
+        assert_eq!(m.card(400.0, 300.0), (400.0, 300.0), "opens at full size");
+        m.end_frame();
+        m.begin_frame(1.0, true, true);
+        let _ = m.card(250.0, 100.0);
+        m.end_frame();
+        m.begin_frame(1.07, true, true);
+        let (w, h) = m.card(250.0, 100.0);
+        m.end_frame();
+        assert!(w < 400.0 && w > 250.0, "{w}");
+        assert!(h < 300.0 && h > 100.0, "{h}");
+        assert!(m.in_flight(1.07));
+        m.begin_frame(1.3, true, true);
+        assert_eq!(m.card(250.0, 100.0), (250.0, 100.0));
+        m.end_frame();
+        assert!(!m.in_flight(1.3));
     }
 
     #[test]

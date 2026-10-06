@@ -400,6 +400,15 @@ fn centered_panel_geom(
     (px, py, pw, ph)
 }
 
+fn card_text_bounds(px: f32, py: f32, pw: f32, ph: f32) -> glyphon::TextBounds {
+    glyphon::TextBounds {
+        left: px.floor() as i32,
+        top: py.floor() as i32,
+        right: (px + pw).ceil() as i32,
+        bottom: (py + ph).ceil() as i32,
+    }
+}
+
 /// The horizontal analog of `draw_overlay`'s vertical `max_lines` fit: how
 /// wide a single overlay line's shaped text may be before the panel (content
 /// + the card's own `2*pad_x` horizontal padding, inset `pad` from the window
@@ -3118,17 +3127,22 @@ impl TerminalRenderer {
         };
         let block_h = vis.len() as f32 * line_h;
         let edge_left = pad + pad_x;
+        let centered = matches!(spec.anchor, PickerAnchor::Center);
+        let (card_w, card_h) = if centered {
+            self.overlay_motion.card(vis_max_w(), block_h)
+        } else {
+            (vis_max_w(), block_h)
+        };
         let (left, top0) = match spec.anchor {
             PickerAnchor::Top => (edge_left, pad + self.cell_height),
             PickerAnchor::Bottom => (edge_left, (height as f32 - block_h - pad).max(pad)),
-            PickerAnchor::Center => {
-                let max_w = vis_max_w();
-                (
-                    ((width as f32 - max_w) / 2.0).max(pad),
-                    ((height as f32 - block_h) / 2.0).max(pad),
-                )
-            }
+            PickerAnchor::Center => (
+                ((width as f32 - card_w) / 2.0).max(pad),
+                ((height as f32 - card_h) / 2.0).max(pad),
+            ),
         };
+        let panel =
+            centered.then(|| centered_panel_geom(left, top0, card_w, card_h, pad, pad_x, pad_y));
 
         let style = self.overlay_style;
 
@@ -3137,10 +3151,7 @@ impl TerminalRenderer {
         // an accent border, the dark panel fill, and a highlight bar behind
         // the selected row. Drawn through the rect pipeline FIRST; the text
         // pass below lands on top. Top/Bottom stay text-only (unchanged).
-        if matches!(spec.anchor, PickerAnchor::Center) {
-            let content_w = vis_max_w();
-            let (px, py, pw, ph) =
-                centered_panel_geom(left, top0, content_w, block_h, pad, pad_x, pad_y);
+        if let Some((px, py, pw, ph)) = panel {
             let radius = (line_h * 0.55).min(pw.min(ph) / 2.0);
             let border_w = 1.5_f32;
             let lin = |c: crate::terminal::Color, a: f32| -> [f32; 4] {
@@ -3239,6 +3250,10 @@ impl TerminalRenderer {
             GlyphonColor::rgba(c.r, c.g, c.b, ((f32::from(line.alpha)) * progress) as u8)
         };
 
+        let bounds = panel.map_or_else(
+            || garasu::PaneRect::root(width, height).text_bounds(),
+            |(px, py, pw, ph)| card_text_bounds(px, py, pw, ph),
+        );
         // Render only the visible (viewport-fitted) lines, each at its VISIBLE
         // row position so the block stays flush with the centred card.
         let mut text_areas = Vec::with_capacity(vis.len());
@@ -3249,9 +3264,7 @@ impl TerminalRenderer {
                 left,
                 top: top0 + (row as f32) * line_h,
                 scale: 1.0,
-                // WINDOW-level chrome — see the note at the sibling site.
-                // `root(..)` here is the answer, not a pending migration.
-                bounds: garasu::PaneRect::root(width, height).text_bounds(),
+                bounds,
                 default_color: color_for(line),
                 custom_glyphs: &[],
             });
