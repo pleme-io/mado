@@ -8,6 +8,13 @@
 > again** after M2 — M7 consumes this contract, it does not re-open
 > the grid.
 
+> **The tear runtimes.** The tear ↔ mado path — the UI thread, the wake
+> path, frame pacing, the view lane, attach and switch — is measured and
+> planned in tear's
+> [`docs/PERFORMANCE.md`](https://github.com/pleme-io/tear/blob/main/docs/PERFORMANCE.md).
+> Where this contract and that plan disagree about the tear runtimes, the
+> plan is current; its §10 lists the corrections this document is owed.
+
 ## Why this exists
 
 M7's threading work (bounded parse mailbox + coalesce-redraw, then
